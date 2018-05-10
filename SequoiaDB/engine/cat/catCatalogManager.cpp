@@ -712,15 +712,6 @@ namespace engine
                        error, PDERROR, "PageSize must be 4K/8K/16K/32K/64K/128K/256K/512K" ) ;
             ++expected ;
          }
-         else if ( 0 == ossStrcmp( ele.fieldName(), CAT_CAPPED_NAME ) )
-         {
-            PD_CHECK( ele.isBoolean(), SDB_INVALIDARG, error, PDERROR,
-                      "Field[%s] type[%d] error", CAT_CAPPED_NAME,
-                      ele.type() ) ;
-            csInfo._type = ( true == ele.boolean() ) ?
-                           DMS_STORAGE_CAPPED : DMS_STORAGE_NORMAL ;
-            ++expected ;
-         }
          else
          {
             PD_RC_CHECK ( SDB_INVALIDARG, PDERROR,

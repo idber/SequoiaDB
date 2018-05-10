@@ -1,11 +1,10 @@
-//@ sourceURL=Conf.js
 (function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
    sacApp.controllerProvider.register( 'Deploy.Sdb.Conf.Ctrl', function( $scope, $compile, $location, $rootScope, SdbRest ){
 
       //初始化
-      $scope.DeployMode = 'distribution' ;
+      var deployMode = 'distribution' ;
       $scope.IsAllClear = false ;
       $scope.Conf1 = {} ;
       $scope.Conf2 = {} ;
@@ -16,6 +15,7 @@
       $scope.currentTemplate  = {} ;
       $scope.RedundancyChart = {} ;
       $scope.HostGridOptions = { 'titleWidth': [ '30px', 50, 50 ] } ;
+
       $scope.RedundancyChart['options'] = $.extend( true, {}, window.SdbSacManagerConf.RedundancyChart ) ;
       $scope.RedundancyChart['options']['title']['text']     = $scope.autoLanguage( '容量信息' ) ;
       $scope.RedundancyChart['options']['legend']['data'][0] = $scope.autoLanguage( '可用容量' ) ;
@@ -89,7 +89,7 @@
                } ) ;
             }
             //计算总节点数
-            if( $scope.DeployMode == 'distribution' )
+            if( deployMode == 'distribution' )
             {
                $scope.Conf1['SumNode'] = parseInt( formVal['replicanum'] ) * parseInt( formVal['datagroupnum'] ) + parseInt( formVal['catalognum'] ) + ( formVal['coordnum'] == 0 ? $scope.Conf1['HostNum'] : parseInt( formVal['coordnum'] ) ) ;
             }
@@ -178,8 +178,8 @@
                         "value": "",
                         "valid": [],
                         "onChange": function( name, key, value ){
-                           $scope.DeployMode = value ;
-                           if( $scope.DeployMode == 'distribution' )
+                           deployMode = value ;
+                           if( deployMode == 'distribution' )
                            {
                               $.each( $scope.HostList, function( index ){
                                  $scope.HostList[index]['checked'] = true ;
@@ -268,7 +268,7 @@
 
       //单机模式用单选
       $scope.HostRadio = function(){
-         if( $scope.DeployMode == 'standalone' )
+         if( deployMode == 'standalone' )
          {
             $.each( $scope.HostList, function( index ){
                if( $scope.HostList[index]['checked'] == true )
@@ -278,30 +278,69 @@
             } ) ;
          }
       }
-
-      //选择安装业务的主机 弹窗
-      $scope.SwitchHostWindow = {
-         'config': {},
-         'callback': {}
-      } ;
-
-      //打开 选择安装业务的主机 弹窗
-      $scope.ShowSwitchHost = function(){
+  
+      //创建 选择安装业务的主机 弹窗
+      $scope.CreateSwitchHostModel = function(){
          var hostBox = null ;
          var grid = null ;
          var tempHostList = $.extend( true, [], $scope.HostList ) ;
-         $scope.SwitchHostWindow['callback']['SetOkButton']( $scope.autoLanguage( '确定' ), function(){
+         $scope.Components.Modal.icon = '' ;
+         $scope.Components.Modal.title = $scope.autoLanguage( '主机列表' ) ;
+         $scope.Components.Modal.isShow = true ;
+         $scope.Components.Modal.Context = function( bodyEle ){
+            var div  = $( '<div></div>' ) ;
+            if( deployMode == 'distribution' )
+            {
+               var btn1 = $compile( '<button ng-click="SelectAll()"></button>' )( $scope ).addClass( 'btn btn-default' ).text( $scope.autoLanguage( '全选' ) ) ;
+               var btn2 = $compile( '<button ng-click="Unselect()"></button>' )( $scope ).addClass( 'btn btn-default' ).text( $scope.autoLanguage( '反选' ) ) ;
+               div.append( btn1 ).append( '&nbsp;' ).append( btn2 ) ;
+            }
+
+            hostBox = $( '<div></div>' ).css( { 'marginTop': '10px' } ) ;
+
+            grid = $compile( '\
+<div class="Grid" style="border-bottom:1px solid #E3E7E8;" ng-grid="HostGridOptions"">\
+   <div class="GridHeader">\
+      <div class="GridTr">\
+         <div class="GridTd Ellipsis"></div>\
+         <div class="GridTd Ellipsis">{{autoLanguage("主机名")}}</div>\
+         <div class="GridTd Ellipsis">{{autoLanguage("IP地址")}}</div>\
+         <div class="clear-float"></div>\
+      </div>\
+   </div>\
+   <div class="GridBody">\
+      <div class="GridTr" ng-repeat="hostInfo in HostList track by $index">\
+         <div class="GridTd Ellipsis" style="word-break:break-all;">\
+            <input type="checkbox" ng-model="HostList[$index][\'checked\']" ng-click="HostRadio()"/>\
+         </div>\
+         <div class="GridTd Ellipsis" style="word-break:break-all;">{{hostInfo[\'HostName\']}}</div>\
+         <div class="GridTd Ellipsis" style="word-break:break-all;">{{hostInfo[\'IP\']}}</div>\
+         <div class="clear-float"></div>\
+      </div>\
+   </div>\
+</div>' )( $scope ) ;
+
+            hostBox.append( grid ) ;
+            $compile( bodyEle )( $scope ).append( div ).append( hostBox ) ;
+            //$scope.$apply() ;
+         }
+         $scope.Components.Modal.onResize = function( width, height ){
+            $( grid ).css( {
+               'width': width - 10,
+               'max-height': height - 40
+            } ) ;
+            $scope.bindResize() ;
+         }
+         $scope.Components.Modal.ok = function(){
             predictCapacity() ;
             return true ;
-         } ) ;
-         $scope.SwitchHostWindow['callback']['SetCloseButton']( $scope.autoLanguage( '取消' ), function(){
+         }
+         $scope.Components.Modal.close = function(){
             $scope.HostList = tempHostList ;
             return true ;
-         } ) ;
-         $scope.SwitchHostWindow['callback']['SetTitle']( $scope.autoLanguage( '主机列表' ) ) ;
-         $scope.SwitchHostWindow['callback']['Open']() ;
+         }
       }
-  
+
       getHostList() ;
 
    } ) ;

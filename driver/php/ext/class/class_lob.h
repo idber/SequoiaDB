@@ -24,11 +24,8 @@ PHP_METHOD( SequoiaLob, __construct ) ;
 PHP_METHOD( SequoiaLob, close ) ;
 PHP_METHOD( SequoiaLob, getSize ) ;
 PHP_METHOD( SequoiaLob, getCreateTime ) ;
-PHP_METHOD( SequoiaLob, getModificationTime ) ;
 PHP_METHOD( SequoiaLob, write ) ;
 PHP_METHOD( SequoiaLob, read ) ;
 PHP_METHOD( SequoiaLob, seek ) ;
-PHP_METHOD( SequoiaLob, lock ) ;
-PHP_METHOD( SequoiaLob, lockAndSeek ) ;
 
 #endif

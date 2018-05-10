@@ -42,15 +42,10 @@
 #include "qgmParamTable.hpp"
 #include "qgmPtrTable.hpp"
 
-using namespace bson ;
-
 namespace engine
 {
    class _pmdEDUCB ;
 
-   /*
-      _qgmPlanContainer define
-   */
    class _qgmPlanContainer : public SDBObject
    {
    public:
@@ -94,7 +89,6 @@ namespace engine
       }
 
       INT32 execute( _pmdEDUCB *cb ) ;
-      BOOLEAN needRollback() const ;
 
       INT32 fetch( BSONObj &obj ) ;
 

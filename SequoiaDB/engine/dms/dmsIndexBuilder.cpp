@@ -128,10 +128,12 @@ namespace engine
       _unique = _indexCB->unique() ;
       _dropDups = _indexCB->dropDups() ;
 
-      rc = _onInit() ;
-      if ( rc && SDB_DMS_EOC != rc )
+      _currentExtentID = _mbContext->mb()->_firstExtentID ;
+      if ( DMS_INVALID_EXTENT == _currentExtentID )
       {
-         PD_LOG( PDERROR, "Post init operation failed, rc: %d", rc ) ;
+         _indexCB->setFlag ( IXM_INDEX_FLAG_NORMAL ) ;
+         _indexCB->scanExtLID ( DMS_INVALID_EXTENT ) ;
+         rc = SDB_DMS_EOC ;
          goto error ;
       }
 
@@ -144,25 +146,6 @@ namespace engine
          SDB_OSS_DEL( _indexCB ) ;
          _indexCB = NULL ;
       }
-      goto done ;
-   }
-
-   INT32 _dmsIndexBuilder::_onInit()
-   {
-      INT32 rc = SDB_OK ;
-
-      _currentExtentID = _mbContext->mb()->_firstExtentID ;
-      if ( DMS_INVALID_EXTENT == _currentExtentID )
-      {
-         _indexCB->setFlag ( IXM_INDEX_FLAG_NORMAL ) ;
-         _indexCB->scanExtLID ( DMS_INVALID_EXTENT ) ;
-         rc = SDB_DMS_EOC ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
       goto done ;
    }
 
@@ -368,9 +351,8 @@ namespace engine
                                                        _dmsStorageData* dataSU,
                                                        _dmsMBContext* mbContext,
                                                        _pmdEDUCB* eduCB,
-                                                       dmsExtentID indexExtentID,
-                                                       INT32 sortBufferSize,
-                                                       UINT16 indexType )
+                                                       dmsExtentID indexExtentID, 
+                                                       INT32 sortBufferSize )
    {
       _dmsIndexBuilder* builder = NULL ;
 
@@ -379,50 +361,35 @@ namespace engine
       SDB_ASSERT( mbContext != NULL, "mbContext can't be NULL" ) ;
       SDB_ASSERT( eduCB != NULL, "eduCB can't be NULL" ) ;
 
-      if ( IXM_EXTENT_HAS_TYPE( IXM_EXTENT_TYPE_TEXT, indexType ) )
+      PD_LOG ( PDDEBUG, "index sort buffer size: %dMB", sortBufferSize ) ;
+
+      if ( sortBufferSize < 0 )
       {
-         builder = SDB_OSS_NEW _dmsIndexExtBuilder( indexSU,
-                                                    dataSU,
-                                                    mbContext,
-                                                    eduCB,
-                                                    indexExtentID ) ;
+         PD_LOG ( PDERROR, "invalid sort buffer size: %d", sortBufferSize ) ;
+      }
+      else if ( 0 == sortBufferSize )
+      {
+         builder = SDB_OSS_NEW _dmsIndexOnlineBuilder( indexSU,
+                                                       dataSU,
+                                                       mbContext,
+                                                       eduCB,
+                                                       indexExtentID ) ;
          if ( NULL == builder)
          {
-            PD_LOG ( PDERROR, "failed to allocate _dmsIndexExtBuilder" ) ;
+            PD_LOG ( PDERROR, "failed to allocate _dmsIndexOnlineBuilder" ) ;
          }
       }
       else
       {
-         PD_LOG ( PDDEBUG, "index sort buffer size: %dMB", sortBufferSize ) ;
-
-         if ( sortBufferSize < 0 )
+         builder = SDB_OSS_NEW _dmsIndexSortingBuilder( indexSU,
+                                                        dataSU,
+                                                        mbContext,
+                                                        eduCB,
+                                                        indexExtentID,
+                                                        sortBufferSize ) ;
+         if ( NULL == builder)
          {
-            PD_LOG ( PDERROR, "invalid sort buffer size: %d", sortBufferSize ) ;
-         }
-         else if ( 0 == sortBufferSize )
-         {
-            builder = SDB_OSS_NEW _dmsIndexOnlineBuilder( indexSU,
-                                                          dataSU,
-                                                          mbContext,
-                                                          eduCB,
-                                                          indexExtentID ) ;
-            if ( NULL == builder)
-            {
-               PD_LOG ( PDERROR, "failed to allocate _dmsIndexOnlineBuilder" ) ;
-            }
-         }
-         else
-         {
-            builder = SDB_OSS_NEW _dmsIndexSortingBuilder( indexSU,
-                                                           dataSU,
-                                                           mbContext,
-                                                           eduCB,
-                                                           indexExtentID,
-                                                           sortBufferSize ) ;
-            if ( NULL == builder)
-            {
-               PD_LOG ( PDERROR, "failed to allocate _dmsIndexSortingBuilder" ) ;
-            }
+            PD_LOG ( PDERROR, "failed to allocate _dmsIndexSortingBuilder" ) ;
          }
       }
 

@@ -4,115 +4,101 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 
 import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
 
 
 class CountInfo implements Comparable<CountInfo> {
-    private String _addr;
-    private int _count;
-    private boolean _available;
+    private String _address;
+    private int _usedCount;
+    private boolean _hasLeftIdleConn;
 
-    public CountInfo(String addr, int count, boolean availdable) {
-        _addr = addr;
-        _count = count;
-        _available = availdable;
+    public CountInfo(String addr, int usedCount, boolean hasLeft) {
+        _address = addr;
+        _usedCount = usedCount;
+        _hasLeftIdleConn = hasLeft;
     }
 
-    public void setAddr(String addr) {
-        _addr = addr;
+    public void setAddress(String addr) {
+        _address = addr;
     }
 
-    public String getAddr() {
-        return _addr;
+    public String getAddress() {
+        return _address;
     }
 
-    public void setCount(int count) {
-        _count = count;
+    public boolean getHasLeftIdleConn() {
+        return _hasLeftIdleConn;
     }
 
-    public int getCount() {
-        return _count;
+    public void setHasLeftIdleConn(boolean val) {
+        _hasLeftIdleConn = val;
     }
 
-    public boolean getAvailable() {
-        return _available;
-    }
-
-    public void setAvailable(boolean available) {
-        _available = available;
-    }
-
-    private void _changeCount(int count) {
-        _count += count;
-    }
-
-    public void increaseCount(int count) {
-        _changeCount(count);
-    }
-
-    public void decreaseCount(int count) {
-        _changeCount(count);
+    public void changeCount(int change) {
+        _usedCount += change;
     }
 
     @Override
     public int compareTo(CountInfo other) {
-        if (this._available == true && other._available == false) {
+        if (this._hasLeftIdleConn == true && other._hasLeftIdleConn == false) {
             return -1;
-        } else if (this._available == false && other._available == true) {
+        } else if (this._hasLeftIdleConn == false && other._hasLeftIdleConn == true) {
             return 1;
         } else {
-            if (this._count != other._count) {
-                return this._count - other._count;
+            if (this._usedCount != other._usedCount) {
+                return this._usedCount - other._usedCount;
             } else {
-                return this._addr.compareTo(other._addr);
+                return this._address.compareTo(other._address);
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return String.format("{ %s, %d, %b}", _address, _usedCount, _hasLeftIdleConn);
     }
 }
 
 class ConcreteBalanceStrategy implements IConnectStrategy {
-
-    private HashMap<String, LinkedList<ConnItem>> _idleConnItemMap = new HashMap<String, LinkedList<ConnItem>>();
+    private HashMap<String, ArrayDeque<ConnItem>> _idleConnItemMap = new HashMap<String, ArrayDeque<ConnItem>>();
     private HashMap<String, CountInfo> _countInfoMap = new HashMap<String, CountInfo>();
     private TreeSet<CountInfo> _countInfoSet = new TreeSet<CountInfo>();
-    private ReentrantLock _lock = new ReentrantLock();
     private static CountInfo _dumpCountInfo = new CountInfo("", 0, false);
 
     @Override
-    public void init(Set<String> addresses, List<Pair> _idleConnPairs,
-                     List<Pair> _usedConnPairs) {
-        Iterator<String> addrItr = addresses.iterator();
-        while (addrItr.hasNext()) {
-            String addr = addrItr.next();
+    public synchronized void init(List<String> addressList, List<Pair> _idleConnPairs,
+                                  List<Pair> _usedConnPairs) {
+        Iterator<String> itr1 = addressList.iterator();
+        while (itr1.hasNext()) {
+            String addr = itr1.next();
             if (!_idleConnItemMap.containsKey(addr)) {
-                _idleConnItemMap.put(addr, new LinkedList<ConnItem>());
+                _idleConnItemMap.put(addr, new ArrayDeque<ConnItem>());
                 CountInfo obj = new CountInfo(addr, 0, false);
                 _countInfoMap.put(addr, obj);
                 _countInfoSet.add(obj);
             }
         }
 
-        Iterator<Pair> connPairItr = null;
+        Iterator<Pair> itr2 = null;
         if (_idleConnPairs != null) {
-            connPairItr = _idleConnPairs.iterator();
-            while (connPairItr.hasNext()) {
-                Pair pair = connPairItr.next();
+            itr2 = _idleConnPairs.iterator();
+            while (itr2.hasNext()) {
+                Pair pair = itr2.next();
                 ConnItem item = pair.first();
                 String addr = item.getAddr();
                 if (!_idleConnItemMap.containsKey(addr)) {
-                    LinkedList<ConnItem> list = new LinkedList<ConnItem>();
-                    _idleConnItemMap.put(addr, list);
-                    list.add(item);
+                    ArrayDeque<ConnItem> deque = new ArrayDeque<ConnItem>();
+                    deque.add(item);
+                    _idleConnItemMap.put(addr, deque);
                     CountInfo info = new CountInfo(addr, 0, true);
                     _countInfoMap.put(addr, info);
                     _countInfoSet.add(info);
                 } else {
-                    LinkedList<ConnItem> list = _idleConnItemMap.get(addr);
-                    list.add(item);
+                    ArrayDeque<ConnItem> deque = _idleConnItemMap.get(addr);
+                    deque.add(item);
                     CountInfo info = _countInfoMap.get(addr);
-                    if (false == info.getAvailable()) {
+                    if (info.getHasLeftIdleConn() == false) {
                         _countInfoSet.remove(info);
-                        info.setAvailable(true);
+                        info.setHasLeftIdleConn(true);
                         _countInfoSet.add(info);
                     }
                 }
@@ -120,15 +106,15 @@ class ConcreteBalanceStrategy implements IConnectStrategy {
         }
 
         if (_usedConnPairs != null) {
-            connPairItr = _usedConnPairs.iterator();
-            while (connPairItr.hasNext()) {
-                Pair pair = connPairItr.next();
+            itr2 = _usedConnPairs.iterator();
+            while (itr2.hasNext()) {
+                Pair pair = itr2.next();
                 ConnItem item = pair.first();
                 String addr = item.getAddr();
                 if (_idleConnItemMap.containsKey(addr)) {
                     CountInfo info = _countInfoMap.get(addr);
                     _countInfoSet.remove(info);
-                    info.increaseCount(1);
+                    info.changeCount(1);
                     _countInfoSet.add(info);
                 } else {
                     continue;
@@ -139,178 +125,217 @@ class ConcreteBalanceStrategy implements IConnectStrategy {
     }
 
     @Override
-    public ConnItem pollConnItem(Operation opr) {
-        ConnItem item = null;
-        _lock.lock();
-        try {
-            while (true) {
-                CountInfo info = null;
-                String addr = null;
-                if (opr == Operation.GET) {
-                    try {
-                        info = _countInfoSet.first();
-                    } catch (NoSuchElementException e) {
-                        info = null;
-                    }
-                } else if (opr == Operation.DELETE) {
-                    info = _countInfoSet.lower(_dumpCountInfo);
-                } else {
-                    throw new BaseException(SDBError.SDB_SYS, "Invalid operation: " + opr);
-                }
-                if (info == null || info.getAvailable() == false) {
-                    return null;
-                }
-                addr = info.getAddr();
-                LinkedList<ConnItem> list = _idleConnItemMap.get(addr);
-                if (list != null) {
-                    item = list.poll();
-                } else {
-                    throw new BaseException(SDBError.SDB_SYS, "Invalid state in strategy");
-                }
-
-                if (item == null) {
-                    info = _countInfoMap.get(addr);
-                    _countInfoSet.remove(info);
-                    info.setAvailable(false);
-                    _countInfoSet.add(info);
-                    continue;
-                } else {
-                    break;
-                }
-            }
-        } finally {
-            _lock.unlock();
-        }
-        return item;
+    public synchronized ConnItem pollConnItemForGetting() {
+        return _pollConnItem(Operation.GET_CONN);
     }
 
     @Override
-    public String getAddress() {
-        String addr = null;
-        CountInfo info = null;
-        _lock.lock();
-        try {
-            info = _countInfoSet.higher(_dumpCountInfo);
-            if (info == null) {
+    public synchronized ConnItem pollConnItemForDeleting() {
+        return _pollConnItem(Operation.DEL_CONN);
+    }
+
+    @Override
+    public synchronized ConnItem peekConnItemForDeleting() {
+        ConnItem connItem = null;
+        while (true) {
+            CountInfo countInfo = null;
+            String addr = null;
+            countInfo = _countInfoSet.lower(_dumpCountInfo);
+            if (countInfo == null || countInfo.getHasLeftIdleConn() == false) {
+                return null;
+            }
+            addr = countInfo.getAddress();
+            ArrayDeque<ConnItem> deque = _idleConnItemMap.get(addr);
+            if (deque != null) {
+                connItem = deque.peekLast();// .pollLast();
+            } else {
+                throw new BaseException(SDBError.SDB_SYS, "Invalid state in strategy");
+            }
+            if (connItem == null) {
+                countInfo = _countInfoMap.get(addr);
+                _countInfoSet.remove(countInfo);
+                countInfo.setHasLeftIdleConn(false);
+                _countInfoSet.add(countInfo);
+                continue;
+            } else {
+                break;
+            }
+        }
+        return connItem;
+    }
+
+    private ConnItem _pollConnItem(Operation operation) {
+        ConnItem connItem = null;
+        while (true) {
+            CountInfo countInfo = null;
+            String addr = null;
+            if (operation == Operation.GET_CONN) {
                 try {
-                    info = _countInfoSet.first();
+                    countInfo = _countInfoSet.first();
                 } catch (NoSuchElementException e) {
-                    return null;
-                }
-            }
-            addr = info.getAddr();
-        } finally {
-            _lock.unlock();
-        }
-        return addr;
-    }
-
-    /*
-     * only when the amount of connections in used pool or idle pool change,
-     * we need to update
-     * */
-    @Override
-    public void update(ItemStatus itemStatus, ConnItem connItem, int incDecItemCount) {
-        String addr = connItem.getAddr();
-        CountInfo countInformation = null;
-        LinkedList<ConnItem> idleConnItemList = null;
-        _lock.lock();
-        try {
-            if (itemStatus == ItemStatus.IDLE) {
-                if (!_idleConnItemMap.containsKey(addr)) {
-                    _restoreIdleConnItemInfo(addr);
-                }
-                if (incDecItemCount > 0) {
-                    countInformation = _countInfoMap.get(addr);
-                    if (countInformation == null) {
-                        throw new BaseException(SDBError.SDB_SYS, "Point1: the pool has no information about address: " + addr);
-                    }
-                    if (countInformation.getAvailable() == false) {
-                        _countInfoSet.remove(countInformation);
-                        countInformation.setAvailable(true);
-                        _countInfoSet.add(countInformation);
-                    }
-
-                    idleConnItemList = _idleConnItemMap.get(addr);
-                    if (idleConnItemList == null) {
-                        throw new BaseException(SDBError.SDB_SYS, "Point2: the pool has no information about address: " + addr);
-                    }
-                    idleConnItemList.add(connItem);
-                } else if (incDecItemCount < 0) {
-                    idleConnItemList = _idleConnItemMap.get(addr);
-                    if (idleConnItemList == null) {
-                        throw new BaseException(SDBError.SDB_SYS, "Point3: the pool has no information about address: " + addr);
-                    }
-                    if (idleConnItemList.size() == 0) {
-                        throw new BaseException(SDBError.SDB_SYS, "Point4: the pool has no information about address: " + addr);
-                    }
-                    if (idleConnItemList.remove(connItem) == false) {
-                        throw new BaseException(SDBError.SDB_SYS, "Point5: the pool has no information about address: " + addr);
-                    }
-                    if (idleConnItemList.size() == 0) {
-                        countInformation = _countInfoMap.get(addr);
-                        _countInfoSet.remove(countInformation);
-                        countInformation.setAvailable(false);
-                        _countInfoSet.add(countInformation);
-                    }
-                } else {
-                    throw new BaseException(SDBError.SDB_SYS, "Point1: invalid change in idle pool");
-                }
-            } else if (itemStatus == ItemStatus.USED) {
-                if (_countInfoMap.containsKey(addr)) {
-                    countInformation = _countInfoMap.get(addr);
-                    if (countInformation == null) {
-                        throw new BaseException(SDBError.SDB_SYS, "Point6: the pool has no information about address: " + addr);
-                    }
-                    _countInfoSet.remove(countInformation);
-                    if (incDecItemCount > 0) {
-                        countInformation.increaseCount(incDecItemCount);
-                    } else if (incDecItemCount < 0) {
-                        countInformation.decreaseCount(incDecItemCount);
-                    } else {
-                        throw new BaseException(SDBError.SDB_SYS, "Point2: invalid change in idle pool");
-                    }
-                    _countInfoSet.add(countInformation);
+                    countInfo = null;
                 }
             } else {
-                throw new BaseException(SDBError.SDB_SYS, "Invalid item status: " + itemStatus);
+                countInfo = _countInfoSet.lower(_dumpCountInfo);
             }
-        } finally {
-            _lock.unlock();
+            if (countInfo == null || countInfo.getHasLeftIdleConn() == false) {
+                return null;
+            }
+            addr = countInfo.getAddress();
+            ArrayDeque<ConnItem> deque = _idleConnItemMap.get(addr);
+            if (deque != null) {
+                if (operation == Operation.GET_CONN) {
+                    connItem = deque.pollFirst();
+                } else {
+                    connItem = deque.pollLast();
+                }
+            } else {
+                throw new BaseException(SDBError.SDB_SYS, "Invalid state in strategy");
+            }
+            if (connItem == null) {
+                countInfo = _countInfoMap.get(addr);
+                _countInfoSet.remove(countInfo);
+                countInfo.setHasLeftIdleConn(false);
+                _countInfoSet.add(countInfo);
+                continue;
+            } else {
+                break;
+            }
+        }
+        return connItem;
+    }
+
+    @Override
+    public synchronized void addConnItemAfterCreating(ConnItem connItem) {
+        String addr = connItem.getAddr();
+        if (!_idleConnItemMap.containsKey(addr)) {
+            _restoreIdleConnItemInfo(addr);
+        }
+        CountInfo countInfo = _countInfoMap.get(addr);
+        if (countInfo == null) {
+            throw new BaseException(SDBError.SDB_SYS,
+                    "the pool has no information about address: " + addr);
+        }
+        if (countInfo.getHasLeftIdleConn() == false) {
+            _countInfoSet.remove(countInfo);
+            countInfo.setHasLeftIdleConn(true);
+            _countInfoSet.add(countInfo);
+        }
+
+        ArrayDeque<ConnItem> deque = _idleConnItemMap.get(addr);
+        if (deque == null) {
+            throw new BaseException(SDBError.SDB_SYS,
+                    "the pool has no information about address: " + addr);
+        }
+        deque.addLast(connItem);
+    }
+
+    @Override
+    public synchronized void addConnItemAfterReleasing(ConnItem connItem) {
+        String addr = connItem.getAddr();
+        if (!_idleConnItemMap.containsKey(addr)) {
+            _restoreIdleConnItemInfo(addr);
+        }
+        CountInfo countInfo = _countInfoMap.get(addr);
+        if (countInfo == null) {
+            throw new BaseException(SDBError.SDB_SYS,
+                    "the pool has no information about address: " + addr);
+        }
+        if (countInfo.getHasLeftIdleConn() == false) {
+            _countInfoSet.remove(countInfo);
+            countInfo.setHasLeftIdleConn(true);
+            _countInfoSet.add(countInfo);
+        }
+
+        ArrayDeque<ConnItem> deque = _idleConnItemMap.get(addr);
+        if (deque == null) {
+            throw new BaseException(SDBError.SDB_SYS,
+                    "the pool has no information about address: " + addr);
+        }
+        deque.addFirst(connItem);
+    }
+
+    @Override
+    public synchronized void removeConnItemAfterCleaning(ConnItem connItem) {
+        String addr = connItem.getAddr();
+        if (!_idleConnItemMap.containsKey(addr)) {
+            _restoreIdleConnItemInfo(addr);
+        }
+        ArrayDeque<ConnItem> deque = _idleConnItemMap.get(addr);
+        if (deque == null) {
+            throw new BaseException(SDBError.SDB_SYS,
+                    "the pool has no information about address: " + addr);
+        }
+        if (deque.size() == 0) {
+            throw new BaseException(SDBError.SDB_SYS,
+                    "the pool has no information about address: " + addr);
+        }
+        if (deque.remove(connItem) == false) {
+            throw new BaseException(SDBError.SDB_SYS,
+                    "the pool has no information about address: " + addr);
+        }
+        if (deque.size() == 0) {
+            CountInfo countInfo = _countInfoMap.get(addr);
+            _countInfoSet.remove(countInfo);
+            countInfo.setHasLeftIdleConn(false);
+            _countInfoSet.add(countInfo);
         }
     }
 
     @Override
-    public void addAddress(String addr) {
-        _lock.lock();
-        try {
-            List<ConnItem> list = _idleConnItemMap.get(addr);
-            if (list == null) {
-                _idleConnItemMap.put(addr, new LinkedList<ConnItem>());
-                CountInfo info = new CountInfo(addr, 0, false);
-                _countInfoMap.put(addr, info);
-                _countInfoSet.add(info);
+    public synchronized void updateUsedConnItemCount(ConnItem connItem, int change) {
+        String addr = connItem.getAddr();
+        if (_countInfoMap.containsKey(addr)) {
+            CountInfo countInfo = _countInfoMap.get(addr);
+            if (countInfo == null) {
+                throw new BaseException(SDBError.SDB_SYS,
+                        "the pool has no information about address: " + addr);
             }
-        } finally {
-            _lock.unlock();
+            _countInfoSet.remove(countInfo);
+            countInfo.changeCount(change);
+            _countInfoSet.add(countInfo);
         }
     }
 
     @Override
-    public List<ConnItem> removeAddress(String addr) {
-        List<ConnItem> list = null;
-        _lock.lock();
-        try {
-            list = _idleConnItemMap.remove(addr);
-            if (list == null) {
-                list = new ArrayList<ConnItem>();
+    public synchronized String getAddress() {
+        CountInfo info = _countInfoSet.higher(_dumpCountInfo);
+        if (info == null) {
+            try {
+                info = _countInfoSet.first();
+            } catch (NoSuchElementException e) {
+                return null;
             }
+        }
+        return info.getAddress();
+    }
+
+    @Override
+    public synchronized void addAddress(String addr) {
+
+        ArrayDeque<ConnItem> deque = _idleConnItemMap.get(addr);
+        if (deque == null) {
+            _idleConnItemMap.put(addr, new ArrayDeque<ConnItem>());
+            CountInfo info = new CountInfo(addr, 0, false);
+            _countInfoMap.put(addr, info);
+            _countInfoSet.add(info);
+        }
+    }
+
+    @Override
+    public synchronized List<ConnItem> removeAddress(String addr) {
+        List<ConnItem> list = new ArrayList<ConnItem>();
+        if (_idleConnItemMap.containsKey(addr)) {
             CountInfo obj = _countInfoMap.remove(addr);
             if (obj != null) {
                 _countInfoSet.remove(obj);
             }
-        } finally {
-            _lock.unlock();
+            ArrayDeque<ConnItem> deque = _idleConnItemMap.remove(addr);
+            if (deque != null) {
+                for (ConnItem item : deque) {
+                    list.add(item);
+                }
+            }
         }
         return list;
     }

@@ -97,7 +97,6 @@ namespace engine
          const CHAR *pHostName        = NULL ;
          INT32 errNum                 = 0 ;
          stringstream ss ;
-         string version ;
          BSONObj retObj ;
 
          if ( TRUE == pmdGetThreadEDUCB()->isInterrupted() )
@@ -163,9 +162,6 @@ namespace engine
             pDetail = ss.str().c_str() ;
             goto build_error_result ;
          }
-
-         version = retObj.getStringField( OMA_FIELD_VERSION ) ;
-
          if ( SDB_OK != errNum )
          {
             rc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pDetail ) ;
@@ -187,7 +183,6 @@ namespace engine
             PD_LOG ( PDEVENT, "Success to add host[%s]", pIP ) ;
             resultInfo._status     = OMA_TASK_STATUS_FINISH ;
             resultInfo._statusDesc = getTaskStatusDesc( OMA_TASK_STATUS_FINISH ) ;
-            resultInfo._version    = version ;
             resultInfo._flow.push_back( flow ) ;
             tmpRc = _pTask->updateProgressToTask( pInfo->_serialNum, resultInfo ) ;
             if ( tmpRc )
@@ -204,7 +199,6 @@ namespace engine
          resultInfo._statusDesc = getTaskStatusDesc( OMA_TASK_STATUS_FINISH ) ;
          resultInfo._errno      = rc ;
          resultInfo._detail     = pDetail ;
-         resultInfo._version    = version ;
          resultInfo._flow.push_back( flow ) ;
          tmpRc = _pTask->updateProgressToTask( pInfo->_serialNum, resultInfo ) ;
          if ( tmpRc )

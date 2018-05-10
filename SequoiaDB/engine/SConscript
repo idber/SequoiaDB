@@ -91,8 +91,8 @@ pmdFiles = [
       "pmd/pmdSyncMgr.cpp",
       "pmd/pmdEnv.cpp",
       "pmd/pmdOptionsMgr.cpp",
+      "pmd/pmdCoord.cpp",
       "pmd/pmdStartup.cpp",
-      "pmd/pmdStartupHstLogger.cpp",
       "pmd/pmdBackgroundJob.cpp",
       "pmd/pmdDpsTransRollback.cpp",
       "pmd/pmdLoadWorker.cpp",
@@ -103,8 +103,7 @@ pmdFiles = [
       "pmd/pmdProcessor.cpp",
       "pmd/pmdProtocolEntryPoint.cpp",
       "pmd/pmdModuleLoader.cpp",
-      "pmd/pmdRestSession.cpp",
-      "pmd/pmdEntryPoint.cpp"
+      "pmd/pmdRestSession.cpp"
       ]
 migFiles = [
       "mig/migLoad.cpp"
@@ -114,12 +113,10 @@ pdFiles = [
       "pd/pd.cpp",
       "pd/pdTrace.cpp",
       "pd/pdComponents.cpp",
-      "pd/pdFunctionList.cpp",
-      "pd/pdTraceAnalysis.cpp"
+      "pd/pdFunctionList.cpp"
       ]
 
 utilFiles = [
-      "util/des.c",
       "util/base64.cpp",
       "util/text.cpp",
       "util/utilUnicodeGen.cpp",
@@ -166,23 +163,12 @@ utilFiles = [
       "util/utilStream.cpp",
       "util/utilFileStream.cpp",
       "util/utilZlibStream.cpp",
-      "util/utilJsonFile.cpp",
-      "util/utilMath.cpp"
+      "util/utilJsonFile.cpp"
       ]
 
 rtnFiles = [
       "rtn/rtnContext.cpp",
-      "rtn/rtnContextData.cpp",
-      "rtn/rtnContextDump.cpp",
-      "rtn/rtnContextSP.cpp",
-      "rtn/rtnContextMainCL.cpp",
-      "rtn/rtnContextDel.cpp",
-      "rtn/rtnContextQGM.cpp",
-      "rtn/rtnContextTS.cpp",
       "rtn/rtnContextBuff.cpp",
-      "rtn/rtnContextMain.cpp",
-      "rtn/rtnSubContext.cpp",
-      "rtn/rtnContextExplain.cpp",
       "rtn/rtnFetchBase.cpp",
       "rtn/rtnUpdate.cpp",
       "rtn/rtnInsert.cpp",
@@ -198,15 +184,36 @@ rtnFiles = [
       "rtn/rtnCommandList.cpp",
       "rtn/rtnPredicate.cpp",
       "rtn/rtnIXScanner.cpp",
+      "rtn/rtnAPM.cpp",
       "rtn/rtnBackup.cpp",
       "rtn/rtnReorg.cpp",
       "rtn/rtnRecover.cpp",
+      "rtn/rtnCoordCommands.cpp",
+      "rtn/rtnCoordSnapshot.cpp",
+      "rtn/rtnCoordList.cpp",
+      "rtn/rtnCoordDataCommands.cpp",
+      "rtn/rtnCoordNodeCommands.cpp",
+      "rtn/rtnCoordDCCommands.cpp",
+      "rtn/rtnCoordQuery.cpp",
+      "rtn/rtnCoordCommon.cpp",
+      "rtn/rtnCoordOperator.cpp",
+      "rtn/rtnCoordInsert.cpp",
+      "rtn/rtnCoordDelete.cpp",
+      "rtn/rtnCoordUpdate.cpp",
       "rtn/rtnRemoteExec.cpp",
+      "rtn/rtnCoord.cpp",
       "rtn/rtnCB.cpp",
+      "rtn/rtnCoordInterrupt.cpp",
       "rtn/rtnBackgroundJobBase.cpp",
       "rtn/rtnBackgroundJob.cpp",
       "rtn/rtnPrefetchJob.cpp",
+      "rtn/rtnCoordAuth.cpp",
+      "rtn/rtnCoordAuthCrt.cpp",
+      "rtn/rtnCoordAuthBase.cpp",
+      "rtn/rtnCoordAuthDel.cpp",
       "rtn/rtnTransaction.cpp",
+      "rtn/rtnCoordTransaction.cpp",
+      "rtn/rtnCoordSql.cpp",
       "rtn/rtnSQLFuncFactory.cpp",
       "rtn/rtnSQLCount.cpp",
       "rtn/rtnSQLSum.cpp",
@@ -217,6 +224,7 @@ rtnFiles = [
       "rtn/rtnSQLFunc.cpp",
       "rtn/rtnSQLPush.cpp",
       "rtn/rtnSQLLast.cpp",
+      "rtn/rtnCoordAggregate.cpp",
       "rtn/rtnSQLAddToSet.cpp",
       "rtn/rtnAggregate.cpp",
       "rtn/rtnSQLBuildObj.cpp",
@@ -233,29 +241,18 @@ rtnFiles = [
       "rtn/rtnLobWindow.cpp",
       "rtn/rtnContextLob.cpp",
       "rtn/rtnLobDataPool.cpp",
+      "rtn/rtnCoordLobStream.cpp",
+      "rtn/rtnCoordLob.cpp",
       "rtn/rtnContextShdOfLob.cpp",
       "rtn/rtnLobFetcher.cpp",
       "rtn/rtnContextListLob.cpp",
-      "rtn/rtnLobAccessManager.cpp",
-      "rtn/rtnLobPieces.cpp",
-      "rtn/rtnLobMetaCache.cpp",
-      "rtn/rtnLobSections.cpp",
       "rtn/rtnAlterFuncList.cpp",
       "rtn/rtnAlterFuncs.cpp",
       "rtn/rtnAlterRunner.cpp",
       "rtn/rtnAlterJob.cpp",
       "rtn/rtnIxmKeySorter.cpp",
       "rtn/rtnDictCreatorJob.cpp",
-      "rtn/rtnAnalyze.cpp",
-      "rtn/rtnOperator.cpp",
-      "rtn/rtnQueryOperator.cpp",
-      "rtn/rtnExtDataHandler.cpp",
-      "rtn/rtnExtDataProcessor.cpp",
-      "rtn/rtnSimpleCondNode.cpp",
-      "rtn/rtnSimpleCondParser.cpp",
-      "rtn/rtnContextDataDispatcher.cpp",
-      "rtn/rtnSessionProperty.cpp",
-      "rtn/rtnRemoteMessenger.cpp"
+      "rtn/rtnSessionProperty.cpp"
       ]
 
 msgFiles = [
@@ -268,16 +265,13 @@ msgFiles = [
 
 dmsFiles = [
       "dms/dmsStorageBase.cpp",
-      "dms/dmsStorageDataCommon.cpp",
       "dms/dmsStorageData.cpp",
-      "dms/dmsStorageDataCapped.cpp",
-      "dms/dmsStorageDataFactory.cpp",
       "dms/dmsStorageIndex.cpp",
       "dms/dmsScanner.cpp",
       "dms/dmsDump.cpp",
       "dms/dmsInspect.cpp",
       "dms/dmsStorageUnit.cpp",
-      "dms/dmsTempSUMgr.cpp",
+      "dms/dmsTempCB.cpp",
       "dms/dmsCB.cpp",
       "dms/dmsReorgUnit.cpp",
       "dms/dmsSMEMgr.cpp",
@@ -293,11 +287,7 @@ dmsFiles = [
       "dms/dmsLobDirectInBuffer.cpp",
       "dms/dmsLobDirectOutBuffer.cpp",
       "dms/dmsIndexBuilder.cpp",
-      "dms/dmsIndexBuilderImpl.cpp",
-      "dms/dmsStatSUMgr.cpp",
-      "dms/dmsStatUnit.cpp",
-      "dms/dmsCachedPlanUnit.cpp",
-      "dms/dmsSUCache.cpp"
+      "dms/dmsIndexBuilderImpl.cpp"
       ]
 
 ixmFiles = [
@@ -311,7 +301,6 @@ mthFiles = [
       "mth/mthMatchNode.cpp",
       "mth/mthMatchOpNode.cpp",
       "mth/mthMatchTree.cpp",
-      "mth/mthMatchRuntime.cpp",
       "mth/mthMatchLogicNode.cpp",
       "mth/mthModifier.cpp",
       "mth/mthSelector.cpp",
@@ -330,23 +319,14 @@ mthFiles = [
       "mth/parsers/mthElemMatchOneParser.cpp",
       "mth/parsers/mthMathParser.cpp",
       "mth/parsers/mthStrParser.cpp",
-      "mth/parsers/mthCastParser.cpp",
-      "mth/parsers/mthMatchNormalizer.cpp"
+      "mth/parsers/mthCastParser.cpp"
       ]
 
 optFiles = [
       "opt/optAccessPlan.cpp",
       "opt/optQgmStrategy.cpp",
       "opt/optQgmSpecStrategy.cpp",
-      "opt/optQgmOptimizer.cpp",
-      "opt/optPlanPath.cpp",
-      "opt/optPlanNode.cpp",
-      "opt/optStatUnit.cpp",
-      "opt/optAPM.cpp",
-      "opt/optAccessPlanKey.cpp",
-      "opt/optPlanClearJob.cpp",
-      "opt/optAccessPlanRuntime.cpp",
-      "opt/optAccessPlanHelper.cpp"
+      "opt/optQgmOptimizer.cpp"
       ]
 
 monFiles = [
@@ -417,8 +397,7 @@ clsFiles = [
       "cls/clsReelection.cpp",
       "cls/clsDCMgr.cpp",
       "cls/clsLocalValidation.cpp",
-      "cls/clsStorageCheckJob.cpp",
-      "cls/clsRegAssit.cpp"
+      "cls/clsStorageCheckJob.cpp"
       ]
 
 dpsFiles = [
@@ -445,9 +424,6 @@ dpsFiles = [
 omsvcFiles = [
       "omsvc/omManager.cpp",
       "omsvc/omCommand.cpp",
-      "omsvc/omCmdBusiness.cpp",
-      "omsvc/omCmdRelationship.cpp",
-      "omsvc/omCommandTool.cpp",
       "omsvc/omCommandInterface.cpp",
       "omsvc/omMsgEventHandler.cpp",
       "omsvc/omManagerJob.cpp",
@@ -463,7 +439,6 @@ omsvcFiles = [
       "omsvc/omConfigSdb.cpp",
       "omsvc/omConfigZoo.cpp",
       "omsvc/omConfigSsqlOlap.cpp",
-      "omsvc/omConfigSsqlOltp.cpp",
       ]
 
 barFiles = [
@@ -495,47 +470,7 @@ catFiles = [
 
 coordFiles = [
       "coord/coordCB.cpp",
-      "coord/coordCommon.cpp",
-      "coord/coordUtil.cpp",
-      "coord/coordResource.cpp",
-      "coord/coordRemoteHandle.cpp",
-      "coord/coordRemoteSession.cpp",
-      "coord/coordGroupHandle.cpp",
-      "coord/coordOperator.cpp",
-      "coord/coordTransOperator.cpp",
-      "coord/coordShardKicker.cpp",
-      "coord/coordInsertOperator.cpp",
-      "coord/coordDeleteOperator.cpp",
-      "coord/coordUpdateOperator.cpp",
-      "coord/coordQueryOperator.cpp",
-      "coord/coordMsgOperator.cpp",
-      "coord/coordAuthBase.cpp",
-      "coord/coordAuthOperator.cpp",
-      "coord/coordAuthCrtOperator.cpp",
-      "coord/coordAuthDelOperator.cpp",
-      "coord/coordAggrOperator.cpp",
-      "coord/coordInterruptOperator.cpp",
-      "coord/coordFactory.cpp",
-      "coord/coordCommandBase.cpp",
-      "coord/coordCommandBackup.cpp",
-      "coord/coordCommandCommon.cpp",
-      "coord/coordCommandTrace.cpp",
-      "coord/coordCommandWithLocation.cpp",
-      "coord/coordCommand2Phase.cpp",
-      "coord/coordCommandNode.cpp",
-      "coord/coordCommandStat.cpp",
-      "coord/coordCommandProcedure.cpp",
-      "coord/coordCommandDomain.cpp",
-      "coord/coordCommandData.cpp",
-      "coord/coordCommandDC.cpp",
-      "coord/coordCommandList.cpp",
-      "coord/coordCommandSnapshot.cpp",
-      "coord/coordSqlOperator.cpp",
-      "coord/coordLobStream.cpp",
-      "coord/coordLobOperator.cpp",
-      "coord/coordCommands.cpp",
-      "coord/coordMsgEventHandler.cpp",
-      "coord/coordContext.cpp"
+      "coord/coordSession.cpp"
       ]
 
 aggrFiles = [
@@ -551,10 +486,10 @@ aggrFiles = [
 
 netFiles = [
       "net/netEventHandler.cpp",
-      "net/netEventSuit.cpp",
       "net/netFrame.cpp",
       "net/netRoute.cpp",
-      "net/netRouteAgent.cpp"
+      "net/netRouteAgent.cpp",
+      "net/netMultiRouteAgent.cpp"
       ]
 
 sqlFiles= [
@@ -624,7 +559,7 @@ pmdMain = [
       ]
 
 sdbdmsdumpMain = [
-      "tools/sdbinspt.cpp"
+      "pmd/sdbinspt.cpp"
       ]
 
 sdbrestoreFiles = [

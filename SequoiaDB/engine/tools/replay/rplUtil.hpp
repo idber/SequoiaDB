@@ -49,13 +49,6 @@ namespace replay
    #define RPL_LOG_OP_LOB_REMOVE       "lobremove"
    #define RPL_LOG_OP_LOB_UPDATE       "lobupdate"
    #define RPL_LOG_OP_LOB_TRUNCATE     "lobtruncate"
-   #define RPL_LOG_OP_DUMMY            "dummy"
-   #define RPL_LOG_OP_CL_RENAME        "renamecl"
-   #define RPL_LOG_OP_TS_COMMIT        "commit"
-   #define RPL_LOG_OP_TS_ROLLBACK      "rollback"
-   #define RPL_LOG_OP_INVALIDATE_CATA  "invalidatecata"
-   #define RPL_LOG_OP_CS_RENAME        "renamecs"
-   #define RPL_LOG_OP_POP              "pop"
 
    CHAR* getOPName(UINT16 type);
 }

@@ -60,7 +60,6 @@ namespace engine
       CoordCB *pCoordcb                = pKrcb->getCoordCB() ;
       netMultiRouteAgent *pRouteAgent  = pCoordcb->getRouteAgent() ;
 
-      // process define
       rtnSendOptions sendOpt( TRUE ) ;
       rtnSendMsgIn inMsg( pMsg ) ;
       rtnProcessResult result ;
@@ -80,7 +79,6 @@ namespace engine
       MsgOpUpdate *pNewUpdate          = NULL ;
       BOOLEAN emptyUpdateCata          = FALSE ;
 
-      // fill default-reply(update success)
       MsgOpUpdate *pUpdate             = (MsgOpUpdate *)pMsg ;
       INT32 oldFlag                    = pUpdate->flags ;
       pUpdate->flags                  |= FLG_UPDATE_RETURNNUM ;
@@ -115,7 +113,6 @@ namespace engine
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-         // add last op info
          MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                              "Collection:%s, Matcher:%s, Updator:%s, Hint:%s, "
                              "Flag:0x%08x(%u)",
@@ -178,7 +175,6 @@ namespace engine
 
          if ( !hasShardingKey )
          {
-            // no sharding key
             pNewUpdate = pUpdate ;
          }
          else if ( !pMsgBuff || !tmpNewObj.equal( newUpdator ) )
@@ -202,7 +198,6 @@ namespace engine
                }
                else
                {
-                  // don't do anything( return error?)
                   goto done ;
                }
             }
@@ -218,7 +213,7 @@ namespace engine
 
          pNewUpdate->version = cataInfo->getVersion() ;
          pNewUpdate->w = 0 ;
-         if ( pNewUpdate->flags | FLG_UPDATE_UPSERT )
+         if ( pNewUpdate->flags & FLG_UPDATE_UPSERT )
          {
             pNewUpdate->flags &= ~FLG_UPDATE_UPSERT ;
          }
@@ -238,7 +233,6 @@ namespace engine
 
       if ( SDB_OK == rcTmp && nokRC.empty() )
       {
-         // do nothing, for upsert
       }
       else if ( checkRetryForCLOpr( rcTmp, &nokRC, inMsg.msg(),
                                     sendOpt._retryTimes,
@@ -250,7 +244,6 @@ namespace engine
       }
       else if ( SDB_CAT_NO_MATCH_CATALOG == rcTmp )
       {
-         /// ignore
          rc = SDB_OK ;
       }
       else
@@ -260,10 +253,9 @@ namespace engine
          goto error ;
       }
 
-      // upsert
       if ( ( flag & FLG_UPDATE_UPSERT ) && 0 == updateNum )
       {
-         mthMatcher matcher ;
+         _mthMatchTree matcher ;
          mthModifier modifier;
          BSONObj source ;
          BSONObj target ;
@@ -315,7 +307,6 @@ namespace engine
       }
       if ( pCollectionName )
       {
-         /// AUDIT
          PD_AUDIT_OP( AUDIT_DML, MSG_BS_UPDATE_REQ, AUDIT_OBJ_CL,
                       pCollectionName, rc,
                       "UpdatedNum:%llu, InsertedNum:%u, Matcher:%s, "
@@ -332,6 +323,10 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_RTNCOUPDATE_EXECUTE, rc ) ;
       return rc ;
    error:
+      if ( buf && nokRC.size() > 0 )
+      {
+         *buf = rtnContextBuf( rtnBuildErrorObj( rc, cb, &nokRC ) ) ;
+      }
       goto done;
    }
 
@@ -363,8 +358,8 @@ namespace engine
       BSONObj boNew ;
 
       CHAR *pBuff             = NULL ;
-      INT32 buffLen           = 0 ;
-      INT32 buffPos           = 0 ;
+      UINT32 buffLen          = 0 ;
+      UINT32 buffPos          = 0 ;
       vector<CHAR*> *pBlock   = NULL ;
 
       CoordGroupSubCLMap::iterator it ;
@@ -397,23 +392,20 @@ namespace engine
          netIOVec &iovec = inMsg._datas[ it->first ] ;
          netIOV ioItem ;
 
-         // 1. first vec
          ioItem.iovBase = (CHAR*)inMsg.msg() + sizeof( MsgHeader ) ;
          ioItem.iovLen = ossRoundUpToMultipleX ( offsetof(MsgOpUpdate, name) +
                                                  pUpMsg->nameLength + 1, 4 ) -
                          sizeof( MsgHeader ) ;
          iovec.push_back( ioItem ) ;
 
-         // 2. new deletor vec( selector )
          boNew = _buildNewSelector( boSelector, subCLLst ) ;
-         // 2.1 add to buff
-         INT32 roundLen = ossRoundUpToMultipleX( boNew.objsize(), 4 ) ;
+         UINT32 roundLen = ossRoundUpToMultipleX( boNew.objsize(), 4 ) ;
          if ( buffPos + roundLen > buffLen )
          {
-            INT32 alignLen = ossRoundUpToMultipleX( roundLen,
-                                                    DMS_PAGE_SIZE4K ) ;
-            rc = cb->allocBuff( alignLen, &pBuff, buffLen ) ;
-            PD_RC_CHECK( rc, PDERROR, "Alloc buff[%d] failed, rc: %d",
+            UINT32 alignLen = ossRoundUpToMultipleX( roundLen,
+                                                     DMS_PAGE_SIZE4K ) ;
+            rc = cb->allocBuff( alignLen, &pBuff, &buffLen ) ;
+            PD_RC_CHECK( rc, PDERROR, "Alloc buff[%u] failed, rc: %d",
                          alignLen, rc ) ;
             pBlock->push_back( pBuff ) ;
             buffPos = 0 ;
@@ -424,7 +416,6 @@ namespace engine
          buffPos += roundLen ;
          iovec.push_back( ioItem ) ;
 
-         // 3. for last( updator + hint )
          ioItem.iovBase = boUpdator.objdata() ;
          ioItem.iovLen = ossRoundUpToMultipleX( boUpdator.objsize(), 4 ) +
                          boHint.objsize() ;

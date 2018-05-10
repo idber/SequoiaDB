@@ -43,7 +43,6 @@
 #include "sdbInterface.hpp"
 #include "clsDCMgr.hpp"
 #include "utilMap.hpp"
-#include "monDMS.hpp"
 
 using namespace bson ;
 
@@ -86,14 +85,12 @@ namespace engine
          ossEvent       event ;
          UINT32         pageSize ;
          UINT32         lobPageSize ;
-         DMS_STORAGE_TYPE    type ;
          NET_HANDLE     netHandle ;
 
          _clsCSEventItem()
          {
             pageSize = 0 ;
             lobPageSize = 0 ;
-            type = DMS_STORAGE_NORMAL ;
             netHandle = NET_INVALID_HANDLE ;
          }
    } ;
@@ -192,10 +189,9 @@ namespace engine
                                      BOOLEAN *pUpdated = NULL ) ;
          INT32 unlockGroupItem( clsGroupItem *item ) ;
 
-         INT32 rGetCSInfo( const CHAR *csName, UINT32 &pageSize,
-                           UINT32 &lobPageSize,
-                           DMS_STORAGE_TYPE &type,
-                           INT64 waitMillSec = CLS_SHARD_TIMEOUT ) ;
+         INT32 rGetCSPageSize( const CHAR *csName, UINT32 &pageSize,
+                               UINT32 &lobPageSize,
+                               INT64 waitMillSec = CLS_SHARD_TIMEOUT ) ;
 
          INT32 updateDCBaseInfo() ;
 
@@ -220,6 +216,7 @@ namespace engine
 
          INT64 netIn() ;
          INT64 netOut() ;
+         void resetMon() ;
 
       protected:
 
@@ -253,7 +250,6 @@ namespace engine
                                 const CHAR *hostName,
                                 const std::string &service,
                                 NodeID &id ) ;
-         INT32 _sendToSeAdpt( NET_HANDLE handle, MsgHeader *msg ) ;
 
       protected:
          INT32 _onCatCatGroupRes ( NET_HANDLE handle, MsgHeader* msg ) ;
@@ -261,14 +257,6 @@ namespace engine
          INT32 _onCatGroupRes ( NET_HANDLE handle, MsgHeader* msg ) ;
          INT32 _onQueryCSInfoRsp( NET_HANDLE handle, MsgHeader* msg ) ;
          INT32 _onHandleClose( NET_HANDLE handle, MsgHeader* msg ) ;
-         INT32 _onAuthReqMsg( NET_HANDLE handle, MsgHeader * msg ) ;
-         INT32 _onTextIdxInfoReqMsg( NET_HANDLE handle, MsgHeader * msg ) ;
-         INT32 _buildTextIdxObj( const monCSSimple *csInfo,
-                                 const monCLSimple *clInfo,
-                                 const monIndex *idxInfo,
-                                 BSONObjBuilder &builder ) ;
-         INT32 _dumpTextIdxInfo( INT64 localVersion, BSONObj &obj,
-                                 BOOLEAN onlyVersion = FALSE ) ;
 
       private:
          _netRouteAgent                *_pNetRtAgent ;
@@ -291,7 +279,7 @@ namespace engine
          ossSpinSLatch                 _shardLatch ;
 
          MsgRouteID                    _nodeID ;
-         MsgRouteID                    _seAdptID ;
+
    } ;
 
    typedef _clsShardMgr shardCB ;

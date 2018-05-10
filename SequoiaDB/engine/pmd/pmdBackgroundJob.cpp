@@ -54,7 +54,7 @@ namespace engine
       cb->setName( job->name() ) ;
       job->attachIn( cb ) ;
 
-      pEDUMgr->activateEDU( cb ) ;
+      pEDUMgr->activateEDU( cb->getID() ) ;
       rc = job->doit () ;
       if ( SDB_OK != rc )
       {
@@ -73,10 +73,5 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_PMDBGJOBENTPNT, rc );
       return SDB_OK ;
    }
-
-   PMD_DEFINE_ENTRYPOINT( EDU_TYPE_BACKGROUND_JOB, FALSE,
-                          pmdBackgroundJobEntryPoint,
-                          "Task" ) ;
-
 }
 

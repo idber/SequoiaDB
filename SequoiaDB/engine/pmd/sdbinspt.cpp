@@ -47,6 +47,7 @@
 #include "ixmExtent.hpp"
 #include "ossVer.h"
 #include "pmdOptionsMgr.hpp"
+#include "utilLZWDictionary.hpp"
 
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
@@ -76,13 +77,18 @@ namespace fs = boost::filesystem ;
 #define OPTION_SHOW_CONTENT "record"
 #define OPTION_ONLY_META    "meta"
 #define OPTION_REPAIRE      "repaire"
+#define OPTION_FORCE        "force"
 
 #define OPTION_REPAIRE_DESP \
    "repaire the db info, like --repaire mb:Flag=0,Attr=1\n"\
    "-mb support key:\n"\
    "  IndexPages(u)      LID(u)            Attr(u)\n"\
    "  IndexFreeSpace(u)  DataPages(u)      Flag(u)\n"\
-   "  DataFreeSpace(u)   LobPages(u)       Records(u)"
+   "  DataFreeSpace(u)   LobPages(u)       Records(u)\n"\
+   "  IndexNum(u)        CompressType(u)   Lobs(u)\n"\
+   "  CommitFlag(u)      CommitLSN(u64)\n"\
+   "  IdxCommitFlag(u)   IdxCommitLSN(u64)\n"\
+   "  LobCommitFlag(u)   LobCommitLSN(u64)"
 
 #define ADD_PARAM_OPTIONS_BEGIN( desc )\
         desc.add_options()
@@ -106,9 +112,9 @@ namespace fs = boost::filesystem ;
        ( COMMANDS_STRING(OPTION_NUMPAGE, ",n"), boost::program_options::value<SINT32>(), "number of pages" ) \
        ( COMMANDS_STRING(OPTION_SHOW_CONTENT, ",p"), boost::program_options::value<string>(), "display data/index content(true/false)" ) \
        ( OPTION_ONLY_META, boost::program_options::value<string>(), "inspect only meta(Header, SME, MME), true/false" ) \
+       ( OPTION_FORCE, "force dump all invalid mb, delete list and index list and so on" ) \
        ( COMMANDS_STRING(OPTION_REPAIRE, ",r"), boost::program_options::value<string>(), OPTION_REPAIRE_DESP )
 
-// bitwise operation
 #define ACTION_INSPECT           0x01
 #define ACTION_DUMP              0x02
 #define ACTION_STAT              0x04
@@ -119,7 +125,6 @@ namespace fs = boost::filesystem ;
 #define ACTION_DUMP_STRING       "dump"
 #define ACTION_ALL_STRING        "all"
 
-// since we are single-threaded program, we define a lots of global variables :)
 CHAR    gDatabasePath [ OSS_MAX_PATHSIZE + 1 ]       = {0} ;
 CHAR    gIndexPath[ OSS_MAX_PATHSIZE + 1 ]           = {0} ;
 CHAR    gOutputFile [ OSS_MAX_PATHSIZE + 1 ]         = {0} ;
@@ -140,11 +145,8 @@ OSSFILE gFile ;
 
 #define W_OK 2
 
-// max size of a output file
 #define MAX_FILE_SIZE 500 * 1024 * 1024
-// increase delta max 64MB
 #define BUFFER_INC_SIZE 67108864
-// buffer init 4MB
 #define BUFFER_INIT_SIZE 4194304
 CHAR *  gBuffer                                      = NULL ;
 UINT32  gBufferSize                                  = 0 ;
@@ -152,9 +154,10 @@ UINT32  gBufferSize                                  = 0 ;
 CHAR *  gExtentBuffer = NULL ;
 UINT32  gExtentBufferSize = 0 ;
 
+CHAR *  gDictBuffer = NULL ;
+
 pmdEDUCB *cb             = NULL ;
 
-// other value
 enum SDB_INSPT_TYPE
 {
    SDB_INSPT_DATA,
@@ -169,13 +172,13 @@ CHAR   *gMMEBuff                                     = NULL ;
 BOOLEAN gInitMME                                     = FALSE ;
 BOOLEAN gShowRecordContent                           = FALSE ;
 BOOLEAN gOnlyMeta                                    = FALSE ;
+BOOLEAN gForce                                       = FALSE ;
 BOOLEAN gReachEnd                                    = FALSE ;
 BOOLEAN gHitCS                                       = FALSE ;
 SDB_INSPT_TYPE gCurInsptType                         = SDB_INSPT_DATA ;
 dmsMBStatInfo gMBStat ;
 dmsMB         gRepaireMB ;
 UINT32        gRepaireMask                           = 0 ;
-utilCompressorFactory gCompressFactory ;
 
 #define PMD_REPAIRE_MB_MASK_FLAG             0x00000001
 #define PMD_REPAIRE_MB_MASK_LID              0x00000002
@@ -186,9 +189,24 @@ utilCompressorFactory gCompressFactory ;
 #define PMD_REPAIRE_MB_MASK_LOBPAGE          0x00000040
 #define PMD_REPAIRE_MB_MASK_DATAFREE         0x00000080
 #define PMD_REPAIRE_MB_MASK_IDXFREE          0x00000100
+#define PMD_REPAIRE_MB_MASK_IDXNUM           0x00000200
+#define PMD_REPAIRE_MB_MASK_COMPRESSTYPE     0x00000400
+#define PMD_REPAIRE_MB_MASK_LOBS             0x00000800
+#define PMD_REPAIRE_MB_MASK_COMMITFLAG       0x00001000
+#define PMD_REPAIRE_MB_MASK_COMMITLSN        0x00002000
+#define PMD_REPAIRE_MB_MASK_IDX_COMMITFLAG   0x00004000
+#define PMD_REPAIRE_MB_MASK_IDX_COMMITLSN    0x00008000
+#define PMD_REPAIRE_MB_MASK_LOB_COMMITFLAG   0x00010000
+#define PMD_REPAIRE_MB_MASK_LOB_COMMITLSN    0x00020000
+#define PMD_REPAIRE_MB_MASK_LOBPAGES         0x00040000
 
 
 #define RETRY_COUNT 5
+
+INT32 prepareCompressor( OSSFILE &file, SINT32 pageSize, dmsMB *mb, UINT16 id,
+                         CHAR *pExpBuffer, dmsCompressorEntry &compressorEntry,
+                         SINT32 &err ) ;
+
 INT32 switchFile( OSSFILE& file, const INT32 size )
 {
    INT32 rc = SDB_OK ;
@@ -262,7 +280,10 @@ BOOLEAN pmdUtilIsNum( const CHAR *str )
    {
       if ( str[i] < '0' || str[i] > '9' )
       {
-         return FALSE ;
+         if ( 0 != i || ( '-' != str[i] && '+' != str[i] ) )
+         {
+            return FALSE ;
+         }
       }
       ++i ;
    }
@@ -287,7 +308,6 @@ INT32 parseRepaireString( const std::string &str )
    }
    *pos = ':' ;
 
-   /// parse mb member
    vector< pmdAddrPair > items ;
    pmdOptionsCB opt ;
    INT32 rc = opt.parseAddressLine( pos + 1, items, ",", "=", 0 ) ;
@@ -301,7 +321,6 @@ INT32 parseRepaireString( const std::string &str )
    {
       pmdAddrPair &aItem = items[ i ] ;
 
-      /// must be nubmer
       if ( !pmdUtilIsNum( aItem._service ) )
       {
          ossPrintf( "Field[%s]'s value is not number[%s]"OSS_NEWLINE,
@@ -355,6 +374,51 @@ INT32 parseRepaireString( const std::string &str )
          gRepaireMask |= PMD_REPAIRE_MB_MASK_IDXFREE ;
          gRepaireMB._totalIndexFreeSpace = value ;
       }
+      else if ( 0 == ossStrcasecmp( aItem._host, "IndexNum" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_IDXNUM ;
+         gRepaireMB._numIndexes = value ;
+      }
+      else if ( 0 == ossStrcasecmp( aItem._host, "CompressType" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_COMPRESSTYPE ;
+         gRepaireMB._compressorType = value ;
+      }
+      else if ( 0 == ossStrcasecmp( aItem._host, "Lobs" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_LOBS ;
+         gRepaireMB._totalLobs = value ;
+      }
+      else if ( 0 == ossStrcasecmp( aItem._host, "CommitFlag" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_COMMITFLAG ;
+         gRepaireMB._commitFlag = value ;
+      }
+      else if ( 0 == ossStrcasecmp( aItem._host, "CommitLSN" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_COMMITLSN ;
+         gRepaireMB._commitLSN = value ;
+      }
+      else if ( 0 == ossStrcasecmp( aItem._host, "IdxCommitFlag" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_IDX_COMMITFLAG ;
+         gRepaireMB._idxCommitFlag = value ;
+      }
+      else if ( 0 == ossStrcasecmp( aItem._host, "IdxCommitLSN" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_IDX_COMMITLSN ;
+         gRepaireMB._idxCommitLSN = value ;
+      }
+      else if ( 0 == ossStrcasecmp( aItem._host, "LobCommitFlag" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_LOB_COMMITFLAG ;
+         gRepaireMB._lobCommitFlag = value ;
+      }
+      else if ( 0 == ossStrcasecmp( aItem._host, "LobCommitLSN" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_LOB_COMMITLSN ;
+         gRepaireMB._lobCommitLSN = value ;
+      }
       else
       {
          ossPrintf( "Unknow mb key: %s"OSS_NEWLINE, aItem._host ) ;
@@ -365,7 +429,6 @@ INT32 parseRepaireString( const std::string &str )
    return SDB_OK ;
 }
 
-// resolve input argument
 // PD_TRACE_DECLARE_FUNCTION ( SDB_SDBINSPT_RESVARG, "resolveArgument" )
 INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
 {
@@ -415,7 +478,6 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
       rc = SDB_PMD_VERSION_ONLY ;
       goto done ;
    }
-   // for dbpath, copy to gDatabasePath
    if ( vm.count ( OPTION_DBPATH ) )
    {
       const CHAR *dbpath = vm[OPTION_DBPATH].as<string>().c_str() ;
@@ -429,11 +491,9 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
    }
    else
    {
-      // use current directory for default
       ossStrncpy ( gDatabasePath, ".", sizeof(gDatabasePath) ) ;
    }
 
-   // for index path copy to gIndexPath
    if ( vm.count( OPTION_INDEXPATH ) )
    {
       const CHAR *indexPath = vm[OPTION_INDEXPATH].as<string>().c_str() ;
@@ -450,7 +510,6 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
       ossStrcpy( gIndexPath, gDatabasePath ) ;
    }
 
-   // check --output, if not provide then use stdout
    if ( vm.count ( OPTION_OUTPUT ) )
    {
       const CHAR *output = vm[OPTION_OUTPUT].as<string>().c_str() ;
@@ -502,12 +561,10 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
          ossPrintf ( "Error: Failed to open output file: %s, rc = %d"
                      OSS_NEWLINE,
                      outputFile, rc ) ;
-         // if we can't open the file, let's output to screen
          ossMemset ( gOutputFile, 0, sizeof(gOutputFile) ) ;
       }
    }
 
-   // whether do verbose or raw output
    if ( vm.count ( OPTION_VERBOSE ) )
    {
       ossStrToBoolean ( vm[OPTION_VERBOSE].as<string>().c_str(),
@@ -516,21 +573,18 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
          gDumpType = 0 ;
    }
 
-   // whether dump user data
    if ( vm.count ( OPTION_DUMPDATA ) )
    {
       ossStrToBoolean ( vm[OPTION_DUMPDATA].as<string>().c_str(),
                         &gDumpData ) ;
    }
 
-   // whether dump index
    if ( vm.count ( OPTION_DUMPINDEX ) )
    {
       ossStrToBoolean ( vm[OPTION_DUMPINDEX].as<string>().c_str(),
                         &gDumpIndex ) ;
    }
 
-   // collection space name
    if ( vm.count ( OPTION_CSNAME ) )
    {
       const CHAR *csname = vm[OPTION_CSNAME].as<string>().c_str() ;
@@ -543,7 +597,6 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
       ossStrncpy ( gCSName, csname, sizeof(gCSName) ) ;
    }
 
-   // collection name
    if ( vm.count ( OPTION_CLNAME ) )
    {
       const CHAR *clname = vm[OPTION_CLNAME].as<string>().c_str() ;
@@ -556,24 +609,20 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
       ossStrncpy ( gCLName, clname, sizeof(gCLName) ) ;
    }
 
-   // starting page
    if ( vm.count ( OPTION_PAGESTART ) )
    {
       gStartingPage = vm[OPTION_PAGESTART].as<SINT32>() ;
    }
 
-   // num pages
    if ( vm.count ( OPTION_NUMPAGE ) )
    {
       gNumPages = vm[OPTION_NUMPAGE].as<SINT32>() ;
    }
 
-   // by default we dump
    ossStrncpy ( actionString, ACTION_DUMP_STRING,
                 sizeof(actionString) ) ;
    if ( vm.count ( OPTION_ACTION ) )
    {
-      // inspect input
       const CHAR *action = vm[OPTION_ACTION].as<string>().c_str() ;
       if ( ossStrncasecmp ( action, ACTION_INSPECT_STRING,
            ossStrlen(action) ) == 0 )
@@ -582,7 +631,6 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
                       sizeof(actionString) ) ;
          gAction = ACTION_INSPECT ;
       }
-      // dump input
       else if ( ossStrncasecmp ( action, ACTION_DUMP_STRING,
                 ossStrlen(action) ) == 0 )
       {
@@ -590,7 +638,6 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
                       sizeof(actionString) ) ;
          gAction = ACTION_DUMP ;
       }
-      // stat input
       else if ( ossStrncasecmp( action, ACTION_STAT_STRING,
                 ossStrlen(action) ) == 0 )
       {
@@ -598,7 +645,6 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
                      sizeof(actionString) ) ;
          gAction = ACTION_STAT ;
       }
-      // all input
       else if ( ossStrncasecmp ( action, ACTION_ALL_STRING,
                 ossStrlen(action) ) == 0 )
       {
@@ -606,7 +652,6 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
                       sizeof(actionString) ) ;
          gAction = ACTION_INSPECT | ACTION_DUMP | ACTION_STAT ;
       }
-      // if action options is not valid, let's display help
       else
       {
          dumpAndShowPrintf ( "Invalid Action Option: %s"OSS_NEWLINE,
@@ -619,7 +664,6 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
    else if ( !vm.count( OPTION_REPAIRE ) )
    {
       dumpAndShowPrintf ( "Action or repaire must be specified"OSS_NEWLINE ) ;
-      // if no action specified, let's display help
       displayArg ( desc ) ;
       rc = SDB_PMD_HELP_ONLY ;
       goto done ;
@@ -634,6 +678,10 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
    {
       ossStrToBoolean( vm[OPTION_ONLY_META].as<string>().c_str(),
                        &gOnlyMeta ) ;
+   }
+   if ( vm.count( OPTION_FORCE ) )
+   {
+      gForce = TRUE ;
    }
 
    if ( vm.count( OPTION_REPAIRE ) )
@@ -660,8 +708,6 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
       gAction = ACTION_REPAIRE ;
    }
 
-   // show input parameters on screen so people can see it
-   // save them into output as well
    dumpAndShowPrintf ( "Run Options   :"OSS_NEWLINE ) ;
    dumpAndShowPrintf ( "Database Path : %s"OSS_NEWLINE,
                        gDatabasePath ) ;
@@ -690,8 +736,10 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
                        gNumPages ) ;
    dumpAndShowPrintf ( "   Show record: %s"OSS_NEWLINE,
                        gShowRecordContent ? "True":"False") ;
-   dumpAndShowPrintf ( "   Only Meta:   %s"OSS_NEWLINE,
+   dumpAndShowPrintf ( "   Only Meta  : %s"OSS_NEWLINE,
                        gOnlyMeta ? "True":"False" ) ;
+   dumpAndShowPrintf ( "   force      : %s"OSS_NEWLINE,
+                       gForce ? "True":"False" ) ;
    dumpAndShowPrintf ( OSS_NEWLINE ) ;
 done :
    PD_TRACE_EXITRC ( SDB_SDBINSPT_RESVARG, rc );
@@ -700,9 +748,6 @@ error :
    goto done ;
 }
 
-// write output from pBuffer for size bytes, to output file
-// if output file is not defined, or failed writing to file, we write to screen
-// stdout
 // PD_TRACE_DECLARE_FUNCTION ( SDB_FLUSHOUTPUT, "flushOutput" )
 void flushOutput ( const CHAR *pBuffer, INT32 size )
 {
@@ -753,7 +798,6 @@ error :
    goto done ;
 }
 
-// dump some text into output
 #define DUMP_PRINTF_BUFFER_SZ 4095
 // PD_TRACE_DECLARE_FUNCTION ( SDB_DUMPPRINTF, "dumpPrintf" )
 void dumpPrintf ( const CHAR *format, ... )
@@ -770,12 +814,6 @@ void dumpPrintf ( const CHAR *format, ... )
    PD_TRACE_EXIT ( SDB_DUMPPRINTF );
 }
 
-// reallocate global output buffer.
-// This buffer is used for dumping format output. By default it's starting from
-// BUFFER_INIT_SIZE, and once the caller found current gBufferSize is smaller
-// than required, they'll call this function again to double the memory. The
-// incremental upper limit is BUFFER_INC_SIZE, and the total amount of buffer
-// cannot exceed 2GB ( for protection only )
 // PD_TRACE_DECLARE_FUNCTION ( SDB_REALLOCBUFFER, "reallocBuffer" )
 INT32 reallocBuffer ()
 {
@@ -802,7 +840,6 @@ INT32 reallocBuffer ()
       SDB_OSS_FREE ( gBuffer ) ;
       gBuffer = NULL ;
    }
-   // memory free by end of program
    gBuffer = (CHAR*)SDB_OSS_MALLOC ( gBufferSize ) ;
    if ( !gBuffer )
    {
@@ -812,7 +849,6 @@ INT32 reallocBuffer ()
       gBufferSize = 0 ;
       goto error ;
    }
-
 done :
    PD_TRACE_EXITRC ( SDB_REALLOCBUFFER, rc );
    return rc ;
@@ -820,10 +856,6 @@ error :
    goto done ;
 }
 
-// This function allocate extent buffer, which is used to hold a single extent
-// read from file. The argument size represents the number of bytes required by
-// the extent. If the required size is greater than the current size, we'll
-// reallocate required buffer size
 // PD_TRACE_DECLARE_FUNCTION ( SDB_GETEXTBUFFER, "getExtentBuffer" )
 INT32 getExtentBuffer ( INT32 size )
 {
@@ -855,7 +887,6 @@ error :
    goto done ;
 }
 
-// clear global output dump buffer
 void clearBuffer ()
 {
    if ( gBuffer )
@@ -866,7 +897,6 @@ void clearBuffer ()
    gBufferSize = 0 ;
 }
 
-// inspect SU's header
 // PD_TRACE_DECLARE_FUNCTION ( SDB_INSPECTHEADER, "inspectHeader" )
 void inspectHeader ( OSSFILE &file, SINT32 &pageSize, SINT32 &err )
 {
@@ -878,7 +908,6 @@ void inspectHeader ( OSSFILE &file, SINT32 &pageSize, SINT32 &err )
    SINT64 lenRead = 0 ;
    UINT64 secretValue = 0 ;
 
-   // seek to where header starts and read DMS_HEADER_SZ bytes
    rc = ossSeekAndRead ( &file, DMS_HEADER_OFFSET, headerBuffer,
                          DMS_HEADER_SZ, &lenRead ) ;
    if ( rc || lenRead != DMS_HEADER_SZ )
@@ -888,9 +917,6 @@ void inspectHeader ( OSSFILE &file, SINT32 &pageSize, SINT32 &err )
       ++err ;
       goto error ;
    }
-   // attempt to format, note if len is gBufferSize - 1, that means we write to
-   // end of buffer, which represents the current buffer size is not sufficient,
-   // then clearly we should attempt to realloc buffer and format again
 retry :
    localErr = 0 ;
    len = dmsInspect::inspectHeader ( headerBuffer, DMS_HEADER_SZ,
@@ -900,10 +926,8 @@ retry :
    PD_TRACE1 ( SDB_INSPECTHEADER, PD_PACK_UINT(len) );
    if ( len >= gBufferSize - 1 )
    {
-      // if len is same as buffer size, that means we run out of buffer memory
       if ( reallocBuffer () )
       {
-         // if we failed to realloc more memory
          clearBuffer () ;
          goto error ;
       }
@@ -912,7 +936,6 @@ retry :
    err += localErr ;
    flushOutput ( gBuffer, len ) ;
 
-   // check
    if ( secretValue != gSecretValue )
    {
       dumpPrintf ( "Error: Secret value[%llu] is not expected[%llu]"OSS_NEWLINE,
@@ -942,7 +965,6 @@ void dumpHeader ( OSSFILE &file, SINT32 &pageSize )
    UINT32 len                          = 0 ;
    CHAR headerBuffer [ DMS_HEADER_SZ ] = {0};
    SINT64 lenRead                      = 0 ;
-   // seek to where header starts and read DMS_HEADER_SZ bytes
    rc = ossSeekAndRead ( &file, DMS_HEADER_OFFSET, headerBuffer,
                          DMS_HEADER_SZ, &lenRead ) ;
    if ( rc || lenRead != DMS_HEADER_SZ )
@@ -951,9 +973,6 @@ void dumpHeader ( OSSFILE &file, SINT32 &pageSize )
                    "rc = %d"OSS_NEWLINE, lenRead, rc ) ;
       goto error ;
    }
-   // attempt to format, note if len is gBufferSize - 1, that means we write to
-   // end of buffer, which represents the current buffer size is not sufficient,
-   // then clearly we should attempt to realloc buffer and format again
 retry :
    len = dmsDump::dumpHeader ( headerBuffer, DMS_HEADER_SZ,
                                gBuffer, gBufferSize, NULL,
@@ -964,17 +983,13 @@ retry :
    PD_TRACE1 ( SDB_DUMPHEADER, PD_PACK_UINT(len) );
    if ( len >= gBufferSize - 1 )
    {
-      // if len is same as buffer size, that means we run out of buffer memory
       if ( reallocBuffer () )
       {
-         // if we failed to realloc more memory
          clearBuffer () ;
          goto error ;
       }
       goto retry ;
    }
-   // flush result to output ( if we can't allocate more memory, we shouldn't
-   // hit here anyway )
    flushOutput ( gBuffer, len ) ;
 
 done :
@@ -994,8 +1009,6 @@ void inspectSME ( OSSFILE &file, const CHAR *pExpBuf, SINT32 &hwm, SINT32 &err )
    CHAR *smeBuffer = NULL ;
    SINT64 lenRead  = 0 ;
    SINT32 localErr = 0 ;
-   // free by end of function
-   // since SME is too large to be held by stack, we do heap allocation
    smeBuffer = (CHAR*)SDB_OSS_MALLOC ( DMS_SME_SZ ) ;
    if ( !smeBuffer )
    {
@@ -1004,7 +1017,6 @@ void inspectSME ( OSSFILE &file, const CHAR *pExpBuf, SINT32 &hwm, SINT32 &err )
       ++err ;
       goto error ;
    }
-   // seek to SME
    rc = ossSeekAndRead ( &file, DMS_SME_OFFSET, smeBuffer,
                          DMS_SME_SZ, &lenRead ) ;
    if ( rc || lenRead != DMS_SME_SZ )
@@ -1052,8 +1064,6 @@ void dumpSME ( OSSFILE &file )
    UINT32 len ;
    CHAR *smeBuffer = NULL ;
    SINT64 lenRead = 0 ;
-   // free by end of function
-   // since SME is too large to be held by stack, we do heap allocation
    smeBuffer = (CHAR*)SDB_OSS_MALLOC ( DMS_SME_SZ ) ;
    if ( !smeBuffer )
    {
@@ -1061,7 +1071,6 @@ void dumpSME ( OSSFILE &file )
                    OSS_NEWLINE, (INT32)DMS_SME_SZ ) ;
       goto error ;
    }
-   // seek to where SME starts
    rc = ossSeekAndRead ( &file, DMS_SME_OFFSET, smeBuffer,
                          DMS_SME_SZ, &lenRead ) ;
    if ( rc || lenRead != DMS_SME_SZ )
@@ -1070,8 +1079,6 @@ void dumpSME ( OSSFILE &file )
                    OSS_NEWLINE, lenRead, rc ) ;
       goto error ;
    }
-   // format it, if len == gBufferSize -1, that means buffer is not large enough
-   // and we should attempt to realloc
 retry :
    len = dmsDump::dumpSME ( smeBuffer, DMS_SME_SZ,
                             gBuffer, gBufferSize, gPageNum ) ;
@@ -1085,7 +1092,6 @@ retry :
       }
       goto retry ;
    }
-   // write output
    flushOutput ( gBuffer, len ) ;
 
 done :
@@ -1100,11 +1106,6 @@ error :
    goto done ;
 }
 
-// extract extent header by
-// 1) input file
-// 2) extent id
-// 3) SU page size
-// and output to extentHead structure
 // PD_TRACE_DECLARE_FUNCTION ( SDB_GETEXTENTHEAD, "getExtentHead" )
 INT32 getExtentHead ( OSSFILE &file, dmsExtentID extentID, SINT32 pageSize,
                       dmsExtent &extentHead )
@@ -1112,11 +1113,9 @@ INT32 getExtentHead ( OSSFILE &file, dmsExtentID extentID, SINT32 pageSize,
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_GETEXTENTHEAD );
    SINT64 lenRead = 0 ;
-   // calculate the starting offset of extent, and read extent head
    rc = ossSeekAndRead ( &file, gDataOffset + (SINT64)pageSize * extentID,
                          (CHAR*)&extentHead, DMS_EXTENT_METADATA_SZ,
                          &lenRead ) ;
-   // make sure we successfully read something and it's expected size
    if ( rc || lenRead != DMS_EXTENT_METADATA_SZ )
    {
       dumpPrintf ( "Error: Failed to read extent head, read %lld bytes, "
@@ -1128,41 +1127,42 @@ INT32 getExtentHead ( OSSFILE &file, dmsExtentID extentID, SINT32 pageSize,
    return rc ;
 }
 
-// extract full extent by
-// 1) input file
-// 2) extent id
-// 3) page size
-// 4) extent size
-// This function store output to global gExtentBuffer
 // PD_TRACE_DECLARE_FUNCTION ( SDB_GETEXTENT, "getExtent" )
 INT32 getExtent ( OSSFILE &file, dmsExtentID extentID, SINT32 pageSize,
-                  SINT32 extentSize )
+                  SINT32 extentSize, BOOLEAN dictExtent = FALSE )
 {
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_GETEXTENT );
    SINT64 lenRead ;
-   // only realloc extent memory when it's not large enough
-   if ( gExtentBufferSize < (UINT32)(extentSize * pageSize ) )
+   CHAR *buffer = NULL ;
+
+   if ( dictExtent )
    {
-      rc = getExtentBuffer ( extentSize*pageSize ) ;
-      if ( rc )
-      {
-         dumpPrintf ( "Error: Failed to allocate extent buffer, rc = %d"
-                      OSS_NEWLINE, rc ) ;
-         goto error ;
-      }
+      buffer = gDictBuffer ;
    }
-   // seek to offset and read entire extent
+   else
+   {
+      if ( gExtentBufferSize < (UINT32)(extentSize * pageSize ) )
+      {
+         rc = getExtentBuffer ( extentSize*pageSize ) ;
+         if ( rc )
+         {
+            dumpPrintf ( "Error: Failed to allocate extent buffer, rc = %d"
+                         OSS_NEWLINE, rc ) ;
+            goto error ;
+         }
+      }
+      buffer = gExtentBuffer ;
+   }
+
    rc = ossSeekAndRead ( &file, gDataOffset + (SINT64)pageSize * extentID,
-                         gExtentBuffer, extentSize * pageSize,
+                         buffer, extentSize * pageSize,
                          &lenRead ) ;
-   // output sanity check
    if ( rc || lenRead != extentSize * pageSize )
    {
       dumpPrintf ( "Error: Failed to read extent , read %lld bytes, "
                    "expect %d bytes, rc = %d"OSS_NEWLINE, lenRead,
                    extentSize * pageSize, rc ) ;
-      // out of range, should jump out of loop to avoid printing valid log
       gReachEnd = TRUE ;
 
       if ( !rc )
@@ -1183,15 +1183,8 @@ enum INSPECT_EXTENT_TYPE
    INSPECT_EXTENT_TYPE_INDEX_CB,
    INSPECT_EXTENT_TYPE_MBEX,
    INSPECT_EXTENT_TYPE_DICT,
-   // for unknown type, that means we do not know which type of extent it is.
-   // For example if we are provided by a single extent id without any other
-   // information, in this case our extract function should first read extent
-   // header and determine the type of extent
    INSPECT_EXTENT_TYPE_UNKNOWN
 } ;
-// check if an extent is valid, TRUE means valid, FALSE means invalid
-// If type = INSPECT_EXTENT_TYPE_UNKNOWN, we'll first detect the extent type,
-// and then assign type to the correct value, then do validation
 // PD_TRACE_DECLARE_FUNCTION ( SDB_EXTENTSANITYCHK, "extentSanityCheck" )
 BOOLEAN extentSanityCheck ( dmsExtent &extentHead,
                             INSPECT_EXTENT_TYPE &type, // in-out
@@ -1204,7 +1197,6 @@ BOOLEAN extentSanityCheck ( dmsExtent &extentHead,
 retry :
    if ( INSPECT_EXTENT_TYPE_DATA == type )
    {
-      // make sure eye catcher is "DE" ( Data Extent )
       if ( extentHead._eyeCatcher[0] != DMS_EXTENT_EYECATCHER0 ||
            extentHead._eyeCatcher[1] != DMS_EXTENT_EYECATCHER1 )
       {
@@ -1213,7 +1205,6 @@ retry :
                       extentHead._eyeCatcher[1] ) ;
          result = FALSE ;
       }
-      // make sure the block size is greater than 0, and doesn't exceed max
       if ( extentHead._blockSize <= 0 ||
            extentHead._blockSize * pageSize > DMS_SEGMENT_SZ )
       {
@@ -1221,21 +1212,18 @@ retry :
                       OSS_NEWLINE, extentHead._blockSize, pageSize ) ;
          result = FALSE ;
       }
-      // make sure the collection id is what we want
       if ( extentHead._mbID != expID )
       {
          dumpPrintf ( "Error: Unexpected id: %d, expected %d"OSS_NEWLINE,
                       extentHead._mbID, expID ) ;
          result = FALSE ;
       }
-      // make sure the version is not rediculous
       if ( extentHead._version > DMS_EXTENT_CURRENT_V )
       {
          dumpPrintf ( "Error: Invalid version: %d, current %d"OSS_NEWLINE,
                       extentHead._version, DMS_EXTENT_CURRENT_V ) ;
          result = FALSE ;
       }
-      // first/last record offset must be sync
       if ( ( extentHead._firstRecordOffset != DMS_INVALID_OFFSET &&
              extentHead._lastRecordOffset == DMS_INVALID_OFFSET ) ||
            ( extentHead._firstRecordOffset == DMS_INVALID_OFFSET &&
@@ -1246,7 +1234,6 @@ retry :
                       extentHead._lastRecordOffset ) ;
          result = FALSE ;
       }
-      // first record doesn't go wild
       if ( extentHead._firstRecordOffset >=
            extentHead._blockSize * pageSize )
       {
@@ -1254,7 +1241,6 @@ retry :
                       extentHead._firstRecordOffset ) ;
          result = FALSE ;
       }
-      // last record doens't go wild
       if ( extentHead._lastRecordOffset >=
            extentHead._blockSize * pageSize )
       {
@@ -1262,7 +1248,6 @@ retry :
                       extentHead._lastRecordOffset ) ;
          result = FALSE ;
       }
-      // free space is making sense too
       if ( (UINT32)extentHead._freeSpace >
            extentHead._blockSize * pageSize - DMS_EXTENT_METADATA_SZ )
       {
@@ -1274,16 +1259,13 @@ retry :
    }
    else if ( INSPECT_EXTENT_TYPE_INDEX == type )
    {
-      // index extent sanity check
    }
    else if ( INSPECT_EXTENT_TYPE_INDEX_CB == type )
    {
-      // index control block sanity check
    }
    else if ( INSPECT_EXTENT_TYPE_MBEX == type )
    {
       dmsMetaExtent *metaExt = ( dmsMetaExtent* )&extentHead ;
-      // make sure eye catcher is "ME" ( Meta Extent )
       if ( metaExt->_eyeCatcher[0] != DMS_META_EXTENT_EYECATCHER0 ||
            metaExt->_eyeCatcher[1] != DMS_META_EXTENT_EYECATCHER1 )
       {
@@ -1292,7 +1274,6 @@ retry :
                       metaExt->_eyeCatcher[1] ) ;
          result = FALSE ;
       }
-      // make sure the block size is greater than 0, and doesn't exceed max
       if ( metaExt->_blockSize <= 0 ||
            metaExt->_blockSize * pageSize > DMS_SEGMENT_SZ )
       {
@@ -1300,14 +1281,12 @@ retry :
                       OSS_NEWLINE, metaExt->_blockSize, pageSize ) ;
          result = FALSE ;
       }
-      // make sure the collection id is what we want
       if ( metaExt->_mbID != expID )
       {
          dumpPrintf ( "Error: Unexpected id: %d, expected %d"OSS_NEWLINE,
                       metaExt->_mbID, expID ) ;
          result = FALSE ;
       }
-      // make sure the version is not rediculous
       if ( metaExt->_version > DMS_META_EXTENT_CURRENT_V )
       {
          dumpPrintf ( "Error: Invalid version: %d, current %d"OSS_NEWLINE,
@@ -1348,25 +1327,21 @@ retry :
    }
    else if ( INSPECT_EXTENT_TYPE_UNKNOWN == type )
    {
-      // if we do not know which type to read, let's first check eye catcher
       if ( extentHead._eyeCatcher[0] == DMS_EXTENT_EYECATCHER0 &&
            extentHead._eyeCatcher[1] == DMS_EXTENT_EYECATCHER1 )
       {
-         // so this is data extent, let's go back to check again
          type = INSPECT_EXTENT_TYPE_DATA ;
          goto retry ;
       }
       else if ( extentHead._eyeCatcher[0] == IXM_EXTENT_EYECATCHER0 &&
                 extentHead._eyeCatcher[1] == IXM_EXTENT_EYECATCHER1 )
       {
-         // this is index extent, let's go back to check again
          type = INSPECT_EXTENT_TYPE_INDEX ;
          goto retry ;
       }
       else if ( extentHead._eyeCatcher[0] == IXM_EXTENT_CB_EYECATCHER0 &&
                 extentHead._eyeCatcher[1] == IXM_EXTENT_CB_EYECATCHER1 )
       {
-         // this is index control block extent, let's go back to check again
          type = INSPECT_EXTENT_TYPE_INDEX_CB ;
          goto retry ;
       }
@@ -1384,7 +1359,6 @@ retry :
       }
       else
       {
-         // we don't know the type, let's get out of here
          dumpPrintf ( "Error: Unknown eye catcher: %c%c"OSS_NEWLINE,
                       extentHead._eyeCatcher[0],
                       extentHead._eyeCatcher[1] ) ;
@@ -1419,10 +1393,6 @@ INT32 loadMB ( UINT16 collectionID, dmsMB *&mb )
    return rc ;
 }
 
-// load a given extent into memory
-// first we need to load extent header and do sanity check. If we found
-// something strange, we don't want to load garbage.
-// Then let's load the full extent and return
 // PD_TRACE_DECLARE_FUNCTION ( SDB_LOADEXTENT, "loadExtent" )
 INT32 loadExtent ( OSSFILE &file, INSPECT_EXTENT_TYPE &type,
                    SINT32 pageSize, dmsExtentID extentID,
@@ -1431,7 +1401,6 @@ INT32 loadExtent ( OSSFILE &file, INSPECT_EXTENT_TYPE &type,
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_LOADEXTENT );
    dmsExtent extentHead ;
-   // load header first
    rc = getExtentHead ( file, extentID, pageSize, extentHead ) ;
    if ( rc )
    {
@@ -1439,7 +1408,6 @@ INT32 loadExtent ( OSSFILE &file, INSPECT_EXTENT_TYPE &type,
                    rc ) ;
       goto error ;
    }
-   // sanity check
    if ( !extentSanityCheck ( extentHead, type, pageSize,
                              collectionID ) )
    {
@@ -1454,13 +1422,12 @@ INT32 loadExtent ( OSSFILE &file, INSPECT_EXTENT_TYPE &type,
       goto error ;
    }
 
-   // load full extent, block size is variable only for data extent
-   // for Index and IndexCB extent, the size should always be 1
    rc = getExtent ( file, extentID, pageSize,
                     ( INSPECT_EXTENT_TYPE_DATA == type ||
                       INSPECT_EXTENT_TYPE_MBEX == type ||
                       INSPECT_EXTENT_TYPE_DICT == type ) ?
-                      extentHead._blockSize : 1 ) ;
+                      extentHead._blockSize : 1,
+                      INSPECT_EXTENT_TYPE_DICT == type) ;
    if ( rc )
    {
       dumpPrintf ( "Error: Failed to get extent %d, rc = %d"
@@ -1475,72 +1442,13 @@ error :
    goto done ;
 }
 
-// PD_TRACE_DECLARE_FUNCTION ( SDB_PREPARECOMPRESSOR, "prepareCompressor" )
-INT32 prepareCompressor( SINT8 compType, utilCompressor *&compressorPtr,
-                         utilCompressorContext &compContext )
-{
-   PD_TRACE_ENTRY( SDB_PREPARECOMPRESSOR ) ;
-
-   INT32 rc = SDB_OK ;
-   utilCompressor *compressor = NULL ;
-   utilCompressorContext context = UTIL_INVALID_COMP_CTX ;
-   UTIL_COMPRESSOR_TYPE type = (UTIL_COMPRESSOR_TYPE)compType ;
-   dmsDictExtent *dictExtent = (dmsDictExtent*)gExtentBuffer ;
-
-   if ( UTIL_COMPRESSOR_LZW != type )
-   {
-      dumpPrintf( "Error: Invalid compressor type %d"OSS_NEWLINE, compType ) ;
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-
-   rc = gCompressFactory.createCompressor( type, compressor ) ;
-   if ( rc )
-   {
-      dumpPrintf( "Error: Failed to create compressor, type = %d, rc = %d"
-                  OSS_NEWLINE, compType, rc ) ;
-      goto error ;
-   }
-
-   rc = compressor->setDictionary( ((CHAR *)dictExtent)
-                                    + DMS_DICTEXTENT_HEADER_SZ,
-                                    dictExtent->_dictLen ) ;
-   if ( rc )
-   {
-      dumpPrintf( "Error: Failed to set dictionary for compressor, rc = %d"
-                  OSS_NEWLINE, rc ) ;
-      goto error ;
-   }
-
-   rc = compressor->prepare( context ) ;
-   if ( rc )
-   {
-      dumpPrintf( "Error: Failed to prepare compressor, rc = %d"OSS_NEWLINE,
-                  rc ) ;
-      goto error ;
-   }
-
-   compressorPtr = compressor ;
-   compContext = context ;
-
-done:
-   PD_TRACE_EXITRC( SDB_PREPARECOMPRESSOR, rc ) ;
-   return rc ;
-error:
-   if ( compressor )
-   {
-      gCompressFactory.destroyCompressor( compressor ) ;
-   }
-   goto done ;
-}
-
 // PD_TRACE_DECLARE_FUNCTION ( SDB_INSPOVFLWRECRDS, "inspectOverflowedRecords" )
 void inspectOverflowedRecords ( OSSFILE &file, SINT32 pageSize,
                                 UINT16 collectionID, dmsExtentID ovfFromExtent,
                                 std::set<dmsRecordID> &overRIDList,
                                 SINT32 &err,
-                                utilCompressor *compressor,
-                                utilCompressorContext compContext )
+                                dmsCompressorEntry *compressorEntry,
+                                UINT64 &compressedNum )
 {
    INT32 rc        = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_INSPOVFLWRECRDS );
@@ -1551,6 +1459,7 @@ void inspectOverflowedRecords ( OSSFILE &file, SINT32 pageSize,
    std::set<dmsRecordID>::iterator it ;
    INSPECT_EXTENT_TYPE extentType = INSPECT_EXTENT_TYPE_DATA ;
    dmsExtentID currentExtentID = DMS_INVALID_EXTENT ;
+   BOOLEAN isCompressed = FALSE ;
 
    dumpPrintf ( " Inspect Overflow-Records for Collection [%d]'s extent [%d]"
                 OSS_NEWLINE, collectionID, ovfFromExtent ) ;
@@ -1571,7 +1480,6 @@ void inspectOverflowedRecords ( OSSFILE &file, SINT32 pageSize,
 
       if ( currentExtentID != rid._extent )
       {
-         // only load extent when it's not what we are opening now
          rc = loadExtent ( file, extentType, pageSize, rid._extent,
                            collectionID ) ;
          if ( rc )
@@ -1585,17 +1493,12 @@ void inspectOverflowedRecords ( OSSFILE &file, SINT32 pageSize,
       }
 
 retry :
-      // inspect record
       offset = rid._offset ;
       localErr = 0 ;
       len = dmsInspect::inspectDataRecord ( cb, gExtentBuffer + offset,
               ((dmsExtent*)gExtentBuffer)->_blockSize * pageSize - offset,
               gBuffer, gBufferSize, count, offset, NULL, localErr,
-              compressor, compContext ) ;
-      if ( compContext )
-      {
-         compressor->rePrepare( compContext ) ;
-      }
+              compressorEntry, isCompressed ) ;
       if ( len >= gBufferSize-1 )
       {
          if ( reallocBuffer () )
@@ -1608,6 +1511,11 @@ retry :
       flushOutput ( gBuffer, len ) ;
       err += localErr ;
       ++count ;
+
+      if ( isCompressed )
+      {
+         ++compressedNum ;
+      }
    } // end for
 
 done :
@@ -1634,8 +1542,7 @@ error :
 void dumpOverflowedRecords ( OSSFILE &file, SINT32 pageSize,
                              UINT16 collectionID, dmsExtentID ovfFromExtID,
                              std::set<dmsRecordID> &overRIDList,
-                             utilCompressor *compressor ,
-                             utilCompressorContext compContext )
+                             dmsCompressorEntry *compressorEntry )
 {
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_DUMPOVFWRECRDS );
@@ -1652,7 +1559,6 @@ void dumpOverflowedRecords ( OSSFILE &file, SINT32 pageSize,
       dmsOffset offset = 0 ;
       if ( currentExtentID != rid._extent )
       {
-         // only load extent when it's not what we are opening now
          rc = loadExtent ( file, extentType, pageSize, rid._extent,
                            collectionID ) ;
          if ( rc )
@@ -1665,17 +1571,13 @@ void dumpOverflowedRecords ( OSSFILE &file, SINT32 pageSize,
       }
 
 retry :
-      // attempt to format the record
       offset = rid._offset ;
       dumpPrintf ( "    OvfRecord 0x%08x : 0x%08x:"OSS_NEWLINE,
                    rid._extent, rid._offset ) ;
       len = dmsDump::dumpDataRecord ( cb, gExtentBuffer + offset,
                  ((dmsExtent*)gExtentBuffer)->_blockSize * pageSize - offset,
-                 gBuffer, gBufferSize, offset, NULL, compressor, compContext ) ;
-      if ( compContext )
-      {
-         compressor->rePrepare( compContext ) ;
-      }
+                 gBuffer, gBufferSize, offset, compressorEntry, NULL ) ;
+
       PD_TRACE1 ( SDB_DUMPOVFWRECRDS, PD_PACK_UINT(len) );
       if ( len >= gBufferSize-1 )
       {
@@ -1711,7 +1613,6 @@ void inspectIndexDef ( OSSFILE &file, SINT32 pageSize, UINT16 collectionID,
    INT32 oldErr   = err ;
    INSPECT_EXTENT_TYPE extentType = INSPECT_EXTENT_TYPE_INDEX_CB ;
 
-   // first let's see how many indexes we have
    if ( mb->_numIndexes > DMS_COLLECTION_MAX_INDEX )
    {
       dumpPrintf ( "Error: numIdx is out of range, max: %d"OSS_NEWLINE,
@@ -1719,12 +1620,10 @@ void inspectIndexDef ( OSSFILE &file, SINT32 pageSize, UINT16 collectionID,
       ++err ;
       mb->_numIndexes = DMS_COLLECTION_MAX_INDEX ;
    }
-   // loop through all indexes
    for ( UINT16 i = 0 ; i < mb->_numIndexes ; ++i )
    {
       dmsExtentID indexCBExtentID = mb->_indexExtent[i] ;
       dmsExtentID indexRoot = DMS_INVALID_EXTENT ;
-      // dump index cb extent
       if ( indexCBExtentID == DMS_INVALID_EXTENT ||
            indexCBExtentID >= gPageNum )
       {
@@ -1744,7 +1643,6 @@ void inspectIndexDef ( OSSFILE &file, SINT32 pageSize, UINT16 collectionID,
          }
          pSME->setBitMask( indexCBExtentID ) ;
       }
-      // load index CB into memory
       rc = loadExtent ( file, extentType, pageSize, indexCBExtentID,
                         collectionID ) ;
       if ( rc )
@@ -1769,13 +1667,10 @@ void inspectIndexDef ( OSSFILE &file, SINT32 pageSize, UINT16 collectionID,
       }
       catch( std::exception &e )
       {
-         /// donothing
       }
       gMBStat._totalIndexPages += 1 ;
 
 retry :
-      // dump index cb and get root, since index cb must be 1 page, so we put
-      // pageSize as inSize
       localErr = 0 ;
       len = dmsInspect::inspectIndexCBExtent ( gExtentBuffer, pageSize,
                                                gBuffer, gBufferSize,
@@ -1821,22 +1716,18 @@ void dumpIndexDef ( OSSFILE &file, SINT32 pageSize, UINT16 collectionID,
    INSPECT_EXTENT_TYPE extentType = INSPECT_EXTENT_TYPE_INDEX_CB ;
    dumpPrintf ( " Dump Index Def for Collection [%u]"OSS_NEWLINE,
                 collectionID ) ;
-   // first let's see how many indexes we have
    if ( mb->_numIndexes > DMS_COLLECTION_MAX_INDEX )
    {
       dumpPrintf ( "Error: numIdx is out of range, max: %d"OSS_NEWLINE,
                    DMS_COLLECTION_MAX_INDEX ) ;
       mb->_numIndexes = DMS_COLLECTION_MAX_INDEX ;
    }
-   // loop through all indexes
    for ( UINT16 i = 0 ; i < mb->_numIndexes; ++i )
    {
       dmsExtentID indexCBExtentID = mb->_indexExtent[i] ;
       dmsExtentID indexRoot = DMS_INVALID_EXTENT ;
-      // dump index cb extent
       dumpPrintf ( "    Index [ %u ] : 0x%08lx"OSS_NEWLINE,
                    i, indexCBExtentID ) ;
-      // sanity check
       if ( indexCBExtentID == DMS_INVALID_EXTENT ||
            indexCBExtentID >= gPageNum )
       {
@@ -1844,7 +1735,6 @@ void dumpIndexDef ( OSSFILE &file, SINT32 pageSize, UINT16 collectionID,
                       OSS_NEWLINE, indexCBExtentID, indexCBExtentID ) ;
          continue ;
       }
-      // load index CB into memory
       rc = loadExtent ( file, extentType, pageSize, indexCBExtentID,
                         collectionID ) ;
       if ( rc )
@@ -1854,8 +1744,6 @@ void dumpIndexDef ( OSSFILE &file, SINT32 pageSize, UINT16 collectionID,
          continue ;
       }
 retry :
-      // dump index cb and get root, since index cb must be 1 page, so we put
-      // pageSize as inSize
       len = dmsDump::dumpIndexCBExtent ( gExtentBuffer, pageSize,
                                          gBuffer, gBufferSize,
                                          NULL,
@@ -1876,8 +1764,6 @@ retry :
       }
       flushOutput ( gBuffer, len ) ;
       dumpPrintf ( OSS_NEWLINE ) ;
-      // if the root doesn't exit, we should not do anything ( maybe it's a
-      // newly created index without any data )
       indexRoots[i] = indexRoot ;
    }
 
@@ -1899,7 +1785,6 @@ void inspectIndexExtents ( OSSFILE &file, SINT32 pageSize,
    PD_TRACE_ENTRY ( SDB_INSPINXEXTS );
    SINT32 localErr = 0 ;
    std::deque<dmsExtentID> childExtents ;
-   // set to index type
    INSPECT_EXTENT_TYPE extentType = INSPECT_EXTENT_TYPE_INDEX ;
    ixmExtentHead *pExtentHead = NULL ;
    childExtents.push_back ( rootID ) ;
@@ -1970,7 +1855,6 @@ error :
    goto done ;
 }
 
-// dump all extents for a given index
 // PD_TRACE_DECLARE_FUNCTION ( SDB_DUMPINXEXTS, "dumpIndexExtents" )
 void dumpIndexExtents ( OSSFILE &file, SINT32 pageSize,
                         dmsExtentID rootID, UINT16 collectionID )
@@ -1979,7 +1863,6 @@ void dumpIndexExtents ( OSSFILE &file, SINT32 pageSize,
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_DUMPINXEXTS );
    std::deque<dmsExtentID> childExtents ;
-   // set to index type
    INSPECT_EXTENT_TYPE extentType = INSPECT_EXTENT_TYPE_INDEX ;
    childExtents.push_back ( rootID ) ;
    UINT32 count = 0 ;
@@ -2044,7 +1927,7 @@ void inspectDictPageState( CHAR *pExpBuffer, dmsExtentID extentID,
                            SINT32 &err )
 {
    PD_TRACE_ENTRY( SDB_INSPECTDICTPAGESTATE ) ;
-   dmsDictExtent *dictExtent = (dmsDictExtent*)gExtentBuffer ;
+   dmsDictExtent *dictExtent = (dmsDictExtent*)gDictBuffer ;
    dmsSpaceManagementExtent *sme = (dmsSpaceManagementExtent*)pExpBuffer ;
    for ( INT32 i = 0; i < dictExtent->_blockSize; ++i )
    {
@@ -2063,7 +1946,8 @@ void inspectDictPageState( CHAR *pExpBuffer, dmsExtentID extentID,
 }
 
 void inspectCollectionData( OSSFILE &file, SINT32 pageSize, UINT16 id,
-                            SINT32 hwm, CHAR *pExpBuffer, SINT32 &err )
+                            SINT32 hwm, CHAR *pExpBuffer, SINT32 &err,
+                            UINT64 &ovfNum, UINT64 &compressedNum )
 {
    INT32 rc        = SDB_OK ;
    INT32 len       = 0 ;
@@ -2075,8 +1959,9 @@ void inspectCollectionData( OSSFILE &file, SINT32 pageSize, UINT16 id,
    dmsExtentID firstExtent = DMS_INVALID_EXTENT ;
    dmsExtent *pExtent = NULL ;
    CHAR collectionName[ DMS_COLLECTION_NAME_SZ + 1 ] = { 0 } ;
-   utilCompressor *compressor = NULL ;
-   utilCompressorContext compContext = UTIL_INVALID_COMP_CTX ;
+   dmsCompressorEntry compressorEntry ;
+   UINT64 totalRecord = 0 ;
+   BOOLEAN extScan = FALSE ;
 
    rc = loadMB ( id, mb ) ;
    if ( rc )
@@ -2086,6 +1971,7 @@ void inspectCollectionData( OSSFILE &file, SINT32 pageSize, UINT16 id,
       ++err ;
       goto error ;
    }
+
    firstExtent = mb->_firstExtentID ;
    ossStrncpy( collectionName, mb->_collectionName, DMS_COLLECTION_NAME_SZ ) ;
    dumpPrintf ( " Inspect Data for collection [%d : %s]"OSS_NEWLINE,
@@ -2097,7 +1983,6 @@ void inspectCollectionData( OSSFILE &file, SINT32 pageSize, UINT16 id,
       goto done ;
    }
 
-   /// when the meta expand extent is valid, need to set this page to occupied
    if ( pExpBuffer &&
         DMS_INVALID_EXTENT != mb->_mbExExtentID )
    {
@@ -2126,37 +2011,12 @@ void inspectCollectionData( OSSFILE &file, SINT32 pageSize, UINT16 id,
       }
    }
 
-   if ( DMS_INVALID_EXTENT != mb->_dictExtentID )
-   {
-      extentType = INSPECT_EXTENT_TYPE_DICT ;
-      rc = loadExtent( file, extentType, pageSize, mb->_dictExtentID, id ) ;
-      if ( rc )
-      {
-         dumpPrintf( "Error: Failed to load dictionary extent %d, rc = %d"
-                     OSS_NEWLINE, mb->_dictExtentID, rc ) ;
-         goto error ;
-      }
-
-      if ( pExpBuffer )
-      {
-         inspectDictPageState( pExpBuffer, mb->_dictExtentID, err ) ;
-      }
-
-      rc = prepareCompressor( mb->_compressorType, compressor, compContext ) ;
-      if ( rc )
-      {
-         dumpPrintf( "Error: Failed to prepare compressor for collection, "
-                     "rc = %d"OSS_NEWLINE, rc ) ;
-         goto error ;
-      }
-   }
+   prepareCompressor( file, pageSize, mb, id,
+                      pExpBuffer, compressorEntry, err ) ;
 
    extentType = INSPECT_EXTENT_TYPE_DATA ;
-   // loop through all extents
    while ( DMS_INVALID_EXTENT != firstExtent )
    {
-      // if one of the extent is not valid, we have to break the loop since the
-      // chain is breaking
       if ( firstExtent >= gPageNum )
       {
          dumpPrintf ( "Error: data extent 0x%08lx (%d) is out of range"
@@ -2194,32 +2054,29 @@ void inspectCollectionData( OSSFILE &file, SINT32 pageSize, UINT16 id,
          }
       }
 
-      /// don't inspect data extent
       if ( !OSS_BIT_TEST ( gAction, ACTION_INSPECT ) )
       {
          firstExtent = pExtent->_nextExtent ;
          continue ;
       }
+      extScan = TRUE ;
 
 retry_data :
+      UINT64 extTotalRecord = 0 ;
+      UINT64 extCompressedNum = 0 ;
+
       extentRIDList.clear() ;
       tempExtent = firstExtent ;
       localErr = 0 ;
-      // attempt to inspect extent text, note firstExtent will be assigned to
-      // next extent id, until hitting DMS_INVALID_EXTENT as end of collection
       len = dmsInspect::inspectDataExtent ( cb, gExtentBuffer,
                                ((dmsExtent*)gExtentBuffer)->_blockSize*pageSize,
                                gBuffer, gBufferSize, hwm, id, tempExtent,
                                &extentRIDList, localErr,
-                               compressor, compContext ) ;
-      if ( compContext )
-      {
-         compressor->rePrepare( compContext ) ;
-      }
+                               &compressorEntry,
+                               extTotalRecord,
+                               extCompressedNum ) ;
       if ( (UINT32)len >= gBufferSize-1 )
       {
-         // if our buffer is not large enough, let's allocate more memory and
-         // try again
          if ( reallocBuffer () )
          {
             clearBuffer () ;
@@ -2228,32 +2085,46 @@ retry_data :
          goto retry_data ;
       }
 
+      totalRecord += extTotalRecord ;
+      compressedNum += extCompressedNum ;
+      ovfNum += extentRIDList.size() ;
+
       flushOutput ( gBuffer, len ) ;
 
-      // inspect the extent's ovf recrods
       if ( extentRIDList.size() != 0 )
       {
+         extCompressedNum = 0 ;
          inspectOverflowedRecords( file, pageSize, id, firstExtent,
-                                   extentRIDList, err, compressor, compContext ) ;
-         if ( compContext )
-         {
-            compressor->rePrepare( compContext ) ;
-         }
+                                   extentRIDList, err, &compressorEntry,
+                                   extCompressedNum ) ;
+         compressedNum += extCompressedNum ;
       }
 
       firstExtent = tempExtent ;
       err += localErr ;
    } //end while
 
+   if ( !OSS_BIT_TEST( mb->_attributes, DMS_MB_ATTR_COMPRESSED ) &&
+        0 != compressedNum )
+   {
+      dumpPrintf ( "Error: Collection is not compressed, but has %llu "
+                   "compressed records"OSS_NEWLINE, compressedNum ) ;
+   }
+   else if ( gMBStat._totalRecords != mb->_totalRecords )
+   {
+      dumpPrintf ( "Error: Collection records is not the same[ "
+                   "mb->_totalRecords: %llu, ext total records: %llu"
+                   OSS_NEWLINE, mb->_totalRecords,
+                   gMBStat._totalRecords ) ;
+   }
+   else if ( extScan && totalRecord != mb->_totalRecords )
+   {
+      dumpPrintf ( "Error: Collection records is not the same[ "
+                   "mb->_totalRecords: %llu, scan total records: %llu"
+                   OSS_NEWLINE, mb->_totalRecords, totalRecord ) ;
+   }
+
 done :
-   if ( compContext )
-   {
-      compressor->done( compContext ) ;
-   }
-   if ( compressor )
-   {
-      gCompressFactory.destroyCompressor( compressor ) ;
-   }
    return ;
 error :
    goto done ;
@@ -2290,7 +2161,6 @@ void inspectCollectionIndex( OSSFILE &file, SINT32 pageSize, UINT16 id,
       goto done ;
    }
 
-   // after inspect index def, we should iterate all indexes
    for ( it = indexRoots.begin() ; it != indexRoots.end() ; ++it )
    {
       UINT16 indexID = it->first ;
@@ -2318,22 +2188,28 @@ void inspectCollection ( OSSFILE &file, SINT32 pageSize, UINT16 id,
    gMBStat.reset() ;
    if ( SDB_INSPT_DATA == gCurInsptType )
    {
-      inspectCollectionData( file, pageSize, id, hwm, pExpBuffer, err ) ;
-      /// flush data info
+      UINT64 ovfNum = 0 ;
+      UINT64 compressedNum = 0 ;
+      inspectCollectionData( file, pageSize, id, hwm,
+                             pExpBuffer, err, ovfNum,
+                             compressedNum ) ;
       len = ossSnprintf( gBuffer, gBufferSize,
                          " ****The collection data info****"OSS_NEWLINE
                          "   Total Record           : %llu"OSS_NEWLINE
                          "   Total Data Pages       : %u"OSS_NEWLINE
-                         "   Total Data Free Space  : %llu"OSS_NEWLINE,
+                         "   Total Data Free Space  : %llu"OSS_NEWLINE
+                         "   Total OVF Record       : %llu"OSS_NEWLINE
+                         "   Total Compressed Record: %llu"OSS_NEWLINE,
                          gMBStat._totalRecords,
                          gMBStat._totalDataPages,
-                         gMBStat._totalDataFreeSpace ) ;
+                         gMBStat._totalDataFreeSpace,
+                         ovfNum,
+                         compressedNum ) ;
       flushOutput( gBuffer, len ) ;
    }
    else if ( SDB_INSPT_INDEX == gCurInsptType )
    {
       inspectCollectionIndex( file, pageSize, id, hwm, pExpBuffer, err ) ;
-      /// flush index info
       len = ossSnprintf( gBuffer, gBufferSize,
                          " ****The collection index info****"OSS_NEWLINE
                          "   Total Index Pages      : %u"OSS_NEWLINE
@@ -2355,8 +2231,7 @@ void dumpCollectionData( OSSFILE &file, SINT32 pageSize, UINT16 id )
    dmsMB *mb = NULL ;
    dmsExtentID tempExtent = DMS_INVALID_EXTENT ;
    dmsExtentID firstExtent = DMS_INVALID_EXTENT ;
-   utilCompressor *compressor = NULL ;
-   utilCompressorContext compContext = UTIL_INVALID_COMP_CTX ;
+   dmsCompressorEntry compressorEntry ;
 
    rc = loadMB ( id, mb ) ;
    if ( rc )
@@ -2366,7 +2241,6 @@ void dumpCollectionData( OSSFILE &file, SINT32 pageSize, UINT16 id )
       goto error ;
    }
 
-   // dump mb expand extent
    if ( DMS_INVALID_EXTENT != mb->_mbExExtentID )
    {
       UINT32 size = 0 ;
@@ -2392,8 +2266,6 @@ void dumpCollectionData( OSSFILE &file, SINT32 pageSize, UINT16 id )
                                gDumpType, mb->_mbExExtentID ) ;
       if ( (UINT32)len >= gBufferSize -1 )
       {
-         // if our buffer is not large enough, let's allocate more memory and
-         // try again
          if ( reallocBuffer () )
          {
             clearBuffer () ;
@@ -2409,33 +2281,21 @@ void dumpCollectionData( OSSFILE &file, SINT32 pageSize, UINT16 id )
       goto done ;
    }
 
+   {
+      SINT32 err = 0 ;
+      prepareCompressor(file, pageSize, mb, id, NULL, compressorEntry, err  ) ;
+   }
+
    if ( DMS_INVALID_EXTENT != mb->_dictExtentID )
    {
       UINT32 size = 0 ;
-      extentType = INSPECT_EXTENT_TYPE_DICT ;
-
       dumpPrintf ( "Dump Compression Dictionary Extent for Collection [%d]"
                    OSS_NEWLINE, id ) ;
 
-      rc = loadExtent( file, extentType, pageSize, mb->_dictExtentID, id ) ;
-      if ( rc )
-      {
-         dumpPrintf( "Error: Failed to load dictionary extent %d, rc = %d"
-                     OSS_NEWLINE, mb->_dictExtentID, rc ) ;
-         goto error ;
-      }
-
-      rc = prepareCompressor( mb->_compressorType, compressor, compContext ) ;
-      if ( rc )
-      {
-         dumpPrintf( "Failed to prepare compressor for collection, rc: %d", rc ) ;
-         goto error ;
-      }
-
-      size = ((dmsDictExtent*)gExtentBuffer)->_blockSize * pageSize ;
+      size = ((dmsDictExtent*)gDictBuffer)->_blockSize * pageSize ;
 
    retry_dictExt:
-      len = dmsDump::dumpDictExtent( gExtentBuffer, size,
+      len = dmsDump::dumpDictExtent( gDictBuffer, size,
                                      gBuffer, gBufferSize, NULL,
                                      DMS_SU_DMP_OPT_HEX |
                                      DMS_SU_DMP_OPT_HEX_WITH_ASCII |
@@ -2456,10 +2316,8 @@ void dumpCollectionData( OSSFILE &file, SINT32 pageSize, UINT16 id )
    extentType = INSPECT_EXTENT_TYPE_DATA ;
    firstExtent = mb->_firstExtentID ;
    dumpPrintf ( " Dump Data for Collection [%d]"OSS_NEWLINE, id ) ;
-   // loop through all extents
    while ( DMS_INVALID_EXTENT != firstExtent )
    {
-      // load the given extent
       rc = loadExtent ( file, extentType, pageSize, firstExtent, id ) ;
       if ( rc )
       {
@@ -2471,25 +2329,18 @@ void dumpCollectionData( OSSFILE &file, SINT32 pageSize, UINT16 id )
 retry_data :
       extentRIDList.clear() ;
       tempExtent = firstExtent ;
-      // attempt to dump extent text, note firstExtent will be assigned to next
-      // extent id, until hitting DMS_INVALID_EXTENT as end of collection
       len = dmsDump::dumpDataExtent ( cb, gExtentBuffer,
                                ((dmsExtent*)gExtentBuffer)->_blockSize*pageSize,
                                gBuffer, gBufferSize, NULL,
                                DMS_SU_DMP_OPT_HEX |
                                DMS_SU_DMP_OPT_HEX_WITH_ASCII |
                                DMS_SU_DMP_OPT_HEX_PREFIX_AS_ADDR |
-                               gDumpType, tempExtent, &extentRIDList,
-                               gShowRecordContent, compressor, compContext ) ;
-      if ( compContext )
-      {
-         compressor->rePrepare( compContext ) ;
-      }
+                               gDumpType, tempExtent, &compressorEntry,
+                               &extentRIDList,  gShowRecordContent ) ;
+
       PD_TRACE1 ( SDB_DUMPCOLL, PD_PACK_INT(len) );
       if ( (UINT32)len >= gBufferSize-1 )
       {
-         // if our buffer is not large enough, let's allocate more memory and
-         // try again
          if ( reallocBuffer () )
          {
             clearBuffer () ;
@@ -2502,25 +2353,13 @@ retry_data :
       if ( extentRIDList.size() != 0 && gShowRecordContent )
       {
          dumpOverflowedRecords ( file, pageSize, id, firstExtent,
-                                 extentRIDList, compressor, compContext ) ;
-         if ( compContext )
-         {
-            compressor->rePrepare( compContext ) ;
-         }
+                                 extentRIDList, &compressorEntry ) ;
       }
 
       firstExtent = tempExtent ;
    }
 
 done :
-   if ( compContext )
-   {
-      compressor->done( compContext ) ;
-   }
-   if ( compressor )
-   {
-      gCompressFactory.destroyCompressor( compressor ) ;
-   }
    return ;
 error :
    goto done ;
@@ -2548,8 +2387,6 @@ void dumpCollectionIndex( OSSFILE &file, SINT32 pageSize, UINT16 id )
       goto done ;
    }
 
-   // after dump index def, we should iterate all indexes and dump their
-   // extents
    for ( it = indexRoots.begin() ; it != indexRoots.end() ; ++it )
    {
       UINT16 indexID = it->first ;
@@ -2613,9 +2450,6 @@ void dumpCollections ( OSSFILE &file, SINT32 pageSize,
    PD_TRACE_EXIT ( SDB_DUMPCOLLS );
 }
 
-// inspect collections, this unction will first inspect MME, and then based on
-// the input CLName inspectMME may choose to inspect zero or more collections.
-// Note pExpBuffer is not NULL only in full collectionspace inspection
 // PD_TRACE_DECLARE_FUNCTION ( SDB_INSPCOLLECTIONS, "inspectCollections" )
 void inspectCollections ( OSSFILE &file, SINT32 pageSize, SINT32 hwm,
                           CHAR *pExpBuffer, SINT32 &err )
@@ -2642,7 +2476,6 @@ void inspectCollections ( OSSFILE &file, SINT32 pageSize, SINT32 hwm,
    }
 
 retry :
-   // attempt to inspect MME
    collections.clear() ;
    localErr = 0 ;
    len = dmsInspect::inspectMME ( gMMEBuff, DMS_MME_SZ,
@@ -2777,6 +2610,60 @@ void repaireCollection( OSSFILE &file, dmsMB *pMB,
                   pMB->_totalIndexFreeSpace, gRepaireMB._totalIndexFreeSpace ) ;
       pMB->_totalIndexFreeSpace = gRepaireMB._totalIndexFreeSpace ;
    }
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_IDXNUM )
+   {
+      dumpPrintf( "   IndexNum[%u] ==> [%u]"OSS_NEWLINE,
+                  pMB->_numIndexes, gRepaireMB._numIndexes ) ;
+      pMB->_numIndexes = gRepaireMB._numIndexes ;
+   }
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_COMPRESSTYPE )
+   {
+      dumpPrintf( "   CompressType[%u] ==> [%u]"OSS_NEWLINE,
+                  pMB->_compressorType, gRepaireMB._compressorType ) ;
+      pMB->_compressorType = gRepaireMB._compressorType ;
+   }
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_LOBS )
+   {
+      dumpPrintf( "   Lobs[%llu] ==> [%llu]"OSS_NEWLINE,
+                  pMB->_totalLobs, gRepaireMB._totalLobs ) ;
+      pMB->_totalLobs = gRepaireMB._totalLobs ;
+   }
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_COMMITFLAG )
+   {
+      dumpPrintf( "   CommitFlag[%u] ==> [%u]"OSS_NEWLINE,
+                  pMB->_commitFlag, gRepaireMB._commitFlag ) ;
+      pMB->_commitFlag = gRepaireMB._commitFlag ;
+   }
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_COMMITLSN )
+   {
+      dumpPrintf( "   CommitLSN[%llu] ==> [%llu]"OSS_NEWLINE,
+                  pMB->_commitLSN, gRepaireMB._commitLSN ) ;
+      pMB->_commitLSN = gRepaireMB._commitLSN ;
+   }
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_IDX_COMMITFLAG )
+   {
+      dumpPrintf( "   IdxCommitFlag[%u] ==> [%u]"OSS_NEWLINE,
+                  pMB->_idxCommitFlag, gRepaireMB._idxCommitFlag ) ;
+      pMB->_idxCommitFlag = gRepaireMB._idxCommitFlag ;
+   }
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_IDX_COMMITLSN )
+   {
+      dumpPrintf( "   IdxCommitLSN[%llu] ==> [%llu]"OSS_NEWLINE,
+                  pMB->_idxCommitLSN, gRepaireMB._idxCommitLSN ) ;
+      pMB->_idxCommitLSN = gRepaireMB._idxCommitLSN ;
+   }
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_LOB_COMMITFLAG )
+   {
+      dumpPrintf( "   LobCommitFlag[%u] ==> [%u]"OSS_NEWLINE,
+                  pMB->_lobCommitFlag, gRepaireMB._lobCommitFlag ) ;
+      pMB->_lobCommitFlag = gRepaireMB._lobCommitFlag ;
+   }
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_LOB_COMMITLSN )
+   {
+      dumpPrintf( "   LobCommitLSN[%llu] ==> [%llu]"OSS_NEWLINE,
+                  pMB->_lobCommitLSN, gRepaireMB._lobCommitLSN ) ;
+      pMB->_lobCommitLSN = gRepaireMB._lobCommitLSN ;
+   }
 
    INT64 written = 0 ;
    INT32 rc = ossSeekAndWriteN( &file, DMS_MME_OFFSET + id * sizeof( dmsMB ),
@@ -2820,7 +2707,6 @@ void repaireCollections( OSSFILE &file )
       if ( 0 == ossStrcmp( gCLName, collectionName ) )
       {
          repaireCollection( file, pMB, i ) ;
-         /// found
          goto done ;
       }
    }
@@ -2857,8 +2743,6 @@ void dumpCollections ( OSSFILE &file, SINT32 pageSize )
    }
 
 retry :
-   // attempt to dump to gBuffer, if gBuffer is not large enough, we have to
-   // reallocBuffer and try again
    collections.clear() ;
    len = dmsDump::dumpMME ( gMMEBuff, DMS_MME_SZ,
                             gBuffer, gBufferSize, NULL,
@@ -2867,7 +2751,8 @@ retry :
                             DMS_SU_DMP_OPT_HEX_PREFIX_AS_ADDR |
                             gDumpType,
                             ossStrlen ( gCLName ) ? gCLName : NULL,
-                            collections ) ;
+                            collections,
+                            gForce ) ;
    PD_TRACE1 ( SDB_DUMPCOLLECTIONS, PD_PACK_UINT(len) );
    if ( len >= gBufferSize-1 )
    {
@@ -2879,13 +2764,11 @@ retry :
       goto retry ;
    }
 
-   // only for data file
    if ( SDB_INSPT_DATA == gCurInsptType )
    {
       flushOutput ( gBuffer, len ) ;
    }
 
-   // let's dump individual collections in collection list
    if ( collections.size() != 0 )
    {
       dumpCollections ( file, pageSize, collections ) ;
@@ -2942,8 +2825,6 @@ void actionCSAttempt ( const CHAR *pFile, const CHAR *expectEye,
 
    isOpen = TRUE ;
 
-   // first let's read 8 bytes in front of the file, and make sure it's our
-   // storage unit file
    restLen = DMS_HEADER_EYECATCHER_LEN ;
    while ( restLen > 0 )
    {
@@ -2959,11 +2840,8 @@ void actionCSAttempt ( const CHAR *pFile, const CHAR *expectEye,
       readPos += readSize ;
    }
 
-   // if it doens't match our eye catcher, we may or may not dump error
    if ( ossStrncmp ( eyeCatcher, expectEye, DMS_HEADER_EYECATCHER_LEN ) )
    {
-      // if user specified the collection space, we should dump error if it's
-      // not a valid SU file
       if ( specific )
       {
          dumpPrintf ( "Error: %s is not a valid storage unit"OSS_NEWLINE,
@@ -2972,8 +2850,6 @@ void actionCSAttempt ( const CHAR *pFile, const CHAR *expectEye,
       goto done ;
    }
 
-   // when we get here, that means it's our SU file and let's dump header, SME,
-   // and all collections
    rc = ossSeek ( &file, 0, OSS_SEEK_SET ) ;
    if ( rc )
    {
@@ -2990,11 +2866,8 @@ void actionCSAttempt ( const CHAR *pFile, const CHAR *expectEye,
    case SDB_INSPT_ACTION_DUMP :
       if ( gStartingPage < 0 )
       {
-         // entire collection space dump
          dumpPrintf ( " Dump collection space %s"OSS_NEWLINE, pFile ) ;
          dumpHeader ( file, csPageSize ) ;
-         // page size sanity check, should we need header sanity check function?
-         // hmm.. maybe later :)
          if ( csPageSize != DMS_PAGE_SIZE4K &&
               csPageSize != DMS_PAGE_SIZE8K &&
               csPageSize != DMS_PAGE_SIZE16K &&
@@ -3012,7 +2885,6 @@ void actionCSAttempt ( const CHAR *pFile, const CHAR *expectEye,
       else
       {
          dumpHeader ( file, csPageSize ) ;
-         // specific pages dump
          for ( SINT32 i = 0; i < gNumPages && !gReachEnd; ++i )
          {
             dumpPrintf ( " Dump page %d"OSS_NEWLINE, gStartingPage + i ) ;
@@ -3038,14 +2910,9 @@ void actionCSAttempt ( const CHAR *pFile, const CHAR *expectEye,
       }
       inspectSME ( file, NULL, hwm, totalErr ) ;
 
-      // allocate expected SME for global collectionspace inspect only
       if ( ossStrlen ( gCLName ) == 0 && ( FALSE == gOnlyMeta ||
            OSS_BIT_TEST( gAction, ACTION_STAT ) ) )
       {
-         // allocate memory for expected SME
-         // this buffer is used to store all allocated pages from collection
-         // traversal, the result will be used to compare with real SME for
-         // orphan/inconsistent pages
          inspectSMEBuffer = (CHAR*)SDB_OSS_MALLOC ( DMS_SME_SZ ) ;
          dmsSpaceManagementExtent *pSME =
             ( dmsSpaceManagementExtent*)inspectSMEBuffer ;
@@ -3082,7 +2949,6 @@ void actionCSAttempt ( const CHAR *pFile, const CHAR *expectEye,
    dumpPrintf ( OSS_NEWLINE ) ;
 
 done :
-   // close input file
    if ( isOpen )
    {
       ossClose ( file ) ;
@@ -3121,7 +2987,6 @@ INT32 prepareForDump( const CHAR *csName, UINT32 sequence )
 
    isOpen = TRUE ;
 
-   // read header and check file type
    rc = ossSeekAndRead ( &file, DMS_HEADER_OFFSET, (CHAR *)&dataHeader,
                          DMS_HEADER_SZ, &lenRead ) ;
    if ( rc || lenRead != DMS_HEADER_SZ )
@@ -3138,11 +3003,9 @@ INT32 prepareForDump( const CHAR *csName, UINT32 sequence )
       goto error ;
    }
 
-   // set info
    gPageSize = dataHeader._pageSize ;
    gSecretValue = dataHeader._secretValue ;
 
-   // read mme and check
    rc = ossSeekAndRead ( &file, DMS_MME_OFFSET, gMMEBuff,
                          DMS_MME_SZ, &lenRead ) ;
    if ( rc || lenRead != DMS_MME_SZ )
@@ -3180,13 +3043,11 @@ void actionCSAttemptEntry( const CHAR *csName, UINT32 sequence,
    string csFileName ;
    string csFullName ;
 
-   // clear global info
    gPageSize      = 0 ;
    gSecretValue   = 0 ;
    gInitMME       = FALSE ;
    ossMemset( gMMEBuff, 0, DMS_MME_SZ ) ;
 
-   // prepare
    if ( SDB_OK != prepareForDump( csName, sequence ) )
    {
       return ;
@@ -3259,7 +3120,6 @@ void dumpPages ()
    }
    else
    {
-      // if we can't find the path, let's show error
       dumpPrintf ( "Error: dump path %s is not a valid directory"OSS_NEWLINE,
                    gDatabasePath ) ;
    }
@@ -3271,7 +3131,6 @@ error :
    goto done ;
 }
 
-// database inspection may entry code
 // PD_TRACE_DECLARE_FUNCTION ( SDB_INSPECTDB, "inspectDB" )
 void inspectDB( SDB_INSPT_ACTION action )
 {
@@ -3306,14 +3165,56 @@ void inspectDB( SDB_INSPT_ACTION action )
    }
    else
    {
-      // if we can't find the path, let's show error
       dumpPrintf ( "Error: inspect path %s is not a valid directory"OSS_NEWLINE,
                    gDatabasePath ) ;
    }
    PD_TRACE_EXIT ( SDB_INSPECTDB );
 }
 
-// main function
+// PD_TRACE_DECLARE_FUNCTION ( SDB_PREPARECOMPRESSOR, "prepareCompressor" )
+INT32 prepareCompressor( OSSFILE &file, SINT32 pageSize, dmsMB *mb, UINT16 id,
+                         CHAR *pExpBuffer, dmsCompressorEntry &compressorEntry,
+                         SINT32 &err )
+{
+   INT32 rc = SDB_OK ;
+   PD_TRACE_ENTRY( SDB_PREPARECOMPRESSOR ) ;
+   UTIL_COMPRESSOR_TYPE type = (UTIL_COMPRESSOR_TYPE)( mb->_compressorType ) ;
+
+   dmsCompressorGuard gard( &compressorEntry, EXCLUSIVE ) ;
+
+   compressorEntry.setCompressor( getCompressorByType( type ) ) ;
+
+   if ( DMS_INVALID_EXTENT != mb->_dictExtentID )
+   {
+      /* LZW compression, need to load the dictionary. */
+      INSPECT_EXTENT_TYPE extentType = INSPECT_EXTENT_TYPE_DICT ;
+      rc = loadExtent( file, extentType, pageSize, mb->_dictExtentID, id ) ;
+      if ( rc )
+      {
+         dumpPrintf( "Error: Failed to load dictionary extent %d, rc = %d"
+                     OSS_NEWLINE, mb->_dictExtentID, rc ) ;
+         goto error ;
+      }
+
+      if ( pExpBuffer )
+      {
+         inspectDictPageState( pExpBuffer, mb->_dictExtentID, err ) ;
+      }
+
+      if ( compressorEntry.getCompressor() &&
+           UTIL_COMPRESSOR_LZW == type )
+      {
+         compressorEntry.setDictionary( gDictBuffer + DMS_DICTEXTENT_HEADER_SZ ) ;
+      }
+   }
+
+done:
+   PD_TRACE_EXITRC( SDB_PREPARECOMPRESSOR, rc ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
 // PD_TRACE_DECLARE_FUNCTION ( SDB_SDBINSPT_MAIN, "main" )
 INT32 main ( INT32 argc, CHAR **argv )
 {
@@ -3324,7 +3225,7 @@ INT32 main ( INT32 argc, CHAR **argv )
    rc = resolveArgument ( desc, argc, argv ) ;
    if ( rc )
    {
-      if ( SDB_PMD_HELP_ONLY != rc )
+      if ( SDB_PMD_HELP_ONLY != rc && SDB_PMD_VERSION_ONLY != rc )
       {
          dumpPrintf ( "Error: Invalid arguments"OSS_NEWLINE ) ;
          displayArg ( desc ) ;
@@ -3344,7 +3245,6 @@ INT32 main ( INT32 argc, CHAR **argv )
       goto done ;
    }
 
-   // allocate mme buffer
    gMMEBuff = (CHAR*)SDB_OSS_MALLOC( DMS_MME_SZ ) ;
    if ( !gMMEBuff )
    {
@@ -3353,21 +3253,27 @@ INT32 main ( INT32 argc, CHAR **argv )
    }
    ossMemset( gMMEBuff, 0, DMS_MME_SZ ) ;
 
-   // allocate some buffer initially
+   gDictBuffer = (CHAR*)SDB_OSS_MALLOC( UTIL_MAX_DICT_TOTAL_SIZE ) ;
+   if ( !gDictBuffer )
+   {
+      dumpPrintf( "Error: Failed to allocate dictionary buffer, "
+                  "exit"OSS_NEWLINE ) ;
+      goto done ;
+   }
+   ossMemset( gDictBuffer, 0, UTIL_MAX_DICT_TOTAL_SIZE ) ;
+
    rc = reallocBuffer () ;
    if ( rc )
    {
       dumpPrintf ( "Error: Failed to realloc buffer, exit"OSS_NEWLINE ) ;
       goto done ;
    }
-   // allocate a fake EDUCB
    cb = SDB_OSS_NEW pmdEDUCB ( NULL, EDU_TYPE_AGENT ) ;
    if ( !cb )
    {
       dumpPrintf ( "Failed to allocate memory for educb"OSS_NEWLINE ) ;
       goto done ;
    }
-   // are we doing database inspection?
    if ( OSS_BIT_TEST ( gAction, ACTION_INSPECT ) ||
         OSS_BIT_TEST ( gAction, ACTION_STAT ) )
    {
@@ -3376,39 +3282,33 @@ INT32 main ( INT32 argc, CHAR **argv )
 
    if ( OSS_BIT_TEST ( gAction, ACTION_REPAIRE ) )
    {
-      /// repaire db
       inspectDB( SDB_INSPT_ACTION_REPARE ) ;
    }
 
-   // are we doing database dump?
    if ( OSS_BIT_TEST ( gAction, ACTION_DUMP ) )
    {
-      // dump specific pages?
       if ( gStartingPage >= 0 )
       {
          dumpPages () ;
       }
       else
       {
-         // if we don't specify pages to dump, let's dump entire database
          inspectDB( SDB_INSPT_ACTION_DUMP ) ;
       }
    }
 
    if ( 0 != ossStrlen( gCSName ) && !gHitCS )
    {
-      dumpPrintf( "Warning: Cannot find any collection space named %s",
-                  gCSName ) ;
+      dumpPrintf( "Warning: Cannot find any collection space "
+                  "named %s"OSS_NEWLINE, gCSName ) ;
    }
 
 done :
-   // free format output buffer
    if ( gBuffer )
    {
       SDB_OSS_FREE ( gBuffer ) ;
       gBuffer = NULL ;
    }
-   // free extent holding buffer
    if ( gExtentBuffer )
    {
       SDB_OSS_FREE ( gExtentBuffer ) ;
@@ -3419,12 +3319,15 @@ done :
       SDB_OSS_FREE ( gMMEBuff ) ;
       gMMEBuff = NULL ;
    }
-   // close output file
+   if ( gDictBuffer )
+   {
+      SDB_OSS_FREE( gDictBuffer ) ;
+      gDictBuffer = NULL ;
+   }
    if ( ossStrlen ( gOutputFile ) != 0 )
    {
       ossClose ( gFile ) ;
    }
-   // free cb
    if ( cb )
    {
       SDB_OSS_DEL ( cb ) ;

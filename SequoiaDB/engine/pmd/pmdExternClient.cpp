@@ -39,7 +39,8 @@
    #include "omManager.hpp"
    #include "msgAuth.hpp"
    #include "coordCB.hpp"
-   #include "coordAuthOperator.hpp"
+   #include "rtnCoord.hpp"
+   #include "rtnCoordOperator.hpp"
    #include "msgMessage.hpp"
    #include "netFrame.hpp"
 #endif // SDB_ENGINE
@@ -152,8 +153,9 @@ namespace engine
          rc = sdbGetOMManager()->authenticate( authObj, _pEDUCB ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "Client[%s] authenticate failed[user: %s], "
-                    "rc: %d", clientName(), user.valuestrsafe(), rc ) ;
+            PD_LOG( PDERROR, "Client[%s] authenticate failed[user: %s, "
+                    "passwd: %s], rc: %d", clientName(), user.valuestrsafe(),
+                    pass.valuestrsafe(), rc ) ;
             goto error ;
          }
          _isAuthed = TRUE ;
@@ -163,19 +165,13 @@ namespace engine
          INT64 contextID = -1 ;
          rtnContextBuf buf ;
 
-         CoordCB *pCoordcb = pmdGetKRCB()->getCoordCB() ;
-         coordResource *pResource = pCoordcb->getResource() ;
+         CoordCB *pCoordcb = pmdGetKRCB()->getCoordCB();
+         rtnCoordProcesserFactory *pProcesserFactory =
+            pCoordcb->getProcesserFactory();
+         rtnCoordOperator *pOperator = NULL ;
+         pOperator = pProcesserFactory->getOperator( pMsg->opCode );
+         rc = pOperator->execute( pMsg, _pEDUCB, contextID, &buf ) ;
 
-         coordAuthOperator opr ;
-         rc = opr.init( pResource, _pEDUCB ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Client[%s]: Init operator[%s] failed, rc: %d",
-                    clientName(), opr.getName(), rc ) ;
-            goto error ;
-         }
-
-         rc = opr.execute( pMsg, _pEDUCB, contextID, &buf ) ;
          if ( MSG_AUTH_VERIFY_REQ == pMsg->opCode &&
               SDB_CAT_NO_ADDR_LIST == rc )
          {
@@ -184,8 +180,9 @@ namespace engine
          }
          else if ( rc )
          {
-            PD_LOG( PDERROR, "Client[%s] authenticate failed[user: %s], "
-                    "rc: %d", clientName(), user.valuestrsafe(), rc ) ;
+            PD_LOG( PDERROR, "Client[%s] authenticate failed[user: %s, "
+                    "passwd: %s], rc: %d", clientName(),
+                    user.valuestrsafe(), pass.valuestrsafe(), rc ) ;
             goto error ;
          }
          else
@@ -247,8 +244,9 @@ namespace engine
             }
             else if ( rc )
             {
-               PD_LOG( PDERROR, "Client[%s] authenticate failed[user: %s], "
-                       "rc: %d", clientName(), user.valuestrsafe(), rc ) ;
+               PD_LOG( PDERROR, "Client[%s] authenticate failed[user: %s, "
+                       "passwd: %s], rc: %d", clientName(),
+                       user.valuestrsafe(), pass.valuestrsafe(), rc ) ;
                goto error ;
             }
             else

@@ -1,28 +1,7 @@
 <div ng-controller="Deploy.Sdb.Conf.Ctrl" ng-container="{}">
    <div style="border-bottom:1px solid #eee;" step-chart="stepList"></div>
    <div style="padding:10px 15px;" ng-container="{offsetY:-70}">
-      <div ng-windows="info as SwitchHostWindow.config" windows-callback="SwitchHostWindow.callback">
-         <div ng-if="DeployMode == 'distribution'" style="margin-bottom:10px;">
-            <button ng-click="SelectAll()" class="ng-scope btn btn-default">{{autoLanguage("全选")}}</button>&nbsp;
-            <button ng-click="Unselect()" class="ng-scope btn btn-default">{{autoLanguage("反选")}}</button>
-         </div>
-         <div ng-container="{offsetY:-40}" style="overflow-y:auto;">
-            <table class="table loosen border">
-               <tr style="background-color:#F1F4F5;height:30px;">
-                  <td width="30"></td>
-                  <td>{{autoLanguage("主机名")}}</td>
-                  <td>{{autoLanguage("IP地址")}}</td>
-               </tr>
-               <tr ng-repeat="hostInfo in HostList track by $index">
-                  <td>
-                     <input type="checkbox" ng-model="HostList[$index]['checked']" ng-click="HostRadio()" />
-                  </td>
-                  <td class="Ellipsis" style="word-break:break-all;">{{hostInfo['HostName']}}</td>
-                  <td class="Ellipsis" style="word-break:break-all;">{{hostInfo['IP']}}</td>
-               </tr>
-            </table>
-         </div>
-      </div>
+
       <div ng-container="{offsetY:-45}">
          <div class="pull-left" ng-container="{width:400}">
 
@@ -31,7 +10,7 @@
             <div class="borderBox" style="padding:10px;font-size:90%;" ng-container="{offsetY:-30}">
 
                <div style="margin-top:10px;">
-                  <button class="btn btn-default" ng-click="ShowSwitchHost()">{{autoLanguage("选择安装业务的主机")}}</button>
+                  <button class="btn btn-default" ng-click="CreateSwitchHostModel()">{{autoLanguage("选择安装业务的主机")}}</button>
                </div>
 
                <div style="margin-top:20px;">

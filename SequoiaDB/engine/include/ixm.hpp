@@ -63,7 +63,6 @@ namespace engine
    #define IXM_ID_KEY_NAME             "$id"
    #define IXM_SHARD_KEY_NAME          "$shard"
    #define IXM_2D_KEY_TYPE             "2d"
-   #define IXM_TEXT_KEY_TYPE           "text"
    #define IXM_POSITIVE_KEY_TYPE       1
    #define IXM_REVERSE_KEY_TYPE        -1
 
@@ -144,7 +143,6 @@ namespace engine
    #define IXM_EXTENT_TYPE_POSITIVE       0x0001
    #define IXM_EXTENT_TYPE_REVERSE        0x0002
    #define IXM_EXTENT_TYPE_2D             0x0004
-   #define IXM_EXTENT_TYPE_TEXT           0x0008
    #define IXM_EXTENT_HAS_TYPE(type,dst)  (type&dst)
    /*
       _ixmIndexCBExtent define
@@ -313,6 +311,12 @@ namespace engine
       void setLogicalID( dmsExtentID logicalID ) ;
       void clearLogicID() ;
 
+      UINT16 indexType() const
+      {
+         SDB_ASSERT ( _isInitialized,
+                      "index details must be initialized first" ) ;
+         return _extent->_type ;
+      }
       UINT16 getMBID () const
       {
          SDB_ASSERT ( _isInitialized,
@@ -455,25 +459,15 @@ namespace engine
                   }
                   hasOther = TRUE ;
                }
-               else if ( String == ele.type() )
+               else if ( String == ele.type() &&
+                         IXM_2D_KEY_TYPE == ele.String() )
                {
-                  if ( IXM_2D_KEY_TYPE == ele.String() )
-                  {
-                     if ( hasGeo || hasOther )
-                     {
-                        goto error ;
-                     }
-                     type |= IXM_EXTENT_TYPE_2D ;
-                     hasGeo = TRUE ;
-                  }
-                  else if ( IXM_TEXT_KEY_TYPE == ele.String() )
-                  {
-                     type |= IXM_EXTENT_TYPE_TEXT ;
-                  }
-                  else
+                  if ( hasGeo || hasOther )
                   {
                      goto error ;
                   }
+                  type |= IXM_EXTENT_TYPE_2D ;
+                  hasGeo = TRUE ;
                }
                else
                {
@@ -486,14 +480,6 @@ namespace engine
          {
             PD_LOG ( PDERROR, "Failed to generate type from index: %s. "
                      "index:%s", e.what(), obj.toString().c_str() ) ;
-            goto error ;
-         }
-
-         if ( ( IXM_EXTENT_TYPE_TEXT & type ) &&
-              ( ~IXM_EXTENT_TYPE_TEXT & type ) )
-         {
-            PD_LOG( PDERROR, "Text index can not mix with other kinds of "
-                    "indices:%s", obj.toString().c_str() ) ;
             goto error ;
          }
 

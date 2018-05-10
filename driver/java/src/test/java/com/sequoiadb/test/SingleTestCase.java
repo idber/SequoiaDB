@@ -1,6 +1,6 @@
 package com.sequoiadb.test;
 
-import com.sequoiadb.base.ConfigOptions;
+import com.sequoiadb.net.ConfigOptions;
 import com.sequoiadb.base.Sequoiadb;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;

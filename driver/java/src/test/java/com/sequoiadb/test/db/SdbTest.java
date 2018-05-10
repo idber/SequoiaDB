@@ -2,11 +2,12 @@ package com.sequoiadb.test.db;
 
 import com.sequoiadb.base.*;
 import com.sequoiadb.test.common.Constants;
+
+import static org.junit.Assert.*;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.junit.*;
-
-import static org.junit.Assert.assertTrue;
 
 public class SdbTest {
 
@@ -45,13 +46,23 @@ public class SdbTest {
     }
 
     @Test
+    public void setSessionAttrTest() {
+        BSONObject options = new BasicBSONObject();
+        options.put("PreferedInstance", 1);
+        options.put("PreferedInstanceMode", "ordered");
+        options.put("Timeout", -2);
+        sdb.setSessionAttr(options);
+    }
+
+    @Test
     public void getHostNameAndPortTest() {
         String hostName = sdb.getHost();
         int port = sdb.getPort();
         assertTrue(hostName != null && !hostName.isEmpty());
         assertTrue(port != 0);
+        System.out.println(String.format("%s:%d", hostName, port));
     }
-
+    
     @Test
     public void sdbisValid() {
     }

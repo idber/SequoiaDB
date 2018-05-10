@@ -1,5 +1,4 @@
-﻿//@ sourceURL=Index.js
-(function(){
+﻿(function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
    sacApp.controllerProvider.register( 'Monitor.SdbNode.Index.Ctrl', function( $scope, $compile, SdbRest, $location, SdbFunction ){
@@ -45,7 +44,7 @@
       $scope.charts['Query'] = {} ;
       $scope.charts['Query']['options'] = window.SdbSacManagerConf.RecordReadEchart ;
 
-      //图表信息
+      //节点信息，后期根据 跳转函数 获取节点名（主机名+端口号）
       var getChartInfo = function(){
          var sql ;
          var isInit = false ;
@@ -118,7 +117,7 @@
          if( nodeRole == 1 )
             sql = 'SELECT NodeName, Role, IsPrimary, GroupName, HostName, Disk, NodeID, ServiceStatus, TotalInsert, TotalRead, TotalDelete, TotalUpdate FROM $SNAPSHOT_DB WHERE GLOBAL=false' ;
          else if( moduleMode == 'distribution' )
-            sql = 'SELECT NodeName, Role, IsPrimary, GroupName, HostName, Disk, NodeID, ServiceStatus, CurrentLSN, CompleteLSN, LSNQueSize, TotalInsert, TotalRead, TotalDelete, TotalUpdate FROM $SNAPSHOT_DB WHERE HostName="' + hostname +'" AND svcname="'+ svcname + '"' ;
+            sql = 'SELECT NodeName, Role, IsPrimary, GroupName, HostName, Disk, NodeID, ServiceStatus, TotalInsert, TotalRead, TotalDelete, TotalUpdate FROM $SNAPSHOT_DB WHERE HostName="' + hostname +'" AND svcname="'+ svcname + '"' ;
          else
             sql = 'SELECT NodeName, Role, IsPrimary, GroupName, HostName, Disk, NodeID, ServiceStatus, TotalInsert, TotalRead, TotalDelete, TotalUpdate FROM $SNAPSHOT_DB' ;
          SdbRest.Exec( sql, {
@@ -146,7 +145,11 @@
                         $scope.nodeInfo['Role'] = 'coord' ;
                         $scope.nodeInfo['NodeID'] = '-' ;
                         $scope.nodeInfo['Disk'] = { 'DatabasePath': '-' } ;
-                     }  
+                        $scope.nodeInfo['IsPrimary'] = 'unknow' ;
+                        $scope.nodeInfo['TotalRecords'] = '-' ;
+                        $scope.nodeInfo['TotalLobs'] = '-' ;
+                        $scope.nodeInfo['TotalCl'] = '-' ;
+                     }
                      else
                      {
                         $scope.nodeInfo['Flag'] = 0 ;
@@ -184,7 +187,7 @@
                   return true ;
                } ) ;
             }
-         },{ 'showLoading': false } ) ;
+         } ) ;
       }
 
       //获取集合列表
@@ -222,8 +225,6 @@
                   return true ;
                } ) ;
             }
-         },{
-            'showLoading': false
          } ) ;
       }
 
@@ -244,7 +245,7 @@
                   return true ;
                } ) ;
             }
-         },{ 'showLoading': false } ) ;
+         } ) ;
       }
 
       if( moduleMode == 'distribution' )

@@ -121,92 +121,6 @@ namespace engine
          string          _languageFileSep ;
    };
 
-   class omExtendBusinessCommand : public omAuthCommand
-   {
-   public:
-      omExtendBusinessCommand( restAdaptor *pRestAdaptor,
-                               pmdRestSession *pRestSession,
-                               const CHAR *pRootPath,
-                               string &localAgentHost,
-                               string &localAgentService ) ;
-      ~omExtendBusinessCommand() ;
-
-   public:
-      virtual INT32 doCommand() ;
-
-   private:
-      INT32 _getRestInfo( BSONObj &extendConfig, string& extendConfigMod ) ;
-      INT32 _checkBusiness() ;
-      INT32 _readConfigProperties( const string& extendConfigMod,
-                                   BSONObj& buzDetail ) ;
-      INT32 _getClusterInfo( BSONObj& hostsInfoForCluster,
-                             BSONObj& buzInfoForCluster ) ;
-      INT32 _checkExtendConfig( const BSONObj& confProperties,
-                                const BSONObj& hostsDetail,
-                                const BSONObj& buzInfoForCluster,
-                                BSONObj& extendConfig ) ;
-      INT32 _createExtendTask( const BSONObj& extendConfig,
-                               const BSONObj& hostsInfoForCluster,
-                               INT64& taskID ) ;
-      INT32 _generateTaskInfo( const BSONObj& hostsInfoForCluster,
-                               const BSONObj& extendConfig,
-                               BSONObj& taskConfig ) ;
-      INT32 _generateTaskResultInfo( const BSONObj &taskConfig,
-                                     BSONArray &resultInfo ) ;
-
-   private:
-      string _rootPath ;
-      string _localAgentHost ;
-      string _localAgentService ;
-      string _clusterName ;
-      string _businessName ;
-      string _businessType ;
-      string _deployMod ;
-   } ;
-
-   class omShrinkBusinessCommand : public omAuthCommand
-   {
-   public:
-      omShrinkBusinessCommand( restAdaptor *pRestAdaptor,
-                               pmdRestSession *pRestSession,
-                               const CHAR *pRootPath,
-                               string &localAgentHost,
-                               string &localAgentService ) ;
-      ~omShrinkBusinessCommand() ;
-
-   public:
-      virtual INT32 doCommand() ;
-
-   private:
-      INT32 _getRestInfo( BSONObj &shrinkConfig ) ;
-
-      INT32 _checkBusiness() ;
-
-      INT32 _checkSdbConfig( const BSONObj &shrinkConfig ) ;
-
-      INT32 _checkConfig( const BSONObj &shrinkConfig ) ;
-
-      INT32 _createTask( vector<simpleAddressInfo> &addressList,
-                         const BSONObj &shrinkConfig,
-                         INT64 &taskID ) ;
-
-      INT32 _generateTaskInfo( vector<simpleAddressInfo> &addressList,
-                               const BSONObj &shrinkConfig,
-                               BSONObj &taskConfig ) ;
-
-      INT32 _generateTaskResultInfo( const BSONObj &shrinkConfig,
-                                     BSONArray &resultInfo ) ;
-
-   private:
-      string _rootPath ;
-      string _localAgentHost ;
-      string _localAgentService ;
-      string _clusterName ;
-      string _businessName ;
-      string _businessType ;
-      string _deployMod ;
-   } ;
-
    class omLogoutCommand : public omAuthCommand
    {
       public:
@@ -247,24 +161,29 @@ namespace engine
       protected:
    };
 
-   class omCreateClusterCommand : public omAuthCommand
+   class omCreateClusterCommand : public omCheckSessionCommand
    {
-   public:
+      public:
+         omCreateClusterCommand( restAdaptor *pRestAdaptor,
+                                 pmdRestSession *pRestSession ) ;
 
-      omCreateClusterCommand( restAdaptor *pRestAdaptor,
-                              pmdRestSession *pRestSession ) ;
+         virtual ~omCreateClusterCommand() ;
 
-      virtual ~omCreateClusterCommand() ;
+      public:
+         virtual INT32   doCommand() ;
 
-      virtual INT32 doCommand() ;
+      protected:
 
-   private:
+      private:
+         INT32           _getParaOfCreateCluster( string &clusterName,
+                                                  string &desc,
+                                                  string &sdbUsr,
+                                                  string &sdbPasswd,
+                                                  string &sdbUsrGroup,
+                                                  string &installPath ) ;
+   };
 
-      INT32 _getRestInfo( string &clusterName, BSONObj &clusterInfo ) ;
-
-   } ;
-
-   class omQueryClusterCommand : public omCheckSessionCommand
+   class omQueryClusterCommand : public omCreateClusterCommand
    {
       public:
          omQueryClusterCommand( restAdaptor *pRestAdaptor,
@@ -309,7 +228,7 @@ namespace engine
       }
    } ;
 
-   class omUpdateHostInfoCommand : public omCheckSessionCommand
+   class omUpdateHostInfoCommand : public omCreateClusterCommand
    {
       public:
          omUpdateHostInfoCommand( restAdaptor *pRestAdaptor,
@@ -327,7 +246,7 @@ namespace engine
                                           string &clusterName ) ;
    } ;
 
-   class omScanHostCommand : public omCheckSessionCommand
+   class omScanHostCommand : public omCreateClusterCommand
    {
       public:
          omScanHostCommand( restAdaptor *pRestAdaptor,
@@ -489,7 +408,7 @@ namespace engine
          INT32           _checkTaskExistence( list<BSONObj> &hostInfoList ) ;
    };
 
-   class omListHostCommand : public omCheckSessionCommand
+   class omListHostCommand : public omCreateClusterCommand
    {
       public:
          omListHostCommand( restAdaptor *pRestAdaptor,
@@ -519,7 +438,7 @@ namespace engine
       private:
    } ;
 
-   class omListBusinessTypeCommand : public omCheckSessionCommand
+   class omListBusinessTypeCommand : public omCreateClusterCommand
    {
       public:
          omListBusinessTypeCommand( restAdaptor *pRestAdaptor,
@@ -566,93 +485,109 @@ namespace engine
          INT32          _readConfDetail( const string &file,
                                          BSONObj &bsonConfDetail ) ;
 
+      protected:
+
    } ;
 
-   class omGetBusinessConfigCommand : public omAuthCommand
+   class omConfigBusinessCommand : public omGetBusinessTemplateCommand
    {
-   public:
-      omGetBusinessConfigCommand( restAdaptor *pRestAdaptor,
+      public:
+         omConfigBusinessCommand( restAdaptor *pRestAdaptor,
                                   pmdRestSession *pRestSession,
-                                  string &rootPath ) ;
+                                  const CHAR *pRootPath,
+                                  const CHAR *pSubPath ) ;
+         virtual ~omConfigBusinessCommand() ;
 
-      ~omGetBusinessConfigCommand() ;
+      public:
+         virtual INT32  doCommand() ;
 
-      virtual INT32 doCommand() ;
+      protected:
+         INT32          _fillHostInfo( string clusterName, string businessName,
+                                       BSONObj &bsonHostInfo ) ;
 
-   private:
-      INT32 _checkRestInfo( const BSONObj &templateInfo ) ;
+         INT32          _checkBusiness( string businessName,
+                                        const string &businessType,
+                                        const string &deployMod,
+                                        const string &clusterName ) ;
 
-      INT32 _checkTemplate( BSONObj &deployModInfo ) ;
+         INT32          _buildConfigFilePath( const string &businessType,
+                                              const string &deployMod,
+                                              const string &separateConfig,
+                                              string &configFilePath) ;
 
-      INT32 _check( const BSONObj &templateInfo, BSONObj &deployModInfo ) ;
+      private:
+         INT32          _generateConfig( const BSONObj &bsonTemplate,
+                                         const BSONObj &bsonHostInfo,
+                                         const BSONObj &bsonConfigItem,
+                                         BSONObj &bsonConfig ) ;
+         void           _addProperties( BSONObjBuilder &builder,
+                                        const BSONObj &bsonTemplate,
+                                        const BSONObj &bsonConfDetail ) ;
+         INT32          _getConfigDetail( const BSONObj &bsonTemplate,
+                                        BSONObj &bsonConfDetail ) ;
+         INT32          _getTemplateInfo( BSONObj &bsonTemplate,
+                                          BSONObj &bsonHostInfo ) ;
+         INT32          _fillTemplateInfo( BSONObj &bsonTemplate ) ;
+         INT32          _getPropertyNameValue( BSONObj &bsonTemplate,
+                                               string propertyName,
+                                               string &value ) ;
+         INT32          _getHostConfig( string hostName, string businessName,
+                                        BSONObj &config ) ;
 
-      INT32 _getPropertyValue( const BSONObj &property, const string &name,
-                               string &value ) ;
+         INT32          _getExistBusiness( const string &businessName,
+                                           string &businessType,
+                                           string &deployMod,
+                                           string &clusterName ) ;
+      protected:
+         string         _clusterName ;
+         string         _deployMod ;
+         string         _businessType ;
+         string         _businessName ;
 
-      INT32 _getDeployProperty( const BSONObj &templateInfo,
-                                const BSONObj &deployModInfo,
-                                BSONObj &deployProperty ) ;
-
-      INT32 _getBuzInfoOfCluster( BSONObj &buzInfoOfCluster ) ;
-
-      INT32 _getHostInfoOfCluster( BSONObj &hostsInfoOfCluster ) ;
-
-      INT32 _generateRequest( omRestTool &restTool,
-                              const BSONObj &templateInfo,
-                              const BSONObj &deployModInfo ) ;
-
-   private:
-      string _rootPath ;
-      string _clusterName ;
-      string _deployMod ;
-      string _businessType ;
-      string _businessName ;
-      string _operationType ;
    } ;
 
-   class omAddBusinessCommand : public omAuthCommand
+   class omInstallBusinessReq : public omConfigBusinessCommand
    {
-   public:
-      omAddBusinessCommand( restAdaptor *pRestAdaptor,
-                            pmdRestSession *pRestSession,
-                            string &rootPath,
-                            string &path,
-                            string &localAgentHost,
-                            string &localAgentService ) ;
+      public:
+         omInstallBusinessReq( restAdaptor *pRestAdaptor,
+                               pmdRestSession *pRestSession,
+                               const CHAR *pRootPath,
+                               const CHAR *pSubPath,
+                               string localAgentHost,
+                               string localAgentService ) ;
+         virtual ~omInstallBusinessReq() ;
 
-      ~omAddBusinessCommand() ;
+      public:
+         virtual INT32  doCommand() ;
 
-      virtual INT32 doCommand() ;
+      private:
+         INT32          _combineConfDetail( string businessType,
+                                            string clusterType,
+                                            BSONObj &bsonConfDetail ) ;
+         INT32          _extractHostInfo( set<string>& hostNames,
+                                          BSONObj &bsonHostInfo ) ;
 
-   private:
-      INT32 _checkRestInfo( const BSONObj &configInfo ) ;
+         INT32          _applyInstallRequest( const BSONObj &bsonConfValue,
+                                              UINT64 taskID ) ;
 
-      INT32 _checkTemplate() ;
+         INT32          _sendMsgToLocalAgent( omManager *om,
+                                              pmdRemoteSession *remoteSession,
+                                              MsgHeader *pMsg ) ;
+         INT32          _compeleteConfValue( const BSONObj &bsonHostInfo,
+                                             BSONObj &bsonConfValue ) ;
+         void           _clearSession( omManager *om,
+                                       pmdRemoteSession *remoteSession) ;
+         INT32          _getRestInfo( BSONObj &bsonConfValue,
+                                      BOOLEAN &isForce ) ;
 
-      INT32 _getBuzInfoOfCluster( BSONObj &buzInfoOfCluster ) ;
+         INT32          _generateTaskInfo( const BSONObj &bsonConfValue,
+                                           BSONObj &taskInfo,
+                                           BSONArray &resultInfo ) ;
 
-      INT32 _getHostInfoOfCluster( BSONObj &hostsInfoOfCluster ) ;
-
-      INT32 _checkConfig( BSONObj &deployConfig ) ;
-
-      INT32 _check( BSONObj &configInfo ) ;
-
-      INT32 _generateRequest( const BSONObj &configInfo,
-                              BSONObj &taskConfig,
-                              BSONArray &resultInfo ) ;
-
-      INT32 _createTask( const BSONObj &taskConfig, const BSONArray &resultInfo,
-                         INT64 &taskID ) ;
-
-   private:
-      string _rootPath ;
-      string _localAgentHost ;
-      string _localAgentService ;
-      string _clusterName ;
-      string _businessName ;
-      string _businessType ;
-      string _deployMod ;
-      BOOLEAN _force ;
+         INT32          _notifyAgentTask( INT64 taskID ) ;
+      private:
+         string         _localAgentHost ;
+         string         _localAgentService ;
    } ;
 
    class omListTaskCommand : public omAuthCommand
@@ -711,12 +646,12 @@ namespace engine
          void           _sendNodeList2Web( list<simpleNodeInfo> &nodeList ) ;
    } ;
 
-   class omGetNodeConfCommand : public omAuthCommand
+   class omQueryNodeConfCommand : public omAuthCommand
    {
       public:
-         omGetNodeConfCommand( restAdaptor *pRestAdaptor,
-                               pmdRestSession *pRestSession ) ;
-         virtual ~omGetNodeConfCommand() ;
+         omQueryNodeConfCommand( restAdaptor *pRestAdaptor,
+                                 pmdRestSession *pRestSession ) ;
+         virtual ~omQueryNodeConfCommand() ;
 
       public:
          virtual INT32  doCommand() ;
@@ -729,17 +664,6 @@ namespace engine
                                          const string &svcName,
                                          BSONObj &nodeinfo ) ;
          void           _sendNodeInfo2Web( BSONObj &nodeList ) ;
-   } ;
-
-   class omQueryNodeConfCommand : public omAuthCommand
-   {
-   public:
-      omQueryNodeConfCommand( restAdaptor *pRestAdaptor,
-                              pmdRestSession *pRestSession ) ;
-      virtual ~omQueryNodeConfCommand() ;
-
-   public:
-      virtual INT32 doCommand() ;
    } ;
 
    class omQueryBusinessCommand : public omAuthCommand
@@ -840,70 +764,55 @@ namespace engine
          INT32          _removeCluster( const string &clusterName ) ;
    } ;
 
-   class omRemoveHostCommand : public omAuthCommand
+   class omRemoveHostCommand : public omStartBusinessCommand
    {
-   public:
-      omRemoveHostCommand( restAdaptor *pRestAdaptor,
-                           pmdRestSession *pRestSession,
-                           string &localAgentHost,
-                           string &localAgentService ) ;
+      public:
+         omRemoveHostCommand( restAdaptor *pRestAdaptor,
+                              pmdRestSession *pRestSession,
+                              string localAgentHost,
+                              string localAgentService ) ;
+         virtual ~omRemoveHostCommand() ;
 
-      virtual ~omRemoveHostCommand() ;
+      public:
+         virtual INT32  doCommand() ;
 
-      virtual INT32  doCommand() ;
-
-   private:
-      INT32 _check( const BSONObj &hostList ) ;
-
-      INT32 _generateRequest( const BSONObj &hostList,
-                              BSONObj &taskConfig, BSONArray &resultInfo ) ;
-
-      INT32 _createTask( const BSONObj &taskConfig, const BSONArray &resultInfo,
-                         INT64 &taskID ) ;
-
-   private:
-      string _clusterName ;
-      string _localAgentHost ;
-      string _localAgentService ;
+      private:
+         INT32          _generateTaskInfo( list<string> &hostNameList,
+                                           BSONObj &taskInfo,
+                                           BSONArray &resultInfo ) ;
+         INT32          _getHostExistBusinessFlag( const string &hostName,
+                                                   BOOLEAN &flag ) ;
+         INT32          _getHostName( list<string> &hostNameList ) ;
    } ;
 
-   class omRemoveBusinessCommand : public omAuthCommand
+   class omRemoveBusinessCommand : public omStartBusinessCommand
    {
-   public:
-      omRemoveBusinessCommand( restAdaptor *pRestAdaptor,
-                               pmdRestSession *pRestSession,
-                               string localAgentHost,
-                               string localAgentService ) ;
+      public:
+         omRemoveBusinessCommand( restAdaptor *pRestAdaptor,
+                                  pmdRestSession *pRestSession,
+                                  string localAgentHost,
+                                  string localAgentService ) ;
+         virtual ~omRemoveBusinessCommand() ;
 
-      virtual ~omRemoveBusinessCommand() ;
+      public:
+         virtual INT32  doCommand() ;
 
-      virtual INT32 doCommand() ;
+      private:
+         INT32          _getBusinessExistFlag( const string &businessName,
+                                               BOOLEAN &flag ) ;
 
-   private:
-      BOOLEAN _isDiscoveredBusiness( BSONObj &buzInfo ) ;
+         INT32          _getHostNameInfo( const string &businessName,
+                                       map<string, simpleHostInfo> &mapHosts) ;
+         INT32          _generateRequest( string businessName,
+                                          BSONObj &nodeInfos,
+                                          BSONObj &request ) ;
 
-      INT32 _check( BSONObj &buzInfo ) ;
+         INT32          _generateTaskInfo( string businessName,
+                                           BSONObj &nodeInfos,
+                                           BSONObj &taskInfo,
+                                           BSONArray &resultInfo ) ;
 
-      INT32 _generateTaskConfig( list<BSONObj> &configList,
-                                 BSONObj &taskConfig ) ;
-
-      void _generateResultInfo( list<BSONObj> &configList,
-                                BSONArray &resultInfo ) ;
-
-      INT32 _generateRequest( const BSONObj &buzInfo,
-                              BSONObj &taskConfig, BSONArray &resultInfo ) ;
-
-      INT32 _createTask( const BSONObj &taskConfig,
-                         const BSONArray &resultInfo,
-                         INT64 &taskID ) ;
-      
-   private:
-      string _clusterName ;
-      string _businessName ;
-      string _businessType ;
-      string _deployMod ;
-      string _localAgentHost ;
-      string _localAgentService ;
+         BOOLEAN        _isDiscoveredBusiness( BSONObj &businessInfo ) ;
    } ;
 
    class omQueryHostStatusCommand : public omStartBusinessCommand
@@ -1028,53 +937,29 @@ namespace engine
 
    class omDiscoverBusinessCommand : public omAuthCommand
    {
-   public:
+      public:
+         omDiscoverBusinessCommand( restAdaptor *pRestAdaptor,
+                                    pmdRestSession *pRestSession ) ;
 
-      omDiscoverBusinessCommand( restAdaptor *pRestAdaptor,
-                                 pmdRestSession *pRestSession,
-                                 string &localAgentHost,
-                                 string &localAgentService ) ;
+         virtual ~omDiscoverBusinessCommand() ;
 
-      virtual ~omDiscoverBusinessCommand() ;
+      public:
+         virtual INT32   doCommand() ;
 
-      virtual INT32 doCommand() ;
+      protected:
+         INT32           _getRestBusinessInfo( BSONObj &configInfo ) ;
 
-   private:
+         INT32           _checkBusinssCFG( BSONObj &configInfo ) ;
+         INT32           _checkSparkCFG( BSONObj &configInfo ) ;
+         INT32           _checkHdfsCFG( BSONObj &configInfo ) ;
+         INT32           _checkYarnCFG( BSONObj &configInfo ) ;
+         INT32           _checkSequoiasqlCFG( BSONObj &configInfo ) ;
 
-      INT32 _getRestInfo( BSONObj &configInfo ) ;
-
-      INT32 _checkHostPort( const string &hostName, const string &port ) ;
-      INT32 _checkBusinssCFG( BSONObj &configInfo ) ;
-      INT32 _checkWebLinkCFG( BSONObj &buzInfo ) ;
-      INT32 _checkSequoiasqlCFG( BSONObj &buzInfo ) ;
-      INT32 _checkSequoiaDBCFG( BSONObj &buzInfo ) ;
-
-      void _generateRequest( const string &hostName,
-                             const string &svcname,
-                             const string &authUser,
-                             const string &authPwd,
-                             const string &agentService,
-                             BSONObj &request ) ;
-      void _parseHostMap( const BSONObj &hosts, map<string, string> &hostMap ) ;
-      void _hostName2Address( map<string, string> &hostMap,
-                              string &hostName, string &address ) ;
-      INT32 _checkSyncSdbResult( omRestTool &restTool,
-                                 const BSONObj &hostInfo,
-                                 map<string, string> &hostMap ) ;
-      INT32 _syncSequoiaDB( omRestTool &restTool, const BSONObj &buzInfo ) ;
-      INT32 _storeBusinessInfo( const INT32 addType,
-                                const string &deployMod,
-                                const BSONObj &buzInfo ) ;
-      INT32 _syncBusiness( omRestTool &restTool, BSONObj &configInfo ) ;
-
-   private:
-
-      string _clusterName ;
-      string _businessName ;
-      string _businessType ;
-      string _localAgentHost ;
-      string _localAgentService ;
-
+         INT32           _storeBusinessInfo( BSONObj &configInfo ) ;
+         INT32           _storeSparkBInfo( BSONObj &configInfo ) ;
+         INT32           _storeHdfsBInfo( BSONObj &configInfo ) ;
+         INT32           _storeYarnBInfo( BSONObj &configInfo ) ;
+         INT32           _storeSequoiasqlInfo( BSONObj &configInfo ) ;
    } ;
 
    class omUnDiscoverBusinessCommand : public omAuthCommand
@@ -1096,28 +981,42 @@ namespace engine
                                               const string &businessName ) ;
    } ;
 
-   class omSsqlExecCommand : public omAuthCommand
+   class omSsqlExecCommand : public omScanHostCommand
    {
-   public:
-      omSsqlExecCommand( restAdaptor *pRestAdaptor,
-                         pmdRestSession *pRestSession,
-                         const string &localAgentHost,
-                         const string &localAgentPort ) ;
-      virtual ~omSsqlExecCommand() ;
-      virtual INT32 doCommand() ;
+      public:
+         omSsqlExecCommand( restAdaptor *pRestAdaptor,
+                            pmdRestSession *pRestSession,
+                            const string &localAgentHost,
+                            const string &localAgentPort ) ;
 
-   private:
-      INT32 _check() ;
-      INT32 _execSsql( const string &sql, const string &dbName ) ;
-      INT32 _generateRequest( const string &sql, const string &dbName,
-                              BSONObj &request ) ;
+         virtual ~omSsqlExecCommand() ;
 
-   private:
-      string _clusterName ;
-      string _businessName ;
-      string _businessType ;
-      string _localAgentHost ;
-      string _localAgentService ;
+      public:
+         virtual INT32   doCommand() ;
+
+      protected:
+         INT32           _parseRestSsqlExecInfo() ;
+         INT32           _sendTaskInfo2Web( INT64 taskID ) ;
+         INT32           _generateSsqlTaskInfo( BSONObj &taskInfo,
+                                                BSONArray &resultInfo ) ;
+         INT32           _createSsqlExecTask( INT64 &taskID ) ;
+
+      protected:
+         string          _clusterName ;
+         string          _businessName ;
+         string          _dbName ;
+         string          _dbUser ;
+         string          _dbPasswd ;
+
+         string          _sql ;
+         string          _resultFormat ;
+         string          _ssqlHost ;
+         string          _ssqlService ;
+         string          _ssqlInstallPath ;
+
+         string          _user ;
+         string          _passwd ;
+
    } ;
 
    class omInterruptTaskCommand : public omScanHostCommand
@@ -1144,21 +1043,6 @@ namespace engine
       protected:
          BOOLEAN         _isFinished ;
          INT64           _taskID ;
-   } ;
-
-   class omForwardPluginCommand : public omAuthCommand
-   {
-   public:
-      omForwardPluginCommand( restAdaptor *pRestAdaptor,
-                              pmdRestSession *pRestSession,
-                              const string &businessType ) ;
-
-      ~omForwardPluginCommand() ;
-
-      virtual INT32 doCommand() ;
-
-   private:
-      string _businessType ;
    } ;
 
    class omGetFileCommand : public omGetLogCommand
@@ -1297,255 +1181,6 @@ namespace engine
 
          ~omGetSystemInfoCommand() ;
    };
-
-   class omSyncBusinessConfigureCommand : public omAuthCommand
-   {
-   public:
-
-      omSyncBusinessConfigureCommand( restAdaptor *pRestAdaptor,
-                                      pmdRestSession *pRestSession,
-                                      string &localAgentHost,
-                                      string &localAgentService ) ;
-
-      ~omSyncBusinessConfigureCommand();
-
-      virtual INT32 doCommand() ;
-
-   private:
-
-      INT32 _getRestInfo() ;
-
-      void _parseHostMap( const BSONObj &hosts, map<string, string> &hostMap ) ;
-
-      void _hostName2Address( map<string, string> &hostMap,
-                              string &hostName, string &address ) ;
-
-      INT32 _checkExecResult( omRestTool &restTool, const BSONObj &result,
-                              map<string, string> &hostMap ) ;
-
-      INT32 _syncBusinessConfig( omRestTool &restTool,
-                                 vector<simpleAddressInfo> &addressList ) ;
-
-      void _generateRequest( vector<simpleAddressInfo> &addressList,
-                             BSONObj &request ) ;
-
-   private:
-
-      string _clusterName ;
-      string _businessName ;
-      string _businessType ;
-      string _localAgentHost ;
-      string _localAgentService ;
-   } ;
-
-   class omGrantSysConfigureCommand : public omAuthCommand
-   {
-   public:
-
-      omGrantSysConfigureCommand( restAdaptor *pRestAdaptor,
-                                  pmdRestSession *pRestSession ) ;
-
-      ~omGrantSysConfigureCommand() ;
-
-      virtual INT32 doCommand() ;
-
-   private:
-
-      INT32 _getRestInfo() ;
-
-      INT32 _checkCluster() ;
-
-      INT32 _grantSysConf() ;
-
-   private:
-
-      string  _clusterName ;
-      string  _grantName ;
-      BOOLEAN _privilege ;
-
-   } ;
-
-   class omUnbindBusinessCommand : public omAuthCommand
-   {
-   public:
-      omUnbindBusinessCommand( restAdaptor *pRestAdaptor,
-                               pmdRestSession *pRestSession ) ;
-
-      ~omUnbindBusinessCommand() ;
-
-      virtual INT32 doCommand() ;
-
-   private:
-      INT32 _check() ;
-
-   private:
-      string _clusterName ;
-      string _businessName ;
-
-   } ;
-
-   class omUnbindHostCommand : public omAuthCommand
-   {
-   public:
-      omUnbindHostCommand( restAdaptor *pRestAdaptor,
-                           pmdRestSession *pRestSession ) ;
-
-      ~omUnbindHostCommand() ;
-
-      virtual INT32 doCommand() ;
-
-   private:
-      INT32 _getRestInfo( list<string> &hostList ) ;
-      INT32 _checkHost( list<string> &hostList ) ;
-
-   private:
-      string _clusterName ;
-
-   } ;
-
-   class omDeployPackageCommand : public omAuthCommand
-   {
-   public:
-      omDeployPackageCommand( restAdaptor *pRestAdaptor,
-                              pmdRestSession *pRestSession,
-                              string &localAgentHost,
-                              string &localAgentService ) ;
-
-      ~omDeployPackageCommand() ;
-
-      virtual INT32 doCommand() ;
-
-   private:
-      INT32 _check( const BSONObj &restHostInfo, BSONObj &clusterInfo,
-                    BSONObj &hostsInfo, string &packetPath ) ;
-
-      void _generateRequest( const BSONObj &clusterInfo,
-                             const BSONObj &hostInfo,
-                             const string &packetPath,
-                             BSONObj &taskConfig,
-                             BSONArray &resultInfo ) ;
-
-      INT32 _createTask( const BSONObj &taskConfig, const BSONArray &resultInfo,
-                         INT64 &taskID ) ;
-
-   private:
-      BOOLEAN  _enforced ;
-      string   _localAgentHost ;
-      string   _localAgentService ;
-      string   _clusterName ;
-      string   _packageName ;
-      string   _installPath ;
-      string   _user ;
-      string   _passwd ;
-
-   } ;
-
-   class omCreateRelationshipCommand : public omAuthCommand
-   {
-   public:
-      omCreateRelationshipCommand( restAdaptor *pRestAdaptor,
-                                   pmdRestSession *pRestSession,
-                                   string &localAgentHost,
-                                   string &localAgentService ) ;
-
-      ~omCreateRelationshipCommand() ;
-
-      virtual INT32 doCommand() ;
-
-   private:
-      INT32 _check( BSONObj &fromBuzInfo, BSONObj &toBuzInfo ) ;
-
-      INT32 _createRelationship( const BSONObj &options,
-                                 const BSONObj &fromBuzInfo,
-                                 const BSONObj &toBuzInfo ) ;
-
-      INT32 _generateRequest( const BSONObj &options,
-                              const BSONObj &fromBuzInfo,
-                              const BSONObj &toBuzInfo,
-                              BSONObj &request ) ;
-
-   private:
-      string _localAgentHost ;
-      string _localAgentService ;
-      string _fromBuzName ;
-      string _toBuzName ;
-   } ;
-
-   class omRemoveRelationshipCommand : public omAuthCommand
-   {
-   public:
-      omRemoveRelationshipCommand( restAdaptor *pRestAdaptor,
-                                   pmdRestSession *pRestSession,
-                                   string &localAgentHost,
-                                   string &localAgentService ) ;
-
-      ~omRemoveRelationshipCommand() ;
-
-      virtual INT32 doCommand() ;
-
-   private:
-      INT32 _check( BSONObj &options, BSONObj &fromBuzInfo,
-                    BSONObj &toBuzInfo ) ;
-
-      INT32 _removeRelationship( const BSONObj &options,
-                                 const BSONObj &fromBuzInfo,
-                                 const BSONObj &toBuzInfo ) ;
-
-      INT32 _generateRequest( const BSONObj &options,
-                              const BSONObj &fromBuzInfo,
-                              const BSONObj &toBuzInfo,
-                              BSONObj &request ) ;
-
-   private:
-      string _localAgentHost ;
-      string _localAgentService ;
-      string _fromBuzName ;
-      string _toBuzName ;
-   } ;
-
-   class omListRelationshipCommand : public omAuthCommand
-   {
-   public:
-      omListRelationshipCommand( restAdaptor *pRestAdaptor,
-                                 pmdRestSession *pRestSession ) ;
-
-      ~omListRelationshipCommand() ;
-
-      virtual INT32 doCommand() ;
-   } ;
-
-   class omRegisterPluginsCommand : public omRestCommandBase
-   {
-   public:
-      omRegisterPluginsCommand( restAdaptor *pRestAdaptor,
-                                pmdRestSession *pRestSession ) ;
-
-      ~omRegisterPluginsCommand() ;
-
-      virtual INT32 doCommand() ;
-   private:
-      INT32 _check( const string &role, const string &publicKey ) ;
-
-      INT32 _updatePlugin( omRestTool &restTool,
-                           const string &pluginName,
-                           const string &businessType,
-                           const string &publicKey,
-                           const string &serviceName ) ;
-
-      INT32 _encrypt( const string &publicKey, const string &src,
-                      string &dest ) ;
-   } ;
-
-   class omListPluginsCommand : public omAuthCommand
-   {
-   public:
-      omListPluginsCommand( restAdaptor *pRestAdaptor,
-                            pmdRestSession *pRestSession ) ;
-
-      ~omListPluginsCommand() ;
-
-      virtual INT32 doCommand() ;
-   } ;
 }
 
 #endif /* OM_GETFILECOMMAND_HPP__ */

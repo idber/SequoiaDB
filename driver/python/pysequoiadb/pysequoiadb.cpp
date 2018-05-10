@@ -1279,35 +1279,6 @@ __METHOD_IMP(sdb_get_domain)
 done:
    return MAKE_RETURN_INT( rc ) ;
 }
-
-__METHOD_IMP(sdb_sync)
-{
-   INT32 rc                    = 0 ;
-   PYOBJECT *obj               = NULL ;
-   PYOBJECT *bson_option       = NULL ;
-   sdb *client                 = NULL ;
-   const bson::BSONObj *option = NULL ;
-
-   if ( !PARSE_PYTHON_ARGS( args, "OO", &obj, &bson_option ) )
-   {
-      rc = SDB_INVALIDARGS ;
-      goto done ;
-   }
-
-   CAST_PYOBJECT_TO_COBJECT( obj, sdb, client ) ;
-   CAST_PYBSON_TO_CPPBSON( bson_option, option ) ;
-
-   rc = client->syncDB( *option ) ;
-   if ( rc )
-   {
-      goto done ;
-   }
-
-done:
-   DELETE_CPPOBJECT( option ) ;
-   return MAKE_RETURN_INT( rc ) ;
-}
-
 __METHOD_IMP(sdb_get_datacenter)
 {
    INT32 rc               = 0 ;
@@ -1332,34 +1303,6 @@ __METHOD_IMP(sdb_get_datacenter)
    }
 
 done:
-   return MAKE_RETURN_INT( rc ) ;
-}
-
-__METHOD_IMP(sdb_analyze)
-{
-   INT32 rc                    = 0 ;
-   PYOBJECT *obj               = NULL ;
-   PYOBJECT *bson_option       = NULL ;
-   sdb *client                 = NULL ;
-   const bson::BSONObj *option = NULL ;
-
-   if ( !PARSE_PYTHON_ARGS( args, "OO", &obj, &bson_option ) )
-   {
-      rc = SDB_INVALIDARGS ;
-      goto done ;
-   }
-
-   CAST_PYOBJECT_TO_COBJECT( obj, sdb, client ) ;
-   CAST_PYBSON_TO_CPPBSON( bson_option, option ) ;
-
-   rc = client->analyze( *option ) ;
-   if ( rc )
-   {
-      goto done ;
-   }
-
-done:
-   DELETE_CPPOBJECT( option ) ;
    return MAKE_RETURN_INT( rc ) ;
 }
 
@@ -1775,7 +1718,6 @@ done:
 __METHOD_IMP(cl_update)
 {
    INT32 rc                       = 0 ;
-   INT32 flag                     = 0 ;
    PYOBJECT *obj                  = NULL ;
    PYOBJECT *bson_rule            = NULL ;
    PYOBJECT *bson_condition       = NULL ;
@@ -1785,8 +1727,8 @@ __METHOD_IMP(cl_update)
    const bson::BSONObj *condition = NULL ;
    const bson::BSONObj *hint      = NULL ;
 
-   if ( !PARSE_PYTHON_ARGS( args, "OOOOi", &obj, &bson_rule,
-      &bson_condition, &bson_hint, &flag ) )
+   if ( !PARSE_PYTHON_ARGS( args, "OOOO", &obj, &bson_rule,
+      &bson_condition, &bson_hint ) )
    {
       rc = SDB_INVALIDARGS ;
       goto done ;
@@ -1797,7 +1739,7 @@ __METHOD_IMP(cl_update)
    CAST_PYBSON_TO_CPPBSON( bson_condition, condition ) ;
    CAST_PYBSON_TO_CPPBSON( bson_hint, hint ) ;
 
-   rc = cl->update( *rule, *condition, *hint, flag ) ;
+   rc = cl->update( *rule, *condition, *hint ) ;
    if ( rc )
    {
       goto done ;
@@ -1813,7 +1755,6 @@ done:
 __METHOD_IMP(cl_upsert)
 {
    INT32 rc                       = 0 ;
-   INT32 flag                     = 0 ;
    PYOBJECT *obj                  = NULL ;
    PYOBJECT *bson_rule            = NULL ;
    PYOBJECT *bson_condition       = NULL ;
@@ -1825,8 +1766,8 @@ __METHOD_IMP(cl_upsert)
    const bson::BSONObj *hint      = NULL ;
    const bson::BSONObj *setOnInsert = NULL ;
 
-   if ( !PARSE_PYTHON_ARGS( args, "OOOOOi", &obj, &bson_rule,
-      &bson_condition, &bson_hint, &bson_setOnInsert, &flag ) )
+   if ( !PARSE_PYTHON_ARGS( args, "OOOOO", &obj, &bson_rule,
+      &bson_condition, &bson_hint, &bson_setOnInsert ) )
    {
       rc = SDB_INVALIDARGS ;
       goto done ;
@@ -1838,7 +1779,7 @@ __METHOD_IMP(cl_upsert)
    CAST_PYBSON_TO_CPPBSON( bson_hint, hint ) ;
    CAST_PYBSON_TO_CPPBSON( bson_setOnInsert, setOnInsert ) ;
 
-   rc = cl->upsert( *rule, *condition, *hint, *setOnInsert, flag ) ;
+   rc = cl->upsert( *rule, *condition, *hint, *setOnInsert ) ;
    if ( rc )
    {
       goto done ;
@@ -2364,7 +2305,7 @@ error:
    goto done ;
 }
 
-__METHOD_IMP(cl_open_lob)
+__METHOD_IMP(cl_get_lob)
 {
    INT32 rc           = SDB_OK ;
    PYOBJECT *obj      = NULL ;
@@ -2374,9 +2315,8 @@ __METHOD_IMP(cl_open_lob)
    const CHAR *str_id = NULL ;
    std::string string_oid ;
    bson::OID oid;
-   INT32 mode = SDB_LOB_READ ;
 
-   if ( !PARSE_PYTHON_ARGS(args, "OOsi", &obj, &obj_lob, &str_id, &mode) )
+   if ( !PARSE_PYTHON_ARGS(args, "OOs", &obj, &obj_lob, &str_id) )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
@@ -2393,7 +2333,7 @@ __METHOD_IMP(cl_open_lob)
    }
    oid.init(str_id) ;
 
-   rc = cl->openLob(*lob, oid, (SDB_LOB_OPEN_MODE)mode) ;
+   rc = cl->openLob(*lob, oid) ;
 
 done:
    return MAKE_RETURN_INT(rc) ;
@@ -2425,42 +2365,7 @@ __METHOD_IMP(cl_remove_lob)
       goto error ;
    }
    oid.init(str_id) ;
-
    rc = cl->removeLob( oid ) ;
-
-done:
-   return MAKE_RETURN_INT(rc) ;
-error:
-   goto done ;
-}
-
-__METHOD_IMP(cl_truncate_lob)
-{
-   INT32 rc           = SDB_OK ;
-   PYOBJECT *obj      = NULL ;
-   sdbCollection *cl  = NULL ;
-   const CHAR *str_id = NULL ;
-   std::string string_oid ;
-   bson::OID oid ;
-   INT64 length = 0 ;
-
-   if ( !PARSE_PYTHON_ARGS(args, "OsL", &obj, &str_id, &length) )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-
-   CAST_PYOBJECT_TO_COBJECT( obj, sdbCollection, cl ) ;
-
-   string_oid = std::string( str_id ) ;
-   if ( string_oid.length() != 24 )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-   oid.init(str_id) ;
-
-   rc = cl->truncateLob( oid, length ) ;
 
 done:
    return MAKE_RETURN_INT(rc) ;
@@ -2580,7 +2485,7 @@ __METHOD_IMP(cl_explain)
    const bson::BSONObj *hint      = NULL ;
    const bson::BSONObj *options   = NULL ;
 
-   if ( !PARSE_PYTHON_ARGS( args, "OOOOOOLLLO", &obj, &cursor_object,
+   if ( !PARSE_PYTHON_ARGS( args, "OOOOOOLLiO", &obj, &cursor_object,
         &bson_condition,  &bson_selector, &bson_order_by,
         &bson_hint, &num_to_skip, &num_to_return, &flag, &bson_options ) )
    {
@@ -2919,75 +2824,56 @@ error :
    goto done ;
 }
 
-static INT32 pytuple_int32_to_vector_int32( PYOBJECT *pyobj, std::vector<INT32>& cobj )
+static INT32 convert_pobj2cobj( PYOBJECT *self, PYOBJECT *args,
+                                Group *& group, sdbNode *& node)
+{
+   INT32 rc            = 0 ;
+   PYOBJECT *group_obj = NULL ;
+   PYOBJECT *node_obj  = NULL ;
+
+   if ( !PARSE_PYTHON_ARGS( args, "OO", &group_obj, &node_obj ) )
+   {
+      rc = SDB_INVALIDARGS ;
+      goto error ;
+   }
+
+   CAST_PYOBJECT_TO_COBJECT( group_obj, Group, group ) ;
+   CAST_PYOBJECT_TO_COBJECT( node_obj, sdbNode, node ) ;
+done :
+   return rc;
+error :
+   goto done ;
+}
+
+static INT32 pydict_to_cmap( PYOBJECT *pyobj,
+                            std::map<std::string,std::string>& cobj )
 {
    INT32 rc = SDB_OK ;
-   INT32 size = 0 ;
-   PyObject* item = NULL ;
+   PyObject *key, *keys;
 
-   if ( !PySequence_Check( pyobj ) )
+   if ( !PyDict_Check( pyobj ) )
    {
       rc = SDB_INVALIDARGS ;
       goto error ;
    }
 
-   size = (INT32) PySequence_Size( pyobj ) ;
-   if ( -1 == size )
+   keys = PyDict_Keys( pyobj );
+   for ( int i = 0; i < PyList_GET_SIZE( keys ); ++i )
    {
-      rc = SDB_INVALIDARGS ;
-      goto error ;
-   }
+      key = PyList_GET_ITEM( keys, i ) ;
+      const CHAR *key_name = PyString_AsString( key );
 
-   for ( INT32 i = 0 ; i < size ; i++ )
-   {
-      INT32 value = 0 ;
-
-      item = PySequence_GetItem( pyobj, (Py_ssize_t) i ) ;
-      if ( NULL == item )
-      {
-          rc = SDB_INVALIDARGS ;
-          goto error ;
-      }
-
-#if PY_MAJOR_VERSION >= 3
-      if ( !PyLong_Check( item ) )
+      PyObject *val = PyDict_GetItemString( pyobj, key_name );
+      if ( NULL == val || !PyString_Check( val ) )
       {
          rc = SDB_INVALIDARGS ;
          goto error ;
       }
-
-      value = PyLong_AsLong( item ) ;
-#else
-      if ( !PyInt_Check( item ) )
-      {
-         rc = SDB_INVALIDARGS ;
-         goto error ;
-      }
-
-      value = PyInt_AsLong( item ) ;
-#endif
-      try
-      {
-        cobj.push_back( value ) ;
-      }
-      catch ( std::exception& e )
-      {
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      Py_DECREF( item ) ;
-      item = NULL ;
+      cobj[ key_name ] = PyString_AsString( val );
    }
-
-done:
-   if ( NULL != item )
-   {
-      Py_DECREF( item ) ;
-      item = NULL ;
-   }
+done :
    return rc ;
-error:
+error :
    goto done ;
 }
 
@@ -2996,17 +2882,12 @@ __METHOD_IMP(gp_get_master)
    INT32 rc             = 0 ;
    sdbNode *node        = NULL ;
    Group *replica_group = NULL ;
-   PYOBJECT *group_obj  = NULL ;
-   PYOBJECT *node_obj   = NULL ;
 
-   if ( !PARSE_PYTHON_ARGS( args, "OO", &group_obj, &node_obj ) )
+   rc = convert_pobj2cobj( self, args, replica_group, node) ;
+   if  ( SDB_OK != rc )
    {
-      rc = SDB_INVALIDARGS ;
       goto error ;
    }
-
-   CAST_PYOBJECT_TO_COBJECT( group_obj, Group, replica_group ) ;
-   CAST_PYOBJECT_TO_COBJECT( node_obj, sdbNode, node ) ;
 
    rc = replica_group->getMaster( *node ) ;
    if  ( SDB_OK != rc )
@@ -3024,32 +2905,17 @@ __METHOD_IMP(gp_get_slave)
    INT32 rc             = 0 ;
    sdbNode *node        = NULL ;
    Group *replica_group = NULL ;
-   PYOBJECT *group_obj  = NULL ;
-   PYOBJECT *node_obj   = NULL ;
-   PYOBJECT *positionsObj = NULL ;
-   std::vector<INT32> positions ;
 
-   if ( !PARSE_PYTHON_ARGS( args, "OOO", &group_obj, &node_obj, &positionsObj ) )
+   rc = convert_pobj2cobj( self, args, replica_group, node) ;
+   if  ( SDB_OK != rc )
    {
-      rc = SDB_INVALIDARGS ;
       goto error ;
    }
-
-   CAST_PYOBJECT_TO_COBJECT( group_obj, Group, replica_group ) ;
-   CAST_PYOBJECT_TO_COBJECT( node_obj, sdbNode, node ) ;
-
-   rc = pytuple_int32_to_vector_int32( positionsObj, positions ) ;
+   rc = replica_group->getSlave( *node ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
    }
-
-   rc = replica_group->getSlave( *node, positions ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
 done :
    return MAKE_RETURN_INT( rc ) ;
 error :
@@ -3641,52 +3507,6 @@ error:
    goto done ;
 }
 
-__METHOD_IMP(lob_lock)
-{
-   INT32 rc = SDB_OK ;
-   PYOBJECT *obj = NULL ;
-   sdbLob *lob   = NULL ;
-   INT64 offset = 0 ;
-   INT64 length = 0 ;
-
-   if ( !PARSE_PYTHON_ARGS(args, "Oll", &obj, &offset, &length))
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-
-   CAST_PYOBJECT_TO_COBJECT(obj, sdbLob, lob) ;
-   rc = lob->lock(offset, length) ;
-
-done:
-   return MAKE_RETURN_INT( rc ) ;
-error:
-   goto done ;
-}
-
-__METHOD_IMP(lob_lock_and_seek)
-{
-   INT32 rc = SDB_OK ;
-   PYOBJECT *obj = NULL ;
-   sdbLob *lob   = NULL ;
-   INT64 offset = 0 ;
-   INT64 length = 0 ;
-
-   if ( !PARSE_PYTHON_ARGS(args, "Oll", &obj, &offset, &length))
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-
-   CAST_PYOBJECT_TO_COBJECT(obj, sdbLob, lob) ;
-   rc = lob->lockAndSeek(offset, length) ;
-
-done:
-   return MAKE_RETURN_INT( rc ) ;
-error:
-   goto done ;
-}
-
 __METHOD_IMP(lob_get_create_time)
 {
    INT32 rc = SDB_OK ;
@@ -3702,28 +3522,6 @@ __METHOD_IMP(lob_get_create_time)
 
    CAST_PYOBJECT_TO_COBJECT(obj, sdbLob, lob) ;
    rc = lob->getCreateTime(&ms) ;
-
-done:
-   return MAKE_RETURN_INT_ULLONG( rc, ms ) ;
-error:
-   goto done ;
-}
-
-__METHOD_IMP(lob_get_modification_time)
-{
-   INT32 rc = SDB_OK ;
-   UINT64 ms = 0;
-   PYOBJECT *obj = NULL ;
-   sdbLob  *lob  = NULL ;
-
-   if ( !PARSE_PYTHON_ARGS(args, "O", &obj) )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-
-   CAST_PYOBJECT_TO_COBJECT(obj, sdbLob, lob) ;
-   ms = lob->getModificationTime() ;
 
 done:
    return MAKE_RETURN_INT_ULLONG( rc, ms ) ;
@@ -4169,9 +3967,7 @@ static PyMethodDef sequoiadb_methods[] = {
    {"sdb_create_domain",               sdb_create_domain,               METH_VARARGS},
    {"sdb_drop_domain",                 sdb_drop_domain,                 METH_VARARGS},
    {"sdb_get_domain",                  sdb_get_domain,                  METH_VARARGS},
-   {"sdb_sync",                        sdb_sync,                        METH_VARARGS},
    {"sdb_get_datacenter",              sdb_get_datacenter,              METH_VARARGS},
-   {"sdb_analyze",                     sdb_analyze,                     METH_VARARGS},
 
    /** cs */
    {"create_cs",                       create_cs,                       METH_VARARGS},
@@ -4208,9 +4004,8 @@ static PyMethodDef sequoiadb_methods[] = {
    {"cl_attach_collection",            cl_attach_collection,            METH_VARARGS},
    {"cl_detach_collection",            cl_detach_collection,            METH_VARARGS},
    {"cl_create_lob",                   cl_create_lob,                   METH_VARARGS},
-   {"cl_open_lob",                     cl_open_lob,                     METH_VARARGS},
+   {"cl_get_lob",                      cl_get_lob,                      METH_VARARGS},
    {"cl_remove_lob",                   cl_remove_lob,                   METH_VARARGS},
-   {"cl_truncate_lob",                 cl_truncate_lob,                 METH_VARARGS},
    {"cl_list_lobs",                    cl_list_lobs,                    METH_VARARGS},
    {"cl_explain",                      cl_explain,                      METH_VARARGS},
    {"cl_truncate",                     cl_truncate,                     METH_VARARGS},
@@ -4261,12 +4056,9 @@ static PyMethodDef sequoiadb_methods[] = {
    {"lob_read",                        lob_read,                        METH_VARARGS},
    {"lob_write",                       lob_write,                       METH_VARARGS},
    {"lob_seek",                        lob_seek,                        METH_VARARGS},
-   {"lob_lock",                        lob_lock,                        METH_VARARGS},
-   {"lob_lock_and_seek",               lob_lock_and_seek,               METH_VARARGS},
    {"lob_get_size",                    lob_get_size,                    METH_VARARGS},
    {"lob_get_oid",                     lob_get_oid,                     METH_VARARGS},
    {"lob_get_create_time",             lob_get_create_time,             METH_VARARGS},
-   {"lob_get_modification_time",       lob_get_modification_time,       METH_VARARGS},
 
    /** data center */
    {"create_dc",                       create_dc,                       METH_VARARGS},

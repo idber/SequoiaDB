@@ -75,6 +75,11 @@ namespace engine
             return false ;
          }
 
+         if ( deployMode != other.deployMode )
+         {
+            return false ;
+         }
+
          return true ;
       }
    } ;

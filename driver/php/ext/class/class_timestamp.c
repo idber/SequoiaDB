@@ -15,9 +15,9 @@
 *******************************************************************************/
 
 #include "class_timestamp.h"
+#include "timestamp.h"
 
 #define TIMESTAMP_FORMAT "%d-%d-%d-%d.%d.%d.%d"
-#define TIMESTAMP_FORMAT2 "%d-%d-%d-%d:%d:%d.%d"
 
 extern INT32 timestampDesc ;
 
@@ -36,79 +36,76 @@ static void local_time ( time_t *Time, struct tm *TM )
 
 PHP_METHOD( SequoiaTimestamp, __construct )
 {
-   INT32 rc = SDB_OK ;
+   INT32 rc      = SDB_OK ;
+   INT32 year    = 0 ;
+   INT32 month   = 0 ;
+   INT32 day     = 0 ;
+   INT32 hour    = 0 ;
+   INT32 minute  = 0 ;
+   INT32 second  = 0 ;
+   INT32 micros  = 0 ;
+   time_t timep  = 0 ;
    zval *pTimestamp  = NULL ;
-   zval *pThisObj    = getThis() ;
+   zval *pThisObj = getThis() ;
+   sdbTimestamp sdbTime ;
+   struct tm tmTime ;
    struct phpTimestamp *pDriverTimestamp = (struct phpTimestamp *)\
             emalloc( sizeof( struct phpTimestamp ) ) ;
-
    if( !pDriverTimestamp )
    {
       goto error ;
    }
-
    pDriverTimestamp->second = 0 ;
    pDriverTimestamp->micros = 0 ;
-
    if( PHP_GET_PARAMETERS( "|z", &pTimestamp ) == FAILURE )
    {
       goto error ;
    }
-
-   if( pTimestamp )
+   if( !pTimestamp )
    {
-      if( Z_TYPE_P( pTimestamp ) == IS_LONG )
-      {
-         pDriverTimestamp->second = Z_LVAL_P( pTimestamp ) ;
-         pDriverTimestamp->micros = 0 ;
-      }
-      else if( Z_TYPE_P( pTimestamp ) == IS_STRING )
-      {
-         INT32 numType = PHP_NOT_NUMBER ;
-         INT32 numInt  = 0 ;
-         INT64 numLong = 0 ;
-         double numDouble = 0 ;
-
-         php_parseNumber( Z_STRVAL_P( pTimestamp ),
-                          Z_STRLEN_P( pTimestamp ),
-                          &numType,
-                          &numInt,
-                          &numLong,
-                          &numDouble TSRMLS_CC ) ;
-         if( numType == PHP_NOT_NUMBER )
-         {
-            INT32 micros   = 0 ;
-            time_t seconds = 0 ;
-
-            if( php_date2Time( Z_STRVAL_P( pTimestamp ), 1,
-                               &seconds, &micros ) == FALSE )
-            {
-               goto error ;
-            }
-
-            pDriverTimestamp->second = (INT32)seconds ;
-            pDriverTimestamp->micros = micros ;
-         }
-         else
-         {
-            if( numType == PHP_IS_INT32 )
-            {
-               pDriverTimestamp->second = numInt ;
-            }
-            else if( numType == PHP_IS_INT64 )
-            {
-               pDriverTimestamp->second = (INT32)numLong ;
-            }
-            pDriverTimestamp->micros = 0 ;
-         }
-      }
+      goto error ;
    }
-   else
+   if( Z_TYPE_P( pTimestamp ) == IS_STRING )
    {
-      pDriverTimestamp->second = (INT32)time( NULL ) ;
-      pDriverTimestamp->micros = 0 ;
+      if( ossStrchr( Z_STRVAL_P( pTimestamp ), 't' ) ||
+          ossStrchr( Z_STRVAL_P( pTimestamp ), 'T' ) )
+      {
+         rc = timestampParse( Z_STRVAL_P( pTimestamp ),
+                              Z_STRLEN_P( pTimestamp ),
+                              &sdbTime ) ;
+         if( rc )
+         {
+            goto error ;
+         }
+         timep = (time_t)sdbTime.sec ;
+         micros = sdbTime.nsec / 1000 ;
+      }
+      else
+      {
+         ossMemset( &tmTime, 0, sizeof( tmTime ) ) ;
+         if( !sscanf( Z_STRVAL_P( pTimestamp ),
+                      TIMESTAMP_FORMAT,
+                      &year,
+                      &month,
+                      &day,
+                      &hour,
+                      &minute,
+                      &second,
+                      &micros ) )
+         {
+            goto error ;
+         }
+         tmTime.tm_year = year - 1900 ;
+         tmTime.tm_mon  = month - 1 ;
+         tmTime.tm_mday = day ;
+         tmTime.tm_hour = hour ;
+         tmTime.tm_min  = minute ;
+         tmTime.tm_sec  = second ;
+         timep = mktime( &tmTime ) ;
+      }
+      pDriverTimestamp->second = (INT32)timep ;
+      pDriverTimestamp->micros = micros ;
    }
-
 done:
    PHP_SAVE_RESOURCE( pThisObj,
                       "$timestamp",

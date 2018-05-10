@@ -45,9 +45,6 @@
 #include "../bson/bson.hpp"
 #include "utilArray.hpp"
 #include "rtnPredicate.hpp"
-#include "optCommon.hpp"
-#include "optStatUnit.hpp"
-#include "utilAllocator.hpp"
 #include <vector>
 
 using namespace bson ;
@@ -108,7 +105,7 @@ namespace engine
       EN_MATCH_ATTR_RETURNMATCH        = 201,
       EN_MATCH_ATTR_EXPAND             = 202,
 
-      EN_MATCH_OP_FUNC_END             = 250,
+      EN_MATCH_OP_FUNC_END,
    } ;
 
    #define MTH_OPERATOR_STR_AND                 "$and"
@@ -175,11 +172,6 @@ namespace engine
    #define MTH_WEIGHT_ELEMMATCH                 450
    #define MTH_WEIGHT_REGEX                     1000000
    #define MTH_WEIGHT_ISNULL                    250
-
-   #define MTH_FIELD_CONFIG                  "MatchConfig"
-   #define MTH_FIELD_CONF_MIXCMP             "EnableMixCmp"
-   #define MTH_FIELD_CONF_PARAM              "Parameterized"
-   #define MTH_FIELD_CONF_FUZZYOPTR          "FuzzyOptr"
 
    template <UINT32 nameSize = MTH_MATCH_FIELD_STATIC_NAME_LEN >
    class _mthMatchFieldName
@@ -259,7 +251,7 @@ namespace engine
          _mthMatchTreeContext() ;
          ~_mthMatchTreeContext() ;
 
-         void clear() ;
+         void  clear() ;
          void clearRecordInfo() ;
 
          INT32 getDollarResult( INT32 index, INT32 &value ) ;
@@ -294,14 +286,6 @@ namespace engine
 
          string toString() ;
 
-         OSS_INLINE void bindParameters ( rtnParamList *parameters )
-         {
-            _parameters = parameters ;
-         }
-
-         BSONElement getParameter ( INT8 index ) ;
-         BOOLEAN paramDoneByPred ( INT8 index ) ;
-
       private:
          INT32 _replaceDollar() ;
 
@@ -322,9 +306,6 @@ namespace engine
 
          _utilArray< INT32 > _elements ;
          /* array attribute relate */
-
-      protected :
-         rtnParamList *_parameters ;
    } ;
 
    void mthContextClearRecordInfoSafe( _mthMatchTreeContext *context ) ;
@@ -351,124 +332,26 @@ namespace engine
          UINT32 _index ;
    } ;
 
-   typedef _utilAllocator<MTH_ALLOCATOR_SIZE> _mthNodeAllocator ;
-
-   typedef struct _mthNodeConfig
+   class _mthNodeAllocator
    {
-      _mthNodeConfig ()
-      {
-         _enableMixCmp = FALSE ;
-         _enableParameterized = FALSE ;
-         _enableFuzzyOptr = FALSE ;
-      }
+      public:
+         _mthNodeAllocator() ;
+         ~_mthNodeAllocator() ;
 
-      BOOLEAN _enableMixCmp ;
-      BOOLEAN _enableParameterized ;
-      BOOLEAN _enableFuzzyOptr ;
-   } mthNodeConfig ;
+      public:
+         void* allocate( size_t size ) ;
+         BOOLEAN isAllocatedByme( void *p ) ;
 
-   const mthNodeConfig *mthGetDefaultNodeConfigPtr () ;
-   const mthNodeConfig &mthGetDefaultNodEConfig () ;
-
-   class _mthMatchConfig
-   {
-      public :
-         _mthMatchConfig () ;
-         _mthMatchConfig ( const mthNodeConfig *configPtr ) ;
-         ~_mthMatchConfig () ;
-
-      public :
-         OSS_INLINE const mthNodeConfig *getMatchConfigPtr () const
-         {
-            return _matchConfig ;
-         }
-
-         OSS_INLINE BOOLEAN mthEnabledMixCmp () const
-         {
-            return _matchConfig->_enableMixCmp ;
-         }
-
-         OSS_INLINE BOOLEAN mthEnabledParameterized () const
-         {
-            return _matchConfig->_enableParameterized ;
-         }
-
-         OSS_INLINE BOOLEAN mthEnabledFuzzyOptr () const
-         {
-            return _matchConfig->_enableFuzzyOptr ;
-         }
-
-         OSS_INLINE INT32 confToBSON ( BSONObjBuilder &builder ) const
-         {
-            INT32 rc = SDB_OK ;
-
-            BSONObjBuilder confBuilder(
-                           builder.subobjStart( MTH_FIELD_CONFIG ) ) ;
-            confBuilder.appendBool( MTH_FIELD_CONF_MIXCMP,
-                                    mthEnabledMixCmp() ) ;
-            confBuilder.appendBool( MTH_FIELD_CONF_PARAM,
-                                    mthEnabledParameterized() ) ;
-            confBuilder.appendBool( MTH_FIELD_CONF_FUZZYOPTR,
-                                    mthEnabledFuzzyOptr() ) ;
-            confBuilder.done() ;
-
-            return rc ;
-         }
-
-      protected :
-         const mthNodeConfig * _matchConfig ;
+      private:
+         char _mem[ MTH_ALLOCATOR_SIZE ] ;
+         INT32 _offset ;
    } ;
 
-   class _mthMatchConfigHolder : public _mthMatchConfig
-   {
-      public :
-         _mthMatchConfigHolder () ;
-         _mthMatchConfigHolder ( const mthNodeConfig &config ) ;
-         ~_mthMatchConfigHolder () ;
-
-      public :
-         OSS_INLINE const mthNodeConfig &getMatchConfig () const
-         {
-            return _stackMatchConfig ;
-         }
-
-         OSS_INLINE mthNodeConfig &getMatchConfig ()
-         {
-            return _stackMatchConfig ;
-         }
-
-         OSS_INLINE void setMatchConfig ( const mthNodeConfig &config )
-         {
-            _stackMatchConfig._enableMixCmp = config._enableMixCmp ;
-            _stackMatchConfig._enableParameterized = config._enableParameterized ;
-            _stackMatchConfig._enableFuzzyOptr = config._enableFuzzyOptr ;
-         }
-
-         OSS_INLINE void setMthEnableMixCmp ( BOOLEAN enableMixCmp )
-         {
-            _stackMatchConfig._enableMixCmp = enableMixCmp ;
-         }
-
-         OSS_INLINE void setMthEnableParameterized ( BOOLEAN enableParameterized )
-         {
-            _stackMatchConfig._enableParameterized = enableParameterized ;
-         }
-
-         OSS_INLINE void setMthEnableFuzzyOptr ( BOOLEAN enableFuzzyOptr )
-         {
-            _stackMatchConfig._enableFuzzyOptr = enableFuzzyOptr ;
-         }
-
-      protected :
-         mthNodeConfig _stackMatchConfig ;
-   } ;
-
-   class _mthMatchNode : public _mthMatchConfig
+   class _mthMatchNode
    {
       friend class _mthMatchNodeIterator ;
       public:
-         _mthMatchNode( _mthNodeAllocator *allocator,
-                        const mthNodeConfig *config ) ;
+         _mthMatchNode( _mthNodeAllocator *allocator ) ;
          virtual ~_mthMatchNode() ;
 
       public:
@@ -493,24 +376,17 @@ namespace engine
                                 BOOLEAN &result ) = 0 ;
          virtual BSONObj toBson() = 0 ;
 
-         virtual BSONObj toParamBson ( const rtnParamList &parameters ) = 0 ;
-
          virtual void setWeight( UINT32 weight ) = 0 ;
 
          virtual UINT32 getWeight() = 0 ;
-
-         virtual void evalEstimation ( const optCollectionStat *pCollectionStat,
-                                       double &selectivity, UINT32 &cpuCost ) = 0 ;
 
          virtual BOOLEAN isTotalConverted() = 0 ;
 
          virtual BOOLEAN hasDollarFieldName() ;
 
-         virtual INT32 calcPredicate ( rtnPredicateSet &predicateSet,
-                                       const rtnParamList * paramList ) ;
+         virtual INT32 calcPredicate( _rtnPredicateSet &predicateSet ) ;
 
-         virtual INT32 extraEqualityMatches( BSONObjBuilder &builder,
-                                             const rtnParamList *parameters ) ;
+         virtual INT32 extraEqualityMatches( BSONObjBuilder &builder ) ;
 
          virtual INT32 addChild( _mthMatchNode *child ) ;
          virtual void delChild( _mthMatchNode *child ) ;

@@ -3,8 +3,4 @@
       <BusinessType>sequoiadb</BusinessType>
       <BusinessDesc>SequoiaDB数据库</BusinessDesc>
    </FILLER>
-   <FILLER>
-      <BusinessType>sequoiasql-oltp</BusinessType>
-      <BusinessDesc>SequoiaSQL OLTP</BusinessDesc>
-   </FILLER>
 </BusinessList>

@@ -64,17 +64,23 @@ rtnFiles = [
       "rtn/rtnPredicate.cpp"
 ]
 
-rtnJobFiles = [
-      "rtn/rtnBackgroundJobBase.cpp"
-      ]
-
 migFiles = [
+#      "mig/migExport.cpp",
+#      "mig/migImport.cpp",
       "mig/migCommon.cpp"
       ]
 
 migLobFiles = [
       "mig/migLobTool.cpp"
 ]
+
+#sdbExportMain = [
+#      "pmd/sdbexprt.cpp"
+#      ]
+
+#sdbImportMain = [
+#      "pmd/sdbimprt.cpp"
+#      ]
 
 sdbLoadMain = [
       "pmd/sdbLoad.cpp"
@@ -99,13 +105,13 @@ ossFiles = [
       "oss/ossErr.cpp",
       "oss/oss.cpp",
       "oss/ossUtil.cpp",
-      "oss/ossFile.cpp",
       "oss/ossPath.cpp",
       "oss/ossPrimitiveFileOp.cpp",
       "oss/ossStackDump.cpp",
       "oss/ossEDU.cpp",
       "oss/ossSocket.cpp",
       "oss/ossIO.cpp",
+      "oss/ossFile.cpp",
       "oss/ossVer.cpp",
       "oss/ossMem.cpp",
       "oss/ossProc.cpp",
@@ -121,7 +127,6 @@ ossFiles = [
 
 netFiles = [
       "net/netEventHandler.cpp",
-      "net/netEventSuit.cpp",
       "net/netFrame.cpp",
       "net/netRoute.cpp",
       "net/netRouteAgent.cpp"
@@ -132,8 +137,7 @@ pdFiles = [
       "pd/pd.cpp",
       "pd/pdTrace.cpp",
       "pd/pdComponents.cpp",
-      "pd/pdFunctionList.cpp",
-      "pd/pdTraceAnalysis.cpp"
+      "pd/pdFunctionList.cpp"
       ]
 
 pmdFiles = [
@@ -146,25 +150,7 @@ pmdFiles = [
       "pmd/pmdSignalHandler.cpp",
       "pmd/pmdStartup.cpp"
       ]
-# pmd multiple thread model files.
-pmdMTFiles = [
-      "pmd/pmdMemPool.cpp",
-      "pmd/pmdSyncMgr.cpp",
-      "pmd/pmd.cpp",
-      "pmd/pmdEDU.cpp",
-      "pmd/pmdEDUMgr.cpp",
-      "pmd/pmdEntryPoint.cpp",
-      "mon/monCB.cpp",
-      "pmd/pmdAsyncSessionAgent.cpp",
-      "pmd/pmdInnerClient.cpp",
-      "pmd/pmdAsyncHandler.cpp",
-      "pmd/pmdAsyncSession.cpp",
-      "pmd/pmdCBMgrEntryPoint.cpp",
-      "pmd/pmdAsyncNetEntryPoint.cpp",
-      "pmd/pmdBackgroundJob.cpp",
-      "pmd/pmdWindowsListener.cpp",
-      ]
-	  
+
 utilFiles = [
       "util/fromjson.cpp",
       "util/json2rawbson.c",
@@ -227,7 +213,6 @@ omagentFiles = [
       "omagent/omagentNodeCmd.cpp",
       "omagent/omagentTaskBase.cpp",
       "omagent/omagentTask.cpp",
-      "omagent/omagentAsyncTask.cpp",
       "omagent/omagentSubTask.cpp",
       "omagent/omagentJob.cpp",
       "omagent/omagentNodePathGuard.cpp",
@@ -241,6 +226,7 @@ omagentFiles = [
 sptFiles = [
       "spt/dbClasses.cpp",
       "spt/sptConvertor.cpp",
+      "spt/sptParseTroff.cpp",
       "spt/sptConvertorHelper.cpp",
       "spt/sptCommon.cpp"
       ]
@@ -258,14 +244,9 @@ spt2Files = [
       "spt/sptBsonobjArray.cpp",
       "spt/sptLibssh2Session.cpp",
       "spt/sptSshSession.cpp",
-      "spt/sptClassMetaInfo.cpp",
-      "spt/sptHelp.cpp",
-      "spt/sptWords.cpp",
-      "spt/sptFuncDef.cpp",
       "spt/usrdef/sptUsrSsh.cpp",
       "spt/sptRemote.cpp",
       "spt/sptProperty.cpp",
-      "spt/sptPrivateData.cpp",
       "spt/sptGlobalFunc.cpp",
       "spt/usrdef/sptUsrCmd.cpp",
       "spt/usrdef/sptUsrFile.cpp",
@@ -276,12 +257,7 @@ spt2Files = [
       "spt/usrdef/sptUsrSdbTool.cpp",
       "spt/usrdef/sptUsrRemote.cpp",
       "spt/usrdef/sptUsrRemoteAssit.cpp",
-      "spt/usrdef/sptUsrFilter.cpp",
-      "spt/usrdef/sptUsrFileContent.cpp",
-      "spt/usrdef/sptUsrFileCommon.cpp",
-      "spt/usrdef/sptUsrSystemCommon.cpp",
-      "spt/usrdef/sptUsrCmdCommon.cpp",
-      "spt/usrdef/sptUsrOmaCommon.cpp"
+      "spt/usrdef/sptUsrFilter.cpp"
       ]
 
 ssh2Files = [
@@ -308,6 +284,55 @@ ssh2Files = [
       "ssh2/userauth.c",
       "ssh2/version.c"
       ]
+
+mdocmlFiles = [
+      "mdocml/parseMandocCpp.cpp",
+      "mdocml/eqn_html.c",
+      "mdocml/html.c",
+      "mdocml/man_html.c",
+      "mdocml/mdoc_html.c",
+      "mdocml/tbl_html.c",
+      "mdocml/mdoc_man.c",
+      "mdocml/eqn_term.c",
+      "mdocml/man_term.c",
+      "mdocml/mdoc_term.c",
+      "mdocml/term.c",
+      "mdocml/term_ascii.c",
+      "mdocml/term_ps.c",
+      "mdocml/tbl_term.c",
+      "mdocml/parseMandoc.c",
+      "mdocml/out.c",
+      "mdocml/tree.c",
+      "mdocml/compat_fgetln.c",
+      "mdocml/compat_getsubopt.c",
+      "mdocml/compat_strlcat.c",
+      "mdocml/compat_strlcpy.c",
+      "mdocml/man.c",
+      "mdocml/man_hash.c",
+      "mdocml/man_macro.c",
+      "mdocml/man_validate.c",
+      "mdocml/arch.c",
+      "mdocml/att.c",
+      "mdocml/lib.c",
+      "mdocml/mdoc.c",
+      "mdocml/mdoc_argv.c",
+      "mdocml/mdoc_hash.c",
+      "mdocml/mdoc_macro.c",
+      "mdocml/mdoc_validate.c",
+      "mdocml/st.c",
+      "mdocml/vol.c",
+      "mdocml/eqn.c",
+      "mdocml/roff.c",
+      "mdocml/tbl.c",
+      "mdocml/tbl_data.c",
+      "mdocml/tbl_layout.c",
+      "mdocml/tbl_opts.c",
+      "mdocml/chars.c",
+      "mdocml/mandoc.c",
+      "mdocml/msec.c",
+      "mdocml/read.c",
+      "mdocml/common.c"
+]
 
 clientFiles = [
       "client/client.c",
@@ -488,7 +513,22 @@ sdbListMain = [
       ]
 
 sdbcmMain = [
+      "rtn/rtnBackgroundJobBase.cpp",
+      "pmd/pmdMemPool.cpp",
+      "pmd/pmdSyncMgr.cpp",
+      "pmd/pmd.cpp",
+      "pmd/pmdEDU.cpp",
+      "pmd/pmdEDUMgr.cpp",
+      "pmd/pmdAsyncSessionAgent.cpp",
+      "pmd/pmdInnerClient.cpp",
+      "pmd/pmdAsyncHandler.cpp",
+      "pmd/pmdAsyncSession.cpp",
+      "pmd/pmdBackgroundJob.cpp",
+      "pmd/pmdCBMgrEntryPoint.cpp",
+      "pmd/pmdAsyncNetEntryPoint.cpp",
+      "pmd/pmdOMAgentEDUEntryPoint.cpp",
       "pmd/pmdCMMain.cpp",
+      "pmd/pmdWindowsListener.cpp"
       ]
 
 sdbcmDMNMain = [
@@ -531,33 +571,12 @@ sdbReplayFiles = [
       "tools/replay/rplUtil.cpp",
       ]
 
-sdbSEAdptFiles = [
-      "rtn/rtnContextBuff.cpp",
-      "rest/http_parser.cpp",
-      "tools/seadapter/pmdSEAdptMain.cpp",
-      "tools/seadapter/seAdptOptionsMgr.cpp",
-      "tools/seadapter/seAdptMgr.cpp",
-      "tools/seadapter/seAdptAgentSession.cpp",
-      "tools/seadapter/seAdptIndexSession.cpp",
-      "tools/seadapter/seAdptContext.cpp",
-      "tools/seadapter/utilHttp.cpp",
-      "tools/seadapter/utilESClt.cpp",
-      "tools/seadapter/utilESBulkBuilder.cpp",
-      "tools/seadapter/seAdptMsgHandler.cpp",
-      "tools/seadapter/utilESCltMgr.cpp",
-      "tools/seadapter/seAdptIdxMetaMgr.cpp",
-      "tools/seadapter/utilCommObjBuff.cpp",
-      "rtn/rtnSimpleCondNode.cpp",
-      "rtn/rtnSimpleCondParser.cpp"
-      ]
-
 #cls
 toolEnv.StaticLibrary('cls', clsFiles)
 #ixm
 toolEnv.StaticLibrary('ixm', ixmFiles)
 #rtn
 toolEnv.StaticLibrary('rtn', rtnFiles)
-toolEnv.StaticLibrary('rtnJob', rtnJobFiles)
 #BSON
 toolEnv.StaticLibrary('bson', bsonFiles)
 #Client Driver
@@ -570,8 +589,6 @@ toolEnv.StaticLibrary('oss', ossFiles)
 toolEnv.StaticLibrary('pd', pdFiles)
 #Process Model
 toolEnv.StaticLibrary('pmd', pmdFiles)
-#Multiple thread model
-toolEnv.StaticLibrary('pmdMT', pmdMTFiles)
 #Utilities
 toolEnv.StaticLibrary('util', utilFiles)
 #mig
@@ -592,9 +609,11 @@ if linux:
 toolEnv.StaticLibrary('spt', sptFiles)
 toolEnv.StaticLibrary('spt2', spt2Files)
 toolEnv.StaticLibrary('ssh2', ssh2Files)
+#Mdocml
+toolEnv.StaticLibrary('mdocml', mdocmlFiles)
 
 #Export Executable
-sdbimprt = toolEnv.Program("sdbimprt", importFiles,
+sdbimprt2 = toolEnv.Program("sdbimprt", importFiles,
          LIBDEPS=["bson", "oss", "pd", "util", "client", "cls", "ixm", "rtn", "msg"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
@@ -605,6 +624,14 @@ sdbexprt = toolEnv.Program("sdbexprt", exportFiles,
 sdbreplay = toolEnv.Program("sdbreplay", sdbReplayFiles,
           LIBDEPS=["bson","oss","pd","util","clientcpp","dps","pmd"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
+
+#sdbexprt = toolEnv.Program("sdbexprt", sdbExportMain,
+#         LIBDEPS=["bson","mig","oss","pd","util","client","clientcpp"],
+#         _LIBDEPS='$_LIBDEPS_OBJS' )
+
+#sdbimprt = toolEnv.Program("sdbimprt", sdbImportMain,
+#         LIBDEPS=["bson","mig","oss","pd","util","client"],
+#         _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbload2 = toolEnv.Program("sdbload2", sdbLoadMain,
          LIBDEPS=["bson","oss","pd","util","client"],
@@ -623,7 +650,7 @@ sdblist = toolEnv.Program("sdblist", sdbListMain,
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbcm = toolEnv.Program("sdbcm", sdbcmMain,
-         LIBDEPS=["pd","oss","msg","bson","util","net","pmd","pmdMT","omagent","client", "spt","spt2","ssh2","rtnJob"],
+         LIBDEPS=["pd","oss","msg","bson","util","net","pmd","omagent","client","mdocml","spt","spt2","ssh2"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbcmd = toolEnv.Program("sdbcmd", sdbcmDMNMain,
@@ -668,12 +695,7 @@ if linux:
                LIBDEPS=["pd", "oss","bson", "util"],
                _LIBDEPS='$_LIBDEPS_OBJS' )
 
-sdbseadapter = toolEnv.Program("sdbseadapter",
-		 sdbSEAdptFiles,
-		 LIBDEPS=["pd","oss","msg","util","bson","pmd","pmdMT","net","rtnJob"],
-		 _LIBDEPS='$_LIBDEPS_OBJS' )
-
-toolEnv.Install( '#/bin', sdbimprt )
+toolEnv.Install( '#/bin', sdbimprt2 )
 toolEnv.Install( '#/bin', sdbexprt )
 toolEnv.Install( '#/bin', sdbreplay )
 toolEnv.Install( '#/bin', sdbstart )
@@ -684,6 +706,7 @@ toolEnv.Install( '#/bin', sdbcmd )
 toolEnv.Install( '#/bin', sdbcmart )
 toolEnv.Install( '#/bin', sdbcmtop )
 toolEnv.Install( '#/bin', sdblobtool )
+toolEnv.Install( '#/conf/script/', "spt/error.js" )
 if linux:
    toolEnv.Install( '#/bin', sdbtop )
 toolEnv.Install( '#/tools', sdbload2 )
@@ -693,5 +716,3 @@ toolEnv.Install( '#/bin', sdbdpsdump )
 toolEnv.Install( '#/bin', sdbinspect )
 if linux:
    toolEnv.Install( '#/bin', sdbomtool )
-
-toolEnv.Install( '#/bin', sdbseadapter )

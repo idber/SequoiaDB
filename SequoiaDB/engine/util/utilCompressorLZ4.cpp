@@ -99,12 +99,16 @@ namespace engine
                                                  UINT32 sourceLen,
                                                  UINT32 &length )
    {
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__UTILCOMPRESSORLZ4_GETUNCOMPRESSEDLEN ) ;
 
       length = *(UINT32*)source ;
 
-      PD_TRACE_EXIT( SDB__UTILCOMPRESSORLZ4_GETUNCOMPRESSEDLEN ) ;
-      return SDB_OK ;
+   done:
+      PD_TRACE_EXITRC( SDB__UTILCOMPRESSORLZ4_GETUNCOMPRESSEDLEN, rc ) ;
+      return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILCOMPRESSORLZ4_DECOMPRESS, "_utilCompressorLZ4::decompress" )

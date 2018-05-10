@@ -99,7 +99,7 @@ namespace engine
    INT32 _sptSshSession::open()
    {
       INT32 rc = SDB_OK ;
-
+      
       _sock = SDB_OSS_NEW _ossSocket( _host.c_str(), _port ) ;
       if ( NULL == _sock )
       {
@@ -112,15 +112,6 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to init socket:%d", rc ) ;
-         goto error ;
-      }
-
-      rc = _sock->setKeepAlive( 1, OSS_SOCKET_KEEP_IDLE,
-                                OSS_SOCKET_KEEP_INTERVAL,
-                                OSS_SOCKET_KEEP_CONTER ) ;
-      if( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to set keep alive:%d", rc ) ;
          goto error ;
       }
 

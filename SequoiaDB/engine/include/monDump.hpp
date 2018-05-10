@@ -40,11 +40,10 @@
 
 #include "pmdEDU.hpp"
 #include "rtnCB.hpp"
-#include "rtnContextDump.hpp"
+#include "rtnContext.hpp"
 #include "rtnFetchBase.hpp"
 #include "dpsTransCB.hpp"
 #include "../bson/bson.h"
-#include "rtnCommandDef.hpp"
 
 using namespace bson ;
 
@@ -75,18 +74,7 @@ namespace engine
 
    void  monAppendVersion ( BSONObjBuilder &ob ) ;
 
-   void  monAppendUlimit ( BSONObjBuilder &ob ) ;
-
-   INT32 monAppendFileDesp( BSONObjBuilder &ob ) ;
-
-   INT32 monAppendHostMemory ( BSONObjBuilder &ob ) ;
-
-   INT32 monAppendNodeMemory( BSONObjBuilder &ob ) ;
-
-   INT32 monAppendDisk ( BSONObjBuilder &ob,
-                         BOOLEAN appendDbPath = TRUE ) ;
-
-   INT32 monDumpIndexes( MON_IDX_LIST &indexes, rtnContextDump *context ) ;
+   INT32 monDumpIndexes( vector<monIndex> &indexes, rtnContextDump *context ) ;
 
    INT32 monDumpTraceStatus ( rtnContextDump *context ) ;
 
@@ -100,8 +88,8 @@ namespace engine
                              INT32 direction,
                              rtnContextDump *context ) ;
 
-   void  monResetMon ( RTN_COMMAND_TYPE type, BOOLEAN resetAllEDU,
-                       EDUID eduID ) ;
+   void  monResetMon () ;
+
    INT32 monDBDumpStorageInfo( BSONObjBuilder &ob );
 
    INT32 monDBDumpProcMemInfo( BSONObjBuilder &ob );
@@ -262,8 +250,8 @@ namespace engine
          UINT32                     _addInfoMask ;
          BOOLEAN                    _hitEnd ;
 
-         MON_CL_SIM_LIST            _collectionList ;
-         MON_CL_LIST                _collectionInfo ;
+         std::set< monCLSimple >    _collectionList ;
+         std::set< monCollection >  _collectionInfo ;
    } ;
    typedef _monCollectionFetch monCollectionFetch ;
 
@@ -302,8 +290,8 @@ namespace engine
          UINT32                     _addInfoMask ;
          BOOLEAN                    _hitEnd ;
 
-         MON_CS_SIM_LIST            _csList ;
-         MON_CS_LIST                _csInfo ;
+         std::set< monCSSimple >          _csList ;
+         std::set< monCollectionSpace >   _csInfo ;
    } ;
    typedef _monCollectionSpaceFetch monCollectionSpaceFetch ;
 
@@ -366,37 +354,7 @@ namespace engine
 
    } ;
    typedef _monSystemFetch monSystemFetch ;
-
-   /*
-      _monHealthFetch define
-   */
-   class _monHealthFetch : public rtnFetchBase
-   {
-      DECLARE_FETCH_AUTO_REGISTER()
-
-      public:
-         _monHealthFetch() ;
-         virtual ~_monHealthFetch() ;
-
-         virtual INT32        init( pmdEDUCB *cb,
-                                    BOOLEAN isCurrent,
-                                    BOOLEAN isDetail,
-                                    UINT32 addInfoMask,
-                                    const BSONObj obj = BSONObj() ) ;
-
-         virtual const CHAR*  getName() const ;
-
-      public:
-         virtual BOOLEAN   isHitEnd() const ;
-         virtual INT32     fetch( BSONObj &obj ) ;
-
-      private:
-         UINT32                  _addInfoMask ;
-         BOOLEAN                 _hitEnd ;
-
-   } ;
-   typedef _monHealthFetch monHealthFetch ;
-
+ 
    /*
       _monStorageUnitFetch define
    */
@@ -431,7 +389,7 @@ namespace engine
          UINT32                  _addInfoMask ;
          BOOLEAN                 _hitEnd ;
 
-         MON_SU_LIST             _suInfo ;
+         std::set<monStorageUnit>   _suInfo ;
    } ;
    typedef _monStorageUnitFetch monStorageUnitFetch ;
 
@@ -466,7 +424,7 @@ namespace engine
          BOOLEAN                 _hitEnd ;
 
          UINT32                  _pos ;
-         MON_IDX_LIST            _indexInfo ;
+         vector<monIndex>        _indexInfo ;
    } ;
    typedef _monIndexFetch monIndexFetch ;
 
@@ -539,42 +497,6 @@ namespace engine
          vector < BSONObj >      _vecBackup ;
    } ;
    typedef _monBackupFetch monBackupFetch ;
-
-   /*
-      _monAccessPlansFetch define
-    */
-   class _monAccessPlansFetch : public rtnFetchBase
-   {
-      DECLARE_FETCH_AUTO_REGISTER()
-
-      public:
-         _monAccessPlansFetch () ;
-         virtual ~_monAccessPlansFetch () ;
-
-         virtual INT32 init ( pmdEDUCB *cb,
-                              BOOLEAN isCurrent,
-                              BOOLEAN isDetail,
-                              UINT32 addInfoMask,
-                              const BSONObj obj = BSONObj() ) ;
-
-         virtual const CHAR* getName () const ;
-
-      public :
-         virtual BOOLEAN isHitEnd () const ;
-         virtual INT32 fetch ( BSONObj &obj ) ;
-
-      protected :
-         INT32 _fetchNext ( BSONObj &obj ) ;
-
-      private :
-         UINT32               _addInfoMask ;
-         BSONObj              _sysInfo ;
-         BOOLEAN              _hitEnd ;
-         UINT32               _pos ;
-         vector<BSONObj>      _cachedPlanList ;
-   } ;
-
-   typedef _monAccessPlansFetch monAccessPlansFetch ;
 
 }
 

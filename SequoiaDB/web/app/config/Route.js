@@ -143,12 +143,6 @@
            resolve: resolveFun( [ './app/controller/Monitor/Sdb/Node/NodesSnapshot.js' ] )
          }
       },
-      { path: '/Monitor/SDB-Nodes/NodesSync',
-        options: {
-           templateUrl: './app/template/Monitor/Sdb/Node/NodesSync.html',
-           resolve: resolveFun( [ './app/controller/Monitor/Sdb/Node/NodesSync.js' ] )
-         }
-      },
       //节点-分区组
       { path: '/Monitor/SDB-Nodes/Group/Index',
         options: {
@@ -351,30 +345,6 @@
            resolve: resolveFun( [ './app/controller/Deploy/Task/Module.js' ] )
         }
       },
-      { path: '/Deploy/SDB-ExtendConf',
-        options: {
-           templateUrl: './app/template/Deploy/ExtendModule/Sdb/Conf.html',
-           resolve: resolveFun( [ './app/controller/Deploy/ExtendModule/Sdb/Conf.js' ] )
-        }
-      },
-      { path: '/Deploy/SDB-Extend',
-        options: {
-           templateUrl: './app/template/Deploy/ExtendModule/Sdb/Extend.html',
-           resolve: resolveFun( [ './app/controller/Deploy/ExtendModule/Sdb/Extend.js' ] )
-        }
-      },
-      { path: '/Deploy/SDB-ExtendInstall',
-        options: {
-           templateUrl: './app/template/Deploy/ExtendModule/Sdb/Install.html',
-           resolve: resolveFun( [ './app/controller/Deploy/ExtendModule/Sdb/Install.js' ] )
-        }
-      },
-      { path: '/Deploy/OLTP-Mod',
-        options: {
-           templateUrl: './app/template/Deploy/InstallModule/OLTP/Mod.html',
-           resolve: resolveFun( [ './app/controller/Deploy/InstallModule/OLTP/Mod.js' ] )
-        }
-      },
       { path: '/Deploy/ZKP-Mod',
         options: {
            templateUrl: './app/template/Deploy/InstallModule/Zookeeper/Mod.html',
@@ -391,30 +361,6 @@
         options: {
            templateUrl: './app/template/Deploy/InstallModule/Ssql/Mod.html',
            resolve: resolveFun( [ './app/controller/Deploy/InstallModule/Ssql/Mod.js' ] )
-        }
-      },
-      { path: '/Deploy/SDB-Discover',
-        options: {
-           templateUrl: './app/template/Deploy/DiscoverModule/Sdb/Index.html',
-           resolve: resolveFun( [ './app/controller/Deploy/DiscoverModule/Sdb/Index.js' ] )
-        }
-      },
-      { path: '/Deploy/SDB-Sync',
-        options: {
-           templateUrl: './app/template/Deploy/SyncModule/Sdb/Index.html',
-           resolve: resolveFun( [ './app/controller/Deploy/SyncModule/Sdb/Index.js' ] )
-        }
-      },
-      { path: '/Deploy/SDB-ShrinkConf',
-        options: {
-           templateUrl: './app/template/Deploy/ShrinkModule/Sdb/Conf.html',
-           resolve: resolveFun( [ './app/controller/Deploy/ShrinkModule/Sdb/Conf.js' ] )
-        }
-      },
-      { path: '/Deploy/Package',
-        options: {
-           templateUrl: './app/template/Deploy/DeployPackage/Conf.html',
-           resolve: resolveFun( [ './app/controller/Deploy/DeployPackage/Conf.js' ] )
         }
       }
    ] ;

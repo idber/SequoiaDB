@@ -36,9 +36,17 @@
    </sthead>
    <note>
       <first>
+         <en>SequoiaDB supports setting configuration with command line,configuration file, or both of them. When both of them are used, parameters in command line will overwrite those in configuration file.</en>
+         <cn>SequoiaDB支持命令行方式及配置文件方式。当两种方式并存时，命令行参数将会覆盖配置文件中的相同的配置项。</cn>
+      </first>
+      <second>
          <en>The total size of synch log (logfilesz * logfilenum)determines the fault tolerance in the process of sync. If log is bigger, the possiblity of full sync is lower.</en>
          <cn>同步日志的总大小（logfilesz * logfilenum）决定了在同步过程中的容错能力。日志越大则进行全量恢复的可能性越小。</cn>
-      </first>
+      </second>
+      <third>
+         <en>Use [reloadConf()](reference/Sequoiadb_command/Sdb/reloadConf.md) to reload the config file and some of the configs will take effect dynamically, only support those configs that have a "yes" in the "Reloadable" column, others will be ignored. If "Reload Strategy" is left blank, the config will take effect immediately by default.</en>
+         <cn>使用 [reloadConf()](reference/Sequoiadb_command/Sdb/reloadConf.md) 重新加载配置文件，并进行配置动态生效，只支持“动态生效”列为“是”的配置项，其他配置项会被忽略。“生效策略”若无其他说明，则默认为立即生效。</cn>
+      </third>
    </note>
 
 </optOtherInfoForWeb>

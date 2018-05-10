@@ -71,7 +71,6 @@ namespace engine
 
       if ( !cb->isTransaction() )
       {
-         rc = SDB_DPS_TRANS_NO_TRANS ;
          goto error;
       }
 
@@ -109,7 +108,6 @@ namespace engine
                    "Failed to build the message on phase1(rc=%d)",
                    rc );
 
-      // execute on data nodes
       rc = executeOnDataGroup( (MsgHeader*)pMsgReq, cb, contextID, buf ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to execute on data-group on phase1(rc=%d)",
@@ -139,7 +137,6 @@ namespace engine
                    "Failed to build the message on phase1(rc=%d)",
                    rc ) ;
 
-      // execute on data nodes
       rc = executeOnDataGroup( (MsgHeader*)pMsgReq, cb, contextID, buf );
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to execute on data-group on phase1(rc=%d)",
@@ -161,7 +158,6 @@ namespace engine
                                          INT64 &contextID,
                                          rtnContextBuf *buf )
    {
-      // do nothing, rollback will do in session
       return SDB_OK ;
    }
 
@@ -177,6 +173,7 @@ namespace engine
       REPLY_QUE replyQue;
       DpsTransNodeMap *pNodeMap = cb->getTransNodeLst();
       DpsTransNodeMap::iterator iterMap = pNodeMap->begin();
+      ROUTE_RC_MAP nokRC ;
 
       while( iterMap != pNodeMap->end() )
       {
@@ -210,10 +207,11 @@ namespace engine
 
          if ( rcTmp != SDB_OK )
          {
-            rc = rc ? rc : rcTmp;
+            rc = rc ? rc : rcTmp ;
             PD_LOG( PDERROR, "Data node[%s] commit transaction failed, rc: %d",
                     routeID2String( pReply->header.routeID ).c_str(),
                     rcTmp ) ;
+            nokRC[ pReply->header.routeID.value ] = coordErrorInfo( pReply ) ;
          }
          SDB_OSS_FREE( pReply ) ;
       }
@@ -225,6 +223,10 @@ namespace engine
    done:
       return rc ;
    error:
+      if ( ( rc && nokRC.size() > 0 ) && buf )
+      {
+         *buf = _rtnContextBuf( rtnBuildErrorObj( rc, cb, &nokRC ) ) ;
+      }
       goto done ;
    }
 
@@ -259,7 +261,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), MSG_BS_TRANS_COMMIT_REQ,
                           "TransactionID: 0x%016x(%llu)",
                           cb->getTransID(),
@@ -269,12 +270,10 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to commit the transaction(rc=%d)",
                    rc ) ;
-      // complete, delete transaction
       cb->delTransaction() ;
    done:
       return rc;
    error:
-      // rollback in session
       goto done;
    }
 
@@ -297,11 +296,9 @@ namespace engine
 
       if ( !cb->isTransaction() )
       {
-         rc = SDB_DPS_TRANS_NO_TRANS ;
-         goto error;
+         goto done;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), MSG_BS_TRANS_ROLLBACK_REQ,
                           "TransactionID: 0x%016x(%llu)",
                           cb->getTransID(),

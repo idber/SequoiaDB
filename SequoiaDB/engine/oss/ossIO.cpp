@@ -798,6 +798,8 @@ INT32 ossAccess ( const CHAR *pPathName, int flags )
    if ( 0 != _ossAccess( pPathName, flags ) )
    {
       INT32 err = errno ;
+      PD_LOG( PDINFO, "Failed to access(%s,%d), errno: %d",
+              pPathName, flags, err ) ;
       switch ( err )
       {
       case ENOENT:
@@ -2313,7 +2315,7 @@ INT32 ossLockFile ( OSSFILE *pFile, OSS_FILE_LOCK lockType )
    rc = SDB_OK ;
 #endif
 done :
-   PD_TRACE_EXITRC ( SDB_OSSLOCKFILE, rc );
+   PD_TRACE_EXITRC ( SDB_OSSLOCKFILE, rc ) ;
    return rc ;
 error :
    goto done ;
@@ -2505,7 +2507,7 @@ INT32 ossGetFileUserInfo( const CHAR * filename, OSSUID & uid, OSSGID & gid )
       }
    }
    else
-   {
+   {  PD_LOG( PDERROR, "yuting Failed to stat() : %s, Error: %d", filename, 2 ) ;
       uid = sb.st_uid ;
       gid = sb.st_gid ;
    }

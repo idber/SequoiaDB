@@ -59,7 +59,6 @@
 #define SPT_SPEOBJ_NUMBERLONG "$numberLong"
 #define SPT_SPEOBJ_DECIMAL "$decimal"
 #define SPT_SPEOBJ_PRESICION "$precision"
-#define SPT_AGGREGATE_MATCHER "$match"
 
 /*
 #define SDB_DATE_TYPE_CHECK_BOUND(tm)                 \
@@ -1013,17 +1012,9 @@ INT32 sptConvertor::_addSpecialObj( JSObject *obj,
 
       if ( 0 != optionName.compare( SPT_SPEOBJ_OPTION ) )
       {
-         if ( _inMatcher )
-         {
-            rc = SDB_SPT_NOT_SPECIAL_JSON ;
-            goto error ;
-         }
-         else
-         {
-            _setErrorMsg( "Regex $options not found", FALSE ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
+         _setErrorMsg( "Regex $options not found", FALSE ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
       }
 
       if ( !_getProperty( obj, name.c_str(),
@@ -1389,7 +1380,6 @@ INT32 sptConvertor::_appendToBson( const std::string &name,
                rc = _addSpecialObj( obj, name.c_str(), bs ) ;
                if ( SDB_SPT_NOT_SPECIAL_JSON == rc )
                {
-                  BOOLEAN setMatcher = FALSE ;
                   bson *bsobj = NULL ;
 
                   if ( jsobj_is_sdbobj( _cx, obj ) )
@@ -1399,24 +1389,11 @@ INT32 sptConvertor::_appendToBson( const std::string &name,
                      goto error ;
                   }
 
-                  if ( SPT_CONVERT_AGGREGATE == _mode &&
-                       0 == name.compare( SPT_AGGREGATE_MATCHER ) &&
-                       !_inMatcher )
-                  {
-                     _inMatcher = TRUE ;
-                     setMatcher = TRUE ;
-                  }
-
                   rc = toBson( obj, &bsobj ) ;
                   if ( SDB_OK != rc )
                   {
                      _setErrorMsg( "Failed to call toBson", FALSE ) ;
                      goto error ;
-                  }
-
-                  if ( setMatcher )
-                  {
-                     _inMatcher = FALSE ;
                   }
 
                   if ( JS_IsArrayObject( _cx, obj ) )

@@ -412,30 +412,29 @@ html,body{ width:100%; height:100%; /*overflow:hidden; */ }
 /* 表格 */
 .ng-table{ position:relative; }
 .ng-table .event{ cursor:pointer; }
-.ng-table > .ng-table-box{ overflow-y:auto; overflow-x:hidden; border:#E3E7E8 solid 1px; }
+.ng-table > .ng-table-box{ overflow-y:auto; overflow-x:hidden; border:#ddd solid 1px; }
 
-.ng-table > .ng-table-box > .ng-table-header { border-bottom:#E3E7E8 solid 1px; position:absolute; color:#000; z-index:100; background:#F1F4F5; top:1px; }
+.ng-table > .ng-table-box > .ng-table-header { border-bottom:#ddd solid 1px; position:absolute; color:#000; z-index:100; background:#F0F0F0; top:1px; }
 .ng-table > .ng-table-box > .ng-table-header .fa { font-size:14px; }
 .ng-table > .ng-table-box > .ng-table-header > table{ width:100%; border-collapse:collapse; word-wrap:break-word; table-layout:fixed; }
 .ng-table > .ng-table-box > .ng-table-header > table > tbody > tr > td{ padding:5px; font-weight:100; }
-.ng-table > .ng-table-box > .ng-table-header > table > tbody > .ng-table-filter > td{ border-top:1px solid #E3E7E8; }
-.ng-table > .ng-table-box > .ng-table-header > table > tbody > .ng-table-filter .form-control{ height:30px; }
-.ng-table > .ng-table-box > .ng-table-header > table > tbody > tr > .trim{ width:5px; border-right:1px solid #E3E7E8; padding:0; margin:0; cursor:w-resize; }
-.ng-table > .ng-table-box > .ng-table-header > table > tbody > tr > .trimLast{ width:5px; border-right:1px solid #E3E7E8; padding:0; margin:0; }
+.ng-table > .ng-table-box > .ng-table-header > table > tbody > .ng-table-filter > td{ border-top:1px solid #ddd; }
+.ng-table > .ng-table-box > .ng-table-header > table > tbody > tr > .trim{ width:5px; border-right:1px solid #ddd; padding:0; margin:0; cursor:w-resize; }
+.ng-table > .ng-table-box > .ng-table-header > table > tbody > tr > .trimLast{ width:5px; border-right:1px solid #ddd; padding:0; margin:0; }
 
 .ng-table > .ng-table-box > .ng-table-body{}
 .ng-table > .ng-table-box > .ng-table-body > table{ width:100%; border-collapse:collapse; word-wrap:break-word; table-layout:fixed; }
 .ng-table > .ng-table-box > .ng-table-body > table > tbody > tr.alt{ background:#F9F9F9; }
 .ng-table > .ng-table-box > .ng-table-body > table > tbody > tr:hover{ background:#e0f7ff; }
-.ng-table > .ng-table-box > .ng-table-body > table > tbody > tr > td{ border-bottom:1px solid #E3E7E8; padding:5px; }
-.ng-table > .ng-table-box > .ng-table-body > table > tbody > tr > .trim{ width:5px; border-right:1px solid #E3E7E8; padding:0; margin:0; cursor:w-resize; }
-.ng-table > .ng-table-box > .ng-table-body > table > tbody > tr > .trimLast{ width:5px; border-right:1px solid #E3E7E8; padding:0; margin:0; }
+.ng-table > .ng-table-box > .ng-table-body > table > tbody > tr > td{ border-bottom:1px solid #ddd; padding:5px; }
+.ng-table > .ng-table-box > .ng-table-body > table > tbody > tr > .trim{ width:5px; border-right:1px solid #ddd; padding:0; margin:0; cursor:w-resize; }
+.ng-table > .ng-table-box > .ng-table-body > table > tbody > tr > .trimLast{ width:5px; border-right:1px solid #ddd; padding:0; margin:0; }
 
-.ng-table > .ng-table-tools{ background:#F0F0F0; border:#E3E7E8 solid 1px; border-top:0; padding:10px 10px 0 10px; }
+.ng-table > .ng-table-tools{ background:#F0F0F0; border:#ddd solid 1px; border-top:0; padding:10px 10px 0 10px; }
 .ng-table > .ng-table-tools > ul{ +zoom:1; margin:0; padding:0; list-style:none; font-size:14px; }
-.ng-table > .ng-table-tools > ul > li{ float:left; padding:0 6px 10px 6px; color:#555; }
+.ng-table > .ng-table-tools > ul > li{ float:left; padding:0 6px 10px 6px; }
 .ng-table > .ng-table-tools > ul > .right{ float:right; }
-.ng-table > .ng-table-tools input { text-align:center; width:100px; border:none; padding:2px 0 2px 0; color:#555; }
+.ng-table > .ng-table-tools input { text-align:center; width:100px; border:none; padding:2px 0 2px 0; color:#666B6F; }
 
 .linkButton{ color:#00BFDD; text-decoration:none; cursor:pointer; }
 .linkButton:hover{ text-decoration:underline; }
@@ -444,8 +443,8 @@ html,body{ width:100%; height:100%; /*overflow:hidden; */ }
 
 /* json树 */
 .jsonTree{ font-size:85%; -moz-user-select:none; -webkit-user-select:none; -ms-user-select:none; -khtml-user-select:none; user-select:none; }
-.jsonTree .jsonTreeBox{ }
-.jsonTree .jsonTreeBox table{ height:20px; margin:7px 0; }
+.jsonTree .jsonTreeBox{ margin:7px 0; }
+.jsonTree .jsonTreeBox table{ height:20px; }
 .jsonTree .jsonTreeBox td{ padding:1px 3px; }
 
 .jsonTreeValue{ font-size:85%; }
@@ -500,7 +499,7 @@ html,body{ width:100%; height:100%; /*overflow:hidden; */ }
 .loginPwd > .error { font-size:90%; float:left; margin-left:30px; color:#D9534F; padding-top:10px; }
 
 /* 顶部工具栏按钮 */
-.topBtn { height:26px; padding:0px 25px; margin-right:3px; border:1px solid #CCC; background:#FFF; color:#666B6F; cursor:pointer; }
+.topBtn { height:26px; padding:0px 30px; margin-right:3px; border:1px solid #CCC; background:#FFF; color:#666B6F; cursor:pointer; }
 .topBtn > i{ padding-right:4px; }
 .topBtn:hover{ border:1px solid #ABC6D3; color:#FFF; background:#2DA5FA; }
 .topBtn.disabled{ color:#AAA; background:#EEE; cursor:default; }
@@ -525,7 +524,6 @@ button,select,input,textarea{ outline:none; }
 .jsonEdit > .viewModel > .editBox td{ padding:1px; }
 .jsonEdit > .viewModel > .editBox .lineBox{ text-align:center; vertical-align:top; width:26px; background:#f5f5f5; }
 .jsonEdit > .viewModel > .editBox .treeBox{ width:auto; background:none; }
-.jsonEdit > .viewModel > .editBox .treeBox:hover{ background:#e0f7ff; }
 .jsonEdit > .viewModel > .editBox .treeBox .treeEdit{ border-bottom:1px dashed #E3E7E8; }
 .jsonEdit > .viewModel > .editBox .treeBox .treeEdit td{ vertical-align:top; padding:5px; }
 .jsonEdit > .viewModel > .editBox .treeBox .treeEdit .caretBtn{ margin-top:3px; border:none; background:none; width:20px; color:#5E5E5E; padding:0; height:15px; cursor:pointer; }
@@ -606,7 +604,7 @@ button,select,input,textarea{ outline:none; }
 .underlineTab > ul > li > a:hover{ color:#00BFDD; }
 /* 左边 */
 .underlineTab > ul.left > li{ float:left; border-top:3px solid #FFF; border-bottom:1px solid #DDD; padding:5px 20px; height:20px; }
-.underlineTab > ul.left > li.active{ border:1px solid #DDD; border-top:3px solid #00B8E6; border-bottom:1px solid #FFF; padding:5px 19px; }
+.underlineTab > ul.left > li.active{ border:1px solid #DDD; border-top:3px solid #00B8E6; border-bottom:1px solid #FFF; }
 /* 右边 */
 .underlineTab > ul{ list-style-type:none; padding:0; margin:0; border-bottom:1px solid #DDD; height:33px; }
 .underlineTab > ul.right > li{ float:right; border-top:3px solid #FFF; border-bottom:1px solid #DDD; padding:5px 10px; height:20px; }
@@ -691,7 +689,3 @@ button,select,input,textarea{ outline:none; }
 .nav-new div{ margin-left:20px;padding:0 25px 10px 25px;float:left; }
 .nav-new .active{ border-bottom:3px solid #00B8E6;color:#00B8E6; }
 .nav-new div:hover{ color:#00B8E6; cursor:pointer; }
-.borderChoose { border:3px solid #FFF; }
-.borderChoose:active { border:3px solid #80C0FF; }
-
-.grayColor { color: gray; }

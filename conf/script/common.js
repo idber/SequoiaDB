@@ -65,7 +65,6 @@ function addHostResult()
    this.errno                     = SDB_OK ;
    this.detail                    = "" ;
    this.IP                        = "" ;
-   this.version                   = "" ;
    //this.HasInstall                = false ;
 }
 

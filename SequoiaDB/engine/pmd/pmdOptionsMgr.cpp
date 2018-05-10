@@ -48,7 +48,6 @@
 #include "ossPath.hpp"
 #include "dpsLogWrapper.hpp"
 #include "omStrategyDef.hpp"
-#include "optCommon.hpp"
 
 #include "rtnSortDef.hpp"
 #include "clsUtil.hpp"
@@ -88,15 +87,13 @@ namespace engine
    #define PMD_DFT_ARCHIVE_TIMEOUT     (600) // 10 minutes
    #define PMD_DFT_ARCHIVE_EXPIRED     (240) // 10 days
    #define PMD_DFT_ARCHIVE_QUOTA       (10)  // 10 GB
-   #define PMD_DFT_DMS_CHK_INTERVAL    (0)   // disable
-   #define PMD_DFT_CACHE_MERGE_SZ      (0)   // ms
+   #define PMD_DFT_DMS_CHK_INTERVAL    (0) // disable
+   #define PMD_DFT_CACHE_MERGE_SZ      (0)
    #define PMD_DFT_PAGE_ALLOC_TIMEOUT  (0)
-   #define PMD_DFT_OPT_COST_THRESHOLD  (20)
-   #define PMD_DFT_ENABLE_MIX_CMP      (FALSE)
    #define PMD_DFT_PREFINST            ( PREFER_INSTANCE_MASTER_STR )
    #define PMD_DFT_PREFINST_MODE       ( PREFER_INSTANCE_RANDOM_STR )
    #define PMD_DFT_INSTANCE_ID         ( NODE_INSTANCE_ID_UNKNOWN )
-   #define PMD_DFT_MAX_CONN            (0)   // unlimited
+
    /*
       _pmdCfgExchange implement
    */
@@ -1059,10 +1056,7 @@ namespace engine
                            hideParam ) ;
       if ( SDB_OK == _result && pEX->isLoad() )
       {
-         if ( SDB_INVALIDARG == ossStrToBoolean( szTmp, &value ) )
-         {
-            value = defaultValue ;
-         }
+         ossStrToBoolean( szTmp, &value ) ;
 
          MAP_K2V::iterator it = _mapKeyValue.find( pFieldName ) ;
          if ( it != _mapKeyValue.end() )
@@ -1469,7 +1463,7 @@ namespace engine
       _sparseFile          = FALSE ;
       _weight              = 0 ;
       _auth                = TRUE ;
-      _planBucketNum       = OPT_PLAN_DEF_CACHE_BUCKETS ;
+      _planBucketNum       = 500 ;
       _oprtimeout          = PMD_OPTION_OPR_TIME_DEFAULT ;
       _overflowRatio       = PMD_DFT_OVERFLOW_RETIO ;
       _extendThreshold     = PMD_DFT_EXTEND_THRESHOLD ;
@@ -1492,11 +1486,7 @@ namespace engine
       _cacheMergeSize = PMD_DFT_CACHE_MERGE_SZ ;
       _pageAllocTimeout = PMD_DFT_PAGE_ALLOC_TIMEOUT ;
       _perfStat = FALSE ;
-      _optCostThreshold = PMD_DFT_OPT_COST_THRESHOLD ;
-      _enableMixCmp = PMD_DFT_ENABLE_MIX_CMP ;
-      _planCacheLevel = OPT_PLAN_PARAMETERIZED ;
       _instanceID = PMD_DFT_INSTANCE_ID ;
-      _maxconn = PMD_DFT_MAX_CONN;
 
       ossMemset( _krcbConfPath, 0, sizeof( _krcbConfPath ) ) ;
       ossMemset( _krcbConfFile, 0, sizeof( _krcbConfFile ) ) ;
@@ -1544,7 +1534,7 @@ namespace engine
       rdxInt( pEX, PMD_OPTION_AUDIT_NUM, _auditFileNum, FALSE, TRUE,
               PD_DFT_FILE_NUM ) ;
       rdxString( pEX, PMD_OPTION_AUDIT_MASK, _auditMaskStr, sizeof(_auditMaskStr),
-                 FALSE, TRUE, AUDIT_MASK_DFT_STR ) ;
+                 FALSE, FALSE, AUDIT_MASK_DFT_STR ) ;
       rdxString( pEX, PMD_OPTION_SVCNAME, _krcbSvcName, sizeof(_krcbSvcName),
                  FALSE, FALSE,
                  boost::lexical_cast<string>(OSS_DFT_SVCPORT).c_str() ) ;
@@ -1572,7 +1562,7 @@ namespace engine
       rdxUInt( pEX, PMD_OPTION_LOGFILENUM, _logFileNum, FALSE, FALSE,
                PMD_DFT_LOG_FILE_NUM ) ;
       rdvMinMax( pEX, _logFileNum, 1, 60000, TRUE ) ;
-      rdxUInt( pEX, PMD_OPTION_LOGBUFFSIZE, _logBuffSize, FALSE, FALSE,
+      rdxUInt( pEX, PMD_OPTION_LOGBUFFSIZE, _logBuffSize, FALSE, TRUE,
                DPS_DFT_LOG_BUF_SZ ) ;
       rdvMinMax( pEX, _logBuffSize, 512, 1024000, TRUE ) ;
       rdxUInt( pEX, PMD_OPTION_NUMPRELOAD, _numPreLoaders, FALSE, TRUE, 0 ) ;
@@ -1605,23 +1595,23 @@ namespace engine
                FALSE, TRUE, PMD_OPT_VALUE_FULLSYNC, FALSE ) ;
       rdvMinMax( pEX, _dataErrorOp, PMD_OPT_VALUE_NONE,
                  PMD_OPT_VALUE_SHUTDOWN, TRUE ) ;
-      rdxBooleanS( pEX, PMD_OPTION_MEMDEBUG, _memDebugEnabled, FALSE, FALSE,
+      rdxBooleanS( pEX, PMD_OPTION_MEMDEBUG, _memDebugEnabled, FALSE, TRUE,
                    FALSE, TRUE ) ;
-      rdxUInt( pEX, PMD_OPTION_MEMDEBUGSIZE, _memDebugSize, FALSE, FALSE, 0,
+      rdxUInt( pEX, PMD_OPTION_MEMDEBUGSIZE, _memDebugSize, FALSE, TRUE, 0,
                TRUE ) ;
       rdxUInt( pEX, PMD_OPTION_INDEX_SCAN_STEP, _indexScanStep, FALSE, TRUE,
                PMD_DFT_INDEX_SCAN_STEP, TRUE ) ;
       rdvMinMax( pEX, _indexScanStep, 1, 10000, TRUE ) ;
       rdxBooleanS( pEX, PMD_OPTION_DPSLOCAL, _dpslocal, FALSE, TRUE, FALSE,
                    TRUE ) ;
-      rdxBooleanS( pEX, PMD_OPTION_TRACEON, _traceOn, FALSE, FALSE, FALSE,
+      rdxBooleanS( pEX, PMD_OPTION_TRACEON, _traceOn, FALSE, TRUE, FALSE,
                    TRUE ) ;
-      rdxUInt( pEX, PMD_OPTION_TRACEBUFSZ, _traceBufSz, FALSE, FALSE,
+      rdxUInt( pEX, PMD_OPTION_TRACEBUFSZ, _traceBufSz, FALSE, TRUE,
                TRACE_DFT_BUFFER_SIZE, TRUE ) ;
       rdvMinMax( pEX, _traceBufSz, TRACE_MIN_BUFFER_SIZE,
                  TRACE_MAX_BUFFER_SIZE, TRUE ) ;
       rdxBooleanS( pEX, PMD_OPTION_TRANSACTIONON, _transactionOn, FALSE,
-                   FALSE, FALSE ) ;
+                   TRUE, FALSE ) ;
       rdxUInt( pEX, PMD_OPTION_TRANSTIMEOUT, _transTimeout, FALSE, TRUE,
                PMD_DFT_TRANS_TIMEOUT, TRUE ) ;
       rdvMinMax( pEX, _transTimeout, 0, 3600, TRUE ) ;
@@ -1632,7 +1622,7 @@ namespace engine
                PMD_DFT_START_SHIFT_TIME, TRUE ) ;
       rdvMinMax( pEX, _startShiftTime, 0, 7200, TRUE ) ;
       rdxString( pEX, PMD_OPTION_CATALOG_ADDR, _catAddrLine,
-                 sizeof(_catAddrLine), FALSE, FALSE, "" ) ;
+                 sizeof(_catAddrLine), FALSE, TRUE, "" ) ;
 
       rdxPath( pEX, PMD_OPTION_DMS_TMPBLKPATH, _dmsTmpBlkPath,
                sizeof(_dmsTmpBlkPath), FALSE, FALSE, "" ) ;
@@ -1660,9 +1650,8 @@ namespace engine
       rdxBooleanS( pEX, PMD_OPTION_AUTH, _auth,
                    FALSE, TRUE, TRUE, FALSE ) ;
       rdxUInt( pEX, PMD_OPTION_PLAN_BUCKETS, _planBucketNum,
-               FALSE, TRUE, OPT_PLAN_DEF_CACHE_BUCKETS, FALSE ) ;
-      rdvMinMax( pEX, _planBucketNum, OPT_PLAN_MIN_CACHE_BUCKETS,
-                 OPT_PLAN_MAX_CACHE_BUCKETS, TRUE ) ;
+               FALSE, TRUE, 0, FALSE ) ;
+      rdvMinMax( pEX, _planBucketNum, 0, 10000, TRUE ) ;
       rdxUInt( pEX, PMD_OPTION_OPERATOR_TIMEOUT, _oprtimeout, FALSE, TRUE,
                PMD_OPTION_OPR_TIME_DEFAULT, FALSE ) ;
       rdxUInt( pEX, PMD_OPTION_OVER_FLOW_RATIO, _overflowRatio, FALSE, TRUE,
@@ -1689,7 +1678,7 @@ namespace engine
                    FALSE, FALSE ) ;
 
       rdxBooleanS( pEX, PMD_OPTION_ARCHIVE_ON, _archiveOn,
-                   FALSE, FALSE, FALSE, FALSE ) ;
+                   FALSE, TRUE, FALSE, FALSE ) ;
 
       rdxBooleanS( pEX, PMD_OPTION_ARCHIVE_COMPRESS_ON, _archiveCompressOn,
                    FALSE, TRUE, TRUE, FALSE ) ;
@@ -1724,21 +1713,6 @@ namespace engine
       rdxBooleanS( pEX, PMD_OPTION_PERF_STAT, _perfStat, FALSE,
                    TRUE, FALSE, TRUE ) ;
 
-      rdxInt( pEX, PMD_OPTION_OPT_COST_THRESHOLD, _optCostThreshold, FALSE,
-              TRUE, PMD_DFT_OPT_COST_THRESHOLD, TRUE ) ;
-      rdvMinMax( pEX, _optCostThreshold, -1, INT_MAX, TRUE ) ;
-
-      rdxBooleanS( pEX, PMD_OPTION_ENABLE_MIX_CMP, _enableMixCmp, FALSE,
-                   TRUE, PMD_DFT_ENABLE_MIX_CMP, TRUE ) ;
-
-      rdxUInt( pEX, PMD_OPTION_PLAN_CACHE_LEVEL, _planCacheLevel, FALSE,
-               TRUE, OPT_PLAN_PARAMETERIZED, FALSE ) ;
-      rdvMinMax( pEX, _planCacheLevel, OPT_PLAN_NOCACHE, OPT_PLAN_FUZZYOPTR,
-                 TRUE ) ;
-
-      rdxUInt( pEX, PMD_OPTION_MAX_CONN,_maxconn, FALSE,
-               TRUE, PMD_DFT_MAX_CONN, FALSE ) ;
-      rdvMinMax( pEX, _maxconn, 0, 30000, TRUE ) ;
 
       return getResult () ;
    }
@@ -1790,7 +1764,6 @@ namespace engine
       }
       _syncStrategyStr[0] = 0 ;
 
-      _auditMask = 0 ;
       if ( SDB_OK != pdString2AuditMask( _auditMaskStr, _auditMask ) )
       {
          std::cerr << PMD_OPTION_AUDIT_MASK << " value error, use default"
@@ -2033,7 +2006,7 @@ namespace engine
                    "when configure archiveon" ) ;
       }
 
-      if ( SDB_ROLE_CATALOG == dbRole || SDB_ROLE_OM == dbRole )
+      if ( SDB_ROLE_CATALOG == dbRole )
       {
          _transactionOn = TRUE ;
       }
@@ -2082,8 +2055,6 @@ namespace engine
          {
             _syncRecordNum = 10 ;
          }
-
-         _enableMixCmp = FALSE ;
       }
 
       if ( 0 == _vecOm.size() )
@@ -2471,14 +2442,14 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDOPTMGR_REFLUSH2FILE, "_pmdOptionsMgr::reflush2file" )
-   INT32 _pmdOptionsMgr::reflush2File( UINT32 mask )
+   INT32 _pmdOptionsMgr::reflush2File()
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY (SDB__PMDOPTMGR_REFLUSH2FILE ) ;
       std::string line ;
       CHAR conf[ OSS_MAX_PATHSIZE + 1 ] = {0} ;
 
-      rc = pmdCfgRecord::toString( line, mask ) ;
+      rc = pmdCfgRecord::toString( line ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to get the line str:%d", rc ) ;

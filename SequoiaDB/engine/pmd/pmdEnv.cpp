@@ -40,7 +40,6 @@
 #include "pmd.hpp"
 #include "pdTrace.hpp"
 #include "pmdTrace.hpp"
-#include "ossUtil.hpp"
 
 using namespace bson ;
 
@@ -128,41 +127,6 @@ namespace engine
    {
       static INT32 s_sigNum = -1 ;
       return s_sigNum ;
-   }
-
-   ossProcLimits* pmdGetLimit()
-   {
-      return &( pmdGetSysInfo()->_limitInfo ) ;
-   }
-
-   void pmdIncErrNum( INT32 rc )
-   {
-      switch ( rc )
-      {
-         case SDB_OOM :
-            pmdGetSysInfo()->_numErr._oom++ ;
-            break ;
-         case SDB_NOSPC :
-            pmdGetSysInfo()->_numErr._noSpc++ ;
-            break ;
-         case SDB_TOO_MANY_OPEN_FD :
-            pmdGetSysInfo()->_numErr._tooManyOpenFD++ ;
-            break ;
-         default :
-            break ;
-      }
-   }
-
-   void pmdResetErrNum()
-   {
-      pmdGetSysInfo()->_numErr._oom = 0 ;
-      pmdGetSysInfo()->_numErr._noSpc = 0 ;
-      pmdGetSysInfo()->_numErr._tooManyOpenFD = 0 ;
-   }
-
-   pmdOccurredErr pmdGetOccurredErr()
-   {
-      return pmdGetSysInfo()->_numErr ;
    }
 
 #if defined (_LINUX)
@@ -479,7 +443,7 @@ namespace engine
       return ;
    }
 
-   UINT64 pmdGetDBTick()
+   UINT64 pmdGetDBTick()   
    {
       return pmdGetSysInfo()->_tick ;
    }
@@ -508,7 +472,7 @@ namespace engine
    {
       pmdGetSysInfo()->_validationTick = pmdGetDBTick() ;
       return ;
-   }
+   } 
 
    UINT64 pmdGetValidationTick()
    {

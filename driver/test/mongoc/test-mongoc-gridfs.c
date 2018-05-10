@@ -1,6 +1,5 @@
 #include <mongoc.h>
 #define MONGOC_INSIDE
-//#include <mongoc-gridfs-file-private.h>
 #undef MONGOC_INSIDE
 #include <stdlib.h>
 #include <fcntl.h>
@@ -434,10 +433,7 @@ test_gridfs_install (TestSuite *suite)
    gTestUri = bson_strdup_printf ("mongodb://%s/", MONGOC_TEST_HOST);
 
    TestSuite_Add (suite, "GridFS_create", test_create);
-   //TestSuite_Add (suite, "GridFS_create_from_stream", test_create_from_stream);
    TestSuite_Add (suite, "GridFS_list", test_list);
-   //TestSuite_Add (suite, "GridFS_read", test_read);
-   //TestSuite_Add (suite, "GridFS_stream", test_stream);
    TestSuite_Add (suite, "GridFS_remove", test_remove);
    TestSuite_Add (suite, "GridFS_write", test_write);
    TestSuite_Add (suite, "GridFS_remove_by_filename", test_remove_by_filename);

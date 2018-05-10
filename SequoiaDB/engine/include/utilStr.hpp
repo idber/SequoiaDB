@@ -42,11 +42,6 @@
 #include <string>
 #include <vector>
 
-#define HEX_PRE          "0x"
-#define HEX_PRE_SIZE     ( sizeof( HEX_PRE ) -1 )
-#define OCT_PRE          "0"
-#define OCT_PRE_SIZE     ( sizeof( OCT_PRE ) -1 )
-
 using namespace std ;
 
 namespace engine
@@ -85,18 +80,11 @@ namespace engine
 
    BOOLEAN utilStrIsDigit( const string& str ) ;
 
-   BOOLEAN utilStrIsDigit( const char *str ) ;
-
-   BOOLEAN utilStrIsODigit( const char *str ) ;
-
-   BOOLEAN utilStrIsXDigit( const char *str ) ;
-
    vector<string> utilStrSplit( const string& str, const string& sep ) ;
 
    INT32 utilSplitStr( const string &input, vector<string> &listServices,
                        const string &seperators ) ;
 
-   INT32 utilStr2Num( const CHAR *str, INT32 &num ) ;
    INT32 utilStr2TimeT( const CHAR *str,
                         time_t &tm,
                         UINT64 *usec = NULL ) ;

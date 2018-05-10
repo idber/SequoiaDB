@@ -23,17 +23,17 @@ namespace SequoiaDB
 	    public const int FLG_QUERY_FORCE_HINT = 0x00000080;
 
         /** \memberof FLG_QUERY_PARALLED 0x00000100
-         *  \brief Enable parallel sub query,
+         *  \brief Enable parallel sub query, 
          *         each sub query will finish scanning diffent part of the data
          */
         public const int FLG_QUERY_PARALLED = 0x00000100;
 
         /** \memberof FLG_QUERY_WITH_RETURNDATA 0x00000200
-         *  \brief In general, query won't return data until cursor gets from database,
+         *  \brief In general, query won't return data until cursor gets from database, 
          *         when add this flag, return data in query response, it will be more high-performance
          */
         public const int FLG_QUERY_WITH_RETURNDATA = 0x00000200;
-
+	
 	    /** \memberof FLG_QUERY_EXPLAIN 0x00000400
 	     *  \brief Query explain
 	     */
@@ -44,22 +44,10 @@ namespace SequoiaDB
 	     */
         internal const int FLG_QUERY_MODIFY = 0x00001000;
 
-
-        /** \memberof FLG_QUERY_PREPARE_MORE 0x00004000
-         *  \brief Enable prepare more data when query.
-         */
-        internal const int FLG_QUERY_PREPARE_MORE = 0x00004000;
-
-        /** \memberof FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE 0x00008000
-         *  \brief The sharding key in update rule is not filtered,
-                   when executing querydAndUpdate.
-         */
-        public const int FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE = 0x00008000;
-
-
         internal static readonly Dictionary<int, int> flagsDir = new Dictionary<int, int>() {
-            // add mapping flags as below, if necessary:
-            //{FLG_QUERY_FORCE_HINT, NEW_FLG_QUERY_FORCE_HINT}
+            {FLG_QUERY_FORCE_HINT, FLG_QUERY_FORCE_HINT},
+            {FLG_QUERY_PARALLED, FLG_QUERY_PARALLED},
+            {FLG_QUERY_WITH_RETURNDATA, FLG_QUERY_WITH_RETURNDATA}
         };
 
        /** \property Matcher
@@ -114,20 +102,38 @@ namespace SequoiaDB
             set { flag = value; }
         }
 
-        internal static int RegulateFlag(int flags)
+	    private static int _Regulate(int newFlags, int originalFlag) 
         {
-            int erasedFlags = flags;
-            int mergedFlags = 0;
-
-            foreach(KeyValuePair<int,int> item in flagsDir)
+		    int retFlags = newFlags;
+            int tmpFlag = 0;
+            if (flagsDir.ContainsKey(originalFlag))
             {
-                if ((0 != (erasedFlags & item.Key)) && (item.Key != item.Value))
+                tmpFlag = flagsDir[originalFlag];
+                if (tmpFlag != originalFlag)
                 {
-                    erasedFlags &= ~item.Key;
-                    mergedFlags |= item.Value;
+                    retFlags &= ~originalFlag;
+                    retFlags |= tmpFlag;
                 }
             }
-            return erasedFlags | mergedFlags;
+		    return retFlags;
+	    }
+
+        internal static int RegulateFlag(int flags)
+        {
+            int newFlags = flags;
+            if ((flags & FLG_QUERY_FORCE_HINT) != 0)
+            {
+                newFlags = _Regulate(newFlags, FLG_QUERY_FORCE_HINT);
+            }
+            if ((flags & FLG_QUERY_PARALLED) != 0)
+            {
+                newFlags = _Regulate(newFlags, FLG_QUERY_PARALLED);
+            }
+            if ((flags & FLG_QUERY_WITH_RETURNDATA) != 0)
+            {
+                newFlags = _Regulate(newFlags, FLG_QUERY_WITH_RETURNDATA);
+            }
+            return newFlags;
         }
 
    }

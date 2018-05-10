@@ -105,9 +105,7 @@ namespace engine
          const CHAR* groupID2Name( UINT32 groupID ) ;
          UINT32      groupName2ID( const string &groupName ) ;
          INT32       getGroupsName( vector< string > &vecNames ) ;
-         INT32       getGroupsID( vector< UINT32 > &vecIDs, BOOLEAN isActiveOnly ) ;
-         INT32       getGroupNameMap ( map<std::string, UINT32> & nameMap,
-                                       BOOLEAN isActiveOnly ) ;
+         INT32       getGroupsID( vector< UINT32 > &vecIDs ) ;
 
          INT32       makeGroupsObj( BSONObjBuilder &builder,
                                     vector< string > &groups,

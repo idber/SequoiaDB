@@ -1,4 +1,3 @@
-//@ sourceURL=HostsSnapshot.js
 (function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
@@ -17,33 +16,23 @@
       }
      
       //初始化
-      $scope.IntervalTimeConfig = {
-         'interval': 5,
-         'play': false
-      } ;
       var isFirst = true ;       //是否第一次加载
       var isBuildInfo = false ;  //是否已经初始化好数据
       var lastCPU = [] ;          //每一台主机的cpu性能信息
-      //数据类型 默认：全量
-      $scope.ShowType = 'full' ;
-      //刷新状态
-      $scope.RefreshType = $scope.autoLanguage( '启动刷新' ) ;
       //上一次的值
       $scope.LastValue = [] ;
       //主机列表的表格
       $scope.HostTable = {
          'title': {
-            'Status':        'Status',
-            'HostName':      'HostName',
-            'IP':            'IP',
-            'CPUUsed':       'CPU',
-            'Memory':        false,
-            'MemoryPer':     'Memory',
-            'Disk':          false,
-            'DiskPer':       'Disk',
-            'NetInValue':    'Network In',
-            'NetOutValue':   'Network Out',
-            'NetInPackets':  'Network PIn',
+            'Status':      'Status',
+            'HostName':    'HostName',
+            'IP':          'IP',
+            'CPUUsed':     'CPU',
+            'Memory':      'Memory',
+            'Disk':        'Disk',
+            'NetInValue':  'Network In',
+            'NetOutValue': 'Network Out',
+            'NetInPackets': 'Network PIn',
             'NetOutPackets': 'Network OIn'
          },
          'body': [],
@@ -57,9 +46,7 @@
                'IP':          true,
                'CPUUsed':     true,
                'Memory':      true,
-               'MemoryPer':   true,
                'Disk':        true,
-               'DiskPer':     true,
                'NetInValue':  true,
                'NetOutValue': true,
                'NetInPackets': true,
@@ -72,24 +59,24 @@
                   { 'key': $scope.autoLanguage( '正常' ), 'value': true },
                   { 'key': $scope.autoLanguage( '异常' ), 'value': false }
                ],
-               'HostName':       'indexof',
-               'IP':             'indexof',
-               'CPUUsed':        'indexof',
-               'Memory':         'indexof',
-               'MemoryPer':      'indexof',
-               'Disk':           'indexof',
-               'DiskPer':        'indexof',
-               'NetInValue':     'number',
-               'NetOutValue':    'number',
-               'NetInPackets':   'number',
-               'NetOutPackets':  'number'
+               'HostName':    'indexof',
+               'IP':          'indexof',
+               'CPUUsed':     'indexof',
+               'Memory':      'indexof',
+               'Disk':        'indexof',
+               'NetInValue':  'number',
+               'NetOutValue': 'number',
+               'NetInPackets': 'number',
+               'NetOutPackets': 'number'
             }
          },
          'callback': {}
       } ;
       //定时器
       $scope.Timer = {
-         'config': $scope.IntervalTimeConfig,
+         'config': {
+            interval: 5
+         },
          'callback': {}
       } ;
       //实时刷新设置 弹窗
@@ -104,10 +91,8 @@
             { 'key': 'HostName',       'field': 'HostName',     'show': true },
             { 'key': 'IP',             'field': 'IP',           'show': true },
             { 'key': 'CPUUsed',        'field': 'CPU',          'show': true },
-            { 'key': 'Memory',         'field': 'MemoryInfo',   'show': true },
-            { 'key': 'MemoryPer',      'field': 'Memory',       'show': true },
-            { 'key': 'Disk',           'field': 'DiskInfo',     'show': true },
-            { 'key': 'DiskPer',        'field': 'Disk',         'show': true },
+            { 'key': 'Memory',         'field': 'Memory',       'show': true },
+            { 'key': 'Disk',           'field': 'Disk',         'show': true },
             { 'key': 'NetInValue',     'field': 'Network In',   'show': true },
             { 'key': 'NetOutValue',    'field': 'Network Out',  'show': true },
             { 'key': 'NetInPackets',   'field': 'Network PIn',  'show': true },
@@ -115,29 +100,6 @@
          ],
          'callback': {}
       } ;
-
-      //显示模式 下拉菜单
-      $scope.modeDropdown = {
-         'config': [
-            { 'key': $scope.autoLanguage( '全量模式' ), 'checked': true,  'type': 'full' },
-            { 'key': $scope.autoLanguage( '增量模式' ), 'checked': false, 'type': 'inc' },
-            { 'key': $scope.autoLanguage( '均量模式' ), 'checked': false, 'type': 'avg' },
-         ],
-         'OnClick': function( index ){
-            $.each( $scope.modeDropdown['config'], function( index2, config ){
-               $scope.modeDropdown['config'][index2]['checked'] = false ;
-            } ) ;
-            $scope.modeDropdown['config'][index]['checked'] = true ;
-            $scope.modeDropdown['callback']['Close']() ;
-            $scope.ShowType = $scope.modeDropdown['config'][index]['type'] ;
-         },
-         'callback': {}
-      } ;
-
-      //打开 显示模式 的下拉菜单
-      $scope.OpenModeDropdown = function( event ){
-         $scope.modeDropdown['callback']['Open']( event.currentTarget ) ;
-      }
 
       //打开 显示列 下拉菜单
       $scope.OpenShowFieldDropdown = function( event ){
@@ -152,6 +114,7 @@
          $.each( $scope.FieldDropdown['config'], function( index, fieldInfo ){
             $scope.HostTable['title'][fieldInfo['key']] = fieldInfo['show'] ? fieldInfo['field'] : false ;
          } ) ;
+         $scope.FieldDropdown['callback']['Close']() ;
          $scope.HostTable['callback']['ShowCurrentPage']() ;
       }
 
@@ -222,9 +185,7 @@
                      NewHostList[index]['MemoryUsed'] = fixedNumber( hostInfo['Memory']['Used'] / 1024, 2 ) ;
 
                      NewHostList[index]['Memory'] = NewHostList[index]['MemoryUsed'] + 'GB / ' + NewHostList[index]['MemorySize'] + 'GB' ;
-                     NewHostList[index]['MemoryPer'] = fixedNumber( NewHostList[index]['MemoryUsed'] / NewHostList[index]['MemorySize'] * 100, 2 ) ;
                      NewHostList[index]['Disk'] = NewHostList[index]['DiskUsed'] + 'GB / ' + NewHostList[index]['DiskSize'] + 'GB' ;
-                     NewHostList[index]['DiskPer'] = fixedNumber( NewHostList[index]['DiskUsed'] / NewHostList[index]['DiskSize'] * 100, 2 ) ;
                   } ) ;
 
                   $scope.LastValue = $scope.HostTable['body'] ;
@@ -330,6 +291,16 @@
          var brushForm = {
             'inputList': [
                {
+                  "name": "play",
+                  "webName": $scope.autoLanguage( '自动刷新' ),
+                  "type": "select",
+                  "value": $scope.Timer['callback']['GetStatus']() != 'stop',
+                  "valid": [
+                     { 'key': $scope.autoLanguage( '开启' ), 'value': true },
+                     { 'key': $scope.autoLanguage( '停止' ), 'value': false }
+                  ]
+               },
+               {
                   "name": "interval",
                   "webName": $scope.autoLanguage( '刷新间距(秒)' ),
                   "type": "int",
@@ -347,8 +318,15 @@
             if( isAllClear )
             {
                var formVal = brushForm.getValue() ;
-               $scope.IntervalTimeConfig = formVal ;
                $scope.Timer['callback']['SetInterval']( formVal['interval'] ) ;
+               if( formVal['play'] == true )
+               {
+                  $scope.Timer['callback']['Start']( getModuleInfo ) ;
+               }
+               else
+               {
+                  $scope.Timer['callback']['Stop']() ;
+               }
             }
             return isAllClear ;
          } ) ;
@@ -358,22 +336,6 @@
          $scope.CreateBrush['callback']['SetIcon']( '' ) ;
          //打开窗口
          $scope.CreateBrush['callback']['Open']() ;
-      }
-      
-      //是否刷新
-      $scope.RefreshCtrl = function(){
-         if( $scope.IntervalTimeConfig['play'] == true )
-         {
-            $scope.IntervalTimeConfig['play'] = false ; 
-            $scope.RefreshType = $scope.autoLanguage( '启动刷新' )
-            $scope.Timer['callback']['Stop']() ;
-         }
-         else
-         {
-            $scope.IntervalTimeConfig['play'] = true ; 
-            $scope.RefreshType = $scope.autoLanguage( '停止刷新' ) ;
-            $scope.Timer['callback']['Start']( getModuleInfo ) ;
-         }
       }
       
       //跳转事件

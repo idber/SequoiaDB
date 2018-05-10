@@ -34,7 +34,6 @@
 #include "sptObjDesc.hpp"
 #include "pd.hpp"
 #include "ossUtil.hpp"
-#include "ossMem.hpp"
 #include "sptSPDef.hpp"
 #include "sptBsonobj.hpp"
 #include "sptBsonobjArray.hpp"
@@ -43,175 +42,10 @@
 #include "sptConvertorHelper.hpp"
 #include "sptCommon.hpp"
 #include "spt.hpp"
-#include "sptFuncDef.hpp"
-#include "sptHelp.hpp"
-#include "sptInvoker.hpp"
 #include "../spt/js_in_cpp.hpp"
-
-using namespace std ;
 
 namespace engine
 {
-   #define JS_ERROBJ_FILENAME    "fileName"
-   #define JS_ERROBJ_LINENO      "lineNumber"
-   /*
-      case 1: when no argument, we display the functions of class/instance
-      case 2: when getting argument in format of "Oma"/"Oma.createCoord"
-              /"createCoord" or something like "create" for fuzzy searching,
-              we display the manpage of the specifed function
-   */
-   static JSBool __instance_help( JSContext *cx , uintN argc , jsval *vp )
-   {
-      INT32 rc = SDB_OK ;
-      stringstream ss ;
-      SDB_ASSERT( NULL != cx && NULL != vp, "can not be NULL" ) ;
-
-      jsval jsVal = JSVAL_VOID ;
-      JSObject *constructor = NULL ;
-      JSString *jsStr = NULL ;
-      CHAR *pStr = NULL ;
-      _sptSPArguments arg( cx, argc, vp ) ;
-      string jsClassName ;
-
-      JS_SET_RVAL( cx, vp, JSVAL_VOID ) ;
-      constructor = JS_GetConstructor( cx, JS_THIS_OBJECT ( cx , vp ) ) ;
-      if ( !constructor )
-      {
-         rc = SDB_SYS ;
-         ss << "Failed to get constructor" ;
-         goto error ;
-      }
-      if ( !JS_GetProperty( cx, constructor, "name", &jsVal ) ||
-           !JSVAL_IS_STRING( jsVal ) )
-      {
-         rc = SDB_SYS ;
-         ss << "Failed to get the js class name" ;
-         goto error ;
-      }
-      jsStr = JS_ValueToString( cx, jsVal ) ;
-      if ( !jsStr )
-      {
-         rc = SDB_SYS ;
-         ss << "Failed to convert js class name" ;
-         goto error ;
-      }
-      pStr = JS_EncodeString( cx, jsStr ) ;
-      if ( !pStr )
-      {
-         rc = SDB_SYS ;
-         ss << "Failed to encode js class name" ;
-         goto error ;
-      }
-      jsClassName.assign( pStr ) ;
-      JS_free( cx, pStr ) ;
-
-      if ( arg.argc() == 0 )
-      {
-         rc = sptHelp::getInstance().displayMethod( jsClassName, TRUE ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-      }
-      else if ( arg.argc() >= 1 )
-      {
-         string fuzzyFuncName ;
-         rc = arg.getString( 0, fuzzyFuncName ) ;
-         if ( rc )
-         {
-            ss << "The 1st param must be string"  ;
-            goto error ;
-         }
-         rc = sptHelp::getInstance().displayManual( fuzzyFuncName,
-                                                    jsClassName, TRUE ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-      }
-   done:
-      return rc ;
-   error:
-      if ( !ss.str().empty() )
-      {
-         std::cout << ss.str().c_str() << std::endl ;
-      }
-      goto done ;
-   }
-
-   static JSBool __static_help( JSContext *cx , uintN argc , jsval *vp )
-   {
-      INT32 rc = SDB_OK ;
-      stringstream ss ;
-      SDB_ASSERT( NULL != cx && NULL != vp, "can not be NULL" ) ;
-
-      jsval jsVal = JSVAL_VOID ;
-      JSString *jsStr = NULL ;
-      CHAR *pStr = NULL ;
-      _sptSPArguments arg( cx, argc, vp ) ;
-      string jsClassName ;
-
-      JS_SET_RVAL( cx, vp, JSVAL_VOID ) ;
-
-      if ( !JS_GetProperty( cx, JS_THIS_OBJECT ( cx , vp ), "name", &jsVal ) ||
-           !JSVAL_IS_STRING( jsVal ) )
-      {
-         rc = SDB_SYS ;
-         ss << "Failed to get the js class name" ;
-         goto error ;
-      }
-      jsStr = JS_ValueToString( cx, jsVal ) ;
-      if ( !jsStr )
-      {
-         rc = SDB_SYS ;
-         ss << "Failed to convert string" ;
-         goto error ;
-      }
-      pStr = JS_EncodeString( cx, jsStr ) ;
-      if ( !pStr )
-      {
-         rc = SDB_SYS ;
-         ss << "Failed to encode string" ;
-         goto error ;
-      }
-      jsClassName.assign( pStr ) ;
-      JS_free( cx, pStr ) ;
-
-      if ( arg.argc() == 0 )
-      {
-         rc = sptHelp::getInstance().displayMethod( jsClassName, FALSE ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-      }
-      else if ( arg.argc() >= 1 )
-      {
-         string fuzzyFuncName ;
-         rc = arg.getString( 0, fuzzyFuncName ) ;
-         if ( rc )
-         {
-            ss << "The 1st param must be string"  ;
-            goto error ;
-         }
-         rc = sptHelp::getInstance().displayManual( fuzzyFuncName,
-                                                    jsClassName, FALSE ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-      }
-
-   done:
-      return rc ;
-   error:
-      if ( !ss.str().empty() )
-      {
-         std::cout << ss.str().c_str() << std::endl ;
-      }
-      goto done ;
-   }
-
    /*
       Local function define
    */
@@ -420,12 +254,12 @@ namespace engine
          goto error ;
       }
 
-      JS_SetOptions( _context, JSOPTION_VAROBJFIX | JSOPTION_WERROR );
+      JS_SetOptions( _context, JSOPTION_VAROBJFIX );
       JS_SetVersion( _context, JSVERSION_LATEST );
       JS_SetErrorReporter( _context, sdbReportError ) ;
 
       _global = JS_NewCompartmentAndGlobalObject( _context, &global_class,
-                                                  NULL ) ;
+                                                  NULL );
       if ( NULL == _global )
       {
          ossPrintf( "failed to init js global object"OSS_NEWLINE ) ;
@@ -447,16 +281,9 @@ namespace engine
          goto error ;
       }
       _loadMask = loadMask ;
+      sdbDeclareThreadContext( _context ) ;
+      sdbDeclareThreadGlobal( _global ) ;
 
-      {
-         sptPrivateData *privateData = SDB_OSS_NEW sptPrivateData( this ) ;
-         if( NULL == privateData )
-         {
-            ossPrintf( "Failed to new sptPrivateData obj" ) ;
-            goto error ;
-         }
-         JS_SetContextPrivate( _context, privateData ) ;
-      }
    done:
       return rc ;
    error:
@@ -514,12 +341,15 @@ namespace engine
 
    void _sptSPScope::shutdown()
    {
+      sdbUndeclareThreadContext( _context ) ;
+      sdbUndeclareThreadGlobal( _global ) ;
+
       if ( NULL != _context )
       {
-         sptPrivateData* p = (sptPrivateData*)JS_GetContextPrivate( _context ) ;
+         void *p = JS_GetContextPrivate( _context ) ;
          if ( NULL != p )
          {
-            SDB_OSS_DEL p ;
+            SDB_OSS_FREE( p ) ;
          }
 
          JS_SetContextPrivate( _context, NULL ) ;
@@ -654,14 +484,15 @@ namespace engine
          parent_proto = (JSObject*)parentDesc->getPrototypeDef() ;
       }
 
-      fSpecs = new JSFunctionSpec[memberFuncs.size() + 1 + 1] ;
+      fSpecs = new JSFunctionSpec[memberFuncs.size() + 1] ;
       if ( NULL == fSpecs )
       {
          ossPrintf( "failed to allocate mem."OSS_NEWLINE ) ;
          rc = SDB_OOM ;
          goto error ;
       }
-      sfSpecs = new JSFunctionSpec[staticFuncs.size() + 1 + 1] ;
+
+      sfSpecs = new JSFunctionSpec[staticFuncs.size() + 1] ;
       if ( NULL == sfSpecs )
       {
          ossPrintf( "failed to allocate mem."OSS_NEWLINE ) ;
@@ -679,21 +510,6 @@ namespace engine
             fSpecs[i].nargs = 0 ;
             fSpecs[i].flags = itr->second._attr ;
          }
-         if ( memberFuncs.end() != memberFuncs.find( "help" ) )
-         {
-            fSpecs[i].name = NULL ;
-            fSpecs[i].call = NULL ;
-            fSpecs[i].nargs = 0 ;
-            fSpecs[i].flags = 0 ;
-         }
-         else
-         {
-            fSpecs[i].name = "help" ;
-            fSpecs[i].call = __instance_help ;
-            fSpecs[i].nargs = 0 ;
-            fSpecs[i].flags = SPT_FUNC_DEFAULT ;
-         }
-         i++ ;
          fSpecs[i].name = NULL ;
          fSpecs[i].call = NULL ;
          fSpecs[i].nargs = 0 ;
@@ -708,21 +524,6 @@ namespace engine
             sfSpecs[i].nargs = 0 ;
             sfSpecs[i].flags = itr->second._attr ;
          }
-         if ( staticFuncs.end() != staticFuncs.find( "help" ) )
-         {
-            sfSpecs[i].name = NULL ;
-            sfSpecs[i].call = NULL ;
-            sfSpecs[i].nargs = 0 ;
-            sfSpecs[i].flags = 0 ;
-         }
-         else
-         {
-            sfSpecs[i].name = "help" ;
-            sfSpecs[i].call = __static_help ;
-            sfSpecs[i].nargs = 0 ;
-            sfSpecs[i].flags = SPT_FUNC_DEFAULT ;
-         }
-         i++ ;
          sfSpecs[i].name = NULL ;
          sfSpecs[i].call = NULL ;
          sfSpecs[i].nargs = 0 ;
@@ -774,8 +575,6 @@ namespace engine
       jsval *pRval = ( jsval* )_rval.rawPtr() ;
 
       sdbSetPrintError( ( flag & SPT_EVAL_FLAG_PRINT ) ? TRUE : FALSE ) ;
-      sdbSetIgnoreErrorPrefix( ( flag & SPT_EVAL_FLAG_IGNORE_ERR_PREFIX ) ?
-                               TRUE : FALSE ) ;
       sdbSetNeedClearErrorInfo( TRUE ) ;
 
       if ( !JS_EvaluateScript( _context, _global, code,
@@ -830,96 +629,15 @@ namespace engine
 
          if ( NULL != strException )
          {
-            std::stringstream errMsg ;
-            std::stringstream errPrefix ;
-            sptPrivateData *privateData  = NULL ;
-
-            privateData = ( sptPrivateData* ) JS_GetContextPrivate( _context ) ;
-            /*
-             * Branch 1: userdef function throw errno
-             *    true == privateData->isSetErrInfo() means exception occurs in
-             *    userdef function
-             */
-            if( NULL != privateData && privateData->isSetErrInfo() )
-            {
-               {
-                  errPrefix << privateData->getErrFileName().c_str() << ":"
-                            << privateData->getErrLineno() << " " ;
-               }
-               if( flag & SPT_EVAL_FLAG_IGNORE_ERR_PREFIX && !sdbIsErrMsgEmpty() )
-               {
-                  errMsg << sdbGetErrMsg() ;
-               }
-               else
-               {
-                  errMsg << "uncaught exception: "
-                         << strException << endl
-                         << sdbGetErrMsg() ;
-               }
-            }
-            /*
-             * Branch 2: throw obj
-             *    unable to determine if the obj type is Error
-             *
-             * TODO: find a way to determine if the obj type is Error
-             */
-            else if( JSVAL_IS_OBJECT( exception ) )
-            {
-               CHAR *errfileName = NULL ;
-               UINT32 errLineno = 0 ;
-               JSObject *errObj = NULL ;
-               jsval fileName ;
-               jsval lineNumber ;
-
-               errObj = JSVAL_TO_OBJECT( exception ) ;
-               if( NULL != errObj )
-               {
-                  if( JS_GetProperty( _context, errObj,
-                                      JS_ERROBJ_FILENAME, &fileName )
-                      && JSVAL_IS_STRING( fileName ) )
-                  {
-                     JSString *jsStr = JSVAL_TO_STRING( fileName ) ;
-                     if( NULL != jsStr )
-                     {
-                        errfileName = JS_EncodeString ( _context , jsStr ) ;
-                     }
-                  }
-                  if( JS_GetProperty( _context, errObj,
-                                      JS_ERROBJ_LINENO, &lineNumber )
-                      && JSVAL_IS_INT( lineNumber ) )
-                  {
-                     errLineno = (UINT32) JSVAL_TO_INT( lineNumber ) ;
-                  }
-               }
-               errPrefix << ( errfileName ? string( errfileName ): "(nofile)" ) << ":"
-                         << errLineno << " " ;
-               errMsg << strException ;
-            }
-            /*
-             *Branch 3: Throw other type, such as string
-             */
-            else
-            {
-               errPrefix << ( filename ? string( filename ): "(nofile)" )
-                         << ":"
-                         << lineno << " " ;
-               errMsg << "uncaught exception: "
-                      << strException ;
-            }
-
-            std::string errInfo ;
-            if( flag & SPT_EVAL_FLAG_IGNORE_ERR_PREFIX )
-            {
-               errInfo = errMsg.str() ;
-            }
-            else
-            {
-               errInfo = errPrefix.str() + errMsg.str() ;
-            }
+            std::stringstream ss ;
+            ss << "Uncaught exception:" ;
+            ss << strException ;
+            std::string errInfo = ss.str() ;
             _rval.setError( errInfo ) ;
+            sdbReportError( NULL, 0, errInfo.c_str(), TRUE ) ;
             SAFE_JS_FREE( _context, strException ) ;
          }
-         JS_ReportPendingException( _context ) ;
+         JS_ClearPendingException ( _context ) ;
       }
       goto done ;
    }
@@ -967,5 +685,6 @@ namespace engine
       JSObject *pJSObj = ( JSObject* )pObj ;
       return sptGetObjFactory()->getObjPropNames( _context, pJSObj, setProp ) ;
    }
+
 }
 

@@ -258,27 +258,20 @@ namespace engine
                goto done ;
             }
 
-            if ( isOpObj( boValue ) )
+            if ( isOpObj( boValue ))
             {
-               rc = parseOpObj( beField, predicateSet ) ;
+               BSONObjIterator i( boValue );
+               while( i.more() )
+               {
+                  BSONElement beTmp = i.next();
+                  rc = predicateSet.addPredicate( pFieldName, beTmp );
+                  PD_RC_CHECK( rc, PDERROR,
+                              "failed to add predicate(rc=%d)", rc );
+               }
+               goto done;
             }
-            else
-            {
-               rc = predicateSet.addPredicate( pFieldName, beField,
-                                               beField.getGtLtOp() ) ;
-            }
          }
-         else if ( RegEx == beField.type() &&
-                   MTH_OPERATOR_EYECATCHER != pFieldName[0] )
-         {
-            rc = predicateSet.addPredicate( pFieldName, beField,
-                                            BSONObj::opREGEX ) ;
-         }
-         else
-         {
-            rc = predicateSet.addPredicate( pFieldName, beField,
-                                            beField.getGtLtOp() ) ;
-         }
+         rc = predicateSet.addPredicate( pFieldName, beField );
          PD_RC_CHECK( rc, PDERROR,
                      "failed to add predicate(rc=%d)", rc );
       }
@@ -292,91 +285,6 @@ namespace engine
       }
    done:
       PD_TRACE_EXITRC ( SDB_CLSCATAMATCHER_PARSECMPOP, rc ) ;
-      return rc;
-   error:
-      goto done;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSCATAMATCHER_PARSEOPOBJ, "clsCatalogMatcher::parseOpObj" )
-   INT32 clsCatalogMatcher::parseOpObj( const BSONElement & beField,
-                                        clsCatalogPredicateTree & predicateSet )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY ( SDB_CLSCATAMATCHER_PARSEOPOBJ ) ;
-
-      SDB_ASSERT( Object == beField.type(), "Should be an object" ) ;
-
-      try
-      {
-         const CHAR *pFieldName = beField.fieldName() ;
-         BSONObj boValue = beField.embeddedObject() ;
-         BSONObjIterator i( boValue ) ;
-         const CHAR *pRegex = NULL, *pOptions = NULL ;
-         while( i.more() )
-         {
-            BSONElement beTmp = i.next() ;
-            INT32 tmpOpType = beTmp.getGtLtOp() ;
-
-            if ( tmpOpType == BSONObj::opREGEX )
-            {
-               PD_CHECK( String == beTmp.type() && NULL == pRegex,
-                         SDB_INVALIDARG, error, PDERROR,
-                         "Invalid regular expression operator" ) ;
-               pRegex = beTmp.valuestr() ;
-            }
-            else if ( tmpOpType == BSONObj::opOPTIONS )
-            {
-               PD_CHECK( String == beTmp.type() && NULL == pOptions,
-                         SDB_INVALIDARG, error, PDERROR,
-                         "Invalid regular expression operator" ) ;
-               pOptions = beTmp.valuestr() ;
-            }
-            else if ( pRegex )
-            {
-               rc = predicateSet.addPredicate( pFieldName, beField,
-                                               BSONObj::opREGEX ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "failed to add predicate(rc=%d)", rc );
-               pRegex = NULL ;
-            }
-            else if ( pOptions )
-            {
-               PD_LOG( PDERROR, "Invalid regular expression operator" ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-
-            if ( pRegex && pOptions )
-            {
-               rc = predicateSet.addPredicate( pFieldName, beField,
-                                               BSONObj::opREGEX ) ;
-               pRegex = NULL ;
-               pOptions = NULL ;
-            }
-            else if ( pRegex || pOptions )
-            {
-               continue ;
-            }
-            else
-            {
-               rc = predicateSet.addPredicate( pFieldName, beTmp,
-                                               beTmp.getGtLtOp() ) ;
-            }
-            PD_RC_CHECK( rc, PDERROR,
-                         "failed to add predicate(rc=%d)", rc );
-         }
-      }
-      catch ( std::exception &e )
-      {
-         rc = SDB_INVALIDARG;
-         PD_RC_CHECK( rc, PDERROR,
-                     "failed to parse the field "
-                     "occured unexpected error:%s",
-                     e.what() );
-      }
-   done:
-      PD_TRACE_EXITRC ( SDB_CLSCATAMATCHER_PARSEOPOBJ, rc ) ;
       return rc;
    error:
       goto done;

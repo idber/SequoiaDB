@@ -50,7 +50,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       const UINT32 pLen = 512 ;
-      MON_CS_LIST csList ;
+      std::set<monCollectionSpace> csList ;
 
       CHAR *p = (CHAR *)SDB_OSS_MALLOC( pLen ) ;
       if ( NULL == p )

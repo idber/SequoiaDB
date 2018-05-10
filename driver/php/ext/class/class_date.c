@@ -37,36 +37,52 @@ static void local_time ( time_t *Time, struct tm *TM )
 PHP_METHOD( SequoiaDate, __construct )
 {
    INT32 rc     = SDB_OK ;
+   INT32 year   = 0 ;
+   INT32 month  = 0 ;
+   INT32 day    = 0 ;
+   INT32 micros = 0 ;
+   INT32 numType = PHP_NOT_NUMBER ;
+   INT32 numInt  = 0 ;
+   INT64 numLong = 0 ;
+   double numDouble = 0 ;
+   time_t timep = 0 ;
    zval *pDate  = NULL ;
    zval *pThisObj = getThis() ;
+   sdbTimestamp sdbTime ;
+   struct tm tmTime ;
    struct phpDate *pDriverDate = (struct phpDate *)\
                emalloc( sizeof( struct phpDate ) ) ;
-
    if( !pDriverDate )
    {
       goto error ;
    }
-
    pDriverDate->milli = 0 ;
-
    if( PHP_GET_PARAMETERS( "|z", &pDate ) == FAILURE )
    {
       goto error ;
    }
-
-   if( pDate )
+   if( !pDate )
    {
-      if( Z_TYPE_P( pDate ) == IS_LONG )
+      goto error ;
+   }
+   if( Z_TYPE_P( pDate ) == IS_STRING )
+   {
+      if( ossStrchr( Z_STRVAL_P( pDate ), 't' ) ||
+          ossStrchr( Z_STRVAL_P( pDate ), 'T' ) )
       {
-         pDriverDate->milli = Z_LVAL_P( pDate ) ;
+         rc = timestampParse( Z_STRVAL_P( pDate ),
+                              Z_STRLEN_P( pDate ),
+                              &sdbTime ) ;
+         if( rc )
+         {
+            goto error ;
+         }
+         timep = (time_t)sdbTime.sec ;
+         micros = sdbTime.nsec / 1000 ;
+         pDriverDate->milli = (INT64)timep * 1000LL + micros ;
       }
-      else if( Z_TYPE_P( pDate ) == IS_STRING )
+      else
       {
-         INT32 numType = PHP_NOT_NUMBER ;
-         INT32 numInt  = 0 ;
-         INT64 numLong = 0 ;
-         double numDouble = 0 ;
-
          php_parseNumber( Z_STRVAL_P( pDate ),
                           Z_STRLEN_P( pDate ),
                           &numType,
@@ -75,16 +91,23 @@ PHP_METHOD( SequoiaDate, __construct )
                           &numDouble TSRMLS_CC ) ;
          if( numType == PHP_NOT_NUMBER )
          {
-            INT32 micros   = 0 ;
-            time_t seconds = 0 ;
-
-            if( php_date2Time( Z_STRVAL_P( pDate ), 0,
-                               &seconds, &micros ) == FALSE )
+            ossMemset( &tmTime, 0, sizeof( tmTime ) ) ;
+            if( !sscanf( Z_STRVAL_P( pDate ),
+                         DATE_FORMAT,
+                         &year,
+                         &month,
+                         &day ) )
             {
                goto error ;
             }
-
-            pDriverDate->milli = (INT64)seconds * 1000LL ;
+            tmTime.tm_year = year - 1900 ;
+            tmTime.tm_mon  = month - 1 ;
+            tmTime.tm_mday = day ;
+            tmTime.tm_hour = 0 ;
+            tmTime.tm_min  = 0 ;
+            tmTime.tm_sec  = 0 ;
+            timep = mktime( &tmTime ) ;
+            pDriverDate->milli = (INT64)timep * 1000LL ;
          }
          else
          {
@@ -98,16 +121,11 @@ PHP_METHOD( SequoiaDate, __construct )
             }
          }
       }
-      else if( Z_TYPE_P( pDate ) == IS_LONG )
-      {
-         pDriverDate->milli = (INT64)(Z_LVAL_P( pDate )) ;
-      }
    }
-   else
+   else if( Z_TYPE_P( pDate ) == IS_LONG )
    {
-      pDriverDate->milli = (INT64)( time( NULL ) * 1000LL ) ;
+      pDriverDate->milli = (INT64)(Z_LVAL_P( pDate )) ;
    }
-
 done:
    PHP_SAVE_RESOURCE( pThisObj, "$date", pDriverDate, dateDesc ) ;
    return ;

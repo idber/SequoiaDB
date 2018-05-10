@@ -46,7 +46,6 @@
 #include "ossLatch.hpp"
 #include "dms.hpp"
 #include "dpsTransLock.hpp"
-#include "dpsTransLockBucket.hpp"
 #include "dpsLogRecord.hpp"
 #include "sdbInterface.hpp"
 #include "ossEvent.hpp"
@@ -90,7 +89,6 @@ namespace engine
    */
    class dpsTransCB : public _IControlBlock, public _IEventHander
    {
-      friend class _dmsExtScannerBase ;
       friend class _dmsExtScanner ;
       friend class _dmsIXSecScanner ;
    public:
@@ -104,7 +102,6 @@ namespace engine
       virtual INT32  active () ;
       virtual INT32  deactive () ;
       virtual INT32  fini () ;
-      virtual void   onConfigChange() ;
 
       virtual void   onRegistered( const MsgRouteID &nodeID ) ;
       virtual void   onPrimaryChange( BOOLEAN primary,

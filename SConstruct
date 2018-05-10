@@ -45,8 +45,6 @@ zlib_dir = join(thirdparty_dir, 'zlib')
 zlib_lib_dir = join(zlib_dir, 'lib')
 snappy_dir = join(thirdparty_dir, 'snappy')
 snappy_lib_dir = join(snappy_dir, 'lib')
-mdocml_dir = join(thirdparty_dir, 'mdocml' )
-mdocml_include_dir = join(mdocml_dir,'include')
 gtest_dir = join(engine_dir,'gtest')
 ncursesinclude_dir = join(engine_dir, 'ncurses/include')
 driver_dir = join(db_dir,'driver')
@@ -229,7 +227,6 @@ add_option( "website", "build web site document", 0, False)
 add_option( "chm", "build chm document", 0, False)
 add_option( "offline", "build offline html document", 0, False)
 add_option( "doxygen", "build doxygen document", 0, False)
-add_option( "noautogen", "do not run autogen", 0, False)
 
 # language could be en or cn
 add_option( "language" , "description language" , 1 , False )
@@ -252,9 +249,6 @@ add_option("gprof", "enable gprofile for sequoiadb", 0, False)
 
 #aix xlc
 add_option("xlc", "use xlc in AIX", 0, False)
-
-#coverage option
-add_option( "cov" , "generate coverage information" , 0, False )
 
 # don't run configure if user calls --help
 if GetOption('help'):
@@ -306,14 +300,6 @@ elif release and debugBuild:
    release = False
    debugBuild = True
 
-cov = False
-
-cov = has_option( "cov" )
-
-# do not generate coverage info when release
-if not debugBuild and cov:
-   cov = False
-   
 env = Environment( BUILD_DIR=variantDir,
                    tools=["default", "gch", "mergelib" ],
                    PYSYSPLATFORM=os.sys.platform,
@@ -505,7 +491,6 @@ if guess_os == "linux":
         env.Append( EXTRALIBPATH=boost_lib_dir )
         # use project-related ssl library
         env.Append( EXTRALIBPATH=join(ssl_dir,'lib/linux64') )
-        env.Append( EXTRALIBPATH=join(mdocml_dir,'lib/linux64') )
         env.Append( EXTRALIBPATH=join(zlib_lib_dir,'linux64') )
         env.Append( EXTRALIBPATH=join(lz4_lib_dir,'linux64') )
         env.Append( EXTRALIBPATH=join(snappy_lib_dir,'linux64') )
@@ -634,7 +619,7 @@ if guess_os == "linux":
 
     nix = True
 
-elif guess_os == "win32":
+elif "win32" == guess_os:
     # when building windows
     windows = True
     # check VC compiler
@@ -656,7 +641,6 @@ elif guess_os == "win32":
         env.Append( EXTRALIBPATH=boost_lib_dir )
         # use project-related ssl library
         env.Append( EXTRALIBPATH=join(ssl_dir,'lib/win64') )
-        env.Append( EXTRALIBPATH=join(mdocml_dir,'lib/win64') )
         # use 64 bit spidermonkey
         if usesm:
             if debugBuild:
@@ -928,13 +912,6 @@ fmpEnv = env.Clone() ;
 if windows:
     shellEnv.Append( LIBS=["winmm.lib"] )
     #env.Append( CPPFLAGS=" /TP " )
-    if debugBuild:
-        shellEnv.Append( LIBS=['mdocmld'] )
-    else:
-        shellEnv.Append( LIBS=['mdocml'] )
-elif linux:
-    shellEnv.Append( LIBS=['mdocml'] )
-shellEnv.Append(CPPPATH=[mdocml_include_dir])
 
 # add engine and client variable
 env.Append( CPPDEFINES=[ "SDB_ENGINE" ] )
@@ -981,18 +958,6 @@ if fmpEnv is not None:
 if fapEnv is not None:
     fapEnv['INSTALL_DIR'] = installDir
 
-if cov:
-   env.Append( CPPFLAGS=" -fprofile-arcs -ftest-coverage " )
-   env.Append( LINKFLAGS=" -fprofile-arcs " )
-   shellEnv.Append( CPPFLAGS=" -fprofile-arcs -ftest-coverage " )
-   shellEnv.Append( LINKFLAGS=" -fprofile-arcs " )
-   #toolEnv.Append( CPPFLAGS=" -fprofile-arcs -ftest-coverage " )
-   #toolEnv.Append( LINKFLAGS=" -fprofile-arcs " )
-   fmpEnv.Append( CPPFLAGS=" -fprofile-arcs -ftest-coverage " )
-   fmpEnv.Append( LINKFLAGS=" -fprofile-arcs " )
-   fapEnv.Append( CPPFLAGS=" -fprofile-arcs -ftest-coverage " )
-   fapEnv.Append( LINKFLAGS=" -fprofile-arcs " )
-   
 # The following symbols are exported for use in subordinate SConscript files.
 # Ideally, the SConscript files would be purely declarative.  They would only
 # import build environment objects, and would contain few or no conditional
@@ -1028,7 +993,6 @@ Export("mergeStaticLibrary")
 Export("hasSSL")
 Export("release")
 Export("debugBuild")
-Export("cov")
 
 # Generating Versioning information
 # In order to change the file location, we have to modify both win32 and linux
@@ -1048,15 +1012,11 @@ if not os.path.isfile ( "gitbuild" ):
       os.system("sed \"s/WCREV/$(svn info | grep Revision | awk '{print $2}')/g\" misc/autogen/ossVer.tmp > oss.tmp")
       os.system("sed 's/\$//g' oss.tmp > SequoiaDB/engine/include/ossVer_Autogen.h")
 
-if not has_option("noautogen"):
-   language = get_option ( "language" )
-   autogen_result = 0
-   if language is None:
-      autogen_result = os.system ( "scons -C misc/autogen" )
-   else:
-      autogen_result = os.system ( "scons -C misc/autogen --language=" + language )
-   if autogen_result != 0:
-      os._exit( 1 )
+language = get_option ( "language" )
+if language is None:
+   os.system ( "scons -C misc/autogen" )
+else:
+   os.system ( "scons -C misc/autogen --language=" + language )
 
 if hasDoc:
    errno = os.system ( 'python doc/build.py --doc' )

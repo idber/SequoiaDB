@@ -455,7 +455,7 @@ INT32 loadRecv ( CHAR **buffer, SINT32 *size )
       rc = clientRecv ( s, ((CHAR *)&_recvBufferSize) + totalReceivedLen,
                         sizeof (_recvBufferSize) - totalReceivedLen,
                         &receivedLen,
-                        -1 ) ;
+                     -1 ) ;
       totalReceivedLen += receivedLen ;
       if ( SDB_TIMEOUT == rc )
       {
@@ -484,7 +484,7 @@ INT32 loadRecv ( CHAR **buffer, SINT32 *size )
       rc = clientRecv ( s, _pRecvBuffer + sizeof(_recvBufferSize) + totalReceivedLen,
                         _recvBufferSize - sizeof(_recvBufferSize) - totalReceivedLen,
                         &receivedLen,
-                        -1 ) ;
+                     -1 ) ;
       totalReceivedLen += receivedLen ;
       if ( SDB_TIMEOUT == rc )
       {

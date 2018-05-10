@@ -1,5 +1,3 @@
-﻿//@ sourceURL=Mod.js
-//"use strict" ;
 (function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
@@ -98,11 +96,14 @@
       $scope.SwitchParam = function( type ){
          $scope.StandaloneShow = type ;
       }
-      
-      //创建分区组 弹窗
-      $scope.CreateGroupWindow = {
-         'config': {
-            'inputList': [
+
+      //创建 创建分区组 弹窗
+      $scope.CreateGroupModel = function(){
+         $scope.Components.Modal.icon = '' ;
+         $scope.Components.Modal.title = $scope.autoLanguage( '创建分区组' ) ;
+         $scope.Components.Modal.isShow = true ;
+         $scope.Components.Modal.form = {
+            inputList: [
                {
                   "name": "groupName",
                   "webName": $scope.autoLanguage( '分区组名' ),
@@ -116,14 +117,10 @@
                   }
                }
             ]
-         },
-         'callback': {}
-      } ;
-
-      //打开 创建分区组 弹窗
-      $scope.ShowCreateGroup = function(){
-         $scope.CreateGroupWindow['callback']['SetOkButton']( $scope.autoLanguage( '确定' ), function(){
-            var isAllClear = $scope.CreateGroupWindow['config'].check( function( thisValue ){
+         } ;
+         $scope.Components.Modal.Context = '<div form-create para="data.form"></div>' ;
+         $scope.Components.Modal.ok = function(){
+            var isAllClear = $scope.Components.Modal.form.check( function( thisValue ){
                var isFind = false ;
                $.each( $scope.GroupList, function( index, groupInfo ){
                   if( groupInfo['role'] == 'data' && groupInfo['groupName'] == thisValue['groupName'] )
@@ -140,13 +137,11 @@
             } ) ;
             if( isAllClear )
             {
-               var formVal = $scope.CreateGroupWindow['config'].getValue() ;
+               var formVal = $scope.Components.Modal.form.getValue() ;
                countGroup( 'data', formVal['groupName'], 0 ) ;
             }
             return isAllClear ;
-         } ) ;
-         $scope.CreateGroupWindow['callback']['SetTitle']( $scope.autoLanguage( '创建分区组' ) ) ;
-         $scope.CreateGroupWindow['callback']['Open']() ;
+         }
       }
 
       /*
@@ -705,9 +700,16 @@
          }
       }
 
-      //删除节点 弹窗
-      $scope.RemoveNodeWindow = {
-         'config': {
+      //创建 删除节点 弹窗
+      $scope.CreateRemoveNodeModel = function( index ){
+         if( $scope.GroupList[index]['nodeNum'] == 0 )
+         {
+            return;
+         }
+         $scope.Components.Modal.icon = '' ;
+         $scope.Components.Modal.title = $scope.autoLanguage( '删除节点' ) ;
+         $scope.Components.Modal.isShow = true ;
+         $scope.Components.Modal.form = {
             'inputList': [
                {
                   "name": "nodename",
@@ -717,46 +719,35 @@
                   "valid": []
                }
             ]
-         },
-         'callback': {}
-      } ;
-
-      //打开 删除节点 弹窗
-      $scope.ShowRemoveNode = function( index ){
-         if( $scope.GroupList[index]['nodeNum'] == 0 )
-         {
-            return;
-         }
+         } ;
          var isFirst = true ;
          $.each( $scope.NodeList, function( index2, nodeInfo ){
             if( $scope.GroupList[index]['role'] == 'data' && nodeInfo['datagroupname'] == $scope.GroupList[index]['groupName'] )
             {
                if( isFirst == true )
                {
-                  $scope.RemoveNodeWindow['config']['inputList'][0]['value'] = index2 ;
+                  $scope.Components.Modal.form['inputList'][0]['value'] = index2 ;
                   isFirst = false ;
                }
-               $scope.RemoveNodeWindow['config']['inputList'][0]['valid'].push( { 'key': nodeInfo['HostName'] + ':' + nodeInfo['svcname'], 'value': index2 } ) ;
+               $scope.Components.Modal.form['inputList'][0]['valid'].push( { 'key': nodeInfo['HostName'] + ':' + nodeInfo['svcname'], 'value': index2 } ) ;
             }
             if( $scope.GroupList[index]['role'] != 'data' && nodeInfo['role'] == $scope.GroupList[index]['role'] )
             {
                if( isFirst == true )
                {
-                  $scope.RemoveNodeWindow['config']['inputList'][0]['value'] = index2 ;
+                  $scope.Components.Modal.form['inputList'][0]['value'] = index2 ;
                   isFirst = false ;
                }
-               $scope.RemoveNodeWindow['config']['inputList'][0]['valid'].push( { 'key': nodeInfo['HostName'] + ':' + nodeInfo['svcname'], 'value': index2 } ) ;
+               $scope.Components.Modal.form['inputList'][0]['valid'].push( { 'key': nodeInfo['HostName'] + ':' + nodeInfo['svcname'], 'value': index2 } ) ;
             }
          } ) ;
-         $scope.RemoveNodeWindow['callback']['SetOkButton']( $scope.autoLanguage( '确定' ), function(){
-            var isAllClear = $scope.RemoveNodeWindow['config'].check() ;
+         $scope.Components.Modal.Context = '<div form-create para="data.form"></div>' ;
+         $scope.Components.Modal.ok = function(){
+            var isAllClear = $scope.Components.Modal.form.check() ;
             if( isAllClear )
             {
-               var formVal = $scope.RemoveNodeWindow['config'].getValue() ;
+               var formVal = $scope.Components.Modal.form.getValue() ;
                $scope.NodeList.splice( formVal['nodename'], 1 ) ;
-               $.each( $scope.NodeList, function( index, nodeInfo ){
-                  $scope.NodeList[index]['i'] = index ;
-               } ) ;
                --$scope.GroupList[index]['nodeNum'] ;
                //没有节点了，禁用删除节点的按钮
                if( $scope.GroupList[index]['nodeNum'] < 7 )
@@ -769,20 +760,16 @@
                }
             }
             return isAllClear ;
-         } ) ;
-         $scope.RemoveNodeWindow['callback']['SetTitle']( $scope.autoLanguage( '删除节点' ) ) ;
-         $scope.RemoveNodeWindow['callback']['Open']() ;
+         }
       }
 
-      //修改分区组名 弹窗
-      $scope.RenameGroupWindow = {
-         'config': {},
-         'callback': {}
-      } ;
-      //打开 修改分区组名 弹窗
-      $scope.ShowRenameGroup = function( index ){
-         $scope.RenameGroupWindow['config'] = {
-            'inputList': [
+      //创建 修改分区组名 弹窗
+      $scope.CreateRenameGroupModel = function( index ){
+         $scope.Components.Modal.icon = '' ;
+         $scope.Components.Modal.title = $scope.autoLanguage( '修改分区组名' ) ;
+         $scope.Components.Modal.isShow = true ;
+         $scope.Components.Modal.form = {
+            inputList: [
                {
                   "name": "groupName",
                   "webName": $scope.autoLanguage( '新的分区组名' ),
@@ -797,8 +784,9 @@
                }
             ]
          } ;
-         $scope.RenameGroupWindow['callback']['SetOkButton']( $scope.autoLanguage( '确定' ), function(){
-            var isAllClear = $scope.RenameGroupWindow['config'].check( function( thisValue ){
+         $scope.Components.Modal.Context = '<div form-create para="data.form"></div>' ;
+         $scope.Components.Modal.ok = function(){
+            var isAllClear = $scope.Components.Modal.form.check( function( thisValue ){
                var isFind = false ;
                $.each( $scope.GroupList, function( index, groupInfo ){
                   if( groupInfo['role'] == 'data' && groupInfo['groupName'] == thisValue['groupName'] )
@@ -815,7 +803,7 @@
             } ) ;
             if( isAllClear )
             {
-               var formVal = $scope.RenameGroupWindow['config'].getValue() ;
+               var formVal = $scope.Components.Modal.form.getValue() ;
                $.each( $scope.NodeList, function( index2 ){
                   if( $scope.NodeList[index2]['datagroupname'] == $scope.GroupList[index]['groupName'] )
                   {
@@ -830,9 +818,7 @@
                }
             }
             return isAllClear ;
-         } ) ;
-         $scope.RenameGroupWindow['callback']['SetTitle']( $scope.autoLanguage( '修改分区组名' ) ) ;
-         $scope.RenameGroupWindow['callback']['Open']() ;
+         }
       }
 
       //创建 删除分区组 弹窗
@@ -1207,9 +1193,9 @@
             {
                $scope.GroupList.push( { 'role': role, 'groupName': groupName, 'nodeNum': defaultNum, 'DropdownMenu': [
                   { 'html': $compile( '<div style="padding:5px 10px" ng-click="CreateAddNodeModel(' + groupIndex + ')">{{autoLanguage("添加节点")}}</div>' )( $scope ), 'disabled': false },
-                  { 'html': $compile( '<div style="padding:5px 10px" ng-click="ShowRemoveNode(' + groupIndex + ')">{{autoLanguage("删除节点")}}</div>' )( $scope ), 'disabled': true },
+                  { 'html': $compile( '<div style="padding:5px 10px" ng-click="CreateRemoveNodeModel(' + groupIndex + ')">{{autoLanguage("删除节点")}}</div>' )( $scope ), 'disabled': true },
                   {},
-                  { 'html': $compile( '<div style="padding:5px 10px" ng-click="ShowRenameGroup(' + groupIndex + ')">{{autoLanguage("修改分区组名")}}</div>' )( $scope ) },
+                  { 'html': $compile( '<div style="padding:5px 10px" ng-click="CreateRenameGroupModel(' + groupIndex + ')">{{autoLanguage("修改分区组名")}}</div>' )( $scope ) },
                   { 'html': $compile( '<div style="padding:5px 10px" ng-click="CreateRemoveGroupModel(' + groupIndex + ')">{{autoLanguage("删除分区组")}}</div>' )( $scope ) }
                ] } ) ;
             }
@@ -1217,7 +1203,7 @@
             {
                $scope.GroupList.push( { 'role': role, 'groupName': groupName, 'nodeNum': defaultNum, 'DropdownMenu': [
                   { 'html': $compile( '<div style="padding:5px 10px" ng-click="CreateAddNodeModel(' + groupIndex + ')">{{autoLanguage("添加节点")}}</div>' )( $scope ), 'disabled': false },
-                  { 'html': $compile( '<div style="padding:5px 10px" ng-click="ShowRemoveNode(' + groupIndex + ')">{{autoLanguage("删除节点")}}</div>' )( $scope ), 'disabled': true }
+                  { 'html': $compile( '<div style="padding:5px 10px" ng-click="CreateRemoveNodeModel(' + groupIndex + ')">{{autoLanguage("删除节点")}}</div>' )( $scope ), 'disabled': true }
                ] } ) ;
             }
             if( role == 'data' )
@@ -1338,20 +1324,58 @@
 
       getModuleConfig() ;
 
-      //帮助信息 弹窗
-      $scope.HelperWindow = {
-         'config': {},
-         'callback': {}
-      } ;
-      
-      //打开 帮助信息 弹窗
-      $scope.ShowHelper = function(){
-         $scope.HelperWindow['callback']['SetOkButton']( $scope.autoLanguage( '确定' ), function(){
-            $scope.HelperWindow['callback']['Close']() ;
-         } ) ;
-         $scope.HelperWindow['callback']['SetTitle']( $scope.autoLanguage( '帮助' ) ) ;
-         $scope.HelperWindow['callback']['SetIcon']( '' ) ;
-         $scope.HelperWindow['callback']['Open']() ;
+      //打开帮助信息
+      $scope.Helper = function(){
+         $scope.Components.Modal.icon = '' ;
+         $scope.Components.Modal.title = $scope.autoLanguage( '帮助' ) ;
+         $scope.Components.Modal.isShow = true ;
+         $scope.Components.Modal.Context = '\
+<div>\
+   ' + $scope.autoLanguage( '关于<b>[批量修改节点]</b>。您可以使用特殊规则来<b>批量修改</b>节点的<b>服务名</b>和<b>数据路径</b>：' ) + '\
+   <table class="table loosen border" style="margin-top:20px;line-height:120%;">\
+      <tr>\
+         <td colspan="2" style="width:220px;"><b>' + $scope.autoLanguage( '服务名规则' ) + '</b></td>\
+         <td>' + $scope.autoLanguage( '规则：服务名[+步进] 或 服务名[-步进]。' ) + '</td>\
+      </tr>\
+      <tr>\
+         <td>' + $scope.autoLanguage( '规则' ) + '</td>\
+         <td>' + $scope.autoLanguage( '例子' ) + '</td>\
+         <td>' + $scope.autoLanguage( '描述' ) + '</td>\
+      </tr>\
+      <tr>\
+         <td>' + $scope.autoLanguage( '普通方式' ) + '</td>\
+         <td>11810</td>\
+         <td>' + $scope.autoLanguage( '设置服务名为：11810，但要注意同一主机下的节点是不能有相同服务名。假设有3个节点：PcHost-1:11810，PcHost-2:11810，PcHost-3:11810' ) + '</td>\
+      </tr>\
+      <tr>\
+         <td>' + $scope.autoLanguage( '递增方式' ) + '</td>\
+         <td>11810[+10]</td>\
+         <td>' + $scope.autoLanguage( '设置已选定节点的服务名从11810起始(含11810)，每一个节点递增10。假设有3个节点：PcHost-1:11810，PcHost-2:11820，PcHost-3:11830' ) + '</td>\
+      </tr>\
+      <tr>\
+         <td>' + $scope.autoLanguage( '递减方式' ) + '</td>\
+         <td>11810[-10]</td>\
+         <td>' + $scope.autoLanguage( '设置已选定节点的服务名从11810起始(含11810)，每一个节点递减10。假设有3个节点：PcHost-1:11810，PcHost-2:11800，PcHost-3:11790' ) + '</td>\
+      </tr>\
+   </table>\
+   <table class="table loosen border" style="margin-top:20px;line-height:120%;">\
+      <tr>\
+         <td style="width:340px;"><b>' + $scope.autoLanguage( '数据路径规则' ) + '</b></td>\
+         <td>' + $scope.autoLanguage( '规则：可以在路径中任意添加这几个特殊命令，[role] -- 角色，[svcname] -- 服务名，[groupname] -- 分区组名，[hostname] --&nbsp;&nbsp;主机名。' ) + '</td>\
+      </tr>\
+      <tr>\
+         <td>' + $scope.autoLanguage( '例子' ) + '</td>\
+         <td>' + $scope.autoLanguage( '描述' ) + '</td>\
+      </tr>\
+      <tr>\
+         <td>/opt/sequoiadb/database/[role]/[svcname]</td>\
+         <td>' + $scope.autoLanguage( '假设已选定节点配置为：角色：data，服务名：11810，数据路径将会是：/opt/sequoiadb/database/data/11810，注意：协调节点和编目节点是没有分区组名的，因此当节点是协调节点或编目节点时，[groupname]是空字符。' ) + '</td>\
+      </tr>\
+   </table>\
+</div>' ;
+         $scope.Components.Modal.ok = function(){
+            return true ;
+         }
       }
 
       //全选
@@ -1483,26 +1507,7 @@
       }
 
       $scope.GotoInstall = function(){
-         var oldConfigure = convertConfig() ;
-         if( typeof( oldConfigure ) == 'undefined' )
-         {
-            return ;
-         }
-         var configure = {} ;
-         $.each( oldConfigure, function( key, value ){
-            configure[key] = value ;
-         } ) ;
-         configure['Config'] = [] ;
-         $.each( oldConfigure['Config'], function( nodeIndex, nodeInfo ){
-            var nodeConfig = {} ;
-            $.each( nodeInfo, function( key, value ){
-               if( value.length > 0 || key == 'datagroupname' )
-               {
-                   nodeConfig[key] = value ;
-               }
-            } ) ;
-            configure['Config'].push( nodeConfig ) ;
-         } ) ;
+         var configure = convertConfig() ;
          if( configure )
             installSdb( configure ) ;
       }

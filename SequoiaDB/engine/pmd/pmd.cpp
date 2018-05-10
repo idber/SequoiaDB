@@ -78,8 +78,10 @@ namespace engine
 
       setGroupName ( "" );
 
+#if defined ( SDB_ENGINE )
       _monCfgCB.timestampON = TRUE ;
       _monDBCB.recordActivateTimestamp () ;
+#endif // SDB_ENGINE
 
       _optioncb.setConfigHandler( this ) ;
    }
@@ -119,21 +121,6 @@ namespace engine
          return FALSE ;
       }
       return _arrayCBs[ type ] ? TRUE : FALSE ;
-   }
-
-   IExecutorMgr* _SDB_KRCB::getExecutorMgr()
-   {
-      return &_eduMgr ;
-   }
-
-   IContextMgr* _SDB_KRCB::getContextMgr()
-   {
-      IControlBlock *rtnCB = getCBByType( SDB_CB_RTN ) ;
-      if ( rtnCB )
-      {
-         return (IContextMgr*)( rtnCB->queryInterface( SDB_IF_CTXMGR ) ) ;
-      }
-      return NULL ;
    }
 
    SDB_DB_STATUS _SDB_KRCB::getDBStatus() const
@@ -296,13 +283,6 @@ namespace engine
       INT32 index = 0 ;
       IControlBlock *pCB = NULL ;
 
-      rc = _eduMgr.init( this ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Init EduMgr failed, rc: %d", rc ) ;
-         goto error ;
-      }
-
       _mainEDU = SDB_OSS_NEW pmdEDUCB( &_eduMgr, EDU_TYPE_MAIN ) ;
       if ( !_mainEDU )
       {
@@ -390,7 +370,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       INT32 index = 0 ;
       IControlBlock *pCB = NULL ;
-      BOOLEAN normalStop = TRUE ;
 
       if ( !_init )
       {
@@ -413,7 +392,7 @@ namespace engine
          }
       }
 
-      normalStop = _eduMgr.reset() ;
+      _eduMgr.reset () ;
 
       _syncMgr.syncAndGetLastLSN() ;
 
@@ -440,12 +419,6 @@ namespace engine
       {
          SDB_OSS_DEL _mainEDU ;
          _mainEDU = NULL ;
-      }
-
-      if ( !normalStop && _eduMgr.dumpAbnormalEDU() > 0 )
-      {
-         PD_LOG( PDSEVERE, "Stop all EDUs timeout, crashed." ) ;
-         ossPanic() ;
       }
    }
 

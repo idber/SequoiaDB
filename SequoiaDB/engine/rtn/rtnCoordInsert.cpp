@@ -61,7 +61,6 @@ namespace engine
       CoordCB *pCoordcb                = pKrcb->getCoordCB();
       netMultiRouteAgent *pRouteAgent  = pCoordcb->getRouteAgent();
 
-      // process define
       rtnSendOptions sendOpt( TRUE ) ;
       sendOpt._useSpecialGrp = TRUE ;
 
@@ -76,7 +75,6 @@ namespace engine
       inMsg._pvtData = ( CHAR* )&pvtData ;
       inMsg._pvtType = PRIVATE_DATA_USER ;
 
-      // fill default-reply(insert success)
       MsgOpInsert *pInsertMsg          = (MsgOpInsert *)pMsg ;
       INT32 oldFlag                    = pInsertMsg->flags ;
       pInsertMsg->flags               |= FLG_INSERT_RETURNNUM ;
@@ -95,7 +93,6 @@ namespace engine
          goto error ;
       }
 
-      // add list op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "Collection:%s, Insertors:%s, ObjNum:%d, "
                           "Flag:0x%08x(%u)",
@@ -118,7 +115,7 @@ namespace engine
          {
             rcTmp = doOpOnCL( cataInfo, BSONObj(), inMsg, sendOpt,
                               pRouteAgent, cb, result ) ;
-            
+
          }
          else
          {
@@ -147,7 +144,6 @@ namespace engine
       }
 
    done:
-      /// AUDIT
       if ( pCollectionName )
       {
          UINT32 insertedNum = 0 ;
@@ -167,6 +163,10 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_RTNCOINS_EXECUTE, rc ) ;
       return rc;
    error:
+      if ( buf && nokRC.size() > 0 )
+      {
+         *buf = rtnContextBuf( rtnBuildErrorObj( rc, cb, &nokRC ) ) ;
+      }
       goto done;
    }
 
@@ -185,14 +185,11 @@ namespace engine
                                             pInsertMsg->nameLength + 1, 4 ) -
                     sizeof( MsgHeader ) ) ;
 
-      // clear send groups
       options._groupLst.clear() ;
 
       if ( !cataInfo->isSharded() )
       {
-         // get group
          cataInfo->getGroupLst( options._groupLst ) ;
-         // don't change the msg
          goto done ;
       }
       else if ( inMsg.data()->size() == 0 )
@@ -212,7 +209,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to shard data by group, rc: %d",
                       rc ) ;
 
-         // only one group, send by normal
          if ( 1 == inMsg._datas.size() )
          {
             UINT32 groupID = inMsg._datas.begin()->first ;
@@ -229,13 +225,11 @@ namespace engine
             }
          }
       }
-      // reshard
       else
       {
          rc = reshardData( cataInfo, fixed, inMsg._datas ) ;
          PD_RC_CHECK( rc, PDERROR, "Re-shard data failed, rc: %d", rc ) ;
 
-         // build groups
          {
             GROUP_2_IOVEC::iterator it = inMsg._datas.begin() ;
             while( it != inMsg._datas.end() )
@@ -260,7 +254,6 @@ namespace engine
                                    pmdEDUCB *cb,
                                    rtnProcessResult &result )
    {
-      // remove the datas by succeed group
       if ( inMsg._datas.size() > 0 )
       {
          CoordGroupList::iterator it = result._sucGroupLst.begin() ;
@@ -271,7 +264,6 @@ namespace engine
          }
       }
 
-      // clear all succeed group
       result._sucGroupLst.clear() ;
    }
 
@@ -293,13 +285,12 @@ namespace engine
          {
             UINT32 hi1 = 0, lo1 = 0 ;
             UINT32 hi2 = 0, lo2 = 0 ;
-            /// (UINT32)insertedNum + (UINT32)ignoredNum
             ossUnpack32From64( pReply->contextID, hi1, lo1 ) ;
             ossUnpack32From64( pvtData->_insertMixNum, hi2, lo2 ) ;
             hi2 += hi1 ;
             lo2 += lo1 ;
             pvtData->_insertMixNum = ossPack32To64( hi2, lo2 ) ;
-         }         
+         }
       }
    }
 
@@ -324,7 +315,6 @@ namespace engine
                       cataInfo->getCatalogSet()->toCataInfoBson(
                       ).toString().c_str(),
                       rc ) ;
-         // add 2 group
          {
             netIOVec &iovec = datas[ groupID ] ;
             UINT32 size = iovec.size() ;
@@ -333,7 +323,6 @@ namespace engine
                if ( (const CHAR*)( iovec[size-1].iovBase ) +
                     iovec[size-1].iovLen == pInsertor )
                {
-                  // only change the length
                   iovec[size-1].iovLen += roundLen ;
                }
                else
@@ -416,7 +405,6 @@ namespace engine
       {
          netIOVec &iovec = it->second ;
          UINT32 size = iovec.size() ;
-         // skip the first
          for ( UINT32 i = 1 ; i < size ; ++i )
          {
             netIOV &ioItem = iovec[ i ] ;
@@ -520,15 +508,12 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Re-shard data failed, rc: %d", rc ) ;
       }
 
-      // build msg
       inMsg._datas.clear() ;
 
       rc = buildInsertMsg( fixed, *pGrpSubCLDatas, *pVecObj, inMsg._datas ) ;
       PD_RC_CHECK( rc, PDERROR, "Build insert msg failed, rc: %d" ) ;
 
-      // clear send groups
       options._groupLst.clear() ;
-      // build group list
       it = inMsg._datas.begin() ;
       while( it != inMsg._datas.end() )
       {
@@ -562,7 +547,6 @@ namespace engine
       rtnCoordInsertPvtData *pvtData = (rtnCoordInsertPvtData*)inMsg._pvtData ;
       vector< BSONObj > *pVecObj = ( vector< BSONObj > * )itPtr ;
 
-      // remove the datas by succeed group
       if ( pvtData && pvtData->_grpSubCLDatas.size() > 0 )
       {
          CoordGroupList::iterator it = result._sucGroupLst.begin() ;
@@ -573,10 +557,8 @@ namespace engine
          }
       }
 
-      // clear all succeed group
       result._sucGroupLst.clear() ;
 
-      // release obj vector
       if ( pVecObj )
       {
          delete pVecObj ;
@@ -601,8 +583,8 @@ namespace engine
          rc = cataInfo->getSubCLNameByRecord( insertObj, subCLName ) ;
          PD_RC_CHECK( rc, PDWARNING,
                       "Couldn't find the match[%s] sub-collection "
-                      "in catalog info[%s], rc: %d",
-                      insertObj.toString().c_str(),
+                      "in cl's(%s) catalog info[%s], rc: %d",
+                      insertObj.toString().c_str(), cataInfo->getName(),
                       cataInfo->getCatalogSet()->toCataInfoBson(
                       ).toString().c_str(), rc ) ;
 
@@ -676,7 +658,7 @@ namespace engine
       INT32 rc = SDB_OK;
       GroupSubCLMap groupSubCLMapNew ;
 
-      GroupSubCLMap::iterator iterGroup = groupSubCLMap.begin() ; 
+      GroupSubCLMap::iterator iterGroup = groupSubCLMap.begin() ;
       while ( iterGroup != groupSubCLMap.end() )
       {
          SubCLObjsMap::iterator iterCL = iterGroup->second.begin() ;
@@ -728,7 +710,6 @@ namespace engine
             UINT32 dataLen = netCalcIOVecSize( subCLIOVec ) ;
             UINT32 objNum = subCLIOVec.size() ;
 
-            // first for sub cl info
             BSONObjBuilder subCLInfoBuild ;
             subCLInfoBuild.append( FIELD_NAME_SUBOBJSNUM, (INT32)objNum ) ;
             subCLInfoBuild.append( FIELD_NAME_SUBOBJSSIZE, (INT32)dataLen ) ;
@@ -740,7 +721,6 @@ namespace engine
             ioCLInfo.iovLen = subCLInfoObj.objsize() ;
             iovec.push_back( ioCLInfo ) ;
 
-            // need fill
             UINT32 infoRoundSize = ossRoundUpToMultipleX( ioCLInfo.iovLen,
                                                           4 ) ;
             if ( infoRoundSize > ioCLInfo.iovLen )

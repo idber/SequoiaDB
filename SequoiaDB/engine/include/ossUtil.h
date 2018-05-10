@@ -62,7 +62,6 @@
 
 SDB_EXTERN_C_START
 size_t ossSnprintf(CHAR* pBuffer, size_t iLength, const CHAR* pFormat, ...);
-#define ossSscanf( x, y, ... ) sscanf( x, y, ##__VA_ARGS__ ) ;
 CHAR *ossStrdup ( const CHAR *str ) ;
 INT32 ossStrToInt ( const CHAR *pBuffer, INT32 *number ) ;
 #define ossStrncmp(x,y,z) strncmp(x,y,z)
@@ -92,7 +91,6 @@ INT32 ossStrToInt ( const CHAR *pBuffer, INT32 *number ) ;
 #define ossStrrchr(x,y) strrchr(x,y)
 #define ossStrchr(x,y) strchr(x,y)
 #define ossAtoi(x) atoi(x)
-#define ossAtof(x) atof(x)
 #define ossIsspace(c) isspace(c)
 
 #define ossItoa(x,y,z) if (y) { ossSnprintf(y, z, "%d", (INT32)(x) );}
@@ -101,8 +99,6 @@ INT32 ossStrToInt ( const CHAR *pBuffer, INT32 *number ) ;
 BOOLEAN ossIsTimestampValid( INT64 tm ) ;
 
 INT32 ossDup2( int oldFd, int newFd ) ;
-
-INT32 ossResetTty() ;
 
 #if defined (_WINDOWS)
    #define  ossDup(fd)                 _dup(fd)
@@ -126,13 +122,12 @@ INT32 ossResetTty() ;
          fflush(stdout) ;\
       } while (0)
 #endif
-BOOLEAN ossIsInteger( const CHAR *pStr ) ;
 BOOLEAN ossIsUTF8 ( CHAR *pzInfo ) ;
 INT32 ossStrncasecmp ( const CHAR *pString1, const CHAR *pString2,
                        size_t iLength) ;
 CHAR *ossStrnchr(const CHAR *pString, UINT32 c, UINT32 n) ;
 size_t ossVsnprintf (CHAR * buf, size_t size, const CHAR * fmt, va_list ap);
-INT32 ossStrToBoolean(const CHAR* pString, BOOLEAN* pBoolean);
+void ossStrToBoolean(const CHAR* pString, BOOLEAN* pBoolean);
 UINT32 ossHash ( const CHAR *data, INT32 len ) ;
 UINT32 ossHashFileName ( const CHAR *fileName ) ;
 #if defined (_WINDOWS)

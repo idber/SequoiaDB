@@ -34,40 +34,40 @@
    Last Changed =
 
 *******************************************************************************/
-
+/*
+ * EDU Status Transition Table
+ * C: CREATING
+ * R: RUNNING
+ * W: WAITING
+ * I: IDLE
+ * D: DESTROY
+ * c: createNewEDU
+ * a: activateEDU
+ * d: destroyEDU
+ * w: waitEDU
+ * t: deactivateEDU
+ *   C   R   W   I   D  <--- from
+ * C c
+ * R a   -   a   a   -  <--- Create/Idle/Wait status can move to Running status
+ * W -   w   -   -   -  <--- Running status move to Waiting
+ * I t   -   t   -   -  <--- Creating/Waiting status move to Idle
+ * D d   -   d   d   -  <--- Creating / Waiting / Idle can be destroyed
+ * ^ To
+ */
 #include "core.hpp"
 #include "pd.hpp"
 #include "pmd.hpp"
 #include "pmdEDUMgr.hpp"
-#include "ossEDU.hpp"
 #include "oss.hpp"
 #include "pdTrace.hpp"
 #include "pmdTrace.hpp"
-
 namespace engine
 {
-   /*
-      Local Define
-   */
-   #define PMD_EDU_IDLE_MAX_TIME             ( 1800 * OSS_ONE_SEC )  /// 30 mins
-   #define PMD_EDU_IDLE_LOW_TIME             ( 10 * OSS_ONE_SEC ) /// 10 seconds
-   #define PMD_EDU_IDLE_LOW_SIZE             ( 10 )
-
-   #define PMD_FORCE_IO_INTERVAL             ( 200 )
-   #define PMD_FORCE_EDU_INTERVAL            ( 100 )
-
-   #define PMD_STOP_MIN_TIMEOUT              ( 60000 )   /// 1 min
-
-   /*
-      _pmdEDUMgr implement
-   */
    _pmdEDUMgr::_pmdEDUMgr() :
    _EDUID(1),
-   _isDestroyed(FALSE),
-   _isQuiesced(FALSE)
+   _isQuiesced(FALSE),
+   _isDestroyed(FALSE)
    {
-      _pResource = NULL ;
-      _pMonitorThd = NULL ;
    }
 
    _pmdEDUMgr::~_pmdEDUMgr()
@@ -75,340 +75,185 @@ namespace engine
       reset () ;
    }
 
-   void _pmdEDUMgr::addIOService( IIOService *pIOService )
+   void _pmdEDUMgr::addIOService( io_service * service )
    {
-      ossScopedLock lock( &_latch, EXCLUSIVE ) ;
-      _vecIOServices.push_back( pIOService ) ;
+      EDUMGR_XLOCK
+      _ioserviceList.push_back ( service ) ;
    }
 
-   void _pmdEDUMgr::delIOSerivce( IIOService *pIOService )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_DELIOSVC, "_pmdEDUMgr::deleteIOService" )
+   void _pmdEDUMgr::deleteIOService( io_service * service )
    {
-      ossScopedLock lock( &_latch, EXCLUSIVE ) ;
-
-      VEC_IOSERVICE::iterator it = _vecIOServices.begin() ;
-      while( it != _vecIOServices.end() )
+      PD_TRACE_ENTRY ( SDB__PMDEDUMGR_DELIOSVC );
+      std::vector<io_service*>::iterator it ;
       {
-         if ( (*it) == pIOService )
+         EDUMGR_XLOCK
+         for ( it = _ioserviceList.begin() ;
+               it != _ioserviceList.end() ;
+               it++ )
          {
-            _vecIOServices.erase( it ) ;
-            break ;
-         }
-         ++it ;
-      }
-   }
-
-   INT32 _pmdEDUMgr::init( IResource *pResource )
-   {
-      INT32 rc = SDB_OK ;
-
-      if ( !pResource )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      _pResource = pResource ;
-
-      try
-      {
-         _pMonitorThd = new boost::thread( boost::bind( &pmdEDUMgr::monitor,
-                                                        this )
-                                          ) ;
-      }
-      catch ( std::exception &e )
-      {
-         PD_LOG ( PDSEVERE, "Failed to create monitor thread: %s",
-                  e.what() ) ;
-         delete _pMonitorThd ;
-         _pMonitorThd = NULL ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   BOOLEAN _pmdEDUMgr::reset( INT64 timeout )
-   {
-      BOOLEAN normalStop = TRUE ;
-
-      if ( timeout > 0 && timeout < PMD_STOP_MIN_TIMEOUT )
-      {
-         timeout = PMD_STOP_MIN_TIMEOUT ;
-      }
-
-      if ( timeout > 0 )
-      {
-         normalStop = destroyAll( timeout ) ;
-         if ( !normalStop )
-         {
-            normalStop = destroyAll( PMD_STOP_MIN_TIMEOUT ) ;
+            if ( (*it) == service )
+            {
+               _ioserviceList.erase ( it ) ;
+               break ;
+            }
          }
       }
-      else
-      {
-         normalStop = destroyAll( timeout ) ;
-      }
-
-      return normalStop ;
+      PD_TRACE_EXIT ( SDB__PMDEDUMGR_DELIOSVC );
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_DUMPINFO, "_pmdEDUMgr::dumpInfo" )
-   void _pmdEDUMgr::dumpInfo ( set<monEDUSimple> &info )
+   void _pmdEDUMgr::reset()
    {
-      PD_TRACE_ENTRY ( SDB__PMDEDUMGR_DUMPINFO ) ;
-      MAP_EDUCB_IT it ;
-      pmdEDUCB *cb = NULL ;
-      monEDUSimple simple ;
-
-      ossScopedLock lock( &_latch, SHARED ) ;
-
-      for ( it = _mapRuns.begin () ; it != _mapRuns.end () ; ++it )
-      {
-         cb = it->second ;
-         cb->dumpInfo( simple ) ;
-         info.insert(simple) ;
-      }
-
-      for ( it = _mapIdles.begin () ; it != _mapIdles.end () ; ++it )
-      {
-         cb = it->second ;
-         cb->dumpInfo ( simple ) ;
-         info.insert( simple ) ;
-      }
-      PD_TRACE_EXIT ( SDB__PMDEDUMGR_DUMPINFO ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_DUMPINFO2, "_pmdEDUMgr::dumpInfo" )
-   void _pmdEDUMgr::dumpInfo ( set<monEDUFull> &info )
-   {
-      PD_TRACE_ENTRY ( SDB__PMDEDUMGR_DUMPINFO2 ) ;
-      MAP_EDUCB_IT it ;
-      pmdEDUCB *cb = NULL ;
-      monEDUFull full ;
-
-      for ( it = _mapRuns.begin () ; it != _mapRuns.end () ; ++it )
-      {
-         cb = it->second ;
-         cb->dumpInfo( full ) ;
-         info.insert(full) ;
-      }
-
-      for ( it = _mapIdles.begin () ; it != _mapIdles.end () ; ++it )
-      {
-         cb = it->second ;
-         cb->dumpInfo( full ) ;
-         info.insert( full ) ;
-      }
-      PD_TRACE_EXIT ( SDB__PMDEDUMGR_DUMPINFO2 ) ;
+      destroyAll () ;
    }
 
 #if defined( SDB_ENGINE )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_DUMPINFO, "_pmdEDUMgr::dumpInfo" )
+   void _pmdEDUMgr::dumpInfo ( std::set<monEDUSimple> &info )
+   {
+      PD_TRACE_ENTRY ( SDB__PMDEDUMGR_DUMPINFO );
+      std::map<EDUID, pmdEDUCB*>::iterator it ;
+      {
+         EDUMGR_SLOCK
+         for ( it = _runQueue.begin () ; it != _runQueue.end () ; it ++ )
+         {
+            monEDUSimple simple ;
+            (*it).second->dumpInfo ( simple ) ;
+            info.insert(simple) ;
+         }
+         for ( it = _idleQueue.begin () ; it != _idleQueue.end () ; it ++ )
+         {
+            monEDUSimple simple ;
+            (*it).second->dumpInfo ( simple ) ;
+            info.insert(simple) ;
+         }
+      }
+      PD_TRACE_EXIT ( SDB__PMDEDUMGR_DUMPINFO );
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_DUMPINFO2, "_pmdEDUMgr::dumpInfo" )
+   void _pmdEDUMgr::dumpInfo ( std::set<monEDUFull> &info )
+   {
+      PD_TRACE_ENTRY ( SDB__PMDEDUMGR_DUMPINFO2 );
+      std::map<EDUID, pmdEDUCB*>::iterator it ;
+      {
+         EDUMGR_SLOCK
+         for ( it = _runQueue.begin () ; it != _runQueue.end () ; it ++ )
+         {
+            monEDUFull full ;
+            (*it).second->dumpInfo ( full ) ;
+            info.insert(full) ;
+         }
+         for ( it = _idleQueue.begin () ; it != _idleQueue.end () ; it ++ )
+         {
+            monEDUFull full ;
+            (*it).second->dumpInfo ( full ) ;
+            info.insert(full) ;
+         }
+      }
+      PD_TRACE_EXIT ( SDB__PMDEDUMGR_DUMPINFO2 );
+   }
+
    INT32 _pmdEDUMgr::dumpTransInfo( EDUID eduId,
                                     monTransInfo &transInfo )
    {
-      INT32 rc = SDB_OK ;
-      MAP_EDUCB_IT it ;
-      pmdEDUCB *cb = NULL ;
-
-      ossScopedLock lock( &_latch, SHARED ) ;
-
-      it = _mapRuns.find( eduId ) ;
-      if ( _mapRuns.end() ==  it )
+      std::map<EDUID, pmdEDUCB*>::iterator iter ;
+      EDUMGR_SLOCK
+      iter = _runQueue.find( eduId ) ;
+      if ( _runQueue.end() ==  iter )
       {
-         it = _mapIdles.find( eduId ) ;
-         if ( _mapIdles.end() == it )
+         iter = _idleQueue.find( eduId ) ;
+         if ( _idleQueue.end() == iter )
          {
-            rc = SDB_PMD_SESSION_NOT_EXIST ;
-            goto error ;
+            return SDB_SYS ;
          }
       }
-      cb = it->second ;
-
-      cb->dumpTransInfo( transInfo ) ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
+      iter->second->dumpTransInfo( transInfo ) ;
+      return SDB_OK ;
    }
-#endif //SDB_ENGINE
 
-   UINT32 _pmdEDUMgr::dumpAbnormalEDU()
-   {
-      UINT32 count = 0 ;
-      MAP_EDUCB_IT it ;
-      pmdEDUCB *cb = NULL ;
-
-      ossScopedLock lock( &_latch, SHARED ) ;
-
-      it = _mapRuns.begin() ;
-      while( it != _mapRuns.end() )
-      {
-         cb = it->second ;
-         ++it ;
-
-         PD_LOG( PDERROR, "Run EDU[ID:%llu, TID:%u, Type:%s, Name:%s] is "
-                 "abnormal", cb->getID(), cb->getTID(),
-                 getEDUName( cb->getType() ), cb->getName() ) ;
-         ++count ;
-      }
-
-      it = _mapIdles.begin() ;
-      while( it != _mapIdles.end() )
-      {
-         cb = it->second ;
-         ++it ;
-
-         PD_LOG( PDERROR, "Idle EDU[ID:%llu, TID:%u, Type:%s, Name:%s] is "
-                 "abnormal", cb->getID(), cb->getTID(),
-                 getEDUName( cb->getType() ), cb->getName() ) ;
-         ++count ;
-      }
-
-      return count ;
-   }
+#endif // SDB_ENGINE
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_DESTROYALL, "_pmdEDUMgr::destroyAll" )
-   BOOLEAN _pmdEDUMgr::destroyAll( INT64 timeout )
+   INT32 _pmdEDUMgr::destroyAll ()
    {
-      PD_TRACE_ENTRY ( SDB__PMDEDUMGR_DESTROYALL ) ;
+      PD_TRACE_ENTRY ( SDB__PMDEDUMGR_DESTROYALL );
+      setDestroyed ( TRUE ) ;
+      setQuiesced ( TRUE ) ;
 
-      BOOLEAN normalStop = TRUE ;
-      INT64 itemTimeout = timeout > 0 ? ( timeout / 3 ) : 0x7FFFFFFF ;
-      INT64 lastTimeout = 0 ;
-      INT64 timeoutCounter = 0 ;
-
-      setDestroyed( TRUE ) ;
-      setQuiesced( TRUE ) ;
-      _monitorEvent.signal() ;
-
-      if ( _pMonitorThd )
+      while ( _getIOServiceCount() > 0 )
       {
-         _pMonitorThd->join() ;
-         delete _pMonitorThd ;
-         _pMonitorThd = NULL ;
+         _forceIOService () ;
+         ossSleepmillis ( 200 ) ;
       }
 
-      timeoutCounter = 0 ;
-      while ( countIOService() > 0 )
-      {
-         forceIOSerivce() ;
-         ossSleepmillis( PMD_FORCE_IO_INTERVAL ) ;
-         timeoutCounter += PMD_FORCE_IO_INTERVAL ;
-
-         if ( timeoutCounter >= itemTimeout + lastTimeout )
-         {
-            normalStop = FALSE ;
-            break ;
-         }
-      }
-      if ( timeoutCounter < itemTimeout + lastTimeout )
-      {
-         lastTimeout = itemTimeout + lastTimeout - timeoutCounter ;
-      }
-
-      timeoutCounter = 0 ;
       UINT32 timeCounter = 0 ;
-      UINT32 eduCount = _getEDUCount( EDU_USER ) ;
+      UINT32 eduCount = _getEDUCount ( EDU_USER ) ;
+
       while ( eduCount != 0 )
       {
          if ( 0 == timeCounter % 50 )
          {
-            _forceEDUs( EDU_USER ) ;
+            _forceEDUs ( EDU_USER ) ;
          }
          ++timeCounter ;
-         ossSleepmillis ( PMD_FORCE_EDU_INTERVAL ) ;
-         timeoutCounter += PMD_FORCE_EDU_INTERVAL ;
-         if ( timeoutCounter > itemTimeout + lastTimeout )
-         {
-            normalStop = FALSE ;
-            break ;
-         }
-         eduCount = _getEDUCount( EDU_USER ) ;
-      }
-      if ( timeoutCounter < itemTimeout + lastTimeout )
-      {
-         lastTimeout = itemTimeout + lastTimeout - timeoutCounter ;
+         ossSleepmillis ( 100 ) ;
+         eduCount = _getEDUCount ( EDU_USER ) ;
       }
 
-      timeoutCounter = 0 ;
       timeCounter = 0 ;
-      eduCount = _getEDUCount( EDU_ALL ) ;
+      eduCount = _getEDUCount ( EDU_ALL ) ;
       while ( eduCount != 0 )
       {
          if ( 0 == timeCounter % 50 )
          {
-            _forceEDUs( EDU_ALL ) ;
+            _forceEDUs ( EDU_ALL ) ;
          }
 
          ++timeCounter ;
-         ossSleepmillis ( PMD_FORCE_EDU_INTERVAL ) ;
-         timeoutCounter += PMD_FORCE_EDU_INTERVAL ;
-         if ( timeoutCounter > itemTimeout + lastTimeout )
-         {
-            normalStop = FALSE ;
-            break ;
-         }
-         eduCount = _getEDUCount( EDU_ALL ) ;
+         ossSleepmillis ( 100 ) ;
+         eduCount = _getEDUCount ( EDU_ALL ) ;
       }
 
-      PD_TRACE_EXIT ( SDB__PMDEDUMGR_DESTROYALL ) ;
-      return normalStop ;
-   }
-
-   BOOLEAN _pmdEDUMgr::_isSystemEDU( pmdEDUCB *cb )
-   {
-      pmdEPFactory &factory = pmdGetEPFactory() ;
-      const pmdEPItem *pItem = NULL ;
-
-      pItem = factory.getItem( cb->getType() ) ;
-      if ( pItem && pItem->isSystem() )
-      {
-         return TRUE ;
-      }
-      return FALSE ;
+      PD_TRACE_EXIT ( SDB__PMDEDUMGR_DESTROYALL );
+      return SDB_OK ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_FORCEUSREDU, "_pmdEDUMgr::forceUserEDU" )
-   INT32 _pmdEDUMgr::forceUserEDU( EDUID eduID )
+   INT32 _pmdEDUMgr::forceUserEDU ( EDUID eduID )
    {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__PMDEDUMGR_FORCEUSREDU ) ;
-      MAP_EDUCB_IT it ;
-      pmdEDUCB *cb = NULL ;
-      BOOLEAN isSystem = FALSE ;
-
-      ossScopedLock lock( &_latch, SHARED ) ;
-
-      if ( ( it = _mapRuns.find( eduID ) ) != _mapRuns.end() )
-      {
-         cb = it->second ;
-         isSystem = _isSystemEDU( cb ) ;
-      }
-      else if ( ( it = _mapIdles.find( eduID ) ) != _mapIdles.end() )
-      {
-         cb = it->second ;
-      }
-      else
-      {
-         rc = SDB_PMD_SESSION_NOT_EXIST ;
-         goto error ;
-      }
-
-      if ( isSystem )
+      INT32 rc = SDB_PMD_SESSION_NOT_EXIST ;
+      PD_TRACE_ENTRY ( SDB__PMDEDUMGR_FORCEUSREDU );
+      std::map<EDUID, pmdEDUCB*>::iterator it ;
+      if ( isSystemEDU ( eduID ) )
       {
          PD_LOG ( PDERROR, "System EDU %d can't be forced", eduID ) ;
          rc = SDB_PMD_FORCE_SYSTEM_EDU ;
          goto error ;
       }
-
-      cb->force() ;
-
+      {
+         EDUMGR_SLOCK
+         for ( it = _runQueue.begin () ; it != _runQueue.end () ; ++it )
+         {
+            if ( (*it).second->getID () == eduID )
+            {
+               (*it).second->force () ;
+               rc = SDB_OK ;
+               goto done ;
+            }
+         }
+         for ( it = _idleQueue.begin () ; it != _idleQueue.end () ; ++it )
+         {
+            if ( (*it).second->getID () == eduID )
+            {
+               (*it).second->force () ;
+               rc = SDB_OK ;
+               goto done ;
+            }
+         }
+      }
    done :
-      PD_TRACE_EXITRC ( SDB__PMDEDUMGR_FORCEUSREDU, rc ) ;
+      PD_TRACE_EXITRC ( SDB__PMDEDUMGR_FORCEUSREDU, rc );
       return rc ;
    error :
       goto done ;
@@ -417,36 +262,26 @@ namespace engine
    INT32 _pmdEDUMgr::interruptUserEDU( EDUID eduID )
    {
       INT32 rc = SDB_OK ;
-      MAP_EDUCB_IT it ;
-      pmdEDUCB *cb = NULL ;
-      BOOLEAN isSystem = FALSE ;
-
-      ossScopedLock lock( &_latch, SHARED ) ;
-
-      if ( ( it = _mapRuns.find( eduID ) ) != _mapRuns.end() )
+      if ( isSystemEDU( eduID ) )
       {
-         cb = it->second ;
-         isSystem = _isSystemEDU( cb ) ;
-      }
-      else if ( ( it = _mapIdles.find( eduID ) ) != _mapIdles.end() )
-      {
-         cb = it->second ;
-      }
-      else
-      {
-         rc = SDB_PMD_SESSION_NOT_EXIST ;
-         goto error ;
-      }
-
-      if ( isSystem )
-      {
-         PD_LOG ( PDERROR, "System EDU %d can't be interrupt", eduID ) ;
+         PD_LOG( PDERROR, "can not interrupt a system edu:%lld",
+                 eduID ) ;
          rc = SDB_PMD_FORCE_SYSTEM_EDU ;
          goto error ;
       }
 
-      cb->interrupt() ;
-
+      {
+      std::map<EDUID, pmdEDUCB*>::iterator it ;
+      EDUMGR_SLOCK
+      for ( it = _runQueue.begin () ; it != _runQueue.end () ; ++it )
+      {
+         if ( (*it).second->getID () == eduID )
+         {
+            (*it).second->interrupt() ;
+            break ;
+         }
+      }
+      }
    done:
       return rc ;
    error:
@@ -456,287 +291,182 @@ namespace engine
    INT32 _pmdEDUMgr::disconnectUserEDU( EDUID eduID )
    {
       INT32 rc = SDB_OK ;
-      MAP_EDUCB_IT it ;
-      pmdEDUCB *cb = NULL ;
-      BOOLEAN isSystem = FALSE ;
-
-      ossScopedLock lock( &_latch, SHARED ) ;
-
-      if ( ( it = _mapRuns.find( eduID ) ) != _mapRuns.end() )
+      if ( isSystemEDU( eduID ) )
       {
-         cb = it->second ;
-         isSystem = _isSystemEDU( cb ) ;
-      }
-      else if ( ( it = _mapIdles.find( eduID ) ) != _mapIdles.end() )
-      {
-         cb = it->second ;
-      }
-      else
-      {
-         rc = SDB_PMD_SESSION_NOT_EXIST ;
-         goto error ;
-      }
-
-      if ( isSystem )
-      {
-         PD_LOG ( PDERROR, "System EDU %d can't be disconnect", eduID ) ;
+         PD_LOG( PDERROR, "can not disconnect a system edu:%lld",
+                 eduID ) ;
          rc = SDB_PMD_FORCE_SYSTEM_EDU ;
          goto error ;
       }
 
-      cb->disconnect() ;
-
+      {
+      std::map<EDUID, pmdEDUCB*>::iterator it ;
+      EDUMGR_SLOCK
+      for ( it = _runQueue.begin () ; it != _runQueue.end () ; ++it )
+      {
+         if ( (*it).second->getID() == eduID )
+         {
+            (*it).second->disconnect() ;
+            break ;
+         }
+      }
+      }
    done:
       return rc ;
    error:
       goto done ;
    }
 
-   void _pmdEDUMgr::forceIOSerivce()
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR__FORCEIOSVC, "_pmdEDUMgr::_forceIOService" )
+   INT32 _pmdEDUMgr::_forceIOService ()
    {
-      VEC_IOSERVICE::iterator it ;
-      ossScopedLock lock( &_latch, EXCLUSIVE ) ;
+      PD_TRACE_ENTRY ( SDB__PMDEDUMGR__FORCEIOSVC );
+      std::vector<io_service*>::iterator it_service ;
 
-      it = _vecIOServices.begin() ;
-      while( it != _vecIOServices.end() )
+      /*******************CRITICAL SECTION ********************/
       {
-         (*it)->stop() ;
-         ++it ;
-      }
-   }
-
-   UINT32 _pmdEDUMgr::countIOService()
-   {
-      _latch.get_shared() ;
-      UINT32 count = _vecIOServices.size() ;
-      _latch.release_shared() ;
-
-      return count ;
-   }
-
-   UINT32 _pmdEDUMgr::size()
-   {
-      _latch.get_shared() ;
-      UINT32 count = _mapRuns.size() +  _mapIdles.size() ;
-      _latch.release_shared() ;
-      return count ;
-   }
-
-   UINT32 _pmdEDUMgr::sizeRun()
-   {
-      _latch.get_shared() ;
-      UINT32 count = _mapRuns.size() ;
-      _latch.release_shared() ;
-      return count ;
-   }
-
-   UINT32 _pmdEDUMgr::sizeIdle()
-   {
-      _latch.get_shared() ;
-      UINT32 count = _mapIdles.size() ;
-      _latch.release_shared() ;
-      return count ;
-   }
-
-   UINT32 _pmdEDUMgr::sizeSystem ()
-   {
-      _latch.get_shared() ;
-      UINT32 count = _mapSystemEdu.size() ;
-      _latch.release_shared() ;
-      return count ;
-   }
-
-   void _pmdEDUMgr::sizeInfo( UINT32 &runSize, UINT32 &idleSize )
-   {
-      _latch.get_shared() ;
-      runSize = _mapRuns.size() ;
-      idleSize = _mapIdles.size() ;
-      _latch.release_shared() ;
-   }
-
-   EDUID _pmdEDUMgr::getSystemEDU( INT32 eduType )
-   {
-      EDUID eduID = PMD_INVALID_EDUID ;
-
-      _latch.get_shared() ;
-      MAP_SYSTEMEDU_IT it = _mapSystemEdu.find( eduType ) ;
-      if ( it != _mapSystemEdu.end() )
-      {
-         eduID = it->second ;
-      }
-      _latch.release_shared() ;
-
-      return eduID ;
-   }
-
-   BOOLEAN _pmdEDUMgr::isSystemEDU( EDUID eduID )
-   {
-      BOOLEAN isSystem = FALSE ;
-      MAP_SYSTEMEDU_IT it ;
-
-      _latch.get_shared() ;
-      for ( it = _mapSystemEdu.begin() ; it != _mapSystemEdu.end() ; ++it )
-      {
-         if ( eduID == it->second )
+         EDUMGR_XLOCK
+         for ( it_service = _ioserviceList.begin();
+               it_service != _ioserviceList.end(); it_service++ )
          {
-            isSystem = TRUE ;
-            break ;
+            (*it_service)->stop() ;
          }
       }
-      _latch.release_shared() ;
-
-      return isSystem ;
+      /******************END CRITICAL SECTION******************/
+      PD_TRACE_EXIT ( SDB__PMDEDUMGR__FORCEIOSVC );
+      return SDB_OK ;
    }
 
-   BOOLEAN _pmdEDUMgr::isQuiesced()
+   UINT32 _pmdEDUMgr::_getIOServiceCount ()
    {
-      ossScopedLock lock( &_latch, SHARED ) ;
-      return _isQuiesced ;
-   }
-
-   BOOLEAN _pmdEDUMgr::isDestroyed()
-   {
-      ossScopedLock lock( &_latch, SHARED ) ;
-      return _isDestroyed ;
-   }
-
-   void _pmdEDUMgr::setDestroyed( BOOLEAN b )
-   {
-      ossScopedLock lock( &_latch, EXCLUSIVE ) ;
-      _isDestroyed = b ;
-   }
-
-   void _pmdEDUMgr::setQuiesced( BOOLEAN b )
-   {
-      ossScopedLock lock( &_latch, EXCLUSIVE ) ;
-      _isQuiesced = b ;
+      EDUMGR_SLOCK
+      return (UINT32)_ioserviceList.size() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR__FORCEEDUS, "_pmdEDUMgr::_forceEDUs" )
-   void _pmdEDUMgr::_forceEDUs( INT32 property )
+   INT32 _pmdEDUMgr::_forceEDUs ( INT32 property )
    {
-      PD_TRACE_ENTRY ( SDB__PMDEDUMGR__FORCEEDUS ) ;
-      MAP_EDUCB_IT it ;
-      pmdEDUCB *cb = NULL ;
+      PD_TRACE_ENTRY ( SDB__PMDEDUMGR__FORCEEDUS );
+      std::map<EDUID, pmdEDUCB*>::iterator it ;
 
-      ossScopedLock lock( &_latch, EXCLUSIVE ) ;
-
-      for( it = _mapRuns.begin () ; it != _mapRuns.end () ; ++it )
+      /*******************CRITICAL SECTION ********************/
       {
-         cb = it->second ;
-
-         if ( ( ( EDU_SYSTEM & property ) && _isSystemEDU( cb ) ) ||
-              ( ( EDU_USER & property ) && !_isSystemEDU( cb ) ) )
+         EDUMGR_XLOCK
+         for ( it = _runQueue.begin () ; it != _runQueue.end () ; ++it )
          {
-            cb->force() ;
-            PD_LOG ( PDDEBUG, "Force edu[ID:%lld]", it->first ) ;
+            if ( ((EDU_SYSTEM & property) && _isSystemEDU( it->first ))
+               || ((EDU_USER & property) && !_isSystemEDU( it->first )) )
+            {
+               ( *it ).second->force () ;
+               PD_LOG ( PDDEBUG, "force edu[ID:%lld]", it->first ) ;
+            }
+         }
+
+         for ( it = _idleQueue.begin () ; it != _idleQueue.end () ; ++it )
+         {
+            if ( EDU_USER & property )
+            {
+               ( *it ).second->force () ;
+            }
          }
       }
-
-      for ( it = _mapIdles.begin () ; it != _mapIdles.end () ; ++it )
-      {
-         cb = it->second ;
-
-         if ( EDU_USER & property )
-         {
-            cb->force () ;
-         }
-      }
-
-      PD_TRACE_EXIT ( SDB__PMDEDUMGR__FORCEEDUS ) ;
+      /******************END CRITICAL SECTION******************/
+      PD_TRACE_EXIT ( SDB__PMDEDUMGR__FORCEEDUS );
+      return SDB_OK ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR__GETEDUCNT, "_pmdEDUMgr::_getEDUCount" )
-   UINT32 _pmdEDUMgr::_getEDUCount( INT32 property )
+   UINT32 _pmdEDUMgr::_getEDUCount ( INT32 property )
    {
-      PD_TRACE_ENTRY ( SDB__PMDEDUMGR__GETEDUCNT ) ;
+      PD_TRACE_ENTRY ( SDB__PMDEDUMGR__GETEDUCNT );
       UINT32 eduCount = 0 ;
-      MAP_EDUCB_IT it ;
-      pmdEDUCB *cb = NULL ;
+      std::map<EDUID, pmdEDUCB*>::iterator it ;
 
-      ossScopedLock lock( &_latch, EXCLUSIVE ) ;
-
-      for( it = _mapRuns.begin () ; it != _mapRuns.end () ; ++it )
+      /*******************CRITICAL SECTION ********************/
       {
-         cb = it->second ;
-
-         if ( ( ( EDU_SYSTEM & property ) && _isSystemEDU( cb ) ) ||
-              ( ( EDU_USER & property ) && !_isSystemEDU( cb ) ) )
+         EDUMGR_XLOCK
+         for ( it = _runQueue.begin () ; it != _runQueue.end () ; ++it )
          {
-            ++eduCount ;
+            if ( ((EDU_SYSTEM & property) && _isSystemEDU( it->first ))
+               || ((EDU_USER & property) && !_isSystemEDU( it->first )) )
+            {
+               ++eduCount ;
+            }
+         }
+
+         for ( it = _idleQueue.begin () ; it != _idleQueue.end () ; ++it )
+         {
+            if ( EDU_USER & property )
+            {
+               ++eduCount ;
+            }
          }
       }
-
-      for ( it = _mapIdles.begin () ; it != _mapIdles.end () ; ++it )
-      {
-         if ( EDU_USER & property )
-         {
-            ++eduCount ;
-         }
-      }
-
-      PD_TRACE1 ( SDB__PMDEDUMGR__GETEDUCNT, PD_PACK_UINT(eduCount) ) ;
-      PD_TRACE_EXIT ( SDB__PMDEDUMGR__GETEDUCNT ) ;
+      /******************END CRITICAL SECTION******************/
+      PD_TRACE1 ( SDB__PMDEDUMGR__GETEDUCNT, PD_PACK_UINT(eduCount) );
+      PD_TRACE_EXIT ( SDB__PMDEDUMGR__GETEDUCNT );
       return eduCount ;
    }
 
-   UINT32 _pmdEDUMgr::_interruptWritingEDUs()
+   INT32 _pmdEDUMgr::_interruptWritingEDUs()
    {
-      MAP_EDUCB_IT it ;
-      pmdEDUCB *cb = NULL ;
+      std::map<EDUID, pmdEDUCB*>::iterator it ;
       UINT32 count = 0 ;
 
-      _latch.get() ;
-      for ( it = _mapRuns.begin () ; it != _mapRuns.end () ; ++it )
+      /*******************CRITICAL SECTION ********************/
       {
-         cb = it->second ;
-         if ( cb->isWritingDB() )
+         EDUMGR_XLOCK
+         for ( it = _runQueue.begin () ; it != _runQueue.end () ; ++it )
          {
-            ++count ;
-            cb->interrupt() ;
-            PD_LOG ( PDDEBUG, "Interrupt edu[ID:%lld]", it->first ) ;
+            if ( (*it).second->isWritingDB() )
+            {
+               ++count ;
+               ( *it ).second->interrupt() ;
+               PD_LOG ( PDDEBUG, "Interrupt edu[ID:%lld]", it->first ) ;
+            }
          }
       }
-      _latch.release() ;
-
+      /******************END CRITICAL SECTION******************/
       if ( count > 0 )
       {
          PD_LOG( PDEVENT, "Interrupt %d writing edus", count ) ;
       }
-      return count ;
+      return SDB_OK ;
    }
 
-   UINT32 _pmdEDUMgr::_getWritingEDUCount( INT32 eduTypeFilter,
-                                           UINT64 idThreshold )
+   UINT32 _pmdEDUMgr::_getWritingEDUCount ( INT32 eduTypeFilter,
+                                            UINT64 idThreshold )
    {
-      pmdEDUCB *cb = NULL ;
       UINT32 eduCount = 0 ;
-      MAP_EDUCB_IT it ;
+      std::map<EDUID, pmdEDUCB*>::iterator it ;
 
-      _latch.get_shared() ;
-
-      for ( it = _mapRuns.begin () ; it != _mapRuns.end () ; ++it )
+      /*******************CRITICAL SECTION ********************/
       {
-         cb = it->second ;
-         if ( cb->isWritingDB() )
+         EDUMGR_XLOCK
+         for ( it = _runQueue.begin () ; it != _runQueue.end () ; ++it )
          {
-            if ( -1 != eduTypeFilter && eduTypeFilter != cb->getType() )
+            if ( (*it).second->isWritingDB() )
             {
-               continue ;
+               if ( -1 != eduTypeFilter &&
+                    eduTypeFilter != (*it).second->getType() )
+               {
+                  continue ;
+               }
+               else if ( 0 != idThreshold &&
+                         (*it).second->getWritingID() > idThreshold )
+               {
+                  continue ;
+               }
+#ifdef _DEBUG
+               PD_LOG ( PDDEBUG, "Session [%lld] TID [%u] writing ID [%llu] "
+                        "is writing", (*it).second->getID(),
+                        (*it).second->getTID(), (*it).second->getWritingID() ) ;
+#endif
+               ++eduCount ;
             }
-            else if ( 0 != idThreshold && cb->getWritingID() > idThreshold )
-            {
-               continue ;
-            }
-
-            PD_LOG ( PDDEBUG, "Session [%lld] TID [%u] writing ID [%llu] "
-                     "is writing", cb->getID(), cb->getTID(),
-                     cb->getWritingID() ) ;
-            ++eduCount ;
          }
       }
-      _latch.release_shared() ;
-
+      /******************END CRITICAL SECTION******************/
       return eduCount ;
    }
 
@@ -748,412 +478,148 @@ namespace engine
                                    UINT64 usrData )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__PMDEDUMGR_PSTEDUPST ) ;
+      PD_TRACE_ENTRY ( SDB__PMDEDUMGR_PSTEDUPST );
       pmdEDUCB* eduCB = NULL ;
-      MAP_EDUCB_IT it ;
+      std::map<EDUID, pmdEDUCB*>::iterator it ;
 
-      ossScopedLock lock( &_latch, SHARED ) ;
-
-      if( _mapRuns.end () == ( it = _mapRuns.find ( eduID ) ) )
+      EDUMGR_SLOCK
+      if ( _runQueue.end () == ( it = _runQueue.find ( eduID )) )
       {
-         if( _mapIdles.end () == ( it = _mapIdles.find ( eduID ) ) )
+         if ( _idleQueue.end () == ( it = _idleQueue.find ( eduID )) )
          {
-            rc = SDB_PMD_SESSION_NOT_EXIST ;
+            rc = SDB_SYS ;
             goto error ;
          }
       }
 
-      eduCB = it->second ;
+      eduCB = ( *it ).second ;
       eduCB->postEvent( pmdEDUEvent ( type,
                                       dataMemType,
                                       pData,
                                       usrData ) ) ;
-   done:
-      PD_TRACE_EXITRC ( SDB__PMDEDUMGR_PSTEDUPST, rc ) ;
+   done :
+      PD_TRACE_EXITRC ( SDB__PMDEDUMGR_PSTEDUPST, rc );
       return rc ;
-   error:
+   error :
       goto done ;
    }
 
-   UINT32 _pmdEDUMgr::interruptWritingEDUS()
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_RTNEDU, "_pmdEDUMgr::returnEDU" )
+   INT32 _pmdEDUMgr::returnEDU ( EDUID eduID, BOOLEAN force, BOOLEAN* destroyed )
    {
-      return _interruptWritingEDUs() ;
-   }
-
-   UINT32 _pmdEDUMgr::getWritingEDUCount( INT32 eduTypeFilter,
-                                          UINT64 idThreshold )
-   {
-      return _getWritingEDUCount( eduTypeFilter, idThreshold ) ;
-   }
-
-   void _pmdEDUMgr::resetMon( EDUID eduID )
-   {
-      MAP_EDUCB_IT it ;
-      pmdEDUCB *cb = NULL ;
-
-      ossScopedLock lock( &_latch, SHARED ) ;
-
-      for ( it = _mapRuns.begin () ; it != _mapRuns.end () ; ++it )
+      INT32 rc        = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__PMDEDUMGR_RTNEDU );
+      EDU_TYPES type  = EDU_TYPE_UNKNOWN ;
+      pmdEDUCB *educb = NULL ;
+      std::map<EDUID, pmdEDUCB*>::iterator it ;
+      _mutex.get_shared () ;
+      if ( _runQueue.end() == ( it = _runQueue.find ( eduID ) ) )
       {
-         cb = it->second ;
-         if ( PMD_INVALID_EDUID == eduID )
+         if ( _idleQueue.end() == ( it = _idleQueue.find ( eduID ) ) )
          {
-            cb->resetMon() ;
-         }
-         else if ( eduID == it->first )
-         {
-            cb->resetMon() ;
-            goto done ;
+            rc = SDB_SYS ;
+            *destroyed = FALSE ;
+            _mutex.release_shared () ;
+            goto error ;
          }
       }
-
-      for ( it = _mapIdles.begin () ; it != _mapIdles.end () ; ++it )
+      educb = (*it).second ;
+      if ( educb )
       {
-         cb = it->second ;
-         if ( PMD_INVALID_EDUID == eduID )
+         type = educb->getType() ;
+         educb->resetDisconnect () ;
+      }
+      _mutex.release_shared () ;
+
+
+      if ( !isPoolable(type) || force || isDestroyed () || size () >=
+           pmdGetOptionCB()->getMaxPooledEDU () )
+      {
+         rc = destroyEDU ( eduID ) ;
+         if ( destroyed )
          {
-            cb->resetMon() ;
+            if ( SDB_OK == rc || SDB_SYS == rc )
+               *destroyed = TRUE ;
+            else
+               *destroyed = FALSE ;
          }
-         else if ( eduID == it->first )
-         {
-            cb->resetMon() ;
-            goto done ;
-         }
-      }
-
-      if ( PMD_INVALID_EDUID == eduID )
-      {
-         VEC_IOSERVICE::iterator itIO ;
-         IIOService *pIOService = NULL ;
-         itIO = _vecIOServices.begin() ;
-         while( itIO != _vecIOServices.end() )
-         {
-            pIOService = *itIO ;
-            pIOService->resetMon() ;
-            ++itIO ;
-         }
-      }
-
-   done:
-      return ;
-   }
-
-   UINT32 _pmdEDUMgr::_calIdleLowSize( UINT32 runSize,
-                                       UINT32 idleSize,
-                                       UINT32 poolSize )
-   {
-      UINT32 idleLowSize = 0 ;
-
-      if ( poolSize > 0 && poolSize > runSize )
-      {
-         if ( poolSize - runSize > PMD_EDU_IDLE_LOW_SIZE )
-         {
-            idleLowSize = PMD_EDU_IDLE_LOW_SIZE ;
-         }
-         else
-         {
-            idleLowSize = poolSize - runSize ;
-         }
-      }
-      return idleLowSize ;
-   }
-
-   UINT32 _pmdEDUMgr::calIdleLowSize( UINT32 *pRunSize,
-                                      UINT32 *pIdleSize,
-                                      UINT32 *pPoolSize )
-   {
-      UINT32 runSize = 0 ;
-      UINT32 idleSize = 0 ;
-      UINT32 maxPool = pmdGetOptionCB()->getMaxPooledEDU() ;
-
-      sizeInfo( runSize, idleSize ) ;
-
-      if ( pRunSize )
-      {
-         *pRunSize = runSize ;
-      }
-      if ( pIdleSize )
-      {
-         *pIdleSize = idleSize ;
-      }
-      if ( pPoolSize )
-      {
-         *pPoolSize = maxPool ;
-      }
-
-      return _calIdleLowSize( runSize, idleSize, maxPool ) ;
-   }
-
-   BOOLEAN _pmdEDUMgr::forceDestory( pmdEDUCB *cb, UINT32 idleTime )
-   {
-      BOOLEAN destoryed = FALSE ;
-
-      if ( idleTime <= PMD_EDU_IDLE_LOW_TIME ||
-           PMD_EDU_CREATING == cb->getStatus() )
-      {
-         goto done ;
       }
       else
       {
-         UINT32 runSize = 0 ;
-         UINT32 idleSize = 0 ;
-         UINT32 maxPool = 0 ;
-         UINT32 idleLowSize = 0 ;
-
-         idleLowSize = calIdleLowSize( &runSize, &idleSize, &maxPool ) ;
-         if ( idleSize < idleLowSize )
+         rc = deactivateEDU ( eduID ) ;
+         if ( destroyed )
          {
-            goto done ;
-         }
-         else if ( runSize + idleSize <= maxPool &&
-                   idleTime <= PMD_EDU_IDLE_MAX_TIME )
-         {
-            goto done ;
-         }
-
-         {
-            MAP_EDUCB_IT it ;
-            ossScopedLock lock( &_latch, EXCLUSIVE ) ;
-
-            if ( _mapIdles.end() != ( it = _mapIdles.find( cb->getID() ) ) )
-            {
-               _mapIdles.erase( it ) ;
-            }
-            else if ( _mapRuns.end() != ( it = _mapRuns.find( cb->getID() ) ) )
-            {
-               if ( PMD_EDU_CREATING == cb->getStatus() )
-               {
-                  goto done ;
-               }
-               _mapRuns.erase( it ) ;
-            }
+            if ( SDB_SYS == rc )
+               *destroyed = TRUE ;
             else
-            {
-               SDB_ASSERT( FALSE, "EDU is not found" ) ;
-               goto done ;
-            }
-
-            _postDestoryEDU( cb ) ;
-            destoryed = TRUE ;
+               *destroyed = FALSE ;
          }
       }
-
-   done:
-      if ( destoryed )
-      {
-         SDB_OSS_DEL cb ;
-      }
-      return destoryed ;
-   }
-
-   void _pmdEDUMgr::_postDestoryEDU( pmdEDUCB *cb )
-   {
-      MAP_TID2EDU_IT itTid = _mapTid2Edu.begin() ;
-      while( itTid != _mapTid2Edu.end() )
-      {
-         if ( itTid->second == cb->getID() )
-         {
-            _mapTid2Edu.erase( itTid ) ;
-            break ;
-         }
-         ++itTid ;
-      }
-      _mapSystemEdu.erase( cb->getType() ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_RTNEDU, "_pmdEDUMgr::returnEDU" )
-   void _pmdEDUMgr::returnEDU( pmdEDUCB *cb, BOOLEAN &destroyed )
-   {
-      PD_TRACE_ENTRY ( SDB__PMDEDUMGR_RTNEDU ) ;
-      BOOLEAN toDestory = FALSE ;
-      BOOLEAN hasLock = FALSE ;
-      pmdEPFactory &factory = pmdGetEPFactory() ;
-      const pmdEPItem *pItem = NULL ;
-      MAP_EDUCB_IT it ;
-
-      destroyed = FALSE ;
-
-      _latch.get() ;
-      hasLock = TRUE ;
-
-      if ( PMD_EDU_CREATING != cb->getStatus() )
-      {
-         if ( cb->isForced() || _isDestroyed )
-         {
-            toDestory = TRUE ;
-         }
-         else if ( 0 == pmdGetOptionCB()->getMaxPooledEDU() )
-         {
-            toDestory = TRUE ;
-         }
-         else if ( NULL == ( pItem = factory.getItem( cb->getType() ) ) ||
-                   !pItem->isPoolable() )
-         {
-            toDestory = TRUE ;
-         }
-
-         if ( ( it = _mapRuns.find( cb->getID() ) ) != _mapRuns.end() )
-         {
-            _mapRuns.erase( it ) ;
-
-            if ( !toDestory )
-            {
-               _mapIdles[ cb->getID() ] = cb ;
-               SDB_ASSERT( PMD_EDU_IDLE != cb->getStatus(),
-                           "Status can't be idle" ) ;
-               cb->setStatus( PMD_EDU_IDLE ) ;
-               cb->setType( PMD_EDU_UNKNOW ) ;
-            }
-         }
-         else if ( ( it = _mapIdles.find( cb->getID() ) ) != _mapIdles.end() )
-         {
-            if ( toDestory )
-            {
-               _mapIdles.erase( it ) ;
-            }
-         }
-         else
-         {
-            SDB_ASSERT( FALSE, "CB is not found" ) ;
-            toDestory = TRUE ;
-         }
-
-         if ( toDestory )
-         {
-            _postDestoryEDU( cb ) ;
-
-            _latch.release() ;
-            hasLock = FALSE ;
-
-            destroyed = TRUE ;
-            SDB_OSS_DEL cb ;
-         }
-         else
-         {
-            cb->clear() ;
-         }
-      }
-
-      if ( hasLock )
-      {
-         _latch.release() ;
-      }
-      PD_TRACE_EXIT( SDB__PMDEDUMGR_RTNEDU );
-   }
-
-   pmdEDUCB* _pmdEDUMgr::findAndRemove( EDUID eduID )
-   {
-      pmdEDUCB *cb = NULL ;
-      MAP_EDUCB_IT it ;
-
-      _latch.get() ;
-
-      if ( _mapIdles.end() != ( it = _mapIdles.find( cb->getID() ) ) )
-      {
-         cb = it->second ;
-         _mapIdles.erase( it ) ;
-      }
-      else if ( _mapRuns.end() != ( it = _mapRuns.find( cb->getID() ) ) )
-      {
-         cb = it->second ;
-         _mapRuns.erase( it ) ;
-      }
-
-      if ( cb )
-      {
-         _postDestoryEDU( cb ) ;
-      }
-
-      _latch.release() ;
-
-      return cb ;
-   }
-
-   pmdEDUCB* _pmdEDUMgr::getFromPool( INT32 type )
-   {
-      pmdEDUCB *cb = NULL ;
-      MAP_EDUCB_IT it ;
-      UINT32 maxPool = pmdGetKRCB()->getOptionCB()->getMaxPooledEDU() ;
-
-      ossScopedLock lock( &_latch, EXCLUSIVE ) ;
-
-      it = _mapIdles.begin() ;
-      if ( it != _mapIdles.end() )
-      {
-         cb = it->second ;
-         _mapIdles.erase( it ) ;
-         _mapRuns[ cb->getID() ] = cb ;
-
-         cb->setType( type ) ;
-         SDB_ASSERT( PMD_EDU_IDLE == cb->getStatus(), "Status must be idle" ) ;
-         cb->setStatus( PMD_EDU_CREATING ) ;
-      }
-
-      if ( _mapIdles.size() < _calIdleLowSize( _mapRuns.size(),
-                                               _mapIdles.size(),
-                                               maxPool ) )
-      {
-         _monitorEvent.signal() ;
-      }
-
-      return cb ;      
+   done :
+      PD_TRACE_EXITRC ( SDB__PMDEDUMGR_RTNEDU, rc );
+      return rc ;
+   error :
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_STARTEDU, "_pmdEDUMgr::startEDU" )
-   INT32 _pmdEDUMgr::startEDU ( INT32 type,
-                                void *args,
-                                EDUID *pEDUID,
-                                const CHAR *pInitName )
+   INT32 _pmdEDUMgr::startEDU ( EDU_TYPES type, void* arg, EDUID *eduid,
+                                const CHAR *pName )
    {
       INT32     rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__PMDEDUMGR_STARTEDU ) ;
-
+      PD_TRACE_ENTRY ( SDB__PMDEDUMGR_STARTEDU );
+      EDUID     eduID = 0 ;
       pmdEDUCB* eduCB = NULL ;
-      pmdEPFactory &factory = pmdGetEPFactory() ;
-      const pmdEPItem *pItem = NULL ;
+      std::map<EDUID, pmdEDUCB*>::iterator it ;
 
-      if ( isQuiesced() )
+      if ( isQuiesced () )
       {
          rc = SDB_QUIESCED ;
          goto done ;
       }
-
-      pItem = factory.getItem( type ) ;
-      if ( !pItem || NULL == pItem->_pFunc )
+      /****************** CRITICAL SECTION **********************/
+      _mutex.get () ;
+      if ( TRUE == _idleQueue.empty () || !isPoolable ( type ) )
       {
-         PD_LOG( PDERROR, "The edu[Type:%d] is not mapped", type ) ;
-         rc = SDB_SYS ;
+         _mutex.release () ;
+         rc = createNewEDU ( type, arg, eduid, pName ) ;
+         if ( SDB_OK == rc )
+            goto done ;
          goto error ;
       }
 
-      if ( !pItem->isSystem() && pItem->isPoolable() &&
-           NULL != ( eduCB = getFromPool( type ) ) )
-      {
-         eduCB->clear() ;
+      for ( it = _idleQueue.begin () ;
+            ( _idleQueue.end () != it ) &&
+            ( PMD_EDU_IDLE != ( *it ).second->getStatus ()) ;
+            it ++ ) ;
 
-         if ( pInitName )
-         {
-            eduCB->setName( pInitName ) ;
-         }
-         if ( pEDUID )
-         {
-            *pEDUID = eduCB->getID() ;
-         }
-         eduCB->postEvent( pmdEDUEvent( PMD_EDU_EVENT_RESUME,
-                                        PMD_EDU_MEM_NONE,
-                                        args ) ) ;
-      }
-      else
+      if ( _idleQueue.end () == it )
       {
-         rc = createNewEDU( type, pItem->isSystem(),
-                            args, pEDUID, pInitName ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Create edu[Type:%d] failed, rc: %d",
-                    type, rc ) ;
-            goto error ;
-         }
+         _mutex.release () ;
+         rc = createNewEDU ( type, arg, eduid, pName ) ;
+         if ( SDB_OK == rc )
+            goto done ;
+         goto error ;
       }
+
+      eduID = ( *it ).first ;
+      eduCB = ( *it ).second ;
+      _idleQueue.erase ( eduID ) ;
+      SDB_ASSERT ( isPoolable ( type ),
+                   "must be agent/coordagent/subagent" ) ;
+      eduCB->setType ( type ) ;
+      eduCB->setStatus ( PMD_EDU_WAITING ) ;
+      _runQueue [ eduID ] = eduCB ;
+      *eduid = eduID ;
+      eduCB->clear() ;
+      if ( pName )
+      {
+         eduCB->setName( pName ) ;
+      }
+      eduCB->postEvent( pmdEDUEvent( PMD_EDU_EVENT_RESUME,
+                                     PMD_EDU_MEM_NONE, arg ) ) ;
+      _mutex.release () ;
+      /*************** END CRITICAL SECTION **********************/
 
    done :
       PD_TRACE_EXITRC ( SDB__PMDEDUMGR_STARTEDU, rc );
@@ -1162,432 +628,438 @@ namespace engine
       goto done ;
    }
 
-   INT32 _pmdEDUMgr::createIdleEDU( EDUID *pEDUID )
-   {
-      INT32 rc       = SDB_OK ;
-      pmdEDUCB *cb   = NULL ;
-      BOOLEAN addMap = FALSE ;
-      EDUID newID = PMD_INVALID_EDUID ;
-      ossEvent *pEvent = NULL ;
-      pmdEventPtr ePtr ;
-      INT32 result = SDB_OK ;
-
-      if ( isQuiesced() )
-      {
-         rc = SDB_QUIESCED ;
-         goto done ;
-      }
-
-      pEvent = SDB_OSS_NEW ossEvent() ;
-      if ( !pEvent )
-      {
-         PD_LOG( PDERROR, "Failed to create event" ) ;
-         rc = SDB_OOM ;
-         goto error ;
-      }
-      pEvent->reset() ;
-      ePtr = pmdEventPtr( pEvent ) ;
-
-      cb = SDB_OSS_NEW pmdEDUCB ( this, EDU_TYPE_UNKNOWN ) ;
-      if ( !cb )
-      {
-         PD_LOG( PDERROR, "Failed to allocate cb" ) ;
-         rc = SDB_OOM ;
-         goto error ;
-      }
-
-      cb->setStatus ( PMD_EDU_IDLE ) ;
-
-      _latch.get() ;
-      newID = _EDUID++ ;
-      cb->setID( newID ) ;
-      _mapIdles[ newID ] = cb ;
-      addMap = TRUE ;
-      _latch.release () ;
-
-      try
-      {
-         boost::thread agentThread ( boost::bind( &pmdEDUMgr::pmdEDUEntryPointWrapper,
-                                                  this,
-                                                  cb,
-                                                  ePtr )
-                                   ) ;
-         agentThread.detach () ;
-      }
-      catch ( std::exception &e )
-      {
-         PD_LOG ( PDSEVERE, "Failed to create new edu: %s",
-                  e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      rc = pEvent->wait( -1, &result ) ;
-      if ( SDB_OK == rc )
-      {
-         rc = result ;
-      }
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to create new edu, rc: %d", rc ) ;
-         goto error ;
-      }
-
-      if ( pEDUID )
-      {
-         *pEDUID = newID ;
-      }
-
-   done :
-      PD_TRACE_EXITRC ( SDB__PMDEDUMGR_CRTNEWEDU, rc );
-      return rc ;
-   error :
-      if ( addMap )
-      {
-         _latch.get() ;
-         _mapIdles.erase( newID ) ;
-         _latch.release() ;
-      }
-      if ( cb )
-      {
-         SDB_OSS_DEL cb ;
-      }
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_CRTNEWEDU, "_pmdEDUMgr::createNewEDU" )
-   INT32 _pmdEDUMgr::createNewEDU ( INT32 type,
-                                    BOOLEAN isSystem,
-                                    void* arg,
-                                    EDUID *pEDUID,
-                                    const CHAR *pInitName )
+   INT32 _pmdEDUMgr::createNewEDU ( EDU_TYPES type, void* arg, EDUID *eduid,
+                                    const CHAR *pName )
    {
       INT32 rc       = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__PMDEDUMGR_CRTNEWEDU );
+      UINT32 probe   = 0 ;
       pmdEDUCB *cb   = NULL ;
-      BOOLEAN addMap = FALSE ;
-      EDUID newID = PMD_INVALID_EDUID ;
-      ossEvent *pEvent = NULL ;
-      pmdEventPtr ePtr ;
-      INT32 result = SDB_OK ;
-
-      if ( isQuiesced() )
+      EDUID myEDUID  = 0 ;
+      if ( isQuiesced () )
       {
          rc = SDB_QUIESCED ;
          goto done ;
       }
 
-      pEvent = SDB_OSS_NEW ossEvent() ;
-      if ( !pEvent )
+      if ( !getEntryFuncByType ( type ) )
       {
-         PD_LOG( PDERROR, "Failed to create event" ) ;
-         rc = SDB_OOM ;
+         PD_LOG ( PDERROR, "The edu[type:%d] not exist or function is null", type ) ;
+         rc = SDB_INVALIDARG ;
+         probe = 30 ;
          goto error ;
       }
-      pEvent->reset() ;
-      ePtr = pmdEventPtr( pEvent ) ;
 
       cb = SDB_OSS_NEW pmdEDUCB ( this, type ) ;
-      if ( !cb )
+      SDB_VALIDATE_GOTOERROR ( cb, SDB_OOM,
+               "Out of memory to create agent control block" ) ;
+      cb->setStatus ( PMD_EDU_CREATING ) ;
+      if ( pName )
       {
-         PD_LOG( PDERROR, "Failed to allocate cb" ) ;
-         rc = SDB_OOM ;
+         cb->setName( pName ) ;
+      }
+
+      /***********CRITICAL SECTION*********************/
+      _mutex.get () ;
+      if ( _runQueue.end() != _runQueue.find ( _EDUID )  )
+      {
+         _mutex.release () ;
+         rc = SDB_SYS ;
+         probe = 10 ;
          goto error ;
       }
-
-      cb->setStatus ( PMD_EDU_CREATING ) ;
-      if ( pInitName )
+      if ( _idleQueue.end() != _idleQueue.find ( _EDUID )  )
       {
-         cb->setName( pInitName ) ;
+         _mutex.release () ;
+         rc = SDB_SYS ;
+         probe = 15 ;
+         goto error ;
       }
-
-      _latch.get() ;
-      newID = _EDUID++ ;
-      cb->setID( newID ) ;
-      _mapRuns[ newID ] = cb ;
-      addMap = TRUE ;
-      if ( isSystem )
-      {
-         _mapSystemEdu[ type ] = newID ;
-      }
-
-      cb ->postEvent( pmdEDUEvent( PMD_EDU_EVENT_RESUME,
-                                   PMD_EDU_MEM_NONE,
+      cb->setID ( _EDUID ) ;
+      if ( eduid )
+         *eduid = _EDUID ;
+      _runQueue [ _EDUID ] = ( pmdEDUCB* ) cb ;
+      myEDUID = _EDUID ;
+      ++_EDUID ;
+      cb ->postEvent( pmdEDUEvent( PMD_EDU_EVENT_RESUME, PMD_EDU_MEM_NONE,
                                    arg ) ) ;
-      _latch.release () ;
+      _mutex.release () ;
+      /***********END CRITICAL SECTION****************/
 
       try
       {
-         boost::thread agentThread ( boost::bind( &pmdEDUMgr::pmdEDUEntryPointWrapper,
-                                                  this,
-                                                  cb,
-                                                  ePtr )
-                                    ) ;
+         boost::thread agentThread ( pmdEDUEntryPointWrapper,
+                                     type, cb, arg ) ;
          agentThread.detach () ;
       }
       catch ( std::exception &e )
       {
-         PD_LOG ( PDSEVERE, "Failed to create new edu: %s",
+         PD_LOG ( PDSEVERE, "Failed to create new agent: %s",
                   e.what() ) ;
+
+         _mutex.get () ;
+         _runQueue.erase ( myEDUID ) ;
+         _mutex.release () ;
+
          rc = SDB_SYS ;
+         probe = 30 ;
          goto error ;
-      }
-
-      rc = pEvent->wait( -1, &result ) ;
-      if ( SDB_OK == rc )
-      {
-         rc = result ;
-      }
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to create new edu, rc: %d", rc ) ;
-         goto error ;
-      }
-
-      if ( pEDUID )
-      {
-         *pEDUID = newID ;
       }
 
    done :
       PD_TRACE_EXITRC ( SDB__PMDEDUMGR_CRTNEWEDU, rc );
       return rc ;
    error :
-      if ( addMap )
-      {
-         _latch.get() ;
-         _mapRuns.erase( newID ) ;
-         if ( isSystem )
-         {
-            _mapSystemEdu.erase( type ) ;
-         }
-         _latch.release() ;
-      }
       if ( cb )
       {
          SDB_OSS_DEL cb ;
       }
+      PD_LOG ( PDERROR, "Failed to create new agent, probe = %d", probe ) ;
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_DSTEDU, "_pmdEDUMgr::destroyEDU" )
+   INT32 _pmdEDUMgr::destroyEDU ( EDUID eduID )
+   {
+      INT32 rc        = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__PMDEDUMGR_DSTEDU );
+      pmdEDUCB* eduCB = NULL ;
+      UINT32 eduStatus = PMD_EDU_CREATING ;
+      std::map<EDUID, pmdEDUCB*>::iterator it ;
+      std::map<UINT32, EDUID>::iterator it1 ;
+      {
+         EDUMGR_XLOCK
+         if ( _runQueue.end () == ( it = _runQueue.find ( eduID )) )
+         {
+            if ( _idleQueue.end () == ( it = _idleQueue.find ( eduID )) )
+            {
+               rc = SDB_SYS ;
+               goto error ;
+            }
+            eduCB = ( *it ).second ;
+            if ( !PMD_IS_EDU_IDLE ( eduCB->getStatus ()) )
+            {
+               rc = SDB_EDU_INVAL_STATUS ;
+               goto error ;
+            }
+            eduCB->setStatus ( PMD_EDU_DESTROY ) ;
+            _idleQueue.erase ( eduID ) ;
+         }
+         else
+         {
+            eduCB = ( *it ).second ;
+            eduStatus = eduCB->getStatus () ;
+            if ( !PMD_IS_EDU_WAITING ( eduStatus ) &&
+                 !PMD_IS_EDU_CREATING ( eduStatus ) )
+            {
+               rc = SDB_EDU_INVAL_STATUS ;
+               goto error ;
+            }
+            eduCB->setStatus ( PMD_EDU_DESTROY ) ;
+            _runQueue.erase ( eduID ) ;
+         }
+         for ( it1 = _tid_eduid_map.begin(); it1 != _tid_eduid_map.end();
+               ++it1 )
+         {
+            if ( (*it1).second == eduID )
+            {
+               _tid_eduid_map.erase ( it1 ) ;
+               break ;
+            }
+         }
+         if ( eduCB )
+         {
+            SDB_OSS_DEL eduCB ;
+            eduCB = NULL ;
+         }
+      }
+   done :
+      PD_TRACE_EXITRC ( SDB__PMDEDUMGR_DSTEDU, rc );
+      return rc ;
+   error :
       goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_WAITEDU, "_pmdEDUMgr::waitEDU" )
-   INT32 _pmdEDUMgr::waitEDU( EDUID eduID )
+   INT32 _pmdEDUMgr::waitEDU ( EDUID eduID )
    {
       INT32 rc        = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__PMDEDUMGR_WAITEDU );
-      MAP_EDUCB_IT it ;
+      pmdEDUCB* eduCB = NULL ;
+      std::map<EDUID, pmdEDUCB*>::iterator it ;
 
-      ossScopedLock lock( &_latch, SHARED ) ;
-
-      it = _mapRuns.find( eduID ) ;
-      if ( it != _mapRuns.end() )
       {
-         rc = waitEDU( it->second ) ;
-      }
-      else
-      {
-         rc = SDB_SYS ;
+         /************** CRITICAL SECTION ***********/
+         EDUMGR_SLOCK
+         if ( _runQueue.end () == ( it = _runQueue.find ( eduID )) )
+         {
+            rc = SDB_SYS ;
+            goto error ;
+         }
+         eduCB = ( *it ).second ;
+         /************** CRITICAL SECTION ***********/
       }
 
+      rc = waitEDU( eduCB ) ;
+
+   done :
       PD_TRACE_EXITRC ( SDB__PMDEDUMGR_WAITEDU, rc );
       return rc ;
+   error :
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_WAITEDU2, "_pmdEDUMgr::waitEDU" )
    INT32 _pmdEDUMgr::waitEDU( pmdEDUCB * cb )
    {
       PD_TRACE_ENTRY ( SDB__PMDEDUMGR_WAITEDU2 );
-
-      INT32 rc = SDB_OK ;
-      INT32 eduStatus = 0 ;
-
       if ( !cb )
       {
-         rc = SDB_INVALIDARG ;
-         goto error ;
+         return SDB_SYS ;
       }
 
-      eduStatus = cb->getStatus() ;
+      INT32 rc = SDB_OK ;
+      UINT32 eduStatus = cb->getStatus() ;
 
       if ( PMD_IS_EDU_WAITING ( eduStatus ) )
-      {
          goto done ;
-      }
-      else if ( !PMD_IS_EDU_RUNNING( eduStatus ) &&
-                !PMD_IS_EDU_CREATING( eduStatus ) )
+
+      if ( !PMD_IS_EDU_RUNNING ( eduStatus ) )
       {
          rc = SDB_EDU_INVAL_STATUS ;
          goto error ;
       }
       cb->setStatus ( PMD_EDU_WAITING ) ;
-
    done:
-      PD_TRACE_EXITRC ( SDB__PMDEDUMGR_WAITEDU2, rc ) ;
+      PD_TRACE_EXITRC ( SDB__PMDEDUMGR_WAITEDU2, rc );
       return rc ;
    error:
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_DEATVEDU, "_pmdEDUMgr::deactivateEDU" )
+   INT32 _pmdEDUMgr::deactivateEDU ( EDUID eduID )
+   {
+      INT32 rc         = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB__PMDEDUMGR_DEATVEDU );
+      UINT32 eduStatus = PMD_EDU_CREATING ;
+      pmdEDUCB* eduCB  = NULL ;
+      std::map<EDUID, pmdEDUCB*>::iterator it ;
+      {
+         EDUMGR_XLOCK
+         if ( _runQueue.end () == ( it = _runQueue.find ( eduID )) )
+         {
+            if ( _idleQueue.end() != _idleQueue.find ( eduID )  )
+            {
+               goto done ;
+            }
+            rc = SDB_SYS ;
+            goto error ;
+         }
+         eduCB = ( *it ).second ;
+
+         eduStatus = eduCB->getStatus () ;
+
+         if ( PMD_IS_EDU_IDLE ( eduStatus ) )
+            goto done ;
+
+         if ( !PMD_IS_EDU_WAITING ( eduStatus ) &&
+              !PMD_IS_EDU_CREATING ( eduStatus ) )
+         {
+            rc = SDB_EDU_INVAL_STATUS ;
+            goto error ;
+         }
+
+         SDB_ASSERT ( isPoolable ( eduCB->getType() ),
+                      "Only agent, subagent and coordagent can be pooled" ) ;
+         _runQueue.erase ( eduID ) ;
+         eduCB->setStatus ( PMD_EDU_IDLE ) ;
+         eduCB->writingDB ( FALSE ) ;
+         _idleQueue [ eduID ] = eduCB ;
+      }
+   done :
+      PD_TRACE_EXITRC ( SDB__PMDEDUMGR_DEATVEDU, rc );
+      return rc ;
+   error :
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_ATVEDU, "_pmdEDUMgr::activateEDU" )
-   INT32 _pmdEDUMgr::activateEDU( EDUID eduID )
+   INT32 _pmdEDUMgr::activateEDU ( EDUID eduID )
    {
       INT32   rc        = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__PMDEDUMGR_ATVEDU );
-      MAP_EDUCB_IT it ;
-
-      ossScopedLock lock( &_latch, SHARED ) ;
-
-      it = _mapRuns.find( eduID ) ;
-      if ( it != _mapRuns.end() )
+      UINT32  eduStatus = PMD_EDU_CREATING ;
+      pmdEDUCB* eduCB   = NULL;
+      std::map<EDUID, pmdEDUCB*>::iterator it ;
       {
-         rc = activateEDU( it->second ) ;
-      }
-      else
-      {
-         rc = SDB_SYS ;
-      }
+         /************** CRITICAL SECTION ***********/
+         EDUMGR_XLOCK
+         if ( _idleQueue.end () == ( it = _idleQueue.find ( eduID )) )
+         {
+            if ( _runQueue.end () == ( it = _runQueue.find ( eduID )) )
+            {
+               rc = SDB_SYS ;
+               goto error ;
+            }
+            eduCB = ( *it ).second ;
+            eduStatus = eduCB->getStatus () ;
 
+            if ( PMD_IS_EDU_RUNNING ( eduStatus ) )
+               goto done ;
+            if ( !PMD_IS_EDU_WAITING ( eduStatus ) &&
+                 !PMD_IS_EDU_CREATING ( eduStatus ) )
+            {
+               rc = SDB_EDU_INVAL_STATUS ;
+               goto error ;
+            }
+            eduCB->setStatus ( PMD_EDU_RUNNING ) ;
+            goto done ;
+         }
+         eduCB = ( *it ).second ;
+         eduStatus = eduCB->getStatus () ;
+         if ( PMD_IS_EDU_RUNNING ( eduStatus ) )
+            goto done ;
+         if ( !PMD_IS_EDU_IDLE ( eduStatus ) )
+         {
+            rc = SDB_EDU_INVAL_STATUS ;
+            goto error ;
+         }
+         _idleQueue.erase ( eduID ) ;
+         eduCB->setStatus ( PMD_EDU_RUNNING ) ;
+         _runQueue [ eduID ] = eduCB ;
+      }
+   done :
       PD_TRACE_EXITRC ( SDB__PMDEDUMGR_ATVEDU, rc );
       return rc ;
+      /*********************END CRITICAL SECTION******************/
+   error :
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_ATVEDU2, "_pmdEDUMgr::activateEDU" )
    INT32 _pmdEDUMgr::activateEDU( pmdEDUCB * cb )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__PMDEDUMGR_ATVEDU2 ) ;
-      INT32  eduStatus = 0 ;
-
+      PD_TRACE_ENTRY ( SDB__PMDEDUMGR_ATVEDU2 );
       if ( !cb )
       {
          rc = SDB_SYS ;
          goto error ;
       }
-      eduStatus = cb->getStatus() ;
-
-      if ( PMD_IS_EDU_RUNNING( eduStatus ) )
       {
-         goto done ;
-      }
-      else if ( !PMD_IS_EDU_WAITING ( eduStatus ) &&
-                !PMD_IS_EDU_CREATING ( eduStatus ) )
-      {
-         rc = SDB_EDU_INVAL_STATUS ;
-         goto error ;
-      }
-      cb->setStatus ( PMD_EDU_RUNNING ) ;
+         UINT32  eduStatus = cb->getStatus() ;
 
+         if ( PMD_IS_EDU_RUNNING ( eduStatus ) )
+         {
+            goto done ;
+         }
+         else if ( !PMD_IS_EDU_WAITING ( eduStatus ) &&
+                   !PMD_IS_EDU_CREATING ( eduStatus ) )
+         {
+            rc = SDB_EDU_INVAL_STATUS ;
+            goto error ;
+         }
+         cb->setStatus ( PMD_EDU_RUNNING ) ;
+      }
    done:
-      PD_TRACE_EXITRC ( SDB__PMDEDUMGR_ATVEDU2, rc ) ;
+      PD_TRACE_EXITRC ( SDB__PMDEDUMGR_ATVEDU2, rc );
       return rc ;
    error:
       goto done ;
    }
 
-   pmdEDUCB *_pmdEDUMgr::getEDU( UINT32 tid )
+   pmdEDUCB *_pmdEDUMgr::getEDU ( UINT32 tid )
    {
-      MAP_TID2EDU_IT itTid ;
-      pmdEDUCB *cb = NULL ;
-
-      ossScopedLock lock( &_latch, SHARED ) ;
-
-      itTid = _mapTid2Edu.find( tid ) ;
-      if ( itTid != _mapTid2Edu.end() )
+      map<UINT32, EDUID>::iterator it ;
+      map<EDUID, pmdEDUCB*>::iterator it1 ;
+      EDUID eduid ;
+      EDUMGR_SLOCK
+      it = _tid_eduid_map.find ( tid ) ;
+      if ( _tid_eduid_map.end() == it )
       {
-         cb = _getEDUByID( itTid->second ) ;
+         return NULL ;
       }
-
-      return cb ;
-   }
-
-   void _pmdEDUMgr::setEDU( UINT32 tid, EDUID eduid )
-   {
-      _latch.get() ;
-      _mapTid2Edu[ tid ] = eduid ;
-      _latch.release() ;
-   }
-
-   pmdEDUCB* _pmdEDUMgr::getEDU()
-   {
-      return getEDU( ossGetCurrentThreadID() ) ;
-   }
-
-   pmdEDUCB* _pmdEDUMgr::getEDUByID( EDUID eduID )
-   {
-      ossScopedLock lock( &_latch, SHARED ) ;
-      return _getEDUByID( eduID ) ;
-   }
-
-   pmdEDUCB* _pmdEDUMgr::_getEDUByID( EDUID eduID )
-   {
-      MAP_EDUCB_IT it ;
-      pmdEDUCB *cb = NULL ;
-
-      if ( _mapRuns.end () == ( it = _mapRuns.find( eduID ) ) )
+      eduid = (*it).second ;
+      it1 = _runQueue.find ( eduid ) ;
+      if ( _runQueue.end() != it1 )
       {
-         if ( _mapIdles.end () == ( it = _mapIdles.find( eduID ) ) )
+         return (*it1).second ;
+      }
+      it1 = _idleQueue.find ( eduid ) ;
+      if ( _idleQueue.end() != it1 )
+      {
+         return (*it1).second ;
+      }
+      return NULL ;
+   }
+
+   void _pmdEDUMgr::setEDU ( UINT32 tid, EDUID eduid )
+   {
+      EDUMGR_XLOCK
+      _tid_eduid_map [ tid ] = eduid ;
+   }
+   pmdEDUCB *_pmdEDUMgr::getEDU ()
+   {
+      return getEDU ( ossGetCurrentThreadID() ) ;
+   }
+
+   pmdEDUCB *_pmdEDUMgr::getEDUByID ( EDUID eduID )
+   {
+      std::map<EDUID, pmdEDUCB*>::iterator it ;
+      EDUMGR_SLOCK
+      if ( _runQueue.end () == ( it = _runQueue.find ( eduID )) )
+      {
+         if ( _idleQueue.end () == ( it = _idleQueue.find ( eduID )) )
          {
-            goto done ;
+            return NULL ;
          }
       }
-      cb = it->second ;
-
-   done:
-      return cb ;
+      return it->second ;
    }
 
-   INT32 _pmdEDUMgr::getEDUTypeByID( EDUID eduID )
+   EDU_TYPES _pmdEDUMgr::getEDUTypeByID( EDUID eduID )
    {
-      MAP_EDUCB_IT it ;
-      pmdEDUCB *cb = NULL ;
-      INT32 type = EDU_TYPE_UNKNOWN ;
-
-      ossScopedLock lock( &_latch, SHARED ) ;
-
-      if ( _mapRuns.end () == ( it = _mapRuns.find ( eduID ) ) )
+      std::map<EDUID, pmdEDUCB*>::iterator it ;
+      EDUMGR_SLOCK
+      if ( _runQueue.end () == ( it = _runQueue.find ( eduID )) )
       {
-         if ( _mapIdles.end () == ( it = _mapIdles.find ( eduID ) ) )
+         if ( _idleQueue.end () == ( it = _idleQueue.find ( eduID )) )
          {
-            goto done ;
+            return EDU_TYPE_UNKNOWN ;
          }
       }
-      cb = it->second ;
-      type = cb->getType() ;
-
-   done:
-      return type ;
+      return it->second->getType() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_WAITUTIL, "_pmdEDUMgr::waitUntil" )
-   INT32 _pmdEDUMgr::waitUntil( EDUID eduID,
-                                EDU_STATUS status,
-                                UINT32 waitPeriod,
-                                UINT32 waitRound )
+   INT32 _pmdEDUMgr::waitUntil ( EDUID eduID, EDU_STATUS status,
+                                 UINT32 waitPeriod, UINT32 waitRound )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__PMDEDUMGR_WAITUTIL ) ;
-      MAP_EDUCB_IT it ;
+      PD_TRACE_ENTRY ( SDB__PMDEDUMGR_WAITUTIL );
+      std::map<EDUID, pmdEDUCB*>::iterator it ;
       UINT32 round = 0 ;
-
       for ( round = 0; round < waitRound; ++round )
       {
-         _latch.get_shared() ;
-         if ( _mapRuns.end () == ( it = _mapRuns.find ( eduID ) ) )
+         _mutex.get_shared() ;
+         if ( _runQueue.end () == ( it = _runQueue.find ( eduID ) ) )
          {
-            if ( _mapIdles.end () == ( it = _mapIdles.find ( eduID ) ) )
+            if ( _idleQueue.end () == ( it = _idleQueue.find ( eduID )) )
             {
-               rc = SDB_PMD_SESSION_NOT_EXIST ;
-               _latch.release_shared () ;
+               rc = SDB_INVALIDARG ;
+               _mutex.release_shared () ;
                goto error ;
             }
          }
-         if ( it->second->getStatus() == status )
+         if ( it->second->getStatus () == status )
          {
-            _latch.release_shared () ;
+            _mutex.release_shared () ;
             break ;
          }
-         _latch.release_shared () ;
-         ossSleepmillis( waitPeriod ) ;
+         _mutex.release_shared () ;
+         ossSleepmillis ( waitPeriod ) ;
       }
 
       if ( round == waitRound )
@@ -1596,20 +1068,18 @@ namespace engine
       }
 
    done :
-      PD_TRACE_EXITRC ( SDB__PMDEDUMGR_WAITUTIL, rc ) ;
+      PD_TRACE_EXITRC ( SDB__PMDEDUMGR_WAITUTIL, rc );
       return rc ;
    error :
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_WAITUTILBYTYPE, "_pmdEDUMgr::waitUntilByType" )
-   INT32 _pmdEDUMgr::waitUntilByType( INT32 type,
-                                      EDU_STATUS status,
-                                      UINT32 waitPeriod,
-                                      UINT32 waitRound )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_WAITUTIL2, "_pmdEDUMgr::waitUntil" )
+   INT32 _pmdEDUMgr::waitUntil( EDU_TYPES type, EDU_STATUS status,
+                                UINT32 waitPeriod, UINT32 waitRound )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB__PMDEDUMGR_WAITUTILBYTYPE ) ;
+      PD_TRACE_ENTRY ( SDB__PMDEDUMGR_WAITUTIL2 );
       EDUID eduID = getSystemEDU( type ) ;
 
       while ( waitRound > 0 && PMD_INVALID_EDUID == eduID )
@@ -1627,90 +1097,78 @@ namespace engine
 
       if ( PMD_INVALID_EDUID == eduID )
       {
-         rc = SDB_PMD_SESSION_NOT_EXIST ;
+         rc = SDB_INVALIDARG ;
          goto error ;
       }
 
       rc = waitUntil( eduID, status, waitPeriod,
                       waitRound == 0 ? 1 : waitRound ) ;
-   done:
-      PD_TRACE_EXITRC ( SDB__PMDEDUMGR_WAITUTILBYTYPE, rc ) ;
+   done :
+      PD_TRACE_EXITRC ( SDB__PMDEDUMGR_WAITUTIL2, rc );
       return rc ;
-   error:
+   error :
       goto done ;
    }
-
 #if defined (_LINUX)
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_GETEDUTRDID, "_pmdEDUMgr::getEDUThreadID" )
-   void _pmdEDUMgr::getEDUThreadID ( set<pthread_t> &tidList )
+   void _pmdEDUMgr::getEDUThreadID ( std::set<pthread_t> &tidList )
    {
-      PD_TRACE_ENTRY ( SDB__PMDEDUMGR_GETEDUTRDID ) ;
-      MAP_EDUCB_IT it ;
-      pmdEDUCB *cb = NULL ;
-
+      PD_TRACE_ENTRY ( SDB__PMDEDUMGR_GETEDUTRDID );
       try
       {
-         ossScopedLock lock( &_latch, SHARED ) ;
-
-         for ( it = _mapRuns.begin () ; it != _mapRuns.end () ; ++it )
+         std::map<EDUID, pmdEDUCB*>::iterator it ;
+         EDUMGR_SLOCK
+         for ( it = _runQueue.begin () ; it != _runQueue.end () ; it ++ )
          {
-            cb = it->second ;
-            tidList.insert ( cb->getThreadID() ) ;
+            tidList.insert ( (*it).second->getThreadID () ) ;
          }
-
-         for ( it = _mapIdles.begin () ; it != _mapIdles.end () ; ++it )
+         for ( it = _idleQueue.begin () ; it != _idleQueue.end () ; it ++ )
          {
-            cb = it->second ;
-            tidList.insert ( cb->getThreadID() ) ;
+            tidList.insert ( (*it).second->getThreadID () ) ;
          }
       }
       catch ( std::exception &e )
       {
-         PD_LOG ( PDERROR, "Failed to insert tid into set: %s", e.what() ) ;
+         PD_LOG ( PDERROR,
+                  "Failed to insert tid into set: %s", e.what() ) ;
       }
-      PD_TRACE_EXIT ( SDB__PMDEDUMGR_GETEDUTRDID ) ;
+      PD_TRACE_EXIT ( SDB__PMDEDUMGR_GETEDUTRDID );
    }
 
    void _pmdEDUMgr::killByThreadID( INT32 signo )
    {
       INT32 rc = SDB_OK ;
-      MAP_EDUCB_IT it ;
-      pmdEDUCB *cb = NULL ;
-
       try
       {
-         ossScopedLock lock( &_latch, SHARED ) ;
-
-         for ( it = _mapRuns.begin() ; it != _mapRuns.end() ; ++it )
+         std::map<EDUID, pmdEDUCB*>::iterator it ;
+         EDUMGR_SLOCK
+         for ( it = _runQueue.begin () ; it != _runQueue.end () ; it++ )
          {
-            cb = it->second ;
-            if ( 0 == cb->getThreadID() ||
-                 ossPThreadSelf() == cb->getThreadID() )
+            if ( 0 == (*it).second->getThreadID() ||
+                 ossPThreadSelf() == (*it).second->getThreadID() )
             {
                continue ;
             }
-            rc = ossPThreadKill( cb->getThreadID (), signo ) ;
+            rc = ossPThreadKill ( (*it).second->getThreadID (), signo ) ;
             if ( rc )
             {
                PD_LOG ( PDWARNING, "Failed to send signal %d to thread %llu, "
-                        "errno = %d", signo, cb->getTID(),
+                        "errno = %d", signo, (*it).second->getTID(),
                         ossGetLastError() ) ;
             }
          }
-
-         for ( it = _mapIdles.begin() ; it != _mapIdles.end() ; ++it )
+         for ( it = _idleQueue.begin () ; it != _idleQueue.end () ; it++ )
          {
-            cb = it->second ;
-            if ( 0 == cb->getThreadID() ||
-                 ossPThreadSelf() == cb->getThreadID() )
+            if ( 0 == (*it).second->getThreadID() ||
+                 ossPThreadSelf() == (*it).second->getThreadID() )
             {
                continue ;
             }
-            rc = ossPThreadKill( cb->getThreadID (), signo ) ;
+            rc = ossPThreadKill ( (*it).second->getThreadID (), signo ) ;
             if ( rc )
             {
                PD_LOG ( PDWARNING, "Failed to send signal %d to thread %llu, "
-                        "errno = %d", signo, cb->getTID(),
+                        "errno = %d", signo, (*it).second->getTID(),
                         ossGetLastError() ) ;
             }
          }
@@ -1720,244 +1178,7 @@ namespace engine
          PD_LOG ( PDERROR, "Failed to pthread_kill tid: %s", e.what() ) ;
       }
    }
-#endif //_LINUX
 
-   void _pmdEDUMgr::monitor()
-   {
-      INT32 rc = SDB_OK ;
-      EDUID eduID = PMD_INVALID_EDUID ;
-      UINT32 runSize = 0 ;
-      UINT32 idleSize = 0 ;
-      UINT32 poolSize = 0 ;
-      UINT32 idleLowSize = 0 ;
-
-      while( !isDestroyed() )
-      {
-         if ( SDB_TIMEOUT == _monitorEvent.wait( OSS_ONE_SEC * 5 ) )
-         {
-            continue ;
-         }
-         else if ( !_pResource->isActive() )
-         {
-            continue ;
-         }
-
-         idleLowSize = calIdleLowSize( &runSize, &idleSize, &poolSize ) ;
-         while ( idleSize < idleLowSize )
-         {
-            rc = createIdleEDU( &eduID ) ;
-            if ( rc )
-            {
-               if ( SDB_QUIESCED != rc )
-               {
-                  ossSleep( OSS_ONE_SEC ) ;
-               }
-               break ;
-            }
-
-            PD_LOG( PDDEBUG, "Create Idle edu[ID:%lld]", eduID ) ;
-            idleLowSize = calIdleLowSize( &runSize, &idleSize, &poolSize ) ;
-         }
-      }
-   }
-
-   INT32 _pmdEDUMgr::pmdEDUEntryPointWrapper( pmdEDUCB *cb, pmdEventPtr ePtr )
-   {
-      INT32 rc = SDB_OK ;
-      EDUID eduID = cb->getID() ;
-      UINT32 tid = ossGetCurrentThreadID() ;
-      BOOLEAN quitWithException = FALSE ;
-
-#if defined (_WINDOWS)
-      HANDLE      tHdl = NULL ;
-      BOOLEAN     isHdlCreated = FALSE ;
-      if ( DuplicateHandle( GetCurrentProcess(), GetCurrentThread(),
-                            GetCurrentProcess(), &tHdl, 0, false, 
-                            DUPLICATE_SAME_ACCESS ) )
-      {
-         isHdlCreated = TRUE ;
-      }
-#elif defined (_LINUX )
-      OSSTID tHdl = ossGetCurrentThreadID() ;
-      cb->setThreadID ( ossPThreadSelf() ) ;
 #endif
-      cb->setThreadHdl( tHdl ) ;
-      cb->setTID( tid ) ;
-
-      try
-      {
-         rc = pmdEDUEntryPoint( pmdDeclareEDUCB( cb ),
-                                ePtr,
-                                quitWithException ) ;
-      }
-      catch( std::exception &e )
-      {
-         rc = SDB_SYS ;
-         ePtr->signal( rc ) ;
-
-         cb = findAndRemove( eduID ) ;
-         if ( cb )
-         {
-            SDB_OSS_DEL cb ;
-         }
-
-         if ( quitWithException )
-         {
-            PD_LOG( PDSEVERE, "Thread[EDUID:%llu, TID:%u] occur "
-                    "exception: %s. Restart DB", eduID, tid,
-                    e.what() ) ;
-            PMD_RESTART_DB( rc ) ;
-         }
-         else
-         {
-            PD_LOG( PDERROR, "Thread[EDUID:%llu, TID:%u] occur "
-                    "exception: %s", eduID, tid, e.what() ) ;
-         }
-      }
-
-      pmdUndeclareEDUCB() ;
-
-   #if defined (_WINDOWS)
-      if ( isHdlCreated )
-      {
-         CloseHandle( tHdl ) ;
-      }
-   #endif
-
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDEDUENTPNT, "pmdEDUEntryPoint" )
-   INT32 _pmdEDUMgr::pmdEDUEntryPoint( pmdEDUCB *cb,
-                                       pmdEventPtr ePtr,
-                                       BOOLEAN &quitWithException )
-   {
-      INT32       rc             = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_PMDEDUENTPNT );
-
-      pmdEPFactory &factory      = pmdGetEPFactory() ;
-      const pmdEPItem *pItem     = NULL ;
-      UINT32 idleTime            = 0 ;
-
-      EDUID       myEDUID        = cb->getID() ;
-      INT32       eduType        = cb->getType() ;
-      pmdKRCB    *krcb           = pmdGetKRCB() ;
-      pmdEDUMgr  *eduMgr         = ( pmdEDUMgr* )krcb->getExecutorMgr() ;
-      IContextMgr *pCtxMgr       = krcb->getContextMgr() ;
-      pmdEDUEvent event ;
-      BOOLEAN     eduDestroyed   = FALSE ;
-      CHAR        eduName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-
-      eduMgr->setEDU( ossGetCurrentThreadID(), myEDUID ) ;
-
-      PD_LOG ( PDEVENT, "Start thread[%u] for EDU[ID:%lld, type:%s, Name:%s]",
-               cb->getTID(), myEDUID, getEDUName( eduType ), cb->getName() ) ;
-
-      ePtr->signal() ;
-      quitWithException = TRUE ;
-
-      while( !eduDestroyed )
-      {
-         if ( !cb->waitEvent( event, OSS_ONE_SEC, FALSE ) )
-         {
-            idleTime += OSS_ONE_SEC ;
-
-            if ( eduMgr->forceDestory( cb, idleTime ) )
-            {
-               break ;
-            }
-            continue ;
-         }
-
-         idleTime = 0 ;
-         eduType = cb->getType() ;
-         ossStrcpy( eduName, "PoolIdle" ) ;
-
-         if ( PMD_EDU_EVENT_RESUME == event._eventType )
-         {
-            pItem = factory.getItem( eduType ) ;
-            if ( !pItem || !pItem->_pFunc )
-            {
-               PD_LOG( PDSEVERE, "EDU[type=%d] entry point func is NULL. "
-                       "Shutdown DB", eduType ) ;
-               rc = SDB_SYS ;
-               PMD_SHUTDOWN_DB( SDB_SYS ) ;
-            }
-
-            eduMgr->waitEDU( cb ) ;
-            initCurAuditMask( getAuditMask() ) ;
-
-            *(cb->getMonConfigCB()) = *(krcb->getMonCB()) ;
-            cb->initMonAppCB() ;
-
-            rc = pItem->_pFunc( cb, event._Data ) ;
-            ossStrncpy( eduName, cb->getName(), OSS_MAX_PATHSIZE ) ;
-
-            if ( PMD_IS_DB_UP() )
-            {
-               if ( pItem->isSystem() )
-               {
-                  PD_LOG( PDSEVERE, "System EDU[ID:%lld, type:%s] exit "
-                          "with %d. Restart DB", cb->getID(),
-                          pItem->_name.c_str(), rc ) ;
-                  PMD_RESTART_DB( rc ) ;
-               }
-               else if ( SDB_OK != rc )
-               {
-                  PD_LOG( PDWARNING, "EDU[ID:%lld, type:%s, Name:%s] exit "
-                          "with %d", cb->getID(), pItem->_name.c_str(),
-                          cb->getName(), rc ) ;
-               }
-            }
-
-            eduMgr->waitEDU( cb ) ;
-            cb->resetMon() ;
-            if( pCtxMgr )
-            {
-               SINT64 contextID = -1 ;
-               while ( -1 != ( contextID = cb->contextPeek() ) )
-               {
-                  pCtxMgr->contextDelete( contextID, NULL ) ;
-                  PD_LOG ( PDWARNING, "EDU[%lld,%s] context[%d] leaked",
-                           myEDUID, getEDUName( eduType ), contextID ) ;
-               }
-            }
-            cb->assertLocks() ;
-            cb->clear() ;
-         }
-         else if ( PMD_EDU_EVENT_TERM != event._eventType )
-         {
-            PD_LOG( PDERROR, "Recieve the error event[type=%d] in "
-                    "EDU[ID:%lld, type:%s]", event._eventType, myEDUID,
-                    getEDUName( cb->getType() ) ) ;
-            rc = SDB_SYS ;
-         }
-
-         pmdEduEventRelase( event, cb ) ;
-         event.reset() ;
-
-         eduMgr->returnEDU( cb, eduDestroyed ) ;
-         if ( !eduDestroyed )
-         {
-            PD_LOG( PDINFO, "Push thread[%d] for EDU[ID:%lld, Type:%s, "
-                    "Name: %s] to thread pool", ossGetCurrentThreadID(),
-                    myEDUID, getEDUName( eduType ), eduName ) ;
-         }
-      }
-
-      if ( pmdGetEDUHook() )
-      {
-         PMD_ON_EDU_EXIT_FUNC pFunc = pmdGetEDUHook() ;
-         pFunc() ;
-      }
-
-      PD_LOG ( PDEVENT, "Terminating thread[%d] for EDU[ID:%lld, Type:%s, "
-               "Name: %s]", ossGetCurrentThreadID(), myEDUID,
-               getEDUName( eduType ), eduName ) ;
-
-      PD_TRACE_EXITRC ( SDB_PMDEDUENTPNT, rc );
-      return rc ;
-   }
-
 }
 

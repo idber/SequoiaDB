@@ -205,9 +205,9 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNOPENLOB, "rtnOpenLob" )
    INT32 rtnOpenLob( const BSONObj &lob,
                      SINT32 flags,
+                     BOOLEAN isLocal,
                      _pmdEDUCB *cb,
                      SDB_DPSCB *dpsCB,
-                     _rtnLobStream *pStream,
                      SINT16 w,
                      SINT64 &contextID,
                      rtnContextBuf &buffObj )
@@ -227,8 +227,7 @@ namespace engine
       }
 
       SDB_ASSERT( NULL != lobContext, "can not be null" ) ;
-      rc = lobContext->open( lob, flags, cb, dpsCB, pStream ) ;
-      pStream = NULL ;
+      rc = lobContext->open( lob, isLocal, flags, cb, dpsCB ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to open lob context, rc:%d", rc ) ;
@@ -250,10 +249,6 @@ namespace engine
       }
 
    done:
-      if ( pStream )
-      {
-         SDB_OSS_DEL pStream ;
-      }
       PD_TRACE_EXITRC( SDB_RTNOPENLOB, rc ) ;
       return rc ;
    error:
@@ -340,7 +335,6 @@ namespace engine
                       pmdEDUCB *cb,
                       UINT32 len,
                       const CHAR *buf,
-                      INT64 lobOffset,
                       rtnContextBuf *errBuf )
    {
       INT32 rc = SDB_OK ;
@@ -363,15 +357,8 @@ namespace engine
          goto error ;
       }
 
-      if ( lobOffset < -1 )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "Invalid LOB offset:%d", lobOffset ) ;
-         goto error ;
-      }
-
       lobContext = ( rtnContextLob * )context ;
-      rc = lobContext->write( len, buf, lobOffset, cb ) ;
+      rc = lobContext->write( len, buf, cb ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to write lob, rc: %d", rc ) ;
@@ -393,65 +380,12 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNLOCKLOB, "rtnLockLob" )
-   INT32 rtnLockLob( SINT64 contextID,
-                     pmdEDUCB *cb,
-                     INT64 offset,
-                     INT64 length,
-                     rtnContextBuf *errBuf )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB_RTNLOCKLOB ) ;
-      rtnContextLob *lobContext = NULL ;
-      SDB_RTNCB *rtnCB = sdbGetRTNCB() ;
-      rtnContext *context = rtnCB->contextFind ( contextID, cb ) ;
-      if ( NULL == context )
-      {
-         PD_LOG ( PDERROR, "Context %lld does not exist", contextID ) ;
-         rc = SDB_RTN_CONTEXT_NOTEXIST ;
-         goto error ;
-      }
-
-      if ( RTN_CONTEXT_LOB != context->getType() )
-      {
-         PD_LOG( PDERROR, "It is not a lob context, invalid context type:%d"
-                 ", contextID:%lld", context->getType(), contextID ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      if ( offset < 0 || length < -1 )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "Invalid LOB section(offset:%lld, length:%lld)",
-                 offset, length ) ;
-         goto error ;
-      }
-
-      lobContext = ( rtnContextLob * )context ;
-      rc = lobContext->lock( cb, offset, length ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to lock lob, rc:%d", rc ) ;
-         if ( errBuf )
-         {
-            lobContext->getErrorInfo( rc, cb, *errBuf ) ;
-         }
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB_RTNLOCKLOB, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCLOSELOB, "rtnCloseLob" )
    INT32 rtnCloseLob( SINT64 contextID,
                       pmdEDUCB *cb,
-                      rtnContextBuf *bufObj )
+                      rtnContextBuf *errBuf )
    {
+      
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNCLOSELOB ) ;
       rtnContextLob *lobContext = NULL ;
@@ -471,34 +405,15 @@ namespace engine
       }
 
       lobContext = ( rtnContextLob * )context ;
-
       rc = lobContext->close( cb ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to close lob, rc:%d", rc ) ;
-         if ( bufObj )
+         if ( errBuf )
          {
-            lobContext->getErrorInfo( rc, cb, *bufObj ) ;
+            lobContext->getErrorInfo( rc, cb, *errBuf ) ;
          }
          goto error ;
-      }
-
-      if ( NULL != bufObj )
-      {
-         INT32 mode = lobContext->mode() ;
-         if ( SDB_LOB_MODE_CREATEONLY == mode ||
-              SDB_LOB_MODE_WRITE == mode )
-         {
-            BSONObj meta ;
-            rc = lobContext->getLobMetaData( meta ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG( PDERROR, "Failed to get lob meta data, rc:%d", rc ) ;
-               goto error ;
-            }
-
-            *bufObj = meta ;
-         }
       }
 
    done:
@@ -577,100 +492,7 @@ namespace engine
       PD_TRACE_EXITRC( SDB_RTNREMOVELOB, rc ) ;
       return rc ;
    error:
-      {
-         INT32 rcTmp = SDB_OK ;
-         rcTmp = stream.closeWithException( cb ) ;
-         if ( SDB_OK != rcTmp )
-         {
-            PD_LOG( PDERROR, "failed to close lob with exception:%d", rcTmp ) ;
-         }
-      }
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNTRUNCATELOB, "rtnTruncateLob" )
-   INT32 rtnTruncateLob( const BSONObj &meta,
-                         INT32 flags,
-                         SINT16 w,
-                         _pmdEDUCB *cb,
-                         SDB_DPSCB *dpsCB )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB_RTNTRUNCATELOB ) ;
-      _rtnLocalLobStream stream ;
-      BSONElement ele ;
-      string fullName ;
-      bson::OID oid ;
-      INT64 length = 0 ;
-
-      ele = meta.getField( FIELD_NAME_COLLECTION ) ;
-      if ( bson::String != ele.type() )
-      {
-         PD_LOG( PDERROR, "Invalid type of full name:%s",
-                 meta.toString( FALSE, TRUE ).c_str() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-      fullName = ele.String() ;
-
-      ele = meta.getField( FIELD_NAME_LOB_OID ) ;
-      if ( bson::jstOID != ele.type() )
-      {
-         PD_LOG( PDERROR, "Invalid type of full oid:%s",
-                 meta.toString( FALSE, TRUE ).c_str() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-      oid = ele.OID() ;
-
-      ele = meta.getField( FIELD_NAME_LOB_LENGTH ) ;
-      if ( bson::NumberLong != ele.type() )
-      {
-         PD_LOG( PDERROR, "invalid type of field \"Length\":%s",
-                 meta.toString( FALSE, TRUE ).c_str() ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      length = ele.numberLong() ;
-
-      stream.setDPSCB( dpsCB ) ;
-
-      rc = stream.open( fullName.c_str(),
-                        oid, SDB_LOB_MODE_TRUNCATE,
-                        flags, NULL, cb ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to truncate lob:%s, rc:%d",
-                 oid.str().c_str(), rc ) ;
-         goto error ;
-      }
-
-      rc = stream.truncate( length, cb ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Faield to truncate lob, rc:%d", rc ) ;
-         goto error ;
-      }
-
-      rc = stream.close( cb ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to truncate lob, rc:%d", rc ) ;
-         goto error ;
-      }
-   done:
-      PD_TRACE_EXITRC( SDB_RTNTRUNCATELOB, rc ) ;
-      return rc ;
-   error:
-      {
-         INT32 rcTmp = SDB_OK ;
-         rcTmp = stream.closeWithException( cb ) ;
-         if ( SDB_OK != rcTmp )
-         {
-            PD_LOG( PDERROR, "failed to close lob with exception:%d", rcTmp ) ;
-         }
-      }
-      goto done ;
+     goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNGETLOBMETADATA, "rtnGetLobMetaData" )
@@ -723,7 +545,6 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCREATELOB, "rtnCreateLob" )
    INT32 rtnCreateLob( const CHAR *fullName,
                        const bson::OID &oid,
-                       _dmsLobMeta &meta,
                        pmdEDUCB *cb,
                        SINT16 w,
                        SDB_DPSCB *dpsCB,
@@ -733,7 +554,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNCREATELOB ) ;
       SDB_ASSERT( NULL != fullName && NULL != cb, "can not be null" ) ;
-      _dmsLobMeta tmpMeta ;
+      _dmsLobMeta meta ;
       rtnLobEnv lobEnv( fullName, cb, su, mbContext ) ;
 
       rc = lobEnv.prepareOpr( EXCLUSIVE ) ;
@@ -744,7 +565,7 @@ namespace engine
       }
 
       rc = lobEnv.getSU()->lob()->getLobMeta( oid, lobEnv.getMBContext(),
-                                              cb, tmpMeta ) ;
+                                              cb, meta ) ;
       if ( SDB_FNE == rc )
       {
          rc = SDB_OK ;
@@ -754,7 +575,7 @@ namespace engine
          PD_LOG( PDERROR, "Failed to get meta data of lob, rc:%d", rc ) ;
          goto error ;
       }
-      else if ( tmpMeta.isDone() )
+      else if ( meta.isDone() )
       {
          PD_LOG( PDERROR, "Lob[%s] exists", oid.str().c_str() ) ;
          rc = SDB_FE ;
@@ -763,11 +584,12 @@ namespace engine
       else
       {
          PD_LOG( PDINFO, "Lob[%s] meta[%s] is not available",
-                 oid.str().c_str(), tmpMeta.toString().c_str() ) ;
+                 oid.str().c_str(), meta.toString().c_str() ) ;
          rc = SDB_LOB_IS_NOT_AVAILABLE ;
          goto error ;
       }
 
+      meta.clear() ;
       rc = lobEnv.getSU()->lob()->writeLobMeta( oid, lobEnv.getMBContext(),
                                                 cb, meta, TRUE, dpsCB ) ;
       if ( SDB_OK != rc )
@@ -837,55 +659,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNWRITEORUPDATELOB, "rtnWriteOrUpdateLob" ) 
-   INT32 rtnWriteOrUpdateLob( const CHAR *fullName,
-                              const bson::OID &oid,
-                              UINT32 sequence,
-                              UINT32 offset,
-                              UINT32 len,
-                              const CHAR *data,
-                              pmdEDUCB *cb,
-                              SINT16 w,
-                              SDB_DPSCB *dpsCB,
-                              dmsStorageUnit *su,
-                              dmsMBContext *mbContext,
-                              BOOLEAN* hasUpdated )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB_RTNWRITEORUPDATELOB ) ;
-      SDB_ASSERT( NULL != fullName && NULL != cb, "can not be null" ) ;
-      _dmsLobRecord record ;
-      rtnLobEnv lobEnv( fullName, cb, su, mbContext ) ;
-
-      rc = lobEnv.prepareOpr( -1 ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to prepare to write or update lob, rc:%d", rc ) ;
-         goto error ;
-      }
-
-      record.set( &oid, sequence, offset, len, data ) ;
-      rc = lobEnv.getSU()->lob()->writeOrUpdate( record, lobEnv.getMBContext(),
-                                                 cb, dpsCB, hasUpdated ) ;
-
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to write or update lob, rc:%d", rc ) ;
-         goto error ;
-      }
-
-      if ( NULL != dpsCB )
-      {
-         dpsCB->completeOpr( cb, w ) ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB_RTNWRITEORUPDATELOB, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCLOSELOB2, "rtnCloseLob" )
    INT32 rtnCloseLob( const CHAR *fullName,
                       const bson::OID &oid,
@@ -934,8 +707,7 @@ namespace engine
                             pmdEDUCB *cb,
                             dmsLobMeta &meta,
                             dmsStorageUnit *su,
-                            dmsMBContext *mbContext,
-                            BOOLEAN allowUncompleted )
+                            dmsMBContext *mbContext )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNGETLOBMETADATA2 ) ;
@@ -953,15 +725,12 @@ namespace engine
                                               cb, meta ) ;
       if ( SDB_OK != rc )
       {
-         if ( SDB_FNE != rc )
-         {
-            PD_LOG( PDERROR, "Failed to read lob[%s] in collection[%s], rc:%d",
-                    oid.str().c_str(), fullName, rc ) ;
-         }
+         PD_LOG( PDERROR, "Failed to read lob[%s] in collection[%s], rc:%d",
+                 oid.str().c_str(), fullName, rc ) ;
          goto error ;
       }
 
-      if ( !meta.isDone() && !allowUncompleted )
+      if ( !meta.isDone() )
       {
          PD_LOG( PDINFO, "Lob[%s] meta[%s] is not available",
                  oid.str().c_str(), meta.toString().c_str() ) ;
@@ -1071,8 +840,7 @@ namespace engine
                                    SDB_DPSCB *dpsCB,
                                    dmsLobMeta &meta,
                                    dmsStorageUnit *su,
-                                   dmsMBContext *mbContext,
-                                   BOOLEAN allowUncompleted )
+                                   dmsMBContext *mbContext )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNQUERYANDINVALIDAGELOB ) ;
@@ -1097,17 +865,10 @@ namespace engine
 
       if ( !lobMeta.isDone() )
       {
-         if ( allowUncompleted )
-         {
-            goto done ;
-         }
-         else
-         {
-            PD_LOG( PDINFO, "Lob[%s] meta[%s] is not available",
-                    oid.str().c_str(), meta.toString().c_str() ) ;
-            rc = SDB_LOB_IS_NOT_AVAILABLE ;
-            goto error ;
-         }
+         PD_LOG( PDINFO, "Lob[%s] meta[%s] is not available",
+                 oid.str().c_str(), meta.toString().c_str() ) ;
+         rc = SDB_LOB_IS_NOT_AVAILABLE ;
+         goto error ;
       }
 
       meta = lobMeta ;

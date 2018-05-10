@@ -56,8 +56,7 @@
 ossPrimitiveFileOp::ossPrimitiveFileOp()
 {
    _fileHandle = OSS_INVALID_HANDLE_FD_VALUE ;
-   _bIsStdout = FALSE ;
-   ossMemset( _fileName, 0, sizeof( _fileName ) ) ;
+   _bIsStdout = false ;
 }
 
 ossPrimitiveFileOp::~ossPrimitiveFileOp()
@@ -65,20 +64,9 @@ ossPrimitiveFileOp::~ossPrimitiveFileOp()
    Close() ;
 }
 
-BOOLEAN ossPrimitiveFileOp::isValid() const
+BOOLEAN ossPrimitiveFileOp::isValid()
 {
    return ( OSS_INVALID_HANDLE_FD_VALUE != _fileHandle ) ;
-}
-
-BOOLEAN ossPrimitiveFileOp::isExist() const
-{
-   if ( _bIsStdout ||
-        ( 0 != _fileName[0] &&
-          0 == oss_access( _fileName, 0 ) ) )
-   {
-      return TRUE ;
-   }
-   return FALSE ;
 }
 
 void ossPrimitiveFileOp::Close()
@@ -158,8 +146,6 @@ int ossPrimitiveFileOp::Open( const CHAR * pFilePath, UINT32_64 options )
       rc = errno ;
       goto exit ;
    }
-   ossStrncpy( _fileName, pFilePath, OSS_MAX_PATHSIZE ) ;
-
 exit :
    PD_TRACE_EXITRC ( SDB_OSSPFOP_OPEN, rc );
    return rc ;
@@ -173,7 +159,7 @@ void ossPrimitiveFileOp::openStdout()
    HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE) ;
    setFileHandle((handleType)handle) ;
 #endif
-   _bIsStdout = TRUE ;
+   _bIsStdout = true ;
 }
 
 ossPrimitiveFileOp::offsetType ossPrimitiveFileOp::getCurrentOffset () const

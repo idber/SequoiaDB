@@ -25,25 +25,17 @@
             <li>
                <a href="#/Monitor/SDB-Nodes/NodesSnapshot">{{autoLanguage("节点快照")}}</a>
             </li>
-            <li>
-               <a href="#/Monitor/SDB-Nodes/NodesSync">{{autoLanguage("节点数据同步")}}</a>
-            </li>
          </ul>
       </div>
 
       <div style="color:#606060;font-size:90%;height:30px;margin:10px 0;">
-         <button class="btn btn-default" ng-click="OpenBrushWindows()">
-            <span>{{sprintf(autoLanguage("刷新间隔： ? 秒"), IntervalTimeConfig.interval)}}</span>
-         </button>&nbsp;
-         <button class="btn btn-default" ng-click="RefreshCtrl()">{{RefreshType}}</button>&nbsp;
-         <button class="btn btn-default" ng-click="OpenModeDropdown($event)">
-            <span ng-if="ShowType == 'full'">{{autoLanguage("全量模式")}}</span><span ng-if="ShowType == 'inc'">{{autoLanguage("增量模式")}}</span><span ng-if="ShowType == 'avg'">{{autoLanguage("均量模式")}}</span>&nbsp;<i class="fa fa-caret-down"></i>
+         <button class="btn btn-default" ng-click="OpenBrushWindows()">{{autoLanguage("实时刷新设置")}}</button>&nbsp;
+         <button class="btn btn-default" ng-click="OpenShowFieldDropdown($event)">
+            {{autoLanguage("选择显示列")}}&nbsp;<i class="fa fa-caret-down"></i>
          </button>
          <div ng-dropdown="config in FieldDropdown.config" dropdown-callback="FieldDropdown.callback">
-            <label class="Ellipsis" style="padding:5px 10px;display:block;" ng-click="SaveField()"><input type="checkbox" ng-model="config.show" />&nbsp;{{config.field}}</label>
-         </div>
-         <div ng-dropdown="config in modeDropdown.config" dropdown-event="modeDropdown.event" dropdown-callback="modeDropdown.callback">
-            <label class="Ellipsis" style="padding:5px 10px;display:block;" ng-click="modeDropdown.OnClick($index)"><input type="radio" ng-checked="config.checked" />&nbsp;{{config.key}}</label>
+            <label class="Ellipsis" style="padding:5px 10px;display:block;"><input type="checkbox" ng-model="config.show" />&nbsp;{{config.field}}</label>
+            <button class="btn btn-primary" style="width:100%;" dropdown-config="last" ng-click="SaveField()">{{autoLanguage("确定")}}</button>
          </div>
       </div>
 
@@ -67,9 +59,7 @@
          <div class="Ellipsis" table-key="Group.length">{{groupInfo['Group'].length}}</div>
          <div class="Ellipsis" table-key="$auto">
             <span ng-style="{'1':{'color':'#D9534F','font-weight':'bold'},'-1':{'color':'#00CC66','font-weight':'bold'},'0':{'color':'#000','font-weight':'normal'}}[$autoValue == LastValue[groupInfo['i']].$auto ? '0' : ( $autoValue > LastValue[groupInfo['i']].$auto ? '1' : '-1' )]">
-               <span table-if="ShowType == 'full'|| $autoValue == '-' || LastValue[groupInfo['i']].$auto == '-'">{{$autoValue}}</span>
-               <span table-if="ShowType == 'inc' && $autoValue != '-' && LastValue[groupInfo['i']].$auto != '-'">{{$autoValue - LastValue[groupInfo['i']].$auto}}</span>
-               <span table-if="ShowType == 'avg' && $autoValue != '-' && LastValue[groupInfo['i']].$auto != '-'">{{fixedNumber( ($autoValue - LastValue[groupInfo['i']].$auto) / IntervalTimeConfig.interval, 2 )}}</span>
+               {{$autoValue}}
             </span>
          </div>
       </div>

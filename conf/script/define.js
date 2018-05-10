@@ -222,8 +222,8 @@ var ReadSec                                = "ReadSec" ;
 var WriteSec                               = "WriteSec" ;
 
 // deploy mode
-var OMA_DEPLOY_CLUSTER                    = "distribution" ;
-var OMA_DEPLOY_STANDALONE                 = "standalone" ;
+var  OMA_DEPLOY_CLUSTER                    = "distribution" ;
+var  OMA_DEPLOY_STANDALONE                 = "standalone" ;
 
 var SYSTEM_OS_INFO                         = "System.getReleaseInfo()" ;
 var SYSTEM_CPU_INFO                        = "System.getCpuInfo()" ;
@@ -255,6 +255,7 @@ var OMA_FILE_PSQL_FIFO_FILE                = "result.fifo" ;
 var OMA_FILE_TEMP_ADD_HOST_CHECK           = OMA_PATH_TEMP_TEMP_DIR + "addHostCheckEnvResult" ;
 var OMA_FILE_SDBCM_CONF                    = "sdbcm.conf" ;
 var OMA_FILE_SDBCM_CONF2                   = "conf/sdbcm.conf" ;
+var OMA_FILE_ERROR                         = "error.js" ;
 var OMA_FILE_LOG                           = "log.js" ;
 var OMA_FILE_COMMON                        = "common.js" ;
 var OMA_FILE_DEFINE                        = "define.js" ;
@@ -277,94 +278,6 @@ var OMA_PROG_UNINSTALL                     = "uninstall" ;
 var OMA_MISC_CONFIG_PORT                   = "_Port" ;
 var OMA_MISC_OM_VERSION                    = "version: " ;
 var OMA_MISC_OM_RELEASE                    = "Release: " ;
-
-// status
-var STATUS_INIT                            = 0 ;
-var STATUS_RUNNING                         = 1 ;
-var STATUS_ROLLBACK                        = 2 ;
-var STATUS_CANCEL                          = 3 ;
-var STATUS_FINISH                          = 4 ;
-var STATUS_FAIL                            = 10 ;
-
-var DESC_STATUS_INIT                       = "INIT" ;
-var DESC_STATUS_RUNNING                    = "RUNNING" ;
-var DESC_STATUS_ROLLBACK                   = "ROLLBACK" ;
-var DESC_STATUS_CANCEL                     = "CANCEL" ;
-var DESC_STATUS_FINISH                     = "FINISH" ;
-var DESC_STATUS_FAIL                       = "FAIL" ;
-
-// new field, normative naming
-var FIELD_TASKID                           = TaskID ;
-var FIELD_CONFIG                           = Config ;
-var FIELD_PLAN                             = "Plan" ;
-var FIELD_RESULTINFO                       = "ResultInfo" ;
-var FIELD_HOSTNAME                         = HostName ;
-var FIELD_SVCNAME                          = SvcName3 ;
-var FIELD_SERVICE                          = Service ;
-var FIELD_DBPATH                           = "dbpath" ;
-var FIELD_ROLE                             = Role ;
-var FIELD_COORD                            = "coord" ;
-var FIELD_COORD2                           = "Coord" ;
-var FIELD_CATALOG                          = "catalog" ;
-var FIELD_DATA                             = "data" ;
-var FIELD_STANDALONE                       = "standalone" ;
-var FIELD_INFO                             = Info ;
-var FIELD_DATAGROUPNAME                    = "datagroupname" ;
-var FIELD_STATUS                           = Status ;
-var FIELD_STATUS_DESC                      = "StatusDesc" ;
-var FIELD_FLOW                             = "Flow" ;
-var FIELD_ERRNO                            = Errno ;
-var FIELD_DETAIL                           = Detail ;
-var FIELD_GROUPNAME                        = GroupName ;
-var FIELD_DEPLOYMOD                        = DeployMod ;
-var FIELD_PROGRESS                         = "Progress" ;
-var FIELD_USER                             = User ;
-var FIELD_PASSWD                           = Passwd ;
-var FIELD_GROUP                            = Group ;
-var FIELD_SECONDS                          = "Seconds" ;
-var FIELD_PRIMARY_NODE                     = PrimaryNode ;
-var FIELD_NODE_ID                          = "NodeID" ;
-var FIELD_NAME                             = Name ;
-var FIELD_NAME2                            = "name" ;
-var FIELD_CMD                              = "cmd" ;
-var FIELD_SAC_TASKID                       = "sactaskid" ;
-var FIELD_ADDRESS                          = "Address" ;
-var FIELD_ADDRESS2                         = "address" ;
-var FIELD_BUSINESS_NAME                    = BusinessName ;
-var FIELD_BUSINESS_TYPE                    = BusinessType ;
-var FIELD_CLUSTER_NAME                     = ClusterName ;
-var FIELD_CONFIG                           = Config ;
-var FIELD_HOST_INFO                        = HostInfo ;
-var FIELD_SEQUOIADB                        = "sequoiadb" ;
-var FIELD_SEQUOIASQL_OLTP                  = "sequoiasql-oltp" ;
-var FIELD_HOSTLIST                         = "HostList" ;
-var FIELD_IP                               = IP ;
-var FIELD_HOSTS                            = Hosts ;
-var FIELD_IP2                              = Ip ;
-var FIELD_AGENT_SERVICE                    = AgentService ;
-var FIELD_PACKAGES                         = "Packages" ;
-var FIELD_PACKAGE_NAME                     = "PackageName" ;
-var FIELD_SDBUSERGROUP                     = SdbUserGroup ;
-var FIELD_SDBPASSWD                        = SdbPasswd ;
-var FIELD_SDBUSER                          = SdbUser ;
-var FIELD_INSTALL_PACKET                   = InstallPacket ;
-var FIELD_SSH_PORT                         = SshPort ;
-var FIELD_INSTALL_PATH                     = InstallPath ;
-var FIELD_VERSION                          = Version ;
-var FIELD_ENFORCED                         = "Enforced" ;
-var FIELD_PORT                             = Port ;
-var FIELD_PORT2                            = "port" ;
-var FIELD_FROM                             = "From" ;
-var FIELD_TO                               = "To" ;
-var FIELD_OPTIONS                          = "Options" ;
-var FIELD_HTTP_NAME                        = "httpname" ;
-
-// Async task step
-var STEP_GENERATE_PLAN                     = "Generate plan" ;
-var STEP_DOIT                              = "Doit" ;
-var STEP_CHECK_RESULT                      = "Check result" ;
-var STEP_ROLLBACK                          = "Rollback" ;
-
 
 // port
 var OMA_PORT_DEFAULT_SDBCM_PORT            = "" ;
@@ -411,5 +324,3 @@ var OMA_GTE_VERSION_TIME                   = 10000 // ms
 var OMA_WAIT_CATALOG_TRY_TIMES             = 30 ; 
 var OMA_WAIT_ZN_TRY_TIMES                  = 30 ;
 
-var OMA_WAIT_PRIMARY_NODE_TIMES            = 30 ;
-var OMA_REELECT_TIMEOUT                    = 60 ; //seconds

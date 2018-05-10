@@ -15,14 +15,23 @@
  */
 package com.sequoiadb.net;
 
+import com.sequoiadb.exception.BaseException;
+import com.sequoiadb.exception.SDBError;
+
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 
 /**
  * @author Jacky Zhang
+ *
  */
-@Deprecated
 public class ServerAddress {
+    private final static String DEFAULT_HOST = "127.0.0.1";
+    private final static int DEFAULT_PORT = 11810;
     private InetSocketAddress hostAddress;
+    private String host;
+    private int port;
 
     /**
      * @return
@@ -35,14 +44,68 @@ public class ServerAddress {
      * @return
      */
     public String getHost() {
-        return hostAddress.getHostName();
+        return host;
     }
 
     /**
      * @return
      */
     public int getPort() {
-        return hostAddress.getPort();
+        return port;
+    }
+
+    /**
+     *
+     */
+    public ServerAddress() {
+        this(new InetSocketAddress(DEFAULT_HOST, DEFAULT_PORT));
+    }
+
+    /**
+     * @param host
+     * @param port
+     * @throws UnknownHostException
+     */
+    public ServerAddress(String host, int port) throws UnknownHostException {
+        hostAddress = new InetSocketAddress(InetAddress.getByName(host).toString().split("/")[1], port);
+        this.host = host;
+        this.port = port;
+    }
+
+    /**
+     * @param host
+     * @throws UnknownHostException
+     */
+    public ServerAddress(String host) throws UnknownHostException {
+        if (host.indexOf(":") > 0) {
+            String[] tmp = host.split(":");
+            this.host = tmp[0].trim();
+            try {
+                this.host = InetAddress.getByName(this.host).toString().split("/")[1];
+            } catch (Exception e) {
+                throw new BaseException(SDBError.SDB_INVALIDARG, e);
+            }
+            this.port = Integer.parseInt(tmp[1].trim());
+        } else {
+            this.host = host;
+            this.port = DEFAULT_PORT;
+        }
+        hostAddress = new InetSocketAddress(this.host, this.port);
+    }
+
+    /**
+     * @param addr
+     */
+    public ServerAddress(InetAddress addr) {
+        this(new InetSocketAddress(addr, DEFAULT_PORT));
+    }
+
+    /**
+     * @param addr
+     * @param port
+     */
+    public ServerAddress(InetAddress addr, int port) {
+        this(new InetSocketAddress(addr, port));
     }
 
     /**
@@ -50,6 +113,8 @@ public class ServerAddress {
      */
     public ServerAddress(InetSocketAddress addr) {
         hostAddress = addr;
+        host = addr.getHostName();
+        port = addr.getPort();
     }
 
     public String toString() {

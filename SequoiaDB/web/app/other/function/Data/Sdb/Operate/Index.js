@@ -1,5 +1,4 @@
-﻿//@ sourceURL=other/Index.js
-// --------------------- Data.Operate.Index ---------------------
+﻿// --------------------- Data.Operate.Index ---------------------
 var _DataOperateIndex = {} ;
 
 //初始化

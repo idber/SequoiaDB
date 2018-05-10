@@ -81,8 +81,6 @@ namespace engine
 
       static UINT32 hashDecimal( UINT32 hashCode, 
                                  const bson::bsonDecimal &decimal ) ;
-
-      static UINT32 hashCombine( UINT32 x, UINT32 y ) ;
    } ;
 
    typedef class _utilBSONHasher BSON_HASHER ;

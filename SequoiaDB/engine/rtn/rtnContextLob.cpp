@@ -33,7 +33,8 @@
 
 #include "rtnContextLob.hpp"
 #include "pmd.hpp"
-#include "rtnLobStream.hpp"
+#include "rtnLocalLobStream.hpp"
+#include "rtnCoordLobStream.hpp"
 #include "rtnLobFetcher.hpp"
 #include "rtnTrace.hpp"
 
@@ -41,61 +42,46 @@ using namespace bson ;
 
 namespace engine
 {
-   /*
-      _rtnContextLob implement
-   */
-
-   RTN_CTX_AUTO_REGISTER(_rtnContextLob, RTN_CONTEXT_LOB, "LOB")
-
    _rtnContextLob::_rtnContextLob( INT64 contextID, UINT64 eduID )
    :_rtnContextBase( contextID, eduID ),
     _stream( NULL ),
     _offset( -1 ),
     _readLen( 0 )
    {
+
    }
 
    _rtnContextLob::~_rtnContextLob()
    {
       if ( NULL != _stream && _stream->isOpened() )
       {
-         pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+         pmdKRCB *krcb = pmdGetKRCB() ;
+         pmdEDUMgr *eduMgr = krcb->getEDUMgr() ;
+         pmdEDUCB *cb = eduMgr->getEDUByID( eduID() ) ;
          _stream->closeWithException( cb ) ;
       }
-      if ( _stream )
-      {
-         SDB_OSS_DEL _stream ;
-         _stream = NULL ;
-      }
+
+      SAFE_OSS_DELETE( _stream ) ;
    }
 
    _dmsStorageUnit* _rtnContextLob::getSU()
    {
-      return NULL == _stream ? NULL : _stream->getSU() ;
+      return NULL == _stream ?
+            NULL : _stream->getSU() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTLOB_OPEN, "_rtnContextLob::open" )
    INT32 _rtnContextLob::open( const BSONObj &lob,
+                               BOOLEAN isLocal,
                                INT32 flags,
                                _pmdEDUCB *cb,
-                               SDB_DPSCB *dpsCB,
-                               _rtnLobStream *pStream )
+                               SDB_DPSCB *dpsCB )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNCONTEXTLOB_OPEN ) ;
       BSONElement mode ;
       BSONElement oid ;
-      BSONElement fullName ;
-
-      SDB_ASSERT( pStream, "Stream can't be NULL" ) ;
-      if ( !pStream )
-      {
-         rc = SDB_SYS ;
-         goto error ;
-      }
-      _stream = pStream ;
-
-      fullName = lob.getField( FIELD_NAME_COLLECTION ) ;
+      BSONElement fullName = lob.getField( FIELD_NAME_COLLECTION ) ;
       if ( String != fullName.type() )
       {
          PD_LOG( PDERROR, "can not find collection name in lob[%s]",
@@ -122,9 +108,23 @@ namespace engine
          goto error ;
       }
 
-      _stream->setUniqueId( contextID() ) ;
-      _stream->setDPSCB( dpsCB ) ;
+      if ( isLocal )
+      {
+         _stream = SDB_OSS_NEW _rtnLocalLobStream() ;
+      }
+      else
+      {
+         _stream = SDB_OSS_NEW _rtnCoordLobStream() ;
+      }
 
+      if ( NULL == _stream )
+      {
+         PD_LOG( PDERROR, "failed to allocate mem." ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+      _stream->setDPSCB( dpsCB ) ;
       rc = _stream->open( fullName.valuestr(),
                           oid.OID(),
                           mode.Int(),
@@ -149,23 +149,11 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTLOB_WRITE, "_rtnContextLob::write" )
    INT32 _rtnContextLob::write( UINT32 len,
                                 const CHAR *buf,
-                                INT64 lobOffset,
                                 _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNCONTEXTLOB_WRITE ) ;
       SDB_ASSERT( NULL != _stream, "can not be null" ) ;
-
-      if ( -1 != lobOffset )
-      {
-         rc = _stream->seek( lobOffset, cb ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "failed to seek lob:%d", rc ) ;
-            goto error ;
-         }
-      }
-
       rc = _stream->write( len, buf, cb ) ;
       if ( SDB_OK != rc )
       {
@@ -174,29 +162,6 @@ namespace engine
       }
    done:
       PD_TRACE_EXITRC( SDB__RTNCONTEXTLOB_WRITE, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTLOB_LOCK, "_rtnContextLob::lock" )
-   INT32 _rtnContextLob::lock( _pmdEDUCB *cb,
-                   INT64 offset,
-                   INT64 length )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNCONTEXTLOB_LOCK ) ;
-      SDB_ASSERT( NULL != _stream, "can not be null" ) ;
-
-      rc = _stream->lock( cb, offset, length ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to lock lob:%d", rc ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__RTNCONTEXTLOB_LOCK, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -219,18 +184,6 @@ namespace engine
       return rc ;
    error:
       goto done ;
-   }
-
-   INT32 _rtnContextLob::mode() const
-   {
-      if ( NULL != _stream )
-      {
-         return _stream->mode() ;
-      }
-      else
-      {
-         return 0 ;
-      }
    }
 
    void _rtnContextLob::getErrorInfo( INT32 rc,
@@ -333,22 +286,13 @@ namespace engine
       }
    }
 
-   std::string _rtnContextLob::name() const
-   {
-      return "LOB" ;
-   }
-
    /*
       _rtnContextLobFetcher implement
    */
-
-   RTN_CTX_AUTO_REGISTER(_rtnContextLobFetcher, RTN_CONTEXT_LOB_FETCHER, "LOB_FETCHER")
-
    _rtnContextLobFetcher::_rtnContextLobFetcher( INT64 contextID,
                                                  UINT64 eduID )
    :rtnContextBase( contextID, eduID )
    {
-      _pFetcher = NULL ;
    }
 
    _rtnContextLobFetcher::~_rtnContextLobFetcher()
@@ -382,11 +326,6 @@ namespace engine
    rtnLobFetcher* _rtnContextLobFetcher::getLobFetcher()
    {
       return _pFetcher ;
-   }
-
-   std::string _rtnContextLobFetcher::name() const
-   {
-      return "LOB_FETCHER" ;
    }
 
    RTN_CONTEXT_TYPE _rtnContextLobFetcher::getType () const

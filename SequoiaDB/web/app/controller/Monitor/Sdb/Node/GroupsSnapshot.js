@@ -1,4 +1,3 @@
-//@ sourceURL=GroupsSnapshot.js
 (function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
@@ -23,15 +22,7 @@
       }
 
       //初始化
-      $scope.IntervalTimeConfig = {
-         'interval': 5,
-         'play': false
-      } ;
-      $scope.ShowType = 'full' ;
-      //是否第一次初始化
-      var isFirst = true ; 
-      //刷新状态
-      $scope.RefreshType = $scope.autoLanguage( '启动刷新' ) ;
+      var isFirst = true ; //是否第一次初始化
       //上一次的值
       $scope.LastValue = [] ;
       //分区组列表的表格
@@ -81,7 +72,9 @@
       } ;
       //定时器
       $scope.Timer = {
-         'config': $scope.IntervalTimeConfig,
+         'config': {
+            interval: 5
+         },
          'callback': {}
       } ;
       //实时刷新设置 弹窗
@@ -103,23 +96,6 @@
          ],
          'callback': {}
       } ;
-      //显示模式 下拉菜单
-      $scope.modeDropdown = {
-         'config': [
-            { 'key': $scope.autoLanguage( '全量模式' ), 'checked': true,  'type': 'full' },
-            { 'key': $scope.autoLanguage( '增量模式' ), 'checked': false, 'type': 'inc' },
-            { 'key': $scope.autoLanguage( '均量模式' ), 'checked': false, 'type': 'avg' },
-         ],
-         'OnClick': function( index ){
-            $.each( $scope.modeDropdown['config'], function( index2, config ){
-               $scope.modeDropdown['config'][index2]['checked'] = false ;
-            } ) ;
-            $scope.modeDropdown['config'][index]['checked'] = true ;
-            $scope.modeDropdown['callback']['Close']() ;
-            $scope.ShowType = $scope.modeDropdown['config'][index]['type'] ;
-         },
-         'callback': {}
-      } ;
 
       //打开 显示列 的下拉菜单
       $scope.OpenShowFieldDropdown = function( event ){
@@ -134,12 +110,8 @@
          $.each( $scope.FieldDropdown['config'], function( index, fieldInfo ){
             $scope.GroupTable['title'][fieldInfo['key']] = fieldInfo['show'] ? fieldInfo['field'] : false ;
          } ) ;
+         $scope.FieldDropdown['callback']['Close']() ;
          $scope.GroupTable['callback']['ShowCurrentPage']() ;
-      }
-
-      //打开 显示模式 的下拉菜单
-      $scope.OpenModeDropdown = function( event ){
-         $scope.modeDropdown['callback']['Open']( event.currentTarget ) ;
       }
 
       //获取coord节点状态
@@ -295,17 +267,14 @@
       //获取分区组列表
       var getGroupList = function(){
          var data = { 'cmd': 'list groups' } ;
-         SdbRest.DataOperation( data, {
-            'success': function( groupList ){
-               getDbList( groupList ) ;
-            },
-            'failed': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  getGroupList() ;
-                  return true ;
-               } ) ;
-            }
-         }, { 'showLoading': false } ) ;
+         SdbRest.DataOperation( data, function( groupList ){
+            getDbList( groupList ) ;
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               getGroupList() ;
+               return true ;
+            } ) ;
+         }, null, null, null, false ) ;
       }
 
       getGroupList() ;
@@ -315,6 +284,16 @@
          //表单参数
          var brushForm = {
             'inputList': [
+               {
+                  "name": "play",
+                  "webName": $scope.autoLanguage( '自动刷新' ),
+                  "type": "select",
+                  "value": $scope.Timer['callback']['GetStatus']() != 'stop',
+                  "valid": [
+                     { 'key': $scope.autoLanguage( '开启' ), 'value': true },
+                     { 'key': $scope.autoLanguage( '停止' ), 'value': false }
+                  ]
+               },
                {
                   "name": "interval",
                   "webName": $scope.autoLanguage( '刷新间距(秒)' ),
@@ -333,8 +312,15 @@
             if( isAllClear )
             {
                var formVal = brushForm.getValue() ;
-               $scope.IntervalTimeConfig = formVal ;
                $scope.Timer['callback']['SetInterval']( formVal['interval'] ) ;
+               if( formVal['play'] == true )
+               {
+                  $scope.Timer['callback']['Start']( getGroupList ) ;
+               }
+               else
+               {
+                  $scope.Timer['callback']['Stop']() ;
+               }
             }
             return isAllClear ;
          } ) ;
@@ -344,22 +330,6 @@
          $scope.CreateBrush['callback']['SetIcon']( '' ) ;
          //打开窗口
          $scope.CreateBrush['callback']['Open']() ;
-      }
-
-      //是否刷新
-      $scope.RefreshCtrl = function(){
-         if( $scope.IntervalTimeConfig['play'] == true )
-         {
-            $scope.IntervalTimeConfig['play'] = false ; 
-            $scope.RefreshType = $scope.autoLanguage( '启动刷新' )
-            $scope.Timer['callback']['Stop']() ;
-         }
-         else
-         {
-            $scope.IntervalTimeConfig['play'] = true ; 
-            $scope.RefreshType = $scope.autoLanguage( '停止刷新' ) ;
-            $scope.Timer['callback']['Start']( getGroupList ) ;
-         }
       }
 
       //跳转至分区组信息

@@ -70,8 +70,6 @@
 #define FIELD_NAME_W                         "ReplSize"
 #define FIELD_NAME_PRIMARY                   "PrimaryNode"
 #define FIELD_NAME_GROUP_STATUS              "Status"
-#define FIELD_NAME_DATA_STATUS               "DataStatus"
-#define FIELD_NAME_SYNC_CONTROL              "SyncControl"
 #define FIELD_NAME_PAGE_SIZE                 "PageSize"
 #define FIELD_NAME_LOB_PAGE_SIZE             "LobPageSize"
 #define FIELD_NAME_MAX_CAPACITY_SIZE         "MaxCapacitySize"
@@ -92,17 +90,11 @@
 #define FIELD_NAME_SHARDINGKEY               "ShardingKey"
 #define FIELD_NAME_COMPRESSED                "Compressed"
 #define FIELD_NAME_COMPRESSIONTYPE           "CompressionType"
-#define FIELD_NAME_STRICTDATAMODE            "StrictDataMode"
 #define FIELD_NAME_COMPRESSIONTYPE_DESC      "CompressionTypeDesc"
 #define VALUE_NAME_SNAPPY                    "snappy"
 #define VALUE_NAME_LZW                       "lzw"
 #define VALUE_NAME_LZ4                       "lz4"
 #define VALUE_NAME_ZLIB                      "zlib"
-#define VALUE_NAME_DATABASE                  "database"
-#define VALUE_NAME_SESSIONS                  "sessions"
-#define VALUE_NAME_SESSIONS_CURRENT          "sessions current"
-#define VALUE_NAME_HEALTH                    "health"
-#define VALUE_NAME_ALL                       "all"
 #define FIELD_NAME_ISMAINCL                  "IsMainCL"
 #define FIELD_NAME_MAINCLNAME                "MainCLName"
 #define FIELD_NAME_SUBCLNAME                 "SubCLName"
@@ -149,7 +141,6 @@
 #define FIELD_NAME_REPLUPDATE                "ReplUpdate"
 #define FIELD_NAME_REPLDELETE                "ReplDelete"
 #define FIELD_NAME_ACTIVETIMESTAMP           "ActivateTimestamp"
-#define FIELD_NAME_RESETTIMESTAMP            "ResetTimestamp"
 #define FIELD_NAME_USERCPU                   "UserCPU"
 #define FIELD_NAME_SYSCPU                    "SysCPU"
 #define FIELD_NAME_CONNECTTIMESTAMP          "ConnectTimestamp"
@@ -166,26 +157,6 @@
 #define FIELD_NAME_TOTALVIRTUAL              "TotalVirtual"
 #define FIELD_NAME_FREEVIRTUAL               "FreeVirtual"
 #define FIELD_NAME_MEMORY                    "Memory"
-#define FIELD_NAME_RSSSIZE                   "RssSize"
-#define FIELD_NAME_LOADPERCENTVM             "LoadPercentVM"
-#define FIELD_NAME_VMLIMIT                   "VMLimit"
-#define FIELD_NAME_VMSIZE                    "VMSize"
-#define FIELD_NAME_CORESZ                    "CoreFileSize"
-#define FIELD_NAME_VM                        "VirtualMemory"
-#define FIELD_NAME_OPENFL                    "OpenFiles"
-#define FIELD_NAME_NPROC                     "NumProc"
-#define FIELD_NAME_FILESZ                    "FileSize"
-#define FIELD_NAME_ULIMIT                    "Ulimit"
-#define FIELD_NAME_OOM                       "SDB_OOM"
-#define FIELD_NAME_NOSPC                     "SDB_NOSPC"
-#define FIELD_NAME_TOOMANY_OF                "SDB_TOO_MANY_OPEN_FD"
-#define FIELD_NAME_ERRNUM                    "ErrNum"
-#define FIELD_NAME_TOTALNUM                  "TotalNum"
-#define FIELD_NAME_FREENUM                   "FreeNum"
-#define FIELD_NAME_FILEDESP                  "FileDesp"
-#define FIELD_NAME_CRASHHST                  "CrashHistory"
-#define FIELD_NAME_STARTHST                  "StartHistory"
-#define FIELD_NAME_DIFFLSNPRIMARY            "DiffLSNWithPrimary"
 #define FIELD_NAME_DATABASEPATH              "DatabasePath"
 #define FIELD_NAME_TOTALSPACE                "TotalSpace"
 #define FIELD_NAME_FREESPACE                 "FreeSpace"
@@ -220,7 +191,6 @@
 #define FIELD_NAME_NUMCOLLECTIONS            "NumCollections"
 #define FIELD_NAME_COLLECTIONHWM             "CollectionHWM"
 #define FIELD_NAME_SIZE                      "Size"
-#define FIELD_NAME_MAX                       "Max"
 #define FIELD_NAME_TRACE                     "trace"
 #define FIELD_NAME_BREAKPOINTS               "BreakPoint"
 #define FIELD_NAME_TO                        "To"
@@ -279,12 +249,6 @@
 #define FIELD_NAME_ENSURE_INC                "EnsureInc"
 #define FIELD_NAME_OVERWRITE                 "OverWrite"
 #define FIELD_NAME_DETAIL                    "Detail"
-#define FIELD_NAME_ESTIMATE                  "Estimate"
-#define FIELD_NAME_SEARCH                    "Search"
-#define FIELD_NAME_EVALUATE                  "Evaluate"
-#define FIELD_NAME_EXPAND                    "Expand"
-#define FIELD_NAME_LOCATION                  "Location"
-#define FIELD_NAME_FLATTEN                   "Flatten"
 #define FIELD_NAME_ISSUBDIR                  "IsSubDir"
 #define FIELD_NAME_ENABLE_DATEDIR            "EnableDateDir"
 #define FIELD_NAME_PREFIX                    "Prefix"
@@ -322,7 +286,6 @@
 #define FIELD_NAME_OP_UPDATE                 "Update"
 #define FIELD_NAME_OP_REMOVE                 "Remove"
 #define FIELD_NAME_RETURNNEW                 "ReturnNew"
-#define FIELD_NAME_KEEP_SHARDING_KEY         "KeepShardingKey"
 
 #define FIELD_NAME_INSERT                    "Insert"
 #define FIELD_NAME_UPDATE                    "Update"
@@ -381,22 +344,12 @@
 #define FIELD_NAME_LOB_OID                   "Oid"
 #define FIELD_NAME_LOB_OPEN_MODE             "Mode"
 #define FIELD_NAME_LOB_SIZE                  "Size"
-#define FIELD_NAME_LOB_CREATETIME            "CreateTime"
-#define FIELD_NAME_LOB_MODIFICATION_TIME     "ModificationTime"
-#define FIELD_NAME_LOB_FLAG                  "Flag"
-#define FIELD_NAME_LOB_PIECESINFONUM         "PiecesInfoNum"
-#define FIELD_NAME_LOB_PIECESINFO            "PiecesInfo"
+#define FIELD_NAME_LOB_CREATTIME             "CreateTime"
 #define FIELD_NAME_LOB_IS_MAIN_SHD           "IsMainShard"
-#define FIELD_NAME_LOB_REOPENED              "Reopened"
-#define FIELD_NAME_LOB_LOCK_SECTIONS         "LockSections"
 #define FIELD_NAME_LOB_META_DATA             "MetaData"
 #define FIELD_NAME_LOB_LIST_PIECES_MODE      "ListPieces"
 #define FIELD_NAME_LOB_AVAILABLE             "Available"
-#define FIELD_NAME_LOB_HAS_PIECESINFO        "HasPiecesInfo"
 #define FIELD_NAME_LOB_PAGE_SZ               "LobPageSize"
-#define FIELD_NAME_LOB_OFFSET                "Offset"
-#define FIELD_NAME_LOB_LENGTH                "Length"
-#define FIELD_NAME_LOB_ACCESSID              "AccessId"
 #define FIELD_NAME_AUTO_INDEX_ID             "AutoIndexId"
 #define FIELD_NAME_REELECTION_TIMEOUT        "Seconds"
 #define FIELD_NAME_REELECTION_LEVEL          "Level"
@@ -416,22 +369,12 @@
 #define FIELD_NAME_KEEP_DATA                 "KeepData"
 #define FIELD_NAME_DEEP                      "Deep"
 #define FIELD_NAME_BLOCK                     "Block"
-#define FIELD_NAME_CAPPED                    "Capped"
-#define FIELD_NAME_TEXT                      "$Text"
-
-#define FIELD_NAME_ANALYZE_MODE              "Mode"
-#define FIELD_NAME_ANALYZE_NUM               "SampleNum"
-#define FIELD_NAME_ANALYZE_PERCENT           "SamplePercent"
 
 #define FIELD_OP_VALUE_UPDATE                "update"
 #define FIELD_OP_VALUE_REMOVE                "remove"
 
 #define FIELD_OP_VALUE_KEEP                  "keep"
 #define FIELD_OP_VALUE_REPLACE               "replace"
-
-#define FIELD_NAME_PARAM                     "$param"
-#define FIELD_NAME_CTYPE                     "$ctype"
-#define FIELD_NAME_PARAMETERS                "Parameters"
 
 #define IXM_FIELD_NAME_KEY                   "key"
 #define IXM_FIELD_NAME_NAME                  "name"
@@ -478,8 +421,8 @@
 #define CMD_NAME_LIST_CL_IN_DOMAIN           "list collections in domain"
 #define CMD_NAME_LIST_BACKUPS                "list backups"
 #define CMD_NAME_LIST_TASKS                  "list tasks"
-#define CMD_NAME_LIST_TRANSACTIONS           "list transactions"
 #define CMD_NAME_LIST_TRANSACTIONS_CUR       "list transactions current"
+#define CMD_NAME_LIST_TRANSACTIONS           "list transactions"
 #define CMD_NAME_RENAME_COLLECTION           "rename collection"
 #define CMD_NAME_RENAME_COLLECTIONSPACE      "rename collectionspace"
 #define CMD_NAME_REORG_OFFLINE               "reorg offline"
@@ -496,10 +439,8 @@
 #define CMD_NAME_SNAPSHOT_COLLECTIONS        "snapshot collections"
 #define CMD_NAME_SNAPSHOT_COLLECTIONSPACES   "snapshot collectionspaces"
 #define CMD_NAME_SNAPSHOT_CATA               "snapshot catalog"
-#define CMD_NAME_SNAPSHOT_TRANSACTIONS       "snapshot transactions"
 #define CMD_NAME_SNAPSHOT_TRANSACTIONS_CUR   "snapshot transactions current"
-#define CMD_NAME_SNAPSHOT_ACCESSPLANS        "snapshot accessplans"
-#define CMD_NAME_SNAPSHOT_HEALTH             "snapshot health"
+#define CMD_NAME_SNAPSHOT_TRANSACTIONS       "snapshot transactions"
 #define CMD_NAME_TEST_COLLECTION             "test collection"
 #define CMD_NAME_TEST_COLLECTIONSPACE        "test collectionspace"
 #define CMD_NAME_CREATE_GROUP                "create group"
@@ -544,9 +485,7 @@
 #define CMD_NAME_TRUNCATE                    "truncate"
 #define CMD_NAME_LIST_USERS                  "list users"
 #define CMD_NAME_SYNC_DB                     "sync db"
-#define CMD_NAME_POP                         "pop"
 #define CMD_NAME_RELOAD_CONFIG               "reload config"
-#define CMD_NAME_ANALYZE                     "analyze"
 
 #define CMD_NAME_SNAPSHOT_DATABASE_INTR      "SNAPSHOT_DB"
 #define CMD_NAME_SNAPSHOT_SYSTEM_INTR        "SNAPSHOT_SYSTEM"
@@ -559,8 +498,6 @@
 #define CMD_NAME_SNAPSHOT_CATA_INTR          "SNAPSHOT_CATA"
 #define CMD_NAME_SNAPSHOT_TRANS_INTR         "SNAPSHOT_TRANS"
 #define CMD_NAME_SNAPSHOT_TRANSCUR_INTR      "SNAPSHOT_TRANS_CUR"
-#define CMD_NAME_SNAPSHOT_ACCESSPLANS_INTR   "SNAPSHOT_ACCESSPLANS"
-#define CMD_NAME_SNAPSHOT_HEALTH_INTR        "SNAPSHOT_HEALTH"
 
 #define CMD_NAME_LIST_COLLECTION_INTR        "LIST_CL"
 #define CMD_NAME_LIST_SPACE_INTR             "LIST_CS"
@@ -641,28 +578,9 @@ enum SDB_ROLE
 enum SDB_LOB_MODE
 {
    SDB_LOB_MODE_CREATEONLY = 0x00000001,
-   SDB_LOB_MODE_READ       = 0x00000004,
-   SDB_LOB_MODE_WRITE      = 0x00000008,
-   SDB_LOB_MODE_REMOVE     = 0x00000010,
-   SDB_LOB_MODE_TRUNCATE   = 0x00000020
+   SDB_LOB_MODE_R = 0x00000004,
+   SDB_LOB_MODE_W = 0x00000008, /// not supported yet.
 } ;
-
-#define SDB_IS_VALID_LOB_MODE( mode ) \
-   ( SDB_LOB_MODE_READ == ( mode ) || \
-     SDB_LOB_MODE_CREATEONLY == ( mode ) || \
-     SDB_LOB_MODE_WRITE == ( mode ) || \
-     SDB_LOB_MODE_REMOVE == ( mode ) || \
-     SDB_LOB_MODE_TRUNCATE == ( mode ) )
-
-#define SDB_ANALYZE_MODE_SAMPLE     ( 1 )
-#define SDB_ANALYZE_MODE_FULL       ( 2 )
-#define SDB_ANALYZE_MODE_GENDFT     ( 3 )
-#define SDB_ANALYZE_MODE_RELOAD     ( 4 )
-#define SDB_ANALYZE_MODE_CLEAR      ( 5 )
-
-#define SDB_ANALYZE_SAMPLE_MIN      ( 100 )
-#define SDB_ANALYZE_SAMPLE_DEF      ( 200 )
-#define SDB_ANALYZE_SAMPLE_MAX      ( 10000 )
 
 #define SDB_ALTER_VERSION 1
 

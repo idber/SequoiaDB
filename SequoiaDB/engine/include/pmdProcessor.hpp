@@ -78,28 +78,22 @@ namespace engine
                                                    rtnContextBuf &buffObj,
                                                    INT64 &contextID ) ;
          INT32                   _onKillContextsReqMsg( MsgHeader *msg ) ;
-         INT32                   _onSQLMsg( MsgHeader *msg,
-                                            INT64 &contextID,
-                                            SDB_DPSCB *dpsCB ) ;
+         INT32                   _onSQLMsg( MsgHeader *msg, INT64 &contextID ) ;
          INT32                   _onTransBeginMsg () ;
          INT32                   _onTransCommitMsg ( SDB_DPSCB *dpsCB ) ;
          INT32                   _onTransRollbackMsg ( SDB_DPSCB *dpsCB ) ;
-         INT32                   _onAggrReqMsg( MsgHeader *msg,
+         INT32                   _onAggrReqMsg( MsgHeader *msg, 
                                                 INT64 &contextID ) ;
-         INT32                   _onOpenLobMsg( MsgHeader *msg,
+         INT32                   _onOpenLobMsg( MsgHeader *msg, 
                                                 SDB_DPSCB *dpsCB,
                                                 SINT64 &contextID,
                                                 rtnContextBuf &buffObj ) ;
          INT32                   _onWriteLobMsg( MsgHeader *msg ) ;
          INT32                   _onReadLobMsg( MsgHeader *msg,
                                                 rtnContextBuf &buffObj ) ;
-         INT32                   _onLockLobMsg( MsgHeader *msg ) ;
-         INT32                   _onCloseLobMsg( MsgHeader *msg,
-                                                 rtnContextBuf &buffObj ) ;
-         INT32                   _onRemoveLobMsg( MsgHeader *msg,
+         INT32                   _onCloseLobMsg( MsgHeader *msg ) ;
+         INT32                   _onRemoveLobMsg( MsgHeader *msg, 
                                                   SDB_DPSCB *dpsCB ) ;
-         INT32                   _onTruncateLobMsg( MsgHeader *msg,
-                                                    SDB_DPSCB *dpsCB ) ;
          INT32                   _onInterruptMsg( MsgHeader *msg,
                                                   SDB_DPSCB *dpsCB ) ;
          INT32                   _onInterruptSelfMsg() ;
@@ -134,13 +128,8 @@ namespace engine
          virtual void                  _onAttach () ;
          virtual void                  _onDetach () ;
 
-         INT32                   _onQueryReqMsg( MsgHeader *msg,
-                                                 _rtnContextBuf &buffObj,
-                                                 INT64 &contextID,
-                                                 BOOLEAN &needRollback ) ;
-
       private:
-         INT32                   _processCoordMsg( MsgHeader *msg,
+         INT32                   _processCoordMsg( MsgHeader *msg, 
                                                    INT64 &contextID,
                                                    rtnContextBuf &contextBuff ) ;
    } ;

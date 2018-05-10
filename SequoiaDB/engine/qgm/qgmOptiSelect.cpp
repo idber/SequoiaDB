@@ -87,15 +87,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       qgmFilterUnit *filterUnit = NULL ;
 
-      if ( _limit < -1 )
-      {
-         _limit = -1 ;
-      }
-      if ( _skip < 0 )
-      {
-         _skip = 0 ;
-      }
-
       if ( QGM_OPTI_TYPE_SCAN == getType() )
       {
          goto done ;
@@ -141,41 +132,6 @@ namespace engine
          SDB_ASSERT( !filterUnit->isNodeIDValid(), "impossible" ) ;
          _condition = filterUnit->getMergeCondition() ;
          filterUnit->emptyCondition() ;
-      }
-
-      if ( QGM_OPTI_TYPE_FILTER == getType() &&
-           QGM_OPTI_TYPE_SCAN == getSubNode(0)->getType() )
-      {
-         qgmOptiSelect *pNode = (qgmOptiSelect*)getSubNode(0) ;
-
-         if ( pNode->_limit >= 0 )
-         {
-            if ( pNode->_limit <= _skip )
-            {
-               pNode->_limit = 0 ;
-               pNode->_skip = 0 ;
-            }
-            else
-            {
-               pNode->_limit -= _skip ;
-               pNode->_skip += _skip ;
-            }
-         }
-         else if ( _skip > 0 )
-         {
-            pNode->_skip += _skip ;
-         }
-
-         if ( _limit >= 0 )
-         {
-            if ( -1 == pNode->_limit || _limit < pNode->_limit )
-            {
-               pNode->_limit = _limit ;
-            }
-         }
-
-         _limit = -1 ;
-         _skip = 0 ;
       }
 
       if ( getParent() && QGM_OPTI_TYPE_FILTER == getType() )

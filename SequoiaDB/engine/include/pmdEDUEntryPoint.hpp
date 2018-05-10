@@ -70,6 +70,7 @@ namespace engine
    INT32 pmdHTTPListenerEntryPoint ( pmdEDUCB *cb, void *arg ) ;
    INT32 pmdRestSvcEntryPoint ( pmdEDUCB *cb, void *arg ) ;
    INT32 pmdLoggWEntryPoint ( pmdEDUCB *cb, void *arg ) ;
+   INT32 pmdLogArchiveMgrEntryPoint ( pmdEDUCB *cb, void *arg ) ;
    INT32 pmdClsNtyEntryPoint( pmdEDUCB * cb, void * arg ) ;
    INT32 pmdCoordNetWorkEntryPoint ( pmdEDUCB *cb, void *pData );
    INT32 pmdPreLoaderEntryPoint ( pmdEDUCB *cb, void *pData ) ;

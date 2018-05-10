@@ -3,6 +3,7 @@ package com.sequoiadb.test.misc;
 import com.sequoiadb.base.*;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
+import com.sequoiadb.net.ConfigOptions;
 import com.sequoiadb.test.common.Constants;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
@@ -65,7 +66,7 @@ public class ExceptionTest {
             e.printStackTrace();
             Assert.assertEquals(SDBError.SDB_NETWORK.getErrorType(), e.getErrorType());
             Assert.assertEquals(SDBError.SDB_NETWORK.getErrorCode(), e.getErrorCode());
-            Assert.assertEquals("SDB_NETWORK(-15): Network error, detail: failed to connect to /0.0.0.123:1234", e.getMessage());
+            Assert.assertEquals("SDB_NETWORK(-15): Network error, detail: Network is unreachable: connect", e.getMessage());
         }
 
 		try {

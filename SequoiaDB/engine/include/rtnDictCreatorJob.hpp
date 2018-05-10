@@ -23,8 +23,8 @@ namespace engine
    private:
       INT32 _checkAndCreateDictForCL( dmsDictJob job );
       BOOLEAN _conditionMatch( dmsStorageUnit *su, UINT16 mbID ) ;
-      INT32 _createDict( dmsStorageDataCommon *sd, dmsMBContext *context ) ;
-      INT32 _transferDict( dmsStorageDataCommon *sd, dmsMBContext *context,
+      INT32 _createDict( dmsStorageData *sd, dmsMBContext *context ) ;
+      INT32 _transferDict( dmsStorageData *sd, dmsMBContext *context,
                            CHAR *dictStream, UINT32 dictSize ) ;
    private:
       utilDictCreator *_creator ;

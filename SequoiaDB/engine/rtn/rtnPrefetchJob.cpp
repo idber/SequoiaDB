@@ -81,7 +81,7 @@ namespace engine
 
       while ( _timeout <= 0 || (INT32)timeOut <= _timeout )
       {
-         eduMgr->waitEDU( eduCB() ) ;
+         eduMgr->waitEDU( eduCB()->getID() ) ;
 
          if ( !pQueue->timed_wait_and_pop( request, OSS_ONE_SEC ) )
          {
@@ -95,7 +95,7 @@ namespace engine
          }
          timeOut = 0 ;
 
-         eduMgr->activateEDU( eduCB() ) ;
+         eduMgr->activateEDU( eduCB()->getID() ) ;
          eduCB()->incEventCount() ;
 
          if ( !request._context )

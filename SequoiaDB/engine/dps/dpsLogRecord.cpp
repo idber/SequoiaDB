@@ -430,8 +430,7 @@ namespace engine
                                  "UPDATE", LOG_TYPE_DATA_UPDATE ) ;
 
             dpsLogRecord::iterator itrFullName, itrOldM, itrOldO,
-                                   itrNewM, itrNewO,
-                                   itrOldSK, itrNewSK ;
+                                   itrNewM, itrNewO ;
             itrFullName = this->find( DPS_LOG_PUBLIC_FULLNAME ) ;
             if ( !itrFullName.valid() )
             {
@@ -483,9 +482,6 @@ namespace engine
                goto done ;
             }
 
-            itrOldSK = this->find( DPS_LOG_UPDATE_OLDSHARDINGKEY ) ;
-            itrNewSK = this->find( DPS_LOG_UPDATE_NEWSHARDINGKEY ) ;
-
             try
             {
                BSONObj oldM( itrOldM.value() ) ;
@@ -504,20 +500,6 @@ namespace engine
                len += ossSnprintf ( outBuf + len, outSize - len,
                                     " New    : %s"OSS_NEWLINE,
                                     newO.toString().c_str() ) ;
-               if ( itrOldSK.valid() )
-               {
-                  BSONObj oldSK( itrOldSK.value() ) ;
-                  len += ossSnprintf ( outBuf + len, outSize - len,
-                                       " Old ShardingKey: %s"OSS_NEWLINE,
-                                       oldSK.toString().c_str() ) ;
-               }
-               if ( itrNewSK.valid() )
-               {
-                  BSONObj newSK( itrNewSK.value() ) ;
-                  len += ossSnprintf ( outBuf + len, outSize - len,
-                                       " New ShardingKey: %s"OSS_NEWLINE,
-                                       newSK.toString().c_str() ) ;
-               }
             }
             catch ( std::exception &e )
             {
@@ -566,43 +548,6 @@ namespace engine
                                     e.what() ) ;
                goto done ;
             }
-            break ;
-         }
-         case LOG_TYPE_DATA_POP:
-         {
-            len += ossSnprintf( outBuf + len, outSize - len,
-                                " Type   : %s(%d)"OSS_NEWLINE,
-                                "POP", LOG_TYPE_DATA_POP ) ;
-            dpsLogRecord::iterator itrFullName, itrLID, itrDirect ;
-            itrFullName = this->find( DPS_LOG_PUBLIC_FULLNAME ) ;
-            if ( !itrFullName.valid() )
-            {
-               PD_LOG( PDERROR, "failed to find fullname in record" ) ;
-               goto done ;
-            }
-            len += ossSnprintf( outBuf + len, outSize - len,
-                                " CLName : %s"OSS_NEWLINE,
-                                itrFullName.value() ) ;
-            itrLID = this->find( DPS_LOG_POP_LID ) ;
-            if ( !itrLID.valid() )
-            {
-               PD_LOG( PDERROR, "failed to find pop LogicalID in record" ) ;
-               goto done ;
-            }
-
-            len += ossSnprintf( outBuf + len, outSize - len,
-                                " LogicalID: %u"OSS_NEWLINE,
-                                *( (INT64*)itrLID.value() ) ) ;
-
-            itrDirect = this->find( DPS_LOG_POP_DIRECTION ) ;
-            if ( !itrDirect.valid() )
-            {
-               PD_LOG( PDERROR, "failed to find pop Direction in record" ) ;
-               goto done ;
-            }
-            len += ossSnprintf( outBuf + len, outSize - len,
-                                " Direction: %d"OSS_NEWLINE,
-                                *( (INT8*)itrDirect.value() ) ) ;
             break ;
          }
          case LOG_TYPE_CS_CRT:
@@ -926,42 +871,22 @@ namespace engine
          case LOG_TYPE_INVALIDATE_CATA :
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " Type    : %s(%d)"OSS_NEWLINE,
+                                 " Type   : %s(%d)"OSS_NEWLINE,
                                  "INVALIDATE CATA", LOG_TYPE_INVALIDATE_CATA ) ;
-            dpsLogRecord::iterator itrType, itrCL, itrIX ;
-            UINT8 invType = 0 ;
-            itrType = this->find( DPS_LOG_INVALIDCATA_TYPE ) ;
-            if ( itrType.valid() )
-            {
-               invType = *( ( UINT8 * )( itrType.value() ) ) ;
-               len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " InvType : 0x%02x (%u)"OSS_NEWLINE,
-                                    invType, invType ) ;
-            }
-
-            itrCL = this->find( DPS_LOG_PUBLIC_FULLNAME ) ;
+            dpsLogRecord::iterator itrCL =
+                                       this->find( DPS_LOG_PUBLIC_FULLNAME ) ;
             if ( !itrCL.valid() )
             {
                len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR*  : %s"OSS_NEWLINE,
+                                    "*ERROR* : %s"OSS_NEWLINE,
                                     "Failed to find fullname in record" ) ;
                PD_LOG( PDERROR, "Failed to find fullname in record") ;
                goto done ;
             }
-            else
-            {
-               len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " Name    : %s"OSS_NEWLINE,
-                                    itrCL.value() ) ;
-            }
 
-            itrIX = this->find( DPS_LOG_INVALIDCATA_IXNAME ) ;
-            if ( itrIX.valid() )
-            {
-               len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " IXName  : %s"OSS_NEWLINE,
-                                    itrIX.value() ) ;
-            }
+            len += ossSnprintf ( outBuf + len, outSize - len,
+                                 " Name : %s"OSS_NEWLINE,
+                                 itrCL.value() ) ;
             break ;
          }
          case LOG_TYPE_TS_COMMIT:
@@ -1082,15 +1007,6 @@ namespace engine
             len += ossSnprintf( outBuf + len, outSize - len,
                                 " Page   : %d"OSS_NEWLINE,
                                 *( ( SINT32 * )( itr.value() ) ) ) ;
-
-            itr = this->find( DPS_LOG_LOB_PAGE_SIZE ) ;
-            if ( itr.valid() )
-            {
-               len += ossSnprintf( outBuf + len, outSize - len,
-                                " PageSize : %d"OSS_NEWLINE,
-                                *( ( UINT32 * )( itr.value() ) ) ) ;
-            }
-
             break ;
          }
          case LOG_TYPE_LOB_REMOVE :
@@ -1181,15 +1097,6 @@ namespace engine
             len += ossSnprintf( outBuf + len, outSize - len,
                                 " Page   : %d"OSS_NEWLINE,
                                 *( ( SINT32 * )( itr.value() ) ) ) ;
-
-            itr = this->find( DPS_LOG_LOB_PAGE_SIZE ) ;
-            if ( itr.valid() )
-            {
-               len += ossSnprintf( outBuf + len, outSize - len,
-                                " PageSize : %d"OSS_NEWLINE,
-                                *( ( UINT32 * )( itr.value() ) ) ) ;
-            }
-
             break ;
          }
          case LOG_TYPE_LOB_UPDATE :
@@ -1293,15 +1200,6 @@ namespace engine
             len += ossSnprintf( outBuf + len, outSize - len,
                                 " Page   : %d"OSS_NEWLINE,
                                 *( ( SINT32 * )( itr.value() ) ) ) ;
-
-            itr = this->find( DPS_LOG_LOB_PAGE_SIZE ) ;
-            if ( itr.valid() )
-            {
-               len += ossSnprintf( outBuf + len, outSize - len,
-                                " PageSize : %d"OSS_NEWLINE,
-                                *( ( UINT32 * )( itr.value() ) ) ) ;
-            }
-
             break ;
          }
          default:

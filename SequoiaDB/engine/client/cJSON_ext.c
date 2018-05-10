@@ -18,7 +18,6 @@
 #include "ossUtil.h"
 #include "cJSON_ext.h"
 #include "bson/bson.h"
-#include "oss.h"
 
 static const CHAR* readBinary( const CHAR *pStr,
                                const CJSON_MACHINE *pMachine,
@@ -468,6 +467,7 @@ static const CHAR* readDate( const CHAR *pStr,
                              CJSON_READ_INFO **ppReadInfo )
 {
    INT32 argNum      = 0 ;
+   INT32 length      = 0 ;
    INT32 microtm     = 0 ;
    time_t timestamp  = 0 ;
    CHAR *pDateString = NULL ;
@@ -498,59 +498,64 @@ static const CHAR* readDate( const CHAR *pStr,
    cJsonItemKey( pDateItem, CJSON_STR_DATE ) ;
    if( argNum == 0 )
    {
+      struct tm psr ;
+      pDateString = cJsonMalloc( CJSON_TIME_STRING_SIZE, pMachine ) ;
+      if( pDateString == NULL )
+      {
+         goto error ;
+      }
+      ossMemset( pDateString, 0, CJSON_TIME_STRING_SIZE ) ;
       getCurrentTime( &timestamp, &microtm ) ;
-      timestamp = timestamp * 1000 ;
-      cJsonItemValueInt64( pDateItem, (INT64)timestamp ) ;
+      local_time( &timestamp, &psr ) ;
+      length = ossSnprintf( pDateString,
+                            CJSON_TIME_STRING_SIZE,
+                            CJSON_DATE_FORMAT,
+                            psr.tm_year + CJSON_TIME_RELATIVE_YEAR,
+                            psr.tm_mon + 1,
+                            psr.tm_mday ) ;
+      if( length < 0 )
+      {
+         CJSON_PRINTF_LOG( "Failed to formatting date" ) ;
+         goto error ;
+      }
+      cJsonItemValueString( pDateItem, pDateString, length ) ;
    }
    else if( argNum == 1 )
    {
       if( arg.valType == CJSON_STRING )
       {
-         INT32 valInt      = 0 ;
-         FLOAT64 valDouble = 0 ;
-         INT64 valInt64    = 0 ;
-         CJSON_VALUE_TYPE type = CJSON_NONE ;
-
-         if( cJsonParseNumber( arg.pValStr,
-                               arg.length,
-                               &valInt,
-                               &valDouble,
-                               &valInt64,
-                               &type ) == TRUE )
-         {
-            if( type == CJSON_INT32 )
-            {
-               cJsonItemValueInt32( pDateItem, valInt ) ;
-            }
-            else if( type == CJSON_INT64 )
-            {
-               cJsonItemValueInt64( pDateItem, valInt64 ) ;
-            }
-            else
-            {
-               CJSON_PRINTF_LOG( "Failed to read date, the '%.*s' "
-                                 "is out of the range of date time",
-                                 arg.length,
-                                 arg.pValStr ) ;
-               goto error ;
-
-            }
-         }
-         else
-         {
-            cJsonItemValueString( pDateItem, arg.pValStr, arg.length ) ;
-         }
+         cJsonItemValueString( pDateItem, arg.pValStr, arg.length ) ;
       }
       else if( arg.valType == CJSON_INT32 || arg.valType == CJSON_INT64 )
       {
+         struct tm psr ;
+         pDateString = cJsonMalloc( CJSON_TIME_STRING_SIZE, pMachine ) ;
+         if( pDateString == NULL )
+         {
+            goto error ;
+         }
+         ossMemset( pDateString, 0, CJSON_TIME_STRING_SIZE ) ;
          if( arg.valType == CJSON_INT32 )
          {
-            cJsonItemValueInt32( pDateItem, arg.valInt ) ;
+            timestamp = (time_t)arg.valInt ;
          }
-         else if( arg.valType == CJSON_INT64 )
+         else
          {
-            cJsonItemValueInt64( pDateItem, arg.valInt64 ) ;
+            timestamp = (time_t)arg.valInt64 ;
          }
+         local_time( &timestamp, &psr ) ;
+         length = ossSnprintf( pDateString,
+                               CJSON_TIME_STRING_SIZE,
+                               CJSON_DATE_FORMAT,
+                               psr.tm_year + CJSON_TIME_RELATIVE_YEAR,
+                               psr.tm_mon + 1,
+                               psr.tm_mday ) ;
+         if( length < 0 )
+         {
+            CJSON_PRINTF_LOG( "Failed to formatting date" ) ;
+            goto error ;
+         }
+         cJsonItemValueString( pDateItem, pDateString, length ) ;
       }
       else
       {

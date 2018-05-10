@@ -10,8 +10,6 @@
 #define OPTXMLSRCFILE          "optlist.xml"
 #define OPTOTHERINFOFORWEBFILE "optOtherInfoForWeb.xml"
 
-#define OPT_SUPPLEMENTFILE "../../doc/src/document/database_management/runtime_configuration_supplement.md"
-
 #define OPT_MDPATH "../../doc/src/document/database_management/runtime_configuration.md"
 
 class OptEle
@@ -46,6 +44,7 @@ public:
     std::string stentry_desttag ;
     std::string firsttag ;
     std::string secondtag ;
+	std::string thirdtag ;
 } ;
 
 class OptGenForWeb
@@ -57,7 +56,6 @@ class OptGenForWeb
     void loadFromXML () ;
 	INT32 parseOptListTag( boost::property_tree::ptree::value_type &v ) ;
     std::string genOptions () ;
-	std::string genSupplement() ;
     void gendoc () ;
 
 public:

@@ -118,7 +118,7 @@
 	</FILLER>
 	<FILLER>
 		<Name>pagecleaninterval</Name>
-		<WebName>Dirty page least distance</WebName>
+		<WebName>Dirty page min interval</WebName>
 		<Type>int</Type>
 		<Default>10000</Default>
 		<Valid>1000-</Valid>
@@ -163,7 +163,7 @@
 		<Valid>0-200</Valid>
 		<Display>edit box</Display>
 		<Edit>true</Edit>
-		<Desc>Max concurrency of log syncronizing,default is 10, value range:[0,200], 0 stands for not use log concurrently syncronizing.</Desc>
+		<Desc>Max concurrency of log syncronizing,default is 10, value range:[0,200], 0 stands for not using log concurrently syncronizing.</Desc>
 		<Level>1</Level>
 		<DynamicEdit>false</DynamicEdit>
 		<BatchEdit>true</BatchEdit>

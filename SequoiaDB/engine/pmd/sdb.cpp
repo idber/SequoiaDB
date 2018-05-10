@@ -47,21 +47,20 @@
 #include "ossVer.hpp"
 #include "pdTrace.hpp"
 #include "pmdTrace.hpp"
-#include "../spt/sptHelp.hpp"
+#include "../mdocml/parseMandocCpp.hpp"
+#include "sptParseTroff.hpp"
 #include <string>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/erase.hpp>
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
-#include <boost/bind.hpp>
 #include "sptCommon.hpp"
-#include "sptSPScope.hpp"
 #include "utilPath.hpp"
 #include "utilPipe.hpp"
 #include "sptContainer.hpp"
 #include "ossSignal.hpp"
 #include "ossIO.hpp"
-#include <locale.h>
+
 using namespace bson ;
 
 using std::ostream ;
@@ -69,8 +68,6 @@ using std::vector ;
 using std::string ;
 using std::bad_alloc ;
 using namespace engine ;
-
-#define ELSE_STATEMENT     "else{}"
 
 namespace po = boost::program_options ;
 po::options_description display ( "Command options" ) ;
@@ -87,9 +84,6 @@ po::variables_map vm ;
    #define SDB_PB_PROGRAM_NAME         "sdbbp"
 #endif // _WINDOWS
 
-#define SPT_LANG_EN                    "en"
-#define SPT_LANG_CN                    "cn"
-
 enum RunMode
 {
    INTERACTIVE_MODE,
@@ -104,7 +98,6 @@ struct ArgInfo
    string       filename ; // available in batch mode
    string       cmd ; // available in front-end mode
    string       variable ; // variable
-   string       language ; // language, can be "en" or "cn"
 } ;
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_READFILE, "readFile" )
@@ -238,13 +231,7 @@ INT32 parseArguments ( int argc , CHAR ** argv , ArgInfo & argInfo )
    SDB_ASSERT ( argc >= 1 , "argc must be >= 1" ) ;
 
    argInfo.program = (string)( argv[0] ) ;
-   argInfo.language = SPT_LANG_EN ;
-   if ( vm.count( "language" ) )
-   {
-      string l = vm["language"].as<string>() ;
-      argInfo.language = (l == SPT_LANG_EN || l == SPT_LANG_CN) ? l : SPT_LANG_EN ;
-      argc -= 2 ;
-   }
+
    if ( 1 == argc )
    {
    }
@@ -272,58 +259,17 @@ error :
    goto done ;
 }
 
-BOOLEAN sdbdefCanContinueGetNextLine( sptScope *scope, const CHAR *str )
-{
-   BOOLEAN ret = FALSE ;
-   if( SPT_SCOPE_TYPE_SP == scope->getType() )
-   {
-      sptSPScope* spScope = dynamic_cast< sptSPScope* >( scope ) ;
-      JSContext *context = spScope->getContext() ;
-      JSObject *global = spScope->getGlobalObj() ;
-      if( NULL == spScope )
-      {
-         goto error ;
-      }
-      if( !JS_BufferIsCompilableUnit( context, global, str, ossStrlen( str ) ) )
-      {
-         ret = TRUE ;
-      }
-      /* If stdin buffer is not emptry, it means
-       *    that user uses the copy function.
-       */
-      else if( !isStdinEmpty() )
-      {
-         string content = ELSE_STATEMENT ;
-         JSExceptionState *exnState = JS_SaveExceptionState( context ) ;
-         JSErrorReporter older = JS_SetErrorReporter( context, NULL ) ;
-         content = str + content ;
-         if( JS_CompileScript( context, global, content.c_str(), content.size(),
-                               NULL, 0 ) )
-         {
-            ret = TRUE ;
-         }
-         else
-         {
-            ret = FALSE ;
-         }
-         JS_SetErrorReporter( context, older ) ;
-         JS_RestoreExceptionState( context, exnState ) ;
-      }
-   }
-done:
-   return ret ;
-error:
-   ret = FALSE ;
-   goto done ;
-}
-
 // PD_TRACE_DECLARE_FUNCTION ( SDB_ENTERBATCHMODE, "enterBatchMode" )
-INT32 enterBatchMode( sptScope * scope , const CHAR *filename,
-                      const CHAR *variable )
+INT32 enterBatchMode( sptScope * scope , const CHAR * filename ,
+                      const CHAR * variable )
 {
    INT32    rc       = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_ENTERBATCHMODE );
+   CHAR *   result   = NULL ;
    UINT32   varLen   = 0 ;
+   CHAR *   temp     = NULL ;
+   UINT32   tempSize = 0 ;
+   UINT32   readlen  = 0 ;
    CHAR *   toker    = NULL ;
    CHAR *   last     = NULL ;
    string   content ;
@@ -346,7 +292,7 @@ INT32 enterBatchMode( sptScope * scope , const CHAR *filename,
    }
 
    toker = ossStrtok( fileNameTmp, ",;", &last ) ;
-   while( toker )
+   while ( toker )
    {
       while ( ' ' == *toker )
       {
@@ -361,17 +307,35 @@ INT32 enterBatchMode( sptScope * scope , const CHAR *filename,
       {
          *lastPos = 0 ;
       }
-      if( !content.empty() )
+
+      rc = readFile( toker , &temp , &tempSize, &readlen ) ;
+      if ( rc != SDB_OK )
       {
-         content += OSS_NEWLINE ;
+         ossPrintf ( "fail to read file: %s"OSS_NEWLINE , toker ) ;
+         goto error ;
       }
-      content += "import( '" + string( toker ) + "' ) ;" ;
+
+      if ( readlen > 0 )
+      {
+         content += '\n' ;
+
+         if ( readlen >= 3 && (UINT8)temp[0] == 0xEF &&
+              (UINT8)temp[1] == 0xBB && (UINT8)temp[2] == 0xBF )
+         {
+            content += &temp[3] ;
+         }
+         else
+         {
+            content += temp ;
+         }
+      }
       toker = ossStrtok( last, ",;", &last ) ;
    }
+
    if ( content.length() > varLen )
    {
       rc = scope->eval ( content.c_str() , (UINT32)content.length() ,
-                         "shell" , 1, SPT_EVAL_FLAG_PRINT, NULL ) ;
+                         filename , 1, SPT_EVAL_FLAG_PRINT, NULL ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -383,6 +347,8 @@ INT32 enterBatchMode( sptScope * scope , const CHAR *filename,
    }
 
 done :
+   SAFE_OSS_FREE ( temp ) ;
+   SAFE_OSS_FREE ( result ) ;
    SAFE_OSS_FREE ( fileNameTmp ) ;
    PD_TRACE_EXITRC ( SDB_ENTERBATCHMODE, rc );
    return rc ;
@@ -391,9 +357,10 @@ error :
 }
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_ENTERINTATVMODE, "enterInteractiveMode" )
-INT32 enterInteractiveMode ( sptScope *scope, const CHAR *lang )
+INT32 enterInteractiveMode ( sptScope *scope )
 {
    INT32    rc          = SDB_OK ;
+   CHAR *   result      = NULL ;
    CHAR *   code        = NULL ;
    INT64 sec            = 0 ;
    INT64 microSec       = 0 ;
@@ -405,15 +372,9 @@ INT32 enterInteractiveMode ( sptScope *scope, const CHAR *lang )
    SDB_ASSERT ( scope , "invalid argument" ) ;
    PD_TRACE_ENTRY ( SDB_ENTERINTATVMODE );
 
-   sptHelp::setLanguage( lang ) ;
-
-   setCanContinueNextLineCallback( boost::bind( sdbdefCanContinueGetNextLine,
-                                                scope, _1 ) ) ;
-
    historyInit () ;
    linenoiseHistoryLoad( historyFile.c_str() ) ;
    g_lnBuilder.loadCmd( historyFile.c_str() ) ;
-
    ossPrintf ( "Welcome to SequoiaDB shell!"OSS_NEWLINE ) ;
    ossPrintf ( "help() for help, Ctrl+c or quit to exit"OSS_NEWLINE ) ;
 
@@ -464,6 +425,7 @@ INT32 enterInteractiveMode ( sptScope *scope, const CHAR *lang )
 
    loop_next :
          SAFE_OSS_FREE ( code ) ;
+         SAFE_OSS_FREE ( result ) ;
    }
 
    SAFE_OSS_FREE ( code ) ;
@@ -494,7 +456,7 @@ INT32 formatArgs ( const CHAR * program ,
    argSize = progLen + 1 + ppidLen + 2 ;
 
    *args = (CHAR*) SDB_OSS_MALLOC ( argSize ) ;
-   if ( NULL == *args )
+   if ( ! args )
    {
       rc = SDB_OOM ;
       SH_VERIFY_RC
@@ -828,7 +790,6 @@ int main ( int argc , CHAR **argv )
    ArgInfo           argInfo ;
    CHAR currentPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 
-   setlocale(LC_CTYPE, "zh_CN.UTF-8");
 #if defined( _LINUX )
    signal( SIGCHLD, SIG_IGN ) ;
 #endif // _LINUX
@@ -858,7 +819,7 @@ int main ( int argc , CHAR **argv )
    switch ( argInfo.mode )
    {
    case INTERACTIVE_MODE :
-      rc = enterInteractiveMode( scope, argInfo.language.c_str() ) ;
+      rc = enterInteractiveMode( scope ) ;
       break ;
 
    case BATCH_MODE :

@@ -542,7 +542,6 @@ function removeTmpDir2( ssh, isSkipPacket )
    }
 }
 
-
 /* *****************************************************************************
 @discretion: create temporary directory in remote host
 @author: Tanzhaobo
@@ -553,7 +552,7 @@ function removeTmpDir2( ssh, isSkipPacket )
 function createTmpDir( ssh )
 {
    var str = "" ;
-   // directories make in target host /tmp   
+   // directories make in target host /tmp
    var dirs = [ OMA_PATH_TEMP_OMA_DIR,
                 OMA_PATH_TEMP_BIN_DIR,
                 OMA_PATH_TEMP_PACKET_DIR,
@@ -571,7 +570,6 @@ function createTmpDir( ssh )
         // rm /tmp/omatmp
         //str = "rm " + OMA_PATH_TEMP_OMA_DIR + " -rf " ;
         //ssh.exec( str ) ;
-
         removeTmpDir2( ssh, true ) ;
 
         // mkdir dirs
@@ -1880,7 +1878,7 @@ Ssh.prototype.isEmptyDirectory = function Ssh_isEmptyDirectory(path) {
         var msg = this.getLastOut();
         if ( msg.indexOf("No such file or directory") != -1 ||
              msg.indexOf("没有那个文件或目录") != -1 )
-        {
+         {
             setLastError(SDB_OK);
             setLastErrMsg("");
             return true;

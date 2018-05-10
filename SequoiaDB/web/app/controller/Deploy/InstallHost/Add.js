@@ -1,60 +1,43 @@
-//@ sourceURL=Add.js
-//"use strict" ;
 (function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
-   sacApp.controllerProvider.register( 'Deploy.AddHost.Ctrl', function( $scope, $compile, $location, $rootScope, SdbRest, SdbPromise, SdbSwap, SdbSignal ){
+   sacApp.controllerProvider.register( 'Deploy.AddHost.Ctrl', function( $scope, $compile, $location, $rootScope, SdbRest ){
 
-      SdbSwap.hostList = SdbPromise.init( 1 ) ;
+      //初始化
+      $scope.CurrentHost      = 0 ;
+      $scope.CheckedHostNum   = 0 ;
+      $scope.HostDataList     = [] ;
+      $scope.CpuChart         = { 'percent': 0 } ;
+      $scope.MemoryChart      = { 'percent': 0 } ;
+      $scope.DiskChart        = { 'percent': 0 } ;
+      $scope.HostDiskGrid     = { 'titleWidth': [ '40px', 30, 30, '80px', 40 ] } ;
+      $scope.HostPortGrid     = { 'titleWidth': [ 50, 50 ] } ;
+      $scope.HostServiceGrid  = { 'titleWidth': [ 35, 35, 30 ] } ;
+      $scope.HostSafetyGrid   = { 'titleWidth': [ 35, 35, 30 ] } ;
+      $scope.HostDiskList     = [] ;
+      $scope.HostPortList     = [] ;
+      $scope.HostServiceList  = [] ;
+      $scope.Search           = { 'text': '' } ;
 
       //读取部署的传参
-      var addHostInfo  = $rootScope.tempData( 'Deploy', 'AddHost' ) ;
+      $scope.HostList  = $rootScope.tempData( 'Deploy', 'AddHost' ) ;
       var deployModel  = $rootScope.tempData( 'Deploy', 'Model' ) ;
       var deplpyModule = $rootScope.tempData( 'Deploy', 'Module' ) ;
       var installPath  = $rootScope.tempData( 'Deploy', 'InstallPath' ) ;
       var clusterName  = $rootScope.tempData( 'Deploy', 'ClusterName' ) ;
-      var discoverConf = $rootScope.tempData( 'Deploy', 'DiscoverConf' ) ;
-      var syncConf     = $rootScope.tempData( 'Deploy', 'SyncConf' ) ;
-
-      if( deployModel == null || clusterName == null || installPath == null || deplpyModule == null || addHostInfo == null )
+      if( deployModel == null || clusterName == null || installPath == null || deplpyModule == null || $scope.HostList == null )
       {
          $location.path( '/Deploy/Index' ).search( { 'r': new Date().getTime() } ) ;
          return ;
       }
 
-      //初始化
-      $scope.CheckedHostNum = 0 ;
-      var hostInfoList = [] ;
-      var hostList = $.extend( true, [], addHostInfo['HostInfo'] ) ;
-      var hostSort = function( h1, h2 ){
-         return h1['IP'] > h2['IP'] ;
-      }
-      $.each( hostList, function( index, hostInfo ){
-         hostInfo['background'] = '#fff' ;
-      } ) ;
-      hostList = hostList.sort( hostSort ) ;
-
       //创建步骤条
-      if( discoverConf != null )
-      {
-         $scope.stepList = _Deploy.BuildSdbDiscoverStep( $scope, $location, $scope['Url']['Action'], 'sequoiadb' ) ;
-      }
-      else if( syncConf != null )
-      {
-         $scope.stepList = _Deploy.BuildSdbSyncStep( $scope, $location, $scope['Url']['Action'], 'sequoiadb' ) ;
-      }
-      else
-      {
-         $scope.stepList = _Deploy.BuildSdbStep( $scope, $location, deployModel, $scope['Url']['Action'], deplpyModule ) ;
-      }
-
+      $scope.stepList = _Deploy.BuildSdbStep( $scope, $location, deployModel, $scope['Url']['Action'], deplpyModule ) ;
       if( $scope.stepList['info'].length == 0 )
       {
          $location.path( '/Deploy/Index' ).search( { 'r': new Date().getTime() } ) ;
          return ;
       }
-
-      SdbSwap.hostList.resolve( 'HostList', hostList ) ;
 
       //跳转到上一步
       $scope.GotoScanHost = function(){
@@ -83,15 +66,15 @@
          if( $scope.CheckedHostNum > 0 )
          {
             var tempPoraryHosts = [] ;
-            $.each( hostInfoList, function( index, hostInfo ){
+            $.each( $scope.HostDataList, function( index, hostInfo ){
 		         //判断是不是错误的主机
 		         if( hostInfo['errno'] === 0 && hostInfo['IsUse'] === true )
 		         {
 			         var tempHostInfo = {} ;
-                  tempHostInfo['User']          = hostInfo['User'] ;
-                  tempHostInfo['Passwd']        = hostInfo['Passwd'] ;
-                  tempHostInfo['SshPort']       = hostInfo['SshPort'] ;
-			         tempHostInfo['AgentService']	= hostInfo['AgentService'] ;
+                  tempHostInfo['User']          = $scope.HostList['HostInfo'][index]['User'] ;
+                  tempHostInfo['Passwd']        = $scope.HostList['HostInfo'][index]['Passwd'] ;
+                  tempHostInfo['SshPort']       = $scope.HostList['HostInfo'][index]['SshPort'] ;
+			         tempHostInfo['AgentService']	= $scope.HostList['HostInfo'][index]['AgentService'] ;
                   tempHostInfo['HostName']		= hostInfo['HostName'] ;
 			         tempHostInfo['IP']				= hostInfo['IP'] ;
 			         tempHostInfo['CPU']				= hostInfo['CPU'] ;
@@ -131,269 +114,165 @@
          }
       }
 
-      SdbSignal.on( 'CheckedHostNum', function(){
-         $scope.CheckedHostNum = 0 ;
-         $.each( hostInfoList, function( index, hostInfo ){
-            if( hostInfo['IsUse'] == true )
-            {
-               ++$scope.CheckedHostNum ;
-            }
-         } ) ;
-      } ) ;
-
-      //获取检查主机的数据
-      var checkHost = function(){
-         var data = { 'cmd': 'check host', 'HostInfo': JSON.stringify( addHostInfo ) } ;
-         SdbRest.OmOperation( data, {
-            'success': function( result ){
-               hostInfoList = result.sort( hostSort ) ;
-               $.each( hostInfoList, function( index, hostInfo ){
-                  if( typeof( hostInfo['errno'] ) == 'undefined' || hostInfo['errno'] == 0 )
-                  {
-                     hostInfo['errno']        = 0 ;
-                     hostInfo['CanUse']       = false ;
-                     hostInfo['IsUseNum']     = 0 ;
-                     hostInfo['CanNotUseNum'] = 0 ;
-                     hostInfo['DiskWarning']  = 0 ;
-
-                     var filterDiskList = [] ;
-                     var diskNameList = {} ;
-                     $.each( hostInfo['Disk'], function( index2, diskInfo ){
-                        if( diskNameList[diskInfo['Name']] === 0 || diskNameList[diskInfo['Name']] === 1 )
-                        {
-                           diskNameList[diskInfo['Name']] = 1 ;
-                        }
-                        else
-                        {
-                           diskNameList[diskInfo['Name']] = 0 ;
-                        }
-                        if( diskInfo['CanUse'] == true )
-                        {
-                           if( diskInfo['IsLocal'] == true )
-                           {
-                              diskInfo['IsUse'] = true ;
-                              hostInfo['CanUse'] = true ;
-                              ++hostInfo['IsUseNum'] ;
-                           }
-                           filterDiskList.push( diskInfo ) ;
-                        }
-                        else
-                        {
-                           ++hostInfo['CanNotUseNum'] ;
-                           filterDiskList.push( diskInfo ) ;
-                        }
-                     } ) ;
-                     $.each( filterDiskList, function( index2, diskInfo ){
-                        if( diskNameList[diskInfo['Name']] === 1 )
-                        {
-                           if( diskInfo['CanUse'] == true && diskInfo['IsLocal'] == true )
-                           {
-                              //磁盘出现大于1次
-                              diskInfo['IsUse'] = false ;
-                              if( hostInfo['IsUseNum'] > 0 )
-                              {
-                                 --hostInfo['IsUseNum'] ;
-                              }
-                              if( hostInfo['IsUseNum'] == 0 )
-                              {
-                                 hostInfo['CanUse'] = false ;
-                              }
-                           }
-                        }
-                     } ) ;
-                     hostInfo['Disk'] = filterDiskList ;
-                     hostInfo['DiskWarning'] = sprintf( $scope.autoLanguage( '有?个磁盘剩余容量不足。' ), hostInfo['CanNotUseNum'] ) ;
-                     hostInfo['IsUse'] = hostInfo['CanUse'] ;
-                     if( hostInfo['OMA']['Path'].length > 0 )
-                     {
-                        hostInfo['InstallPath'] = hostInfo['OMA']['Path'] ;
-                        hostInfo['IsUse'] = false ;
-                     }
-                     else
-                     {
-                        hostInfo['InstallPath'] = installPath ;
-                     }
-
-                     $.each( hostList, function( index2, hostInfo2 ){
-                        if( hostInfo2['IP'] == hostInfo['IP'] )
-                        {
-                           hostInfo['User']           = hostInfo2['User'] ;
-                           hostInfo['Passwd']         = hostInfo2['Passwd'] ;
-                           hostInfo['SshPort']        = hostInfo2['SshPort'] ;
-			                  hostInfo['AgentService']	= hostInfo2['AgentService'] ;
-                           return false ;
-                        }
-                     } ) ;
-                  }
-                  else
-                  {
-                     hostInfo['CanUse'] = false ;
-                     hostInfo['IsUse'] = false ;
-                     $.each( hostList, function( index2, hostInfo2 ){
-                        if( hostInfo2['IP'] == hostInfo['IP'] )
-                        {
-                           hostInfo['HostName'] = hostInfo2['HostName'] ;
-                           return false ;
-                        }
-                     } ) ;
-                  }
-
-                  hostInfo['background'] = '#fff' ;
-                  if( hostInfo['CanUse'] == false )
-                  {
-                      hostInfo['background'] = '#eee' ;
-                  }
-               } ) ;
-
-               SdbSignal.commit( 'HostInfo', hostInfoList ) ;
-            },
-            'failed': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  checkHost() ;
-                  return true ;
-               } ) ;
-            }
-         } ) ;
-      }
-      checkHost() ;
-   } ) ;
-
-   sacApp.controllerProvider.register( 'Deploy.AddHost.HostList.Ctrl', function( $scope, SdbSwap, SdbSignal ){
-
-      $scope.CurrentHost = 0 ;
-      $scope.Search = { 'text': '' } ;
-      $scope.HostInfoList = [] ;
-
-      SdbSwap.hostList.then( function( result ){
-         $scope.HostInfoList = result['HostList'] ;
-      } ) ;
-
-      SdbSignal.on( 'HostInfo', function( result ){
-         $scope.HostInfoList = result ;
-         $scope.SwitchHost( $scope.CurrentHost ) ;
-         SdbSignal.commit( 'CheckedHostNum', null ) ;
-      } ) ;
-
       //左侧栏的过滤
       $scope.Filter = function(){
          if( $scope.Search.text.length > 0 )
          {
-            $.each( $scope.HostInfoList, function( index, hostInfo ){
-               if( hostInfo['HostName'].indexOf( $scope.Search.text ) >= 0 )
+            $.each( $scope.HostList['HostInfo'], function( index ){
+               if( $scope.HostList['HostInfo'][index]['HostName'].indexOf( $scope.Search.text ) >= 0 )
                {
-                  hostInfo['IsHostName'] = true ;
+                  $scope.HostList['HostInfo'][index]['IsHostName'] = true ;
                }
                else
                {
-                  hostInfo['IsHostName'] = false ;
+                  $scope.HostList['HostInfo'][index]['IsHostName'] = false ;
                }
-               if( hostInfo['IP'].indexOf( $scope.Search.text ) >= 0 )
+               if( $scope.HostList['HostInfo'][index]['IP'].indexOf( $scope.Search.text ) >= 0 )
                {
-                  hostInfo['IsIP'] = true ;
+                  $scope.HostList['HostInfo'][index]['IsIP'] = true ;
                }
                else
                {
-                  hostInfo['IsIP'] = false ;
+                  $scope.HostList['HostInfo'][index]['IsIP'] = false ;
                }
             } ) ;
          }
          else
          {
-            $.each( $scope.HostInfoList, function( index, hostInfo ){
-               hostInfo['IsHostName'] = false ;
-               hostInfo['IsIP'] = false ;
+            $.each( $scope.HostList['HostInfo'], function( index ){
+                  $scope.HostList['HostInfo'][index]['IsHostName'] = false ;
+                  $scope.HostList['HostInfo'][index]['IsIP'] = false ;
             } ) ;
          }
       } ;
 
-      //切换主机
-      $scope.SwitchHost = function( index ){
-         $scope.CurrentHost = index ;
-         SdbSignal.commit( 'UpdateHostConfig', $scope.HostInfoList[index] ) ;
+      //选择颜色
+      function switchColor( percent )
+      {
+         if( percent <= 60 )
+         {
+            return '#00CC66' ;
+         }
+         else if( percent <= 80 )
+         {
+            return '#FF9933' ;
+         }
+         else
+         {
+            return '#D9534F' ;
+         }
+      }
+
+      //磁盘
+      var checkDiskList = function(){
+         var diskFree = 0 ;
+         var diskSize = 0 ;
+         $.each( $scope.HostDataList[$scope.CurrentHost]['Disk'], function( index, diskInfo ){
+            if( diskInfo['IsLocal'] == true )
+            {
+               diskSize += diskInfo['Size'] ;
+               diskFree += diskInfo['Free'] ;
+            }
+            var tmpDiskPercent = diskInfo['Size'] == 0 ? 0 : parseInt( ( diskInfo['Size'] - diskInfo['Free'] ) * 100 / diskInfo['Size'] ) ;
+            $scope.HostDataList[$scope.CurrentHost]['Disk'][index]['Chart'] = {
+               'percent': tmpDiskPercent,
+               'style': {
+                  'progress': {
+                     'background': switchColor( tmpDiskPercent )
+                  }
+               },
+               'text': sprintf( '?MB / ?MB', diskInfo['Size'] - diskInfo['Free'], diskInfo['Size'] )
+            } ;
+         } ) ;
+         var disk = parseInt( ( diskSize - diskFree ) * 100 / diskSize ) ;
+         $scope.DiskChart = {
+            'percent': disk,
+            'style': {
+               'progress': {
+                  'background': switchColor( disk )
+               }
+            },
+            'text': sprintf( '?MB / ?MB', diskSize - diskFree, diskSize )
+         } ;
+         $scope.HostDiskList = $scope.HostDataList[$scope.CurrentHost]['Disk'] ;
+      }
+
+      //端口
+      var checkPortList = function(){
+         $scope.HostPortList = $scope.HostDataList[$scope.CurrentHost]['Port'] ;
+      }
+
+      //服务
+      var checkServiceList = function(){
+         $scope.HostServiceList = $scope.HostDataList[$scope.CurrentHost]['Service'] ;
+      }
+
+      //cpu
+      var checkCpu = function(){
+         var cpu = parseInt( ( $scope.HostDataList[$scope.CurrentHost]['CPU']['Other'] + $scope.HostDataList[$scope.CurrentHost]['CPU']['Sys'] + $scope.HostDataList[$scope.CurrentHost]['CPU']['User'] ) * 100 / ( $scope.HostDataList[$scope.CurrentHost]['CPU']['Idle'] + $scope.HostDataList[$scope.CurrentHost]['CPU']['Other'] + $scope.HostDataList[$scope.CurrentHost]['CPU']['Sys'] + $scope.HostDataList[$scope.CurrentHost]['CPU']['User'] ) ) ;
+         $scope.CpuChart = { 'percent': cpu, 'style': { 'progress': { 'background': switchColor( cpu ) } } } ;
+      }
+
+      //内存
+      var checkMemory = function(){
+         var memory = parseInt( ( $scope.HostDataList[$scope.CurrentHost]['Memory']['Size'] - $scope.HostDataList[$scope.CurrentHost]['Memory']['Free'] ) * 100 / $scope.HostDataList[$scope.CurrentHost]['Memory']['Size'] ) ;
+         $scope.MemoryChart = {
+            'percent': memory,
+            'style': {
+               'progress': {
+                  'background': switchColor( memory )
+               }
+            },
+            'text': sprintf( '?MB / ?MB', $scope.HostDataList[$scope.CurrentHost]['Memory']['Size'] - $scope.HostDataList[$scope.CurrentHost]['Memory']['Free'], $scope.HostDataList[$scope.CurrentHost]['Memory']['Size'] )
+         } ;
       }
 
       //检查主机
       $scope.CheckedHost = function( index ){
-         if( typeof( $scope.HostInfoList[index]['errno'] ) == 'undefined' || $scope.HostInfoList[index]['errno'] == 0 )
+         if( typeof( $scope.HostDataList[index]['errno'] ) == 'undefined' || $scope.HostDataList[index]['errno'] == 0 )
          {
-            if( $scope.HostInfoList[index]['CanUse'] == true )
+            if( $scope.HostDataList[index]['IsUse'] == true )
             {
-               $scope.HostInfoList[index]['IsUse'] = !$scope.HostInfoList[index]['IsUse'] ;
-               SdbSignal.commit( 'CheckedHostNum', null ) ;
+               --$scope.CheckedHostNum ;
             }
+            else
+            {
+               ++$scope.CheckedHostNum ;
+            }
+            $scope.HostDataList[index]['IsUse'] = !$scope.HostDataList[index]['IsUse'] ;
          }
       }
 
-   } ) ;
+      //切换主机
+      $scope.SwitchHost = function( index ){
+         $scope.CurrentHost = index ;
+         if( typeof( $scope.HostDataList[$scope.CurrentHost]['errno'] ) == 'undefined' || $scope.HostDataList[$scope.CurrentHost]['errno'] == 0 )
+         {
+            checkCpu() ;
+            checkMemory() ;
+            checkDiskList() ;
+            checkPortList() ;
+            checkServiceList() ;
+         }
+         else
+         {
+            $scope.CpuChart        = { 'percent': 0 } ;
+            $scope.MemoryChart     = { 'percent': 0 } ;
+            $scope.DiskChart       = { 'percent': 0 } ;
+            $scope.HostDiskList    = [] ;
+            $scope.HostPortList    = [] ;
+            $scope.HostServiceList = [] ;
+         }
+         $rootScope.bindResize() ;
+      }
 
-   sacApp.controllerProvider.register( 'Deploy.AddHost.HostInfo.Ctrl', function( $scope, $rootScope, SdbSignal ){
-
-      $scope.HostInfo = {} ;
-
-      $scope.CpuChart      = { 'percent': 0, 'text': '' } ;
-      $scope.MemoryChart   = { 'percent': 0, 'text': '' } ;
-      $scope.DiskChart     = { 'percent': 0, 'text': '' } ;
-
-      $scope.DiskTableHeight = 32 ;
-      $scope.PortTableHeight = 32 ;
-      $scope.ServiceTableHeight = 32 ;
-      $scope.DiskTable = {
-         'title': {
-            'IsUse':    '',
-            'Name':     $scope.autoLanguage( '磁盘' ),
-            'Mount':    $scope.autoLanguage( '挂载路径' ),
-            'IsLocal':  $scope.autoLanguage( '本地磁盘' ),
-            'Chart':    $scope.autoLanguage( '容量' )
-         },
-         'options': {
-            'width': {
-               'IsUse':    '40px',
-               'Name':     '30%',
-               'Mount':    '30%',
-               'IsLocal':  '80px',
-               'Chart':    '40%'
-            },
-            'max': 10000,
-            'tools': false
-         },
-         'body': []
-      } ;
-      $scope.PortTable = {
-         'title': {
-            'Port':  $scope.autoLanguage( '端口' ),
-            'CanUse': $scope.autoLanguage( '状态' )
-         },
-         'options': {
-            'width': {
-               'Port':     '40%',
-               'CanUse':   '60%'
-            },
-            'max': 10000,
-            'tools': false
-         },
-         'body': []
-      } ;
-      $scope.ServiceTable = {
-         'title': {
-            'Name':        $scope.autoLanguage( '服务名' ),
-            'IsRunning':   $scope.autoLanguage( '状态' ),
-            'Version':     $scope.autoLanguage( '版本' )
-         },
-         'options': {
-            'width': {
-               'Name':        '40%',
-               'IsRunning':   '30%',
-               'Version':     '30%'
-            },
-            'max': 10000,
-            'tools': false
-         },
-         'body': []
-      } ;
-      //添加自定义路径 弹窗
-      $scope.AddCustomPathWindow = {
-         'config': {
-            'inputList': [
+      //创建 添加自定义路径 弹窗
+      $scope.CreateAddCustomPathModel = function(){
+         $scope.Components.Modal.icon = '' ;
+         $scope.Components.Modal.title = $scope.autoLanguage( '添加自定义路径' ) ;
+         $scope.Components.Modal.isShow = true ;
+         $scope.Components.Modal.form = {
+            inputList: [
                {
                   "name": "Name",
                   "webName": $scope.autoLanguage( '磁盘名' ),
@@ -435,169 +314,20 @@
                   }
                }
             ]
-         },
-         'callback': {}
-      } ;
-
-      //选择颜色
-      function switchColor( percent ){
-         if( percent <= 60 )
-         {
-            return '#00CC66' ;
-         }
-         else if( percent <= 80 )
-         {
-            return '#FF9933' ;
-         }
-         else
-         {
-            return '#D9534F' ;
-         }
-      }
-
-      //计算表格高度
-      function getTableHeight( num ){
-         if( num <= 5 )
-         {
-            return ( num + 1 ) * 31 + 1 ;
-         }
-         else
-         {
-            return 218 ;
-         }
-      }
-
-      //磁盘
-      var checkDiskList = function( diskList ){
-         var diskFree = 0 ;
-         var diskSize = 0 ;
-         $.each( diskList, function( index, diskInfo ){
-            if( diskInfo['IsLocal'] == true )
-            {
-               diskSize += diskInfo['Size'] ;
-               diskFree += diskInfo['Free'] ;
-            }
-            var tmpDiskPercent = diskInfo['Size'] == 0 ? 0 : parseInt( ( diskInfo['Size'] - diskInfo['Free'] ) * 100 / diskInfo['Size'] ) ;
-            diskInfo['Chart'] = {
-               'percent': tmpDiskPercent,
-               'style': {
-                  'progress': {
-                     'background': switchColor( tmpDiskPercent )
-                  }
-               },
-               'text': sprintf( '? / ?', sizeConvert( diskInfo['Size'] - diskInfo['Free'] ), sizeConvert( diskInfo['Size'] ) )
-            } ;
-         } ) ;
-         var disk = parseInt( ( diskSize - diskFree ) * 100 / diskSize ) ;
-         $scope.DiskChart = {
-            'percent': disk,
-            'style': {
-               'progress': {
-                  'background': switchColor( disk )
-               }
-            },
-            'text': sprintf( '? / ?', sizeConvert( diskSize - diskFree ), sizeConvert( diskSize ) )
          } ;
-
-         $scope.DiskTable['body'] = diskList ;
-         $scope.DiskTableHeight = getTableHeight( diskList.length ) ;
-      }
-
-      //端口
-      var checkPortList = function( portList ){
-         $scope.PortTable['body'] = [] ;
-         $.each( portList, function( index, portInfo ){
-            if( portInfo['Port'].length > 0 )
-            {
-               $scope.PortTable['body'].push( portInfo ) ;
-            }
-         } ) ;
-         $scope.PortTableHeight = getTableHeight( $scope.PortTable['body'].length ) ;
-      }
-
-      //服务
-      var checkServiceList = function( serviceList ){
-         $scope.ServiceTable['body'] = [] ;
-         $.each( serviceList, function( index, serviceInfo ){
-            if( serviceInfo['Name'].length > 0 )
-            {
-               $scope.ServiceTable['body'].push( serviceInfo ) ;
-            }
-         } ) ;
-         $scope.ServiceTableHeight = getTableHeight( $scope.ServiceTable['body'].length ) ;
-      }
-
-      //cpu
-      var checkCpu = function( cpuInfo ){
-         var cpu = parseInt( ( cpuInfo['Other'] + cpuInfo['Sys'] + cpuInfo['User'] ) * 100 / ( cpuInfo['Idle'] + cpuInfo['Other'] + cpuInfo['Sys'] + cpuInfo['User'] ) ) ;
-         $scope.CpuChart = { 'percent': cpu, 'style': { 'progress': { 'background': switchColor( cpu ) } } } ;
-      }
-
-      //内存
-      var checkMemory = function( memoryInfo ){
-         var memory = parseInt( ( memoryInfo['Size'] - memoryInfo['Free'] ) * 100 / memoryInfo['Size'] ) ;
-         $scope.MemoryChart = {
-            'percent': memory,
-            'style': {
-               'progress': {
-                  'background': switchColor( memory )
-               }
-            },
-            'text': sprintf( '? / ?', sizeConvert( memoryInfo['Size'] - memoryInfo['Free'] ), sizeConvert( memoryInfo['Size'] ) )
-         } ;
-      }
-
-      SdbSignal.on( 'UpdateHostConfig', function( hostInfo ){
-         $scope.HostInfo = hostInfo ;
-         if( typeof( hostInfo['errno'] ) == 'undefined' || hostInfo['errno'] == 0 )
-         {
-            checkCpu( hostInfo['CPU'] ) ;
-            checkMemory( hostInfo['Memory'] ) ;
-            checkDiskList( hostInfo['Disk'] ) ;
-            checkPortList( hostInfo['Port'] ) ;
-            checkServiceList( hostInfo['Service'] ) ;
-         }
-         else
-         {
-            $scope.CpuChart      = { 'percent': 0 } ;
-            $scope.MemoryChart   = { 'percent': 0 } ;
-            $scope.DiskChart     = { 'percent': 0 } ;
-            $scope.DiskTable['body']    = [] ;
-            $scope.PortTable['body']    = [] ;
-            $scope.ServiceTable['body'] = [] ;
-         }
-         $rootScope.bindResize() ;
-      } ) ;
-
-      //打开 添加自定义路径 弹窗
-      $scope.ShowAddCustomPath = function(){
-         $.each( $scope.AddCustomPathWindow['config']['inputList'], function( index, inputInfo ){
-            inputInfo['value'] = '' ;
-         } ) ;
-         $scope.AddCustomPathWindow['callback']['SetOkButton']( $scope.autoLanguage( '确定' ), function(){
-            var isAllClear = $scope.AddCustomPathWindow['config'].check( function( formVal ){
+         $scope.Components.Modal.Context = '<div form-create para="data.form"></div>' ;
+         $scope.Components.Modal.ok = function(){
+            var isAllClear = $scope.Components.Modal.form.check( function( formVal ){
                var error = [] ;
                if( formVal['Free'] > formVal['Size'] )
                {
-                  error.push( { 'name': 'Free', 'error': sprintf( $scope.autoLanguage( '?的值不能大于?。' ), $scope.autoLanguage( '可用容量' ), $scope.autoLanguage( '总容量' ) ) } ) ;
-                  error.push( { 'name': 'Size', 'error': sprintf( $scope.autoLanguage( '?的值不能小于?。' ), $scope.autoLanguage( '总容量' ), $scope.autoLanguage( '可用容量' ) ) } ) ;
-               }
-               else
-               {
-                  if( formVal['Free'] < 600 )
-                  {
-                     error.push( { 'name': 'Free', 'error': sprintf( $scope.autoLanguage( '?的值不能小于?。' ), $scope.autoLanguage( '可用容量' ), '600MB' ) } ) ;
-                  }
-                  if( formVal['Size'] < 600 )
-                  {
-                     error.push( { 'name': 'Size', 'error': sprintf( $scope.autoLanguage( '?的值不能小于?。' ), $scope.autoLanguage( '总容量' ), '600MB' ) } ) ;
-                  }
+                  error.push( { 'name': 'Free', 'error': sprintf( $scope.autoLanguage( '?的值不能大于?' ), $scope.autoLanguage( '可用容量' ), $scope.autoLanguage( '总容量' ) ) } ) ;
                }
                return error ;
             } ) ;
             if( isAllClear )
             {
-               var formVal = $scope.AddCustomPathWindow['config'].getValue() ;
+               var formVal = $scope.Components.Modal.form.getValue() ;
                formVal['IsUse']   = true ;
                formVal['CanUse']  = true ;
                formVal['IsLocal'] = true ;
@@ -609,49 +339,172 @@
                         'background': switchColor( tmpDiskPercent )
                      }
                   },
-                  'text': sprintf( '? / ?', sizeConvert( formVal['Size'] - formVal['Free'] ), sizeConvert( formVal['Size'] ) )
+                  'text': sprintf( '?MB / ?MB', formVal['Size'] - formVal['Free'], formVal['Size'] )
                } ;
-               $scope.HostInfo['Disk'].push( formVal ) ;
-               ++$scope.HostInfo['IsUseNum'] ;
-               $scope.HostInfo['CanUse'] = true ;
-               checkDiskList( $scope.HostInfo['Disk'] ) ;
+               $scope.HostDataList[$scope.CurrentHost]['Disk'].push( formVal ) ;
+               ++$scope.HostDataList[$scope.CurrentHost]['IsUseNum'] ;
+               $scope.HostDataList[$scope.CurrentHost]['CanUse'] = true ;
+               $scope.bindResize() ;
             }
             return isAllClear ;
-         } ) ;
-         $scope.AddCustomPathWindow['callback']['SetTitle']( $scope.autoLanguage( '添加自定义路径' ) ) ;
-         $scope.AddCustomPathWindow['callback']['Open']() ;
+         }
       }
 
       //计算磁盘
       $scope.CountCheckedDisk = function(){
          setTimeout( function(){
-            $scope.HostInfo['IsUseNum'] = 0 ;
-            $.each( $scope.HostInfo['Disk'], function( index, diskInfo ){
+            var isUseHost = false ;
+            $scope.HostDataList[$scope.CurrentHost]['IsUseNum'] = 0 ;
+            $.each( $scope.HostDataList[$scope.CurrentHost]['Disk'], function( index, diskInfo ){
                if( diskInfo['IsUse'] == true )
                {
-                  ++$scope.HostInfo['IsUseNum'] ;
+                  ++$scope.HostDataList[$scope.CurrentHost]['IsUseNum'] ;
+                  isUseHost = true ;
                   return false ;
                }
             } ) ;
-            if( $scope.HostInfo['IsUseNum'] > 0 )
+            if( isUseHost == true )
             {
-               $scope.HostInfo['CanUse'] = true ;
-               $scope.HostInfo['background'] = '#fff' ;
+               $scope.HostDataList[$scope.CurrentHost]['CanUse'] = true ;
             }
             else
             {
-               if( $scope.HostInfo['IsUse'] == true )
+               if( $scope.HostDataList[$scope.CurrentHost]['IsUse'] == true )
                {
-                  $scope.HostInfo['IsUse'] = false ;
+                  $scope.HostDataList[$scope.CurrentHost]['IsUse']  = false ;
+                  --$scope.CheckedHostNum ;
                }
-               $scope.HostInfo['CanUse'] = false ;
-               $scope.HostInfo['background'] = '#eee' ;
+               $scope.HostDataList[$scope.CurrentHost]['CanUse'] = false ;
             }
-            SdbSignal.commit( 'CheckedHostNum', null ) ;
             $scope.$apply() ;
          } ) ;
       }
 
-   } ) ;
+      //获取检查主机的数据
+      var checkHost = function(){
+         var data = { 'cmd': 'check host', 'HostInfo': JSON.stringify( $scope.HostList ) } ;
+         SdbRest.OmOperation( data, {
+            'success': function( hostDataList ){
+               $.each( $scope.HostList['HostInfo'], function( index, hostInfo ){
+                  $.each( hostDataList, function( index2, hostDataInfo ){
+                     if( hostInfo['HostName'] == hostDataInfo['HostName'] || hostInfo['IP'] == hostDataInfo['IP'] )
+                     {
+                        hostDataInfo['HostName'] = hostInfo['HostName'] ;
+                        hostDataInfo['IP'] = hostInfo['IP'] ;
+                        if( typeof( hostDataInfo['errno'] ) == 'undefined' || hostDataInfo['errno'] == 0 )
+                        {
+                           hostDataInfo['errno'] = 0 ;
+                           hostDataInfo['CanUse'] = false ;
+                           hostDataInfo['IsUseNum'] = 0 ;
+                           hostDataInfo['CanNotUseNum'] = 0 ;
+                           hostDataInfo['DiskWarning'] = 0 ;
 
+                           var diskNameList = {} ;
+                           $.each( hostDataInfo['Disk'], function( index3, diskInfo ){
+
+                              if( diskNameList[diskInfo['Name']] === 0 || diskNameList[diskInfo['Name']] === 1 )
+                              {
+                                 diskNameList[diskInfo['Name']] = 1 ;
+                              }
+                              else
+                              {
+                                 diskNameList[diskInfo['Name']] = 0 ;
+                              }
+
+                              if( hostDataInfo['Disk'][index3]['CanUse'] == true && hostDataInfo['Disk'][index3]['IsLocal'] == true )
+                              {
+                                 hostDataInfo['Disk'][index3]['IsUse'] = true ;
+                                 hostDataInfo['CanUse'] = true ;
+                                 ++hostDataInfo['IsUseNum'] ;
+                              }
+                              else
+                              {
+                                 ++hostDataInfo['CanNotUseNum'] ;
+                              }
+                           } ) ;
+
+                           $.each( hostDataInfo['Disk'], function( index3, diskInfo ){
+                              if( diskNameList[diskInfo['Name']] === 1 )
+                              {
+                                 if( diskInfo['CanUse'] == true && diskInfo['IsLocal'] == true )
+                                 {
+                                    //磁盘出现大于1次
+                                    diskInfo['IsUse'] = false ;
+                                    if( hostDataInfo['IsUseNum'] > 0 )
+                                    {
+                                       --hostDataInfo['IsUseNum'] ;
+                                    }
+                                    if( hostDataInfo['IsUseNum'] == 0 )
+                                    {
+                                       hostDataInfo['CanUse'] = false ;
+                                    }
+                                 }
+                              }
+                           } ) ;
+
+                           var isFind = true ;
+                           while( isFind )
+                           {
+                              isFind = false ;
+                              $.each( hostDataInfo['Port'], function( index3 ){
+                                 if( hostDataInfo['Port'][index3]['Port'].length == 0 )
+                                 {
+                                    hostDataInfo['Port'].splice( index3, 1 ) ;
+                                    isFind = true ;
+                                    return false ;
+                                 }
+                              } ) ;
+                           }
+                           isFind = true ;
+                           while( isFind )
+                           {
+                              isFind = false ;
+                              $.each( hostDataInfo['Service'], function( index3 ){
+                                 if( hostDataInfo['Service'][index3]['Name'].length == 0 )
+                                 {
+                                    hostDataInfo['Service'].splice( index3, 1 ) ;
+                                    isFind = true ;
+                                    return false ;
+                                 }
+                              } ) ;
+                           }
+                           hostDataInfo['DiskWarning'] = sprintf( $scope.autoLanguage( '有?个磁盘剩余容量不足。' ), hostDataInfo['CanNotUseNum'] ) ;
+                           hostDataInfo['IsUse'] = hostDataInfo['CanUse'] ;
+                           if( hostDataInfo['OMA']['Path'].length > 0 )
+                           {
+                              hostDataInfo['InstallPath'] = hostDataInfo['OMA']['Path'] ;
+                              hostDataInfo['IsUse'] = false ;
+                           }
+                           else
+                           {
+                              hostDataInfo['InstallPath'] = installPath ;
+                           }
+                           if( hostDataInfo['IsUse'] == true )
+                           {
+                              ++$scope.CheckedHostNum ;
+                           }
+                        }
+                        else
+                        {
+                           hostDataInfo['CanUse'] = false ;
+                           hostDataInfo['IsUse'] = false ;
+                        }
+                        $scope.HostDataList.push( hostDataInfo ) ;
+                        return false ;
+                     }
+                  } ) ;
+               } ) ;
+               $scope.SwitchHost( $scope.CurrentHost ) ;
+            },
+            'failed': function( errorInfo ){
+               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+                  checkHost() ;
+                  return true ;
+               } ) ;
+            }
+         } ) ;
+      }
+
+      checkHost() ;
+   } ) ;
 }());

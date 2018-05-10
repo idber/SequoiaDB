@@ -344,14 +344,6 @@ namespace engine
             PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                       "Get field[%s] failed, rc: %d",
                       OMA_FIELD_PASSWD, rc ) ;
-
-            {
-               BSONObj omaInfo = item.getObjectField( OMA_FIELD_OMA ) ;
-
-               hostInfo._item._version = omaInfo.getStringField(
-                                                         OMA_FIELD_VERSION ) ;
-            }
-
             hostInfo._item._passwd = pStr ;
             rc = omaGetStringElement( item, OMA_FIELD_SSHPORT, &pStr ) ;
             PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
@@ -583,7 +575,6 @@ namespace engine
          builder.append( OMA_FIELD_STATUSDESC, it->second._statusDesc ) ;
          builder.append( OMA_FIELD_ERRNO, it->second._errno ) ;
          builder.append( OMA_FIELD_DETAIL, it->second._detail ) ;
-         builder.append( OMA_FIELD_VERSION, it->second._version ) ;
          builder.append( OMA_FIELD_FLOW, arrBuilder.arr() ) ;
          obj = builder.obj() ;
          bab.append( obj ) ;
@@ -947,9 +938,11 @@ namespace engine
                       "Get field[%s] failed, rc: %d",
                       OMA_FIELD_CLUSTERNAME, rc ) ;
             hostInfo._item._clusterName = pStr ;
-
-            hostInfo._item._packages = item.getObjectField(
-                                                   OMA_FIELD_PACKAGES ).copy() ;
+            rc = omaGetStringElement( item, OMA_FIELD_INSTALLPATH, &pStr ) ;
+            PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
+                      "Get field[%s] failed, rc: %d",
+                      OMA_FIELD_INSTALLPATH, rc ) ;
+            hostInfo._item._installPath = pStr ;
 
             _removeHostInfo.push_back( hostInfo ) ;
          }
@@ -8546,137 +8539,5 @@ namespace engine
       goto done ;
    }
 
-   /*
-      start plugins task
-   */
-   _omaStartPluginsTask::_omaStartPluginsTask( INT64 taskID )
-                                 :_omaTask( taskID )
-   {
-   }
-
-   _omaStartPluginsTask::~_omaStartPluginsTask()
-   {
-   }
-
-   INT32 _omaStartPluginsTask::init( const BSONObj &info, void *ptr )
-   {
-      INT32 rc = SDB_OK ;
-
-      rc = initJsEnv() ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDWARNING, "Failed to init environment for executing js script, "
-                 "rc = %d", rc ) ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _omaStartPluginsTask::doit()
-   {
-      INT32 rc = SDB_OK ;
-      _omaCommand* cmd = NULL ;
-      BSONObj argument ;
-      BSONObj result ;
-
-      cmd = getOmaCmdBuilder()->create( OMA_CMD_START_PLUGIN ) ;
-      if( cmd == NULL )
-      {
-         rc = SDB_OOM ;
-         PD_LOG( PDERROR, "Failed to create omagent command, command=%s",
-                 OMA_CMD_START_PLUGIN ) ;
-         goto error ;
-      }
-
-      rc = cmd->init( argument.objdata() ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to init omagent command, rc=%d", rc ) ;
-         goto error ;
-      }
-
-      rc = cmd->doit( result ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to run omagent command, rc=%d", rc ) ;
-         goto error ;
-      }
-
-   done:
-      SAFE_OSS_DELETE( cmd ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   
-   /*
-      stop plugins task
-   */
-   _omaStopPluginsTask::_omaStopPluginsTask( INT64 taskID )
-                                 :_omaTask( taskID )
-   {
-   }
-
-   _omaStopPluginsTask::~_omaStopPluginsTask()
-   {
-   }
-
-   INT32 _omaStopPluginsTask::init( const BSONObj &info, void *ptr )
-   {
-      INT32 rc = SDB_OK ;
-
-      rc = initJsEnv() ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDWARNING, "Failed to init environment for executing js script, "
-                 "rc = %d", rc ) ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _omaStopPluginsTask::doit()
-   {
-      INT32 rc = SDB_OK ;
-      _omaCommand* cmd = NULL ;
-      BSONObj argument ;
-      BSONObj result ;
-
-      cmd = getOmaCmdBuilder()->create( OMA_CMD_STOP_PLUGIN ) ;
-      if( cmd == NULL )
-      {
-         rc = SDB_OOM ;
-         PD_LOG( PDERROR, "Failed to create omagent command, command=%s",
-                 OMA_CMD_START_PLUGIN ) ;
-         goto error ;
-      }
-
-      rc = cmd->init( argument.objdata() ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to init omagent command, rc=%d", rc ) ;
-         goto error ;
-      }
-
-      rc = cmd->doit( result ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to run omagent command, rc=%d", rc ) ;
-         goto error ;
-      }
-
-   done:
-      SAFE_OSS_DELETE( cmd ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
 } // namespace engine
 

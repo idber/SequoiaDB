@@ -98,6 +98,7 @@ namespace engine
          }
          ++it ;
       }
+
       return pScope ;
    }
 
@@ -147,6 +148,7 @@ namespace engine
          ossPrintf( "Failed to create scope[%d]"OSS_NEWLINE, type ) ;
          goto error ;
       }
+
    done:
       return scope ;
    error:
@@ -159,10 +161,10 @@ namespace engine
       {
          goto done ;
       }
+
       _latch.get() ;
       if ( _vecScopes.size() < SPT_SCOPE_CACHE_SIZE )
       {
-         pScope->clearJSFileNameList() ;
          _vecScopes.push_back( pScope ) ;
          pScope = NULL ;
       }

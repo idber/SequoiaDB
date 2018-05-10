@@ -59,7 +59,6 @@ namespace engine
       CoordCB *pCoordcb                = pKrcb->getCoordCB() ;
       netMultiRouteAgent *pRouteAgent  = pCoordcb->getRouteAgent() ;
 
-      // process define
       rtnSendOptions sendOpt( TRUE ) ;
       rtnSendMsgIn inMsg( pMsg ) ;
       rtnProcessResult result ;
@@ -74,7 +73,6 @@ namespace engine
 
       BSONObj boDeletor ;
 
-      // fill default-reply(delete success)
       MsgOpDelete *pDelMsg             = (MsgOpDelete *)pMsg ;
       INT32 oldFlag                    = pDelMsg->flags ;
       pDelMsg->flags                  |= FLG_DELETE_RETURNNUM ;
@@ -104,7 +102,6 @@ namespace engine
                       e.what() ) ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "Collection:%s, Deletor:%s, Hint:%s, "
                           "Flag:0x%08x(%u)",
@@ -162,7 +159,6 @@ namespace engine
       }
       if ( pCollectionName )
       {
-         /// AUDIT
          PD_AUDIT_OP( AUDIT_DML, MSG_BS_DELETE_REQ, AUDIT_OBJ_CL,
                       pCollectionName, rc,
                       "DeletedNum:%u, Deletor:%s, Hint:%s, Flag:0x%08x(%u)",
@@ -172,6 +168,10 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_RTNCODEL_EXECUTE, rc ) ;
       return rc ;
    error:
+      if ( buf && nokRC.size() > 0 )
+      {
+         *buf = rtnContextBuf( rtnBuildErrorObj( rc, cb, &nokRC ) ) ;
+      }
       goto done ;
    }
 
@@ -201,8 +201,8 @@ namespace engine
       BSONObj boNew ;
 
       CHAR *pBuff             = NULL ;
-      INT32 buffLen           = 0 ;
-      INT32 buffPos           = 0 ;
+      UINT32 buffLen          = 0 ;
+      UINT32 buffPos          = 0 ;
       vector<CHAR*> *pBlock   = NULL ;
 
       CoordGroupSubCLMap::iterator it ;
@@ -234,23 +234,20 @@ namespace engine
          netIOVec &iovec = inMsg._datas[ it->first ] ;
          netIOV ioItem ;
 
-         // 1. first vec
          ioItem.iovBase = (CHAR*)inMsg.msg() + sizeof( MsgHeader ) ;
          ioItem.iovLen = ossRoundUpToMultipleX ( offsetof(MsgOpDelete, name) +
                                                  pDelMsg->nameLength + 1, 4 ) -
                          sizeof( MsgHeader ) ;
          iovec.push_back( ioItem ) ;
 
-         // 2. new deletor vec
          boNew = _buildNewDeletor( boDeletor, subCLLst ) ;
-         // 2.1 add to buff
-         INT32 roundLen = ossRoundUpToMultipleX( boNew.objsize(), 4 ) ;
+         UINT32 roundLen = ossRoundUpToMultipleX( boNew.objsize(), 4 ) ;
          if ( buffPos + roundLen > buffLen )
          {
-            INT32 alignLen = ossRoundUpToMultipleX( roundLen,
-                                                    DMS_PAGE_SIZE4K ) ;
-            rc = cb->allocBuff( alignLen, &pBuff, buffLen ) ;
-            PD_RC_CHECK( rc, PDERROR, "Alloc buff[%d] failed, rc: %d",
+            UINT32 alignLen = ossRoundUpToMultipleX( roundLen,
+                                                     DMS_PAGE_SIZE4K ) ;
+            rc = cb->allocBuff( alignLen, &pBuff, &buffLen ) ;
+            PD_RC_CHECK( rc, PDERROR, "Alloc buff[%u] failed, rc: %d",
                          alignLen, rc ) ;
             pBlock->push_back( pBuff ) ;
             buffPos = 0 ;
@@ -261,7 +258,6 @@ namespace engine
          buffPos += roundLen ;
          iovec.push_back( ioItem ) ;
 
-         // 3. hinter vec
          ioItem.iovBase = boHint.objdata() ;
          ioItem.iovLen = boHint.objsize() ;
          iovec.push_back( ioItem ) ;         

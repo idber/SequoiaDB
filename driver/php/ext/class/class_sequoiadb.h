@@ -83,6 +83,4 @@ PHP_METHOD( SequoiaDB, setSessionAttr ) ;
 PHP_METHOD( SequoiaDB, getSessionAttr ) ;
 PHP_METHOD( SequoiaDB, forceSession ) ;
 
-PHP_METHOD( SequoiaDB, analyze ) ;
-
 #endif

@@ -126,7 +126,7 @@ enum MIG_OP_TYPE
       {
          SDB_ASSERT( 65536 == sizeof( migFileHeader ), "must be 64KB" ) ;
          ossMemset( this, 0, sizeof( migFileHeader ) ) ;
-         ossMemcpy( eyeCatcher, MIG_FILE_EYE, sizeof( MIG_FILE_EYE ) ) ;
+         ossMemcpy( this, MIG_FILE_EYE, ossStrlen( MIG_FILE_EYE ) + 1 ) ;
          version = MIG_LOB_TOOL_VERSION ;
       }
 

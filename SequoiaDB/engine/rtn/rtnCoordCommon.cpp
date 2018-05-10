@@ -85,14 +85,14 @@ namespace engine
 
       BOOLEAN hasRetry        = FALSE ;
       UINT64 reqID            = 0 ;
-      INT32 preferReplicaType = PREFER_REPL_ANYONE ;
+
+      RTN_COORD_POS_LIST selectedPositions ;
 
       PD_TRACE_ENTRY ( SDB__RTNCOSENDREQUESTTOONE ) ;
 
       if ( pSession )
       {
-         preferReplicaType = pSession->getPreferReplType() ;
-         if ( PREFER_REPL_MASTER == preferReplicaType )
+         if ( pSession->isMasterPreferred() )
          {
             if ( MSG_BS_QUERY_REQ == pBuffer->opCode )
             {
@@ -123,13 +123,10 @@ namespace engine
       }
 
       /*******************************
-      // send to last node
       ********************************/
       if ( NULL != pSession )
       {
          routeID = pSession->getLastNode( groupInfo->groupID() ) ;
-         // last node is valid and in group info( when group or node 
-         // is remove )
          if ( routeID.value != 0 &&
               groupInfo->nodePos( routeID.columns.nodeID ) >= 0 )
          {
@@ -162,17 +159,18 @@ namespace engine
 
    retry:
       /*******************************
-      // send to new node
       ********************************/
       groupItem = groupInfo.get() ;
       nodeNum = groupInfo->nodeCount() ;
+      selectedPositions.clear() ;
+
       if ( nodeNum <= 0 )
       {
          if ( !hasRetry && CATALOG_GROUPID != groupInfo->groupID() )
          {
             hasRetry = TRUE ;
             rc = rtnCoordGetGroupInfo( cb, groupInfo->groupID(),
-                                       TRUE, groupInfo ) ; 
+                                       TRUE, groupInfo ) ;
             PD_RC_CHECK( rc, PDERROR, "Get group info[%u] failed, rc: %d",
                          groupInfo->groupID(), rc ) ;
             goto retry ;
@@ -183,14 +181,16 @@ namespace engine
       }
 
       routeID.value = MSG_INVALID_ROUTEID ;
-      rtnCoordGetNodePos( preferReplicaType, groupItem, ossRand(), beginPos ) ;
+      rtnCoordGetNodePos( groupItem, pSession->getInstanceOption(), ossRand(),
+                          beginPos, selectedPositions ) ;
 
       selTimes = 0 ;
       while( selTimes < nodeNum )
       {
          INT32 status = NET_NODE_STAT_NORMAL ;
-         rtnCoordGetNextNode( preferReplicaType, groupItem,
-                              selTimes, beginPos ) ;
+         rtnCoordGetNextNode( groupItem, selectedPositions,
+                              pSession->getInstanceOption(), selTimes,
+                              beginPos ) ;
 
          rc = groupItem->getNodeID( beginPos, routeID, type ) ;
          if ( rc )
@@ -304,7 +304,6 @@ namespace engine
          {
             rtnCoordUpdateNodeStatByRC( cb, primaryRouteID, groupInfo, rc ) ;
 
-            // update and retry
             if ( !hasRetry )
             {
                goto update ;
@@ -314,18 +313,14 @@ namespace engine
                     "primary node[%s] failed, rc: %d", pBuffer->opCode,
                     pBuffer->TID, groupInfo->groupID(),
                     routeID2String( primaryRouteID ).c_str(), rc ) ;
-            // not go to error, send to any one node
          }
       }
 
-      // send to any one node
       rc = SDB_RTN_NO_PRIMARY_FOUND ;
       if ( !hasRetry )
       {
          goto update ;
       }
-      // send to any one node, so the group has no primary, will wait some
-      // time at data node
       rc = _rtnCoordSendRequestToOne( pBuffer, groupInfo, sendNodes,
                                       pRouteAgent, type, cb,
                                       pIOVec, TRUE ) ;
@@ -366,7 +361,6 @@ namespace engine
       UINT64 reqID = 0 ;
       UINT32 groupID = groupInfo->groupID() ;
 
-      // if trans valid, send to trans node
       cb->getTransNodeRouteID( groupID, routeID ) ;
       if ( routeID.value != 0 )
       {
@@ -394,7 +388,6 @@ namespace engine
             goto error ;
          }
       }
-      // not trans, send to node by isSendPrimary
       else
       {
          if ( isSendPrimary )
@@ -435,19 +428,16 @@ namespace engine
                                        UINT32 mask )
    {
       INT32 rc = SDB_INVALIDARG ;
-      /// a:true
       if ( e.isBoolean() && ( mask & RTN_COORD_PARSE_MASK_ET_DFT ) )
       {
          value = e.boolean() ? TRUE : FALSE ;
          rc = SDB_OK ;
       }
-      /// a:1
       else if ( e.isNumber() && ( mask & RTN_COORD_PARSE_MASK_ET_DFT ) )
       {
          value = 0 != e.numberInt() ? TRUE : FALSE ;
          rc = SDB_OK ;
       }
-      /// a:{$et:true} or a:{$et:1}
       else if ( Object == e.type() && ( mask & RTN_COORD_PARSE_MASK_ET_OPR ) )
       {
          BSONObj obj = e.embeddedObject() ;
@@ -465,13 +455,11 @@ namespace engine
    static INT32 _rtnCoordParseInt( BSONElement &e, INT32 &value, UINT32 mask )
    {
       INT32 rc = SDB_INVALIDARG ;
-      /// a:1
       if ( e.isNumber() && ( mask & RTN_COORD_PARSE_MASK_ET_DFT ) )
       {
          value = e.numberInt() ;
          rc = SDB_OK ;
       }
-      /// a:{$et:1}
       else if ( Object == e.type() && ( mask & RTN_COORD_PARSE_MASK_ET_OPR ) )
       {
          BSONObj obj = e.embeddedObject() ;
@@ -492,10 +480,9 @@ namespace engine
       INT32 rc = SDB_INVALIDARG ;
       INT32 value = 0 ;
 
-      /// a:1 or a:{$et:1}
       if ( ( !e.isABSONObj() ||
-             0 != ossStrcmp( e.embeddedObject().firstElement().fieldName(),
-                           "$in") ) &&
+             0 == ossStrcmp( e.embeddedObject().firstElement().fieldName(),
+                             "$et") ) &&
            ( mask & RTN_COORD_PARSE_MASK_ET ) )
       {
          rc = _rtnCoordParseInt( e, value, mask ) ;
@@ -504,7 +491,6 @@ namespace engine
             vecValue.push_back( value ) ;
          }
       }
-      /// a:[1,2,3]
       else if ( Array == e.type() && ( mask & RTN_COORD_PARSE_MASK_IN_DFT ) )
       {
          BSONObjIterator it( e.embeddedObject() ) ;
@@ -520,8 +506,10 @@ namespace engine
             vecValue.push_back( value ) ;
          }
       }
-      /// a:{$in:[1,2,3]}
-      else if ( mask & RTN_COORD_PARSE_MASK_IN_OPR )
+      else if ( Object == e.type() &&
+                0 == ossStrcmp( e.embeddedObject().firstElement().fieldName(),
+                                "$in") &&
+                ( mask & RTN_COORD_PARSE_MASK_IN_OPR ) )
       {
          BSONObj obj = e.embeddedObject() ;
          BSONElement tmpE = obj.firstElement() ;
@@ -538,13 +526,11 @@ namespace engine
                                       UINT32 mask )
    {
       INT32 rc = SDB_INVALIDARG ;
-      /// a:"xxx"
       if ( String == e.type() && ( mask & RTN_COORD_PARSE_MASK_ET_DFT ) )
       {
          value = e.valuestr() ;
          rc = SDB_OK ;
       }
-      /// a:{$et:"xxx"}
       else if ( Object == e.type() && ( mask & RTN_COORD_PARSE_MASK_ET_OPR ) )
       {
          BSONObj obj = e.embeddedObject() ;
@@ -566,10 +552,9 @@ namespace engine
       INT32 rc = SDB_INVALIDARG ;
       const CHAR *value = NULL ;
 
-      /// a:"xxx" or a:{$et:"xxx"}
       if ( ( !e.isABSONObj() ||
-             0 != ossStrcmp( e.embeddedObject().firstElement().fieldName(),
-                             "$in") ) &&
+             0 == ossStrcmp( e.embeddedObject().firstElement().fieldName(),
+                             "$et") ) &&
            ( mask & RTN_COORD_PARSE_MASK_ET ) )
       {
          rc = _rtnCoordParseString( e, value, mask ) ;
@@ -578,7 +563,6 @@ namespace engine
             vecValue.push_back( value ) ;
          }
       }
-      /// a:["xxx", "yyy", "zzz"]
       else if ( Array == e.type() && ( mask & RTN_COORD_PARSE_MASK_IN_DFT ) )
       {
          BSONObjIterator it( e.embeddedObject() ) ;
@@ -594,8 +578,10 @@ namespace engine
             vecValue.push_back( value ) ;
          }
       }
-      /// a:{$in:["xxx", "yyy", "zzz"]}
-      else if ( mask & RTN_COORD_PARSE_MASK_IN_OPR )
+      else if ( Object == e.type() &&
+                0 == ossStrcmp( e.embeddedObject().firstElement().fieldName(),
+                                "$in") &&
+                ( mask & RTN_COORD_PARSE_MASK_IN_OPR ) )
       {
          BSONObj obj = e.embeddedObject() ;
          BSONElement tmpE = obj.firstElement() ;
@@ -622,7 +608,8 @@ namespace engine
                              pmdEDUCB *cb,
                              SINT64 numToSkip,
                              SINT64 numToReturn,
-                             SINT64 &contextID )
+                             SINT64 &contextID,
+                             rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_RTNCOCATAQUERY ) ;
@@ -637,7 +624,7 @@ namespace engine
                                 numToReturn,
                                 flag,
                                 FALSE ) ;
-      rc = commandOpr.queryOnCatalog( queryOpt, cb, contextID ) ;
+      rc = commandOpr.queryOnCatalog( queryOpt, cb, contextID, buf ) ;
       PD_RC_CHECK( rc, PDERROR, "Query[%s] on catalog failed, rc: %d",
                    queryOpt.toString().c_str(), rc ) ;
 
@@ -659,7 +646,8 @@ namespace engine
                              pmdEDUCB *cb,
                              rtnContext **ppContext,
                              const CHAR *realCLName,
-                             INT32 flag )
+                             INT32 flag,
+                             rtnContextBuf *pBuf )
    {
       INT32 rc                        = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNCONODEQUERY ) ;
@@ -726,7 +714,6 @@ namespace engine
          goto error ;
       }
 
-      // build a query request based on the provided information
       rc = msgBuildQueryMsg ( &pBuffer, &bufferSize, pCollectionName,
                               flag, 0, tmpSkip, tmpReturn,
                               condition.isEmpty()?NULL:&condition,
@@ -745,7 +732,8 @@ namespace engine
       sendOpt._useSpecialGrp = TRUE ;
 
       rc = newQuery.queryOrDoOnCL( (MsgHeader*)pBuffer, pRouteAgent, cb,
-                                   &pTmpContext, sendOpt, &queryConf ) ;
+                                   &pTmpContext, sendOpt, &queryConf,
+                                   pBuf ) ;
       PD_RC_CHECK( rc, PDERROR, "Query collection[%s] from data node "
                    "failed, rc = %d", realCLFullName, rc ) ;
 
@@ -769,37 +757,123 @@ namespace engine
       goto done ;
    }
 
+   static INT32 _rtnCoordProcessExpiredReply ( pmdEDUCB * cb,
+                                               MsgHeader * pReply,
+                                               rtnContextCoord ** expiredContext )
+   {
+      INT32 rc = SDB_OK ;
+
+
+      SDB_RTNCB * rtnCB = pmdGetKRCB()->getRTNCB() ;
+      INT64 contextID = -1 ;
+      MsgOpReply * pOpReply = NULL ;
+
+      if ( NULL == pReply ||
+           !IS_REPLY_TYPE( pReply->opCode ) ||
+           NULL == expiredContext )
+      {
+         goto done ;
+      }
+
+      pOpReply = (MsgOpReply *)pReply ;
+      if ( -1 == pOpReply->contextID )
+      {
+         goto done ;
+      }
+
+      PD_LOG( PDWARNING, "Received expired context [%lld] from node [%s]",
+              pOpReply->contextID, routeID2String( pReply->routeID ).c_str() ) ;
+
+      if ( NULL == (*expiredContext) )
+      {
+         BSONObj dummy ;
+
+         rc = rtnCB->contextNew ( RTN_CONTEXT_COORD, (rtnContext**)expiredContext,
+                                  contextID, cb ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to create dummy coord context, "
+                      "rc: %d", rc ) ;
+
+         rc = (*expiredContext)->open( dummy, dummy, -1, 0, FALSE ) ;
+         PD_RC_CHECK( rc, PDWARNING, "Failed to open dummy coord context, "
+                      "rc: %d", rc ) ;
+      }
+
+      rc = (*expiredContext)->addSubContext( pReply->routeID,
+                                             pOpReply->contextID ) ;
+      PD_RC_CHECK( rc, PDWARNING, "Failed to add sub-context to dummy coord "
+                   "context, rc: %d", rc ) ;
+
+   done :
+      return rc ;
+
+   error :
+      if ( NULL != (*expiredContext) )
+      {
+         rtnCB->contextDelete( (*expiredContext)->contextID(), cb ) ;
+         (*expiredContext) = NULL ;
+      }
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOGETREPLY, "rtnCoordGetReply" )
    INT32 rtnCoordGetReply ( pmdEDUCB *cb,  REQUESTID_MAP &requestIdMap,
                             REPLY_QUE &replyQue, const SINT32 opCode,
-                            BOOLEAN isWaitAll, BOOLEAN clearReplyIfFailed )
+                            BOOLEAN isWaitAll, BOOLEAN clearReplyIfFailed,
+                            BOOLEAN needTimeout )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNCOGETREPLY ) ;
 
+      rtnContextCoord * expiredContext = NULL ;
       ossQueue<pmdEDUEvent> tmpQue ;
       REQUESTID_MAP::iterator iterMap ;
+
+      INT64 oprtTimeout = cb->getCoordSession()->getOperationTimeout() ;
       INT64 waitTime = RTN_COORD_RSP_WAIT_TIME ;
+      BOOLEAN needInterrupt = FALSE ;
+
+      oprtTimeout = ( oprtTimeout <= 0 || !needTimeout ) ?
+                    0x7FFFFFFFFFFFFFFF : oprtTimeout ;
 
       while ( requestIdMap.size() > 0 )
       {
          pmdEDUEvent pmdEvent ;
-         BOOLEAN isGotMsg = cb->waitEvent( pmdEvent, waitTime ) ;
-         // if we hit interrupt, let's just get out of here. Don't need to worry
-         // about cb queue, pmdEDUCB::clear() is going to clean it up.
-         PD_CHECK( !cb->isInterrupted() && !cb->isForced(),
-                   SDB_APP_INTERRUPT, error, PDERROR,
-                   "Interrupt! stop receiving reply!" ) ;
+         BOOLEAN isGotMsg = FALSE ;
 
-         // if we didn't receive anything
+         if ( !isWaitAll && !replyQue.empty() )
+         {
+            waitTime = RTN_COORD_RSP_WAIT_TIME_QUICK ;
+         }
+         else
+         {
+            waitTime = oprtTimeout < waitTime ?
+                       oprtTimeout : waitTime ;
+         }
+
+         isGotMsg = cb->waitEvent( pmdEvent, waitTime ) ;
+
          if ( FALSE == isGotMsg )
          {
+            oprtTimeout -= waitTime ;
             if ( !isWaitAll && !replyQue.empty() )
             {
                break ;
             }
             else
             {
+               if ( cb->isInterrupted() || cb->isForced() )
+               {
+                  PD_LOG( PDERROR, "Receive reply failed, because the "
+                          "session is interrupted" ) ;
+                  rc = SDB_APP_INTERRUPT ;
+                  goto error ;
+               }
+               if ( oprtTimeout <= 0 )
+               {
+                  rc = SDB_TIMEOUT ;
+                  needInterrupt = TRUE ;
+                  goto error ;
+               }
                continue ;
             }
          }
@@ -821,7 +895,6 @@ namespace engine
 
          if ( MSG_COM_REMOTE_DISC == pReply->opCode )
          {
-            // check if transaction-node
             MsgRouteID routeID;
             routeID.value = pReply->routeID.value;
             if ( cb->isTransNode( routeID ) )
@@ -844,9 +917,6 @@ namespace engine
             if ( iterMap != requestIdMap.end() &&
                  iterMap->first <= pReply->requestID )
             {
-               // remote node disconnected, go on receive all reply then
-               // clear all. Don't return the rc, the error will be detected
-               // while process the reply
                PD_LOG ( PDERROR, "Get reply failed, remote-node[%s] "
                         "disconnected",
                         routeID2String( iterMap->second ).c_str() ) ;
@@ -900,6 +970,7 @@ namespace engine
                         GET_REQUEST_TYPE( opCode ),
                         pReply->requestID, pReply->TID,
                         routeID2String( pReply->routeID ).c_str() ) ;
+               _rtnCoordProcessExpiredReply( cb, pReply, &expiredContext ) ;
                SDB_OSS_FREE( pReply ) ;
             }
          }
@@ -933,10 +1004,6 @@ namespace engine
             cb->getCoordSession()->delRequest( pReply->requestID ) ;
             replyQue.push( (CHAR *)( pmdEvent._Data ) ) ;
             pmdEvent.reset () ;
-            if ( !isWaitAll )
-            {
-               waitTime = RTN_COORD_RSP_WAIT_TIME_QUICK ;
-            }
          } // if ( iterMap == requestIdMap.end() )
       } // while ( requestIdMap.size() > 0 )
 
@@ -952,10 +1019,15 @@ namespace engine
          tmpQue.wait_and_pop( otherEvent );
          cb->postEvent( otherEvent );
       }
+      if ( NULL != expiredContext )
+      {
+         SDB_RTNCB * rtnCB = pmdGetKRCB()->getRTNCB() ;
+         rtnCB->contextDelete( expiredContext->contextID(), cb ) ;
+      }
       PD_TRACE_EXITRC ( SDB_RTNCOGETREPLY, rc ) ;
       return rc;
+
    error:
-      //clear the incomplete reply-queue
       if ( clearReplyIfFailed )
       {
          while ( !replyQue.empty() )
@@ -965,7 +1037,7 @@ namespace engine
             SDB_OSS_FREE( pData );
          }
       }
-      rtnCoordClearRequest( cb, requestIdMap ) ;
+      rtnCoordClearRequest( cb, requestIdMap, needInterrupt ) ;
       goto done;
    }
 
@@ -1055,8 +1127,6 @@ namespace engine
             rc = rtnCoordGetLocalCata ( pCollectionName, cataInfo );
             if ( SDB_CAT_NO_MATCH_CATALOG == rc )
             {
-               // couldn't find the match catalogue,
-               // then get from catalogue-node
                isNeedRefreshCata = TRUE ;
                continue;
             }
@@ -1088,7 +1158,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOGETREMOTECATA, "rtnCoordGetRemoteCata" )
    INT32 rtnCoordGetRemoteCata( pmdEDUCB *cb,
                                 const CHAR *pCollectionName,
-                                CoordCataInfoPtr &cataInfo )
+                                CoordCataInfoPtr &cataInfo,
+                                BOOLEAN withSubCL )
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_RTNCOGETREMOTECATA ) ;
@@ -1114,23 +1185,33 @@ namespace engine
          BSONObj boFieldSelector;
          BSONObj boOrderBy;
          BSONObj boHint;
+         SINT64 numToReturn ;
          try
          {
-            boQuery = BSON( CAT_CATALOGNAME_NAME << pCollectionName ) ;
+            if ( withSubCL )
+            {
+               boQuery = OR( BSON( CAT_CATALOGNAME_NAME << pCollectionName ),
+                             BSON( CAT_MAINCL_NAME << pCollectionName ) ) ;
+               numToReturn = -1 ;
+            }
+            else
+            {
+               boQuery = BSON( CAT_CATALOGNAME_NAME << pCollectionName ) ;
+               numToReturn = 1 ;
+            }
          }
          catch ( std::exception &e )
          {
             rc = SDB_SYS;
-            PD_LOG ( PDERROR, "Get reomte catalogue failed, while "
+            PD_LOG ( PDERROR, "Get remote catalogue failed, while "
                      "build query-obj received unexception error:%s",
                      e.what() );
             break ;
          }
          CHAR *pBuffer = NULL;
          INT32 bufferSize = 0;
-         // the buffer will be free after call sendRequestToPrimary
          rc = msgBuildQueryCatalogReqMsg ( &pBuffer, &bufferSize,
-                                           0, 0, 0, 1, cb->getTID(),
+                                           0, 0, 0, numToReturn, cb->getTID(),
                                            &boQuery, &boFieldSelector,
                                            &boOrderBy, &boHint );
          if ( rc != SDB_OK )
@@ -1167,7 +1248,6 @@ namespace engine
             break ;
          }
 
-         // process reply
          BOOLEAN isGetExpectReply = FALSE ;
          while ( !replyQue.empty() )
          {
@@ -1179,11 +1259,12 @@ namespace engine
             {
                nodeID.value = pReply->header.routeID.value ;
                primaryID = pReply->startFrom ;
-               rc = rtnCoordProcessQueryCatReply( pReply, cataInfo ) ;
+               rc = rtnCoordProcessQueryCatReply( pReply,
+                                                  pCollectionName,
+                                                  cataInfo ) ;
                if( SDB_OK == rc )
                {
                   isGetExpectReply = TRUE ;
-                  pCoordcb->updateCataInfo( pCollectionName, cataInfo ) ;
                }
             }
             if ( NULL != pReply )
@@ -1192,9 +1273,6 @@ namespace engine
             }
          }
 
-         // catalogue-node reply no primary
-         // and the catalogue-group info have not be refreshed,
-         // maybe the catalogue-group-info is expired and refresh it
          if ( rc )
          {
             if ( rtnCoordGroupReplyCheck( cb, rc, rtnCoordCanRetry( times++ ),
@@ -1210,35 +1288,28 @@ namespace engine
             if ( ( SDB_DMS_NOTEXIST == rc || SDB_DMS_EOC == rc ) &&
                  pCoordcb->isSubCollection( pCollectionName ) )
             {
-               /// change the error
                rc = SDB_CLS_COORD_NODE_CAT_VER_OLD ;
             }
          }
          break ;
       }while ( TRUE ) ;
 
-      if ( SDB_OK == rc && cataInfo->isMainCL() )
+      if ( SDB_OK == rc && !withSubCL &&
+           cataInfo.get() && cataInfo->isMainCL() &&
+           cataInfo->getSubCLCount() > 0 )
       {
-         vector< string > subCLLst ;
-         cataInfo->getSubCLList( subCLLst ) ;
-
-         vector< string >::iterator iterLst = subCLLst.begin() ;
-         while ( iterLst != subCLLst.end() )
+         CoordCataInfoPtr updatedCataInfo ;
+         const CHAR *pCLName = cataInfo->getName() ;
+         rc = rtnCoordGetRemoteCata( cb, pCLName, updatedCataInfo, TRUE ) ;
+         if ( SDB_OK != rc )
          {
-            CoordCataInfoPtr subCataInfoTmp ;
-            rc = rtnCoordGetRemoteCata( cb, iterLst->c_str(),
-                                        subCataInfoTmp ) ;
-            if( rc )
-            {
-               PD_LOG( PDERROR, "Get main collection[%s]'s sub collection[%s] "
-                       "failed, rc: %d", pCollectionName, iterLst->c_str(),
-                       rc ) ;
-               // remove main catalog info
-               pCoordcb->delCataInfo( pCollectionName ) ;
-               break ;
-            }
-            ++iterLst ;
+            PD_LOG( PDWARNING, "Get main collection[%s]'s sub collections "
+                    "failed, rc: %d", pCLName,
+                    rc ) ;
+            pCoordcb->delCataInfo( pCLName ) ;
+            goto error ;
          }
+         cataInfo = updatedCataInfo ;
       }
 
    done:
@@ -1273,8 +1344,6 @@ namespace engine
             rc = rtnCoordGetLocalGroupInfo ( groupID, groupInfo );
             if ( SDB_COOR_NO_NODEGROUP_INFO == rc )
             {
-               // couldn't find the match catalogue,
-               // then get from catalogue-node
                isNeedRefresh = TRUE ;
                continue;
             }
@@ -1310,8 +1379,6 @@ namespace engine
             rc = rtnCoordGetLocalGroupInfo ( groupName, groupInfo ) ;
             if ( SDB_COOR_NO_NODEGROUP_INFO == rc )
             {
-               // couldn't find the match catalogue,
-               // then get from catalogue-node
                isNeedRefresh = TRUE ;
                continue ;
             }
@@ -1379,7 +1446,6 @@ namespace engine
       MsgRouteID nodeID ;
       UINT32 times= 0 ;
 
-      // if catalogure group
       if ( CATALOG_GROUPID == groupID ||
            ( groupName && 0 == ossStrcmp( groupName, CATALOG_GROUPNAME ) ) )
       {
@@ -1472,7 +1538,6 @@ namespace engine
             break ;
          }
 
-         // process reply
          BOOLEAN getExpected = FALSE ;
          UINT32 primaryID = 0 ;
          while ( !replyQue.empty() )
@@ -1570,8 +1635,6 @@ namespace engine
             if ( ( SDB_OK == rc && groupInfo->nodeCount() == 0 ) ||
                    SDB_COOR_NO_NODEGROUP_INFO == rc )
             {
-               // couldn't find the match group-info,
-               // then get from catalogue-node
                isNeedRefresh = TRUE;
                continue ;
             }
@@ -1629,6 +1692,8 @@ namespace engine
 
       while( sendPos < cataNodeAddrList.size() )
       {
+         BOOLEAN disconnected = FALSE ;
+
          for ( ; sendPos < cataNodeAddrList.size() ; ++sendPos )
          {
             rc = pRouteAgent->syncSendWithoutCheck( cataNodeAddrList[sendPos]._id,
@@ -1651,12 +1716,16 @@ namespace engine
             BOOLEAN isGotMsg = cb->waitEvent( pmdEvent,
                                               RTN_COORD_RSP_WAIT_TIME ) ;
             if ( cb->isForced() ||
-                 ( cb->isInterrupted() && !( cb->isDisconnected() ) )
-                )
+                 ( cb->isInterrupted() && !( cb->isDisconnected() ) ) )
             {
+               if ( isGotMsg )
+               {
+                  pmdEduEventRelase( pmdEvent, cb ) ;
+               }
                rc = SDB_APP_INTERRUPT ;
                break ;
             }
+
             if ( FALSE == isGotMsg )
             {
                continue ;
@@ -1665,6 +1734,8 @@ namespace engine
             {
                PD_LOG ( PDWARNING, "Received unknown event(eventType=%d)",
                         pmdEvent._eventType ) ;
+               pmdEduEventRelase( pmdEvent, cb ) ;
+               pmdEvent.reset () ;
                continue ;
             }
             MsgHeader *pMsg = (MsgHeader *)(pmdEvent._Data) ;
@@ -1673,7 +1744,41 @@ namespace engine
                PD_LOG ( PDWARNING, "Received invalid msg-event(data is null)" );
                continue ;
             }
-            if ( (UINT32)pMsg->opCode != MSG_CAT_GRP_RES ||
+
+            if ( MSG_COM_REMOTE_DISC == pMsg->opCode )
+            {
+               PD_LOG ( PDERROR, "Get reply failed, remote-node[%s] disconnected",
+                        routeID2String( pMsg->routeID ).c_str() ) ;
+
+
+               if ( reqID <= pMsg->requestID )
+               {
+                  cb->getCoordSession()->delRequest( reqID ) ;
+                  disconnected = TRUE ;
+               }
+
+               if ( cb->getCoordSession()->isValidResponse( pMsg->routeID,
+                                                            pMsg->requestID ) )
+               {
+                  tmpQue.push( pmdEvent ) ;
+               }
+               else
+               {
+                  SDB_OSS_FREE( pmdEvent._Data ) ;
+                  pmdEvent.reset () ;
+               }
+
+               if ( disconnected )
+               {
+                  break ;
+               }
+               else
+               {
+                  continue ;
+               }
+            }
+
+            if ( pMsg->opCode != MSG_CAT_GRP_RES ||
                  pMsg->requestID != reqID )
             {
                if ( cb->getCoordSession()->isValidResponse( reqID ) )
@@ -1695,10 +1800,16 @@ namespace engine
                }
                continue ;
             }
-            // recv the reply msg
             cb->getCoordSession()->delRequest( reqID ) ;
             pReply = (MsgHeader *)pMsg ;
             break ;
+         }
+
+         if ( disconnected )
+         {
+            rc = SDB_NETWORK_CLOSE ;
+            ++sendPos ;
+            continue ;
          }
 
          if ( rc != SDB_OK || NULL == pReply )
@@ -1712,6 +1823,8 @@ namespace engine
             PD_LOG ( PDERROR,
                      "Failed to get catalog-group info, reply error(rc=%d)",
                      rc ) ;
+            SDB_OSS_FREE( pReply ) ;
+            pReply = NULL ;
             continue ;
          }
          rc = rtnCoordUpdateRoute( groupInfo, pRouteAgent,
@@ -1726,11 +1839,12 @@ namespace engine
             continue ;
          }
 
-         // update shard sevice also
          rtnCoordUpdateRoute( groupInfo, pRouteAgent,
                               MSG_ROUTE_SHARD_SERVCIE ) ;
 
+         pCoordcb->addGroupInfo( groupInfo ) ;
          pCoordcb->updateCatGroupInfo( groupInfo ) ;
+
          break ;
       }
 
@@ -1829,10 +1943,10 @@ namespace engine
                if ( SDB_OK == rc )
                {
                   getExpected = TRUE ;
+                  pCoordcb->addGroupInfo( groupInfo ) ;
                   pCoordcb->updateCatGroupInfo( groupInfo );
                   rc = rtnCoordUpdateRoute( groupInfo,  pRouteAgent,
                                             MSG_ROUTE_CAT_SERVICE ) ;
-                  // update shard service also
                   rtnCoordUpdateRoute( groupInfo, pRouteAgent,
                                        MSG_ROUTE_SHARD_SERVCIE ) ;
                }
@@ -1913,14 +2027,16 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_RTNCOGETGROUPSBYCATAINFO ) ;
       if ( !cataInfo->isMainCL() )
       {
-         // normal collection or sub-collection
          if ( NULL == pQuery || pQuery->isEmpty() )
          {
             cataInfo->getGroupLst( groupLst ) ;
          }
          else
          {
-            cataInfo->getGroupByMatcher( *pQuery, groupLst ) ;
+            rc = cataInfo->getGroupByMatcher( *pQuery, groupLst ) ;
+            PD_RC_CHECK( rc, PDWARNING,
+                         "Failed to get group by matcher(rc=%d)",
+                         rc ) ;
          }
 
          if ( groupLst.size() <= 0 )
@@ -1935,7 +2051,6 @@ namespace engine
          }
          else
          {
-            //don't resend to the node which reply ok
             CoordGroupList::iterator iter = sendGroupLst.begin();
             while( iter != sendGroupLst.end() )
             {
@@ -1946,7 +2061,6 @@ namespace engine
       }
       else
       {
-         // main-collection
          vector< string > subCLLst ;
 
          if ( NULL == pQuery || pQuery->isEmpty() )
@@ -1962,8 +2076,9 @@ namespace engine
               ( !pHasUpdate ||
                 ( pHasUpdate && !(*pHasUpdate) ) ) )
          {
-            if ( SDB_OK == rtnCoordGetRemoteCata( cb, cataInfo->getName(),
-                                                  cataInfo ) )
+            CHAR clName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+            ossStrncpy( clName, cataInfo->getName(), DMS_COLLECTION_FULL_NAME_SZ ) ;
+            if ( SDB_OK == rtnCoordGetRemoteCata( cb, clName, cataInfo ) )
             {
                if ( pHasUpdate )
                {
@@ -2230,6 +2345,7 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOSENDREQUESTTONODEGROUPS3, "rtnCoordSendRequestToNodeGroups" )
    INT32 rtnCoordSendRequestToNodeGroups( MsgHeader *pBuffer,
                                           CoordGroupList &groupLst,
                                           CoordGroupMap &mapGroupInfo,
@@ -2242,6 +2358,7 @@ namespace engine
                                           MSG_ROUTE_SERVICE_TYPE type )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB_RTNCOSENDREQUESTTONODEGROUPS3 ) ;
       CoordGroupList::iterator iter ;
       GROUP_2_IOVEC::iterator itIO ;
       netIOVec *pCommonIO = NULL ;
@@ -2254,7 +2371,6 @@ namespace engine
          goto error ;
       }
 
-      // find common iovec
       itIO = iov.find( 0 ) ; // group id is 0 for common iovec
       if ( iov.end() != itIO )
       {
@@ -2264,7 +2380,6 @@ namespace engine
       iter = groupLst.begin() ;
       while ( iter != groupLst.end() )
       {
-         // find groups iovec
          itIO = iov.find( iter->first ) ;
          if ( itIO != iov.end() )
          {
@@ -2276,7 +2391,6 @@ namespace engine
          }
          else
          {
-            // error, not find the io datas
             PD_LOG( PDERROR, "Can't find the group[%d]'s iovec datas",
                     iter->first ) ;
             rc = SDB_SYS ;
@@ -2300,7 +2414,7 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC( SDB_RTNCOSENDREQUESTTONODEGROUPS2, rc ) ;
+      PD_TRACE_EXITRC( SDB_RTNCOSENDREQUESTTONODEGROUPS3, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -2360,60 +2474,255 @@ namespace engine
                                             type, cb, sendNodes, &iov ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOGETNODEPOS, "rtnCoordGetNodePos" )
-   void rtnCoordGetNodePos( INT32 preferReplicaType,
-                            clsGroupItem *groupItem,
-                            UINT32 random,
-                            UINT32 &pos )
+   static void _rtnCoordShufflePositions ( RTN_COORD_POS_ARRAY & positionArray,
+                                           RTN_COORD_POS_LIST & positionList )
    {
-      PD_TRACE_ENTRY ( SDB_RTNCOGETNODEPOS ) ;
-      UINT32 posTmp = 0 ;
-
-      switch( preferReplicaType )
+      for ( UINT32 i = 0 ; i < positionArray.size() ; i ++ )
       {
-         case PREFER_REPL_NODE_1:
-         case PREFER_REPL_NODE_2:
-         case PREFER_REPL_NODE_3:
-         case PREFER_REPL_NODE_4:
-         case PREFER_REPL_NODE_5:
-         case PREFER_REPL_NODE_6:
-         case PREFER_REPL_NODE_7:
-            {
-               posTmp = preferReplicaType - 1 ;
-               break;
-            }
-         case PREFER_REPL_MASTER:
-            {
-               posTmp = groupItem->getPrimaryPos() ;
-               // if there is no primary,
-               // then do not break and go on to
-               // get random node
-               if ( CLS_RG_NODE_POS_INVALID != posTmp )
-               {
-                  break ;
-               }
-            }
-         case PREFER_REPL_ANYONE:
-         case PREFER_REPL_SLAVE:
-         default:
-            {
-               posTmp = random ;
-               break;
-            }
+         UINT32 random = ossRand() % positionArray.size() ;
+         if ( i != random )
+         {
+            UINT8 tmp = positionArray[ i ] ;
+            positionArray[ i ] = positionArray[ random ] ;
+            positionArray[ random ] = tmp  ;
+         }
       }
 
-      if( groupItem->nodeCount() > 0 )
+      RTN_COORD_POS_ARRAY::iterator posIter( positionArray ) ;
+      UINT8 tmpPos = 0 ;
+      while ( posIter.next( tmpPos ) )
       {
-         pos = posTmp % groupItem->nodeCount() ;
+         positionList.push_back( tmpPos ) ;
       }
+
+      positionArray.clear() ;
    }
 
-   void rtnCoordGetNextNode( INT32 preferReplicaType,
-                             clsGroupItem *groupItem,
-                             UINT32 &selTimes,
-                             UINT32 &curPos )
+   static void _rtnCoordSelectPositions ( const VEC_NODE_INFO & groupNodes,
+                                          UINT32 primaryPos,
+                                          const rtnInstanceOption & instanceOption,
+                                          UINT32 random,
+                                          RTN_COORD_POS_LIST & selectedPositions )
    {
-      if( selTimes >= groupItem->nodeCount() )
+      RTN_PREFER_INSTANCE_MODE mode = instanceOption.getPreferredMode() ;
+      const RTN_INSTANCE_LIST & instanceList = instanceOption.getInstanceList() ;
+      RTN_COORD_POS_ARRAY tempPositions ;
+      UINT8 unselectMask = 0xFF ;
+      UINT32 nodeCount = groupNodes.size() ;
+      BOOLEAN foundPrimary = FALSE ;
+      BOOLEAN primaryFirst = ( instanceOption.getSpecialInstance() == PREFER_INSTANCE_TYPE_MASTER ) ;
+      BOOLEAN primaryLast = ( instanceOption.getSpecialInstance() == PREFER_INSTANCE_TYPE_SLAVE ) ;
+
+      selectedPositions.clear() ;
+
+      if ( nodeCount == 0 || instanceList.empty() )
+      {
+         goto done ;
+      }
+
+      for ( RTN_INSTANCE_LIST::const_iterator instIter = instanceList.begin() ;
+            instIter != instanceList.end() ;
+            instIter ++ )
+      {
+         RTN_PREFER_INSTANCE_TYPE instance = (RTN_PREFER_INSTANCE_TYPE)(*instIter) ;
+         if ( instance > PREFER_INSTANCE_TYPE_MIN &&
+              instance < PREFER_INSTANCE_TYPE_MAX )
+         {
+            UINT8 pos = 0 ;
+            for ( VEC_NODE_INFO::const_iterator nodeIter = groupNodes.begin() ;
+                  nodeIter != groupNodes.end() ;
+                  nodeIter ++, pos ++ )
+            {
+               if ( nodeIter->_instanceID == (UINT8)instance )
+               {
+                  if ( primaryPos == pos )
+                  {
+                     if ( !primaryFirst && !primaryLast )
+                     {
+                        tempPositions.append( pos ) ;
+                     }
+                     foundPrimary = TRUE ;
+                  }
+                  else
+                  {
+                     tempPositions.append( pos ) ;
+                  }
+                  OSS_BIT_CLEAR( unselectMask, 1 << pos ) ;
+               }
+            }
+            if ( !tempPositions.empty() &&
+                 PREFER_INSTANCE_MODE_ORDERED == mode )
+            {
+               _rtnCoordShufflePositions( tempPositions, selectedPositions ) ;
+            }
+         }
+      }
+
+      if ( !tempPositions.empty() )
+      {
+         _rtnCoordShufflePositions( tempPositions, selectedPositions ) ;
+      }
+
+      if ( foundPrimary )
+      {
+         if ( primaryFirst )
+         {
+            selectedPositions.push_front( primaryPos ) ;
+         }
+         else if ( primaryLast )
+         {
+            selectedPositions.push_back( primaryPos ) ;
+         }
+      }
+      else if ( CLS_RG_NODE_POS_INVALID != primaryPos &&
+                !selectedPositions.empty() &&
+                ( instanceOption.getSpecialInstance() == PREFER_INSTANCE_TYPE_MASTER ||
+                  instanceOption.getSpecialInstance() == PREFER_INSTANCE_TYPE_MASTER_SND ) )
+      {
+         selectedPositions.push_back( primaryPos ) ;
+         OSS_BIT_CLEAR( unselectMask, 1 << primaryPos ) ;
+      }
+
+      if ( !selectedPositions.empty() )
+      {
+         UINT8 tmpPos = (UINT8)random ;
+         for ( UINT32 i = 0 ; i < nodeCount ; i ++ )
+         {
+            tmpPos = ( tmpPos + 1 ) % nodeCount ;
+            if ( OSS_BIT_TEST( unselectMask, 1 << tmpPos ) )
+            {
+               selectedPositions.push_back( (UINT8)tmpPos ) ;
+            }
+         }
+      }
+
+#ifdef _DEBUG
+      if ( selectedPositions.empty() )
+      {
+         PD_LOG( PDDEBUG, "Got no selected node positions" ) ;
+      }
+      else
+      {
+         StringBuilder ss ;
+         for ( RTN_COORD_POS_LIST::iterator iter = selectedPositions.begin() ;
+               iter != selectedPositions.end() ;
+               iter ++ )
+         {
+            if ( iter != selectedPositions.begin() )
+            {
+               ss << ", " ;
+            }
+            ss << ( *iter ) ;
+         }
+         PD_LOG( PDDEBUG, "Got selected node positions : [ %s ]",
+                 ss.str().c_str() ) ;
+      }
+#endif
+
+   done :
+      return ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOGETNODEPOS, "rtnCoordGetNodePos" )
+   void rtnCoordGetNodePos ( clsGroupItem * pGroupItem,
+                             const rtnInstanceOption & instanceOption,
+                             UINT32 random,
+                             UINT32 & pos,
+                             RTN_COORD_POS_LIST & selectedPositions )
+   {
+      PD_TRACE_ENTRY ( SDB_RTNCOGETNODEPOS ) ;
+
+      BOOLEAN selected = FALSE ;
+      UINT32 primaryPos = pGroupItem->getPrimaryPos() ;
+
+      if ( instanceOption.hasCommonInstance() )
+      {
+         const VEC_NODE_INFO * nodes = pGroupItem->getNodes() ;
+         SDB_ASSERT( NULL != nodes, "node list is invalid" ) ;
+         _rtnCoordSelectPositions( *nodes, primaryPos, instanceOption, random,
+                                   selectedPositions ) ;
+
+         if ( !selectedPositions.empty() )
+         {
+            pos = selectedPositions.front() ;
+            selectedPositions.pop_front() ;
+            selected = TRUE ;
+         }
+      }
+
+      if ( !selected )
+      {
+         UINT32 nodeCount = pGroupItem->nodeCount() ;
+         BOOLEAN isSlavePreferred = FALSE ;
+         switch ( instanceOption.getSpecialInstance() )
+         {
+            case PREFER_INSTANCE_TYPE_MASTER :
+            case PREFER_INSTANCE_TYPE_MASTER_SND :
+            {
+               pos = pGroupItem->getPrimaryPos() ;
+               if ( CLS_RG_NODE_POS_INVALID != pos )
+               {
+                  selected = TRUE ;
+               }
+               else
+               {
+                  pos = random ;
+               }
+               break ;
+            }
+            case PREFER_INSTANCE_TYPE_SLAVE :
+            case PREFER_INSTANCE_TYPE_SLAVE_SND :
+            {
+               isSlavePreferred = TRUE ;
+               pos = random ;
+               break ;
+            }
+            case PREFER_INSTANCE_TYPE_ANYONE :
+            case PREFER_INSTANCE_TYPE_ANYONE_SND :
+            {
+               pos = random ;
+               break ;
+            }
+            default :
+            {
+               if ( 1 == instanceOption.getInstanceList().size() )
+               {
+                  pos = instanceOption.getInstanceList().front() - 1 ;
+               }
+               else
+               {
+                  pos = random ;
+               }
+               break ;
+            }
+         }
+
+         if ( !selected && nodeCount > 0 )
+         {
+            pos = pos % nodeCount ;
+            if ( isSlavePreferred && pos == primaryPos )
+            {
+               pos = ( pos + 1 ) % nodeCount ;
+            }
+         }
+      }
+
+      PD_TRACE_EXIT( SDB_RTNCOGETNODEPOS ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOGETNEXTNODE, "rtnCoordGetNextNode" )
+   void rtnCoordGetNextNode ( clsGroupItem *pGroupItem,
+                              RTN_COORD_POS_LIST & selectedPositions,
+                              const rtnInstanceOption & instanceOption,
+                              UINT32 & selTimes,
+                              UINT32 & curPos )
+   {
+      PD_TRACE_ENTRY( SDB_RTNCOGETNEXTNODE ) ;
+
+      BOOLEAN isSlavePreferred = FALSE ;
+      UINT32 nodeCount = pGroupItem->nodeCount() ;
+
+      if( selTimes >= nodeCount )
       {
          curPos = CLS_RG_NODE_POS_INVALID ;
       }
@@ -2422,28 +2731,37 @@ namespace engine
          UINT32 tmpPos = curPos ;
          if ( selTimes > 0 )
          {
-            tmpPos = ( curPos + 1 ) % groupItem->nodeCount() ;
+            if ( selectedPositions.empty() )
+            {
+               isSlavePreferred = instanceOption.isSlavePerferred() ;
+               tmpPos = ( tmpPos + 1 ) % nodeCount ;
+            }
+            else
+            {
+               tmpPos = selectedPositions.front() ;
+               selectedPositions.pop_front() ;
+            }
          }
 
-         if ( PREFER_REPL_ANYONE != preferReplicaType &&
-              PREFER_REPL_MASTER != preferReplicaType )
+         if ( isSlavePreferred )
          {
-            UINT32 pimaryPos = groupItem->getPrimaryPos() ;
-
-            if ( CLS_RG_NODE_POS_INVALID != pimaryPos &&
-                 selTimes + 1 == groupItem->nodeCount() )
+            UINT32 primaryPos = pGroupItem->getPrimaryPos() ;
+            if ( CLS_RG_NODE_POS_INVALID != primaryPos &&
+                 selTimes + 1 == nodeCount )
             {
-               tmpPos = pimaryPos ;
+               tmpPos = primaryPos ;
             }
-            else if ( tmpPos == pimaryPos )
+            else if ( tmpPos == primaryPos )
             {
-               tmpPos = ( tmpPos + 1 ) % groupItem->nodeCount() ;
+               tmpPos = ( tmpPos + 1 ) % nodeCount ;
             }
          }
 
          curPos = tmpPos ;
          ++selTimes ;
       }
+
+      PD_TRACE_EXIT( SDB_RTNCOGETNEXTNODE ) ;
    }
 
    INT32 rtnCoordSendRequestToOne( CHAR *pBuffer,
@@ -2536,80 +2854,128 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOPROCESSQUERYCATREPLY, "rtnCoordProcessQueryCatReply" )
    INT32 rtnCoordProcessQueryCatReply ( MsgCatQueryCatRsp *pReply,
+                                        const CHAR *pCollectionName,
                                         CoordCataInfoPtr &cataInfo )
    {
-      INT32 rc = SDB_OK;
+      INT32 rc = SDB_OK ;
+
       PD_TRACE_ENTRY ( SDB_RTNCOPROCESSQUERYCATREPLY ) ;
 
-      do
-      {
-         if ( 0 == pReply->flags )
-         {
-            try
-            {
-               BSONObj boCataInfo( (CHAR *)pReply + sizeof(MsgCatQueryCatRsp) );
-               BSONElement beName = boCataInfo.getField( CAT_CATALOGNAME_NAME );
-               if ( beName.eoo() || beName.type() != String )
-               {
-                  rc = SDB_INVALIDARG;
-                  PD_LOG ( PDERROR, "Failed to parse query-catalogue-reply,"
-                           "failed to get the field(%s)",
-                           CAT_CATALOGNAME_NAME );
-                  break;
-               }
-               BSONElement beVersion = boCataInfo.getField( CAT_CATALOGVERSION_NAME );
-               if ( beVersion.eoo() || !beVersion.isNumber() )
-               {
-                  rc = SDB_INVALIDARG;
-                  PD_LOG ( PDERROR, "Failed to parse query-catalogue-reply, "
-                           "failed to get the field(%s)",
-                           CAT_CATALOGVERSION_NAME );
-                  break;
-               }
+      PD_CHECK ( SDB_OK == pReply->flags,
+                 pReply->flags, error, PDWARNING,
+                 "Received unexpected reply while query "
+                 "catalogue(flag=%d)", pReply->flags ) ;
 
-               // the pCataInfoTmp will be deleted by smart-point automatically
-               CoordCataInfo *pCataInfoTmp = NULL;
-               pCataInfoTmp = SDB_OSS_NEW CoordCataInfo( beVersion.number(),
-                                                         beName.str().c_str() );
-               if ( NULL == pCataInfoTmp )
-               {
-                  rc = SDB_OOM;
-                  PD_LOG ( PDERROR,
-                           "Failed to parse query-catalogue-reply, new failed");
-                  break;
-               }
-               CoordCataInfoPtr cataInfoPtr( pCataInfoTmp );
-               rc = cataInfoPtr->fromBSONObj( boCataInfo );
-               if ( rc != SDB_OK )
-               {
-                  PD_LOG ( PDERROR, "Failed to parse query-catalogue-reply, "
-                           "parse catalogue info from bson-obj failed(rc=%d)",
-                           rc );
-                  break;
-               }
-               PD_LOG ( PDDEBUG, "new catalog info: %s",
-                        boCataInfo.toString().c_str() );
-               cataInfo = cataInfoPtr ;
-            }
-            catch ( std::exception &e )
-            {
-               rc = SDB_INVALIDARG;
-               PD_LOG ( PDERROR, "Failed to parse query-catalogue-reply,"
-                        "received unexcepted error:%s", e.what() );
-               break;
-            }
-         }
-         else
+      try
+      {
+         pmdKRCB *pKrcb           = pmdGetKRCB() ;
+         CoordCB *pCoordcb        = pKrcb->getCoordCB() ;
+         INT32 flag               = 0 ;
+         INT64 contextID          = -1 ;
+         INT32 startFrom          = 0 ;
+         INT32 numReturned        = 0 ;
+         vector < BSONObj > objList ;
+
+         rc = msgExtractReply ( (CHAR *)pReply, &flag, &contextID, &startFrom,
+                                &numReturned, objList ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to extract reply msg, rc = %d", rc ) ;
+
+         for ( UINT32 i = 0 ; i < objList.size() ; i ++ )
          {
-            
-            PD_LOG ( PDWARNING, "Recieve unexcepted reply while query "
-                     "catalogue(flag=%d)", pReply->flags ) ;
+            CoordCataInfoPtr tmpInfo ;
+
+            rc = rtnCoordProcessCatInfoObj( objList[i], tmpInfo ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to parse query-catalogue-reply, "
+                         "parse catalogue info from bson-obj failed, rc: %d",
+                         rc ) ;
+            pCoordcb->updateCataInfo( tmpInfo->getName(), tmpInfo ) ;
+
+            if ( 0 == ossStrcmp( tmpInfo->getName(), pCollectionName ) )
+            {
+               cataInfo = tmpInfo ;
+            }
          }
-         rc= pReply->flags ;
-      }while ( FALSE ) ;
+
+         if ( !cataInfo.get() )
+         {
+            rc = SDB_DMS_NOTEXIST ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get required collection [%s] from "
+                         "query-catalogue-reply", pCollectionName ) ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG ( PDERROR, "Failed to parse query-catalogue-reply,"
+                  "received unexpected error:%s", e.what() ) ;
+         goto error ;
+      }
 
       PD_TRACE_EXITRC ( SDB_RTNCOPROCESSQUERYCATREPLY, rc ) ;
-      return rc;
+
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOPROCESSCATINFOOBJ, "rtnCoordProcessCatInfoObj" )
+   INT32 rtnCoordProcessCatInfoObj ( const BSONObj &boCataInfo,
+                                     CoordCataInfoPtr &cataInfo )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB_RTNCOPROCESSCATINFOOBJ ) ;
+
+      try
+      {
+         BSONElement beName = boCataInfo.getField( CAT_CATALOGNAME_NAME ) ;
+         PD_CHECK( !beName.eoo() && beName.type() == String,
+                   SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse query-catalogue-reply,"
+                   "failed to get the field [%s]",
+                   CAT_CATALOGNAME_NAME ) ;
+         BSONElement beVersion = boCataInfo.getField( CAT_CATALOGVERSION_NAME ) ;
+         PD_CHECK( !beVersion.eoo() && beVersion.isNumber(),
+                   SDB_INVALIDARG, error, PDERROR,
+                   "Failed to parse query-catalogue-reply, "
+                   "failed to get the field [%s]",
+                   CAT_CATALOGVERSION_NAME ) ;
+
+         CoordCataInfo *pCataInfoTmp = NULL ;
+         pCataInfoTmp = SDB_OSS_NEW CoordCataInfo( beVersion.number(),
+                                                   beName.str().c_str() ) ;
+         PD_CHECK( pCataInfoTmp,
+                   SDB_OOM, error, PDERROR,
+                   "Failed to parse query-catalogue-reply, new failed" ) ;
+
+         CoordCataInfoPtr cataInfoPtr( pCataInfoTmp ) ;
+         rc = cataInfoPtr->fromBSONObj( boCataInfo ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to parse query-catalogue-reply, "
+                      "parse catalogue info from bson-obj failed, rc: %d",
+                      rc ) ;
+
+         PD_LOG ( PDDEBUG, "new catalog info: %s",
+                  boCataInfo.toString().c_str() ) ;
+         cataInfo = cataInfoPtr ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG ( PDERROR, "Failed to parse query-catalogue-reply,"
+                  "received unexpected error: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done :
+      PD_TRACE_EXITRC( SDB_RTNCOPROCESSCATINFOOBJ, rc ) ;
+      return rc ;
+   error :
+      goto done ;
    }
 
    INT32 rtnCoordGetAllGroupList( pmdEDUCB * cb, CoordGroupList &groupList,
@@ -2657,6 +3023,7 @@ namespace engine
       CHAR *pListReq = NULL;
       SINT64 contextID = -1;
       rtnContextBuf buffObj ;
+      UINT64 identify = pCoordcb->getGrpIdentify() ;
 
       rtnCoordProcesserFactory *pProcesserFactory
                = pCoordcb->getProcesserFactory();
@@ -2698,8 +3065,8 @@ namespace engine
             pGroupInfo = SDB_OSS_NEW CoordGroupInfo( beGroupID.number() );
             PD_CHECK( pGroupInfo != NULL, SDB_OOM, error, PDERROR,
                       "malloc failed!" );
-            groupInfoTmp = CoordGroupInfoPtr( pGroupInfo );
-            rc = groupInfoTmp->updateGroupItem( boGroupInfo );
+            groupInfoTmp = CoordGroupInfoPtr( pGroupInfo ) ;
+            rc = groupInfoTmp->updateGroupItem( boGroupInfo ) ;
             PD_RC_CHECK( rc, PDERROR, "failed to parse the group info(rc=%d)",
                          rc ) ;
 
@@ -2724,7 +3091,6 @@ namespace engine
             pCoordcb->addGroupInfo( groupInfoTmp );
             rc = rtnCoordUpdateRoute( groupInfoTmp, pCoordcb->getRouteAgent(),
                                       MSG_ROUTE_SHARD_SERVCIE ) ;
-            // update cata service also
             if ( groupInfoTmp->groupID() == CATALOG_GROUPID )
             {
                rtnCoordUpdateRoute( groupInfoTmp, pCoordcb->getRouteAgent(),
@@ -2738,6 +3104,11 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Failed to process group info, received "
                          "unexpected error:%s", e.what() ) ;
          }
+      }
+
+      if ( NULL == query || query->isEmpty() )
+      {
+         pCoordcb->invalidateGroupInfo( identify ) ;
       }
 
    done:
@@ -2795,13 +3166,31 @@ namespace engine
       return rc;
    }
 
-   void rtnCoordClearRequest( pmdEDUCB *cb, REQUESTID_MAP &sendNodes )
+   void rtnCoordClearRequest( pmdEDUCB *cb, REQUESTID_MAP &sendNodes,
+                              BOOLEAN interrupt )
    {
+      ROUTE_SET nodes ;
       REQUESTID_MAP::iterator iterMap = sendNodes.begin();
       while( iterMap != sendNodes.end() )
       {
+         nodes.insert( iterMap->second.value ) ;
          cb->getCoordSession()->delRequest( iterMap->first );
-         sendNodes.erase( iterMap++ );
+         iterMap = sendNodes.erase( iterMap );
+      }
+      if ( interrupt && !nodes.empty() )
+      {
+         netMultiRouteAgent * pRouteAgent =
+                                pmdGetKRCB()->getCoordCB()->getRouteAgent() ;
+
+         MsgHeader interruptMsg ;
+         interruptMsg.messageLength = sizeof( MsgHeader ) ;
+         interruptMsg.opCode = MSG_BS_INTERRUPTE_SELF ;
+         interruptMsg.TID = cb->getTID() ;
+         interruptMsg.routeID.value = MSG_INVALID_ROUTEID ;
+
+         rtnCoordSendRequestToNodesWithOutReply( (void *)(&interruptMsg),
+                                                 nodes,
+                                                 pRouteAgent ) ;
       }
    }
 
@@ -2832,7 +3221,6 @@ namespace engine
          {
             cataInfo->getGroupByMatcher( *query, groupList ) ;
          }
-         // SDB_ASSERT( groupList.size() > 0, "group list can't be empty!" );
          iterGroup = groupList.begin();
          while( iterGroup != groupList.end() )
          {
@@ -2869,7 +3257,6 @@ namespace engine
       {
          BSONElement ele = it.next() ;
 
-         // $and:[{GroupID:1000}, {GroupName:"xxx"}]
          if ( Array == ele.type() &&
               0 == ossStrcmp( ele.fieldName(), "$and" ) )
          {
@@ -2909,14 +3296,12 @@ namespace engine
             }
             sub.done() ;
          } /// end $and
-         // group id
          else if ( 0 == ossStrcasecmp( ele.fieldName(), CAT_GROUPID_NAME ) &&
                    SDB_OK == _rtnCoordParseInt( ele, vecID,
                                                 RTN_COORD_PARSE_MASK_ALL ) )
          {
             isModify = TRUE ;
          }
-         // group name
          else if ( ( 0 == ossStrcasecmp( ele.fieldName(),
                                        FIELD_NAME_GROUPNAME ) ||
                      0 == ossStrcasecmp( ele.fieldName(),
@@ -2965,13 +3350,11 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Parse object[%s] group list failed, rc: %d",
                    obj.toString().c_str(), rc ) ;
 
-      /// group id
       for ( i = 0 ; i < tmpVecInt.size() ; ++i )
       {
          groupList[(UINT32)tmpVecInt[i]] = (UINT32)tmpVecInt[i] ;
       }
 
-      /// group name
       for ( i = 0 ; i < tmpVecStr.size() ; ++i )
       {
          rc = rtnCoordGetGroupInfo( cb, tmpVecStr[i], FALSE, grpPtr ) ;
@@ -3061,7 +3444,6 @@ namespace engine
       {
          if ( !reNew && groupMap.end() != groupMap.find( it->second ) )
          {
-            // alredy exist, don't update group info
             ++it ;
             continue ;
          }
@@ -3132,7 +3514,6 @@ namespace engine
       {
          BSONElement ele = itr.next() ;
 
-         // $and:[{NodeID:1001, HostName:"xxxx" }]
          if ( Array == ele.type() &&
               0 == ossStrcmp( ele.fieldName(), "$and" ) )
          {
@@ -3250,7 +3631,6 @@ namespace engine
          emptyFilter = FALSE ;
       }
 
-      /// parse nodes
       it = groupPtrs.begin() ;
       while ( it != groupPtrs.end() )
       {
@@ -3265,7 +3645,6 @@ namespace engine
             randNum %= grp->nodeCount() ;
          }
 
-         /// calc pos
          while ( calTimes++ < grp->nodeCount() )
          {
             if ( NODE_SEL_SECONDARY == emptyFilterSel &&
@@ -3292,7 +3671,6 @@ namespace engine
             {
                BOOLEAN findNode = FALSE ;
                UINT32 index = 0 ;
-               /// check node id
                for ( index = 0 ; index < vecNodeID.size() ; ++index )
                {
                   if ( (UINT16)vecNodeID[ index ] == itrn->_id.columns.nodeID )
@@ -3307,7 +3685,6 @@ namespace engine
                }
 
                findNode = FALSE ;
-               /// check host name
                for ( index = 0 ; index < vecHostName.size() ; ++index )
                {
                   if ( 0 == ossStrcmp( vecHostName[ index ],
@@ -3323,7 +3700,6 @@ namespace engine
                }
 
                findNode = FALSE ;
-               /// check svcname
                for ( index = 0 ; index < vecSvcName.size() ; ++index )
                {
                   if ( 0 == ossStrcmp( vecSvcName[ index ],
@@ -3394,7 +3770,6 @@ namespace engine
                                     UINT32 primaryID,
                                     BOOLEAN isReadCmd )
    {
-      /// remove the last node
       if ( cb && cb->getCoordSession() )
       {
          cb->getCoordSession()->removeLastNode( nodeID.columns.groupID,
@@ -3411,10 +3786,6 @@ namespace engine
          if ( SDB_OK == groupInfo->updatePrimary( primaryNodeID,
                                                   TRUE, &preStat ) )
          {
-            /// when primay's crash has not discoverd by other nodes,
-            /// new primary's nodeid may still be old one. 
-            /// To avoid send msg to crashed node frequently,
-            /// sleep some times.
             if ( NET_NODE_STAT_NORMAL != preStat )
             {
                groupInfo->cancelPrimary() ;
@@ -3461,10 +3832,6 @@ namespace engine
          }
          return TRUE ;
       }
-      // [SDB_COORD_REMOTE_DISC] can't use in write command,
-      // because when some insert/update opr do partibal,
-      // if retry, data will repeat. The code can't update status,
-      // because it maybe occured in long time ago
       if ( ( isReadCmd && SDB_COORD_REMOTE_DISC == flag ) ||
            SDB_CLS_NODE_NOT_ENOUGH == flag )
       {
@@ -3473,7 +3840,6 @@ namespace engine
       else if ( SDB_CLS_FULL_SYNC == flag ||
                 SDB_RTN_IN_REBUILD == flag )
       {
-         // don't update group info
          rtnCoordUpdateNodeStatByRC( cb, nodeID, groupInfo, flag ) ;
          return TRUE ;
       }
@@ -3487,13 +3853,7 @@ namespace engine
                                    BOOLEAN *pUpdate,
                                    BOOLEAN canUpdate )
    {
-      if ( canRetry && (
-           SDB_CLS_COORD_NODE_CAT_VER_OLD == flag ||
-           SDB_CLS_NO_CATALOG_INFO == flag ||
-           SDB_CLS_GRP_NOT_EXIST == flag ||
-           SDB_CLS_NODE_NOT_EXIST == flag ||
-           SDB_CAT_NO_MATCH_CATALOG == flag )
-          )
+      if ( canRetry && rtnCoordCataCheckFlag( flag ) )
       {
          if ( canUpdate && cataInfo.get() )
          {
@@ -3522,6 +3882,15 @@ namespace engine
       return FALSE ;
    }
 
+   BOOLEAN rtnCoordCataCheckFlag( INT32 flag )
+   {
+      return ( SDB_CLS_COORD_NODE_CAT_VER_OLD == flag ||
+               SDB_CLS_NO_CATALOG_INFO == flag ||
+               SDB_CLS_GRP_NOT_EXIST == flag ||
+               SDB_CLS_NODE_NOT_EXIST == flag ||
+               SDB_CAT_NO_MATCH_CATALOG == flag ) ;
+   }
+
    INT32 rtnCataChangeNtyToAllNodes( pmdEDUCB * cb )
    {
       INT32 rc = SDB_OK ;
@@ -3538,11 +3907,9 @@ namespace engine
       REQUESTID_MAP successNodes ;
       ROUTE_RC_MAP failedNodes ;
 
-      // list all groups
       rc = rtnCoordGetAllGroupList( cb, groupLst, NULL, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get all group list, rc: %d", rc ) ;
 
-      // get nodes
       rc = rtnCoordGetGroupNodes( cb, BSONObj(), NODE_SEL_ALL,
                                   groupLst, sendNodes ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get nodes, rc: %d", rc ) ;
@@ -3553,13 +3920,12 @@ namespace engine
          goto error ;
       }
 
-      // send msg, no response
       rtnCoordSendRequestToNodes( (void*)&ntyMsg, sendNodes, 
                                   pRouteAgent, cb, successNodes,
                                   failedNodes ) ;
       if ( failedNodes.size() != 0 )
       {
-         rc = failedNodes.begin()->second ;
+         rc = failedNodes.begin()->second._rc ;
       }
       rtnCoordClearRequest( cb, successNodes ) ;
 
@@ -3585,7 +3951,6 @@ namespace engine
       {
          BSONElement e = it.next() ;
 
-         /// $and:[{a:1},{b:2}]
          if ( Array == e.type() &&
               0 == ossStrcmp( e.fieldName(), "$and" ) )
          {
@@ -3689,6 +4054,14 @@ namespace engine
 
             for ( UINT32 i = 0 ; i < tmpVecStr.size() ; ++i )
             {
+               if ( 0 == ossStrcasecmp( tmpVecStr[i], "all" ) )
+               {
+                  for ( UINT32 k = 0 ; k < (UINT32)SDB_ROLE_MAX ; ++k )
+                  {
+                     param._role[ k ] = 1 ;
+                  }
+                  break ;
+               }
                if ( SDB_ROLE_MAX != utilGetRoleEnum( tmpVecStr[ i ] ) )
                {
                   param._role[ utilGetRoleEnum( tmpVecStr[ i ] ) ] = 1 ;
@@ -3731,6 +4104,105 @@ namespace engine
    BOOLEAN rtnCoordCanRetry( UINT32 retryTimes )
    {
       return retryTimes < RTN_COORD_MAX_RETRYTIMES ? TRUE : FALSE ;
+   }
+
+   void rtnBuildFailedNodeReply( ROUTE_RC_MAP &failedNodes,
+                                 BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( failedNodes.size() > 0 )
+      {
+         CoordCB *pCoordcb = pmdGetKRCB()->getCoordCB() ;
+         CoordGroupInfoPtr groupInfo ;
+         string strHostName ;
+         string strServiceName ;
+         string strNodeName ;
+         string strGroupName ;
+         MsgRouteID routeID ;
+         BSONObj errObj ;
+         BSONArrayBuilder arrayBD( builder.subarrayStart(
+                                   FIELD_NAME_ERROR_NODES ) ) ;
+         ROUTE_RC_MAP::iterator iter = failedNodes.begin() ;
+         while ( iter != failedNodes.end() )
+         {
+            strHostName.clear() ;
+            strServiceName.clear() ;
+            strNodeName.clear() ;
+            strGroupName.clear() ;
+
+            routeID.value = iter->first ;
+            rc = pCoordcb->getGroupInfo( routeID.columns.groupID, groupInfo ) ;
+            if ( rc )
+            {
+               PD_LOG( PDWARNING, "Failed to get group[%d] info, rc: %d",
+                       routeID.columns.groupID, rc ) ;
+            }
+            else
+            {
+               strGroupName = groupInfo->groupName() ;
+
+               routeID.columns.serviceID = MSG_ROUTE_LOCAL_SERVICE ;
+               rc = groupInfo->getNodeInfo( routeID, strHostName,
+                                            strServiceName ) ;
+               if ( rc )
+               {
+                  PD_LOG( PDWARNING, "Failed to get node[%d] info failed, "
+                          "rc: %d", routeID.columns.nodeID, rc ) ;
+               }
+               else
+               {
+                  strNodeName = strHostName + ":" + strServiceName ;
+               }
+            }
+
+            try
+            {
+               BSONObjBuilder objBD( arrayBD.subobjStart() ) ;
+               objBD.append( FIELD_NAME_NODE_NAME, strNodeName ) ;
+               objBD.append( FIELD_NAME_GROUPNAME, strGroupName ) ;
+               objBD.append( FIELD_NAME_RCFLAG, iter->second._rc ) ;
+               objBD.append( FIELD_NAME_ERROR_IINFO, iter->second._obj ) ;
+               objBD.done() ;
+            }
+            catch ( std::exception &e )
+            {
+               PD_LOG( PDWARNING, "Build error object occur exception: %s",
+                       e.what() ) ;
+            }
+            ++iter ;
+         }
+
+         arrayBD.done() ;
+      }
+   }
+
+   BSONObj rtnBuildErrorObj( INT32 &flag,
+                             pmdEDUCB *cb,
+                             ROUTE_RC_MAP *pFailedNodes )
+   {
+      BSONObjBuilder builder ;
+      const CHAR *pDetail = "" ;
+
+      if ( SDB_OK == flag && pFailedNodes && pFailedNodes->size() > 0 )
+      {
+         flag = SDB_COORD_NOT_ALL_DONE ;
+      }
+
+      if ( cb && cb->getInfo( EDU_INFO_ERROR ) )
+      {
+         pDetail = cb->getInfo( EDU_INFO_ERROR ) ;
+      }
+
+      builder.append( OP_ERRNOFIELD, flag ) ;
+      builder.append( OP_ERRDESP_FIELD, getErrDesp( flag ) ) ;
+      builder.append( OP_ERR_DETAIL, pDetail ? pDetail : "" ) ;
+      if ( pFailedNodes && pFailedNodes->size() > 0 )
+      {
+         rtnBuildFailedNodeReply( *pFailedNodes, builder ) ;
+      }
+
+      return builder.obj() ;
    }
 
 }

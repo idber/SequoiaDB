@@ -4,7 +4,7 @@
          <div class="button" ng-style="Left.nav1Btn" ng-click="toggleNav2()" ng-container="{height:17}"><i class="fa fa-forward"></i></div>
          <div class="list" ng-container="{offsetY:-17}">
             <ul>
-               <li ng-repeat="nav in Left.navMenu track by $index" ng-if="nav.action || nav.list.length > 0" ng-hide="nav.hidden" ng-class="{active:showModuleIndex==$index}">
+               <li ng-repeat="nav in Left.navMenu track by $index" ng-hide="nav.hidden" ng-class="{active:showModuleIndex==$index}">
                   <a ng-if="!nav.action" ng-click="selectLeftModule($index)">
                      <i ng-class="'fa fa-lg ' + nav.icon"></i>
                      <p>{{nav.text}}</p>

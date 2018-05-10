@@ -37,10 +37,8 @@
 
 #include "qgmPlInsert.hpp"
 #include "pmd.hpp"
-#include "dmsCB.hpp"
-#include "dpsLogWrapper.hpp"
-#include "coordCB.hpp"
-#include "coordInsertOperator.hpp"
+#include "pmdCB.hpp"
+#include "rtnCoordInsert.hpp"
 #include "rtn.hpp"
 #include "msgMessage.hpp"
 #include "qgmUtil.hpp"
@@ -135,31 +133,18 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__QGMPLINSERT__EXEC ) ;
       INT32 rc = SDB_OK ;
-      pmdKRCB *pKrcb                   = pmdGetKRCB() ;
+      pmdKRCB *pKrcb                   = pmdGetKRCB();
+      rtnCoordInsert insert ;
       CHAR *pMsg    = NULL ;
       INT32 bufSize = 0 ;
       BSONObj obj ;
       INT64 contextID = -1  ;
       SDB_DMSCB *dmsCB = pKrcb->getDMSCB() ;
       SDB_DPSCB *dpsCB = pKrcb->getDPSCB() ;
-      coordInsertOperator opr ;
-      rtnContextBuf buff ;
 
       if ( dpsCB && eduCB->isFromLocal() && !dpsCB->isLogLocal() )
       {
          dpsCB = NULL ;
-      }
-
-      if ( SDB_ROLE_COORD == _role )
-      {
-         CoordCB *pCoord = pKrcb->getCoordCB() ;
-         rc = opr.init( pCoord->getResource(), eduCB ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Init operator[%s] failed, rc: %d",
-                    opr.getName(), rc ) ;
-            goto error ;
-         }
       }
 
       while ( TRUE )
@@ -182,34 +167,23 @@ namespace engine
                                         &bufSize,
                                         _fullName.c_str(),
                                         0, 0,
-                                        &obj,
-                                        eduCB ) ;
-               if ( rc )
+                                        &obj ) ;
+               if ( SDB_OK != rc )
                {
-                  PD_LOG( PDERROR, "Build insert message failed, rc: %d",
-                          rc ) ;
                   goto error ;
                }
 
-               rc = opr.execute ( (MsgHeader*)pMsg, eduCB,
-                                  contextID, &buff ) ;
-               if ( rc )
-               {
-                  PD_LOG( PDERROR, "Execute operator[%s] failed, rc: %d",
-                          opr.getName(), rc ) ;
-                  goto error ;
-               }
+               rc = insert.execute ( (MsgHeader*)pMsg, eduCB,
+                                     contextID, NULL ) ;
+               PD_RC_CHECK ( rc, PDERROR, "Failed to execute insert on coord, "
+                             "rc = %d", rc ) ;
             }
             else
             {
                rc = rtnInsert ( _fullName.c_str(), obj, 1, 0, eduCB,
                                 dmsCB, dpsCB ) ;
-               if ( rc )
-               {
-                  PD_LOG( PDERROR, "Insert record on node failed, rc: %d",
-                          rc ) ;
-                  goto error ;
-               }
+               PD_RC_CHECK ( rc, PDERROR,
+                          "Failed to insert on non-coord, rc = %d", rc ) ;
             }
          }
       }
@@ -217,7 +191,7 @@ namespace engine
    done:
       if ( pMsg )
       {
-         msgReleaseBuffer( pMsg, eduCB ) ;
+         SDB_OSS_FREE ( pMsg ) ;
       }
       PD_TRACE_EXITRC( SDB__QGMPLINSERT__EXEC, rc ) ;
       return rc ;

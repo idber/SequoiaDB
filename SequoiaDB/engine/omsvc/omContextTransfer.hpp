@@ -46,16 +46,15 @@ namespace engine
 {
    class _omContextTransfer : public _rtnContextBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
       public:
          _omContextTransfer( INT64 contextID, UINT64 eduID ) ;
          virtual ~_omContextTransfer() ;
 
          INT32 open( omSdbConnector *conn, MsgHeader *reply ) ;
       public:
-         virtual std::string      name() const ;
          virtual RTN_CONTEXT_TYPE getType () const ;
          virtual _dmsStorageUnit* getSU () ;
+         virtual _optAccessPlan*  getPlan () ;
 
       protected:
          virtual INT32     _prepareData( _pmdEDUCB *cb ) ;

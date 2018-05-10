@@ -34,7 +34,6 @@
 #include "omConfigSdb.hpp"
 #include "omConfigZoo.hpp"
 #include "omConfigSsqlOlap.hpp"
-#include "omConfigSsqlOltp.hpp"
 #include "pd.hpp"
 #include <sstream>
 
@@ -63,13 +62,19 @@ namespace engine
       {
          _node = SDB_OSS_NEW OmZooNode() ;
       }
-      else if ( businessType == OM_BUSINESS_SEQUOIASQL_OLAP )
+      else if ( businessType == OM_BUSINESS_SEQUOIASQL )
       {
-         _node = SDB_OSS_NEW OmSsqlOlapNode() ;
-      }
-      else if ( businessType == OM_BUSINESS_SEQUOIASQL_OLTP )
-      {
-         _node = SDB_OSS_NEW OmSsqlOltpNode() ;
+         if ( deployMode == OM_SEQUOIASQL_DEPLOY_OLAP )
+         {
+            _node = SDB_OSS_NEW OmSsqlOlapNode() ;
+         }
+         else
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "invalid deploy mode of sequoiasql: %s", 
+                        deployMode.c_str() ) ;
+            goto error ;
+         }
       }
       else
       {
@@ -688,7 +693,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      BSONElement bsonBusinessInfo = bsonBusiness.getField( OM_BSON_BUSINESS_INFO ) ;
+      BSONElement bsonBusinessInfo = bsonBusiness.getField( OM_BSON_FIELD_BUSINESS_INFO ) ;
       if ( bsonBusinessInfo.eoo() || Array != bsonBusinessInfo.type() )
       {
          rc = SDB_INVALIDARG ;
@@ -709,7 +714,7 @@ namespace engine
 
                BSONObj businessInfoObj = ele.embeddedObject() ;
                businessInfo.clusterName = 
-                  businessInfoObj.getStringField( OM_BSON_CLUSTER_NAME ) ;
+                  businessInfoObj.getStringField( OM_BSON_FIELD_CLUSTER_NAME ) ;
                businessInfo.businessType = 
                   businessInfoObj.getStringField( OM_BUSINESS_FIELD_TYPE ) ;
                businessInfo.businessName = 

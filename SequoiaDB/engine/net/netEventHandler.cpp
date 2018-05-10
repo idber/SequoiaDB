@@ -44,41 +44,31 @@
 #include "pdTrace.hpp"
 #include "netTrace.hpp"
 #include "msgMessageFormat.hpp"
-#include "netEventSuit.hpp"
 #include <boost/bind.hpp>
 #if defined (_WINDOWS)
 #include <mstcpip.h>
 #endif
 
 using namespace boost::asio::ip ;
-
 namespace engine
 {
    #define NET_SOCKET_SNDTIMEO         ( 2 )
 
-   _netEventHandler::_netEventHandler( netEvSuitPtr evSuitPtr,
-                                       const NET_HANDLE &handle )
-   : _sock( evSuitPtr->getIOService() ),
-     _buf(NULL),
-     _bufLen(0),
-     _state(NET_EVENT_HANDLER_STATE_HEADER),
-     _handle( handle )
+   _netEventHandler::_netEventHandler( _netFrame *frame ):
+                                       _sock(frame->ioservice()),
+                                       _buf(NULL),
+                                       _bufLen(0),
+                                       _state(NET_EVENT_HANDLER_STATE_HEADER),
+                                       _frame(frame),
+                                       _handle(_frame->allocateHandle())
    {
-      _evSuitPtr     = evSuitPtr ;
       _id.value      = MSG_INVALID_ROUTEID ;
       _isConnected   = FALSE ;
-      _isNew         = TRUE ;
       _hasRecvMsg    = FALSE ;
       _lastSendTick  = pmdGetDBTick() ;
       _lastRecvTick  = pmdGetDBTick() ;
       _lastBeatTick  = pmdGetDBTick() ;
       _msgid         = 0 ;
-
-      _srDataLen     = 0 ;
-      _mbps          = 0 ;
-      _lastStatTick  = _lastSendTick ;
-
-      _evSuitPtr->addHandle( _handle ) ;
    }
 
    _netEventHandler::~_netEventHandler()
@@ -90,8 +80,6 @@ namespace engine
       {
          SDB_OSS_FREE( _buf ) ;
       }
-
-      _evSuitPtr->delHandle( _handle ) ;
    }
 
    string _netEventHandler::localAddr() const
@@ -162,17 +150,6 @@ namespace engine
       _lastBeatTick = pmdGetDBTick() ;
    }
 
-   void _netEventHandler::makeStat( UINT64 curTick )
-   {
-      UINT64 spanTime = pmdDBTickSpan2Time( curTick - _lastStatTick ) ;
-      if ( spanTime > 0 )
-      {
-         _lastStatTick = curTick ;
-         _mbps = _srDataLen / spanTime ;
-         _srDataLen = 0 ;
-      }
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETEVNHND_SETOPT, "_netEventHandler::setOpt" )
    void _netEventHandler::setOpt()
    {
@@ -180,7 +157,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__NETEVNHND_SETOPT );
 
       _isConnected = TRUE ;
-      _isNew = FALSE ;
 
       INT32 keepAlive = 1 ;
       INT32 keepIdle = OSS_SOCKET_KEEP_IDLE ;
@@ -285,7 +261,7 @@ namespace engine
       {
          boost::system::error_code ec ;
          tcp::resolver::query query ( tcp::v4(), hostName, serviceName ) ;
-         tcp::resolver resolver ( _evSuitPtr->getIOService() ) ;
+         tcp::resolver resolver ( _frame->ioservice() ) ;
          tcp::resolver::iterator itr = resolver.resolve ( query ) ;
          ip::tcp::endpoint endpoint = *itr ;
          _sock.open( tcp::v4()) ;
@@ -448,8 +424,8 @@ namespace engine
       {
          close() ;
       }
-      _evSuitPtr->getFrame()->handleClose( shared_from_this(), _id ) ;
-      _evSuitPtr->getFrame()->_erase( handle() ) ;
+      _frame->handleClose( shared_from_this(), _id ) ;
+      _frame->_erase( handle() ) ;
       goto done ;
    }
 
@@ -461,7 +437,6 @@ namespace engine
       UINT32 send = 0 ;
 
       _lastSendTick = pmdGetDBTick() ;
-      _srDataLen += len ;
 
       while ( send < len )
       {
@@ -581,7 +556,7 @@ namespace engine
             }
             _hasRecvMsg = TRUE ;
             ossMemcpy( _buf, &_header, sizeof( MsgSysInfoRequest ) ) ;
-            _evSuitPtr->getFrame()->handleMsg( shared_from_this() ) ;
+            _frame->handleMsg( shared_from_this() ) ;
             _state = NET_EVENT_HANDLER_STATE_HEADER ;
             asyncRead() ;
             goto done ;
@@ -612,7 +587,7 @@ namespace engine
                if ( MSG_INVALID_ROUTEID != _header.routeID.value )
                {
                   _id = _header.routeID ;
-                  _evSuitPtr->getFrame()->_addRoute( shared_from_this() ) ;
+                  _frame->_addRoute( shared_from_this() ) ;
                }
             }
 
@@ -624,13 +599,12 @@ namespace engine
          }
          if ( (UINT32)sizeof(_MsgHeader) == (UINT32)_header.messageLength )
          {
-            _srDataLen += sizeof(_MsgHeader) ;
             if ( SDB_OK != _allocateBuf( sizeof(_MsgHeader) ))
             {
                goto error_close ;
             }
             ossMemcpy( _buf, &_header, sizeof( _MsgHeader ) ) ;
-            _evSuitPtr->getFrame()->handleMsg( shared_from_this() ) ;
+            _frame->handleMsg( shared_from_this() ) ;
             _state = NET_EVENT_HANDLER_STATE_HEADER ;
             asyncRead() ;
             goto done ;
@@ -655,8 +629,7 @@ namespace engine
       }
       else
       {
-         _srDataLen += _header.messageLength ;
-         _evSuitPtr->getFrame()->handleMsg( shared_from_this() ) ;
+         _frame->handleMsg( shared_from_this() ) ;
          _state = NET_EVENT_HANDLER_STATE_HEADER ;
          asyncRead() ;
       }
@@ -669,8 +642,8 @@ namespace engine
       {
          close() ;
       }
-      _evSuitPtr->getFrame()->handleClose( shared_from_this(), _id ) ;
-      _evSuitPtr->getFrame()->_erase( handle() ) ;
+      _frame->handleClose( shared_from_this(), _id ) ;
+      _frame->_erase( handle() ) ;
       goto done ;
    }
 

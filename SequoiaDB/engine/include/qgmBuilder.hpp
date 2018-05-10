@@ -178,9 +178,6 @@ namespace engine
                          _qgmOptiSelect *node ) ;
 
       INT32 _addHint( const SQL_CON_ITR &root,
-                      _qgmOptiUpdate *node ) ;
-
-      INT32 _addHint( const SQL_CON_ITR &root,
                       _qgmOptiSelect *node ) ;
 
       INT32 _addOrderBy( const SQL_CON_ITR &root,

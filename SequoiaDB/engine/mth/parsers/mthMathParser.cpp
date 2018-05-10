@@ -326,7 +326,8 @@ namespace engine
          goto error ;
       }
 #endif
-      if ( !e.isNumber() || mthIsZero(e) )
+      if ( !e.isNumber() ||
+           ( e.type() != NumberDecimal && 0 == e.Number() ))
       {
          PD_LOG( PDERROR, "invalid element:%s",
                  e.toString( TRUE, TRUE ).c_str() ) ;

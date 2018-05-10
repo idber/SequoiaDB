@@ -52,10 +52,9 @@ namespace engine
 {
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNUPDATE1, "rtnUpdate" )
-   INT32 rtnUpdate ( const CHAR *pCollectionName, const BSONObj &matcher,
+   INT32 rtnUpdate ( const CHAR *pCollectionName, const BSONObj &selector,
                      const BSONObj &updator, const BSONObj &hint, INT32 flags,
-                     pmdEDUCB *cb, INT64 *pUpdateNum, INT32 *pInsertNum,
-                     const BSONObj *shardingKey )
+                     pmdEDUCB *cb, INT64 *pUpdateNum, INT32 *pInsertNum )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNUPDATE1 ) ;
@@ -68,67 +67,57 @@ namespace engine
          dpsCB = NULL ;
       }
 
-      rc = rtnUpdate ( pCollectionName, matcher, updator, hint, flags, cb,
-                       dmsCB, dpsCB, 1, pUpdateNum, pInsertNum, shardingKey ) ;
+      rc = rtnUpdate ( pCollectionName, selector, updator, hint, flags, cb,
+                       dmsCB, dpsCB, 1, pUpdateNum, pInsertNum ) ;
 
       PD_TRACE_EXITRC ( SDB_RTNUPDATE1, rc ) ;
       return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNUPDATE2, "rtnUpdate" )
-   INT32 rtnUpdate ( const CHAR *pCollectionName, const BSONObj &matcher,
+   INT32 rtnUpdate ( const CHAR *pCollectionName, const BSONObj &selector,
                      const BSONObj &updator, const BSONObj &hint, INT32 flags,
                      pmdEDUCB *cb, SDB_DMSCB *dmsCB, SDB_DPSCB *dpsCB,
-                     INT16 w, INT64 *pUpdateNum, INT32 *pInsertNum,
-                     const BSONObj *shardingKey )
+                     INT16 w, INT64 *pUpdateNum, INT32 *pInsertNum )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB_RTNUPDATE2 ) ;
-      BSONObj dummy ;
-      rtnQueryOptions options( matcher, dummy, dummy, hint, pCollectionName,
-                               0, -1, flags ) ;
-      rc = rtnUpdate( options, updator, cb, dmsCB, dpsCB, w, pUpdateNum,
-                      pInsertNum, shardingKey ) ;
-      PD_TRACE_EXITRC( SDB_RTNUPDATE2, rc ) ;
-      return rc ;
-   }
+      PD_TRACE_ENTRY ( SDB_RTNUPDATE2 ) ;
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNUPDATE_OPTIONS, "rtnUpdate" )
-   INT32 rtnUpdate ( rtnQueryOptions &options, const BSONObj &updator,
-                     pmdEDUCB *cb, SDB_DMSCB *dmsCB, SDB_DPSCB *dpsCB,
-                     INT16 w, INT64 *pUpdateNum, INT32 *pInsertNum,
-                     const BSONObj *shardingKey )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_RTNUPDATE_OPTIONS ) ;
-
-      SDB_ASSERT ( options.getCLFullName(), "collection name can't be NULL" ) ;
+      SDB_ASSERT ( pCollectionName, "collection name can't be NULL" ) ;
       SDB_ASSERT ( cb, "educb can't be NULL" ) ;
       SDB_ASSERT ( dmsCB, "dmsCB can't be NULL" ) ;
 
-      pmdKRCB *krcb                    = pmdGetKRCB() ;
-      SDB_RTNCB *rtnCB                 = krcb->getRTNCB() ;
       SINT64 numUpdatedRecords         = 0 ;
       INT32  insertNum                 = 0 ;
       dmsStorageUnit *su               = NULL ;
       dmsMBContext   *mbContext        = NULL ;
       dmsStorageUnitID suID            = DMS_INVALID_CS ;
       const CHAR *pCollectionShortName = NULL ;
-      optAccessPlanManager *apm        = NULL ;
+      rtnAccessPlanManager *apm        = NULL ;
+      optAccessPlan *plan              = NULL ;
       BOOLEAN writable                 = FALSE ;
-      BOOLEAN strictDataMode           = FALSE ;
       dmsScanner *pScanner             = NULL ;
       BSONObj emptyObj ;
       mthModifier modifier ;
       vector<INT64> dollarList ;
 
-      optAccessPlanRuntime planRuntime ;
-      monContextCB monCtxCB ;
-      rtnReturnOptions returnOptions ;
-
       if ( updator.isEmpty() )
       {
          PD_LOG ( PDERROR, "modifier can't be empty" ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      try
+      {
+         rc = modifier.loadPattern ( updator,
+                                     &dollarList ) ;
+         PD_RC_CHECK( rc, PDERROR, "Invalid pattern is detected for updator: "
+                      "%s", updator.toString().c_str() ) ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG ( PDERROR, "Invalid pattern is detected for update: %s: %s",
+                  updator.toString().c_str(), e.what() ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
@@ -141,15 +130,18 @@ namespace engine
       }
       writable = TRUE;
 
-      rc = rtnResolveCollectionNameAndLock ( options.getCLFullName(), dmsCB,
-                                             &su, &pCollectionShortName,
-                                             suID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s, rc: %d",
-                   options.getCLFullName(), rc ) ;
+      rc = rtnResolveCollectionNameAndLock ( pCollectionName, dmsCB, &su,
+                                             &pCollectionShortName, suID ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to resolve collection name %s, rc: %d",
+                  pCollectionName, rc ) ;
+         goto error ;
+      }
 
       rc = su->data()->getMBContext( &mbContext, pCollectionShortName, -1 ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s] mb context, "
-                   "rc: %d", options.getCLFullName(), rc ) ;
+                   "rc: %d", pCollectionName, rc ) ;
 
       if ( OSS_BIT_TEST( mbContext->mb()->_attributes,
                          DMS_MB_ATTR_NOIDINDEX ) )
@@ -159,47 +151,31 @@ namespace engine
          goto error ;
       }
 
-      if ( OSS_BIT_TEST( mbContext->mb()->_attributes,
-                         DMS_MB_ATTR_STRICTDATAMODE ) )
-      {
-         strictDataMode = TRUE ;
-      }
+      apm = su->getAPM() ;
+      SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
 
-      try
+      rc = apm->getPlan ( selector,
+                          emptyObj, // orderBy
+                          hint, // hint
+                          pCollectionShortName,
+                          &plan ) ;
+      if ( rc )
       {
-         rc = modifier.loadPattern ( updator,
-                                     &dollarList,
-                                     TRUE,
-                                     shardingKey,
-                                     strictDataMode ) ;
-         PD_RC_CHECK( rc, PDERROR, "Invalid pattern is detected for updator: "
-                      "%s", updator.toString().c_str() ) ;
-      }
-      catch ( std::exception &e )
-      {
-         PD_LOG ( PDERROR, "Invalid pattern is detected for update: %s: %s",
-                  updator.toString().c_str(), e.what() ) ;
-         rc = SDB_INVALIDARG ;
+         PD_LOG ( PDERROR, "Failed to get access plan for %s for update, "
+                  "rc: %d", pCollectionName, rc ) ;
          goto error ;
       }
 
-      apm = rtnCB->getAPM() ;
-      SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
-
-      rc = apm->getAccessPlan( options, FALSE, su, mbContext, planRuntime ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s for update, "
-                   "rc: %d", options.getCLFullName(), rc ) ;
-
-      if ( planRuntime.getScanType() == TBSCAN )
+      if ( plan->getScanType() == TBSCAN )
       {
-         rc = rtnGetTBScanner( pCollectionShortName, &planRuntime, su,
+         rc = rtnGetTBScanner( pCollectionShortName, plan->getMatcher(), su,
                                mbContext, cb, &pScanner,
                                DMS_ACCESS_TYPE_UPDATE ) ;
       }
-      else if ( planRuntime.getScanType() == IXSCAN )
+      else if ( plan->getScanType() == IXSCAN )
       {
-         rc = rtnGetIXScanner( pCollectionShortName, &planRuntime, su, mbContext,
-                               cb, &pScanner, DMS_ACCESS_TYPE_UPDATE ) ;
+         rc = rtnGetIXScanner( pCollectionShortName, plan, su, mbContext, cb,
+                               &pScanner, DMS_ACCESS_TYPE_UPDATE ) ;
       }
       else
       {
@@ -215,23 +191,10 @@ namespace engine
          dmsRecordID recordID ;
          ossValuePtr recordDataPtr = 0 ;
 
-         ossTick startTime, endTime, execStartTime, execEndTime ;
-         ossTickDelta queryTime ;
-
-         if ( cb->getMonConfigCB()->timestampON )
-         {
-            monCtxCB.recordStartTimestamp() ;
-         }
-
-         startTime = krcb->getCurTime() ;
-
          mthContext.enableDollarList() ;
-
          while ( SDB_OK == ( rc = pScanner->advance( recordID, generator,
                                                      cb, &mthContext ) ) )
          {
-            execStartTime = krcb->getCurTime() ;
-
             mthContext.getDollarList( &dollarList ) ;
             generator.getDataPtr( recordDataPtr ) ;
             rc = su->data()->updateRecord( mbContext, recordID, recordDataPtr,
@@ -241,9 +204,6 @@ namespace engine
             ++numUpdatedRecords ;
             mthContext.clear() ;
             mthContext.enableDollarList() ;
-
-            execEndTime = krcb->getCurTime() ;
-            monCtxCB.monExecuteTimeInc( execStartTime, execEndTime ) ;
          }
 
          if ( SDB_DMS_EOC == rc )
@@ -255,24 +215,15 @@ namespace engine
             PD_LOG( PDERROR, "Failed to get next record, rc: %d", rc ) ;
             goto error ;
          }
-
-         endTime = krcb->getCurTime() ;
-         queryTime = endTime - startTime ;
-         queryTime -= monCtxCB.getExecuteTime() ;
-         monCtxCB.setQueryTime( queryTime ) ;
       }
 
-      if ( ( 0 == numUpdatedRecords ) && options.testFlag( FLG_UPDATE_UPSERT ) )
+      if ( ( 0 == numUpdatedRecords ) && ( FLG_UPDATE_UPSERT & flags ) )
       {
-         BSONObj source = planRuntime.getEqualityQueryObject() ;
+         BSONObj source = plan->getMatcher().getEqualityQueryObject() ;
          PD_LOG ( PDDEBUG, "equality query object: %s",
-                  source.toString().c_str() ) ;
+                     source.toString().c_str() ) ;
 
          BSONObj target ;
-         ossTick execStartTime, execEndTime ;
-
-         execStartTime = krcb->getCurTime() ;
-
          rc = modifier.modify ( source, target ) ;
          if ( rc )
          {
@@ -281,10 +232,9 @@ namespace engine
             goto error ;
          }
          PD_LOG ( PDDEBUG, "modified equality query object: %s",
-                  target.toString().c_str() ) ;
+                     target.toString().c_str() ) ;
 
-         BSONElement setOnInsert =
-                        options.getHint().getField( FIELD_NAME_SET_ON_INSERT ) ;
+         BSONElement setOnInsert = hint.getField( FIELD_NAME_SET_ON_INSERT ) ;
          if ( !setOnInsert.eoo() )
          {
             rc = rtnUpsertSet( setOnInsert, target ) ;
@@ -300,13 +250,7 @@ namespace engine
             goto error ;
          }
          ++insertNum ;
-
-         execEndTime = krcb->getCurTime() ;
-         monCtxCB.monExecuteTimeInc( execStartTime, execEndTime ) ;
       }
-
-      planRuntime.setQueryActivity( MON_UPDATE, monCtxCB, returnOptions,
-                                    TRUE ) ;
 
    done :
       if ( pUpdateNum )
@@ -325,7 +269,10 @@ namespace engine
       {
          su->data()->releaseMBContext( mbContext ) ;
       }
-      planRuntime.releasePlan() ;
+      if ( plan )
+      {
+         plan->release() ;
+      }
       if ( DMS_INVALID_CS != suID )
       {
          dmsCB->suUnlock ( suID ) ;
@@ -341,7 +288,7 @@ namespace engine
             rc = dpsCB->completeOpr( cb, w ) ;
          }
       }
-      PD_TRACE_EXITRC ( SDB_RTNUPDATE_OPTIONS, rc ) ;
+      PD_TRACE_EXITRC ( SDB_RTNUPDATE2, rc ) ;
       return rc ;
    error :
       goto done ;

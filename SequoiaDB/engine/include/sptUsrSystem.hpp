@@ -37,6 +37,7 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "sptApi.hpp"
+#include "cmdUsrSystemUtil.hpp"
 
 namespace engine
 {
@@ -229,6 +230,67 @@ namespace engine
                                bson::BSONObj &detail ) ;
 
    private:
+      static INT32 _extractReleaseInfo( const CHAR *buf,
+                                        bson::BSONObjBuilder &builder ) ;
+
+      static INT32 _parseHostsFile( VEC_HOST_ITEM &vecItems, string &err ) ;
+
+      static INT32 _writeHostsFile( VEC_HOST_ITEM &vecItems, string &err ) ;
+
+      static INT32 _extractHosts( const CHAR *buf,
+                                  VEC_HOST_ITEM &vecItems ) ;
+
+      static void  _buildHostsResult( VEC_HOST_ITEM &vecItems,
+                                      bson::BSONObjBuilder &builder ) ;
+
+      static INT32 _extractCpuInfo( const CHAR *buf,
+                                    bson::BSONObjBuilder &builder ) ;
+
+      static INT32 _extractMemInfo( const CHAR *buf,
+                                    bson::BSONObjBuilder &builder ) ;
+
+      static INT32 _getLinuxDiskInfo( const _sptArguments &arg,
+                                      _sptReturnVal &rval,
+                                      bson::BSONObj &detail ) ;
+
+      static INT32 _extractLinuxDiskInfo( const CHAR *buf,
+                                          _sptReturnVal &rval,
+                                          bson::BSONObj &detail ) ;
+
+      static INT32 _getWinDiskInfo( const _sptArguments &arg,
+                                    _sptReturnVal &rval,
+                                    bson::BSONObj &detail ) ;
+
+      static INT32 _extractWinDiskInfo( const CHAR *buf,
+                                        bson::BSONObjBuilder &builder ) ;
+
+      static INT32 _extractNetcards( bson::BSONObjBuilder &builder ) ;
+
+      static INT32 _snapshotNetcardInfo( bson::BSONObjBuilder &builder,
+                                         bson::BSONObj &detail ) ;
+
+      static INT32 _extractNetCardSnapInfo( const CHAR *buf,
+                                            bson::BSONObjBuilder &builder ) ;
+
+      static INT32 _extractProcessInfo( const CHAR *buf,
+                                        bson::BSONObjBuilder &builder,
+                                        BOOLEAN showDetail ) ;
+
+      static INT32 _extractLoginUsersInfo( const CHAR *buf,
+                                           bson::BSONObjBuilder &builder,
+                                           BOOLEAN showDetail ) ;
+
+      static INT32 _extractAllUsersInfo( const CHAR *buf,
+                                         bson::BSONObjBuilder &builder,
+                                         BOOLEAN showDetail ) ;
+
+      static INT32 _extractGroupsInfo( const CHAR *buf,
+                                       bson::BSONObjBuilder &builder,
+                                       BOOLEAN showDetail ) ;
+
+      static INT32 _getSystemInfo( std::vector< std::string > typeSplit,
+                                   bson::BSONObjBuilder &builder ) ;
+
       static INT32 _extractEnvInfo( const CHAR *buf,
                                     bson::BSONObjBuilder &builder ) ;
 

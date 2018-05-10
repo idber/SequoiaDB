@@ -1,5 +1,4 @@
 #include <mongoc.h>
-//#include <mongoc-cursor-private.h>
 
 #include "TestSuite.h"
 #include "test-libmongoc.h"
@@ -83,20 +82,12 @@ test_clone (void)
        * Ensure test.test has a document.
        */
 
-      //mongoc_collection_t *col;
 
-      //database = mongoc_client_get_database (client, "test");
-      //ASSERT_CMPPTR(database, !=, NULL);
 
-      //char *str;
-      //str = gen_collection_name ("test");      
-      //col = create_collection(str, database);
       col = setUp("test", client);
-      //col = mongoc_client_get_collection (client, "test", "test");
       r = mongoc_collection_insert (col, MONGOC_INSERT_NONE, &q, NULL, &error);
       ASSERT_CMPINT (r, ==, true);
 
-      //mongoc_collection_destroy (col);
    }
 
    cursor = mongoc_collection_find(col, MONGOC_QUERY_NONE, 0, 1, 1,
@@ -131,7 +122,6 @@ test_clone (void)
    tearDown(col);
    mongoc_cursor_destroy(cursor);
    mongoc_cursor_destroy(clone);
-  // mongoc_collection_destroy(col);
    
    mongoc_client_destroy(client);
    mongoc_uri_destroy(uri);
@@ -165,6 +155,7 @@ test_invalid_query (void)
    char *str;
    str = gen_collection_name ("test");
    col = create_collection(str, database);
+   ASSERT_CMPPTR(col, !=, NULL);
    free(str);
    q = BCON_NEW ("foo", BCON_INT32 (1), "$orderby", "{", "}");
 

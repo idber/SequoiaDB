@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--@param ${root.dir} : The path where is it  -->
+<!--@param ${SCALA_VERSION} : default 2.11, you can choose 2.10 or 2.11 -->
+<!--@param ${SPARK_VERSION} : default 2.0.0, you can choose 1.6.1 or 2.0.0 -->
+<!--@param #{WORKSPACE} : default value = /var/lib/jenkins/workspace/compile_db_x86_trunk -->
+
+<project name="sdb" default="jar" basedir=".">
+
+   <property name="root.dir" value="/var/lib/jenkins/workspace/compile_db_x86_trunk/sequoiadb/driver/spark" />
+   <property name="target.dir" value="${root.dir}/target" />
+   <property name="SCALA_VERSION" value="2.11" />
+   <property name="SPARK_VERSION" value="2.0.0" />
+   <property name="WORKSPACE" value="/var/lib/jenkins/workspace/compile_db_x86_trunk" />
+   
+   <property name="build.dir" value="${target.dir}/build" />
+   
+   <property name="source.dir" value="${root.dir}/src_${SPARK_VERSION}" />
+   <property name="lib" value="${root.dir}/lib_${SPARK_VERSION}" />
+   <property name="scala.lib" value="${root.dir}/scala_${SCALA_VERSION}_lib" />
+   <property name="auxlib" value="${root.dir}/auxlib" />
+   <property name="java.home" value="/var/lib/jenkins/workspace/compile_db_x86_trunk/sequoiadb/java/jdk6_linux64" />
+   <taskdef resource="scala/tools/ant/antlib.xml">
+      <classpath>
+         <pathelement location="${scala.lib}/scala-compiler.jar" />
+         <pathelement location="${scala.lib}/scala-library.jar" />
+         <pathelement location="${scala.lib}/scala-reflect.jar" />
+      </classpath>
+   </taskdef>
+   <taskdef resource="com/sequoiadb/ant/ant-sdbtasks.xml">
+      <classpath>
+         <pathelement location="${WORKSPACE}/sequoiadb/misc/ci/exec-tools/ant-sdbtasks.jar" />
+      </classpath>
+   </taskdef>
+   
+   <target name="clean" depends="">
+      <delete dir="${target.dir}" />
+   </target>
+   
+   <target name="compile" depends="clean">
+      <mkdir dir="${target.dir}" />
+      <mkdir dir="${build.dir}" />
+      <echo message="SCALA_VERSION = ${SCALA_VERSION}" />
+      <echo message="SPARK_VERSION = ${SPARK_VERSION}" />
+      <scalac srcdir="${source.dir}" destdir="${build.dir}">
+        <classpath>
+           <fileset dir="${lib}" includes="*.jar" />
+           <fileset dir="${auxlib}" includes="*.jar" />
+           <fileset dir="${WORKSPACE}/sequoiadb/driver/java" includes="sequoiadb.jar" />
+        </classpath>
+      </scalac>
+   </target>
+   <target name="jar" depends="compile">
+   <tstamp>
+      <format property="current.time" pattern="MM-dd-HH.mm.ss" timezone="GMT+8" />
+   </tstamp>
+   <trycatch>
+      <try>
+         <exec dir="${root.dir}" executable="svn" output="${target.dir}/svn.status.txt" failonerror="false" >
+            <arg line="status -u" />
+         </exec>
+         <exec dir="${target.dir}" executable="grep" output="${target.dir}/svn.grep.txt" failonerror="false" >
+            <arg line="&quot;Status against revision&quot;" />
+            <arg line="${target.dir}/svn.status.txt" />
+         </exec>
+         <exec dir="${target.dir}" executable="awk" outputproperty="svn.version" failonerror="false" >
+            <arg line="-F &apos;:  &apos; &apos;{print $2}&apos;" />
+            <arg line="${target.dir}/svn.grep.txt" />
+         </exec>
+
+      </try>
+      <catch>
+         <property name="svn.version" value="unknow" />
+      </catch>
+      <finally>
+      </finally>
+   </trycatch>
+   
+   <trycatch>
+   <try>
+      <copy file="${root.dir}/../../misc/ci/exec-tools/print_version.c" todir="${target.dir}/" />
+         <echo>
+            /usr/bin/gcc  ${target.dir}/print_version.c -o ${target.dir}/print_version -I${root.dir}/../../SequoiaDB/engine/include
+         </echo>
+      <exec executable="/usr/bin/gcc" dir="${root.dir}" failonerror="true">
+         <arg line="${target.dir}/print_version.c -o ${target.dir}/print_version -I${root.dir}/../../SequoiaDB/engine/include" />
+      </exec>
+         <exec executable="${target.dir}/print_version" dir="${target.dir}" failonerror="false" outputproperty="project.version" />
+      </try>
+      <catch>
+         <property name="project.version" value="unknow" />
+      </catch>
+      <finally>
+      </finally>
+   </trycatch>
+   <propertyfile file="${target.dir}/build/version">
+      <entry key="Release" value="${svn.version}"/>
+      <entry key="build.time" value="${current.time}"/>
+      <entry key="SequoiaDB_version" value="${project.version}"/>
+   </propertyfile>
+   <property name="jar.filename" value="${target.dir}/spark-sequoiadb_${SCALA_VERSION}-${project.version}.jar" />
+
+      <jar file="${jar.filename}">
+         <manifest>
+            <attribute name="Version" value="1.0" />
+            <attribute name="Build-Timestamp" value="${current.time}" />
+         </manifest>
+         <fileset dir="${build.dir}" includes="**/*" />
+      </jar>
+   </target>
+</project>

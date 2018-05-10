@@ -46,27 +46,18 @@ using namespace bson ;
 
 namespace engine
 {
+
+   /*
+      CoordSession implement
+    */
    CoordSession::CoordSession( pmdEDUCB *pEduCB )
+   : _rtnSessionProperty()
    {
-      _pEduCB = pEduCB;
-      _preferReplType = pmdGetKRCB()->getOptionCB()->preferedReplica() ;
-   }
-
-   INT32 CoordSession::getPreferReplType()
-   {
-      return _preferReplType;
-   }
-
-   void CoordSession::setPreferReplType( INT32 type )
-   {
-      if ( PREFER_REPL_TYPE_MIN < type &&
-           type < PREFER_REPL_TYPE_MAX &&
-           type != _preferReplType )
-      {
-         _preferReplType = type;
-         _lastNodeMap.clear() ;
-      }
-      return ;
+      pmdOptionsCB * optionCB = pmdGetKRCB()->getOptionCB() ;
+      setInstanceOption( optionCB->getPrefInstStr(),
+                         optionCB->getPrefInstModeStr(),
+                         PREFER_INSTANCE_TYPE_MASTER ) ;
+      _pEduCB = pEduCB ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_COORDSN_DISCONN, "CoordSession::disConnect" )
@@ -127,14 +118,12 @@ namespace engine
       SDB_ASSERT( _pEduCB, "_pEduCB can't be NULL!" ) ;
       BSONObj objInfo ;
       CHAR *pBuff = NULL ;
-      INT32 buffLen = 0 ;
       MsgComSessionInitReq *pInitReq = NULL ;
       UINT32 msgLength = sizeof( MsgComSessionInitReq ) ;
 
       REQUESTID_MAP requestIdMap ;
       REPLY_QUE replyQue ;
 
-      /// construct info
       try
       {
          objInfo = BSON( SDB_AUTH_USER << _pEduCB->getUserName() <<
@@ -152,17 +141,15 @@ namespace engine
          goto error ;
       }
 
-      /// allocate memory
-      rc = _pEduCB->allocBuff( msgLength, &pBuff, buffLen ) ;
+      rc = _pEduCB->allocBuff( msgLength, &pBuff, NULL ) ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "Alloc memory failed, size: %d, rc: %d",
+         PD_LOG( PDERROR, "Alloc memory failed, size: %u, rc: %d",
                  msgLength, rc ) ;
          goto error ;
       }
       pInitReq = (MsgComSessionInitReq*)pBuff ;
 
-      /// init message
       pInitReq->header.messageLength = msgLength ;
       pInitReq->header.opCode = MSG_COM_SESSION_INIT_REQ ;
       pInitReq->header.requestID = 0 ;
@@ -179,7 +166,6 @@ namespace engine
       ossMemset( pInitReq->reserved, 0, sizeof( pInitReq->reserved ) ) ;
       ossMemcpy( pInitReq->data, objInfo.objdata(), objInfo.objsize() ) ;
 
-      /// send message to peer
       rc = rtnCoordSendRequestToNodeWithoutCheck( (void *)pBuff, routeID,
                                                   pRouteAgent, _pEduCB,
                                                   requestIdMap ) ;
@@ -187,14 +173,12 @@ namespace engine
                    "Failed to send the message to the node[%s], rc: %d",
                    routeID2String( routeID ).c_str(), rc ) ;
 
-      /// get reply
       rc = rtnCoordGetReply( _pEduCB, requestIdMap, replyQue,
                              MSG_COM_SESSION_INIT_RSP ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get reply from node[%s], rc: %d",
                    routeID2String( routeID ).c_str(), rc ) ;
 
-      /// analyse the reply
       while ( !replyQue.empty() )
       {
          MsgOpReply *pReply = NULL;
@@ -210,7 +194,6 @@ namespace engine
       {
          _pEduCB->releaseBuff( pBuff ) ;
          pBuff = NULL ;
-         buffLen = 0 ;
       }
       PD_TRACE_EXIT ( SDB_COORDSN_SESSIONINIT );
       return rc ;
@@ -228,7 +211,6 @@ namespace engine
       _subSessionMap[routeID.value] = subSession;
    }
 
-   //Note: addSubSession and delSubSession must be called by the same thread
    INT32 CoordSession::addSubSession( const MsgRouteID &routeID,
                                       ISession *pSession )
    {
@@ -244,7 +226,6 @@ namespace engine
          goto done;
       }
 
-      /// get remote info
       if ( pSession )
       {
          IClient *pClient = pSession->getClient() ;
@@ -284,7 +265,6 @@ namespace engine
       goto done;
    }
 
-   //Note: addSubSession and delSubSession must be called by the same thread
    BOOLEAN CoordSession::delSubSession( const MsgRouteID & routeID )
    {
       UINT32 num = 0;
@@ -451,5 +431,9 @@ namespace engine
       return FALSE;
    }
 
-}
+   void CoordSession::_onSetInstance ()
+   {
+      _lastNodeMap.clear() ;
+   }
 
+}

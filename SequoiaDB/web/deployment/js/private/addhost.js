@@ -422,6 +422,7 @@ function createHostList()
 			hostStatusTemp = '<span class="badge badge-info">' + canUseDisk + '</span>' ;
 			if( unUseDisk > 0 )
 			{
+            /*
 				if( hostInfo['OMA']['Version'] !== '' ||
 					 hostInfo['OMA']['SdbUser'] !== '' ||
 					 hostInfo['OMA']['Path']    !== '' ||
@@ -434,6 +435,8 @@ function createHostList()
 				{
 					hostStatusTemp += '&nbsp;<span class="badge badge-warning">' + unUseDisk + '</span>' ;
 				}
+            */
+            hostStatusTemp += '&nbsp;<span class="badge badge-warning">' + unUseDisk + '</span>' ;
 			}
 			if( canUseDisk > 0 )
 			{
@@ -469,6 +472,7 @@ function createHostList()
 						//'有 ? 个磁盘剩余容量不足'
 						warningStr += '<p>' + htmlEncode( sdbjs.fun.sprintf( _languagePack['addhost']['leftPanel']['label'][1], unUseDisk ) ) + '</p>' ;
 					}
+               /*
 					if( hostInfo['OMA']['Version'] !== '' ||
 						 hostInfo['OMA']['SdbUser'] !== '' ||
 						 hostInfo['OMA']['Path']    !== '' ||
@@ -482,6 +486,7 @@ function createHostList()
 							disableHost( index, true ) ;
 						}
 					}
+               */
 					if( warningStr !== '' )
 					{
 						sdbjs.fun.setLabel( $( tdObj ).children( '.badge-warning' ), warningStr ) ;

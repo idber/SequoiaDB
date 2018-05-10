@@ -1,20 +1,8 @@
 (function(){
    var sacApp = window.SdbSacManagerModule ;
-   //部署包的缩写列表
-   var packageShortName = {
-      'sequoiadb': 'sdb',
-      'sequoiasql-oltp': 'ssql-oltp'
-   } ;
-   //导航标题列表
-   var navTitleName = {
-      'sequoiadb': 'SequoiaDB',
-      'sequoiasql-oltp': 'SequoiaSQL-OLTP',
-      'hdfs': 'HDFS',
-      'yarn': 'YARN'
-   } ;
-
    //全局模板
    sacApp.controller( 'Index.Ctrl', function( $scope, $window, $rootScope, $location, Tip, SdbFunction, Loading, SdbRest ){
+
       //校验登录信息
       if( SdbFunction.LocalData( 'SdbUser' ) === null || SdbFunction.LocalData( 'SdbSessionID' ) === null )
 		{
@@ -61,13 +49,11 @@
       $rootScope.layout.top     = { height: 40 } ;
       $rootScope.layout.content = { offsetY: -40 } ;
       $rootScope.layout.bottom  = { height: 40 } ;
-      $rootScope.layout.left    = { width: 80 } ;
-      $rootScope.layout.centre  = { offsetX: -80, marginLeft: 80 } ;
+      $rootScope.layout.left    = { width: 260 } ;
+      $rootScope.layout.centre  = { offsetX: -260, marginLeft: 260 } ;
       //-------- 全局函数 ---------
       //格式化
       $rootScope.sprintf = sprintf ;
-      //保留几位小数
-      $rootScope.fixedNumber = fixedNumber ;
       //判断数组
       $rootScope.isArray = isArray ;
       //Json转字符串
@@ -76,11 +62,7 @@
       $rootScope.pad = pad ;
       //语言控制
       $rootScope.autoLanguage = function( text ){
-         return _IndexPublic.languageCtrl( this, text ) ;
-      }
-      //插件语言控制
-      $rootScope.pAutoLanguage = function( text ){
-         return _IndexPublic.pLanguageCtrl( this, text ) ;
+         return _IndexPublic.languageCtrl( $scope, text ) ;
       }
       $rootScope.autoLanguage('确定') ;//马上调用，原因是firefox有bug，如果不调用会造成后续子页面加载后不执行代码。
       //读写临时存储
@@ -132,15 +114,6 @@
          while( random == $rootScope.onResize ) random = Math.random() ;
          $rootScope.onResize = random ;
       } ;
-      //Package包名缩写
-      $rootScope.abbreviate = function( name ){
-         var newName = packageShortName[name] ;
-         if( typeof( newName ) == 'undefined' )
-         {
-            newName = name ;
-         }
-         return newName ;
-      }
       //禁止F5做全局刷新，改成局部刷新
       $(document).bind("keydown",function(e){
          switch( e.keyCode )  
@@ -178,7 +151,6 @@
             }
          } ) ;
       }
-
       getOMSysInfo() ;
    } ) ;
 
@@ -225,15 +197,10 @@
             $rootScope.tempData( 'Deploy', 'Model', 'Task' ) ;
             $rootScope.tempData( 'Deploy', 'Module', 'None' ) ;
             var params = { 'r': new Date().getTime() } ;
-            if( taskInfo['TaskName'] == 'ADD_HOST' || taskInfo['TaskName'] == 'REMOVE_HOST' || taskInfo['TaskName'] == 'DEPLOY_PACKAGE' )
+            if( taskInfo['TaskName'] == 'ADD_HOST' || taskInfo['TaskName'] == 'REMOVE_HOST' )
             {
                $rootScope.tempData( 'Deploy', 'HostTaskID', taskInfo['TaskID'] ) ;
                $location.path( '/Deploy/InstallHost' ).search( params ) ;
-            }
-            else if( taskInfo['TaskName'] == 'EXTEND_BUSINESS' )
-            {
-               $rootScope.tempData( 'Deploy', 'ModuleTaskID', taskInfo['TaskID'] ) ;
-               $location.path( '/Deploy/SDB-ExtendInstall' ).search( params ) ;
             }
             else
             {
@@ -283,11 +250,7 @@
                }
                else
                {
-                  if( taskInfo['TaskName'] !== 'EXTEND_BUSINESS' )
-                  {
-                     taskInfo['Progress'] = 100 ;
-                  }
-                  taskList[index]['barChart'] = { 'percent': taskInfo['Progress'], 'style': { 'progress': { 'background': '#D9534F' } } } ;
+                  taskList[index]['barChart'] = { 'percent': 100, 'style': { 'progress': { 'background': '#D9534F' } } } ;
                }
                $scope.Components.French.TaskList = taskList ;
                $scope.Top.TaskList = taskList ;
@@ -300,242 +263,189 @@
          'scope': false
       } ) ;
    } ) ;
-
    //左边
    sacApp.controller( 'Index.Left.Ctrl', function( $scope, $rootScope, $location, SdbRest, SdbFunction ){
       $scope.showModuleIndex = -1 ;
       $scope.Left = {} ;
       $scope.Left.nav1 = { width: 80 } ;
       $scope.Left.nav2 = { width: 180, marginLeft: 80 } ;
-      $scope.Left.nav2Show = false ;
+      $scope.Left.nav2Show = true ;
       $scope.Left.nav1Btn = { 'visibility': 'hidden' } ;
       $scope.Left.nav2Btn = { 'visibility': 'hidden' } ;
-      $scope.Left.navMenu = [
+      //初始化导航列表
+      $rootScope.initNav = function(){
+         if( window.Config['Edition'] == 'Enterprise' )
          {
-            'text': $scope.autoLanguage( '数据' ),
-            'module': 'Data',
-            'icon': 'fa-database',
-            'list': []
-         },
-         {
-            'text': $scope.autoLanguage( '监控' ),
-            'module': 'Monitor',
-            'icon': 'fa-flash',
-            'list': []
-         },
-         {
-            'text': $scope.autoLanguage( '部署' ),
-            'module': 'Deploy',
-            'icon': 'fa-share-alt',
-            'action': '/#/Deploy/Index'
+            $scope.Left.navMenu = [
+               {
+                  'text': $scope.autoLanguage( '数据' ),
+                  'module': 'Data',
+                  'icon': 'fa-database',
+                  'list': [
+                     {
+                        'title': 'SequoiaDB',
+                        'list': []
+                     },
+                     {
+                        'title': 'SequoiaSQL',
+                        'list': []
+                     },
+                     {
+                        'title': 'Hdfs',
+                        'list': []
+                     },
+                     {
+                        'title': 'Spark',
+                        'list': []
+                     },
+                     {
+                        'title': 'Yarn',
+                        'list': []
+                     }
+                  ]
+               },
+               {
+                  'text': $scope.autoLanguage( '监控' ),
+                  'module': 'Monitor',
+                  'icon': 'fa-flash',
+                  'list': [
+                     {
+                        'title': 'SequoiaDB',
+                        'list': []
+                     }
+                  ]
+               },
+               {
+                  'text': $scope.autoLanguage( '部署' ),
+                  'module': 'Deploy',
+                  'icon': 'fa-share-alt',
+                  'action': '/#/Deploy/Index'
+               }
+            ] ;
          }
-      ] ;
-
-      var pluginList = [] ;
-
-      function getPlugins()
-      {
-         var data = { 'cmd': 'list plugins' } ;
-         SdbRest.OmOperation( data, {
-            'success': function( list ){
-               pluginList = list ;
-            }
-         }, {
-            'delay': 5000,
-            'loop': true,
-            'scope': false,
-            'showLoading': false
-         } ) ;
-      }
-
-      function hasPlugin( type )
-      {
-         var has = false ;
-         if( type == 'sequoiadb' ||
-             type == 'hdfs' ||
-             type == 'yarn' )
+         else
          {
-            return true ;
+            $scope.Left.navMenu = [
+               {
+                  'text': $scope.autoLanguage( '数据' ),
+                  'module': 'Data',
+                  'icon': 'fa-database',
+                  'list': [
+                     {
+                        'title': 'SequoiaDB',
+                        'list': []
+                     },
+                     {
+                        'title': 'SequoiaSQL',
+                        'list': []
+                     },
+                     {
+                        'title': 'Hdfs',
+                        'list': []
+                     },
+                     {
+                        'title': 'Spark',
+                        'list': []
+                     },
+                     {
+                        'title': 'Yarn',
+                        'list': []
+                     }
+                  ]
+               },
+               {
+                  'text': $scope.autoLanguage( '监控' ),
+                  'module': 'Monitor',
+                  'icon': 'fa-flash',
+                  'list': [
+                     {
+                        'title': 'SequoiaDB',
+                        'list': []
+                     }
+                  ]
+               },
+               {
+                  'text': $scope.autoLanguage( '部署' ),
+                  'module': 'Deploy',
+                  'icon': 'fa-share-alt',
+                  'action': '/#/Deploy/Index'
+               }
+            ] ;
          }
-         $.each( pluginList, function( index, plugin ){
-            if( plugin['BusinessType'] == type )
+      } ;
+      $rootScope.initNav() ;
+
+      $rootScope.updateNav = function( updateDefault ){
+         if( updateDefault && $rootScope.Url.Module == 'Deploy' )
+         {
+            $rootScope.layout.left    = { width: 80 } ;
+            $rootScope.layout.centre  = { offsetX: -80, marginLeft: 80 } ;
+            $scope.Left.nav2 = { width: 0, marginLeft: 0 } ;
+            $scope.Left.nav2Show = false ;
+         }
+         _IndexLeft.updateNav( $scope, $rootScope, SdbRest,  function( instanceList, navMenu ){
+            if( updateDefault == true )
             {
-               has = true ;
-               return false ;
-            }
-         } ) ;
-         return has ;
-      }
-
-      function showPluginNotExist( type, func )
-      {
-         var has = hasPlugin( type ) ;
-         if( has == false )
-         {
-            var errorInfo = {
-               'cmd': '',
-               'errno': -10,
-               'detail': sprintf( $scope.autoLanguage( '插件不存在: ?' ), type ),
-               'description': ''
-            } ;
-            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-               func() ;
-               return true ;
-            } ) ;
-         }
-         return has ;
-      }
-
-      function addBusinessTitle( titles, name )
-      {
-         var index = -1 ;
-
-         $.each( titles, function( idx, info ){
-            if( info['title'] == name )
-            {
-               index = idx ;
-               return false ;
-            }
-         } ) ;
-
-         if( index == -1 )
-         {
-            index = titles.length ;
-
-            titles.push( {
-               'title': name,
-               'list': []
-            } ) ;
-         }
-
-         return titles[index] ;
-      }
-
-      function getNavTitle( type )
-      {
-         var title = navTitleName[type] ;
-         if( typeof( title ) == 'undefined' )
-         {
-            title = type ;
-         }
-         return title ;
-      }
-
-      function addDataOperation( businessInfo )
-      {
-         var title = getNavTitle( businessInfo['type'] ) ;
-         var titleInfo = addBusinessTitle( $scope.Left.navMenu[0]['list'], title ) ;
-         titleInfo['list'].push( businessInfo ) ;
-      }
-
-      function addMonitor( businessInfo )
-      {
-         if( businessInfo['type'] == 'sequoiasql-oltp' )
-         {
-            return ;
-         }
-
-         var title = getNavTitle( businessInfo['type'] ) ;
-         var titleInfo = addBusinessTitle( $scope.Left.navMenu[1]['list'], title ) ;
-         titleInfo['list'].push( businessInfo ) ;
-      }
-
-      function addBusiness( businessInfo )
-      {
-         var thisModule = {
-            'name': businessInfo['BusinessName'],
-            'type': businessInfo['BusinessType'],
-            'mode': businessInfo['DeployMod'],
-            'cluster': businessInfo['ClusterName']
-         } ;
-
-         if( thisModule['type'] == 'spark' )
-         {
-            thisModule['href'] = 'http://' + businessInfo['BusinessInfo']['HostName'] + ':' + businessInfo['BusinessInfo']['WebServicePort'] ;
-         }
-
-         addDataOperation( thisModule ) ;
-         addMonitor( thisModule ) ;
-      }
-
-      function getBusiness()
-      {
-         var data = { 'cmd': 'query business', 'sort': JSON.stringify( { 'BusinessType': 1, 'BusinessName': 1, 'ClusterName': 1 } ) } ;
-         SdbRest.OmOperation( data, {
-            'success': function( list ){
-
-               $scope.Left.navMenu[0]['list'] = [] ;
-               $scope.Left.navMenu[1]['list'] = [] ;
-
-               $.each( list, function( index, businessInfo ){
-                  addBusiness( businessInfo ) ;
-               } ) ;
-
-               $scope.cursorIndex = _IndexLeft.getActiveIndex( $rootScope, SdbFunction, $scope.Left.navMenu ) ;
+               $scope.cursorIndex = _IndexLeft.getActiveIndex( $rootScope, SdbFunction, navMenu ) ;
                if( $scope.showModuleIndex == -1 )
                {
                   $scope.showModuleIndex = $scope.cursorIndex[0] ;
                }
-               if( $scope.Left.navMenu.length > 1 && $scope.Left.navMenu[$scope.showModuleIndex]['module'] != 'Deploy' && $scope.Left.nav2Show == false )
+               if( $scope.Left.navMenu[ $scope.showModuleIndex ]['module'] == 'Deploy' )
                {
-                  $scope.Left.nav1Btn = { 'visibility': 'visible' } ;
+                  $scope.Left.nav1Btn = { 'visibility': 'hidden' } ;
+                  $scope.Left.nav2Btn = { 'visibility': 'hidden' } ;
                }
                else
                {
-                  $scope.Left.nav1Btn = { 'visibility': 'hidden' } ;
+                  if( $scope.Left.nav2Show )
+                  {
+                     $scope.Left.nav1Btn = { 'visibility': 'hidden' } ;
+                     $scope.Left.nav2Btn = { 'visibility': 'visible' } ;
+                  }
+                  else
+                  {
+                     $scope.Left.nav1Btn = { 'visibility': 'visible' } ;
+                     $scope.Left.nav2Btn = { 'visibility': 'hidden' } ;
+                  }
                }
             }
-         }, {
-            'delay': 5000,
-            'loop': true,
-            'scope': false,
-            'showLoading': false
          } ) ;
-      }
-
-      getPlugins() ;
-      getBusiness() ;
+      } ;
 
       //更新url地址信息
       $rootScope.updateUrl() ;
 
-      function flodNav()
+      /*if( $rootScope.Url.Module == 'Deploy' )
       {
-         if( $scope.Left.navMenu.length > 1 && $scope.Left.navMenu[$scope.showModuleIndex]['module'] != 'Deploy' )
-         {
-            $scope.Left.nav1Btn = { 'visibility': 'visible' } ;
-         }
-         else
-         {
-            $scope.Left.nav1Btn = { 'visibility': 'hidden' } ;
-         }
-         $scope.Left.nav2Btn = { 'visibility': 'hidden' } ;
          $rootScope.layout.left    = { width: 80 } ;
          $rootScope.layout.centre  = { offsetX: -80, marginLeft: 80 } ;
          $scope.Left.nav2 = { width: 0, marginLeft: 0 } ;
          $scope.Left.nav2Show = false ;
-      }
+      }*/
 
-      function unflodNav()
-      {
-         $scope.Left.nav1Btn = { 'visibility': 'hidden' } ;
-         $scope.Left.nav2Btn = { 'visibility': 'visible' } ;
-         $rootScope.layout.left    = { width: 260 } ;
-         $rootScope.layout.centre  = { offsetX: -260, marginLeft: 260 } ;
-         $scope.Left.nav1 = { width: 80 } ;
-         $scope.Left.nav2 = { width: 180, marginLeft: 80 } ;
-         $scope.Left.nav2Show = true ;
-      }
+      //更新导航
+      $rootScope.updateNav( true ) ;
 
       $scope.toggleNav2 = function(){
          if( $scope.Left.nav2Show == true )
          {
-            flodNav() ;
+            $scope.Left.nav1Btn = { 'visibility': 'visible' } ;
+            $scope.Left.nav2Btn = { 'visibility': 'hidden' } ;
+            $rootScope.layout.left    = { width: 80 } ;
+            $rootScope.layout.centre  = { offsetX: -80, marginLeft: 80 } ;
+            $scope.Left.nav2 = { width: 0, marginLeft: 0 } ;
          }
          else
          {
-            unflodNav() ;
+            $scope.Left.nav1Btn = { 'visibility': 'hidden' } ;
+            $scope.Left.nav2Btn = { 'visibility': 'visible' } ;
+            $rootScope.layout.left    = { width: 260 } ;
+            $rootScope.layout.centre  = { offsetX: -260, marginLeft: 260 } ;
+            $scope.Left.nav1 = { width: 80 } ;
+            $scope.Left.nav2 = { width: 180, marginLeft: 80 } ;
          }
+         $scope.Left.nav2Show = !$scope.Left.nav2Show ;
          $rootScope.bindResize() ;
       }
 
@@ -544,39 +454,39 @@
          var moduleName  = $scope.Left.navMenu[ moduleIndex ]['list'][ activeIndex ]['list'][ instanceIndex ]['name'] ;
          var moduleType  = $scope.Left.navMenu[ moduleIndex ]['list'][ activeIndex ]['list'][ instanceIndex ]['type'] ;
          var moduleMode  = $scope.Left.navMenu[ moduleIndex ]['list'][ activeIndex ]['list'][ instanceIndex ]['mode'] ;
-
-         var hasPlugin = showPluginNotExist( moduleType, function(){
-            setTimeout( function(){
-               $rootScope.gotoModule( moduleIndex, activeIndex, instanceIndex ) ;
-            }, 100 ) ;
-         } ) ;
-
-         if( hasPlugin == false )
-         {
-            return ;
-         }
-
          SdbFunction.LocalData( 'SdbClusterName', clusterName ) ;
          SdbFunction.LocalData( 'SdbModuleType', moduleType ) ;
          SdbFunction.LocalData( 'SdbModuleMode', moduleMode ) ;
          SdbFunction.LocalData( 'SdbModuleName', moduleName ) ;
-
          var params = { 'r': new Date().getTime() } ;
-
          if( $scope.Left.navMenu[ moduleIndex ]['module'] == 'Data' )
          {
             switch( moduleType )
             {
             case 'sequoiadb':
                $location.path( '/Data/SDB-Database/Index' ).search( params ) ; break ;
+            case 'sequoiasql':
+               if( window.Config['Edition'] == 'Enterprise' )
+               {
+                  if( moduleMode == '' || moduleMode == 'oltp' )
+                  {
+                     $location.path( '/Data/SQL-Metadata/Index' ).search( params ) ; break ;
+                  }
+                  else
+                  {
+                     $location.path( '/Data/NotSupport' ).search( params ) ; break ;
+                  }
+               }
+               else
+               {
+                  $location.path( '/Data/Edition' ).search( params ) ; break ;
+               }
             case 'hdfs':
                $location.path( '/Data/HDFS-web/Index' ).search( params ) ; break ;
             case 'spark':
                $location.path( '/Data/SPARK-web/Index' ).search( params ) ; break ;
             case 'yarn':
                $location.path( '/Data/YARN-web/Index' ).search( params ) ; break ;
-            case 'sequoiasql-oltp':
-               $location.path( '/Data/OLTP-Database/Index' ).search( params ) ; break ;
             default:
                break ;
             }
@@ -586,6 +496,16 @@
             switch( moduleType )
             {
             case 'sequoiadb':
+               /*
+               if( window.Config['Edition'] == 'Enterprise' )
+               {
+                  $location.path( '/Monitor/SDB/Index' ).search( params ) ; break ;
+               }
+               else
+               {
+                  $location.path( '/Monitor/Preview' ).search( params ) ; break ;
+               }
+               */
                $location.path( '/Monitor/SDB/Index' ).search( params ) ; break ;
             default:
                break ;
@@ -604,7 +524,6 @@
          $scope.cursorIndex[0] = moduleIndex ;
          $scope.cursorIndex[1] = activeIndex ;
          $scope.cursorIndex[2] = instanceIndex ;
-         flodNav() ;
       }
 
       $rootScope.$on( '$locationChangeStart', function( event, newUrl, oldUrl ){
@@ -642,28 +561,32 @@
          $rootScope.bindResize() ;
          if( $scope.Left.navMenu[ $scope.showModuleIndex ]['module'] == 'Deploy' )
          {
-            flodNav() ;
-            try
-            {
-               $scope.cursorIndex[1] = -1 ;
-               $scope.cursorIndex[2] = -1 ;
-            }
-            catch( e )
-            {
-            }
+            $scope.Left.nav1Btn = { 'visibility': 'hidden' } ;
+            $scope.Left.nav2Btn = { 'visibility': 'hidden' } ;
+            $rootScope.layout.left    = { width: 80 } ;
+            $rootScope.layout.centre  = { offsetX: -80, marginLeft: 80 } ;
+            $scope.Left.nav2 = { width: 0, marginLeft: 0 } ;
+            $scope.cursorIndex[1] = -1 ;
+            $scope.cursorIndex[2] = -1 ;
          }
          else
          {
-            unflodNav() ;
+            $scope.Left.nav1Btn = { 'visibility': 'hidden' } ;
+            $scope.Left.nav2Btn = { 'visibility': 'visible' } ;
+            $rootScope.layout.left    = { width: 260 } ;
+            $rootScope.layout.centre  = { offsetX: -260, marginLeft: 260 } ;
+            $scope.Left.nav1 = { width: 80 } ;
+            $scope.Left.nav2 = { width: 180, marginLeft: 80 } ;
+            $scope.Left.nav2Show = true ;
          }
       }
    } ) ;
    //底部
-   sacApp.controller( 'Index.Bottom.Ctrl', function( $scope, $interval, SdbRest ){
+   sacApp.controller( 'Index.Bottom.Ctrl', function( $scope, SdbRest ){
       $scope.Bottom = {} ;
       //获取系统时间
       _IndexBottom.getSystemTime( $scope ) ;
       //获取系统状态
-      _IndexBottom.checkPing( $scope, $interval, SdbRest ) ;
+      _IndexBottom.checkPing( $scope, SdbRest ) ;
    } ) ;
 }());

@@ -1,4 +1,3 @@
-﻿//@ sourceURL=Index.js
 (function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
@@ -62,8 +61,6 @@
       {
          $scope.boxHeight = ( moduleMode == 'distribution' ) ? { 'offsetY': -311 } : { 'offsetY': -221 } ;
       }
-      //域列表
-      var domainList = [] ;
       //集合空间列表
       $scope.CsTable = {
          'title': {
@@ -142,30 +139,6 @@
          'callback': {}
       } ;
 
-      //获取域列表
-      if( $scope.moduleMode == 'distribution' )
-      {
-         var getDomainList = function(){
-            var data = { 'cmd': 'list domains' } ;
-            SdbRest.DataOperation( data, {
-               'success': function( domains ){
-                  //存在域时才执行
-                  if( domains.length > 0 )
-                  {
-                     domainList = domains ;
-                  }
-               },
-               'failed': function( errorInfo ){
-                  _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                     getDomainList() ;
-                     return true ;
-                  } ) ;
-               }
-            }, { 'showLoading': false } ) ;
-         }
-         getDomainList() ;
-      }
-
       var setClTableTitle = function(){
          if( $scope.isHideSubCl == true || moduleMode == 'standalone' )
          {
@@ -184,24 +157,19 @@
       {
          var getGroupList = function(){
             var data = { 'cmd': 'list groups', 'sort': JSON.stringify( { 'GroupName': 1 } ) } ;
-            SdbRest.DataOperation( data, {
-               'success': function( groups ){
-                  $.each( groups, function( index, groupInfo ){
-                     if( groupInfo['Role'] == 0 )
-                     {
-                        $scope.GroupList.push( groupInfo ) ;
-                     }
-                  } ) ;
-               },
-               'failed': function( errorInfo ){
-                  _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                     getGroupList() ;
-                     return true ;
-                  } ) ;
-               }
-            }, {
-               'showLoading': false
-            } ) ;
+            SdbRest.DataOperation( data, function( groups ){
+               $.each( groups, function( index, groupInfo ){
+                  if( groupInfo['Role'] == 0 )
+                  {
+                     $scope.GroupList.push( groupInfo ) ;
+                  }
+               } ) ;
+            }, function( errorInfo ){
+               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+                  getGroupList() ;
+                  return true ;
+               } ) ;
+            }, null, null, null, false ) ;
          } ;
          getGroupList() ;
       }
@@ -447,13 +415,6 @@
          {
             return ;
          }
-         var domainInput = [ { 'key': '', 'value': '' } ] ;
-         if( domainList.length > 0 )
-         {
-            $.each( domainList, function( index, domainInfo ){
-               domainInput.push( { 'key': domainInfo['Name'], 'value': domainInfo['Name'] } ) ;
-            } ) ;
-         }
          $scope.Components.Modal.icon = 'fa-plus' ;
          $scope.Components.Modal.title = $scope.autoLanguage( '创建集合空间' ) ;
          $scope.Components.Modal.isShow = true ;
@@ -488,10 +449,13 @@
                {
                   "name": "Domain",
                   "webName": $scope.autoLanguage( '所属域' ),
-                  "type": "select",
+                  "type": "string",
                   "desc": $scope.autoLanguage( '所属域必须已经存在。' ),
-                  "value": domainInput[0]['value'],
-                  "valid": domainInput
+                  "value": "",
+                  "valid": {
+                     "min": 0,
+                     "ban": "SYSDOMAIN"
+                  }
                },
                {
                   "name": "LobPageSize",
@@ -525,16 +489,13 @@
                }
                var data = { 'cmd': 'create collectionspace', 'name': value['name'], 'options': JSON.stringify( options ) } ;
                var exec = function(){
-                  SdbRest.DataOperation( data, {
-                     'success': function( json ){
-                        _DataDatabaseIndex.getCSInfo( $scope, SdbRest ) ;
-                     },
-                     'failed': function( errorInfo ){
-                        _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                           exec() ;
-                           return true ;
-                        } ) ;
-                     }
+                  SdbRest.DataOperation( data, function( json ){
+                     _DataDatabaseIndex.getCSInfo( $scope, SdbRest ) ;
+                  }, function( errorInfo ){
+                     _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+                        exec() ;
+                        return true ;
+                     } ) ;
                   } ) ;
                } ;
                exec() ;
@@ -593,20 +554,17 @@
                var csName = $scope.csList[ value['name'] ]['Name'] ;
                var data = { 'cmd': 'drop collectionspace', 'name': csName } ;
                var exec = function(){
-                  SdbRest.DataOperation( data, {
-                     'success': function( json ){
-                        if( $scope.csID == value['name'] )
-                        {
-                           $scope.showCSInfo( 0 ) ;
-                        }
-                        _DataDatabaseIndex.getCSInfo( $scope, SdbRest ) ;
-                     },
-                     'failed': function( errorInfo ){
-                        _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                           exec() ;
-                           return true ;
-                        } ) ;
+                  SdbRest.DataOperation( data, function( json ){
+                     if( $scope.csID == value['name'] )
+                     {
+                        $scope.showCSInfo( 0 ) ;
                      }
+                     _DataDatabaseIndex.getCSInfo( $scope, SdbRest ) ;
+                  }, function( errorInfo ){
+                     _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+                        exec() ;
+                        return true ;
+                     } ) ;
                   } ) ;
                } ;
                exec() ;
@@ -729,17 +687,14 @@
             return rv ;
          }
          var createCLExec = function( data ){
-            SdbRest.DataOperation( data, {
-               'success': function( json ){
-                  _DataDatabaseIndex.getCSInfo( $scope, SdbRest ) ;
-               }, 
-               'failed': function( errorInfo ){
-                  _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                     createCLExec( data ) ;
-                     return true ;
-                  } ) ;
-                  _DataDatabaseIndex.getCLInfo( $scope, SdbRest ) ;
-               }
+            SdbRest.DataOperation( data, function( json ){
+               _DataDatabaseIndex.getCSInfo( $scope, SdbRest ) ;
+            }, function( errorInfo ){
+               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+                  createCLExec( data ) ;
+                  return true ;
+               } ) ;
+               _DataDatabaseIndex.getCLInfo( $scope, SdbRest ) ;
             } ) ;
          }
          var csValid = [] ;
@@ -1435,21 +1390,20 @@
                var fullName = $scope.clList[ value['name'] ]['csName'] + '.' + $scope.clList[ value['name'] ]['Name'] ;
                var data = { 'cmd': 'drop collection', 'name': fullName } ;
                var exec = function(){
-                  SdbRest.DataOperation( data, {
-                     'success': function( json ){
-                        if( $scope.clID == value['name'] )
-                        {
-                           $scope.clID = 0 ;
-                           $scope.showCSInfo( $scope.csID ) ;
-                        }
-                        _DataDatabaseIndex.getCSInfo( $scope, SdbRest ) ;
-                     },
-                     'failed': function( errorInfo ){
-                        _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                           exec() ;
-                           return true ;
-                        } ) ;
+                  SdbRest.DataOperation( data, function( json ){
+                     if( $scope.clID == value['name'] )
+                     {
+                        $scope.clID = 0 ;
+                        $scope.showCSInfo( $scope.csID ) ;
                      }
+                     _DataDatabaseIndex.getCSInfo( $scope, SdbRest ) ;
+                  }, function( errorInfo ){
+                     _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+                        exec() ;
+                        return true ;
+                     } ) ;
+                  }, function(){
+                     //_IndexPublic.createErrorModel( $scope, $scope.autoLanguage( '网络连接错误，请尝试按F5刷新浏览器。' ) ) ;
                   } ) ;
                } ;
                exec() ;
@@ -1541,16 +1495,13 @@
                   'subclname': formVal['childCL']
                } ;
                var exec = function(){
-                  SdbRest.DataOperation( data, {
-                     'success': function( json ){
-                        _DataDatabaseIndex.getCSInfo( $scope, SdbRest ) ;
-                     },
-                     'failed': function( errorInfo ){
-                        _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                           exec() ;
-                           return true ;
-                        } ) ;
-                     }
+                  SdbRest.DataOperation( data, function( json ){
+                     _DataDatabaseIndex.getCSInfo( $scope, SdbRest ) ;
+                  }, function( errorInfo ){
+                     _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+                        exec() ;
+                        return true ;
+                     } ) ;
                   } ) ;
                } ;
                exec() ;
@@ -1710,16 +1661,13 @@
                             'upbound': JSON.stringify( upbound )
                           } ;
                var exec = function(){
-                  SdbRest.DataOperation( data, {
-                     'success': function( json ){
-                        _DataDatabaseIndex.getCSInfo( $scope, SdbRest ) ;
-                     },
-                     'failed': function( errorInfo ){
-                        _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                           exec() ;
-                           return true ;
-                        } ) ;
-                     }
+                  SdbRest.DataOperation( data, function( json ){
+                     _DataDatabaseIndex.getCSInfo( $scope, SdbRest ) ;
+                  }, function( errorInfo ){
+                     _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+                        exec() ;
+                        return true ;
+                     } ) ;
                   } ) ;
                } ;
                exec() ;
@@ -2070,16 +2018,15 @@
                   data['splitendquery'] = JSON.stringify( splitendquery ) ;
                }
                var exec = function(){
-                  SdbRest.DataOperation( data, {
-                     'success': function( json ){
-                        _DataDatabaseIndex.getCSInfo( $scope, SdbRest ) ;
-                     },
-                     'failed': function( errorInfo ){
-                        _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                           exec() ;
-                           return true ;
-                        } ) ;
-                     }
+                  SdbRest.DataOperation( data, function( json ){
+                     _DataDatabaseIndex.getCSInfo( $scope, SdbRest ) ;
+                  }, function( errorInfo ){
+                     _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+                        exec() ;
+                        return true ;
+                     } ) ;
+                  }, function(){
+                     //_IndexPublic.createErrorModel( $scope, $scope.autoLanguage( '网络连接错误，请尝试按F5刷新浏览器。' ) ) ;
                   } ) ;
                } ;
                exec() ;
@@ -2133,16 +2080,15 @@
                var data = modalValue2CreateIndex( value ) ;
                data['cmd'] = 'create index' ;
                var exec = function(){
-                  SdbRest.DataOperation( data, {
-                     'success': function( json ){
-                        _DataDatabaseIndex.getCLInfo( $scope, SdbRest ) ;
-                     },
-                     'failed': function( errorInfo ){
-                        _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                           exec() ;
-                           return true ;
-                        } ) ;
-                     }
+                  SdbRest.DataOperation( data, function( json ){
+                     _DataDatabaseIndex.getCLInfo( $scope, SdbRest ) ;
+                  }, function( errorInfo ){
+                     _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+                        exec() ;
+                        return true ;
+                     } ) ;
+                  }, function(){
+                     //_IndexPublic.createErrorModel( $scope, $scope.autoLanguage( '网络连接错误，请尝试按F5刷新浏览器。' ) ) ;
                   } ) ;
                } ;
                exec() ;
@@ -2186,109 +2132,106 @@
             return false ;
          }    
          var data = { 'cmd': 'list indexes', 'collectionname': fullName } ;
-         SdbRest.DataOperation( data, {
-            'success': function( indexList ){
-               indexesInfoList = indexList ;
-               $.each( indexList, function( index, indexInfo ){
-                  indexValid.push( { 'key': indexInfo['IndexDef']['name'], 'value': index } ) ;
-               } ) ;
-               $scope.Components.Modal.form = {
-                  inputList: [
-                     {
-                        "name": "clName",
-                        "webName": $scope.autoLanguage( '集合' ),
-                        "type": "select",
-                        "value": clDefault,
-                        "valid": clValid,
-                        "onChange": function( name, key, value ){
-                           var data = { 'cmd': 'list indexes', 'collectionname': key } ;
-                           SdbRest.DataOperation( data, {
-                              'success': function( indexList ){
-                                 indexesInfoList = indexList ;
-                                 $scope.Components.Modal.indexList = indexesInfoList[0] ;
-                                 indexValid = [] ;
-                                 $.each( indexList, function( index, indexInfo ){
-                                    indexValid.push( { 'key': indexInfo['IndexDef']['name'], 'value': index } ) ;
-                                 } ) ;
-                                 $scope.Components.Modal.form['inputList'][1]['value'] = 0 ;
-                                 $scope.Components.Modal.form['inputList'][1]['valid'] = indexValid ;
-                              },
-                              'failed': function( errorInfo ){
-                                 _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                                    exec() ;
-                                    return true ;
-                                 } ) ;
-                              }
-                           } ) ;
-                        }
-                     },
-                     {
-                        "name": "indexName",
-                        "webName":  $scope.autoLanguage( '索引名' ),
-                        "type": "select",
-                        "value": 0,
-                        "valid": indexValid,
-                        "onChange": function( name, key, value ){
-                           $scope.Components.Modal.indexList = indexesInfoList[ value ] ;
-                        }
-                     }
-                  ]
-               } ;
-               $scope.Components.Modal.indexList = indexesInfoList[0] ;
-               $scope.Components.Modal.Context = '\
-         <div form-create para="data.form"></div>\
-         <table class="table loosen border" ng-if="data.indexList">\
-         <tr>\
-         <td style="width:40%;background-color:#F1F4F5;"><b>Key</b></td>\
-         <td style="width:60%;background-color:#F1F4F5;"><b>Value</b></td>\
-         </tr>\
-         <tr>\
-         <td>Name</td>\
-         <td>{{data.indexList.IndexDef.name}}</td>\
-         </tr>\
-         <tr ng-repeat="(key, value) in data.indexList.IndexDef track by $index" ng-if="key != \'name\'&&key != \'_id\'">\
-         <td>{{key}}</td>\
-         <td>{{value}}</td>\
-         </tr>\
-         <tr>\
-         <td>IndexFlag</td>\
-         <td>{{data.indexList.IndexFlag}}</td>\
-         </tr>\
-         </table>' ;
-               $scope.Components.Modal.isShow = true ;
-               $scope.Components.Modal.ok = function(){
-                  var isAllClear = $scope.Components.Modal.form.check() ;
-                  if( isAllClear )
+         SdbRest.DataOperation( data, function( indexList ){
+            indexesInfoList = indexList ;
+            $.each( indexList, function( index, indexInfo ){
+               indexValid.push( { 'key': indexInfo['IndexDef']['name'], 'value': index } ) ;
+            } ) ;
+            $scope.Components.Modal.form = {
+               inputList: [
                   {
-                     var value = $scope.Components.Modal.form.getValue() ;
-                     var data = { 'cmd': 'drop index' } ;
-                     data['collectionname'] = clValid[ value['clName'] ]['key'] ;
-                     data['indexname'] = indexValid[ value['indexName'] ]['key'] ;
-                     var exec = function(){
-                        SdbRest.DataOperation( data, {
-                           'success': function( json ){
-                              _DataDatabaseIndex.getCLInfo( $scope, SdbRest ) ;
-                           },
-                           'failed': function( errorInfo ){
-                              _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                                 exec() ;
-                                 return true ;
-                              } ) ;
-                           }
+                     "name": "clName",
+                     "webName": $scope.autoLanguage( '集合' ),
+                     "type": "select",
+                     "value": clDefault,
+                     "valid": clValid,
+                     "onChange": function( name, key, value ){
+                        var data = { 'cmd': 'list indexes', 'collectionname': key } ;
+                        SdbRest.DataOperation( data, function( indexList ){
+                           indexesInfoList = indexList ;
+                           $scope.Components.Modal.indexList = indexesInfoList[0] ;
+                           indexValid = [] ;
+                           $.each( indexList, function( index, indexInfo ){
+                              indexValid.push( { 'key': indexInfo['IndexDef']['name'], 'value': index } ) ;
+                           } ) ;
+                           $scope.Components.Modal.form['inputList'][1]['value'] = 0 ;
+                           $scope.Components.Modal.form['inputList'][1]['valid'] = indexValid ;
+                        }, function( errorInfo ){
+                           _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+                              exec() ;
+                              return true ;
+                           } ) ;
+                        }, function(){
+                           //_IndexPublic.createErrorModel( $scope, $scope.autoLanguage( '网络连接错误，请尝试按F5刷新浏览器。' ) ) ;
                         } ) ;
-                     } ;
-                     exec() ;
+                     }
+                  },
+                  {
+                     "name": "indexName",
+                     "webName":  $scope.autoLanguage( '索引名' ),
+                     "type": "select",
+                     "value": 0,
+                     "valid": indexValid,
+                     "onChange": function( name, key, value ){
+                        $scope.Components.Modal.indexList = indexesInfoList[ value ] ;
+                     }
                   }
-                  return isAllClear ;
-               }   
-               $scope.$apply() ;
-            },
-            'failed': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               ]
+            } ;
+            $scope.Components.Modal.indexList = indexesInfoList[0] ;
+            $scope.Components.Modal.Context = '\
+      <div form-create para="data.form"></div>\
+      <table class="table loosen border" ng-if="data.indexList">\
+      <tr>\
+      <td style="width:40%;background-color:#F1F4F5;"><b>Key</b></td>\
+      <td style="width:60%;background-color:#F1F4F5;"><b>Value</b></td>\
+      </tr>\
+      <tr>\
+      <td>Name</td>\
+      <td>{{data.indexList.IndexDef.name}}</td>\
+      </tr>\
+      <tr ng-repeat="(key, value) in data.indexList.IndexDef track by $index" ng-if="key != \'name\'&&key != \'_id\'">\
+      <td>{{key}}</td>\
+      <td>{{value}}</td>\
+      </tr>\
+      <tr>\
+      <td>IndexFlag</td>\
+      <td>{{data.indexList.IndexFlag}}</td>\
+      </tr>\
+      </table>' ;
+            $scope.Components.Modal.isShow = true ;
+            $scope.Components.Modal.ok = function(){
+               var isAllClear = $scope.Components.Modal.form.check() ;
+               if( isAllClear )
+               {
+                  var value = $scope.Components.Modal.form.getValue() ;
+                  var data = { 'cmd': 'drop index' } ;
+                  data['collectionname'] = clValid[ value['clName'] ]['key'] ;
+                  data['indexname'] = indexValid[ value['indexName'] ]['key'] ;
+                  var exec = function(){
+                     SdbRest.DataOperation( data, function( json ){
+                        _DataDatabaseIndex.getCLInfo( $scope, SdbRest ) ;
+                     }, function( errorInfo ){
+                        _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+                           exec() ;
+                           return true ;
+                        } ) ;
+                     }, function(){
+                        //_IndexPublic.createErrorModel( $scope, $scope.autoLanguage( '网络连接错误，请尝试按F5刷新浏览器。' ) ) ;
+                     } ) ;
+                  } ;
                   exec() ;
-                  return true ;
-               } ) ;
-            }
+               }
+               return isAllClear ;
+            }   
+            $scope.$apply() ;
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               exec() ;
+               return true ;
+            } ) ;
+         }, function(){
+            //_IndexPublic.createErrorModel( $scope, $scope.autoLanguage( '网络连接错误，请尝试按F5刷新浏览器。' ) ) ;
          } ) ;
       }
 
@@ -2296,60 +2239,59 @@
       $scope.showIndex = function( csIndex, clIndex ){
          var fullName = $scope.clList[clIndex]['csName'] + '.' + $scope.clList[clIndex]['Name'] ;
          var data = { 'cmd': 'list indexes', 'collectionname': fullName } ;
-         SdbRest.DataOperation( data, {
-            'success': function( indexList ){
-               var indexName = [] ; 
-               var indexContent = [] ;
-               $.each( indexList, function( index, indexInfo ){
-                  indexName.push( { 'key': indexInfo['IndexDef']['name'] , 'value': index } ) ;
-                  indexContent.push( indexInfo ) ;
-               } ) ;
-               $scope.Components.Modal.icon = '' ;
-               $scope.Components.Modal.title = $scope.autoLanguage( '索引信息' ) ;
-               $scope.Components.Modal.noOK = true ;
-               $scope.Components.Modal.isShow = true ;
-               $scope.Components.Modal.form = {
-                  inputList: [
-                     {
-                        "name": "index",
-                        "webName": $scope.autoLanguage( "索引名" ),
-                        "type": "select",
-                        "value":indexName[0]['value'] ,
-                        "valid": indexName,
-                        "onChange": function( name, key, value ){
-                           $scope.Components.Modal.indexList = indexContent[ value ] ;
-                        }
+         SdbRest.DataOperation( data, function( indexList ){
+            var indexName = [] ; 
+            var indexContent = [] ;
+            $.each( indexList, function( index, indexInfo ){
+               indexName.push( { 'key': indexInfo['IndexDef']['name'] , 'value': index } ) ;
+               indexContent.push( indexInfo ) ;
+            } ) ;
+            $scope.Components.Modal.icon = '' ;
+            $scope.Components.Modal.title = $scope.autoLanguage( '索引信息' ) ;
+            $scope.Components.Modal.noOK = true ;
+            $scope.Components.Modal.isShow = true ;
+            $scope.Components.Modal.form = {
+               inputList: [
+                  {
+                     "name": "index",
+                     "webName": $scope.autoLanguage( "索引名" ),
+                     "type": "select",
+                     "value":indexName[0]['value'] ,
+                     "valid": indexName,
+                     "onChange": function( name, key, value ){
+                        $scope.Components.Modal.indexList = indexContent[ value ] ;
                      }
-                  ]
-               } ;
-               $scope.Components.Modal.indexList = indexContent[0] ;
-               $scope.Components.Modal.Context = '\
-         <div form-create para="data.form"></div>\
-         <table class="table loosen border">\
-         <tr>\
-         <td style="width:40%;background-color:#F1F4F5;"><b>Key</b></td>\
-         <td style="width:60%;background-color:#F1F4F5;"><b>Value</b></td>\
-         </tr>\
-         <tr>\
-         <td>Name</td>\
-         <td>{{data.indexList.IndexDef.name}}</td>\
-         </tr>\
-         <tr ng-repeat="(key, value) in data.indexList.IndexDef track by $index" ng-if="key != \'name\'&&key != \'_id\'">\
-         <td>{{key}}</td>\
-         <td>{{value}}</td>\
-         </tr>\
-         <tr>\
-         <td>IndexFlag</td>\
-         <td>{{data.indexList.IndexFlag}}</td>\
-         </tr>\
-         </table>' ;
-            },
-            'failed': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  exec() ;
-                  return true ;
-               }, $scope.autoLanguage( '获取索引信息失败' ) ) ;
-            }
+                  }
+               ]
+            } ;
+            $scope.Components.Modal.indexList = indexContent[0] ;
+            $scope.Components.Modal.Context = '\
+      <div form-create para="data.form"></div>\
+      <table class="table loosen border">\
+      <tr>\
+      <td style="width:40%;background-color:#F1F4F5;"><b>Key</b></td>\
+      <td style="width:60%;background-color:#F1F4F5;"><b>Value</b></td>\
+      </tr>\
+      <tr>\
+      <td>Name</td>\
+      <td>{{data.indexList.IndexDef.name}}</td>\
+      </tr>\
+      <tr ng-repeat="(key, value) in data.indexList.IndexDef track by $index" ng-if="key != \'name\'&&key != \'_id\'">\
+      <td>{{key}}</td>\
+      <td>{{value}}</td>\
+      </tr>\
+      <tr>\
+      <td>IndexFlag</td>\
+      <td>{{data.indexList.IndexFlag}}</td>\
+      </tr>\
+      </table>' ;
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               exec() ;
+               return true ;
+            }, $scope.autoLanguage( '获取索引信息失败' ) ) ;
+         }, function(){
+            //_IndexPublic.createErrorModel( $scope, $scope.autoLanguage( '网络连接错误，请尝试按F5刷新浏览器。' ) ) ;
          } ) ;
       }
 

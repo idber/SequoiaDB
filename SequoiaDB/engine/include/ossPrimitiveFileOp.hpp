@@ -64,10 +64,10 @@
    #define oss_ftruncate      ftruncate64
    #define oss_off_t          off64_t
    #define oss_close          close
+   #define oss_access         access
    #define oss_chmod          chmod
    #define oss_read           read
    #define oss_write          write
-   #define oss_access         access
 #elif defined (_WINDOWS)
    #define oss_struct_stat    struct _stati64
    #define oss_stat           _stati64
@@ -80,7 +80,7 @@
    #define oss_read           _read
    #define oss_write          _write
    #define oss_off_t          INT64
-   #define oss_access         _access
+   int oss_access( const char *path, int mode ) ;
 #endif
 
 #define OSS_PRIMITIVE_FILE_OP_FWRITE_BUF_SIZE 2048
@@ -126,7 +126,6 @@ private :
    ossPrimitiveFileOp( const ossPrimitiveFileOp & ) {}
    const ossPrimitiveFileOp &operator=( const ossPrimitiveFileOp & ) ;
    BOOLEAN _bIsStdout ;
-   CHAR    _fileName[ OSS_MAX_PATHSIZE + 1 ] ;
 
 protected :
    void setFileHandle( handleType handle ) ;
@@ -147,8 +146,7 @@ public :
 
    void Close() ;
 
-   BOOLEAN isValid() const ;
-   BOOLEAN isExist() const ;
+   BOOLEAN isValid( void ) ;
 
    int Read( const size_t size, void * const pBuf, int * const pBytesRead ) ;
 

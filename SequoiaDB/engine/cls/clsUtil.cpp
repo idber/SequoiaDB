@@ -47,6 +47,16 @@ using namespace std ;
 namespace engine
 {
 
+   void clsStrcpy( const CHAR *src, CHAR *dst, const UINT32 &dstLen )
+   {
+      UINT32 strLen = ossStrlen( src ) ;
+      UINT32 cpLen = strLen < dstLen - 1 ?
+                     strLen : dstLen - 1;
+      ossMemcpy( dst, src, cpLen ) ;
+      dst[cpLen] = '\0' ;
+      return ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSSYNCWIN, "clsSyncWindow" )
    CLS_SYNC_STATUS clsSyncWindow( const DPS_LSN &remoteLsn,
                                   const DPS_LSN &fileBeginLsn,
@@ -86,6 +96,18 @@ namespace engine
    done:
       PD_TRACE_EXIT ( SDB_CLSSYNCWIN ) ;
       return status ;
+   }
+
+   void clsJoin2Full( const CHAR *cs, const CHAR *collection,
+                      CHAR *full )
+   {
+      UINT32 csLen = ossStrlen( cs ) ;
+      UINT32 clLen = ossStrlen( collection ) ;
+      ossMemcpy( full, cs, csLen ) ;
+      full[csLen] = '.' ;
+      ossMemcpy( full + csLen + 1, collection, clLen ) ;
+      full[csLen+clLen+1] = '\0' ;
+      return ;
    }
 
    #define CLS_SYNC_NONE_STR           "None"

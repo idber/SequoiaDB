@@ -35,27 +35,19 @@
 
 #include "coordCB.hpp"
 #include "rtnContext.hpp"
+#include "rtnSessionProperty.hpp"
 #include "../bson/bson.h"
-#include <vector>
-#include <map>
-#include <queue>
-#include <string>
-#include <set>
 
 using namespace bson ;
 
 namespace engine
 {
-   typedef std::queue<CHAR *>                         REPLY_QUE ;
-   typedef std::map< UINT64, INT32 >                  ROUTE_RC_MAP ;
-   typedef std::map< UINT64, MsgHeader* >             ROUTE_REPLY_MAP ;
-   typedef std::map< UINT32, netIOVec >               GROUP_2_IOVEC ;
-   typedef std::set< INT32 >                          SET_RC ;
 
    INT32 rtnCoordGetReply ( pmdEDUCB *cb, REQUESTID_MAP &requestIdMap,
                             REPLY_QUE &replyQue, const SINT32 opCode,
                             BOOLEAN isWaitAll = TRUE,
-                            BOOLEAN clearReplyIfFailed = TRUE ) ;
+                            BOOLEAN clearReplyIfFailed = TRUE,
+                            BOOLEAN needTimeout = TRUE ) ;
 
    INT32 rtnCoordCataQuery ( const CHAR *pCollectionName,
                              const bson::BSONObj &selector,
@@ -66,7 +58,8 @@ namespace engine
                              pmdEDUCB *cb,
                              SINT64 numToSkip,
                              SINT64 numToReturn,
-                             SINT64 &contextID );
+                             SINT64 &contextID,
+                             rtnContextBuf *buf = NULL );
 
    INT32 getServiceName ( bson::BSONElement &beService,
                           INT32 serviceType,
@@ -82,7 +75,8 @@ namespace engine
                              pmdEDUCB *cb,
                              rtnContext **ppContext,
                              const CHAR *realCLName = NULL,
-                             INT32 flag = 0 ) ;
+                             INT32 flag = 0,
+                             rtnContextBuf *pBuf = NULL ) ;
 
    INT32 rtnCoordGetCataInfo( pmdEDUCB *cb,
                               const CHAR *pCollectionName,
@@ -280,8 +274,6 @@ namespace engine
    INT32 rtnCoordGetRemoteCataGroupInfoByAddr ( pmdEDUCB *cb,
                                                 CoordGroupInfoPtr &groupInfo ) ;
 
-   /// if only want to get groupinfo by groupid,
-   /// set groupName = NULL.
    INT32 rtnCoordGetRemoteGroupInfo ( pmdEDUCB *cb,
                                       UINT32 groupID,
                                       const CHAR *groupName,
@@ -304,13 +296,17 @@ namespace engine
 
    INT32 rtnCoordGetRemoteCata( pmdEDUCB *cb,
                                 const CHAR *pCollectionName,
-                                CoordCataInfoPtr &cataInfo ) ;
+                                CoordCataInfoPtr &cataInfo,
+                                BOOLEAN withSubCL = FALSE ) ;
 
    /*
-      will update node stat by reply flag
+      will update collection stat by reply flag
    */
    INT32 rtnCoordProcessQueryCatReply ( MsgCatQueryCatRsp *pReply,
+                                        const CHAR *pCollectionName,
                                         CoordCataInfoPtr &cataInfo ) ;
+   INT32 rtnCoordProcessCatInfoObj ( const BSONObj &boCataInfo,
+                                     CoordCataInfoPtr &cataInfo ) ;
 
    /*
       will update node stat by reply flag
@@ -324,7 +320,8 @@ namespace engine
 
    INT32 rtnCoordReadALine( const CHAR *&pInput, CHAR *pOutput );
 
-   void rtnCoordClearRequest( pmdEDUCB *cb, REQUESTID_MAP &sendNodes );
+   void rtnCoordClearRequest( pmdEDUCB *cb, REQUESTID_MAP &sendNodes,
+                              BOOLEAN interrupt = FALSE ) ;
 
    INT32 rtnCoordGetSubCLsByGroups( const CoordSubCLlist &subCLList,
                                     const CoordGroupList &sendGroupList,
@@ -383,15 +380,20 @@ namespace engine
                                 CoordGroupList &groupList, ROUTE_SET &nodes,
                                 BSONObj *pNewObj = NULL ) ;
 
-   void  rtnCoordGetNodePos( INT32 preferReplicaType,
-                             clsGroupItem *groupItem,
-                             UINT32 random,
-                             UINT32 &pos ) ;
+   typedef _utilArray< UINT8, CLS_REPLSET_MAX_NODE_SIZE > RTN_COORD_POS_ARRAY ;
+   typedef _utilList< UINT8, CLS_REPLSET_MAX_NODE_SIZE > RTN_COORD_POS_LIST ;
 
-   void  rtnCoordGetNextNode( INT32 preferReplicaType,
-                              clsGroupItem *groupItem,
-                              UINT32 &selTimes,
-                              UINT32 &curPos ) ;
+   void  rtnCoordGetNodePos ( clsGroupItem * pGroupItem,
+                              const rtnInstanceOption & instanceOption,
+                              UINT32 random,
+                              UINT32 & pos,
+                              RTN_COORD_POS_LIST & selectedPositions ) ;
+
+   void  rtnCoordGetNextNode ( clsGroupItem * pGroupItem,
+                               RTN_COORD_POS_LIST & selectedPositions,
+                               const rtnInstanceOption & instanceOption,
+                               UINT32 & selTimes,
+                               UINT32 & curPos ) ;
 
    void rtnCoordUpdateNodeStatByRC( pmdEDUCB *cb,
                                     const MsgRouteID &routeID,
@@ -418,6 +420,8 @@ namespace engine
                                    BOOLEAN *pUpdate = NULL,
                                    BOOLEAN canUpdate = TRUE ) ;
 
+   BOOLEAN rtnCoordCataCheckFlag( INT32 flag ) ;
+
    INT32 rtnCataChangeNtyToAllNodes( pmdEDUCB *cb ) ;
 
    #define RTN_CTRL_MASK_GLOBAL           0x00000001
@@ -437,16 +441,39 @@ namespace engine
 
       UINT32            _parseMask ;
 
+      /*
+         Specila group and nodes
+      */
+      CoordGroupList    _specialGrps ;
+      BOOLEAN           _useSpecialGrp ;
+      ROUTE_SET         _specialNodes ;
+      BOOLEAN           _useSpecialNode ;
+
       _rtnCoordCtrlParam()
       {
          _isGlobal = TRUE ;
          _filterID = FILTER_ID_MATCHER ;
          _emptyFilterSel = NODE_SEL_ALL ;
-         ossMemset( &_role, 0, sizeof( _role ) ) ;
+         ossMemset( (void*)_role, 0, sizeof( _role ) ) ;
          _role[ SDB_ROLE_DATA ] = 1 ;
          _role[ SDB_ROLE_CATALOG ] = 1 ;
          _rawData = FALSE ;
          _parseMask = 0 ;
+
+         _useSpecialGrp = FALSE ;
+         _useSpecialNode = FALSE ;
+      }
+
+      void resetRole()
+      {
+         ossMemset( (void*)_role, 0, sizeof( _role ) ) ;
+      }
+      void setAllRole()
+      {
+         for ( INT32 i = 0 ; i < SDB_ROLE_MAX ; ++i )
+         {
+            _role[ i ] = 1 ;
+         }
       }
    } ;
    typedef _rtnCoordCtrlParam rtnCoordCtrlParam ;
@@ -457,6 +484,13 @@ namespace engine
                                     BSONObj *pNewObj = NULL ) ;
 
    BOOLEAN rtnCoordCanRetry( UINT32 retryTimes ) ;
+
+   void  rtnBuildFailedNodeReply( ROUTE_RC_MAP &failedNodes,
+                                  BSONObjBuilder &builder ) ;
+
+   BSONObj rtnBuildErrorObj( INT32 &flag,
+                             pmdEDUCB *cb,
+                             ROUTE_RC_MAP *pFailedNodes = NULL ) ;
 
 }
 

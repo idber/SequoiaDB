@@ -61,7 +61,6 @@ namespace engine
 
 #define DMS_PAGE_SIZE_DFT      DMS_PAGE_SIZE64K
 #define DMS_PAGE_SIZE_MAX      DMS_PAGE_SIZE64K
-#define DMS_PAGE_SIZE_BASE     DMS_PAGE_SIZE4K
 
 #define DMS_DEFAULT_LOB_PAGE_SZ  DMS_PAGE_SIZE256K
 #define DMS_DO_NOT_CREATE_LOB    0
@@ -93,7 +92,6 @@ namespace engine
 #define DMS_INVALID_MBID            65535
 #define DMS_INVALID_PAGESIZE        0
 #define DMS_INVALID_LOGICCSID       0xffffffff
-#define DMS_INVALID_LOGICCLID       0xffffffff
 
 #define DMS_DATA_SU_EXT_NAME        "data"
 #define DMS_INDEX_SU_EXT_NAME       "idx"
@@ -104,9 +102,6 @@ namespace engine
 #define DMS_TEMP_NAME_PATTERN       "%s%04d"
 
 #define DMS_INDEX_SORT_BUFFER_MIN_SIZE     32
-
-#define DMS_CAP_EXTENT_SZ           (32 * 1024 * 1024)
-#define DMS_CAP_EXTENT_BODY_SZ      ( DMS_CAP_EXTENT_SZ - DMS_EXTENT_METADATA_SZ )
 
    /*
       DMS TOOL FUNCTIONS:
@@ -122,8 +117,7 @@ namespace engine
       DMS_ACCESS_TYPE_TRUNCATE,
       DMS_ACCESS_TYPE_CRT_INDEX,
       DMS_ACCESS_TYPE_DROP_INDEX,
-      DMS_ACCESS_TYPE_CRT_DICT,
-      DMS_ACCESS_TYPE_POP
+      DMS_ACCESS_TYPE_CRT_DICT
    } ;
    typedef enum _DMS_ACCESS_TYPE DMS_ACCESS_TYPE ;
 
@@ -213,13 +207,6 @@ namespace engine
       DMS_FILE_DATA     = 1,
       DMS_FILE_IDX,
       DMS_FILE_LOB
-   } ;
-
-   enum DMS_STORAGE_TYPE
-   {
-      DMS_STORAGE_NORMAL = 0,
-      DMS_STORAGE_CAPPED,
-      DMS_STORAGE_DUMMY
    } ;
 
    BOOLEAN  dmsIsSysCSName ( const CHAR *collectionSpaceName ) ;

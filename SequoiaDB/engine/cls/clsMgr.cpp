@@ -45,7 +45,7 @@
 #include "clsTrace.hpp"
 #include "dpsOp2Record.hpp"
 #include "pmdStartup.hpp"
-#include "clsRegAssit.hpp"
+#include "utilCommon.hpp"
 
 using namespace bson ;
 
@@ -455,8 +455,8 @@ namespace engine
    BEGIN_OBJ_MSG_MAP( _clsMgr, _pmdObjBase )
       ON_MSG ( MSG_CAT_REG_RES, _onCatRegisterRes )
       ON_MSG ( MSG_CAT_QUERY_TASK_RSP, _onCatQueryTaskRes )
-      ON_EVENT( PMD_EDU_EVENT_STEP_DOWN, _onStepDown )
-      ON_EVENT( PMD_EDU_EVENT_STEP_UP, _onStepUp )
+      ON_EVENT( PMD_EDU_EVENT_STEP_DOWN, _onStepDown )      
+      ON_EVENT( PMD_EDU_EVENT_STEP_UP, _onStepUp )      
    END_OBJ_MSG_MAP()
 
    _clsMgr::_clsMgr ()
@@ -726,9 +726,14 @@ namespace engine
          goto error ;
       }
 
+      if ( regSys )
+      {
+         pEDUMgr->regSystemEDU( (EDU_TYPES)type, eduID ) ;
+      }
+
       if ( PMD_EDU_UNKNOW != waitStatus )
       {
-         rc = pEDUMgr->waitUntil( eduID, waitStatus ) ;
+         rc = pEDUMgr->waitUntil( (EDU_TYPES)type, waitStatus ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "Failed to wait EDU[type:%d(%s)] to "
@@ -860,39 +865,6 @@ namespace engine
       return _shdObj.clearAllData () ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR_INVALIDCACHE, "_clsMgr::invalidateCache" )
-   INT32 _clsMgr::invalidateCache ( const CHAR * name, UINT8 type )
-   {
-      INT32 rc = SDB_CLS_NOT_PRIMARY ;
-
-      PD_TRACE_ENTRY ( SDB__CLSMGR_INVALIDCACHE );
-
-      if ( isPrimary() )
-      {
-         SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
-         dpsMergeInfo info ;
-         info.setInfoEx( ~0, ~0, DMS_INVALID_EXTENT, NULL ) ;
-         dpsLogRecord &record = info.getMergeBlock().record() ;
-         rc = dpsInvalidCata2Record( type, name, NULL, record ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "failed to build invalid-cata log:%d",rc ) ;
-            goto error ;
-         }
-         rc = dpsCB->prepare(info ) ;
-         if ( SDB_OK == rc )
-         {
-            dpsCB->writeData( info ) ;
-         }
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB__CLSMGR_INVALIDCACHE, rc );
-      return rc ;
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR_INVDATACAT, "_clsMgr::invalidateCata" )
    INT32 _clsMgr::invalidateCata( const CHAR * name )
    {
@@ -905,8 +877,7 @@ namespace engine
          dpsMergeInfo info ;
          info.setInfoEx( ~0, ~0, DMS_INVALID_EXTENT, NULL ) ;
          dpsLogRecord &record = info.getMergeBlock().record() ;
-         UINT8 type = DPS_LOG_INVALIDCATA_TYPE_CATA ;
-         rc = dpsInvalidCata2Record( type, name, NULL, record ) ;
+         rc = dpsInvalidCata2Record( name, record ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to build invalid-cata log:%d",rc ) ;
@@ -922,63 +893,6 @@ namespace engine
    done:
       PD_TRACE_EXITRC ( SDB__CLSMGR_INVDATACAT, rc );
       return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR_INVALIDSTAT, "_clsMgr::invalidateStatistics" )
-   INT32 _clsMgr::invalidateStatistics ()
-   {
-      INT32 rc = SDB_CLS_NOT_PRIMARY ;
-
-      PD_TRACE_ENTRY( SDB__CLSMGR_INVALIDSTAT ) ;
-
-      if ( isPrimary() &&
-           SDB_ROLE_DATA == pmdGetDBRole() )
-      {
-         SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
-         rc = rtnAnalyzeDpsLog( NULL, NULL, NULL, dpsCB ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to write analyze log, rc: %d", rc ) ;
-      }
-
-   done :
-      PD_TRACE_EXITRC( SDB__CLSMGR_INVALIDSTAT, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR_INVALIDPLAN, "_clsMgr::invalidatePlan" )
-   INT32 _clsMgr::invalidatePlan( const CHAR * name )
-   {
-      INT32 rc = SDB_CLS_NOT_PRIMARY ;
-
-      PD_TRACE_ENTRY ( SDB__CLSMGR_INVALIDPLAN );
-
-      if ( isPrimary() )
-      {
-         SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
-         dpsMergeInfo info ;
-         info.setInfoEx( ~0, ~0, DMS_INVALID_EXTENT, NULL ) ;
-         dpsLogRecord &record = info.getMergeBlock().record() ;
-         UINT8 type = DPS_LOG_INVALIDCATA_TYPE_PLAN ;
-         rc = dpsInvalidCata2Record( type, name, NULL, record ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "failed to build invalid-cata log:%d",rc ) ;
-            goto error ;
-         }
-         rc = dpsCB->prepare(info ) ;
-         if ( SDB_OK == rc )
-         {
-            dpsCB->writeData( info ) ;
-         }
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB__CLSMGR_INVALIDPLAN, rc );
-      return rc ;
-
    error:
       goto done ;
    }
@@ -1320,15 +1234,81 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSMGR__SNDREGMSG );
-      clsRegAssit regAssit ;
-      UINT32 length = 0 ;
-      CHAR *buff = NULL ;
+      pmdKRCB *pKRCB = pmdGetKRCB () ;
+      BSONObjBuilder bsonBuilder ;
+      const CHAR* hostName = pmdGetKRCB()->getHostName() ;
+
+      bsonBuilder.append ( CAT_TYPE_FIELD_NAME,  (INT32)(pKRCB->getDBRole()) ) ;
+      bsonBuilder.append ( CAT_HOST_FIELD_NAME, hostName ) ;
+      bsonBuilder.append ( PMD_OPTION_DBPATH, pKRCB->getDBPath() ) ;
+
+      if ( utilCheckInstanceID( pKRCB->getOptionCB()->getInstanceID(), FALSE ) )
+      {
+         bsonBuilder.append ( PMD_OPTION_INSTANCE_ID,
+                              pKRCB->getOptionCB()->getInstanceID() ) ;
+      }
+
+      BSONArrayBuilder subServiceBuild( bsonBuilder.subarrayStart(
+         CAT_SERVICE_FIELD_NAME ) ) ;
+
+      BSONObjBuilder subLocalBuild( subServiceBuild.subobjStart() ) ;
+      subLocalBuild.append ( CAT_SERVICE_TYPE_FIELD_NAME ,
+                            (INT32)MSG_ROUTE_LOCAL_SERVICE ) ;
+      subLocalBuild.append ( CAT_SERVICE_NAME_FIELD_NAME,
+                            pKRCB->getSvcname() ) ;
+      subLocalBuild.done() ;
+
+      BSONObjBuilder subReplBuild( subServiceBuild.subobjStart() ) ;
+      subReplBuild.append ( CAT_SERVICE_TYPE_FIELD_NAME ,
+                            (INT32)_replServiceID ) ;
+      subReplBuild.append ( CAT_SERVICE_NAME_FIELD_NAME,
+                            _replServiceName ) ;
+      subReplBuild.done() ;
+
+      BSONObjBuilder subShdBuild( subServiceBuild.subobjStart() ) ;
+      subShdBuild.append ( CAT_SERVICE_TYPE_FIELD_NAME ,
+                           (INT32)_shardServiceID) ;
+      subShdBuild.append ( CAT_SERVICE_NAME_FIELD_NAME,
+                           _shdServiceName) ;
+      subShdBuild.done() ;
+
+      BSONObjBuilder subCataBuild( subServiceBuild.subobjStart() ) ;
+      subCataBuild.append ( CAT_SERVICE_TYPE_FIELD_NAME ,
+                            (INT32)MSG_ROUTE_CAT_SERVICE ) ;
+      subCataBuild.append ( CAT_SERVICE_NAME_FIELD_NAME,
+                            pKRCB->getOptionCB()->catService() ) ;
+      subCataBuild.done() ;
+
+      subServiceBuild.done() ;
+
+      ossIPInfo ipInfo ;
+      if ( ipInfo.getIPNum() > 0 )
+      {
+         BSONArrayBuilder subIPBuild( bsonBuilder.subarrayStart(
+            CAT_IP_FIELD_NAME ) ) ;
+
+         ossIP* ip = ipInfo.getIPs() ;
+         for ( INT32 i = ipInfo.getIPNum(); i > 0; i-- )
+         {
+            if (0 != ossStrncmp( ip->ipAddr, OSS_LOOPBACK_IP,
+                                 ossStrlen(OSS_LOOPBACK_IP)) )
+            {
+               subIPBuild.append( ip->ipAddr ) ;
+            }
+            ip++ ;
+         }
+
+         subIPBuild.append( OSS_LOOPBACK_IP ) ;
+         subIPBuild.append( OSS_LOCALHOST ) ;
+
+         subIPBuild.done() ;
+      }
+
+      BSONObj regObj = bsonBuilder.obj () ;
+      UINT32 length = regObj.objsize () + sizeof ( MsgCatRegisterReq ) ;
+      CHAR * buff = (CHAR *)SDB_OSS_MALLOC ( length ) ;
       MsgCatRegisterReq *pReq = NULL ;
 
-      BSONObj regObj = regAssit.buildRequestObj () ;
-      length = regObj.objsize () + sizeof ( MsgCatRegisterReq ) ;
-
-      buff = (CHAR *)SDB_OSS_MALLOC ( length ) ;
       if ( buff == NULL )
       {
          PD_LOG ( PDERROR, "Failed to allocate memroy for register req" ) ;
@@ -1405,11 +1385,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSMGR__ONCATREGRES );
-      UINT32 groupID = INVALID_GROUPID ;
-      UINT16 nodeID = INVALID_NODEID ;
-      const CHAR *hostname = NULL ;
-      NodeID routeID ;
-      clsRegAssit regAssit ;
+      NodeID nodeID ;
 
       if ( _regTimerID == CLS_INVALID_TIMERID )
       {
@@ -1428,42 +1404,50 @@ namespace engine
          goto error ;
       }
 
-      rc = regAssit.extractResponseMsg ( msg ) ;
-      PD_RC_CHECK( rc, PDERROR, "Node register response error, rc: %d", rc ) ;
-      groupID = regAssit.getGroupID () ;
-      nodeID = regAssit.getNodeID () ;
-      hostname = regAssit.getHostname () ;
-
-      killTimer ( _regTimerID ) ;
-      _regTimerID = CLS_INVALID_TIMERID ;
-      _regFailedTimes = 0 ;
-
-      _selfNodeID.columns.groupID = groupID ;
-      _selfNodeID.columns.nodeID = nodeID ;
-      _shdObj.setNodeID( _selfNodeID ) ;
-      PD_LOG ( PDEVENT, "Register succeed, groupID:%u, nodeID:%u",
-               _selfNodeID.columns.groupID,
-               _selfNodeID.columns.nodeID ) ;
-
-      /*
-       * The node can be created by hostname or ip,
-       * so the actual 'HostName' maybe current host's name or ip address.
-       * Here we ensure the KRCB's HostName is consistent with catalog.
-       */
-      pmdGetKRCB()->setHostName( hostname ) ;
-
       {
-         BSONObj msgObject ( MSG_GET_INNER_REPLY_DATA( msg ) ) ;
+         BSONObj object ( MSG_GET_INNER_REPLY_DATA(msg) ) ;
+         BSONElement gidEl = object.getField ( CAT_GROUPID_NAME ) ;
+         BSONElement nidEl = object.getField ( CAT_NODEID_NAME ) ;
+
+         if ( gidEl.type() != NumberInt || nidEl.type() != NumberInt )
+         {
+            rc = SDB_SYS ;
+            PD_LOG ( PDERROR, "Node register response error" ) ;
+            goto error ;
+         }
+
+         killTimer ( _regTimerID ) ;
+         _regTimerID = CLS_INVALID_TIMERID ;
+         _regFailedTimes = 0 ;
+
+         _selfNodeID.columns.groupID = (UINT32)gidEl.Int () ;
+         _selfNodeID.columns.nodeID = (UINT32)nidEl.Int () ;
+         _shdObj.setNodeID( _selfNodeID ) ;
+         PD_LOG ( PDEVENT, "Register succeed, groupID:%u, nodeID:%u",
+                  _selfNodeID.columns.groupID,
+                  _selfNodeID.columns.nodeID ) ;
+
+         BSONElement hostEle = object.getField ( CAT_HOST_FIELD_NAME ) ;
+         if ( hostEle.type() == String )
+         {
+            /*
+             * The node can be created by hostname or ip,
+             * so the actual 'HostName' maybe current host's name or ip address.
+             * Here we ensure the KRCB's HostName is consistent with catalog.
+             */
+            pmdGetKRCB()->setHostName( hostEle.String().c_str() ) ;
+         }
+
          if ( msgIsInnerOpReply( msg ) &&
               msg->messageLength > (INT32)sizeof( MsgOpReply ) +
-              msgObject.objsize() + 5 )
+              object.objsize() + 5 )
          {
             MsgOpReply *pReply = ( MsgOpReply* )msg ;
             if ( pReply->numReturned > 1 )
             {
                clsDCBaseInfo *pInfo = _shdObj.getDCMgr()->getDCBaseInfo() ;
                BSONObj objDCInfo( ( const CHAR* )msg + sizeof( MsgOpReply ) +
-                                  ossAlign4( (UINT32)msgObject.objsize() ) ) ;
+                                  ossAlign4( (UINT32)object.objsize() ) ) ;
                _shdObj.getDCMgr()->updateDCBaseInfo( objDCInfo ) ;
 
                pmdGetKRCB()->setDBReadonly( pInfo->isReadonly() ) ;
@@ -1472,11 +1456,11 @@ namespace engine
          }
       }
 
-      routeID.value = _selfNodeID.value ;
-      routeID.columns.serviceID = _replServiceID ;
-      _replNetRtAgent.setLocalID ( routeID ) ;
-      routeID.columns.serviceID = _shardServiceID ;
-      _shardNetRtAgent.setLocalID ( routeID ) ;
+      nodeID.value = _selfNodeID.value ;
+      nodeID.columns.serviceID = _replServiceID ;
+      _replNetRtAgent.setLocalID ( nodeID ) ;
+      nodeID.columns.serviceID = _shardServiceID ;
+      _shardNetRtAgent.setLocalID ( nodeID ) ;
 
       pmdSetNodeID( _selfNodeID ) ;
 

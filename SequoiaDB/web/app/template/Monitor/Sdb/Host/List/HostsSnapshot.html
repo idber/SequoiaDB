@@ -22,19 +22,11 @@
          </ul>
       </div>
       <div style="color:#606060;font-size:90%;height:30px;margin:10px 0;">
-         <button class="btn btn-default" ng-click="OpenBrushWindows()">
-            <span>{{sprintf(autoLanguage("刷新间隔： ? 秒"), IntervalTimeConfig.interval)}}</span>
-         </button>&nbsp;
-         <button class="btn btn-default" ng-click="RefreshCtrl()">{{RefreshType}}</button>&nbsp;
+         <button class="topBtn" ng-click="OpenBrushWindows()">{{autoLanguage("实时刷新设置")}}</button>&nbsp;
          <button class="topBtn" ng-click="OpenShowFieldDropdown($event)">{{autoLanguage("选择显示列")}}&nbsp;<i class="fa fa-caret-down"></i></button>
-         <button class="btn btn-default" ng-click="OpenModeDropdown($event)">
-            <span ng-if="ShowType == 'full'">{{autoLanguage("全量模式")}}</span><span ng-if="ShowType == 'inc'">{{autoLanguage("增量模式")}}</span><span ng-if="ShowType == 'avg'">{{autoLanguage("均量模式")}}</span>&nbsp;<i class="fa fa-caret-down"></i>
-         </button>
          <div ng-dropdown="config in FieldDropdown.config" dropdown-callback="FieldDropdown.callback">
-            <label class="Ellipsis" style="padding:5px 10px;display:block;" ng-click="SaveField()"><input type="checkbox" ng-model="config.show" />&nbsp;{{config.field}}</label>
-         </div>
-         <div ng-dropdown="config in modeDropdown.config" dropdown-event="modeDropdown.event" dropdown-callback="modeDropdown.callback">
-            <label class="Ellipsis" style="padding:5px 10px;display:block;" ng-click="modeDropdown.OnClick($index)"><input type="radio" ng-checked="config.checked" />&nbsp;{{config.key}}</label>
+            <label class="Ellipsis" style="padding:5px 10px;display:block;"><input type="checkbox" ng-model="config.show" />&nbsp;{{config.field}}</label>
+            <button class="btn btn-primary" style="width:100%;" dropdown-config="last" ng-click="SaveField()">{{autoLanguage("确定")}}</button>
          </div>
       </div>
 
@@ -52,50 +44,40 @@
          <div class="Ellipsis" table-key="HostName">
             <a class="linkButton" ng-click="GotoHost(hostInfo['HostName'])">{{hostInfo['HostName']}}</a>
          </div>
-         <div class="Ellipsis" table-key="IP">
-            <span>{{hostInfo['IP']}}</span>
+         <div class="Ellipsis" table-key="IP">{{hostInfo['IP']}}</div>
+         <div class="Ellipsis" table-key="CPUUsed">
+            <span ng-style="{'1':{'color':'#D9534F','font-weight':'bold'},'-1':{'color':'#00CC66','font-weight':'bold'},'0':{'color':'#000','font-weight':'normal'}}[hostInfo['CPUUsed'] == LastValue[hostInfo['i']]['CPUUsed'] ? '0' : (hostInfo['CPUUsed'] > LastValue[hostInfo['i']]['CPUUsed'] ? '1' : '-1' )]">
+               {{hostInfo['CPUUsed']}}<span ng-if="hostInfo['CPUUsed'] != '-'">%</span>
+            </span>
          </div>
-         <div class="Ellipsis" table-key="$auto">
-            <span ng-style="{'1':{'color':'#D9534F','font-weight':'bold'},'-1':{'color':'#00CC66','font-weight':'bold'},'0':{'color':'#000','font-weight':'normal'}}[$autoValue == LastValue[hostInfo['i']].$auto ? '0' : ( $autoValue > LastValue[hostInfo['i']].$auto ? '1' : '-1' )]">
-               <!--全量模式-->
-               <span table-if="ShowType == 'full' || $autoValue == '-' || LastValue[groupInfo['i']].$auto == '-'">
-                  <span table-if="'$auto' == 'CPUUsed' || '$auto' == 'DiskPer' || '$auto' == 'MemoryPer'">
-                     {{$autoValue}}<span table-if="$autoValue != '-'">%</span>
-                  </span>
-                  <span table-if="'$auto' == 'NetInValue'">
-                     {{hostInfo['NetInValue']}}<span table-if="hostInfo['NetInValue'] != '-'">MB</span>
-                  </span>
-                  <span table-if="'$auto' == 'NetOutValue'">
-                     {{hostInfo['NetOutValue']}}<span table-if="hostInfo['NetOutValue'] != '-'">MB</span>
-                  </span>
-                  <span table-if="'$auto' != 'CPUUsed' && '$auto' != 'DiskPer' && '$auto' != 'MemoryPer' && '$auto' != 'NetInValue' && '$auto' != 'NetOutValue'">{{$autoValue}}</span>
-               </span>
-               <!--增量模式-->
-               <span table-if="ShowType == 'inc' && $autoValue != '-' && LastValue[groupInfo['i']].$auto != '-'">
-                  <span table-if="'$auto' == 'CPUUsed' || '$auto' == 'DiskPer' || '$auto' == 'MemoryPer'">
-                     {{fixedNumber( $autoValue - LastValue[hostInfo['i']].$auto, 2 )}}<span table-if="$autoValue != '-'">%</span>
-                  </span>
-                  <span table-if="'$auto' == 'NetInValue' || '$auto' == 'NetOutValue'">
-                     {{fixedNumber( $autoValue - LastValue[hostInfo['i']].$auto, 2 )}}<span table-if="$autoValue != '-'">MB</span>
-                  </span>
-                  <span table-if="'$auto' == 'NetInPackets' || '$auto' == 'NetOutPackets'">
-                     {{$autoValue - LastValue[hostInfo['i']].$auto}}
-                  </span>
-                  <span table-if="'$auto' == 'Memory' || '$auto' == 'Disk'">{{$autoValue}}</span>
-               </span>
-               <!--均量模式-->
-               <span table-if="ShowType == 'avg' && $autoValue != '-' && LastValue[groupInfo['i']].$auto != '-'">
-                  <span table-if="'$auto' == 'CPUUsed' || '$auto' == 'DiskPer' || '$auto' == 'MemoryPer'">
-                     {{fixedNumber( ($autoValue - LastValue[hostInfo['i']].$auto) / IntervalTimeConfig.interval, 2 )}}<span table-if="$autoValue != '-'">%</span>
-                  </span>
-                  <span table-if="'$auto' == 'NetInValue' || '$auto' == 'NetOutValue'">
-                     {{fixedNumber( ($autoValue - LastValue[hostInfo['i']].$auto) / IntervalTimeConfig.interval, 2 )}}<span table-if="$autoValue != '-'">MB</span>
-                  </span>
-                  <span table-if="'$auto' == 'NetInPackets' || '$auto' == 'NetOutPackets'">
-                     {{fixedNumber( ($autoValue - LastValue[hostInfo['i']].$auto) / IntervalTimeConfig.interval, 2 )}}
-                  </span>
-                  <span table-if="'$auto' == 'Memory' || '$auto' == 'Disk'">{{$autoValue}}</span>
-               </span>
+         <div class="Ellipsis" table-key="Memory">
+            <span ng-style="{'1':{'color':'#D9534F','font-weight':'bold'},'-1':{'color':'#00CC66','font-weight':'bold'},'0':{'color':'#000','font-weight':'normal'}}[hostInfo['Memory'] == LastValue[hostInfo['i']]['Memory'] ? '0' : (hostInfo['Memory'] > LastValue[hostInfo['i']]['Memory'] ? '1' : '-1' )]">
+               {{hostInfo['Memory']}}
+            </span>
+         </div>
+         <div class="Ellipsis" table-key="Disk">
+            <span ng-style="{'1':{'color':'#D9534F','font-weight':'bold'},'-1':{'color':'#00CC66','font-weight':'bold'},'0':{'color':'#000','font-weight':'normal'}}[hostInfo['Disk'] == LastValue[hostInfo['i']]['Disk'] ? '0' : (hostInfo['Disk'] > LastValue[hostInfo['i']]['Disk'] ? '1' : '-1' )]">
+               {{hostInfo['Disk']}}
+            </span>
+         </div>
+         <div class="Ellipsis" table-key="NetInValue">
+            <span ng-style="{'1':{'color':'#D9534F','font-weight':'bold'},'-1':{'color':'#00CC66','font-weight':'bold'},'0':{'color':'#000','font-weight':'normal'}}[hostInfo['NetInValue'] == LastValue[hostInfo['i']]['NetInValue'] ? '0' : (hostInfo['NetInValue'] > LastValue[hostInfo['i']]['NetInValue'] ? '1' : '-1' )]">
+               {{hostInfo['NetInValue']}}<span ng-if="hostInfo['NetInValue'] != '-'">MB</span>
+            </span>
+         </div>
+         <div class="Ellipsis" table-key="NetOutValue">
+            <span ng-style="{'1':{'color':'#D9534F','font-weight':'bold'},'-1':{'color':'#00CC66','font-weight':'bold'},'0':{'color':'#000','font-weight':'normal'}}[hostInfo['NetOutValue'] == LastValue[hostInfo['i']]['NetOutValue'] ? '0' : (hostInfo['NetOutValue'] > LastValue[hostInfo['i']]['NetOutValue'] ? '1' : '-1' )]">
+               {{hostInfo['NetOutValue']}}<span ng-if="hostInfo['NetOutValue'] != '-'">MB</span>
+            </span>
+         </div>
+         <div class="Ellipsis" table-key="NetInPackets">
+            <span ng-style="{'1':{'color':'#D9534F','font-weight':'bold'},'-1':{'color':'#00CC66','font-weight':'bold'},'0':{'color':'#000','font-weight':'normal'}}[hostInfo['NetInPackets'] == LastValue[hostInfo['i']]['NetInPackets'] ? '0' : (hostInfo['NetInPackets'] > LastValue[hostInfo['i']]['NetInPackets'] ? '1' : '-1' )]">
+               {{hostInfo['NetInPackets']}}
+            </span>
+         </div>
+         <div class="Ellipsis" table-key="NetOutPackets">
+            <span ng-style="{'1':{'color':'#D9534F','font-weight':'bold'},'-1':{'color':'#00CC66','font-weight':'bold'},'0':{'color':'#000','font-weight':'normal'}}[hostInfo['NetOutPackets'] == LastValue[hostInfo['i']]['NetOutPackets'] ? '0' : (hostInfo['NetOutPackets'] > LastValue[hostInfo['i']]['NetOutPackets'] ? '1' : '-1' )]">
+               {{hostInfo['NetOutPackets']}}
             </span>
          </div>
       </div>

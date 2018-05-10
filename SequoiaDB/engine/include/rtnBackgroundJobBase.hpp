@@ -61,7 +61,6 @@ namespace engine
       PMD_JOB_SYNC               = 15, // sync job
       RTN_JOB_REBUILD            = 16, // rebuild job
       RTN_JOB_CLS_STORAGE_CHECK  = 17, // storage check job
-      RTN_JOB_OPT_PLAN_CLEAR     = 18, // opt plan clear job
       RTN_JOB_PAGEMAPPING        = 19, // page mapping job
 
       RTN_JOB_MAX

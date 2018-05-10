@@ -1,5 +1,4 @@
-﻿//@ sourceURL=Charts.js
-(function(){
+﻿(function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
    sacApp.controllerProvider.register( 'Performance.Charts.Index.Ctrl', function( $scope, SdbRest, $location, SdbFunction ){

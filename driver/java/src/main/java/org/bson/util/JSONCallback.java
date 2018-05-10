@@ -213,11 +213,7 @@ public class JSONCallback extends BasicBSONCallback {
 				try {
 					BASE64Decoder decode = new BASE64Decoder();
 					byte[] data = null;
-					String encodeString = (String) b.get("$binary");
-					if (encodeString.length() % 4 != 0) {
-                        throw new IllegalArgumentException("invalid base64 encode: " + encodeString);
-                    }
-					data = decode.decodeBuffer(encodeString);
+					data = decode.decodeBuffer((String) b.get("$binary"));
 					o = new Binary(type, data);
 					if (!isStackEmpty()) {
 						cur().put(name, o);
@@ -225,7 +221,6 @@ public class JSONCallback extends BasicBSONCallback {
 						setRoot(o);
 					}
 				} catch (IOException e) {
-                    new RuntimeException(e);
 				}
 			}
 		}

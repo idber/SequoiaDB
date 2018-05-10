@@ -44,8 +44,6 @@
 
 using namespace bson ;
 
-#define MAX_CL_SIZE_ALIGN_SIZE      (32 * 1024 * 1024)
-
 namespace engine
 {
 
@@ -217,6 +215,77 @@ namespace engine
    done:
       PD_TRACE_EXITRC( SDB_CATDOMAINOPTIONSEXTRACT, rc ) ;
       return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRESOLVECOLLECTIONNAME, "catResolveCollectionName" )
+   INT32 catResolveCollectionName ( const CHAR *pInput, UINT32 inputLen,
+                                    CHAR *pSpaceName, UINT32 spaceNameSize,
+                                    CHAR *pCollectionName,
+                                    UINT32 collectionNameSize )
+   {
+      INT32 rc = SDB_OK ;
+      UINT32 curPos = 0 ;
+      UINT32 i = 0 ;
+      PD_TRACE_ENTRY ( SDB_CATRESOLVECOLLECTIONNAME ) ;
+      while ( pInput[curPos] != '.' )
+      {
+         if ( curPos >= inputLen || i >= spaceNameSize )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         pSpaceName[ i++ ] = pInput[ curPos++ ] ;
+      }
+      pSpaceName[i] = '\0' ;
+
+      i = 0 ;
+      ++curPos ;
+      while ( curPos < inputLen )
+      {
+         if ( i >= collectionNameSize )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         pCollectionName[ i++ ] = pInput[ curPos++ ] ;
+      }
+      pCollectionName[i] = '\0' ;
+
+   done:
+      PD_TRACE_EXITRC ( SDB_CATRESOLVECOLLECTIONNAME, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATRESOLVECOLLECTIONSPACENAME, "catResolveCollectionSpaceName" )
+   INT32 catResolveCollectionSpaceName ( const CHAR *pInput,
+                                         UINT32 inputLen,
+                                         CHAR *pSpaceName,
+                                         UINT32 spaceNameSize )
+   {
+      INT32 rc = SDB_OK ;
+      UINT32 curPos = 0 ;
+      UINT32 i = 0 ;
+
+      PD_TRACE_ENTRY ( SDB_CATRESOLVECOLLECTIONSPACENAME ) ;
+      while ( pInput[curPos] != '.' )
+      {
+         if ( curPos >= inputLen || i >= spaceNameSize )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         pSpaceName[ i++ ] = pInput[ curPos++ ] ;
+      }
+      pSpaceName[i] = '\0' ;
+
+   done:
+      PD_TRACE_EXITRC ( SDB_CATRESOLVECOLLECTIONSPACENAME, rc ) ;
+      return rc ;
+
    error:
       goto done ;
    }
@@ -912,7 +981,7 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_CATDELCLFROMCS ) ;
 
-      rc = rtnResolveCollectionName( clFullName.c_str(), clFullName.size(),
+      rc = catResolveCollectionName( clFullName.c_str(), clFullName.size(),
                                      szCSName, DMS_COLLECTION_SPACE_NAME_SZ,
                                      szCLName, DMS_COLLECTION_NAME_SZ ) ;
       PD_RC_CHECK( rc, PDWARNING, "Resolve collection name[%s] failed, rc: %d",
@@ -2045,6 +2114,82 @@ namespace engine
       goto done ;
    }
 
+   INT32 catTestAndCreateCL( const CHAR *pCLFullName, pmdEDUCB *cb,
+                             _SDB_DMSCB *dmsCB, _dpsLogWrapper *dpsCB,
+                             BOOLEAN sys )
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = rtnTestCollectionCommand( pCLFullName, dmsCB ) ;
+      if ( SDB_DMS_CS_NOTEXIST == rc || SDB_DMS_NOTEXIST == rc )
+      {
+         rc = rtnCreateCollectionCommand( pCLFullName, 0, cb, dmsCB, dpsCB,
+                                          UTIL_COMPRESSOR_INVALID,
+                                          FLG_CREATE_WHEN_NOT_EXIST, sys ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to create collection[%s], rc: %d",
+                      pCLFullName, rc ) ;
+      }
+      else if ( rc )
+      {
+         PD_LOG( PDERROR, "Test collection[%s] failed, rc: %d", pCLFullName,
+                 rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 catTestAndCreateIndex( const CHAR *pCLFullName,
+                                const BSONObj &indexDef,
+                                pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                                _dpsLogWrapper *dpsCB, BOOLEAN sys )
+   {
+      INT32 rc          = SDB_OK ;
+      BOOLEAN isSame    = FALSE ;
+
+      try
+      {
+         rc = rtnTestIndex( pCLFullName, "", dmsCB, &indexDef, &isSame ) ;
+         if ( SDB_IXM_NOTEXIST == rc || ( SDB_OK == rc && isSame == FALSE ) )
+         {
+            if ( SDB_OK == rc && isSame == FALSE )
+            {
+               BSONElement ele = indexDef.getField( IXM_NAME_FIELD ) ;
+               rc = rtnDropIndexCommand( pCLFullName, ele, cb, dmsCB,
+                                         dpsCB, sys ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to drop index[%s] for "
+                            "collection[%s], rc: %d", ele.valuestr(),
+                            pCLFullName, rc ) ;
+            }
+            rc = rtnCreateIndexCommand( pCLFullName, indexDef, cb, dmsCB,
+                                        dpsCB, sys ) ;
+            PD_RC_CHECK( rc, PDERROR, "Failed to create index[%s] for "
+                         "collection[%s], rc: %d", indexDef.toString().c_str(),
+                         pCLFullName, rc ) ;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDERROR, "Test index[%s] for collection[%s] failed, "
+                    "rc: %d", indexDef.toString().c_str(), pCLFullName, rc ) ;
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    UINT32 catCalcBucketID( const CHAR *pData, UINT32 length,
                            UINT32 bucketSize )
    {
@@ -2325,6 +2470,39 @@ namespace engine
 
       return rc ;
 
+   error :
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCLINSAMECS, "catCollectionsInSameSpace" )
+   INT32 catCollectionsInSameSpace ( const CHAR *pCLName_1, UINT32 length_1,
+                                     const CHAR *pCLName_2, UINT32 length_2,
+                                     BOOLEAN &inSameSpace )
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY ( SDB_CATCLINSAMECS ) ;
+
+      CHAR csName_1[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = {0} ;
+      CHAR csName_2[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = {0} ;
+
+      rc = catResolveCollectionSpaceName( pCLName_1, length_1,
+                                          csName_1, DMS_COLLECTION_SPACE_NAME_SZ ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+      rc = catResolveCollectionSpaceName( pCLName_2, length_2,
+                                          csName_2, DMS_COLLECTION_SPACE_NAME_SZ ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+      inSameSpace = ( ossStrcmp(csName_1, csName_2) == 0 ) ;
+
+   done :
+      PD_TRACE_EXITRC ( SDB_CATCLINSAMECS, rc ) ;
+      return rc ;
    error :
       goto done ;
    }
@@ -2806,7 +2984,7 @@ namespace engine
       CHAR szSpace[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = {0} ;
       CHAR szCollection[ DMS_COLLECTION_NAME_SZ + 1 ] = {0} ;
 
-      rc = rtnResolveCollectionName( clName.c_str(),
+      rc = catResolveCollectionName( clName.c_str(),
                                      clName.size(),
                                      szSpace, DMS_COLLECTION_SPACE_NAME_SZ,
                                      szCollection, DMS_COLLECTION_NAME_SZ ) ;
@@ -3135,7 +3313,7 @@ namespace engine
             ++ iter )
       {
          string &subCLName = (*iter) ;
-         rc = rtnResolveCollectionName( subCLName.c_str(), subCLName.size(),
+         rc = catResolveCollectionName( subCLName.c_str(), subCLName.size(),
                                         szCSName, DMS_COLLECTION_SPACE_NAME_SZ,
                                         szCLName, DMS_COLLECTION_NAME_SZ ) ;
          PD_RC_CHECK( rc, PDWARNING,
@@ -3208,7 +3386,6 @@ namespace engine
       clInfo._isHash             = TRUE ;
       clInfo._isSharding         = FALSE ;
       clInfo._isMainCL           = false;
-      clInfo._strictDataMode     = FALSE ;
       clInfo._assignType         = ASSIGN_RANDOM ;
 
       fieldMask = 0 ;
@@ -3346,16 +3523,6 @@ namespace engine
                clInfo._isHash = FALSE ;
             }
          }
-         else if ( ossStrcmp( eleTmp.fieldName(),
-                              CAT_STRICTDATAMODE ) == 0 )
-         {
-            PD_CHECK( Bool == eleTmp.type(),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] type [%d] error",
-                      CAT_STRICTDATAMODE, eleTmp.type() ) ;
-            clInfo._strictDataMode = eleTmp.boolean() ;
-            fieldMask |= CAT_MASK_STRICTDATAMODE ;
-         }
          else if ( 0 == ossStrcmp( eleTmp.fieldName(),
                                    CAT_GROUP_NAME ) )
          {
@@ -3436,47 +3603,6 @@ namespace engine
 
             fieldMask |= CAT_MASK_COMPRESSIONTYPE ;
          }
-         else if ( 0 == ossStrcmp( eleTmp.fieldName(), CAT_CAPPED_NAME ) )
-         {
-            PD_CHECK( Bool == eleTmp.type(),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] type [%d] error",
-                      CAT_CAPPED_NAME, eleTmp.type() ) ;
-            clInfo._capped = eleTmp.boolean() ;
-            fieldMask |= CAT_MASK_CAPPED ;
-         }
-         else if ( 0 == ossStrcmp( eleTmp.fieldName(), CAT_CL_MAX_RECNUM ) )
-         {
-            PD_CHECK( NumberLong == eleTmp.type()
-                      || NumberInt == eleTmp.type()
-                      || NumberDouble == eleTmp.type(),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] type [%d] error",
-                      CAT_CL_MAX_RECNUM, eleTmp.type() ) ;
-            clInfo._maxRecNum = eleTmp.numberLong() ;
-            fieldMask |= CAT_MASK_CLMAXRECNUM ;
-         }
-         else if ( 0 == ossStrcmp( eleTmp.fieldName(), CAT_CL_MAX_SIZE ) )
-         {
-            PD_CHECK( NumberLong == eleTmp.type()
-                      || NumberInt == eleTmp.type()
-                      || NumberDouble == eleTmp.type(),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] type [%d] error",
-                      CAT_CL_MAX_SIZE, eleTmp.type() ) ;
-            clInfo._maxSize = ossRoundUpToMultipleX( eleTmp.numberLong() << 20,
-                                                     MAX_CL_SIZE_ALIGN_SIZE ) ;
-            fieldMask |= CAT_MASK_CLMAXSIZE ;
-         }
-         else if ( 0 == ossStrcmp( eleTmp.fieldName(), CAT_CL_OVERWRITE ) )
-         {
-            PD_CHECK( Bool == eleTmp.type(),
-                      SDB_INVALIDARG, error, PDWARNING,
-                      "Field [%s] type [%d] error",
-                      CAT_CL_OVERWRITE, eleTmp.type() ) ;
-            clInfo._overwrite = eleTmp.Bool() ;
-            fieldMask |= CAT_MASK_CLOVERWRITE ;
-         }
          else
          {
             PD_RC_CHECK ( SDB_INVALIDARG, PDWARNING,
@@ -3496,12 +3622,6 @@ namespace engine
          PD_CHECK( !( CAT_MASK_AUTOINDEXID & fieldMask ),
                    SDB_INVALIDARG, error, PDWARNING,
                    "can not set auto-index-id on main collection" ) ;
-         PD_CHECK( !( ( CAT_MASK_CAPPED & fieldMask ) ||
-                      ( CAT_MASK_CLMAXRECNUM & fieldMask ) ||
-                      ( CAT_MASK_CLMAXSIZE & fieldMask ) ||
-                      ( CAT_MASK_CLOVERWRITE & fieldMask ) ),
-                   SDB_INVALIDARG, error, PDWARNING,
-                   "can not set Capped|Max|Size on main collection" ) ;
       }
 
       if ( clInfo._autoSplit || clInfo._autoRebalance )
@@ -3547,12 +3667,6 @@ namespace engine
                    SDB_INVALIDARG, error, PDWARNING,
                    "CompressionType can only be set when Compressed is true."
                    ) ;
-      }
-
-      if ( !clInfo._capped && clInfo._maxSize )
-      {
-         clInfo._capped = TRUE ;
-         fieldMask |= CAT_MASK_CAPPED ;
       }
 
    done :
@@ -3638,14 +3752,6 @@ namespace engine
       if ( ( mask & CAT_MASK_AUTOINDEXID ) && !clInfo._autoIndexId )
       {
          attribute |= DMS_MB_ATTR_NOIDINDEX ;
-      }
-      if ( ( mask & CAT_MASK_CAPPED ) && clInfo._capped )
-      {
-         attribute |= DMS_MB_ATTR_CAPPED ;
-      }
-      if ( ( mask & CAT_MASK_STRICTDATAMODE ) && clInfo._strictDataMode )
-      {
-         attribute |= DMS_MB_ATTR_STRICTDATAMODE ;
       }
       mbAttr2String( attribute, szAttr, sizeof( szAttr ) - 1 ) ;
 
@@ -3796,21 +3902,6 @@ namespace engine
       if ( mask & CAT_MASK_AUTOINDEXID )
       {
          builder.appendBool( CAT_AUTO_INDEX_ID, clInfo._autoIndexId ) ;
-      }
-
-      if ( mask & CAT_MASK_CLMAXRECNUM )
-      {
-         builder.append( CAT_CL_MAX_RECNUM, (INT64)clInfo._maxRecNum ) ;
-      }
-
-      if ( mask & CAT_MASK_CLMAXSIZE )
-      {
-         builder.append( CAT_CL_MAX_SIZE, (INT64)clInfo._maxSize ) ;
-      }
-
-      if ( mask & CAT_MASK_CLOVERWRITE )
-      {
-         builder.appendBool( CAT_CL_OVERWRITE, clInfo._overwrite ) ;
       }
 
       catRecord = builder.obj () ;

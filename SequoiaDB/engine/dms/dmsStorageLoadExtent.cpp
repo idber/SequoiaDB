@@ -428,7 +428,7 @@ namespace engine
          extAddr->_lastRecordOffset  = DMS_INVALID_OFFSET ;
          _su->addExtentRecordCount( mbContext->mb(), extAddr->_recCount ) ;
          extAddr->_recCount          = 0 ;
-         _su->data()->postLoadExt( mbContext, extAddr, tempExtentID ) ;
+         _su->mapExtent2DelList( mbContext->mb(), extAddr, tempExtentID ) ;
 
          recordOffset = DMS_EXTENT_METADATA_SZ ;
          recordID._extent = tempExtentID ;

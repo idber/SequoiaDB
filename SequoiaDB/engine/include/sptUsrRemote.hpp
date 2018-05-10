@@ -72,13 +72,6 @@ namespace engine
                         _sptReturnVal &rval,
                         bson::BSONObj &detail ) ;
 
-      INT32 runCommand( const string &command,
-                        const bson::BSONObj &optionObj,
-                        const bson::BSONObj &matchObj,
-                        const bson::BSONObj &valueObj,
-                        bson::BSONObj &errDetail, bson::BSONObj &retObj,
-                        BOOLEAN needRecv = TRUE ) ;
-
       INT32 memberHelp( const _sptArguments &arg,
                         _sptReturnVal &rval,
                         bson::BSONObj &detail ) ;
@@ -90,12 +83,10 @@ namespace engine
                                bson::BSONObj &detail ) ;
 
    private:
-      INT32 _mergeArg( const bson::BSONObj& optionObj,
-                       const bson::BSONObj& matchObj,
-                       const bson::BSONObj& valueObj,
-                       bson::BSONObjBuilder& builder ) ;
-
-      INT32 _initBSONObj( BSONObj &recvObj, const CHAR* buf ) ;
+      INT32 _mergeArg( const _sptArguments &arg,
+                       bson::BSONObj &detail,
+                       string &command,
+                       bson::BSONObj *mergeObj ) ;
    private:
       sptUsrRemoteAssit _assit ;
       string  _hostname ;

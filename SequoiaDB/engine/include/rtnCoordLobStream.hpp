@@ -39,6 +39,7 @@
 #include "coordDef.hpp"
 #include "msg.h"
 #include "netMultiRouteAgent.hpp"
+#include "utilMap.hpp"
 
 namespace engine
 {
@@ -53,6 +54,10 @@ namespace engine
       {
          return NULL ;
       }
+
+      virtual void   getErrorInfo( INT32 rc,
+                                   _pmdEDUCB *cb,
+                                   _rtnContextBuf *buf ) ;
 
    private:
       virtual INT32 _prepare( const CHAR *fullName,
@@ -78,7 +83,7 @@ namespace engine
       virtual INT32 _readv( const RTN_LOB_TUPLES &tuples,
                             _pmdEDUCB *cb ) ;
 
-      virtual INT32 _completeLob( const _dmsLobMeta &meta,
+      virtual INT32 _completeLob( const _rtnLobTuple &tuple,
                                   _pmdEDUCB *cb ) ;
  
       virtual INT32 _rollback( _pmdEDUCB *cb ) ;
@@ -160,9 +165,9 @@ namespace engine
          RETRY_TAG_REOPEN = 0x00002,
       } ;
 
-      typedef std::map<UINT32, subStream> SUB_STREAMS ;
-      typedef std::set<ossValuePtr> DONE_LST ;
-      typedef std::map<UINT32, dataGroup> DATA_GROUPS ;
+      typedef _utilMap<UINT32, subStream, 20 >  SUB_STREAMS ;
+      typedef std::set<ossValuePtr>             DONE_LST ;
+      typedef _utilMap<UINT32, dataGroup, 20 >  DATA_GROUPS ;
 
    private:
       INT32 _openSubStreams( const CHAR *fullName,
@@ -181,7 +186,8 @@ namespace engine
                                _pmdEDUCB *cb ) ;
 
       INT32 _extractMeta( const MsgOpReply *header,
-                          bson::BSONObj &obj ) ;
+                          bson::BSONObj &obj,
+                          _rtnLobDataPool::tuple &dataTuple ) ;
 
       INT32 _closeSubStreams( _pmdEDUCB *cb, BOOLEAN exceptMeta ) ;
 
@@ -193,7 +199,8 @@ namespace engine
                        _pmdEDUCB *cb,
                        BOOLEAN canRetry,
                        BOOLEAN nodeSpecified,
-                       INT32 &tag ) ;
+                       INT32 &tag,
+                       set< INT32 > *pIgoreErr = NULL ) ;
 
       void _clearMsgData() ;
 
@@ -227,9 +234,6 @@ namespace engine
                          UINT32 len,
                          netIOVec &iov ) ;
 
-      INT32 _getPageSizeFromCatalog( _pmdEDUCB *cb,
-                                     INT32 &size ) ;
-
       void _initHeader( MsgOpLob &header,
                         INT32 opCode,
                         INT32 bsonLen,
@@ -238,6 +242,7 @@ namespace engine
    private:
       CoordCataInfoPtr _cataInfo ;
       CoordGroupMap    _mapGroupInfo ;
+      UINT32           _pageSize ;
 
       std::vector<MsgOpReply *> _results ;
       REQUESTID_MAP     _sendMap ;
@@ -249,6 +254,7 @@ namespace engine
       UINT32            _metaGroup ;
 
       UINT32            _alignBuf ;
+      ROUTE_RC_MAP      _nokRC ;
    } ;
    typedef class _rtnCoordLobStream rtnCoordLobStream ;
 }

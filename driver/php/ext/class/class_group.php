@@ -190,13 +190,11 @@ class SequoiaGroup
    /**
     * Get the slave node.
     *
-    * @param $positionsArray an array argument. The array of node's position, the array elements can be 1-7.
-    *
     * @return Returns a new SequoiaNode object.
     *
     * @retval SequoiaNode Object
     *
-    * Example: Get one of slave node
+    * Example:
     * @code
     * $nodeObj = $groupObj -> getSlave() ;
     * if( empty( $nodeObj ) ) {
@@ -205,18 +203,8 @@ class SequoiaGroup
     *    return ;
     * }
     * @endcode
-    *
-    * Example: Get a specified slave node
-    * @code
-    * $nodeObj = $groupObj -> getSlave( array( 1, 2, 3 ) ) ;
-    * if( empty( $nodeObj ) ) {
-    *    $err = $db -> getError() ;
-    *    echo "Failed to get the slave node, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
    */
-   public function getSlave( $positionsArray = void ){}
+   public function getSlave(){}
 
    /**
     * Get the node.

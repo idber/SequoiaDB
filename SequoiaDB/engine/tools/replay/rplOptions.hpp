@@ -63,7 +63,6 @@ namespace replay
       OSS_INLINE const string& status() const { return _status; }
       OSS_INLINE const string& path() const { return _path; }
       OSS_INLINE SDB_OSS_FILETYPE pathType() const { return _pathType; }
-      OSS_INLINE BOOLEAN useSSL() const { return _useSSL; }
       OSS_INLINE const BSONObj& filter() const { return _filter; }
       OSS_INLINE BOOLEAN dump() const { return _dump; }
       OSS_INLINE BOOLEAN dumpHeader() const { return _dumpHeader; }
@@ -73,8 +72,6 @@ namespace replay
       OSS_INLINE BOOLEAN debug() const { return _debug; }
       OSS_INLINE BOOLEAN deflate() const { return _deflate; }
       OSS_INLINE BOOLEAN inflate() const { return _inflate; }
-      OSS_INLINE BOOLEAN isReplicaFile() const { return _isReplicaFile; }
-      OSS_INLINE BOOLEAN updateWithShardingKey() const { return _updateWithShardingKey; }
 
    private:
       INT32 setOptions();
@@ -87,7 +84,6 @@ namespace replay
       string            _status;
       string            _path;
       SDB_OSS_FILETYPE  _pathType;
-      BOOLEAN           _useSSL;
       BSONObj           _filter;
       BOOLEAN           _dump;
       BOOLEAN           _dumpHeader;
@@ -97,8 +93,6 @@ namespace replay
       BOOLEAN           _debug;
       BOOLEAN           _deflate;
       BOOLEAN           _inflate;
-      BOOLEAN           _isReplicaFile;
-      BOOLEAN           _updateWithShardingKey;
    };
 }
 

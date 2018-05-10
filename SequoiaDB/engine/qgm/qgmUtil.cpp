@@ -41,7 +41,6 @@
 #include "ossUtil.hpp"
 #include "pdTrace.hpp"
 #include "qgmTrace.hpp"
-#include "msg.h"
 #include "utilStr.hpp"
 
 using namespace bson ;
@@ -1001,46 +1000,6 @@ namespace engine
 
    done:
       return builder.obj() ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMUSEHINTTOFLAG, "qgmUseHintToFlag" )
-   INT32 qgmUseHintToFlag( const qgmHint &h, INT32 &flag )
-   {
-      PD_TRACE_ENTRY( SDB__QGMUSEHINTTOFLAG ) ;
-      INT32 rc = SDB_OK ;
-      const CHAR *strFlag = NULL ;
-      qgmField f ;
-
-      if ( 1 == h.param.size() )
-      {
-         f = h.param.at( 0 ).value.attr() ;
-      }
-      else
-      {
-         goto done ;
-      }
-
-      if ( FLG_SQL_UPDATE_KEEP_SK_SIZE == f.size() &&
-           0 == ossStrncmp( f.begin(), FLG_SQL_UPDATE_KEEP_SK, f.size() ) )
-      {
-         flag = FLG_UPDATE_KEEP_SHARDINGKEY ;
-         goto done ;
-      }
-
-      strFlag = f.toString().c_str() ;
-      rc = utilStr2Num( strFlag, flag );
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Fail to convert %s to int flag, rc: %d",
-                 strFlag, rc ) ;
-         goto error ;
-      }
-
-   done :
-      PD_TRACE_EXITRC( SDB__QGMUSEHINTTOFLAG, rc ) ;
-      return rc ;
-   error :
-      goto done ;
    }
 
    const CHAR* qgmGetNodeTypeStr( INT32 type )

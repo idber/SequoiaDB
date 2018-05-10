@@ -74,7 +74,6 @@ public class JSON {
 	 * 
 	 * @param s
 	 *            the string to parse
-	 * @param c the callback for building bson.
 	 * @return the object
 	 */
 	public static Object parse(String s, BSONCallback c) {

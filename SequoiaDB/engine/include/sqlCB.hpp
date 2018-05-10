@@ -63,8 +63,7 @@ namespace engine
 
    public:
       INT32 exec( const CHAR *sql, _pmdEDUCB *cb,
-                  SINT64 &contextID,
-                  BOOLEAN &needRollback ) ;
+                  SINT64 &contextID ) ;
 
       INT32 getFunc( const CHAR *name,
                      UINT32 paramNum,

@@ -246,8 +246,6 @@ namespace engine
 
          INT32 callCatalog( MsgHeader *header, UINT32 times = 1 ) ;
 
-         BOOLEAN getPrimaryInfo( _clsSharingStatus &primaryInfo ) ;
-
          void getGroupInfo( _MsgRouteID &primary,
                             vector<_netRouteNode > &group ) ;
 
@@ -259,6 +257,7 @@ namespace engine
 
          INT64 netIn() ;
          INT64 netOut() ;
+         void resetMon() ;
 
          INT32 reelect( CLS_REELECTION_LEVEL lvl,
                         UINT32 seconds,
@@ -280,7 +279,7 @@ namespace engine
 
          INT32 _alive( const _MsgRouteID &id ) ;
 
-         INT32 _handleSharingBeat( NET_HANDLE handle, const _MsgClsBeat *msg ) ;
+         INT32 _handleSharingBeat( const _MsgClsBeat *msg ) ;
 
          INT32 _handleSharingBeatRes( const _MsgClsBeatRes *msg ) ;
 

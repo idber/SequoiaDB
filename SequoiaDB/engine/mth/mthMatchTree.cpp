@@ -39,7 +39,6 @@
 #include "pd.hpp"
 #include "pdTrace.hpp"
 #include "mthTrace.hpp"
-#include "rtnCB.hpp"
 #include <string>
 
 using namespace bson ;
@@ -138,7 +137,6 @@ namespace engine
 
    _mthMatchOpNode* _mthMatchNodeFactory::createOpNode(
                                                    _mthNodeAllocator *allocator,
-                                                   const mthNodeConfig *config,
                                                    EN_MATCH_OP_FUNC_TYPE type )
    {
       _mthMatchOpNode *opNode = NULL ;
@@ -146,45 +144,49 @@ namespace engine
       switch( type )
       {
       case EN_MATCH_OPERATOR_ET:
-         opNode = new ( allocator ) _mthMatchOpNodeET( allocator, config ) ;
+         opNode = new ( allocator ) _mthMatchOpNodeET( allocator ) ;
          break ;
       case EN_MATCH_OPERATOR_LT:
+         opNode = new ( allocator ) _mthMatchOpNodeLT( allocator ) ;
+         break ;
       case EN_MATCH_OPERATOR_LTE:
-         opNode = new ( allocator ) _mthMatchOpNodeLT( allocator, config ) ;
+         opNode = new ( allocator ) _mthMatchOpNodeLTE( allocator ) ;
+         break ;
+      case EN_MATCH_OPERATOR_GTE:
+         opNode = new ( allocator ) _mthMatchOpNodeGTE( allocator ) ;
          break ;
       case EN_MATCH_OPERATOR_GT:
-      case EN_MATCH_OPERATOR_GTE:
-         opNode = new ( allocator ) _mthMatchOpNodeGT( allocator, config ) ;
+         opNode = new ( allocator ) _mthMatchOpNodeGT( allocator ) ;
          break ;
       case EN_MATCH_OPERATOR_IN:
-         opNode = new ( allocator ) _mthMatchOpNodeIN( allocator, config ) ;
+         opNode = new ( allocator ) _mthMatchOpNodeIN( allocator ) ;
          break ;
       case EN_MATCH_OPERATOR_NE:
-         opNode = new ( allocator ) _mthMatchOpNodeNE( allocator, config ) ;
+         opNode = new ( allocator ) _mthMatchOpNodeNE( allocator ) ;
          break ;
       case EN_MATCH_OPERATOR_ALL:
-         opNode = new ( allocator ) _mthMatchOpNodeALL( allocator, config ) ;
+         opNode = new ( allocator ) _mthMatchOpNodeALL( allocator ) ;
          break ;
       case EN_MATCH_OPERATOR_NIN:
-         opNode = new ( allocator ) _mthMatchOpNodeNIN( allocator, config ) ;
+         opNode = new ( allocator ) _mthMatchOpNodeNIN( allocator ) ;
          break ;
       case EN_MATCH_OPERATOR_EXISTS:
-         opNode = new ( allocator ) _mthMatchOpNodeEXISTS( allocator, config ) ;
+         opNode = new ( allocator ) _mthMatchOpNodeEXISTS( allocator ) ;
          break ;
       case EN_MATCH_OPERATOR_MOD:
-         opNode = new ( allocator ) _mthMatchOpNodeMOD( allocator, config ) ;
+         opNode = new ( allocator ) _mthMatchOpNodeMOD( allocator ) ;
          break ;
       case EN_MATCH_OPERATOR_ELEMMATCH:
-         opNode = new( allocator ) _mthMatchOpNodeELEMMATCH( allocator, config ) ;
+         opNode = new( allocator ) _mthMatchOpNodeELEMMATCH( allocator ) ;
          break ;
       case EN_MATCH_OPERATOR_ISNULL:
-         opNode = new ( allocator ) _mthMatchOpNodeISNULL( allocator, config ) ;
+         opNode = new ( allocator ) _mthMatchOpNodeISNULL( allocator ) ;
          break ;
       case EN_MATCH_OPERATOR_REGEX:
-         opNode = new ( allocator ) _mthMatchOpNodeRegex( allocator, config ) ;
+         opNode = new ( allocator ) _mthMatchOpNodeRegex( allocator ) ;
          break ;
       case EN_MATCH_ATTR_EXPAND:
-         opNode = new ( allocator ) _mthMatchOpNodeEXPAND( allocator, config ) ;
+         opNode = new ( allocator ) _mthMatchOpNodeEXPAND( allocator ) ;
          break ;
       default :
          break ;
@@ -195,7 +197,6 @@ namespace engine
 
    _mthMatchLogicNode* _mthMatchNodeFactory::createLogicNode(
                                                    _mthNodeAllocator *allocator,
-                                                   const mthNodeConfig *config,
                                                    EN_MATCH_OP_FUNC_TYPE type )
    {
       _mthMatchLogicNode *logicNode = NULL ;
@@ -203,15 +204,15 @@ namespace engine
       switch( type )
       {
       case EN_MATCH_OPERATOR_LOGIC_AND :
-         logicNode = new ( allocator ) _mthMatchLogicAndNode( allocator, config ) ;
+         logicNode = new ( allocator ) _mthMatchLogicAndNode( allocator ) ;
          break ;
 
       case EN_MATCH_OPERATOR_LOGIC_OR :
-         logicNode = new ( allocator ) _mthMatchLogicOrNode( allocator, config ) ;
+         logicNode = new ( allocator ) _mthMatchLogicOrNode( allocator ) ;
          break ;
 
       case EN_MATCH_OPERATOR_LOGIC_NOT :
-         logicNode = new ( allocator ) _mthMatchLogicNotNode( allocator, config ) ;
+         logicNode = new ( allocator ) _mthMatchLogicNotNode( allocator ) ;
          break ;
 
       default :
@@ -340,10 +341,10 @@ namespace engine
    }
 
    _mthMatchTree::_mthMatchTree()
-   : _mthMatchConfigHolder()
    {
       _root = NULL ;
 
+      _predicateSet.clear() ;
       _isInitialized       = FALSE ;
       _isMatchesAll        = TRUE ;
       _isTotallyConverted  = TRUE ;
@@ -402,10 +403,7 @@ namespace engine
                                       const BSONElement &ele,
                                       EN_MATCH_OP_FUNC_TYPE nodeType,
                                       MTH_FUNC_LIST &funcList,
-                                      _mthMatchLogicNode *parent,
-                                      INT8 paramIndex,
-                                      INT8 fuzzyIndex,
-                                      _mthMatchOpNode **retNode )
+                                      _mthMatchLogicNode *parent )
    {
       PD_TRACE_ENTRY( SDB__MTHMATCHTREE_ADDOPERATOR ) ;
       INT32 rc = SDB_OK ;
@@ -420,9 +418,7 @@ namespace engine
          nodeType = EN_MATCH_OPERATOR_ET ;
       }
 
-      node = mthGetMatchNodeFactory()->createOpNode( &_allocator,
-                                                     getMatchConfigPtr(),
-                                                     nodeType ) ;
+      node = mthGetMatchNodeFactory()->createOpNode( &_allocator, nodeType ) ;
       if ( NULL == node )
       {
          rc = SDB_INVALIDARG ;
@@ -457,16 +453,6 @@ namespace engine
          _hasDollarFieldName = TRUE ;
       }
 
-      node->setParamIndex( paramIndex ) ;
-      if ( fuzzyIndex < 0 )
-      {
-         node->setFuzzyOpType( nodeType ) ;
-      }
-      else
-      {
-         node->setFuzzyIndex( fuzzyIndex ) ;
-      }
-
       rc = parent->addChild( node ) ;
       if ( SDB_OK != rc )
       {
@@ -475,11 +461,6 @@ namespace engine
          goto error ;
       }
       hasAddToTree = TRUE ;
-
-      if ( retNode )
-      {
-         (*retNode) = node ;
-      }
 
    done:
       PD_TRACE_EXITRC( SDB__MTHMATCHTREE_ADDOPERATOR, rc ) ;
@@ -501,7 +482,6 @@ namespace engine
       BOOLEAN hasAddToTree  = FALSE ;
 
       node = mthGetMatchNodeFactory()->createOpNode( &_allocator,
-                                                     getMatchConfigPtr(),
                                                      EN_MATCH_ATTR_EXPAND ) ;
       if ( NULL == node )
       {
@@ -531,12 +511,10 @@ namespace engine
       goto done ;
    }
 
-   INT32 _mthMatchTree::_addRegExOp( const CHAR *fieldName,
-                                     const CHAR *regex,
+   INT32 _mthMatchTree::_addRegExOp( const CHAR *fieldName, const CHAR *regex,
                                      const CHAR *options,
                                      MTH_FUNC_LIST &funcList,
-                                     _mthMatchLogicNode *parent,
-                                     _mthMatchOpNode **retNode )
+                                     _mthMatchLogicNode *parent )
    {
       INT32 rc = SDB_OK ;
       _mthMatchOpNode *node           = NULL ;
@@ -544,7 +522,6 @@ namespace engine
       BOOLEAN hasAddToTree            = FALSE ;
 
       node = mthGetMatchNodeFactory()->createOpNode( &_allocator,
-                                                     getMatchConfigPtr(),
                                                      EN_MATCH_OPERATOR_REGEX ) ;
       if ( NULL == node )
       {
@@ -594,11 +571,6 @@ namespace engine
       }
       hasAddToTree = TRUE ;
 
-      if ( retNode )
-      {
-         (*retNode) = node ;
-      }
-
    done:
       return rc ;
    error:
@@ -609,59 +581,11 @@ namespace engine
       goto done ;
    }
 
-   INT32 _mthMatchTree::_parseOpItem ( mthMatchOpItem *opItem,
-                                       _mthMatchLogicNode *parent )
-   {
-      INT32 rc = SDB_OK ;
-
-      SDB_ASSERT( opItem, "opItem is invalid" ) ;
-
-      _mthMatchOpNode *retNode = NULL ;
-      MTH_FUNC_LIST funcList ;
-      const MTH_FUNC_OP_LIST &funcOpList = opItem->getFuncList() ;
-
-      for ( MTH_FUNC_OP_LIST::const_iterator funcIter = funcOpList.begin() ;
-            funcIter != funcOpList.end() ;
-            funcIter ++ )
-      {
-         rc = _addFunction( opItem->getFieldName(), funcIter->getElement(),
-                            funcIter->getOpCode(), funcList ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to add function, rc: %d", rc ) ;
-      }
-
-      switch ( opItem->getOpCode() )
-      {
-         case EN_MATCH_OPERATOR_REGEX :
-            rc = _addRegExOp( opItem->getFieldName(), opItem->getRegex(),
-                              opItem->getOptions(), funcList, parent,
-                              &retNode ) ;
-            break ;
-         default :
-            rc = _addOperator( opItem->getFieldName(), opItem->getElement(),
-                               opItem->getOpCode(), funcList, parent,
-                               opItem->getParamIndex(),
-                               opItem->getFuzzyIndex(),
-                               &retNode ) ;
-            break ;
-      }
-
-      PD_RC_CHECK( rc, PDERROR, "Failed to create operator, rc: %d", rc ) ;
-
-      opItem->setOpNode( retNode ) ;
-
-   done :
-      return rc ;
-   error :
-      _clearFuncList( funcList ) ;
-      goto done ;
-   }
-
    INT32 _mthMatchTree::_parseRegExElement( const BSONElement &ele,
                                             _mthMatchLogicNode *parent )
    {
       INT32 rc = SDB_OK ;
       MTH_FUNC_LIST empty ;
-
       rc = _addRegExOp( ele.fieldName(), ele.regex(), ele.regexFlags(), empty,
                         parent ) ;
       if ( SDB_OK != rc )
@@ -683,7 +607,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       MTH_FUNC_LIST empty ;
       const CHAR *eFieldName = ele.fieldName() ;
-
       if ( MTH_OPERATOR_EYECATCHER == eFieldName[0] )
       {
          rc = SDB_INVALIDARG ;
@@ -693,7 +616,7 @@ namespace engine
       }
 
       rc = _addOperator( ele.fieldName(), ele, EN_MATCH_OPERATOR_ET, empty,
-                         parent, -1, -1 ) ;
+                         parent ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed inject element, rc: %d", rc ) ;
@@ -712,7 +635,6 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       BSONObjIterator iterArray( ele.embeddedObject() ) ;
-
       while ( iterArray.more() )
       {
          BSONElement eleArrayItem = iterArray.next() ;
@@ -730,9 +652,8 @@ namespace engine
                  parent->getType() == EN_MATCH_OPERATOR_LOGIC_NOT )
             {
                _mthMatchLogicNode *child = NULL ;
-               child = mthGetMatchNodeFactory()->createLogicNode(
-                                             &_allocator, getMatchConfigPtr(),
-                                             EN_MATCH_OPERATOR_LOGIC_AND ) ;
+               child = mthGetMatchNodeFactory()->createLogicNode( &_allocator,
+                                                 EN_MATCH_OPERATOR_LOGIC_AND ) ;
                if ( NULL == child )
                {
                   rc = SDB_INVALIDARG ;
@@ -797,9 +718,8 @@ namespace engine
          goto error ;
       }
 
-      logicAnd = mthGetMatchNodeFactory()->createLogicNode(
-                                          &_allocator, getMatchConfigPtr(),
-                                          EN_MATCH_OPERATOR_LOGIC_AND ) ;
+      logicAnd = mthGetMatchNodeFactory()->createLogicNode( &_allocator,
+                                                EN_MATCH_OPERATOR_LOGIC_AND ) ;
       if ( !logicAnd )
       {
          rc = SDB_OOM ;
@@ -861,9 +781,8 @@ namespace engine
          goto error ;
       }
 
-      logicOr = mthGetMatchNodeFactory()->createLogicNode(
-                                             &_allocator, getMatchConfigPtr(),
-                                             EN_MATCH_OPERATOR_LOGIC_OR ) ;
+      logicOr = mthGetMatchNodeFactory()->createLogicNode( &_allocator,
+                                                EN_MATCH_OPERATOR_LOGIC_OR ) ;
       if ( !logicOr )
       {
          rc = SDB_OOM ;
@@ -925,9 +844,8 @@ namespace engine
          goto error ;
       }
 
-      logicNot = mthGetMatchNodeFactory()->createLogicNode(
-                                          &_allocator, getMatchConfigPtr(),
-                                          EN_MATCH_OPERATOR_LOGIC_NOT ) ;
+      logicNot = mthGetMatchNodeFactory()->createLogicNode( &_allocator,
+                                                EN_MATCH_OPERATOR_LOGIC_NOT ) ;
       if ( !logicNot )
       {
          rc = SDB_OOM ;
@@ -979,7 +897,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       const CHAR *fieldName = ele.fieldName() ;
-
       if ( MTH_OPERATOR_EYECATCHER == fieldName[0] )
       {
          EN_MATCH_OP_FUNC_TYPE nodeType ;
@@ -1026,7 +943,7 @@ namespace engine
       {
          MTH_FUNC_LIST empty ;
          rc = _addOperator( ele.fieldName(), ele, EN_MATCH_OPERATOR_ET,
-                            empty, parent, -1, -1 ) ;
+                            empty, parent ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "_addOperator failed:ele=%s,rc=%d",
@@ -1041,130 +958,48 @@ namespace engine
       goto done ;
    }
 
-   INT32 _mthMatchTree::_checkInnerObject ( const BSONElement &ele,
-                                            UINT32 level,
-                                            BSONElement *pOutEle )
+   /* ignoreCurrentField: default FALSE */
+   BOOLEAN _mthMatchTree::_isExistOpFieldRecursive( const BSONElement &ele,
+                                                    BOOLEAN ignoreCurrentField )
    {
-      INT32 rc = SDB_OK ;
-
-      if ( NULL != pOutEle )
+      const CHAR *fieldName = ele.fieldName() ;
+      if ( Object == ele.type() || Array == ele.type() )
       {
-         (*pOutEle) = ele ;
-      }
-
-      switch ( ele.type() )
-      {
-         case Array :
+         EN_MATCH_OP_FUNC_TYPE nodeType ;
+         nodeType = mthGetMatchNodeFactory()->getMatchNodeType(
+                                                             ele.fieldName() ) ;
+         if ( EN_MATCH_OPERATOR_ELEMMATCH == nodeType )
          {
-            const BSONObj &boInner = ele.embeddedObject() ;
-            BSONObjIterator iter( boInner ) ;
-            while ( iter.more() )
-            {
-               const BSONElement &beSub = iter.next() ;
-               rc = _checkInnerObject( beSub, level + 1, NULL ) ;
-               PD_RC_CHECK( rc, PDERROR, "Inner array %s is invalid",
-                            ele.toString( TRUE, TRUE ).c_str() ) ;
-            }
-            break ;
+            return FALSE ;
          }
-         case Object :
+
+         if ( ignoreCurrentField || MTH_OPERATOR_EYECATCHER != fieldName[0] )
          {
-            BOOLEAN hasRegex = FALSE ;
-            BOOLEAN hasOptions = FALSE ;
-
-            const BSONObj &boInner = ele.embeddedObject() ;
-            BSONObjIterator iter( boInner ) ;
-            while ( iter.more() )
+            BSONObjIterator j( ele.embeddedObject() ) ;
+            while ( j.more () )
             {
-               const BSONElement &beSub = iter.next() ;
-               const CHAR *subName = beSub.fieldName() ;
-
-               if ( MTH_OPERATOR_EYECATCHER == subName[0] )
+               if ( _isExistOpFieldRecursive( j.next() ) )
                {
-                  EN_MATCH_OP_FUNC_TYPE subType =
-                        mthGetMatchNodeFactory()->getMatchNodeType( subName ) ;
-
-                  if ( EN_MATCH_OPERATOR_FIELD == subType )
-                  {
-                     PD_CHECK( 1 == boInner.nFields() && 0 == level &&
-                               String == beSub.type(),
-                               SDB_INVALIDARG, error, PDERROR,
-                               "Inner $field %s is invalid",
-                               ele.toString( TRUE, TRUE ).c_str() ) ;
-                     if ( NULL != pOutEle )
-                     {
-                        (*pOutEle) = beSub ;
-                     }
-                  }
-                  else if ( EN_MATCH_OPERATOR_REGEX == subType )
-                  {
-                     PD_CHECK( !hasRegex && String == beSub.type(),
-                               SDB_INVALIDARG, error, PDERROR,
-                               "Inner $regex %s is invalid",
-                               ele.toString( TRUE, TRUE ).c_str() ) ;
-                     hasRegex = TRUE ;
-                  }
-                  else if ( EN_MATCH_OPERATOR_OPTIONS == subType )
-                  {
-                     PD_CHECK( !hasOptions && String == beSub.type(),
-                               SDB_INVALIDARG, error, PDERROR,
-                               "Inner $options %s is invalid",
-                               ele.toString( TRUE, TRUE ).c_str() ) ;
-                     hasOptions = TRUE ;
-                  }
-                  else
-                  {
-                     rc = SDB_INVALIDARG ;
-                     PD_LOG( PDERROR, "Inner operator %s is invalid",
-                             ele.toString( TRUE, TRUE ).c_str() ) ;
-                     goto error ;
-                  }
-               }
-               else
-               {
-                  PD_CHECK( !hasRegex && !hasOptions,
-                            SDB_INVALIDARG, error, PDERROR,
-                            "Inner object %s is invalid",
-                            ele.toString( TRUE, TRUE).c_str() ) ;
-                  rc = _checkInnerObject( beSub, level + 1, NULL ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Inner object %s is invalid",
-                               ele.toString( TRUE, TRUE ).c_str() ) ;
+                  return TRUE ;
                }
             }
 
-            if ( hasRegex && hasOptions )
-            {
-               PD_CHECK( 2 == boInner.nFields(),
-                         SDB_INVALIDARG, error, PDERROR,
-                         "Inner $regex %s is invalid",
-                         ele.toString( TRUE, TRUE ).c_str() ) ;
-            }
-            else if ( hasRegex )
-            {
-               PD_CHECK( 1 == boInner.nFields(),
-                         SDB_INVALIDARG, error, PDERROR,
-                         "Inner $regex %s is invalid",
-                         ele.toString( TRUE, TRUE ).c_str() ) ;
-            }
-            else if ( hasOptions )
-            {
-               rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "Inner $options %s is invalid",
-                       ele.toString( TRUE, TRUE ).c_str() ) ;
-               goto error ;
-            }
-            break ;
+            return FALSE ;
          }
-         default :
-            break ;
+
+         return TRUE ;
       }
-
-      rc = SDB_OK ;
-
-   done :
-      return rc ;
-   error :
-      goto done ;
+      else
+      {
+         if ( MTH_OPERATOR_EYECATCHER == fieldName[0] )
+         {
+            return TRUE ;
+         }
+         else
+         {
+            return FALSE ;
+         }
+      }
    }
 
    INT32 _mthMatchTree::_getElementKeysFormat( const BSONElement &ele )
@@ -1316,7 +1151,7 @@ namespace engine
            EN_MATCH_ATTR_RETURNMATCH == nodeType )
       {
          rc = _parseAttribute( ele.fieldName(), innerEle, nodeType,
-                               funcList ) ;
+                               funcList );
          PD_RC_CHECK( rc, PDERROR, "_parseAttribute failed:rc=%d", rc ) ;
          goto done ;
       }
@@ -1335,7 +1170,7 @@ namespace engine
                      nodeType >= EN_MATCH_OPERATOR_ET ) )
          {
             rc = _addOperator( ele.fieldName(), innerEle, nodeType, funcList,
-                               parent, -1, -1 ) ;
+                               parent ) ;
             PD_RC_CHECK( rc, PDERROR, "_addOperator failed:innerEle=%s,rc=%d",
                          innerEle.toString().c_str(), rc ) ;
          }
@@ -1357,44 +1192,49 @@ namespace engine
       }
       else
       {
-         BSONElement beSub ;
-
-         if ( nodeType >= EN_MATCH_OPERATOR_LOGIC_AND &&
-              nodeType < EN_MATCH_OPERATOR_LOGIC_END )
+         if ( _isExistOpFieldRecursive( innerEle, TRUE ) )
          {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR,
-                    "Unsupported inner matching operator [%s]",
-                    innerEle.toString( TRUE, TRUE ).c_str() ) ;
-            goto error ;
-         }
+            BSONObjIterator k( innerEle.embeddedObject() ) ;
+            while ( k.more() )
+            {
+               BSONElement tElem       = k.next () ;
+               const CHAR *tEleFieName = tElem.fieldName () ;
+               EN_MATCH_OP_FUNC_TYPE tmpType ;
+               tmpType = mthGetMatchNodeFactory()->getMatchNodeType(
+                                                                tEleFieName ) ;
+               if ( EN_MATCH_OPERATOR_FIELD != tmpType
+                    && _isExistOpFieldRecursive( innerEle ) )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG ( PDERROR, "Matching syntax can not "
+                           "have more than one operator") ;
+                  goto error ;
+               }
 
-         if ( EN_MATCH_OPERATOR_ELEMMATCH != nodeType )
-         {
-            rc = _checkInnerObject( innerEle, 0, &beSub ) ;
-            PD_RC_CHECK( rc, PDERROR, "Unsupported inner matching operator [%s]",
-                         innerEle.toString( TRUE, TRUE ).c_str() ) ;
+               rc = _addOperator( ele.fieldName(), tElem, nodeType, funcList,
+                                  parent ) ;
+               PD_RC_CHECK( rc, PDERROR, "_addOperator failed:tElem=%s,rc=%d",
+                            tElem.toString().c_str(), rc ) ;
+            }
          }
          else
          {
-            beSub = innerEle ;
-         }
-
-         if ( nodeType >= EN_MATCH_OPERATOR_ET &&
-              nodeType < EN_MATCH_OPERATOR_END )
-         {
-            rc = _addOperator( ele.fieldName(), beSub, nodeType, funcList,
-                               parent, -1, -1 ) ;
-            PD_RC_CHECK( rc, PDERROR, "_addOperator failed:innerEle=%s,rc=%d",
-                         innerEle.toString().c_str(), rc ) ;
-         }
-         else
-         {
-            rc = _addFunction( ele.fieldName(), innerEle, nodeType,
-                               funcList ) ;
-            PD_RC_CHECK( rc, PDERROR, "add function failed:fieldName=%s,"
-                         "innerEle=%s,rc=%d", ele.fieldName(),
-                         innerEle.toString().c_str(), rc ) ;
+            if ( ( nodeType < EN_MATCH_OPERATOR_END &&
+                   nodeType >= EN_MATCH_OPERATOR_ET ) )
+            {
+               rc = _addOperator( ele.fieldName(), innerEle, nodeType, funcList,
+                                  parent ) ;
+               PD_RC_CHECK( rc, PDERROR, "_addOperator failed:innerEle=%s,rc=%d",
+                            innerEle.toString().c_str(), rc ) ;
+            }
+            else
+            {
+               rc = _addFunction( ele.fieldName(), innerEle, nodeType,
+                                  funcList ) ;
+               PD_RC_CHECK( rc, PDERROR, "add function failed:fieldName=%s,"
+                            "innerEle=%s,rc=%d", ele.fieldName(),
+                            innerEle.toString().c_str(), rc ) ;
+            }
          }
       }
 
@@ -1460,7 +1300,6 @@ namespace engine
       INT32 keysFormat = 0 ;
       MTH_FUNC_LIST funcList ;
       const CHAR *fieldName = ele.fieldName() ;
-
       if ( MTH_OPERATOR_EYECATCHER == fieldName[0] )
       {
          rc = SDB_INVALIDARG ;
@@ -1473,7 +1312,7 @@ namespace engine
       {
          MTH_FUNC_LIST empty ;
          rc = _addOperator( ele.fieldName(), ele, EN_MATCH_OPERATOR_ET, empty,
-                            parent, -1, -1 ) ;
+                            parent ) ;
          PD_RC_CHECK( rc, PDERROR, "_addOperator failed:ele=%s,rc=%d",
                       ele.toString().c_str(), rc ) ;
 
@@ -1615,7 +1454,6 @@ namespace engine
                                        _mthMatchLogicNode *parent )
    {
       PD_TRACE_ENTRY( SDB__MTHMATCHTREE_PARSEELEMENT ) ;
-
       INT32 rc = SDB_OK ;
       switch ( ele.type() )
       {
@@ -1639,91 +1477,49 @@ namespace engine
       return rc ;
    }
 
-   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMATCHTREE__PRELOADPATTERN, "_mthMatchTree::_preLoadPattern" )
-   INT32 _mthMatchTree::_preLoadPattern ( const BSONObj &matcher,
-                                          BOOLEAN enableMixCmp,
-                                          BOOLEAN parameterized,
-                                          BOOLEAN fuzzyOptr,
-                                          BOOLEAN copyQuery )
-   {
-      INT32 rc      = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__MTHMATCHTREE__PRELOADPATTERN ) ;
-
-      _matchPattern = copyQuery ? matcher.copy() : matcher ;
-      _isMatchesAll = TRUE ;
-
-      setMthEnableMixCmp( enableMixCmp ) ;
-      setMthEnableParameterized( parameterized ) ;
-      setMthEnableFuzzyOptr( fuzzyOptr ) ;
-
-      _root = mthGetMatchNodeFactory()->createLogicNode(
-                                             &_allocator, getMatchConfigPtr(),
-                                             EN_MATCH_OPERATOR_LOGIC_AND ) ;
-      PD_CHECK( NULL != _root, SDB_OOM, error, PDERROR,
-                "Failed to allocate memory for EN_MATCH_OPERATOR_LOGIC_AND, "
-                "rc: %d", rc ) ;
-
-      rc = _root->init( "", BSONObj().firstElement() ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to init logicNode, rc: %d", rc ) ;
-
-   done :
-      PD_TRACE_EXITRC( SDB__MTHMATCHTREE__PRELOADPATTERN, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-   }
-
-   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMATCHTREE__POSTLOADPATTERN, "_mthMatchTree::_postLoadPattern" )
-   INT32 _mthMatchTree::_postLoadPattern ( BOOLEAN needOptimize )
-   {
-      INT32 rc      = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__MTHMATCHTREE__POSTLOADPATTERN ) ;
-
-      if ( needOptimize )
-      {
-         rc = _optimize() ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to optimize match tree, rc: %d",
-                      rc ) ;
-      }
-
-      _checkTotallyConverted() ;
-
-   done :
-      PD_TRACE_EXITRC( SDB__MTHMATCHTREE__POSTLOADPATTERN, rc ) ;
-      return rc ;
-
-   error :
-      goto done ;
-   }
-
    ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMATCHTREE_LOADPATTERN, "_mthMatchTree::loadPattern" )
-   INT32 _mthMatchTree::loadPattern ( const BSONObj &matcher,
-                                      BOOLEAN needConfigMixCmp /* = TRUE */ )
+   INT32 _mthMatchTree::loadPattern( const BSONObj &matcher,
+                                     BOOLEAN needPredicate /* = TRUE */)
    {
       PD_TRACE_ENTRY( SDB__MTHMATCHTREE_LOADPATTERN ) ;
       SDB_ASSERT ( !_isInitialized, "mthMatcher can't be initialized "
                    "multiple times" ) ;
       INT32 rc      = SDB_OK ;
+      _matchPattern = matcher.copy() ;
+      _isMatchesAll = TRUE ;
+      INT32 eleNum  = 0 ;
 
-      BOOLEAN mixCmp = needConfigMixCmp ?
-                       sdbGetRTNCB()->isEnabledMixCmp() :
-                       mthEnabledMixCmp() ;
-
-      rc = _preLoadPattern( matcher, mixCmp, FALSE, FALSE, TRUE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to process before loading pattern, "
-                   "rc: %d", rc ) ;
-
+      BSONObjIterator i( _matchPattern ) ;
       try
       {
-         BSONObjIterator i( _matchPattern ) ;
+         _root = mthGetMatchNodeFactory()->createLogicNode( &_allocator,
+                                                 EN_MATCH_OPERATOR_LOGIC_AND ) ;
+         if ( NULL == _root )
+         {
+            rc = SDB_OOM ;
+            PD_LOG ( PDERROR, "Failed to allocate memory for "
+                     "EN_MATCH_OPERATOR_LOGIC_AND:rc=%d", rc ) ;
+            goto error ;
+         }
+
+         rc = _root->init( "", BSONObj().firstElement() ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "init logciNode failed:rc=%d", rc ) ;
+            goto error ;
+         }
 
          while ( i.more() )
          {
             BSONElement temp = i.next() ;
             rc = _parseElement( temp, ( _mthMatchLogicNode* )_root ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to parse element %s, rc: %d",
-                         temp.toString().c_str(), rc ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "parse element failed:element=%s,rc=%d",
+                        temp.toString().c_str(), rc ) ;
+               goto error ;
+            }
+            ++eleNum ;
             _isMatchesAll = FALSE ;
          }
       }
@@ -1734,67 +1530,12 @@ namespace engine
          goto error ;
       }
 
-      rc = _postLoadPattern( TRUE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to process after loading pattern, "
-                   "rc: %d", rc ) ;
+      rc = _optimize( needPredicate ) ;
 
       _isInitialized = TRUE ;
 
    done :
       PD_TRACE_EXITRC( SDB__MTHMATCHTREE_LOADPATTERN, rc ) ;
-      return rc ;
-   error :
-      clear() ;   /* _root is cleared in clear() */
-      goto done ;
-   }
-
-   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMATCHTREE_LOADPATTERN_NOR, "_mthMatchTree::loadPattern" )
-   INT32 _mthMatchTree::loadPattern ( const BSONObj &matcher,
-                                      mthMatchNormalizer &normalizer )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__MTHMATCHTREE_LOADPATTERN_NOR ) ;
-
-      SDB_ASSERT ( !_isInitialized, "mthMatcher can't be initialized "
-                   "multiple times" ) ;
-
-      rc = _preLoadPattern( matcher,
-                            normalizer.mthEnabledMixCmp(),
-                            normalizer.mthEnabledParameterized(),
-                            normalizer.mthEnabledFuzzyOptr(),
-                            FALSE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to process before loading pattern, "
-                   "rc: %d", rc ) ;
-
-      try
-      {
-         for ( UINT8 i = 0 ; i < normalizer.getItemNumber() ; i ++ )
-         {
-            mthMatchOpItem *opItem = normalizer.getOpItem( i ) ;
-
-            rc = _parseOpItem( opItem, (_mthMatchLogicNode *)_root ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to parse operator item, rc: %d",
-                         rc ) ;
-
-            _isMatchesAll = FALSE ;
-         }
-      }
-      catch ( std::exception &e )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG ( PDERROR, "Failed to call loadPattern: %s", e.what() ) ;
-         goto error ;
-      }
-
-      rc = _postLoadPattern( FALSE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to process after loading pattern, "
-                   "rc: %d", rc ) ;
-
-      _isInitialized = TRUE ;
-
-   done :
-      PD_TRACE_EXITRC( SDB__MTHMATCHTREE_LOADPATTERN_NOR, rc ) ;
       return rc ;
    error :
       clear() ;   /* _root is cleared in clear() */
@@ -1969,19 +1710,14 @@ namespace engine
       _root->sortByWeight() ;
    }
 
-   INT32 _mthMatchTree::calcPredicate ( rtnPredicateSet &predicateSet,
-                                        const rtnParamList * paramList )
+   INT32 _mthMatchTree::_setPredicate()
    {
       INT32 rc = SDB_OK ;
-
-      if ( _isInitialized && _root )
+      rc = _root->calcPredicate( _predicateSet ) ;
+      if ( SDB_OK != rc )
       {
-         rc = _root->calcPredicate( predicateSet, paramList ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "calc predicate failed:rc=%d", rc ) ;
-            goto error ;
-         }
+         PD_LOG( PDERROR, "calc predicate failed:rc=%d", rc ) ;
+         goto error ;
       }
 
    done:
@@ -2027,7 +1763,7 @@ namespace engine
       _checkTotallyConverted( _root, _isTotallyConverted ) ;
    }
 
-   INT32 _mthMatchTree::_optimize ()
+   INT32 _mthMatchTree::_optimize( BOOLEAN needPredicate )
    {
       INT32 rc = SDB_OK ;
 
@@ -2042,6 +1778,18 @@ namespace engine
 
       _sortByWeight() ;
 
+      if ( needPredicate )
+      {
+         rc = _setPredicate() ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "_setPredicate failed:rc=%d", rc ) ;
+            goto error ;
+         }
+      }
+
+      _checkTotallyConverted() ;
+
    done:
       return rc ;
    error:
@@ -2050,8 +1798,7 @@ namespace engine
 
    ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMATCHTREE_MATCHES, "_mthMatchTree::matches" )
    INT32 _mthMatchTree::matches( const BSONObj &matchTarget, BOOLEAN &result,
-                                 _mthMatchTreeContext *context /* = NULL */,
-                                 rtnParamList *parameters /* = NULL */ )
+                                 _mthMatchTreeContext *context /* = NULL */)
    {
       PD_TRACE_ENTRY( SDB__MTHMATCHTREE_MATCHES ) ;
       INT32 rc = SDB_OK ;
@@ -2060,10 +1807,6 @@ namespace engine
       if ( NULL == context )
       {
          _mthMatchTreeContext innerContext ;
-         if ( parameters )
-         {
-            innerContext.bindParameters( parameters ) ;
-         }
          rc = _matches( matchTarget, result, innerContext ) ;
          PD_RC_CHECK( rc, PDERROR, "_matches failed:rc=%d", rc ) ;
       }
@@ -2073,10 +1816,7 @@ namespace engine
          {
             context->disableDollarList() ;
          }
-         if ( parameters )
-         {
-            context->bindParameters( parameters ) ;
-         }
+
          rc = _matches( matchTarget, result, *context ) ;
          PD_RC_CHECK( rc, PDERROR, "_matches failed:rc=%d", rc ) ;
       }
@@ -2344,6 +2084,7 @@ namespace engine
 
       _releaseBuilderVec( _builderVec ) ;
 
+      _predicateSet.clear() ;
       _isInitialized      = FALSE ;
       _isMatchesAll       = TRUE ;
       _isTotallyConverted = TRUE ;
@@ -2356,7 +2097,7 @@ namespace engine
       _returnMatchNode    = NULL ;
    }
 
-   BSONObj _mthMatchTree::getEqualityQueryObject( const rtnParamList *parameters )
+   BSONObj _mthMatchTree::getEqualityQueryObject()
    {
       BSONObj obj ;
       if ( NULL == _root )
@@ -2367,7 +2108,7 @@ namespace engine
       try
       {
          BSONObjBuilder builder ;
-         _root->extraEqualityMatches( builder, parameters ) ;
+         _root->extraEqualityMatches( builder ) ;
          obj = dotted2nested( builder.obj() ) ;
       }
       catch (  std::exception &e )
@@ -2381,14 +2122,19 @@ namespace engine
       return obj ;
    }
 
-   BOOLEAN _mthMatchTree::isInitialized() const
+   BOOLEAN _mthMatchTree::isInitialized()
    {
       return _isInitialized ;
    }
 
-   BOOLEAN _mthMatchTree::isMatchesAll() const
+   BOOLEAN _mthMatchTree::isMatchesAll()
    {
       return _isMatchesAll ;
+   }
+
+   const rtnPredicateSet& _mthMatchTree::getPredicateSet()
+   {
+      return _predicateSet ;
    }
 
    BSONObj& _mthMatchTree::getMatchPattern()
@@ -2416,9 +2162,9 @@ namespace engine
       _isMatchesAll = matchesAll ;
    }
 
-   BSONObj _mthMatchTree::getParsedMatcher( const rtnParamList &parameters ) const
+   BSONObj _mthMatchTree::getParsedQuery() const
    {
-      return NULL != _root ? _root->toParamBson( parameters ) : BSONObj() ;
+      return NULL != _root ? _root->toBson() : BSONObj() ;
    }
 
    BSONObj _mthMatchTree::toBson()
@@ -2451,15 +2197,16 @@ namespace engine
                 ( _isTotallyConverted ? "TRUE" : "FALSE" ) + "\n" ;
       output += string( "_hasDollarFieldName:" ) +
                 ( _hasDollarFieldName ? "TRUE" : "FALSE" ) + "\n" ;
+      output += string( "_predicateSet:" ) +
+                _predicateSet.toString() ;
 
       return output ;
    }
 
    BOOLEAN _mthMatchTree::hasExpand()
    {
-      SDB_ASSERT( ( _hasExpand || _hasReturnMatch ) ? NULL != _attrFieldName :
-                                                      NULL == _attrFieldName,
-                    "impossible" ) ;
+      SDB_ASSERT( _hasExpand ? NULL != _attrFieldName : NULL == _attrFieldName,
+                  "impossible" ) ;
       return _hasExpand ;
    }
 
@@ -2473,28 +2220,6 @@ namespace engine
    const CHAR* _mthMatchTree::getAttrFieldName()
    {
       return _attrFieldName ;
-   }
-
-   void _mthMatchTree::evalEstimation ( optCollectionStat *pCollectionStat,
-                                        double &estSelectivity,
-                                        UINT32 &estCPUCost )
-   {
-      estSelectivity = OPT_MTH_DEFAULT_SELECTIVITY ;
-      estCPUCost = OPT_MTH_DEFAULT_CPU_COST ;
-
-      if ( !_isInitialized )
-      {
-         return ;
-      }
-
-      if ( _isMatchesAll && !hasExpand() && !hasReturnMatch() )
-      {
-         return ;
-      }
-      else if ( _root )
-      {
-         _root->evalEstimation( pCollectionStat, estSelectivity, estCPUCost ) ;
-      }
    }
 
    _mthRecordGenerator::_mthRecordGenerator()

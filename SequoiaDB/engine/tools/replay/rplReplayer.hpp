@@ -39,23 +39,11 @@
 #include "dpsArchiveFileMgr.hpp"
 #include "dpsLogFile.hpp"
 #include "ossFile.hpp"
-#include <string>
-#include <map>
 
 using namespace std;
 
 namespace replay
-{
-   struct ReplicaFileInfo
-   {
-      string name;
-      UINT32 fileSize;
-      UINT32 fileNum;
-      UINT32 fileId;
-   };
-
-   typedef map<UINT32, ReplicaFileInfo> REPLICA_FILE_MAP;
-
+{  
    class Replayer: public SDBObject
    {
    public:
@@ -69,24 +57,15 @@ namespace replay
       INT32 _readStatus();
       INT32 _writeStatus();
       INT32 _connectSdb();
-      INT32 _replayFile();
-      INT32 _replayDir();
-      INT32 _isDpsLogFile(const string& path, BOOLEAN& isArchive,
-                               UINT32& fileSize, UINT32& fileNum, UINT32& fileId);
-      INT32 _replayArchiveFile(const string& file);
-      INT32 _replayReplicaFile(const string& file, UINT32 fileSize, UINT32 fileNum);
+      INT32 _replayFile(const string& file);
       INT32 _replayLogFile(engine::dpsLogFile& logFile,
                            DPS_LSN_OFFSET startLSN, DPS_LSN_OFFSET endLSN);
       INT32 _replayLog(const CHAR* log);
       void  _dumpArchiveFileHeader(engine::dpsArchiveFile& archiveFile);
-      void  _dumpReplicaFileHeader(engine::dpsLogFile& logFile);
       void  _dumpLog(const engine::dpsLogRecord& log);
-      INT32 _replayArchiveDir();
-      INT32 _scanArchiveDir(UINT32& minFileId, UINT32& maxFileId);
-      INT32 _replayArchiveFiles(UINT32 minFileId, UINT32 maxFileId);
-      INT32 _replayReplicaDir();
-      INT32 _scanReplicaDir(REPLICA_FILE_MAP& replicaFiles, UINT32& minFileId, UINT32& maxFileId);
-      INT32 _replayReplicaFiles(REPLICA_FILE_MAP& replicaFiles, UINT32 minFileId, UINT32 maxFileId);
+      INT32 _replayDir();
+      INT32 _scanDir(UINT32& minFileId, UINT32& maxFileId);
+      INT32 _replayFiles(UINT32 minFileId, UINT32 maxFileId);
       INT32 _ensureFileSize(const string& filePath, INT64 fileSize);
       INT32 _ensureBufSize(UINT32 size);
       INT32 _setLastFileTime(const string& filePath);
@@ -94,11 +73,10 @@ namespace replay
       INT32 _replayUpdate(const CHAR* log);
       INT32 _replayDelete(const CHAR* log);
       INT32 _replayTruncateCL(const CHAR* log);
-      INT32 _replayPop(const CHAR *log) ;
       INT32 _move(UINT32 startFileId);
       INT32 _rollbackLogFile(engine::dpsLogFile& logFile,
                            DPS_LSN_OFFSET startLSN, DPS_LSN_OFFSET endLSN);
-      INT32 _findLastLSN(engine::dpsLogFile& logFile,
+      INT32 _findLastLSN(engine::dpsLogFile& logFile, 
                              DPS_LSN_OFFSET startLSN, DPS_LSN_OFFSET endLSN,
                              DPS_LSN_OFFSET& lastLSN);
       INT32 _rollbackLog(const CHAR* log);
@@ -107,7 +85,6 @@ namespace replay
       INT32 _rollbackUpdate(const CHAR* log);
       INT32 _rollbackDelete(const CHAR* log);
       INT32 _rollbackTruncateCL(const CHAR* log);
-      INT32 _rollbackPop(const CHAR* log);
       INT32 _deflateFile(const string& file);
       INT32 _inflateFile(const string& file);
 
@@ -118,7 +95,7 @@ namespace replay
       Monitor                    _monitor;
       engine::ossFile            _status;
       string                     _path;
-      sdbclient::sdb*            _sdb;
+      sdbclient::sdb             _sdb;
       engine::dpsArchiveFileMgr  _archiveFileMgr;
       CHAR*                      _buf;
       UINT32                     _bufSize;

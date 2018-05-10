@@ -1,5 +1,4 @@
-﻿//@ sourceURL=Transaction.js
-(function(){
+﻿(function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
    sacApp.controllerProvider.register( 'Monitor.SdbResource.Transaction.Ctrl', function( $scope, $compile, SdbRest, $location, SdbFunction ){
@@ -39,8 +38,11 @@
             'GroupName':            $scope.autoLanguage( '分区组' ),
             'CurrentTransLSN':      $scope.autoLanguage( '当前事务LSN' ),
             'IsRollback':           $scope.autoLanguage( '是否回滚' ),
-            'WaitLockNum':             $scope.autoLanguage( '等待锁' ),
-            'TransactionLocksNum':  $scope.autoLanguage( '锁总数' )
+            'WaitLock':             $scope.autoLanguage( '等待锁' ),
+            'TransactionLocksNum':  $scope.autoLanguage( '锁总数' ),
+            'CsLock':               $scope.autoLanguage( '集合空间锁' ),
+            'ClLock':               $scope.autoLanguage( '集合锁' ),
+            'RecordLock':           $scope.autoLanguage( '记录锁' )
          },
          'body': [],
          'options': {
@@ -52,8 +54,11 @@
                'GroupName':            true,
                'CurrentTransLSN':      true,
                'IsRollback':           true,
-               'WaitLockNum':             true,
-               'TransactionLocksNum':  true
+               'WaitLock':             true,
+               'TransactionLocksNum':  true,
+               'CsLock':               true,
+               'ClLock':               true,
+               'RecordLock':           true
             },
             'max': 50,
             'filter': {
@@ -67,19 +72,91 @@
                   { 'key': $scope.autoLanguage( '是' ), 'value': true },
                   { 'key': $scope.autoLanguage( '否' ), 'value': false }
                ],
-               'WaitLockNum':          'number',
-               'TransactionLocksNum':  'number'
+               'WaitLock':             'indexof',
+               'TransactionLocksNum':  'number',
+               'CsLock':               'number',
+               'ClLock':               'number',
+               'RecordLock':           'number'
             }
          },
          'callback': {}
       } ;
 
+      //获取DB快照
+      var getDbList = function( transactionList ){
+         var sql  = 'SELECT NodeName, GroupName, NodeID, ServiceName FROM $SNAPSHOT_DB WHERE Role="data"' ;
+         SdbRest.Exec( sql, {
+            'success': function( dbList ){
+
+               $.each( transactionList, function( index, transactionInfo ){
+                  var csLock = 0 ;
+                  var clLock = 0 ;
+                  var recordLock = 0 ;
+                  var waitLock = 0 ;
+
+                  transactionInfo['CsLock'] = 0 ;
+                  transactionInfo['ClLock'] = 0 ;
+                  transactionInfo['RecordLock'] = 0 ;
+                  transactionInfo['i'] = index ;
+
+                  $.each( dbList, function( dbIndex, dbInfo ){
+                     if( transactionInfo['NodeName'] == dbInfo['NodeName'] )
+                     {
+                        transactionList[index]['GroupName'] = dbInfo['GroupName'] ;
+                        return false ;
+                     }
+                  } ) ;
+
+                  $.each( transactionInfo['GotLocks'], function( Index2, lockInfo ){
+                     if( lockInfo['recordID'] > -1  ) //记录锁
+                     {
+                        ++recordLock ;
+                     }
+                     else if( lockInfo['CLID'] > -1 && lockInfo['CLID'] < 65535 )
+                     {
+                        ++clLock ;
+                     }
+                     else if( lockInfo['CSID'] > -1 )
+                     {
+                        ++csLock ;
+                     }
+                  } ) ;
+
+                  if( transactionInfo['WaitLock']['CSID'] > -1 )
+                  {
+                     ++waitLock ;
+                  }
+                  if( transactionInfo['WaitLock']['ClID'] > -1 && transactionInfo['WaitLock']['ClID'] < 65535 )
+                  {
+                     ++waitLock ;
+                  }
+                  if( transactionInfo['WaitLock']['recordID'] > -1 )
+                  {
+                     ++waitLock ;
+                  }
+
+                  transactionList[index]['CsLock'] = csLock ;
+                  transactionList[index]['ClLock'] = clLock ;
+                  transactionList[index]['RecordLock'] = clLock ;
+                  transactionList[index]['WaitLock'] = waitLock ;
+
+               } ) ;
+               $scope.TransactionTable['body'] = transactionList ;
+            },
+            'failed': function( errorInfo ){
+               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+                  getDbList( transactionList ) ;
+                  return true ;
+               } ) ;
+            }
+         }, { 'showLoading': false } ) ;
+      }
+
       //获取事务列表
       var getTransaction = function(){
-         var sql = 'SELECT * FROM $LIST_TRANS' ;
+         var sql = 'SELECT * FROM $SNAPSHOT_TRANS' ;
          SdbRest.Exec( sql, {
             'success': function( data ){
-               //alert( JSON.stringify(data) ) ;
                var transactionList = [] ;
                $.each( data, function( index, transactionInfo ){
                   if( isArray( transactionInfo['ErrNodes'] ) == false )
@@ -87,22 +164,12 @@
                      transactionList.push( transactionInfo ) ;
                   }
                } ) ;
+               //如果有事务，执行获取db快照
                if( transactionList.length > 0 )
                {
-                  transactionInfoList = $.extend( true, transactionList ) ;
-                  $.each( transactionList, function( index, transactionInfo ){
-                     var waitLock = 0 ;
-                     //等待锁数量
-                     transactionList[index]['WaitLockNum'] = 0 ;
-                     //弹窗使用的id标识
-                     transactionList[index]['i'] = index ;
-
-                     if( transactionInfo['WaitLock']['CSID'] > -1 || ( transactionInfo['WaitLock']['CLID'] > -1 && transactionInfo['WaitLock']['CLID'] < 65535 ) || transactionInfo['WaitLock']['recordID'] > -1 )
-                     {
-                        transactionList[index]['WaitLockNum'] = 1 ;
-                     }
-                  } ) ;
                   $scope.TransactionTable['body'] = transactionList ;
+                  transactionInfoList = $.extend( true, transactionList ) ;
+                  getDbList( $scope.TransactionTable['body'] ) ;
                }
             },
             'failed': function( errorInfo ){

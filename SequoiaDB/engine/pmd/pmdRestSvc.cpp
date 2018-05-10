@@ -56,7 +56,6 @@ namespace engine
    {
       INT32 rc                = SDB_OK ;
       pmdKRCB *krcb           = pmdGetKRCB() ;
-      pmdOptionsCB *optionCB  = krcb->getOptionCB() ;
       monDBCB *mondbcb        = krcb->getMonDBCB () ;
       pmdEDUMgr *eduMgr       = cb->getEDUMgr() ;
       ossSocket *pListerner   = ( ossSocket* )pData ;
@@ -67,40 +66,13 @@ namespace engine
          goto error ;
       }
 
-      while ( !cb->isDisconnected() && !pListerner->isClosed() )
+      while ( !cb->isDisconnected() )
       {
          SOCKET s ;
          rc = pListerner->accept ( &s, NULL, NULL ) ;
-         if ( SDB_TIMEOUT == rc )
+         if ( SDB_TIMEOUT == rc || SDB_TOO_MANY_OPEN_FD == rc  )
          {
             rc = SDB_OK ;
-            continue ;
-         }
-         else if ( SDB_TOO_MANY_OPEN_FD == rc )
-         {
-            pListerner->close() ;
-            PD_LOG( PDERROR, "Can not accept more connections because of "
-                    "open files upto limits, restart listening" ) ;
-            pmdIncErrNum( rc ) ;
-
-            while( !cb->isDisconnected() )
-            {
-               pListerner->close() ;
-               ossSleep( 2 * OSS_ONE_SEC ) ;
-               rc = pListerner->initSocket() ;
-               if ( rc )
-               {
-                  continue ;
-               }
-               rc = pListerner->bind_listen() ;
-               if ( rc )
-               {
-                  continue ;
-               }
-               PD_LOG( PDEVENT, "Restart listening on port[%d] succeed",
-                       pListerner->getLocalPort() ) ;
-               break ;
-            }
             continue ;
          }
          if ( rc && PMD_IS_DB_DOWN() )
@@ -123,6 +95,7 @@ namespace engine
          }
 
          cb->incEventCount() ;
+         ++mondbcb->numConnects ;
 
          void *pData = NULL ;
          *((SOCKET *) &pData) = s ;
@@ -131,15 +104,6 @@ namespace engine
          {
             ossSocket newsock ( &s ) ;
             newsock.close () ;
-            continue ;
-         }
-
-         mondbcb->connInc();
-         if ( mondbcb->isConnLimited( optionCB->getMaxConn() ) )
-         {
-            ossSocket newsock ( &s ) ;
-            newsock.close () ;
-            mondbcb->connDec();
             continue ;
          }
 
@@ -152,7 +116,6 @@ namespace engine
 
             ossSocket newsock ( &s ) ;
             newsock.close () ;
-            mondbcb->connDec();
             continue ;
          }
       } //while ( ! cb->isDisconnected() )
@@ -162,10 +125,6 @@ namespace engine
    error :
       goto done ;
    }
-
-   PMD_DEFINE_ENTRYPOINT( EDU_TYPE_RESTLISTENER, TRUE,
-                          pmdRestSvcEntryPoint,
-                          "RestListener" ) ;
 
    /*
       rest agent entry point
@@ -210,15 +169,9 @@ namespace engine
          restSession.detachProcessor() ;
          restSession.detach() ;
       }
-      
-      pmdGetKRCB()->getMonDBCB ()->connDec();
 
       return rc ;
    }
-
-   PMD_DEFINE_ENTRYPOINT( EDU_TYPE_RESTAGENT, FALSE,
-                          pmdRestAgentEntryPoint,
-                          "RestAgent" ) ;
 
 }
 

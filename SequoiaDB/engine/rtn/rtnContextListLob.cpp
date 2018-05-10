@@ -34,14 +34,11 @@
 #include "rtnContextListLob.hpp"
 #include "rtnTrace.hpp"
 #include "rtnLob.hpp"
-#include "rtnLobPieces.hpp"
 
 using namespace bson ;
 
 namespace engine
 {
-   RTN_CTX_AUTO_REGISTER(_rtnContextListLob, RTN_CONTEXT_LIST_LOB, "LIST_LOB")
-
    _rtnContextListLob::_rtnContextListLob( INT64 contextID, UINT64 eduID )
    :_rtnContextBase( contextID, eduID ),
     _buf( NULL ),
@@ -155,7 +152,6 @@ namespace engine
       _dmsLobInfoOnPage info ;
       UINT32 read = 0 ;
       const _dmsLobMeta *meta = NULL ;
-      UINT64 modificationTime = 0 ;
       BSONObjBuilder builder ;
 
       rc = _fetcher.fetch( cb, info ) ;
@@ -188,52 +184,12 @@ namespace engine
       SDB_ASSERT( read == info._len, "impossible" ) ;
 
       meta = ( const _dmsLobMeta* )_buf ;
-      modificationTime = meta->_modificationTime ;
-      if ( 0 == modificationTime )
-      {
-         modificationTime = meta->_createTime ;
-      }
-
       builder.append( FIELD_NAME_LOB_SIZE, meta->_lobLen ) ;
       builder.appendOID( FIELD_NAME_LOB_OID, &( info._oid ) ) ;
-      builder.appendTimestamp( FIELD_NAME_LOB_CREATETIME,
+      builder.appendTimestamp( FIELD_NAME_LOB_CREATTIME,
                                meta->_createTime,
                                (meta->_createTime - ( meta->_createTime / 1000 * 1000 ) ) * 1000) ;
-      builder.appendTimestamp( FIELD_NAME_LOB_MODIFICATION_TIME,
-                               modificationTime,
-                               (modificationTime - ( modificationTime / 1000 * 1000 ) ) * 1000) ;
       builder.appendBool( FIELD_NAME_LOB_AVAILABLE, meta->isDone() ) ;
-#ifdef _DEBUG
-      builder.appendBool( FIELD_NAME_LOB_HAS_PIECESINFO, meta->hasPiecesInfo() ) ;
-      if ( meta->hasPiecesInfo() && info._len >= DMS_LOB_META_LENGTH )
-      {
-         BSONArray array ;
-         _rtnLobPiecesInfo piecesInfo ;
-
-         INT32 length = meta->_piecesInfoNum * (INT32)sizeof( _rtnLobPieces ) ;
-         const CHAR* piecesInfoBuf = (const CHAR*)
-                                     ( _buf + DMS_LOB_META_LENGTH - length ) ;
-
-         rc = piecesInfo.readFrom( piecesInfoBuf, length ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "failed to read pieces info of lob[%s], rc:%d",
-                    info._oid.str().c_str(), rc ) ;
-            goto error ;
-         }
-
-         rc = piecesInfo.saveTo( array ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "failed to save pieces info of lob[%s], rc:%d",
-                    info._oid.str().c_str(), rc ) ;
-            goto error ;
-         }
-
-         builder.append( FIELD_NAME_LOB_PIECESINFONUM, meta->_piecesInfoNum ) ;
-         builder.appendArray( FIELD_NAME_LOB_PIECESINFO, array ) ;
-      }
-#endif
       obj = builder.obj() ;
    done:
       PD_TRACE_EXITRC( SDB__RTNCONTEXTLISTLOB__GETMETAINFO, rc ) ;

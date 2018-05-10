@@ -17,37 +17,31 @@ namespace SequoiaDB
          *  \memberof SDB_LOB_SEEK_SET 0
          *  \brief Change the position from the beginning of lob 
          */
-        public const int SDB_LOB_SEEK_SET = 0;
+        public const int SDB_LOB_SEEK_SET   = 0;
     
         /**
          *  \memberof SDB_LOB_SEEK_CUR 1
          *  \brief Change the position from the current position of lob 
          */
-        public const int SDB_LOB_SEEK_CUR = 1;
+        public const int SDB_LOB_SEEK_CUR   = 1;
     
         /**
          *  \memberof SDB_LOB_SEEK_END 2
          *  \brief Change the position from the end of lob 
          */
-        public const int SDB_LOB_SEEK_END = 2;
+        public const int SDB_LOB_SEEK_END   = 2;
 
         /**
          *  \memberof SDB_LOB_CREATEONLY 0x00000001
          *  \brief Open a new lob only
          */
-        internal const int SDB_LOB_CREATEONLY = 0x00000001;
+        public const int SDB_LOB_CREATEONLY = 0x00000001;
 
         /**
          *  \memberof SDB_LOB_READ 0x00000004
-         *  \brief LOB open mode for reading
+         *  \brief Open an existing lob to read
          */
-        public const int SDB_LOB_READ = 0x00000004;
-
-        /**
-         *  \memberof SDB_LOB_WRITE 0x00000008
-         *  \brief LOB open mode for writing
-         */
-        public const int SDB_LOB_WRITE = 0x00000008;
+        public const int SDB_LOB_READ       = 0x00000004;
 
         // the max lob data size to send for one message
         private const int SDB_LOB_MAX_WRITE_DATA_LENGTH = 2097152; // 2M;
@@ -58,7 +52,7 @@ namespace SequoiaDB
         private const int FLG_LOBOPEN_WITH_RETURNDATA = 0x00000002;
     
         private const long SDB_LOB_DEFAULT_OFFSET  = -1;
-        private const int SDB_LOB_DEFAULT_SEQ = 0;
+        private const int SDB_LOB_DEFAULT_SEQ      = 0;
     
         private DBCollection _cl = null;
         private IConnection  _connection = null;
@@ -67,14 +61,12 @@ namespace SequoiaDB
         private ObjectId     _id;
         private int          _mode;
         private int          _pageSize;
-        private long         _lobSize;
+        private long         _size;
         private long         _createTime;
-        private long         _modificationTime;
-        private long         _currentOffset;
+        private long         _readOffset;
         private long         _cachedOffset;
         private ByteBuffer   _cachedDataBuff;
-        private bool         _isOpened;
-        private bool         _seekWrite;
+        private bool         _isOpen;
         // when first open/create DBLob, sequoiadb return the contextID for the
         // further reading/writing/close
         private long         _contextID;
@@ -86,16 +78,25 @@ namespace SequoiaDB
             this._isBigEndian = cl.isBigEndian;
             _id = ObjectId.Empty;
             _mode = -1;
-            _lobSize = 0;
+            _size = 0;
             _createTime = 0;
-            _currentOffset = -1;
+            _readOffset = -1;
             _cachedOffset = -1;
             _cachedDataBuff = null;
-            _isOpened = false;
-            _seekWrite = false;
+            _isOpen = false;
             _contextID = -1;
         }
+/*
+        internal void Open()
+        {
+            Open(ObjectId.Empty, SDB_LOB_CREATEONLY);
+        }
 
+        internal void Open(ObjectId id)
+        {
+            Open(id, SDB_LOB_READ);
+        }
+*/
         /** \fn         Open( ObjectId id, int mode )
          * \brief       Open an exist lob, or create a lob
          * \param       id   the lob's id
@@ -111,39 +112,36 @@ namespace SequoiaDB
         internal void Open(ObjectId id, int mode)
         {
             // check
-            if (_isOpened)
+            if (_isOpen)
             {
-                throw new BaseException((int)Errors.errors.SDB_LOB_HAS_OPEN, "lob have opened: id = " + _id);
+                throw new BaseException((int)Errors.errors.SDB_LOB_HAS_OPEN);
             }
-            if (mode != SDB_LOB_CREATEONLY && 
-                mode != SDB_LOB_READ &&
-                mode != SDB_LOB_WRITE)
+            if (SDB_LOB_CREATEONLY != mode && SDB_LOB_READ != mode)
             {
-                throw new BaseException((int)Errors.errors.SDB_INVALIDARG, "mode is unsupported: " + mode);
+                throw new BaseException((int)Errors.errors.SDB_INVALIDARG);
             }
-            if (mode == SDB_LOB_READ || mode == SDB_LOB_WRITE)
+            if (SDB_LOB_READ == mode)
             {
-                if (id == ObjectId.Empty)
+                if (ObjectId.Empty == id)
                 {
-                    throw new BaseException((int)Errors.errors.SDB_INVALIDARG, "id must be specify"
-                    + " in mode:" + mode);
+                    throw new BaseException((int)Errors.errors.SDB_INVALIDARG);
                 }
             }
             // gen oid
             _id = id;
-            if (mode == SDB_LOB_CREATEONLY)
+            if (SDB_LOB_CREATEONLY == mode)
             {
-                if (_id == ObjectId.Empty)
+                if (ObjectId.Empty == _id)
                 {
                     _id = ObjectId.GenerateNewId();
                 }
             }
             // mode
             _mode = mode;
-            _currentOffset = 0;
+            _readOffset = 0;
             // open
             _Open();
-            _isOpened = true;
+            _isOpen = true;
         }
 
         /** \fn          Close()
@@ -154,7 +152,7 @@ namespace SequoiaDB
           */
         public void Close()
         {
-            if (!_isOpened)
+            if (!_isOpen)
             {
                 return;
             }
@@ -168,31 +166,13 @@ namespace SequoiaDB
                 throw new BaseException((int)Errors.errors.SDB_UNKNOWN_MESSAGE,
                         string.Format("Receive Unexpected operation code: {0}", retInfo.OperationCode));
             }
-            int errorCode = retInfo.Flags;
-            if (0 != errorCode)
+            int flag = retInfo.Flags;
+            if (0 != flag)
             {
-                throw new BaseException(errorCode);
+                throw new BaseException(flag);
             }
-            // update the last update time
-            List<BsonDocument> resultSet = retInfo.ObjectList;
-            if (resultSet != null && resultSet.Count > 0)
-            {
-                BsonDocument obj = resultSet[0];
 
-                if (obj != null && obj.Contains(SequoiadbConstants.FIELD_LOB_MODIFICATION_TIME))
-                {
-                    if (obj[SequoiadbConstants.FIELD_LOB_MODIFICATION_TIME].IsInt64)
-                    {
-                        _modificationTime = obj[SequoiadbConstants.FIELD_LOB_MODIFICATION_TIME].AsInt64;
-                    }
-                    else
-                    {
-                        throw new BaseException((int)Errors.errors.SDB_SYS,
-                            "the received data is not a long type.");
-                    }
-                }
-            }
-            _isOpened = false;
+            _isOpen = false;
         }
 
         /** \fn          Read( byte[] b )
@@ -226,7 +206,7 @@ namespace SequoiaDB
          */
         public int Read(byte[] b, int off, int len)
         {
-            if (!_isOpened)
+            if (!_isOpen)
             {
                 throw new BaseException((int)Errors.errors.SDB_LOB_NOT_OPEN, "lob is not open");
             }
@@ -281,7 +261,7 @@ namespace SequoiaDB
          */
         public void Write(byte[] b, int off, int len)
         {
-            if (!_isOpened)
+            if (!_isOpen)
             {
                 throw new BaseException((int)Errors.errors.SDB_LOB_NOT_OPEN, "lob is not open");
             }
@@ -319,7 +299,7 @@ namespace SequoiaDB
         }
 
         /** \fn          void Seek( long size, int seekType )
-         *  \brief       Change the read/write position of the lob. The new position is 
+         *  \brief       Change the read position of the lob. The new position is 
          *               obtained by adding <code>size</code> to the position 
          *               specified by <code>seekType</code>. If <code>seekType</code> 
          *               is set to SDB_LOB_SEEK_SET, SDB_LOB_SEEK_CUR, or SDB_LOB_SEEK_END, 
@@ -333,14 +313,12 @@ namespace SequoiaDB
          */
         public void Seek(long size, int seekType)
         {
-            if (!_isOpened)
+            if (!_isOpen)
             {
                 throw new BaseException((int)Errors.errors.SDB_LOB_NOT_OPEN, "lob is not open");
             }
 
-            if (_mode != SDB_LOB_READ && 
-                _mode != SDB_LOB_CREATEONLY && 
-                _mode != SDB_LOB_WRITE)
+            if (_mode != SDB_LOB_READ)
             {
                 throw new BaseException((int)Errors.errors.SDB_OPTION_NOT_SUPPORT, "seek() is not supported"
                         + " in mode=" + _mode);
@@ -348,98 +326,36 @@ namespace SequoiaDB
 
             if (SDB_LOB_SEEK_SET == seekType)
             {
-                if (size < 0 || (size > _lobSize && _mode == SDB_LOB_READ))
+                if (size < 0 || size > _size)
                 {
-                    throw new BaseException((int)Errors.errors.SDB_INVALIDARG, "out of bound, lobSize=" + _lobSize);
+                    throw new BaseException((int)Errors.errors.SDB_INVALIDARG, "out of bound");
                 }
 
-                _currentOffset = size;
+                _readOffset = size;
             }
             else if (SDB_LOB_SEEK_CUR == seekType)
             {
-                if ((_currentOffset + size >= _lobSize && _mode == SDB_LOB_READ)
-                        || (_currentOffset + size < 0))
+                if ((_size < _readOffset + size)
+                        || (_readOffset + size < 0))
                 {
-                    throw new BaseException((int)Errors.errors.SDB_INVALIDARG, 
-                        "out of bound, _currentOffset=" + _currentOffset + ", lobSize=" + _lobSize);
+                    throw new BaseException((int)Errors.errors.SDB_INVALIDARG, "out of bound");
                 }
 
-                _currentOffset += size;
+                _readOffset += size;
             }
             else if (SDB_LOB_SEEK_END == seekType)
             {
-                if (size < 0 || (size > _lobSize && _mode == SDB_LOB_READ))
+                if (size < 0 || size > _size)
                 {
-                    throw new BaseException((int)Errors.errors.SDB_INVALIDARG, "out of bound, lobSize=" + _lobSize);
+                    throw new BaseException((int)Errors.errors.SDB_INVALIDARG, "out of bound");
                 }
 
-                _currentOffset = _lobSize - size;
+                _readOffset = _size - size;
             }
             else
             {
                 throw new BaseException((int)Errors.errors.SDB_INVALIDARG, "unreconigzed seekType: " + seekType);
             }
-
-            if (_mode == SDB_LOB_CREATEONLY || _mode == SDB_LOB_WRITE)
-            {
-                _seekWrite = true;
-            }
-        }
-
-        /** \fn          void Lock(long offset, long length)
-         *  \brief       Lock LOB section for writing.
-         *  \param       offset Lock start position.
-         *  \param       length Lock length, -1 means lock to the end of lob.
-         *  \return void
-         *  \exception SequoiaDB.BaseException
-         *  \exception System.Exception
-         */
-        public void Lock(long offset, long length)
-        {
-            if (!_isOpened)
-            {
-                throw new BaseException((int)Errors.errors.SDB_LOB_NOT_OPEN, "lob is not open");
-            }
-
-            if (offset < 0 || length < -1 || length == 0)
-            {
-                throw new BaseException((int)Errors.errors.SDB_INVALIDARG,
-                    "out of bound, offset=" + offset + ", length=" + length);
-            }
-
-            if (_mode != SDB_LOB_WRITE)
-            {
-                return;
-            }
-
-            ByteBuffer request = _GenerateLockLobRequest(_contextID, offset, length);
-            ByteBuffer respone = _SendAndReiveMessage(request);
-
-            SDBMessage retInfo = SDBMessageHelper.ExtractReply(respone);
-            if (retInfo.OperationCode != Operation.MSG_BS_LOB_LOCK_RES)
-            {
-                throw new BaseException((int)Errors.errors.SDB_UNKNOWN_MESSAGE,
-                        string.Format("Receive Unexpected operation code: {0}", retInfo.OperationCode));
-            }
-            int flag = retInfo.Flags;
-            if (0 != flag)
-            {
-                throw new BaseException(flag);
-            }
-        }
-
-        /** \fn          void LockAndSeek(long offset, long length)
-         *  \brief       Lock LOB section for writing and seek to the offset position.
-         *  \param       offset Lock start position.
-         *  \param       length Lock length, -1 means lock to the end of lob.
-         *  \return void
-         *  \exception SequoiaDB.BaseException
-         *  \exception System.Exception
-         */
-        public void LockAndSeek(long offset, long length)
-        {
-            Lock(offset, length);
-            Seek(offset, SDB_LOB_SEEK_SET);
         }
 
         /** \fn          bool IsClosed()
@@ -448,7 +364,7 @@ namespace SequoiaDB
          */
         public bool IsClosed()
         {
-            return !_isOpened;
+            return !_isOpen;
         }
 
         /** \fn          ObjectId GetID()
@@ -466,7 +382,7 @@ namespace SequoiaDB
          */
         public long GetSize()
         {
-            return _lobSize;
+            return _size;
         }
 
         /** \fn          long GetCreateTime()
@@ -478,17 +394,6 @@ namespace SequoiaDB
         public long GetCreateTime()
         { 
             return _createTime;
-        }
-
-        /** \fn          long GetModificationTime()
-         *  \brief       get the last modification time of lob
-         *  \return The lob's last modification time
-         *  \exception SequoiaDB.BaseException
-         *  \exception System.Exception
-         */
-        public long GetModificationTime()
-        {
-            return _modificationTime;
         }
 
         /************************************** private methond **************************************/
@@ -549,51 +454,34 @@ namespace SequoiaDB
             {
                 throw new BaseException(rc);
             }
-            /// get lob's meta info returned from engine
+            // get lob info return from engine
             List<BsonDocument> objList = retInfo.ObjectList;
             if (objList.Count() != 1)
             {
-                throw new BaseException((int)Errors.errors.SDB_NET_BROKEN_MSG, 
-                    "expect 1 record, but get " + objList.Count() + "records");
+                throw new BaseException((int)Errors.errors.SDB_NET_BROKEN_MSG);
             }
             BsonDocument obj = objList[0];
-            if (obj == null)
+            if (null == obj)
             {
-                throw new BaseException((int)Errors.errors.SDB_SYS, "expect 1 record, but we get null");
+                throw new BaseException((int)Errors.errors.SDB_SYS);
             }
             // lob size
             if (obj.Contains(SequoiadbConstants.FIELD_LOB_SIZE) && obj[SequoiadbConstants.FIELD_LOB_SIZE].IsInt64)
             {
-                _lobSize = obj[SequoiadbConstants.FIELD_LOB_SIZE].AsInt64;
+                _size = obj[SequoiadbConstants.FIELD_LOB_SIZE].AsInt64;
             }
             else
             {
-                throw new BaseException((int)Errors.errors.SDB_SYS, "the received data is not a long type.");
+                throw new BaseException((int)Errors.errors.SDB_SYS);
             }
             // lob create time
-            if (obj.Contains(SequoiadbConstants.FIELD_LOB_CREATE_TIME) && obj[SequoiadbConstants.FIELD_LOB_CREATE_TIME].IsInt64)
+            if (obj.Contains(SequoiadbConstants.FIELD_LOB_CREATTIME) && obj[SequoiadbConstants.FIELD_LOB_CREATTIME].IsInt64)
             {
-                _createTime = obj[SequoiadbConstants.FIELD_LOB_CREATE_TIME].AsInt64;
+                _createTime = obj[SequoiadbConstants.FIELD_LOB_CREATTIME].AsInt64;
             }
             else
             {
-                throw new BaseException((int)Errors.errors.SDB_SYS, "the received data is not a long type.");
-            }
-            // last modified time
-            if (obj.Contains(SequoiadbConstants.FIELD_LOB_MODIFICATION_TIME))
-            {
-                if (obj[SequoiadbConstants.FIELD_LOB_MODIFICATION_TIME].IsInt64)
-                {
-                    _modificationTime = obj[SequoiadbConstants.FIELD_LOB_MODIFICATION_TIME].AsInt64;
-                }
-                else
-                {
-                    throw new BaseException((int)Errors.errors.SDB_SYS, "the received data is not a long type.");
-                }
-            }
-            else
-            {
-                _modificationTime = _createTime;
+                throw new BaseException((int)Errors.errors.SDB_SYS);
             }
             // page size
             if (obj.Contains(SequoiadbConstants.FIELD_LOB_PAGESIZE) && obj[SequoiadbConstants.FIELD_LOB_PAGESIZE].IsInt32)
@@ -608,8 +496,8 @@ namespace SequoiaDB
             _cachedDataBuff = retInfo.LobCachedDataBuf;
             if (_cachedDataBuff != null)
             {
-                _currentOffset = 0;
-                _cachedOffset = _currentOffset;
+                _readOffset = 0;
+                _cachedOffset = _readOffset;
             }
             retInfo.LobCachedDataBuf = null;
             // contextID
@@ -624,11 +512,11 @@ namespace SequoiaDB
             int totalRead = 0;
 
             // when no data for return
-            if (_currentOffset >= _lobSize)
+            if (_readOffset >= _size)
             {
                 return -1;
             }
-            while (needRead > 0 && _currentOffset < _lobSize)
+            while (needRead > 0 && _readOffset < _size)
             {
                 onceRead = _OnceRead(b, offset, needRead);
                 if (onceRead == -1)
@@ -654,8 +542,7 @@ namespace SequoiaDB
             {
                 return;
             }
-            long offset = _seekWrite ? _currentOffset : -1;
-            ByteBuffer request = _GenerateWriteLobRequest(input, off, len, offset);
+            ByteBuffer request = _GenerateWriteLobRequest(input, off, len);
             // send and receive msg
             ByteBuffer respone = _SendAndReiveMessage(request);
             // extract info from return msg
@@ -671,9 +558,7 @@ namespace SequoiaDB
             {
                 throw new BaseException(flag);
             }
-            _currentOffset += len;
-            _lobSize = Math.Max(_lobSize, _currentOffset);
-            _seekWrite = false;
+            _size += len;
         }
 
         private int _OnceRead(byte[] buf, int off, int len)
@@ -689,7 +574,7 @@ namespace SequoiaDB
                 onceRead = _ReadInCache(buf, off, needRead);
                 totalRead += onceRead;
                 needRead -= onceRead;
-                _currentOffset += onceRead;
+                _readOffset += onceRead;
                 return totalRead;
             }
 
@@ -730,10 +615,10 @@ namespace SequoiaDB
                         "invalid message's length: " + retMsgLen);
             }
             long offsetInEngine = retInfo.LobOffset;
-            if (_currentOffset != offsetInEngine)
+            if (_readOffset != offsetInEngine)
             {
                 throw new BaseException((int)Errors.errors.SDB_SYS,
-                        "local read offset(" + _currentOffset +
+                        "local read offset(" + _readOffset +
                                 ") is not equal with what we expect(" + offsetInEngine + ")");
             }
             int retLobLen = (int)retInfo.LobLen;
@@ -763,10 +648,10 @@ namespace SequoiaDB
                     string.Format("Invalid bytes length in the cached buffer, copy {0} bytes, actually output {1} bytes", copy, output));
             }
             totalRead += output;
-            _currentOffset += output;
+            _readOffset += output;
             if (needRead < retLobLen)
             {
-                _cachedOffset = _currentOffset;
+                _cachedOffset = _readOffset;
             }
             else
             {
@@ -781,8 +666,8 @@ namespace SequoiaDB
             int remaining = (_cachedDataBuff != null) ? _cachedDataBuff.Remaining() : 0;
             return (_cachedDataBuff != null && 0 < remaining &&
                     0 <= _cachedOffset &&
-                    _cachedOffset <= _currentOffset &&
-                    _currentOffset < (_cachedOffset + remaining));
+                    _cachedOffset <= _readOffset &&
+                    _readOffset < (_cachedOffset + remaining));
         }
 
         private int _ReadInCache(byte[] buf, int off, int needRead)
@@ -791,14 +676,14 @@ namespace SequoiaDB
             {
                 throw new BaseException((int)Errors.errors.SDB_SYS, "buf size is to small");
             }
-            int readInCache = (int)(_cachedOffset + _cachedDataBuff.Remaining() - _currentOffset);
+            int readInCache = (int)(_cachedOffset + _cachedDataBuff.Remaining() - _readOffset);
             readInCache = readInCache <= needRead ? readInCache : needRead;
             // if we had used "lobSeek" to adjust "_readOffset",
             // let's adjust the right place to copy data
-            if (_currentOffset > _cachedOffset)
+            if (_readOffset > _cachedOffset)
             {
                 int currentPos = _cachedDataBuff.Position();
-                int newPos = currentPos + (int)(_currentOffset - _cachedOffset);
+                int newPos = currentPos + (int)(_readOffset - _cachedOffset);
                 _cachedDataBuff.Position(newPos);
             }
             // copy the data from cache out to the buf for user
@@ -815,14 +700,14 @@ namespace SequoiaDB
             }
             else
             {
-                _cachedOffset = _currentOffset + readInCache;
+                _cachedOffset = _readOffset + readInCache;
             }
             return readInCache;
         }
 
         private int _ReviseReadLen(int needLen)
         {
-            int mod = (int)(_currentOffset & (_pageSize - 1));
+            int mod = (int)(_readOffset & (_pageSize - 1));
             // when "needLen" is great than (2^31 - 1) - 3,
             // alignedLen" will be less than 0, but we should not worry
             // about this, because before we finish using the cached data,
@@ -993,12 +878,12 @@ namespace SequoiaDB
                 SequoiadbConstants.DEFAULT_FLAGS, _contextID, 0);
 
             // add MsgLobTuple
-            AddMsgTuple(buff, length, SDB_LOB_DEFAULT_SEQ, _currentOffset);
+            AddMsgTuple(buff, length, SDB_LOB_DEFAULT_SEQ, _readOffset);
 
             return buff;
         }
 
-        private ByteBuffer _GenerateWriteLobRequest(byte[] input, int off, int len, long lobOffset)
+        private ByteBuffer _GenerateWriteLobRequest(byte[] input, int off, int len)
         {
             /*
                 /// write req msg is |MsgOpLob|_MsgLobTuple|data|
@@ -1034,10 +919,6 @@ namespace SequoiaDB
                    CHAR data[16] ;
                 } ;
              */
-            if (input == null)
-            {
-                throw new BaseException((int)Errors.errors.SDB_INVALIDARG, "input is null");
-            }
             if (off + len > input.Length)
             {
                 throw new BaseException((int)Errors.errors.SDB_SYS, "off + len is more than input.length");
@@ -1053,75 +934,20 @@ namespace SequoiaDB
             SDBMessageHelper.AddMsgHeader(totalBuf, totalLen,
                     (int)Operation.MSG_BS_LOB_WRITE_REQ,
                     SequoiadbConstants.ZERO_NODEID, 0);
+
             // MsgOpLob
             SDBMessageHelper.AddLobOpMsg(totalBuf, SequoiadbConstants.DEFAULT_VERSION,
                     SequoiadbConstants.DEFAULT_W, (short)0,
                     SequoiadbConstants.DEFAULT_FLAGS, _contextID, 0);
 
             // MsgLobTuple
-            AddMsgTuple(totalBuf, len, SDB_LOB_DEFAULT_SEQ, lobOffset);
+            AddMsgTuple(totalBuf, len, SDB_LOB_DEFAULT_SEQ,
+                    SDB_LOB_DEFAULT_OFFSET);
 
             // lob data
             SDBMessageHelper.AddBytesToByteBuffer(totalBuf, input, off, len, 4);
 
             return totalBuf;
-        }
-
-        private ByteBuffer _GenerateLockLobRequest(long contextId, long offset, long length)
-        {
-            /*
-                /// lock lob reg msg is |MsgOpLob|bsonobj|
-                struct _MsgHeader
-                {
-                   SINT32 messageLength ; // total message size, including this
-                   SINT32 opCode ;        // operation code
-                   UINT32 TID ;           // client thead id
-                   MsgRouteID routeID ;   // route id 8 bytes
-                   UINT64 requestID ;     // identifier for this message
-                } ;
-
-                typedef struct _MsgOpLob
-                {
-                   MsgHeader header ;
-                   INT32 version ;
-                   SINT16 w ;
-                   SINT16 padding ;
-                   SINT32 flags ;
-                   SINT64 contextID ;
-                   UINT32 bsonLen ;
-                } MsgOpLob ;
-             */
-            BsonDocument meta = new BsonDocument();
-            meta.Add(SequoiadbConstants.FIELD_LOB_OFFSET, offset);
-            meta.Add(SequoiadbConstants.FIELD_LOB_LENGTH, length);
-            byte[] metaInfoBytes = meta.ToBson();
-
-            // get the total length of buffer we need
-            int totalLen = SDBMessageHelper.MESSAGE_OPLOB_LENGTH +
-                Helper.RoundToMultipleXLength(metaInfoBytes.Length, 4);
-
-            // alloc buffer
-            ByteBuffer totalBuff = new ByteBuffer(totalLen);
-            if (_isBigEndian)
-            {
-                totalBuff.IsBigEndian = true;
-                // keep the metaInfoBytes save in big endian
-                SDBMessageHelper.BsonEndianConvert(metaInfoBytes, 0, metaInfoBytes.Length, true);
-            }
-
-            // MsgHeader
-            SDBMessageHelper.AddMsgHeader(totalBuff, totalLen,
-                (int)Operation.MSG_BS_LOB_LOCK_REQ, SequoiadbConstants.ZERO_NODEID, 0);
-
-            // MsgOpLob
-            SDBMessageHelper.AddLobOpMsg(totalBuff, SequoiadbConstants.DEFAULT_VERSION,
-                SequoiadbConstants.DEFAULT_W, (short)0, SequoiadbConstants.DEFAULT_FLAGS,
-                contextId, metaInfoBytes.Length);
-
-            // meta
-            SDBMessageHelper.AddBytesToByteBuffer(totalBuff, metaInfoBytes, 0, metaInfoBytes.Length, 4);
-
-            return totalBuff;
         }
 
         private void AddMsgTuple(ByteBuffer buff, int length, int sequence,

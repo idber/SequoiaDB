@@ -62,8 +62,7 @@ namespace engine
       NET_EVENT_HANDLER_STATE_BODY
    } ;
 
-   class _netEventSuit ;
-   typedef boost::shared_ptr<_netEventSuit>     netEvSuitPtr ;
+   class _netFrame ;
 
    /*
       _netEventHandler define
@@ -73,14 +72,9 @@ namespace engine
          public SDBObject
    {
       public:
-         _netEventHandler( netEvSuitPtr evSuitPtr,
-                           const NET_HANDLE &handle  ) ;
+         _netEventHandler( _netFrame *frame ) ;
+
          ~_netEventHandler() ;
-
-         netEvSuitPtr getEVSuitPtr() const { return _evSuitPtr ; }
-
-         BOOLEAN  isConnected() const { return _isConnected ; }
-         BOOLEAN  isNew() const { return _isNew ; }
 
       public:
          OSS_INLINE void id( const _MsgRouteID &id )
@@ -107,7 +101,7 @@ namespace engine
          {
             return _mtx ;
          }
-         OSS_INLINE NET_HANDLE handle() const
+         OSS_INLINE NET_HANDLE handle()
          {
             return _handle ;
          }
@@ -115,7 +109,7 @@ namespace engine
          {
             return _buf ;
          }
-         OSS_INLINE NET_EVENT_HANDLER_STATE state() const
+         OSS_INLINE NET_EVENT_HANDLER_STATE state()
          {
             return _state ;
          }
@@ -126,13 +120,10 @@ namespace engine
          UINT64 getLastRecvTick() const { return _lastRecvTick ; }
          UINT64 getLastBeatTick() const { return _lastBeatTick ; }
 
-         UINT32 getMBPS() const { return _mbps ; }
-
          void   syncLastBeatTick() ;
-         void   makeStat( UINT64 curTick ) ;
 
       public:
-         void  asyncRead() ;
+         void asyncRead() ;
 
          INT32 syncConnect( const CHAR *hostName,
                             const CHAR *serviceName ) ;
@@ -150,7 +141,9 @@ namespace engine
          BOOLEAN isLocalConnection() const ;
 
       private:
-         void  _readCallback( const boost::system::error_code &error ) ;
+         void _readCallback(const boost::system::error_code &
+                            error ) ;
+
          INT32 _allocateBuf( UINT32 len ) ;
 
       private:
@@ -161,22 +154,16 @@ namespace engine
          UINT32                           _bufLen ;
          NET_EVENT_HANDLER_STATE          _state ;
          _MsgRouteID                      _id ;
-         netEvSuitPtr                     _evSuitPtr ;
+         _netFrame                        *_frame ;
          NET_HANDLE                       _handle ;
          volatile BOOLEAN                 _isConnected ;
-         volatile BOOLEAN                 _isNew ;
          BOOLEAN                          _hasRecvMsg ;
          UINT64                           _lastSendTick ;
          UINT64                           _lastRecvTick ;
          UINT64                           _lastBeatTick ;
          UINT64                           _msgid ;
 
-         UINT64                           _lastStatTick ;
-         UINT64                           _srDataLen ;
-         UINT32                           _mbps ;     /// Byte/s
-
-   } ;
-   typedef _netEventHandler netEventHandler ;
+   };
 
    typedef boost::shared_ptr<_netEventHandler> NET_EH ;
 

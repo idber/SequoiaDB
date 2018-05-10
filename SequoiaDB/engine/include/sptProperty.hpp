@@ -40,7 +40,6 @@
 #include "sptSPDef.hpp"
 #include "../bson/bson.hpp"
 #include "pd.hpp"
-#include "sptScope.hpp"
 #include <vector>
 
 namespace engine
@@ -142,11 +141,6 @@ namespace engine
          }
       }
 
-      void setValue( const sptResultVal* value )
-      {
-         assignResultVal( value ) ;
-      }
-
       void  setName( const std::string &name )
       {
          _name = name ;
@@ -161,8 +155,6 @@ namespace engine
       INT32 assignBsonobj( const bson::BSONObj &value ) ;
 
       INT32 assignBsonArray( const std::vector< bson::BSONObj > &vecObj ) ;
-
-      INT32 assignResultVal( const sptResultVal* value ) ;
 
       _sptProperty* addArrayItem() ;
 
@@ -239,16 +231,9 @@ namespace engine
 
       const CHAR *getString() const ;
 
-      INT32 getResultVal( sptResultVal ** ppResultVal ) const ;
-
       inline bson::BSONType getType() const
       {
          return _type ;
-      }
-
-      inline BOOLEAN isRawData() const
-      {
-         return _isRawData ;
       }
 
       inline BOOLEAN isObject() const
@@ -299,7 +284,6 @@ namespace engine
       const _sptObjDesc *_desc ;
       UINT32   _attr ;
       BOOLEAN  _deleted ;
-      BOOLEAN  _isRawData ;
 
       SPT_PROP_ARRAY       _array ;
 

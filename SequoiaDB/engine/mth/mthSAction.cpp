@@ -39,17 +39,39 @@
 namespace engine
 {
    _mthSAction::_mthSAction()
-   : _mthMatchTreeHolder(),
-     _buildFunc( NULL ),
-     _getFunc( NULL ),
-     _name( NULL ),
-     _attribute( MTH_S_ATTR_NONE ),
-     _strictDataMode( FALSE )
+   :_buildFunc( NULL ),
+    _getFunc( NULL ),
+    _name( NULL ),
+    _attribute( MTH_S_ATTR_NONE ),
+    _matcher( NULL )
    {
+
    }
 
    _mthSAction::~_mthSAction()
    {
+      SAFE_OSS_DELETE( _matcher ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSACTION_CRTMTH, "_mthSAction::createMatcher" )
+   INT32 _mthSAction::createMatcher ()
+   {
+      INT32 rc = SDB_OK ;
+
+      PD_TRACE_ENTRY( SDB__MTHSACTION_CRTMTH ) ;
+
+      SAFE_OSS_DELETE( _matcher ) ;
+
+      _matcher = SDB_OSS_NEW _mthMatchTree() ;
+      PD_CHECK( NULL != _matcher, SDB_OOM, error, PDERROR,
+                "Failed to allocate matcher" ) ;
+
+   done :
+      PD_TRACE_EXITRC( SDB__MTHSACTION_CRTMTH, rc ) ;
+      return rc ;
+
+   error :
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSACTION_BUILD, "_mthSAction::build" )
@@ -95,7 +117,6 @@ namespace engine
          PD_LOG( PDERROR, "failed to get column:%d", rc ) ;
          goto error ;
       }
-
    done:
       PD_TRACE_EXITRC( SDB__MTHSACTION_GET, rc ) ;
       return rc ;

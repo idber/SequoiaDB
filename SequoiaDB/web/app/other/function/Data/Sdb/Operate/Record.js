@@ -1,24 +1,22 @@
-﻿//@ sourceURL=other/Record.js
-// --------------------- Data.Operate.Record ---------------------
+﻿// --------------------- Data.Operate.Record ---------------------
 var _DataOperateRecord = {} ;
 
 //打开 索引详细 的窗口
 _DataOperateRecord.getIndexInfo = function( $scope, SdbRest ){
    var data = { 'cmd': 'list indexes', 'collectionname': $scope.fullName } ;
-   SdbRest.DataOperation( data, {
-      'success': function( indexList ){
-         $scope.indexList.push( { 'key': $scope.autoLanguage( '无' ), 'value': 0 } ) ;
-         $scope.indexList.push( { 'key': $scope.autoLanguage( '表扫描' ), 'value': 1 } ) ;
-         $.each( indexList, function( index, indexInfo ){
-            $scope.indexList.push( { 'key': indexInfo['IndexDef']['name'], 'value': indexInfo['IndexDef']['name'] } ) ;
-         } ) ;
-      },
-      'failed': function( errorInfo ){
-         _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-            exec() ;
-            return true ;
-         }, $scope.autoLanguage( '获取索引信息失败' ) ) ;
-      }
+   SdbRest.DataOperation( data, function( indexList ){
+      $scope.indexList.push( { 'key': $scope.autoLanguage( '无' ), 'value': 0 } ) ;
+      $scope.indexList.push( { 'key': $scope.autoLanguage( '表扫描' ), 'value': 1 } ) ;
+      $.each( indexList, function( index, indexInfo ){
+         $scope.indexList.push( { 'key': indexInfo['IndexDef']['name'], 'value': indexInfo['IndexDef']['name'] } ) ;
+      } ) ;
+   }, function( errorInfo ){
+      _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+         exec() ;
+         return true ;
+      }, $scope.autoLanguage( '获取索引信息失败' ) ) ;
+   }, function(){
+      //_IndexPublic.createErrorModel( $scope, $scope.autoLanguage( '网络连接错误，请尝试按F5刷新浏览器。' ) ) ;
    } ) ;
 }
 
@@ -54,62 +52,55 @@ _DataOperateRecord.queryRecord = function( $scope, SdbRest, SdbFunction, data, t
    }
    data['cmd'] = 'query' ;
    var errJson = [] ;
-   SdbRest.DataOperation( data, {
-      'success': function( json ){
-         $scope.records = json ;
-         $scope.ErrRecord = errJson ;
-         //获取所有字段
-         $.each( $scope.records, function( index, record ){
-            $scope.fieldList = SdbFunction.getJsonKeys( record, 0, $scope.fieldList ) ;
-         } ) ;
-         if( showSuccess != false )
+   SdbRest.DataOperation( data, function( json ){
+      $scope.records = json ;
+      $scope.ErrRecord = errJson ;
+      //获取所有字段
+      $.each( $scope.records, function( index, record ){
+         $scope.fieldList = SdbFunction.getJsonKeys( record, 0, $scope.fieldList ) ;
+      } ) ;
+      if( showSuccess != false )
+      {
+         var start = 0 ;
+         var end = 0 ;
+         if( $scope.records.length > 0 )
          {
-            var start = 0 ;
-            var end = 0 ;
-            if( $scope.records.length > 0 )
-            {
-               start = data['skip'] + 1 ;
-               end = data['skip'] + $scope.records.length ;
-            }
-            $scope.execResult = sprintf( $scope.autoLanguage( '? ? 执行查询成功，显示 ? - ?，总计 ? 条记录' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName, start, end, $scope.records.length ) ;
-            $scope.execRc = true ;
+            start = data['skip'] + 1 ;
+            end = data['skip'] + $scope.records.length ;
          }
-         $scope.recordTotal = '' ;
-         $scope.queryFilter = data ;
-      },
-      'failed': function( errorInfo ){
-         $scope.records = [] ;
-         $scope.fieldList = [] ;
-         $scope.execResult = sprintf( $scope.autoLanguage( '? ? 执行查询失败，错误码: ?，?. ?' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName, errorInfo['errno'], errorInfo['description'], errorInfo['detail'] ) ;
-         $scope.execRc = false ;
-      },
-      'error': function(){
-         $scope.records = [] ;
-         $scope.fieldList = [] ;
-         //_IndexPublic.createErrorModel( $scope, $scope.autoLanguage( '网络连接错误，请尝试按F5刷新浏览器。' ) ) ;
-      },
-      'complete': function(){
-         $scope.$apply() ;
-         $scope.show( type ) ;
+         $scope.execResult = sprintf( $scope.autoLanguage( '? ? 执行查询成功，显示 ? - ?，总计 ? 条记录' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName, start, end, $scope.records.length ) ;
+         $scope.execRc = true ;
       }
-   }, {}, errJson ) ;
+      $scope.recordTotal = '' ;
+      $scope.queryFilter = data ;
+   }, function( errorInfo ){
+      $scope.records = [] ;
+      $scope.fieldList = [] ;
+      $scope.execResult = sprintf( $scope.autoLanguage( '? ? 执行查询失败，错误码: ?，?. ?' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName, errorInfo['errno'], errorInfo['description'], errorInfo['detail'] ) ;
+      $scope.execRc = false ;
+   }, function(){
+      $scope.records = [] ;
+      $scope.fieldList = [] ;
+      //_IndexPublic.createErrorModel( $scope, $scope.autoLanguage( '网络连接错误，请尝试按F5刷新浏览器。' ) ) ;
+   }, function(){
+      $scope.$apply() ;
+      $scope.show( type ) ;
+   }, errJson ) ;
    if( $scope.isNotFilter )
    {
       var newdata = { 'cmd': 'get count', 'name': $scope.fullName } ;
-      SdbRest.DataOperation( newdata, {
-         'success': function( countData ){
-            $scope.recordTotal = sprintf( $scope.autoLanguage( '一共 ? 条记录。' ), countData[0]['Total'] ) ;
-            $scope.total = parseInt( countData[0]['Total'] / $scope.limit ) ;
-            if( countData[0]['Total'] % $scope.limit > 1 )
-            {
-               ++$scope.total ;
-            }
-            if( $scope.total == 0 )
-            {
-               $scope.total = 1 ;
-            }
-            $scope.$apply() ;
+      SdbRest.DataOperation( newdata, function( countData ){
+         $scope.recordTotal = sprintf( $scope.autoLanguage( '一共 ? 条记录。' ), countData[0]['Total'] ) ;
+         $scope.total = parseInt( countData[0]['Total'] / $scope.limit ) ;
+         if( countData[0]['Total'] % $scope.limit > 1 )
+         {
+            ++$scope.total ;
          }
+         if( $scope.total == 0 )
+         {
+            $scope.total = 1 ;
+         }
+         $scope.$apply() ;
       } ) ;
    }
 }
@@ -313,21 +304,19 @@ _DataOperateRecord.createInsertModel = function( $scope, SdbRest, SdbFunction, r
    $scope.Components.Modal.ok = function(){
       var str = JSON.stringify( $scope.Components.Modal.jsonEdit.Callback.getJson() ) ;
       var data = { 'cmd': 'insert', 'name': $scope.fullName, 'insertor': str } ;
-      SdbRest.DataOperation( data, {
-         'success': function( json ){
-            $scope.execResult = sprintf( $scope.autoLanguage( '? ? 插入记录成功' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName ) ;
-            $scope.execRc = true ;
-            _DataOperateRecord.queryRecord( $scope, SdbRest, SdbFunction, $scope.queryFilter, $scope.showType, false ) ;
-         },
-         'failed': function( errorInfo ){
-            $scope.execResult = sprintf( $scope.autoLanguage( '? ? 插入记录失败，错误码: ?，?. ?' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName, errorInfo['errno'], errorInfo['description'], errorInfo['detail'] ) ;
-            $scope.execRc = false ;
-         },
-         'complete': function(){
-            //关闭弹窗
-            $scope.Components.Modal.isShow = false ;
-            $scope.$apply() ;
-         }
+      SdbRest.DataOperation( data, function( json ){
+         $scope.execResult = sprintf( $scope.autoLanguage( '? ? 插入记录成功' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName ) ;
+         $scope.execRc = true ;
+         _DataOperateRecord.queryRecord( $scope, SdbRest, SdbFunction, $scope.queryFilter, $scope.showType, false ) ;
+      }, function( errorInfo ){
+         $scope.execResult = sprintf( $scope.autoLanguage( '? ? 插入记录失败，错误码: ?，?. ?' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName, errorInfo['errno'], errorInfo['description'], errorInfo['detail'] ) ;
+         $scope.execRc = false ;
+      }, function(){
+         //_IndexPublic.createErrorModel( $scope, $scope.autoLanguage( '网络连接错误，请尝试按F5刷新浏览器。' ) ) ;
+      }, function(){
+         //关闭弹窗
+         $scope.Components.Modal.isShow = false ;
+         $scope.$apply() ;
       } ) ;
       return false ;
    }
@@ -350,21 +339,19 @@ _DataOperateRecord.createEditModel = function( $scope, SdbRest, SdbFunction, rec
       var newRecord = $scope.Components.Modal.jsonEdit.Callback.getJson() ;
       var updator = JSON.stringify( { '$replace': newRecord } ) ;
       var data = { 'cmd': 'update', 'name': $scope.fullName, 'updator': updator, 'filter': filter } ;
-      SdbRest.DataOperation( data, {
-         'success': function( json ){
-            $scope.execResult = sprintf( $scope.autoLanguage( '? ? 更新成功' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName ) ;
-            $scope.execRc = true ;
-            _DataOperateRecord.queryRecord( $scope, SdbRest, SdbFunction, $scope.queryFilter, $scope.showType, false ) ;
-         },
-         'failed': function( errorInfo ){
-            $scope.execResult = sprintf( $scope.autoLanguage( '? ? 更新失败，错误码: ?，?. ?' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName, errorInfo['errno'], errorInfo['description'], errorInfo['detail'] ) ;
-            $scope.execRc = false ;
-         }, 
-         'complete': function(){
-            //关闭弹窗
-            $scope.Components.Modal.isShow = false ;
-            $scope.$apply() ;
-         }
+      SdbRest.DataOperation( data, function( json ){
+         $scope.execResult = sprintf( $scope.autoLanguage( '? ? 更新成功' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName ) ;
+         $scope.execRc = true ;
+         _DataOperateRecord.queryRecord( $scope, SdbRest, SdbFunction, $scope.queryFilter, $scope.showType, false ) ;
+      }, function( errorInfo ){
+         $scope.execResult = sprintf( $scope.autoLanguage( '? ? 更新失败，错误码: ?，?. ?' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName, errorInfo['errno'], errorInfo['description'], errorInfo['detail'] ) ;
+         $scope.execRc = false ;
+      }, function(){
+         //_IndexPublic.createErrorModel( $scope, $scope.autoLanguage( '网络连接错误，请尝试按F5刷新浏览器。' ) ) ;
+      }, function(){
+         //关闭弹窗
+         $scope.Components.Modal.isShow = false ;
+         $scope.$apply() ;
       } ) ;
       return false ;
    }
@@ -585,21 +572,19 @@ _DataOperateRecord.createUpdateModel = function( $scope, SdbRest, SdbFunction ){
             var data = modalValue2Update( value ) ;
             data['cmd'] = 'update' ;
             data['name'] = $scope.fullName ;
-            SdbRest.DataOperation( data, {
-               'success': function( json ){
-                  $scope.execResult = sprintf( $scope.autoLanguage( '? ? 更新成功' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName ) ;
-                  $scope.execRc = true ;
-                  _DataOperateRecord.queryRecord( $scope, SdbRest, SdbFunction, $scope.queryFilter, $scope.showType, false ) ;
-               },
-               'failed': function( errorInfo ){
-                  $scope.execResult = sprintf( $scope.autoLanguage( '? ? 更新失败，错误码: ?，?. ?' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName, errorInfo['errno'], errorInfo['description'], errorInfo['detail'] ) ;
-                  $scope.execRc = false ;
-               },
-               'complete': function(){
-                  //关闭弹窗
-                  $scope.Components.Modal.isShow = false ;
-                  $scope.$apply() ;
-               }
+            SdbRest.DataOperation( data, function( json ){
+               $scope.execResult = sprintf( $scope.autoLanguage( '? ? 更新成功' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName ) ;
+               $scope.execRc = true ;
+               _DataOperateRecord.queryRecord( $scope, SdbRest, SdbFunction, $scope.queryFilter, $scope.showType, false ) ;
+            }, function( errorInfo ){
+               $scope.execResult = sprintf( $scope.autoLanguage( '? ? 更新失败，错误码: ?，?. ?' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName, errorInfo['errno'], errorInfo['description'], errorInfo['detail'] ) ;
+               $scope.execRc = false ;
+            }, function(){
+               //_IndexPublic.createErrorModel( $scope, $scope.autoLanguage( '网络连接错误，请尝试按F5刷新浏览器。' ) ) ;
+            }, function(){
+               //关闭弹窗
+               $scope.Components.Modal.isShow = false ;
+               $scope.$apply() ;
             } ) ;
          }
          return false ;
@@ -619,21 +604,19 @@ _DataOperateRecord.createUpdateModel = function( $scope, SdbRest, SdbFunction ){
          }
          data['cmd'] = 'update' ;
          data['name'] = $scope.fullName ;
-         SdbRest.DataOperation( data, {
-            'success': function( json ){
-               $scope.execResult = sprintf( $scope.autoLanguage( '? ? 更新成功' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName ) ;
-               $scope.execRc = true ;
-               _DataOperateRecord.queryRecord( $scope, SdbRest, SdbFunction, $scope.queryFilter, $scope.showType, false ) ;
-            },
-            'failed': function( errorInfo ){
-               $scope.execResult = sprintf( $scope.autoLanguage( '? ? 更新失败，错误码: ?，?. ?' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName, errorInfo['errno'], errorInfo['description'], errorInfo['detail'] ) ;
-               $scope.execRc = false ;
-            },
-            'complete': function(){
-               //关闭弹窗
-               $scope.Components.Modal.isShow = false ;
-               $scope.$apply() ;
-            }
+         SdbRest.DataOperation( data, function( json ){
+            $scope.execResult = sprintf( $scope.autoLanguage( '? ? 更新成功' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName ) ;
+            $scope.execRc = true ;
+            _DataOperateRecord.queryRecord( $scope, SdbRest, SdbFunction, $scope.queryFilter, $scope.showType, false ) ;
+         }, function( errorInfo ){
+            $scope.execResult = sprintf( $scope.autoLanguage( '? ? 更新失败，错误码: ?，?. ?' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName, errorInfo['errno'], errorInfo['description'], errorInfo['detail'] ) ;
+            $scope.execRc = false ;
+         }, function(){
+            //_IndexPublic.createErrorModel( $scope, $scope.autoLanguage( '网络连接错误，请尝试按F5刷新浏览器。' ) ) ;
+         }, function(){
+            //关闭弹窗
+            $scope.Components.Modal.isShow = false ;
+            $scope.$apply() ;
          } ) ;
       }
    }
@@ -698,21 +681,19 @@ _DataOperateRecord.createDeleteModel = function( $scope, SdbRest, SdbFunction ){
             var exec = function(){
                data['cmd'] = 'delete' ;
                data['name'] = $scope.fullName ;
-               SdbRest.DataOperation( data, {
-                  'success': function( json ){
-                     $scope.execResult = sprintf( $scope.autoLanguage( '? ? 删除成功' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName ) ;
-                     $scope.execRc = true ;
-                     _DataOperateRecord.queryRecord( $scope, SdbRest, SdbFunction, $scope.queryFilter, $scope.showType, false ) ;
-                  },
-                  'failed': function( errorInfo ){
-                     $scope.execResult = sprintf( $scope.autoLanguage( '? ? 删除失败，错误码: ?，?. ?' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName, errorInfo['errno'], errorInfo['description'], errorInfo['detail'] ) ;
-                     $scope.execRc = false ;
-                  },
-                  'complete': function(){
-                     //关闭弹窗
-                     $scope.Components.Modal.isShow = false ;
-                     $scope.$apply() ;
-                  }
+               SdbRest.DataOperation( data, function( json ){
+                  $scope.execResult = sprintf( $scope.autoLanguage( '? ? 删除成功' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName ) ;
+                  $scope.execRc = true ;
+                  _DataOperateRecord.queryRecord( $scope, SdbRest, SdbFunction, $scope.queryFilter, $scope.showType, false ) ;
+               }, function( errorInfo ){
+                  $scope.execResult = sprintf( $scope.autoLanguage( '? ? 删除失败，错误码: ?，?. ?' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName, errorInfo['errno'], errorInfo['description'], errorInfo['detail'] ) ;
+                  $scope.execRc = false ;
+               }, function(){
+                  //_IndexPublic.createErrorModel( $scope, $scope.autoLanguage( '网络连接错误，请尝试按F5刷新浏览器。' ) ) ;
+               }, function(){
+                  //关闭弹窗
+                  $scope.Components.Modal.isShow = false ;
+                  $scope.$apply() ;
                } ) ;
             }
             if( isEmpty( data ) )
@@ -739,21 +720,19 @@ _DataOperateRecord.createDeleteModel = function( $scope, SdbRest, SdbFunction ){
          var exec = function(){
             data['cmd'] = 'delete' ;
             data['name'] = $scope.fullName ;
-            SdbRest.DataOperation( data, {
-               'success': function( json ){
-                  $scope.execResult = sprintf( $scope.autoLanguage( '? ? 删除成功' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName ) ;
-                  $scope.execRc = true ;
-                  _DataOperateRecord.queryRecord( $scope, SdbRest, SdbFunction, $scope.queryFilter, $scope.showType, false ) ;
-               },
-               'failed': function( errorInfo ){
-                  $scope.execResult = sprintf( $scope.autoLanguage( '? ? 删除失败，错误码: ?，?. ?' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName, errorInfo['errno'], errorInfo['description'], errorInfo['detail'] ) ;
-                  $scope.execRc = false ;
-               },
-               'complete': function(){
-                  //关闭弹窗
-                  $scope.Components.Modal.isShow = false ;
-                  $scope.$apply() ;
-               }
+            SdbRest.DataOperation( data, function( json ){
+               $scope.execResult = sprintf( $scope.autoLanguage( '? ? 删除成功' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName ) ;
+               $scope.execRc = true ;
+               _DataOperateRecord.queryRecord( $scope, SdbRest, SdbFunction, $scope.queryFilter, $scope.showType, false ) ;
+            }, function( errorInfo ){
+               $scope.execResult = sprintf( $scope.autoLanguage( '? ? 删除失败，错误码: ?，?. ?' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName, errorInfo['errno'], errorInfo['description'], errorInfo['detail'] ) ;
+               $scope.execRc = false ;
+            }, function(){
+               //_IndexPublic.createErrorModel( $scope, $scope.autoLanguage( '网络连接错误，请尝试按F5刷新浏览器。' ) ) ;
+            }, function(){
+               //关闭弹窗
+               $scope.Components.Modal.isShow = false ;
+               $scope.$apply() ;
             } ) ;
          }
          if( isEmpty( data ) )
@@ -781,21 +760,19 @@ _DataOperateRecord.createDeleteRecordModel = function( $scope, SdbRest, SdbFunct
    _IndexPublic.createRetryModel( $scope, null, function(){
       var deletor = JSON.stringify( { '_id': { '$oid': _id } } ) ;
       var data = { 'cmd': 'delete', 'name': $scope.fullName, 'deletor': deletor } ;
-      SdbRest.DataOperation( data, {
-         'success': function( json ){
-            $scope.execResult = sprintf( $scope.autoLanguage( '? ? 删除成功' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName ) ;
-            $scope.execRc = true ;
-            _DataOperateRecord.queryRecord( $scope, SdbRest, SdbFunction, $scope.queryFilter, $scope.showType, false ) ;
-         },
-         'failed': function( errorInfo ){
-            $scope.execResult = sprintf( $scope.autoLanguage( '? ? 删除失败，错误码: ?，?. ?' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName, errorInfo['errno'], errorInfo['description'], errorInfo['detail'] ) ;
-            $scope.execRc = false ;
-         },
-         'complete': function(){
-            //关闭弹窗
-            $scope.Components.Modal.isShow = false ;
-            $scope.$apply() ;
-         }
+      SdbRest.DataOperation( data, function( json ){
+         $scope.execResult = sprintf( $scope.autoLanguage( '? ? 删除成功' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName ) ;
+         $scope.execRc = true ;
+         _DataOperateRecord.queryRecord( $scope, SdbRest, SdbFunction, $scope.queryFilter, $scope.showType, false ) ;
+      }, function( errorInfo ){
+         $scope.execResult = sprintf( $scope.autoLanguage( '? ? 删除失败，错误码: ?，?. ?' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName, errorInfo['errno'], errorInfo['description'], errorInfo['detail'] ) ;
+         $scope.execRc = false ;
+      }, function(){
+         //_IndexPublic.createErrorModel( $scope, $scope.autoLanguage( '网络连接错误，请尝试按F5刷新浏览器。' ) ) ;
+      }, function(){
+         //关闭弹窗
+         $scope.Components.Modal.isShow = false ;
+         $scope.$apply() ;
       } ) ;
       return true ;
    }, $scope.autoLanguage( '要删除这条记录吗？' ), '_id : ' + _id, $scope.autoLanguage( '是的，删除' ) ) ;

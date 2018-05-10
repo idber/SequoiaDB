@@ -1,18 +1,18 @@
 ﻿<div ng-controller="Deploy.Task.Install.Ctrl" ng-container="{}">
    <div style="border-bottom:1px solid #eee;" step-chart="stepList" ng-show="DeployType != 'Task'"></div>
    <div style="padding:10px 15px;" ng-container="{'true':ContainerBox[0],'false':ContainerBox[1]}[DeployType != 'Task']">
-      <div ng-windows="info as GetLogWindow.config" windows-callback="GetLogWindow.callback">
-         <div class="well" style="overflow-y:auto;">
-            <pre style="padding:10px;margin:0;white-space:pre-wrap;">{{Logstr}}</pre>
-         </div>
-      </div>
+
       <div ng-container="{offsetY:-45}">
          <div class="pull-left" ng-container="{width:400}">
+
             <div style="height:30px;font-size:110%;font-weight:bold;">{{autoLanguage("任务信息")}}</div>
+
             <div class="borderBox" style="padding:10px;font-size:90%;overflow-y:auto;" ng-container="{offsetY:-30}">
+               
                <div style="margin-bottom:10px;">
-                  <button class="btn btn-default" ng-click="ShowGetLog()">{{autoLanguage("查看任务日志")}}</button>
+                  <button class="btn btn-default" ng-click="GetLog()">{{autoLanguage("查看任务日志")}}</button>
                </div>
+
                <table class="table loosen border">
                   <tr>
                      <td style="width: 150px;">{{autoLanguage("任务ID")}}</td>
@@ -55,27 +55,50 @@
                      <td>{{TaskInfo['AgentService']}}</td>
                   </tr>
                </table>
+
             </div>
+
          </div>
          <div class="pull-left" ng-container="{offsetX:-410,marginLeft:10}">
+
             <div style="height:30px;font-size:110%;font-weight:bold;">{{autoLanguage("进度")}}</div>
+
             <div class="borderBox" style="padding:10px;overflow-y:auto;overflow-x:hidden;" ng-container="{offsetY:-30}">
+
                <div class="progress2">
                   <div class="bar" ng-class="{'0':'blue','1':'orange','2':'red','3':'green'}[BarColor]" ng-style="{'width':TaskInfo['Progress']+'%'}"></div>
                </div>
-               <div ng-container="{offsetY:-50,marginTop:10}" ng-table="TaskTable['options']" table-title="TaskTable['title']" table-content="installInfo in NewTaskInfo['ResultInfo']">
-                  <div table-key="Status">
-                     <img src="./images/loading2.gif" style="width:22px;height:22px;" ng-if="installInfo['Status'] == 1 || installInfo['Status'] == 0" />
-                     <i class="fa fa-undo" style="font-size:22px;color:#F9A937;" ng-if="installInfo['Status'] == 2"></i>
-                     <i class="fa fa-check" style="font-size:22px;color:#00CC66;" ng-if="installInfo['Status'] == 4 && installInfo['errno'] == 0"></i>
-                     <i class="fa fa-times" style="font-size:22px;color:#D9534F;" ng-if="installInfo['Status'] == 4 && installInfo['errno'] != 0"></i>
+
+               <div class="Grid" style="border-bottom:1px solid #E3E7E8;" ng-container="{offsetY:-50,marginTop:10}" ng-grid="HostTaskGridOptions" ng-if="TaskInfo['TaskName'] == 'ADD_HOST' || TaskInfo['TaskName'] == 'REMOVE_HOST'">
+                  <div class="GridHeader">
+                     <div class="GridTr">
+                        <div class="GridTd Ellipsis"></div>
+                        <div class="GridTd Ellipsis">{{autoLanguage("主机名")}}</div>
+                        <div class="GridTd Ellipsis">{{autoLanguage("IP地址")}}</div>
+                        <div class="GridTd Ellipsis">{{autoLanguage("状态")}}</div>
+                        <div class="GridTd Ellipsis">{{autoLanguage("描述")}}</div>
+                        <div class="clear-float"></div>
+                     </div>
                   </div>
-                  <div class="Ellipsis" table-key="HostName">{{installInfo['HostName']}}</div>
-                  <div class="Ellipsis" table-key="IP">{{installInfo['IP']}}</div>
-                  <div class="Ellipsis" table-key="StatusDesc">{{installInfo['StatusDesc']}}</div>
-                  <div class="Ellipsis" table-key="Flow">{{installInfo['Flow'][installInfo['Flow'].length-1]}}</div>
+                  <div class="GridBody">
+                     <div class="GridTr" ng-repeat="installInfo in TaskInfo['ResultInfo'] track by $index">
+                        <div class="GridTd Ellipsis">
+                           <img src="./images/loading2.gif" style="width:22px;height:22px;" ng-if="installInfo['Status'] == 1 || installInfo['Status'] == 0" />
+                           <i class="fa fa-undo"  style="font-size:22px;color:#F9A937;" ng-if="installInfo['Status'] == 2"></i>
+                           <i class="fa fa-check" style="font-size:22px;color:#00CC66;" ng-if="installInfo['Status'] == 4 && installInfo['errno'] == 0"></i>
+                           <i class="fa fa-times" style="font-size:22px;color:#D9534F;" ng-if="installInfo['Status'] == 4 && installInfo['errno'] != 0"></i>
+                        </div>
+                        <div class="GridTd Ellipsis">{{installInfo['HostName']}}</div>
+                        <div class="GridTd Ellipsis">{{installInfo['IP']}}</div>
+                        <div class="GridTd Ellipsis">{{installInfo['StatusDesc']}}</div>
+                        <div class="GridTd Ellipsis">{{installInfo['Flow'][installInfo['Flow'].length-1]}}</div>
+                        <div class="clear-float"></div>
+                     </div>
+                  </div>
                </div>
+
             </div>
+
          </div>
          <div class="clear-float"></div>
       </div>
@@ -83,12 +106,14 @@
          <button class="btn btn-default" ng-if="DeployType == 'Deploy' || DeployType == 'Host'" ng-click="GotoAddHost()"><i class="fa fa-chevron-left"></i> {{autoLanguage("上一步")}}</button>
          <button class="btn btn-default" ng-if="DeployType == 'Task'" ng-click="GotoDeploy2()"><i class="fa fa-chevron-left"></i> {{autoLanguage("返回")}}</button>
          &nbsp;&nbsp;&nbsp;
-         <button class="btn" ng-if="DeployType == 'Deploy'" ng-class="{'true':'btn-primary','false':'btn-danger'}[IsFinish]" ng-click="GotoNext()">
+         <button class="btn" ng-if="DeployType == 'Deploy'" ng-class="{'true':'btn-primary','false':'btn-danger'}[IsFinish]" ng-click="GotoConf()">
             {{autoLanguage("下一步")}} <i class="fa fa-chevron-right"></i>
          </button>
          <button class="btn" ng-if="DeployType != 'Deploy'" ng-class="{'true':'btn-primary','false':'btn-danger'}[IsFinish]" ng-click="GotoDeploy()">
             {{autoLanguage("完成")}} <i class="fa fa-chevron-right"></i>
          </button>
       </div>
+
    </div>
+
 </div>

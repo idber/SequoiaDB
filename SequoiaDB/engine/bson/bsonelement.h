@@ -44,51 +44,6 @@ namespace bson {
     /* l and r MUST have same type when called: check that first. */
     int compareElementValues(const BSONElement& l, const BSONElement& r);
 
-    inline int getBSONCanonicalType( BSONType t )
-    {
-       switch ( t ) {
-       case MinKey:
-       case MaxKey:
-           return t;
-       case EOO:
-       case Undefined:
-           return 0;
-       case jstNULL:
-           return 5;
-       case NumberDouble:
-       case NumberInt:
-       case NumberLong:
-       case NumberDecimal:
-           return 10;
-       case bson::String:
-       case Symbol:
-           return 15;
-       case Object:
-           return 20;
-       case bson::Array:
-           return 25;
-       case BinData:
-           return 30;
-       case jstOID:
-           return 35;
-       case bson::Bool:
-           return 40;
-       case bson::Date:
-       case Timestamp:
-           return 45;
-       case RegEx:
-           return 50;
-       case DBRef:
-           return 55;
-       case Code:
-           return 60;
-       case CodeWScope:
-           return 65;
-       default:
-           assert(0);
-           return -1;
-       }
-    }
 
     /** BSONElement represents an "element" in a BSONObj.
         So for the object { a : 3, b : "abc" },
@@ -519,7 +474,49 @@ namespace bson {
 
 
     inline int BSONElement::canonicalType() const {
-        return getBSONCanonicalType( type() ) ;
+        BSONType t = type() ;
+        switch ( t ) {
+        case MinKey:
+        case MaxKey:
+            return t;
+        case EOO:
+        case Undefined:
+            return 0;
+        case jstNULL:
+            return 5;
+        case NumberDouble:
+        case NumberInt:
+        case NumberLong:
+        case NumberDecimal:
+            return 10;
+        case bson::String:
+        case Symbol:
+            return 15;
+        case Object:
+            return 20;
+        case bson::Array:
+            return 25;
+        case BinData:
+            return 30;
+        case jstOID:
+            return 35;
+        case bson::Bool:
+            return 40;
+        case bson::Date:
+        case Timestamp:
+            return 45;
+        case RegEx:
+            return 50;
+        case DBRef:
+            return 55;
+        case Code:
+            return 60;
+        case CodeWScope:
+            return 65;
+        default:
+            assert(0);
+            return -1;
+        }
     }
 
     inline bool BSONElement::trueValue() const {

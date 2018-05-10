@@ -47,10 +47,6 @@ namespace engine
    #define PMD_STARTUP_STOP_CHAR_LEN      ossStrlen(PMD_STARTUP_STOP_CHAR)
    #define PMD_STARTUP_RESTART_CHAR_LEN   ossStrlen(PMD_STARTUP_RESTART_CHAR)
 
-   #define PMD_STARTUP_NORMAL_STR       "normal"
-   #define PMD_STARTUP_CRASH_STR        "crash"
-   #define PMD_STARTUP_FAULT_STR        "fault"
-
    #define PMD_STARTUP_STR_LEN            ( 32 )
 
    const CHAR *g_startupChars[] = {
@@ -117,29 +113,13 @@ namespace engine
       switch( type )
       {
          case SDB_START_NORMAL :
-            return PMD_STARTUP_NORMAL_STR ;
+            return "normal" ;
          case SDB_START_ERROR :
-            return PMD_STARTUP_FAULT_STR ;
+            return "fault" ;
          default :
             break ;
       }
-      return PMD_STARTUP_CRASH_STR ;
-   }
-
-   SDB_START_TYPE pmdStr2StartType( const CHAR* str )
-   {
-      if ( 0 == ossStrcmp( str, PMD_STARTUP_NORMAL_STR ) )
-      {
-         return SDB_START_NORMAL ;
-      }
-      else if ( 0 == ossStrcmp( str, PMD_STARTUP_FAULT_STR ) )
-      {
-         return SDB_START_ERROR ;
-      }
-      else
-      {
-         return SDB_START_CRASH ;
-      }
+      return "crash" ;
    }
 
    _pmdStartup::_pmdStartup () :
@@ -335,7 +315,7 @@ namespace engine
    done:
       return rc ;
    error:
-      goto done ;
+      goto done ;      
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDSTARTUP_FINAL, "_pmdStartup::final" )

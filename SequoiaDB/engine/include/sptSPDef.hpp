@@ -41,9 +41,8 @@ namespace engine
    #define SAFE_JS_FREE( cx, p ) \
       do { if ( p ) { JS_free( ( cx ), ( p ) ) ; ( p ) = NULL ; } } while ( 0 )
 
-   #define SPT_EVAL_FLAG_NONE              0
-   #define SPT_EVAL_FLAG_PRINT             0x00000001
-   #define SPT_EVAL_FLAG_IGNORE_ERR_PREFIX 0x00000002
+   #define SPT_EVAL_FLAG_NONE    0
+   #define SPT_EVAL_FLAG_PRINT   0x00000001
 
    #define SPT_ERR               "ErrMsg"
 

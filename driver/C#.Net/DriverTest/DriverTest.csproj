@@ -70,7 +70,6 @@
     <Compile Include="DBLobTest.cs" />
     <Compile Include="ReplicaGroupTest.cs" />
     <Compile Include="SequoiadbTest.cs" />
-    <Compile Include="TestCommon\TestHelper.cs" />
   </ItemGroup>
   <ItemGroup>
     <Shadow Include="Reference\Driver.accessor" />

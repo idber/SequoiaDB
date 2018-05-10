@@ -25,10 +25,6 @@ from pysequoiadb.errcode import (SDB_OOM, SDB_INVALIDARG)
 from pysequoiadb.error import (SDBTypeError, SDBSystemError,
                                SDBInvalidArgument, raise_if_error)
 
-LOB_READ = int(0x00000004)
-LOB_WRITE = int(0x00000008)
-
-
 class lob(object):
     def __init__(self):
         try:
@@ -87,54 +83,6 @@ class lob(object):
         rc, mms = sdb.lob_get_create_time(self._handle)
         raise_if_error(rc, "Failed to get create time of lob")
         return mms
-
-    def get_modification_time(self):
-        """get the last modification time of lob
-
-        Return Values:
-           a long int of time
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        rc, mms = sdb.lob_get_modification_time(self._handle)
-        raise_if_error(rc, "Failed to get modification time of lob")
-        return mms
-
-    def lock(self, offset, length):
-        """lock lob data section.
-
-        Parameters:
-            Name        Type                Info:
-           offset    long(int in python3)   The lock start position
-           length    long(int in python3)   The lock length, -1 means lock from offset to the end of lob
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        if not isinstance(offset, (int, long_type)):
-            raise SDBTypeError("seek_pos must be an instance of long/int")
-        if not isinstance(length, (int, long_type)):
-            raise SDBTypeError("seek_pos must be an instance of long/int")
-
-        rc = sdb.lob_lock(self._handle, offset, length)
-        raise_if_error(rc, "Failed to lock lob")
-
-    def lock_and_seek(self, offset, length):
-        """lock lob data section and seek to the offset position.
-
-        Parameters:
-            Name        Type                Info:
-           offset    long(int in python3)   The lock start position
-           length    long(int in python3)   The lock length, -1 means lock from offset to the end of lob
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        if not isinstance(offset, (int, long_type)):
-            raise SDBTypeError("seek_pos must be an instance of long/int")
-        if not isinstance(length, (int, long_type)):
-            raise SDBTypeError("seek_pos must be an instance of long/int")
-
-        rc = sdb.lob_lock_and_seek(self._handle, offset, length)
-        raise_if_error(rc, "Failed to lock lob")
 
     def seek(self, seek_pos, whence=0):
         """seek in lob.

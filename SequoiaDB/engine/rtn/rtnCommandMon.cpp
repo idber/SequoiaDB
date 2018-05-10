@@ -279,7 +279,7 @@ namespace engine
                          rc ) ;
          }
 
-         if ( !orderBy.isEmpty() )
+         if ( orderBy.isEmpty() )
          {
             rc = appendObj( BSON( AGGR_SORT_PARSER_NAME << orderBy ),
                             pOutBuff, buffSize, buffUsedSize, buffObjNum ) ;

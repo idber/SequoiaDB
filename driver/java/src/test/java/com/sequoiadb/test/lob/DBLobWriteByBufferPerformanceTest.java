@@ -1,10 +1,6 @@
 package com.sequoiadb.test.lob;
 
-import com.sequoiadb.base.CollectionSpace;
-import com.sequoiadb.base.DBCollection;
-import com.sequoiadb.base.DBLob;
-import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.datasource.SequoiadbDatasource;
+import com.sequoiadb.base.*;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.test.common.Constants;
 import com.sequoiadb.test.common.LobHelper;
@@ -26,8 +22,7 @@ public class DBLobWriteByBufferPerformanceTest {
     private static DBCollection cl;
     private static String inputFileName = null;
     private static String outputFileName = null;
-    private static int threadNum = 16;
-    private static int bufferSize = 2048; // KB
+    private static int bufferSize = 128; // KB
     private static int MAX_NUM = 1024 * 1024;
 
     @BeforeClass
@@ -56,7 +51,7 @@ public class DBLobWriteByBufferPerformanceTest {
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         }
         BSONObject conf = new BasicBSONObject();
-        conf.put("ReplSize", 1);
+        conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
     }
 
@@ -106,10 +101,7 @@ public class DBLobWriteByBufferPerformanceTest {
             try {
                 db = ds.getConnection();
                 coll = db.getCollectionSpace(csName).getCollection(clName);
-            } catch (BaseException e) {
-                e.printStackTrace();
-                Assert.fail();
-            } catch (InterruptedException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 Assert.fail();
             }
@@ -186,16 +178,16 @@ public class DBLobWriteByBufferPerformanceTest {
             inputFileName = "E:\\tmp\\sequoiadb-2.6-linux_x86_64-enterprise-installer.run";
             outputFileName = "E:\\tmp\\output\\sequoiadb-2.6-linux_x86_64-enterprise-installer.run";
         } else {
-            inputFileName = "/opt/driver/java/14m.txt";
-            outputFileName = "/opt/driver/java/14m.txt_out";
+            inputFileName = "/opt/sequoiadb/packet/sequoiadb-2.8-linux_x86_64-enterprise-installer.run";
+            outputFileName = "/opt/sequoiadb/packet/sequoiadb-2.8-linux_x86_64-enterprise-installer.run_out";
         }
+        int threadNum = 1;
         int retryTimes = 3;
         System.out.println(String.format("%d线程并发测试通过buffer的方式写lob的性能", threadNum));
-        System.out.println("write buffer is: " + bufferSize);
         long avg = execute(inputFileName, threadNum, retryTimes);
         System.out.println(
             String.format("Write %dMB's lob, %d threads run takes %dms",
-                14, threadNum, avg));
+                531, threadNum, avg));
     }
 
     /*
@@ -204,6 +196,7 @@ public class DBLobWriteByBufferPerformanceTest {
     @Test
     @Ignore
     public void testWrite100kLobByBuffer() {
+        int threadNum = 1;
         int retryTimes = 1001;
         String fileName = "100k.txt";
         LobHelper.genFile(fileName, 100 * 1024, null);
@@ -219,6 +212,7 @@ public class DBLobWriteByBufferPerformanceTest {
     @Test
     @Ignore
     public void testWrite1024kLobByBuffer() {
+        int threadNum = 1;
         int retryTimes = 101;
         String fileName = "1024k.txt";
         LobHelper.genFile(fileName, 1024 * 1024, null);

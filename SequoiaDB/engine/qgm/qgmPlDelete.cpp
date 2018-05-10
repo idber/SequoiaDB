@@ -39,10 +39,8 @@
 #include "qgmConditionNodeHelper.hpp"
 #include "msgDef.h"
 #include "pmd.hpp"
-#include "dmsCB.hpp"
-#include "dpsLogWrapper.hpp"
-#include "coordCB.hpp"
-#include "coordDeleteOperator.hpp"
+#include "pmdCB.hpp"
+#include "rtnCoordDelete.hpp"
 #include "msgMessage.hpp"
 #include "rtn.hpp"
 #include "qgmUtil.hpp"
@@ -105,34 +103,22 @@ namespace engine
       _SDB_KRCB *krcb = pmdGetKRCB() ;
       SDB_ROLE role = krcb->getDBRole() ;
       CHAR *msg = NULL ;
-      INT32 bufSize = 0 ;
-
       if ( SDB_ROLE_COORD == role )
       {
-         CoordCB *pCoord = krcb->getCoordCB() ;
+         INT32 bufSize = 0 ;
          INT64 contextID = -1 ;
-         rtnContextBuf buff ;
-
-         coordDeleteOperator opr ;
+         rtnCoordDelete del ;
          rc = msgBuildDeleteMsg( &msg, &bufSize,
                                  _collection.toString().c_str(),
                                  0, 0,
-                                 _condition.isEmpty() ? NULL : &_condition,
-                                 NULL, eduCB ) ;
-         if ( rc )
+                                 _condition.isEmpty()?
+                                 NULL : &_condition ) ;
+         if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "Build delete message failed, rc: %d", rc ) ;
             goto error ;
          }
 
-         rc = opr.init( pCoord->getResource(), eduCB ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Init operator[%s] failed, rc: %d",
-                    opr.getName(), rc ) ;
-            goto error ;
-         }
-         rc = opr.execute( (MsgHeader*)msg, eduCB, contextID, &buff ) ;
+         rc = del.execute( (MsgHeader*)msg, eduCB, contextID, NULL ) ;
       }
       else
       {
@@ -149,15 +135,15 @@ namespace engine
                          dmsCB, dpsCB ) ;
       }
 
-      if ( rc )
+      if ( SDB_OK != rc )
       {
          goto error ;
       }
-
    done:
       if ( NULL != msg )
       {
-         msgReleaseBuffer( msg, eduCB ) ;
+         SDB_OSS_FREE( msg ) ;
+         msg = NULL ;
       }
       PD_TRACE_EXITRC( SDB__QGMPLDELETE__EXEC, rc ) ;
       return rc ;

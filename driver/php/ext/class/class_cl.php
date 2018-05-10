@@ -25,37 +25,26 @@
 class SequoiaCL
 {
    /** The flags represent whether bulk insert continue when hitting index key duplicate error. */
-   define( "SDB_FLG_INSERT_CONTONDUP",                   0x00000001 ) ;
+   define( "SDB_FLG_INSERT_CONTONDUP",     0x00000001 ) ;
 
    /** Force to use specified hint to query, if database have no index assigned by the hint, fail to query. */
-   define( "SDB_FLG_FIND_FORCE_HINT",                    0x00000080 ) ;
+   define( "SDB_FLG_FIND_FORCE_HINT",      0x00000080 ) ;
    /** Enable paralled sub query. */
-   define( "SDB_FLG_FIND_PARALLED",                      0x00000100 ) ;
-   /** In general, query will not return data until cursor get from database, when add this flag, return data in query response, it will be more high-performance. */
-   define( "SDB_FLG_FIND_WITH_RETURNDATA",               0x00000200 ) ;
-
-
+   define( "SDB_FLG_FIND_PARALLED",        0x00000100 ) ;
+   /** In general, query won't return data until cursor get from database, when add this flag, return data in query response, it will be more high-performance. */
+   define( "SDB_FLG_FIND_WITH_RETURNDATA", 0x00000200 ) ;
+   
    /** Force to use specified hint to query, if database have no index assigned by the hint, fail to query */
-   define( "SDB_FLG_QUERY_FORCE_HINT",                   0x00000080 ) ;
+   define( "SDB_FLG_QUERY_FORCE_HINT",     0x00000080 ) ;
    /** Enable paralled sub query */
-   define( "SDB_FLG_QUERY_PARALLED",                     0x00000100 ) ;
-   /** In general, query will not return data until cursor get from database, when add this flag, return data in query response, it will be more high-performance */
-   define( "SDB_FLG_QUERY_WITH_RETURNDATA",              0x00000200 ) ;
-   /** Enable prepare more data when query */
-   define( "SDB_FLG_QUERY_PREPARE_MORE",                 0x00004000 ) ;
-   /** The sharding key in update rule is not filtered, when executing findAndUpdate */
-   define( "SDB_FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE",   0x00008000 ) ;
-
-   /** The sharding key in update rule is not filtered, when executing update or upsert. */
-   /** SDB_FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE is equal to SDB_FLG_UPDATE_KEEP_SHARDINGKEY, to prevent confusion.*/
-   define( "SDB_FLG_UPDATE_KEEP_SHARDINGKEY",            0x00008000 ) ;
+   define( "SDB_FLG_QUERY_PARALLED",       0x00000100 ) ;
+   /** In general, query won't return data until cursor get from database, when add this flag, return data in query response, it will be more high-performance */
+   define( "SDB_FLG_QUERY_WITH_RETURNDATA",0x00000200 ) ;
 
    /** Open a new lob only. */
-   define( "SDB_LOB_CREATEONLY",                         0x00000001 ) ;
+   define( "SDB_LOB_CREATEONLY",           0x00000001 ) ;
    /** Open an existing lob to read. */
-   define( "SDB_LOB_READ",                               0x00000004 ) ;
-   /** Open an existing lob to write. */
-   define( "SDB_LOB_WRITE",                              0x00000008 ) ;
+   define( "SDB_LOB_READ",                 0x00000004 ) ;
 
    /**
     * Drop collection.
@@ -437,7 +426,7 @@ class SequoiaCL
     * }
     * @endcode
     *
-    * Example: Remove match condition records
+    * Example: Remove match condition records 
     * @code
     * $err = $cl -> remove( array( 'age' => array( '$lte' => 50 ) ) ) ;
     * if( $err['errno'] != 0 ) {
@@ -457,11 +446,6 @@ class SequoiaCL
     *
     * @param $hint	an array or the string argument. The hint, automatically match the optimal hint if null.
     *
-    * @param $flag	an integer argument. The query flag, default to be 0.
-    *                                   @code
-    *                                   SDB_FLG_UPDATE_KEEP_SHARDINGKEY(0x00008000) : The sharding key in update rule is not filtered.
-    *                                   @endcode
-    *
     * @return Returns the result, default return array.
     *
     * @retval array   array( 'errno' => 0 )
@@ -476,7 +460,7 @@ class SequoiaCL
     * }
     * @endcode
    */
-   public function update( array|string $rule, array|string $condition = null, array|string $hint = null, integer $flag = 0 ){}
+   public function update( array|string $rule, array|string $condition = null, array|string $hint = null ){}
 
    /**
     * Update the matching documents in current collection, insert if no matching.
@@ -486,13 +470,6 @@ class SequoiaCL
     * @param $condition	an array or the string argument. The matching rule, update all the documents if null.
     *
     * @param $hint	an array or the string argument. The hint, automatically match the optimal hint if null.
-    *
-    * @param $setOnInsert	an array or the string argument. The setOnInsert, assigns the specified values to the fileds when insert
-    *
-    * @param $flag	an integer argument. The query flag, default to be 0.
-    *                                   @code
-    *                                   SDB_FLG_UPDATE_KEEP_SHARDINGKEY(0x00008000) : The sharding key in update rule is not filtered.
-    *                                   @endcode
     *
     * @return Returns the result, default return array.
     *
@@ -508,7 +485,7 @@ class SequoiaCL
     * }
     * @endcode
    */
-   public function upsert( array|string $rule, array|string $condition = null, array|string $hint = null, array|string $setOnInsert = null, integer $flag = 0 ){}
+   public function upsert( array|string $rule, array|string $condition = null, array|string $hint = null ){}
 
    /**
     * Get the matching records in current collection.
@@ -527,12 +504,10 @@ class SequoiaCL
     *
     * @param $flag	an integer argument. The query flag, default to be 0.
     *                                   @code
-    *                                   SDB_FLG_QUERY_FORCE_HINT(0x00000080)        : Force to use specified hint to query, if database have no index assigned by the hint, fail to query
-    *                                   SDB_FLG_QUERY_PARALLED(0x00000100)          : Enable paralled sub query
-    *                                   SDB_FLG_QUERY_WITH_RETURNDATA(0x00000200)   : In general, query will not return data until cursor get from database,
-    *                                                                                 when add this flag, return data in query response, it will be more high-performance
-    *                                   SDB_FLG_QUERY_PREPARE_MORE(0x00004000)      : Enable prepare more data when query
-    *                                   SDB_FLG_UPDATE_KEEP_SHARDINGKEY(0x00008000) : The sharding key in update rule is not filtered, when updating records.
+    *                                   SDB_FLG_QUERY_FORCE_HINT(0x00000080)      : Force to use specified hint to query, if database have no index assigned by the hint, fail to query
+    *                                   SDB_FLG_QUERY_PARALLED(0x00000100)        : Enable paralled sub query
+    *                                   SDB_FLG_QUERY_WITH_RETURNDATA(0x00000200) : In general, query won't return data until cursor get from database,
+    *                                                                               when add this flag, return data in query response, it will be more high-performance
     *                                   @endcode
     *
     * @return Returns a new SequoiaCursor object.
@@ -573,12 +548,10 @@ class SequoiaCL
     *
     * @param $flag	an integer argument.	The query flag, default to be 0.
     *                                   @code
-    *                                   SDB_FLG_QUERY_FORCE_HINT(0x00000080)                 : Force to use specified hint to query, if database have no index assigned by the hint, fail to query
-    *                                   SDB_FLG_QUERY_PARALLED(0x00000100)                   : Enable paralled sub query
-    *                                   SDB_FLG_QUERY_WITH_RETURNDATA(0x00000200)            : In general, query will not return data until cursor get from database,
-    *                                                                                          when add this flag, return data in query response, it will be more high-performance
-    *                                   SDB_FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE(0x00008000) : The sharding key in update rule is not filtered.
-    *
+    *                                   SDB_FLG_QUERY_FORCE_HINT(0x00000080)      : Force to use specified hint to query, if database have no index assigned by the hint, fail to query
+    *                                   SDB_FLG_QUERY_PARALLED(0x00000100)        : Enable paralled sub query
+    *                                   SDB_FLG_QUERY_WITH_RETURNDATA(0x00000200) : In general, query won't return data until cursor get from database,
+    *                                                                               when add this flag, return data in query response, it will be more high-performance
     *                                   @endcode
     *
     * @param $returnNew	a boolean argument. When TRUE, returns the updated record rather than the original.
@@ -597,7 +570,7 @@ class SequoiaCL
     * }
     * while( $record = $cursor -> next() ) {
     *    var_dump( $record ) ;
-    * }
+    * } 
     * @endcode
    */
    public function findAndUpdate( array|string $rule, array|string $condition = null, array|string $selector = null, array|string $orderBy = null, array|string $hint = null, integer $numToSkip = 0, integer $numToReturn = -1, integer $flag = 0, boolean $returnNew = false ){}
@@ -621,7 +594,7 @@ class SequoiaCL
     *                                   @code
     *                                   SDB_FLG_QUERY_FORCE_HINT(0x00000080)      : Force to use specified hint to query, if database have no index assigned by the hint, fail to query
     *                                   SDB_FLG_QUERY_PARALLED(0x00000100)        : Enable paralled sub query
-    *                                   SDB_FLG_QUERY_WITH_RETURNDATA(0x00000200) : In general, query will not return data until cursor get from database,
+    *                                   SDB_FLG_QUERY_WITH_RETURNDATA(0x00000200) : In general, query won't return data until cursor get from database,
     *                                                                           when add this flag, return data in query response, it will be more high-performance
     *                                   @endcode
     *
@@ -663,7 +636,7 @@ class SequoiaCL
     *                                   @code
     *                                   SDB_FLG_QUERY_FORCE_HINT(0x00000080)      : Force to use specified hint to query, if database have no index assigned by the hint, fail to query
     *                                   SDB_FLG_QUERY_PARALLED(0x00000100)        : Enable paralled sub query
-    *                                   SDB_FLG_QUERY_WITH_RETURNDATA(0x00000200) : In general, query will not return data until cursor get from database,
+    *                                   SDB_FLG_QUERY_WITH_RETURNDATA(0x00000200) : In general, query won't return data until cursor get from database,
     *                                                                               when add this flag, return data in query response, it will be more high-performance
     *                                   @endcode
     *
@@ -755,7 +728,7 @@ class SequoiaCL
     * @endcode
    */
    public function aggregate( array|string $aggrObj ){}
-
+   
    /**
     * Create the index in current collection.
     *
@@ -874,16 +847,15 @@ class SequoiaCL
     * @endcode
    */
    public function dropIdIndex(){}
-
+   
    /**
-    * Create a large object or open a large object to read or write.
+    * Create a large object.
     *
     * @param $oid the string argument. The object id.
     *
     * @param $mode an integer argument. The open mode: @code
     *                                                  SDB_LOB_CREATEONLY
     *                                                  SDB_LOB_READ
-    *                                                  SDB_LOB_WRITE
     *                                                  @endcode
     *
     * @return Returns a new SequoiaLob object.
@@ -922,29 +894,6 @@ class SequoiaCL
     * @endcode
    */
    public function removeLob( string $oid ){}
-
-   /**
-    * Truncate lob
-    *
-    * @param $oid the string argument. The object id.
-    *
-    * @param $length the integer argument. The truncate length.
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example:
-    * @code
-    * $err = $cl -> truncateLob( "123456789012345678901234", 10 ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to truncate lob, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-   */
-   public function truncateLob( string $oid, integer|SequoiaINT64 $length ){}
 
    /**
     * List all the lobs' meta data in current collection.

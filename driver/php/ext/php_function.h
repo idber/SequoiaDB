@@ -49,9 +49,6 @@ INT32 php_zval2Bool( zval *pValue, BOOLEAN *pBoolValue TSRMLS_DC ) ;
 
 INT32 php_zval2Long( zval *pValue, INT64 *pLongValue TSRMLS_DC ) ;
 
-INT32 php_assocArray2IntArray( zval *pArray, INT32 **ppIntArray,
-                               INT32 *pEleNum TSRMLS_DC ) ;
-
 INT32 php_assocArray2BsonArray( zval *pArray,
                                 bson ***pppBsonArray,
                                 INT32 *pEleNum TSRMLS_DC ) ;
@@ -73,9 +70,6 @@ void php_parseNumber( CHAR *pBuffer,
                       INT32 *pInt32,
                       INT64 *pInt64,
                       double *pDouble TSRMLS_DC ) ;
-
-BOOLEAN php_date2Time( const CHAR *pDate, INT32 valType,
-                       time_t *pTimestamp, INT32 *pMicros ) ;
 
 INT32 driver_connect( CHAR *pAddress,
                       const CHAR *pUserName,

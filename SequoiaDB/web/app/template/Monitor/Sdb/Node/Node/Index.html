@@ -44,35 +44,35 @@
                   <td style="font-weight:bold;">{{autoLanguage("节点ID")}}</td>
                   <td class="Ellipsis">{{nodeInfo['NodeID']}}</td>
                </tr>
-               <tr ng-if="nodeInfo['Role'] == 'catalog' || nodeInfo['Role'] == 'data'">
+               <tr ng-if="ModuleMode == 'distribution'">
                   <td style="font-weight:bold;">{{autoLanguage("类型")}}</td>
                   <td ng-if="nodeInfo['IsPrimary'] == true" class="Ellipsis">{{autoLanguage("主节点")}}</td>
                   <td ng-if="nodeInfo['IsPrimary'] == false" class="Ellipsis">{{autoLanguage("备节点")}}</td>
                   <td ng-if="nodeInfo['IsPrimary'] == 'unknow'" class="Ellipsis">-</td>
                </tr>
-               <tr ng-if="nodeInfo['Role'] != 'coord'">
+               <tr>
                   <td style="font-weight:bold;">{{autoLanguage("集合数")}}</td>
                   <td class="Ellipsis">{{nodeInfo['TotalCl']}}</td>
                </tr>
-               <tr ng-if="nodeInfo['Role'] != 'coord'">
+               <tr>
                   <td style="font-weight:bold;">{{autoLanguage("记录数")}}</td>
                   <td class="Ellipsis">{{nodeInfo['TotalRecords']}}</td>
                </tr>
-               <tr ng-if="nodeInfo['Role'] != 'coord'">
+               <tr>
                   <td style="font-weight:bold;">{{autoLanguage("Lob数")}}</td>
                   <td class="Ellipsis">{{nodeInfo['TotalLobs']}}</td>
                </tr>
-               <tr ng-if="nodeInfo['Role'] == 'catalog' || nodeInfo['Role'] == 'data'">
-                  <td style="font-weight:bold;">{{autoLanguage("当前LSN")}}</td>
-                  <td class="Ellipsis">{{nodeInfo['CurrentLSN']['Offset']}}</td>
+               <tr>
+                  <td style="font-weight:bold;">LSN</td>
+                  <td class="Ellipsis">-</td>
                </tr>
-               <tr ng-if="nodeInfo['Role'] == 'catalog' || nodeInfo['Role'] == 'data'">
+               <tr>
                   <td style="font-weight:bold;">{{autoLanguage("完成LSN")}}</td>
-                  <td class="Ellipsis">{{nodeInfo['CompleteLSN']}}</td>
+                  <td class="Ellipsis">-</td>
                </tr>
-               <tr ng-if="nodeInfo['Role'] == 'catalog' || nodeInfo['Role'] == 'data'">
+               <tr>
                   <td style="font-weight:bold;">{{autoLanguage("LSN队列数")}}</td>
-                  <td class="Ellipsis">{{nodeInfo['LSNQueSize']}}</td>
+                  <td class="Ellipsis">-</td>
                </tr>
                <tr>
                   <td style="font-weight:bold;">{{autoLanguage("主机")}}</td>

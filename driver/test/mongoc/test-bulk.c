@@ -48,8 +48,6 @@ test_bulk (void)
    client = mongoc_client_new (gTestUri);
    ASSERT_CMPPTR (client, !=, NULL);
 
-   //collection = get_test_collection (client, "test_bulk");
-   //ASSERT_CMPPTR (collection, !=, NULL);
    collection = setUp("test_bulk", client);
 
    bulk = mongoc_collection_create_bulk_operation (collection, true, NULL);
@@ -67,10 +65,6 @@ test_bulk (void)
    mongoc_bulk_operation_update (bulk, &doc, &up, false);
    bson_destroy (&up);
 
-   //bson_init (&del);
-   //BSON_APPEND_INT32 (&del, "hello", 123);
-   //mongoc_bulk_operation_remove (bulk, &del);
-   //bson_destroy (&del);
    r = mongoc_bulk_operation_execute (bulk, &reply, &error);
    ASSERT_CMPINT(r, !=, false);
 
@@ -94,9 +88,6 @@ test_bulk (void)
 #endif
    }
 
-//   ASSERT_CMPINT (bson_iter_init_find (&iter, &reply, "nRemoved"), ==, true);
-//   ASSERT_CMPINT (BSON_ITER_HOLDS_INT32 (&iter), ==, true);
-//   ASSERT_CMPINT (4, ==, bson_iter_int32 (&iter));
 
    ASSERT_CMPINT (bson_iter_init_find (&iter, &reply, "nMatched"), ==, true);
    ASSERT_CMPINT (BSON_ITER_HOLDS_INT32 (&iter), ==, true);
@@ -129,8 +120,6 @@ test_bulk (void)
 
    bson_destroy (&reply);
 
-   //r = mongoc_collection_drop (collection, &error);
-   //ASSERT_CMPINT (r, ==, true);
    mongoc_bulk_operation_destroy (bulk);
    tearDown(collection);
    mongoc_client_destroy (client);
@@ -157,8 +146,6 @@ test_update_upserted (void)
    client = mongoc_client_new (gTestUri);
    ASSERT_CMPPTR (client, !=, NULL);
 
-   //collection = get_test_collection (client, "test_update_upserted");
-   //ASSERT_CMPPTR (collection, !=, NULL);
    collection = setUp("test_update_upserted",client);
 
    bulk = mongoc_collection_create_bulk_operation (collection, true, NULL);
@@ -229,8 +216,6 @@ test_update_upserted (void)
 
    bson_destroy (&reply);
 
-   //r = mongoc_collection_drop (collection, &error);
-   //ASSERT_CMPINT (r, ==, true);
 
    mongoc_bulk_operation_destroy (bulk);
    tearDown(collection);
@@ -260,8 +245,6 @@ test_index_offset (void)
    client = mongoc_client_new (gTestUri);
    ASSERT_CMPPTR (client, !=, NULL);
 
-   //collection = get_test_collection (client, "test_index_offset");
-   //ASSERT_CMPPTR (collection, !=, NULL);
    collection = setUp("test_index_offset", client);
 
    doc = bson_new ();
@@ -314,6 +297,7 @@ test_index_offset (void)
    }
    bson_init(&q);
    BSON_APPEND_UTF8(&q,"hello","there");
+   bson_append_int32(&q, "abcd", -1, 1234);
    ASSERT_CMPINT(check_records(collection, q, true), ==, 1);
    bson_destroy(&q);
 
@@ -340,8 +324,6 @@ test_index_offset (void)
 
    bson_destroy (&reply);
 
-   //r = mongoc_collection_drop (collection, &error);
-   //ASSERT_CMPINT (r, ==, true);
 
    mongoc_bulk_operation_destroy (bulk);
    tearDown(collection);
@@ -367,8 +349,6 @@ test_bulk_edge_over_1000 (void)
    client = mongoc_client_new (gTestUri);
    ASSERT_CMPPTR (client, !=, NULL);
 
-   //collection = get_test_collection (client, "OVER_1000");
-   //ASSERT_CMPPTR (collection, !=, NULL);
    collection = setUp("OVER_1000", client);
 
    mongoc_write_concern_set_w(wc, 1);
@@ -445,8 +425,6 @@ test_bulk_edge_case_372 (void)
    client = mongoc_client_new (gTestUri);
    ASSERT_CMPPTR (client, !=, NULL);
 
-   //collection = get_test_collection (client, "CDRIVER_372");
-   //ASSERT_CMPPTR (collection, !=, NULL);
    collection = setUp( "CDRIVER_372", client );
 
    bulk = mongoc_collection_create_bulk_operation (collection, true, NULL);
@@ -556,10 +534,8 @@ test_bulk_edge_case_372 (void)
 
    bson_destroy (&reply);
 
-   //mongoc_collection_drop (collection, NULL);
 
    mongoc_bulk_operation_destroy (bulk);
-   //mongoc_collection_destroy (collection);
    tearDown (collection);
    mongoc_client_destroy (client);
 }
@@ -579,8 +555,6 @@ test_bulk_new (void)
    client = mongoc_client_new (gTestUri);
    ASSERT_CMPPTR (client, !=, NULL);
 
-   //collection = get_test_collection (client, "bulk_new");
-   //ASSERT_CMPPTR (collection, !=, NULL);
    collection = setUp("bulk_new", client);
 
    bulk = mongoc_bulk_operation_new (true);
@@ -590,26 +564,18 @@ test_bulk_new (void)
 
    r = mongoc_bulk_operation_execute (bulk, NULL, &error);
    ASSERT_CMPINT (r, ==, false);
-   //ASSERT_CMPINT (error.domain, ==, MONGOC_ERROR_CLIENT);
-   //ASSERT_CMPINT (error.code, ==, MONGOC_ERROR_COMMAND_INVALID_ARG);
 
    mongoc_bulk_operation_set_database (bulk, "fapmongo_test");
    r = mongoc_bulk_operation_execute (bulk, NULL, &error);
    ASSERT_CMPINT (r, ==, false);
-   //ASSERT_CMPINT (error.domain, ==, MONGOC_ERROR_CLIENT);
-   //ASSERT_CMPINT (error.code, ==, MONGOC_ERROR_COMMAND_INVALID_ARG);
 
    mongoc_bulk_operation_set_collection (bulk, mongoc_collection_get_name(collection));
    r = mongoc_bulk_operation_execute (bulk, NULL, &error);
    ASSERT_CMPINT (r, ==, false);
-   //ASSERT_CMPINT (error.domain, ==, MONGOC_ERROR_CLIENT);
-   //ASSERT_CMPINT (error.code, ==, MONGOC_ERROR_COMMAND_INVALID_ARG);
 
    mongoc_bulk_operation_set_client (bulk, client);
    r = mongoc_bulk_operation_execute (bulk, NULL, &error);
    ASSERT_CMPINT (r, ==, false);
-   //ASSERT_CMPINT (error.domain, ==, MONGOC_ERROR_CLIENT);
-   //ASSERT_CMPINT (error.code, ==, MONGOC_ERROR_COMMAND_INVALID_ARG);
 
    mongoc_bulk_operation_insert (bulk, &empty);
    r = mongoc_bulk_operation_execute (bulk, NULL, &error);
@@ -617,9 +583,7 @@ test_bulk_new (void)
 
    mongoc_bulk_operation_destroy (bulk);
 
-   //mongoc_collection_drop (collection, NULL);
 
-   //mongoc_collection_destroy (collection);
    tearDown(collection);
    mongoc_client_destroy (client);
 }
@@ -633,7 +597,6 @@ test_bulk_install (TestSuite *suite)
    TestSuite_Add (suite, "BulkOperation_basic", test_bulk);
    TestSuite_Add (suite, "BulkOperation_update_upserted", test_update_upserted);
    TestSuite_Add (suite, "BulkOperation_index_offset", test_index_offset);
-   //TestSuite_Add (suite, "BulkOperation_CDRIVER-372", test_bulk_edge_case_372);
    TestSuite_Add (suite, "BulkOperation_new", test_bulk_new);
    TestSuite_Add (suite, "BulkOperation_over_1000", test_bulk_edge_over_1000);
 

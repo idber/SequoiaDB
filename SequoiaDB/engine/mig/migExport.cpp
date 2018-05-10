@@ -105,7 +105,6 @@ INT32 migExport::_connectDB()
    INT32 rc = SDB_OK ;
    bson obj ;
    bson_init( &obj ) ;
-   // connection is established
 
 #ifdef SDB_SSL
    if ( _pMigArg->useSSL )
@@ -128,7 +127,6 @@ INT32 migExport::_connectDB()
                _pMigArg->pHostname, _pMigArg->pSvcname, rc ) ;
       goto error ;
    }
-   // set prefer instance
    if( _pMigArg->pPrefInst )
    {
       if ( FALSE == jsonToBson2 ( &obj, _pMigArg->pPrefInst, 0, 1 ) )
@@ -190,7 +188,6 @@ error:
 INT32 migExport::_getCS( const CHAR *pCSName )
 {
    INT32 rc = SDB_OK ;
-   // get collection space
    rc = sdbGetCollectionSpace ( _gConnection, pCSName,
                                 &_gCollectionSpace ) ;
    if ( SDB_DMS_CS_NOTEXIST == rc )
@@ -215,7 +212,6 @@ error:
 INT32 migExport::_getCL( const CHAR *pCLName )
 {
    INT32 rc = SDB_OK ;
-   // get collection
    rc = sdbGetCollection1 ( _gCollectionSpace, pCLName,
                             &_gCollection ) ;
    if ( SDB_DMS_NOTEXIST == rc )
@@ -605,7 +601,6 @@ INT32 migExport::_run( const CHAR *pCSName, const CHAR *pCLName, INT32 &total )
    if ( ( pCSName == NULL && pCLName == NULL ) ||
         ( pCSName == NULL && pCLName != NULL ) )
    {
-      //never cs cl
       rc = _getCSList() ;
       if ( rc )
       {
@@ -649,7 +644,6 @@ INT32 migExport::_run( const CHAR *pCSName, const CHAR *pCLName, INT32 &total )
    }
    else if ( pCSName != NULL && pCLName == NULL )
    {
-      //cs
       rc = _getCLList() ;
       if ( rc )
       {
@@ -693,7 +687,6 @@ INT32 migExport::_run( const CHAR *pCSName, const CHAR *pCLName, INT32 &total )
    }
    else
    {
-      //cs and cl
       rc = _exportCL( pCSName, pCLName, total ) ;
       if ( rc )
       {
@@ -721,7 +714,6 @@ INT32 migExport::init( migExprtArg *pMigArg )
       goto error ;
    }
 
-   // open output file
    rc = ossOpen ( _pMigArg->pFile,
                   OSS_REPLACE | OSS_WRITEONLY | OSS_EXCLUSIVE,
                   OSS_RU | OSS_WU | OSS_RG,

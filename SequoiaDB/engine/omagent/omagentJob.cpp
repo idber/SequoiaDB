@@ -32,7 +32,6 @@
 #include "omagentUtil.hpp"
 #include "omagentJob.hpp"
 #include "omagentBackgroundCmd.hpp"
-#include "omagentAsyncTask.hpp"
 #include "pmdEDU.hpp"
 
 namespace engine
@@ -158,33 +157,6 @@ namespace engine
       goto done ;
    }
 
-   string getCmdByType( OMA_TASK_TYPE taskType )
-   {
-      string command ;
-      switch( taskType )
-      {
-      case OMA_TASK_ADD_BUS:
-         command = OMA_CMD_ADD_BUSINESS ;
-         break ;
-      case OMA_TASK_REMOVE_BUS:
-         command = OMA_CMD_REMOVE_BUSINESS ;
-         break ;
-      case OMA_TASK_EXTEND_DB:
-         command = OMA_CMD_EXTEND_SEQUOIADB ;
-         break ;
-      case OMA_TASK_SHRINK_BUSINESS:
-         command = OMA_CMD_SHRINK_BUSINESS ;
-         break ;
-      case OMA_TASK_DEPLOY_PACKAGE:
-         command = OMA_CMD_DEOLOY_PACKAGE ;
-         break ;
-      default:
-         command = "" ;
-         break ;
-      }
-      return command ;
-   }
-
    _omaTask* getTaskByType( OMA_TASK_TYPE taskType, INT64 taskID )
    {
       _omaTask *pTask = NULL ;
@@ -229,21 +201,7 @@ namespace engine
             break ;
          case OMA_TASK_SSQL_EXEC :
             pTask = SDB_OSS_NEW _omaSsqlExecTask( taskID ) ;
-            break ;
-         case OMA_TASK_ASYNC_SUB:
-            pTask = SDB_OSS_NEW _omaAsyncSubTask( taskID ) ;
-            break ;
-         case OMA_TASK_EXTEND_DB:
-         case OMA_TASK_ADD_BUS:
-         case OMA_TASK_REMOVE_BUS:
-         case OMA_TASK_SHRINK_BUSINESS:
-         case OMA_TASK_DEPLOY_PACKAGE:
-            {
-               string command = getCmdByType( taskType ) ;
-
-               pTask = SDB_OSS_NEW _omaAsyncTask( taskID, command.c_str() ) ;
-            }
-            break ;
+            break;
          default :
             PD_LOG_MSG( PDERROR, "Unknow task type[%d]", taskType ) ;
             break ;

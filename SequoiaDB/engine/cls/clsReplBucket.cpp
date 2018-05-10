@@ -1082,14 +1082,14 @@ namespace engine
 
       while ( TRUE )
       {
-         eduMgr->waitEDU( eduCB() ) ;
+         eduMgr->waitEDU( eduCB()->getID() ) ;
 
          rc = _pBucket->beginUnit( eduCB(), unitID, _timeout ) ;
          if ( rc )
          {
             break ;
          }
-         eduMgr->activateEDU( eduCB() ) ;
+         eduMgr->activateEDU( eduCB()->getID() ) ;
 
          number = 0 ;
          while ( _pBucket->popData( unitID, &pData, len ) )

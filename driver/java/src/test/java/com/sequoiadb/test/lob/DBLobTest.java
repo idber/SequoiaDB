@@ -2,7 +2,6 @@ package com.sequoiadb.test.lob;
 
 import com.sequoiadb.base.*;
 import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.test.common.Constants;
 import com.sequoiadb.testdata.SDBTestHelper;
 import org.bson.BSONObject;
@@ -70,12 +69,10 @@ public class DBLobTest {
         lob.close();
 
         long createTime = lob.getCreateTime();
-        long modificationTime = lob.getModificationTime();
         long size = lob.getSize();
         ObjectId id = lob.getID();
         SDBTestHelper.println("id:" + id);
         SDBTestHelper.println("createTime:" + SDBTestHelper.millisToDate(createTime));
-        SDBTestHelper.println("modificationTime:" + SDBTestHelper.millisToDate(modificationTime));
         SDBTestHelper.println("lobSize:" + size);
         assertEquals(0, size);
     }
@@ -121,7 +118,7 @@ public class DBLobTest {
     @Test
     public void testSeekLob() throws BaseException {
         DBLob lob = cl.createLob();
-        String data = "HelloWorld1234567890";
+        String data = new String("HelloWorld1234567890");
         lob.write(data.getBytes());
         lob.close();
 
@@ -270,7 +267,7 @@ public class DBLobTest {
 
     @Test
     public void testWithoutClose() {
-        int times = 10;
+        int times = 1000;
 
         String s1 = "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234";
         byte[] tmp = new byte[s1.getBytes().length + 1];
@@ -291,12 +288,7 @@ public class DBLobTest {
             }
         }
 
-        try {
-            cl.removeLob(id);
-            Assert.fail("remove unclosed lob should be failed");
-        } catch (BaseException e) {
-            assertEquals(SDBError.SDB_LOB_IS_IN_USE.getErrorCode(), e.getErrorCode());
-        }
+        cl.removeLob(id);
     }
 
     @Test
@@ -735,10 +727,10 @@ public class DBLobTest {
         for (int i = beg; i < end; i++) {
             try {
                 Assert.assertEquals(content_bytes[i], output_bytes[i]);
-            } catch (AssertionError e) {
+            } catch (Exception e) {
                 String errmsg = String.format("expect: %d, actual: %d, beg: %d, end: %d, len: %d, i: %d", content_bytes[i], output_bytes[i], beg, end, len, i);
                 System.out.println("errmsg is: " + errmsg);
-                throw e;
+                throw new RuntimeException(e);
             }
         }
 

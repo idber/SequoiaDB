@@ -246,10 +246,7 @@ namespace engine
          _clsTaskMgr*  getTaskMgr () ;
          BOOLEAN  isPrimary () ;
          INT32    clearAllData () ;
-         INT32    invalidateCache ( const CHAR *name, UINT8 type ) ;
          INT32    invalidateCata ( const CHAR *name ) ;
-         INT32    invalidateStatistics () ;
-         INT32    invalidatePlan ( const CHAR *name ) ;
 
       protected:
 

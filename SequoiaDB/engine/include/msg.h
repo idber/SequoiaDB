@@ -256,22 +256,12 @@ enum MSG_TYPE
    MSG_BS_LOB_UPDATE_RES               = MAKE_REPLY_TYPE( MSG_BS_LOB_UPDATE_REQ ),
    MSG_BS_LOB_CLOSE_REQ                = 8006,
    MSG_BS_LOB_CLOSE_RES                = MAKE_REPLY_TYPE( MSG_BS_LOB_CLOSE_REQ ),
-   MSG_BS_LOB_LOCK_REQ                 = 8007,
-   MSG_BS_LOB_LOCK_RES                 = MAKE_REPLY_TYPE( MSG_BS_LOB_LOCK_REQ ),
-   MSG_BS_LOB_TRUNCATE_REQ             = 8008,
-   MSG_BS_LOB_TRUNCATE_RES             = MAKE_REPLY_TYPE( MSG_BS_LOB_TRUNCATE_REQ ),
    MSG_LOB_END                         = 8999,
 
    MSG_OM_BEGIN                        = 9000,
    MSG_OM_UPDATE_TASK_REQ              = 9001,
    MSG_OM_UPDATE_TASK_RES              = MAKE_REPLY_TYPE( MSG_OM_UPDATE_TASK_REQ ),
    MSG_OM_END                          = 9999,
-
-   MSG_SEADPT_BEGIN                    = 10000,
-   MSG_SEADPT_UPDATE_IDXINFO_REQ       = 10001,
-   MSG_SEADPT_UPDATE_IDXINFO_RES       = MAKE_REPLY_TYPE( MSG_SEADPT_UPDATE_IDXINFO_REQ ),
-
-   MSG_SEADPT_END                      = 10999,
 
    MSG_NULL                            = 999999        //reserved
 };
@@ -380,10 +370,9 @@ struct _MsgInternalReplyHeader
 } ;
 typedef struct _MsgInternalReplyHeader MsgInternalReplyHeader ;
 
-#define FLG_UPDATE_UPSERT           0x00000001
-#define FLG_UPDATE_MULTIUPDATE      0x00000002
-#define FLG_UPDATE_RETURNNUM        0x00000004
-#define FLG_UPDATE_KEEP_SHARDINGKEY FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE
+#define FLG_UPDATE_UPSERT       0x00000001
+#define FLG_UPDATE_MULTIUPDATE  0x00000002
+#define FLG_UPDATE_RETURNNUM    0x00000004
 struct _MsgOpUpdate
 {
    MsgHeader header ;     // message header
@@ -410,22 +399,19 @@ struct _MsgOpInsert
 } ;
 typedef struct _MsgOpInsert MsgOpInsert ;
 
-#define FLG_QUERY_STRINGOUT                  0x00000001
-#define FLG_QUERY_SLAVEOK                    0x00000002
-#define FLG_QUERY_OPLOGREPLAY                0x00000004
-#define FLG_QUERY_NOCONTEXTTIMEOUT           0x00000008
-#define FLG_QUERY_AWAITDATA                  0x00000010
-#define FLG_QUERY_PARTIALREAD                0x00000020
-#define FLG_CREATE_WHEN_NOT_EXIST            0x00000040
-#define FLG_QUERY_FORCE_HINT                 0x00000080
-#define FLG_QUERY_PARALLED                   0x00000100
-#define FLG_QUERY_WITH_RETURNDATA            0x00000200
-#define FLG_QUERY_EXPLAIN                    0x00000400
-#define FLG_QUERY_PRIMARY                    0x00000800
-#define FLG_QUERY_MODIFY                     0x00001000
-#define FLG_QUERY_FORCE_IDX_BY_SORT          0x00002000
-#define FLG_QUERY_PREPARE_MORE               0x00004000
-#define FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE 0x00008000
+#define FLG_QUERY_STRINGOUT           0x00000001
+#define FLG_QUERY_SLAVEOK             0x00000002
+#define FLG_QUERY_OPLOGREPLAY         0x00000004
+#define FLG_QUERY_NOCONTEXTTIMEOUT    0x00000008
+#define FLG_QUERY_AWAITDATA           0x00000010
+#define FLG_QUERY_PARTIALREAD         0x00000020
+#define FLG_CREATE_WHEN_NOT_EXIST     0x00000040
+#define FLG_QUERY_FORCE_HINT          0x00000080
+#define FLG_QUERY_PARALLED            0x00000100
+#define FLG_QUERY_WITH_RETURNDATA     0x00000200
+#define FLG_QUERY_EXPLAIN             0x00000400
+#define FLG_QUERY_PRIMARY             0x00000800
+#define FLG_QUERY_MODIFY              0x00001000
 
 struct _MsgOpQuery
 {
@@ -490,8 +476,8 @@ struct _MsgOpReply
    MsgHeader header ;     // message header
    SINT64    contextID ;   // context id if client need to get more
    SINT32    flags ;      // reply flags
-   SINT32    startFrom ;
-   SINT32    numReturned ;// number of records returned in the reply
+   SINT32    startFrom ;  // where in the context "this" reply is starting
+   SINT32    numReturned ;// number of recourds returned in the reply
 } ;
 typedef struct _MsgOpReply MsgOpReply ;
 
@@ -586,7 +572,6 @@ typedef struct _MsgOpAggregate
 
 #define FLG_LOBREAD_PRIMARY               0x00000001
 #define FLG_LOBOPEN_WITH_RETURNDATA       0X00000002
-#define FLG_LOBWRITE_OR_UPDATE            0x00000004
 
 typedef struct _MsgOpLob
 {

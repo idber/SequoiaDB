@@ -31,7 +31,6 @@
 *******************************************************************************/
 
 #include "omTaskManager.hpp"
-#include "omCommandTool.hpp"
 #include "omDef.hpp"
 #include "rtn.hpp"
 #include "msgMessage.hpp"
@@ -273,40 +272,6 @@ namespace engine
       return rc ;
    }
 
-   void omAddHostTask::_getOMVersion( string &version )
-   {
-      INT32 major        = 0 ;
-      INT32 minor        = 0 ;
-      INT32 fix          = 0 ;
-      INT32 release      = 0 ;
-      const CHAR *pBuild = NULL ;
-      stringstream stream ;
-
-      ossGetVersion ( &major, &minor, &fix, &release, &pBuild ) ;
-      stream << major << "." << minor ;
-      version = stream.str() ;
-   }
-
-   void omAddHostTask::_getPackageVersion( const BSONObj resultInfo,
-                                           const string &hostName,
-                                           string &version )
-   {
-      BSONObjIterator iter( resultInfo ) ;
-
-      while ( iter.more() )
-      {
-         BSONElement ele = iter.next() ;
-         BSONObj oneHost = ele.embeddedObject() ;
-         string tmpHostName = oneHost.getStringField( OM_HOST_FIELD_NAME ) ;
-
-         if ( tmpHostName == hostName )
-         {
-            version = oneHost.getStringField( OM_HOST_FIELD_VERSION ) ;
-            break ;
-         }
-      }
-   }
-
    INT32 omAddHostTask::finish( BSONObj &resultInfo )
    {
       INT32 rc     = SDB_OK ;
@@ -321,10 +286,6 @@ namespace engine
       BSONObj orderBy ;
       BSONObj hint ;
       BSONObj taskInfo ;
-      BSONObj taskResultInfo ;
-      string omVersion ;
-
-      _getOMVersion( omVersion ) ;
 
       rc = _getSuccessHost( resultInfo, successHostSet ) ;
       if ( SDB_OK != rc )
@@ -343,50 +304,19 @@ namespace engine
          goto error ;
       }
 
-      taskInfoValue  = taskInfo.getObjectField( OM_TASKINFO_FIELD_INFO ) ;
-      taskResultInfo = resultInfo.getObjectField( OM_TASKINFO_FIELD_RESULTINFO ) ;
+      taskInfoValue = taskInfo.getObjectField( OM_TASKINFO_FIELD_INFO ) ;
       hosts = taskInfoValue.getObjectField( OM_BSON_FIELD_HOST_INFO ) ;
       SDB_ASSERT( !hosts.isEmpty(), "" ) ;
       {
          BSONObjIterator iter( hosts ) ;
          while ( iter.more() )
          {
-            BSONObjBuilder oneHostBuilder ;
             BSONElement ele = iter.next() ;
             BSONObj oneHost = ele.embeddedObject() ;
             string hostName = oneHost.getStringField( OM_HOST_FIELD_NAME ) ;
-
             if ( successHostSet.find( hostName ) == successHostSet.end() )
             {
                continue ;
-            }
-
-            {
-               BSONObj packageInfo ;
-               BSONObj oma = oneHost.getObjectField( OM_HOST_FIELD_OMA ) ;
-               string version = oma.getStringField( OM_HOST_FIELD_OM_VERSION ) ;
-               string hostName = oneHost.getStringField( OM_HOST_FIELD_NAME ) ;
-               string installPath = oneHost.getStringField(
-                                                   OM_HOST_FIELD_INSTALLPATH ) ;
-
-               if ( version.empty() )
-               {
-                  _getPackageVersion( taskResultInfo, hostName, version ) ;
-                  if ( version.empty() )
-                  {
-                     version = omVersion ;
-                  }
-               }
-
-               packageInfo = BSON(
-                           OM_HOST_FIELD_PACKAGENAME << OM_BUSINESS_SEQUOIADB <<
-                           OM_HOST_FIELD_INSTALLPATH << installPath <<
-                           OM_HOST_FIELD_VERSION << version ) ;
-
-               oneHostBuilder.appendElements( oneHost ) ;
-               oneHostBuilder.append( OM_HOST_FIELD_PACKAGES,
-                                      BSON_ARRAY( packageInfo ) ) ;
-               oneHost = oneHostBuilder.obj() ;
             }
 
             rc = rtnInsert( OM_CS_DEPLOY_CL_HOST, oneHost, 1, 0, cb ) ;
@@ -399,7 +329,7 @@ namespace engine
                   goto error ;
                }
             }
-            clusterName = oneHost.getStringField( OM_BSON_CLUSTER_NAME ) ;
+            clusterName = oneHost.getStringField( OM_BSON_FIELD_CLUSTER_NAME ) ;
             sdbGetOMManager()->updateClusterVersion( clusterName ) ;
          }
       }
@@ -589,7 +519,7 @@ namespace engine
                goto error ;
             }
 
-            clusterName = oneHost.getStringField( OM_BSON_CLUSTER_NAME ) ;
+            clusterName = oneHost.getStringField( OM_BSON_FIELD_CLUSTER_NAME ) ;
             sdbGetOMManager()->updateClusterVersion( clusterName ) ;
          }
       }
@@ -699,6 +629,136 @@ namespace engine
 
    }
 
+   BOOLEAN omAddBusinessTask::_isHostConfExist( const string &hostName, 
+                                                const string &businessName )
+   {
+      INT32 rc         = SDB_OK ;
+      pmdEDUCB *cb     = pmdGetThreadEDUCB() ;
+      BOOLEAN flag     = FALSE ;
+      SINT64 contextID = -1 ;
+      BSONObj selector ;
+      BSONObj matcher ;
+      BSONObj orderBy ;
+      BSONObj hint ;
+      pmdKRCB *pKRCB = pmdGetKRCB() ;
+
+      matcher = BSON( OM_CONFIGURE_FIELD_BUSINESSNAME << businessName 
+                      << OM_CONFIGURE_FIELD_HOSTNAME << hostName ) ;
+      rc = rtnQuery( OM_CS_DEPLOY_CL_CONFIGURE, selector, matcher, orderBy, 
+                     hint, 0, cb, 0, -1, pKRCB->getDMSCB(), pKRCB->getRTNCB(), 
+                     contextID ) ;
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "fail to query table:%s,rc=%d", 
+                     OM_CS_DEPLOY_CL_CONFIGURE, rc ) ;
+         goto done ;
+      }
+
+      while ( TRUE )
+      {
+         rtnContextBuf buffObj ;
+         rc = rtnGetMore ( contextID, 1, buffObj, cb, pKRCB->getRTNCB() ) ;
+         if ( rc )
+         {
+            if ( SDB_DMS_EOC == rc )
+            {
+               goto done ;
+            }
+
+            contextID = -1 ;
+            PD_LOG_MSG( PDERROR, "failed to get record from table:%s,rc=%d", 
+                        OM_CS_DEPLOY_CL_TASKINFO, rc ) ;
+            goto done ;
+         }
+
+         flag = TRUE ;
+         goto done ;
+      }
+
+   done:
+      if ( -1 != contextID )
+      {
+         pKRCB->getRTNCB()->contextDelete ( contextID, cb ) ;
+      }
+      return flag ;
+   }
+
+   INT32 omAddBusinessTask::_appendConfigure( const string &hostName,
+                                              const string &businessName,
+                                              BSONObj &oneNode )
+   {
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      INT32 rc     = SDB_OK ;
+      BSONArrayBuilder arrayBuilder ;
+      BSONObj filter  = BSON( OM_BSON_FIELD_HOST_NAME << "" 
+                              << OM_BSON_FIELD_HOST_USER << "" 
+                              << OM_BSON_FIELD_HOST_PASSWD << "" 
+                              << OM_BSON_FIELD_HOST_SSHPORT << "" ) ;
+      BSONObj oneConf = oneNode.filterFieldsUndotted( filter, false ) ;
+      arrayBuilder.append( oneConf ) ;
+
+      BSONObj selector = BSON( OM_CONFIGURE_FIELD_BUSINESSNAME << businessName 
+                               << OM_CONFIGURE_FIELD_HOSTNAME << hostName );
+      BSONObj tmp      = BSON( OM_CONFIGURE_FIELD_CONFIG 
+                               << arrayBuilder.arr() ) ;
+      BSONObj updator  = BSON( "$addtoset" << tmp ) ;
+      {
+         BSONObj hint ;
+         rc = rtnUpdate( OM_CS_DEPLOY_CL_CONFIGURE, selector, updator, hint,
+                         0, cb ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to update config for %s in %s:rc=%d", 
+                    hostName.c_str(), OM_CS_DEPLOY_CL_CONFIGURE, rc ) ;
+            goto error ;
+         }
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 omAddBusinessTask::_insertConfigure( const string &hostName,
+                                              const string &businessName,
+                                              const string &businessType,
+                                              const string &clusterName,
+                                              const string &deployMode,
+                                              BSONObj &oneNode )
+   {
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      INT32 rc     = SDB_OK ;
+      BSONArrayBuilder arrayBuilder ;
+      BSONObj filter  = BSON( OM_BSON_FIELD_HOST_NAME << "" 
+                              << OM_BSON_FIELD_HOST_USER << "" 
+                              << OM_BSON_FIELD_HOST_PASSWD << ""
+                              << OM_BSON_FIELD_HOST_SSHPORT << "" ) ;
+      BSONObj oneConf = oneNode.filterFieldsUndotted( filter, false ) ;
+      arrayBuilder.append( oneConf ) ;
+      BSONObj obj = BSON( OM_CONFIGURE_FIELD_BUSINESSNAME << businessName 
+                          << OM_CONFIGURE_FIELD_HOSTNAME << hostName 
+                          << OM_CONFIGURE_FIELD_BUSINESSTYPE << businessType
+                          << OM_CONFIGURE_FIELD_CLUSTERNAME << clusterName
+                          << OM_CONFIGURE_FIELD_DEPLOYMODE << deployMode
+                          << OM_CONFIGURE_FIELD_CONFIG << arrayBuilder.arr() ) ;
+      rc = rtnInsert( OM_CS_DEPLOY_CL_CONFIGURE, obj, 1, 0, cb );
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "failed to store config into table:%s,rc=%d", 
+                     OM_CS_DEPLOY_CL_CONFIGURE, rc ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   void omAddBusinessTask::_updateHostOMVersion( const string &hostName )
+   {
+      
+   }
+
    INT32 omAddBusinessTask::_storeBusinessInfo( BSONObj &taskInfoValue )
    {
       INT32 rc = SDB_OK ;
@@ -715,7 +775,7 @@ namespace engine
       businessName  = taskInfoValue.getStringField( OM_BSON_BUSINESS_NAME );
       deployMod     = taskInfoValue.getStringField( OM_BSON_DEPLOY_MOD ) ;
       businessType  = taskInfoValue.getStringField( OM_BSON_BUSINESS_TYPE );
-      clusterName   = taskInfoValue.getStringField( OM_BSON_CLUSTER_NAME ) ;
+      clusterName   = taskInfoValue.getStringField( OM_BSON_FIELD_CLUSTER_NAME ) ;
 
       builder.append( OM_BUSINESS_FIELD_NAME, businessName ) ;
       builder.append( OM_BUSINESS_FIELD_TYPE, businessType ) ;
@@ -745,33 +805,28 @@ namespace engine
 
    INT32 omAddBusinessTask::_storeConfigInfo( BSONObj &taskInfoValue )
    {
-      INT32 rc = SDB_OK ;
-      omDatabaseTool dbTool( pmdGetThreadEDUCB() ) ;
       string businessName ;
       string businessType ;
       string clusterName ;
       string deployMode ;
       BSONObj configs ;
-
+      INT32 rc      = SDB_OK ;
       businessName  = taskInfoValue.getStringField( OM_BSON_BUSINESS_NAME ) ;
       businessType  = taskInfoValue.getStringField( OM_BSON_BUSINESS_TYPE ) ;
-      clusterName   = taskInfoValue.getStringField( OM_BSON_CLUSTER_NAME ) ;
+      clusterName   = taskInfoValue.getStringField( OM_BSON_FIELD_CLUSTER_NAME ) ;
       deployMode    = taskInfoValue.getStringField( OM_BSON_DEPLOY_MOD ) ;
       configs       = taskInfoValue.getObjectField( OM_BSON_FIELD_CONFIG ) ;
-
       {
          BSONObjIterator iter( configs ) ;
-
          while ( iter.more() )
          {
             BSONElement ele = iter.next() ;
             BSONObj oneNode = ele.embeddedObject() ;
             string hostName ;
-
             hostName = oneNode.getStringField( OM_BSON_FIELD_HOST_NAME ) ;
-            if ( dbTool.isConfigExist( businessName, hostName ) )
+            if ( _isHostConfExist( hostName, businessName ) )
             {
-               rc = dbTool.appendConfigure( businessName, hostName, oneNode ) ;
+               rc = _appendConfigure( hostName, businessName, oneNode ) ;
                if ( SDB_OK != rc )
                {
                   PD_LOG( PDERROR, "append configure failed:host=%s,"
@@ -783,9 +838,8 @@ namespace engine
             }
             else
             {
-               rc = dbTool.insertConfigure( businessName, hostName,
-                                            businessType, clusterName,
-                                            deployMode, oneNode ) ;
+               rc = _insertConfigure( hostName, businessName, businessType, 
+                                      clusterName, deployMode, oneNode ) ;
                if ( SDB_OK != rc )
                {
                   PD_LOG( PDERROR, "insert configure failed:host=%s,"
@@ -796,6 +850,7 @@ namespace engine
                }
             }
 
+            _updateHostOMVersion( hostName ) ;
          }
       }
    done:
@@ -889,525 +944,6 @@ namespace engine
       return rc ;
    error:
       goto done ;
-   }
-
-   omExtendBusinessTask::omExtendBusinessTask( INT64 taskID )
-   {
-      _taskID   = taskID ;
-      _taskType = OM_TASK_TYPE_EXTEND_BUSINESS;
-   }
-
-   omExtendBusinessTask::~omExtendBusinessTask()
-   {
-   }
-
-   INT32 omExtendBusinessTask::finish( BSONObj &resultInfo )
-   {
-      INT32 rc = SDB_OK ;
-      string businessName ;
-      BSONObj selector ;
-      BSONObj matcher ;
-      BSONObj orderBy ;
-      BSONObj hint ;
-      BSONObj taskInfo ;
-      BSONObj taskInfoValue ;
-   
-      matcher  = BSON( OM_TASKINFO_FIELD_TASKID << _taskID ) ;
-      selector = BSON( OM_TASKINFO_FIELD_INFO << 1 ) ;
-
-      rc = queryOneTask( selector, matcher, orderBy, hint, taskInfo ) ;
-      if( rc )
-      {
-         PD_LOG( PDERROR, "get task info failed:taskID="
-                          OSS_LL_PRINT_FORMAT",rc=%d", _taskID, rc ) ;
-         goto error ;     
-      }
-   
-      taskInfoValue = taskInfo.getObjectField( OM_TASKINFO_FIELD_INFO ) ;
-   
-      rc = _storeConfigInfo( taskInfoValue ) ;
-      if( rc )
-      {
-         PD_LOG( PDERROR, "store configure info failed:rc=%d", rc ) ;
-         goto error ;     
-      }
-   
-      businessName = taskInfoValue.getStringField( OM_BSON_BUSINESS_NAME );
-
-      rc = _updateBizHostInfo( businessName ) ;
-      if( rc )
-      {
-         PD_LOG( PDERROR, "update business host info failed:rc=%d", rc ) ;
-         goto error ;     
-      }
-   
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 omExtendBusinessTask::_updateBizHostInfo( const string &businessName )
-   {
-      INT32 rc = SDB_OK ;
-      list <string> hostsList ;
-
-      rc = sdbGetOMManager()->getBizHostInfo( businessName, hostsList ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "get business host info failed:rc=%d", rc ) ;
-         goto error ;
-      }
-
-      rc = sdbGetOMManager()->appendBizHostInfo( businessName, hostsList ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "get business host info failed:rc=%d", rc ) ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-
-   INT32 omExtendBusinessTask::_storeConfigInfo( const BSONObj &taskInfoValue )
-   {
-      INT32 rc = SDB_OK ;
-      omDatabaseTool dbTool( pmdGetThreadEDUCB() ) ;
-      string businessName ;
-      string businessType ;
-      string clusterName ;
-      string deployMode ;
-      BSONObj configs ;
-
-      businessName = taskInfoValue.getStringField( OM_BSON_BUSINESS_NAME ) ;
-      businessType = taskInfoValue.getStringField( OM_BSON_BUSINESS_TYPE ) ;
-      deployMode  = taskInfoValue.getStringField( OM_BSON_DEPLOY_MOD ) ;
-      clusterName = taskInfoValue.getStringField( OM_BSON_CLUSTER_NAME ) ;
-      configs     = taskInfoValue.getObjectField( OM_BSON_FIELD_CONFIG ) ;
-
-      if ( OM_BUSINESS_SEQUOIADB == businessType )
-      {
-         deployMode = OM_DEPLOY_MOD_DISTRIBUTION ;
-      }
-
-      {
-         BSONObjIterator iter( configs ) ;
-
-         while ( iter.more() )
-         {
-            BSONElement ele = iter.next() ;
-            BSONObj oneNode = ele.embeddedObject() ;
-            string hostName = oneNode.getStringField( OM_BSON_FIELD_HOST_NAME ) ;
-
-            if ( dbTool.isConfigExist( businessName, hostName ) )
-            {
-               rc = dbTool.appendConfigure( businessName, hostName, oneNode ) ;
-               if ( rc )
-               {
-                  PD_LOG( PDERROR, "append configure failed:host=%s,"
-                          "business=%s, node=%s, rc=%d", 
-                          hostName.c_str(), businessName.c_str(), 
-                          oneNode.toString().c_str(), rc ) ;
-                  goto error ;
-               }
-            }
-            else
-            {
-               rc = dbTool.insertConfigure( businessName, hostName,
-                                            businessType, clusterName,
-                                            deployMode, oneNode ) ;
-               if ( rc )
-               {
-                  PD_LOG( PDERROR, "insert configure failed:host=%s,"
-                          "business=%s, node=%s, rc=%d", 
-                          hostName.c_str(), businessName.c_str(), 
-                          oneNode.toString().c_str(), rc ) ;
-                  goto error ;
-               }
-            }
-         }
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 omExtendBusinessTask::getType()
-   {
-      return _taskType ;
-   }
-   
-   INT64 omExtendBusinessTask::getTaskID()
-   {
-      return _taskID ;
-   }
-
-   omShrinkBusinessTask::omShrinkBusinessTask( INT64 taskID )
-   {
-      _taskID   = taskID ;
-      _taskType = OM_TASK_TYPE_SHRINK_BUSINESS;
-   }
-
-   omShrinkBusinessTask::~omShrinkBusinessTask()
-   {
-   }
-
-   INT32 omShrinkBusinessTask::_removeNodeConfig( const string &businessName,
-                                                  const string &hostName,
-                                                  const string &svcname )
-   {
-      INT32 rc = SDB_OK ;
-      INT32 configNum  = 0 ;
-      BOOLEAN isExist  = FALSE ;
-      INT64 updateNum  = -1 ;
-      SINT64 contextID = -1 ;
-      pmdEDUCB *cb       = pmdGetThreadEDUCB() ;
-      pmdKRCB *pKRCB     = pmdGetKRCB() ;
-      _SDB_DMSCB *pdmsCB = pKRCB->getDMSCB() ;
-      _SDB_RTNCB *pRtnCB = pKRCB->getRTNCB() ;
-      BSONObj condition ;
-      BSONObj selector ;
-      BSONObj sort ;
-      BSONObj hint ;
-      BSONObj configs ;
-      BSONObj updator ;
-
-      condition = BSON( OM_CONFIGURE_FIELD_BUSINESSNAME << businessName <<
-                        OM_CONFIGURE_FIELD_HOSTNAME << hostName ) ;
-
-      rc = rtnQuery( OM_CS_DEPLOY_CL_CONFIGURE, selector, condition, sort,
-                     hint, 0, cb, 0, 1, pdmsCB, pRtnCB, contextID );
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "fail to query table:%s,rc=%d",
-                 OM_CS_DEPLOY_CL_CONFIGURE, rc ) ;
-         goto error ;
-      }
-
-      while ( TRUE )
-      {
-         rtnContextBuf buffObj ;
-
-         rc = rtnGetMore ( contextID, 1, buffObj, cb, pRtnCB ) ;
-         if ( rc )
-         {
-            if ( SDB_DMS_EOC == rc )
-            {
-               rc = SDB_OK ;
-               break ;
-            }
-
-            contextID = -1 ;
-            PD_LOG( PDERROR, "failed to get record from table:%s,rc=%d",
-                    OM_CS_DEPLOY_CL_CONFIGURE, rc ) ;
-            goto error ;
-         }
-
-         {
-            BSONObj result( buffObj.data() ) ;
-            BSONObj tmpConfig = result.getObjectField(
-                                                   OM_CONFIGURE_FIELD_CONFIG ) ;
-
-            configs  = tmpConfig.copy() ;
-            isExist  = TRUE ;
-         }
-      }
-
-      if ( FALSE == isExist )
-      {
-         goto done ;
-      }
-
-      {
-         BSONObjBuilder updatorBuilder ;
-         BSONArrayBuilder configsBuilder ;
-         BSONObjIterator iter( configs ) ;
-
-         while ( iter.more() )
-         {
-            BSONElement ele = iter.next() ;
-            BSONObj config = ele.embeddedObject() ;
-            string tmpSvcname = config.getStringField(
-                                                OM_CONFIGURE_FIELD_SVCNAME ) ;
-
-            if ( tmpSvcname != svcname )
-            {
-               configsBuilder.append( config ) ;
-               ++configNum ;
-            }
-         }
-
-         updatorBuilder.append( OM_CONFIGURE_FIELD_CONFIG,
-                                configsBuilder.arr() ) ;
-         updator = BSON( "$set" << updatorBuilder.obj() ) ;
-      }
-
-      if ( 0 < configNum )
-      {
-         rc = rtnUpdate( OM_CS_DEPLOY_CL_CONFIGURE, condition, updator, hint,
-                         FLG_UPDATE_UPSERT | FLG_UPDATE_RETURNNUM,
-                         cb, &updateNum ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "falied to update host config,"
-                             "condition=%s,updator=%s,rc=%d",
-                    condition.toString().c_str(),
-                    updator.toString().c_str(), rc ) ;
-            goto error ;
-         }
-      }
-      else
-      {
-         rc = rtnDelete( OM_CS_DEPLOY_CL_CONFIGURE, condition, hint, 0, cb ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "failed to delete configure from table:%s,rc=%d",
-                    OM_CS_DEPLOY_CL_CONFIGURE, rc ) ;
-            goto error ;
-         }
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 omShrinkBusinessTask::_removeConfig( const BSONObj &taskInfo,
-                                              const BSONObj &resultInfo )
-   {
-      INT32 rc = SDB_OK ;
-      string businessName = taskInfo.getStringField( OM_BSON_BUSINESS_NAME ) ;
-      string businessType = taskInfo.getStringField( OM_BSON_BUSINESS_TYPE ) ;
-
-      if ( OM_BUSINESS_SEQUOIADB == businessType )
-      {
-         BSONObjIterator iter( resultInfo ) ;
-
-         while ( iter.more() )
-         {
-            BSONElement ele = iter.next() ;
-            BSONObj config  = ele.embeddedObject() ;
-            INT32 errorNum  = config.getIntField( OM_TASKINFO_FIELD_ERRNO ) ;
-            string hostName = config.getStringField(
-                                                OM_CONFIGURE_FIELD_HOSTNAME ) ;
-            string svcname  = config.getStringField(
-                                                OM_CONFIGURE_FIELD_SVCNAME ) ;
-
-            if ( 0 == errorNum )
-            {
-               rc = _removeNodeConfig( businessName, hostName, svcname ) ;
-               if ( rc )
-               {
-                  PD_LOG( PDERROR, "remove node config failed, rc=%d", rc ) ;
-                  goto error ;
-               }
-            }
-         }
-
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 omShrinkBusinessTask::_updateBizHostInfo( const string &businessName )
-   {
-      INT32 rc = SDB_OK ;
-      list <string> hostsList ;
-
-      rc = sdbGetOMManager()->getBizHostInfo( businessName, hostsList ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "get business host info failed:rc=%d", rc ) ;
-         goto error ;
-      }
-
-      rc = sdbGetOMManager()->appendBizHostInfo( businessName, hostsList ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "get business host info failed:rc=%d", rc ) ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 omShrinkBusinessTask::finish( BSONObj &resultInfo )
-   {
-      INT32 rc = SDB_OK ;
-      BSONObj selector ;
-      BSONObj matcher ;
-      BSONObj orderBy ;
-      BSONObj hint ;
-      BSONObj task ;
-      BSONObj taskInfo ;
-      BSONObj taskResultInfo ;
-      string businessName ;
-   
-      matcher  = BSON( OM_TASKINFO_FIELD_TASKID << _taskID ) ;
-      selector = BSON( OM_TASKINFO_FIELD_INFO << 1 ) ;
-
-      rc = queryOneTask( selector, matcher, orderBy, hint, task ) ;
-      if( rc )
-      {
-         PD_LOG( PDERROR, "get task info failed:taskID="
-                          OSS_LL_PRINT_FORMAT",rc=%d",
-                 _taskID, rc ) ;
-         goto error ;     
-      }
-
-      taskInfo = task.getObjectField( OM_TASKINFO_FIELD_INFO ) ;
-      taskResultInfo = resultInfo.getObjectField(
-                                                OM_TASKINFO_FIELD_RESULTINFO ) ;
-      rc = _removeConfig( taskInfo, taskResultInfo ) ;
-      if( rc )
-      {
-         PD_LOG( PDERROR, "remove node config failed:rc=%d", rc ) ;
-         goto error ;     
-      }
-
-      businessName = taskInfo.getStringField( OM_BSON_BUSINESS_NAME ) ;
-      rc = _updateBizHostInfo( businessName ) ;
-      if( rc )
-      {
-         PD_LOG( PDERROR, "update business host info failed:rc=%d", rc ) ;
-         goto error ;     
-      }
-      
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 omShrinkBusinessTask::getType()
-   {
-      return _taskType ;
-   }
-   
-   INT64 omShrinkBusinessTask::getTaskID()
-   {
-      return _taskID ;
-   }
-
-   omDeployPackageTask::omDeployPackageTask( INT64 taskID )
-   {
-      _taskID   = taskID ;
-      _taskType = OM_TASK_TYPE_DEPLOY_PACKAGE ;
-   }
-
-   omDeployPackageTask::~omDeployPackageTask()
-   {
-   }
-
-   INT32 omDeployPackageTask::_addPackage( const BSONObj &taskInfo,
-                                           const BSONObj &resultInfo )
-   {
-      INT32 rc = SDB_OK ;
-      string packageName ;
-      string installPath ;
-      string version ;
-      set<string> hostList ;
-      BSONObjIterator iter( resultInfo ) ;
-      omDatabaseTool dbTool( pmdGetThreadEDUCB() ) ;
-
-      while ( iter.more() )
-      {
-         BSONElement ele = iter.next() ;
-         BSONObj hostInfo  = ele.embeddedObject() ;
-         INT32 errorNum  = hostInfo.getIntField( OM_TASKINFO_FIELD_ERRNO ) ;
-         string hostName = hostInfo.getStringField(
-                                                OM_TASKINFO_FIELD_HOSTNAME ) ;
-
-         if ( SDB_OK == errorNum )
-         {
-            hostList.insert( hostName ) ;
-            if ( 0 == version.length() )
-            {
-               version = hostInfo.getStringField( OM_TASKINFO_FIELD_VERSION ) ;
-            }
-         }
-      }
-
-      packageName = taskInfo.getStringField( OM_TASKINFO_FIELD_PACKAGENAME ) ;
-      installPath = taskInfo.getStringField( OM_TASKINFO_FIELD_INSTALLPATH ) ;
-
-      rc = dbTool.addPackageOfHosts( hostList, packageName, installPath,
-                                     version ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "failed to add package of hosts: package=%s, rc=%d",
-                 packageName.c_str(), rc ) ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 omDeployPackageTask::finish( BSONObj &resultInfo )
-   {
-      INT32 rc = SDB_OK ;
-      BSONObj selector ;
-      BSONObj matcher ;
-      BSONObj orderBy ;
-      BSONObj hint ;
-      BSONObj task ;
-      BSONObj taskInfo ;
-      BSONObj taskResultInfo ;
-   
-      matcher  = BSON( OM_TASKINFO_FIELD_TASKID << _taskID ) ;
-      selector = BSON( OM_TASKINFO_FIELD_INFO << 1 ) ;
-
-      rc = queryOneTask( selector, matcher, orderBy, hint, task ) ;
-      if( rc )
-      {
-         PD_LOG( PDERROR, "get task info failed:taskID="
-                          OSS_LL_PRINT_FORMAT",rc=%d",
-                 _taskID, rc ) ;
-         goto error ;
-      }
-
-      taskInfo = task.getObjectField( OM_TASKINFO_FIELD_INFO ) ;
-      taskResultInfo = resultInfo.getObjectField(
-                                                OM_TASKINFO_FIELD_RESULTINFO ) ;
-
-      rc = _addPackage( taskInfo, taskResultInfo ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "failed to add package: taskID="
-                          OSS_LL_PRINT_FORMAT",rc=%d",
-                 _taskID, rc ) ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 omDeployPackageTask::getType()
-   {
-      return _taskType ;
-   }
-   
-   INT64 omDeployPackageTask::getTaskID()
-   {
-      return _taskID ;
    }
 
    omRemoveBusinessTask::omRemoveBusinessTask( INT64 taskID )
@@ -1801,15 +1337,6 @@ namespace engine
          pTask = SDB_OSS_NEW omSsqlExecTask( taskID ) ;
          break ;
 
-      case OM_TASK_TYPE_EXTEND_BUSINESS:
-         pTask = SDB_OSS_NEW omExtendBusinessTask( taskID ) ;
-         break ;
-      case OM_TASK_TYPE_SHRINK_BUSINESS:
-         pTask = SDB_OSS_NEW omShrinkBusinessTask( taskID ) ;
-         break ;
-      case OM_TASK_TYPE_DEPLOY_PACKAGE:
-         pTask = SDB_OSS_NEW omDeployPackageTask( taskID ) ;
-         break ;
       default :
          PD_LOG( PDERROR, "unknown task type:taskID="OSS_LL_PRINT_FORMAT
                  ",taskType=%d", taskID, taskType ) ;

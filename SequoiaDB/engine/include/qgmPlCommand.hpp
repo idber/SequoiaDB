@@ -41,6 +41,7 @@
 #include "qgmPlan.hpp"
 #include "msg.h"
 #include "msgDef.h"
+#include "rtnCoordCommands.hpp"
 
 namespace engine
 {
@@ -60,8 +61,6 @@ namespace engine
       virtual void close() ;
 
       virtual string toString() const ;
-
-      virtual BOOLEAN needRollback() const ;
 
    private:
       virtual INT32 _execute( _pmdEDUCB *eduCB ) ;

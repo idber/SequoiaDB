@@ -388,7 +388,7 @@ namespace engine
    }
 
    void _sptObjFactory::_sortAndAssert( SPT_VEC_OBJDESC &vecObj,
-                                        const sptObjDesc *desc )
+                                         const sptObjDesc *desc )
    {
       if ( desc->isIgnoredName() )
       {
@@ -470,7 +470,7 @@ namespace engine
 
       if ( className.empty() )
       {
-         jsObj = JS_GetGlobalObject( cx ) ;
+         jsObj = (JSObject*)sdbGetThreadGlobal() ;
       }
       else
       {

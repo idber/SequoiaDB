@@ -65,7 +65,6 @@ static INT32 _clientSecure( Socket* sock ) ;
 #define MAX_RECV_RETRIES 5
 #define MAX_SEND_RETRIES 5
 
-
 INT32 clientConnect ( const CHAR *pHostName,
                       const CHAR *pServiceName,
                       BOOLEAN useSSL,
@@ -593,7 +592,6 @@ INT32 clientRecv ( Socket* sock, CHAR *pMsg, INT32 len,
    {
       goto done ;
    }
-
    *pReceivedLen = 0 ;
 
 #ifdef SDB_SSL
@@ -654,7 +652,7 @@ INT32 clientRecv ( Socket* sock, CHAR *pMsg, INT32 len,
          if ( WSAEINTR == rc )
 #else
          if ( EINTR == rc )
-#endif 
+#endif
          {
             if ( NULL == sock->isInterruptFunc || !sock->isInterruptFunc() )
             {

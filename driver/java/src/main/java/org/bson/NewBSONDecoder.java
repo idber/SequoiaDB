@@ -17,15 +17,13 @@
 package org.bson;
 
 import org.bson.io.Bits;
-import org.bson.types.BSONDecimal;
 import org.bson.types.ObjectId;
+import static org.bson.BSON.*;
 
-import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.DataInputStream;
 import java.io.UnsupportedEncodingException;
-
-import static org.bson.BSON.*;
 
 /**
  * A new implementation of the bson decoder.
@@ -35,17 +33,9 @@ public class NewBSONDecoder implements BSONDecoder {
     public BSONObject readObject(final byte [] pData) {
         _length = pData.length;
         final BasicBSONCallback c = new BasicBSONCallback();
-        _decode(pData, 0, c);
+        decode(pData, c);
         return (BSONObject)c.get();
    }
-
-    @Override
-    public BSONObject readObject(byte[] b, int offset) {
-        _length = Bits.readInt(b, offset);
-        final BasicBSONCallback c = new BasicBSONCallback();
-        _decode(b, offset, c);
-        return (BSONObject)c.get();
-    }
 
     public BSONObject readObject(final InputStream pIn) throws IOException {
         _length = Bits.readInt(pIn);
@@ -59,21 +49,9 @@ public class NewBSONDecoder implements BSONDecoder {
         return readObject(_data);
     }
 
-    @Override
-    public int decode(byte[] b, BSONCallback callback) {
-        _length = Bits.readInt(b);
-        return _decode(b, 0, callback);
-    }
-
-    @Override
-    public int decode(byte[] b, int offset, BSONCallback callback) {
-        _length = Bits.readInt(b, offset);
-        return _decode(b, offset, callback);
-    }
-
-    private int _decode(final byte[] pData, int offset, final BSONCallback pCallback) {
+    public int decode(final byte [] pData, final BSONCallback pCallback) {
         _data = pData;
-        _pos = offset + 4;
+        _pos = 4;
         _callback = pCallback;
         _decode();
         return _length;
@@ -88,7 +66,7 @@ public class NewBSONDecoder implements BSONDecoder {
 
         (new DataInputStream(pIn)).readFully(_data, 4, (_length - 4));
 
-        return _decode(_data, 0, pCallback);
+        return decode(_data, pCallback);
     }
 
     private final void _decode() {
@@ -135,7 +113,7 @@ public class NewBSONDecoder implements BSONDecoder {
         _basic.reset();
         _basic.objectStart(false);
 
-        while (decodeElement()) ;
+        while( decodeElement() );
         _callback = save;
         return _basic.get();
     }
@@ -148,25 +126,25 @@ public class NewBSONDecoder implements BSONDecoder {
         final byte bType = _data[_pos];
         _pos += 1;
 
-        switch (bType) {
+        switch ( bType ){
             case B_GENERAL: {
-                final byte[] data = new byte[totalLen];
+                    final byte [] data = new byte[totalLen];
 
-                System.arraycopy(_data, _pos, data, 0, totalLen);
-                _pos += totalLen;
+                    System.arraycopy(_data, _pos, data, 0, totalLen);
+                    _pos += totalLen;
 
-                _callback.gotBinary(pName, bType, data);
-                return;
+                    _callback.gotBinary(pName, bType, data);
+                    return;
             }
 
             case B_BINARY: {
                 final int len = Bits.readInt(_data, _pos);
                 _pos += 4;
 
-                if (len + 4 != totalLen)
-                    throw new IllegalArgumentException("bad data size subtype 2 len: " + len + " totalLen: " + totalLen);
+                if ( len + 4 != totalLen )
+                    throw new IllegalArgumentException( "bad data size subtype 2 len: " + len + " totalLen: " + totalLen );
 
-                final byte[] data = new byte[len];
+                final byte [] data = new byte[len];
                 System.arraycopy(_data, _pos, data, 0, len);
                 _pos += len;
                 _callback.gotBinary(pName, bType, data);
@@ -174,8 +152,8 @@ public class NewBSONDecoder implements BSONDecoder {
             }
 
             case B_UUID: {
-                if (totalLen != 16)
-                    throw new IllegalArgumentException("bad data size subtype 3 len: " + totalLen + " != 16");
+                if ( totalLen != 16 )
+                    throw new IllegalArgumentException( "bad data size subtype 3 len: " + totalLen + " != 16");
 
                 final long part1 = Bits.readLong(_data, _pos);
                 _pos += 8;
@@ -188,7 +166,7 @@ public class NewBSONDecoder implements BSONDecoder {
             }
         }
 
-        final byte[] data = new byte[totalLen];
+        final byte [] data = new byte[totalLen];
         System.arraycopy(_data, _pos, data, 0, totalLen);
         _pos += totalLen;
 
@@ -205,33 +183,15 @@ public class NewBSONDecoder implements BSONDecoder {
         final String name = readCstr();
 
         switch (type) {
-            case NULL: {
-                _callback.gotNull(name);
-                return true;
-            }
+            case NULL: { _callback.gotNull(name); return true; }
 
-            case UNDEFINED: {
-                _callback.gotUndefined(name);
-                return true;
-            }
+            case UNDEFINED: { _callback.gotUndefined(name); return true; }
 
-            case BOOLEAN: {
-                _callback.gotBoolean(name, (_data[_pos] > 0));
-                _pos += 1;
-                return true;
-            }
+            case BOOLEAN: { _callback.gotBoolean(name, (_data[_pos] > 0)); _pos += 1; return true; }
 
-            case NUMBER: {
-                _callback.gotDouble(name, Double.longBitsToDouble(Bits.readLong(_data, _pos)));
-                _pos += 8;
-                return true;
-            }
+            case NUMBER: { _callback.gotDouble(name, Double.longBitsToDouble(Bits.readLong(_data, _pos))); _pos += 8; return true; }
 
-            case NUMBER_INT: {
-                _callback.gotInt(name, Bits.readInt(_data, _pos));
-                _pos += 4;
-                return true;
-            }
+            case NUMBER_INT: { _callback.gotInt(name, Bits.readInt(_data, _pos)); _pos += 4; return true; }
 
             case NUMBER_LONG: {
                 _callback.gotLong(name, Bits.readLong(_data, _pos));
@@ -239,14 +199,8 @@ public class NewBSONDecoder implements BSONDecoder {
                 return true;
             }
 
-            case SYMBOL: {
-                _callback.gotSymbol(name, readUtf8Str());
-                return true;
-            }
-            case STRING: {
-                _callback.gotString(name, readUtf8Str());
-                return true;
-            }
+            case SYMBOL: { _callback.gotSymbol(name, readUtf8Str()); return true; }
+            case STRING: {  _callback.gotString(name, readUtf8Str()); return true; }
 
             case OID: {
 
@@ -259,7 +213,7 @@ public class NewBSONDecoder implements BSONDecoder {
                 final int p3 = Bits.readIntBE(_data, _pos);
                 _pos += 4;
 
-                _callback.gotObjectId(name, new ObjectId(p1, p2, p3));
+                _callback.gotObjectId(name , new ObjectId(p1, p2, p3));
                 return true;
             }
 
@@ -277,16 +231,12 @@ public class NewBSONDecoder implements BSONDecoder {
                 final int p3 = Bits.readInt(_data, _pos);
                 _pos += 4;
 
-                _callback.gotDBRef(name, ns, new ObjectId(p1, p2, p3));
+                _callback.gotDBRef(name , ns, new ObjectId(p1, p2, p3));
 
                 return true;
             }
 
-            case DATE: {
-                _callback.gotDate(name, Bits.readLong(_data, _pos));
-                _pos += 8;
-                return true;
-            }
+            case DATE: { _callback.gotDate(name , Bits.readLong(_data, _pos)); _pos += 8; return true; }
 
 
             case REGEX: {
@@ -294,15 +244,9 @@ public class NewBSONDecoder implements BSONDecoder {
                 return true;
             }
 
-            case BINARY: {
-                _binary(name);
-                return true;
-            }
+            case BINARY: { _binary(name); return true; }
 
-            case CODE: {
-                _callback.gotCode(name, readUtf8Str());
-                return true;
-            }
+            case CODE: { _callback.gotCode(name, readUtf8Str()); return true; }
 
             case CODE_W_SCOPE: {
                 _pos += 4;
@@ -311,16 +255,16 @@ public class NewBSONDecoder implements BSONDecoder {
             }
 
             case ARRAY:
-                _pos += 4;
+               _pos += 4;
                 _callback.arrayStart(name);
-                while (decodeElement()) ;
+                while (decodeElement());
                 _callback.arrayDone();
                 return true;
 
             case OBJECT:
                 _pos += 4;
                 _callback.objectStart(name);
-                while (decodeElement()) ;
+                while (decodeElement());
                 _callback.objectDone();
                 return true;
 
@@ -333,47 +277,21 @@ public class NewBSONDecoder implements BSONDecoder {
 
                 _callback.gotTimestamp(name, time, i);
                 return true;
-
+                
             case NUMBER_DECIMAL:
-                int size = Bits.readInt(_data, _pos);
-                _pos += 4;
+            	return true;
 
-                int typeMod = Bits.readInt(_data, _pos);
-                _pos += 4;
+            case MINKEY: _callback.gotMinKey(name); return true;
+            case MAXKEY: _callback.gotMaxKey(name); return true;
 
-                short signScale = Bits.readShort(_data, _pos);
-                _pos += 2;
-
-                short weight = Bits.readShort(_data, _pos);
-                _pos += 2;
-
-                int nDigits = (size - BSONDecimal.DECIMAL_HEADER_SIZE) / (Short.SIZE / Byte.SIZE);
-                short[] digits = new short[nDigits];
-                for (int index = 0; index < nDigits; index++) {
-                    digits[index] = Bits.readShort(_data, _pos);
-                    _pos += 2;
-                }
-
-                BSONDecimal decimal = new BSONDecimal(size, typeMod, signScale, weight, digits);
-                _callback.gotDecimal(name, decimal);
-                return true;
-
-            case MINKEY:
-                _callback.gotMinKey(name);
-                return true;
-            case MAXKEY:
-                _callback.gotMaxKey(name);
-                return true;
-
-            default:
-                throw new UnsupportedOperationException("BSONDecoder doesn't understand type : " + type + " name: " + name);
+            default: throw new UnsupportedOperationException( "BSONDecoder doesn't understand type : " + type + " name: " + name  );
         }
     }
 
-    private static final int MAX_STRING = (32 * 1024 * 1024);
+    private static final int MAX_STRING = ( 32 * 1024 * 1024 );
     private static final String DEFAULT_ENCODING = "UTF-8";
 
-    private byte[] _data;
+    private byte [] _data;
     private int _length;
     private int _pos = 0;
     private BSONCallback _callback;

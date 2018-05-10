@@ -235,7 +235,7 @@ namespace engine
          
    } ;
    typedef _omaInstDBBusTask omaInstDBBusTask ;
-
+   
    /*
       remove db business task
    */
@@ -583,35 +583,6 @@ namespace engine
    } ;
    typedef _omaSsqlExecTask omaSsqlExecTask ;
 
-   /*
-      start plugins task
-   */
-   class _omaStartPluginsTask : public _omaTask
-   {
-   public:
-      _omaStartPluginsTask( INT64 taskID ) ;
-      virtual ~_omaStartPluginsTask() ;
-
-   public:
-      INT32 init( const BSONObj &info, void *ptr = NULL ) ;
-      INT32 doit() ;
-   } ;
-   typedef _omaStartPluginsTask omaStartPluginsTask ;
-
-   /*
-      stop plugins task
-   */
-   class _omaStopPluginsTask : public _omaTask
-   {
-   public:
-      _omaStopPluginsTask( INT64 taskID ) ;
-      virtual ~_omaStopPluginsTask() ;
-
-   public:
-      INT32 init( const BSONObj &info, void *ptr = NULL ) ;
-      INT32 doit() ;
-   } ;
-   typedef _omaStopPluginsTask omaStopPluginsTask ;
 }
 
 

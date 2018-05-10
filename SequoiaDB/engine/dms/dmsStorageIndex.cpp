@@ -50,18 +50,16 @@
 
 using namespace bson ;
 
-#define DMS_MAX_TEXT_IDX_NUM        4
-
 namespace engine
 {
 
    _dmsStorageIndex::_dmsStorageIndex( const CHAR * pSuFileName,
                                        dmsStorageInfo * pInfo,
-                                       dmsStorageDataCommon * pDataSu )
+                                       dmsStorageData * pDataSu )
    :_dmsStorageBase( pSuFileName, pInfo )
    {
       SDB_ASSERT( pDataSu, "Data Su can't be NULL" ) ;
-      _pDataSu = (dmsStorageData *)pDataSu ;
+      _pDataSu = pDataSu ;
 
       _pDataSu->_attach( this ) ;
    }
@@ -136,9 +134,7 @@ namespace engine
 
    INT32 _dmsStorageIndex::_onOpened()
    {
-      INT32 rc = SDB_OK ;
       BOOLEAN needFlushMME = FALSE ;
-      IDmsExtDataHandler *extHandler = _pDataSu->getExtDataHandler() ;
 
       for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; i++ )
       {
@@ -184,33 +180,9 @@ namespace engine
                }
                ixmIndexCB indexCB( _pDataSu->_dmsMME->_mbList[i]._indexExtent[ j ],
                                    this, NULL ) ;
-               if ( indexCB.isInitialized() )
+               if ( indexCB.isInitialized() && indexCB.unique() )
                {
-                  if ( IXM_EXTENT_HAS_TYPE( IXM_EXTENT_TYPE_TEXT,
-                                            indexCB.getIndexType() ) )
-                  {
-                     _pDataSu->_mbStatInfo[i]._textIdxNum++ ;
-                     if ( !extHandler )
-                     {
-                        SDB_ASSERT( _pStorageInfo->_extDataHandler,
-                                    "External data handler in storage info is "
-                                    "NULL" ) ;
-                        _pDataSu->regExtDataHandler( _pStorageInfo->_extDataHandler ) ;
-                        extHandler = _pDataSu->getExtDataHandler() ;
-                     }
-                     else
-                     {
-                        rc = extHandler->onOpenTextIdx( _pDataSu->getSuName(),
-                                                        _pDataSu->_dmsMME->_mbList[i]._collectionName,
-                                                        indexCB.getName() ) ;
-                        PD_RC_CHECK( rc, PDERROR, "External on text index open "
-                                     "failed[ %d ]", rc ) ;
-                     }
-                  }
-                  if ( indexCB.unique() )
-                  {
-                     _pDataSu->_mbStatInfo[i]._uniqueIdxNum++ ;
-                  }
+                  _pDataSu->_mbStatInfo[i]._uniqueIdxNum++ ;
                }
             }
          }
@@ -221,10 +193,7 @@ namespace engine
          _pDataSu->flushMME( isSyncDeep() ) ;
       }
 
-   done:
-      return rc ;
-   error:
-      goto done ;
+      return SDB_OK ;
    }
 
    void _dmsStorageIndex::_onClosed()
@@ -408,66 +377,6 @@ namespace engine
       }
    }
 
-   INT32 _dmsStorageIndex::_allocateIdxID( dmsMBContext *context,
-                                           const BSONObj &index,
-                                           INT32 &indexID )
-   {
-      INT32 rc = SDB_OK ;
-      const CHAR *indexName = NULL ;
-
-      indexName = index.getStringField( IXM_FIELD_NAME_NAME ) ;
-
-      for ( indexID = 0 ; indexID < DMS_COLLECTION_MAX_INDEX ; indexID++ )
-      {
-         if ( DMS_INVALID_EXTENT == context->mb()->_indexExtent[indexID] )
-         {
-            break ;
-         }
-         ixmIndexCB curIdxCB( context->mb()->_indexExtent[indexID], this,
-                              context ) ;
-         BOOLEAN sameName = (0 == ossStrncmp ( indexName,
-                                              curIdxCB.getName(),
-                                              IXM_INDEX_NAME_SIZE)) ;
-         if ( sameName &&
-              curIdxCB.isSameDef( index, TRUE ) )
-         {
-            PD_LOG( PDERROR, "Same index defined already:[%s:%s]",
-                    curIdxCB.getName(),
-                    index.getStringField( IXM_FIELD_NAME_NAME ) ) ;
-            rc = SDB_IXM_REDEF ;
-            goto error ;
-         }
-         else if ( sameName )
-         {
-            PD_LOG ( PDINFO, "Duplicate index name: %s",
-                     index.getStringField( IXM_FIELD_NAME_NAME ) );
-            rc = SDB_IXM_EXIST;
-            goto error ;
-         }
-         else if ( curIdxCB.isSameDef( index ) )
-         {
-            PD_LOG ( PDERROR, "Duplicate index define: %s",
-                     index.getStringField( IXM_FIELD_NAME_NAME ) );
-            rc = SDB_IXM_EXIST_COVERD_ONE ;
-            goto error ;
-         }
-         else
-         {
-            continue ;
-         }
-      }
-      if ( DMS_COLLECTION_MAX_INDEX == indexID )
-      {
-         rc = SDB_DMS_MAX_INDEX ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
    INT32 _dmsStorageIndex::reserveExtent( UINT16 mbID, dmsExtentID &extentID,
                                           _dmsContext * context )
    {
@@ -561,8 +470,7 @@ namespace engine
       UINT32 logRecSize            = 0;
       SDB_DPSCB *dropDps           = NULL ;
       INT32 rc1                    = 0 ;
-      const CHAR *indexName        = NULL ;
-      UINT16 indexType             = 0 ;
+      const CHAR *indexName = NULL ;
 
       if ( !ixmIndexCB::validateKey ( index, isSys ) )
       {
@@ -650,24 +558,6 @@ namespace engine
          indexLID = context->mb()->_indexHWCount ;
          indexCB.setLogicalID( indexLID ) ;
          indexDef = indexCB.getDef().getOwned() ;
-         indexType = indexCB.getIndexType() ;
-         if ( IXM_EXTENT_HAS_TYPE( IXM_EXTENT_TYPE_TEXT, indexType ) )
-         {
-            if ( context->mbStat()->_textIdxNum >= DMS_MAX_TEXT_IDX_NUM )
-            {
-               rc = SDB_DMS_MAX_INDEX ;
-               PD_LOG( PDERROR, "Max number of text indexes have been created "
-                       "already" ) ;
-               goto error ;
-            }
-            context->mbStat()->_textIdxNum++ ;
-            if ( NULL == _pDataSu->getExtDataHandler() )
-            {
-               SDB_ASSERT( _pStorageInfo->_extDataHandler,
-                           "_extDataHandler is NULL" ) ;
-               _pDataSu->regExtDataHandler( _pStorageInfo->_extDataHandler ) ;
-            }
-         }
 
          if ( dpscb )
          {
@@ -728,7 +618,7 @@ namespace engine
       flushPages( extentID, 1, isSyncDeep() ) ;
       flushPages( rootExtentID, 1, isSyncDeep() ) ;
 
-      rc = _rebuildIndex( context, extentID, cb, sortBufferSize, indexType ) ;
+      rc = _rebuildIndex( context, extentID, cb, sortBufferSize ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Failed to build index[%s], rc = %d",
@@ -746,16 +636,6 @@ namespace engine
       {
          OSS_BIT_CLEAR( context->mb()->_attributes,
                         DMS_MB_ATTR_NOIDINDEX ) ;
-      }
-
-      if ( _pDataSu->_pEventHolder )
-      {
-         dmsEventCLItem clItem( context->mb()->_collectionName,
-                                context->mbID(),
-                                context->clLID() ) ;
-         dmsEventIdxItem idxItem ( indexName, indexLID, index ) ;
-         _pDataSu->_pEventHolder->onCreateIndex( DMS_EVENT_MASK_ALL, clItem,
-                                                 idxItem, cb, dpscb ) ;
       }
 
    done :
@@ -794,25 +674,6 @@ namespace engine
 
       rc = context->mbLock( EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d" ) ;
-
-      if ( context->mbStat()->_textIdxNum > 0 )
-      {
-         IDmsExtDataHandler* extHandler = _pDataSu->getExtDataHandler() ;
-         if ( !extHandler )
-         {
-            rc = SDB_SYS ;
-            PD_LOG( PDERROR, "External data handler is NULL" ) ;
-            goto error ;
-         }
-         else
-         {
-            rc = extHandler->onDropAllIndexes( _pDataSu->getSuName(),
-                                               context->mb()->_collectionName,
-                                               cb, dpscb ) ;
-            PD_RC_CHECK( rc, PDERROR, "External operation on drop all index "
-                         "failed, rc: %d", rc ) ;
-         }
-      }
 
       while ( DMS_INVALID_EXTENT != context->mb()->_indexExtent[0] )
       {
@@ -868,20 +729,6 @@ namespace engine
          if ( indexOID == oid )
          {
             found = TRUE ;
-
-            if ( _pDataSu->_pEventHolder )
-            {
-               dmsEventCLItem clItem( context->mb()->_collectionName,
-                                      context->mbID(),
-                                      context->clLID() ) ;
-               dmsEventIdxItem idxItem( indexCB.getName(),
-                                        indexCB.getLogicalID(),
-                                        indexCB.getDef() ) ;
-               _pDataSu->_pEventHolder->onDropIndex( DMS_EVENT_MASK_ALL,
-                                                     clItem, idxItem, cb,
-                                                     dpscb ) ;
-            }
-
             rc = dropIndex ( context, indexID, indexCB.getLogicalID(),
                              cb, dpscb, isSys ) ;
             if ( rc )
@@ -940,20 +787,6 @@ namespace engine
                                 IXM_INDEX_NAME_SIZE ) )
          {
             found = TRUE ;
-
-            if ( _pDataSu->_pEventHolder )
-            {
-               dmsEventCLItem clItem( context->mb()->_collectionName,
-                                      context->mbID(),
-                                      context->clLID() ) ;
-               dmsEventIdxItem idxItem( indexCB.getName(),
-                                        indexCB.getLogicalID(),
-                                        indexCB.getDef() ) ;
-               _pDataSu->_pEventHolder->onDropIndex( DMS_EVENT_MASK_ALL,
-                                                     clItem, idxItem, cb,
-                                                     dpscb ) ;
-            }
-
             rc = dropIndex ( context, indexID, indexCB.getLogicalID(),
                              cb, dpscb, isSys ) ;
             if ( rc )
@@ -988,7 +821,6 @@ namespace engine
       dpsLogRecord &record  = info.getMergeBlock().record() ;
       UINT32 logRecSize            = 0 ;
       BSONObj indexDef ;
-      IDmsExtDataHandler *extDataHandler = NULL ;
 
       rc = context->mbLock( EXCLUSIVE ) ;
       if ( rc )
@@ -1052,12 +884,12 @@ namespace engine
                          DMS_MB_ATTR_NOIDINDEX ) ;
          }
 
-         _pDataSu->_clFullName( context->mb()->_collectionName, fullName,
-                                sizeof(fullName) ) ;
+
          if ( dpscb )
          {
             indexDef = indexCB.getDef().getOwned() ;
-
+            _pDataSu->_clFullName( context->mb()->_collectionName, fullName,
+                                   sizeof(fullName) ) ;
             rc = dpsIXDel2Record( fullName, indexDef, record ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to build record, rc: %d", rc ) ;
 
@@ -1076,19 +908,6 @@ namespace engine
             }
          }
 
-         if ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(),
-                                   IXM_EXTENT_TYPE_TEXT ) )
-         {
-            extDataHandler = _pDataSu->getExtDataHandler() ;
-            if ( !extDataHandler )
-            {
-               SDB_ASSERT( FALSE, "External data handler is NULL" ) ;
-               PD_LOG( PDERROR, "External data handler is NULL" ) ;
-               rc = SDB_SYS ;
-               goto error ;
-            }
-         }
-
          rc = indexCB.truncate ( TRUE ) ;
          if ( rc )
          {
@@ -1103,11 +922,6 @@ namespace engine
             context->mbStat()->_uniqueIdxNum-- ;
          }
 
-         if ( extDataHandler )
-         {
-            context->mbStat()->_textIdxNum-- ;
-         }
-
          rc = releaseExtent ( context->mb()->_indexExtent[indexID], TRUE ) ;
          if ( rc )
          {
@@ -1115,15 +929,6 @@ namespace engine
                      context->mb()->_indexExtent[indexID] ) ;
             indexCB.setFlag ( IXM_INDEX_FLAG_INVALID ) ;
             goto error ;
-         }
-
-         if ( extDataHandler )
-         {
-            rc = extDataHandler->onDropTextIdx( _pDataSu->getSuName(),
-                                                context->mb()->_collectionName,
-                                                indexCB.getName(), cb, NULL ) ;
-            PD_RC_CHECK( rc, PDERROR, "External data process of dropping "
-                         "text index failed[ %d ]", rc ) ;
          }
 
          ossMemmove (&context->mb()->_indexExtent[indexID],
@@ -1166,8 +971,7 @@ namespace engine
    INT32 _dmsStorageIndex::_rebuildIndex( dmsMBContext *context,
                                           dmsExtentID indexExtentID,
                                           pmdEDUCB * cb,
-                                          INT32 sortBufferSize,
-                                          UINT16 indexType )
+                                          INT32 sortBufferSize )
    {
       INT32 rc = SDB_OK ;
       dmsIndexBuilder* builder = NULL ;
@@ -1187,8 +991,7 @@ namespace engine
       builder = dmsIndexBuilder::createInstance( this, _pDataSu,
                                                  context, cb,
                                                  indexExtentID,
-                                                 sortBufferSize,
-                                                 indexType ) ;
+                                                 sortBufferSize ) ;
       if ( NULL == builder )
       {
          PD_LOG ( PDERROR, "Failed to get index builder instance, sort buffer size: %d",
@@ -1221,7 +1024,7 @@ namespace engine
       INT32  indexID               = 0 ;
       INT32 totalIndexNum          = 0 ;
 
-      rc = truncateIndexes( context, cb ) ;
+      rc = truncateIndexes( context ) ;
       PD_RC_CHECK( rc, PDERROR, "truncate indexes failed, rc: %d", rc ) ;
 
       rc = context->mbLock( EXCLUSIVE ) ;
@@ -1243,14 +1046,8 @@ namespace engine
       {
          PD_LOG ( PDEVENT, "Rebuilding index %d for collection %d",
                   indexID, context->mbID() ) ;
-         ixmIndexCB indexCB( context->mb()->_indexExtent[indexID], this,
-                             context ) ;
-         PD_CHECK( indexCB.isInitialized(), SDB_DMS_INIT_INDEX, error, PDERROR,
-                   "Failed to initialize index, index extent id: %d ",
-                   context->mb()->_indexExtent[indexID] ) ;
-
          rc = _rebuildIndex ( context, context->mb()->_indexExtent[indexID],
-                              cb, sortBufferSize, indexCB.getIndexType() ) ;
+                              cb, sortBufferSize ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to rebuild index %d, rc: %d", indexID,
@@ -1385,33 +1182,9 @@ namespace engine
          }
          unique = indexCB.unique() ;
          dropDups = indexCB.dropDups() ;
-
-         if ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(),
-                                   IXM_EXTENT_TYPE_TEXT ) )
-         {
-            IDmsExtDataHandler *handler = _pDataSu->getExtDataHandler() ;
-            if ( !handler )
-            {
-               rc = SDB_SYS ;
-               PD_LOG( PDERROR,
-                       "External operation handler of index[%s] is invalid",
-                       indexCB.getName() ) ;
-               goto error ;
-            }
-
-            rc = handler->onInsert( _pDataSu->getSuName(),
-                                    context->mb()->_collectionName,
-                                    indexCB.getName(),
-                                    indexCB, inputObj, cb ) ;
-            PD_RC_CHECK( rc, PDERROR, "Insert on text index failed[ %d ]",
-                         rc ) ;
-         }
-         else
-         {
-            rc = _indexInsert ( context, &indexCB, inputObj, rid, cb, !unique,
-                                dropDups ) ;
-            PD_RC_CHECK ( rc, PDERROR, "Failed to insert index, rc: %d", rc ) ;
-         }
+         rc = _indexInsert ( context, &indexCB, inputObj, rid, cb, !unique,
+                             dropDups ) ;
+         PD_RC_CHECK ( rc, PDERROR, "Failed to insert index, rc: %d", rc ) ;
       }
 
    done :
@@ -1612,33 +1385,9 @@ namespace engine
          {
             continue ;
          }
-
-         if ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(),
-                                   IXM_EXTENT_TYPE_TEXT ) )
-         {
-            IDmsExtDataHandler *handler = _pDataSu->getExtDataHandler() ;
-            if ( !handler )
-            {
-               rc = SDB_SYS ;
-               PD_LOG( PDERROR,
-                       "External operation handler of index[%s] is invalid",
-                       indexCB.getName() ) ;
-               goto error ;
-            }
-
-            rc = handler->onUpdate( _pDataSu->getSuName(),
-                                    context->mb()->_collectionName,
-                                    indexCB.getName(),
-                                    indexCB, originalObj, newObj, cb ) ;
-            PD_RC_CHECK( rc, PDERROR, "Update on text index failed[ %d ]",
-                         rc ) ;
-         }
-         else
-         {
-            rc = _indexUpdate ( context, &indexCB, originalObj, newObj, rid, cb,
-                                isRollback ) ;
-            PD_RC_CHECK ( rc, PDERROR, "Failed to update index, rc: %d", rc ) ;
-         }
+         rc = _indexUpdate ( context, &indexCB, originalObj, newObj, rid, cb,
+                             isRollback ) ;
+         PD_RC_CHECK ( rc, PDERROR, "Failed to update index, rc: %d", rc ) ;
       }
 
    done :
@@ -1744,35 +1493,11 @@ namespace engine
          {
             continue ;
          }
-
-         if ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(),
-                                   IXM_EXTENT_TYPE_TEXT ) )
+         rc = _indexDelete ( context, &indexCB, inputObj, rid, cb ) ;
+         if ( rc )
          {
-            IDmsExtDataHandler *handler = _pDataSu->getExtDataHandler() ;
-            if ( !handler )
-            {
-               rc = SDB_SYS ;
-               PD_LOG( PDERROR,
-                       "External operation handler of index[%s] is invalid",
-                       indexCB.getName() ) ;
-               goto error ;
-            }
-
-            rc = handler->onDelete( _pDataSu->getSuName(),
-                                    context->mb()->_collectionName,
-                                    indexCB.getName(),
-                                    indexCB, inputObj, cb ) ;
-            PD_RC_CHECK( rc, PDERROR, "Delete on text index failed[ %d ]",
-                         rc ) ;
-         }
-         else
-         {
-            rc = _indexDelete ( context, &indexCB, inputObj, rid, cb ) ;
-            if ( rc )
-            {
-               PD_LOG ( PDERROR, "Failed to delete index, rc: %d", rc ) ;
-               goto error ;
-            }
+            PD_LOG ( PDERROR, "Failed to delete index, rc: %d", rc ) ;
+            goto error ;
          }
       }
 
@@ -1782,11 +1507,10 @@ namespace engine
       goto done ;
    }
 
-   INT32 _dmsStorageIndex::truncateIndexes( dmsMBContext * context,
-                                            pmdEDUCB *cb )
+   INT32 _dmsStorageIndex::truncateIndexes( dmsMBContext * context )
    {
       INT32 rc                     = SDB_OK ;
-      INT32 indexID                = 0 ;
+      INT32  indexID               = 0 ;
 
       rc = context->mbLock( EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
@@ -1806,11 +1530,6 @@ namespace engine
             goto error ;
          }
 
-         if ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(),
-                                   IXM_EXTENT_TYPE_TEXT ) )
-         {
-            continue ;
-         }
          rc = indexCB.truncate ( FALSE ) ;
          if ( rc )
          {
@@ -1953,6 +1672,7 @@ namespace engine
          _pDataSu->_mbStatInfo[mbID]._totalIndexFreeSpace -= size ;
       }
    }
+
 }
 
 

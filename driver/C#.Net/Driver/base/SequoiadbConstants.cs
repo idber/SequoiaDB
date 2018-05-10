@@ -56,8 +56,6 @@ namespace SequoiaDB
         public const string TASKS = "tasks";
         public const string TRANSACTIONS = "transactions";
         public const string TRANSACTIONS_CURRENT = "transactions current";
-        public const string ACCESSPLANS = "accessplans";
-        public const string HEALTH = "health";
         public const string CS_IN_DOMAIN = "collectionspaces in domain";
         public const string CL_IN_DOMAIN = "collections in domain";
 
@@ -99,8 +97,6 @@ namespace SequoiaDB
         public const string CMD_VALUE_NAME_DEACTIVATE = "deactivate";
         public const string CMD_VALUE_NAME_ENABLE_READONLY = "enable readonly";
         public const string CMD_VALUE_NAME_DISABLE_READONLY = "disable readonly";
-        public const string CMD_VALUE_NAME_SYNC_DB = "sync db";
-        public const string CMD_VALUE_NAME_ANALYZE = "analyze";
 
         public const string OID = "_id";
         public const string CLIENT_RECORD_ID_INDEX = "$id";
@@ -147,11 +143,8 @@ namespace SequoiaDB
         public const string FIELD_LOB_OID = "Oid";
         public const string FIELD_LOB_OPEN_MODE = "Mode";
         public const string FIELD_LOB_SIZE = "Size";
-        public const string FIELD_LOB_CREATE_TIME = "CreateTime";
-        public const string FIELD_LOB_MODIFICATION_TIME = "ModificationTime";
+        public const string FIELD_LOB_CREATTIME = "CreateTime";
         public const string FIELD_LOB_PAGESIZE = "LobPageSize";
-        public const string FIELD_LOB_OFFSET = "Offset";
-        public const string FIELD_LOB_LENGTH = "Length";
         public const string FIELD_NAME_ONLY_DETACH = "OnlyDetach";
         public const string FIELD_NAME_ONLY_ATTACH = "OnlyAttach";
         public const string FIELD_NAME_ALTER = "Alter";
@@ -239,8 +232,6 @@ namespace SequoiaDB
         MSG_BS_LOB_REMOVE_REQ = 8004, MSG_BS_LOB_REMOVE_RES = unchecked((int)(RES_FLAG | (uint)MSG_BS_LOB_REMOVE_REQ)),
         MSG_BS_LOB_UPDATE_REQ = 8005, MSG_BS_LOB_UPDATE_RES = unchecked((int)(RES_FLAG | (uint)MSG_BS_LOB_UPDATE_REQ)),
         MSG_BS_LOB_CLOSE_REQ = 8006, MSG_BS_LOB_CLOSE_RES = unchecked((int)(RES_FLAG | (uint)MSG_BS_LOB_CLOSE_REQ)),
-        MSG_BS_LOB_LOCK_REQ = 8007, MSG_BS_LOB_LOCK_RES = unchecked((int)(RES_FLAG | (uint)MSG_BS_LOB_LOCK_REQ)),
-        MSG_BS_LOB_TRUNCATE_REQ = 8008, MSG_BS_LOB_TRUNCATE_RES = unchecked((int)(RES_FLAG | (uint)MSG_BS_LOB_TRUNCATE_REQ)),
         MSG_NULL                  = 9999
     };
 

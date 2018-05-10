@@ -19,7 +19,7 @@
                         <span>:</span>
                      </td>
                      <td ng-style="{ 'true': { background: '#FFFFAB' } }[Setting.Search.length > 0&&field.val.toLowerCase().indexOf(Setting.Search.toLowerCase()) >= 0]">
-                        <div ng-if="field.type != 'Object' && field.type != 'Array'" class="fontBox valueBox" spellcheck="false" contenteditable="true" ng-paste="checkHtml($event)" ng-change="htmlEscape(field)" ng-class="{ 'String': 'string', 'Auto': 'auto', 'ObjectId': 'objectid', 'Regex': 'regex', 'Binary': 'binary', 'Code': 'code', 'Timestamp': 'time', 'Date': 'time', 'Decimal': 'decimal' }[field.type]" ng-model="field.val" ng-style="{ 'true': { background: '#DDD' } }[field.val.length == 0]"></div>
+                        <div ng-if="field.type != 'Object' && field.type != 'Array'" class="fontBox valueBox" spellcheck="false" contenteditable="true" ng-class="{ 'String': 'string', 'Auto': 'auto', 'ObjectId': 'objectid', 'Regex': 'regex', 'Binary': 'binary', 'Code': 'code', 'Timestamp': 'time', 'Date': 'time', 'Decimal': 'decimal' }[field.type]" ng-model="field.val" ng-style="{ 'true': { background: '#DDD' } }[field.val.length == 0]"></div>
                         <span class="fontBox valueBox" ng-if="field.type == 'Object'" ng-bind="'{' + field.val.length + '}'"></span>
                         <span class="fontBox valueBox" ng-if="field.type == 'Array'" ng-bind="'[' + field.val.length + ']'"></span>
                      </td>

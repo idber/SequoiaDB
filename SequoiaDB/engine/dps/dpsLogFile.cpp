@@ -310,11 +310,8 @@ namespace engine
       }
 
       if ( _logHeader._logID == DPS_INVALID_LOG_FILE_ID ||
-           _logHeader._firstLSN.invalid() ||
-           DPS_LSN_2_FILEID( _logHeader._firstLSN.offset, _fileSize ) !=
-           _logHeader._logID )
+           _logHeader._firstLSN.invalid() )
       {
-         _logHeader._logID = DPS_INVALID_LOG_FILE_ID ;
          _logHeader._firstLSN.version = DPS_INVALID_LSN_VERSION ;
          _logHeader._firstLSN.offset = DPS_INVALID_LSN_OFFSET ;
          goto done ;
@@ -444,8 +441,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DPSLOGFILE_RESET );
       if ( DPS_INVALID_LOG_FILE_ID != logID )
       {
-         SDB_ASSERT ( DPS_LSN_2_FILEID( offset, _fileSize ) == logID ,
-                      "logical log file id error" ) ;
+         SDB_ASSERT ( offset/_fileSize == logID , "logical log file id error" ) ;
          _logHeader._firstLSN.offset= offset ;
          _logHeader._firstLSN.version = version ;
       }

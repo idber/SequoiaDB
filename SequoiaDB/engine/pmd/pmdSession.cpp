@@ -84,7 +84,6 @@ namespace engine
       CHAR *pBuff             = NULL ;
       INT32 buffSize          = 0 ;
       pmdEDUMgr *pmdEDUMgr    = NULL ;
-      monDBCB *mondbcb        = pmdGetKRCB()->getMonDBCB () ;
 
       if ( !_pEDUCB )
       {
@@ -161,9 +160,8 @@ namespace engine
                }
                break ;
             }
-
+ 
             _pEDUCB->incEventCount() ;
-            mondbcb->addReceiveNum() ;
             pBuff[ msgSize ] = 0 ;
             if ( SDB_OK != ( rc = pmdEDUMgr->activateEDU( _pEDUCB ) ) )
             {
@@ -299,11 +297,6 @@ namespace engine
                  "TID: %d, requestID: %llu] failed, rc: %d",
                  sessionName(), msg->opCode, msg->messageLength, msg->TID,
                  msg->requestID, result ) ;
-      }
-
-      if ( result != SDB_OK )
-      {
-         pmdIncErrNum( result ) ;
       }
 
       MON_END_OP( _pEDUCB->getMonAppCB() ) ;

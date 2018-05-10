@@ -37,8 +37,6 @@
 #define SDB_SNAP_CATALOG          8
 #define SDB_SNAP_TRANSACTIONS     9
 #define SDB_SNAP_TRANSACTIONS_CURRENT 10
-#define SDB_SNAP_ACCESSPLANS      11
-#define SDB_SNAP_HEALTH           12
 
 #define SDB_LIST_CONTEXTS         0
 #define SDB_LIST_CONTEXTS_CURRENT 1

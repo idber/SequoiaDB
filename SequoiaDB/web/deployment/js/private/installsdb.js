@@ -23,8 +23,15 @@ function openLogModal()
 		sdbjs.fun.setCSS( 'logWell', { 'max-height': 350 } ) ;
 		sdbjs.parts.modalBox.show( 'logModal' ) ;
 		_isLogModalZooomin = false ;
-	}, function(){
-		showProcessError( _languagePack['error']['system']['networkErr'] ) ;
+	}, function( error ){
+		if( error['errno'] == -1 )
+      {
+         showProcessError( _languagePack['error']['system']['notFoundLog'] ) ;
+      }
+		else
+      {
+         showProcessError( _languagePack['error']['system']['networkErr'] ) ;
+      }
 	}, function(){
 		sdbjs.parts.loadingBox.hide( 'loading' ) ;
 	}, _taskID ) ;

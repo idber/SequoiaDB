@@ -107,7 +107,7 @@ namespace SequoiaDB
          *  \param splitCondition The split condition
          *  \param splitEndCondition The split end condition or null
          *		eg:If we create a collection with the option {ShardingKey:{"age":1},ShardingType:"Hash",Partition:2^10},
-    	 *		we can fill {age:30} as the splitCondition, and fill {age:60} as the splitEndCondition. when split,
+    	 *		we can fill {age:30} as the splitCondition, and fill {age:60} as the splitEndCondition. when split, 
     	 *		the targe group will get the records whose age's hash value are in [30,60). If splitEndCondition is null,
     	 *		they are in [30,max).
          *  \exception SequoiaDB.BaseException
@@ -185,7 +185,7 @@ namespace SequoiaDB
          *  \param splitEndCondition
 	     *            the split end condition or null
 	     *            eg:If we create a collection with the option {ShardingKey:{"age":1},ShardingType:"Hash",Partition:2^10},
-         *				 we can fill {age:30} as the splitCondition, and fill {age:60} as the splitEndCondition. when split,
+         *				 we can fill {age:30} as the splitCondition, and fill {age:60} as the splitEndCondition. when split, 
          *			 	 the targe group will get the records whose age's hash values are in [30,60). If splitEndCondition is null,
          *			 	 they are in [30,max).
          *  \return return the task id, we can use the return id to manage the sharding which is run backgroup.
@@ -382,9 +382,9 @@ namespace SequoiaDB
          *  \param matcher
          *            The matching condition, delete all the documents if null
          *  \param hint
-         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means
-         *            using index "ageIndex" to scan data(index scan);
-         *            {"":null} means table scan. when hint is null,
+         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+         *            using index "ageIndex" to scan data(index scan); 
+         *            {"":null} means table scan. when hint is null, 
          *            database automatically match the optimal index to scan data.
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
@@ -432,12 +432,11 @@ namespace SequoiaDB
          *  \param query DBQuery with matching condition, updating rule and hint
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
-         *  \note When flag is set to 0, it won't work to update the "ShardingKey" field, but the
-         *        other fields take effect
+         *  \note It won't work to update the "ShardingKey" field, but the other fields take effect
          */
-        public void Update(DBQuery query)
+        public void Update(DBQuery query) 
         {
-            _Update(query.Flag, query.Matcher, query.Modifier, query.Hint);
+            _Update(0, query.Matcher, query.Modifier, query.Hint);
         }
 
         /** \fn void Update(BsonDocument matcher, BsonDocument modifier, BsonDocument hint)
@@ -447,57 +446,30 @@ namespace SequoiaDB
          *  \param modifier
          *            The updating rule, can't be null
          *  \param hint
-         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means
-         *            using index "ageIndex" to scan data(index scan);
-         *            {"":null} means table scan. when hint is null,
+         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+         *            using index "ageIndex" to scan data(index scan); 
+         *            {"":null} means table scan. when hint is null, 
          *            database automatically match the optimal index to scan data.
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
          *  \note It won't work to update the "ShardingKey" field, but the other fields take effect
          */
-        public void Update(BsonDocument matcher, BsonDocument modifier, BsonDocument hint)
+        public void Update(BsonDocument matcher, BsonDocument modifier, BsonDocument hint) 
         {
             _Update(0, matcher, modifier, hint);
-        }
-
-        /** \fn void Update(BsonDocument matcher, BsonDocument modifier, BsonDocument hint, int flag)
-         *  \brief Update the document of current collection
-         *  \param matcher
-         *            The matching condition, update all the documents if null
-         *  \param modifier
-         *            The updating rule, can't be null
-         *  \param hint
-         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means
-         *            using index "ageIndex" to scan data(index scan);
-         *            {"":null} means table scan. when hint is null,
-         *            database automatically match the optimal index to scan data.
-         *  \param flag
-         *            The update flag, default to be 0. Please see the definition
-         *            of follow flags for more detail.
-         *
-         *      SDBConst.FLG_UPDATE_KEEP_SHARDINGKEY
-         *
-         *  \exception SequoiaDB.BaseException
-         *  \exception System.Exception
-         *  \note When flag is set to 0, it won't work to update the "ShardingKey" field, but the
-         *        other fields take effect
-         */
-        public void Update(BsonDocument matcher, BsonDocument modifier, BsonDocument hint, int flag)
-        {
-            _Update(flag, matcher, modifier, hint);
         }
 
         /** \fn void Upsert(BsonDocument matcher, BsonDocument modifier, BsonDocument hint)
          *  \brief Update the document of current collection, insert if no matching
          *  \param matcher
-         *            The matching condition, update all the documents
+         *            The matching condition, update all the documents 
          *            if null(that's to say, we match all the documents)
          *  \param modifier
          *            The updating rule, can't be null
          *  \param hint
-         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means
-         *            using index "ageIndex" to scan data(index scan);
-         *            {"":null} means table scan. when hint is null,
+         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+         *            using index "ageIndex" to scan data(index scan); 
+         *            {"":null} means table scan. when hint is null, 
          *            database automatically match the optimal index to scan data.
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
@@ -511,14 +483,14 @@ namespace SequoiaDB
         /** \fn void Upsert(BsonDocument matcher, BsonDocument modifier, BsonDocument hint, BsonDocument setOnInsert)
          *  \brief Update the document of current collection, insert if no matching
          *  \param matcher
-         *            The matching condition, update all the documents
+         *            The matching condition, update all the documents 
          *            if null(that's to say, we match all the documents)
          *  \param modifier
          *            The updating rule, can't be null
          *  \param hint
-         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means
-         *            using index "ageIndex" to scan data(index scan);
-         *            {"":null} means table scan. when hint is null,
+         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+         *            using index "ageIndex" to scan data(index scan); 
+         *            {"":null} means table scan. when hint is null, 
          *            database automatically match the optimal index to scan data.
          *  \param setOnInsert The setOnInsert assigns the specified values to the fileds when insert
          *  \exception SequoiaDB.BaseException
@@ -526,37 +498,6 @@ namespace SequoiaDB
          *  \note It won't work to upsert the "ShardingKey" field, but the other fields take effect
          */
         public void Upsert(BsonDocument matcher, BsonDocument modifier, BsonDocument hint, BsonDocument setOnInsert)
-        {
-            Upsert(matcher, modifier, hint, setOnInsert, 0);
-        }
-
-        /** \fn void Upsert(BsonDocument matcher, BsonDocument modifier, BsonDocument hint, BsonDocument setOnInsert, int flag)
-         *  \brief Update the document of current collection, insert if no matching
-         *  \param matcher
-         *            The matching condition, update all the documents
-         *            if null(that's to say, we match all the documents)
-         *  \param modifier
-         *            The updating rule, can't be null
-         *  \param hint
-         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means
-         *            using index "ageIndex" to scan data(index scan);
-         *            {"":null} means table scan. when hint is null,
-         *            database automatically match the optimal index to scan data.
-         *  \param setOnInsert
-         *            The setOnInsert assigns the specified values to the fileds when insert
-         *  \param flag
-         *            The upsert flag, default to be 0. Please see the definition
-         *            of follow flags for more detail.
-         *
-         *      SDBConst.FLG_UPDATE_KEEP_SHARDINGKEY
-         *
-         *  \exception SequoiaDB.BaseException
-         *  \exception System.Exception
-         *  \note When flag is set to 0, it won't work to update the "ShardingKey" field, but the
-         *        other fields take effect
-         */
-        public void Upsert(BsonDocument matcher, BsonDocument modifier, BsonDocument hint,
-                           BsonDocument setOnInsert, int flag)
         {
             BsonDocument newHint;
             if (setOnInsert != null)
@@ -572,8 +513,7 @@ namespace SequoiaDB
             {
                 newHint = hint;
             }
-            flag |= SequoiadbConstants.FLG_UPDATE_UPSERT;
-            _Update(flag, matcher, modifier, newHint);
+            Upsert(matcher, modifier, newHint);
         }
 
         /** \fn DBCursor Query()
@@ -587,7 +527,7 @@ namespace SequoiaDB
             return Query(null, null, null, null, 0, -1);
         }
 
-        /** \fn DBCursor Query(DBQuery query)
+        /** \fn DBCursor Query(DBQuery query) 
          *  \brief Find documents of current collection with DBQuery
          *  \param query DBQuery with matching condition, selector, order rule, hint, SkipRowsCount and ReturnRowsCount
          *  \return The DBCursor of matching documents or null
@@ -617,9 +557,9 @@ namespace SequoiaDB
          *  \param orderBy
          *            The ordered rule, never sort if null
          *  \param hint
-         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means
-         *            using index "ageIndex" to scan data(index scan);
-         *            {"":null} means table scan. when hint is null,
+         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+         *            using index "ageIndex" to scan data(index scan); 
+         *            {"":null} means table scan. when hint is null, 
          *            database automatically match the optimal index to scan data.
          *  \return The DBCursor of matching documents or null
          *  \exception SequoiaDB.BaseException
@@ -630,8 +570,8 @@ namespace SequoiaDB
             return Query(query, selector, orderBy, hint, 0, -1);
         }
 
-        /** \fn DBCursor Query(BsonDocument query, BsonDocument selector, BsonDocument orderBy, BsonDocument hint,
-         *                     long skipRows, long returnRows)
+        /** \fn DBCursor Query(BsonDocument query, BsonDocument selector, BsonDocument orderBy, BsonDocument hint, 
+         *                     long skipRows, long returnRows) 
          *  \brief Find documents of current collection
          *  \param query
          *            The matching rule, return all the documents if null
@@ -640,15 +580,15 @@ namespace SequoiaDB
          *  \param orderBy
          *            The ordered rule, never sort if null
          *  \param hint
-         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means
-         *            using index "ageIndex" to scan data(index scan);
-         *            {"":null} means table scan. when hint is null,
+         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+         *            using index "ageIndex" to scan data(index scan); 
+         *            {"":null} means table scan. when hint is null, 
          *            database automatically match the optimal index to scan data.
          *  \param skipRows
          *            Skip the first numToSkip documents, never skip if this parameter is 0
          *  \param returnRows
-         *            Return the specified amount of documents,
-         *            when returnRows is 0, return nothing,
+         *            Return the specified amount of documents, 
+         *            when returnRows is 0, return nothing, 
          *            when returnRows is -1, return all the documents
          *  \return The DBCursor of matching documents or null
          *  \exception SequoiaDB.BaseException
@@ -660,8 +600,8 @@ namespace SequoiaDB
             return Query(query, selector, orderBy, hint, skipRows, returnRows, 0);
         }
 
-        /** \fn DBCursor Query(BsonDocument query, BsonDocument selector, BsonDocument orderBy, BsonDocument hint,
-         *                     long skipRows, long returnRows, int flag)
+        /** \fn DBCursor Query(BsonDocument query, BsonDocument selector, BsonDocument orderBy, BsonDocument hint, 
+         *                     long skipRows, long returnRows, int flag) 
          *  \brief Find documents of current collection
          *  \param query
          *            The matching rule, return all the documents if null
@@ -670,15 +610,15 @@ namespace SequoiaDB
          *  \param orderBy
          *            The ordered rule, never sort if null
          *  \param hint
-         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means
-         *            using index "ageIndex" to scan data(index scan);
-         *            {"":null} means table scan. when hint is null,
+         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+         *            using index "ageIndex" to scan data(index scan); 
+         *            {"":null} means table scan. when hint is null, 
          *            database automatically match the optimal index to scan data.
          *  \param skipRows
          *            Skip the first numToSkip documents, never skip if this parameter is 0
          *  \param returnRows
-         *            Return the specified amount of documents,
-         *            when returnRows is 0, return nothing,
+         *            Return the specified amount of documents, 
+         *            when returnRows is 0, return nothing, 
          *            when returnRows is -1, return all the documents
          *  \param flag
          *            The query flag, default to be 0. Please see the definition
@@ -771,8 +711,8 @@ namespace SequoiaDB
             return Query(query, selector, orderBy, newHint, skipRows, returnRows, flag);
         }
 
-        /** \fn DBCursor QueryAndUpdate(BsonDocument query, BsonDocument selector, BsonDocument orderBy, BsonDocument hint,
-         *                              BsonDocument update, long skipRows, long returnRows, int flag, bool returnNew)
+        /** \fn DBCursor QueryAndUpdate(BsonDocument query, BsonDocument selector, BsonDocument orderBy, BsonDocument hint, 
+         *                              BsonDocument update, long skipRows, long returnRows, int flag, bool returnNew) 
          *  \brief Find documents of current collection and update
          *  \param query
          *            The matching rule, return all the documents if null
@@ -781,26 +721,22 @@ namespace SequoiaDB
          *  \param orderBy
          *            The ordered rule, never sort if null
          *  \param hint
-         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means
-         *            using index "ageIndex" to scan data(index scan);
-         *            {"":null} means table scan. when hint is null,
+         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+         *            using index "ageIndex" to scan data(index scan); 
+         *            {"":null} means table scan. when hint is null, 
          *            database automatically match the optimal index to scan data.
          *  \param skipRows
          *            Skip the first numToSkip documents, never skip if this parameter is 0
          *  \param returnRows
-         *            Return the specified amount of documents,
-         *            when returnRows is 0, return nothing,
-         *            when returnRows is -1, return all the documents
+         *            Return the specified amount of documents, 
+         *            when returnRows is 0, return nothing, 
+         *            when returnRows is -1, return all the documents 
          *  \param update The update rule, can't be null
-         *  \param flag
-         *            The query flag, default to be 0. Please see the definition
-         *            of follow flags for more detail. Usage:
-         *            e.g. set ( DBQuery.FLG_QUERY_FORCE_HINT | DBQuery.FLG_QUERY_WITH_RETURNDATA ) to param flag
+         *  \param flag The query flag, default to be 0. Please see the definition of follow flags for more detail. Usage: e.g. set ( DBQuery.FLG_QUERY_FORCE_HINT | DBQuery.FLG_QUERY_WITH_RETURNDATA ) to param flag
          *
          *      DBQuery.FLG_QUERY_FORCE_HINT
          *      DBQuery.FLG_QUERY_PARALLED
          *      DBQuery.FLG_QUERY_WITH_RETURNDATA
-         *      DBQuery.FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE
          *
          *  \param returnNew When true, returns the updated document rather than the original
          *  \return The DBCursor of matching documents or null
@@ -813,8 +749,8 @@ namespace SequoiaDB
             return _queryAndModify(query, selector, orderBy, hint, update, skipRows, returnRows, flag, true, returnNew);
         }
 
-        /** \fn DBCursor QueryAndRemove(BsonDocument query, BsonDocument selector, BsonDocument orderBy, BsonDocument hint,
-         *                              long skipRows, long returnRows, int flag)
+        /** \fn DBCursor QueryAndRemove(BsonDocument query, BsonDocument selector, BsonDocument orderBy, BsonDocument hint, 
+         *                              long skipRows, long returnRows, int flag) 
          *  \brief Find documents of current collection and remove
          *  \param query
          *            The matching rule, return all the documents if null
@@ -823,20 +759,17 @@ namespace SequoiaDB
          *  \param orderBy
          *            The ordered rule, never sort if null
          *  \param hint
-         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means
-         *            using index "ageIndex" to scan data(index scan);
-         *            {"":null} means table scan. when hint is null,
+         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+         *            using index "ageIndex" to scan data(index scan); 
+         *            {"":null} means table scan. when hint is null, 
          *            database automatically match the optimal index to scan data.
          *  \param skipRows
          *            Skip the first numToSkip documents, never skip if this parameter is 0
          *  \param returnRows
-         *            Return the specified amount of documents,
-         *            when returnRows is 0, return nothing,
-         *            when returnRows is -1, return all the documents
-         *  \param flag
-         *            The query flag, default to be 0. Please see the definition
-         *            of follow flags for more detail. Usage:
-         *            e.g. set ( DBQuery.FLG_QUERY_FORCE_HINT | DBQuery.FLG_QUERY_WITH_RETURNDATA ) to param flag
+         *            Return the specified amount of documents, 
+         *            when returnRows is 0, return nothing, 
+         *            when returnRows is -1, return all the documents 
+         *  \param flag The query flag, default to be 0. Please see the definition of follow flags for more detail. Usage: e.g. set ( DBQuery.FLG_QUERY_FORCE_HINT | DBQuery.FLG_QUERY_WITH_RETURNDATA ) to param flag
          *
          *      DBQuery.FLG_QUERY_FORCE_HINT
          *      DBQuery.FLG_QUERY_PARALLED
@@ -853,7 +786,7 @@ namespace SequoiaDB
         }
 
         /** \fn DBCursor Explain(BsonDocument query, BsonDocument selector, BsonDocument orderBy, BsonDocument hint,
-         *                       long skipRows, long returnRows, int flag, BsonDocument options)
+         *                       long skipRows, long returnRows, int flag, BsonDocument options) 
          *  \brief Find documents of current collection
          *  \param query
          *            The matching rule, return all the documents if null
@@ -862,19 +795,17 @@ namespace SequoiaDB
          *  \param orderBy
          *            The ordered rule, never sort if null
          *  \param hint
-         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means
-         *            using index "ageIndex" to scan data(index scan);
-         *            {"":null} means table scan. when hint is null,
+         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+         *            using index "ageIndex" to scan data(index scan); 
+         *            {"":null} means table scan. when hint is null, 
          *            database automatically match the optimal index to scan data.
          *  \param skipRows
          *            Skip the first numToSkip documents, never skip if this parameter is 0
          *  \param returnRows
-         *            Return the specified amount of documents,
-         *            when returnRows is 0, return nothing,
-         *            when returnRows is -1, return all the documents
-         *  \param flag 
-         *            The query flag, default to be 0. Please see the definition of follow flags for more detail. 
-         *            Usage: e.g. set ( DBQuery.FLG_QUERY_FORCE_HINT | DBQuery.FLG_QUERY_WITH_RETURNDATA ) to param flag
+         *            Return the specified amount of documents, 
+         *            when returnRows is 0, return nothing, 
+         *            when returnRows is -1, return all the documents 
+         *  \param flag The query flag, default to be 0. Please see the definition of follow flags for more detail. Usage: e.g. set ( DBQuery.FLG_QUERY_FORCE_HINT | DBQuery.FLG_QUERY_WITH_RETURNDATA ) to param flag
          *
          *      DBQuery.FLG_QUERY_FORCE_HINT
          *      DBQuery.FLG_QUERY_PARALLED
@@ -911,7 +842,7 @@ namespace SequoiaDB
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
          */
-        public DBCursor GetIndexes()
+        public DBCursor GetIndexes() 
         {
             string commandString = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.GET_INXES;
             BsonDocument dummyObj = new BsonDocument();
@@ -977,7 +908,7 @@ namespace SequoiaDB
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
          */
-        public void CreateIndex(string name, BsonDocument key, bool isUnique, bool isEnforced)
+        public void CreateIndex(string name, BsonDocument key, bool isUnique, bool isEnforced) 
         {
             _CreateIndex(name, key, isUnique, isEnforced, SequoiadbConstants.IXM_SORT_BUFFER_DEFAULT_SIZE);
         }
@@ -1005,7 +936,7 @@ namespace SequoiaDB
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
          */
-        public void DropIndex(string name)
+        public void DropIndex(string name) 
         {
             string commandString = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.DROP_INX;
             BsonDocument dummyObj = new BsonDocument();
@@ -1116,24 +1047,24 @@ namespace SequoiaDB
             return new DBCursor(rtnSDBMessage, this);
         }
 
-        /** \fn DBCursor GetQueryMeta(BsonDocument query, BsonDocument orderBy, BsonDocument hint,
-         *                            long skipRows, long returnRows)
+        /** \fn DBCursor GetQueryMeta(BsonDocument query, BsonDocument orderBy, BsonDocument hint, 
+         *                            long skipRows, long returnRows) 
          *  \brief Get the index blocks' or data blocks' infomations for concurrent query
          *  \param query
          *            the matching rule, return all the meta information if null
          *  \param orderBy
          *            the ordered rule, never sort if null
          *  \param hint
-         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means
-         *            using index "ageIndex" to scan data(index scan); {"":null} means not using
-         *            any index to scan data(table scan). when hint is null,
+         *            Specified the index used to scan data. e.g. {"":"ageIndex"} means 
+         *            using index "ageIndex" to scan data(index scan); {"":null} means not using 
+         *            any index to scan data(table scan). when hint is null, 
          *            database automatically match the optimal index to scan data.
          *  \param skipRows
          *            The rows to be skipped
          *  \param returnRows
-         *            return the specified amount of documents,
-         *            when returnRows is 0, return nothing,
-         *            when returnRows is -1, return all the documents
+         *            return the specified amount of documents, 
+         *            when returnRows is 0, return nothing, 
+         *            when returnRows is -1, return all the documents  
          *  \return The DBCursor of matching infomations or null
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
@@ -1420,28 +1351,6 @@ namespace SequoiaDB
             return lob;
         }
 
-        /** \fn DBLob OpenLob(ObjectId id, int mode)
-         * \brief Open an existing lob with the speceifed oid
-         * \param id The oid of the existing lob
-         * \param mode Open mode:
-         *              DBLob.SDB_LOB_READ for reading,
-         *              DBLob.SDB_LOB_WRITE for writing.
-         * \exception SequoiaDB.BaseException
-         * \exception System.Exception
-         */
-        public DBLob OpenLob(ObjectId id, int mode)
-        {
-            if (mode != DBLob.SDB_LOB_READ && mode != DBLob.SDB_LOB_WRITE)
-            {
-                throw new BaseException((int)Errors.errors.SDB_INVALIDARG, "mode is unsupported: " + mode);
-            }
-            DBLob lob = new DBLob(this);
-            lob.Open(id, mode);
-            // upsert cache
-            sdb.UpsertCache(collectionFullName);
-            return lob;
-        }
-
         /** \fn DBLob OpenLob(ObjectId id)
          * \brief Open an existing lob with the speceifed oid
          * \param id The oid of the existing lob
@@ -1450,7 +1359,11 @@ namespace SequoiaDB
          */
         public DBLob OpenLob(ObjectId id)
         {
-            return OpenLob(id, DBLob.SDB_LOB_READ);
+            DBLob lob = new DBLob(this);
+            lob.Open(id, DBLob.SDB_LOB_READ);
+            // upsert cache
+            sdb.UpsertCache(collectionFullName);
+            return lob;
         }
 
         /** \fn DBLob RemoveLob(ObjectId id)
@@ -1481,48 +1394,6 @@ namespace SequoiaDB
 
 
             byte[] request = SDBMessageHelper.BuildRemoveLobRequest(sdbMessage, isBigEndian);
-            connection.SendMessage(request);
-            SDBMessage rtnSDBMessage = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
-            rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
-            int flags = rtnSDBMessage.Flags;
-            if (flags != 0)
-            {
-                throw new BaseException(flags);
-            }
-            // upsert cache
-            sdb.UpsertCache(collectionFullName);
-        }
-
-        /** \fn DBLob TruncateLob(ObjectId id, long length)
-         * \brief Truncate an exist lob.
-         * \param id The oid of the existing lob.
-         * \param length The truncate length.
-         * \exception SequoiaDB.BaseException
-         * \exception System.Exception
-         */
-        public void TruncateLob(ObjectId id, long length)
-        {
-            BsonDocument newObj = new BsonDocument();
-            newObj.Add(SequoiadbConstants.FIELD_COLLECTION, collectionFullName);
-            newObj.Add(SequoiadbConstants.FIELD_LOB_OID, id);
-            newObj.Add(SequoiadbConstants.FIELD_LOB_LENGTH, length);
-
-            SDBMessage sdbMessage = new SDBMessage();
-            // MsgHeader
-            sdbMessage.OperationCode = Operation.MSG_BS_LOB_TRUNCATE_REQ;
-            sdbMessage.NodeID = SequoiadbConstants.ZERO_NODEID;
-            sdbMessage.RequestID = 0;
-            // the rest part of _MsgOpLOb
-            sdbMessage.Version = SequoiadbConstants.DEFAULT_VERSION;
-            sdbMessage.W = SequoiadbConstants.DEFAULT_W;
-            sdbMessage.Padding = (short)0;
-            sdbMessage.Flags = SequoiadbConstants.DEFAULT_FLAGS;
-            sdbMessage.ContextIDList = new List<long>();
-            sdbMessage.ContextIDList.Add(SequoiadbConstants.DEFAULT_CONTEXTID);
-            sdbMessage.Matcher = newObj;
-
-
-            byte[] request = SDBMessageHelper.BuildTruncateLobRequest(sdbMessage, isBigEndian);
             connection.SendMessage(request);
             SDBMessage rtnSDBMessage = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
             rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
@@ -1608,22 +1479,7 @@ namespace SequoiaDB
 
             Alter(newObj);
         }
-
-        private BsonDocument _TryGenOID(BsonDocument obj, bool ensureOID)
-        {
-            if (true == ensureOID)
-            {
-                ObjectId objId;
-                BsonValue tmp;
-                if (!obj.TryGetValue(SequoiadbConstants.OID, out tmp))
-                {
-                    objId = ObjectId.GenerateNewId();
-                    obj.Add(SequoiadbConstants.OID, objId);
-                }
-            }
-            return obj;
-        }
-
+        
         private void _Update(int flag, BsonDocument matcher, BsonDocument modifier, BsonDocument hint)
         {
             if (modifier == null)
@@ -1694,7 +1550,7 @@ namespace SequoiaDB
         }
 
         private SDBMessage AdminCommand(string command, BsonDocument query, BsonDocument selector, BsonDocument orderBy,
-            BsonDocument hint, long skipRows, long returnRows, int flag)
+            BsonDocument hint, long skipRows, long returnRows, int flag) 
         {
             BsonDocument dummyObj = new BsonDocument();
             SDBMessage sdbMessage = new SDBMessage();
@@ -1752,7 +1608,7 @@ namespace SequoiaDB
             return rtnSDBMessage;
         }
 
-        private List<BsonDocument> GetMoreCommand(SDBMessage rtnSDBMessage)
+        private List<BsonDocument> GetMoreCommand(SDBMessage rtnSDBMessage) 
         {
             ulong requestID = rtnSDBMessage.RequestID;
             List<long> contextIDs = rtnSDBMessage.ContextIDList;

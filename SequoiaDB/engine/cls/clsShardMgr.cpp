@@ -35,18 +35,14 @@
 #include "pmdCB.hpp"
 #include "rtn.hpp"
 #include "msgMessage.hpp"
-#include "msgAuth.hpp"
 #include "msgCatalog.hpp"
 #include "pmdController.hpp"
 #include "../bson/bson.h"
 #include "rtnQueryOptions.hpp"
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
-#include "rtnExtDataHandler.hpp"
 
 using namespace bson ;
-
-#define CLS_NAME_CAPPED_COLLECTION           "CappedCL"
 
 namespace engine
 {
@@ -299,8 +295,6 @@ namespace engine
       ON_MSG ( MSG_CAT_QUERY_CATALOG_RSP, _onCatalogReqMsg )
       ON_MSG ( MSG_CAT_QUERY_SPACEINFO_RSP, _onQueryCSInfoRsp )
       ON_MSG ( MSG_COM_REMOTE_DISC, _onHandleClose )
-      ON_MSG ( MSG_AUTH_VERIFY_REQ, _onAuthReqMsg )
-      ON_MSG ( MSG_SEADPT_UPDATE_IDXINFO_REQ, _onTextIdxInfoReqMsg )
    END_OBJ_MSG_MAP()
 
    _clsShardMgr::_clsShardMgr ( _netRouteAgent *rtAgent )
@@ -315,7 +309,6 @@ namespace engine
 
       _catVerion = 0 ;
       _nodeID.value = 0 ;
-      _seAdptID.value = INVALID_NODE_ID ;
       _upCatHandle = NET_INVALID_HANDLE ;
    }
 
@@ -459,11 +452,6 @@ namespace engine
          _pCatAgent->lock_w() ;
          _pCatAgent->clearAll() ;
          _pCatAgent->release_w() ;
-
-         pmdGetKRCB()->getDMSCB()->clearSUCaches( DMS_EVENT_MASK_ALL ) ;
-      }
-      else if ( primary && SDB_EVT_OCCUR_AFTER == type )
-      {
       }
    }
 
@@ -1929,11 +1917,10 @@ namespace engine
       return SDB_OK ;
    }
 
-   INT32 _clsShardMgr::rGetCSInfo( const CHAR * csName,
-                                   UINT32 &pageSize,
-                                   UINT32 &lobPageSize,
-                                   DMS_STORAGE_TYPE &type,
-                                   INT64 waitMillSec )
+   INT32 _clsShardMgr::rGetCSPageSize( const CHAR * csName,
+                                       UINT32 &pageSize,
+                                       UINT32 &lobPageSize,
+                                       INT64 waitMillSec )
    {
       INT32 rc = SDB_OK ;
       clsCSEventItem *item = NULL ;
@@ -2015,7 +2002,6 @@ namespace engine
 
       pageSize = item->pageSize ;
       lobPageSize = item->lobPageSize ;
-      type = item->type ;
 
    done:
       _catLatch.get() ;
@@ -2042,11 +2028,11 @@ namespace engine
       const UINT32 maxRetryTimes = 3 ;
       UINT32 retryTimes = 0 ;
 
-      queryOpt.setCLFullName( CAT_SYSDCBASE_COLLECTION_NAME ) ;
-      queryOpt.setFlag( FLG_QUERY_WITH_RETURNDATA ) ;
-      queryOpt.setQuery( BSON( FIELD_NAME_TYPE << CAT_BASE_TYPE_GLOBAL_STR ) ) ;
+      queryOpt._fullName = CAT_SYSDCBASE_COLLECTION_NAME ;
+      queryOpt._flag = FLG_QUERY_WITH_RETURNDATA ;
+      queryOpt._query = BSON( FIELD_NAME_TYPE << CAT_BASE_TYPE_GLOBAL_STR ) ;
 
-      rc = queryOpt.toQueryMsg( &pBuff, bufSize, NULL ) ;
+      rc = queryOpt.toQueryMsg( &pBuff, bufSize ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Build query message failed, rc: %d", rc ) ;
@@ -2237,17 +2223,6 @@ namespace engine
          {
             csItem->lobPageSize = DMS_DEFAULT_LOB_PAGE_SZ ;
          }
-
-         ele = objList[0].getField( CAT_TYPE_NAME ) ;
-         if ( ele.isNumber() &&
-              (INT32)DMS_STORAGE_CAPPED == ele.numberInt() )
-         {
-            csItem->type = DMS_STORAGE_CAPPED ;
-         }
-         else
-         {
-            csItem->type = DMS_STORAGE_NORMAL ;
-         }
       }
 
       csItem->event.signalAll( rc ) ;
@@ -2307,467 +2282,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__ONAUTHREQMSG, "_clsShardMgr::_onAuthReqMsg" )
-   INT32 _clsShardMgr::_onAuthReqMsg( NET_HANDLE handle, MsgHeader * msg )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSSHDMGR__ONAUTHREQMSG ) ;
-      BSONObj bodyObj ;
-      BSONElement ele ;
-      const CHAR *peerHost = NULL ;
-      const CHAR *peerSvc = NULL ;
-      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
-      rtnRemoteMessenger *messenger = rtnCB->getRemoteMessenger() ;
-      BSONObj myInfoObj ;
-      BSONObjBuilder builder ;
-      MsgAuthReply *reply = NULL ;
-      INT32 replySize = 0 ;
-      UINT32 tmpPos = CLS_RG_NODE_POS_INVALID ;
-      MsgRouteID cataRouteID ;
-      string cataHost ;
-      string cataSvc ;
-      MSG_ROUTE_SERVICE_TYPE svcType = MSG_ROUTE_CAT_SERVICE ;
-      CHAR groupName[ OSS_MAX_GROUPNAME_SIZE + 1 ] = { 0 } ;
-
-      SDB_ASSERT( messenger, "Remote messenger should not be NULL" ) ;
-      rc = extractAuthMsg( msg, bodyObj ) ;
-      PD_RC_CHECK( rc, PDERROR, "Extract auth message failed[ %d ]", rc ) ;
-
-      try
-      {
-         BSONElement ele ;
-         peerHost = bodyObj.getStringField( FIELD_NAME_HOST ) ;
-         peerSvc = bodyObj.getStringField( FIELD_NAME_SERVICE_NAME ) ;
-
-         ele = bodyObj.getField( FIELD_NAME_GROUPID ) ;
-         if ( !ele.isNumber() )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Group id field type error, type[ %d ]",
-                    ele.type() ) ;
-            goto error ;
-         }
-         _seAdptID.columns.groupID = ele.numberLong() ;
-
-         ele = bodyObj.getField( FIELD_NAME_NODEID ) ;
-         if ( NumberInt != ele.type() )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Node id field type error, type[ %d ]",
-                    ele.type() ) ;
-            goto error ;
-         }
-         _seAdptID.columns.nodeID = ele.numberInt() ;
-
-         ele = bodyObj.getField( FIELD_NAME_SERVICE_TYPE ) ;
-         if ( NumberInt != ele.type() )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Service type field type error, type[ %d ]",
-                    ele.type() ) ;
-            goto error ;
-         }
-         _seAdptID.columns.serviceID = ele.numberInt() ;
-
-         if ( MSG_INVALID_ROUTEID == _seAdptID.value )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Route id is invalid" ) ;
-            goto error ;
-         }
-
-         rc = messenger->setTarget( _seAdptID, peerHost, peerSvc ) ;
-         PD_RC_CHECK( rc, PDERROR, "Add remote target failed[ %d ]", rc ) ;
-
-         rc = messenger->setLocalID( _nodeID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Set local id failed[ %d ]", rc ) ;
-
-         rc = _pNetRtAgent->updateRoute( _seAdptID, peerHost, peerSvc ) ;
-         if ( rc && SDB_NET_UPDATE_EXISTING_NODE != rc )
-         {
-            PD_LOG( PDERROR, "Update route failed[ %d ], host[ %s ], "
-                    "service[ %s ]", rc, peerHost, peerSvc ) ;
-            goto error ;
-         }
-
-         builder.appendBool( FIELD_NAME_IS_PRIMARY, pmdIsPrimary() ) ;
-         pmdGetKRCB()->getGroupName( groupName, OSS_MAX_GROUPNAME_SIZE + 1 ) ;
-         builder.append( FIELD_NAME_GROUPNAME, groupName ) ;
-
-         tmpPos = _cataGrpItem.getPrimaryPos() ;
-         rc = _cataGrpItem.getNodeInfo( tmpPos, cataRouteID, cataHost,
-                                        cataSvc, svcType ) ;
-         PD_RC_CHECK( rc, PDERROR, "Get catalog node info failed[ %d ]", rc ) ;
-         {
-            BSONObjBuilder subBuilder(
-               builder.subobjStart( FIELD_NAME_CATALOGINFO ) ) ;
-            subBuilder.append( FIELD_NAME_HOST, cataHost ) ;
-            subBuilder.append( FIELD_NAME_SERVICE_NAME, cataSvc ) ;
-            subBuilder.append( FIELD_NAME_GROUPID, cataRouteID.columns.groupID ) ;
-            subBuilder.append( FIELD_NAME_NODEID, cataRouteID.columns.nodeID ) ;
-            subBuilder.append( FIELD_NAME_SERVICE, cataRouteID.columns.serviceID ) ;
-            subBuilder.done() ;
-         }
-
-         myInfoObj = builder.done() ;
-      }
-      catch ( std::exception &e )
-      {
-         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-   done:
-      replySize = sizeof( MsgAuthReply ) ;
-      if ( SDB_OK == rc && !myInfoObj.isEmpty())
-      {
-         replySize += ossRoundUpToMultipleX( myInfoObj.objsize(), 4 ) ;
-      }
-      reply = ( MsgAuthReply * )SDB_OSS_MALLOC( replySize ) ;
-      if ( !reply )
-      {
-         PD_LOG( PDERROR, "Allocate memory for reply message failed, size: %d",
-                 replySize ) ;
-         rc = SDB_OOM ;
-      }
-      else
-      {
-         reply->header.messageLength = replySize ;
-         reply->header.opCode = MSG_AUTH_VERIFY_RES ;
-         reply->header.TID = msg->TID ;
-         reply->header.routeID.value = 0 ;
-         reply->header.requestID = msg->requestID ;
-         reply->flags = rc ;
-         reply->startFrom = 0 ;
-         reply->numReturned = rc ? -1 : 1 ;
-         if ( SDB_OK == rc )
-         {
-            ossMemcpy( (CHAR *)reply + sizeof( MsgAuthReply ),
-                       myInfoObj.objdata(), myInfoObj.objsize() ) ;
-         }
-
-         rc = _sendToSeAdpt( handle, (MsgHeader *)reply ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Send message to search engine adapter "
-                    "failed[ %d ]", rc ) ;
-         }
-      }
-
-      if ( reply )
-      {
-         SDB_OSS_FREE( reply ) ;
-      }
-      PD_TRACE_EXITRC( SDB__CLSSHDMGR__ONAUTHREQMSG, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__ONTEXTIDXINFOREQMSG, "_clsShardMgr::_onTextIdxInfoReqMsg" )
-   INT32 _clsShardMgr::_onTextIdxInfoReqMsg( NET_HANDLE handle,
-                                             MsgHeader * msg )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSSHDMGR__ONTEXTIDXINFOREQMSG ) ;
-      CHAR *body = NULL ;
-      INT64 peerVersion = -1 ;
-      BSONObj textIdxInfo ;
-      MsgOpReply *reply = NULL ;
-      INT32 replySize = 0 ;
-      INT64 localVersion = -1 ;
-
-      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
-
-      body = (CHAR *)msg + sizeof( MsgHeader ) ;
-      try
-      {
-         BSONObj bodyObj( body ) ;
-         BSONElement verEle = bodyObj.getField( FIELD_NAME_VERSION ) ;
-         if ( verEle.eoo() )
-         {
-            PD_LOG( PDERROR, "Text index version dose not exist" ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         else if ( NumberLong != verEle.type() )
-         {
-            PD_LOG( PDERROR, "Text index version type is wrong" ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         else
-         {
-            peerVersion = verEle.numberLong() ;
-         }
-      }
-      catch (std::exception &e)
-      {
-         PD_LOG( PDERROR, "unexpected err:%s", e.what() ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      localVersion = rtnCB->getTextIdxVersion() ;
-      if ( RTN_INIT_TEXT_INDEX_VERSION == localVersion )
-      {
-         if ( FALSE == rtnCB->updateTextIdxVersion( RTN_INIT_TEXT_INDEX_VERSION,
-                                                    peerVersion + 1 ) )
-         {
-            PD_LOG( PDERROR, "Update text index version failed" ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         localVersion = rtnCB->getTextIdxVersion() ;
-      }
-
-      rc = _dumpTextIdxInfo( localVersion, textIdxInfo,
-                             (localVersion == peerVersion) ) ;
-      PD_RC_CHECK( rc, PDERROR, "Dump text indices information failed[ %d ]",
-                   rc ) ;
-
-   done:
-      replySize = sizeof( MsgOpReply ) ;
-      if ( SDB_OK == rc && !textIdxInfo.isEmpty() )
-      {
-         replySize += textIdxInfo.objsize() ;
-      }
-      reply = (MsgOpReply *)SDB_OSS_MALLOC( replySize ) ;
-      if ( !reply )
-      {
-         PD_LOG( PDERROR, "Allocate memory for reply message failed, size: %d",
-                 replySize ) ;
-         rc = SDB_OOM ;
-      }
-      else
-      {
-         reply->header.messageLength = sizeof( MsgOpReply )
-                                       + textIdxInfo.objsize()  ;
-         reply->header.opCode = MSG_SEADPT_UPDATE_IDXINFO_RES ;
-         reply->header.TID = msg->TID ;
-         reply->header.routeID.value = 0 ;
-         reply->header.requestID = msg->requestID ;
-         reply->flags = SDB_OK ;
-         reply->startFrom = 0 ;
-         reply->numReturned = rc ? -1 : 1 ;
-         if ( SDB_OK == rc )
-         {
-            ossMemcpy( (CHAR *)reply + sizeof( MsgOpReply ),
-                       textIdxInfo.objdata(), textIdxInfo.objsize() ) ;
-         }
-
-         rc = _sendToSeAdpt( handle, (MsgHeader *)reply ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Send message to search engine adapter "
-                    "failed[ %d ]", rc ) ;
-         }
-      }
-      if ( reply )
-      {
-         SDB_OSS_FREE( reply ) ;
-      }
-      PD_TRACE_EXITRC( SDB__CLSSHDMGR__ONTEXTIDXINFOREQMSG, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__BUILDTEXTIDXOBJ, "_clsShardMgr::_buildTextIdxObj" )
-   INT32 _clsShardMgr::_buildTextIdxObj( const monCSSimple *csInfo,
-                                         const monCLSimple *clInfo,
-                                         const monIndex *idxInfo,
-                                         BSONObjBuilder &builder )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSSHDMGR__BUILDTEXTIDXOBJ ) ;
-
-      CHAR cappedCLName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
-
-      rtnExtDataProcessor::getExtDataNames( csInfo->_name, clInfo->_clname,
-                                            idxInfo->getIndexName(), NULL, 0,
-                                            cappedCLName,
-                                            DMS_COLLECTION_FULL_NAME_SZ + 1 ) ;
-
-      try
-      {
-         builder.append( FIELD_NAME_COLLECTION, clInfo->_name ) ;
-         builder.append( CLS_NAME_CAPPED_COLLECTION, cappedCLName ) ;
-         builder.appendObject( FIELD_NAME_INDEX,
-                               idxInfo->_indexDef.objdata(),
-                               idxInfo->_indexDef.objsize() ) ;
-
-         BSONArrayBuilder lidObjs( builder.subarrayStart( FIELD_NAME_LOGICAL_ID ) ) ;
-         lidObjs.append( csInfo->_logicalID ) ;
-         lidObjs.append( clInfo->_logicalID ) ;
-         lidObjs.append( idxInfo->_indexLID ) ;
-         lidObjs.done() ;
-
-         builder.done() ;
-
-#ifdef _DEBUG
-         PD_LOG( PDDEBUG, "Text index info: %s",
-                 builder.done().toString().c_str() ) ;
-#endif /* _DEBUG */
-      }
-      catch ( std::exception &e )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Unexpected exception happened: %s", e.what() ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__CLSSHDMGR__BUILDTEXTIDXOBJ, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   /*
-     Dump all text indices information, together with the node role and index
-     text version.
-     The text indices information will only be dumped when the node is primary.
-     So the adapter connectiong to slavery node will get none text index
-     information, and no indexing job will be started.
-
-    The result object is as follows:
-
-    {
-       "IsPrimary" : TRUE | FALSE,
-       "Version" : version_number,
-       "Indexes" : [
-          {
-             "Collection" : collection_full_name,
-             "CappedCL"   : capped_collection_full_name,
-             "Index"      :
-                {
-                   index_definition
-                },
-             "LogicalID"  : [
-                cl_logical_id, index_logical_id
-             ]
-          },
-          ...
-          {
-             "Collection" : collection_full_name,
-             "CappedCL"   : capped_collection_full_name,
-             "Index"      :
-                {
-                   index_definition
-                },
-             "LogicalID"  : [
-                cl_logical_id, index_logical_id
-             ]
-          }
-       ]
-    }
-   *
-   */
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__DUMPTEXTIDXINFO, "_clsShardMgr::_dumpTextIdxInfo" )
-   INT32 _clsShardMgr::_dumpTextIdxInfo( INT64 localVersion, BSONObj &obj,
-                                         BOOLEAN onlyVersion )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSSHDMGR__DUMPTEXTIDXINFO ) ;
-      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
-      MON_CS_SIM_LIST csList ;
-      MON_CS_SIM_LIST::iterator csItr ;
-      BSONObj infoObj ;
-      BSONObjBuilder builder ;
-      BOOLEAN isPrimary = pmdIsPrimary() ;
-
-      try
-      {
-         builder.appendBool( FIELD_NAME_IS_PRIMARY, isPrimary ) ;
-         builder.append( FIELD_NAME_VERSION, localVersion ) ;
-
-         if ( !onlyVersion )
-         {
-            BSONArrayBuilder indexObjs( builder.subarrayStart( FIELD_NAME_INDEXES ) ) ;
-
-            dmsCB->dumpInfo( csList, FALSE, TRUE, TRUE ) ;
-            for ( csItr = csList.begin(); csItr != csList.end(); ++csItr )
-            {
-               for ( MON_CL_SIM_VEC::const_iterator clItr = csItr->_clList.begin();
-                     clItr != csItr->_clList.end(); ++clItr )
-               {
-                  for ( MON_IDX_LIST::const_iterator idxItr = clItr->_idxList.begin();
-                        idxItr != clItr->_idxList.end(); ++idxItr )
-                  {
-                     INT32 rcTmp = SDB_OK ;
-                     UINT16 idxType = IXM_EXTENT_TYPE_NONE ;
-                     rcTmp = idxItr->getIndexType( idxType ) ;
-                     if ( rcTmp )
-                     {
-                        PD_LOG( PDERROR, "Get type of index failed[ %d ], cs[ %s ],"
-                                " cl[ %s ], index[ %s ]", rcTmp, csItr->_name,
-                                clItr->_name, idxItr->getIndexName() ) ;
-                        continue ;
-                     }
-                     if ( IXM_INDEX_FLAG_NORMAL == idxItr->_indexFlag &&
-                          IXM_EXTENT_TYPE_TEXT == idxType )
-                     {
-                        BSONObjBuilder subBuilder( indexObjs.subobjStart() ) ;
-                        rc = _buildTextIdxObj( &*csItr, &*clItr, &*idxItr,
-                                               subBuilder ) ;
-                        if ( rc )
-                        {
-                           PD_LOG( PDERROR, "Build text index object failed[ %d ]",
-                                   rc ) ;
-                        }
-                     }
-                  }
-               }
-            }
-            indexObjs.done() ;
-         }
-
-         obj = builder.obj() ;
-#ifdef _DEBUG
-         PD_LOG( PDDEBUG, "All text index info: %s",
-                 obj.toString().c_str() ) ;
-#endif /* _DEBUG */
-      }
-      catch ( std::exception &e )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
-         goto error ;
-      }
-   done:
-      PD_TRACE_EXITRC( SDB__CLSSHDMGR__DUMPTEXTIDXINFO, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__SENDTOSEADPT, "_clsShardMgr::_sendToSeAdpt" )
-   INT32 _clsShardMgr::_sendToSeAdpt( NET_HANDLE handle, MsgHeader *msg )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSSHDMGR__SENDTOSEADPT ) ;
-      BOOLEAN hasLock = FALSE ;
-
-      _shardLatch.get_shared() ;
-      hasLock = TRUE ;
-
-      rc = _pNetRtAgent->syncSend( handle, (void *)msg ) ;
-      PD_RC_CHECK( rc, PDERROR, "Send message to search engine adapter "
-                   "failed[ %d ]", rc ) ;
-
-   done:
-      if ( hasLock )
-      {
-         _shardLatch.release_shared() ;
-      }
-      PD_TRACE_EXITRC( SDB__CLSSHDMGR__SENDTOSEADPT, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
    INT64 _clsShardMgr::netIn()
    {
       return _pNetRtAgent->netIn() ;
@@ -2776,6 +2290,11 @@ namespace engine
    INT64 _clsShardMgr::netOut()
    {
       return _pNetRtAgent->netOut() ;
+   }
+
+   void _clsShardMgr::resetMon()
+   {
+      return _pNetRtAgent->resetMon() ;
    }
 
 }

@@ -41,10 +41,11 @@
 #include "msg.h"
 #include "pmdEDU.hpp"
 #include "coordDef.hpp"
+#include "utilMap.hpp"
 
 namespace engine
 {
-   typedef  std::map<UINT64, MsgRouteID>           REQUESTID_MAP ;
+   typedef  _utilMap< UINT64, MsgRouteID, 20 >     REQUESTID_MAP ;
    typedef  std::set<UINT64>                       ROUTE_SET;
    class    CoordSession ;
 

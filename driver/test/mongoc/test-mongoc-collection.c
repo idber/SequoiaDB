@@ -47,7 +47,6 @@ test_insert (void)
    client = mongoc_client_new(gTestUri);
    ASSERT_CMPPTR (NULL, !=, client);
 
-   //collection = get_test_collection (client, "test_insert");
    collection = setUp ("test_insert", client);
    context = bson_context_new(BSON_CONTEXT_NONE);
    ASSERT_CMPPTR (NULL, !=, context);
@@ -98,7 +97,9 @@ test_insert_bulk (void)
    bson_t q;
    bson_t b[10];
    bson_t *bptr[10];
-   int64_t count;
+   int64_t count = 0;
+   mongoc_cursor_t *cursor;
+   const bson_t *doc;
 
    client = mongoc_client_new(gTestUri);
    ASSERT_CMPPTR(NULL, !=, client);
@@ -106,11 +107,9 @@ test_insert_bulk (void)
    database = get_test_database (client);
    ASSERT_CMPPTR (database, !=, NULL);
 
-   //collection = get_test_collection (client, "test_insert_bulk");
    collection = setUp("test_insert_bulk", client);
    ASSERT_CMPPTR(collection, !=, NULL);
 
-   //mongoc_collection_drop(collection, &error);
 
    context = bson_context_new(BSON_CONTEXT_NONE);
    ASSERT_CMPPTR(context, !=, NULL);
@@ -136,7 +135,15 @@ test_insert_bulk (void)
    }
    ASSERT_CMPINT (r, ==, true);
 
-   count = mongoc_collection_count (collection, MONGOC_QUERY_NONE, &q, 0, 0, NULL, &error);
+   cursor = mongoc_collection_find (collection, MONGOC_QUERY_NONE, 0, 0, 0, &q, NULL, NULL);
+   ASSERT_CMPPTR(cursor, !=, NULL);
+
+   while(mongoc_cursor_next(cursor, &doc))
+   {
+       ++count;
+   }
+   mongoc_cursor_destroy(cursor); 
+   
    ASSERT_CMPINT ((int)count, ==, 5);
 
    for (i = 8; i < 10; i++) {
@@ -155,9 +162,14 @@ test_insert_bulk (void)
 
    ASSERT_CMPINT (r, ==, false);
    ASSERT_CMPINT (error.code, ==, 11000);
-   //ASSERT_CMPINT (error.code, ==, -38);
-
-   count = mongoc_collection_count (collection, MONGOC_QUERY_NONE, &q, 0, 0, NULL, &error);
+   cursor = mongoc_collection_find (collection, MONGOC_QUERY_NONE, 0, 0, 0, &q, NULL, NULL);
+   ASSERT_CMPPTR(cursor, !=, NULL);
+   count = 0;
+   while(mongoc_cursor_next(cursor, &doc))
+   {
+       ++count;
+   }
+   mongoc_cursor_destroy(cursor); 
 
    /*
     * MongoDB <2.6 and 2.6 will return different values for this. This is a
@@ -167,21 +179,20 @@ test_insert_bulk (void)
     * concern is needed for inserts, we will support this for a while, albeit
     * deprecated.
     */
-//   if (client->cluster.nodes[0].max_wire_version == 0) {
-//      ASSERT_CMPINT ((int)count, ==, 6);
-//   } else {
       ASSERT_CMPINT ((int)count, ==, 5);
-//   }
 
    BEGIN_IGNORE_DEPRECATIONS;
    r = mongoc_collection_insert_bulk (collection, MONGOC_INSERT_CONTINUE_ON_ERROR,
                                       (const bson_t **)bptr, 10, NULL, &error);
    END_IGNORE_DEPRECATIONS;
-   //ASSERT_CMPINT (r, ==, false);
-   //ASSERT_CMPINT (error.code, ==, 11000);
-   //ASSERT_CMPINT (error.code, ==, -38);
-
-   count = mongoc_collection_count (collection, MONGOC_QUERY_NONE, &q, 0, 0, NULL, &error);
+   cursor = mongoc_collection_find (collection, MONGOC_QUERY_NONE, 0, 0, 0, &q, NULL, NULL);
+   ASSERT_CMPPTR(cursor, !=, NULL);
+   count = 0;
+   while(mongoc_cursor_next(cursor, &doc))
+   {
+       ++count;
+   }
+   mongoc_cursor_destroy(cursor); 
    ASSERT_CMPINT ((int)count, ==, 6);
 
    /* test validate */
@@ -204,18 +215,13 @@ test_insert_bulk (void)
       bson_destroy(&b[i]);
    }
 
-   //r = mongoc_collection_drop (collection, &error);
-   //ASSERT_CMPINT (r, ==, true);
 
-   //mongoc_collection_destroy(collection);
    tearDown(collection) ;
    mongoc_database_destroy(database);
    bson_context_destroy(context);
    mongoc_client_destroy(client);
 }
 
-
-#if 0
 static void
 test_save (void)
 {
@@ -258,7 +264,6 @@ test_save (void)
    bson_context_destroy(context);
    mongoc_client_destroy(client);
 }
-#endif
 
 static void
 test_regex (void)
@@ -326,8 +331,6 @@ test_update (void)
    client = mongoc_client_new(gTestUri);
    ASSERT_CMPPTR(NULL, !=, client);
 
-   //collection = get_test_collection (client, "test_update");
-   //ASSERT_CMPPTR(collection, !=, NULL);
    collection = setUp("test_update", client);
 
    context = bson_context_new(BSON_CONTEXT_NONE);
@@ -415,8 +418,6 @@ test_remove (void)
    client = mongoc_client_new(gTestUri);
    ASSERT_CMPPTR(NULL, !=, client);
 
-   //collection = get_test_collection (client, "test_remove");
-   //ASSERT_CMPPTR(collection, !=, NULL);
    collection = setUp("test_remove", client);
 
    context = bson_context_new(BSON_CONTEXT_NONE);
@@ -472,8 +473,6 @@ test_index (void)
    ASSERT_CMPPTR(NULL, !=, client);
 
 
-   //collection = get_test_collection (client, "test_index");
-   //ASSERT_CMPPTR(collection, !=, NULL);
    collection = setUp ("test_index", client);
 
    bson_init(&keys);
@@ -482,8 +481,6 @@ test_index (void)
    ASSERT_CMPINT (r, ==, true);
 
 
-  // r = mongoc_collection_create_index(collection, &keys, &opt, &error);
-  // ASSERT_CMPINT (r, ==, true);
 
    r = mongoc_collection_drop_index(collection, "hello_1", &error);
    ASSERT_CMPINT (r, ==, true);
@@ -510,8 +507,6 @@ test_index_compound (void)
    ASSERT_CMPPTR(NULL, !=, client);
 
 
-   //collection = get_test_collection (client, "test_index_compound");
-   //ASSERT_CMPPTR(collection, !=, NULL);
    collection = setUp ("test_index_compound", client);
 
    bson_init(&keys);
@@ -520,8 +515,6 @@ test_index_compound (void)
    r = mongoc_collection_create_index(collection, &keys, &opt, &error);
    ASSERT_CMPINT (r, ==, true);
 
-   //r = mongoc_collection_create_index(collection, &keys, &opt, &error);
-   //ASSERT_CMPINT (r, ==, true);
 
    r = mongoc_collection_drop_index(collection, "hello_1_world_-1", &error);
    ASSERT_CMPINT (r, ==, true);
@@ -655,8 +648,6 @@ test_index_storage (void)
    mongoc_index_opt_wt_init (&wt_opt);
 
 
-   //collection = get_test_collection (client, "test_storage_index");
-   //ASSERT_CMPPTR(collection, !=, NULL);
    collection = setUp("test_storage_index", client);
 
    /* Create a simple index */
@@ -691,7 +682,6 @@ test_count (void)
    client = mongoc_client_new(gTestUri);
    ASSERT_CMPPTR(NULL, !=, client);
 
-   //collection = mongoc_client_get_collection(client, "test", "test");
    collection = setUp ("test", client);
 
    bson_init(&b);
@@ -796,15 +786,12 @@ test_aggregate (void)
    client = mongoc_client_new(gTestUri);
    ASSERT_CMPPTR(NULL, !=, client);
 
-   //collection = get_test_collection (client, "test_aggregate");
-   //ASSERT_CMPPTR(collection, !=, NULL);
    collection = setUp ("test_aggregate", client);
 
    pipeline = BCON_NEW ("pipeline", "[", "{", "$match", "{", "hello", BCON_UTF8 ("world"), "}", "}", "]");
    b = BCON_NEW ("hello", BCON_UTF8 ("world"));
 
 again:
-   //mongoc_collection_drop(collection, &error);
 
    for (i = 0; i < 2; i++) {
       r = mongoc_collection_insert(collection, MONGOC_INSERT_NONE, b, NULL, &error);
@@ -864,10 +851,7 @@ again:
       goto again;
    }
 
-   //r = mongoc_collection_drop(collection, &error);
-   //ASSERT_CMPINT (r, ==, true);
 
-   //mongoc_collection_destroy(collection);
    tearDown (collection);
    mongoc_client_destroy(client);
    bson_destroy(b);
@@ -890,8 +874,6 @@ test_validate (void)
    client = mongoc_client_new (gTestUri);
    ASSERT_CMPPTR(NULL, !=, client);
 
-   //collection = get_test_collection (client, "test_validate");
-   //ASSERT_CMPPTR(collection, !=, NULL);
    collection = setUp ("test_validate",client);
 
    r = mongoc_collection_insert(collection, MONGOC_INSERT_NONE, &doc, NULL, &error);
@@ -915,8 +897,6 @@ test_validate (void)
    ASSERT_CMPINT (error.domain, ==, MONGOC_ERROR_BSON);
    ASSERT_CMPINT (error.code, ==, MONGOC_ERROR_BSON_INVALID);
 
-  // r = mongoc_collection_drop (collection, &error);
-  // ASSERT_CMPINT(r, ==, true)
 
    tearDown (collection);
    mongoc_client_destroy (client);
@@ -937,8 +917,6 @@ test_rename (void)
    client = mongoc_client_new (gTestUri);
    ASSERT_CMPPTR(NULL, !=, client);
 
-   //collection = get_test_collection (client, "test_rename");
-   //ASSERT_CMPPTR(collection, !=, NULL);
    collection = setUp ("test_rename", client);
 
    r = mongoc_collection_insert (collection, MONGOC_INSERT_NONE, &doc, NULL, &error);
@@ -967,8 +945,6 @@ test_stats (void)
    client = mongoc_client_new (gTestUri);
    ASSERT_CMPPTR(NULL, !=, client);
 
-   //collection = get_test_collection (client, "test_stats");
-   //ASSERT_CMPPTR(collection, !=, NULL);
    collection = setUp ("test_stats", client);
 
    r = mongoc_collection_insert (collection, MONGOC_INSERT_NONE, &doc, NULL, &error);
@@ -1007,8 +983,6 @@ test_find_and_modify (void)
    client = mongoc_client_new (gTestUri);
    ASSERT_CMPPTR(NULL, !=, client);
 
-  // collection = get_test_collection (client, "test_find_and_modify");
-  // ASSERT_CMPPTR(collection, !=, NULL);
    collection = setUp ("test_find_and_modify", client);
    BSON_APPEND_INT32 (&doc, "superduper", 77889);
 
@@ -1074,8 +1048,6 @@ test_large_return (void)
    client = mongoc_client_new (gTestUri);
    ASSERT_CMPPTR(NULL, !=, client);
    mongoc_client_set_read_prefs(client,mongoc_read_prefs_new(MONGOC_READ_PRIMARY));
-   //collection = get_test_collection (client, "test_large_return");
-   //ASSERT_CMPPTR(collection, !=, NULL);
    collection = setUp ("test_large_return", client);
 
    len = 1024 * 1024 * 4;
@@ -1115,9 +1087,6 @@ test_large_return (void)
 
    mongoc_cursor_destroy (cursor);
 
-   //r = mongoc_collection_drop (collection, &error);
-   //if (!r) fprintf (stderr, "ERROR: %s\n", error.message);
-   //ASSERT_CMPINT(r, ==, true)
 
    tearDown (collection);
    mongoc_client_destroy (client);
@@ -1143,8 +1112,6 @@ test_many_return (void)
    mongoc_client_set_read_prefs(client,mongoc_read_prefs_new(MONGOC_READ_SECONDARY));
    ASSERT_CMPPTR(NULL, !=, client);
 
-   //collection = get_test_collection (client, "test_many_return");
-   //ASSERT_CMPPTR(collection, !=, NULL);
    collection = setUp ("test_many_return", client);
 
    docs = bson_malloc (sizeof(bson_t*) * 5000);
@@ -1170,23 +1137,12 @@ END_IGNORE_DEPRECATIONS;
    bson_free (docs);
 
    ASSERT_CMPINT(check_records(collection, query, true), ==, 5000);
-   //cursor = mongoc_collection_find (collection, MONGOC_QUERY_NONE, 0, 0, 6000, &query, NULL, NULL);
-   //ASSERT_CMPPTR (cursor, !=, NULL);
    bson_destroy (&query);
 
-   //i = 0;
 
-   //while (mongoc_cursor_next (cursor, &doc)) {
-   //   ASSERT_CMPPTR (doc, !=, NULL);
-   //   i++;
-  // }
 
-  // ASSERT_CMPINT (i, ==, 5000);
 
-  // r = mongoc_cursor_next (cursor, &doc);
-  // ASSERT_CMPINT(r, ==, false);
 
-  // mongoc_cursor_destroy (cursor);
 
    tearDown (collection);
    mongoc_client_destroy (client);
@@ -1207,8 +1163,6 @@ test_command_fq (void)
    ASSERT_CMPPTR(NULL, !=, client);
 
 
-  // collection = get_test_collection (client, "$cmd.sys.inprog");
-   //ASSERT_CMPPTR(collection, !=, NULL);
    collection = setUp ("$cmd.sys.inprog", client);
 
    cmd = BCON_NEW ("query", "{", "}");
@@ -1252,25 +1206,15 @@ test_get_index_info (void)
    client = mongoc_client_new (gTestUri);
    ASSERT_CMPPTR(NULL, !=, client);
 
-   //collection = get_test_collection (client, "test_get_index_info");
-   //ASSERT_CMPPTR(collection, !=, NULL);
-   //collection = setUp ("test_get_index_info", client);
 
    /*
     * Try it on a collection that doesn't exist.
     */
-   //cursor = mongoc_collection_find_indexes (collection, &error);
-
-   //ASSERT_CMPPTR(NULL, !=, cursor);
-   //ASSERT_CMPINT(error.domain, ==, 0);
-   //ASSERT_CMPINT (error.code, ==, 0);
-
-   //r = mongoc_cursor_next( cursor, &indexinfo );
-
-   //ASSERT_CMPINT (mongoc_cursor_next( cursor, &indexinfo ), ==, false);
 
 
-   //mongoc_cursor_destroy (cursor);
+
+
+
 
    collection = setUp ("test_get_index_info", client);
    /* insert a dummy document so that the collection actually exists */
@@ -1338,9 +1282,6 @@ test_get_index_info (void)
          if (0 == strcmp (cur_idx_name, idx1_name)) {
             /* need to use the copy of the iter since idx_spec_iter may have gone
              * past the key we want */
-            //ASSERT_CMPINT (bson_iter_init_find (&idx_spec_iter_copy, indexinfo, "background"), ==, true);
-            //ASSERT_CMPINT (BSON_ITER_HOLDS_BOOL (&idx_spec_iter_copy), ==, true);
-            //ASSERT_CMPINT (bson_iter_bool (&idx_spec_iter_copy), ==, true);
          } else if (0 == strcmp (cur_idx_name, idx2_name)) {
             ASSERT_CMPINT (bson_iter_find (&idx_spec_iter, "unique"), ==, true);
             ASSERT_CMPINT (BSON_ITER_HOLDS_BOOL (&idx_spec_iter), ==, true);
@@ -1572,27 +1513,18 @@ test_collection_install (TestSuite *suite)
 {
    gTestUri = bson_strdup_printf("mongodb://%s/", MONGOC_TEST_HOST);
 
-   TestSuite_Add (suite, "Collection_insert_bulk", test_insert_bulk);
    TestSuite_Add (suite, "Collection_insert", test_insert);
-   //TestSuite_Add (suite, "Collection_save", test_save);
+   TestSuite_Add (suite, "Collection_save", test_save);
    TestSuite_Add (suite, "Collection_index", test_index);
    TestSuite_Add (suite, "Collection_index_compound", test_index_compound);
-   //TestSuite_Add (suite, "Collection_index_geo", test_index_geo);
-   //TestSuite_Add (suite, "Collection_index_storage", test_index_storage);
    TestSuite_Add (suite, "Collection_regex", test_regex);
    TestSuite_Add (suite, "Collection_update", test_update);
    TestSuite_Add (suite, "Collection_remove", test_remove);
    TestSuite_Add (suite, "Collection_count", test_count);
    TestSuite_Add (suite, "Collection_count_with_opts", test_count_with_opts);
    TestSuite_Add (suite, "Collection_drop", test_drop);
-   // TestSuite_Add (suite, "Collection_aggregate", test_aggregate);
-   //TestSuite_Add (suite, "Collection_validate", test_validate);
-   //TestSuite_Add (suite, "Collection_rename", test_rename);
-   //TestSuite_Add (suite, "Collection_stats", test_stats);
-   //TestSuite_Add (suite, "Collection_find_and_modify", test_find_and_modify);
    TestSuite_Add (suite, "Collection_large_return", test_large_return);
    TestSuite_Add (suite, "Collection_many_return", test_many_return);
-   //TestSuite_Add (suite, "Collection_command_fully_qualified", test_command_fq);
    TestSuite_Add (suite, "Collection_get_index_info", test_get_index_info);
    TestSuite_Add (suite, "Collection_find_one", test_find_one);
    TestSuite_Add (suite, "Collection_order", test_order);

@@ -32,7 +32,6 @@
 #define DMS_INDEX_BUILDER_IMPL_HPP_
 
 #include "dmsIndexBuilder.hpp"
-#include "dmsExtDataHandler.hpp"
 #include "../bson/ordering.h"
 #include "../bson/bsonobj.h"
 
@@ -81,27 +80,6 @@ namespace engine
       BOOLEAN           _eoc ;
    } ;
    typedef class _dmsIndexSortingBuilder dmsIndexSortingBuilder ;
-
-   class _dmsIndexExtBuilder : public _dmsIndexBuilder
-   {
-   public:
-      _dmsIndexExtBuilder( _dmsStorageIndex* indexSU,
-                           _dmsStorageData* dataSU,
-                           _dmsMBContext* mbContext,
-                           _pmdEDUCB* eduCB,
-                           dmsExtentID indexExtentID ) ;
-      ~_dmsIndexExtBuilder() ;
-
-   private:
-      virtual INT32 _onInit() ;
-      INT32 _build() ;
-
-   private:
-      IDmsExtDataHandler *_extHandler ;
-      CHAR _collectionName[ DMS_COLLECTION_NAME_SZ + 1 ] ;
-      CHAR _idxName[ IXM_INDEX_NAME_SIZE + 1 ] ;
-   } ;
-   typedef _dmsIndexExtBuilder dmsIndexExtBuilder ;
 }
 
 #endif /* DMS_INDEX_BUILDER_IMPL_HPP_ */

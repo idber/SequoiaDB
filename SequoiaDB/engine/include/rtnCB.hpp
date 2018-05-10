@@ -41,46 +41,35 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "rtnContext.hpp"
-#include "rtnLobAccessManager.hpp"
 #include "ossLatch.hpp"
-#include "ossAtomic.hpp"
 #include "pd.hpp"
 #include "monEDU.hpp"
 #include "dmsCB.hpp"
 #include "pmdEDU.hpp"
 #include "sdbInterface.hpp"
-#include "utilConcurrentMap.hpp"
-#include "optAPM.hpp"
 #include <map>
 #include <set>
-#include "rtnRemoteMessenger.hpp"
-
-#define RTN_INIT_TEXT_INDEX_VERSION    -1
 
 namespace engine
 {
    /*
       _SDB_RTNCB define
    */
-   class _SDB_RTNCB : public _IControlBlock, public _IContextMgr
+   class _SDB_RTNCB : public _IControlBlock
    {
    private :
-      typedef utilConcurrentMap<INT64, rtnContext*> RTN_CTX_MAP ;
+   #ifdef RTNCB_XLOCK
+   #undef RTNCB_XLOCK
+   #endif
+   #define RTNCB_XLOCK ossScopedLock _lock(&_mutex, EXCLUSIVE) ;
+   #ifdef RTNCB_SLOCK
+   #undef RTNCB_SLOCK
+   #endif
+   #define RTNCB_SLOCK ossScopedLock _lock(&_mutex, SHARED) ;
+      ossSpinSLatch _mutex ;
 
-      ossAtomicSigned64    _contextIdGenerator ;
-      RTN_CTX_MAP          _contextMap ;
-
-      optAccessPlanManager _accessPlanManager ;
-
-      _rtnLobAccessManager _lobAccessManager ;
-
-      rtnRemoteMessenger   *_remoteMessenger ;
-      ossSpinSLatch        _mutex ;        // Lock for protection of accessing
-      ossAtomicSigned64    _textIdxVersion ;
-
-   public:
-      virtual void contextDelete( INT64 contextID, IExecutor *pExe ) ;
-      virtual void* queryInterface( SDB_INTERFACE_TYPE type ) ;
+      std::map<SINT64, rtnContext *> _contextList ;
+      SINT64 _contextHWM ;
 
    public :
       _SDB_RTNCB() ;
@@ -93,25 +82,31 @@ namespace engine
       virtual INT32  active () ;
       virtual INT32  deactive () ;
       virtual INT32  fini () ;
-      virtual void   onConfigChange () ;
 
       SINT32 contextNew ( RTN_CONTEXT_TYPE type, rtnContext **context,
                           SINT64 &contextID, _pmdEDUCB * pEDUCB ) ;
+
+      void contextDelete ( SINT64 contextID, _pmdEDUCB *cb ) ;
 
       rtnContext *contextFind ( SINT64 contextID, _pmdEDUCB *cb = NULL ) ;
 
       OSS_INLINE INT32 contextNum ()
       {
-         return _contextMap.size() ;
+         RTNCB_SLOCK
+         return _contextList.size() ;
       }
 
       OSS_INLINE void contextDump ( std::map<UINT64, std::set<SINT64> > &contextList,
                                     EDUID filterEDUID = PMD_INVALID_EDUID )
       {
-         FOR_EACH_CMAP_ELEMENT_S( RTN_CTX_MAP, _contextMap )
+         EDUID eduID = PMD_INVALID_EDUID ;
+         INT64  contextID = -1  ;
+
+         RTNCB_SLOCK
+         std::map<SINT64, rtnContext*>::const_iterator it ;
+         for ( it = _contextList.begin() ; it != _contextList.end(); ++it )
          {
-            INT64 contextID = -1  ;
-            EDUID eduID = (*it).second->eduID() ;
+            eduID = (*it).second->eduID() ;
 
             if ( PMD_INVALID_EDUID != filterEDUID &&
                  eduID != filterEDUID )
@@ -122,17 +117,20 @@ namespace engine
             contextID = (*it).second->contextID() ;
             contextList[ eduID ].insert( contextID ) ;
          }
-         FOR_EACH_CMAP_ELEMENT_END
       }
 
       OSS_INLINE void monContextSnap ( std::map<UINT64,std::set<monContextFull> > &contextList,
                                        EDUID filterEDUID = PMD_INVALID_EDUID )
       {
-         FOR_EACH_CMAP_ELEMENT_S( RTN_CTX_MAP, _contextMap )
+         EDUID eduID = PMD_INVALID_EDUID ;
+         INT64  contextID = -1  ;
+         monContextCB *monCB = NULL ;
+
+         RTNCB_SLOCK
+         std::map<SINT64, rtnContext*>::const_iterator it ;
+         for ( it = _contextList.begin() ; it != _contextList.end(); ++it )
          {
-            INT64 contextID = -1  ;
-            monContextCB *monCB = NULL ;
-            EDUID eduID = (*it).second->eduID() ;
+            eduID = (*it).second->eduID() ;
 
             if ( PMD_INVALID_EDUID != filterEDUID &&
                  eduID != filterEDUID )
@@ -144,63 +142,35 @@ namespace engine
             monCB = (*it).second->getMonCB() ;
 
             monContextFull item( contextID, *monCB ) ;
-            item._typeDesp = (*it).second->name() ;
+            item._typeDesp = getContextTypeDesp( (*it).second->getType() ) ;
             item._info = (*it).second->toString() ;
 
             contextList[ eduID ].insert( item ) ;
          }
-         FOR_EACH_CMAP_ELEMENT_END
       }
 
       OSS_INLINE void monContextSnap( UINT64 eduID,
                                       std::set<monContextFull> &contextList )
       {
-         FOR_EACH_CMAP_ELEMENT_S( RTN_CTX_MAP, _contextMap )
+         INT64  contextID = -1  ;
+         monContextCB *monCB = NULL ;
+
+         RTNCB_SLOCK
+         std::map<SINT64, rtnContext*>::const_iterator it ;
+         for ( it = _contextList.begin() ; it != _contextList.end() ; ++it )
          {
-            INT64 contextID = (*it).second->contextID() ;
-            monContextCB* monCB = (*it).second->getMonCB() ;
+            if ( (*it).second->eduID() == eduID )
+            {
+               contextID = (*it).second->contextID() ;
+               monCB = (*it).second->getMonCB() ;
 
-            monContextFull item( contextID, *monCB ) ;
-            item._typeDesp = (*it).second->name() ;
-            item._info = (*it).second->toString() ;
+               monContextFull item( contextID, *monCB ) ;
+               item._typeDesp = getContextTypeDesp( (*it).second->getType() ) ;
+               item._info = (*it).second->toString() ;
 
-            contextList.insert( item ) ;
+               contextList.insert( item ) ;
+            }
          }
-         FOR_EACH_CMAP_ELEMENT_END
-      }
-
-      OSS_INLINE BOOLEAN isEnabledMixCmp () const
-      {
-         return this->_accessPlanManager.mthEnabledMixCmp() ;
-      }
-
-      OSS_INLINE rtnRemoteMessenger* getRemoteMessenger()
-      {
-         return _remoteMessenger ;
-      }
-
-      OSS_INLINE INT64 getTextIdxVersion()
-      {
-         return _textIdxVersion.peek() ;
-      }
-      OSS_INLINE void incTextIdxVersion()
-      {
-         _textIdxVersion.inc() ;
-      }
-      OSS_INLINE BOOLEAN updateTextIdxVersion( INT64 oldVersion,
-                                               INT64 newVersion )
-      {
-         return _textIdxVersion.compareAndSwap( oldVersion, newVersion ) ;
-      }
-
-      OSS_INLINE optAccessPlanManager *getAPM ()
-      {
-         return &_accessPlanManager ;
-      }
-
-      OSS_INLINE _rtnLobAccessManager* getLobAccessManager()
-      {
-         return &_lobAccessManager ;
       }
 
    } ;

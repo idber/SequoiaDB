@@ -74,10 +74,6 @@
 #define REST_STRING_TEXT_BMP      "image/bmp"
 #define REST_STRING_TEXT_JPG      "image/jpeg"
 #define REST_STRING_TEXT_GIF      "image/gif"
-#define REST_STRING_TEXT_SVG      "image/svg+xml"
-#define REST_STRING_TEXT_WOFF     "application/font-woff"
-#define REST_STRING_TEXT_EOT      "application/vnd.ms-fontobject"
-#define REST_STRING_TEXT_OCTET_STREAM  "application/octet-stream"
 #define REST_STRING_CONLEN_SIZE   "0"
 #define REST_STRING_CHUNKED       "chunked"
 
@@ -113,12 +109,70 @@ static const CHAR *responseHeader[] = {
 
 static const CHAR *fileExtension[] = {
       "html",   "js",   "css",   "png",   "bmp",   "jpg",
-      "gif",    "svg",  "woff",  "eot",   "otf",   "ttf",
-      "jsp",    "php",  "asp"
+      "gif"
 } ;
 
 #define REST_STRING_FILE_EX_SIZE ( sizeof( fileExtension ) \
                                  / sizeof( fileExtension[0] ) )
+
+#define CONVERT_BSON( json, bson )\
+{\
+   if ( json )\
+   {\
+      rc = fromjson ( json, bson ) ;\
+      if ( rc )\
+      {\
+         PD_LOG ( PDERROR,\
+                  "Failed to convert BSON: %s", json ) ;\
+         goto error ;\
+      }\
+   }\
+}
+
+#define CHECK_BUFFER_ISNULL( pStringName, pString )\
+{\
+   if ( !pString )\
+   {\
+      rc = SDB_INVALIDARG ;\
+      PD_LOG ( PDERROR,\
+               "Invalid Argument, %s must exist, rc=%d",\
+               pStringName,\
+               rc ) ;\
+      goto error ;\
+   }\
+}
+
+#define CHECK_CS_SIZE( cs, len )\
+{\
+   len = ossStrlen( cs ) ;\
+   if( len > DMS_COLLECTION_SPACE_NAME_SZ )\
+   {\
+      rc = SDB_INVALIDARG ;\
+      PD_LOG ( PDERROR, "cs name size can not be larger than %d, rc=%d",\
+               DMS_COLLECTION_SPACE_NAME_SZ, rc ) ;\
+      goto error ;\
+   }\
+}
+
+#define CHECK_CL_SIZE( cl, len )\
+{\
+   len = ossStrlen( cl ) ;\
+   if( clNameSize > DMS_COLLECTION_NAME_SZ )\
+   {\
+      rc = SDB_INVALIDARG ;\
+      PD_LOG ( PDERROR, "cl name size can not be larger than %d, rc=%d",\
+               DMS_COLLECTION_NAME_SZ, rc ) ;\
+      goto error ;\
+   }\
+}
+
+#define MAKE_UP_FULL_NAME( full, cs, csLen, cl, clLen )\
+{\
+   ossStrncpy ( full, cs, csLen ) ;\
+   full[ csLen ] = '.' ;\
+   ossStrncpy ( full + csLen + 1, cl, clLen ) ;\
+   full[ csLen + clLen + 1 ] = 0 ;\
+}
 
 namespace engine
 {
@@ -292,11 +346,20 @@ namespace engine
       {
          if ( pBuffer[i] == '=' && pValueBuf == NULL )
          {
+            pBuffer[i] = 0 ;
             valueOffset = i + 1 ;
             pValueBuf = pBuffer + valueOffset ;
          }
          else if ( pBuffer[i] == '&' || ( i + 1 == length ) )
          {
+            if( i + 1 == length )
+            {
+               pBuffer[i+1] = 0 ;
+            }
+            else
+            {
+               pBuffer[i] = 0 ;
+            }
             pKeyBuf = pBuffer + keyOffset ;
             keyLen = valueOffset - keyOffset - 1 ;
             valueLen = i - valueOffset ;
@@ -459,21 +522,14 @@ namespace engine
       {
          pFileName = _getResourceFileName( pHttpCon->_pPath ) ;
       }
-
       if ( pFileName )
       {
+         common = COM_GETFILE ;
+         pHttpCon->_fileType = HTTP_FILE_UNKNOW ;
          pExtension = _getFileExtension( pFileName ) ;
-         if ( NULL == pExtension )
+         if ( pExtension )
          {
-            common = COM_CMD ;
-            pHttpCon->_fileType = HTTP_FILE_HTML ;
-         }
-         else
-         {
-            common = COM_GETFILE ;
-            pHttpCon->_fileType = HTTP_FILE_UNKNOW ;
             extenSize = ossStrlen( pExtension ) ;
-
             for( UINT32 i = 0; i < REST_STRING_FILE_EX_SIZE; ++i )
             {
                if ( 0 == ossStrncasecmp( pExtension,
@@ -482,14 +538,6 @@ namespace engine
                   pHttpCon->_fileType = (HTTP_FILE_TYPE)i ;
                   break ;
                }
-            }
-
-            if( HTTP_FILE_JSP == pHttpCon->_fileType ||
-                HTTP_FILE_PHP == pHttpCon->_fileType ||
-                HTTP_FILE_ASP == pHttpCon->_fileType )
-            {
-               common = COM_CMD ;
-               pHttpCon->_fileType = HTTP_FILE_HTML ;
             }
          }
       }
@@ -506,7 +554,6 @@ namespace engine
             pHttpCon->_fileType = HTTP_FILE_DEFAULT ;
          }
       }
-
       if( pHttpCon->_pPath )
       {
          pathSize = ossStrlen( pHttpCon->_pPath ) ;
@@ -533,10 +580,8 @@ namespace engine
          pMsg[0] = '/' ;
          pMsg[1] = 0 ;
       }
-
       *ppMsg = pMsg ;
       msgSize = pathSize ;
-
    done:
       PD_TRACE_EXITRC ( SDB__RESTADP_CONVERTMSG, rc ) ;
       return rc ;
@@ -589,25 +634,23 @@ namespace engine
    void restAdaptor::_paraInit( httpConnection *pHttpCon )
    {
       PD_TRACE_ENTRY( SDB__RESTADP_PARAINIT ) ;
-      pHttpCon->_tempKeyLen       = 0 ;
-      pHttpCon->_tempValueLen     = 0 ;
-      pHttpCon->_CRLFNum          = 0 ;
-      pHttpCon->_headerSize       = 0 ;
-      pHttpCon->_bodySize         = 0 ;
-      pHttpCon->_partSize         = 0 ;
-      pHttpCon->_firstRecordSize  = ( sizeof(REST_RESULT_STRING_OK) - 1 ) ;
-      pHttpCon->_responseSize     = 0 ;
-      pHttpCon->_isChunk          = FALSE ;
+      pHttpCon->_tempKeyLen      = 0 ;
+      pHttpCon->_tempValueLen    = 0 ;
+      pHttpCon->_CRLFNum         = 0 ;
+      pHttpCon->_headerSize      = 0 ;
+      pHttpCon->_partSize        = 0 ;
+      pHttpCon->_firstRecordSize = ( sizeof(REST_RESULT_STRING_OK) - 1 ) ;
+      pHttpCon->_responseSize    = 0 ;
+      pHttpCon->_isChunk         = FALSE ;
       pHttpCon->_isSendHttpHeader = FALSE ;
-      pHttpCon->_isKey            = TRUE ;
-      pHttpCon->_pSourceHeaderBuf = NULL ;
-      pHttpCon->_pHeaderBuf       = NULL ;
-      pHttpCon->_pPartBody        = NULL ;
-      pHttpCon->_pBodyBuf         = NULL ;
-      pHttpCon->_pSendBuffer      = NULL ;
-      pHttpCon->_pTempKey         = NULL ;
-      pHttpCon->_pTempValue       = NULL ;
-      pHttpCon->_pPath            = NULL ;
+      pHttpCon->_isKey           = TRUE ;
+      pHttpCon->_pHeaderBuf      = NULL ;
+      pHttpCon->_pPartBody       = NULL ;
+      pHttpCon->_pBodyBuf        = NULL ;
+      pHttpCon->_pSendBuffer     = NULL ;
+      pHttpCon->_pTempKey        = NULL ;
+      pHttpCon->_pTempValue      = NULL ;
+      pHttpCon->_pPath           = NULL ;
       httpResponse httpRe ;
 
       pHttpCon->_requestHeaders.clear() ;
@@ -649,7 +692,6 @@ namespace engine
 
       _maxHttpHeaderSize = _maxHttpHeaderSize > bufSize ?
             bufSize : _maxHttpHeaderSize ;
-
       pHttpCon->_pHeaderBuf = pBuffer ;
 
       while( true )
@@ -683,20 +725,6 @@ namespace engine
                receivedSize += curRecvSize ;
             }
             pHttpCon->_headerSize = receivedSize ;
-
-            rc = pSession->allocBuff( pHttpCon->_headerSize + 1,
-                                      &pHttpCon->_pSourceHeaderBuf, NULL ) ;
-            if ( rc )
-            {
-               PD_LOG ( PDERROR, "Unable to allocate %d bytes memory, rc=%d",
-                        pHttpCon->_headerSize + 1, rc ) ;
-               goto error ;
-            }
-
-            ossMemcpy( pHttpCon->_pSourceHeaderBuf, pHttpCon->_pHeaderBuf,
-                       pHttpCon->_headerSize ) ;
-            pHttpCon->_pSourceHeaderBuf[pHttpCon->_headerSize] = 0 ;
-
             break ;
          }
          else
@@ -803,8 +831,6 @@ namespace engine
             }
             pBuffer = pHttpCon->_pBodyBuf ;
             pBuffer[bodySize] = 0 ;
-
-            pHttpCon->_bodySize = bodySize ;
 
             if ( pHttpCon->_pPartBody )
             {
@@ -1124,50 +1150,6 @@ namespace engine
       return rc ;
    }
 
-   const CHAR *restAdaptor::getRequestHeader( pmdRestSession *pSession )
-   {
-      httpConnection *pHttpCon = pSession->getRestConn() ;
-      SDB_ASSERT ( pSession, "pSession is NULL" ) ;
-      return pHttpCon->_pSourceHeaderBuf ;
-   }
-
-   INT32 restAdaptor::getRequestHeaderSize( pmdRestSession *pSession )
-   {
-      httpConnection *pHttpCon = pSession->getRestConn() ;
-      SDB_ASSERT ( pSession, "pSession is NULL" ) ;
-      return pHttpCon->_headerSize ;
-   }
-
-   const CHAR *restAdaptor::getRequestBody( pmdRestSession *pSession )
-   {
-      httpConnection *pHttpCon = pSession->getRestConn() ;
-      SDB_ASSERT ( pSession, "pSession is NULL" ) ;
-      return pHttpCon->_pBodyBuf ;
-   }
-
-   INT32 restAdaptor::getRequestBodySize( pmdRestSession *pSession )
-   {
-      httpConnection *pHttpCon = pSession->getRestConn() ;
-      SDB_ASSERT ( pSession, "pSession is NULL" ) ;
-      return pHttpCon->_bodySize ;
-   }
-
-   BOOLEAN restAdaptor::isKeepAlive( pmdRestSession *pSession )
-   {
-      BOOLEAN isKeepAlive = FALSE ;
-      const CHAR *pValue = NULL ;
-
-      getHttpHeader( pSession, REST_STRING_CONNECTION, &pValue ) ;
-      if( pValue &&
-          ossStrncasecmp( pValue, REST_STRING_KEEP_ALIVE,
-                          sizeof( REST_STRING_KEEP_ALIVE ) - 1 ) == 0 )
-      {
-         isKeepAlive = TRUE ;
-      }
-
-      return isKeepAlive ;
-   }
-
    PD_TRACE_DECLARE_FUNCTION( SDB__RESTADP_SENDHTTPHEADER, "restAdaptor::_sendHttpHeader" )
    INT32 restAdaptor::_sendHttpHeader( pmdRestSession *pSession,
                                        HTTP_RESPONSE_CODE rspCode )
@@ -1268,19 +1250,6 @@ namespace engine
             break ;
          case HTTP_FILE_GIF:
             pFileType = REST_STRING_TEXT_GIF ;
-            break ;
-         case HTTP_FILE_SVG:
-            pFileType = REST_STRING_TEXT_SVG ;
-            break ;
-         case HTTP_FILE_WOFF:
-            pFileType = REST_STRING_TEXT_WOFF ;
-            break ;
-         case HTTP_FILE_EOT:
-            pFileType = REST_STRING_TEXT_EOT ;
-            break ;
-         case HTTP_FILE_OTF:
-         case HTTP_FILE_TTF:
-            pFileType = REST_STRING_TEXT_OCTET_STREAM ;
             break ;
          case HTTP_FILE_JS:
             pFileType = REST_STRING_TEXT_JS ;

@@ -81,14 +81,6 @@ enum HTTP_FILE_TYPE
    HTTP_FILE_BMP,
    HTTP_FILE_JPG,
    HTTP_FILE_GIF,
-   HTTP_FILE_SVG,
-   HTTP_FILE_WOFF,
-   HTTP_FILE_EOT,
-   HTTP_FILE_OTF,
-   HTTP_FILE_TTF,
-   HTTP_FILE_JSP,
-   HTTP_FILE_PHP,
-   HTTP_FILE_ASP,
    HTTP_FILE_DEFAULT,        /* default file */
    HTTP_FILE_UNKNOW
 } ;
@@ -154,7 +146,6 @@ struct httpConnection
    INT32 _tempValueLen ;
    INT32 _CRLFNum ;
    INT32 _headerSize ;
-   INT32 _bodySize ;
    INT32 _partSize ;
    INT32 _querySize ;
 
@@ -170,7 +161,6 @@ struct httpConnection
    BOOLEAN _isKey ;
    HTTP_PARSE_COMMON _common ;
    HTTP_FILE_TYPE _fileType ;
-   CHAR *_pSourceHeaderBuf ;
    CHAR *_pHeaderBuf ;
    CHAR *_pPartBody ;
    CHAR *_pBodyBuf ;
@@ -195,7 +185,6 @@ struct httpConnection
                       _tempValueLen(0),
                       _CRLFNum(0),
                       _headerSize(0),
-                      _bodySize(0),
                       _partSize(0),
                       _querySize(0),
                       _firstRecordSize(0),
@@ -205,7 +194,6 @@ struct httpConnection
                       _isKey(TRUE),
                       _common(COM_CMD),
                       _fileType(HTTP_FILE_DEFAULT),
-                      _pSourceHeaderBuf(NULL),
                       _pHeaderBuf(NULL),
                       _pPartBody(NULL),
                       _pBodyBuf(NULL),

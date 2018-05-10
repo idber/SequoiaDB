@@ -38,11 +38,9 @@
 #include <fstream>
 #include <string>
 #include <vector>
-#include <boost/function.hpp>
 #include "../util/linenoise.h"
 
 extern std::string historyFile ;
-
 struct _linenoiseCmd : public SDBObject
 {
    std::string    cmdName ;
@@ -53,8 +51,6 @@ struct _linenoiseCmd : public SDBObject
    _linenoiseCmd  *parent;
 };
 typedef _linenoiseCmd linenoiseCmd ;
-
-typedef BOOLEAN (*canContinueNextLineCallback)( const CHAR * str ) ;
 
 class _linenoiseCmdBuilder : public SDBObject
 {
@@ -104,11 +100,7 @@ BOOLEAN canContinueNextLine ( const CHAR * str ) ;
 
 BOOLEAN getNextCommand ( const CHAR *prompt, CHAR ** cmd,
                          BOOLEAN continueEnable = TRUE ) ;
-
 BOOLEAN historyClear ( void ) ;
 BOOLEAN historyInit ( void ) ;
-void clearInputBuffer( void ) ;
-BOOLEAN isStdinEmpty( void ) ;
-void setCanContinueNextLineCallback( boost::function< BOOLEAN( const CHAR* ) >  funcObj ) ;
 #endif //UTIL_LINENOISE_WRAPPER_HPP__
 

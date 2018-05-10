@@ -203,116 +203,129 @@
          return valueList ;
       }
 
-      //获取json的值
-      g.filterJson = function( json, keyList ){
-         var newJson = {} ;
-         function getFieldValue( json2, key )
-         {
-            var pointIndex = key.indexOf( '.' ) ;
-            if( pointIndex > 0 )
-            {
-               var fields = key.split( '.', 2 ) ;
-               if( typeof( json2[ fields[0] ] ) == 'undefined' )
-               {
-                  return '' ;
-               }
-               else
-               {
-                  return getFieldValue( json2[ fields[0] ], key.substr( pointIndex + 1 ) ) ;
-               }
-            }
-            else
-            {
-               var value = json2[ key ] ;
-               var valueType = typeof( value ) ;
-               if( valueType == 'object' )
-               {
-                  if( value == null )
-                  {
-                     return 'null' ;
-                  }
-                  else if( typeof( value['$binary'] ) == 'string' && typeof( value['$type'] ) == 'string' )
-                  {
-                     return value['$binary'] ;
-                  }
-                  else if( typeof( value['$timestamp'] ) == 'string' )
-                  {
-                      return value['$timestamp'] ;
-                  }
-                  else if( typeof( value['$date'] ) == 'string' )
-                  {
-                      return value['$date'] ;
-                  }
-                  else if( typeof( value['$code'] ) == 'string' )
-                  {
-                     return value['$code'] ;
-                  }
-                  else if( typeof( value['$minKey'] ) == 'number' )
-                  {
-                     return 'minKey' ;
-                  }
-                  else if( typeof( value['$maxKey'] ) == 'number')
-                  {
-                     return 'maxKey' ;
-                  }
-                  else if( typeof( value['$undefined'] ) == 'number' )
-                  {
-                     return 'undefined' ;
-                  }
-                  else if( typeof( value['$oid'] ) == 'string' )
-                  {
-                     return value['$oid'] ;
-                  }
-                  else if( typeof( value['$regex'] ) == 'string' && typeof( value['$options'] ) == 'string' )
-                  {
-                     return value['$regex'] ;
-                  }
-                  else if( isArray( value ) )
-                  {
-                     return '[ Array ]' ;
-                  }
-                  else
-                  {
-                     return '[ Object ]' ;
-                  }
-               }
-               else if( valueType == 'boolean' )
-               {
-                  var newVal = value ? 'true' : 'false' ;
-                  return newVal ;
-               }
-               else
-               {
-                  return value ;
-               }
-            }
-         }
-
-         $.each( keyList, function( index, key ){
-            var value ;
-
-            if( key == '' )
-            {
-               value = '' ;
-            }
-            else
-            {
-               value = getFieldValue( json, key ) ;
-            }
-
-            newJson[key] = value ;
-         } ) ;
-         return newJson ;
+      //获取浏览器类型和版本
+      g.getBrowserInfo = function()
+      {
+	      var agent = window.navigator.userAgent.toLowerCase() ;
+	      var regStr_ie = /msie [\d.]+;/gi ;
+	      var regStr_ff = /firefox\/[\d.]+/gi ;
+	      var regStr_chrome = /chrome\/[\d.]+/gi ;
+	      var regStr_saf = /safari\/[\d.]+/gi ;
+	      var temp = '' ;
+	      var info = [] ;
+	      if( agent.indexOf( 'msie' ) > 0 )
+	      {
+		      temp = agent.match( regStr_ie ) ;
+		      info.push( 'ie' ) ;
+	      }
+	      else if( agent.indexOf( 'firefox' ) > 0 )
+	      {
+		      temp = agent.match( regStr_ff ) ;
+		      info.push( 'firefox' ) ;
+	      }
+	      else if( agent.indexOf( 'chrome' ) > 0 )
+	      {
+		      temp = agent.match( regStr_chrome ) ;
+		      info.push( 'chrome' ) ;
+	      }
+	      else if( agent.indexOf( 'safari' ) > 0 && agent.indexOf( 'chrome' ) < 0 )
+	      {
+		      temp = agent.match( regStr_saf ) ;
+		      info.push( 'safari' ) ;
+	      }
+	      else
+	      {
+		      if( agent.indexOf( 'trident' ) > 0 && agent.indexOf( 'rv' ) > 0 )
+		      {
+			      info.push( 'ie' ) ;
+			      temp = '11' ;
+		      }
+		      else
+		      {
+			      temp = '0' ;
+			      info.push( 'unknow' ) ;
+		      }
+	      }
+	      verinfo = ( temp + '' ).replace( /[^0-9.]/ig, '' ) ;
+	      info.push( parseInt( verinfo ) ) ;
+	      return info ;
       }
 
-      //获取浏览器类型和版本
-      g.getBrowserInfo = getBrowserInfo ;
-
       //判断浏览器可以使用什么存储方式
-      g.setBrowserStorage = setBrowserStorage ;
+      g._userdata = {} ;
+      g.setBrowserStorage = function()
+      {
+	      var browser = g.getBrowserInfo() ;
+         var storageType ;
+	      if( browser[0] === 'ie' && browser[1] <= 7 )
+	      {
+            storageType = 'cookie' ;
+	      }
+	      else
+	      {
+		      if( window.localStorage )
+		      {
+			      storageType = 'localStorage' ;
+		      }
+		      else
+		      {
+			      if( navigator.cookieEnabled === true )
+			      {
+				      storageType = 'cookie' ;
+			      }
+			      else
+			      {
+				      storageType = '' ;
+			      }
+		      }
+	      }
+	      return storageType ;
+      }
 
+      g.storageType = g.setBrowserStorage() ;
       //本地数据操作
-      g.LocalData = localLocalData ;
+      g.LocalData = function( key, value ){
+         if( typeof( value ) == 'undefined' )
+         {
+            //读取本地数据
+            var newValue = null ;
+	         if ( g.storageType === 'localStorage' )
+	         {
+		         newValue = window.localStorage.getItem( key ) ;
+	         }
+	         else if ( g.storageType === 'cookie' )
+	         {
+		         newValue = $.cookie( key ) ;
+	         }
+	         return newValue ;
+         }
+         else if( value == null )
+         {
+            //删除本地数据
+            if ( g.storageType === 'localStorage' )
+	         {
+		         window.localStorage.removeItem( key ) ;
+	         }
+	         else if ( g.storageType === 'cookie' )
+	         {
+		         $.removeCookie( key ) ;
+	         }
+         }
+         else
+         {
+            //写入本地数据
+            if ( g.storageType === 'localStorage' )
+	         {
+		         window.localStorage.setItem( key, value ) ;
+	         }
+	         else if ( g.storageType === 'cookie' )
+	         {
+		         var saveTime = new Date() ;
+		         saveTime.setDate( saveTime.getDate() + 365 ) ;
+		         $.cookie( key, value, { 'expires': saveTime } ) ;
+	         }
+         }
+      }
 
       //定时器
       g.Timeout = function( execFun, delay, isApply ){

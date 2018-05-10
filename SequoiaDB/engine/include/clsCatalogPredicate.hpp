@@ -72,8 +72,7 @@ namespace engine
       CLS_CATA_LOGIC_TYPE getLogicType() ;
       void setLogicType( CLS_CATA_LOGIC_TYPE type ) ;
       void addChild( clsCatalogPredicateTree *pChild ) ;
-      INT32 addPredicate( const CHAR *pFieldName, bson::BSONElement beField,
-                          INT32 opType );
+      INT32 addPredicate( const CHAR *pFieldName, bson::BSONElement beField );
       void adjustByShardingKey() ;
       void clear() ;
       INT32 matches( _clsCatalogItem * pCatalogItem, BOOLEAN & result ) ;

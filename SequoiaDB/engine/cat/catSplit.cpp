@@ -170,7 +170,7 @@ namespace engine
 
       const CHAR *domainName = NULL ;
 
-      rc = rtnResolveCollectionName( clFullName, ossStrlen( clFullName ),
+      rc = catResolveCollectionName( clFullName, ossStrlen( clFullName ),
                                      szSpace, DMS_COLLECTION_SPACE_NAME_SZ,
                                      szCollection, DMS_COLLECTION_NAME_SZ ) ;
       PD_RC_CHECK( rc, PDERROR, "Resolve collection name[%s] failed, rc: %d",

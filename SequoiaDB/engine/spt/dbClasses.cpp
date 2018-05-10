@@ -37,6 +37,8 @@
 #include "jsapi.h"
 #include "../client/jstobs.h"
 #include "../client/bson/bson.h"
+#include "../mdocml/parseMandocCpp.hpp"
+#include "sptParseTroff.hpp"
 #include "ossUtil.h"
 #include "pd.hpp"
 #include "ossErr.h"
@@ -171,14 +173,14 @@
 #define SDB_JSVAL_IS_OBJECT(x) \
    (JSVAL_IS_NULL(x) || JSVAL_IS_VOID(x) || ! JSVAL_IS_PRIMITIVE(x))
 
-#define _GET_OBJ_FROM_ARG_ARR( cx, argc, argv, argNum, pJsObj, pBson, mode, funcName ) \
+#define GET_OBJ_FROM_ARG_ARR( cx, argc, argv, argNum, pJsObj, pBson, funcName ) \
    do {                                                                        \
       if ( argc >= argNum ) {                                                  \
          if ( SDB_JSVAL_IS_OBJECT ( argv[argNum - 1] ) ) {                     \
             pJsObj = SDB_JSVAL_TO_OBJECT ( argv[argNum -1] ) ;                 \
             if ( pJsObj ) {                                                    \
                argv[argNum -1] = OBJECT_TO_JSVAL ( pJsObj ) ;                  \
-               VERIFY ( objToBson( cx , pJsObj , &pBson, mode ) ) ;            \
+               VERIFY ( objToBson( cx , pJsObj , &pBson ) ) ;                  \
             }                                                                  \
          }                                                                     \
          else {                                                                \
@@ -193,11 +195,6 @@
       }                                                                        \
    } while ( 0 )
 
-#define GET_OBJ_FROM_ARG_ARR( cx, argc, argv, argNum, pJsObj, pBson, funcName ) \
-        _GET_OBJ_FROM_ARG_ARR( cx, argc, argv, argNum, pJsObj, pBson, SPT_CONVERT_NORMAL, funcName )
-
-#define GET_MATCHER_FROM_ARG_ARR( cx, argc, argv, argNum, pJsObj, pBson, funcName ) \
-        _GET_OBJ_FROM_ARG_ARR( cx, argc, argv, argNum, pJsObj, pBson, SPT_CONVERT_MATCHER, funcName )
 
 #define NODE_NAME_SPLIT ':'
 #define SDB_DEF_COORD_NAME "localhost"
@@ -222,8 +219,7 @@ OSS_INLINE JSObject *SDB_JSVAL_TO_OBJECT( jsval x )
 }
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OBJ2BSON, "objToBson" )
-static JSBool objToBson ( JSContext *cx , JSObject *obj , bson ** bs,
-                          SPT_CONVERT_MODE mode = SPT_CONVERT_NORMAL )
+static JSBool objToBson ( JSContext *cx , JSObject *obj , bson ** bs )
 {
    PD_TRACE_ENTRY ( SDB_OBJ2BSON ) ;
    JSBool      ret         = JS_TRUE ;
@@ -232,7 +228,7 @@ static JSBool objToBson ( JSContext *cx , JSObject *obj , bson ** bs,
    VERIFY ( cx && obj && bs ) ;
 
    {
-      sptConvertor convertor( cx, mode ) ;
+      sptConvertor convertor( cx ) ;
       rc = convertor.toBson( obj, bs ) ;
       if( rc )
       {
@@ -731,7 +727,6 @@ static JSBool collection_raw_find ( JSContext *cx , uintN argc , jsval *vp )
    JSObject *objSel                 = NULL ;
    JSObject *objOrder               = NULL ;
    JSObject *objHint                = NULL ;
-   JSObject *objOptions             = NULL ;
    int32_t numToSkip                = 0 ;
    int32_t numToRet                 = -1 ;
    int32_t flags                    = 0 ;
@@ -739,7 +734,6 @@ static JSBool collection_raw_find ( JSContext *cx , uintN argc , jsval *vp )
    bson *bsonSel                    = NULL ;
    bson *bsonOrder                  = NULL ;
    bson *bsonHint                   = NULL ;
-   bson *bsonOptions                = NULL ;
    sdbCursorHandle *cursor          = NULL ;
    JSObject *objCursor              = NULL ;
    INT32 rc                         = SDB_OK ;
@@ -758,7 +752,7 @@ static JSBool collection_raw_find ( JSContext *cx , uintN argc , jsval *vp )
    {
       objCond = JSVAL_TO_OBJECT ( argv[0] ) ;
       VERIFY ( objCond ) ;
-      if ( JS_FALSE == objToBson ( cx , objCond , &bsonCond , SPT_CONVERT_MATCHER ) )
+      if ( JS_FALSE == objToBson ( cx , objCond , &bsonCond ) )
       {
          rc = SDB_INVALIDARG ;
          REPORT_RC ( JS_FALSE , "SdbCollection.rawFind()" , rc ) ;
@@ -863,37 +857,7 @@ static JSBool collection_raw_find ( JSContext *cx , uintN argc , jsval *vp )
    {
       flags |= FLG_QUERY_MODIFY ;
    }
-   if ( JSVAL_IS_VOID( argv[7] ) || JSVAL_IS_NULL( argv[7] ) )
-   {
-   }
-   else
-   {
-      objOptions = JSVAL_TO_OBJECT ( argv[7] ) ;
-      VERIFY ( objOptions ) ;
 
-      if ( JS_FALSE == objToBson( cx , objOptions , &bsonOptions ) )
-      {
-         rc = SDB_INVALIDARG ;
-         REPORT_RC ( JS_FALSE , "SdbCollection.rawFind()" , rc ) ;
-      }
-
-      bson_iterator it ;
-      bson_type type = bson_find( &it, bsonOptions,
-                                  FIELD_NAME_KEEP_SHARDING_KEY ) ;
-      if ( BSON_EOO != type )
-      {
-         if ( BSON_BOOL != type )
-         {
-            REPORT( FALSE,
-                    "SdbCollection.rawFind(): wrong argument"
-                    " in options(<options>)" ) ;
-         }
-         if ( TRUE == bson_iterator_bool( &it ) )
-         {
-            flags |= QUERY_KEEP_SHARDINGKEY_IN_UPDATE ;
-         }
-      }
-   }
 /*
    ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) , "/ooooii" ,
                                &objCond , &objSel , &objOrder , &objHint ,
@@ -954,7 +918,6 @@ done :
    SAFE_BSON_DISPOSE ( bsonSel ) ;
    SAFE_BSON_DISPOSE ( bsonOrder ) ;
    SAFE_BSON_DISPOSE ( bsonHint ) ;
-   SAFE_BSON_DISPOSE ( bsonOptions ) ;
    PD_TRACE_EXIT ( SDB_COLL_RAW_FND );
    return ret ;
 error :
@@ -1030,19 +993,16 @@ static JSBool collection_update ( JSContext *cx , uintN argc , jsval *vp )
 {
    PD_TRACE_ENTRY ( SDB_COLL_UPDATE );
    engine::sdbClearErrorInfo() ;
-   sdbCollectionHandle *collection        = NULL ;
-   JSObject *           objRule           = NULL ;
-   JSObject *           objCond           = NULL ;
-   JSObject *           objHint           = NULL ;
-   JSObject *           objOptions        = NULL ;
-   bson *               bsonRule          = NULL ;
-   bson *               bsonCond          = NULL ;
-   bson *               bsonHint          = NULL ;
-   bson *               bsonOptions       = NULL ;
-   INT32                flags             = 0 ;
-   INT32                rc                = SDB_OK ;
-   JSBool               ret               = JS_TRUE ;
-   jsval *              argv              = JS_ARGV ( cx , vp ) ;
+   sdbCollectionHandle *collection  = NULL ;
+   JSObject *           objRule     = NULL ;
+   JSObject *           objCond     = NULL ;
+   JSObject *           objHint     = NULL ;
+   bson *               bsonRule    = NULL ;
+   bson *               bsonCond    = NULL ;
+   bson *               bsonHint    = NULL ;
+   INT32                rc          = SDB_OK ;
+   JSBool               ret         = JS_TRUE ;
+   jsval *              argv        = JS_ARGV ( cx , vp ) ;
 
    collection = (sdbCollectionHandle *)
       JS_GetPrivate ( cx , JS_THIS_OBJECT ( cx , vp ) ) ;
@@ -1053,35 +1013,9 @@ static JSBool collection_update ( JSContext *cx , uintN argc , jsval *vp )
 
    objRule = JSVAL_TO_OBJECT ( argv[0] ) ;
    VERIFY ( objToBson ( cx , objRule , &bsonRule ) ) ;
-   GET_MATCHER_FROM_ARG_ARR( cx, argc, argv, 2, objCond, bsonCond, "SdbCollection.update()" ) ;
+   GET_OBJ_FROM_ARG_ARR( cx, argc, argv, 2, objCond, bsonCond, "SdbCollection.update()" ) ;
    GET_OBJ_FROM_ARG_ARR( cx, argc, argv, 3, objHint, bsonHint, "SdbCollection.update()" ) ;
-   GET_OBJ_FROM_ARG_ARR( cx, argc, argv, 4, objOptions, bsonOptions,
-                         "SdbCollection.update()" ) ;
-   if ( NULL == bsonOptions )
-   {
-   }
-   else
-   {
-      bson_iterator it ;
-      bson_type type = bson_find( &it, bsonOptions,
-                                  FIELD_NAME_KEEP_SHARDING_KEY ) ;
-
-      if ( BSON_EOO != type )
-      {
-         if ( BSON_BOOL != type )
-         {
-            REPORT( FALSE,
-                    "SdbCollection.update(): the "FIELD_NAME_KEEP_SHARDING_KEY
-                    " argument should be bool" ) ;
-         }
-         if ( TRUE == bson_iterator_bool( &it ) )
-         {
-            flags |= FLG_UPDATE_KEEP_SHARDINGKEY ;
-         }
-      }
-   }
-
-   rc = sdbUpdate1 ( *collection, bsonRule, bsonCond, bsonHint, flags ) ;
+   rc = sdbUpdate ( *collection , bsonRule , bsonCond , bsonHint ) ;
    REPORT_RC ( SDB_OK == rc , "SdbCollection.update()" , rc ) ;
 
    JS_SET_RVAL ( cx , vp , JSVAL_VOID ) ;
@@ -1090,7 +1024,6 @@ done :
    SAFE_BSON_DISPOSE ( bsonRule ) ;
    SAFE_BSON_DISPOSE ( bsonCond ) ;
    SAFE_BSON_DISPOSE ( bsonHint ) ;
-   SAFE_BSON_DISPOSE ( bsonOptions ) ;
    PD_TRACE_EXIT ( SDB_COLL_UPDATE );
    return ret ;
 error :
@@ -1103,22 +1036,19 @@ static JSBool collection_upsert ( JSContext *cx , uintN argc , jsval *vp )
 {
    PD_TRACE_ENTRY ( SDB_COLL_UPSERT );
    engine::sdbClearErrorInfo() ;
-   sdbCollectionHandle *collection        = NULL ;
-   JSObject *           objRule           = NULL ;
-   JSObject *           objCond           = NULL ;
-   JSObject *           objHint           = NULL ;
-   JSObject *           objSetOnInsert    = NULL ;
-   JSObject *           objOptions        = NULL ;
-   bson *               bsonRule          = NULL ;
-   bson *               bsonCond          = NULL ;
-   bson *               bsonHint          = NULL ;
-   bson *               bsonNewHint       = NULL ;
-   bson *               bsonSetOnInsert   = NULL ;
-   bson *               bsonOptions       = NULL ;
-   INT32                flags             = 0 ;
-   INT32                rc                = SDB_OK ;
-   JSBool               ret               = JS_TRUE ;
-   jsval *              argv              = JS_ARGV ( cx , vp ) ;
+   sdbCollectionHandle *collection  = NULL ;
+   JSObject *           objRule     = NULL ;
+   JSObject *           objCond     = NULL ;
+   JSObject *           objHint     = NULL ;
+   JSObject *           objSetOnInsert = NULL ;
+   bson *               bsonRule    = NULL ;
+   bson *               bsonCond    = NULL ;
+   bson *               bsonHint    = NULL ;
+   bson *               bsonNewHint = NULL ;
+   bson *               bsonSetOnInsert = NULL ;
+   INT32                rc          = SDB_OK ;
+   JSBool               ret         = JS_TRUE ;
+   jsval *              argv        = JS_ARGV ( cx , vp ) ;
 
    collection = (sdbCollectionHandle *)
       JS_GetPrivate ( cx , JS_THIS_OBJECT ( cx , vp ) ) ;
@@ -1130,11 +1060,9 @@ static JSBool collection_upsert ( JSContext *cx , uintN argc , jsval *vp )
    objRule = JSVAL_TO_OBJECT ( argv[0] ) ;
    VERIFY ( objToBson ( cx , objRule , &bsonRule ) ) ;
 
-   GET_MATCHER_FROM_ARG_ARR( cx, argc, argv, 2, objCond, bsonCond, "SdbCollection.upsert()" ) ;
+   GET_OBJ_FROM_ARG_ARR( cx, argc, argv, 2, objCond, bsonCond, "SdbCollection.upsert()" ) ;
    GET_OBJ_FROM_ARG_ARR( cx, argc, argv, 3, objHint, bsonHint, "SdbCollection.upsert()" ) ;
    GET_OBJ_FROM_ARG_ARR( cx, argc, argv, 4, objSetOnInsert, bsonSetOnInsert, "SdbCollection.upsert()" ) ;
-   GET_OBJ_FROM_ARG_ARR( cx, argc, argv, 5, objOptions, bsonOptions,
-                         "SdbCollection.upsert()" ) ;
    if ( argc >= 4 )
    {
       bsonNewHint = bson_create() ;
@@ -1156,31 +1084,8 @@ static JSBool collection_upsert ( JSContext *cx , uintN argc , jsval *vp )
       bsonHint = bsonNewHint ;
       bsonNewHint = NULL ;
    }
-   if ( NULL == bsonOptions )
-   {
-   }
-   else
-   {
-      bson_iterator it ;
-      bson_type type = bson_find( &it, bsonOptions,
-                                  FIELD_NAME_KEEP_SHARDING_KEY ) ;
 
-      if ( BSON_EOO != type )
-      {
-         if ( BSON_BOOL != type )
-         {
-            REPORT( FALSE,
-                    "SdbCollection.update(): the "FIELD_NAME_KEEP_SHARDING_KEY
-                    " argument should be bool" ) ;
-         }
-         if ( TRUE == bson_iterator_bool( &it ) )
-         {
-            flags |= FLG_UPDATE_KEEP_SHARDINGKEY ;
-         }
-      }
-   }
-
-   rc = sdbUpsert2 ( *collection, bsonRule, bsonCond, bsonHint, NULL, flags ) ;
+   rc = sdbUpsert ( *collection , bsonRule , bsonCond , bsonHint ) ;
    REPORT_RC ( SDB_OK == rc , "SdbCollection.upsert()" , rc ) ;
 
    JS_SET_RVAL ( cx , vp , JSVAL_VOID ) ;
@@ -1215,7 +1120,7 @@ static JSBool collection_remove ( JSContext *cx , uintN argc , jsval *vp )
    collection = (sdbCollectionHandle *)
       JS_GetPrivate ( cx , JS_THIS_OBJECT ( cx , vp ) ) ;
    REPORT ( collection , "SdbCollection.remove(): no collection handle" ) ;
-   GET_MATCHER_FROM_ARG_ARR( cx, argc, argv, 1, objCond, bsonCond, "SdbCollection.remove()" ) ;
+   GET_OBJ_FROM_ARG_ARR( cx, argc, argv, 1, objCond, bsonCond, "SdbCollection.remove()" ) ;
    GET_OBJ_FROM_ARG_ARR( cx, argc, argv, 2, objHint, bsonHint, "SdbCollection.remove()" ) ;
    rc = sdbDelete ( *collection , bsonCond , bsonHint ) ;
    REPORT_RC ( SDB_OK == rc , "SdbCollection.remove()" , rc ) ;
@@ -1263,43 +1168,6 @@ static JSBool collection_delete_lob( JSContext *cx , uintN argc , jsval *vp )
 done:
    SAFE_JS_FREE( cx, oidStr ) ;
    PD_TRACE_EXIT( SDB_COLL_DELETE_LOB ) ;
-   return ret ;
-error:
-   goto done ;
-}
-
-static JSBool collection_truncate_lob( JSContext *cx , uintN argc , jsval *vp )
-{
-   engine::sdbClearErrorInfo() ;
-   INT32 rc = SDB_OK ;
-   JSBool ret = JS_TRUE ;
-   sdbCollectionHandle *collection = NULL ;
-   JSString *jsOid = NULL ;
-   CHAR *oidStr = NULL ;
-   bson_oid_t oid ;
-   double dLength = 0 ;
-   INT64 length = 0 ;
-
-   collection = (sdbCollectionHandle *)
-      JS_GetPrivate ( cx , JS_THIS_OBJECT ( cx , vp ) ) ;
-   REPORT ( collection , "SdbCollection.truncateLob(): no collection handle" ) ;
-
-   ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
-                               "SI" , &jsOid, &dLength ) ;
-   REPORT ( ret , "SdbCollection.truncateLob(): wrong arguments" ) ;
-
-   length = dLength ;
-
-   oidStr = (CHAR *) JS_EncodeString ( cx , jsOid ) ;
-   VERIFY( oidStr ) ;
-   bson_oid_from_string( &oid, oidStr ) ;
-
-   rc = sdbTruncateLob( *collection, &oid, length ) ;
-   REPORT_RC( SDB_OK == rc, "SdbCollection.truncateLob(): failed to truncate lob", rc ) ;
-
-   JS_SET_RVAL ( cx , vp , JSVAL_VOID ) ;
-done:
-   SAFE_JS_FREE( cx, oidStr ) ;
    return ret ;
 error:
    goto done ;
@@ -1640,9 +1508,9 @@ static JSBool collection_explain( JSContext *cx , uintN argc , jsval *vp )
    REPORT ( collection , "SdbCollection.explain(): no collection handle" ) ;
 
    ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
-                               "ooooiii/o" , &objCondition,
+                               "ooooii/o" , &objCondition,
                                &objSelector, &objSort,
-                               &objHint, &skip, &limit, &flags, &objExplain ) ;
+                               &objHint, &skip, &limit, &objExplain ) ;
    REPORT ( ret , "SdbCollection.explain(): wrong arguments" ) ;
 
    if ( NULL != objExplain )
@@ -1653,7 +1521,7 @@ static JSBool collection_explain( JSContext *cx , uintN argc , jsval *vp )
 
    if ( NULL != objCondition )
    {
-      ret = objToBson ( cx , objCondition , &condition , SPT_CONVERT_MATCHER ) ;
+      ret = objToBson ( cx , objCondition , &condition ) ;
       VERIFY ( ret ) ;
    }
 
@@ -1749,7 +1617,7 @@ static JSBool collection_count ( JSContext *cx , uintN argc , jsval *vp )
    {
       objCond = JSVAL_TO_OBJECT ( argv[0] ) ;
       VERIFY ( objCond ) ;
-      VERIFY ( objToBson( cx, objCond, &bsonCond, SPT_CONVERT_MATCHER ) ) ;
+      VERIFY ( objToBson( cx, objCond, &bsonCond ) ) ;
    }
    else
    {
@@ -2332,7 +2200,7 @@ static JSBool collection_aggr ( JSContext *cx , uintN argc , jsval *vp )
          objElem = JSVAL_TO_OBJECT( argv[i] );
          if ( objElem )
          {
-            VERIFY( objToBson( cx, objElem, &bsonArray[i], SPT_CONVERT_AGGREGATE ) );
+            VERIFY( objToBson( cx, objElem, &bsonArray[i] ) );
          }
       }
       else
@@ -2504,46 +2372,6 @@ error:
    goto done ;
 }
 
-// PD_TRACE_DECLARE_FUNCTION ( SDB_COLL_POP, "collection_pop" )
-static JSBool collection_pop( JSContext *cx, uintN argc, jsval *vp )
-{
-   PD_TRACE_ENTRY( SDB_COLL_POP ) ;
-   INT32 rc = SDB_OK ;
-   JSBool ret = JS_TRUE ;
-   sdbCollectionHandle *clHandle = NULL ;
-   sdbCollectionStruct *collection = NULL ;
-   JSObject *jsOption = NULL ;
-   bson *bsOption = NULL ;
-   jsval *argv = JS_ARGV( cx, vp ) ;
-
-   REPORT( 1 == argc,
-           "SdbCollection.pop(): need one argument" ) ;
-
-   clHandle = ( sdbCollectionHandle * )
-      JS_GetPrivate( cx, JS_THIS_OBJECT( cx, vp ) ) ;
-   REPORT( clHandle, "SdbCollection.pop(): no collection handle" ) ;
-
-   collection = ( sdbCollectionStruct * )( *clHandle ) ;
-
-   GET_OBJ_FROM_ARG_ARR( cx, argc, argv, 1, jsOption,
-                         bsOption, "SdbCollection.pop()" ) ;
-
-   rc = sdbPop( collection->_connection,
-                collection->_collectionFullName,
-                bsOption ) ;
-   REPORT_RC( SDB_OK == rc, "SdbCollection.pop()", rc ) ;
-
-   JS_SET_RVAL( cx, vp, JSVAL_VOID ) ;
-
-done:
-   SAFE_BSON_DISPOSE( bsOption ) ;
-   PD_TRACE_EXIT( SDB_COLL_POP ) ;
-   return ret ;
-error:
-   TRY_REPORT( cx, "SdbCollection.pop(): false" ) ;
-   goto done ;
-}
-
 // PD_TRACE_DECLARE_FUNCTION ( SDB_COLL_CRT_ID_IX, "collection_crt_id_index" )
 static JSBool collection_crt_id_index ( JSContext *cx , uintN argc , jsval *vp )
 {
@@ -2711,7 +2539,6 @@ static JSFunctionSpec collection_functions[] = {
     JS_FS ( "update" , collection_update , 1 , 0 ) ,
     JS_FS ( "upsert" , collection_upsert , 1 , 0 ) ,
     JS_FS ( "remove" , collection_remove , 0 , 0 ) ,
-    JS_FS ( "pop", collection_pop, 1, 0 ) ,
     JS_FS ( "_count" , collection_count , 0 , 0 ) ,
     JS_FS ( "createIndex" , collection_create_index , 2 , 0 ) ,
     JS_FS ( "_getIndexes" , collection_get_indexes , 1 , 0 ) ,
@@ -2727,7 +2554,6 @@ static JSFunctionSpec collection_functions[] = {
     JS_FS ( "putLob", collection_put_lob, 1, 0 ) ,
     JS_FS ( "getLob", collection_get_lob, 1, 0 ) ,
     JS_FS ( "deleteLob", collection_delete_lob, 1, 0 ) ,
-    JS_FS ( "truncateLob", collection_truncate_lob, 2, 0 ) ,
     JS_FS ( "listLobs", collection_list_lobs, 1, 0 ) ,
     JS_FS ( "listLobPieces", collection_list_lob_pieces, 1, 0 ) ,
     JS_FS ( "truncate", collection_truncate, 0, 0 ),
@@ -3025,32 +2851,7 @@ static JSBool rg_get_slave ( JSContext *cx, uintN argc, jsval *vp )
    const CHAR *            nodeName          = NULL ;
    INT32                   nodeID            = -1 ;
    jsval                   valNodeID         = JSVAL_VOID ;
-   jsval                   *argv             = JS_ARGV( cx, vp ) ;
-   INT32 positionsArray[7]                   = { 0 } ;
-   INT32 positionsCount                      = 0 ;
 
-   if ( argc > 0 && argc <= 7 )
-   {
-      INT32 i = 0 ;
-      for ( ; i < argc; i++ )
-      {
-         if ( JSVAL_IS_INT( argv[i] ) )
-         {
-            positionsArray[i] = JSVAL_TO_INT( argv[i] ) ;
-            positionsCount++ ;
-         }
-         else
-         {
-            rc = SDB_INVALIDARG ;
-            REPORT_RC_MSG ( FALSE, "", rc, "RG.getSlave(): arguments should be the positions of nodes" ) ;
-         }
-      }
-   }
-   else if ( argc > 7)
-   {
-      rc = SDB_INVALIDARG ;
-      REPORT_RC_MSG ( FALSE, "", rc, "RG.getSlave(): the amount of nodes can not exceed 7" ) ;
-   }
    rg = (sdbReplicaGroupHandle *)JS_GetPrivate ( cx,
                                                  JS_THIS_OBJECT ( cx, vp ) ) ;
    REPORT ( rg, "RG.getSlave(): no replica group handle" ) ;
@@ -3060,14 +2861,7 @@ static JSBool rg_get_slave ( JSContext *cx, uintN argc, jsval *vp )
    VERIFY ( rn ) ;
    *rn = SDB_INVALID_HANDLE ;
 
-   if ( argc == 0 )
-   {
-      rc = sdbGetNodeSlave ( *rg, rn ) ;
-   }
-   else
-   {
-      rc = sdbGetNodeSlave1 ( *rg, positionsArray, positionsCount, rn ) ;
-   }
+   rc = sdbGetNodeSlave ( *rg, rn ) ;
    REPORT_RC ( SDB_OK == rc, "RG.getSlave()", rc ) ;
 
    rc = sdbGetNodeAddr ( *rn, &hostName, &serviceName,
@@ -5498,7 +5292,7 @@ static JSBool sdb_list_domains ( JSContext *cx, uintN argc, jsval *vp )
 
    if ( objCond )
    {
-      VERIFY ( objToBson ( cx , objCond , &bsonCond, SPT_CONVERT_MATCHER ) ) ;
+      VERIFY ( objToBson ( cx , objCond , &bsonCond ) ) ;
    }
 
    if ( objSel )
@@ -5862,7 +5656,19 @@ static JSBool sdb_eval( JSContext *cx, uintN argc, jsval *vp )
          rc = sdbGetCollectionSpace ( *connection , name , cs ) ;
          REPORT_RC ( SDB_OK == rc , "sdbGetCollectionSpace" , rc ) ;
 
-
+         csObj = JS_NewObject ( cx , &cs_class , 0 , 0 ) ;
+         VERIFY ( csObj ) ;
+         valConn = JS_THIS ( cx , vp ) ;
+         VERIFY( JS_DefineProperty( cx, csObj, "_conn", valConn,
+                                    0, 0, JSPROP_READONLY ) ) ;
+         VERIFY ( JS_SetPrivate ( cx , csObj , cs ) ) ;
+         jscsname = JS_NewStringCopyN( cx, name, ossStrlen(name) );
+         valCSName = STRING_TO_JSVAL ( jscsname ) ;
+         VERIFY ( JS_SetProperty ( cx , csObj , "_name" , &valCSName ) ) ;
+         valCS = OBJECT_TO_JSVAL ( csObj ) ;
+         VERIFY( JS_DefineProperty( cx, JS_THIS_OBJECT ( cx , vp ),
+                                    name, valCS,
+                                    0, 0, JSPROP_READONLY ) ) ;
          /* VERIFY ( JS_SetProperty ( cx, JS_THIS_OBJECT ( cx , vp ),
                   name, &valCS ) ) ; */
 
@@ -5872,20 +5678,6 @@ static JSBool sdb_eval( JSContext *cx, uintN argc, jsval *vp )
          ret = get_cl_and_setproperty( cx, vp, &valCS, *cs,
                                        clName, jsname ) ;
          VERIFY( ret ) ;
-
-         csObj = JS_NewObject ( cx , &cs_class , 0 , 0 ) ;
-         VERIFY ( csObj ) ;
-         valConn = JS_THIS ( cx , vp ) ;
-         VERIFY( JS_DefineProperty( cx, csObj, "_conn", valConn,
-                                    0, 0, JSPROP_READONLY ) ) ;
-         jscsname = JS_NewStringCopyN( cx, name, ossStrlen(name) );
-         valCSName = STRING_TO_JSVAL ( jscsname ) ;
-         VERIFY ( JS_SetProperty ( cx , csObj , "_name" , &valCSName ) ) ;
-         valCS = OBJECT_TO_JSVAL ( csObj ) ;
-         VERIFY( JS_DefineProperty( cx, JS_THIS_OBJECT ( cx , vp ),
-                                    name, valCS,
-                                    0, 0, JSPROP_READONLY ) ) ;
-         VERIFY ( JS_SetPrivate ( cx , csObj , cs ) ) ;
       }
       else if ( FMP_RES_TYPE_RG == valueType )
       {
@@ -5995,10 +5787,10 @@ static JSBool sdb_flush_configure( JSContext *cx, uintN argc, jsval *vp )
    REPORT ( connection, "Sdb.flushConfigure: no connection handle" ) ;
 
    ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
-                               "/o" , &objData) ;
+                               "o" , &objData) ;
    REPORT ( ret, "Sdb.flushConfigure(): wrong arguments" ) ;
 
-   if ( objData && JS_FALSE == objToBson ( cx , objData , &bsonData ) )
+   if ( JS_FALSE == objToBson ( cx , objData , &bsonData ) )
    {
       rc = SDB_INVALIDARG ;
       REPORT_RC ( JS_FALSE , "Sdb.flushConfigure: failed"
@@ -6479,7 +6271,7 @@ static JSBool sdb_snapshot ( JSContext *cx , uintN argc , jsval *vp )
 
    if ( objCond )
    {
-      VERIFY ( objToBson ( cx , objCond , &bsonCond , SPT_CONVERT_MATCHER ) ) ;
+      VERIFY ( objToBson ( cx , objCond , &bsonCond ) ) ;
    }
 
    if ( objSel )
@@ -6589,7 +6381,7 @@ static JSBool sdb_list ( JSContext *cx , uintN argc , jsval *vp )
 
    if ( objCond )
    {
-      VERIFY ( objToBson ( cx , objCond , &bsonCond, SPT_CONVERT_MATCHER ) ) ;
+      VERIFY ( objToBson ( cx , objCond , &bsonCond ) ) ;
    }
 
    if ( objSel )
@@ -6648,12 +6440,11 @@ static JSBool sdb_start_rg ( JSContext *cx , uintN argc , jsval *vp )
    UINT32                  count      = 0 ;
    sdbReplicaGroupHandle * rg         = NULL ;
    sdbConnectionHandle *   connection = NULL ;
-
+   
    if ( argc < 1 )
    {
       REPORT ( FALSE, "Sdb.startRG(<name>): wrong arguments" ) ;
    }
-
    connection = ( sdbConnectionHandle * )
          JS_GetPrivate ( cx, JS_THIS_OBJECT ( cx, vp ) ) ;
    REPORT ( connection, "Sdb.startRG: no connection handle" ) ;
@@ -6900,7 +6691,6 @@ error:
    goto done ;
 }
 
-#define PD_TRACE_MAX_MONITORED_THREAD_NUM   10
 // PD_TRACE_DECLARE_FUNCTION ( SDB_SDB_TRACE_ON, "sdb_trace_on" )
 static JSBool sdb_trace_on ( JSContext *cx, uintN argc, jsval *vp )
 {
@@ -6915,19 +6705,13 @@ static JSBool sdb_trace_on ( JSContext *cx, uintN argc, jsval *vp )
    JSString               *strBreakPoint= NULL;
    CHAR                   *comp         = NULL;
    CHAR                   *breakPoint   = NULL;
-   UINT32                  tids[PD_TRACE_MAX_MONITORED_THREAD_NUM] = {0} ;
-   JSObject               *tidsObj     = NULL ;
-   jsuint                  nTids       = 0 ;
    connection = ( sdbConnectionHandle * )
          JS_GetPrivate ( cx, JS_THIS_OBJECT ( cx, vp ) ) ;
    REPORT ( connection, "Sdb.traceOn(): no connection handle" ) ;
 
    ret = JS_ConvertArguments( cx, argc, argv, "i/SS",
-                              &bufferSize, &strComp, &strBreakPoint );
+                        &bufferSize, &strComp, &strBreakPoint );
    REPORT( ret, "Sdb.traceOn(): invalid arguments");
-
-   REPORT ( bufferSize > 0,
-            "Sdb.traceOn(): bufferSize must be a positive integer" ) ;
 
    if ( argc >= 2 )
    {
@@ -6940,38 +6724,8 @@ static JSBool sdb_trace_on ( JSContext *cx, uintN argc, jsval *vp )
       breakPoint = (CHAR*)JS_EncodeString( cx, strBreakPoint ) ;
       VERIFY( breakPoint ) ;
    }
-   if ( argc >= 4 )
-   {
-      if ( JSVAL_IS_PRIMITIVE( argv[3] ) )
-      {
-         REPORT ( JSVAL_IS_INT ( argv[3] ),
-                  "Sdb.traceOn(): the 4th argument must be an Interger or array" ) ;
 
-         tids[0] = (UINT32)JSVAL_TO_INT( argv[3] ) ;
-         nTids = 1 ;
-      }
-      else
-      {
-         tidsObj = JSVAL_TO_OBJECT ( argv[3] ) ;
-         VERIFY ( tidsObj ) ;
-         REPORT ( JS_IsArrayObject ( cx, tidsObj ),
-                  "Sdb.traceOn(): the 4th argument must be an Interger or array" ) ;
-
-         VERIFY ( JS_GetArrayLength ( cx, tidsObj, &nTids ) ) ;
-         REPORT ( nTids < PD_TRACE_MAX_MONITORED_THREAD_NUM,
-                  "Sdb.traceOn(): the number of Thread cannot exceed 10" ) ;
-         for ( UINT32 i = 0; i < nTids; ++i )
-         {
-            jsval v ;
-            INT32 tid ;
-            VERIFY ( JS_GetElement ( cx, tidsObj, (jsint)i, &v ) ) ;
-            VERIFY ( JS_ValueToInt32 ( cx, v, &tid ) ) ;
-            tids[i] = tid ;
-         }
-      }
-   }
-
-   rc = sdbTraceStart ( *connection, bufferSize, comp, breakPoint, tids, nTids ) ;
+   rc = sdbTraceStart ( *connection, bufferSize, comp, breakPoint ) ;
    REPORT_RC ( SDB_OK == rc, "Sdb.traceOn()", rc ) ;
    JS_SET_RVAL ( cx, vp, JSVAL_VOID ) ;
 done :
@@ -7280,7 +7034,7 @@ static JSBool sdb_list_backup ( JSContext *cx, uintN argc, jsval *vp )
 
    if ( objCond )
    {
-      VERIFY ( objToBson ( cx , objCond , &bsonCond, SPT_CONVERT_MATCHER ) ) ;
+      VERIFY ( objToBson ( cx , objCond , &bsonCond ) ) ;
    }
 
    if ( objSel )
@@ -7395,7 +7149,7 @@ static JSBool sdb_list_tasks ( JSContext *cx, uintN argc, jsval *vp )
 
    if ( objCond )
    {
-      VERIFY ( objToBson ( cx , objCond , &bsonCond, SPT_CONVERT_MATCHER ) ) ;
+      VERIFY ( objToBson ( cx , objCond , &bsonCond ) ) ;
    }
 
    if ( objSel )
@@ -8122,53 +7876,6 @@ error:
    goto done ;
 }
 
-// PD_TRACE_DECLARE_FUNCTION ( SDB_SDB_ANALYZE, "sdb_analyze" )
-static JSBool sdb_analyze ( JSContext *cx , uintN argc , jsval *vp )
-{
-   PD_TRACE_ENTRY( SDB_SDB_ANALYZE ) ;
-   engine::sdbClearErrorInfo() ;
-   JSBool ret = JS_TRUE ;
-   INT32 rc = SDB_OK ;
-   sdbConnectionHandle *connection  = NULL ;
-   JSObject *jsObj = NULL ;
-   BOOLEAN opSpecified = FALSE ;
-   bson options ;
-   bson_init( &options ) ;
-
-   ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
-                               "/o" , &jsObj ) ;
-   REPORT ( ret , "Sdb.analyze(): wrong arguments" ) ;
-   connection = (sdbConnectionHandle *)
-      JS_GetPrivate ( cx , JS_THIS_OBJECT ( cx , vp ) ) ;
-   REPORT ( connection , "Sdb.analyze(): no connection handle" ) ;
-
-   if ( NULL != jsObj )
-   {
-      sptConvertor c( cx ) ;
-      rc = c.toBson( jsObj, &options ) ;
-      VERIFY ( SDB_OK == rc ) ;
-      opSpecified = TRUE ;
-   }
-
-   rc = sdbAnalyze( *connection, opSpecified ? &options : NULL ) ;
-   if ( SDB_OK == rc )
-   {
-      JS_SET_RVAL ( cx , vp , JSVAL_VOID ) ;
-   }
-   else
-   {
-      REPORT_RC( FALSE, "Sdb.analyze()", rc ) ;
-   }
-
-done:
-   bson_destroy( &options ) ;
-   PD_TRACE_EXIT( SDB_SDB_ANALYZE ) ;
-   return ret ;
-error:
-   TRY_REPORT ( cx , "Sdb.analyze(): false" ) ;
-   goto done ;
-}
-
 static JSFunctionSpec sdb_functions[] = {
    JS_FS ( "getCS" , sdb_get_cs , 1 , 0 ) ,
    JS_FS ( "getRG" , sdb_get_rg , 1 , 0 ) ,
@@ -8221,7 +7928,6 @@ static JSFunctionSpec sdb_functions[] = {
    JS_FS ( "setPDLevel", sdb_set_pdlevel, 0, 0 ),
    JS_FS ( "reloadConf", sdb_reload_config, 0, 0 ),
    JS_FS ( "renameCS", sdb_rename_cs, 0, 0 ),
-   JS_FS ( "analyze", sdb_analyze, 0, 0 ),
    JS_FS_END
 } ;
 

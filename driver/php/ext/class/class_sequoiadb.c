@@ -368,18 +368,18 @@ error:
 PHP_METHOD( SequoiaDB, resetSnapshot )
 {
    INT32 rc = SDB_OK ;
-   zval *pOptions = NULL ;
+   zval *pCondition = NULL ;
    zval *pThisObj   = getThis() ;
    sdbConnectionHandle connection = SDB_INVALID_HANDLE ;
-   bson options ;
-   bson_init( &options ) ;
+   bson condition ;
+   bson_init( &condition ) ;
    PHP_SET_ERRNO_OK( TRUE, pThisObj ) ;
-   if ( PHP_GET_PARAMETERS( "|z", &pOptions ) == FAILURE )
+   if ( PHP_GET_PARAMETERS( "|z", &pCondition ) == FAILURE )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-   rc = php_auto2Bson( pOptions, &options TSRMLS_CC ) ;
+   rc = php_auto2Bson( pCondition, &condition TSRMLS_CC ) ;
    if( rc )
    {
       goto error ;
@@ -389,13 +389,13 @@ PHP_METHOD( SequoiaDB, resetSnapshot )
                     sdbConnectionHandle,
                     SDB_HANDLE_NAME,
                     connectionDesc ) ;
-   rc = sdbResetSnapshot( connection, &options ) ;
+   rc = sdbResetSnapshot( connection, &condition ) ;
    if( rc )
    {
       goto error ;
    }
 done:
-   bson_destroy( &options ) ;
+   bson_destroy( &condition ) ;
    PHP_RETURN_AUTO_ERROR( TRUE, pThisObj, rc ) ;
    return ;
 error:
@@ -2328,48 +2328,6 @@ PHP_METHOD( SequoiaDB, forceSession )
    {
       goto error ;
    }
-done:
-   bson_destroy( &options ) ;
-   PHP_RETURN_AUTO_ERROR( TRUE, pThisObj, rc ) ;
-   return ;
-error:
-   PHP_SET_ERROR( TRUE, pThisObj, rc ) ;
-   goto done ;
-}
-
-PHP_METHOD( SequoiaDB, analyze )
-{
-   INT32 rc = SDB_OK ;
-   zval *pOptions = NULL ;
-   zval *pThisObj = getThis() ;
-   sdbConnectionHandle connection = SDB_INVALID_HANDLE ;
-   bson options ;
-   bson_init( &options ) ;
-   PHP_SET_ERRNO_OK( TRUE, pThisObj ) ;
-
-   if ( PHP_GET_PARAMETERS( "|z", &pOptions ) == FAILURE )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-   rc = php_auto2Bson( pOptions, &options TSRMLS_CC ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-
-   PHP_READ_HANDLE( pThisObj,
-                    connection,
-                    sdbConnectionHandle,
-                    SDB_HANDLE_NAME,
-                    connectionDesc ) ;
-
-   rc = sdbAnalyze( connection, &options ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-
 done:
    bson_destroy( &options ) ;
    PHP_RETURN_AUTO_ERROR( TRUE, pThisObj, rc ) ;

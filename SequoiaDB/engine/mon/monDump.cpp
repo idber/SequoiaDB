@@ -55,11 +55,10 @@
 #include "msgMessage.hpp"
 #include "rtn.hpp"
 #include "barBkupLogger.hpp"
+
 #include "pdTrace.hpp"
 #include "monTrace.hpp"
-#include "pmdEnv.hpp"
-#include "utilEnvCheck.hpp"
-#include "pmdStartupHstLogger.hpp"
+
 
 using namespace bson ;
 
@@ -221,27 +220,26 @@ namespace engine
                        utilDBStatusStr( krcb->getDBStatus() ) ) ;
          }
 
-         if ( MON_MASK_LSN_INFO & mask )
+         if ( dpscb && ( MON_MASK_LSN_INFO & mask ) )
          {
             DPS_LSN beginLSN ;
             DPS_LSN currentLSN ;
             DPS_LSN committed ;
             DPS_LSN expectLSN ;
-            if ( dpscb )
-            {
-               dpscb->getLsnWindow( beginLSN, currentLSN, &expectLSN, &committed ) ;
-               INT64 currentLSNOff = (INT64)currentLSN.offset ;
-               PD_TRACE2 ( SDB_MONAPPENDSYSTEMINFO,
-                           PD_PACK_RAW ( &currentLSN, sizeof(DPS_LSN) ),
-                           PD_PACK_LONG ( currentLSNOff ) ) ;
-            }
+            dpscb->getLsnWindow( beginLSN, currentLSN, &expectLSN, &committed ) ;
+
+            INT64 offset = (INT64)currentLSN.offset ;
+            PD_TRACE2 ( SDB_MONAPPENDSYSTEMINFO,
+                        PD_PACK_RAW ( &currentLSN, sizeof(DPS_LSN) ),
+                        PD_PACK_LONG ( offset ) ) ;
+
             BSONObjBuilder subBegin( ob.subobjStart( FIELD_NAME_BEGIN_LSN ) ) ;
             subBegin.append( FIELD_NAME_LSN_OFFSET, (INT64)beginLSN.offset ) ;
             subBegin.append( FIELD_NAME_LSN_VERSION, beginLSN.version ) ;
             subBegin.done() ;
 
             BSONObjBuilder subCur( ob.subobjStart( FIELD_NAME_CURRENT_LSN ) ) ;
-            subCur.append( FIELD_NAME_LSN_OFFSET, (INT64)currentLSN.offset ) ;
+            subCur.append( FIELD_NAME_LSN_OFFSET, offset ) ;
             subCur.append( FIELD_NAME_LSN_VERSION, currentLSN.version ) ;
             subCur.done() ;
 
@@ -250,35 +248,31 @@ namespace engine
             subCommit.append( FIELD_NAME_LSN_VERSION, committed.version ) ;
             subCommit.done() ;
 
-            DPS_LSN completeLSN ;
-            UINT32 lsnQueSize = 0 ;
             if ( pClsCB )
             {
                clsBucket *pBucket = pClsCB->getReplCB()->getBucket() ;
-               completeLSN = pBucket->completeLSN() ;
-               lsnQueSize = pBucket->bucketSize() ;
+               DPS_LSN completeLSN = pBucket->completeLSN() ;
+               UINT32 lsnQueSize = pBucket->bucketSize() ;
+
                if ( pClsCB->isPrimary() || completeLSN.invalid() )
                {
                   completeLSN = expectLSN ;
                }
+               ob.append( FIELD_NAME_COMPLETE_LSN, (INT64)completeLSN.offset ) ;
+               ob.append( FIELD_NAME_LSN_QUE_SIZE, (INT32)lsnQueSize ) ;
             }
-            ob.append( FIELD_NAME_COMPLETE_LSN, (INT64)completeLSN.offset ) ;
-            ob.append( FIELD_NAME_LSN_QUE_SIZE, (INT32)lsnQueSize ) ;
          }
 
-         if ( MON_MASK_TRANSINFO & mask )
+         if ( transCB && ( MON_MASK_TRANSINFO & mask ) )
          {
-            UINT32 transCount = 0 ;
-            DPS_LSN_OFFSET beginLSNOff = 0 ;
-            if ( transCB )
-            {
-               transCount = pmdIsPrimary() ? transCB->getTransCBSize() :
-                            (UINT32)transCB->getTransMap()->size() ;
-               beginLSNOff = transCB->getOldestBeginLsn() ;
-            }
+            UINT32 transCount = pmdIsPrimary() ?
+                                transCB->getTransCBSize() :
+                                (UINT32)transCB->getTransMap()->size() ;
+
             BSONObjBuilder subTrans( ob.subobjStart( FIELD_NAME_TRANS_INFO ) ) ;
             subTrans.append( FIELD_NAME_TOTAL_COUNT, (INT32)transCount ) ;
-            subTrans.append( FIELD_NAME_BEGIN_LSN, (INT64)beginLSNOff ) ;
+            subTrans.append( FIELD_NAME_BEGIN_LSN,
+                             (INT64)transCB->getOldestBeginLsn() ) ;
             subTrans.done() ;
          }
 
@@ -339,368 +333,6 @@ namespace engine
       PD_TRACE_EXIT ( SDB_MONAPPENDVERSION ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_MONAPPENDULIMIT, "monAppendUlimit" )
-   void monAppendUlimit( BSONObjBuilder &ob )
-   {
-      PD_TRACE_ENTRY( SDB_MONAPPENDULIMIT ) ;
-
-      INT64 soft = -1 ;
-      INT64 hard = -1 ;
-      BOOLEAN isSucc = FALSE ;
-      ossProcLimits *limInfo = pmdGetLimit() ;
-
-      BSONObjBuilder limOb( ob.subobjStart( FIELD_NAME_ULIMIT ) ) ;
-
-      isSucc = limInfo->getLimit( OSS_LIMIT_CORE_SZ, soft, hard ) ;
-      if ( isSucc )
-      {
-         limOb.append( FIELD_NAME_CORESZ, soft ) ;
-      }
-
-      isSucc = limInfo->getLimit( OSS_LIMIT_VIRTUAL_MEM, soft, hard ) ;
-      if ( isSucc )
-      {
-         limOb.append( FIELD_NAME_VM, soft ) ;
-      }
-
-      isSucc = limInfo->getLimit( OSS_LIMIT_OPEN_FILE, soft, hard ) ;
-      if ( isSucc )
-      {
-         limOb.append( FIELD_NAME_OPENFL, soft ) ;
-      }
-
-      isSucc = limInfo->getLimit( OSS_LIMIT_PROC_NUM, soft, hard ) ;
-      if ( isSucc )
-      {
-         limOb.append( FIELD_NAME_NPROC, soft ) ;
-      }
-
-      isSucc = limInfo->getLimit( OSS_LIMIT_FILE_SZ, soft, hard ) ;
-      if ( isSucc )
-      {
-         limOb.append( FIELD_NAME_FILESZ, soft ) ;
-      }
-
-      limOb.done() ;
-
-      PD_TRACE_EXIT( SDB_MONAPPENDULIMIT ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_MONAPPENDFILEDESP, "monAppendFileDesp" )
-   INT32 monAppendFileDesp( BSONObjBuilder &ob )
-   {
-      PD_TRACE_ENTRY( SDB_MONAPPENDFILEDESP ) ;
-      INT32 loadPercent       = -1 ;
-      INT64 totalNum          = -1 ;
-      INT64 freeNum           = -1 ;
-      INT64 usedNum           = -1 ;
-      INT64 softLimit         = -1 ;
-      INT64 hardLimit         = -1 ;
-      INT32 rc                = SDB_OK ;
-      ossProcLimits *limInfo  = pmdGetLimit() ;
-
-      limInfo->getLimit( OSS_LIMIT_OPEN_FILE, softLimit, hardLimit ) ;
-      totalNum = softLimit ;
-
-      rc = ossGetFileDesp( usedNum ) ;
-      if ( SDB_TOO_MANY_OPEN_FD == rc )
-      {
-         usedNum = totalNum ;
-      }
-      else if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to get file description info, rc = %d", rc ) ;
-         goto error ;
-      }
-
-      if ( totalNum != 0 )
-      {
-         freeNum = totalNum - usedNum ;
-         loadPercent = 100 * usedNum / totalNum ;
-         loadPercent = loadPercent > 100? 100:loadPercent ;
-         loadPercent = loadPercent < 0? 0:loadPercent ;
-      }
-      else
-      {
-         freeNum = -1 ;
-         loadPercent = 0 ;
-      }
-
-      {
-         BSONObjBuilder fdOb( ob.subobjStart( FIELD_NAME_FILEDESP ) ) ;
-         fdOb.append( FIELD_NAME_LOADPERCENT, loadPercent ) ;
-         fdOb.append( FIELD_NAME_TOTALNUM,    totalNum ) ;
-         fdOb.append( FIELD_NAME_FREENUM,     freeNum ) ;
-         fdOb.done() ;
-      }
-   done:
-      PD_TRACE_EXITRC( SDB_MONAPPENDFILEDESP, rc ) ;
-      return rc;
-   error:
-      goto done;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_MONAPPENDSTARTINFO, "monAppendStartInfo" )
-   INT32 monAppendStartInfo( BSONObjBuilder &ob )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB_MONAPPENDSTARTINFO ) ;
-      vector<pmdStartupLog> startLogs ;
-      UINT32 logNum = 10 ;
-
-      rc = pmdGetStartupHstLogger()->getLatestLogs( logNum, startLogs ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get logs from start-up history "
-                   "logger, rc = %d", rc ) ;
-
-      {
-         vector<string> startHst, crashHst;
-         vector<pmdStartupLog>::iterator i ;
-         for ( i = startLogs.begin(); i != startLogs.end(); ++i )
-         {
-            pmdStartupLog log = *i ;
-            CHAR time[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
-            ossTimestampToString( log._time, time ) ;
-
-            startHst.push_back( string( time ) ) ;
-            if( SDB_START_CRASH == log._type )
-            {
-               crashHst.push_back( string( time ) ) ;
-            }
-         }
-         ob.append( FIELD_NAME_STARTHST, startHst ) ;
-         ob.append( FIELD_NAME_CRASHHST, crashHst ) ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB_MONAPPENDSTARTINFO, rc ) ;
-      return rc;
-   error:
-      goto done;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_MONAPPENDHOSTMEMORY, "monAppendHostMemory" )
-   INT32 monAppendHostMemory( BSONObjBuilder &ob )
-   {
-      PD_TRACE_ENTRY( SDB_MONAPPENDHOSTMEMORY ) ;
-      INT32 rc             = SDB_OK ;
-      INT32 memLoadPercent = 0 ;
-      INT64 memTotalPhys   = 0 ;
-      INT64 memAvailPhys   = 0 ;
-      INT64 memTotalPF     = 0 ;
-      INT64 memAvailPF     = 0 ;
-      INT64 memTotalVirtual= 0 ;
-      INT64 memAvailVirtual= 0 ;
-
-      rc = ossGetMemoryInfo( memLoadPercent, memTotalPhys, memAvailPhys,
-                             memTotalPF, memAvailPF,
-                             memTotalVirtual, memAvailVirtual ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get memory info, rc = %d", rc ) ;
-
-      {
-         BSONObjBuilder memOb( ob.subobjStart( FIELD_NAME_MEMORY ) ) ;
-         memOb.append( FIELD_NAME_LOADPERCENT, memLoadPercent ) ;
-         memOb.append( FIELD_NAME_TOTALRAM, memTotalPhys ) ;
-         memOb.append( FIELD_NAME_FREERAM, memAvailPhys ) ;
-         memOb.append( FIELD_NAME_TOTALSWAP, memTotalPF ) ;
-         memOb.append( FIELD_NAME_FREESWAP, memAvailPF ) ;
-         memOb.append( FIELD_NAME_TOTALVIRTUAL, memTotalVirtual ) ;
-         memOb.append( FIELD_NAME_FREEVIRTUAL, memAvailVirtual ) ;
-         memOb.done();
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB_MONAPPENDHOSTMEMORY, rc ) ;
-      return rc;
-   error:
-      goto done;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_MONAPPENDNODEMEMORY, "monAppendNodeMemory" )
-   INT32 monAppendNodeMemory( BSONObjBuilder &ob )
-   {
-      INT32 rc                = SDB_OK ;
-      PD_TRACE_ENTRY( SDB_MONAPPENDNODEMEMORY ) ;
-
-      INT32 loadPctRAM        = 0 ;
-      INT64 totalRAM          = 0 ;
-      INT64 availRAM          = 0 ;
-      INT64 totalSwap         = 0 ;
-      INT64 availSwap         = 0 ;
-      INT64 totalVM           = 0 ;
-      INT64 availVM           = 0 ;
-      INT64 softLimit         = -1 ;
-      INT64 hardLimit         = -1 ;
-      INT32 overCommitMode    = -1 ;
-      INT64 commitLimit       = 0 ;
-      INT64 committedAS       = 0 ;
-      INT64 VMLimitProc       = 0 ;
-      INT32 loadPctVM         = 0 ;
-      INT64 allocatedVMProc   = 0 ;
-      INT64 rss               = 0 ;
-      ossProcLimits *limInfo  = pmdGetLimit() ;
-
-      rc = ossGetMemoryInfo( loadPctRAM, totalRAM, availRAM,
-                             totalSwap, availSwap, totalVM, availVM,
-                             overCommitMode, commitLimit, committedAS ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get memory info of host, "
-                   "rc = %d", rc ) ;
-
-      rc = ossGetProcessMemory( ossGetCurrentProcessID(), rss, allocatedVMProc );
-      PD_RC_CHECK( rc, PDERROR, "Failed to get memory info of process, "
-                   "rc = %d", rc ) ;
-
-      limInfo->getLimit( OSS_LIMIT_VIRTUAL_MEM, softLimit, hardLimit ) ;
-
-      if ( 2 == overCommitMode )
-      {
-         if ( -1 == softLimit )
-         {
-            VMLimitProc = commitLimit ;
-         }
-         else
-         {
-            VMLimitProc = commitLimit > softLimit ? softLimit : commitLimit ;
-         }
-      }
-      else
-      {
-         VMLimitProc = softLimit ;
-      }
-
-      if ( VMLimitProc != 0 )
-      {
-         loadPctVM = 100 * allocatedVMProc / VMLimitProc ;
-         loadPctVM = loadPctVM > 100 ? 100: loadPctVM ;
-         loadPctVM = loadPctVM < 0 ? 0 : loadPctVM ;
-      }
-      else
-      {
-         loadPctVM = 0 ;
-      }
-
-      if ( totalRAM != 0 )
-      {
-         loadPctRAM = 100 * rss / totalRAM ;
-         loadPctRAM = loadPctRAM > 100 ? 100 : loadPctRAM ;
-         loadPctRAM = loadPctRAM < 0 ? 0 : loadPctRAM ;
-      }
-      else
-      {
-         loadPctRAM = 0 ;
-      }
-
-      {
-         BSONObjBuilder memOb( ob.subobjStart( FIELD_NAME_MEMORY ) ) ;
-
-         memOb.append( FIELD_NAME_LOADPERCENT,   loadPctRAM ) ;
-         memOb.append( FIELD_NAME_TOTALRAM,      totalRAM ) ;
-         memOb.append( FIELD_NAME_RSSSIZE,       rss ) ;
-
-         memOb.append( FIELD_NAME_LOADPERCENTVM, loadPctVM ) ;
-         memOb.append( FIELD_NAME_VMLIMIT,       VMLimitProc ) ;
-         memOb.append( FIELD_NAME_VMSIZE,        allocatedVMProc ) ;
-
-         memOb.done();
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB_MONAPPENDNODEMEMORY, rc ) ;
-      return rc;
-   error:
-      goto done;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_MONAPPENDDIFFLSN, "monAppendDiffLSN" )
-   void monAppendDiffLSN( BSONObjBuilder &ob )
-   {
-      PD_TRACE_ENTRY( SDB_MONAPPENDDIFFLSN ) ;
-      pmdKRCB *krcb        = pmdGetKRCB() ;
-      SDB_DPSCB* dpscb     = krcb->getDPSCB() ;
-      clsCB *clscb         = krcb->getClsCB() ;
-      replCB *replcb       = NULL ;
-      INT64 diffOffset     = -1 ;
-
-      if ( clscb )
-      {
-         replcb = clscb->getReplCB() ;
-      }
-
-      if ( clscb && dpscb && replcb )
-      {
-         if ( clscb->isPrimary() )
-         {
-            diffOffset = 0 ;
-         }
-         else
-         {
-            _clsSharingStatus primary ;
-            DPS_LSN beginLSN, currentLSN,expectLSN, primaryLSN ;
-
-            dpscb->getLsnWindow( beginLSN, currentLSN, &expectLSN, NULL ) ;
-
-            if ( replcb->getPrimaryInfo( primary ) )
-            {
-               primaryLSN = primary.beat.endLsn ;
-               if ( primaryLSN.version == expectLSN.version )
-               {
-                  diffOffset = primaryLSN.offset - expectLSN.offset ;
-                  diffOffset = diffOffset < 0 ? 0 : diffOffset ;
-               }
-            }
-         }
-      }
-      ob.append( FIELD_NAME_DIFFLSNPRIMARY, diffOffset ) ;
-
-      PD_TRACE_EXIT( SDB_MONAPPENDDIFFLSN ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_MONAPPENDDISK, "monAppendDisk" )
-   INT32 monAppendDisk( BSONObjBuilder &ob, BOOLEAN appendDbPath )
-   {
-      PD_TRACE_ENTRY( SDB_MONAPPENDDISK ) ;
-      INT32 rc             = SDB_OK ;
-      INT64 diskTotalBytes = 0 ;
-      INT64 diskFreeBytes  = 0 ;
-      INT32 loadPercent    = 0 ;
-      const CHAR *dbPath   = pmdGetOptionCB()->getDbPath () ;
-      CHAR fsName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-
-      rc = ossGetDiskInfo( dbPath, diskTotalBytes, diskFreeBytes,
-                           fsName, OSS_MAX_PATHSIZE + 1 ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get disk info, rc = %d", rc ) ;
-
-      if ( diskTotalBytes != 0 )
-      {
-         loadPercent = 100 * ( diskTotalBytes - diskFreeBytes ) /
-                       diskTotalBytes ;
-         loadPercent = loadPercent > 100 ? 100 : loadPercent ;
-         loadPercent = loadPercent < 0 ? 0 : loadPercent ;
-      }
-      else
-      {
-         loadPercent = 0 ;
-      }
-
-      {
-         BSONObjBuilder diskOb( ob.subobjStart( FIELD_NAME_DISK ) ) ;
-         diskOb.append( FIELD_NAME_NAME, fsName ) ;
-         if( appendDbPath )
-         {
-            diskOb.append( FIELD_NAME_DATABASEPATH, dbPath ) ;
-         }
-         diskOb.append( FIELD_NAME_LOADPERCENT, loadPercent ) ;
-         diskOb.append( FIELD_NAME_TOTALSPACE, diskTotalBytes ) ;
-         diskOb.append( FIELD_NAME_FREESPACE, diskFreeBytes ) ;
-         diskOb.done();
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB_MONAPPENDDISK, rc ) ;
-      return rc;
-   error:
-      goto done;
-   }
-
    void monAppendSessionIdentify( BSONObjBuilder &ob,
                                   UINT64 relatedNID,
                                   UINT32 relatedTID )
@@ -735,7 +367,7 @@ namespace engine
       CHAR   CPUTime[ MON_CPU_USAGE_STR_SIZE ] = { 0 } ;
 
       PD_TRACE_ENTRY ( SDB_MONDBDUMP ) ;
-      ob.append( FIELD_NAME_TOTALNUMCONNECTS, (SINT64)mondbcb->getCurConns() ) ;
+      ob.append( FIELD_NAME_TOTALNUMCONNECTS, (SINT64)mondbcb->numConnects ) ;
       ob.append( FIELD_NAME_TOTALDATAREAD,    (SINT64)mondbcb->totalDataRead ) ;
       ob.append( FIELD_NAME_TOTALINDEXREAD,   (SINT64)mondbcb->totalIndexRead ) ;
       ob.append( FIELD_NAME_TOTALDATAWRITE,   (SINT64)mondbcb->totalDataWrite ) ;
@@ -757,8 +389,6 @@ namespace engine
                   (SINT64)(seconds*1000 + microseconds / 1000 ) ) ;
       ossTimestampToString ( mondbcb->_activateTimestamp, timestamp ) ;
       ob.append ( FIELD_NAME_ACTIVETIMESTAMP, timestamp ) ;
-      ossTimestampToString ( mondbcb->_resetTimestamp, timestamp ) ;
-      ob.append ( FIELD_NAME_RESETTIMESTAMP, timestamp ) ;
       ossSnprintf( CPUTime, sizeof(CPUTime), "%u.%06u",
                    userTime.seconds, userTime.microsec ) ;
       ob.append( FIELD_NAME_USERCPU, CPUTime ) ;
@@ -817,9 +447,6 @@ namespace engine
       ossTimestamp tmpTm = full._monApplCB._connectTimestamp ;
       ossTimestampToString( tmpTm, timestamp ) ;
       ob.append ( FIELD_NAME_CONNECTTIMESTAMP, timestamp ) ;
-      tmpTm = full._monApplCB._resetTimestamp ;
-      ossTimestampToString( tmpTm, timestamp ) ;
-      ob.append ( FIELD_NAME_RESETTIMESTAMP, timestamp ) ;
 
       monDumpLastOpInfo( ob, full._monApplCB ) ;
 
@@ -881,7 +508,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MONDUMPINDEXES, "monDumpIndexes" )
-   INT32 monDumpIndexes( MON_IDX_LIST &indexes, rtnContextDump *context )
+   INT32 monDumpIndexes( vector<monIndex> &indexes, rtnContextDump *context )
    {
       INT32 rc = SDB_OK ;
       string flagDesp ;
@@ -890,10 +517,9 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_MONDUMPINDEXES ) ;
       try
       {
-         MON_IDX_LIST::iterator it ;
+         std::vector<monIndex>::iterator it ;
          for ( it = indexes.begin(); it!=indexes.end(); ++it )
          {
-            UINT16 idxType = IXM_EXTENT_TYPE_NONE ;
             monIndex &indexItem = (*it) ;
             BSONObj &indexObj = indexItem._indexDef ;
             BSONObj obj ;
@@ -929,8 +555,6 @@ namespace engine
                builder.append ( IXM_FIELD_NAME_SCAN_EXTLID,
                                 indexItem._scanExtLID ) ;
             }
-            indexItem.getIndexType( idxType ) ;
-            builder.append( FIELD_NAME_TYPE, getIndexTypeDesp( idxType ) ) ;
             obj = builder.obj() ;
             rc = context->monAppend( obj ) ;
             if ( rc )
@@ -957,57 +581,14 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MONRESETMON, "monResetMon" )
-   void monResetMon ( RTN_COMMAND_TYPE type, BOOLEAN resetAllEDU,
-                      EDUID eduID )
+   void monResetMon ()
    {
       PD_TRACE_ENTRY ( SDB_MONRESETMON ) ;
-
       pmdKRCB *krcb = pmdGetKRCB() ;
       monDBCB *mondbcb = krcb->getMonDBCB () ;
       pmdEDUMgr *mgr = krcb->getEDUMgr() ;
-      pmdStartupHstLogger *startLogger = pmdGetStartupHstLogger() ;
-      switch ( type )
-      {
-         case CMD_SNAPSHOT_ALL :
-         {
-            mondbcb->reset () ;
-            mgr->resetMon () ;
-            pmdResetErrNum () ;
-            startLogger->clearAll() ;
-            break ;
-         }
-         case CMD_SNAPSHOT_DATABASE :
-         {
-            mondbcb->reset () ;
-            break ;
-         }
-         case CMD_SNAPSHOT_SESSIONS :
-         {
-            if ( resetAllEDU )
-            {
-               mgr->resetMon () ;
-            }
-            else
-            {
-               mgr->resetMon( eduID ) ;
-            }
-            break ;
-         }
-         case CMD_SNAPSHOT_SESSIONS_CURRENT :
-         {
-            pmdGetThreadEDUCB()->resetMon() ;
-            break ;
-         }
-         case CMD_SNAPSHOT_HEALTH :
-         {
-            pmdResetErrNum () ;
-            startLogger->clearAll() ;
-            break ;
-         }
-         default :
-            break ;
-      }
-
+      mgr->resetMon () ;
+      mondbcb->reset () ;
       PD_TRACE_EXIT ( SDB_MONRESETMON ) ;
    }
 
@@ -1021,20 +602,17 @@ namespace engine
          BSONObj obj ;
          BSONObjBuilder builder ;
          pdTraceCB *traceCB = sdbGetPDTraceCB() ;
-         BOOLEAN traceStarted = traceCB->isStarted() ;
+         BOOLEAN traceStarted = traceCB->_traceStarted.peek() ;
          builder.appendBool ( FIELD_NAME_TRACESTARTED, traceStarted ) ;
          if ( traceStarted )
          {
             builder.appendBool ( FIELD_NAME_WRAPPED,
-                                 traceCB->isWrapped() ) ;
+                                 traceCB->_currentSlot.peek() >
+                                 traceCB->getSlotNum() ) ;
             builder.appendNumber ( FIELD_NAME_SIZE,
-                                   (INT32)traceCB->getSize() ) ;
-            builder.append( FIELD_NAME_FREE_SIZE,
-                            (INT32)traceCB->getFreeSize() ) ;
-#ifdef _DEBUG
-            builder.append( "PadSize", (INT64)traceCB->getPadSize() ) ;
-#endif // _DEBUG
-            BSONArrayBuilder arr( builder.subarrayStart( FIELD_NAME_MASK ) ) ;
+                                   (INT32)(traceCB->getSlotNum() *
+                                           TRACE_SLOT_SIZE) ) ;
+            BSONArrayBuilder arr ;
             for ( INT32 i = 0; i < _pdTraceComponentNum; ++i )
             {
                UINT32 mask = ((UINT32)1)<<i ;
@@ -1043,25 +621,16 @@ namespace engine
                   arr.append ( pdGetTraceComponent ( i ) ) ;
                }
             }
-            arr.done() ;
+            builder.append ( FIELD_NAME_MASK, arr.arr() ) ;
 
-            BSONArrayBuilder bpArr( builder.subarrayStart( FIELD_NAME_BREAKPOINTS ) ) ;
-            const UINT64 *bpList = traceCB->getBPList() ;
-            UINT32 bpNum = traceCB->getBPNum () ;
-            for ( UINT32 i = 0; i < bpNum; ++i )
+            BSONArrayBuilder bpArr;
+            const UINT64 *bpList = traceCB->getBPList () ;
+            INT32 bpNum = traceCB->getBPNum () ;
+            for ( INT32 i = 0; i < bpNum; ++i )
             {
                bpArr.append( pdGetTraceFunction( bpList[i] ) ) ;
             }
-            bpArr.done() ;
-
-            BSONArrayBuilder thdArr( builder.subarrayStart( FIELD_NAME_THREADS ) ) ;
-            const UINT32 *thdList = traceCB->getThreadFilterList() ;
-            UINT32 thdNum = traceCB->getThreadFilterNum() ;
-            for ( UINT32 i = 0 ; i < thdNum ; ++i )
-            {
-               thdArr.append( thdList[ i ] ) ;
-            }
-            thdArr.done() ;
+            builder.append( FIELD_NAME_BREAKPOINTS, bpArr.arr() );
          }
          obj = builder.obj() ;
          rc = context->monAppend( obj ) ;
@@ -1287,8 +856,8 @@ namespace engine
          pmdKRCB *pKrcb = pmdGetKRCB() ;
          monDBCB *pdbCB = pKrcb->getMonDBCB() ;
          SDB_ROLE role = pKrcb->getDBRole() ;
-         ob.append( FIELD_NAME_SVC_NETIN, (INT64)pdbCB->svcNetIn() ) ;
-         ob.append( FIELD_NAME_SVC_NETOUT, (INT64)pdbCB->svcNetOut() ) ;
+         ob.append( FIELD_NAME_SVC_NETIN, pdbCB->svcNetIn() ) ;
+         ob.append( FIELD_NAME_SVC_NETOUT, pdbCB->svcNetOut() ) ;
          if ( SDB_ROLE_DATA == role ||
               SDB_ROLE_CATALOG == role )
          {
@@ -1796,17 +1365,17 @@ namespace engine
          for ( itSet = setInfo.begin() ; itSet != setInfo.end() ; ++itSet )
          {
             const monContextFull &ctx = *itSet ;
-            ossTimestamp startTime( ctx._monContext.getStartTimestamp() ) ;
+            ossTimestamp startTime = ctx._monContext._startTimestamp ;
             BSONObjBuilder sub( ba.subobjStart() ) ;
 
             sub.append( FIELD_NAME_CONTEXTID, ctx._contextID );
             sub.append( FIELD_NAME_TYPE, ctx._typeDesp ) ;
             sub.append( FIELD_NAME_DESP, ctx._info ) ;
             sub.append( FIELD_NAME_DATAREAD,
-                        (SINT64)ctx._monContext.getDataRead() );
+                        (SINT64)ctx._monContext.dataRead );
             sub.append( FIELD_NAME_INDEXREAD,
-                        (SINT64)ctx._monContext.getIndexRead() ) ;
-            ctx._monContext.getQueryTime().convertToTime ( factor,
+                        (SINT64)ctx._monContext.indexRead ) ;
+            ctx._monContext.queryTimeSpent.convertToTime ( factor,
                                                            seconds,
                                                            microseconds ) ;
             sub.append( FIELD_NAME_QUERYTIMESPENT,
@@ -2160,7 +1729,7 @@ namespace engine
       try
       {
          BSONObjBuilder ob ;
-         MON_CL_SIM_LIST::iterator it ;
+         std::set< monCLSimple >::iterator it ;
 
          it = _collectionList.begin() ;
          const monCLSimple &simple = *it ;
@@ -2203,8 +1772,8 @@ namespace engine
       try
       {
          BSONObjBuilder ob( MON_DUMP_DFT_BUILDER_SZ / 2 ) ;
-         MON_CL_LIST::iterator it ;
-         MON_CL_DETAIL_MAP::const_iterator itDetail ;
+         std::set< monCollection >::iterator it ;
+         std::map<UINT32, detailedInfo>::const_iterator itDetail ;
 
          it = _collectionInfo.begin() ;
          const monCollection &full = *it ;
@@ -2334,7 +1903,7 @@ namespace engine
 
       if ( !_detail )
       {
-         dmsCB->dumpInfo( _csList, _includeSys, FALSE, FALSE ) ;
+         dmsCB->dumpInfo( _csList, _includeSys ) ;
          _hitEnd = _csList.empty() ? TRUE : FALSE ;
       }
       else
@@ -2400,7 +1969,7 @@ namespace engine
       try
       {
          BSONObjBuilder ob ;
-         MON_CS_SIM_LIST::iterator it ;
+         std::set< monCSSimple >::iterator it ;
 
          it = _csList.begin() ;
          const monCSSimple &simple = *it ;
@@ -2446,8 +2015,8 @@ namespace engine
          INT64 dataCapSize    = 0 ;
          INT64 lobCapSize     = 0 ;
          BSONObjBuilder ob( MON_DUMP_DFT_BUILDER_SZ / 2 ) ;
-         MON_CS_LIST::iterator it ;
-         MON_CL_DETAIL_MAP::const_iterator itDetail ;
+         std::set< monCollectionSpace >::iterator it ;
+         std::map<UINT32, detailedInfo>::const_iterator itDetail ;
 
          it = _csInfo.begin() ;
          const monCollectionSpace &full = *it ;
@@ -2458,7 +2027,7 @@ namespace engine
          BSONArrayBuilder sub( ob.subarrayStart( FIELD_NAME_COLLECTION ) ) ;
          if ( ossStrcmp ( full._name, SDB_DMSTEMP_NAME ) != 0 )
          {
-            MON_CL_SIM_VEC::const_iterator it1 ;
+            std::vector<monCLSimple>::const_iterator it1 ;
             for ( it1 = full._collections.begin();
                   it1!= full._collections.end();
                   it1++ )
@@ -2500,7 +2069,7 @@ namespace engine
          ob.appendBool ( FIELD_NAME_LOB_COMMITTED, full._lobIsValid ) ;
 
          ob.append ( FIELD_NAME_DIRTY_PAGE, (INT32)full._dirtyPage ) ;
-         ob.append( FIELD_NAME_TYPE, (INT32)full._type ) ;
+
          obj = ob.obj() ;
 
          _csInfo.erase( it ) ;
@@ -2601,7 +2170,7 @@ namespace engine
                      (SINT32)mgr->sizeSystem() ) ;
          ob.append ( FIELD_NAME_CURRENTCONTEXTS, (SINT32)rtnCB->contextNum() ) ;
          ob.append ( FIELD_NAME_RECEIVECOUNT,
-                     (INT64)mondbcb->getReceiveNum() ) ;
+                     (SINT32)mondbcb->getReceiveNum() ) ;
          ob.append ( FIELD_NAME_ROLE, krcb->getOptionCB()->dbroleStr() ) ;
 
          {
@@ -2694,6 +2263,17 @@ namespace engine
       INT64 cpuSys         = 0 ;
       INT64 cpuIdle        = 0 ;
       INT64 cpuOther       = 0 ;
+      INT32 memLoadPercent = 0 ;
+      INT64 memTotalPhys   = 0 ;
+      INT64 memAvailPhys   = 0 ;
+      INT64 memTotalPF     = 0 ;
+      INT64 memAvailPF     = 0 ;
+      INT64 memTotalVirtual= 0 ;
+      INT64 memAvailVirtual= 0 ;
+      INT64 diskTotalBytes = 0 ;
+      INT64 diskFreeBytes  = 0 ;
+      const CHAR *dbPath   = pmdGetOptionCB()->getDbPath () ;
+      CHAR fsName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 
       if ( _hitEnd )
       {
@@ -2705,6 +2285,23 @@ namespace engine
        if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to get cpu info, rc = %d", rc ) ;
+         goto error ;
+      }
+      rc = ossGetMemoryInfo ( memLoadPercent,
+                              memTotalPhys, memAvailPhys,
+                              memTotalPF, memAvailPF,
+                              memTotalVirtual, memAvailVirtual ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to get memory info, rc = %d", rc ) ;
+         goto error ;
+      }
+
+      rc = ossGetDiskInfo ( dbPath, diskTotalBytes, diskFreeBytes, fsName,
+                            OSS_MAX_PATHSIZE + 1 ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to get disk info, rc = %d", rc ) ;
          goto error ;
       }
 
@@ -2721,8 +2318,38 @@ namespace engine
             cpuOb.append ( FIELD_NAME_OTHER, ((FLOAT64)cpuOther)/1000 ) ;
             cpuOb.done() ;
          }
-         monAppendHostMemory( ob ) ;
-         monAppendDisk( ob ) ;
+         {
+            BSONObjBuilder memOb( ob.subobjStart( FIELD_NAME_MEMORY ) ) ;
+            memOb.append ( FIELD_NAME_LOADPERCENT, memLoadPercent ) ;
+            memOb.append ( FIELD_NAME_TOTALRAM, memTotalPhys ) ;
+            memOb.append ( FIELD_NAME_FREERAM, memAvailPhys ) ;
+            memOb.append ( FIELD_NAME_TOTALSWAP, memTotalPF ) ;
+            memOb.append ( FIELD_NAME_FREESWAP, memAvailPF ) ;
+            memOb.append ( FIELD_NAME_TOTALVIRTUAL, memTotalVirtual ) ;
+            memOb.append ( FIELD_NAME_FREEVIRTUAL, memAvailVirtual ) ;
+            memOb.done() ;
+         }
+         {
+            BSONObjBuilder diskOb( ob.subobjStart( FIELD_NAME_DISK ) ) ;
+            INT32 loadPercent = 0 ;
+            if ( diskTotalBytes != 0 )
+            {
+               loadPercent = 100 * ( diskTotalBytes - diskFreeBytes ) /
+                             diskTotalBytes ;
+               loadPercent = loadPercent > 100 ? 100 : loadPercent ;
+               loadPercent = loadPercent < 0 ? 0 : loadPercent ;
+            }
+            else
+            {
+               loadPercent = 0 ;
+            }
+            diskOb.append ( FIELD_NAME_NAME, fsName ) ;
+            diskOb.append ( FIELD_NAME_DATABASEPATH, dbPath ) ;
+            diskOb.append ( FIELD_NAME_LOADPERCENT, loadPercent ) ;
+            diskOb.append ( FIELD_NAME_TOTALSPACE, diskTotalBytes ) ;
+            diskOb.append ( FIELD_NAME_FREESPACE, diskFreeBytes ) ;
+            diskOb.done() ;
+         }
          obj = ob.obj() ;
       }
       catch ( std::exception &e )
@@ -2736,106 +2363,6 @@ namespace engine
       _hitEnd = TRUE ;
 
    done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   /*
-      _monHealthFetch implement
-   */
-   IMPLEMENT_FETCH_AUTO_REGISTER( _monHealthFetch, RTN_FETCH_HEALTH )
-
-   _monHealthFetch::_monHealthFetch()
-   {
-      _addInfoMask   = 0 ;
-      _hitEnd        = TRUE ;
-   }
-
-   _monHealthFetch::~_monHealthFetch()
-   {
-   }
-
-   INT32 _monHealthFetch::init( pmdEDUCB *cb,
-                                BOOLEAN isCurrent,
-                                BOOLEAN isDetail,
-                                UINT32 addInfoMask,
-                                const BSONObj obj )
-   {
-      _addInfoMask = addInfoMask ;
-      _hitEnd = FALSE ;
-
-      return SDB_OK ;
-   }
-
-   const CHAR* _monHealthFetch::getName() const
-   {
-      return CMD_NAME_SNAPSHOT_HEALTH ;
-   }
-
-   BOOLEAN _monHealthFetch::isHitEnd() const
-   {
-      return _hitEnd ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__MONHEALTHFETCH_FETCH, "_monHealthFetch::fetch" )
-   INT32 _monHealthFetch::fetch( BSONObj &obj )
-   {
-      PD_TRACE_ENTRY ( SDB__MONHEALTHFETCH_FETCH ) ;
-      INT32 rc             = SDB_OK ;
-      pmdKRCB *krcb        = pmdGetKRCB() ;
-
-      if ( _hitEnd )
-      {
-         rc = SDB_DMS_EOC ;
-         goto error ;
-      }
-
-      try
-      {
-         BSONObjBuilder ob( MON_DUMP_DFT_BUILDER_SZ ) ;
-
-         monAppendSystemInfo ( ob, _addInfoMask ) ;
-
-         const CHAR* dataStatus = utilDataStatusStr( pmdGetStartup().isOK(),
-                                                     krcb->getDBStatus() ) ;
-         ob.append( FIELD_NAME_DATA_STATUS, dataStatus ) ;
-
-         ob.appendBool( FIELD_NAME_SYNC_CONTROL, krcb->isInFlowControl()  ) ;
-
-         monAppendUlimit( ob ) ;
-
-         pmdOccurredErr numErr = pmdGetOccurredErr();
-         BSONObjBuilder errOb( ob.subobjStart( FIELD_NAME_ERRNUM ) ) ;
-         errOb.append( FIELD_NAME_OOM,        (INT64)numErr._oom ) ;
-         errOb.append( FIELD_NAME_NOSPC,      (INT64)numErr._noSpc ) ;
-         errOb.append( FIELD_NAME_TOOMANY_OF, (INT64)numErr._tooManyOpenFD ) ;
-         errOb.done() ;
-
-         monAppendNodeMemory( ob ) ;
-
-         monAppendDisk( ob, FALSE ) ;
-
-         monAppendFileDesp( ob ) ;
-
-         monAppendStartInfo( ob ) ;
-
-         monAppendDiffLSN( ob ) ;
-
-         obj = ob.obj() ;
-      }
-      catch ( std::exception &e )
-      {
-         PD_LOG ( PDERROR, "Failed to generate health snapshot: %s",
-                  e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      _hitEnd = TRUE ;
-
-   done:
-      PD_TRACE_EXITRC ( SDB__MONHEALTHFETCH_FETCH, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -2921,7 +2448,7 @@ namespace engine
       try
       {
          BSONObjBuilder ob( MON_DUMP_DFT_BUILDER_SZ / 2 ) ;
-         MON_SU_LIST::iterator it ;
+         std::set< monStorageUnit >::iterator it ;
 
          it = _suInfo.begin() ;
          const monStorageUnit &su = *it ;
@@ -3492,149 +3019,5 @@ namespace engine
       goto done ;
    }
 
-   /*
-      _monCachedPlanFetch implement
-    */
-   IMPLEMENT_FETCH_AUTO_REGISTER( _monAccessPlansFetch, RTN_FETCH_ACCESSPLANS )
-   _monAccessPlansFetch::_monAccessPlansFetch ()
-   {
-      _hitEnd = TRUE ;
-      _pos = 0 ;
-   }
-
-   _monAccessPlansFetch::~_monAccessPlansFetch ()
-   {
-   }
-
-   INT32 _monAccessPlansFetch::init ( pmdEDUCB *cb,
-                                      BOOLEAN isCurrent,
-                                      BOOLEAN isDetail,
-                                      UINT32 addInfoMask,
-                                      const BSONObj obj )
-   {
-      INT32 rc = SDB_OK ;
-
-      pmdKRCB *krcb = pmdGetKRCB() ;
-      _SDB_RTNCB *rtnCB = krcb->getRTNCB() ;
-      optAccessPlanManager *apm = rtnCB->getAPM() ;
-
-      try
-      {
-         if ( apm->isInitialized() )
-         {
-            optAccessPlanCache *planCache = apm->getPlanCache() ;
-
-            if ( addInfoMask != 0 )
-            {
-               BSONObjBuilder infoBuilder ;
-
-               rc = monAppendSystemInfo( infoBuilder, addInfoMask ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to append system info, "
-                            "rc: %d", rc ) ;
-
-               _sysInfo = infoBuilder.obj() ;
-               _addInfoMask = addInfoMask ;
-            }
-
-            rc = planCache->getCachedPlanList( _cachedPlanList ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to get list of cached plans, "
-                         "rc: %d", rc ) ;
-         }
-      }
-      catch ( std::exception &e )
-      {
-         PD_LOG( PDERROR, "Failed to create BSON objects for access plans: %s",
-                 e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      _hitEnd = _cachedPlanList.empty() ? TRUE : FALSE ;
-      _pos = 0 ;
-
-   done :
-      return rc ;
-   error :
-      _cachedPlanList.clear() ;
-      goto done ;
-   }
-
-   const CHAR* _monAccessPlansFetch::getName () const
-   {
-      return CMD_NAME_SNAPSHOT_ACCESSPLANS ;
-   }
-
-   BOOLEAN _monAccessPlansFetch::isHitEnd () const
-   {
-      return _hitEnd ;
-   }
-
-   INT32 _monAccessPlansFetch::fetch ( BSONObj &obj )
-   {
-      INT32 rc = SDB_OK ;
-
-      if ( _hitEnd )
-      {
-         rc = SDB_DMS_EOC ;
-         goto error ;
-      }
-
-      rc = _fetchNext( obj ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
-
-   done :
-      return rc ;
-   error :
-      goto done ;
-   }
-
-   INT32 _monAccessPlansFetch::_fetchNext ( BSONObj &obj )
-   {
-      INT32 rc = SDB_OK ;
-
-      if ( _pos >= _cachedPlanList.size() )
-      {
-         _hitEnd = TRUE ;
-         rc = SDB_DMS_EOC ;
-         goto error ;
-      }
-
-      if ( 0 == _addInfoMask )
-      {
-         obj = _cachedPlanList[ _pos++ ] ;
-      }
-      else
-      {
-         try
-         {
-            BSONObjBuilder builder( MON_DUMP_DFT_BUILDER_SZ / 2 ) ;
-
-            builder.appendElements( _sysInfo ) ;
-            builder.appendElements( _cachedPlanList[ _pos++ ] ) ;
-
-            obj = builder.obj() ;
-         }
-         catch ( std::exception &e )
-         {
-            PD_LOG ( PDERROR, "Failed to create BSON objects for "
-                     "backups: %s", e.what() ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-      }
-
-      if ( _pos >= _cachedPlanList.size() )
-      {
-         _hitEnd = TRUE ;
-      }
-
-   done :
-      return rc ;
-   error :
-      goto done ;
-   }
-
 }
+

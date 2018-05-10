@@ -67,33 +67,3 @@ If you also want to generate sourcecode and javadoc package, run command:
 ```
 mvn clean package -Prelease
 ```
-
-##Release to Central Repository##
-```
-mvn clean deploy -Prelease
-```
-Note that you should have a OSSRH JIRA account and executable "pgp" command in local host.
-See http://central.sonatype.org/pages/ossrh-guide.html for details.
-And you should configure password of GPG secret key and OSSRH JIRA account in ~/.m2/settings.xml:
-```
-<profiles>
-    <profile>
-        <id>ossrh</id>
-        <activation>
-            <activeByDefault>true</activeByDefault>
-        </activation>
-        <properties>
-            <gpg.passphrase>password of GPG secret key</gpg.passphrase>
-        </properties>
-    </profile>
-</profiles>
-
-<servers>
-    <server>
-        <id>ossrh</id>
-        <username>your JIRA username</username>
-        <password>your JIRA password</password>
-    </server>
-</servers>
-
-```

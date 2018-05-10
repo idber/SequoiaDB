@@ -68,10 +68,10 @@ namespace engine
       {
          std::cerr << "Failed to open config file: "
                    <<( std::string ) file << std::endl ;
-         rc = ossAccess( file, OSS_MODE_READ ) ;
+         rc = ossAccess( file ) ;
          if ( SDB_OK == rc )
          {
-            rc = SDB_TOO_MANY_OPEN_FD ;
+            rc = SDB_PERM ;
          }
          goto error ;
       }
@@ -557,6 +557,7 @@ namespace engine
          INT64 curSoft = 0, curHard = 0 ;
          BOOLEAN hasGot = FALSE ;
 
+         procLim.init() ;
          hasGot = procLim.getLimit( limStr.c_str(), curSoft, curHard ) ;
          if ( !hasGot ||  curSoft != limVal )
          {

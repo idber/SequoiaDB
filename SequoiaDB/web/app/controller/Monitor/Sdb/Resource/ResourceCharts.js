@@ -1,8 +1,7 @@
-//@ sourceURL=ResourceCharts.js
 (function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
-   sacApp.controllerProvider.register( 'Monitor.SdbResource.ResourceCharts.Ctrl', function( $scope, $location, $timeout, SdbRest, SdbFunction ){
+   sacApp.controllerProvider.register( 'Monitor.SdbResource.ResourceCharts.Ctrl', function( $scope, $location, SdbRest, SdbFunction ){
       
       _IndexPublic.checkMonitorEdition( $location ) ; //检测是不是企业版
 
@@ -85,7 +84,7 @@
             'failed': function( errorInfo ){
                updateStatus['Procedures'] = null ;
                updateToCharts() ;
-               $timeout( getProceduresNum, 1000 ) ;
+               getProceduresNum() ;
             }
          }, {
             'showLoading': false,
@@ -110,7 +109,7 @@
             'failed': function( errorInfo ){
                updateStatus['Sessions'] = null ;
                updateToCharts() ;
-               $timeout( getSessionsNum, 1000 ) ;
+               getSessionsNum() ;
             }
          }, {
             'showLoading': false,
@@ -136,8 +135,7 @@
             'failed': function( errorInfo ){
                updateStatus['Contexts'] = null ;
                updateToCharts() ;
-               $timeout( getContextsNum, 1000 ) ;
-               
+               getContextsNum() ;
             }
          }, {
             'showLoading': false,
@@ -163,7 +161,7 @@
             'failed': function( errorInfo ){
                updateStatus['Transaction'] = null ;
                updateToCharts() ;
-               $timeout( getTransactionsNum, 1000 ) ;
+               getTransactionsNum() ;
             }
          }, {
             'showLoading': false,

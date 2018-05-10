@@ -1,5 +1,4 @@
-﻿//@ sourceURL=Data.js
-(function(){
+﻿(function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
    sacApp.controllerProvider.register( 'Data.SQL.Data.Ctrl', function( $scope, $location, $compile, SdbFunction, SdbRest ){

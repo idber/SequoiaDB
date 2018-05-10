@@ -102,22 +102,7 @@ namespace engine
       goto done ;
    }
 
-   BOOLEAN _qgmPlan::needRollback() const
-   {
-      BOOLEAN isNeedRollback = FALSE ;
-      for ( UINT32 i = 0 ; i < _input.size() ; ++i )
-      {
-         const _qgmPlan *pPlan = _input[i] ;
-         if ( pPlan->needRollback() )
-         {
-            isNeedRollback = TRUE ;
-            break ;
-         }
-      }
-      return isNeedRollback ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLAN_EXECUTE, "_qgmPlan::execute" )
+   PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLAN_EXECUTE, "_qgmPlan::execute" )
    INT32 _qgmPlan::execute( _pmdEDUCB *eduCB )
    {
       PD_TRACE_ENTRY( SDB__QGMPLAN_EXECUTE ) ;
@@ -153,7 +138,7 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLAN_FETCHNEXT, "_qgmPlan::fetchNext" )
+   PD_TRACE_DECLARE_FUNCTION( SDB__QGMPLAN_FETCHNEXT, "_qgmPlan::fetchNext" )
    INT32 _qgmPlan::fetchNext( qgmFetchOut &next )
    {
       PD_TRACE_ENTRY( SDB__QGMPLAN_FETCHNEXT ) ;

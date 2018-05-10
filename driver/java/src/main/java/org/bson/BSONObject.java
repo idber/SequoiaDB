@@ -125,18 +125,22 @@ public interface BSONObject extends Serializable {
 	public Set<String> keySet();
 
 	/**
-	 * Return an instance of the class "cls", only for BasicBSONObject.
-	 * @param cls target class object
+	 * @fn <T> T as(Class<T> cls, Type eleType)
+	 * @brief an instance of the class "cls", only for BasicBSONObject
+	 * @param cls
+	 *            target class object
 	 * @return the instance of the class
-	 * @throws Exception If error happens.
+	 * @throws Exception
 	 */
 	public /*! @cond x*/ <T> /*! @endcond */ T as(Class<T> cls, Type eleType) throws Exception;
 
 	/**
-     * Return an instance of the class "cls", only for BasicBSONObject.
-	 * @param cls target class object
+	 * @fn <T> T as(Class<T> cls)
+	 * @brief Returns an instance of the class "cls", only for BasicBSONObject
+	 * @param cls
+	 *            target class object
 	 * @return the instance of the class
-	 * @throws Exception If error happens.
+	 * @throws Exception
 	 */
 	public /*! @cond x*/ <T> /*! @endcond */ T as(Class<T> cls) throws Exception;
 

@@ -35,6 +35,7 @@ import java.util.logging.*;
  * </table>
  * </pre></blockquote>
  *
+ * @dochub objectids
  */
 public class ObjectId implements Comparable<ObjectId> , java.io.Serializable {
 

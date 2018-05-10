@@ -37,10 +37,8 @@
 #include "../bson/bsonobj.h"
 #include "utilJsonFile.hpp"
 #include "ixm.hpp"
-#include "dms.hpp"
 #include <sstream>
 #include <iostream>
-#include <boost/filesystem.hpp>
 #include <boost/filesystem/path.hpp>
 
 namespace fs = boost::filesystem ;
@@ -52,8 +50,6 @@ using namespace std;
 
 namespace replay
 {
-   #define RPL_DUMP_FIELD_WIDTH 8
-
    #define RPL_WATCH_INTERVAL (10 * 1000) // seconds
 
    #define RPL_STATUS_INTERVAL (1000)
@@ -67,7 +63,7 @@ namespace replay
    #define RPL_DEFLATE_SUFFIX                ".deflate"
    #define RPL_INFLATE_SUFFIX                ".inflate"
 
-   static volatile BOOLEAN _isRunning = FALSE;
+   BOOLEAN _isRunning = FALSE;
 
    static void _stop(INT32 sigNum)
    {
@@ -108,18 +104,13 @@ namespace replay
    Replayer::Replayer()
    {
       _options = NULL;
-      _sdb = NULL;
       _buf = NULL;
       _bufSize = 0;
    }
 
    Replayer::~Replayer()
    {
-      if (NULL != _sdb)
-      {
-         _sdb->disconnect();
-         SAFE_OSS_DELETE(_sdb);
-      }
+      _sdb.disconnect();
 
       if (!_tmpFile.empty())
       {
@@ -201,16 +192,58 @@ namespace replay
    INT32 Replayer::run()
    {
       INT32 rc = SDB_OK;
+      BOOLEAN printResult = TRUE;
 
       _isRunning = TRUE;
 
       if (SDB_OSS_FIL == _options->pathType())
       {
-         rc = _replayFile();
+         if (_options->deflate())
+         {
+            printResult = FALSE;
+
+            rc = _deflateFile(_path);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "Failed to deflate file[%s], rc=%d",
+                      _path.c_str(), rc);
+               goto error;
+            }
+         }
+         else if (_options->inflate())
+         {
+            printResult = FALSE;
+
+            rc = _inflateFile(_path);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "Failed to inflate file[%s], rc=%d",
+                      _path.c_str(), rc);
+               goto error;
+            }
+         }
+         else
+         {
+            rc = _replayFile(_path);
+            if (SDB_OK != rc)
+            {
+               PD_LOG(PDERROR, "Failed to replay file[%s], rc=%d",
+                      _path.c_str(), rc);
+               goto error;
+            }
+         }
       }
       else if (SDB_OSS_DIR == _options->pathType())
       {
+         _archiveFileMgr.setArchivePath(_path);
+
          rc = _replayDir();
+         if (SDB_OK != rc)
+         {
+            PD_LOG(PDERROR, "Failed to replay log files in directory[%s], rc=%d",
+                   _path.c_str(), rc);
+            goto error;
+         }
       }
       else
       {
@@ -229,7 +262,7 @@ namespace replay
             PD_LOG(PDERROR, "Failed to write status, rc=%d", rc);
          }
       }
-      if (!_options->inflate() && !_options->deflate())
+      if (printResult)
       {
          PD_LOG(PDINFO, "Replay result:\n%s", _monitor.dump().c_str());
       }
@@ -239,187 +272,7 @@ namespace replay
       goto done;
    }
 
-   INT32 Replayer::_replayFile()
-   {
-      INT32 rc = SDB_OK;
-
-      SDB_ASSERT(SDB_OSS_FIL == _options->pathType(), "path is not file");
-
-      if (_options->deflate())
-      {
-         rc = _deflateFile(_path);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "Failed to deflate file[%s], rc=%d",
-                   _path.c_str(), rc);
-            goto error;
-         }
-      }
-      else if (_options->inflate())
-      {
-         rc = _inflateFile(_path);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "Failed to inflate file[%s], rc=%d",
-                   _path.c_str(), rc);
-            goto error;
-         }
-      }
-      else
-      {
-         BOOLEAN isArchive = FALSE;
-         UINT32 fileSize = 0;
-         UINT32 fileNum = 0;
-         UINT32 fileId = DPS_INVALID_LOG_FILE_ID;
-
-         rc = _isDpsLogFile(_path, isArchive, fileSize, fileNum, fileId);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "Failed to check if file[%s] is log file, rc=%d",
-                   _path.c_str(), rc);
-            goto error;
-         }
-
-         if (!isArchive && !_options->isReplicaFile())
-         {
-            rc = SDB_SYS;
-            PD_LOG(PDERROR, "File[%s] is not archive file, rc=%d",
-                   _path.c_str(), rc);
-            goto error;
-         }
-
-         if (_options->isReplicaFile())
-         {
-            rc = _replayReplicaFile(_path, fileSize, fileNum);
-         }
-         else
-         {
-            rc = _replayArchiveFile(_path);
-         }
-
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "Failed to replay file[%s], rc=%d",
-                   _path.c_str(), rc);
-            goto error;
-         }
-      }
-
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 Replayer::_replayDir()
-   {
-      INT32 rc = SDB_OK;
-
-      if (_options->isReplicaFile())
-      {
-         rc = _replayReplicaDir();
-      }
-      else
-      {
-         _archiveFileMgr.setArchivePath(_path);
-
-         rc = _replayArchiveDir();
-      }
-
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "Failed to replay log files in directory[%s], rc=%d",
-                _path.c_str(), rc);
-         goto error;
-      }
-
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 Replayer::_isDpsLogFile(const string& path, BOOLEAN& isArchive,
-                                      UINT32& fileSize, UINT32& fileNum, UINT32& fileId)
-   {
-      INT32 rc = SDB_OK;
-      BOOLEAN exist = FALSE;
-      ossFile file;
-      _dpsLogHeader* logHeader = NULL;
-      dpsArchiveHeader* archiveHeader = NULL;
-      INT64 readSize = 0;
-
-      isArchive = FALSE;
-
-      rc = ossFile::exists( path, exist );
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to check existence of file[%s], rc=%d",
-                 path.c_str(), rc );
-         goto error;
-      }
-
-      rc = file.open( path, OSS_READONLY, OSS_DEFAULTFILE );
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to open file[%s], rc=%d",
-                 path.c_str(), rc );
-         goto error;
-      }
-
-      logHeader = SDB_OSS_NEW _dpsLogHeader();
-      if ( NULL == logHeader )
-      {
-         rc = SDB_OOM;
-         PD_LOG ( PDERROR, "Failed to create new _dpsLogHeader!" );
-         goto error;
-      }
-
-      archiveHeader = ( dpsArchiveHeader* )
-                      ( (CHAR*)logHeader + DPS_ARCHIVE_HEADER_OFFSET );
-
-      rc = file.readN( (CHAR*)logHeader, DPS_LOG_HEAD_LEN, readSize );
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to read file header, rc=%d", rc ) ;
-         goto error ;
-      }
-
-      if (readSize != DPS_LOG_HEAD_LEN)
-      {
-         rc = SDB_DPS_FILE_NOT_RECOGNISE ;
-         PD_LOG( PDWARNING, "DPS file header length error, rc=%d", rc ) ;
-         goto error ;
-      }
-
-      if (0 != ossStrncmp(logHeader->_eyeCatcher,
-                          DPS_LOG_HEADER_EYECATCHER,
-                          DPS_LOG_HEADER_EYECATCHER_LEN))
-      {
-         rc = SDB_DPS_FILE_NOT_RECOGNISE ;
-         PD_LOG( PDWARNING, "DPS file eye catcher error, rc=%d", rc ) ;
-         goto error ;
-      }
-
-      fileSize = logHeader->_fileSize;
-      fileNum = logHeader->_fileNum;
-      fileId = logHeader->_logID;
-
-      if (0 == ossStrncmp(archiveHeader->eyeCatcher,
-                          DPS_ARCHIVE_HEADER_EYECATCHER,
-                          DPS_ARCHIVE_HEADER_EYECATCHER_LEN))
-      {
-         isArchive = TRUE;
-      }
-
-   done:
-      SAFE_OSS_DELETE(logHeader);
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 Replayer::_replayArchiveFile(const string& file)
+   INT32 Replayer::_replayFile(const string& file)
    {
       INT32 rc = SDB_OK;
       dpsArchiveHeader* archiveHeader = NULL;
@@ -550,94 +403,6 @@ namespace replay
       goto done;
    }
 
-   INT32 Replayer::_replayReplicaFile(const string& file,
-                                           UINT32 fileSize, UINT32 fileNum)
-   {
-      INT32 rc = SDB_OK ;
-      dpsLogFile logFile;
-      _dpsLogHeader* logHeader = NULL;
-      DPS_LSN_OFFSET startLSN = DPS_INVALID_LSN_OFFSET;
-      DPS_LSN_OFFSET endLSN = DPS_INVALID_LSN_OFFSET;
-
-      PD_LOG(PDEVENT, "Begin to replay replica log file[%s]",
-             file.c_str());
-
-      rc = _setLastFileTime(file);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      rc = logFile.init(file.c_str(), fileSize, fileNum);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "Failed to init replica log file[%s], rc=%d",
-                file.c_str(), rc);
-         goto error;
-      }
-
-      logHeader = &(logFile.header());
-
-      if (_filter.isFiltered(logFile))
-      {
-         DPS_LSN_OFFSET endLSN = (UINT64)fileSize * (logHeader->_logID + 1);
-         _monitor.setNextLSN(endLSN);
-         PD_LOG(PDEVENT, "Archive log file[%s] is filtered",
-                file.c_str());
-         goto done;
-      }
-
-      if (_monitor.getNextFileId() != DPS_INVALID_LOG_FILE_ID)
-      {
-         if (logHeader->_logID < _monitor.getNextFileId())
-         {
-            PD_LOG(PDINFO, "Replica log file[%s] is already replayed",
-                file.c_str());
-            goto done;
-         }
-      }
-
-      if (_options->dumpHeader())
-      {
-         _dumpReplicaFileHeader(logFile);
-
-         if (!_options->dump())
-         {
-            goto done;
-         }
-      }
-
-      startLSN = logFile.getFirstLSN().offset;
-      endLSN = startLSN + logFile.getLength();
-
-      rc = _replayLogFile(logFile, startLSN, endLSN);
-      if (SDB_OK != rc)
-      {
-         PD_LOG(PDERROR, "Failed to replay replica log file[%s], rc=%d",
-                file.c_str(), rc);
-         goto error;
-      }
-
-      PD_LOG(PDEVENT, "Replay replica log file[%s] successfully",
-             file.c_str());
-
-      if (_options->remove())
-      {
-         rc = ossFile::deleteFile(file);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "Failed to delete replica log file[%s], rc=%d",
-                   file.c_str(), rc);
-            goto error;
-         }
-      }
-
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
    INT32 Replayer::_replayLogFile(engine::dpsLogFile& logFile,
                                   DPS_LSN_OFFSET startLSN, DPS_LSN_OFFSET endLSN)
    {
@@ -740,7 +505,7 @@ namespace replay
             goto error;
          }
 
-         if (_filter.isFiltered(log, _options->dump()))
+         if (_filter.isFiltered(log))
          {
             _monitor.setLastLSN(currentLSN);
             currentLSN += logHeader._length;
@@ -814,9 +579,6 @@ namespace replay
       case LOG_TYPE_CL_TRUNC:
          rc = _replayTruncateCL(log);
          break;
-      case LOG_TYPE_DATA_POP:
-         rc = _replayPop(log) ;
-         break ;
       default:
          SDB_ASSERT(FALSE, "invalid log type");
       }
@@ -852,7 +614,7 @@ namespace replay
          goto error;
       }
 
-      rc = _sdb->getCollection(fullName, cl);
+      rc = _sdb.getCollection(fullName, cl);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "Failed to get collection:%s, lsn[%lld], rc=%d",
@@ -892,15 +654,12 @@ namespace replay
       BSONObj oldObj;
       BSONObj newMatch;
       BSONObj modifier;
-      BSONObj oldShardingKey ;
       BSONObj hint = BSON( "" << "$id" );
 
       SDB_ASSERT(LOG_TYPE_DATA_UPDATE == header._type, "not data update log");
 
       rc = dpsRecord2Update(log, &fullName,
-                            match, oldObj,
-                            newMatch, modifier,
-                            &oldShardingKey );
+                            match, oldObj, newMatch, modifier);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "Failed to parse log record[%lld], rc:%d",
@@ -908,7 +667,7 @@ namespace replay
          goto error;
       }
 
-      rc = _sdb->getCollection(fullName, cl);
+      rc = _sdb.getCollection(fullName, cl);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "Failed to get collection:%s, lsn[%lld], rc=%d",
@@ -916,19 +675,11 @@ namespace replay
          goto error ;
       }
 
-      if (!oldShardingKey.isEmpty() && _options->updateWithShardingKey())
-      {
-         BSONObjBuilder builder ;
-         builder.appendElements(match) ;
-         builder.appendElements(oldShardingKey) ;
-         match = builder.obj() ;
-      }
-
-      rc = cl.update(modifier, match, hint, UPDATE_KEEP_SHARDINGKEY);
+      rc = cl.update(modifier, match, hint);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "Failed to update record[%s:%s], lsn[%lld], rc=%d",
-                modifier.toString(FALSE, TRUE).c_str(),
+                modifier.toString(FALSE, TRUE).c_str(), 
                 match.toString(FALSE, TRUE).c_str(), header._lsn, rc);
          goto error ;
       }
@@ -946,7 +697,6 @@ namespace replay
       sdbCollection cl;
       const CHAR *fullName = NULL;
       BSONObj obj;
-      BSONObj condition;
       BSONObj hint = BSON( "" << "$id" );
 
       SDB_ASSERT(LOG_TYPE_DATA_DELETE == header._type, "not data delete log");
@@ -959,30 +709,15 @@ namespace replay
          goto error;
       }
 
-      {
-         BSONObjBuilder conditionBuilder;
-         BSONElement idEle = obj.getField( DMS_ID_KEY_NAME ) ;
-         if ( idEle.eoo() )
-         {
-            PD_LOG(PDWARNING, "Failed to parse oid from bson:[%s]",
-                   obj.toString().c_str());
-            rc = SDB_INVALIDARG;
-            goto error;
-         }
-
-         conditionBuilder.append( idEle ) ;
-         condition = conditionBuilder.obj() ;
-      }
-
-      rc = _sdb->getCollection(fullName, cl);
+      rc = _sdb.getCollection(fullName, cl);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "Failed to get collection: %s, lsn[%lld], rc=%d",
+         PD_LOG(PDERROR, "Failed to get collection: %s, lsn[%lld], rc=%d", 
                 fullName, header._lsn, rc);
          goto error;
       }
 
-      rc = cl.del(condition, hint);
+      rc = cl.del(obj, hint);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "Failed to delete record[%s], lsn[%lld], rc=%d",
@@ -1013,10 +748,10 @@ namespace replay
          goto error;
       }
 
-      rc = _sdb->getCollection(fullName, cl);
+      rc = _sdb.getCollection(fullName, cl);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "Failed to get collection: %s, lsn[%lld], rc=%d",
+         PD_LOG(PDERROR, "Failed to get collection: %s, lsn[%lld], rc=%d", 
                 fullName, header._lsn, rc);
          goto error;
       }
@@ -1035,145 +770,46 @@ namespace replay
       goto done;
    }
 
-   INT32 Replayer::_replayPop( const CHAR *log )
-   {
-      INT32 rc = SDB_OK ;
-      const dpsLogRecordHeader& header = *(const dpsLogRecordHeader*)log ;
-      const CHAR *fullName = NULL ;
-      sdbCollection cl ;
-      INT64 logicalID = 0 ;
-      INT8 direction = 1 ;
-
-      rc = dpsRecord2Pop( log, &fullName, logicalID, direction ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to parse log record[%lld], rc=%d",
-                 header._lsn, rc ) ;
-         goto error ;
-      }
-
-      rc  = _sdb->getCollection( fullName, cl ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to get collection: %s, lsn[%lld], rc=%d",
-                 fullName, header._lsn, rc ) ;
-         goto error ;
-      }
-
-      try
-      {
-         BSONObjBuilder builder ;
-         builder.append( FIELD_NAME_LOGICAL_ID, logicalID ) ;
-         builder.append( FIELD_NAME_DIRECTION, direction ) ;
-         BSONObj option = builder.obj() ;
-
-         rc = cl.pop( option ) ;
-         if ( rc )
-         {
-            if ( SDB_INVALIDARG == rc )
-            {
-               rc = SDB_OK ;
-            }
-            else
-            {
-               PD_LOG( PDERROR, "Failed to do pop[option: %s] on collection[%s], "
-                       "lsn[%lld], rc=%d", option.toString().c_str(), fullName,
-                       header._lsn, rc);
-               goto error ;
-            }
-         }
-      }
-      catch ( std::exception &e )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "unexpected exception: %s", e.what() ) ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
    void Replayer::_dumpArchiveFileHeader(dpsArchiveFile& archiveFile)
    {
+      #define FIELD_WIDTH 8
       dpsLogHeader* logHeader = archiveFile.getLogHeader();
       dpsArchiveHeader* archiveHeader = archiveFile.getArchiveHeader();
       stringstream ss;
 
-      ss << " " << left << setfill(' ') << setw(RPL_DUMP_FIELD_WIDTH) << "File" << ": "
+      ss << " " << left << setfill(' ') << setw(FIELD_WIDTH) << "File" << ": "
          << archiveFile.path()
          << endl;
 
-      ss << " " << left << setfill(' ') << setw(RPL_DUMP_FIELD_WIDTH) << "LogHead" << ": "
+      ss << " " << left << setfill(' ') << setw(FIELD_WIDTH) << "LogHead" << ": "
          << string(logHeader->_eyeCatcher, DPS_LOG_HEADER_EYECATCHER_LEN)
          << endl;
 
-      ss << " " << left << setfill(' ') << setw(RPL_DUMP_FIELD_WIDTH) << "LogID" << ": "
+      ss << " " << left << setfill(' ') << setw(FIELD_WIDTH) << "LogID" << ": "
          << logHeader->_logID
          << endl;
 
-      ss << " " << left << setfill(' ') << setw(RPL_DUMP_FIELD_WIDTH) << "FirstLSN" << ": "
+      ss << " " << left << setfill(' ') << setw(FIELD_WIDTH) << "FirstLSN" << ": "
          << "0x" << hex << right << setfill('0') << setw(16) << logHeader->_firstLSN.offset
          << "(" << dec << logHeader->_firstLSN.offset << ")"
          << endl;
 
-      ss << " " << left << setfill(' ') << setw(RPL_DUMP_FIELD_WIDTH) << "ArchHead" << ": "
+      ss << " " << left << setfill(' ') << setw(FIELD_WIDTH) << "ArchHead" << ": "
          << string(archiveHeader->eyeCatcher, DPS_ARCHIVE_HEADER_EYECATCHER_LEN)
          << endl;
 
-      ss << " " << left << setfill(' ') << setw(RPL_DUMP_FIELD_WIDTH) << "ArchFlag" << ": "
+      ss << " " << left << setfill(' ') << setw(FIELD_WIDTH) << "ArchFlag" << ": "
          << "0x" << hex << right << setfill('0') << setw(8) << archiveHeader->flag
          << endl;
 
-      ss << " " << left << setfill(' ') << setw(RPL_DUMP_FIELD_WIDTH) << "StartLSN" << ": "
+      ss << " " << left << setfill(' ') << setw(FIELD_WIDTH) << "StartLSN" << ": "
          << "0x" << hex << right << setfill('0') << setw(16) << archiveHeader->startLSN.offset
          << "(" << dec << archiveHeader->startLSN.offset << ")"
          << endl;
 
-      ss << " " << left << setfill(' ') << setw(RPL_DUMP_FIELD_WIDTH) << "EndLSN" << ": "
+      ss << " " << left << setfill(' ') << setw(FIELD_WIDTH) << "EndLSN" << ": "
          << "0x" << hex << right << setfill('0') << setw(16) << archiveHeader->endLSN.offset
          << "(" << dec << archiveHeader->endLSN.offset << ")"
-         << endl;
-
-      ss << " " << left << setfill(' ') << setw(RPL_DUMP_FIELD_WIDTH) << "FileSize" << ": "
-         << logHeader->_fileSize
-         << endl;
-
-      string out = ss.str();
-
-      cout << out << endl;
-   }
-
-   void Replayer::_dumpReplicaFileHeader(engine::dpsLogFile& logFile)
-   {
-      dpsLogHeader& logHeader = logFile.header();
-      stringstream ss;
-
-      ss << " " << left << setfill(' ') << setw(RPL_DUMP_FIELD_WIDTH) << "File" << ": "
-         << logFile.path()
-         << endl;
-
-      ss << " " << left << setfill(' ') << setw(RPL_DUMP_FIELD_WIDTH) << "LogHead" << ": "
-         << string(logHeader._eyeCatcher, DPS_LOG_HEADER_EYECATCHER_LEN)
-         << endl;
-
-      ss << " " << left << setfill(' ') << setw(RPL_DUMP_FIELD_WIDTH) << "LogID" << ": "
-         << logHeader._logID
-         << endl;
-
-      ss << " " << left << setfill(' ') << setw(RPL_DUMP_FIELD_WIDTH) << "FirstLSN" << ": "
-         << "0x" << hex << right << setfill('0') << setw(16) << logHeader._firstLSN.offset
-         << "(" << dec << logHeader._firstLSN.offset << ")"
-         << endl;
-
-      ss << " " << left << setfill(' ') << setw(RPL_DUMP_FIELD_WIDTH) << "FileSize" << ": "
-         << logFile.size()
-         << endl;
-
-      ss << " " << left << setfill(' ') << setw(RPL_DUMP_FIELD_WIDTH) << "IdleSize" << ": "
-         << logFile.getIdleSize()
          << endl;
 
       string out = ss.str();
@@ -1190,7 +826,7 @@ namespace replay
       std::cout << buf << std::endl;
    }
 
-   INT32 Replayer::_replayArchiveDir()
+   INT32 Replayer::_replayDir()
    {
       INT32 rc = SDB_OK;
 
@@ -1246,7 +882,7 @@ namespace replay
             }
          }
 
-         rc = _scanArchiveDir(minFileId, maxFileId);
+         rc = _scanDir(minFileId, maxFileId);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "Failed to scan directory[%s], rc=%d",
@@ -1256,7 +892,7 @@ namespace replay
 
          if (DPS_INVALID_LOG_FILE_ID != minFileId)
          {
-            rc = _replayArchiveFiles(minFileId, maxFileId);
+            rc = _replayFiles(minFileId, maxFileId);
             if (SDB_OK != rc)
             {
                goto error;
@@ -1292,7 +928,7 @@ namespace replay
       goto done;
    }
 
-   INT32 Replayer::_scanArchiveDir(UINT32& minFileId, UINT32& maxFileId)
+   INT32 Replayer::_scanDir(UINT32& minFileId, UINT32& maxFileId)
    {
       INT32 rc = SDB_OK;
 
@@ -1407,7 +1043,7 @@ namespace replay
       goto done;
    }
 
-   INT32 Replayer::_replayArchiveFiles(UINT32 minFileId, UINT32 maxFileId)
+   INT32 Replayer::_replayFiles(UINT32 minFileId, UINT32 maxFileId)
    {
       INT32 rc = SDB_OK;
 
@@ -1494,7 +1130,7 @@ namespace replay
 
          _monitor.setLastMovedFileTime(movedTime);
 
-         rc = _replayArchiveFile(file);
+         rc = _replayFile(file);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "Failed to replay file[%s], rc=%d",
@@ -1560,339 +1196,6 @@ namespace replay
 
                goto done;
             }
-         }
-      }
-
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 Replayer::_replayReplicaDir()
-   {
-      INT32 rc = SDB_OK;
-
-      for (;;)
-      {
-         REPLICA_FILE_MAP replicaFiles;
-         UINT32 minFileId = DPS_INVALID_LOG_FILE_ID;
-         UINT32 maxFileId = DPS_INVALID_LOG_FILE_ID;
-
-         if (!_isRunning)
-         {
-            rc = SDB_INTERRUPT;
-            PD_LOG(PDINFO, "Replay is interrupted");
-            goto done;
-         }
-
-         rc = _scanReplicaDir(replicaFiles, minFileId, maxFileId);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "Failed to scan directory[%s], rc=%d",
-                   _path.c_str(), rc);
-            goto error;
-         }
-
-         if (DPS_INVALID_LOG_FILE_ID != minFileId)
-         {
-            rc = _replayReplicaFiles(replicaFiles, minFileId, maxFileId);
-            if (SDB_OK != rc)
-            {
-               goto error;
-            }
-
-            if (_monitor.getLastLSN() != DPS_INVALID_LSN_OFFSET &&
-                _filter.largerThanMaxLSN(_monitor.getLastLSN()))
-            {
-               PD_LOG(PDDEBUG, "Last LSN[%lld] is over max LSN",
-                      _monitor.getLastLSN());
-               goto done;
-            }
-         }
-
-         if (!_options->watch())
-         {
-            break;
-         }
-
-         if (!_isRunning)
-         {
-            rc = SDB_INTERRUPT;
-            PD_LOG(PDINFO, "Replay is interrupted");
-            goto done;
-         }
-
-         ossSleep(RPL_WATCH_INTERVAL);
-      }
-
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 Replayer::_scanReplicaDir(REPLICA_FILE_MAP& replicaFiles,
-                                        UINT32& minFileId, UINT32& maxFileId)
-   {
-      INT32 rc = SDB_OK;
-
-      try
-      {
-         fs::path dir(_path);
-         fs::directory_iterator endIter;
-
-         for (fs::directory_iterator dirIter(dir);
-              dirIter != endIter;
-              ++dirIter)
-         {
-            const string filePath = dirIter->path().string();
-            BOOLEAN isArchive = FALSE;
-            UINT32 fileSize = 0;
-            UINT32 fileNum = 0;
-            UINT32 fileId = DPS_INVALID_LOG_FILE_ID;
-
-            if (!fs::is_regular_file(dirIter->status()))
-            {
-               continue;
-            }
-
-            rc = _isDpsLogFile(filePath, isArchive, fileSize, fileNum, fileId);
-            if (SDB_OK != rc)
-            {
-               if (SDB_DPS_FILE_NOT_RECOGNISE ==  rc)
-               {
-                  continue;
-               }
-
-               PD_LOG(PDERROR, "Failed to check if file[%s] is log file, rc=%d",
-                      filePath.c_str(), rc);
-               goto error;
-            }
-
-            if (DPS_INVALID_LOG_FILE_ID == fileId)
-            {
-               /*rc = SDB_SYS;
-               PD_LOG(PDERROR, "Invalid file id of file[%s], rc=%d",
-                      filePath.c_str(), rc);
-               goto error;*/
-               continue;
-            }
-
-            REPLICA_FILE_MAP::const_iterator fileIter = replicaFiles.find(fileId);
-            if (fileIter != replicaFiles.end())
-            {
-               rc = SDB_SYS;
-               PD_LOG(PDERROR, "Duplicate log file id[%u] of file[%s] and file[%s], rc=%d",
-                      fileId, filePath.c_str(), fileIter->second.name.c_str(), rc);
-               goto error;
-            }
-
-            ReplicaFileInfo fileInfo;
-            fileInfo.name = filePath;
-            fileInfo.fileSize = fileSize;
-            fileInfo.fileNum = fileNum;
-            fileInfo.fileId = fileId;
-            replicaFiles.insert(REPLICA_FILE_MAP::value_type(fileId, fileInfo));
-
-            if ( minFileId > fileId || DPS_INVALID_LOG_FILE_ID == minFileId )
-            {
-               minFileId = fileId ;
-            }
-
-            if ( maxFileId < fileId || DPS_INVALID_LOG_FILE_ID == maxFileId )
-            {
-               maxFileId = fileId ;
-            }
-         }
-      }
-      catch( fs::filesystem_error& e )
-      {
-         if ( e.code() == boost::system::errc::permission_denied ||
-              e.code() == boost::system::errc::operation_not_permitted )
-         {
-            rc = SDB_PERM ;
-         }
-         else
-         {
-            rc = SDB_IO ;
-         }
-         goto error ;
-      }
-      catch( std::exception& e )
-      {
-         PD_LOG( PDERROR, "unexpected exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      if (DPS_INVALID_LOG_FILE_ID == minFileId)
-      {
-         goto done;
-      }
-
-      SDB_ASSERT(DPS_INVALID_LOG_FILE_ID != maxFileId, "invalid max file id");
-
-      if (DPS_INVALID_LOG_FILE_ID == _monitor.getNextFileId())
-      {
-         goto done;
-      }
-
-      if (maxFileId < _monitor.getNextFileId())
-      {
-         PD_LOG(PDDEBUG, "Max log file id[%u] is less than next file id[%u]",
-                maxFileId, _monitor.getNextFileId());
-         minFileId = DPS_INVALID_LOG_FILE_ID;
-         maxFileId = DPS_INVALID_LOG_FILE_ID;
-         replicaFiles.clear();
-         goto done;
-      }
-
-      if (minFileId > _monitor.getNextFileId())
-      {
-         rc = SDB_SYS;
-         PD_LOG(PDERROR, "Find min file id[%u], but expect next file id[%u]",
-                minFileId, _monitor.getNextFileId());
-         goto error;
-      }
-
-      if (maxFileId == _monitor.getNextFileId())
-      {
-         BOOLEAN exist = FALSE;
-         time_t maxFileTime = 0;
-
-         string maxFilePath = replicaFiles.rbegin()->second.name;
-         rc = ossFile::exists(maxFilePath, exist);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "Failed to access file[%s], rc=%d",
-                   maxFilePath.c_str(), rc);
-            goto error;
-         }
-
-         if (exist)
-         {
-            rc = ossFile::getLastWriteTime(maxFilePath, maxFileTime);
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "Failed to get last write of file[%s], rc=%d",
-                      maxFilePath.c_str(), rc);
-               goto error;
-            }
-
-            PD_LOG(PDDEBUG, "Last wirte time of file[%s] is %d, last file time is %u",
-                   maxFilePath.c_str(), maxFileTime, _monitor.getLastFileTime());
-
-            if (maxFileTime == _monitor.getLastFileTime())
-            {
-               minFileId = DPS_INVALID_LOG_FILE_ID;
-               maxFileId = DPS_INVALID_LOG_FILE_ID;
-               replicaFiles.clear();
-               goto done;
-            }
-         }
-      }
-
-      if (minFileId < _monitor.getNextFileId())
-      {
-         REPLICA_FILE_MAP::iterator it = replicaFiles.begin();
-         while (it != replicaFiles.end())
-         {
-            if (it->first < _monitor.getNextFileId())
-            {
-               replicaFiles.erase(it++);
-            }
-            else
-            {
-               break;
-            }
-         }
-         minFileId = _monitor.getNextFileId();
-      }
-
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-
-   INT32 Replayer::_replayReplicaFiles(REPLICA_FILE_MAP& replicaFiles,
-                                            UINT32 minFileId, UINT32 maxFileId)
-   {
-      INT32 rc = SDB_OK;
-
-      SDB_ASSERT(DPS_INVALID_LOG_FILE_ID != minFileId, "invalid min file id");
-      SDB_ASSERT(DPS_INVALID_LOG_FILE_ID != maxFileId, "invalid max file id");
-      SDB_ASSERT(replicaFiles.begin()->first == minFileId, "invalid min file id");
-
-      for (REPLICA_FILE_MAP::const_iterator it = replicaFiles.begin();
-           it != replicaFiles.end();
-           it++)
-      {
-         UINT32 fileId = it->first;
-         const ReplicaFileInfo& fileInfo = it->second;
-         BOOLEAN fileExist = FALSE;
-
-         SDB_ASSERT( fileId == fileInfo.fileId, "invalid file id");
-
-         if (!_isRunning)
-         {
-            rc = SDB_INTERRUPT;
-            PD_LOG(PDINFO, "Replay is interrupted");
-            goto done;
-         }
-
-         rc = ossFile::exists(fileInfo.name, fileExist);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "Failed to access file[%s], rc=%d",
-                   fileInfo.name.c_str(), rc);
-            goto error;
-         }
-
-         if (!fileExist)
-         {
-            rc = SDB_SYS;
-            PD_LOG(PDERROR, "Replica file[%s] is not found, rc=%d",
-                   fileInfo.name.c_str(), rc);
-            goto error;
-         }
-
-         rc = _replayReplicaFile(fileInfo.name, fileInfo.fileSize, fileInfo.fileNum);
-         if (SDB_OK != rc)
-         {
-            PD_LOG(PDERROR, "Failed to replay file[%s], rc=%d",
-                   fileInfo.name.c_str(), rc);
-            goto error;
-         }
-
-         if (_monitor.getNextLSN() > (UINT64)fileInfo.fileSize * (fileInfo.fileId + 1))
-         {
-            _monitor.setNextFileId(fileId + 1);
-         }
-         else
-         {
-            _monitor.setNextFileId(fileId);
-         }
-         _monitor.setLastFileId(fileId);
-         if (_status.isOpened())
-         {
-            rc = _writeStatus();
-            if (SDB_OK != rc)
-            {
-               PD_LOG(PDERROR, "Failed to write status, rc=%d",
-                      rc);
-               goto error;
-            }
-         }
-         PD_LOG(PDINFO, "current replay:\n%s", _monitor.dump().c_str());
-
-         if (_monitor.getLastLSN() != DPS_INVALID_LSN_OFFSET &&
-             _filter.largerThanMaxLSN(_monitor.getLastLSN()))
-         {
-            PD_LOG(PDDEBUG, "Last LSN[%lld] is over max LSN",
-                   _monitor.getLastLSN());
-            goto done;
          }
       }
 
@@ -2349,9 +1652,6 @@ namespace replay
       case LOG_TYPE_CL_TRUNC:
          rc = _rollbackTruncateCL(log);
          break;
-      case LOG_TYPE_DATA_POP:
-         rc = _rollbackPop(log);
-         break;
       default:
          SDB_ASSERT(FALSE, "invalid log type");
       }
@@ -2414,7 +1714,7 @@ namespace replay
          }
       }
 
-      rc = _sdb->getCollection(fullName, cl);
+      rc = _sdb.getCollection(fullName, cl);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "Failed to get collection:%s, lsn[%lld], rc=%d",
@@ -2446,15 +1746,12 @@ namespace replay
       BSONObj oldObj;
       BSONObj newMatch;
       BSONObj modifier;
-      BSONObj newShardingKey ;
       BSONObj hint = BSON( "" << "$id" );
 
       SDB_ASSERT(LOG_TYPE_DATA_UPDATE == header._type, "not data update log");
 
       rc = dpsRecord2Update(log, &fullName,
-                            match, oldObj,
-                            newMatch, modifier,
-                            NULL, &newShardingKey );
+                            match, oldObj, newMatch, modifier);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "Failed to parse log record[%lld], rc:%d",
@@ -2462,7 +1759,7 @@ namespace replay
          goto error;
       }
 
-      rc = _sdb->getCollection(fullName, cl);
+      rc = _sdb.getCollection(fullName, cl);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "Failed to get collection:%s, lsn[%lld], rc=%d",
@@ -2470,19 +1767,11 @@ namespace replay
          goto error ;
       }
 
-      if (!newShardingKey.isEmpty() && _options->updateWithShardingKey())
-      {
-         BSONObjBuilder builder ;
-         builder.appendElements( newMatch ) ;
-         builder.appendElements( newShardingKey ) ;
-         newMatch = builder.obj() ;
-      }
-
-      rc = cl.update(oldObj, newMatch, hint, UPDATE_KEEP_SHARDINGKEY);
+      rc = cl.update(oldObj, newMatch, hint);
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "Failed to rollback update record[%s:%s], lsn[%lld], rc=%d",
-                oldObj.toString(FALSE, TRUE).c_str(),
+                oldObj.toString(FALSE, TRUE).c_str(), 
                 newMatch.toString(FALSE, TRUE).c_str(), header._lsn, rc);
          goto error ;
       }
@@ -2512,10 +1801,10 @@ namespace replay
          goto error;
       }
 
-      rc = _sdb->getCollection(fullName, cl);
+      rc = _sdb.getCollection(fullName, cl);
       if (SDB_OK != rc)
       {
-         PD_LOG(PDERROR, "Failed to get collection: %s, lsn[%lld], rc=%d",
+         PD_LOG(PDERROR, "Failed to get collection: %s, lsn[%lld], rc=%d", 
                 fullName, header._lsn, rc);
          goto error;
       }
@@ -2569,34 +1858,6 @@ namespace replay
       goto done;
    }
 
-   INT32 Replayer::_rollbackPop( const CHAR* log )
-   {
-      INT32 rc = SDB_OK ;
-      const dpsLogRecordHeader& header = *(const dpsLogRecordHeader*)log ;
-      const CHAR *fullName = NULL;
-      INT64 logicalID = 0 ;
-      INT8 direction = 1 ;
-
-      SDB_ASSERT( LOG_TYPE_DATA_POP == header._type, "not pop log" ) ;
-
-      rc = dpsRecord2Pop( log, &fullName, logicalID, direction ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to parse log record[%lld], rc=%d",
-                 header._lsn, rc ) ;
-         goto error ;
-      }
-
-      rc = SDB_SYS ;
-      PD_LOG( PDERROR, "Pop collection[%s] can't be rollbacked, lsn[%lld], "
-              "prelsn[%lld]", fullName, header._lsn, header._preLsn ) ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
    void Replayer::_dumpRollbackLog(const engine::dpsLogRecord& log)
    {
       const INT32 len = 4096 ;
@@ -2610,8 +1871,6 @@ namespace replay
    {
       INT32 rc = SDB_OK;
 
-      SDB_ASSERT(NULL == _sdb, "_sdb is not null");
-
       if (_options->dump() ||
           _options->dumpHeader() ||
           _options->deflate() ||
@@ -2620,15 +1879,7 @@ namespace replay
          goto done;
       }
 
-      _sdb = new(std::nothrow) sdbclient::sdb(_options->useSSL());
-      if (NULL == _sdb)
-      {
-         rc = SDB_OOM;
-         PD_LOG(PDERROR, "Failed to new sdbclient::sdb, rc=%d", rc);
-         goto error;
-      }
-
-      rc = _sdb->connect(_options->hostName().c_str(),
+      rc = _sdb.connect(_options->hostName().c_str(),
                         _options->serviceName().c_str(),
                         _options->user().c_str(),
                         _options->password().c_str());
@@ -2644,7 +1895,6 @@ namespace replay
    done:
       return rc;
    error:
-      SAFE_OSS_DELETE(_sdb);
       goto done;
    }
 
@@ -2810,7 +2060,7 @@ namespace replay
    error:
       goto done;
    }
-
+   
    INT32 Replayer::_writeStatus()
    {
       INT32 rc = SDB_OK;

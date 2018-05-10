@@ -64,6 +64,18 @@ namespace engine
                                   BSONObjBuilder *builder = NULL,
                                   vector< string > *pVecGroups = NULL ) ;
 
+   /* Split collection full name to cs name and cl name */
+   INT32 catResolveCollectionName( const CHAR *pInput, UINT32 inputLen,
+                                   CHAR *pSpaceName, UINT32 spaceNameSize,
+                                   CHAR *pCollectionName,
+                                   UINT32 collectionNameSize ) ;
+
+   /* Split collection full name to find cs name */
+   INT32 catResolveCollectionSpaceName ( const CHAR *pInput,
+                                         UINT32 inputLen,
+                                         CHAR *pSpaceName,
+                                         UINT32 spaceNameSize ) ;
+
    /* Query and return result */
    INT32 catQueryAndGetMore ( MsgOpReply **ppReply,
                               const CHAR *collectionName,
@@ -209,6 +221,15 @@ namespace engine
    /* Other Tools */
    INT32 catPraseFunc( const BSONObj &func, BSONObj &parsed ) ;
 
+   INT32 catTestAndCreateCL( const CHAR *pCLFullName, pmdEDUCB *cb,
+                             _SDB_DMSCB *dmsCB, _dpsLogWrapper *dpsCB,
+                             BOOLEAN sys = TRUE ) ;
+
+   INT32 catTestAndCreateIndex( const CHAR *pCLFullName,
+                                const BSONObj &indexDef,
+                                pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                                _dpsLogWrapper *dpsCB, BOOLEAN sys = TRUE) ;
+
    UINT32 catCalcBucketID( const CHAR *pData, UINT32 length,
                            UINT32 bucketSize = CAT_BUCKET_SIZE ) ;
 
@@ -240,6 +261,11 @@ namespace engine
    INT32 catGetCollectionGroups ( const BSONObj &boCollection,
                                   vector<UINT32> &groupIDList,
                                   vector<string> &groupNameList ) ;
+
+   /* Check whether collections in the same space */
+   INT32 catCollectionsInSameSpace ( const CHAR *pCLName_1, UINT32 length_1,
+                                     const CHAR *pCLName_2, UINT32 length_2,
+                                     BOOLEAN &inSameSpace ) ;
 
    /* Get and lock Domain */
    INT32 catGetAndLockDomain ( const string &domainName, BSONObj &boDomain,

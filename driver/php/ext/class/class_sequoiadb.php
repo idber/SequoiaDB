@@ -33,67 +33,18 @@ class SequoiaDB
    /** Get the snapshot of current session. */
    define( "SDB_SNAP_SESSIONS_CURRENT",    3 ) ;
    /** Get the snapshot of all the collections. */
-   define( "SDB_SNAP_COLLECTIONS",         4 ) ;
+   define( "SDB_SNAP_COLLECTION",          4 ) ;
    /** Get the snapshot of all the collection spaces. */
-   define( "SDB_SNAP_COLLECTIONSPACES",    5 ) ;
+   define( "SDB_SNAP_COLLECTIONSPACE",     5 ) ;
    /** Get the snapshot of the database. */
    define( "SDB_SNAP_DATABASE",            6 ) ;
    /** Get the snapshot of the system. */
    define( "SDB_SNAP_SYSTEM",              7 ) ;
    /** Get the snapshot of the catalog. */
-   define( "SDB_SNAP_CATA",                8 ) ;
-   /** Get the snapshot of all the transactions. */
-   define( "SDB_SNAP_TRANSACTIONS",        9 ) ;
-   /** Get the snapshot of current transaction. */
-   define( "SDB_SNAP_TRANSACTIONS_CURRENT",10 ) ;
-   /** Get the snapshot of cached access plans. */
-   define( "SDB_SNAP_ACCESSPLANS",         11 ) ;
-   /** Get the snapshot of node health detection. */
-   define( "SDB_SNAP_HEALTH", 12 ) ;
-
-   /**
-    * Get the snapshot of all the collections.
-    *
-    * @deprecated
-    *
-    * @see SDB_SNAP_COLLECTIONS
-   */
-   define( "SDB_SNAP_COLLECTION",          4 ) ;
-
-   /**
-    * Get the snapshot of all the collection spaces.
-    *
-    * @deprecated
-    *
-    * @see SDB_SNAP_COLLECTIONSPACES
-   */
-   define( "SDB_SNAP_COLLECTIONSPACE",     5 ) ;
-
-   /**
-    * Get the snapshot of the catalog.
-    *
-    * @deprecated
-    *
-    * @see SDB_SNAP_CATA
-   */
    define( "SDB_SNAP_CATALOG",             8 ) ;
-
-   /**
-    * Get the snapshot of all the transactions.
-    *
-    * @deprecated
-    *
-    * @see SDB_SNAP_TRANSACTIONS
-   */
+   /** Get the snapshot of all the transactions. */
    define( "SDB_SNAP_TRANSACTION",         9 ) ;
-
-   /**
-    * Get the snapshot of current transaction.
-    *
-    * @deprecated
-    *
-    * @see SDB_SNAP_TRANSACTIONS_CURRENT
-   */
+   /** Get the snapshot of current transaction. */
    define( "SDB_SNAP_TRANSACTION_CURRENT", 10 ) ;
   
    /** Get the list of the contexts. */
@@ -489,15 +440,13 @@ class SequoiaDB
     *                                                               SDB_SNAP_CONTEXTS_CURRENT
     *                                                               SDB_SNAP_SESSIONS
     *                                                               SDB_SNAP_SESSIONS_CURRENT
-    *                                                               SDB_SNAP_COLLECTIONS
-    *                                                               SDB_SNAP_COLLECTIONSPACES
+    *                                                               SDB_SNAP_COLLECTION
+    *                                                               SDB_SNAP_COLLECTIONSPACE
     *                                                               SDB_SNAP_DATABASE
     *                                                               SDB_SNAP_SYSTEM
-    *                                                               SDB_SNAP_CATA
-    *                                                               SDB_SNAP_TRANSACTIONS
-    *                                                               SDB_SNAP_TRANSACTIONS_CURRENT
-    *                                                               SDB_SNAP_ACCESSPLANS
-    *                                                               SDB_SNAP_HEALTH
+    *                                                               SDB_SNAP_CATALOG
+    *                                                               SDB_SNAP_TRANSACTION
+    *                                                               SDB_SNAP_TRANSACTION_CURRENT
     *                                                               @endcode
     *
     * @param $condition an array or the string argument. The matching rule, match all the documents if null.
@@ -536,23 +485,7 @@ class SequoiaDB
    /**
     * Reset the snapshot.
     *
-    * @param $options an array or the string argument. The control options:
-    *        @code
-    *        Type            : (String) Specify the snapshot type to be reset (default is "all"):
-    *                          "sessions"
-    *                          "sessions current"
-    *                          "database"
-    *                          "health"
-    *                          "all"
-    *        SessionID       : (Int32) Specify the session ID to be reset.
-    *        Other Options   : Some of other options are as below:(please visit the official website to search "Location Elements" for more detail.) 
-    *                          GroupID:INT32,
-    *                          GroupName:String,
-    *                          NodeID:INT32,
-    *                          HostName:String,
-    *                          svcname:String
-    *                          ...
-    *        @endcode
+    * @param $condition The control options are as below:(please visit the official website to search "Location Elements" for more detail.) GroupID:INT32, GroupName:String, NodeID:INT32, HostName:String, svcname:String...
     *
     * @return Returns the result, default return array.
     *
@@ -574,7 +507,7 @@ class SequoiaDB
     * }
     * @endcode
    */
-   public function resetSnapshot( array|string $options = null ){}
+   public function resetSnapshot( array|string $condition = null ){}
 
    /**
     * Get the specified list.
@@ -1897,7 +1830,7 @@ class SequoiaDB
     * Set the attributes of the session.
     *
     * @param $options an array or the string argument. The configuration options for session.The options are as below:
-    *                                                  @code
+    *        @code
     *        PreferedInstance : Preferred instance for read request in the current session. Could be single value in 'M', 'm', 'S', 's', 'A', 'a', 1-255, or BSON Array to include multiple values.
     *                           "M", "m": read and write instance( master instance ). If multiple numeric instances are given with "M", matched master instance will be chosen in higher priority. If multiple numeric instances are given with "M" or "m", master instance will be chosen if no numeric instance is matched.
     *                           "S", "s": read only instance( slave instance ). If multiple numeric instances are given with "S", matched slave instances will be chosen in higher priority. If multiple numeric instances are given with "S" or "s", slave instance will be chosen if no numeric instance is matched.
@@ -1917,7 +1850,7 @@ class SequoiaDB
     *        Timeout : The timeout (in ms) for operations in the current session. -1 means no timeout for operations.
     *
     *                  e.g. array( 'Timeout' => 10000 )
-    *                                                  @endcode
+    *        @endcode
     *
     * @return Returns the result, default return array.
     *
@@ -2030,53 +1963,4 @@ class SequoiaDB
     * @endcode
    */
    public function forceSession( integer|SequoiaINT64 $sessionID, array|string $options = null ){}
-
-   /**
-    * Analyze collection or index to collect statistics information
-    *
-    * @param $options an array or the string argument. The control options:
-    *        @code
-    *        CollectionSpace : (String) Specify the collection space to be analyzed.
-    *        Collection      : (String) Specify the collection to be analyzed.
-    *        Index           : (String) Specify the index to be analyzed.
-    *        Mode            : (Int32) Specify the analyze mode (default is 1):
-    *                          Mode 1 will analyze with data samples.
-    *                          Mode 2 will analyze with full data.
-    *                          Mode 3 will generate default statistics.
-    *                          Mode 4 will reload statistics into memory cache.
-    *                          Mode 5 will clear statistics from memory cache.
-    *        Location Elements : (Only take effect in coordinate nodes) GroupID:INT32, GroupName:String, NodeID:INT32, HostName:String, svcname:String ...
-    *        @endcode
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example:
-    * 1. Analyze all collections by default.
-    * @code
-    * $db = new SequoiaDB() ;
-    * $err = $db -> connect( "192.168.1.10:11810" ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to connect database, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * $result = $db -> analyze() ;
-    * var_dump( $result ) ;
-    * @endcode
-    * 2. Analyze collection "foo.bar"
-    * @code
-    * $db = new SequoiaDB() ;
-    * $err = $db -> connect( "192.168.1.10:11810" ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to connect database, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * $result = $db -> analyze( array( 'Collection' => 'foo.bar' ) ) ;
-    * var_dump( $result ) ;
-    * @endcode
-   */
-   public function analyze( array|string $options = null ){}
-
 }

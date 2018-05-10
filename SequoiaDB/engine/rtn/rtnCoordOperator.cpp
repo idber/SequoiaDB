@@ -170,7 +170,6 @@ namespace engine
          }
 
          BOOLEAN needRetry = FALSE ;
-         // clear error info
          result.clearError() ;
          processType = RTN_PROCESS_OK ;
 
@@ -187,13 +186,11 @@ namespace engine
 
             if ( rcTmp && !options.isIgnored( rcTmp ) )
             {
-               /// if error is not 'SDB_CLS_COORD_NODE_CAT_VER_OLD', 
-               /// in transaction report error
                if ( _isTrans( cb, (MsgHeader*)pReply ) )
                {
                   processType = RTN_PROCESS_NOK ;
                   if ( SDB_CLS_COORD_NODE_CAT_VER_OLD != rcTmp ||
-                       !result.pushNokRC( routeID.value, rcTmp ) )
+                       !result.pushNokRC( routeID.value, pReply ) )
                   {
                      PD_LOG( PDERROR, "Do trans command[%d] on data node[%s] "
                              "failed, rc: %d", inMsg.opCode(),
@@ -218,7 +215,7 @@ namespace engine
                   else
                   {
                      processType = RTN_PROCESS_NOK ;
-                     if ( !result.pushNokRC( routeID.value, rcTmp ) )
+                     if ( !result.pushNokRC( routeID.value, pReply ) )
                      {
                         rc = rc ? rc : rcTmp ;
                      }
@@ -232,14 +229,12 @@ namespace engine
             else
             {
                processType = RTN_PROCESS_OK ;
-               // process succeed
                result._sucGroupLst[ groupID ] = groupID ;
                result.pushOkRC( routeID.value, rcTmp ) ;
                options._groupLst.erase( groupID ) ;
                options._mapGroupInfo.erase( groupID ) ;
             }
 
-            // callback for parse
             _onNodeReply( processType, pReply, cb, inMsg ) ;
 
             if ( !result.pushReply( (MsgHeader *)pReply, processType ) )
@@ -280,16 +275,17 @@ namespace engine
       if ( FALSE == options._useSpecialGrp )
       {
          CoordSubCLlist subCLList ;
-         // build group list
          options._groupLst.clear() ;
 
-         // get sub cl list
          cataInfo->getMatchSubCLs( objMatch, subCLList ) ;
          if ( 0 == subCLList.size() )
          {
-            rc = rtnCoordGetRemoteCata( cb, cataInfo->getName(), cataInfo ) ;
+            CHAR clName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+            ossStrncpy( clName, cataInfo->getName(), DMS_COLLECTION_FULL_NAME_SZ ) ;
+
+            rc = rtnCoordGetRemoteCata( cb, clName, cataInfo ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to update collection[%s]'s "
-                         "catalog info, rc: %d", cataInfo->getName(),
+                         "catalog info, rc: %d", clName,
                          rc ) ;
             ++options._retryTimes ;
             rc = cataInfo->getMatchSubCLs( objMatch, subCLList ) ;
@@ -313,14 +309,16 @@ namespace engine
             ++iterGroup ;
          }
       }
+      else
+      {
+         PD_LOG( PDDEBUG, "Using specified group" ) ;
+      }
 
-      // construct msg
       rc = _prepareMainCLOp( cataInfo, groupSubCLMap, inMsg, options,
                              pRouteAgent, cb, result, outPtr ) ;
       PD_RC_CHECK( rc, PDERROR, "Prepare main collection operation failed, "
                    "rc: %d", rc ) ;
 
-      // do
       rc = doOnGroups( inMsg, options, pRouteAgent, cb, result ) ;
 
       _doneMainCLOp( outPtr, cataInfo, groupSubCLMap, inMsg, options,
@@ -385,14 +383,16 @@ namespace engine
                       "matcher: %s, rc: %d", objMatch.toString().c_str(),
                       rc ) ;
       }
+      else
+      {
+         PD_LOG( PDDEBUG, "Using specified group" ) ;
+      }
 
-      // construct msg
       rc = _prepareCLOp( cataInfo, inMsg, options, pRouteAgent,
                          cb, result, outPtr ) ;
       PD_RC_CHECK( rc, PDERROR, "Prepare collection operation failed, "
                    "rc: %d", rc ) ;
 
-      // do
       rc = doOnGroups( inMsg, options, pRouteAgent, cb, result ) ;
 
       _doneCLOp( outPtr, cataInfo, inMsg, options, pRouteAgent, cb, result ) ;
@@ -452,7 +452,6 @@ namespace engine
 
       if ( SDB_OK == rc && ( !pRC || pRC->empty() ) )
       {
-         // is succeed, don't need to retry
          retry = FALSE ;
          goto done ;
       }
@@ -479,11 +478,11 @@ namespace engine
          ROUTE_RC_MAP::iterator it = pRC->begin() ;
          while( it != pRC->end() )
          {
-            retry = rtnCoordCataReplyCheck( cb, it->second, _canRetry( times ),
+            retry = rtnCoordCataReplyCheck( cb, it->second._rc, _canRetry( times ),
                                             cataInfo, &hasUpdate, canUpdate ) ;
             if ( !retry )
             {
-               errRC = it->second ;
+               errRC = it->second._rc ;
                if ( pNodeID )
                {
                   pNodeID->value = it->first ;
@@ -533,7 +532,6 @@ namespace engine
                                         pmdEDUCB *cb,
                                         rtnSendMsgIn &inMsg )
    {
-      // do nothing
    }
 
    /*
@@ -564,7 +562,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       ROUTE_RC_MAP newNodeMap ;
 
-      /// first to build trans session on new data groups
       rc = buildTransSession( options._groupLst, pAgent, cb, newNodeMap ) ;
       if ( rc )
       {
@@ -575,14 +572,11 @@ namespace engine
 
       if ( cb->isTransaction() )
       {
-         // need add transaction info for the send msg
          _prepareForTrans( cb, inMsg.msg() ) ;
       }
 
       rc = rtnCoordOperator::doOnGroups( inMsg, options,
                                          pAgent, cb, result ) ;
-      // release the nodes transaction session( node in newNodeMap, but not
-      // in result._sucGroupLst )
       if ( cb->isTransaction() && ( rc || result.nokSize() > 0 ) )
       {
          ROUTE_SET nodes ;
@@ -670,7 +664,6 @@ namespace engine
       rtnCoordSendRequestToNodes( ( void *)&msgReq, nodes, pRouteAgent, cb,
                                   sendNodes, failedNodes ) ;
 
-      // failed node, send failed, but the node has already rollbacked
       if ( failedNodes.size() > 0 )
       {
          ROUTE_RC_MAP::iterator it = failedNodes.begin() ;
@@ -679,7 +672,7 @@ namespace engine
             nodeID.value = it->first ;
             PD_LOG( PDINFO, "Release node[%s] failed, because send msg "
                     "failed, rc: %d", routeID2String( nodeID ).c_str(),
-                    it->second ) ;
+                    it->second._rc ) ;
             ++it ;
          }
       }
@@ -708,7 +701,6 @@ namespace engine
          SDB_OSS_FREE( pReply ) ;
       }
 
-      // delete trans node
       itNode = nodes.begin() ;
       while( itNode != nodes.end() )
       {
@@ -783,7 +775,6 @@ namespace engine
             iterTrans = pTransNodeLst->find( iterGroup->first );
             if ( pTransNodeLst->end() == iterTrans )
             {
-               /// not found, need to being the trans
                options._groupLst[ iterGroup->first ] = iterGroup->second ;
             }
             ++iterGroup ;
@@ -793,7 +784,6 @@ namespace engine
          result._pOkRC = &newNodeMap ;
          rc = rtnCoordOperator::doOnGroups( inMsg, options, pRouteAgent,
                                             cb, result ) ;
-         // add ok route id to trans node id
          if ( newNodeMap.size() > 0 )
          {
             MsgRouteID nodeID ;
@@ -816,7 +806,6 @@ namespace engine
    done :
       return rc ;
    error :
-      /// will rollback all suc node and the node before at session
       goto done ;
    }
 
@@ -833,12 +822,9 @@ namespace engine
       CoordCB *pCoordcb = pKrcb->getCoordCB() ;
       netMultiRouteAgent *pRouteAgent = pCoordcb->getRouteAgent() ;
 
-      INT32 rcTmp = SDB_OK ;
       REPLY_QUE replyQue ;
 
-      // fill default-reply
       contextID    = -1 ;
-      // set tid
       pMsg->TID = cb->getTID() ;
 
       CoordGroupList groupLst ;
@@ -847,14 +833,11 @@ namespace engine
       REQUESTID_MAP successNodes ;
       ROUTE_RC_MAP failedNodes ;
 
-      // run msg
       rtnMsg( (MsgOpMsg *)pMsg ) ;
 
-      // list all groups
       rc = rtnCoordGetAllGroupList( cb, groupLst, NULL, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get all group list, rc: %d", rc ) ;
 
-      // get nodes
       rc = rtnCoordGetGroupNodes( cb, BSONObj(), NODE_SEL_ALL,
                                   groupLst, sendNodes ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get nodes, rc: %d", rc ) ;
@@ -865,24 +848,22 @@ namespace engine
          goto error ;
       }
 
-      // send msg
       rtnCoordSendRequestToNodes( (void*)pMsg, sendNodes, 
                                   pRouteAgent, cb, successNodes,
                                   failedNodes ) ;
-      rcTmp = rtnCoordGetReply( cb, successNodes, replyQue,
-                                MSG_BS_MSG_RES, TRUE, FALSE ) ;
-      if ( rcTmp != SDB_OK )
+      rc = rtnCoordGetReply( cb, successNodes, replyQue,
+                             MSG_BS_MSG_RES, TRUE, FALSE ) ;
+      if ( rc != SDB_OK )
       {
-         PD_LOG( PDERROR, "Failed to get the reply, rc", rcTmp ) ;
-      }
-
-      if ( failedNodes.size() != 0 )
-      {
-         rc = rcTmp ? rcTmp : failedNodes.begin()->second ;
+         PD_LOG( PDERROR, "Failed to get the reply, rc", rc ) ;
          goto error ;
       }
 
    done:
+      if ( ( rc || failedNodes.size() > 0 ) && buf )
+      {
+         *buf = _rtnContextBuf( rtnBuildErrorObj( rc, cb, &failedNodes ) ) ;
+      }
       rtnClearReplyQue( &replyQue ) ;
       return rc ;
    error:
@@ -900,7 +881,6 @@ namespace engine
 
    BOOLEAN rtnCoordShardKicker::_isUpdateReplace( const BSONObj &updator )
    {
-      //INT32 rc = SDB_OK ;
       BSONObjIterator iter( updator ) ;
       while ( iter.more() )
       {
@@ -942,7 +922,6 @@ namespace engine
 
       if ( skSiteID > 0 )
       {
-         /// if is the same sharding key
          if ( _skSiteIDs.count( skSiteID ) > 0 )
          {
             newUpdator = updator ;
@@ -972,7 +951,6 @@ namespace engine
             }
 
             subObj = beTmp.embeddedObject() ;
-            //if replace. leave the keep
             if ( isReplace &&
                  0 == ossStrcmp( beTmp.fieldName(),
                                  CMD_ADMIN_PREFIX FIELD_OP_VALUE_KEEP ) )
@@ -1000,7 +978,6 @@ namespace engine
                      ++pField;
                   }
 
-                  // shardingkey_fieldName == updator_fieldName
                   if ( *pKey == *pField
                      || ( '\0' == *pKey && '.' == *pField )
                      || ( '\0' == *pField && '.' == *pKey ) )
@@ -1024,7 +1001,6 @@ namespace engine
 
          if ( isReplace )
          {
-            //generate new $keep by combining boUpdator.$keep & boShardingKey.
             UINT32 count = _addKeys( boShardingKey ) ;
             if ( count > 0 )
             {

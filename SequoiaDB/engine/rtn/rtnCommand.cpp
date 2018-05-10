@@ -37,7 +37,6 @@
 #include "dms.hpp"
 #include "pmd.hpp"
 #include "pmdCB.hpp"
-#include "rtnContextDel.hpp"
 #include "rtnContext.hpp"
 #include "dmsStorageUnit.hpp"
 #include "pdTrace.hpp"
@@ -55,11 +54,6 @@
 
 using namespace bson ;
 using namespace std ;
-
-#define MAX_CL_SIZE_ALIGN_SIZE            ( 32 * 1024 * 1024 )
-
-#define MAX_CAP_CL_SIZE                   ( OSS_SINT64_MAX >> 20 )
-#define TEXT_INDEX_DATA_BUFF_DEFAULT_SIZE  ( 30 * 1024 )
 
 namespace engine
 {
@@ -491,8 +485,8 @@ namespace engine
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnCreateCollection)
    _rtnCreateCollection::_rtnCreateCollection ()
    :_collectionName ( NULL ),
-    _attributes( 0 ),
-    _compressorType( UTIL_COMPRESSOR_INVALID )
+    _attributes(0),
+    _compressorType(UTIL_COMPRESSOR_INVALID)
    {
    }
 
@@ -526,14 +520,11 @@ namespace engine
       INT32 rc = SDB_OK ;
       BOOLEAN enSureIndex = TRUE ;
       BOOLEAN isCompressed = FALSE ;
-      BOOLEAN strictDataMode = FALSE ;
       BOOLEAN autoIndexId = TRUE ;
-      BOOLEAN capped = FALSE ;
       const CHAR *compressionType = NULL ;
       PD_TRACE_ENTRY ( SDB__RTNCREATECL_INIT ) ;
       BSONObj matcher ( pMatcherBuff ) ;
       BSONElement ele ;
-
       rc = rtnGetStringElement ( matcher, FIELD_NAME_NAME,
                                  &_collectionName ) ;
       if ( rc )
@@ -568,13 +559,6 @@ namespace engine
       if ( isCompressed )
       {
          _attributes |= DMS_MB_ATTR_COMPRESSED ;
-      }
-
-      rtnGetBooleanElement ( matcher, FIELD_NAME_STRICTDATAMODE,
-                             strictDataMode ) ;
-      if ( strictDataMode )
-      {
-         _attributes |= DMS_MB_ATTR_STRICTDATAMODE ;
       }
 
       rc = rtnGetStringElement( matcher, FIELD_NAME_COMPRESSIONTYPE,
@@ -627,95 +611,11 @@ namespace engine
       {
          _attributes |= DMS_MB_ATTR_NOIDINDEX ;
       }
-
-      rc = rtnGetBooleanElement( matcher, FIELD_NAME_CAPPED, capped ) ;
-      if ( SDB_FIELD_NOT_EXIST == rc )
-      {
-         rc = SDB_OK ;
-         capped = FALSE ;
-      }
-      PD_RC_CHECK( rc, PDERROR, "Field[%s] value error in obj[%s]",
-                   FIELD_NAME_CAPPED, matcher.toString().c_str() ) ;
-
-      if ( capped )
-      {
-         INT64 maxSize = 0 ;
-         INT64 maxRecNum = 0 ;
-         BOOLEAN overwrite = FALSE ;
-         BSONObjBuilder builder ;
-
-         if ( isCompressed || autoIndexId )
-         {
-            PD_LOG( PDERROR, "Option Sharding/Compress/Index is not compatible "
-                    "with Capped" ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-
-         _attributes |= DMS_MB_ATTR_CAPPED ;
-         rc = rtnGetNumberLongElement( matcher, FIELD_NAME_SIZE, maxSize ) ;
-         if ( rc )
-         {
-            if ( SDB_FIELD_NOT_EXIST == rc )
-            {
-               PD_LOG( PDERROR, "Field[%s] must always be used when Capped is "
-                       "true in obj[%s]",
-                       FIELD_NAME_SIZE, matcher.toString().c_str() ) ;
-               rc = SDB_INVALIDARG ;
-            }
-            else
-            {
-               PD_LOG( PDERROR, "Field[%s] value is error in obj[%s]",
-                       FIELD_NAME_SIZE, matcher.toString().c_str() ) ;
-            }
-            goto error ;
-         }
-         if ( maxSize <= 0 || maxSize > MAX_CAP_CL_SIZE )
-         {
-            PD_LOG( PDERROR, "Invalid Size[ %lld ] when creating capped "
-                    "collection", maxSize ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         maxSize = ossRoundUpToMultipleX( maxSize << 20,
-                                          MAX_CL_SIZE_ALIGN_SIZE ) ;
-         builder.append( FIELD_NAME_SIZE, maxSize ) ;
-
-         rc = rtnGetNumberLongElement( matcher, FIELD_NAME_MAX, maxRecNum ) ;
-         if ( SDB_OK != rc && SDB_FIELD_NOT_EXIST != rc )
-         {
-            PD_LOG( PDERROR, "Field[%s] value is error in obj[%s]",
-                    FIELD_NAME_MAX, matcher.toString().c_str() ) ;
-            goto error ;
-         }
-         if ( maxRecNum < 0 )
-         {
-            PD_LOG( PDERROR, "Invalid Max[ %lld ] when creating capped "
-                    "collection", maxRecNum ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         builder.append( FIELD_NAME_MAX, maxRecNum ) ;
-
-         rc = rtnGetBooleanElement( matcher, FIELD_NAME_OVERWRITE, overwrite ) ;
-         if ( SDB_OK != rc && SDB_FIELD_NOT_EXIST != rc )
-         {
-            PD_LOG( PDERROR, "Field[%s] value is error in obj[%s]",
-                    FIELD_NAME_OVERWRITE, matcher.toString().c_str() ) ;
-            goto error ;
-         }
-         builder.appendBool( FIELD_NAME_OVERWRITE, overwrite ) ;
-
-         _extOptions = builder.obj() ;
-      }
-
       rc = SDB_OK ;
    done :
       PD_TRACE_EXITRC ( SDB__RTNCREATECL_INIT, rc ) ;
       return rc ;
    error :
-      _clean( pmdGetThreadEDUCB(), pmdGetKRCB()->getDMSCB(),
-              pmdGetKRCB()->getDPSCB() ) ;
       goto done ;
    }
 
@@ -734,9 +634,7 @@ namespace engine
 
       rc = rtnCreateCollectionCommand ( _collectionName, _shardingKey,
                                         _attributes, cb, dmsCB, dpsCB,
-                                        _compressorType, 0, FALSE,
-                                        ( _extOptions.isEmpty() ?
-                                         NULL : &_extOptions ) ) ;
+                                        _compressorType ) ;
 
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
@@ -745,53 +643,22 @@ namespace engine
          PD_AUDIT_COMMAND( AUDIT_DDL, name(), AUDIT_OBJ_CL,
                            _collectionName, rc,
                            "ShardingKey:%s, Attribute:0x%08x(%s), "
-                           "CompressType:%d(%s), extend options: %s",
+                           "CompressType:%d(%s)",
                            _shardingKey.toString().c_str(),
                            _attributes, szTmp,
                            _compressorType,
-                           utilCompressType2String( _compressorType ),
-                           _extOptions.toString().c_str() ) ;
+                           utilCompressType2String( _compressorType ) ) ;
       }
 
-      if ( rc )
-      {
-         goto error ;
-      }
-
-   done:
       PD_TRACE_EXITRC ( SDB__RTNCREATECL_DOIT, rc ) ;
       return rc ;
-   error:
-      _clean( cb, dmsCB, dpsCB ) ;
-      goto done ;
-   }
-
-   PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCREATECL__CLEAN, "_rtnCreateCollection::_clean" )
-   void _rtnCreateCollection::_clean( pmdEDUCB *cb, SDB_DMSCB *dmsCB,
-                                      SDB_DPSCB *dpsCB )
-   {
-      PD_TRACE_ENTRY( SDB__RTNCREATECL__CLEAN ) ;
-      if ( CMD_SPACE_SERVICE_SHARD == getFromService() )
-      {
-         INT32 rc = SDB_OK ;
-         string nameStr( _collectionName ) ;
-         string csName = nameStr.substr( 0, nameStr.find( '.' ) ) ;
-         rc = dmsCB->dropEmptyCollectionSpace( csName.c_str(), cb, dpsCB ) ;
-         if ( rc && SDB_DMS_CS_NOT_EMPTY != rc )
-         {
-            PD_LOG( PDERROR, "Drop new created collection space[%s] failed, "
-                    "rc: %d", csName.c_str(), rc ) ;
-         }
-      }
-      PD_TRACE_EXIT( SDB__RTNCREATECL__CLEAN ) ;
    }
 
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnCreateCollectionspace)
    _rtnCreateCollectionspace::_rtnCreateCollectionspace ()
    :_spaceName ( NULL ),
     _pageSize( 0 ),
-    _lobPageSize( 0 ),
-    _storageType( DMS_STORAGE_NORMAL )
+    _lobPageSize( 0 )
    {
 
    }
@@ -837,31 +704,19 @@ namespace engine
          _lobPageSize = DMS_DEFAULT_LOB_PAGE_SZ ;
       }
 
-      BOOLEAN capped = FALSE ;
-      rc = rtnGetBooleanElement( mather, FIELD_NAME_CAPPED, capped ) ;
-      if ( SDB_OK == rc && capped  )
-      {
-         _storageType = DMS_STORAGE_CAPPED ;
-      }
-      else
-      {
-         _storageType = DMS_STORAGE_NORMAL ;
-      }
-
       return rtnGetStringElement ( mather, FIELD_NAME_NAME, &_spaceName ) ;
    }
 
    PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCREATECS_DOIT, "_rtnCreateCollectionspace::doit" )
    INT32 _rtnCreateCollectionspace::doit ( _pmdEDUCB *cb, SDB_DMSCB *dmsCB,
-                                           SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
-                                           INT16 w , INT64 *pContextID )
+                                          SDB_RTNCB *rtnCB, SDB_DPSCB *dpsCB,
+                                          INT16 w , INT64 *pContextID )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNCREATECS_DOIT ) ;
 
-      rc = rtnCreateCollectionSpaceCommand ( _spaceName, cb, dmsCB,
-                                             dpsCB, _pageSize,
-                                             _lobPageSize, _storageType ) ;
+      rc = rtnCreateCollectionSpaceCommand ( _spaceName, cb, dmsCB, dpsCB,
+                                             _pageSize, _lobPageSize ) ;
 
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
@@ -879,8 +734,7 @@ namespace engine
 
    _rtnCreateIndex::_rtnCreateIndex ()
    : _collectionName ( NULL ),
-     _sortBufferSize ( SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE ),
-     _textIdx( FALSE )
+     _sortBufferSize ( SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE )
    {
    }
 
@@ -935,14 +789,6 @@ namespace engine
          goto error ;
       }
 
-      rc = _validateDef( _index ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG ( PDERROR, "Failed to validate index definition: %s, rc: %d",
-                  _index.toString().c_str(), rc ) ;
-         goto error ;
-      }
-
       if ( hint.hasField( IXM_FIELD_NAME_SORT_BUFFER_SIZE ) )
       {
          rc = rtnGetIntElement( hint, IXM_FIELD_NAME_SORT_BUFFER_SIZE,
@@ -961,13 +807,6 @@ namespace engine
             goto error ;
          }
       }
-      else
-      {
-         if ( _textIdx )
-         {
-            _sortBufferSize = TEXT_INDEX_DATA_BUFF_DEFAULT_SIZE ;
-         }
-      }
 
    done:
       PD_TRACE_EXITRC ( SDB__RTNCREATEINDEX_INIT, rc ) ;
@@ -983,15 +822,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNCREATEINDEX_DOIT ) ;
+
       BOOLEAN isSys = FALSE ;
-
-      if ( _textIdx && ( CMD_SPACE_SERVICE_SHARD != getFromService() ) )
-      {
-         PD_LOG( PDERROR, "Text index is only supported in cluster" ) ;
-         rc = SDB_OPERATION_INCOMPATIBLE ;
-         goto error ;
-      }
-
       if ( !pmdGetOptionCB()->authEnabled() )
       {
          isSys = TRUE ;
@@ -1007,58 +839,8 @@ namespace engine
                            "IndexDef:%s, SortBuffSize:%d",
                            _index.toString().c_str(), _sortBufferSize ) ;
       }
-
-   done:
       PD_TRACE_EXITRC ( SDB__RTNCREATEINDEX_DOIT, rc ) ;
       return rc ;
-   error:
-      goto done ;
-   }
-
-   PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCREATEINDEX__VALIDATEDEF, "_rtnCreateIndex::_validateDef" )
-   INT32 _rtnCreateIndex::_validateDef( const BSONObj &index )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNCREATEINDEX__VALIDATEDEF ) ;
-      BOOLEAN hasText = FALSE ;
-      const string textFieldVal = "text" ;
-      BSONObj idxDef = index.getObjectField( IXM_FIELD_NAME_KEY ) ;
-      BSONObjIterator itr( idxDef ) ;
-
-      while ( itr.more() )
-      {
-         BSONElement ele = itr.next() ;
-         if ( ele.eoo() )
-         {
-            PD_LOG( PDERROR, "Index definition ended unexpected. "
-                    "Definition: %s", idxDef.toString().c_str() ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-
-         if ( String == ele.type() && textFieldVal == ele.String() )
-         {
-            hasText = TRUE ;
-         }
-         else
-         {
-            if ( hasText )
-            {
-               PD_LOG( PDERROR, "Text index can only contain fields specified "
-                       "as text. Definition: %s", idxDef.toString().c_str() ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-         }
-      }
-
-      _textIdx = hasText ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__RTNCREATEINDEX__VALIDATEDEF, rc ) ;
-      return rc ;
-   error:
-      goto done ;
    }
 
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnDropCollection)
@@ -1317,9 +1099,13 @@ namespace engine
    }
 
    _rtnGet::_rtnGet ()
-   : _options(),
-     _hintExist( FALSE )
+      :_collectionName ( NULL ), _matcherBuff ( NULL ), _selectBuff ( NULL ),
+      _orderByBuff ( NULL )
    {
+      _flags = 0 ;
+      _numToReturn = -1 ;
+      _numToSkip = 0 ;
+      _hintExist = FALSE ;
    }
 
    _rtnGet::~_rtnGet ()
@@ -1328,7 +1114,7 @@ namespace engine
 
    const CHAR *_rtnGet::collectionFullName ()
    {
-      return _options.getCLFullName() ;
+      return _collectionName ;
    }
 
    PD_TRACE_DECLARE_FUNCTION ( SDB__RTNGET_INIT, "_rtnGet::init" )
@@ -1338,32 +1124,26 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNGET_INIT ) ;
+      _flags = flags ;
+      _numToReturn = numToReturn ;
+      _numToSkip = numToSkip ;
+      _matcherBuff = pMatcherBuff ;
+      _selectBuff = pSelectBuff ;
+      _orderByBuff = pOrderByBuff ;
 
-      const CHAR * collection = NULL ;
-      BSONObj hint( pHintBuff ) ;
-      BSONObj realHint ;
-
-      _options.setFlag( flags ) ;
-      _options.setLimit( numToReturn ) ;
-      _options.setSkip( numToSkip ) ;
-      _options.setQuery( BSONObj( pMatcherBuff ) ) ;
-      _options.setSelector( BSONObj( pSelectBuff ) ) ;
-      _options.setOrderBy( BSONObj( pOrderByBuff ) ) ;
-
-      rc = rtnGetStringElement( hint, FIELD_NAME_COLLECTION, &collection ) ;
+      BSONObj object ( pHintBuff ) ;
+      rc = rtnGetStringElement ( object, FIELD_NAME_COLLECTION,
+                                 &_collectionName ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
                    FIELD_NAME_COLLECTION, rc ) ;
 
-      _options.setCLFullName( collection ) ;
-
-      rc = rtnGetObjElement( hint, FIELD_NAME_HINT, realHint ) ;
+      rc = rtnGetObjElement( object, FIELD_NAME_HINT, _hintObj ) ;
       if ( SDB_FIELD_NOT_EXIST == rc )
       {
          rc = SDB_OK ;
       }
       else
       {
-         _options.setHint( realHint ) ;
          _hintExist = TRUE ;
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
@@ -1387,8 +1167,26 @@ namespace engine
       SDB_ASSERT ( cb, "educb can't be NULL" ) ;
       SDB_ASSERT ( pContextID, "context id can't be NULL" ) ;
 
-      rc = rtnGetCommandEntry ( type(), _options, cb, dmsCB, rtnCB,
-                                *pContextID ) ;
+      BSONObj matcher ;
+      BSONObj selector ;
+      BSONObj orderBy ;
+
+      if ( _matcherBuff )
+      {
+         matcher = BSONObj( _matcherBuff ) ;
+      }
+      if ( _selectBuff )
+      {
+         selector = BSONObj( _selectBuff ) ;
+      }
+      if ( _orderByBuff )
+      {
+         orderBy = BSONObj( _orderByBuff ) ;
+      }
+
+      rc = rtnGetCommandEntry ( type(), _collectionName, selector, matcher,
+                                orderBy, _hintObj, _flags, cb , _numToSkip,
+                                _numToReturn, dmsCB, rtnCB, *pContextID ) ;
       PD_TRACE_EXITRC ( SDB__RTNGET_DOIT, rc ) ;
       return rc ;
    }
@@ -1478,9 +1276,12 @@ namespace engine
 
       SDB_ASSERT( pContextID, "context id can't be NULL" ) ;
 
+      BSONObj matcher ( _matcherBuff ) ;
+      BSONObj orderBy ( _orderByBuff ) ;
+
       if ( !_hintExist )
       {
-         _options.setHint( _options.getSelector() ) ;
+         _hintObj = BSONObj( _selectBuff ) ;
       }
 
       rc = rtnCB->contextNew( RTN_CONTEXT_DUMP, (rtnContext**)&context,
@@ -1496,13 +1297,13 @@ namespace engine
          context->getMonCB()->recordStartTimestamp() ;
       }
 
-      rc = rtnGetQueryMeta( _options, dmsCB, cb, context ) ;
+      rc = rtnGetQueryMeta( _collectionName, matcher, orderBy, _hintObj,
+                            dmsCB, cb, context ) ;
       PD_RC_CHECK( rc, PDERROR, "Get collection[%s] query meta failed, "
                    "matcher: %s, orderby: %s, hint: %s, rc: %d",
-                   _options.getCLFullName(),
-                   _options.getQuery().toString().c_str(),
-                   _options.getOrderBy().toString().c_str(),
-                   _options.getHint().toString().c_str(), rc ) ;
+                   _collectionName, matcher.toString().c_str(),
+                   orderBy.toString().c_str(),
+                   _hintObj.toString().c_str(), rc ) ;
 
    done:
       return rc ;
@@ -1641,6 +1442,8 @@ namespace engine
             _oldCollectionName, _newCollectionName ) ;
          goto error ;
       }
+
+      su->getAPM()->invalidatePlans( _oldCollectionName ) ;
 
    done:
       if ( suID != DMS_INVALID_CS )
@@ -2267,8 +2070,7 @@ namespace engine
                BSONElement ele = it.next() ;
                if ( ele.isNumber() )
                {
-                  UINT32 tid = (UINT32)ele.numberInt() ;
-                  _tid.push_back ( tid ) ;
+                  _tid.push_back ( (UINT32)ele.numberLong() ) ;
                }
             } // while ( it.more () )
          } // if ( eleTID.type() == Array )
@@ -2299,7 +2101,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNTRACESTART_DOIT ) ;
-      rc = sdbGetPDTraceCB()->start ( (UINT64)_size, _mask, &_funcCode, &_tid ) ;
+      rc = sdbGetPDTraceCB()->start ( (UINT64)_size, _mask, &_funcCode ) ;
       PD_TRACE_EXITRC ( SDB__RTNTRACESTART_DOIT, rc ) ;
       return rc ;
    }
@@ -2389,7 +2191,6 @@ namespace engine
                        "Exception when initialize trace stop command: %s",
                        e.what() ) ;
       }
-
    done :
       PD_TRACE_EXITRC ( SDB__RTNTRACESTOP_INIT, rc ) ;
       return rc ;
@@ -2405,74 +2206,17 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNTRACESTOP_DOIT ) ;
       pdTraceCB *traceCB = sdbGetPDTraceCB() ;
-      OSSFILE outFile ;
-      BOOLEAN isOpen = FALSE ;
-      CHAR filePath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-      CHAR path[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-      CHAR *ptr = NULL ;
-
-      if ( _pDumpFileName && ossStrlen( _pDumpFileName ) > 0 &&
-           traceCB->getSize() > 0 )
+      if ( _pDumpFileName )
       {
          traceCB->stop() ;
-
-#ifdef _LINUX
-         if ( OSS_FILE_SEP_CHAR != _pDumpFileName[ 0 ] )
-#else
-         if ( NULL == ossStrchr( _pDumpFileName, ':' ) )
-#endif // _LINUX
-         {
-            pmdOptionsCB *pOptCB = pmdGetKRCB()->getOptionCB() ;
-            utilBuildFullPath( pOptCB->getDiagLogPath(),
-                               _pDumpFileName,
-                               OSS_MAX_PATHSIZE,
-                               filePath ) ;
-         }
-         else
-         {
-            ossStrncpy( filePath, _pDumpFileName, OSS_MAX_PATHSIZE ) ;
-         }
-
-
-         ossStrncpy( path, filePath, OSS_MAX_PATHSIZE ) ;
-         ptr = ossStrrchr( path, OSS_FILE_SEP_CHAR ) ;
-         if ( ptr != &path[0] )
-         {
-            *ptr = 0 ;
-            if ( ossAccess( path ) )
-            {
-               ossMkdir( path ) ;
-            }
-         }
-
-
-
-         rc = ossOpen( filePath, OSS_REPLACE|OSS_READWRITE,
-                       OSS_DEFAULTFILE, outFile ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Open file[%s] failed, rc: %d",
-                    filePath, rc ) ;
-            goto error ;
-         }
-         isOpen = TRUE ;
-
-         PD_LOG( PDEVENT, "Begin to dump trace to %s ...", filePath ) ;
-         rc = traceCB->dump( &outFile ) ;
+         rc = traceCB->dump ( _pDumpFileName ) ;
          PD_RC_CHECK ( rc, PDWARNING, "Failed to stop trace, rc = %d", rc ) ;
-
-         ossClose( outFile ) ;
       }
    done :
       traceCB->destroy() ;
       PD_TRACE_EXITRC ( SDB__RTNTRACESTOP_DOIT, rc ) ;
       return rc ;
    error :
-      if ( isOpen )
-      {
-         ossClose( outFile ) ;
-         ossDelete( filePath ) ;
-      }
       goto done ;
    }
 
@@ -2860,69 +2604,6 @@ namespace engine
    }
 
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnExportConf)
-
-   _rtnExportConf::_rtnExportConf()
-   {
-      _mask = 0 ;
-   }
-
-   INT32 _rtnExportConf::init( INT32 flags, INT64 numToSkip,
-                               INT64 numToReturn,
-                               const CHAR *pMatcherBuff,
-                               const CHAR *pSelectBuff,
-                               const CHAR *pOrderByBuff,
-                               const CHAR *pHintBuff )
-   {
-      INT32 rc = SDB_OK ;
-
-      try
-      {
-         BSONObj matcher( pMatcherBuff ) ;
-         BSONElement e = matcher.getField( FIELD_NAME_TYPE ) ;
-         if ( e.eoo() )
-         {
-            _mask = PMD_CFG_MASK_SKIP_UNFIELD ;
-         }
-         else if ( e.isNumber() )
-         {
-            INT32 type = e.numberInt() ;
-            switch( type )
-            {
-               case 0 :
-                  _mask = 0 ;
-                  break ;
-               case 1 :
-                  _mask = PMD_CFG_MASK_SKIP_HIDEDFT ;
-                  break ;
-               case 2 :
-                  _mask = PMD_CFG_MASK_SKIP_HIDEDFT | PMD_CFG_MASK_SKIP_NORMALDFT ;
-                  break ;
-               default :
-                  _mask = PMD_CFG_MASK_SKIP_UNFIELD ;
-                  break ;
-            }
-         }
-         else
-         {
-            PD_LOG( PDERROR, "Field[%s] should be numberInt",
-                    e.toString( TRUE, TRUE ).c_str() ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION( SDB__RTNEXPCONF, "_rtnExportConf::doit" )
    INT32 _rtnExportConf::doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
@@ -2930,7 +2611,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNEXPCONF ) ;
-      rc = pmdGetKRCB()->getOptionCB()->reflush2File( _mask ) ;
+      rc = pmdGetKRCB()->getOptionCB()->reflush2File() ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to export configration:%d",rc ) ;
@@ -3316,102 +2997,6 @@ namespace engine
       goto done ;
    }
 
-   IMPLEMENT_CMD_AUTO_REGISTER( _rtnPop )
-   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNPOP_INIT, "_rtnPop::init" )
-   INT32 _rtnPop::init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
-                         const CHAR *pMatcherBuff,
-                         const CHAR *pSelectBuff,
-                         const CHAR *pOrderByBuff,
-                         const CHAR *pHintBuff )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNPOP_INIT ) ;
-      try
-      {
-         BSONObj query( pMatcherBuff ) ;
-         BSONElement eleName, eleLID, eleDirection ;
-         eleName = query.getField( FIELD_NAME_COLLECTION ) ;
-         if ( String != eleName.type() )
-         {
-            PD_LOG( PDERROR, "Invalid collection name in command: %s",
-                    query.toString( FALSE, TRUE ).c_str() ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         _fullName = eleName.valuestr() ;
-
-         eleLID = query.getField( FIELD_NAME_LOGICAL_ID ) ;
-         if ( EOO == eleLID.type() )
-         {
-            PD_LOG( PDERROR, "Logical id for pop operation is not provided: %s",
-                    query.toString( FALSE, TRUE ).c_str() ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         if ( NumberLong != eleLID.type()
-              && NumberInt != eleLID.type()
-              && NumberDouble != eleLID.type() )
-         {
-            PD_LOG( PDERROR, "Type for LogicalID is invalid:%s",
-                    query.toString( FALSE, TRUE ).c_str() ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         _logicalID = eleLID.numberLong() ;
-
-         eleDirection = query.getField( FIELD_NAME_DIRECTION ) ;
-         if ( EOO == eleDirection.type() )
-         {
-            _direction = 1 ;
-         }
-         else
-         {
-            if ( NumberInt != eleDirection.type() )
-            {
-               PD_LOG( PDERROR, "Type for Direction is invalid: %s",
-                       query.toString( FALSE, TRUE ).c_str() ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-            else
-            {
-               _direction = eleDirection.numberInt() ;
-            }
-         }
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG( PDERROR, "unexpected err happened:%s", e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__RTNPOP_INIT, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNPOP_DOIT, ""_rtnPop::doit" )
-   INT32 _rtnPop::doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
-                         _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
-                         INT16 w, INT64 *pContextID )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNPOP_DOIT ) ;
-
-      rc = rtnPopCommand( _fullName, _logicalID, cb,
-                          dmsCB, dpsCB, w, _direction ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to pop record from collection[%s], "
-                   "rc: %d", _fullName, rc ) ;
-   done:
-      PD_TRACE_EXITRC( SDB__RTNPOP_DOIT, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
    IMPLEMENT_CMD_AUTO_REGISTER( _rtnAlterCollection )
    _rtnAlterCollection::_rtnAlterCollection()
    {
@@ -3777,7 +3362,7 @@ namespace engine
                                      pmdGetOptionCB()->getIndexPath(),
                                      pmdGetOptionCB()->getLobPath(),
                                      pmdGetOptionCB()->getLobMetaPath(),
-                                     cb, dmsCB, FALSE ) ;
+                                     dmsCB, FALSE ) ;
    }
 
    IMPLEMENT_CMD_AUTO_REGISTER( _rtnUnloadCollectionSpace )
@@ -3796,223 +3381,6 @@ namespace engine
       return rtnUnloadCollectionSpace( _csName, cb, dmsCB ) ;
    }
 
-   IMPLEMENT_CMD_AUTO_REGISTER( _rtnAnalyze )
-   _rtnAnalyze::_rtnAnalyze()
-   {
-      _csname = NULL ;
-      _clname = NULL ;
-      _ixname = NULL ;
-   }
-
-   _rtnAnalyze::~_rtnAnalyze()
-   {
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNANALYZE_INIT, "_rtnAnalyze::init" )
-   INT32 _rtnAnalyze::init ( INT32 flags, INT64 numToSkip,
-                             INT64 numToReturn,
-                             const CHAR *pMatcherBuff,
-                             const CHAR *pSelectBuff,
-                             const CHAR *pOrderByBuff,
-                             const CHAR *pHintBuff )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__RTNANALYZE_INIT ) ;
-
-      BOOLEAN sampleByNum = FALSE, sampleByPercent = FALSE ;
-
-      try
-      {
-         BSONObj matcher( pMatcherBuff ) ;
-         BSONElement e ;
-
-         e = matcher.getField( FIELD_NAME_COLLECTIONSPACE ) ;
-         if ( String == e.type() )
-         {
-            _csname = e.valuestr() ;
-         }
-         else if ( !e.eoo() )
-         {
-            PD_LOG( PDERROR, "Field[%s] is invalid in obj[%s]",
-                    FIELD_NAME_COLLECTION, matcher.toString().c_str() ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-
-         e = matcher.getField( FIELD_NAME_COLLECTION ) ;
-         if ( String == e.type() )
-         {
-            _clname = e.valuestr() ;
-         }
-         else if ( !e.eoo() )
-         {
-            PD_LOG( PDERROR, "Field[%s] is invalid in obj[%s]",
-                    FIELD_NAME_COLLECTIONSPACE, matcher.toString().c_str() ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-
-         e = matcher.getField( FIELD_NAME_INDEX ) ;
-         if ( String == e.type() )
-         {
-            _ixname = e.valuestr() ;
-         }
-         else if ( !e.eoo() )
-         {
-            PD_LOG( PDERROR, "Field[%s] is invalid in obj[%s]",
-                    FIELD_NAME_INDEX, matcher.toString().c_str() ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-
-         e = matcher.getField( FIELD_NAME_ANALYZE_MODE ) ;
-         if ( NumberInt == e.type() )
-         {
-            _param._mode = e.numberInt() ;
-            if ( SDB_ANALYZE_MODE_SAMPLE == _param._mode ||
-                 SDB_ANALYZE_MODE_FULL == _param._mode ||
-                 SDB_ANALYZE_MODE_GENDFT == _param._mode ||
-                 SDB_ANALYZE_MODE_RELOAD == _param._mode ||
-                 SDB_ANALYZE_MODE_CLEAR == _param._mode )
-            {
-            }
-            else
-            {
-               PD_LOG( PDERROR, "Value of field[%s] is invalid",
-                       FIELD_NAME_ANALYZE_MODE ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-         }
-         else if ( !e.eoo() )
-         {
-            PD_LOG( PDERROR, "Field[%s] is invalid in obj[%s]",
-                    FIELD_NAME_ANALYZE_MODE, matcher.toString().c_str() ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-
-         e = matcher.getField( FIELD_NAME_ANALYZE_NUM ) ;
-         if ( NumberInt == e.type() )
-         {
-            _param._sampleRecords = (UINT32) e.numberInt() ;
-            if ( _param._sampleRecords > SDB_ANALYZE_SAMPLE_MAX ||
-                 _param._sampleRecords < SDB_ANALYZE_SAMPLE_MIN )
-            {
-               PD_LOG( PDERROR, "Field[%s] %u is out of range [ %d - %d ]",
-                       FIELD_NAME_ANALYZE_NUM, _param._sampleRecords,
-                       SDB_ANALYZE_SAMPLE_MIN, SDB_ANALYZE_SAMPLE_MAX ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-            sampleByNum = TRUE ;
-         }
-
-         e = matcher.getField( FIELD_NAME_ANALYZE_PERCENT ) ;
-         if ( NumberInt == e.type() )
-         {
-            _param._samplePercent = e.numberInt() ;
-            if ( _param._samplePercent > 100.0 ||
-                 _param._samplePercent <= 0.0 )
-            {
-               PD_LOG( PDERROR, "Field[%s] %.2f is out of range ( %.2f - %.2f ]",
-                       FIELD_NAME_ANALYZE_PERCENT, _param._samplePercent,
-                       0.0, 100.0 ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-            sampleByPercent = TRUE ;
-         }
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      if ( NULL != _csname )
-      {
-         if ( NULL != _clname )
-         {
-            PD_LOG( PDERROR, "Field[%s] and Field[%s] conflict",
-                    FIELD_NAME_COLLECTIONSPACE, FIELD_NAME_COLLECTION ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         else if ( NULL != _ixname )
-         {
-            PD_LOG( PDERROR, "Field[%s] and Field[%s] conflict",
-                    FIELD_NAME_COLLECTIONSPACE, FIELD_NAME_INDEX ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-      }
-
-      if ( NULL != _ixname && NULL == _clname )
-      {
-         PD_LOG( PDERROR, "Field[%s] requires Field[%s]",
-                 FIELD_NAME_INDEX, FIELD_NAME_COLLECTION ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      if ( SDB_ANALYZE_MODE_GENDFT == _param._mode )
-      {
-         PD_CHECK( NULL != _clname, SDB_INVALIDARG, error, PDERROR,
-                   "Only support generating default statistics on specified "
-                   "collection or index" ) ;
-      }
-
-      if ( sampleByNum && sampleByPercent )
-      {
-         PD_LOG( PDERROR, "Field[%s] and Field[%s] conflict",
-                 FIELD_NAME_ANALYZE_NUM, FIELD_NAME_ANALYZE_PERCENT ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      if ( sampleByPercent )
-      {
-         _param._sampleByNum = FALSE ;
-      }
-
-   done :
-      PD_TRACE_EXITRC( SDB__RTNANALYZE_INIT, rc ) ;
-      return rc ;
-
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNANALYZE_DOIT, "_rtnAnalyze::doit" )
-   INT32 _rtnAnalyze::doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
-                             _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
-                             INT16 w, INT64 *pContextID )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__RTNANALYZE_DOIT ) ;
-
-      rc = rtnAnalyze( _csname, _clname, _ixname, _param,
-                       cb, dmsCB, rtnCB, dpsCB ) ;
-
-      if ( ( SDB_DMS_CS_NOTEXIST == rc && NULL == _csname && NULL == _clname ) ||
-           ( SDB_DMS_NOTEXIST == rc && NULL == _clname ) )
-      {
-         rc = SDB_OK ;
-      }
-
-      PD_RC_CHECK( rc, PDERROR, "Failed to run analyze command, rc: %d", rc ) ;
-
-   done :
-      PD_TRACE_EXITRC( SDB__RTNANALYZE_DOIT, rc ) ;
-      return rc ;
-
-   error :
-      goto done ;
-   }
-
 }
+
 

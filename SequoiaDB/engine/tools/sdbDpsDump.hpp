@@ -315,14 +315,12 @@ private:
 
    BOOLEAN     _validCheck( const po::variables_map &vm ) ;
 
-   INT32       _analysisMeta(map<UINT32, string > &mapFiles) ;
+   INT32       _analysisMeta() ;
 
    INT32       _metaFilte( const CHAR *filename, INT32 index,
                            dpsFileMeta& meta ) ;
    INT64       _dumpMeta( const dpsMetaData& meta,
                           CHAR* pBuffer, const UINT64 bufferSize ) ;
-   INT32       _changeFileName();
-   INT32       _getSortedFileMap( const CHAR *dirPath, map<UINT32, string> &mapFiles);
 
 private:
    INT32   _checkLogFile( OSSFILE &file, INT64 &size, const CHAR *filename );
@@ -351,7 +349,6 @@ public:
    CHAR     name[ OSS_MAX_PATHSIZE + 1 ] ;
    CHAR     srcPath[ OSS_MAX_PATHSIZE + 1 ] ;
    CHAR     dstPath[ OSS_MAX_PATHSIZE + 1 ] ;
-   UINT32   dstPathLen;
 private:
    CHAR    *_metaContent;
    dpsDumpFilter *_filter ;

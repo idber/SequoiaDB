@@ -365,7 +365,6 @@ namespace engine
       _segmentPagesSquare = 0 ;
       _pageSizeSquare     = 0 ;
       _isTempSU           = FALSE ;
-      _blockScanSupport   = TRUE ;
       _pageSize           = 0 ;
       _lobPageSize        = 0 ;
 
@@ -376,7 +375,6 @@ namespace engine
       if ( 0 == ossStrcmp( pInfo->_suName, SDB_DMSTEMP_NAME ) )
       {
          _isTempSU = TRUE ;
-         _blockScanSupport = FALSE ;
       }
 
       _pSyncMgr           = NULL ;
@@ -1568,7 +1566,6 @@ namespace engine
          }
          else
          {
-            BOOLEAN needAlloc = TRUE ;
             rc = context ? context->pause() : SDB_OK ;
             PD_RC_CHECK( rc, PDERROR, "Failed to pause context[%s], rc: %d",
                          context->toString().c_str(), rc ) ;
@@ -1577,11 +1574,6 @@ namespace engine
             rc = context ? context->resume() : SDB_OK ;
             PD_RC_CHECK( rc, PDERROR, "Failed to resum context[%s], rc: %d",
                          context->toString().c_str(), rc ) ;
-            _onAllocSpaceReady( context, needAlloc ) ;
-            if ( !needAlloc )
-            {
-               break ;
-            }
          }
       }
 
@@ -1855,11 +1847,6 @@ namespace engine
    void _dmsStorageBase::_incWriteRecord()
    {
       ++_writeReordNum ;
-   }
-
-   void _dmsStorageBase::_disableBlockScan()
-   {
-      _blockScanSupport = FALSE ;
    }
 
    /*

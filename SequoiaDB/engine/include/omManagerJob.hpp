@@ -44,24 +44,21 @@ namespace engine
 {
    class omHostVersion : public SDBObject
    {
-   public:
-      omHostVersion() ;
-      ~omHostVersion() ;
+      public:
+         omHostVersion() ;
+         ~omHostVersion() ;
 
-   public:
-      void    incVersion( string clusterName ) ;
-      void    setPrivilege( string clusterName, BOOLEAN privilege ) ;
-      BOOLEAN getPrivilege( string clusterName ) ;
-      void    removeVersion( string clusterName ) ;
-      void    getVersionMap( map< string, UINT32 > &mapClusterVersion ) ;
-      UINT32  getVersion( string clusterName ) ;
+      public:
+         void    incVersion( string clusterName ) ;
+         void    removeVersion( string clusterName ) ;
+         void    getVersionMap( map< string, UINT32 > &mapClusterVersion ) ;
+         UINT32  getVersion( string clusterName ) ;
 
-   private:
-      ossSpinSLatch        _lock ;
-      map<string, UINT32>  _mapClusterVersion ;
-      map<string, BOOLEAN> _mapClusterPrivilege ;
-      typedef map<string, UINT32 >::iterator _MAP_CV_ITER ;
-      typedef map<string, UINT32 >::value_type _MAP_CV_VALUETYPE ;
+      private:
+         ossSpinSLatch         _lock ;
+         map< string, UINT32 > _mapClusterVersion ;
+         typedef map< string, UINT32 >::iterator _MAP_CV_ITER ;
+         typedef map< string, UINT32 >::value_type _MAP_CV_VALUETYPE ;
    } ;
 
    struct omHostContent

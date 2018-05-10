@@ -107,28 +107,21 @@ const CHAR* CATE_ARR[ CATE_SIZE ] =
    QUERY_CURS_CATEGORY
  } ;
 
-// remove some useless mark in a c-type string
 static INT32 removeMark( CHAR *buffer, INT32 buffer_len, const CHAR *mark ) ;
 
-// replace str1 with str2
 static INT32 replaceSubStr( CHAR *buffer, INT32 buffer_len,
                             const CHAR *pStr1, const CHAR *pStr2 ) ;
 
-// check the buffer
 static INT32 checkBuffer ( CHAR **ppBuffer, INT32 *bufferSize,
                            INT32 length ) ;
 
-// judge whether the given pName is one of kinds of category or not
 static BOOLEAN isCategory( const CHAR *pName, const CHAR** arr, INT32 size ) ;
 
-// display synopsis and cutline
 static INT32 display( const CHAR *first, const CHAR *second, INT32 indent1,
                       INT32 indent2 ) ;
 
-// splite the cutline into several parts to display
 static INT32 splitCutline( const CHAR *cutline, vector<string> &vec ) ;
 
-// find out the right place to split
 static INT32 getSplitPos( const CHAR *pCur, INT32 part_len, INT32 *ret ) ;
 
 
@@ -146,13 +139,11 @@ manHelp::manHelp( const CHAR *path )
    ossMemcpy( _filePath, path , len );
    _filePath[len] = 0;
    troffFileNotEixt = FALSE ;
-   // scan the .cli files
    rc = scanFile();
    if ( rc )
    {
       troffFileNotEixt = TRUE ;
    }
-   // init classify info
    _classify.insert( pair< string, ssmap_ref >( string(GLOBAL_CATEGORY),
                                                 _global._first ) ) ;
    _classify.insert( pair< string, ssmap_ref >( string(DB_CATEGORY),
@@ -186,10 +177,7 @@ INT32 manHelp::scanFile()
    INT32 rc = SDB_OK;
    INT32 tmp_buf_len = READ_CHARACTOR_NUM ;
    INT32 file_buf_len = READ_CHARACTOR_NUM ;
-   // use to save the contents of the troff file, i don't know
-   // how large the troff file is, so i won't use array
    CHAR *file_buffer = (CHAR *)SDB_OSS_MALLOC( file_buf_len ) ;
-   // use to save the contents read from file_buffer
    CHAR *tmp_buffer = (CHAR *)SDB_OSS_MALLOC( tmp_buf_len + 1 ) ;
    typedef vector<fs::path> vec;
    vec v;
@@ -198,7 +186,6 @@ INT32 manHelp::scanFile()
    fs::path p( _filePath );
    CHAR *pFileName = NULL ;
 
-   // pFileName is free in done
    pFileName = (CHAR *)SDB_OSS_MALLOC( file_name_len + 1 );
    if ( !pFileName )
    {
@@ -208,30 +195,21 @@ INT32 manHelp::scanFile()
       goto error ;
    }
 
-   // i am going to extrace all the .cli file in /opt/sequoiadb/doc/manual
-   // to a vector<fs::path> and extrace what i want from this vector
 
-   // check the path
    if ( !fs::exists(p) || !fs::is_directory(p) )
    {
       rc = SDB_INVALIDARG;
       goto error;
    }
-   // scan all the file in manual directory
    std::copy( fs::directory_iterator(p), fs::directory_iterator(),
               std::back_inserter(v) );
-   // extract ".cli" file in vector to sset
    for ( vec::const_iterator it(v.begin()), it_end(v.end());
          it != it_end; it++ )
    {
       string fPath = (*it).string() ;
       const CHAR *pfPath = fPath.c_str() ;
-      // nerver use const CHAR* pTmp = fs::extension(*it).c_str();
       string fSuffix = fs::extension(*it);
       const CHAR *pfSuffix = fSuffix.c_str();
-      // if it is ".cli" file, save the file name
-      // 1: save the file name to sset
-      // 2: save synopsis and cutline to ssmap
       if ( ossStrncmp( pfSuffix, MFILE_SUFFIX, ossStrlen(MFILE_SUFFIX) ) == 0 )
       {
          INT32 strLen = 0;
@@ -242,8 +220,6 @@ INT32 manHelp::scanFile()
          const CHAR* pLeaf = NULL;
          CHAR *pSplit      = NULL ;
          CHAR *pSplit2     = NULL ;
-         // get the file name
-         // get the file name without the file path
          std::string leaf = (*it).leaf().string();
          pLeaf = leaf.c_str();
          strLen = ossStrlen( pLeaf ) - ossStrlen( MFILE_SUFFIX );
@@ -259,10 +235,8 @@ INT32 manHelp::scanFile()
          fileName =  pFileName ;
          fileNameLower = pFileName ;
 
-         // save name pair like "cl.createcl cl.createCL" to _nmap for search
          boost::to_lower( fileNameLower ) ;
          _nmap.insert( pair<string, string>(fileNameLower, fileName) ) ;
-         // split the file name cs.createCL
          pSplit = ossStrrchr( pFileName, SPLIT_POINT1 ) ;
          if ( !pSplit )
          {
@@ -273,11 +247,8 @@ INT32 manHelp::scanFile()
          }
          *pSplit = '\0' ;
          funcName = ++pSplit ;
-         // i am going to save category and cutline to ssmap
-         // and save funcName and fileName to smmap
          if ( isCategory( pFileName, CATE_ARR, CATE_SIZE ) )
          {
-            // read brief cutline from troff file
             std::ifstream fin ;
             INT32 troff_file_len = 0 ;
             INT32 read_real_len = 0 ;
@@ -287,24 +258,17 @@ INT32 manHelp::scanFile()
             CHAR* r_pos = NULL ;
             std::string cutline ;
             std::string synopsis ;
-            // open file
             fin.open( pfPath ) ;
-            // get the troff_file_len of file
             fin.seekg ( 0, fin.end ) ;
             troff_file_len = fin.tellg() ;
             fin.seekg ( 0, fin.beg ) ;
-            // check the file_buffer
             rc = checkBuffer ( &file_buffer, &file_buf_len, troff_file_len ) ;
             if ( rc )
             {
                goto exit ;
             }
-            // read troff file
             fin.read ( file_buffer, troff_file_len ) ;
 
-            // extract cutline
-            // i am going to extract the content between '.SH "NAME"' and ''.SH "SYNOPSIS"'
-            // in troff file as the cutline, i will abandon null string and some useless content
             r_beg = ossStrstr( file_buffer, READ_CUTLINE_BEGIN ) ;
             if ( !r_beg )
             {
@@ -322,7 +286,6 @@ INT32 manHelp::scanFile()
                goto exit ;
             }
             *r_end = '\0' ;
-            // find out the right position to get the cutline
             r_pos =  ossStrstr( r_beg, pSplit ) ;
             if ( !r_pos )
             {
@@ -332,9 +295,6 @@ INT32 manHelp::scanFile()
                rc = SDB_INVALIDARG ;
                goto exit ;
             }
-            // r_pos is the right place to extract cutline
-            // begin to extract cutline
-            // check the receive buffer
             read_real_len = ossStrlen( r_pos ) ;
             rc = checkBuffer ( &tmp_buffer, &tmp_buf_len, read_real_len ) ;
             if ( rc )
@@ -346,7 +306,6 @@ INT32 manHelp::scanFile()
             cutline_len = read_real_len - ossStrlen(pSplit) ;
             ossMemcpy( tmp_buffer, r_pos + ossStrlen(pSplit), cutline_len ) ;
             tmp_buffer[ cutline_len ] = '\0' ;
-            // replace "\n", "\r\n", "\f" with " "
             #if defined ( _WINDOWS )
             rc = replaceSubStr( tmp_buffer, tmp_buf_len, "\r\n", " " ) ;
             #else
@@ -354,7 +313,6 @@ INT32 manHelp::scanFile()
             #endif
             rc = replaceSubStr( tmp_buffer, tmp_buf_len, "\f", " " ) ;
             cutline = tmp_buffer ;
-            // when finishing extract cutline, i am going to extract synopsis
             r_beg = r_end + 1 ;
             r_pos = NULL ;
             r_end = NULL ;
@@ -367,7 +325,6 @@ INT32 manHelp::scanFile()
                goto exit ;
             }
             *r_end = '\0' ;
-            // find out the right position to get the synopsis
             r_pos = ossStrstr ( r_beg, pSplit ) ;
             if ( !r_pos )
             {
@@ -377,9 +334,6 @@ INT32 manHelp::scanFile()
                rc = SDB_INVALIDARG ;
                goto exit ;
             }
-            // r_pos is the right place to extract synopsis
-            // begin to extract synopsis
-            // check the recieve buffer
             read_real_len = ossStrlen( r_pos ) ;
             rc = checkBuffer ( &tmp_buffer, &tmp_buf_len, read_real_len ) ;
             if ( rc )
@@ -390,7 +344,6 @@ INT32 manHelp::scanFile()
             }
             ossMemcpy( tmp_buffer, r_pos, read_real_len ) ;
             tmp_buffer[read_real_len] = '\0' ;
-            // remove the useless mark
             rc = removeMark( tmp_buffer, read_real_len, MARK1 ) ;
             rc = removeMark( tmp_buffer, read_real_len, MARK2 ) ;
             #if defined ( _WINDOWS )
@@ -401,8 +354,6 @@ INT32 manHelp::scanFile()
             rc = replaceSubStr( tmp_buffer, tmp_buf_len, "\f", " " ) ;
             synopsis = tmp_buffer ;
 
-            // get category name, e.g. "query_curs.next", "query" is the
-            // category name
             pSplit2 = ossStrrchr( pFileName, SPLIT_POINT2 ) ;
             if ( NULL == pSplit2 )
             {
@@ -413,8 +364,6 @@ INT32 manHelp::scanFile()
                categoryName = string( pFileName,
                                  ossStrlen(pFileName) - ossStrlen(pSplit2) ) ;
             }
-            // put synopsis and cutline to map
-            // put funcName and fileName to map
             if ( string(GLOBAL_CATEGORY) == categoryName )
             {
                _global._first.insert( pair<string, string>(funcName, pFileName) ) ;
@@ -508,7 +457,6 @@ INT32 manHelp::scanFile()
                goto exit ;
             }
           exit:
-            // close file
             fin.close();
             if ( rc )
             {
@@ -554,17 +502,14 @@ INT32 manHelp::getFileHelp( const CHAR* name )
    const CHAR *fname = NULL;
    const CHAR *nameL = NULL ;
    CHAR fPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 };
-   // transform name to lowercase
    boost::to_lower( nameLower ) ;
    nameL = nameLower.c_str() ;
-   // check wether success to scan file or not
    if ( troffFileNotEixt )
    {
       ossPrintf( "Failed to scan troff file"OSS_NEWLINE ) ;
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-   // check argument
    if ( name == NULL || ossStrcmp(name, "") == 0 )
    {
       ossPrintf( "Invalid arguments, %s:%d "OSS_NEWLINE, __FILE__,
@@ -572,7 +517,6 @@ INT32 manHelp::getFileHelp( const CHAR* name )
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-   // search the name map to find out the matched file name
    for ( ssmap::const_iterator it(_nmap.begin()), it_end(_nmap.end());
          it != it_end; it++ )
    {
@@ -580,7 +524,6 @@ INT32 manHelp::getFileHelp( const CHAR* name )
       str = ossStrstr( fname, nameL );
       if ( str != NULL )
       {
-         // when we get a full fit file name, no need to scan the less
          if ( ossStrncmp( fname, nameL, ossStrlen( nameL ) + 1 ) == 0 )
          {
             fuzzy_match.clear() ;
@@ -590,12 +533,10 @@ INT32 manHelp::getFileHelp( const CHAR* name )
          fuzzy_match.insert( (it->second) );
       }
    }
-   // if we not find any matched file name, tell the user directly
    if ( fuzzy_match.size() == 0 )
    {
       ossPrintf( "No manual for method %s"OSS_NEWLINE, name );
    }
-   // if we get more than 1 file names, let the user fill again
    else if ( fuzzy_match.size() > 1 )
    {
       ossPrintf( "%d methods related to \"%s\", please fill in the full "
@@ -613,7 +554,6 @@ INT32 manHelp::getFileHelp( const CHAR* name )
       ossMemcpy( fPath, _filePath, ossStrlen(_filePath) );
       ossStrncat( fPath, (*it).c_str(), ossStrlen((*it).c_str()) );
       ossStrncat( fPath, MFILE_SUFFIX, ossStrlen(MFILE_SUFFIX) );
-      // parse
       rc = parseMandoc::getInstance().parse ( fPath ) ;
       if ( rc != SDB_OK )
       {
@@ -632,14 +572,12 @@ error :
 INT32 manHelp::getFileHelp( const CHAR* category, const CHAR* cmd )
 {
    INT32 rc = SDB_OK;
-   // check argument
    if ( category == NULL )
    {
       ossPrintf( "Invalid arguments, %s:%d "OSS_NEWLINE, __FILE__, __LINE__ ) ;
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-   // in case name == NULL display all the method in this category
    if ( NULL == cmd )
    {
       rc = displayMethod( category ) ;
@@ -650,7 +588,6 @@ INT32 manHelp::getFileHelp( const CHAR* category, const CHAR* cmd )
          goto error ;
       }
    }
-   // in case name != NULL display method manual
    else
    {
       rc = displayManual( category, cmd ) ;
@@ -785,7 +722,6 @@ INT32 manHelp::displayManual( const CHAR *category, const CHAR *cmd )
    sset fuzzy_match ;
    smmap::iterator it ;
    string str ;
-   // check
    if ( !category || !cmd )
    {
       ossPrintf( "Invalid arguments, %s:%d "OSS_NEWLINE, __FILE__, __LINE__ ) ;
@@ -793,9 +729,6 @@ INT32 manHelp::displayManual( const CHAR *category, const CHAR *cmd )
       goto error ;
    }
 
-   // get cmd's mapping filename, e.g. "query.hint" matches "query_conf.hint"
-   // so, while category == query, cmd == hint, we need to set
-   // category == query_conf
    it = _classify.find( string(category) ) ;
    if ( it != _classify.end() )
    {
@@ -807,7 +740,6 @@ INT32 manHelp::displayManual( const CHAR *category, const CHAR *cmd )
          if ( pPos != NULL )
          {
             string filename = itr->second + "." + itr->first ;
-            // when we get a full fit func name, no need to scan the less
             if ( ossStrncmp( pFunc, cmd, ossStrlen( cmd ) + 1 ) == 0 )
             {
                fuzzy_match.clear() ;
@@ -818,10 +750,6 @@ INT32 manHelp::displayManual( const CHAR *category, const CHAR *cmd )
          }
       }
    }
-   // build the full name of a command e.g. cs.createCL
-   // because our troff files are named "category.cmd.cli"
-   // but, if user does not offer category, just use cmd to do
-   // fuzzy search
    if ( 0 == fuzzy_match.size() )
    {
       if ( NULL == category || '\0' == category[0] )
@@ -842,7 +770,6 @@ INT32 manHelp::displayManual( const CHAR *category, const CHAR *cmd )
       goto done ;
    }
    str = *(fuzzy_match.begin()) ;
-   // display man page
    rc = getFileHelp ( str.c_str() ) ;
    if ( rc )
    {
@@ -860,11 +787,8 @@ INT32 removeMark( CHAR *buffer, INT32 buffer_len, const CHAR *mark )
    INT32 rc = SDB_OK ;
    INT32 strLen = 0 ;
    INT32 moveLen = 0 ;
-   // mark the current position of "mark"
    CHAR *pb = NULL ;
-   // mark the next position of "mark"
    CHAR *pe = NULL ;
-   // destination to move to
    CHAR *pp = NULL ;
    if ( !buffer || !mark || buffer_len <= 0 )
    {
@@ -911,7 +835,6 @@ INT32 replaceSubStr( CHAR *buffer, INT32 buffer_len,
    CHAR buf[ READ_CHARACTOR_NUM + 1 ] = { 0 } ;
    CHAR *pos = NULL ;
 
-   // check arguments
    if ( !buffer || !pStr1 || !pStr2 ||
         buffer_len > READ_CHARACTOR_NUM + 1 ||
         str1_len  > READ_CHARACTOR_NUM ||
@@ -928,7 +851,6 @@ INT32 replaceSubStr( CHAR *buffer, INT32 buffer_len,
       ossMemset( buf, 0, sizeof( buf ) ) ;
       offset = pos - buffer ;
       ossStrncpy( buf, buffer, offset ) ;
-      // check
       if ( offset + str2_len > buffer_len - 1 )
       {
          ossPrintf( "Failed to replace sub str1 with str2 in buffer, "
@@ -938,7 +860,6 @@ INT32 replaceSubStr( CHAR *buffer, INT32 buffer_len,
       }
       ossStrncat( buf, pStr2, str2_len ) ;
       less_part_len = ossStrlen( pos+str1_len ) ;
-      // check
       if ( offset + str2_len + less_part_len > buffer_len - 1 )
       {
          ossPrintf( "Failed to replace sub str1 with str2 in buffer, "
@@ -997,18 +918,15 @@ BOOLEAN isCategory( const CHAR *pName, const CHAR** arr, INT32 size )
    return result ;
 }
 
-// i am not going to display cutline in windows system
 INT32 display( const CHAR *first, const CHAR *second, INT32 indent1,
                INT32 indent2 )
 {
    INT32 rc = SDB_OK ;
    vector<string> vec ;
-   // the lenght of synopsis
    INT32 first_part_len = 0 ;
    INT32 idt1 = indent1 ;
    INT32 idt2 = 0 ;
 
-   // check arguments
    if ( !first || !second || indent1 < 0 || indent2 < 0 )
    {
       ossPrintf( "Invalid argument, %s:%d"OSS_NEWLINE,
@@ -1019,8 +937,6 @@ INT32 display( const CHAR *first, const CHAR *second, INT32 indent1,
    }
 
    first_part_len = indent1 + ossStrlen( first ) + 1 ;
-   // in this case, display like this:
-   //                                 synopsis  - cutline
    if ( first_part_len < indent2 )
    {
       idt2 = indent2 - first_part_len + 1 ;
@@ -1029,7 +945,6 @@ INT32 display( const CHAR *first, const CHAR *second, INT32 indent1,
          goto error ;
       vector<string>::iterator it ;
       it = vec.begin() ;
-      // display the first line
       #if defined ( _WINDOWS )
       cout << setw(idt1) << " " << first ;
       #else
@@ -1041,17 +956,12 @@ INT32 display( const CHAR *first, const CHAR *second, INT32 indent1,
       }
       #endif
    }
-   // in this case, display like this:
-   //                                 synopsis
-   //                                          - cutline
    else
    {
-      // display the first part
       #if defined ( _WINDOWS )
       cout << setw(idt1) << " " << first ;
       #else
       cout << setw(idt1) << " " << first << endl ;
-      // display the second part
       idt2 = indent2 ;
       rc = splitCutline( second, vec ) ;
       if ( rc )
@@ -1076,7 +986,6 @@ INT32 getSplitPos( const CHAR *pCur, INT32 part_len, INT32 *ret )
    INT32 rc = SDB_OK ;
    const CHAR *p = NULL ;
    INT32 less_part_len = 0 ;
-   // check argument
    if ( !pCur || part_len <= 0 )
    {
       ossPrintf( "Invalid argument, %s:%d"OSS_NEWLINE,
@@ -1089,7 +998,6 @@ INT32 getSplitPos( const CHAR *pCur, INT32 part_len, INT32 *ret )
    less_part_len = ossStrlen( pCur ) + 1 ;
    if ( less_part_len <= part_len )
    {
-      // means pCur point to the last part of cutline content
       *ret = 0 ;
       goto done ;
    }
@@ -1098,8 +1006,6 @@ INT32 getSplitPos( const CHAR *pCur, INT32 part_len, INT32 *ret )
    {
       --p ;
    }
-   // in the case, that means no ' ' in this part,
-   // save it as a part
    if ( p == pCur )
       *ret = part_len ;
    else
@@ -1117,7 +1023,6 @@ INT32 splitCutline( const CHAR *cutline, vector<string> &vec )
    INT32 move_len = -1 ;
    INT32 part_len = CONTENT_LEN ;
 
-   // check argument
    if ( !cutline )
    {
       ossPrintf( "Invalid argument, %s:%d"OSS_NEWLINE,
@@ -1132,8 +1037,6 @@ INT32 splitCutline( const CHAR *cutline, vector<string> &vec )
       rc = getSplitPos( pb, part_len, &move_len ) ;
       if ( rc )
          goto error ;
-      // if move == 0, means we finish going through the whole cutline
-      // and all the parts have been insert into vec
       if ( move_len == 0 )
       {
          string str = string( pb, ossStrlen(pb) ) ;

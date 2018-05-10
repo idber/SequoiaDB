@@ -141,13 +141,13 @@ _operate.sort = function( $scope ){
    } ;
 }
 
-_operate.hint = function( $scope, indexList ){
+_operate.hint = function( $scope ){
    return {
       "name": "hint",
       "webName": $scope.autoLanguage( "扫描方式" ),
       "type": "select",
       "value": 0,
-      "valid": indexList
+      "valid": $scope.indexList
    } ;
 }
 

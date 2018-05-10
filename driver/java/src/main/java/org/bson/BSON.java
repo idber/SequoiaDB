@@ -17,15 +17,27 @@
 
 package org.bson;
 
-import org.bson.types.*;
-import org.bson.util.ClassMap;
-
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+
+import org.bson.types.BSONDecimal;
+import org.bson.types.BSONTimestamp;
+import org.bson.types.Binary;
+import org.bson.types.Code;
+import org.bson.types.CodeWScope;
+import org.bson.types.MaxKey;
+import org.bson.types.MinKey;
+import org.bson.types.ObjectId;
+import org.bson.types.Symbol;
+import org.bson.util.ClassMap;
 
 public class BSON {
 
@@ -214,7 +226,7 @@ public class BSON {
         return o;
     }
 
-    /**
+   /**
      * Returns the encoding hook(s) associated with the specified class
      *
      */
@@ -244,7 +256,7 @@ public class BSON {
         getEncodingHooks( c ).remove( t );
     }
 
-    /**
+   /**
      * Returns the decoding hook(s) associated with the specific class
      */
     public static List<Transformer> getDecodingHooks( Class c ){
@@ -312,11 +324,6 @@ public class BSON {
         return d.readObject( b );
     }
 
-    public static BSONObject decode(byte[] b, int offset) {
-        BSONDecoder d = _staticDecoder.get();
-        return d.readObject(b, offset);
-    }
-
     static ThreadLocal<BSONEncoder> _staticEncoder = new ThreadLocal<BSONEncoder>(){
         protected BSONEncoder initialValue(){
             return new BasicBSONEncoder();
@@ -325,7 +332,7 @@ public class BSON {
 
     static ThreadLocal<BSONDecoder> _staticDecoder = new ThreadLocal<BSONDecoder>(){
         protected BSONDecoder initialValue(){
-            return new NewBSONDecoder();
+            return new BasicBSONDecoder();
         }
     };
 
@@ -390,10 +397,10 @@ public class BSON {
 	}
     
     private static boolean _compatible = false;
-
 	/**
-	 * When "compatible" is true, the content of BasicBSONObject method "toString" is show
-	 * absolutely the same with which is show in sdb shell.
+	 * @fn void setJSCompatibility(boolean compatible)
+	 * @brief When "compatible" is true, the content of BasicBSONObject method "toString" is show 
+	 *        absolutely the same with which is show in sdb shell.
 	 * @param compatible true or false, default to be false;
 	 * 
 	 * {@code
@@ -418,11 +425,14 @@ public class BSON {
 	}
 	
 	/**
-	 * Get whether the display mode of BSON is the same with that in sdb shell or not.
+	 * @fn boolean getJSCompatibility()
+	 * @brief Get whether the display mode of BSON is the same with that in sdb shell or not.
 	 * @return true or false.
-	 * @see #setJSCompatibility(boolean)
+	 * @see setJSCompatibility
 	 */
 	public static boolean getJSCompatibility() {
 		return _compatible;
 	}
+	
+	
 }

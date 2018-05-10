@@ -65,7 +65,6 @@ namespace engine
       {
          objs = BSONObj( pObjs ) ;
 
-         /// Prepare last info
          CHAR szTmp[ MON_APP_LASTOP_DESC_LEN + 1 ] = { 0 } ;
          UINT32 len = 0 ;
          const CHAR *pObjData = pObjs ;
@@ -80,7 +79,6 @@ namespace engine
                break ;
             }
          }
-         // add last op info
          MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                              "Collection:%s, ObjNum:%u, Objs:%s, "
                              "Flag:0x%08x(%u)",
@@ -89,12 +87,10 @@ namespace engine
 
          rc = pmdGetKRCB()->getAggrCB()->build( objs, count, pCollectionName,
                                                 cb, contextID ) ;
-         /// AUDIT
          PD_AUDIT_OP( AUDIT_DQL, pMsg->opCode, AUDIT_OBJ_CL,
                       pCollectionName, rc,
                       "ContextID:%lld, ObjNum:%u, Objs:%s, Flag:0x%08x(%u)",
                       contextID, count, szTmp, flags, flags ) ;
-         /// CHECK RESULT
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to execute aggregation operation(rc=%d)",
                       rc );

@@ -1,19 +1,31 @@
-//@ sourceURL=Conf.js
 (function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
    sacApp.controllerProvider.register( 'Deploy.Ssql.Conf.Ctrl', function( $scope, $compile, $location, $rootScope, SdbRest ){
+
+      //初始化
+      $scope.IsAllClear = true ;
+      $scope.Conf1 = {} ;
+      $scope.Conf2 = {} ;
+      $scope.HostList = [] ;
+      $scope.templateList = [] ;
+      $scope.ConfForm1 = { 'keyWidth': '160px', 'inputList': [] } ;
+      $scope.ConfForm2 = { 'keyWidth': '160px', 'inputList': [] } ;
+      $scope.currentTemplate  = {} ;
+      $scope.RedundancyChart = {} ;
+      $scope.RedundancyChart['options'] = $.extend( true, {}, window.SdbSacManagerConf.RedundancyChart ) ;
+      $scope.HostGridOptions = { 'titleWidth': [ '30px', 50, 50 ] } ;
 
       $scope.DeployType  = $rootScope.tempData( 'Deploy', 'Model' ) ;
       var clusterName    = $rootScope.tempData( 'Deploy', 'ClusterName' ) ;
       $scope.ModuleName  = $rootScope.tempData( 'Deploy', 'ModuleName' ) ;
 
       /*
-      $scope.DeployType = 'Module' ;
+      $scope.DeployType = 'Install_Module' ;
       clusterName = 'myCluster1' ;
       $scope.ModuleName = 'myModule2' ;
       */
-      
+
       if( $scope.DeployType == null || clusterName == null || $scope.ModuleName == null )
       {
          $location.path( '/Deploy/Index' ).search( { 'r': new Date().getTime() } ) ;
@@ -27,19 +39,34 @@
          return ;
       }
 
-      //初始化
-      $scope.IsAllClear = true ;
-      $scope.Conf1 = {} ;
-      $scope.Conf2 = {} ;
-      $scope.HostList = [] ;
-      $scope.templateList = [] ;
-      $scope.ConfForm1 = { 'keyWidth': '160px', 'inputList': [] } ;
-      $scope.ConfForm2 = { 'keyWidth': '160px', 'inputList': [] } ;
-      //选择安装业务的主机 弹窗
-      $scope.SwitchHostWindow = {
-         'config': {},
-         'callback': {}
-      } ;
+      //获取主机列表
+      var getHostList = function(){
+         var filter = { "ClusterName": clusterName } ;
+         var data = { 'cmd': 'query host', 'filter': JSON.stringify( filter ) } ;
+         SdbRest.OmOperation( data, {
+            'success': function( hostList ){
+               $scope.HostList = hostList ;
+               $scope.Conf1['DiskNum'] = 0 ;
+               $.each( $scope.HostList, function( index, hostInfo ){
+                  $scope.HostList[index]['checked'] = true ;
+                  $.each( hostInfo['Disk'], function( index2, diskInfo ){
+                     if( diskInfo['IsLocal'] == true )
+                     {
+                        ++$scope.Conf1['DiskNum'] ;
+                     }
+                  } ) ;
+               } )  ;
+               getBusinessTemplate() ;
+               $scope.$apply() ;
+            },
+            'failed': function( errorInfo ){
+               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+                  getHostList() ;
+                  return true ;
+               } ) ;
+            }
+         } ) ;
+      }
 
       //获取业务模板
       var getBusinessTemplate = function(){
@@ -71,38 +98,11 @@
                } ) ;
                $scope.templateList = templateList ;
                $scope.ConfForm1 = confForm ;
+               $scope.$apply() ;
             },
             'failed': function( errorInfo ){
                _IndexPublic.createRetryModel( $scope, errorInfo, function(){
                   getBusinessTemplate() ;
-                  return true ;
-               } ) ;
-            }
-         } ) ;
-      }
-
-      //获取主机列表
-      var getHostList = function(){
-         var filter = { "ClusterName": clusterName } ;
-         var data = { 'cmd': 'query host', 'filter': JSON.stringify( filter ) } ;
-         SdbRest.OmOperation( data, {
-            'success': function( hostList ){
-               $scope.HostList = hostList ;
-               $scope.Conf1['DiskNum'] = 0 ;
-               $.each( $scope.HostList, function( index, hostInfo ){
-                  $scope.HostList[index]['checked'] = true ;
-                  $.each( hostInfo['Disk'], function( index2, diskInfo ){
-                     if( diskInfo['IsLocal'] == true )
-                     {
-                        ++$scope.Conf1['DiskNum'] ;
-                     }
-                  } ) ;
-               } )  ;
-               getBusinessTemplate() ;
-            },
-            'failed': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  getHostList() ;
                   return true ;
                } ) ;
             }
@@ -141,7 +141,7 @@
          var isAllClear1 = $scope.ConfForm1.check() ;
          var isAllClear2 = $scope.ConfForm2.check() ;
          $scope.IsAllClear = isAllClear1 && isAllClear2 ;
-         if( $scope.IsAllClear )
+         if( isAllClear1 && isAllClear2 )
          {
             var formVal1 = $scope.ConfForm1.getValue() ;
             var formVal2 = $scope.ConfForm2.getValue() ;
@@ -168,6 +168,7 @@
                { "Name": "segment_num", "Value": formVal2['segment_num'] + '' }
             ] ;
             businessConf['HostInfo'] = tempHostInfo ;
+            //$rootScope.tempData( 'Deploy', 'ModuleConfig', businessConf ) ;
             getModuleConfig( businessConf ) ;
          }
       }
@@ -183,21 +184,64 @@
             $scope.HostList[index]['checked'] = !$scope.HostList[index]['checked'] ;
          } ) ;
       }
- 
-      //打开 选择安装业务的主机 弹窗
-      $scope.OpenSwitchHost = function(){
+  
+      //创建 选择安装业务的主机 弹窗
+      $scope.CreateSwitchHostModel = function(){
+         var hostBox = null ;
+         var grid = null ;
          var tempHostList = $.extend( true, [], $scope.HostList ) ;
-         $scope.SwitchHostWindow['callback']['SetOkButton']( $scope.autoLanguage( '确定' ), function(){
-            return true ;
-         } ) ;
-         $scope.SwitchHostWindow['callback']['SetCloseButton']( $scope.autoLanguage( '取消' ), function(){
-            $.each( tempHostList, function( index ){
-               $scope.HostList[index]['check'] = tempHostList[index]['check'] ;
+         $scope.Components.Modal.icon = '' ;
+         $scope.Components.Modal.title = $scope.autoLanguage( '主机列表' ) ;
+         $scope.Components.Modal.isShow = true ;
+         $scope.Components.Modal.Context = function( bodyEle ){
+            var div  = $( '<div></div>' ) ;
+            var btn1 = $compile( '<button ng-click="SelectAll()"></button>' )( $scope ).addClass( 'btn btn-default' ).text( $scope.autoLanguage( '全选' ) ) ;
+            var btn2 = $compile( '<button ng-click="Unselect()"></button>' )( $scope ).addClass( 'btn btn-default' ).text( $scope.autoLanguage( '反选' ) ) ;
+            div.append( btn1 ).append( '&nbsp;' ).append( btn2 ) ;
+
+            hostBox = $( '<div></div>' ).css( { 'marginTop': '10px' } ) ;
+
+            grid = $compile( '\
+<div class="Grid" style="border-bottom:1px solid #E3E7E8;" ng-grid="HostGridOptions"">\
+   <div class="GridHeader">\
+      <div class="GridTr">\
+         <div class="GridTd Ellipsis"></div>\
+         <div class="GridTd Ellipsis">{{autoLanguage("主机名")}}</div>\
+         <div class="GridTd Ellipsis">{{autoLanguage("IP地址")}}</div>\
+         <div class="clear-float"></div>\
+      </div>\
+   </div>\
+   <div class="GridBody">\
+      <div class="GridTr" ng-repeat="hostInfo in HostList track by $index">\
+         <div class="GridTd Ellipsis" style="word-break:break-all;">\
+            <input type="checkbox" ng-model="HostList[$index][\'checked\']"/>\
+         </div>\
+         <div class="GridTd Ellipsis" style="word-break:break-all;">{{hostInfo[\'HostName\']}}</div>\
+         <div class="GridTd Ellipsis" style="word-break:break-all;">{{hostInfo[\'IP\']}}</div>\
+         <div class="clear-float"></div>\
+      </div>\
+   </div>\
+</div>' )( $scope ) ;
+
+            hostBox.append( grid ) ;
+
+            $compile( bodyEle )( $scope ).append( div ).append( hostBox ) ;
+            $scope.$apply() ;
+         }
+         $scope.Components.Modal.onResize = function( width, height ){
+            $( grid ).css( {
+               'width': width - 10,
+               'max-height': height - 40
             } ) ;
+            $scope.bindResize() ;
+         }
+         $scope.Components.Modal.ok = function(){
             return true ;
-         } ) ;
-         $scope.SwitchHostWindow['callback']['SetTitle']( $scope.autoLanguage( '主机列表' ) ) ;
-         $scope.SwitchHostWindow['callback']['Open']() ;
+         }
+         $scope.Components.Modal.close = function(){
+            $scope.HostList = tempHostList ;
+            return true ;
+         }
       }
 
       getHostList() ;

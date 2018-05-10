@@ -33,7 +33,7 @@
 #include "ossUtil.hpp"
 #include "sptCommon.hpp"
 #include "jscntxt.h"
-#include "jsscript.h"
+
 using namespace bson ;
 
 namespace engine
@@ -115,141 +115,110 @@ namespace engine
       sptProperty &rpro = rval.getReturnVal() ;
       jsval val = JSVAL_VOID ;
 
-      if( rpro.isRawData() )
+      if ( EOO == rpro.getType() )
       {
-         sptResultVal *pResultVal ;
-         rc = rpro.getResultVal( &pResultVal ) ;
-         if( SDB_OK != rc )
+         *rvp = JSVAL_VOID ;
+         goto done ;
+      }
+      else if ( rpro.isObject() )
+      {
+         JSObject *jsObj = JS_NewObject ( cx,
+                                          (JSClass *)(rpro.getObjDesc()->getClassDef()),
+                                          0 , 0 ) ;
+         if ( NULL == jsObj )
          {
-            PD_LOG( PDERROR, "failed to get result value" ) ;
+            PD_LOG( PDERROR, "faile to new js object" ) ;
+            rc = SDB_OOM ;
             goto error ;
          }
-         val = *( jsval* )pResultVal->rawPtr() ;
-      }
-      else
-      {
-         if ( EOO == rpro.getType() )
+
+         JS_SetPrivate( cx, jsObj, rpro.getValue() ) ;
+
+         rpro.takeoverObject() ;
+         if ( !rval.getReturnValProperties().empty() )
          {
-            *rvp = JSVAL_VOID ;
-            goto done ;
-         }
-         else if ( rpro.isObject() )
-         {
-            JSObject *jsObj = JS_NewObject ( cx,
-                                             (JSClass *)(rpro.getObjDesc()->getClassDef()),
-                                             0 , 0 ) ;
-            if ( NULL == jsObj )
-            {
-               PD_LOG( PDERROR, "failed to new js object" ) ;
-               rc = SDB_OOM ;
-               goto error ;
-            }
-
-            if( !JS_SetPrivate( cx, jsObj, rpro.getValue() ) )
-            {
-               PD_LOG( PDERROR, "failed to set object to js object" ) ;
-               rc = SDB_SYS ;
-               goto error ;
-            }
-
-            /*
-               Add the fixed property
-            */
-            rval.addReturnValProperty( SPT_OBJ_CNAME_PROPNAME,
-                                       SPT_PROP_READONLY|
-                                       SPT_PROP_PERMANENT )->setValue(
-                                       rpro.getObjDesc()->getJSClassName() ) ;
-            rval.addReturnValProperty( SPT_OBJ_ID_PROPNAME,
-                                       SPT_PROP_READONLY|
-                                       SPT_PROP_PERMANENT )->setValue(
-                                       sdbGetGlobalID() ) ;
-
-            rpro.takeoverObject() ;
-
-            if ( !rval.getReturnValProperties().empty() )
-            {
-               rc = _sptInvoker::setProperty( cx, jsObj,
-                                              rval.getReturnValProperties() ) ;
-               if ( SDB_OK != rc )
-               {
-                  goto error ;
-               }
-            }
-
-            val = OBJECT_TO_JSVAL( jsObj ) ;
-         }
-         else if ( rpro.isArray() )
-         {
-            const SPT_PROPERTIES &elem = rpro.getArray() ;
-            if ( elem.size() > 0 )
-            {
-               JSObject *jsObj = JS_NewArrayObject( cx, elem.size(), NULL ) ;
-               if ( NULL == jsObj )
-               {
-                  PD_LOG( PDERROR, "Failed to new js Array" ) ;
-                  rc = SDB_OOM ;
-                  goto error ;
-               }
-               rc = setArrayElems( cx, jsObj, elem ) ;
-               if ( rc )
-               {
-                  PD_LOG( PDERROR, "Failed to set the array's elem "
-                          "failed, rc: %d", rc ) ;
-                  goto error ;
-               }
-
-               val = OBJECT_TO_JSVAL( jsObj ) ;
-            }
-         }
-         else
-         {
-            rc = _getValFromProperty( cx, rpro, val ) ;
+            rc = _sptInvoker::setProperty( cx, jsObj,
+                                           rval.getReturnValProperties() ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
             }
          }
 
-         if ( obj && !rval.getSelfProperties().empty() )
+         val = OBJECT_TO_JSVAL( jsObj ) ;
+      }
+      else if ( rpro.isArray() )
+      {
+         const SPT_PROPERTIES &elem = rpro.getArray() ;
+         if ( elem.size() > 0 )
          {
-            rc = _sptInvoker::setProperty( cx, obj, rval.getSelfProperties() ) ;
+            JSObject *jsObj = JS_NewArrayObject( cx, elem.size(), NULL ) ;
+            if ( NULL == jsObj )
+            {
+               PD_LOG( PDERROR, "Failed to new js Array" ) ;
+               rc = SDB_OOM ;
+               goto error ;
+            }
+            rc = setArrayElems( cx, jsObj, elem ) ;
             if ( rc )
             {
+               PD_LOG( PDERROR, "Failed to set the array's elem "
+                       "failed, rc: %d", rc ) ;
                goto error ;
             }
-         }
 
-         if ( obj && !rpro.getName().empty() )
-         {
-            if ( rpro.isNeedDelete() )
-            {
-               JSBool found = JS_FALSE ;
-               uintN attr = 0 ;
-               if ( JS_GetPropertyAttributes( cx, obj, rpro.getName().c_str(),
-                                              &attr, &found ) &&
-                    found &&
-                    ( attr & SPT_PROP_PERMANENT ) )
-               {
-                  attr &= ~SPT_PROP_PERMANENT ;
-                  JS_SetPropertyAttributes( cx, obj, rpro.getName().c_str(),
-                                            attr, &found ) ;
-               }
-
-               if ( found )
-               {
-                  jsval dval = JSVAL_VOID ;
-                  JS_DeleteProperty2( cx, obj, rpro.getName().c_str(), &dval ) ;
-               }
-            }
-            else if ( !JS_DefineProperty( cx, obj, rpro.getName().c_str(),
-                                          val, 0, 0, rpro.getAttr() ) )
-            {
-               PD_LOG( PDERROR, "failed to set obj to parent obj" ) ;
-               rc = SDB_SYS ;
-               goto error ;
-            }
+            val = OBJECT_TO_JSVAL( jsObj ) ;
          }
       }
+      else
+      {
+         rc = _getValFromProperty( cx, rpro, val ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
+      }
+
+      if ( obj && !rval.getSelfProperties().empty() )
+      {
+         rc = _sptInvoker::setProperty( cx, obj, rval.getSelfProperties() ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+
+      if ( obj && !rpro.getName().empty() )
+      {
+         if ( rpro.isNeedDelete() )
+         {
+            JSBool found = JS_FALSE ;
+            uintN attr = 0 ;
+            if ( JS_GetPropertyAttributes( cx, obj, rpro.getName().c_str(),
+                                           &attr, &found ) &&
+                 found &&
+                 ( attr & SPT_PROP_PERMANENT ) )
+            {
+               attr &= ~SPT_PROP_PERMANENT ;
+               JS_SetPropertyAttributes( cx, obj, rpro.getName().c_str(),
+                                         attr, &found ) ;
+            }
+
+            if ( found )
+            {
+               jsval dval = JSVAL_VOID ;
+               JS_DeleteProperty2( cx, obj, rpro.getName().c_str(), &dval ) ;
+            }
+         }
+         else if ( !JS_DefineProperty( cx, obj, rpro.getName().c_str(),
+                                       val, 0, 0, rpro.getAttr() ) )
+         {
+            PD_LOG( PDERROR, "failed to set obj to parent obj" ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
+
       *rvp = val ;
    done:
       return rc ;
@@ -307,17 +276,12 @@ namespace engine
                                              0 , 0 ) ;
             if ( NULL == jsObj )
             {
-               PD_LOG( PDERROR, "failed to new js object" ) ;
+               PD_LOG( PDERROR, "faile to new js object" ) ;
                rc = SDB_OOM ;
                goto error ;
             }
 
-            if( !JS_SetPrivate( cx, jsObj, prop->getValue() ) )
-            {
-               PD_LOG( PDERROR, "failed to set private to js object" ) ;
-               rc = SDB_SYS ;
-               goto error ;
-            }
+            JS_SetPrivate( cx, jsObj, prop->getValue() ) ;
 
             prop->takeoverObject() ;
 
@@ -517,32 +481,6 @@ namespace engine
             sdbSetErrno( rc, FALSE ) ;
          }
 
-         {
-            sptPrivateData *privateData = ( sptPrivateData* )
-                                            JS_GetContextPrivate( cx ) ;
-            if( NULL != privateData )
-            {
-               for( JSStackFrame *fp = js_GetTopStackFrame( cx );
-                    fp; fp = fp->prev() )
-               {
-                  jsbytecode *pc = JS_GetFramePC( cx, fp ) ;
-                  if( pc )
-                  {
-                     JSScript *script = fp->script() ;
-                     const CHAR* scriptFileName = JS_GetScriptFilename( cx, script) ;
-                     privateData->SetErrInfo( scriptFileName ? scriptFileName: "(nofile)",
-                                              JS_PCToLineNumber( cx,
-                                                                 script,
-                                                                 pc ) ) ;
-                     break;
-                  }
-               }
-            }
-            else
-            {
-               PD_LOG( PDWARNING, "Failed to get private data" ) ;
-            }
-         }
          JS_SetPendingException( cx , INT_TO_JSVAL( rc ) ) ;
       }
    }

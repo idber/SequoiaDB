@@ -1,5 +1,4 @@
-﻿//@ sourceURL=Procedure.js
-(function(){
+﻿(function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
    sacApp.controllerProvider.register( 'Monitor.SdbResource.Procedure.Ctrl', function( $scope, $compile, $location, SdbRest, SdbFunction ){
@@ -64,25 +63,22 @@
       //获取存储过程列表
       var getProcedureList = function(){
          var data = { 'cmd': 'list procedures' } ;
-         SdbRest.DataOperation( data, {
-            'success': function( procedureList ){
-               $.each( procedureList, function( index, procedure ){
-                  if( index == 0 )
-                  {
-                     $scope.currentProcedure = 0 ;
-                  }
-                  procedureList[index]['i'] = index ;
-                  procedureList[index]['func'] = js_beautify( procedureList[index]['func']['$code'], 3, ' ' ) ;
-               } ) ;
-               $scope.procedureTable['body'] = procedureList ;
-            },
-            'failed': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  getProcedureList() ;
-                  return true ;
-               } ) ;
-            }
-         }, { 'showLoading': false } ) ;
+         SdbRest.DataOperation( data, function( procedureList ){
+            $.each( procedureList, function( index, procedure ){
+               if( index == 0 )
+               {
+                  $scope.currentProcedure = 0 ;
+               }
+               procedureList[index]['i'] = index ;
+               procedureList[index]['func'] = js_beautify( procedureList[index]['func']['$code'], 3, ' ' ) ;
+            } ) ;
+            $scope.procedureTable['body'] = procedureList ;
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               getProcedureList() ;
+               return true ;
+            } ) ;
+         } ) ;
       }
       getProcedureList() ;
 
@@ -105,16 +101,13 @@
             return ;
          $scope.CreateProcedure['callback']['Close']() ;
          var data = { 'cmd': 'create procedure', 'Code': code } ;
-         SdbRest.DataOperation( data, {
-            'success': function( procedureList ){
-               getProcedureList() ;
-            },
-            'failed': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  createProcedure( code ) ;
-                  return true ;
-               } ) ;
-            }
+         SdbRest.DataOperation( data, function( procedureList ){
+            getProcedureList() ;
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               createProcedure( code ) ;
+               return true ;
+            } ) ;
          } ) ;
       }
 
@@ -139,16 +132,13 @@
       //删除存储过程
       var removeProcedure = function( func ){
          var data = { 'cmd': 'remove procedure', 'function': func } ;
-         SdbRest.DataOperation( data, {
-            'success': function( procedureList ){
-               getProcedureList() ;
-            },
-            'failed': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  removeProcedure( func ) ;
-                  return true ;
-               } ) ;
-            }
+         SdbRest.DataOperation( data, function( procedureList ){
+            getProcedureList() ;
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               removeProcedure( func ) ;
+               return true ;
+            } ) ;
          } ) ;
       }
 

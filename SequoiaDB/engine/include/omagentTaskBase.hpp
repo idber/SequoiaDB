@@ -54,34 +54,22 @@ namespace engine
    enum OMA_TASK_TYPE
    {
       OMA_TASK_TYPE_BEGIN         = -1,
-
-      OMA_TASK_ADD_HOST           = OM_TASK_TYPE_ADD_HOST,
-
-      OMA_TASK_REMOVE_HOST        = OM_TASK_TYPE_REMOVE_HOST,
-
-      OMA_TASK_ADD_BUS            = OM_TASK_TYPE_ADD_BUSINESS,
-
-      OMA_TASK_REMOVE_BUS         = OM_TASK_TYPE_REMOVE_BUSINESS,
-
-      OMA_TASK_SSQL_EXEC          = OM_TASK_TYPE_SSQL_EXEC,
-
-      OMA_TASK_EXTEND_BUZ         = OM_TASK_TYPE_EXTEND_BUSINESS,
-
-      OMA_TASK_SHRINK_BUSINESS    = OM_TASK_TYPE_SHRINK_BUSINESS,
-
-      OMA_TASK_DEPLOY_PACKAGE     = OM_TASK_TYPE_DEPLOY_PACKAGE,
-
+      OMA_TASK_ADD_HOST           = OM_TASK_TYPE_ADD_HOST, // add host
+      OMA_TASK_REMOVE_HOST        = OM_TASK_TYPE_REMOVE_HOST, // remove host
+      OMA_TASK_ADD_BUS            = OM_TASK_TYPE_ADD_BUSINESS, // install business
+      OMA_TASK_REMOVE_BUS         = OM_TASK_TYPE_REMOVE_BUSINESS, // remove business
+      OMA_TASK_SSQL_EXEC          = OM_TASK_TYPE_SSQL_EXEC, // execute ssql
       OMA_TASK_TYPE_END,
       
       OMA_TASK_SUB_TYPE_BEGIN,
-      OMA_TASK_INSTALL_DB         = 10,
+      OMA_TASK_INSTALL_DB         = 10, 
       OMA_TASK_REMOVE_DB          = 11,
       OMA_TASK_INSTALL_ZN         = 12, // install zookeeper business
       OMA_TASK_REMOVE_ZN          = 13, // remove zookeeper business
       OMA_TASK_INSTALL_SSQL_OLAP  = 14,
       OMA_TASK_REMOVE_SSQL_OLAP   = 15,
-      OMA_TASK_EXTEND_DB          = 16,
       OMA_TASK_SUB_TYPE_END,
+      
 
 
       OMA_TASK_TYPE_AGENT_BEGIN,
@@ -89,7 +77,6 @@ namespace engine
       OMA_TASK_INSTALL_DB_SUB        = 21, // install db business sub task
       OMA_TASK_INSTALL_ZN_SUB        = 22, // install zookeeper sub task
       OMA_TASK_INSTALL_SSQL_OLAP_SUB = 23, // install sequoiasql olap sub task
-      OMA_TASK_ASYNC_SUB             = 24, // exec plan async sub task
       OMA_TASK_TYPE_AGENT_END,
 
       OMA_TASK_END
@@ -115,6 +102,7 @@ namespace engine
    #define OMA_TASK_STATUS_DESC_UNKNOWN  "UNKNOWN"
 
    const CHAR* getTaskStatusDesc( OMA_TASK_STATUS status ) ;
+
 
    /*
       omagent task

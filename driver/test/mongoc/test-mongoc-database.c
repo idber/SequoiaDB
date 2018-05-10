@@ -25,8 +25,6 @@ test_has_collection (void)
    ASSERT_CMPPTR (client, !=, NULL);
 
    name = gen_collection_name ("has_collection");
-   //collection = mongoc_client_get_collection (client, "test", name);
-   //ASSERT_CMPPTR (collection, !=, NULL);
 
    database = mongoc_client_get_database (client, "test");
    ASSERT_CMPPTR (database, !=, NULL);
@@ -445,14 +443,11 @@ test_database_install (TestSuite *suite)
 {
    gTestUri = bson_strdup_printf ("mongodb://%s/", MONGOC_TEST_HOST);
 
-   //TestSuite_Add (suite, "Database_has_collection", test_has_collection);
    TestSuite_Add (suite, "Database_command", test_command);
+   #if 0
    TestSuite_Add (suite, "Database_drop", test_drop);
+   #endif
    TestSuite_Add (suite, "Database_create_collection", test_create_collection);
-   //TestSuite_Add (suite, "Database_get_collection_info",
-   //               test_get_collection_info);
-   //TestSuite_Add (suite, "Database_get_collection_names",
-   //               test_get_collection_names);
 
    atexit (cleanup_globals);
 }

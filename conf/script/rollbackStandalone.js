@@ -80,44 +80,6 @@ function _final()
             sprintf( "Finish rollbacking standalone[?:?]", host_name, host_svc ) ) ;
 }
 
-function _checkData( hostName, svcName )
-{
-   var hasData = false ;
-
-   try
-   {
-      var db = new Sdb( hostName, svcName ) ;
-      var cursor = db.list( SDB_LIST_COLLECTIONSPACES ) ;
-      while( true )
-      {
-         var json ;
-         var record = cursor.next() ;
-
-         if ( record === undefined )
-         {
-            break ;
-         }
-
-         json = record.toObj() ;
-
-         if ( 'string' == typeof( json[FIELD_NAME] ) &&
-              json[FIELD_NAME].indexOf( 'SYS' ) != 0 )
-         {
-            hasData = true ;
-            break ;
-         }
-      }
-   }
-   catch( e )
-   {
-      PD_LOG2( task_id, arguments, PDWARNING, FILE_NAME_INSTALL_STANDALONE,
-            sprintf( "Failed to connect standalone[?:?], detail: ?",
-                     hostName, svcName, GETLASTERRMSG() ) ) ;
-   }
-
-   return hasData ;
-}
-
 /* *****************************************************************************
 @discretion remove standalone
 @parameter
@@ -189,10 +151,7 @@ function main()
       svcName   = BUS_JSON[UninstallSvcName] ;
       agentPort = getOMASvcFromCfgFile( hostName ) ;
       // uninstall standalone
-      if ( true !== _checkData( hostName, svcName ) )
-      {
-         _removeStandalone( hostName, svcName, agentPort ) ;
-      }
+      _removeStandalone( hostName, svcName, agentPort ) ;
    }
    catch( e )
    {

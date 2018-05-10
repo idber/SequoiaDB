@@ -4,7 +4,7 @@ import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBLob;
 import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.datasource.SequoiadbDatasource;
+import com.sequoiadb.base.SequoiadbDatasource;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.test.common.Constants;
 import org.bson.BSONObject;
@@ -23,20 +23,20 @@ public class DBLobReadByBufferPerformanceTest {
     private static DBCollection cl;
     private static String inputFileName = null;
     private static String outputFileName = null;
-    private static int writeBuffSize = 128; // KB
-    private static int readBuffSize = 32; // KB
-    private static int threadNum = 6;
+    private static int bufferSize = 128; // KB
+    private static int bufferSize2 = 64; // KB
+    private static int threadNum = 2;
 
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
-        ds = new SequoiadbDatasource(Constants.COOR_NODE_CONN, "admin", "admin", null);        
+        ds = new SequoiadbDatasource(Constants.COOR_NODE_CONN, "admin", "admin", null);
         System.out.println(String.format("%d线程并发测试通过buffer的方式读lob的性能", threadNum));
         if (System.getProperty("os.name").startsWith("Windows")) {
             inputFileName = "E:\\tmp\\sequoiadb-2.6-linux_x86_64-enterprise-installer.run";
             outputFileName = "E:\\tmp\\output\\sequoiadb-2.6-linux_x86_64-enterprise-installer.run";
         } else {
-            inputFileName = "/opt/driver/java/14m.txt";
-            outputFileName = "/opt/driver/java/14m.txt_out";
+            inputFileName = "/opt/sequoiadb/packet/sequoiadb-2.8-linux_x86_64-enterprise-installer.run";
+            outputFileName = "/opt/sequoiadb/packet/sequoiadb-2.8-linux_x86_64-enterprise-installer.run_out";
         }
     }
 
@@ -55,7 +55,7 @@ public class DBLobReadByBufferPerformanceTest {
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         }
         BSONObject conf = new BasicBSONObject();
-        conf.put("ReplSize", 1);
+        conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
     }
 
@@ -98,7 +98,7 @@ public class DBLobReadByBufferPerformanceTest {
         @Override
         public void run() {
             FileOutputStream fileOutputStream = null;
-            byte[] outBuffer = new byte[readBuffSize * 1024];
+            byte[] outBuffer = new byte[bufferSize2 * 1024];
             int readLen = 0;
             long startTime = 0;
             long endTime = 0;
@@ -109,11 +109,8 @@ public class DBLobReadByBufferPerformanceTest {
             try {
                 db = ds.getConnection();
                 coll = db.getCollectionSpace(csName).getCollection(clName);
-            } catch (BaseException e) {
-                e.printStackTrace();
-                Assert.fail();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            } catch (Exception e1) {
+                e1.printStackTrace();
                 Assert.fail();
             }
 
@@ -196,7 +193,7 @@ public class DBLobReadByBufferPerformanceTest {
         DBLob lob = null;
         ObjectId id = null;
         int writeLen = 0;
-        byte[] inBuffer = new byte[writeBuffSize * 1024];
+        byte[] inBuffer = new byte[bufferSize * 1024];
         try {
             lob = cl.createLob();
             id = lob.getID();
@@ -230,13 +227,6 @@ public class DBLobReadByBufferPerformanceTest {
             }
         }
 
-
-        try {
-            Thread.sleep(2000);
-        } catch(Exception e) {
-            e.printStackTrace();
-        }
-
         for (int i = 0; i < threads.length; i++) {
             threads[i] = new Thread(
                 new ReadLobByBufferTask(
@@ -264,7 +254,7 @@ public class DBLobReadByBufferPerformanceTest {
         }
         System.out.println(
             String.format("Read buffer is %d KB, %d threads run takes %dms",
-                readBuffSize, threadNum, avg));
+                bufferSize2, threadNum, avg));
     }
 
 }

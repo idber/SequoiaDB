@@ -1,30 +1,34 @@
-/*
- * Copyright 2017 SequoiaDB Inc.
- *
+/**
+ * Copyright (C) 2012 SequoiaDB Inc.
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
-
+ */
 package com.sequoiadb.base;
 
+import com.sequoiadb.base.SequoiadbConstants.Operation;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
-import com.sequoiadb.message.request.AdminRequest;
-import com.sequoiadb.message.response.SdbReply;
+import com.sequoiadb.util.SDBMessageHelper;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 
+import java.nio.ByteBuffer;
+
 /**
- * Node of SequoiaDB.
+ * @class Node
+ * @brief Database operation interfaces of node.This class takes the place of class "replicaNode".
+ * @note We use concept "node" instead of "replica node",
+ * and change the class name "ReplicaNode" to "Node".
  */
 public class Node {
     private String hostName;
@@ -32,27 +36,28 @@ public class Node {
     private String nodeName;
     private int id;
     private ReplicaGroup rg;
-    private Sequoiadb sequoiadb;
+    private Sequoiadb ddb;
+    private NodeStatus status;
 
     Node(String hostName, int port, int nodeId, ReplicaGroup rg) {
         this.rg = rg;
         this.hostName = hostName;
         this.port = port;
-        this.nodeName = hostName + ":" + port;
+        this.nodeName = hostName + SequoiadbConstants.NODE_NAME_SEP + port;
         this.id = nodeId;
     }
 
-    /**
-     * Node status.
+    /*!
+     * enum Node::NodeStatus
      */
-    public enum NodeStatus {
+    public static enum NodeStatus {
         SDB_NODE_ALL(1),
         SDB_NODE_ACTIVE(2),
         SDB_NODE_INACTIVE(3),
         SDB_NODE_UNKNOWN(4);
         private final int key;
 
-        NodeStatus(int key) {
+        private NodeStatus(int key) {
             this.key = key;
         }
 
@@ -74,6 +79,8 @@ public class Node {
 
     /**
      * @return Current node's id.
+     * @fn int getNodeId()
+     * @brief Get current node's id.
      */
     public int getNodeId() {
         return id;
@@ -81,140 +88,175 @@ public class Node {
 
     /**
      * @return Current node's parent replica group.
+     * @fn ReplicaGroup getReplicaGroup()
+     * @brief Get current node's parent replica group.
      */
     public ReplicaGroup getReplicaGroup() {
         return rg;
     }
 
     /**
-     * Disconnect from current node.
-     *
-     * @throws BaseException If error happens.
+     * @return void
+     * @throws com.sequoiadb.exception.BaseException
+     * @fn void disconnect()
+     * @brief Disconnect from current node.
      */
     public void disconnect() throws BaseException {
-        sequoiadb.disconnect();
+        ddb.disconnect();
     }
 
     /**
-     * Connect to current node with the same username and password.
-     *
-     * @return The Sequoiadb instance of current node.
-     * @throws BaseException If error happens.
+     * @return The Sequoiadb object of current node.
+     * @throws com.sequoiadb.exception.BaseException
+     * @fn Sequoiadb connect ()
+     * @brief Connect to current node with the same username and password.
      */
     public Sequoiadb connect() throws BaseException {
-        if (sequoiadb != null && !sequoiadb.isClosed()) {
-            sequoiadb.close();
-        }
-        sequoiadb = new Sequoiadb(hostName, port, rg.getSequoiadb().getUserName(),
+        ddb = new Sequoiadb(hostName, port, rg.getSequoiadb().getUserName(),
                 rg.getSequoiadb().getPassword());
-        return sequoiadb;
+        return ddb;
     }
 
     /**
-     * Connect to current node with username and password.
-     *
      * @param username user name
      * @param password pass word
-     * @return The Sequoiadb instance of current node.
-     * @throws BaseException If error happens.
+     * @return The Sequoiadb object of current node.
+     * @throws com.sequoiadb.exception.BaseException
+     * @fn Sequoiadb connect(String username, String password)
+     * @brief Connect to current node with username and password.
      */
     public Sequoiadb connect(String username, String password) throws BaseException {
-        if (sequoiadb != null && !sequoiadb.isClosed()) {
-            sequoiadb.close();
-        }
-        sequoiadb = new Sequoiadb(hostName, port, username, password);
-        return sequoiadb;
+        ddb = new Sequoiadb(hostName, port, username, password);
+        return ddb;
     }
 
     /**
-     * Get the Sequoiadb of current node.
-     *
      * @return The Sequoiadb object of current node.
+     * @fn Sequoiadb getSdb()
+     * @brief Get the Sequoiadb of current node.
      */
     public Sequoiadb getSdb() {
-        return sequoiadb;
+        return ddb;
     }
 
     /**
-     * Get the hostname of current node.
-     *
      * @return Hostname of current node.
+     * @fn String getHostName()
+     * @brief Get the hostname of current node.
      */
     public String getHostName() {
         return hostName;
     }
 
     /**
-     * Get the port of current node.
-     *
      * @return The port of current node.
+     * @fn int getPort()
+     * @brief Get the port of current node.
      */
     public int getPort() {
         return port;
     }
 
     /**
-     * Get the name of current node.
-     *
      * @return The name of current node.
+     * @fn String getNodeName()
+     * @brief Get the name of current node.
      */
     public String getNodeName() {
         return nodeName;
     }
 
     /**
-     * Get the status of current node.
-     *
      * @return The status of current node.
-     * @throws BaseException If error happens.
-     * @deprecated The status of node are invalid, never use this api again.
+     * @throws com.sequoiadb.exception.BaseException
+     * @fn NodeStatus getStatus()
+     * @brief Get the status of current node.
      */
     public NodeStatus getStatus() throws BaseException {
         BSONObject obj = new BasicBSONObject();
-        obj.put(SdbConstants.FIELD_NAME_GROUPID, rg.getId());
-        obj.put(SdbConstants.FIELD_NAME_NODEID, id);
-
-        AdminRequest request = new AdminRequest(AdminCommand.SNAP_DATABASE, obj);
-        SdbReply response = rg.getSequoiadb().requestAndResponse(request);
-
-        int flag = response.getFlag();
-        if (flag != 0) {
-            if (flag == SDBError.SDB_NET_CANNOT_CONNECT.getErrorCode()) {
-                return NodeStatus.SDB_NODE_INACTIVE;
+        obj.put(SequoiadbConstants.FIELD_NAME_GROUPID, rg.getId());
+        obj.put(SequoiadbConstants.FIELD_NAME_NODEID, id);
+        String commandString = SequoiadbConstants.SNAP_CMD + " "
+                + SequoiadbConstants.DATABASE;
+        SDBMessage rtn = adminCommand(commandString, obj);
+        int flags = rtn.getFlags();
+        if (flags != 0) {
+            if (flags == SDBError.SDB_NET_CANNOT_CONNECT.getErrorCode()) {
+                status = NodeStatus.SDB_NODE_INACTIVE;
+                return status;
             } else {
-                rg.getSequoiadb().throwIfError(response);
+                throw new BaseException(flags);
             }
         }
-        return NodeStatus.SDB_NODE_ACTIVE;
+        status = NodeStatus.SDB_NODE_ACTIVE;
+        return status;
     }
 
     /**
-     * Start current node.
-     *
-     * @throws BaseException If error happens.
+     * @return void
+     * @throws com.sequoiadb.exception.BaseException
+     * @fn void start()
+     * @brief Start current node in database.
      */
     public void start() throws BaseException {
         startStop(true);
     }
 
     /**
-     * Stop current node.
-     *
-     * @throws BaseException If error happens.
+     * @return void
+     * @throws com.sequoiadb.exception.BaseException
+     * @fn void stop()
+     * @brief Stop current node in database.
      */
     public void stop() throws BaseException {
         startStop(false);
     }
 
-    private void startStop(boolean start) {
+    private void startStop(boolean status) {
         BSONObject config = new BasicBSONObject();
-        config.put(SdbConstants.FIELD_NAME_HOST, hostName);
-        config.put(SdbConstants.PMD_OPTION_SVCNAME, Integer.toString(port));
-
-        String cmd = start ? AdminCommand.STARTUP_NODE : AdminCommand.SHUTDOWN_NODE;
-        AdminRequest request = new AdminRequest(cmd, config);
-        SdbReply response = rg.getSequoiadb().requestAndResponse(request);
-        String msg = "node = " + hostName + ":" + port;
-        rg.getSequoiadb().throwIfError(response, msg);
+        config.put(SequoiadbConstants.FIELD_NAME_HOST, hostName);
+        config.put(SequoiadbConstants.PMD_OPTION_SVCNAME,
+                Integer.toString(port));
+        SDBMessage rtn = adminCommand(
+                status ? SequoiadbConstants.CMD_NAME_STARTUP_NODE
+                        : SequoiadbConstants.CMD_NAME_SHUTDOWN_NODE, config);
+        int flags = rtn.getFlags();
+        if (flags != 0) {
+            String msg = "node = " + hostName + ":" + port;
+            throw new BaseException(flags, msg);
+        }
     }
+
+    private SDBMessage adminCommand(String commandString, BSONObject obj)
+            throws BaseException {
+        BSONObject dummyObj = new BasicBSONObject();
+        SDBMessage sdbMessage = new SDBMessage();
+        sdbMessage.setMatcher(obj);
+        sdbMessage.setCollectionFullName(SequoiadbConstants.ADMIN_PROMPT + commandString);
+
+        sdbMessage.setVersion(1);
+        sdbMessage.setW((short) 0);
+        sdbMessage.setPadding((short) 0);
+        sdbMessage.setFlags(0);
+        sdbMessage.setNodeID(SequoiadbConstants.ZERO_NODEID);
+        sdbMessage.setRequestID(rg.getSequoiadb().getNextRequstID());
+        sdbMessage.setSkipRowsCount(-1);
+        sdbMessage.setReturnRowsCount(-1);
+        sdbMessage.setSelector(dummyObj);
+        sdbMessage.setOrderBy(dummyObj);
+        sdbMessage.setHint(dummyObj);
+        sdbMessage.setOperationCode(Operation.OP_QUERY);
+
+        boolean endianConver = this.rg.getSequoiadb().endianConvert;
+        byte[] request = SDBMessageHelper.buildQueryRequest(sdbMessage,
+                endianConver);
+        this.rg.getSequoiadb().getConnection().sendMessage(request);
+
+        ByteBuffer byteBuffer = this.rg.getSequoiadb().getConnection().receiveMessage(endianConver);
+        SDBMessage rtnSDBMessage = SDBMessageHelper.msgExtractReply(byteBuffer);
+        SDBMessageHelper.checkMessage(sdbMessage, rtnSDBMessage);
+
+        return rtnSDBMessage;
+    }
+
 }

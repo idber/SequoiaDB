@@ -160,6 +160,17 @@ namespace engine
                        string &command,
                        bson::BSONObj *mergeObj ) ;
 
+      static INT32 _getConfFile( string &confFile ) ;
+
+      static INT32  _getConfInfo( const string &confFile,
+                                  bson::BSONObj &conf,
+                                  bson::BSONObj &detail,
+                                  BOOLEAN allowNotExist = FALSE ) ;
+
+      static INT32  _confObj2Str( const bson::BSONObj &conf, string &str,
+                                  bson::BSONObj &detail,
+                                  const CHAR* pExcept = NULL ) ;
+
       static INT32 _startSdbcm ( list<const CHAR*> &argv,
                                  OSSPID &pid,
                                  BOOLEAN asProc ) ;

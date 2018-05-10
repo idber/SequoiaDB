@@ -70,11 +70,6 @@ namespace engine
    #define CAT_MASK_AUTOREBALAN     0x00000200
    #define CAT_MASK_AUTOINDEXID     0x00000400
    #define CAT_MASK_COMPRESSIONTYPE 0x00000800
-   #define CAT_MASK_CAPPED          0x00001000
-   #define CAT_MASK_CLMAXRECNUM     0x00002000
-   #define CAT_MASK_CLMAXSIZE       0x00004000
-   #define CAT_MASK_CLOVERWRITE     0x00008000
-   #define CAT_MASK_STRICTDATAMODE  0x00010000
 
    struct _catCollectionInfo
    {
@@ -90,16 +85,11 @@ namespace engine
       BOOLEAN     _isMainCL;
       BOOLEAN     _autoSplit ;
       BOOLEAN     _autoRebalance ;
-      BOOLEAN     _strictDataMode ;
       const CHAR * _gpSpecified ;
       INT32       _version ;
       INT32       _assignType ;
       BOOLEAN     _autoIndexId ;
       UTIL_COMPRESSOR_TYPE _compressorType ;
-      BOOLEAN     _capped ;
-      INT64       _maxRecNum ;
-      INT64       _maxSize ;
-      BOOLEAN     _overwrite ;
 
       std::vector<std::string>   _subCLList;
 
@@ -116,16 +106,11 @@ namespace engine
          _isMainCL            = FALSE ;
          _autoSplit           = FALSE ;
          _autoRebalance       = FALSE ;
-         _strictDataMode      = FALSE ;
          _gpSpecified         = NULL ;
          _version             = 0 ;
          _assignType          = ASSIGN_RANDOM ;
          _autoIndexId         = TRUE ;
          _compressorType      = UTIL_COMPRESSOR_INVALID ;
-         _capped              = FALSE ;
-         _maxRecNum           = 0 ;
-         _maxSize             = 0 ;
-         _overwrite           = FALSE ;
       }
    };
    typedef _catCollectionInfo catCollectionInfo ;
@@ -136,7 +121,6 @@ namespace engine
       INT32       _pageSize ;
       const CHAR  *_domainName ;
       INT32       _lobPageSize ;
-      DMS_STORAGE_TYPE _type ;
 
       _catCSInfo()
       {
@@ -144,7 +128,6 @@ namespace engine
          _pageSize = DMS_PAGE_SIZE_DFT ;
          _domainName = NULL ;
          _lobPageSize = DMS_DEFAULT_LOB_PAGE_SZ ;
-         _type = DMS_STORAGE_NORMAL ;
       }
 
       BSONObj toBson()
@@ -157,7 +140,6 @@ namespace engine
             builder.append( CAT_DOMAIN_NAME, _domainName ) ;
          }
          builder.append( CAT_LOB_PAGE_SZ_NAME, _lobPageSize ) ;
-         builder.append( CAT_TYPE_NAME, _type ) ;
          return builder.obj() ;
       }
    } ;

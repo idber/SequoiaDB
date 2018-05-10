@@ -76,9 +76,7 @@ namespace engine
    public:
       virtual void close() ;
 
-      virtual string toString() const { return "" ; }
-
-      virtual BOOLEAN needRollback() const ;
+      virtual string toString() const { return "" ;}
 
       OSS_INLINE QGM_PLAN_TYPE type() const { return _type ; }
 

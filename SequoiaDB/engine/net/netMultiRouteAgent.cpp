@@ -77,7 +77,6 @@ namespace engine
       }
       reqID = _pReqID->inc();
       pHeader->requestID = reqID;
-      // set route id to invalid
       pHeader->routeID.value = MSG_INVALID_ROUTEID ;
 
       PD_LOG ( PDDEBUG, "Send request to node(opCode=%d, requestID=%llu, "
@@ -96,8 +95,8 @@ namespace engine
       {
          pSession->addRequest( reqID, id, handle );
       }
+	  PD_TRACE_EXITRC ( SDB_NETMLTRTAGT_SYNCSENDWITHOUTSESSION, rc );
       return rc;
-      PD_TRACE_EXITRC ( SDB_NETMLTRTAGT_SYNCSENDWITHOUTSESSION, rc );
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_NETMLTRTAGT_SYNCSEND, "netMultiRouteAgent::syncSend" )
@@ -127,7 +126,6 @@ namespace engine
 
       reqID = _pReqID->inc();
       pHeader->requestID = reqID;
-      // set route id to invalid
       pHeader->routeID.value = MSG_INVALID_ROUTEID ;
 
       PD_LOG ( PDDEBUG, "Send request to node(opCode=%d, requestID=%llu, "
@@ -181,7 +179,6 @@ namespace engine
 
       reqID = _pReqID->inc();
       pHeader->requestID = reqID;
-      // set route id to invalid
       pHeader->routeID.value = MSG_INVALID_ROUTEID ;
 
       PD_LOG ( PDDEBUG, "Send request to node(opCode=%d, requestID=%llu, "
@@ -210,7 +207,6 @@ namespace engine
 
       SDB_ASSERT( _pNetWork && header, "_pNetWork && header can't be NULL") ;
 
-      // set the route id to invalid
       pHeader->routeID.value = MSG_INVALID_ROUTEID ;
 
       ROUTE_SET::const_iterator iterSet = routeSet.begin();
@@ -238,9 +234,6 @@ namespace engine
    void netMultiRouteAgent::handleClose( const NET_HANDLE &handle,
                                          MsgRouteID id )
    {
-      // any thread may wait for the message from the connect,
-      // so send disconnect-msg to all of the threads.
-      // this may consume a lot of time
       PD_TRACE_ENTRY ( SDB_NETMLTRTAGT_HNDCLS );
       ossScopedLock _lock(&_mutex, SHARED) ;
       COORD_SESSION_MAP::iterator it = _sessionMap.begin();
@@ -260,15 +253,12 @@ namespace engine
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_NETMLTRTAGT_HNDMSG );
 
-      // malloc memory
       CHAR *pMsgRsp = (CHAR *)SDB_OSS_MALLOC( header->messageLength );
       PD_CHECK( pMsgRsp, SDB_OOM, error, PDERROR,
                 "Memory malloc failed(size = %d)", header->messageLength ) ;
 
-      // copy memory
       ossMemcpy( pMsgRsp, msg, header->messageLength );
 
-      // post the message to session(educb) queue
       {
          ossScopedLock _lock( &_mutex, SHARED ) ;
          COORD_SESSION_MAP::iterator it = _sessionMap.find( header->TID );
@@ -280,7 +270,6 @@ namespace engine
          }
          else
          {
-            // tid not found
             PD_LOG( PDWARNING, "Recieve expired msg[opCode:[%d]%d, TID:%d,"
                     "ReqID:%lld] from node[%d:%d:%d]",
                     IS_REPLY_TYPE( header->opCode ),

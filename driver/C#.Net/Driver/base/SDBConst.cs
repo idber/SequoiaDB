@@ -7,12 +7,6 @@
          */
         public const int FLG_INSERT_CONTONDUP = 0x00000001;
 
-        /** \memberof FLG_UPDATE_KEEP_SHARDINGKEY 0x00008000
-         *   \brief The sharding key in update rule is not filtered,
-         *          when executing update or upsert.
-         */
-        public const int FLG_UPDATE_KEEP_SHARDINGKEY = 0x00008000;
-
         public const int SDB_PAGESIZE_4K = 4096;
         public const int SDB_PAGESIZE_8K = 8192;
         public const int SDB_PAGESIZE_16K = 16384;
@@ -29,10 +23,8 @@
         public const int SDB_SNAP_DATABASE         = 6;
         public const int SDB_SNAP_SYSTEM           = 7;
         public const int SDB_SNAP_CATALOG          = 8;
-        public const int SDB_SNAP_TRANSACTIONS     = 9;
+        public const int SDB_SNAP_TRANSACTIONS = 9;
         public const int SDB_SNAP_TRANSACTIONS_CURRENT = 10;
-        public const int SDB_SNAP_ACCESSPLANS      = 11;
-        public const int SDB_SNAP_HEALTH           = 12;
 
         public const int SDB_LIST_CONTEXTS         = 0;
         public const int SDB_LIST_CONTEXTS_CURRENT = 1;

@@ -70,7 +70,7 @@ namespace engine
          {
             rtnQueryPvtData *privateData = ( rtnQueryPvtData* )inMsg._pvtData ;
             if ( privateData->_pContext->getLimitNum() > 0 ||
-                 privateData->_pContext->getSkipNum() > 0 || 
+                 privateData->_pContext->getSkipNum() > 0 ||
                  queryMsg->numToReturn > 0 ||
                  queryMsg->numToSkip > 0 )
             {
@@ -80,7 +80,6 @@ namespace engine
             }
          }
 
-         // modification can only be executed in primary node
          options._primary = TRUE ;
       }
 
@@ -103,7 +102,6 @@ namespace engine
          INT64 ctxRetNum = pvtData->_pContext->getLimitNum() ;
          INT64 ctxSkipNum = pvtData->_pContext->getSkipNum() ;
 
-         /// if send to one node
          if ( options._groupLst.size() <= 1 )
          {
             if ( ctxSkipNum > 0 )
@@ -166,7 +164,6 @@ namespace engine
                                   rtnProcessResult &result )
    {
       INT32 rc = SDB_OK ;
-      /// add succeed reply to context, and release the reply
       SDB_ASSERT( inMsg._pvtData &&
                   inMsg._pvtType == PRIVATE_DATA_USER,
                   "Private data invalid" ) ;
@@ -243,8 +240,8 @@ namespace engine
       BSONObj newQuery ;
 
       CHAR *pBuff             = NULL ;
-      INT32 buffLen           = 0 ;
-      INT32 buffPos           = 0 ;
+      UINT32 buffLen          = 0 ;
+      UINT32 buffPos          = 0 ;
       vector<CHAR*> *pBlock   = NULL ;
 
       outPtr                  = (ossValuePtr)0 ;
@@ -301,22 +298,19 @@ namespace engine
          netIOVec &iovec = inMsg._datas[ it->first ] ;
          netIOV ioItem ;
 
-         // 1. first vec
          ioItem.iovBase = (CHAR*)inMsg.msg() + sizeof( MsgHeader ) ;
          ioItem.iovLen = ossRoundUpToMultipleX ( offsetof(MsgOpQuery, name) +
                          pQueryMsg->nameLength + 1, 4 ) - sizeof( MsgHeader ) ;
          iovec.push_back( ioItem ) ;
 
-         // 2. new query vec
          newQuery = _buildNewQuery( objQuery, subCLLst ) ;
-         // 2.1 add to buff
-         INT32 roundLen = ossRoundUpToMultipleX( newQuery.objsize(), 4 ) ;
+         UINT32 roundLen = ossRoundUpToMultipleX( newQuery.objsize(), 4 ) ;
          if ( buffPos + roundLen > buffLen )
          {
-            INT32 alignLen = ossRoundUpToMultipleX( roundLen,
-                                                    DMS_PAGE_SIZE4K ) ;
-            rc = cb->allocBuff( alignLen, &pBuff, buffLen ) ;
-            PD_RC_CHECK( rc, PDERROR, "Alloc buff[%d] failed, rc: %d",
+            UINT32 alignLen = ossRoundUpToMultipleX( roundLen,
+                                                     DMS_PAGE_SIZE4K ) ;
+            rc = cb->allocBuff( alignLen, &pBuff, &buffLen ) ;
+            PD_RC_CHECK( rc, PDERROR, "Alloc buff[%u] failed, rc: %d",
                          alignLen, rc ) ;
             pBlock->push_back( pBuff ) ;
             buffPos = 0 ;
@@ -328,12 +322,11 @@ namespace engine
          buffPos += roundLen ;
          iovec.push_back( ioItem ) ;
 
-         // 3. last vec
          ioItem.iovBase = objSelector.objdata() ;
          ioItem.iovLen = ossRoundUpToMultipleX( objSelector.objsize(), 4 ) +
                          ossRoundUpToMultipleX( objOrderby.objsize(), 4 ) +
                          objHint.objsize() ;
-         iovec.push_back( ioItem ) ;         
+         iovec.push_back( ioItem ) ;
 
          ++it ;
       }
@@ -407,7 +400,6 @@ namespace engine
       netMultiRouteAgent *pRouteAgent  = pCoordcb->getRouteAgent();
       rtnContextCoord *pContext        = NULL ;
 
-      // fill default-reply(query success)
       contextID                        = -1 ;
 
       CHAR *pCollectionName            = NULL ;
@@ -429,7 +421,6 @@ namespace engine
          goto error ;
       }
 
-      // process command
       if ( pCollectionName != NULL && '$' == pCollectionName[0] )
       {
          rtnCoordCommand *pCmdProcesser = NULL;
@@ -440,7 +431,6 @@ namespace engine
          PD_CHECK( pCmdProcesser != NULL, SDB_INVALIDARG, error, PDERROR,
                   "unknown command:%s", pCollectionName ) ;
 
-         // add last op info
          MON_SAVE_CMD_DETAIL( cb->getMonAppCB(), CMD_UNKNOW - 1,
                               "Command:%s, Match:%s, "
                               "Selector:%s, OrderBy:%s, Hint:%s, Skip:%llu, "
@@ -461,7 +451,6 @@ namespace engine
       {
          rtnSendOptions sendOpt ;
 
-         // add last op info
          MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                              "Collection:%s, Matcher:%s, Selector:%s, "
                              "OrderBy:%s, Hint:%s, Skip:%llu, Limit:%lld, "
@@ -475,8 +464,7 @@ namespace engine
                              flag, flag ) ;
 
          rc = queryOrDoOnCL( pMsg, pRouteAgent, cb, &pContext,
-                             sendOpt ) ;
-         /// AUDIT
+                             sendOpt, NULL, buf ) ;
          PD_AUDIT_OP( ( flag & FLG_QUERY_MODIFY ? AUDIT_DML : AUDIT_DQL ),
                       MSG_BS_QUERY_REQ, AUDIT_OBJ_CL,
                       pCollectionName, rc,
@@ -544,7 +532,7 @@ namespace engine
       BSONObj modifier ;
 
       modifierEle = hint.getField( FIELD_NAME_MODIFY ) ;
-      SDB_ASSERT( Object == modifierEle.type(), 
+      SDB_ASSERT( Object == modifierEle.type(),
                   "modifierELe must be an Object" ) ;
 
       modifier = modifierEle.Obj() ;
@@ -553,7 +541,7 @@ namespace engine
       SDB_ASSERT( Object == updatorEle.type(), "updatorEle must be an Object" ) ;
       updator = updatorEle.Obj() ;
 
-      rc = _generateShardUpdator( cataInfo, selector, updator, newUpdator, 
+      rc = _generateShardUpdator( cataInfo, selector, updator, newUpdator,
                                   isChanged, cb ) ;
       if ( SDB_OK != rc )
       {
@@ -574,7 +562,6 @@ namespace engine
             {
                if ( isEmpty )
                {
-                  /// new updator is empty, the whole $Modify will be removed
                   continue ;
                }
 
@@ -614,7 +601,7 @@ namespace engine
                                                const BSONObj &selector,
                                                const BSONObj &updator,
                                                BSONObj &newUpdator,
-                                               BOOLEAN &isChanged, 
+                                               BOOLEAN &isChanged,
                                                pmdEDUCB *cb )
    {
       INT32 rc               = SDB_OK ;
@@ -622,7 +609,7 @@ namespace engine
       rtnCoordShardKicker shardKicker ;
 
       newUpdator = updator ;
-      rc = shardKicker.kickShardingKey( cataInfo, updator, newUpdator, 
+      rc = shardKicker.kickShardingKey( cataInfo, updator, newUpdator,
                                         hasShardingKey ) ;
       PD_RC_CHECK( rc, PDERROR, "Update failed, failed to kick the "
                    "sharding-key field(rc=%d)", rc ) ;
@@ -636,12 +623,12 @@ namespace engine
          if ( rcTmp )
          {
             rc = rcTmp ;
-            PD_LOG( PDERROR,"Failed to get match sub-collection:rc=%d", 
+            PD_LOG( PDERROR,"Failed to get match sub-collection:rc=%d",
                     rcTmp ) ;
             goto error ;
          }
 
-         rc = shardKicker.kickShardingKeyForSubCL( subCLList, newUpdator, 
+         rc = shardKicker.kickShardingKeyForSubCL( subCLList, newUpdator,
                                                    newSubObj,
                                                    hasShardingKey, cb ) ;
          PD_RC_CHECK( rc, PDERROR,
@@ -662,10 +649,11 @@ namespace engine
                                        pmdEDUCB *cb,
                                        rtnContextCoord **pContext,
                                        rtnSendOptions & sendOpt,
-                                       rtnQueryConf *pQueryConf )
+                                       rtnQueryConf *pQueryConf,
+                                       rtnContextBuf *buf )
    {
       return _queryOrDoOnCL( pMsg, pRouteAgent, cb, pContext,
-                             sendOpt, NULL, pQueryConf ) ;
+                             sendOpt, NULL, pQueryConf, buf ) ;
    }
 
    INT32 rtnCoordQuery::queryOrDoOnCL( MsgHeader *pMsg,
@@ -674,10 +662,11 @@ namespace engine
                                        rtnContextCoord **pContext,
                                        rtnSendOptions &sendOpt,
                                        CoordGroupList &sucGrpLst,
-                                       rtnQueryConf *pQueryConf )
+                                       rtnQueryConf *pQueryConf,
+                                       rtnContextBuf *buf )
    {
       return _queryOrDoOnCL( pMsg, pRouteAgent, cb, pContext,
-                             sendOpt, &sucGrpLst, pQueryConf ) ;
+                             sendOpt, &sucGrpLst, pQueryConf, buf ) ;
    }
 
    INT32 rtnCoordQuery::_queryOrDoOnCL( MsgHeader *pMsg,
@@ -686,7 +675,8 @@ namespace engine
                                         rtnContextCoord **pContext,
                                         rtnSendOptions &sendOpt,
                                         CoordGroupList *pSucGrpLst,
-                                        rtnQueryConf *pQueryConf )
+                                        rtnQueryConf *pQueryConf,
+                                        rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
       INT32 rcTmp = SDB_OK ;
@@ -737,7 +727,6 @@ namespace engine
       const CHAR* pLastMsg    = NULL ;
       CHAR *pModifyMsg        = NULL ;
       INT32 modifyMsgSize     = 0 ;
-      BOOLEAN needReset       = FALSE ;
 
       BOOLEAN isUpdate        = FALSE ;
       INT32 flags             = 0 ;
@@ -781,7 +770,6 @@ namespace engine
       {
          if ( NULL == *pContext )
          {
-            // create context
             rc = pRtncb->contextNew( RTN_CONTEXT_COORD,
                                      (rtnContext **)pContext,
                                      contextID, cb ) ;
@@ -791,14 +779,12 @@ namespace engine
          else
          {
             contextID = (*pContext)->contextID() ;
-            // the context is create in out side, do nothing
          }
          pvtData._pContext = *pContext ;
       }
 
       if ( pvtData._pContext && !pvtData._pContext->isOpened() )
       {
-         // open context, explain only in query msg
          if ( ( ( FLG_QUERY_EXPLAIN & pQueryMsg->flags ) &&
                 '$' != pCollectionName[ 0 ] ) ||
               openEmptyContext )
@@ -807,8 +793,16 @@ namespace engine
          }
          else
          {
-            // build new selector
-            rtnNeedResetSelector( objSelector, objOrderby, needReset ) ;
+            BOOLEAN needReset = FALSE ;
+            if ( FLG_QUERY_STRINGOUT & pQueryMsg->flags )
+            {
+               needReset = TRUE ;
+            }
+            else
+            {
+               rtnNeedResetSelector( objSelector, objOrderby, needReset ) ;
+            }
+
             if ( needReset )
             {
                static BSONObj emptyObj = BSONObj() ;
@@ -823,28 +817,36 @@ namespace engine
                inMsg._pMsg = ( MsgHeader* )pNewMsg ;
             }
 
-            // open context
             rc = pvtData._pContext->open( objOrderby,
                                           needReset ? objSelector : BSONObj(),
                                           pQueryMsg->numToReturn,
-                                          pQueryMsg->numToSkip ) ;
+                                          pQueryMsg->numToSkip,
+                                          ( FLG_QUERY_MODIFY & pQueryMsg->flags ) ? FALSE : TRUE ) ;
 
-            // change some data
             if ( pQueryMsg->numToReturn > 0 && pQueryMsg->numToSkip > 0 )
             {
-               // some record may skip on coord,
-               // so the num of records from data-node must
-               // more than "numToReturn + numToSkip"
                pQueryMsg->numToReturn += pQueryMsg->numToSkip ;
             }
             pQueryMsg->numToSkip = 0 ;
+
+            if ( FLG_QUERY_STRINGOUT & pQueryMsg->flags )
+            {
+               pvtData._pContext->getSelector().setStringOutput( TRUE ) ;
+            }
          }
          PD_RC_CHECK( rc, PDERROR, "Open context failed(rc=%d)", rc ) ;
       }
 
-      // get collection catalog info
+   retry_cata :
       rc = rtnCoordGetCataInfo( cb, pRealCLName ? pRealCLName : pCollectionName,
                                 updateCata, cataInfo ) ;
+      if ( updateCata && SDB_CLS_COORD_NODE_CAT_VER_OLD == rc )
+      {
+         CoordCB *pCoordcb = pmdGetKRCB()->getCoordCB() ;
+         pCoordcb->delMainCLCataInfo( pRealCLName ? pRealCLName : pCollectionName ) ;
+         goto retry_cata ;
+      }
+
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get the catalog info(collection:%s), rc: %d",
                    pRealCLName ? pRealCLName : pCollectionName, rc ) ;
@@ -853,21 +855,17 @@ namespace engine
          ++sendOpt._retryTimes ;
       }
 
-      //e.g. objHint = {"$Modify":{"OP":"update", "Update":{"$set":{a:1}} } }
       isUpdate = _isUpdate( objHint, pQueryMsg->flags ) ;
-      /// save the last msg
       pLastMsg = ( const CHAR* )pQueryMsg ;
 
    retry:
       do
       {
-         /// restore the last msg
          pQueryMsg = ( MsgOpQuery* )pLastMsg ;
          inMsg._pMsg = ( MsgHeader* )pLastMsg ;
 
          if ( isUpdate && cataInfo->isSharded() )
          {
-            //kick shardingKey
             BOOLEAN isChanged = FALSE ;
             BSONObj tmpNewHint = objHint ;
             BOOLEAN isEmpty = FALSE ;
@@ -899,6 +897,11 @@ namespace engine
                   }
                   objNewHint = tmpNewHint ;
                }
+               else
+               {
+                  pQueryMsg   = (MsgOpQuery *)pModifyMsg ;
+                  inMsg._pMsg = (MsgHeader*)pModifyMsg ;
+               }
             }
          }
          pQueryMsg->version = cataInfo->getVersion() ;
@@ -923,6 +926,10 @@ namespace engine
       }
       else if ( SDB_OK == rcTmp && nokRC.empty() )
       {
+         if ( pvtData._pContext )
+         {
+            pvtData._pContext->addSubDone( cb ) ;
+         }
          goto done ;
       }
       else if ( checkRetryForCLOpr( rcTmp, &nokRC, inMsg.msg(),
@@ -938,11 +945,6 @@ namespace engine
          PD_LOG( PDERROR, "Query failed on node[%s], rc: %d",
                  routeID2String( errNodeID ).c_str(), rc ) ;
          goto error ;
-      }
-
-      if ( pvtData._pContext )
-      {
-         pvtData._pContext->addSubDone( cb ) ;
       }
 
    done:
@@ -965,6 +967,10 @@ namespace engine
          pRtncb->contextDelete( contextID, cb ) ;
          contextID = -1 ;
          *pContext = NULL ;
+      }
+      if ( buf && nokRC.size() > 0 )
+      {
+         *buf = rtnContextBuf( rtnBuildErrorObj( rc, cb, &nokRC ) ) ;
       }
       goto done ;
    }
@@ -1031,7 +1037,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "failed to build new msg:%d", rc ) ;
          goto error ;
-      } 
+      }
    done:
       return rc ;
    error:

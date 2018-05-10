@@ -1093,36 +1093,13 @@ namespace engine
    INT32 _barBkupBaseLogger::_backupConfig ()
    {
       INT32 rc = SDB_OK ;
-      BSONObjBuilder builder ;
-      BSONObj tmpData, cfgData ;
+      BSONObj cfgData ;
       barBackupExtentHeader *pHeader = _nextDataExtent( BAR_DATA_TYPE_CONFIG ) ;
       CHAR tmpBuff[4] = {0} ;
       UINT32 tmpSize = 0 ;
 
-      rc = _pOptCB->toBSON( tmpData, PMD_CFG_MASK_SKIP_UNFIELD ) ;
+      rc = _pOptCB->toBSON( cfgData ) ;
       PD_RC_CHECK( rc, PDERROR, "Config to bson failed, rc: %d", rc ) ;
-
-      try
-      {
-         BSONObjIterator it( tmpData ) ;
-         while( it.more() )
-         {
-            BSONElement e = it.next() ;
-            if ( 0 == ossStrcmp( e.fieldName(), PMD_OPTION_CONFPATH ) )
-            {
-               continue ;
-            }
-            builder.append( e ) ;
-         }
-         builder.append( PMD_OPTION_CONFPATH, _pOptCB->getConfPath() ) ;
-         cfgData = builder.obj() ;
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
 
       tmpSize = ossAlign4( (UINT32)cfgData.objsize() ) - cfgData.objsize() ;
       pHeader->_dataSize = ossAlign4( (UINT32)cfgData.objsize () ) ;

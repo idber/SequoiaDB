@@ -78,8 +78,6 @@ namespace engine
       RTN_FETCH_INDEX,                 /// index
       RTN_FETCH_DATABLOCK,             /// datablock
       RTN_FETCH_BACKUP,                /// backup
-      RTN_FETCH_ACCESSPLANS,           /// access plans
-      RTN_FETCH_HEALTH,                /// node health check
 
       RTN_FETCH_MAX
    } ;

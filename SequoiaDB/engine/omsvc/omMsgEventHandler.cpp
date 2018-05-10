@@ -33,7 +33,6 @@
 #include "omMsgEventHandler.hpp"
 #include "pmdEDU.hpp"
 #include "pmdRemoteSession.hpp"
-#include "msgMessageFormat.hpp"
 
 namespace engine
 {
@@ -101,8 +100,8 @@ namespace engine
          rc = _pRSManager->pushMessage( handle, header ) ;
          if ( rc )
          {
-            PD_LOG( PDERROR, "Push message[%s] failed, rc: %d",
-                    msg2String( header, MSG_MASK_ALL, 0 ).c_str(), rc ) ;
+            PD_LOG( PDERROR, "Push message[opCode: %d, len: %d] failed, rc: %d",
+                    header->opCode, header->messageLength, rc ) ;
             goto error ;
          }
       }

@@ -263,7 +263,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       BSONElement ele ;
       BSONObj value ;
-
+      
       rc = omaGetObjElement( obj, objFieldName, value ) ;
       if ( rc )
       {

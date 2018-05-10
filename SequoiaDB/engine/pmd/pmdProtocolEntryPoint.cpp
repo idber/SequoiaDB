@@ -54,7 +54,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_PMDTCPLSTNENTPNT ) ;
       pmdKRCB *krcb = pmdGetKRCB() ;
-      pmdOptionsCB *optionCB = krcb->getOptionCB() ;
       monDBCB *mondbcb = krcb->getMonDBCB () ;
       pmdEDUMgr * eduMgr = cb->getEDUMgr() ;
       EDUID agentEDU = PMD_INVALID_EDUID ;
@@ -99,6 +98,7 @@ namespace engine
          }
 
          cb->incEventCount() ;
+         ++mondbcb->numConnects ;
 
          pmdEDUParam *pParam = SDB_OSS_NEW pmdEDUParam() ;
          *(( SOCKET *)&pParam->pSocket) = s ;
@@ -114,15 +114,6 @@ namespace engine
             continue ;
          }
 
-         mondbcb->connInc() ;
-         if ( mondbcb->isConnLimited( optionCB->getMaxConn() ) )
-         {
-            ossSocket newsock ( &s ) ;
-            newsock.close () ;
-            mondbcb->connDec();
-            continue ;
-         }
-
          rc = eduMgr->startEDU ( EDU_TYPE_FAPAGENT, (void *)pParam,
                                  &agentEDU ) ;
          if ( rc )
@@ -132,7 +123,7 @@ namespace engine
 
             ossSocket newsock ( &s ) ;
             newsock.close () ;
-            mondbcb->connDec();
+
             SDB_OSS_DEL pParam ;
             pParam = NULL ;
             continue ;
@@ -160,10 +151,6 @@ namespace engine
       }
       goto done ;
    }
-
-   PMD_DEFINE_ENTRYPOINT( EDU_TYPE_FAPLISTENER, TRUE,
-                          pmdFapListenerEntryPoint,
-                          "FAPListener" ) ;
 
    INT32 pmdFapAgentEntryPoint( pmdEDUCB *cb, void *arg )
    {
@@ -207,18 +194,10 @@ namespace engine
          protocol->releaseSession( session ) ;
          session = NULL ;
       }
-
-      pmdGetKRCB()->getMonDBCB ()->connDec();
-      
       PD_TRACE_EXITRC ( SDB_PMDLOCALAGENTENTPNT, rc );
       return rc ;
    error:
       goto done ;
    }
-
-   PMD_DEFINE_ENTRYPOINT( EDU_TYPE_FAPAGENT, FALSE,
-                          pmdFapAgentEntryPoint,
-                          "FAPAgent" ) ;
-
 
 }

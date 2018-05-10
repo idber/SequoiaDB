@@ -66,7 +66,6 @@ namespace engine
       string _sshPort ;
       string _agentService ;
       string _installPath ;
-      string _version ;
    } ;
    typedef struct _AddHostItem AddHostItem ;
    
@@ -78,7 +77,6 @@ namespace engine
       string         _statusDesc ;
       INT32          _errno ;
       string         _detail ;
-      string         _version ;
       vector<string> _flow ;
    } ;
    typedef struct _AddHostResultInfo AddHostResultInfo ;
@@ -105,7 +103,7 @@ namespace engine
       string _passwd ;
       string _sshPort ;
       string _clusterName ;
-      BSONObj _packages ;
+      string _installPath ;
    } ;
    typedef struct _RemoveHostItem RemoveHostItem ;
 

@@ -83,54 +83,6 @@ function _final()
                      host_name, host_svc, task_id ) ) ;
 }
 
-function _checkData( hostName, svcName )
-{
-   var hasData = false ;
-
-   try
-   {
-      var db = new Sdb( hostName, svcName ) ;
-      var cursor = db.list( SDB_LIST_COLLECTIONSPACES ) ;
-      while( true )
-      {
-         var json ;
-         var record = cursor.next() ;
-
-         if ( record === undefined )
-         {
-            break ;
-         }
-
-         json = record.toObj() ;
-
-         if ( 'string' == typeof( json[FIELD_NAME] ) &&
-              json[FIELD_NAME].indexOf( 'SYS' ) != 0 )
-         {
-            hasData = true ;
-            PD_LOG2( task_id, arguments, PDWARNING, FILE_NAME_INSTALL_STANDALONE,
-                     sprintf( "standalone[?:?] has collection space[?]",
-                              hostName, svcName, json[FIELD_NAME] ) ) ;
-            break ;
-         }
-      }
-   }
-   catch( e )
-   {
-      PD_LOG2( task_id, arguments, PDWARNING, FILE_NAME_INSTALL_STANDALONE,
-            sprintf( "Failed to connect standalone[?:?], detail: ?",
-                     hostName, svcName, GETLASTERRMSG() ) ) ;
-   }
-
-   if ( hasData == true )
-   {
-      rc = SDB_SYS ;
-      errMsg = sprintf( "standalone[?:?] already exist", hostName, svcName ) ;
-      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_STANDALONE,
-               sprintf( errMsg + ", rc:?", rc ) ) ;
-      exception_handle( rc, errMsg ) ;
-   }
-}
-
 /* *****************************************************************************
 @discretion: remove the target standalone anyway
 @parameter
@@ -296,41 +248,38 @@ function main()
    var ssh             = null ;
    var agentPort       = null ;
    var preCheckResult  = null ;
-
+   
    _init() ;
-
-   // 1. get arguments
+   
    try
    {
-      sdbUser         = BUS_JSON[SdbUser] ;
-      sdbUserGroup    = BUS_JSON[SdbUserGroup] ;
-      user            = BUS_JSON[User] ;
-      passwd          = BUS_JSON[Passwd] ;    
-      sshport         = parseInt(BUS_JSON[SshPort]) ;
-      installHostName = BUS_JSON[InstallHostName] ;
-      installSvcName  = BUS_JSON[InstallSvcName] ;
-      installPath     = BUS_JSON[InstallPath] ;
-      installConfig   = BUS_JSON[InstallConfig] ;
-      clusterName     = installConfig[ClusterName2] ;
-      businessName    = installConfig[BusinessName2] ;
-      userTag         = installConfig[UserTag2] ;
-   }
-   catch( e )
-   {
-      SYSEXPHANDLE( e ) ;
-      errMsg = "Js receive invalid argument" ;
-      rc = GETLASTERROR() ;
-      // record error message in log
-      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_STANDALONE,
-               errMsg + ", rc: " + rc + ", detail: " + GETLASTERRMSG() ) ;
-      // tell to user error happen
-      exception_handle( SDB_INVALIDARG, errMsg ) ;
-   }
-
-   _checkData( installHostName, installSvcName ) ;
-
-   try
-   {
+      // 1. get arguments
+      try
+      {
+         sdbUser         = BUS_JSON[SdbUser] ;
+         sdbUserGroup    = BUS_JSON[SdbUserGroup] ;
+         user            = BUS_JSON[User] ;
+         passwd          = BUS_JSON[Passwd] ;    
+         sshport         = parseInt(BUS_JSON[SshPort]) ;
+         installHostName = BUS_JSON[InstallHostName] ;
+         installSvcName  = BUS_JSON[InstallSvcName] ;
+         installPath     = BUS_JSON[InstallPath] ;
+         installConfig   = BUS_JSON[InstallConfig] ;
+         clusterName     = installConfig[ClusterName2] ;
+         businessName    = installConfig[BusinessName2] ;
+         userTag         = installConfig[UserTag2] ;
+      }
+      catch( e )
+      {
+         SYSEXPHANDLE( e ) ;
+         errMsg = "Js receive invalid argument" ;
+         rc = GETLASTERROR() ;
+         // record error message in log
+         PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_STANDALONE,
+                  errMsg + ", rc: " + rc + ", detail: " + GETLASTERRMSG() ) ;
+         // tell to user error happen
+         exception_handle( SDB_INVALIDARG, errMsg ) ;
+      }
       // 2. ssh to target host
       try
       {

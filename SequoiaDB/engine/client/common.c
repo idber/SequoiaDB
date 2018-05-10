@@ -294,7 +294,6 @@ INT32 hash_table_create_node( const CHAR *key, htbNode **node )
       rc = SDB_OOM ;
       goto error ;
    }
-   ossStrcpy( ptr, key ) ;
    (*node)->name = ptr ;
 
 done:
@@ -573,6 +572,7 @@ INT32 insertCachedObject( hashTable *tb, const CHAR *key )
       goto error ;
    }
 
+   ossMemcpy( node->name, key, ossStrlen( key ) + 1 ) ;
    curTime = (UINT64)time( NULL ) ;
    node->lastTime = curTime ;
 
@@ -675,7 +675,7 @@ INT32 updateCachedObject( const INT32 code, hashTable *tb, const CHAR *key )
    htbNode *node  = NULL ;
    UINT64 curTime = 0 ;
    CHAR *pos      = NULL ;
-   CHAR csName[ CLINET_CS_NAME_SIZE + 1 ] = { 0 } ;
+   CHAR csName[ CLINET_CS_NAME_SIZE ] = { 0 } ;
 
    if ( !cacheEnabled )
    {
@@ -702,16 +702,11 @@ INT32 updateCachedObject( const INT32 code, hashTable *tb, const CHAR *key )
       pos = ossStrchr( key, '.' ) ;
       if ( NULL != pos )
       {
-         UINT32 csLen = pos - key ;
-         if ( csLen > CLINET_CS_NAME_SIZE )
-         {
-            csLen = CLINET_CS_NAME_SIZE ;
-         }
-         ossStrncpy( csName, key, csLen ) ;
+         ossMemcpy( csName, key, pos - key ) ;
       }
       else
       {
-         ossStrncpy( csName, key, CLINET_CS_NAME_SIZE ) ;
+         ossMemcpy( csName, key, ossStrlen( key ) + 1 ) ;
       }
       removeCachedObject( tb, csName, TRUE ) ;
    }
@@ -720,12 +715,7 @@ INT32 updateCachedObject( const INT32 code, hashTable *tb, const CHAR *key )
       pos = ossStrchr( key, '.' ) ;
       if ( NULL != pos )
       {
-         UINT32 csLen = pos - key ;
-         if ( csLen > CLINET_CS_NAME_SIZE )
-         {
-            csLen = CLINET_CS_NAME_SIZE ;
-         }
-         ossStrncpy( csName, key, csLen ) ;
+         ossMemcpy( csName, key, pos - key ) ;
          rc = hash_table_fetch( tb, csName, &node ) ;
          if ( SDB_OK != rc )
          {
@@ -837,8 +827,6 @@ error:
 #define _QUERY_FORCE_HINT          0x00000080
 #define _QUERY_PARALLED            0x00000100
 #define _QUERY_WITH_RETURNDATA     0x00000200
-#define _QUERY_PREPARE_MORE        0x00004000
-#define _QUERY_FLAG_END            0x00000000
 
 struct _QueryFlagStat
 {
@@ -847,41 +835,61 @@ struct _QueryFlagStat
 } ;
 typedef struct _QueryFlagStat QueryFlagStat ;
 
-INT32 regulateQueryFlags( INT32 *newFlags, const INT32 flags )
+static QueryFlagStat stats[] = {
+   { _QUERY_FORCE_HINT, FLG_QUERY_FORCE_HINT },
+   { _QUERY_PARALLED, FLG_QUERY_PARALLED },
+   {_QUERY_WITH_RETURNDATA, FLG_QUERY_WITH_RETURNDATA }
+} ;
+
+static const QueryFlagStat* _getQueryFlagPair( const INT32 flag )
 {
-   static QueryFlagStat stats[] = {
-      { _QUERY_FLAG_END, _QUERY_FLAG_END }
-   } ;
-   INT32 rc = SDB_OK ;
+   QueryFlagStat *pRet = NULL ;
+   INT32 num = sizeof(stats) / sizeof(QueryFlagStat) ;
    INT32 i = 0 ;
-   INT32 num = sizeof(stats) / sizeof(QueryFlagStat) - 1 ;
-   INT32 erasedFlags = flags ;
-   INT32 mergedFlags = 0 ;
-   
+   for ( ; i < num; i++ )
+   {
+      if ( flag == (INT32)(stats[i]._original) )
+      {
+         pRet = &(stats[i]) ;
+         break ;
+      }
+   }
+   return pRet ;
+}
+INT32 regulateQueryFlags( INT32 *newFlags, const INT32 flag )
+{
+   INT32 rc = SDB_OK ;
+   INT32 bit = 1 ;
+   INT32 i = 0 ;
+   const QueryFlagStat* pPair = NULL ;
+   INT32 tmpFlags = flag ;
    if ( NULL == newFlags )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-
-   for ( i = 0; i < num; i++ )
+   for( ; i < 32; i++ )
    {
-      INT32 originalFlag = (INT32)(stats[i]._original) ;
-      INT32 newFlag = (INT32)(stats[i]._new) ;
-      if ( ( erasedFlags & originalFlag ) && 
-           ( originalFlag != newFlag ) )
+      if ( bit & flag )
       {
-         erasedFlags &= ~originalFlag ;
-         mergedFlags |= newFlag ;
+         pPair = NULL ;
+         pPair = _getQueryFlagPair( bit ) ;
+         if ( NULL != pPair && pPair->_original != pPair->_new )
+         {
+            tmpFlags &= ~(pPair->_original) ;
+            tmpFlags |= pPair->_new ;
+         }
       }
+      if ( (UINT32)bit >= (UINT32)flag )
+         break ;
+      bit = bit << 1 ;
    }
-   *newFlags = (erasedFlags | mergedFlags) ;
+   *newFlags = tmpFlags ;
 done:
    return rc ;
 error:
    goto done ;
 }
-
 static void clientEndianConvertHeader ( MsgHeader *pHeader )
 {
    MsgHeader newheader ;
@@ -3169,54 +3177,6 @@ error:
    goto done ;
 }
 
-INT32 clientBuildLockLobMsg( CHAR ** ppBuffer, INT32 *bufferSize,
-                             INT64 offset, INT64 length,
-                             SINT32 flags, SINT16 w,
-                             SINT64 contextID, UINT64 reqID,
-                             BOOLEAN endianConvert )
-{
-   INT32 rc = SDB_OK ;
-   bson obj ;
-
-   bson_init( &obj ) ;
-
-   rc = bson_append_long( &obj, FIELD_NAME_LOB_OFFSET, offset ) ;
-   if ( SDB_OK != rc )
-   {
-      rc = SDB_DRIVER_BSON_ERROR ;
-      goto error ;
-   }
-
-   rc = bson_append_long( &obj, FIELD_NAME_LOB_LENGTH, length ) ;
-   if ( SDB_OK != rc )
-   {
-      rc = SDB_DRIVER_BSON_ERROR ;
-      goto error ;
-   }
-
-   rc = bson_finish( &obj ) ;
-   if ( SDB_OK != rc )
-   {
-      rc = SDB_DRIVER_BSON_ERROR ;
-      goto error ;
-   }
-
-   rc = clientBuildLobMsg( ppBuffer, bufferSize,
-                           MSG_BS_LOB_LOCK_REQ, &obj,
-                           flags, w, contextID, reqID, NULL,
-                           NULL, NULL, endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-done:
-   bson_destroy( &obj ) ;
-   return rc ;
-error:
-   goto done ;
-}
-
 INT32 clientBuildReadLobMsg( CHAR **ppBuffer, INT32 *bufferSize,
                              UINT32 len, SINT64 lobOffset,
                              SINT32 flags, SINT64 contextID,
@@ -3279,27 +3239,6 @@ error:
    goto done ;   
 }
 
-INT32 clientBuildTruncateLobMsg( CHAR **ppBuffer, INT32 *bufferSize,
-                                 const bson *meta,
-                                 SINT32 flags, SINT16 w,
-                                 UINT64 reqID,
-                                 BOOLEAN endianConvert )
-{
-   INT32 rc = SDB_OK ;
-   rc = clientBuildLobMsg( ppBuffer, bufferSize,
-                           MSG_BS_LOB_TRUNCATE_REQ, meta,
-                           flags, w, -1, reqID,
-                           NULL, NULL, NULL, endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-done:
-   return rc ;
-error:
-   goto done ;   
-}
-
 INT32 clientBuildRemoveLobMsgCpp( CHAR **ppBuffer, INT32 *bufferSize,
                                   const CHAR *pMeta,
                                   SINT32 flags, SINT16 w,
@@ -3309,27 +3248,6 @@ INT32 clientBuildRemoveLobMsgCpp( CHAR **ppBuffer, INT32 *bufferSize,
    INT32 rc = SDB_OK ;
    rc = clientBuildLobMsgCpp( ppBuffer, bufferSize,
                               MSG_BS_LOB_REMOVE_REQ, pMeta,
-                              flags, w, -1, reqID,
-                              NULL, NULL, NULL, endianConvert ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-done:
-   return rc ;
-error:
-   goto done ;   
-}
-
-INT32 clientBuildTruncateLobMsgCpp( CHAR **ppBuffer, INT32 *bufferSize,
-                                    const CHAR *pMeta,
-                                    SINT32 flags, SINT16 w,
-                                    UINT64 reqID,
-                                    BOOLEAN endianConvert )
-{
-   INT32 rc = SDB_OK ;
-   rc = clientBuildLobMsgCpp( ppBuffer, bufferSize,
-                              MSG_BS_LOB_TRUNCATE_REQ, pMeta,
                               flags, w, -1, reqID,
                               NULL, NULL, NULL, endianConvert ) ;
    if ( SDB_OK != rc )

@@ -44,7 +44,6 @@ namespace replay
    #define RPL_OPTION_SVC               "svcname"
    #define RPL_OPTION_USER              "user"
    #define RPL_OPTION_PASSWD            "password"
-   #define RPL_OPTION_SSL               "ssl"
    #define RPL_OPTION_PATH              "path"
    #define RPL_OPTION_FILTER            "filter"
    #define RPL_OPTION_DUMP              "dump"
@@ -57,8 +56,6 @@ namespace replay
    #define RPL_OPTION_DEBUG             "debug"
    #define RPL_OPTION_DEFLATE           "deflate"
    #define RPL_OPTION_INFLATE           "inflate"
-   #define RPL_OPTION_TYPE              "type"
-   #define RPL_OPTION_UPDATE_WITH_SHARING_KEY "updatewithshardingkey"
 
    #define RPL_EXPLAIN_HELP             "print help information"
    #define RPL_EXPLAIN_VERSION          "print version"
@@ -66,12 +63,11 @@ namespace replay
    #define RPL_EXPLAIN_SVC              "service name"
    #define RPL_EXPLAIN_USER             "username"
    #define RPL_EXPLAIN_PASSWD           "password"
-   #define RPL_EXPLAIN_SSL              "use SSL connection (arg: [true|false], e.g. --ssl true), default: false"
-   #define RPL_EXPLAIN_PATH             "archive or replica log directory or file path"
+   #define RPL_EXPLAIN_PATH             "archivelog directory or file path"
    #define RPL_EXPLAIN_FILTER           "log filtering rule, " \
                                         "e.g. --filter '{\"OP\": [\"insert\", \"update\"]}'"
    #define RPL_EXPLAIN_DUMP             "dump log only, default is false"
-   #define RPL_EXPLAIN_DUMPHEADER       "dump archive header, default is false"
+   #define RPL_EXPLAIN_DUMPHEADER       "dump archive header only, default is false"
    #define RPL_EXPLAIN_DELETE           "delete log file after replay, " \
                                         "default is false"
    #define RPL_EXPLAIN_WATCH            "continuously watch path and replay log files, " \
@@ -86,20 +82,12 @@ namespace replay
    #define RPL_EXPLAIN_DEBUG            "log debug info"
    #define RPL_EXPLAIN_DEFLATE          "compress archive file, valid when path is file"
    #define RPL_EXPLAIN_INFLATE          "uncompress archive file, valid when path is file"
-   #define RPL_EXPLAIN_TYPE             "indicate the type of file, " \
-                                        "the value can be \"archive\" or \"replica\", " \
-                                        "default is \"archive\""
-   #define RPL_EXPLAIN_UPDATE_WITH_SHARDING_KEY "update record with sharding key when it exists, default is true"
-
-   #define RPL_OPTION_TYPE_ARCHIVE      "archive"
-   #define RPL_OPTION_TYPE_REPLICA      "replica"
 
    #define _TYPE(T) utilOptType(T)
 
    Options::Options()
    {
       _pathType = SDB_OSS_UNK;
-      _useSSL = FALSE;
       _dump = FALSE;
       _dumpHeader = FALSE;
       _delete = FALSE;
@@ -108,8 +96,6 @@ namespace replay
       _debug = FALSE;
       _deflate = FALSE;
       _inflate = FALSE;
-      _isReplicaFile = FALSE;
-      _updateWithShardingKey = TRUE;
    }
 
    Options::~Options()
@@ -127,7 +113,6 @@ namespace replay
          (RPL_OPTION_SVC,           _TYPE(string),    RPL_EXPLAIN_SVC)
          (RPL_OPTION_USER,          _TYPE(string),    RPL_EXPLAIN_USER)
          (RPL_OPTION_PASSWD,        _TYPE(string),    RPL_EXPLAIN_PASSWD)
-         (RPL_OPTION_SSL,           _TYPE(string),    RPL_EXPLAIN_SSL)
          (RPL_OPTION_PATH,          _TYPE(string),    RPL_EXPLAIN_PATH)
          (RPL_OPTION_FILTER,        _TYPE(string),    RPL_EXPLAIN_FILTER)
          (RPL_OPTION_DUMP,          _TYPE(string),    RPL_EXPLAIN_DUMP)
@@ -136,7 +121,6 @@ namespace replay
          (RPL_OPTION_WATCH,         _TYPE(string),    RPL_EXPLAIN_WATCH)
          (RPL_OPTION_DAEMON,        _TYPE(string),    RPL_EXPLAIN_DAEMON)
          (RPL_OPTION_STATUS,        _TYPE(string),    RPL_EXPLAIN_STATUS)
-         (RPL_OPTION_TYPE,          _TYPE(string),    RPL_EXPLAIN_TYPE)
       ;
 
       addOptions("Helpfull Options", TRUE)
@@ -144,7 +128,6 @@ namespace replay
          (RPL_OPTION_DEBUG,          /* no arg */     RPL_EXPLAIN_DEBUG)
          (RPL_OPTION_DEFLATE,       _TYPE(string),    RPL_EXPLAIN_DEFLATE)
          (RPL_OPTION_INFLATE,       _TYPE(string),    RPL_EXPLAIN_INFLATE)
-         (RPL_OPTION_UPDATE_WITH_SHARING_KEY, _TYPE(string), RPL_EXPLAIN_UPDATE_WITH_SHARDING_KEY)
       ;
 
       rc = engine::utilOptions::parse(argc, argv);
@@ -328,12 +311,6 @@ namespace replay
          _password = get<string>(RPL_OPTION_PASSWD);
       }
 
-      if (has(RPL_OPTION_SSL))
-      {
-         string ssl = get<string>(RPL_OPTION_SSL);
-         ossStrToBoolean(ssl.c_str(), &_useSSL);
-      }
-
       if (has(RPL_OPTION_PATH))
       {
          _path = get<string>(RPL_OPTION_PATH);
@@ -422,44 +399,6 @@ namespace replay
       if (has(RPL_OPTION_DEBUG))
       {
          _debug = TRUE;
-      }
-
-      if (has(RPL_OPTION_TYPE))
-      {
-         string type = get<string>(RPL_OPTION_TYPE);
-         if (type == RPL_OPTION_TYPE_ARCHIVE)
-         {
-            _isReplicaFile = FALSE;
-         }
-         else if (type == RPL_OPTION_TYPE_REPLICA)
-         {
-            _isReplicaFile = TRUE;
-         }
-         else
-         {
-            rc = SDB_INVALIDARG;
-            std::cerr << "invalid argument: " << RPL_OPTION_TYPE << std::endl;
-            PD_LOG( PDERROR, "invalid argument of %s: %s, rc=%d",
-                    RPL_OPTION_TYPE, type.c_str(), rc ) ;
-            goto error ;
-         }
-      }
-
-      if (_isReplicaFile && (_inflate || _deflate))
-      {
-         rc = SDB_INVALIDARG;
-         std::cerr << RPL_OPTION_INFLATE << " and " << RPL_OPTION_DEFLATE
-                   << " can't run with replica file"
-                   << std::endl;
-         PD_LOG( PDERROR, "%s and %s can't run with replica file, rc=%d",
-                 RPL_OPTION_INFLATE, RPL_OPTION_DEFLATE, rc ) ;
-         goto error ;
-      }
-
-      if (has(RPL_OPTION_UPDATE_WITH_SHARING_KEY))
-      {
-         string withShardingKey = get<string>(RPL_OPTION_UPDATE_WITH_SHARING_KEY);
-         ossStrToBoolean(withShardingKey.c_str(), &_updateWithShardingKey);
       }
 
    done: 

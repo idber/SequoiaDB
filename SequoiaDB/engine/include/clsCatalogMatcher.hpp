@@ -67,9 +67,6 @@ namespace engine
       INT32 parseCmpOp( const bson::BSONElement &beField,
                         clsCatalogPredicateTree &predicateSet );
 
-      INT32 parseOpObj( const BSONElement & beField,
-                        clsCatalogPredicateTree & predicateSet );
-
       INT32 parseLogicOp( const bson::BSONElement &beField,
                           clsCatalogPredicateTree &predicateSet ) ;
       BOOLEAN isOpObj( const bson::BSONObj obj ) ;

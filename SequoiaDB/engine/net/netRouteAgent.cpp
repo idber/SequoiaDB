@@ -42,7 +42,7 @@
 namespace engine
 {
    _netRouteAgent::_netRouteAgent( _netMsgHandler *handler ):
-                                   _frame( handler, &_route )
+                                   _frame( handler )
    {
 
    }
@@ -169,11 +169,39 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__NETRTAG_SYNCSND );
       rc = _frame.syncSend( id, header, pHandle ) ;
-      if ( rc )
+      if ( SDB_OK == rc )
+      {
+         goto done ;
+      }
+      else if ( SDB_NET_NOT_CONNECT != rc )
+      {
+         goto error ;
+      }
+      else
+      {
+      }
+      {
+      CHAR host[ OSS_MAX_HOSTNAME + 1 ] = { 0 } ;
+      CHAR service[ OSS_MAX_SERVICENAME + 1] = { 0 } ;
+      rc = _route.route( id, host, OSS_MAX_HOSTNAME,
+                         service, OSS_MAX_SERVICENAME ) ;
+      if ( SDB_OK != rc )
       {
          goto error ;
       }
 
+      rc = _frame.syncConnect( host, service, id ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      rc = _frame.syncSend( id, header, pHandle ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+      }
    done:
       PD_TRACE_EXITRC ( SDB__NETRTAG_SYNCSND, rc );
       return rc ;
@@ -207,9 +235,34 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__NETRTAG_SYNCSND2 );
       rc = _frame.syncSend( id, header, body, bodyLen, pHandle ) ;
-      if ( rc )
+      if ( SDB_OK == rc )
+      {
+         goto done ;
+      }
+      else if ( SDB_NET_NOT_CONNECT != rc )
       {
          goto error ;
+      }
+      else
+      {
+         CHAR host[ OSS_MAX_HOSTNAME + 1 ] = { 0 } ;
+         CHAR service[ OSS_MAX_SERVICENAME + 1] = { 0 } ;
+         rc = _route.route( id, host, OSS_MAX_HOSTNAME,
+                            service, OSS_MAX_SERVICENAME ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
+         rc = _frame.syncConnect( host, service, id ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
+         rc = _frame.syncSend( id, header, body, bodyLen, pHandle ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
       }
 
    done:
@@ -303,6 +356,11 @@ namespace engine
    INT64 _netRouteAgent::netOut()
    {
       return _frame.netOut() ;
+   }
+
+   void _netRouteAgent::resetMon()
+   {
+      return _frame.resetMon() ;
    }
 
 }

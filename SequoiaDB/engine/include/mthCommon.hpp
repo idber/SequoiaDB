@@ -51,9 +51,6 @@ namespace engine
 
    #define MTH_OPERATOR_EYECATCHER              '$'
 
-   #define MTH_OPERATION_FLAG_OVERFLOW   0x00000001
-
-
 
    INT32 mthAppendString ( CHAR **ppStr, INT32 &bufLen,
                            INT32 strLen, const CHAR *newStr,
@@ -61,7 +58,6 @@ namespace engine
 
    INT32 mthDoubleBufferSize ( CHAR **ppStr, INT32 &bufLen ) ;
 
-   BOOLEAN mthIsZero( const BSONElement &element ) ;
 
    INT32 mthCheckFieldName( const CHAR *pField, INT32 &dollarNum ) ;
 
@@ -74,7 +70,7 @@ namespace engine
    BOOLEAN mthIsModValid( const BSONElement &modmEle ) ;
 
    INT32 mthAbs( const CHAR *name, const BSONElement &in,
-                 BSONObjBuilder &outBuilder, INT32 &flag ) ;
+                 BSONObjBuilder &outBuilder ) ;
 
    INT32 mthCeiling( const CHAR *name, const BSONElement &in,
                      BSONObjBuilder &outBuilder ) ;
@@ -108,24 +104,17 @@ namespace engine
                   BSONObjBuilder &outBuilder ) ;
 
    INT32 mthAdd( const CHAR *name, const BSONElement &in,
-                 const BSONElement &addend, 
-                 BSONObjBuilder &outBuilder, 
-                 INT32 &flag ) ;
+                 const BSONElement &addend, BSONObjBuilder &outBuilder ) ;
 
    INT32 mthSub( const CHAR *name, const BSONElement &in,
-                 const BSONElement &subtrahead, 
-                 BSONObjBuilder &outBuilder, 
-                 INT32 &flag ) ;
+                 const BSONElement &subtrahead, BSONObjBuilder &outBuilder ) ;
 
    INT32 mthMultiply( const CHAR *name, const BSONElement &in,
                       const BSONElement &multiplier,
-                      BSONObjBuilder &outBuilder,
-                      INT32 &flag ) ;
+                      BSONObjBuilder &outBuilder ) ;
 
    INT32 mthDivide( const CHAR *name, const BSONElement &in,
-                    const BSONElement &divisor, 
-                    BSONObjBuilder &outBuilder, 
-                    INT32 &flag ) ;
+                    const BSONElement &divisor, BSONObjBuilder &outBuilder ) ;
 
    INT32 mthType( const CHAR *name, INT32 outType, const BSONElement &in,
                   BSONObjBuilder &outBuilder ) ;

@@ -76,8 +76,6 @@ namespace engine
 
       INT32 next( _rtnSortTuple **tuple ) ;
 
-      UINT64 getObjNum () { return _objNum ; }
-
 
    private:
       INT32 _quickSort( _rtnSortTuple **left,

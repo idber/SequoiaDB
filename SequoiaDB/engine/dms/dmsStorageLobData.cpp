@@ -42,6 +42,8 @@
 
 namespace engine
 {
+   #define DMS_LOBD_EYECATCHER            "SDBLOBD"
+   #define DMS_LOBD_EYECATCHER_LEN        8
 
    const UINT32 DMS_LOBD_EXTEND_LEN = 4 * 1024 * 1024 ;
 

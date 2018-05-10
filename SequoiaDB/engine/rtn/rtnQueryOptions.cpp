@@ -41,155 +41,29 @@
 #include <sstream>
 
 using namespace bson ;
-using namespace std ;
 
 namespace engine
 {
-
-   /*
-      _rtnReturnOptions implement
-    */
-   _rtnReturnOptions::_rtnReturnOptions ()
-   : _skip( 0 ),
-     _limit( -1 ),
-     _flag( 0 )
+   _rtnQueryOptions::~_rtnQueryOptions()
    {
-   }
+      if ( NULL != _fullNameBuf )
+      {
+         SDB_OSS_FREE( _fullNameBuf ) ;
+      }
 
-   _rtnReturnOptions::_rtnReturnOptions ( const BSONObj &selector,
-                                          INT64 skip,
-                                          INT64 limit,
-                                          INT32 flag )
-   : _selector( selector ),
-     _skip( skip ),
-     _limit( limit ),
-     _flag( flag )
-   {
-   }
-
-   _rtnReturnOptions::_rtnReturnOptions ( const CHAR *selector,
-                                          INT64 skip,
-                                          INT64 limit,
-                                          INT32 flag )
-   : _selector( selector ),
-     _skip( skip ),
-     _limit( limit ),
-     _flag( flag )
-   {
-   }
-
-   _rtnReturnOptions::_rtnReturnOptions ( const _rtnReturnOptions &options )
-   : _selector( options._selector ),
-     _skip( options._skip ),
-     _limit( options._limit ),
-     _flag( options._flag )
-   {
-   }
-
-   _rtnReturnOptions::~_rtnReturnOptions ()
-   {
-   }
-
-   _rtnReturnOptions & _rtnReturnOptions::operator = ( const _rtnReturnOptions &options )
-   {
-      _selector = options._selector ;
-      _skip = options._skip ;
-      _limit = options._limit ;
-      _flag = options._flag ;
-      return (*this) ;
-   }
-
-   void _rtnReturnOptions::reset ()
-   {
-      _selector = BSONObj() ;
-      _skip = 0 ;
-      _limit = -1 ;
-      _flag = 0 ;
-   }
-
-   INT32 _rtnReturnOptions::getOwned ()
-   {
-      _selector = _selector.getOwned() ;
-      return SDB_OK ;
-   }
-
-   /*
-      _rtnQueryOptions implement
-    */
-   _rtnQueryOptions::_rtnQueryOptions ()
-   : _rtnReturnOptions(),
-     _fullName( NULL ),
-     _fullNameBuf( NULL ),
-     _mainCLName( NULL ),
-     _mainCLNameBuf( NULL )
-   {
-   }
-
-   _rtnQueryOptions::_rtnQueryOptions ( const CHAR *query,
-                                        const CHAR *selector,
-                                        const CHAR *orderBy,
-                                        const CHAR *hint,
-                                        const CHAR *fullName,
-                                        SINT64 skip,
-                                        SINT64 limit,
-                                        INT32 flag )
-   : _rtnReturnOptions( selector, skip, limit, flag ),
-     _query( query ),
-     _orderBy( orderBy ),
-     _hint( hint ),
-     _fullName( fullName ),
-     _fullNameBuf( NULL ),
-     _mainCLName( NULL ),
-     _mainCLNameBuf( NULL )
-   {
-   }
-
-   _rtnQueryOptions::_rtnQueryOptions ( const BSONObj &query,
-                                        const BSONObj &selector,
-                                        const BSONObj &orderBy,
-                                        const BSONObj &hint,
-                                        const CHAR *fullName,
-                                        SINT64 skip,
-                                        SINT64 limit,
-                                        INT32 flag )
-   : _rtnReturnOptions( selector, skip, limit, flag ),
-     _query( query ),
-     _orderBy( orderBy ),
-     _hint( hint ),
-     _fullName( fullName ),
-     _fullNameBuf( NULL ),
-     _mainCLName( NULL ),
-     _mainCLNameBuf( NULL )
-   {
-   }
-
-   _rtnQueryOptions::_rtnQueryOptions ( const _rtnQueryOptions &o )
-   : _rtnReturnOptions( o ),
-     _query( o._query ),
-     _orderBy( o._orderBy ),
-     _hint( o._hint ),
-     _fullName( o._fullName ),
-     _fullNameBuf( NULL ),
-     _mainCLName( o._mainCLName ),
-     _mainCLNameBuf( NULL )
-   {
-   }
-
-   _rtnQueryOptions::~_rtnQueryOptions ()
-   {
-      SAFE_OSS_FREE( _fullNameBuf ) ;
-      SAFE_OSS_FREE( _mainCLNameBuf ) ;
       _fullName = NULL ;
-      _mainCLName = NULL ;
+      _fullNameBuf = NULL ;
    }
 
-   INT32 _rtnQueryOptions::getOwned ()
+   INT32 _rtnQueryOptions::getOwned()
    {
       INT32 rc = SDB_OK ;
+      if ( NULL != _fullNameBuf )
+      {
+         SDB_OSS_FREE( _fullNameBuf ) ;
+         _fullNameBuf = NULL ;
+      }
 
-      _rtnReturnOptions::getOwned() ;
-
-      SAFE_OSS_FREE( _fullNameBuf ) ;
       if ( NULL != _fullName )
       {
          _fullNameBuf = ossStrdup( _fullName ) ;
@@ -199,83 +73,38 @@ namespace engine
             goto error ;
          }
       }
+
       _fullName = _fullNameBuf ;
-
-      SAFE_OSS_FREE( _mainCLNameBuf ) ;
-      if ( NULL != _mainCLName )
-      {
-         _mainCLNameBuf = ossStrdup( _mainCLName ) ;
-         if ( NULL == _mainCLNameBuf )
-         {
-            rc = SDB_OOM ;
-            goto error ;
-         }
-      }
-      _mainCLName = _mainCLNameBuf ;
-
       _query = _query.getOwned() ;
+      _selector = _selector.getOwned() ;
       _orderBy = _orderBy.getOwned() ;
       _hint = _hint.getOwned() ;
-
    done:
       return rc ;
    error:
       goto done ;
    }
 
-   void _rtnQueryOptions::setCLFullName ( const CHAR *clFullName )
+   _rtnQueryOptions &_rtnQueryOptions::operator=( const _rtnQueryOptions &o )
    {
-      SAFE_OSS_FREE( _fullNameBuf ) ;
-      if ( NULL != clFullName && '\0' != clFullName[0] )
-      {
-         _fullName = clFullName ;
-      }
-      else
-      {
-         _fullName = NULL ;
-      }
-   }
-
-   void _rtnQueryOptions::setMainCLName ( const CHAR *mainCLName )
-   {
-      SAFE_OSS_FREE( _mainCLNameBuf ) ;
-      if ( NULL != mainCLName && '\0' != mainCLName[0] )
-      {
-         _mainCLName = mainCLName ;
-      }
-      else
-      {
-         _mainCLName = NULL ;
-      }
-   }
-
-   void _rtnQueryOptions::setMainCLQuery ( const CHAR *mainCLName,
-                                           const CHAR *subCLName )
-   {
-      SDB_ASSERT( NULL != mainCLName && '\0' != mainCLName[0],
-                  "Invalid main-collection name" ) ;
-      SDB_ASSERT( NULL != subCLName && '\0' != subCLName[0],
-                  "Invalid sub-collection name" ) ;
-      setMainCLName( mainCLName ) ;
-      setCLFullName( subCLName ) ;
-   }
-
-   _rtnQueryOptions &_rtnQueryOptions::operator = ( const _rtnQueryOptions &o )
-   {
-      _rtnReturnOptions::operator =( o ) ;
-
       _query = o._query ;
+      _selector = o._selector ;
       _orderBy = o._orderBy ;
       _hint = o._hint ;
       _fullName = o._fullName ;
-      SAFE_OSS_FREE( _fullNameBuf ) ;
-      _mainCLName = o._mainCLName ;
-      SAFE_OSS_FREE( _mainCLNameBuf ) ;
-
+      if ( NULL != _fullNameBuf )
+      {
+         SDB_OSS_FREE( _fullNameBuf ) ;
+         _fullNameBuf = NULL ;
+      }
+      _skip = o._skip ;
+      _limit = o._limit ;
+      _flag = o._flag ;
+      _enablePrefetch = o._enablePrefetch ;
       return *this ;
    }
 
-   string _rtnQueryOptions::toString () const
+   string _rtnQueryOptions::toString() const
    {
       stringstream ss ;
       if ( _fullName )
@@ -288,15 +117,11 @@ namespace engine
          ss << ", Skip: " << _skip ;
          ss << ", Limit: " << _limit ;
          ss << ", Flags: " << _flag ;
-         if ( NULL != _mainCLName )
-         {
-            ss << ", MainCLName: " << _mainCLName ;
-         }
       }
       return ss.str() ;
    }
 
-   INT32 _rtnQueryOptions::fromQueryMsg ( CHAR *pMsg )
+   INT32 _rtnQueryOptions::fromQueryMsg( CHAR *pMsg )
    {
       INT32 rc = SDB_OK ;
       CHAR *pQuery = NULL ;
@@ -335,9 +160,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _rtnQueryOptions::toQueryMsg ( CHAR **ppMsg,
-                                        INT32 &buffSize,
-                                        IExecutor *cb ) const
+   INT32 _rtnQueryOptions::toQueryMsg( CHAR **ppMsg, INT32 &buffSize ) const
    {
       INT32 rc = SDB_OK ;
 
@@ -345,7 +168,7 @@ namespace engine
 
       rc = msgBuildQueryMsg( ppMsg, &buffSize, _fullName, _flag, 0,
                              _skip, _limit, &_query, &_selector, &_orderBy,
-                             &_hint, cb ) ;
+                             &_hint ) ;
       PD_RC_CHECK( rc, PDERROR, "Build query msg failed, rc: %d", rc ) ;
 
    done:

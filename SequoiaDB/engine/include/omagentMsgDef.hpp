@@ -38,13 +38,11 @@
 #include "omDef.hpp"
 #include "omagentDef.hpp"
 
-#define OMA_BUS_TYPE_SEQUOIADB         OM_BUSINESS_SEQUOIADB
-#define OMA_BUS_TYPE_ZOOKEEPER         OM_BUSINESS_ZOOKEEPER
-#define OMA_BUS_TYPE_SEQUOIASQL_OLAP   OM_BUSINESS_SEQUOIASQL_OLAP
-#define OMA_BUS_TYPE_SEQUOIASQL_OLTP   OM_BUSINESS_SEQUOIASQL_OLTP
-#define OMA_BUS_TYPE_SEQUOIASQL        OM_BUSINESS_SEQUOIASQL
-#define OMA_BUS_TYPE_SPARK             OM_BUSINESS_SPARK
-#define OMA_BUS_TYPE_HDFS              OM_BUSINESS_HDFS
+#define OMA_BUS_TYPE_SEQUOIADB   OM_BUSINESS_SEQUOIADB
+#define OMA_BUS_TYPE_ZOOKEEPER   OM_BUSINESS_ZOOKEEPER
+#define OMA_BUS_TYPE_SEQUOIASQL  OM_BUSINESS_SEQUOIASQL
+#define OMA_BUS_TYPE_SPARK       OM_BUSINESS_SPARK
+#define OMA_BUS_TYPE_HDFS        OM_BUSINESS_HDFS
 
 #define OMA_FIELD_HOSTINFO                         "HostInfo" /* OM_REST_FIELD_HOST_INFO */
 #define OMA_FIELD_SSH_PORT                         "SshPort" /* OM_BSON_FIELD_HOST_SSHPORT */
@@ -57,7 +55,6 @@
 #define OMA_FIELD_TRANSACTION_ID                   "TransactionID" /* OM_BSON_FIELD_TRANSACTION_ID */
 #define OMA_FIELD_PACKET_PATH                      "PacketPath"
 #define OMA_FIELD_CONFIG                           "Config" /* OM_CONFIGURE_FIELD_CONFIG */
-#define OMA_FIELD_PACKAGES                         "Packages"
 
 #define OMA_FIELD_ZOOID3                           "zooid"
 #define OMA_FIELD_INSTALLPATH3                     "installpath"
@@ -81,7 +78,6 @@
 #define OMA_FIELD_IP                               "IP"
 #define OMA_FIELD_IP2                              "Ip"
 #define OMA_FIELD_INFO                             "Info"
-#define OMA_FIELD_OMA                              "OMA"
 
 
 #define OMA_FIELD_PING                             "Ping"
@@ -173,7 +169,6 @@
 #define OMA_FIELD_NET                              "Net"
 #define OMA_FIELD_NETCARDS                         "Netcards"
 #define OMA_FIELD_PORT                             "Port"
-#define OMA_FIELD_PORT2                            "port"
 #define OMA_FIELD_SERVICE                          "Service"
 #define OMA_FIELD_SAFETY                           "Safety"
 #define OMA_FIELD_SERVERINFO                       "ServerInfo"

@@ -49,7 +49,6 @@ namespace engine
    _mthSelector::_mthSelector()
    :_init( FALSE ),
     _stringOutput( FALSE ),
-    _strictDataMode( FALSE ),
     _stringOutputBufferSize( 0 ),
     _stringOutputBuffer( NULL )
    {
@@ -62,13 +61,12 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSELECTOR_LOADPATTERN, "_mthSelector::loadPattern" )
-   INT32 _mthSelector::loadPattern( const bson::BSONObj &pattern, 
-                                    BOOLEAN strictDataMode )
+   INT32 _mthSelector::loadPattern( const bson::BSONObj &pattern )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__MTHSELECTOR_LOADPATTERN ) ;
 
-      rc = _matrix.load( pattern, strictDataMode ) ;
+      rc = _matrix.load( pattern ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to parse pattern:%d", rc ) ;
@@ -76,7 +74,6 @@ namespace engine
       }
 
       _init = TRUE ;
-      _strictDataMode = strictDataMode ;
    done:
       PD_TRACE_EXITRC( SDB__MTHSELECTOR_LOADPATTERN, rc ) ;
       return rc ;
@@ -150,7 +147,7 @@ namespace engine
 
       other.clear() ;
 
-      rc = other.loadPattern( getPattern(), _strictDataMode ) ;
+      rc = other.loadPattern( getPattern() ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to load pattern:%d", rc ) ;
@@ -174,7 +171,6 @@ namespace engine
       _matrix.clear() ;
       _init = FALSE ;
       _stringOutput = FALSE ;
-	  _strictDataMode = FALSE ;
       PD_TRACE_EXIT( SDB__MTHSELECTOR_CLEAR ) ;
       return ;
    }

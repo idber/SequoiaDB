@@ -35,9 +35,6 @@
 #define RTN_CONTEXTSHDOFLOB_HPP_
 
 #include "rtnContext.hpp"
-#include "rtnLobPieces.hpp"
-#include "rtnLobAccessManager.hpp"
-#include "dmsLobDef.hpp"
 
 namespace engine
 {
@@ -47,13 +44,11 @@ namespace engine
 
    class _rtnContextShdOfLob : public _rtnContextBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
    public:
       _rtnContextShdOfLob( INT64 contextID, UINT64 eduID ) ;
       virtual ~_rtnContextShdOfLob() ;
 
    public:
-      virtual std::string      name() const { return "SHARD_OF_LOB" ; };
       virtual RTN_CONTEXT_TYPE getType() const { return RTN_CONTEXT_SHARD_OF_LOB ; }
       virtual _dmsStorageUnit*  getSU () ;
 
@@ -71,8 +66,7 @@ namespace engine
                    UINT32 offset,
                    UINT32 len,
                    const CHAR *data,
-                   _pmdEDUCB *cb,
-                   BOOLEAN orUpdate = FALSE ) ;
+                   _pmdEDUCB *cb ) ;
 
       INT32 readv( const MsgLobTuple *tuples,
                    UINT32 cnt,
@@ -89,10 +83,6 @@ namespace engine
                     const CHAR *data,
                     _pmdEDUCB *cb ) ;
 
-      INT32 lock( _pmdEDUCB *cb,
-                  INT64 offset,
-                  INT64 length ) ;
-
       INT32 close( _pmdEDUCB *cb ) ;
 
    public:
@@ -104,11 +94,6 @@ namespace engine
       INT32 getMode() const
       {
          return _mode ;
-      }
-
-      BOOLEAN isMainShard() const
-      {
-         return _isMainShd ;
       }
 
       SINT32 getVersion() const
@@ -135,44 +120,36 @@ namespace engine
                    const CHAR **data,
                    UINT32 &read ) ;
 
-      INT32 _getAccessPrivilege() ;
-
-      INT32 _parseOpenArgs( const bson::BSONObj &lob ) ;
-
-      INT32 _meta2Obj( bson::BSONObj &obj ) ;
+      void _meta2Obj( bson::BSONObj &obj ) ;
 
       INT32 _rollback( _pmdEDUCB *cb ) ;
 
       INT32 _extendBuf( UINT32 len ) ;
 
    private:
-      std::string          _fullName ;
-      bson::OID            _oid ;
-      BSONObj              _metaObj ;
-      INT32                _mode ;
-      INT32                _flags ;
-      BOOLEAN              _isMainShd ;
-      SINT16               _w ;
-      SINT32               _version ;
-      _dmsLobMeta          _meta ;
-      SDB_DPSCB*           _dpsCB ;
-      BOOLEAN              _closeWithException ;
-      CHAR*                _buf ;
-      UINT32               _bufLen ;
-      const CHAR*          _pData ;
-      UINT32               _dataLen ;
-      INT64                _offset ;
-      std::set<UINT32>     _written ;
-      _rtnLobPiecesInfo    _lobPieces ;
-      _rtnLobAccessInfo*   _accessInfo ;
-      _rtnLobSections      _lockSections ;
+      std::string    _fullName ;
+      bson::OID      _oid ;
+      BSONObj        _metaObj ;
+      INT32          _mode ;
+      INT32          _flags ;
+      BOOLEAN        _isMainShd ;
+      SINT16         _w ;
+      SINT32         _version ;
+      _dmsLobMeta    _meta ;
+      SDB_DPSCB      *_dpsCB ;
+      BOOLEAN        _closeWithException ;
+      CHAR           *_buf ;
+      UINT32         _bufLen ;
+      const CHAR*    _pData ;
+      UINT32         _dataLen ;
+      INT64          _offset ;
+      std::set<UINT32> _written ;
 
-      _dmsStorageUnit*     _su ;
-      _dmsMBContext*       _mbContext ;
-      _SDB_DMSCB*          _dmsCB ;
-      BOOLEAN              _writeDMS ;
-      BOOLEAN              _hasLobPrivilege ;
-      BOOLEAN              _reopened ;
+      _dmsStorageUnit   *_su ;
+      _dmsMBContext     *_mbContext ;
+      _SDB_DMSCB        *_dmsCB ;
+      BOOLEAN           _writeDMS ;
+
    } ;
    typedef class _rtnContextShdOfLob rtnContextShdOfLob ;
 }

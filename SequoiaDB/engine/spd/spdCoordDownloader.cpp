@@ -35,21 +35,19 @@
 *******************************************************************************/
 
 #include "spdCoordDownloader.hpp"
-#include "coordCommandBase.hpp"
+#include "rtnCoordCommands.hpp"
 #include "pd.hpp"
 #include "pmd.hpp"
-#include "rtnCB.hpp"
+#include "pmdCB.hpp"
 #include "catDef.hpp"
 #include "rtn.hpp"
 #include "msgMessage.hpp"
 #include "spdTrace.h"
 
-using namespace bson ;
-
 namespace engine
 {
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_SPTCOORDDOWNLOADER_SPDCOORDDOWNLOADER, "_spdCoordDownloader::_spdCoordDownloader" )
-   _spdCoordDownloader::_spdCoordDownloader( _coordCommandBase *command,
+   PD_TRACE_DECLARE_FUNCTION ( SDB_SPTCOORDDOWNLOADER_SPDCOORDDOWNLOADER, "_spdCoordDownloader::_spdCoordDownloader" )
+   _spdCoordDownloader::_spdCoordDownloader( rtnCoordCommand *command,
                                              _pmdEDUCB *cb )
    :_contextID(-1),
     _command(command),

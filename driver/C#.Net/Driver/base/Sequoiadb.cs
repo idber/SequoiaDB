@@ -739,8 +739,6 @@ namespace SequoiaDB
          *      SDBConst.SDB_SNAP_CATALOG
          *      SDBConst.SDB_SNAP_TRANSACTIONS
          *      SDBConst.SDB_SNAP_TRANSACTIONS_CURRENT
-         *      SDBConst.SDB_SNAP_ACCESSPLANS
-         *      SDBConst.SDB_SNAP_HEALTH
          *      
          *  \param matcher The matching condition or null
          *  \param selector The selective rule or null
@@ -799,14 +797,7 @@ namespace SequoiaDB
                     command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.SNAP_CMD + " " +
                            SequoiadbConstants.TRANSACTIONS_CURRENT;
                     break;
-                case SDBConst.SDB_SNAP_ACCESSPLANS:
-                    command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.SNAP_CMD + " " +
-                              SequoiadbConstants.ACCESSPLANS;
-                    break;
-                case SDBConst.SDB_SNAP_HEALTH:
-                    command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.SNAP_CMD + " " +
-                           SequoiadbConstants.HEALTH;
-                    break;  
+
                 default:
                     throw new BaseException("SDB_INVALIDARG");
             }
@@ -977,37 +968,27 @@ namespace SequoiaDB
             return new DBCursor(rtn, this);
         }
 
-        /** \fn void ResetSnapshot(BsonDocument options)
+        /** \fn void ResetSnapshot( BsonDocument matcher )
          *  \brief Reset the snapshot
-         *  \param [in] options The control options:
-         * 
-         *      Type            : (String) Specify the snapshot type to be reset(default is "all"):
-         *                        "sessions"
-         *                        "sessions current"
-         *                        "database"
-         *                        "health"
-         *                        "all"
-         *      SessionID       : (Int32) Specify the session ID to be reset.
-         *      Other options   : Some of other options are as below:(please visit the official website
-         *                        to search "Location Elements" for more detail.)
-         *                        GroupID:INT32,
-         *                        GroupName:String,
-         *                        NodeID:INT32,
-         *                        HostName:String,
-         *                        svcname:String,
-         *                        ...
-         *  \return void
+         *  \param matcher The control options are as below:(please visit the official website
+         *                  to search "Location Elements" for more detail.)
+         *      GroupID:INT32,
+         *      GroupName:String,
+         *      NodeID:INT32,
+         *      HostName:String,
+         *      svcname:String,
+         *      ...
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
          */
-        public void ResetSnapshot( BsonDocument options )
+        public void ResetSnapshot( BsonDocument matcher )
         {
             BsonDocument dummyObj = new BsonDocument();
-            if (options == null)
-                options = dummyObj;
+            if (matcher == null)
+                matcher = dummyObj;
             string command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.SNAP_CMD + " "
                              + SequoiadbConstants.RESET;
-            SDBMessage rtn = AdminCommand(command, options, dummyObj, dummyObj, dummyObj);
+            SDBMessage rtn = AdminCommand(command, matcher, dummyObj, dummyObj, dummyObj);
             int flags = rtn.Flags;
             if (flags != 0)
                 throw new BaseException(flags);
@@ -1758,104 +1739,6 @@ namespace SequoiaDB
                 dc.name = clusterName + ":" + businessName;
             }
             return dc;
-        }
-
-        /** \fn void Sync(BsonDocument options)
-         *  \brief Sync the current database.
-         *  \param [in] options The control options:
-         *
-         *      Deep: (INT32) Flush with deep mode or not. 1 in default.
-         *              0 for non-deep mode,1 for deep mode,-1 means use the configuration with server
-         *      Block: (Bool) Flush with block mode or not. false in default.
-         *      CollectionSpace: (String) Specify the collectionspace to sync.
-         *                      If not set, will sync all the collectionspaces and logs,
-         *                      otherwise, will only sync the collectionspace specified.
-         *      Some of other options are as below:(only take effect in coordinate nodes, 
-         *                      please visit the official website to search "sync" 
-         *                      or "Location Elements" for more detail.)
-         *      GroupID:INT32,
-         *      GroupName:String,
-         *      NodeID:INT32,
-         *      HostName:String,
-         *      svcname:String,
-         *      ...
-         *  \return void
-         *  \exception SequoiaDB.BaseException
-         *  \exception System.Exception
-         */
-        public void Sync(BsonDocument options)
-        {
-            // build cmd
-            string command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.CMD_VALUE_NAME_SYNC_DB;
-            // run command
-            SDBMessage rtn = AdminCommand(command, options, null, null, null);
-            int flags = rtn.Flags;
-            if (flags != 0)
-            {
-                throw new BaseException(flags);
-            }
-        }
-
-        /** \fn void Sync()
-         *  \brief Sync the current database.
-         *  \return void
-         *  \exception SequoiaDB.BaseException
-         *  \exception System.Exception
-         */
-        public void Sync()
-        {
-            Sync(new BsonDocument());
-        }
-
-        /** \fn void Analyze(BsonDocument options)
-         *  \brief Analyze collection or index to collect statistics information
-         *  \param [in] options The control options:
-         *
-         *      CollectionSpace : (String) Specify the collection space to be analyzed.
-         *      Collection      : (String) Specify the collection to be analyzed.
-         *      Index           : (String) Specify the index to be analyzed.
-         *      Mode            : (Int32) Specify the analyze mode (default is 1):
-         *                        Mode 1 will analyze with data samples.
-         *                        Mode 2 will analyze with full data.
-         *                        Mode 3 will generate default statistics.
-         *                        Mode 4 will reload statistics into memory cache.
-         *                        Mode 5 will clear statistics from memory cache.
-         *      Other options   : Some of other options are as below:(only take effect
-         *                        in coordinate nodes, please visit the official website
-         *                        to search "analyze" or "Location Elements" for more
-         *                        detail.)
-         *                        GroupID:INT32,
-         *                        GroupName:String,
-         *                        NodeID:INT32,
-         *                        HostName:String,
-         *                        svcname:String,
-         *                        ...
-         *  \return void
-         *  \exception SequoiaDB.BaseException
-         *  \exception System.Exception
-         */
-        public void Analyze(BsonDocument options)
-        {
-            // build cmd
-            string command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.CMD_VALUE_NAME_ANALYZE;
-            // run command
-            SDBMessage rtn = AdminCommand(command, options, null, null, null);
-            int flags = rtn.Flags;
-            if (flags != 0)
-            {
-                throw new BaseException(flags);
-            }
-        }
-
-        /** \fn void Sync()
-         *  \brief Analyze all collections and indexes to collect statistics information
-         *  \return void
-         *  \exception SequoiaDB.BaseException
-         *  \exception System.Exception
-         */
-        public void Analyze()
-        {
-            Analyze(new BsonDocument());
         }
 
         private SDBMessage CreateCS(string csName, BsonDocument options)

@@ -625,26 +625,6 @@ SDB_EXPORT const char *bson_iterator_regex( const bson_iterator *i );
  */
 SDB_EXPORT const char *bson_iterator_regex_opts( const bson_iterator *i );
 
-/**
- * Get the DB name of the BSON DBRef object currently pointed to by the
- * iterator.
- *
- * @param i the bson_iterator.
- *
- * @return the DB name of the current BSON DBRef object.
- */
-SDB_EXPORT const char *bson_iterator_dbref( const bson_iterator *i );
-
-/**
- * Get the DB OID of the BSON DBRef object currently pointed to by the
- * iterator.
- *
- * @param i the bson_iterator.
- *
- * @return the DB OID of the current BSON DBRef object.
- */
-SDB_EXPORT bson_oid_t *bson_iterator_dbref_oid( const bson_iterator *i );
-
 /* these work with BSON_OBJECT and BSON_ARRAY */
 /**
  * Get the BSON subobject currently pointed to by the

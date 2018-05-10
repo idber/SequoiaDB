@@ -1,9 +1,6 @@
 #include <fcntl.h>
 #include <mongoc.h>
 
-//#include "mongoc-cursor-private.h"
-//#include "mock-server.h"
-//#include "mongoc-client-private.h"
 #include "mongoc-tests.h"
 #include "TestSuite.h"
 
@@ -395,7 +392,6 @@ test_mongoc_client_command (void)
    bson_append_int32 (&cmd, "ping", 4, 1);
 
    cursor = mongoc_client_command (client, "admin", MONGOC_QUERY_NONE, 0, 1, 0, &cmd, NULL, NULL);
-   //assert (!cursor->redir_primary);
 
    r = mongoc_cursor_next (cursor, &doc);
    ASSERT_CMPINT(r, ==, true);
@@ -439,7 +435,6 @@ test_mongoc_client_command_secondary (void)
    mongoc_read_prefs_destroy (read_prefs);
 
    /* ensure we detected this must go to primary */
-   //assert (cursor->redir_primary);
 
    mongoc_cursor_destroy (cursor);
    mongoc_client_destroy (client);
@@ -702,20 +697,13 @@ test_client_install (TestSuite *suite)
    local = !getenv ("MONGOC_DISABLE_MOCK_SERVER");
 
    if (!local) {
-      //TestSuite_Add (suite, "Client_wire_version", test_wire_version);
-      //TestSuite_Add (suite, "Client_read_prefs", test_mongoc_client_read_prefs);
    }
    if (getenv ("MONGOC_CHECK_IPV6")) {
       /* try to validate ipv6 too */
       TestSuite_Add (suite, "Client_ipv6", test_mongoc_client_ipv6);
    }
-   // TestSuite_Add (suite, "Client_authenticate", test_mongoc_client_authenticate);
-   //TestSuite_Add (suite, "Client_authenticate_failure", test_mongoc_client_authenticate_failure);
    TestSuite_Add (suite, "Client_command", test_mongoc_client_command);
-   //TestSuite_Add (suite, "Client_command_secondary", test_mongoc_client_command_secondary);
    TestSuite_Add (suite, "Client_preselect", test_mongoc_client_preselect);
-   //TestSuite_Add (suite, "Client_exhaust_cursor", test_exhaust_cursor);
-   //TestSuite_Add (suite, "Client_server_status", test_server_status);
 
    atexit (cleanup_globals);
 }

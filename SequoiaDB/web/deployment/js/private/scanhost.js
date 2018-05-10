@@ -63,7 +63,14 @@ function parseAddress( address )
 					else
 					{
 						//这是一个区间 [1-10]
-						ip_search.push( new Array( matches[4], matches[5] ) ) ;
+                  if( matches[4] > matches[5] )
+                  {
+                     ip_search.push( new Array( matches[5], matches[4] ) ) ;
+                  }
+                  else
+                  {
+                     ip_search.push( new Array( matches[4], matches[5] ) ) ;
+                  }
 					}
 				}
 			}
@@ -555,12 +562,12 @@ function loadHostList()
 	{
 		checkedHostLis = JSON.parse( checkedHostLis ) ;
 		$.each( checkedHostLis, function( index, value ){
-			var hostname = value['HostName'] ;
-			var user     = value['User'] ;
-			var pwd      = value['Passwd'] ;
-			var ssh      = value['SshPort'] ;
-			var proxy    = value['AgentService'] ;
-			var hostListArr = [ [ { 'HostName': hostname } ] ] ;
+			var ip     = value['IP'] ;
+			var user   = value['User'] ;
+			var pwd    = value['Passwd'] ;
+			var ssh    = value['SshPort'] ;
+			var proxy  = value['AgentService'] ;
+			var hostListArr = [ [ { 'IP': ip } ] ] ;
 			scanHostList( 0, hostListArr, user, pwd, ssh, proxy ) ;
 		} ) ;
 	}

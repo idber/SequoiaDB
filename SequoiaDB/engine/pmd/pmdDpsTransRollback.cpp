@@ -65,10 +65,5 @@ namespace engine
       rc = SDB_OK ;
       return rc ;
    }
-
-   PMD_DEFINE_ENTRYPOINT( EDU_TYPE_DPSROLLBACK, TRUE,
-                          pmdDpsTransRollbackEntryPoint,
-                          "DpsRollback" ) ;
-
 }
 

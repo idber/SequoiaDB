@@ -40,8 +40,6 @@
 #include "rtnRecover.hpp"
 #include "pmdStartup.hpp"
 #include "rtn.hpp"
-#include "rtnContextData.hpp"
-#include "dmsStorageDataCapped.hpp"
 
 using namespace bson ;
 
@@ -52,8 +50,11 @@ namespace engine
 
    #define RTN_REBUILD_RESET_LSN       ( (UINT64)~0 )
 
-   _rtnCLRebuilderBase::_rtnCLRebuilderBase( dmsStorageUnit *pSU,
-                                             const CHAR *pCLShortName )
+   /*
+      _rtnCLRebuilder implement
+   */
+   _rtnCLRebuilder::_rtnCLRebuilder( dmsStorageUnit *pSU,
+                                     const CHAR *pCLShortName )
    {
       _pSU = pSU ;
       _clName = pCLShortName ;
@@ -66,14 +67,23 @@ namespace engine
       _indexNum = 0 ;
    }
 
-   _rtnCLRebuilderBase::~_rtnCLRebuilderBase()
+   _rtnCLRebuilder::~_rtnCLRebuilder()
    {
       _release() ;
    }
 
-   INT32 _rtnCLRebuilderBase::rebuild( pmdEDUCB *cb, rtnRUInfo *ruInfo )
+   void _rtnCLRebuilder::_release()
+   {
+      _totalRecord = 0 ;
+      _totalLob = 0 ;
+      _indexNum = 0 ;
+   }
+
+   INT32 _rtnCLRebuilder::rebuild( pmdEDUCB *cb, rtnRUInfo *ruInfo )
    {
       INT32 rc = SDB_OK ;
+      UINT16 flag = 0 ;
+
       dmsMBContext *pContext = NULL ;
 
       ossTick beginTick ;
@@ -94,18 +104,28 @@ namespace engine
                  _clFullName.c_str(), rc ) ;
          goto error ;
       }
+      flag = pContext->mb()->_flag ;
 
       beginTick.sample() ;
       PD_LOG( PDEVENT, "Begin to rebuild collection[%s]...",
               _clFullName.c_str() ) ;
 
-      rc = _doRebuild( pContext, cb, ruInfo ) ;
+      if ( ( DMS_IS_MB_OFFLINE_REORG( flag ) &&
+             !DMS_IS_MB_OFFLINE_REORG_SHADOW_COPY( flag ) ) ||
+           ( DMS_IS_MB_ONLINE_REORG ( flag ) ) )
+      {
+         rc = _recover( cb, pContext ) ;
+      }
+      else
+      {
+         rc = _rebuild( cb, pContext, ruInfo ) ;
+      }
       if ( rc )
       {
          goto error ;
       }
 
-      _onRebuildDone() ;
+      _cleanRegSU() ;
 
    done:
       endTick.sample() ;
@@ -130,146 +150,6 @@ namespace engine
       return rc ;
    error:
       goto done ;
-   }
-
-   INT32 _rtnCLRebuilderBase::recover( pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-      dmsMBContext *pContext = NULL ;
-
-      ossTick beginTick ;
-      ossTick endTick ;
-      ossTickDelta timeSpan ;
-      ossTickConversionFactor factor ;
-      UINT32 seconds = 0 ;
-      UINT32 microSec = 0 ;
-
-      _release() ;
-
-      rc = _pSU->data()->getMBContext( &pContext,
-                                       _clName.c_str(),
-                                       EXCLUSIVE ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Lock collection[%s] failed, rc: %d",
-                 _clFullName.c_str(), rc ) ;
-         goto error ;
-      }
-
-      beginTick.sample() ;
-      PD_LOG( PDEVENT, "Begin to recover collection[%s]...",
-              _clFullName.c_str() ) ;
-
-      rc = _doRecover( pContext, cb ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
-
-      _onRecoverDone() ;
-
-   done:
-      endTick.sample() ;
-      timeSpan = endTick - beginTick ;
-      timeSpan.convertToTime( factor, seconds, microSec ) ;
-      if ( pContext )
-      {
-         _pSU->data()->releaseMBContext( pContext ) ;
-      }
-      if ( SDB_OK == rc )
-      {
-         PD_LOG( PDEVENT, "Recover collection[%s] succeed, cost: %u(s)",
-                 _clFullName.c_str(), seconds ) ;
-      }
-      else
-      {
-         PD_LOG( PDERROR, "Recover collection[%s] failed, rc: %d, "
-                 "cost: %u(s)", _clFullName.c_str(), rc, seconds ) ;
-      }
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _rtnCLRebuilderBase::reorg( pmdEDUCB *cb, const BSONObj &hint )
-   {
-      INT32 rc = SDB_OK ;
-      dmsMBContext *pContext = NULL ;
-
-      ossTick beginTick ;
-      ossTick endTick ;
-      ossTickDelta timeSpan ;
-      ossTickConversionFactor factor ;
-      UINT32 seconds = 0 ;
-      UINT32 microSec = 0 ;
-
-      _release() ;
-
-      rc = _pSU->data()->getMBContext( &pContext,
-                                       _clName.c_str(),
-                                       EXCLUSIVE ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Lock collection[%s] failed, rc: %d",
-                 _clFullName.c_str(), rc ) ;
-         goto error ;
-      }
-
-      beginTick.sample() ;
-      PD_LOG( PDEVENT, "Begin to reorg collection[%s]...",
-              _clFullName.c_str() ) ;
-
-      rc = _doReorg( pContext, cb, hint ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
-
-      _onRebuildDone() ;
-
-   done:
-      endTick.sample() ;
-      timeSpan = endTick - beginTick ;
-      timeSpan.convertToTime( factor, seconds, microSec ) ;
-      if ( pContext )
-      {
-         _pSU->data()->releaseMBContext( pContext ) ;
-      }
-      if ( SDB_OK == rc )
-      {
-         PD_LOG( PDEVENT, "Reorg collection[%s] succeed, cost: %u(s), "
-                 "Total Record: %llu, Total Lob: %llu, Index Num: %u",
-                 _clFullName.c_str(), seconds, _totalRecord,
-                 _totalLob, _indexNum ) ;
-      }
-      else
-      {
-         PD_LOG( PDERROR, "Reorg collection[%s] failed, rc: %d, "
-                 "cost: %u(s)", _clFullName.c_str(), rc, seconds ) ;
-      }
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   void _rtnCLRebuilderBase::_release()
-   {
-      _totalRecord = 0 ;
-      _totalLob = 0 ;
-      _indexNum = 0 ;
-   }
-
-   /*
-      _rtnCLRebuilder implement
-   */
-   _rtnCLRebuilder::_rtnCLRebuilder( dmsStorageUnit *pSU,
-                                     const CHAR *pCLShortName )
-   : rtnCLRebuilderBase( pSU, pCLShortName )
-   {
-   }
-
-   _rtnCLRebuilder::~_rtnCLRebuilder()
-   {
    }
 
    INT32 _rtnCLRebuilder::_rebuild( pmdEDUCB *cb,
@@ -1083,6 +963,139 @@ namespace engine
       goto done ;
    }
 
+   INT32 _rtnCLRebuilder::recover( pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+
+      dmsMBContext *pContext = NULL ;
+
+      ossTick beginTick ;
+      ossTick endTick ;
+      ossTickDelta timeSpan ;
+      ossTickConversionFactor factor ;
+      UINT32 seconds = 0 ;
+      UINT32 microSec = 0 ;
+
+      _release() ;
+
+      rc = _pSU->data()->getMBContext( &pContext,
+                                       _clName.c_str(),
+                                       EXCLUSIVE ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Lock collection[%s] failed, rc: %d",
+                 _clFullName.c_str(), rc ) ;
+         goto error ;
+      }
+
+      beginTick.sample() ;
+      PD_LOG( PDEVENT, "Begin to recover collection[%s]...",
+              _clFullName.c_str() ) ;
+
+      rc = _recover( cb, pContext ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      _cleanRegSU() ;
+
+   done:
+      endTick.sample() ;
+      timeSpan = endTick - beginTick ;
+      timeSpan.convertToTime( factor, seconds, microSec ) ;
+      if ( pContext )
+      {
+         _pSU->data()->releaseMBContext( pContext ) ;
+      }
+      if ( SDB_OK == rc )
+      {
+         PD_LOG( PDEVENT, "Recover collection[%s] succeed, cost: %u(s)",
+                 _clFullName.c_str(), seconds ) ;
+      }
+      else
+      {
+         PD_LOG( PDERROR, "Recover collection[%s] failed, rc: %d, "
+                 "cost: %u(s)", _clFullName.c_str(), rc, seconds ) ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnCLRebuilder::reorg( pmdEDUCB *cb, const BSONObj &hint )
+   {
+      INT32 rc = SDB_OK ;
+      UINT16 flag = 0 ;
+
+      dmsMBContext *pContext = NULL ;
+
+      ossTick beginTick ;
+      ossTick endTick ;
+      ossTickDelta timeSpan ;
+      ossTickConversionFactor factor ;
+      UINT32 seconds = 0 ;
+      UINT32 microSec = 0 ;
+
+      _release() ;
+
+      rc = _pSU->data()->getMBContext( &pContext,
+                                       _clName.c_str(),
+                                       EXCLUSIVE ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Lock collection[%s] failed, rc: %d",
+                 _clFullName.c_str(), rc ) ;
+         goto error ;
+      }
+      flag = pContext->mb()->_flag ;
+
+      beginTick.sample() ;
+      PD_LOG( PDEVENT, "Begin to reorg collection[%s]...",
+              _clFullName.c_str() ) ;
+
+      if ( ( DMS_IS_MB_OFFLINE_REORG( flag ) &&
+             !DMS_IS_MB_OFFLINE_REORG_SHADOW_COPY( flag ) ) ||
+           ( DMS_IS_MB_ONLINE_REORG ( flag ) ) )
+      {
+         rc = _recover( cb, pContext ) ;
+      }
+      else
+      {
+         rc = _reorgData( cb, pContext, hint ) ;
+      }
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      _cleanRegSU() ;
+
+   done:
+      endTick.sample() ;
+      timeSpan = endTick - beginTick ;
+      timeSpan.convertToTime( factor, seconds, microSec ) ;
+      if ( pContext )
+      {
+         _pSU->data()->releaseMBContext( pContext ) ;
+      }
+      if ( SDB_OK == rc )
+      {
+         PD_LOG( PDEVENT, "Reorg collection[%s] succeed, cost: %u(s), "
+                 "Total Record: %llu, Total Lob: %llu, Index Num: %u",
+                 _clFullName.c_str(), seconds, _totalRecord,
+                 _totalLob, _indexNum ) ;
+      }
+      else
+      {
+         PD_LOG( PDERROR, "Reorg collection[%s] failed, rc: %d, "
+                 "cost: %u(s)", _clFullName.c_str(), rc, seconds ) ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _rtnCLRebuilder::_reorgData( pmdEDUCB *cb,
                                       dmsMBContext *mbContext,
                                       const BSONObj &hint )
@@ -1234,362 +1247,6 @@ namespace engine
       goto done ;
    }
 
-   INT32 _rtnCLRebuilder::_doRebuild( dmsMBContext *context, pmdEDUCB *cb,
-                                      rtnRUInfo *ruInfo )
-   {
-      INT32 rc = SDB_OK ;
-      UINT16 flag = 0 ;
-
-      SDB_ASSERT( context, "Context can not be NULL" ) ;
-      SDB_ASSERT( cb, "cb can not be NULL" ) ;
-      SDB_ASSERT( ruInfo, "ruInfo can not be NULL" ) ;
-
-      if ( !context->isMBLock( EXCLUSIVE ) )
-      {
-         PD_LOG( PDERROR, "Caller must hold exclusive lock on mb" ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      flag = context->mb()->_flag ;
-      if ( ( DMS_IS_MB_OFFLINE_REORG( flag ) &&
-             !DMS_IS_MB_OFFLINE_REORG_SHADOW_COPY( flag ) ) ||
-           ( DMS_IS_MB_ONLINE_REORG ( flag ) ) )
-      {
-         rc = _recover( cb, context ) ;
-         PD_RC_CHECK( rc, PDERROR, "Recover collection[%s] failed, rc: %d",
-                      _clFullName.c_str(), rc ) ;
-      }
-      else
-      {
-         rc = _rebuild( cb, context, ruInfo ) ;
-         PD_RC_CHECK( rc, PDERROR, "Rebuild collection[%s] failed, rc: %d",
-                      _clFullName.c_str(), rc ) ;
-
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _rtnCLRebuilder::_onRebuildDone()
-   {
-      _cleanRegSU() ;
-      return SDB_OK ;
-   }
-
-   INT32 _rtnCLRebuilder::_doRecover( dmsMBContext *context, pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-      rc = _recover( cb, context ) ;
-      PD_RC_CHECK( rc, PDERROR, "Recover collection[%s] failed, rc: %d",
-                   _clFullName.c_str(), rc ) ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _rtnCLRebuilder::_onRecoverDone()
-   {
-      _cleanRegSU() ;
-      return SDB_OK ;
-   }
-
-   INT32 _rtnCLRebuilder::_doReorg( dmsMBContext *context, pmdEDUCB *cb,
-                                    const BSONObj &hint )
-   {
-      INT32 rc = SDB_OK ;
-      UINT16 flag = 0 ;
-
-      flag = context->mb()->_flag ;
-
-      if ( ( DMS_IS_MB_OFFLINE_REORG( flag ) &&
-             !DMS_IS_MB_OFFLINE_REORG_SHADOW_COPY( flag ) ) ||
-           ( DMS_IS_MB_ONLINE_REORG ( flag ) ) )
-      {
-         rc = _recover( cb, context ) ;
-         PD_RC_CHECK( rc, PDERROR, "Recover collection[%s] failed, rc: %d",
-                      _clFullName.c_str(), rc ) ;
-      }
-      else
-      {
-         rc = _reorgData( cb, context, hint ) ;
-         PD_RC_CHECK( rc, PDERROR, "Reorganize data of collection[%s] failed, "
-                      "rc: %d", _clFullName.c_str(), rc ) ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _rtnCLRebuilder::_onReorgDone()
-   {
-      _cleanRegSU() ;
-      return SDB_OK ;
-   }
-
-   _rtnCappedCLRebuilder::_rtnCappedCLRebuilder( dmsStorageUnit *pSU,
-                                                 const CHAR *pCLShortName )
-   : rtnCLRebuilderBase( pSU, pCLShortName )
-   {
-   }
-
-   _rtnCappedCLRebuilder::~_rtnCappedCLRebuilder()
-   {
-   }
-
-   INT32 _rtnCappedCLRebuilder::_doRebuild( dmsMBContext *context, pmdEDUCB *cb,
-                                            rtnRUInfo *ruInfo )
-   {
-      return _doRecover( context, cb ) ;
-   }
-
-   INT32 _rtnCappedCLRebuilder::_onRebuildDone()
-   {
-      return SDB_OK ;
-   }
-
-   INT32 _rtnCappedCLRebuilder::_doRecover( dmsMBContext *context,
-                                            pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-      rc = _rebuildData( context, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Rebuild data for collection[%s] failed, "
-                   "rc: %d", _clFullName.c_str(), rc ) ;
-      rc = _rebuildLob( context, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Rebuild lob for collection[%s] failed, rc: %d",
-                   _clFullName.c_str(), rc ) ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _rtnCappedCLRebuilder::_onRecoverDone()
-   {
-      return SDB_OK ;
-   }
-
-   INT32 _rtnCappedCLRebuilder::_doReorg( dmsMBContext *context, pmdEDUCB *cb,
-                                          const BSONObj &hint )
-   {
-      return _doRecover( context, cb ) ;
-   }
-
-   INT32 _rtnCappedCLRebuilder::_onReorgDone()
-   {
-      return SDB_OK ;
-   }
-
-   INT32 _rtnCappedCLRebuilder::_rebuildData( dmsMBContext *context,
-                                              pmdEDUCB *cb )
-   {
-      dmsExtentID currentExt = DMS_INVALID_EXTENT ;
-      dmsExtentID lastExtent = DMS_INVALID_EXTENT ;
-      dmsExtentID lastValidExt = DMS_INVALID_EXTENT ;
-      UINT32 totalExtNum = 0 ;
-      UINT32 remainSpace = 0 ;
-
-      currentExt = context->mb()->_firstExtentID ;
-      lastExtent = context->mb()->_lastExtentID ;
-
-      while ( DMS_INVALID_EXTENT != currentExt )
-      {
-         dmsExtRW extRW = _pSU->data()->extent2RW( currentExt,
-                                                   context->mbID() ) ;
-         extRW.setNothrow( TRUE ) ;
-         const dmsExtent *extent = extRW.readPtr<dmsExtent>() ;
-         if ( !extent || !extent->validate(context->mbID()) )
-         {
-            break ;
-         }
-         else
-         {
-            _recoverOneExtent( currentExt, extent, context, remainSpace ) ;
-            _totalRecord += extent->_recCount ;
-         }
-         totalExtNum++ ;
-         lastValidExt = currentExt ;
-         if ( lastValidExt == lastExtent )
-         {
-            break ;
-         }
-         currentExt = extent->_nextExtent ;
-      }
-      if ( lastValidExt != lastExtent )
-      {
-         context->mb()->_lastExtentID = lastValidExt ;
-      }
-
-      _pSU->data()->postDataRestored( context ) ;
-      _pSU->data()->flushAll( TRUE ) ;
-
-      context->mbStat()->_commitFlag.init( 1 ) ;
-      context->mbStat()->_isCrash = FALSE ;
-      context->mbStat()->_lastLSN.init( RTN_REBUILD_RESET_LSN ) ;
-      context->mb()->_commitFlag = 1 ;
-      context->mb()->_commitLSN = (UINT64)~0 ;
-      context->mb()->_totalRecords = _totalRecord ;
-      context->mb()->_totalDataPages =
-         totalExtNum << _pSU->data()->pageSizeSquareRoot() ;
-      context->mb()->_totalDataFreeSpace = remainSpace ;
-      context->mbStat()->_totalRecords = _totalRecord ;
-
-      _pSU->data()->flushMeta( TRUE ) ;
-
-      return SDB_OK ;
-   }
-
-   INT32 _rtnCappedCLRebuilder::_rebuildLob( dmsMBContext *context,
-                                             pmdEDUCB *cb )
-   {
-      context->mb()->_lobCommitFlag = 1 ;
-      context->mb()->_lobCommitLSN = (UINT64)~0 ;
-      context->mbStat()->_lobCommitFlag.init( 1 ) ;
-      context->mbStat()->_lobLastLSN.init( RTN_REBUILD_RESET_LSN ) ;
-      context->mbStat()->_lobIsCrash = FALSE ;
-
-      _totalLob = context->mbStat()->_totalLobs ;
-
-      _pSU->data()->flushMeta( TRUE ) ;
-
-      return SDB_OK ;
-   }
-
-   void _rtnCappedCLRebuilder::_recoverOneExtent( dmsExtentID extentID,
-                                                  const dmsExtent *extent,
-                                                  dmsMBContext *mbContext,
-                                                  UINT32 &remainSpace )
-   {
-      UINT32 recCount = 0 ;
-      dmsOffset recordOffset = DMS_INVALID_OFFSET ;
-      dmsOffset firstRecOffset = DMS_INVALID_OFFSET ;
-      dmsOffset lastValidOffset = DMS_INVALID_OFFSET ;
-      INT64 logicalID = -1 ;
-      _extLidAndOffset2RecLid( extent->_logicID, DMS_EXTENT_METADATA_SZ,
-                               logicalID ) ;
-
-      remainSpace = DMS_CAP_EXTENT_SZ ;
-      recordOffset = extent->_firstRecordOffset ;
-
-      while ( DMS_INVALID_OFFSET != recordOffset &&
-              recordOffset < DMS_CAP_EXTENT_SZ )
-      {
-         dmsRecordID recordID( extentID, recordOffset ) ;
-         dmsRecordRW recRW = _pSU->data()->record2RW( recordID,
-                                                      mbContext->mbID() ) ;
-         recRW.setNothrow( TRUE ) ;
-         const dmsCappedRecord *record = recRW.readPtr<dmsCappedRecord>() ;
-         if ( !record || !record->isNormal() ||
-              ( logicalID != record->getLogicalID() ) )
-         {
-            break ;
-         }
-         if ( recordOffset == extent->_firstRecordOffset )
-         {
-            firstRecOffset = recordOffset ;
-         }
-         recCount++ ;
-         lastValidOffset = recordOffset ;
-         recordOffset += record->getSize() ;
-         remainSpace = DMS_CAP_EXTENT_SZ - recordOffset ;
-         logicalID += record->getSize() ;
-      }
-
-      if ( recCount != extent->_recCount ||
-           firstRecOffset != extent->_firstRecordOffset ||
-           lastValidOffset != extent->_lastRecordOffset )
-      {
-         dmsExtRW extRWTmp = _pSU->data()->extent2RW( extentID,
-                                                      mbContext->mbID() ) ;
-         extRWTmp.setNothrow( TRUE ) ;
-         dmsExtent *extentTmp = extRWTmp.writePtr<dmsExtent>() ;
-         SDB_ASSERT( extentTmp, "Extent pointer is not possible to be NULL" ) ;
-         extentTmp->_recCount = recCount ;
-         extentTmp->_firstRecordOffset = firstRecOffset ;
-         extentTmp->_lastRecordOffset = lastValidOffset ;
-         extentTmp->_freeSpace = remainSpace ;
-         _pSU->data()->flushPages( extentID, extentTmp->_blockSize ) ;
-      }
-   }
-
-   void _rtnCappedCLRebuilder::_extLidAndOffset2RecLid( dmsExtentID extLID,
-                                                        dmsOffset offset,
-                                                        INT64 &logicalID )
-   {
-      if ( DMS_INVALID_EXTENT == extLID ||
-           offset < (INT32)DMS_EXTENT_METADATA_SZ )
-      {
-         logicalID = DMS_INVALID_REC_LOGICALID ;
-      }
-      else
-      {
-         logicalID = (INT64)extLID * DMS_CAP_EXTENT_BODY_SZ + offset
-                     - DMS_EXTENT_METADATA_SZ ;
-      }
-   }
-
-   _rtnCLRebuilderFactory::_rtnCLRebuilderFactory()
-   {
-   }
-
-   _rtnCLRebuilderFactory::~_rtnCLRebuilderFactory()
-   {
-   }
-
-   INT32 _rtnCLRebuilderFactory::create( dmsStorageUnit *pSU,
-                                         const CHAR *pCLShortName,
-                                         rtnCLRebuilderBase *&rebuilder )
-   {
-      INT32 rc = SDB_OK ;
-
-      if ( DMS_STORAGE_NORMAL == pSU->type() )
-      {
-         rebuilder = SDB_OSS_NEW rtnCLRebuilder( pSU, pCLShortName ) ;
-      }
-      else if ( DMS_STORAGE_CAPPED == pSU->type() )
-      {
-         rebuilder = SDB_OSS_NEW rtnCappedCLRebuilder( pSU, pCLShortName ) ;
-      }
-      else
-      {
-         rc = SDB_DMS_INVALID_SU ;
-         goto error ;
-      }
-      if ( !rebuilder )
-      {
-         rc = SDB_OOM ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   void _rtnCLRebuilderFactory::release( rtnCLRebuilderBase *rebuilder )
-   {
-      if ( rebuilder )
-      {
-         SDB_OSS_DEL rebuilder ;
-         rebuilder = NULL ;
-      }
-   }
-
-   rtnCLRebuilderFactory* rtnGetCLRebuilderFactory()
-   {
-      static rtnCLRebuilderFactory s_factory ;
-      return &s_factory ;
-   }
-
    /*
       _rtnRecoverUnit implement
    */
@@ -1604,7 +1261,7 @@ namespace engine
 
    INT32 _rtnRecoverUnit::init( dmsStorageUnit *pSu )
    {
-      dmsStorageDataCommon    *pData   = NULL ;
+      dmsStorageData    *pData   = NULL ;
       dmsStorageLob     *pLob    = NULL ;
 
       _pSU = pSu ;
@@ -1837,7 +1494,6 @@ namespace engine
       UINT32 totalNum = _clStatus.size() ;
       UINT32 sucNum = 0 ;
       MAP_SU_STATUS::iterator it ;
-      rtnCLRebuilderFactory *factory = rtnGetCLRebuilderFactory() ;
 
       beginTick.sample() ;
       PD_LOG( PDEVENT, "Begin to rebuild collectionspace[%s]...",
@@ -1859,14 +1515,11 @@ namespace engine
       for ( it = _clStatus.begin() ; it != _clStatus.end() ; ++it )
       {
          rtnRUInfo &info = it->second ;
-         rtnCLRebuilderBase *rebuilder = NULL ;
-         rc = factory->create( _pSU, info._clName, rebuilder ) ;
-         PD_RC_CHECK( rc, PDERROR, "Create collection rebuilder failed, rc: %d",
-                      rc ) ;
-         rc = rebuilder->rebuild( cb, &info ) ;
+
+         rtnCLRebuilder rebuilder( _pSU, info._clName ) ;
+         rc = rebuilder.rebuild( cb, &info ) ;
          if ( rc )
          {
-            factory->release( rebuilder ) ;
             if ( SDB_APP_INTERRUPT != rc )
             {
                PD_LOG( PDERROR, "Rebuild collection[%s] failed, rc: %d",
@@ -1874,7 +1527,6 @@ namespace engine
             }
             goto error ;
          }
-         factory->release( rebuilder ) ;
          ++sucNum ;
       }
 
@@ -1931,8 +1583,8 @@ namespace engine
       UINT32 totalCount = 0 ;
       UINT32 sucNum = 0 ;
 
-      MON_CS_SIM_LIST csList ;
-      MON_CS_SIM_LIST::iterator it ;
+      set< monCSSimple >  csList ;
+      set< monCSSimple >::iterator it ;
 
       rc = _onBegin( cb ) ;
       if ( rc )
@@ -1954,7 +1606,7 @@ namespace engine
          hasLock = TRUE ;
       }
 
-      dmsCB->dumpInfo( csList, TRUE, FALSE, FALSE ) ;
+      dmsCB->dumpInfo( csList, TRUE ) ;
       totalCount = csList.size() ;
 
       for ( it = csList.begin() ; it != csList.end() ; ++it )

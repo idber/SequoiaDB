@@ -61,15 +61,22 @@ namespace engine
       Lob meta fixed size, 1K
    */
    #define DMS_LOB_META_LENGTH               ( 1024 )
-   #define DMS_LOB_META_PIECESINFO_MAX_LEN   ( 320 )
 
    #define RTN_LOB_GET_SEQUENCE( offset, isMerge, log ) \
-     ( (isMerge) ? ( ( (INT64)(offset) + DMS_LOB_META_LENGTH ) >> (log) ) : \
+     ( (isMerge) ? ( ( (INT64)(offset)+DMS_LOB_META_LENGTH) >> (log) ) : \
                    ( ( ( (INT64)offset) >> (log) ) + 1 ) )
 
    #define RTN_LOB_GET_OFFSET_IN_SEQUENCE( offset, isMerge, pagesize ) \
-     ( (isMerge) ? ( ((INT64)(offset) + DMS_LOB_META_LENGTH ) & ((pagesize)-1) ) : \
+     ( (isMerge) ? ( ((INT64)(offset)+DMS_LOB_META_LENGTH) & ((pagesize)-1) ) : \
                    ( (INT64)(offset) & ((pagesize)-1) ) )
+
+   #define RTN_LOB_GET_SEQUENCE_NUM( len, pagesize, isMerge, num )\
+     do\
+     {\
+       INT64 tmpLen = (isMerge) ? ( (len) + DMS_LOB_META_LENGTH ) : \
+                                  ( (len) + (pagesize) ) ; \
+       num = ( tmpLen + (pagesize) - 1 ) / (pagesize) ; \
+     } while ( FALSE )
 
    #define RTN_LOB_GET_OFFSET_OF_LOB( pageSz, sequence, offsetInSeq, isMerge ) \
       ( (isMerge) ? ( (SINT64)(sequence)*(SINT64)(pageSz)+ \
@@ -150,40 +157,25 @@ namespace engine
 
    #pragma pack(1)
 
-   #define DMS_LOB_META_MERGE_DATA_VERSION   ( 2 )
-
-   #define DMS_LOB_META_CURRENT_VERSION       DMS_LOB_META_MERGE_DATA_VERSION
-
-   #define DMS_LOB_META_FLAG_PIECESINFO_INSIDE 0x00000001
-
+   #define DMS_LOB_CURRENT_VERSION           ( 2 )
    /*
       _dmsLobMeta define
    */
    struct _dmsLobMeta : public SDBObject
    {
-      INT64       _lobLen ;
+      SINT64      _lobLen ;
       UINT64      _createTime ;
       UINT8       _status ;
       UINT8       _version ;
-      UINT16      _padding ;
-      UINT64      _modificationTime ;
-      UINT32      _flag ;
-      INT32       _piecesInfoNum ;
-      CHAR        _pad[476] ;
+      CHAR        _pad[494] ;
 
       _dmsLobMeta()
       :_lobLen( 0 ),
        _createTime( 0 ),
        _status( DMS_LOB_UNCOMPLETE ),
-       _version( DMS_LOB_META_CURRENT_VERSION ),
-       _padding( 0 ),
-       _modificationTime( 0 ),
-       _flag( 0 ),
-       _piecesInfoNum( 0 )
+       _version( DMS_LOB_CURRENT_VERSION )
       {
          ossMemset( _pad, 0, sizeof( _pad ) ) ;
-         SDB_ASSERT( sizeof( _dmsLobMeta ) == 512,
-                     "Lob meta size must be 512" ) ;
          SDB_ASSERT( sizeof( _dmsLobMeta ) <= DMS_LOB_META_LENGTH,
                      "Lob meta size must <= DMS_LOB_META_LENGTH" ) ;
       }
@@ -192,12 +184,8 @@ namespace engine
       {
          _lobLen = 0 ;
          _createTime = 0 ;
+         _version = DMS_LOB_CURRENT_VERSION ;
          _status = DMS_LOB_UNCOMPLETE ;
-         _version = DMS_LOB_META_CURRENT_VERSION ;
-         _padding = 0 ;
-         _modificationTime = 0 ;
-         _flag = 0 ;
-         _piecesInfoNum = 0 ;
          ossMemset( _pad, 0, sizeof( _pad ) ) ;
       }
 
@@ -206,21 +194,13 @@ namespace engine
          return ( DMS_LOB_COMPLETE == _status ) ? TRUE : FALSE ;
       }
 
-      BOOLEAN hasPiecesInfo() const
-      {
-         return ( _flag & DMS_LOB_META_FLAG_PIECESINFO_INSIDE ) ? TRUE : FALSE ;
-      }
-
       string toString() const
       {
          stringstream ss ;
          ss << "Len:" << _lobLen
             << ", CreateTime:" << _createTime
-            << ", ModificationTime:" << _modificationTime
             << ", Status:" << (UINT32)_status
             << ", Version:" << (UINT32)_version
-            << ", Flag:" << _flag
-            << ", PiecesInfoNum:" << _piecesInfoNum
             << endl ;
          return ss.str() ;
       }

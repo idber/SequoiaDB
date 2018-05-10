@@ -68,8 +68,8 @@ def insert( cl ):
       
 def findAndUpdate( cl ):      
    print '---begin to findAndUpdate'
-   cursor = cl.query_and_update( {"$set":{"item":"updated_item"}}, 
-                                 {"_id": 1}, return_new=True )
+   cursor = cl.query_and_update( update = {"$set":{"item":"updated_item"}}, 
+                                 condition = {"_id": 1}, return_new=True )
                                  
    # check return value                           
    i = 0

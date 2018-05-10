@@ -50,8 +50,7 @@ namespace engine
    public:
       _qgmPlUpdate( const _qgmDbAttr &collection,
                     const BSONObj &modifer,
-                    _qgmConditionNode *condition,
-                    INT32 flag ) ;
+                    _qgmConditionNode *condition ) ;
 
       virtual ~_qgmPlUpdate() ;
 
@@ -62,7 +61,6 @@ namespace engine
          ss << "Type:" << qgmPlanType( _type ) << '\n';
          ss << "Updator:" << _updater.toString() << '\n';
          ss << "Condition:" << _condition.toString() << '\n';
-         ss << "Flag:" << _flag << '\n';
          return ss.str() ;
       }
 
@@ -80,7 +78,7 @@ namespace engine
       _qgmDbAttr  _collection ;
       BSONObj     _updater ;
       BSONObj     _condition ;
-      INT32       _flag ;
+
    } ;
 
    typedef class _qgmPlUpdate qgmPlUpdate ;

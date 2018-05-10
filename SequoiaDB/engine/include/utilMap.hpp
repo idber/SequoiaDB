@@ -965,50 +965,6 @@ namespace engine
 
    } ;
 
-   /*
-      _utilMapStringKey define
-    */
-   struct _utilMapStringKey
-   {
-      OSS_INLINE _utilMapStringKey ( const CHAR * pString = NULL )
-      {
-         _pString = pString ;
-      }
-
-      OSS_INLINE _utilMapStringKey( const _utilMapStringKey &key )
-      {
-         _pString = key._pString ;
-      }
-
-      OSS_INLINE bool operator== ( const _utilMapStringKey &key ) const
-      {
-         return ossStrcmp( _pString, key._pString ) == 0 ;
-      }
-
-      OSS_INLINE bool operator< ( const _utilMapStringKey &key ) const
-      {
-         return ossStrcmp( _pString, key._pString ) < 0 ;
-      }
-
-      OSS_INLINE _utilMapStringKey &operator= ( const _utilMapStringKey &key )
-      {
-         _pString = key._pString ;
-         return (*this) ;
-      }
-
-      const CHAR * _pString ;
-   } ;
-
-   template < typename T, UINT32 stackSize = UTIL_MAP_DEFAULT_STACK_SIZE >
-   class _utilStringMap : public _utilMap< _utilMapStringKey, T, stackSize >
-   {
-      private :
-         OSS_INLINE T& operator[] ( const _utilMapStringKey& key )
-         {
-            return _utilMap< _utilMapStringKey, T, stackSize >::operator[]( key ) ;
-         }
-   } ;
-
 }
 
 #endif // UTIL_MAP_HPP_

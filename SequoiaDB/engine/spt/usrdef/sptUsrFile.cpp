@@ -35,9 +35,6 @@
 #include "ossMem.hpp"
 #include "ossPrimitiveFileOp.hpp"
 #include "ossCmdRunner.hpp"
-#include "omagentDef.hpp"
-#include "sptUsrFileContent.hpp"
-#include "sptUsrRemote.hpp"
 #include <boost/algorithm/string.hpp>
 #include "../bson/lib/md5.hpp"
 
@@ -46,21 +43,16 @@
 #include <unistd.h>
 #endif
 
+#define SPT_MD5_READ_LEN 1024
+
 using namespace std ;
 using namespace bson ;
 
 namespace engine
 {
-   #define SPT_FILE_PROPERTY_FILENAME   "_filename"
-   #define FILE_TRANSFORM_UNIT_512K 524288
-   #define SPT_READ_LEN 1024
-
 JS_MEMBER_FUNC_DEFINE( _sptUsrFile, read )
 JS_MEMBER_FUNC_DEFINE( _sptUsrFile, seek )
 JS_MEMBER_FUNC_DEFINE( _sptUsrFile, write )
-JS_MEMBER_FUNC_DEFINE( _sptUsrFile, readLine )
-JS_MEMBER_FUNC_DEFINE( _sptUsrFile, readContent )
-JS_MEMBER_FUNC_DEFINE( _sptUsrFile, writeContent )
 JS_MEMBER_FUNC_DEFINE( _sptUsrFile, close )
 JS_MEMBER_FUNC_DEFINE( _sptUsrFile, getInfo )
 JS_MEMBER_FUNC_DEFINE( _sptUsrFile, toString )
@@ -86,15 +78,10 @@ JS_STATIC_FUNC_DEFINE( _sptUsrFile, getUmask )
 JS_STATIC_FUNC_DEFINE( _sptUsrFile, setUmask )
 JS_STATIC_FUNC_DEFINE( _sptUsrFile, isEmptyDir )
 JS_STATIC_FUNC_DEFINE( _sptUsrFile, getStat )
-JS_STATIC_FUNC_DEFINE( _sptUsrFile, getFileSize )
-JS_STATIC_FUNC_DEFINE( _sptUsrFile, getPermission )
 
 JS_BEGIN_MAPPING( _sptUsrFile, "File" )
    JS_ADD_MEMBER_FUNC_WITHATTR( "_read", read, 0 )
    JS_ADD_MEMBER_FUNC_WITHATTR( "_write", write, 0 )
-   JS_ADD_MEMBER_FUNC_WITHATTR( "_readLine", readLine, 0 )
-   JS_ADD_MEMBER_FUNC_WITHATTR( "_readContent", readContent, 0 )
-   JS_ADD_MEMBER_FUNC_WITHATTR( "_writeContent", writeContent, 0 )
    JS_ADD_MEMBER_FUNC_WITHATTR( "_close", close, 0 )
    JS_ADD_MEMBER_FUNC_WITHATTR( "_seek", seek, 0 )
    JS_ADD_MEMBER_FUNC_WITHATTR( "_getInfo", getInfo, 0 )
@@ -118,8 +105,6 @@ JS_BEGIN_MAPPING( _sptUsrFile, "File" )
    JS_ADD_STATIC_FUNC( "isEmptyDir", isEmptyDir )
    JS_ADD_STATIC_FUNC( "stat", getStat )
    JS_ADD_STATIC_FUNC( "md5", md5 )
-   JS_ADD_STATIC_FUNC( "_getPermission", getPermission )
-   JS_ADD_STATIC_FUNC( "getSize", getFileSize )
    JS_ADD_STATIC_FUNC( "help", staticHelp )
    JS_ADD_CONSTRUCT_FUNC( construct )
    JS_ADD_DESTRUCT_FUNC( destruct )
@@ -131,6 +116,10 @@ JS_MAPPING_END()
 
    _sptUsrFile::~_sptUsrFile()
    {
+      if ( _file.isOpened() )
+      {
+         ossClose( _file ) ;
+      }
    }
 
    INT32 _sptUsrFile::construct( const _sptArguments &arg,
@@ -138,54 +127,79 @@ JS_MAPPING_END()
                                  bson::BSONObj &detail )
    {
       INT32 rc = SDB_OK ;
-      string filename ;
-      INT32 permission = 0 ;
-      INT32 iMode = 0 ;
-      BSONObjBuilder opBuilder ;
-      string err ;
+      UINT32 permission = OSS_RWXU ;
 
-      rc = arg.getString( 0, filename ) ;
+      rc = arg.getString( 0, _filename ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "Filename must be config" ) ;
+         detail = BSON( SPT_ERR << "filename must be config" ) ;
       }
       else if ( rc )
       {
-         detail = BSON( SPT_ERR << "Filename must be string" ) ;
+         detail = BSON( SPT_ERR << "filename must be string" ) ;
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to get filename, rc: %d", rc ) ;
 
       if ( arg.argc() > 1 )
       {
-         rc = arg.getNative( 1, (void*)&permission, SPT_NATIVE_INT32 ) ;
+         INT32 mode = 0 ;
+         rc = arg.getNative( 1, (void*)&mode, SPT_NATIVE_INT32 ) ;
          if ( rc )
          {
-            detail = BSON( SPT_ERR << "Permission must be INT32" ) ;
+            detail = BSON( SPT_ERR << "mode must be INT32" ) ;
             goto error ;
          }
-         opBuilder.append( SPT_FILE_COMMON_FIELD_PERMISSION, permission ) ;
-      }
+         permission = 0 ;
 
-      if( arg.argc() > 2 )
-      {
-         rc = arg.getNative( 2, &iMode, SPT_NATIVE_INT32 ) ;
-         if( SDB_OK != rc )
+         if ( mode & 0x0001 )
          {
-            detail = BSON( SPT_ERR << "Mode must be int" ) ;
-            goto error ;
+            permission |= OSS_XO ;
          }
-         opBuilder.append( SPT_FILE_COMMON_FIELD_MODE, iMode ) ;
+         if ( mode & 0x0002 )
+         {
+            permission |= OSS_WO ;
+         }
+         if ( mode & 0x0004 )
+         {
+            permission |= OSS_RO ;
+         }
+         if ( mode & 0x0008 )
+         {
+            permission |= OSS_XG ;
+         }
+         if ( mode & 0x0010 )
+         {
+            permission |= OSS_WG ;
+         }
+         if ( mode & 0x0020 )
+         {
+            permission |= OSS_RG ;
+         }
+         if ( mode & 0x0040 )
+         {
+            permission |= OSS_XU ;
+         }
+         if ( mode & 0x0080 )
+         {
+            permission |= OSS_WU ;
+         }
+         if ( mode & 0x0100 )
+         {
+            permission |= OSS_RU ;
+         }
       }
 
-      rc = _fileCommon.open( filename, opBuilder.obj(), err ) ;
+      rc = ossOpen( _filename.c_str(),
+                    OSS_READWRITE | OSS_CREATE,
+                    permission,
+                    _file ) ;
       if ( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << err ) ;
-         PD_LOG( PDERROR, "Failed to open file:%s, rc:%d",
-                 filename.c_str(), rc ) ;
+         PD_LOG( PDERROR, "failed to open file:%s, rc:%d",
+                 _filename.c_str(), rc ) ;
          goto error ;
       }
-      rval.addSelfProperty( SPT_FILE_PROPERTY_FILENAME )->setValue( filename ) ;
+      rval.addSelfProperty( "_filename" )->setValue( _filename ) ;
 
    done:
       return rc ;
@@ -199,29 +213,26 @@ JS_MAPPING_END()
    {
       INT32 rc = SDB_OK ;
 
-      _sptUsrFile * fileObj = SDB_OSS_NEW _sptUsrFile() ;
+      _sptUsrFile * fileObj = _sptUsrFile::crtInstance() ;
       if ( !fileObj )
       {
          rc = SDB_OOM ;
          detail = BSON( SPT_ERR << "Create object failed" ) ;
-         goto error ;
       }
       else
       {
          rval.setUsrObjectVal<_sptUsrFile>( fileObj ) ;
       }
-   done:
       return rc ;
-   error:
-      goto done ;
    }
 
    INT32 _sptUsrFile::destruct()
    {
-      INT32 rc = SDB_OK ;
-      string err ;
-      rc = _fileCommon.close( err ) ;
-      return rc ;
+      if ( _file.isOpened() )
+      {
+         ossClose( _file ) ;
+      }
+      return SDB_OK ;
    }
 
    INT32 _sptUsrFile::read( const _sptArguments &arg,
@@ -229,46 +240,55 @@ JS_MAPPING_END()
                             bson::BSONObj &detail )
    {
       INT32 rc = SDB_OK ;
-      SINT64 len = 0 ;
+#define SPT_READ_LEN 1024
+      SINT64 len = SPT_READ_LEN ;
+      CHAR stackBuf[ SPT_READ_LEN + 1 ] = { 0 } ;
       CHAR *buf = NULL ;
+      SINT64 read = 0 ;
 
-      rc = _readContentLocal( arg, detail, &buf, len ) ;
-      if( SDB_OK != rc )
+      if ( !_file.isOpened() )
       {
+         PD_LOG( PDERROR, "the file is not opened." ) ;
+         detail = BSON( SPT_ERR << "file is not opened" ) ;
+         rc = SDB_IO ;
          goto error ;
       }
-      rval.getReturnVal().setValue( buf ) ;
-   done:
-      if ( NULL != buf )
-      {
-         SDB_OSS_FREE( buf ) ;
-         buf = NULL ;
-      }
-      return rc ;
-   error:
-      goto done ;
-   }
 
-   INT32 _sptUsrFile::readLine( const _sptArguments &arg,
-                                _sptReturnVal &rval,
-                                bson::BSONObj &detail )
-   {
-      INT32 rc = SDB_OK ;
-      SINT64 len = 0 ;
-      CHAR *buf = NULL ;
-      string err ;
-      rc = _fileCommon.readLine( err, &buf, len ) ;
-      if( SDB_OK != rc )
+      rc = arg.getNative( 0, &len, SPT_NATIVE_INT64 ) ;
+      if ( rc && SDB_OUT_OF_BOUND != rc )
       {
-         detail = BSON( SPT_ERR << err.c_str() ) ;
+         detail = BSON( SPT_ERR << "size must be native type" ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get size, rc: %d", rc ) ;
+      }
+
+      if ( SPT_READ_LEN < len )
+      {
+         buf = ( CHAR * )SDB_OSS_MALLOC( len + 1 ) ;
+         if ( NULL == buf )
+         {
+            PD_LOG( PDERROR, "failed to allocate mem." ) ;
+            rc = SDB_OOM ;
+            goto error ;
+         }
+      }
+      else
+      {
+         buf = ( CHAR * )stackBuf ;
+      }
+
+      rc = ossReadN( &_file, len, buf, read ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to read file:%d", rc ) ;
          goto error ;
       }
+      buf[ read ] = '\0' ;
+
       rval.getReturnVal().setValue( buf ) ;
    done:
-      if( NULL != buf )
+      if ( SPT_READ_LEN < len && NULL != buf )
       {
          SDB_OSS_FREE( buf ) ;
-         buf = NULL ;
       }
       return rc ;
    error:
@@ -281,359 +301,30 @@ JS_MAPPING_END()
    {
       INT32 rc = SDB_OK ;
       string content ;
-      string err ;
+
+      if ( !_file.isOpened() )
+      {
+         PD_LOG( PDERROR, "the file is not opened." ) ;
+         detail = BSON( SPT_ERR << "file is not opened" ) ;
+         rc = SDB_IO ;
+         goto error ;
+      }
 
       rc = arg.getString( 0, content ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "Content must be config" ) ;
+         detail = BSON( SPT_ERR << "content must be config" ) ;
       }
       else if ( rc )
       {
-         detail = BSON( SPT_ERR << "Content must be string" ) ;
+         detail = BSON( SPT_ERR << "content must be string" ) ;
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to get content, rc: %d", rc ) ;
 
-      rc = _fileCommon.write( content.c_str(), content.size(), err ) ;
-      if( SDB_OK != rc )
+      rc = ossWriteN( &_file, content.c_str(), content.size() ) ;
+      if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, err.c_str() ) ;
-         detail = BSON( SPT_ERR << err ) ;
-         goto error ;
-      }
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _sptUsrFile::readContent( const _sptArguments &arg,
-                                   _sptReturnVal &rval,
-                                   bson::BSONObj &detail )
-   {
-      INT32 rc = SDB_OK ;
-      SINT64 len = 0 ;
-      CHAR *buf = NULL ;
-      sptUsrFileContent *fileContent = NULL ;
-
-      if( arg.isUserObj( 0, _sptUsrRemote::__desc ) )
-      {
-         rc = _readContentRemote( arg, detail, &buf, len ) ;
-      }
-      else
-      {
-         rc = _readContentLocal( arg, detail, &buf, len ) ;
-      }
-      if( SDB_OK != rc )
-      {
-         goto error ;
-      }
-
-      fileContent = SDB_OSS_NEW sptUsrFileContent() ;
-      rc = fileContent->init( buf, len ) ;
-      if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "Failed to init FileContent obj" ) ;
-         goto error ;
-      }
-
-      rval.setUsrObjectVal<sptUsrFileContent>( fileContent ) ;
-   done:
-      if( NULL != buf )
-      {
-         SDB_OSS_FREE( buf ) ;
-      }
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _sptUsrFile::writeContent( const _sptArguments &arg,
-                                    _sptReturnVal &rval,
-                                    bson::BSONObj &detail )
-   {
-      INT32 rc = SDB_OK ;
-
-      if( arg.isUserObj( 0, _sptUsrRemote::__desc ) )
-      {
-         rc = _writeContentRemote( arg, detail ) ;
-      }
-      else
-      {
-         rc = _writeContentLocal( arg, detail ) ;
-      }
-      if( SDB_OK != rc )
-      {
-         goto error ;
-      }
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _sptUsrFile::_readContentLocal( const _sptArguments &arg,
-                                         bson::BSONObj &detail,
-                                         CHAR** buf, SINT64 &len )
-   {
-      INT32 rc = SDB_OK ;
-      SINT64 readLen = SPT_READ_LEN ;
-      BSONObjBuilder optionBuilder ;
-      string err ;
-
-      rc = arg.getNative( 0, &readLen, SPT_NATIVE_INT64 ) ;
-      if( SDB_OK == rc )
-      {
-         optionBuilder.append( SPT_FILE_COMMON_FIELD_SIZE, readLen ) ;
-      }
-      else if( SDB_OUT_OF_BOUND != rc )
-      {
-         detail = BSON( SPT_ERR << "Size must be number" ) ;
-         PD_LOG( PDERROR, "Failed to get size, rc: %d", rc ) ;
-         goto error ;
-      }
-
-      rc = _fileCommon.read( optionBuilder.obj(), err, buf, len ) ;
-      if( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, err.c_str() ) ;
-         detail = BSON( SPT_ERR << err ) ;
-         goto error ;
-      }
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _sptUsrFile::_readContentRemote( const _sptArguments &arg,
-                                          bson::BSONObj &detail,
-                                          CHAR** buf, SINT64 &len )
-   {
-      INT32 rc = SDB_OK ;
-      _sptUsrRemote *pRemote = NULL ;
-      SINT64 size = SPT_READ_LEN ;
-      UINT32 fID = 0 ;
-      SINT64 hasRead = 0 ;
-      SINT64 readTimes = 0 ;
-      const CHAR* retBuf = NULL ;
-
-      rc = arg.getUserObj( 0, _sptUsrRemote::__desc, ( const void** )&pRemote ) ;
-      if( SDB_OUT_OF_BOUND == rc )
-      {
-         detail = BSON( SPT_ERR << "RemoteObj must be config" ) ;
-         goto error ;
-      }
-      if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "RemoteObj must be Remote" ) ;
-         goto error ;
-      }
-
-      rc = arg.getNative( 1, (void*)&fID, SPT_NATIVE_INT32 ) ;
-      if( SDB_OUT_OF_BOUND == rc )
-      {
-         detail = BSON( SPT_ERR << "FID must be config" ) ;
-         goto error ;
-      }
-      else if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "FID must be numberInt" ) ;
-         goto error ;
-      }
-
-      rc = arg.getNative( 2, (void*)&size, SPT_NATIVE_INT64 ) ;
-      if( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
-      {
-         detail = BSON( SPT_ERR << "Size must be number" ) ;
-         goto error ;
-      }
-      if( size < 0 )
-      {
-         rc = SDB_INVALIDARG ;
-         detail = BSON( SPT_ERR << "Size must be zero or positive number" ) ;
-         goto error ;
-      }
-
-      *buf = ( CHAR* )SDB_OSS_MALLOC( size + 1 ) ;
-      if( NULL == *buf )
-      {
-         rc = SDB_OOM ;
-         detail = BSON( SPT_ERR << "Failed to alloc buff" ) ;
-         goto error ;
-      }
-
-      hasRead = 0 ;
-      readTimes = 0 ;
-      while( hasRead < size )
-      {
-         BSONObj retObj ;
-         SINT64 readLen = 0 ;
-         SINT32 realRead = 0 ;
-         BSONElement ele ;
-         if( size - hasRead > FILE_TRANSFORM_UNIT_512K )
-         {
-            readLen = FILE_TRANSFORM_UNIT_512K ;
-         }
-         else
-         {
-            readLen = size - hasRead ;
-         }
-
-         rc = pRemote->runCommand( OMA_REMOTE_FILE_READ,
-                                   BSON( "IsBinary" << TRUE ),
-                                   BSON( "FID" << fID ),
-                                   BSON( "Size" << readLen ), detail, retObj ) ;
-         if( SDB_OK != rc )
-         {
-            if( 0 < readTimes && SDB_EOF == rc )
-            {
-               rc = SDB_OK ;
-               break ;
-            }
-            goto error ;
-         }
-
-         if( FALSE == retObj.hasField( "Content" ) )
-         {
-            rc = SDB_OUT_OF_BOUND ;
-            detail = BSON( SPT_ERR << "RetObj must has field: 'Content'" ) ;
-            goto error ;
-         }
-         ele = retObj.getField( "Content" ) ;
-         if( BinData != ele.type() )
-         {
-            rc = SDB_INVALIDARG ;
-            detail = BSON( SPT_ERR << "Content must be binary" ) ;
-            goto error ;
-         }
-         retBuf = ele.binData( realRead );
-
-         ossMemcpy( ( *buf ) + hasRead, retBuf, realRead ) ;
-         readTimes++ ;
-         hasRead += realRead ;
-      }
-
-      (*buf)[hasRead] = '\0' ;
-      len = hasRead ;
-   done:
-      return rc ;
-   error:
-      if( *buf )
-      {
-         SDB_OSS_FREE( *buf ) ;
-         *buf = NULL ;
-      }
-      goto done ;
-   }
-
-   INT32 _sptUsrFile::_writeContentLocal( const _sptArguments &arg,
-                                          bson::BSONObj &detail )
-   {
-      INT32 rc = SDB_OK ;
-      sptUsrFileContent *pFileContent = NULL ;
-      string err ;
-
-      rc = arg.getUserObj( 0, _sptUsrFileContent::__desc,
-                           (const void**)&pFileContent ) ;
-      if( SDB_OUT_OF_BOUND == rc )
-      {
-         detail = BSON( SPT_ERR << "FileContent must be config" ) ;
-         goto error ;
-      }
-      else if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "FileContent must be FileContent" ) ;
-         goto error ;
-      }
-
-      rc = _fileCommon.write( pFileContent->getBuf(), pFileContent->getLength(),
-                             err ) ;
-      if( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, err ) ;
-         detail = BSON( SPT_ERR << "Failed to write fileContent to file" ) ;
-         goto error ;
-      }
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _sptUsrFile::_writeContentRemote( const _sptArguments &arg,
-                                           bson::BSONObj &detail )
-   {
-      INT32 rc = SDB_OK ;
-      _sptUsrRemote *pRemote = NULL ;
-      sptUsrFileContent *pFileContent = NULL ;
-      UINT32 fID = 0 ;
-      SINT64 size = 0 ;
-      SINT64 hasWrite = 0 ;
-      BSONObj retObj ;
-
-      rc = arg.getUserObj( 0, _sptUsrRemote::__desc, ( const void** )&pRemote ) ;
-      if( SDB_OUT_OF_BOUND == rc )
-      {
-         detail = BSON( SPT_ERR << "RemoteObj must be config" ) ;
-         goto error ;
-      }
-      if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "RemoteObj must be Remote" ) ;
-         goto error ;
-      }
-
-      rc = arg.getNative( 1, (void*)&fID, SPT_NATIVE_INT32 ) ;
-      if( SDB_OUT_OF_BOUND == rc )
-      {
-         detail = BSON( SPT_ERR << "FID must be config" ) ;
-         goto error ;
-      }
-      else if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "FID must be numberInt" ) ;
-         goto error ;
-      }
-
-      rc = arg.getUserObj( 2, _sptUsrFileContent::__desc,
-                           (const void**)&pFileContent ) ;
-      if( SDB_OUT_OF_BOUND == rc )
-      {
-         detail = BSON( SPT_ERR << "FileContent must be config" ) ;
-         goto error ;
-      }
-      if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "FileContent must be FileContent" ) ;
-         goto error ;
-      }
-
-      size = pFileContent->getLength() ;
-      hasWrite = 0 ;
-      while( size > hasWrite )
-      {
-         SINT32 writeSize ;
-         BSONObjBuilder builder ;
-
-         if( size - hasWrite > FILE_TRANSFORM_UNIT_512K )
-         {
-            writeSize = FILE_TRANSFORM_UNIT_512K ;
-         }
-         else
-         {
-            writeSize = size - hasWrite ;
-         }
-         builder.appendBinData( "Content", writeSize, BinDataGeneral,
-                                pFileContent->getBuf() + hasWrite ) ;
-         rc = pRemote->runCommand( OMA_REMOTE_FILE_WRITE,
-                                   BSONObj(),
-                                   BSON( "FID" << fID ),
-                                   builder.obj(), detail, retObj ) ;
-         hasWrite += writeSize ;
-      }
-      if( SDB_OK != rc )
-      {
+         PD_LOG( PDERROR, "failed to write to file:%d", rc ) ;
          goto error ;
       }
    done:
@@ -647,38 +338,60 @@ JS_MAPPING_END()
                             bson::BSONObj &detail )
    {
       INT32 rc = SDB_OK ;
-      INT64 seekSize = 0 ;
-      string whenceStr ;
-      BSONObj optionObj ;
-      string err ;
+      INT32 seekSize = 0 ;
+      OSS_SEEK whence ;
+      string whenceStr = "b" ;
 
-      rc = arg.getNative( 0, &seekSize, SPT_NATIVE_INT64 ) ;
+      if ( !_file.isOpened() )
+      {
+         PD_LOG( PDERROR, "the file is not opened." ) ;
+         detail = BSON( SPT_ERR << "file is not opened" ) ;
+         rc = SDB_IO ;
+         goto error ;
+      }
+
+      rc = arg.getNative( 0, &seekSize, SPT_NATIVE_INT32 ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "Offset must be config" ) ;
+         detail = BSON( SPT_ERR << "offset must be config" ) ;
       }
       else if ( rc )
       {
-         detail = BSON( SPT_ERR << "Offset must be native type" ) ;
+         detail = BSON( SPT_ERR << "offset must be native type" ) ;
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to get offset, rc: %d", rc ) ;
 
-      rc = arg.getBsonobj( 1, optionObj ) ;
-      if ( SDB_OUT_OF_BOUND == rc )
+      rc = arg.getString( 1, whenceStr ) ;
+      if ( rc && SDB_OUT_OF_BOUND != rc )
       {
-         detail = BSON( SPT_ERR << "OptionObj must be config" ) ;
-         goto error ;
+         detail = BSON( SPT_ERR << "where must be string(b/c/e)" ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get where, rc: %d", rc ) ;
       }
-      else if( SDB_OK != rc )
+
+      if ( "b" == whenceStr )
       {
-         detail = BSON( SPT_ERR << "OptionObj must be obj" );
+         whence = OSS_SEEK_SET ;
+      }
+      else if ( "c" == whenceStr )
+      {
+         whence = OSS_SEEK_CUR ;
+      }
+      else if ( "e" == whenceStr )
+      {
+         whence = OSS_SEEK_END ;
+      }
+      else
+      {
+         detail = BSON( SPT_ERR << "where must be string(b/c/e)" ) ;
+         PD_LOG( PDERROR, "invalid arg whence:%s", whenceStr.c_str() ) ;
+         rc = SDB_INVALIDARG ;
          goto error ;
       }
 
-      rc = _fileCommon.seek( seekSize, optionObj, err ) ;
-      if( SDB_OK != rc )
+      rc = ossSeek( &_file, seekSize, whence ) ;
+      if ( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << err ) ;
+         PD_LOG( PDERROR, "failed to seek:%d", rc ) ;
          goto error ;
       }
    done:
@@ -691,7 +404,7 @@ JS_MAPPING_END()
                                 _sptReturnVal & rval,
                                 bson::BSONObj & detail )
    {
-      rval.getReturnVal().setValue( _fileCommon.getFileName() ) ;
+      rval.getReturnVal().setValue( _filename ) ;
       return SDB_OK ;
    }
 
@@ -706,18 +419,18 @@ JS_MAPPING_END()
       rc = arg.getBsonobj( 0, remoteInfo ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "RemoteInfo must be config" ) ;
+         detail = BSON( SPT_ERR << "remoteInfo must be config" ) ;
          goto error ;
       }
       if ( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << "RemoteInfo must be obj" ) ;
+         detail = BSON( SPT_ERR << "remoteInfo must be obj" ) ;
          goto error ;
       }
 
       if ( FALSE == remoteInfo.getBoolField( "isRemote" ) )
       {
-         builder.append( "filename", _fileCommon.getFileName() ) ;
+         builder.append( "filename", _filename ) ;
       }
 
       builder.append( "type", "File" ) ;
@@ -737,10 +450,6 @@ JS_MAPPING_END()
       ss << "File functions:" << endl
          << "   read( [size] )" << endl
          << "   write( content )" << endl
-         << "   readContent( [size] )" << endl
-         << "   writeContent( fileContent )"
-         << "   - fileContent: a FileContent obj" << endl
-         << "   readLine()" << endl
          << "   seek( offset, [where] ) " << endl
          << "   close()" << endl
          << "   remove( filepath )" << endl
@@ -759,9 +468,7 @@ JS_MAPPING_END()
          << "   isDir( pathname )" << endl
          << "   isEmptyDir( dirName )" << endl
          << "   stat( filename )" << endl
-         << "   md5( filename )" << endl
-         << "   getInfo()" << endl
-         << "   getSize( filename )" << endl ;
+         << "   md5( filename )" << endl ;
       rval.getReturnVal().setValue( ss.str() ) ;
       return SDB_OK ;
    }
@@ -772,23 +479,23 @@ JS_MAPPING_END()
    {
       INT32 rc = SDB_OK ;
       string fullPath ;
-      string err ;
 
       rc = arg.getString( 0, fullPath ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "Filepath must be config" ) ;
+         detail = BSON( SPT_ERR << "filepath must be config" ) ;
       }
       else if ( rc )
       {
-         detail = BSON( SPT_ERR << "Filepath must be string" ) ;
+         detail = BSON( SPT_ERR << "filepath must be string" ) ;
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to get filepath, rc: %d", rc ) ;
 
-      rc = _sptUsrFileCommon::remove( fullPath, err ) ;
-      if( SDB_OK != rc )
+      rc = ossDelete( fullPath.c_str() ) ;
+      if ( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << err ) ;
+         PD_LOG( PDERROR, "failed to remove file:%s, rc:%d",
+                 fullPath.c_str(), rc ) ;
          goto error ;
       }
    done:
@@ -803,26 +510,30 @@ JS_MAPPING_END()
    {
       INT32 rc = SDB_OK ;
       string fullPath ;
-      string err ;
       BOOLEAN fileExist = FALSE ;
 
       rc = arg.getString( 0, fullPath ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "Filepath must be config" ) ;
+         detail = BSON( SPT_ERR << "filepath must be config" ) ;
       }
       else if ( rc )
       {
-         detail = BSON( SPT_ERR << "Filepath must be string" ) ;
+         detail = BSON( SPT_ERR << "filepath must be string" ) ;
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to get filepath, rc: %d", rc ) ;
 
-      rc = _sptUsrFileCommon::exist( fullPath, err, fileExist ) ;
-      if( SDB_OK != rc )
+      rc = ossAccess( fullPath.c_str() ) ;
+      if ( SDB_OK != rc && SDB_FNE != rc )
       {
-         detail = BSON( SPT_ERR << err ) ;
+         detail = BSON( SPT_ERR << "access file failed" ) ;
          goto error ;
       }
+      else if ( SDB_OK == rc )
+      {
+         fileExist = TRUE ;
+      }
+      rc = SDB_OK ;
       rval.getReturnVal().setValue( fileExist ? true : false ) ;
 
    done:
@@ -839,30 +550,29 @@ JS_MAPPING_END()
       string src ;
       string dst ;
       INT32 isReplace = TRUE ;
-      BSONObjBuilder opBuilder ;
-      string err ;
+      UINT32 permission = OSS_DEFAULTFILE ;
 
       rc = arg.getString( 0, src ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "Src is required" ) ;
+         detail = BSON( SPT_ERR << "src is required" ) ;
          goto error ;
       }
       else if ( rc )
       {
-         detail = BSON( SPT_ERR << "Src must be string" ) ;
+         detail = BSON( SPT_ERR << "src must be string" ) ;
          goto error ;
       }
 
       rc = arg.getString( 1, dst ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "Dst is required" ) ;
+         detail = BSON( SPT_ERR << "dst is required" ) ;
          goto error ;
       }
       else if ( rc )
       {
-         detail = BSON( SPT_ERR << "Dst must be string" ) ;
+         detail = BSON( SPT_ERR << "dst must be string" ) ;
          goto error ;
       }
 
@@ -871,10 +581,9 @@ JS_MAPPING_END()
          rc = arg.getNative( 2, (void*)&isReplace, SPT_NATIVE_INT32 ) ;
          if ( rc )
          {
-            detail = BSON( SPT_ERR << "IsReplace must be BOOLEAN" ) ;
+            detail = BSON( SPT_ERR << "replace must be BOOLEAN" ) ;
             goto error ;
          }
-         opBuilder.appendBool( SPT_FILE_COMMON_FIELD_IS_REPLACE, isReplace ) ;
       }
 
       if ( arg.argc() > 3 )
@@ -883,17 +592,103 @@ JS_MAPPING_END()
          rc = arg.getNative( 3, (void*)&mode, SPT_NATIVE_INT32 ) ;
          if ( rc )
          {
-            detail = BSON( SPT_ERR << "Mode must be INT32" ) ;
+            detail = BSON( SPT_ERR << "mode must be INT32" ) ;
             goto error ;
          }
-         opBuilder.append( SPT_FILE_COMMON_FIELD_MODE, mode ) ;
+         permission = 0 ;
+
+         if ( mode & 0x0001 )
+         {
+            permission |= OSS_XO ;
+         }
+         if ( mode & 0x0002 )
+         {
+            permission |= OSS_WO ;
+         }
+         if ( mode & 0x0004 )
+         {
+            permission |= OSS_RO ;
+         }
+         if ( mode & 0x0008 )
+         {
+            permission |= OSS_XG ;
+         }
+         if ( mode & 0x0010 )
+         {
+            permission |= OSS_WG ;
+         }
+         if ( mode & 0x0020 )
+         {
+            permission |= OSS_RG ;
+         }
+         if ( mode & 0x0040 )
+         {
+            permission |= OSS_XU ;
+         }
+         if ( mode & 0x0080 )
+         {
+            permission |= OSS_WU ;
+         }
+         if ( mode & 0x0100 )
+         {
+            permission |= OSS_RU ;
+         }
       }
-
-
-      rc = _sptUsrFileCommon::copy( src, dst, opBuilder.obj(), err ) ;
-      if( SDB_OK != rc )
+#if defined (_LINUX)
+      else
       {
-         detail = BSON( SPT_ERR << err ) ;
+         struct stat fileStat ;
+         mode_t fileMode ;
+         permission = 0 ;
+         if ( stat( src.c_str(), &fileStat ) )
+         {
+            detail = BSON( SPT_ERR << "Failed to get src file stat" ) ;
+            rc = SDB_SYS ;
+         }
+         fileMode = fileStat.st_mode ;
+         if ( fileMode & S_IRUSR )
+         {
+            permission |= OSS_RU ;
+         }
+         if ( fileMode & S_IWUSR )
+         {
+            permission |= OSS_WU ;
+         }
+         if ( fileMode & S_IXUSR )
+         {
+            permission |= OSS_XU ;
+         }
+         if ( fileMode & S_IRGRP )
+         {
+            permission |= OSS_RG ;
+         }
+         if ( fileMode & S_IWGRP )
+         {
+            permission |= OSS_WG ;
+         }
+         if ( fileMode & S_IXGRP )
+         {
+            permission |= OSS_XG ;
+         }
+         if ( fileMode & S_IROTH )
+         {
+            permission |= OSS_RO ;
+         }
+         if ( fileMode & S_IWOTH )
+         {
+            permission |= OSS_WO ;
+         }
+         if ( fileMode & S_IXOTH )
+         {
+            permission |= OSS_XO ;
+         }
+      }
+#endif
+
+      rc = ossFileCopy( src.c_str(), dst.c_str(), permission, isReplace ) ;
+      if ( rc )
+      {
+         detail = BSON( SPT_ERR << "copy file failed" ) ;
          goto error ;
       }
 
@@ -910,38 +705,38 @@ JS_MAPPING_END()
       INT32 rc = SDB_OK ;
       string src ;
       string dst ;
-      string err ;
 
       rc = arg.getString( 0, src ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "Src is required" ) ;
+         detail = BSON( SPT_ERR << "src is required" ) ;
          goto error ;
       }
       else if ( rc )
       {
-         detail = BSON( SPT_ERR << "Src must be string" ) ;
+         detail = BSON( SPT_ERR << "src must be string" ) ;
          goto error ;
       }
 
       rc = arg.getString( 1, dst ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "Dst is required" ) ;
+         detail = BSON( SPT_ERR << "dst is required" ) ;
          goto error ;
       }
       else if ( rc )
       {
-         detail = BSON( SPT_ERR << "Dst must be string" ) ;
+         detail = BSON( SPT_ERR << "dst must be string" ) ;
          goto error ;
       }
 
-      rc = _sptUsrFileCommon::move( src, dst, err ) ;
-      if( SDB_OK != rc )
+      rc = ossRenamePath( src.c_str(), dst.c_str() ) ;
+      if ( rc )
       {
-         detail = BSON( SPT_ERR << err ) ;
+         detail = BSON( SPT_ERR << "rename path failed" ) ;
          goto error ;
       }
+
    done:
       return rc ;
    error:
@@ -954,18 +749,17 @@ JS_MAPPING_END()
    {
       INT32 rc = SDB_OK ;
       string name ;
-      BSONObjBuilder opBuilder ;
-      string err ;
+      UINT32 permission = OSS_DEFAULTDIR ;
 
       rc = arg.getString( 0, name ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "Dirname must be required" ) ;
+         detail = BSON( SPT_ERR << "name is required" ) ;
          goto error ;
       }
       else if ( rc )
       {
-         detail = BSON( SPT_ERR << "Dirname must be string" ) ;
+         detail = BSON( SPT_ERR << "name must be string" ) ;
          goto error ;
       }
 
@@ -975,18 +769,60 @@ JS_MAPPING_END()
          rc = arg.getNative( 1, (void*)&mode, SPT_NATIVE_INT32 ) ;
          if ( rc )
          {
-            detail = BSON( SPT_ERR << "Mode must be INT32" ) ;
+            detail = BSON( SPT_ERR << "mode must be INT32" ) ;
             goto error ;
          }
-         opBuilder.append( "mode", mode ) ;
+         permission = 0 ;
+
+         if ( mode & 0x0001 )
+         {
+            permission |= OSS_XO ;
+         }
+         if ( mode & 0x0002 )
+         {
+            permission |= OSS_WO ;
+         }
+         if ( mode & 0x0004 )
+         {
+            permission |= OSS_RO ;
+         }
+         if ( mode & 0x0008 )
+         {
+            permission |= OSS_XG ;
+         }
+         if ( mode & 0x0010 )
+         {
+            permission |= OSS_WG ;
+         }
+         if ( mode & 0x0020 )
+         {
+            permission |= OSS_RG ;
+         }
+         if ( mode & 0x0040 )
+         {
+            permission |= OSS_XU ;
+         }
+         if ( mode & 0x0080 )
+         {
+            permission |= OSS_WU ;
+         }
+         if ( mode & 0x0100 )
+         {
+            permission |= OSS_RU ;
+         }
       }
 
-      rc = _sptUsrFileCommon::mkdir( name, opBuilder.obj(), err ) ;
-      if( SDB_OK != rc )
+      rc = ossMkdir( name.c_str(), permission ) ;
+      if ( SDB_FE == rc )
       {
-         detail = BSON( SPT_ERR << err ) ;
+         rc = SDB_OK ;
+      }
+      else if ( rc )
+      {
+         detail = BSON( SPT_ERR << "create dir failed" ) ;
          goto error ;
       }
+
    done:
       return rc ;
    error:
@@ -998,16 +834,15 @@ JS_MAPPING_END()
                              bson::BSONObj &detail )
    {
       INT32 rc = SDB_OK ;
-      string err ;
-
-      rc = _fileCommon.close( err ) ;
-      if( SDB_OK != rc )
+      if ( _file.isOpened() )
       {
-         PD_LOG( PDERROR, err.c_str() ) ;
-         detail = BSON( SPT_ERR << err ) ;
-         goto error ;
+         rc = ossClose( _file ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to close file:%d", rc ) ;
+            goto error ;
+         }
       }
-
    done:
       return rc ;
    error:
@@ -1020,30 +855,83 @@ JS_MAPPING_END()
    {
       INT32 rc = SDB_OK ;
       CHAR* buf = NULL ;
+      ossPrimitiveFileOp op ;
       string name ;
-      string err ;
-      INT64 readSize = 0 ;
+      INT32 readLen = 1024 ;
+      INT32 bufLen = readLen + 1 ;
 
       rc = arg.getString( 0, name ) ;
       if( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "Filename must be config" ) ;
+         detail = BSON( SPT_ERR << "name must be config" ) ;
          goto error ;
       }
       if( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << "Filename must be string" ) ;
+         detail = BSON( SPT_ERR << "name must be string" ) ;
          goto error ;
       }
 
-      rc = _sptUsrFileCommon::readFile( name, err, &buf, readSize ) ;
-      if( SDB_OK != rc )
+      rc = op.Open( name.c_str() , OSS_PRIMITIVE_FILE_OP_READ_ONLY ) ;
+      if ( rc != SDB_OK )
       {
-         detail = BSON( SPT_ERR << err ) ;
+         PD_LOG( PDERROR, "Can't open file: %s", name.c_str() ) ;
          goto error ;
       }
+
+      buf = (CHAR*) SDB_OSS_MALLOC( bufLen ) ;
+      if ( NULL == buf )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Failed to malloc buff" ) ;
+         detail = BSON( SPT_ERR << "Failed to malloc buff" ) ;
+         goto error ;
+      }
+
+      {
+         INT32 readByte = 0 ;
+         INT32 hasRead = 0 ;
+         INT32 increaseLen = 1024 ;
+         CHAR *curPos = buf ;
+         BOOLEAN finishRead = FALSE ;
+         while( !finishRead )
+         {
+            rc = op.Read( readLen , curPos , &readByte ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to read file" ) ;
+               detail = BSON( SPT_ERR << "Failed to read file" ) ;
+               goto error ;
+            }
+            hasRead += readByte ;
+
+            if ( readByte == readLen )
+            {
+               bufLen += increaseLen ;
+               buf = (CHAR*) SDB_OSS_REALLOC( buf, bufLen ) ;
+               if ( NULL == buf )
+               {
+                  rc = SDB_OOM ;
+                  PD_LOG( PDERROR, "Failed to realloc buff" ) ;
+                  detail = BSON( SPT_ERR << "Failed to realloc buff" ) ;
+                  goto error ;
+               }
+               curPos = buf + hasRead ;
+               readLen = increaseLen ;
+               increaseLen *= 2 ;
+            }
+            else
+            {
+               finishRead = TRUE ;
+            }
+
+         }
+         buf[ hasRead ] = '\0' ;
+      }
       rval.getReturnVal().setValue( buf ) ;
+
    done:
+      op.Close() ;
       SDB_OSS_FREE( buf ) ;
       return rc ;
    error:
@@ -1054,31 +942,232 @@ JS_MAPPING_END()
                             _sptReturnVal &rval,
                             BSONObj &detail )
    {
-      INT32 rc = SDB_OK ;
-      BSONObj retObj ;
-      BSONObj optionObj ;
-      string err ;
+      INT32 rc           = SDB_OK ;
+      string findType    = "n" ;
+      UINT32 exitCode    = 0 ;
+      string             mode ;
+      string             rootDir ;
+      _ossCmdRunner      runner ;
+      string             value ;
+      string             pathname ;
+      string             outStr ;
+      BSONObj            optionObj ;
+      BSONObjBuilder     builder ;
+      stringstream       cmd ;
 
       rc = arg.getBsonobj( 0, optionObj ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "OptionObj must be config" ) ;
+         detail = BSON( SPT_ERR << "optionObj must be config" ) ;
          goto error ;
       }
       if ( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << "OptionObj must be BSONObj" ) ;
+         detail = BSON( SPT_ERR << "optionObj must be BSONObj" ) ;
          goto error ;
       }
 
-      rc = _sptUsrFileCommon::find( optionObj, err, retObj ) ;
-      if( SDB_OK != rc )
+      if ( TRUE == optionObj.hasField( "value" ) )
       {
-         detail = BSON( SPT_ERR << err ) ;
+         if ( String != optionObj.getField( "value" ).type() )
+         {
+            rc = SDB_INVALIDARG ;
+            detail = BSON( SPT_ERR << "value must be string" ) ;
+            goto error ;
+         }
+         value = optionObj.getStringField( "value" ) ;
+      }
+
+      if ( TRUE == optionObj.hasField( "mode" ) )
+      {
+         if ( String != optionObj.getField( "mode" ).type() )
+         {
+            rc = SDB_INVALIDARG ;
+            detail = BSON( SPT_ERR << "mode must be string" ) ;
+            goto error ;
+         }
+         findType = optionObj.getStringField( "mode" ) ;
+      }
+
+      /* get the way to find file:
+         -name:   filename
+         -user:   user uname
+         -group:  group gname
+         -perm:   permission
+      */
+      if ( "n" == findType )
+      {
+         if ( string::npos != value.find( "/", 0 ) )
+         {
+            rc = SDB_INVALIDARG ;
+            detail = BSON( SPT_ERR << "value shouldn't contain '/'" ) ;
+            goto error ;
+         }
+         mode = " -name" ;
+      }
+      else if ( "u" == findType )
+      {
+         mode = " -user" ;
+      }
+      else if ( "p" == findType )
+      {
+         mode = " -perm" ;
+      }
+      else if ( "g" == findType )
+      {
+         mode = " -group" ;
+      }
+      else
+      {
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << "mode must be required type" ) ;
          goto error ;
       }
 
-      rval.getReturnVal().setValue( retObj ) ;
+      if ( TRUE == optionObj.hasField( "pathname" ) )
+      {
+         if ( String != optionObj.getField( "pathname" ).type() )
+         {
+            rc = SDB_INVALIDARG ;
+            detail = BSON( SPT_ERR << "pathname must be string" ) ;
+            goto error ;
+         }
+         pathname = optionObj.getStringField( "pathname" ) ;
+
+      }
+
+#if defined (_LINUX)
+      cmd << "find" ;
+
+      if ( FALSE == pathname.empty() )
+      {
+         cmd << " " << pathname ;
+      }
+
+      if ( FALSE == value.empty() )
+      {
+         cmd << mode << " " << value ;
+      }
+#elif defined (_WINDOWS)
+      if ( " -name" != mode )
+      {
+         goto done ;
+      }
+
+      if ( !pathname.empty() &&
+           '\\' != pathname[ pathname.size() - 1 ] )
+      {
+         pathname += "\\" ;
+      }
+      cmd << "cmd /C dir /b /s "<< pathname << value ;
+#endif
+      rc = runner.exec( cmd.str().c_str(), exitCode,
+                     FALSE, -1, FALSE, NULL, TRUE ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to exec cmd, rc:%d, exit:%d",
+                 rc, exitCode ) ;
+         stringstream ss ;
+         ss << "failed to exec cmd " << cmd.str() << ",rc: "
+            << rc
+            << ",exit: "
+            << exitCode ;
+         detail = BSON( SPT_ERR << ss.str() ) ;
+         goto error ;
+      }
+
+      rc = runner.read( outStr ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to read msg from cmd runner:%d", rc ) ;
+         stringstream ss ;
+         ss << "failed to read msg from cmd \"" << cmd.str() << "\", rc:"
+            << rc ;
+         detail = BSON( SPT_ERR << ss.str() ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != exitCode )
+      {
+         if ( '\n' == outStr[ outStr.size() - 1 ] )
+         {
+            outStr.erase( outStr.size()-1, 1 ) ;
+         }
+
+         rc = exitCode ;
+         detail = BSON( SPT_ERR << outStr ) ;
+         goto error ;
+      }
+
+      rc = _extractFindInfo( outStr.c_str(), builder ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to extract find info" ) ;
+         goto error ;
+      }
+
+      rval.getReturnVal().setValue( builder.obj() ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptUsrFile::_extractFindInfo( const CHAR* buf,
+                                        BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+      vector<string> splited ;
+
+      /*
+      content format:
+         xxxxxxxxx1
+         xxxxxxxxx2
+         xxxxxxxxx3
+      */
+      try
+      {
+         boost::algorithm::split( splited, buf,
+                                  boost::is_any_of( "\r\n" ) ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Failed to split result, rc: %d, detail: %s",
+                 rc, e.what() ) ;
+         goto error ;
+      }
+
+      for ( vector<string>::iterator itr = splited.begin();
+            itr != splited.end();  )
+      {
+         if ( itr->empty() )
+         {
+            itr = splited.erase( itr ) ;
+         }
+         else
+         {
+            itr++ ;
+         }
+      }
+
+      for( UINT32 index = 0; index < splited.size(); index++ )
+      {
+         BSONObjBuilder objBuilder ;
+         objBuilder.append( "pathname", splited[ index ] ) ;
+         try
+         {
+            builder.append( boost::lexical_cast<string>( index ).c_str(),
+                            objBuilder.obj() ) ;
+         }
+         catch( std::exception &e )
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Fail to build retObj, rc: %d, detail: %s",
+                    rc, e.what() ) ;
+            goto error ;
+         }
+      }
    done:
       return rc ;
    error:
@@ -1090,65 +1179,487 @@ JS_MAPPING_END()
                             BSONObj &detail )
    {
       INT32 rc = SDB_OK ;
-      BSONObj optionObj ;
-      BSONObj retObj ;
-      string err ;
+      UINT32 exitCode    = 0 ;
+      BOOLEAN showDetail = FALSE ;
 
+      BSONObjBuilder     builder ;
+      stringstream       cmd ;
+      _ossCmdRunner      runner ;
+      string             outStr ;
+      BSONObj            optionObj ;
+
+#if defined (_LINUX)
+      cmd << "ls -A -l" ;
+#elif defined (_WINDOWS)
+      cmd << "cmd /C dir /-C /A" ;
+#endif
       if ( 1 <= arg.argc() )
       {
          rc = arg.getBsonobj( 0, optionObj ) ;
          if ( SDB_OK != rc )
          {
-            detail = BSON( SPT_ERR << "OptionObj must be BSONObj" ) ;
+            detail = BSON( SPT_ERR << "optionObj must be BSONObj" ) ;
             goto error ;
          }
       }
+      showDetail = optionObj.getBoolField( "detail") ;
 
-      rc = _sptUsrFileCommon::list( optionObj, err, retObj ) ;
-      if( SDB_OK != rc )
+      if ( TRUE == optionObj.hasField( "pathname" ) )
       {
-         detail = BSON( SPT_ERR << err ) ;
+         if ( String != optionObj.getField( "pathname" ).type() )
+         {
+            rc = SDB_INVALIDARG ;
+            detail = BSON( SPT_ERR << "pathname must be string" ) ;
+         }
+         cmd << " " << optionObj.getStringField( "pathname" ) ;
+      }
+
+      rc = runner.exec( cmd.str().c_str(), exitCode,
+                        FALSE, -1, FALSE, NULL, TRUE ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to exec cmd, rc:%d, exit:%d",
+                 rc, exitCode ) ;
+         stringstream ss ;
+         ss << "failed to exec cmd " << cmd.str() << ",rc:"
+            << rc
+            << ",exit:"
+            << exitCode ;
+         detail = BSON( SPT_ERR << ss.str() ) ;
          goto error ;
       }
-      rval.getReturnVal().setValue( retObj ) ;
+
+      rc = runner.read( outStr ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to read msg from cmd runner:%d", rc ) ;
+         stringstream ss ;
+         ss << "failed to read msg from cmd \"" << cmd.str() << "\", rc:"
+            << rc ;
+         detail = BSON( SPT_ERR << ss.str() ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != exitCode )
+      {
+         rc = exitCode ;
+         detail = BSON( SPT_ERR << outStr ) ;
+         goto error ;
+      }
+
+      rc = _extractListInfo( outStr.c_str(), builder, showDetail ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to extract list info" ) ;
+         goto error ;
+      }
+
+      rval.getReturnVal().setValue( builder.obj() ) ;
    done:
       return rc ;
    error:
       goto done ;
    }
 
+#if defined (_LINUX)
+   INT32 _sptUsrFile::_extractListInfo( const CHAR* buf,
+                                        BSONObjBuilder &builder,
+                                        BOOLEAN showDetail )
+   {
+      INT32 rc = SDB_OK ;
+      vector<string> splited ;
+      vector< BSONObj > fileVec ;
+
+      if ( NULL == buf )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "buf can't be null, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      /*
+      content format:
+         total 2
+         drwxr-xr-x  7 root      root       4096 Oct 11 15:28 20000
+         drwxr-xr-x  7 root      root       4096 Oct 11 15:05 30000
+      */
+      try
+      {
+         boost::algorithm::split( splited, buf, boost::is_any_of("\r\n") ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Failed to split result, rc: %d, detail: %s",
+                 rc, e.what() ) ;
+         goto error ;
+      }
+
+      for ( vector<string>::iterator itr = splited.begin();
+            itr != splited.end();  )
+      {
+         if ( itr->empty() )
+         {
+            itr = splited.erase( itr ) ;
+         }
+         else
+         {
+            itr++ ;
+         }
+      }
+      splited.erase( splited.begin() ) ;
+
+      if( TRUE == showDetail )
+      {
+         for ( vector<string>::iterator itrSplit = splited.begin();
+            itrSplit != splited.end(); itrSplit++ )
+         {
+            vector<string> columns ;
+            BSONObjBuilder fileObjBuilder ;
+
+            try
+            {
+               boost::algorithm::split( columns, *itrSplit,
+                                        boost::is_any_of(" ") ) ;
+            }
+            catch( std::exception &e )
+            {
+               rc = SDB_SYS ;
+               PD_LOG( PDERROR, "Failed to split result, rc: %d, detail: %s",
+                       rc, e.what() ) ;
+               goto error ;
+            }
+            for ( vector<string>::iterator itrCol = columns.begin();
+                  itrCol != columns.end();  )
+            {
+               if ( itrCol->empty() )
+               {
+                  itrCol = columns.erase( itrCol ) ;
+               }
+               else
+               {
+                  itrCol++ ;
+               }
+            }
+
+            if ( 9 > columns.size() )
+            {
+               continue ;
+            }
+            else
+            {
+               for ( UINT32 index = 9; index < columns.size(); index++ )
+               {
+                  columns[ 8 ] += " " + columns[ index ] ;
+               }
+            }
+            fileObjBuilder.append( "name", columns[ 8 ] ) ;
+            fileObjBuilder.append( "size", columns[ 4 ] ) ;
+            fileObjBuilder.append( "mode", columns[ 0 ] ) ;
+            fileObjBuilder.append( "user", columns[ 2 ] ) ;
+            fileObjBuilder.append( "group", columns[ 3 ] ) ;
+            fileObjBuilder.append( "lasttime",
+                                   columns[ 5 ] + " " +
+                                   columns[ 6 ] + " " +
+                                   columns[ 7 ] ) ;
+            fileVec.push_back( fileObjBuilder.obj() ) ;
+         }
+      }
+      else
+      {
+         for ( vector<string>::iterator itrSplit = splited.begin();
+            itrSplit != splited.end(); itrSplit++ )
+         {
+            vector<string> columns ;
+            BSONObjBuilder fileObjBuilder ;
+
+            try
+            {
+               boost::algorithm::split( columns, *itrSplit,
+                                        boost::is_any_of(" ") ) ;
+            }
+            catch( std::exception &e )
+            {
+               rc = SDB_SYS ;
+               PD_LOG( PDERROR, "Failed to split result, rc: %d, detail: %s",
+                       rc, e.what() ) ;
+               goto error ;
+            }
+            for ( vector<string>::iterator itrCol = columns.begin();
+                  itrCol != columns.end();  )
+            {
+               if ( itrCol->empty() )
+               {
+                  itrCol = columns.erase( itrCol ) ;
+               }
+               else
+               {
+                  itrCol++ ;
+               }
+            }
+
+            if ( 9 > columns.size() )
+            {
+               rc = SDB_SYS ;
+               PD_LOG( PDERROR, "Failed to build result" ) ;
+               goto error ;
+            }
+            else
+            {
+               for ( UINT32 index = 9; index < columns.size(); index++ )
+               {
+                  columns[ 8 ] += " " + columns[ index ] ;
+               }
+            }
+            fileObjBuilder.append( "name", columns[ 8 ] ) ;
+            fileObjBuilder.append( "mode", columns[ 0 ] ) ;
+            fileObjBuilder.append( "user", columns[ 2 ] ) ;
+            fileVec.push_back( fileObjBuilder.obj() ) ;
+         }
+      }
+
+      for( UINT32 index = 0; index < fileVec.size(); index++ )
+      {
+         try
+         {
+            builder.append( boost::lexical_cast<string>( index ).c_str(),
+                            fileVec[ index ] ) ;
+         }
+         catch( std::exception &e )
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Fail to build retObj, rc: %d, detail: %s",
+                    rc, e.what() ) ;
+            goto error ;
+         }
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+#elif defined (_WINDOWS)
+
+   INT32 _sptUsrFile::_extractListInfo( const CHAR* buf,
+                                        BSONObjBuilder &builder,
+                                        BOOLEAN showDetail )
+   {
+      INT32 rc = SDB_OK ;
+      vector<string> splited ;
+      vector< BSONObj > fileVec ;
+
+      if ( NULL == buf )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "buf can't be null, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      /*
+       xxxxxxxxx
+      xxxxxxxxxxx
+
+      C:\Users\wujiaming\Documents\NetSarang\Xshell\Sessions xxxx
+
+      content format:
+         2016/10/11  13:26              3410 xxxxxx
+         2016/05/18  08:56              3391 xxxxxxx
+              12 xxxxx          37488 xxxx
+               2 xxxxx    20122185728 xxxx
+      */
+      try
+      {
+         boost::algorithm::split( splited, buf, boost::is_any_of( "\r\n" ) ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Failed to split result, rc: %d, detail: %s",
+                 rc, e.what() ) ;
+         goto error ;
+      }
+
+      for ( vector<string>::iterator itr = splited.begin();
+            itr != splited.end();  )
+      {
+         if ( itr->empty() )
+         {
+            itr = splited.erase( itr ) ;
+         }
+         else
+         {
+            itr++ ;
+         }
+      }
+      splited.erase( splited.end() - 2, splited.end() ) ;
+      splited.erase( splited.begin() , splited.begin() + 5 ) ;
+
+      if( TRUE == showDetail )
+      {
+         for ( vector<string>::iterator itrSplit = splited.begin();
+            itrSplit != splited.end(); itrSplit++ )
+         {
+            vector<string> columns ;
+            BSONObjBuilder fileObjBuilder ;
+
+            try
+            {
+               boost::algorithm::split( columns, *itrSplit,
+                                        boost::is_any_of( " " ) ) ;
+            }
+            catch( std::exception &e )
+            {
+               rc = SDB_SYS ;
+               PD_LOG( PDERROR, "Failed to split result, rc: %d, detail: %s",
+                       rc, e.what() ) ;
+               goto error ;
+            }
+            for ( vector<string>::iterator itrCol = columns.begin();
+                  itrCol != columns.end();  )
+            {
+               if ( itrCol->empty() )
+               {
+                  itrCol = columns.erase( itrCol ) ;
+               }
+               else
+               {
+                  itrCol++ ;
+               }
+            }
+
+            if ( 4 > columns.size() )
+            {
+               continue ;
+            }
+            else
+            {
+               for ( UINT32 index = 4; index < columns.size(); index++ )
+               {
+                  columns[ 3 ] += " " + columns[ index ] ;
+               }
+            }
+            if ( "<DIV>" == columns[ 2 ] )
+            {
+               columns[ 2 ] = "" ;
+            }
+            fileObjBuilder.append( "name", columns[ 3 ] ) ;
+            fileObjBuilder.append( "size", columns[ 2 ] ) ;
+            fileObjBuilder.append( "mode", "" ) ;
+            fileObjBuilder.append( "user", "" ) ;
+            fileObjBuilder.append( "group", "" ) ;
+            fileObjBuilder.append( "lasttime",
+                                   columns[ 0 ] + " " +columns[ 1 ] ) ;
+            fileVec.push_back( fileObjBuilder.obj() ) ;
+         }
+      }
+      else
+      {
+         for ( vector<string>::iterator itrSplit = splited.begin();
+            itrSplit != splited.end(); itrSplit++ )
+         {
+            vector<string> columns ;
+            BSONObjBuilder fileObjBuilder ;
+
+            try
+            {
+               boost::algorithm::split( columns, *itrSplit,
+                                        boost::is_any_of(" ") ) ;
+            }
+            catch( std::exception &e )
+            {
+               rc = SDB_SYS ;
+               PD_LOG( PDERROR, "Failed to split result, rc: %d, detail: %s",
+                       rc, e.what() ) ;
+               goto error ;
+            }
+            for ( vector<string>::iterator itrCol = columns.begin();
+                  itrCol != columns.end();  )
+            {
+               if ( itrCol->empty() )
+               {
+                  itrCol = columns.erase( itrCol ) ;
+               }
+               else
+               {
+                  itrCol++ ;
+               }
+            }
+
+            if ( 4 > columns.size() )
+            {
+               continue ;
+            }
+            else
+            {
+               for ( UINT32 index = 4; index < columns.size(); index++ )
+               {
+                  columns[ 3 ] += " " + columns[ index ] ;
+               }
+            }
+            fileObjBuilder.append( "name", columns[ 3 ] ) ;
+            fileObjBuilder.append( "mode", "" ) ;
+            fileObjBuilder.append( "user", "" ) ;
+            fileVec.push_back( fileObjBuilder.obj() ) ;
+         }
+      }
+
+      for( UINT32 index = 0; index < fileVec.size(); index++ )
+      {
+         try
+         {
+            builder.append( boost::lexical_cast<string>( index ).c_str(),
+                            fileVec[ index ] ) ;
+         }
+         catch( std::exception &e )
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Fail to build retObj, rc: %d, detail: %s",
+                    rc, e.what() ) ;
+            goto error ;
+         }
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+#endif
+
    INT32 _sptUsrFile::chmod( const _sptArguments &arg,
                              _sptReturnVal &rval,
                              BSONObj &detail )
    {
+#if defined (_LINUX)
       INT32 rc = SDB_OK ;
+      UINT32 exitCode    = 0 ;
       BOOLEAN isRecursive = FALSE ;
-      BSONObjBuilder opBuilder ;
-      string pathname ;
-      INT32 mode = 0 ;
-      string err ;
+      stringstream       cmd ;
+      _ossCmdRunner      runner ;
+      string             pathname ;
+      INT32              mode ;
+      string             outStr ;
 
       rc = arg.getString( 0, pathname ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "Pathname must be config" ) ;
+         detail = BSON( SPT_ERR << "filename must be config" ) ;
          goto error ;
       }
       if ( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << "Pathname must be string" ) ;
+         detail = BSON( SPT_ERR << "filename must be string" ) ;
          goto error ;
       }
 
       rc = arg.getNative( 1, &mode, SPT_NATIVE_INT32 ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "Mode must be config" ) ;
+         detail = BSON( SPT_ERR << "mode must be config" ) ;
          goto error ;
       }
       if ( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << "Mode must be INT32" ) ;
+         detail = BSON( SPT_ERR << "mode must be INT32" ) ;
          goto error ;
       }
 
@@ -1157,57 +1668,123 @@ JS_MAPPING_END()
          rc = arg.getNative( 2, &isRecursive, SPT_NATIVE_INT32 ) ;
          if ( SDB_OK != rc )
          {
-            detail = BSON( SPT_ERR << "IsRecursive must be bool" ) ;
+            detail = BSON( SPT_ERR << "recursive must be bool" ) ;
             goto error ;
          }
-         opBuilder.appendBool( SPT_FILE_COMMON_FIELD_IS_RECURSIVE, isRecursive ) ;
       }
 
-      rc = _sptUsrFileCommon::chmod( pathname, mode, opBuilder.obj(), err ) ;
-      if( SDB_OK != rc )
+      cmd << "chmod" ;
+      if ( TRUE == isRecursive )
       {
-         detail = BSON( SPT_ERR << err ) ;
+         cmd << " -R" ;
+      }
+      cmd << " " << oct << mode << " " << pathname ;
+
+      rc = runner.exec( cmd.str().c_str(), exitCode,
+                        FALSE, -1, FALSE, NULL, TRUE ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to exec cmd, rc:%d, exit:%d",
+                 rc, exitCode ) ;
+         stringstream ss ;
+         ss << "failed to exec cmd " << cmd.str() << ",rc:"
+            << rc
+            << ",exit:"
+            << exitCode ;
+         detail = BSON( SPT_ERR << ss.str() ) ;
+         goto error ;
+      }
+
+      rc = runner.read( outStr ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to read result" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != exitCode )
+      {
+         rc = exitCode ;
+         detail = BSON( SPT_ERR << outStr ) ;
          goto error ;
       }
    done:
       return rc ;
    error:
       goto done ;
+
+#elif defined (_WINDOWS)
+      return SDB_OK ;
+#endif
    }
 
    INT32 _sptUsrFile::chown( const _sptArguments &arg,
                              _sptReturnVal &rval,
                              BSONObj &detail )
    {
+#if defined (_LINUX)
       INT32 rc = SDB_OK ;
+      UINT32  exitCode    = 0 ;
       BOOLEAN isRecursive = FALSE ;
+      string username = "" ;
+      string groupname = "" ;
+      stringstream cmd ;
+      _ossCmdRunner runner ;
       string pathname ;
-      BSONObj ownerObj ;
-      BSONObjBuilder opBuilder ;
-      string err ;
+      BSONObj optionObj ;
+      string outStr ;
 
       rc = arg.getString( 0, pathname ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "Pathname must be config" ) ;
+         detail = BSON( SPT_ERR << "filename must be config" ) ;
          goto error ;
       }
       if ( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << "Pathname must be string" ) ;
+         detail = BSON( SPT_ERR << "filename must be string" ) ;
          goto error ;
       }
 
-      rc = arg.getBsonobj( 1, ownerObj ) ;
+      rc = arg.getBsonobj( 1, optionObj ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "OptionObj must be config" ) ;
+         detail = BSON( SPT_ERR << "optionObj must be config" ) ;
          goto error ;
       }
       if ( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << "OptionObj must be BSONObj" ) ;
+         detail = BSON( SPT_ERR << "optionObj must be BSONObj" ) ;
          goto error ;
+      }
+
+      if ( FALSE == optionObj.hasField( "username" ) &&
+           FALSE == optionObj.hasField( "groupname" ) )
+      {
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << "username or groupname must be config" ) ;
+         goto error ;
+      }
+
+      if ( TRUE == optionObj.hasField( "username" ) )
+      {
+         if ( String != optionObj.getField( "username" ).type() )
+         {
+            rc = SDB_INVALIDARG ;
+            detail = BSON( SPT_ERR << "username must be string" ) ;
+            goto error ;
+         }
+         username = optionObj.getStringField( "username" ) ;
+      }
+
+      if ( TRUE == optionObj.hasField( "groupname" ) )
+      {
+         if ( String != optionObj.getField( "groupname" ).type() )
+         {
+            rc = SDB_INVALIDARG ;
+            detail = BSON( SPT_ERR << "groupname must be string" ) ;
+            goto error ;
+         }
+         groupname = optionObj.getStringField( "groupname" ) ;
       }
 
       if ( 3 <= arg.argc() )
@@ -1215,56 +1792,90 @@ JS_MAPPING_END()
          rc = arg.getNative( 2, &isRecursive, SPT_NATIVE_INT32 ) ;
          if ( SDB_OK != rc )
          {
-            detail = BSON( SPT_ERR << "IsRecursive must be bool" ) ;
+            detail = BSON( SPT_ERR << "recursive must be bool" ) ;
             goto error ;
          }
-         opBuilder.appendBool( SPT_FILE_COMMON_FIELD_IS_RECURSIVE, isRecursive ) ;
       }
 
-      rc = _sptUsrFileCommon::chown( pathname, ownerObj, opBuilder.obj(), err ) ;
-      if( SDB_OK != rc )
+      cmd << "chown" ;
+      if ( TRUE == isRecursive )
       {
-         detail = BSON( SPT_ERR << err ) ;
+         cmd << " -R" ;
+      }
+      cmd << " " << username << ":" << groupname << " " << pathname ;
+
+      rc = runner.exec( cmd.str().c_str(), exitCode,
+                        FALSE, -1, FALSE, NULL, TRUE ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to exec cmd, rc:%d, exit:%d",
+                 rc, exitCode ) ;
+         stringstream ss ;
+         ss << "failed to exec cmd " << cmd.str() << ",rc:"
+            << rc
+            << ",exit:"
+            << exitCode ;
+         detail = BSON( SPT_ERR << ss.str() ) ;
+         goto error ;
+      }
+
+      rc = runner.read( outStr ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to read result" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != exitCode )
+      {
+         rc = exitCode ;
+         detail = BSON( SPT_ERR << outStr ) ;
          goto error ;
       }
    done:
       return rc ;
    error:
       goto done ;
+
+#elif defined (_WINDOWS)
+      return SDB_OK ;
+#endif
    }
 
    INT32 _sptUsrFile::chgrp( const _sptArguments &arg,
                              _sptReturnVal &rval,
                              BSONObj &detail )
    {
+#if defined (_LINUX)
       INT32 rc = SDB_OK ;
+      UINT32 exitCode    = 0 ;
       BOOLEAN isRecursive = FALSE ;
+      stringstream cmd ;
+      _ossCmdRunner runner ;
       string pathname ;
       string groupname ;
-      string err ;
-      BSONObjBuilder opBuilder ;
+      string outStr ;
 
       rc = arg.getString( 0, pathname ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "Pathname must be config" ) ;
+         detail = BSON( SPT_ERR << "filename must be config" ) ;
          goto error ;
       }
       else if ( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << "Pathname must be string" ) ;
+         detail = BSON( SPT_ERR << "filename must be string" ) ;
          goto error ;
       }
 
       rc = arg.getString( 1, groupname ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "Groupname must be config" ) ;
+         detail = BSON( SPT_ERR << "groupname must be config" ) ;
          goto error ;
       }
       if ( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << "Groupname must be string" ) ;
+         detail = BSON( SPT_ERR << "groupname must be string" ) ;
          goto error ;
       }
 
@@ -1273,75 +1884,180 @@ JS_MAPPING_END()
          rc = arg.getNative( 2, &isRecursive, SPT_NATIVE_INT32 ) ;
          if ( SDB_OK != rc )
          {
-            detail = BSON( SPT_ERR << "IsRecursive must be bool" ) ;
+            detail = BSON( SPT_ERR << "recursive must be bool" ) ;
             goto error ;
          }
-         opBuilder.appendBool( SPT_FILE_COMMON_FIELD_IS_RECURSIVE, isRecursive ) ;
       }
 
-      rc = _sptUsrFileCommon::chgrp( pathname, groupname, opBuilder.obj(), err ) ;
-      if( SDB_OK != rc )
+      cmd << "chgrp" ;
+      if ( TRUE == isRecursive )
       {
-         detail = BSON( SPT_ERR << err ) ;
+         cmd << " -R" ;
+      }
+
+      cmd << " " << groupname << " " << pathname ;
+
+      rc = runner.exec( cmd.str().c_str(), exitCode,
+                        FALSE, -1, FALSE, NULL, TRUE ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to exec cmd, rc:%d, exit:%d",
+                 rc, exitCode ) ;
+         stringstream ss ;
+         ss << "failed to exec cmd " << cmd.str() << ",rc:"
+            << rc
+            << ",exit:"
+            << exitCode ;
+         detail = BSON( SPT_ERR << ss.str() ) ;
+         goto error ;
+      }
+
+      rc = runner.read( outStr ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to read result" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != exitCode )
+      {
+         rc = exitCode ;
+         detail = BSON( SPT_ERR << outStr ) ;
          goto error ;
       }
    done:
       return rc ;
    error:
       goto done ;
+
+#elif defined (_WINDOWS)
+      return SDB_OK ;
+#endif
    }
 
    INT32 _sptUsrFile::getUmask( const _sptArguments &arg,
                                 _sptReturnVal &rval,
                                 BSONObj &detail )
    {
-      INT32 rc = SDB_OK ;
-      string err ;
-      string retStr ;
+#if defined(_LINUX)
+      INT32              rc = SDB_OK ;
+      UINT32             exitCode = 0 ;
+      string             outStr ;
+      string cmd = "umask" ;
+      _ossCmdRunner runner ;
 
-      rc = _sptUsrFileCommon::getUmask( err, retStr ) ;
-      if( SDB_OK != rc )
+      rc = runner.exec( cmd.c_str(), exitCode,
+                        FALSE, -1, FALSE, NULL, TRUE ) ;
+      if ( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << err ) ;
+         PD_LOG( PDERROR, "failed to exec cmd, rc:%d, exit:%d",
+                 rc, exitCode ) ;
+         stringstream ss ;
+         ss << "failed to exec cmd " << cmd << ",rc:"
+            << rc
+            << ",exit:"
+            << exitCode ;
+         detail = BSON( SPT_ERR << ss.str() ) ;
          goto error ;
       }
-      rval.getReturnVal().setValue( retStr ) ;
+
+      rc = runner.read( outStr ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to read msg from cmd runner:%d", rc ) ;
+         stringstream ss ;
+         ss << "failed to read msg from cmd \"" << cmd << "\", rc:"
+            << rc ;
+         detail = BSON( SPT_ERR << ss.str() ) ;
+         goto error ;
+      }
+
+      if( '\n' == outStr[ outStr.size() - 1 ] )
+      {
+         outStr.erase( outStr.size()-1, 1 ) ;
+      }
+      rval.getReturnVal().setValue( outStr ) ;
    done:
       return rc ;
    error:
       goto done ;
+
+#elif defined (_WINDOWS)
+      rval.getReturnVal().setValue( "" ) ;
+      return SDB_OK ;
+#endif
    }
 
    INT32 _sptUsrFile::setUmask( const _sptArguments &arg,
                                 _sptReturnVal &rval,
                                 BSONObj &detail )
    {
-      INT32 rc = SDB_OK ;
-      INT32 mask = 0 ;
-      string err ;
+#if defined(_LINUX)
+      INT32              rc = SDB_OK ;
+      INT32              mask ;
+      stringstream       cmd ;
+      _ossCmdRunner      runner ;
+      string             outStr ;
+      INT32              userMask ;
 
       rc = arg.getNative( 0, (void*)&mask, SPT_NATIVE_INT32 ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "Umask must be config" ) ;
+         detail = BSON( SPT_ERR << "umask must be config" ) ;
          goto error ;
       }
       if ( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << "Umask must be INT32" ) ;
+         detail = BSON( SPT_ERR << "umask must be INT32" ) ;
          goto error ;
       }
 
-      rc = _sptUsrFileCommon::setUmask( mask, err ) ;
-      if( SDB_OK != rc )
+      userMask = 0 ;
+      if ( mask & 0x0001 )
       {
-         detail = BSON( SPT_ERR << err ) ;
-         goto error ;
+         userMask |= S_IXOTH ;
       }
+      if ( mask & 0x0002 )
+      {
+         userMask |= S_IWOTH ;
+      }
+      if ( mask & 0x0004 )
+      {
+         userMask |= S_IROTH ;
+      }
+      if ( mask & 0x0008 )
+      {
+         userMask |= S_IXGRP ;
+      }
+      if ( mask & 0x0010 )
+      {
+         userMask |= S_IWGRP ;
+      }
+      if ( mask & 0x0020 )
+      {
+         userMask |= S_IRGRP ;
+      }
+      if ( mask & 0x0040 )
+      {
+         userMask |= S_IXUSR ;
+      }
+      if ( mask & 0x0080 )
+      {
+         userMask |= S_IWUSR ;
+      }
+      if ( mask & 0x0100 )
+      {
+         userMask |= S_IRUSR ;
+      }
+
+      umask( userMask ) ;
    done:
       return rc ;
    error:
       goto done ;
+
+#elif defined (_WINDOWS)
+      return SDB_OK ;
+#endif
    }
 
    INT32 _sptUsrFile::getPathType( const _sptArguments &arg,
@@ -1351,26 +2067,62 @@ JS_MAPPING_END()
       INT32 rc = SDB_OK ;
       string pathname ;
       string pathType ;
-      string err ;
+      CHAR   realPath[ OSS_MAX_PATHSIZE + 1] = { '\0' } ;
+      SDB_OSS_FILETYPE type ;
 
       rc = arg.getString( 0, pathname ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "Pathname must be config" ) ;
+         detail = BSON( SPT_ERR << "pathname must be config" ) ;
          goto error ;
       }
       if ( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << "Pathname must be string" ) ;
+         detail = BSON( SPT_ERR << "pathname must be string" ) ;
          goto error ;
       }
 
-      rc = _sptUsrFileCommon::getPathType( pathname, err, pathType ) ;
-      if( SDB_OK != rc )
+      if ( NULL == ossGetRealPath( pathname.c_str(),
+                                   realPath,
+                                   OSS_MAX_PATHSIZE + 1 ) )
       {
-         detail = BSON( SPT_ERR << err ) ;
+         rc = SDB_SYS ;
+         detail = BSON( SPT_ERR << "Failed to build real path" ) ;
          goto error ;
       }
+
+      rc = ossGetPathType( realPath, &type ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to get path type" ) ;
+         goto error ;
+      }
+
+      switch( type )
+      {
+         case SDB_OSS_FIL:
+            pathType = "FIL" ;
+            break ;
+         case SDB_OSS_DIR:
+            pathType = "DIR" ;
+            break ;
+         case SDB_OSS_SYM:
+            pathType = "SYM" ;
+            break ;
+         case SDB_OSS_DEV:
+            pathType = "DEV" ;
+            break ;
+         case SDB_OSS_PIP:
+            pathType = "PIP" ;
+            break ;
+         case SDB_OSS_SCK:
+            pathType = "SCK" ;
+            break ;
+         default:
+            pathType = "UNK" ;
+            break ;
+      }
+
       rval.getReturnVal().setValue( pathType ) ;
    done:
       return rc ;
@@ -1378,67 +2130,97 @@ JS_MAPPING_END()
       goto done ;
    }
 
-   INT32 _sptUsrFile::getPermission( const _sptArguments &arg,
-                                     _sptReturnVal &rval,
-                                     bson::BSONObj &detail )
-   {
-      INT32 rc = SDB_OK ;
-      string pathname ;
-      INT32 permission = 0 ;
-      string err ;
-
-      rc = arg.getString( 0, pathname ) ;
-      if ( SDB_OUT_OF_BOUND == rc )
-      {
-         detail = BSON( SPT_ERR << "Pathname must be config" ) ;
-         goto error ;
-      }
-      if ( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "Pathname must be string" ) ;
-         goto error ;
-      }
-
-      rc = _sptUsrFileCommon::getPermission( pathname, err, permission ) ;
-      if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << err ) ;
-         goto done ;
-      }
-      rval.getReturnVal().setValue( permission ) ;
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
 
    INT32 _sptUsrFile::isEmptyDir( const _sptArguments &arg,
                                   _sptReturnVal &rval,
                                   BSONObj &detail )
    {
-      INT32 rc = SDB_OK ;
-      BOOLEAN isEmpty = FALSE ;
-      string pathname ;
-      string err ;
+      INT32    rc      = SDB_OK ;
+      BOOLEAN  isEmpty = FALSE ;
+      UINT32             exitCode = 0 ;
+      string             pathname ;
+      SDB_OSS_FILETYPE   type ;
+       stringstream      cmd ;
+      _ossCmdRunner      runner ;
+      string             outStr ;
 
       rc = arg.getString( 0, pathname ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "Pathname must be config" ) ;
+         detail = BSON( SPT_ERR << "pathname must be config" ) ;
          goto error ;
       }
       if ( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << "Pathname must be string" ) ;
+         detail = BSON( SPT_ERR << "pathname must be string" ) ;
          goto error ;
       }
 
-      rc = _sptUsrFileCommon::isEmptyDir( pathname, err, isEmpty ) ;
-      if( SDB_OK != rc )
+      rc = ossAccess( pathname.c_str() ) ;
+      if ( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << err ) ;
-         goto done ;
+         detail = BSON( SPT_ERR << "pathname not exist" ) ;
+         goto error ;
       }
+
+      rc = ossGetPathType( pathname.c_str(), &type ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to get path type" ) ;
+         goto error ;
+      }
+      if ( SDB_OSS_DIR != type )
+      {
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << "pathname must be dir" ) ;
+         goto error ;
+      }
+
+#if defined (_LINUX)
+      cmd << "ls -A " << pathname << " | wc -w" ;
+#elif defined (_WINDOWS)
+      cmd << "cmd /C dir /b " << pathname ;
+#endif
+      rc = runner.exec( cmd.str().c_str(), exitCode,
+                        FALSE, -1, FALSE, NULL, TRUE ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to exec cmd, rc:%d, exit:%d",
+                 rc, exitCode ) ;
+         stringstream ss ;
+         ss << "failed to exec cmd " << cmd.str() << ",rc:"
+            << rc
+            << ",exit:"
+            << exitCode ;
+         detail = BSON( SPT_ERR << ss.str() ) ;
+         goto error ;
+      }
+
+      rc = runner.read( outStr ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to read msg from cmd runner:%d", rc ) ;
+         stringstream ss ;
+         ss << "failed to read msg from cmd \"" << cmd.str() << "\", rc:"
+            << rc ;
+         detail = BSON( SPT_ERR << ss.str() ) ;
+         goto error ;
+      }
+      if( !outStr.empty() && outStr[ outStr.size() - 1 ] == '\n' )
+      {
+         outStr.erase( outStr.size()-1, 1 ) ;
+      }
+#if defined (_LINUX)
+      if ( "0" == outStr )
+      {
+         isEmpty = TRUE ;
+      }
+#elif defined (_WINDOWS)
+      if ( outStr.empty() )
+      {
+         isEmpty = TRUE ;
+      }
+#endif
       rval.getReturnVal().setValue( isEmpty ? true : false ) ;
    done:
       return rc ;
@@ -1446,153 +2228,364 @@ JS_MAPPING_END()
       goto done ;
    }
 
+#if defined (_LINUX)
    INT32 _sptUsrFile::getStat( const _sptArguments &arg,
                                _sptReturnVal &rval,
                                BSONObj &detail )
    {
-      INT32 rc = SDB_OK ;
-      string pathname ;
-      string err ;
-      BSONObj retObj ;
+      INT32              rc = SDB_OK ;
+      UINT32             exitCode = 0 ;
+      string             pathname ;
+      stringstream       cmd ;
+      _ossCmdRunner      runner ;
+      string             outStr ;
+      vector<string>     splited ;
+      BSONObjBuilder     builder ;
+      string             fileType ;
 
       rc = arg.getString( 0, pathname ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
-         detail = BSON( SPT_ERR << "Filename must be config" ) ;
+         detail = BSON( SPT_ERR << "filename must be config" ) ;
          goto error ;
       }
       if ( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << "Filename must be string" ) ;
+         detail = BSON( SPT_ERR << "filename must be string" ) ;
          goto error ;
       }
 
-      rc = _sptUsrFileCommon::getStat( pathname, err, retObj ) ;
-      if( SDB_OK != rc )
+      cmd << "stat -c\"%n|%s|%U|%G|%x|%y|%z|%A\" " << pathname ;
+
+      rc = runner.exec( cmd.str().c_str(), exitCode,
+                        FALSE, -1, FALSE, NULL, TRUE ) ;
+      if ( SDB_OK != rc )
       {
-         detail = BSON( SPT_ERR << err ) ;
+         PD_LOG( PDERROR, "failed to exec cmd, rc:%d, exit:%d",
+                 rc, exitCode ) ;
+         stringstream ss ;
+         ss << "failed to exec cmd " << cmd.str() << ",rc:"
+            << rc
+            << ",exit:"
+            << exitCode ;
+         detail = BSON( SPT_ERR << ss.str() ) ;
          goto error ;
       }
-      rval.getReturnVal().setValue( retObj ) ;
+
+      rc = runner.read( outStr ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to read msg from cmd runner:%d", rc ) ;
+         stringstream ss ;
+         ss << "failed to read msg from cmd \"" << cmd.str() << "\", rc:"
+            << rc ;
+         detail = BSON( SPT_ERR << ss.str() ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != exitCode )
+      {
+         rc = exitCode ;
+         detail = BSON( SPT_ERR << outStr ) ;
+         goto error ;
+      }
+
+      /* extract result
+      format: xxx|xxx|xxx|xxx|xxx|xxx|xxx|xxx
+      explain: separate by '|'
+      col[0]: filename   e.g: /home/users/wjm/trunk/bin
+      col[1]: size       e.g: 4096
+      col[2]: usre name  e.g: root
+      col[3]: group name  e.g: root
+      col[4]: time of last access  e.g:2016-10-11 15:27:48.839198876 +0800
+      col[5]: time of last modification  e.g:2016-10-11 15:27:48.839198876 +0800
+      col[6]: time of last change e.g:2016-10-11 15:27:48.839198876 +0800
+      col[7]: access rights in human readable form   e.g: drwxrwxrwx
+      */
+      try
+      {
+         boost::algorithm::split( splited, outStr, boost::is_any_of( "\r\n" ) ) ;
+      }
+      catch( std::exception )
+      {
+         rc = SDB_SYS ;
+         detail = BSON( SPT_ERR << "Failed to split result" ) ;
+         PD_LOG( PDERROR, "Failed to split result" ) ;
+         goto error ;
+      }
+      for( vector<string>::iterator itr = splited.begin();
+           itr != splited.end();  )
+      {
+         if ( itr->empty() )
+         {
+            itr = splited.erase( itr ) ;
+         }
+         else
+         {
+            itr++ ;
+         }
+      }
+
+      for( vector<string>::iterator itr = splited.begin();
+           itr != splited.end(); itr++ )
+      {
+         vector<string> token ;
+         try
+         {
+            boost::algorithm::split( token, *itr, boost::is_any_of( "|" ) ) ;
+         }
+         catch( std::exception )
+         {
+            rc = SDB_SYS ;
+            detail = BSON( SPT_ERR << "Failed to split result" ) ;
+            PD_LOG( PDERROR, "Failed to split result" ) ;
+            goto error ;
+         }
+         for( vector<string>::iterator itr = token.begin();
+              itr != token.end(); )
+         {
+            if ( itr->empty() )
+            {
+               itr = token.erase( itr ) ;
+            }
+            else
+            {
+               itr++ ;
+            }
+         }
+         if( 8 != token.size() )
+         {
+            continue ;
+         }
+
+         switch( token[ 7 ][ 0 ] )
+         {
+            case '-':
+               fileType = "regular file" ;
+               break ;
+            case 'd':
+               fileType = "directory" ;
+               break ;
+            case 'c':
+               fileType = "character special file" ;
+               break ;
+            case 'b':
+               fileType = "block special file" ;
+               break ;
+            case 'l':
+               fileType = "symbolic link" ;
+               break ;
+            case 's':
+               fileType = "socket" ;
+               break ;
+            case 'p':
+               fileType = "pipe" ;
+               break ;
+            default:
+               fileType = "unknow" ;
+         }
+         builder.append( "name", token[ 0 ] ) ;
+         builder.append( "size", token[ 1 ] ) ;
+         builder.append( "mode", token[ 7 ].substr( 1 ) ) ;
+         builder.append( "user", token[ 2 ] ) ;
+         builder.append( "group", token[ 3 ] ) ;
+         builder.append( "accessTime", token[ 4 ] ) ;
+         builder.append( "modifyTime", token[ 5 ] ) ;
+         builder.append( "changeTime", token[ 6 ] ) ;
+         builder.append( "type", fileType ) ;
+         rval.getReturnVal().setValue( builder.obj() ) ;
+         goto done ;
+      }
+
+      rc = SDB_SYS ;
+      detail = BSON( SPT_ERR << "Failed to build result" ) ;
+      goto error ;
+
    done:
       return rc ;
    error:
       goto done ;
    }
 
+#elif defined (_WINDOWS)
+   INT32 _sptUsrFile::getStat( const _sptArguments &arg,
+                               _sptReturnVal &rval,
+                               BSONObj &detail )
+   {
+      INT32              rc = SDB_OK ;
+      string             pathname ;
+      string             fileType ;
+      SDB_OSS_FILETYPE   ossFileType ;
+      CHAR               realPath[ OSS_MAX_PATHSIZE + 1 ] = { '\0' } ;
+      BSONObjBuilder     builder ;
+      INT64              fileSize ;
+      stringstream       fileSizeStr ;
+
+      rc = arg.getString( 0, pathname ) ;
+      if ( SDB_OUT_OF_BOUND == rc )
+      {
+         detail = BSON( SPT_ERR << "filename must be config" ) ;
+         goto error ;
+      }
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "filename must be string" ) ;
+         goto error ;
+      }
+
+      if ( NULL == ossGetRealPath( pathname.c_str(),
+                                   realPath,
+                                   OSS_MAX_PATHSIZE + 1 ) )
+      {
+         rc = SDB_SYS ;
+         detail = BSON( SPT_ERR << "Failed to build real path" ) ;
+         goto error ;
+      }
+
+      rc = ossGetPathType( realPath, &ossFileType ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to get file type" ) ;
+         goto error ;
+      }
+      switch( ossFileType )
+      {
+         case SDB_OSS_FIL:
+            fileType = "regular file" ;
+            break ;
+         case SDB_OSS_DIR:
+            fileType = "directory" ;
+            break ;
+         default:
+            fileType = "unknow" ;
+      }
+
+      rc = ossGetFileSizeByName( realPath, &fileSize ) ;
+      if ( SDB_OK != rc )
+      {
+         detail = BSON( SPT_ERR << "Failed to get file size" ) ;
+         goto error ;
+      }
+      fileSizeStr << fileSize ;
+
+      builder.append( "name", pathname ) ;
+      builder.append( "size", fileSizeStr.str() ) ;
+      builder.append( "mode", "" ) ;
+      builder.append( "user", "" ) ;
+      builder.append( "group", "" ) ;
+      builder.append( "accessTime", "" ) ;
+      builder.append( "modifyTime", "" ) ;
+      builder.append( "changeTime", "" ) ;
+      builder.append( "type", fileType ) ;
+      rval.getReturnVal().setValue( builder.obj() ) ;
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+#endif
    INT32 _sptUsrFile::md5( const _sptArguments &arg,
                            _sptReturnVal &rval,
                            BSONObj &detail )
    {
       INT32 rc = SDB_OK ;
+      SINT64 bufSize = SPT_MD5_READ_LEN ;
+      SINT64 hasRead = 0 ;
+      CHAR readBuf[ SPT_MD5_READ_LEN + 1 ] = { 0 } ;
+      OSSFILE file ;
       string filename ;
+      stringstream ss ;
+      BOOLEAN isOpen = FALSE ;
+      md5_state_t st ;
+      md5_init( &st ) ;
+      md5::md5digest digest ;
       string code ;
-      string err ;
 
       if ( 0 == arg.argc() )
       {
          rc = SDB_OUT_OF_BOUND ;
-         err = "Filename must be config" ;
+         ss << "filename must be config" ;
          goto error ;
       }
-      rc = arg.getString( 0, filename ) ;
+      rc = arg.getString( 0,  filename ) ;
       if ( SDB_OK != rc )
       {
          rc = SDB_INVALIDARG ;
-         err = "Filename must be string" ;
+         ss << "filename must be string" ;
          goto error ;
       }
 
-      rc = _sptUsrFileCommon::md5( filename, err, code ) ;
-      if( SDB_OK != rc )
+      rc = ossOpen( filename.c_str(), OSS_READONLY | OSS_SHAREREAD,
+                    OSS_DEFAULTFILE, file ) ;
+      if ( rc )
       {
+         ss << "open file[" << filename.c_str() << "] failed: " << rc ;
          goto error ;
       }
+      isOpen = TRUE ;
+
+      while ( TRUE )
+      {
+         rc = ossReadN( &file, bufSize, readBuf, hasRead ) ;
+         if ( SDB_EOF == rc || 0 == hasRead )
+         {
+            rc = SDB_OK ;
+            break ;
+         }
+         else if ( rc )
+         {
+            ss << "Read file[" << filename.c_str() << "] failed, rc: " << rc ;
+            goto error ;
+         }
+         md5_append( &st, (const md5_byte_t *)readBuf, hasRead ) ;
+      }
+      md5_finish( &st, digest ) ;
+      code = md5::digestToString( digest ) ;
       rval.getReturnVal().setValue( code ) ;
    done:
+      if ( TRUE == isOpen )
+         ossClose( file ) ;
       return rc ;
    error:
-      detail = BSON( SPT_ERR << err ) ;
+      detail = BSON( SPT_ERR << ss.str() ) ;
       goto done ;
    }
 
-   INT32 _sptUsrFile::getFileSize( const _sptArguments &arg,
-                                   _sptReturnVal &rval,
-                                   BSONObj &detail )
-   {
-      INT32 rc = SDB_OK ;
-      string filename ;
-      INT64 size = 0 ;
-      string err ;
-
-      if( 0 == arg.argc() )
-      {
-         rc = SDB_OUT_OF_BOUND ;
-         detail = BSON( SPT_ERR << "Filename must be config" ) ;
-         goto error ;
-      }
-
-      rc = arg.getString( 0, filename ) ;
-      if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << "Filename must be string" ) ;
-         goto error ;
-      }
-
-      rc = _sptUsrFileCommon::getFileSize( filename, err, size ) ;
-      if( SDB_OK != rc )
-      {
-         detail = BSON( SPT_ERR << err ) ;
-         goto error ;
-      }
-      rval.getReturnVal().setValue( size ) ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _sptUsrFile::staticHelp( const _sptArguments &arg,
-                                  _sptReturnVal &rval,
-                                  BSONObj &detail )
+   INT32 _sptUsrFile::staticHelp( const _sptArguments & arg,
+                                  _sptReturnVal & rval,
+                                  BSONObj & detail )
    {
       stringstream ss ;
-      ss << "Methods to access:" << endl ;
-      ss << " var file = new File( filename, [permission], [mode] )" << endl ;
-      ss << " var file = remoteObj.getFile()" << endl ;
-      ss << " var file = remoteObj.getFile( [filename], [permission], [mode] )" << endl ;
-      ss << "File functions:" << endl ;
-      ss << "   read( [size] )" << endl ;
-      ss << "   write( content )" << endl ;
-      ss << "   readContent( [size] )" << endl ;
-      ss << "   writeContent( fileContent )" << endl ;
-      ss << "   readLine()" << endl ;
-      ss << "   seek( offset, [where] ) " << endl ;
-      ss << "   close()" << endl ;
-      ss << " File.remove( filepath )" << endl ;
-      ss << " File.exist( filepath )" << endl ;
-      ss << " File.copy( src, dst, [replace], [mode] )" << endl ;
-      ss << " File.move( src, dst )" << endl ;
-      ss << " File.mkdir( name, [mode] )" << endl ;
-      ss << " File.find( optionObj, [filterObj] )" << endl ;
+      ss << "Methods to access:" << endl
+         << " var file = new File( filename, [mode] )" << endl
+         << " var file = remoteObj.getFile()" << endl
+         << " var file = remoteObj.getFile( filename, [mode] )" << endl
+         << "File functions:" << endl
+         << "   read( [size] )" << endl
+         << "   write( content )" << endl
+         << "   seek( offset, [where] ) " << endl
+         << "   close()" << endl
+         << " File.remove( filepath )" << endl
+         << " File.exist( filepath )" << endl
+         << " File.copy( src, dst, [replace], [mode] )" << endl
+         << " File.move( src, dst )" << endl
+         << " File.mkdir( name, [mode] )" << endl
+         << " File.find( optionObj, [filterObj] )" << endl
 #if defined (_LINUX)
-      ss << " File.chmod( filename, mode, [recursive] )" << endl ;
-      ss << " File.chown( filename, optionObj, [recursive] )" << endl ;
-      ss << " File.chgrp( filename, groupname, [recursive] )" << endl ;
-      ss << " File.setUmask( umask )" << endl ;
-      ss << " File.getUmask( base )" << endl ;
+         << " File.chmod( filename, mode, [recursive] )" << endl
+         << " File.chown( filename, optionObj, [recursive] )" << endl
+         << " File.chgrp( filename, groupname, [recursive] )" << endl
+         << " File.setUmask( umask )" << endl
+         << " File.getUmask( base )" << endl
 #endif
-      ss << " File.list( [optionObj], [filterObj] )" << endl ;
-      ss << " File.isFile( pathname )" << endl ;
-      ss << " File.isDir( pathname )" << endl ;
-      ss << " File.isEmptyDir( dirName )" << endl ;
-      ss << " File.stat( filename )" << endl ;
-      ss << " File.md5( filename )" << endl ;
-      ss << " File.scp( srcFile, dstFile, [isReplace], [mode] )" << endl ;
-      ss << " File.getSize( filename )" << endl ;
+         << " File.list( [optionObj], [filterObj] )" << endl
+         << " File.isFile( pathname )" << endl
+         << " File.isDir( pathname )" << endl
+         << " File.isEmptyDir( dirName )" << endl
+         << " File.stat( filename )" << endl
+         << " File.md5( filename )" << endl ;
       rval.getReturnVal().setValue( ss.str() ) ;
       return SDB_OK ;
    }
+
 }
 

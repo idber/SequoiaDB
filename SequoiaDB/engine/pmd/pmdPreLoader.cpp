@@ -140,10 +140,5 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_PMDPRELOADERENENTPNT, rc );
       return rc;
    }
-
-   PMD_DEFINE_ENTRYPOINT( EDU_TYPE_PREFETCHER, FALSE,
-                          pmdPreLoaderEntryPoint,
-                          "PreLoader" ) ;
-
 }
 

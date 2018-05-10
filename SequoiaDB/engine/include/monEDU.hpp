@@ -37,26 +37,18 @@
 *******************************************************************************/
 #ifndef MONEDU_HPP_
 #define MONEDU_HPP_
-
 #include "core.hpp"
 #include "oss.hpp"
 #include "monCB.hpp"
 #include <set>
 #include <string>
-
 namespace engine
 {
 
-   /*
-      Common Define
-   */
-   #define MON_EDU_STATUS_SZ        (19)
-   #define MON_EDU_TYPE_SZ          (19)
-   #define MON_EDU_NAME_SZ          (127)
+#define MON_EDU_STATUS_SZ        (19)
+#define MON_EDU_TYPE_SZ          (19)
+#define MON_EDU_NAME_SZ          (127)
 
-   /*
-      _monEDUSimple define
-   */
    class _monEDUSimple : public SDBObject
    {
    public :
@@ -67,7 +59,6 @@ namespace engine
       CHAR     _eduName[MON_EDU_NAME_SZ+1] ;
       UINT64   _relatedNID ;
       UINT32   _relatedTID ;
-
       _monEDUSimple()
       {
          ossMemset ( _eduStatus, 0, sizeof(_eduStatus) ) ;
@@ -83,11 +74,8 @@ namespace engine
          return _eduID < r._eduID ;
       }
    } ;
-   typedef _monEDUSimple monEDUSimple ;
+   typedef class _monEDUSimple monEDUSimple ;
 
-   /*
-      _monEDUFull Define
-   */
    class _monEDUFull : public SDBObject
    {
    public :
@@ -101,9 +89,7 @@ namespace engine
       UINT64   _relatedNID ;
       UINT32   _relatedTID ;
       std::set<SINT64> _eduContextList ;
-
       monAppCB _monApplCB ;
-
    #if defined ( _WINDOWS )
       HANDLE _threadHdl ;
    #elif defined ( _LINUX )
@@ -132,9 +118,9 @@ namespace engine
          _tid            = rhs._tid ;
          _queueSize      = rhs._queueSize ;
          _processEventCount = rhs._processEventCount ;
-         ossStrcpy( _eduStatus, rhs._eduStatus ) ;
-         ossStrcpy( _eduType, rhs._eduType ) ;
-         ossStrcpy( _eduName, rhs._eduName ) ;
+         ossMemcpy( _eduStatus, rhs._eduStatus, sizeof( _eduStatus ) ) ;
+         ossMemcpy( _eduType, rhs._eduType, sizeof( _eduType ) ) ;
+         ossMemcpy( _eduName, rhs._eduName, sizeof(_eduName));
          _eduContextList = rhs._eduContextList ;
          _monApplCB      = rhs._monApplCB ;
          _threadHdl      = rhs._threadHdl ;
@@ -144,11 +130,8 @@ namespace engine
          return *this ;
       }
    } ;
-   typedef _monEDUFull monEDUFull ;
+   typedef class _monEDUFull monEDUFull ;
 
-   /*
-      _monContextFull Define
-   */
    class _monContextFull : public SDBObject
    {
    public :
@@ -175,8 +158,7 @@ namespace engine
          return *this ;
       }
    } ;
-   typedef _monContextFull monContextFull ;
-
+   typedef class _monContextFull monContextFull ;
 }
 
-#endif // MONEDU_HPP_
+#endif

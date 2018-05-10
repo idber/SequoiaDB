@@ -162,96 +162,7 @@ namespace DriverTest
                 sdb.RemoveReplicaGroup(groupName);
             }
         }
-
-
-        [TestMethod()]
-        [Ignore]
-        public void RgTempTest()
-        {
-            if (!isCluster)
-            {
-                return;
-            }
-            groupName = "SYSCoord";
-            SequoiaDB.Node master = null;
-            SequoiaDB.Node slave = null;
-
-            // case 1
-            group = sdb.GetReplicaGroup(groupName);
-            //master = group.GetMaster();
-            slave = group.GetSlave();
-            Console.WriteLine(String.Format("case1: group is: {0}, master is: {1}, slave is: {2}", groupName,
-                    master == null ? null : master.NodeName,
-                    slave == null ? null : slave.NodeName));
-            // case 2
-            int counter1 = 0;
-            int counter2 = 0;
-            string str1 = "susetzb:40000";
-            string str2 = "susetzb:42000";
-            for (int i = 0; i < 100; i++)
-            {
-                slave = group.GetSlave(1,2,3,4,5,6,7);
-                if (slave.NodeName.Equals(str1))
-                {
-                    counter1++;
-                }
-                else if (slave.NodeName.Equals(str2))
-                {
-                    counter2++;
-                }
-            }
-            Console.WriteLine("counter1 is: {0}, counter2 is: {1}", counter1, counter2);
-        }
-
-        private int _GetMasterPosition(ReplicaGroup group)
-        {
-            int primaryId = -1;
-            int primaryNodePosition = 0;
-            bool hasPrimary = true;
-            BsonDocument detail = group.GetDetail();
-            BsonValue groupValue = detail.Contains(SequoiadbConstants.FIELD_GROUP) ? detail[SequoiadbConstants.FIELD_GROUP] : null;
-            if (groupValue == null || !groupValue.IsBsonArray)
-            {
-                throw new BaseException("SDB_SYS");
-            }
-            BsonArray nodes = groupValue.AsBsonArray;
-            if (nodes.Count == 0)
-            {
-                throw new BaseException((int)Errors.errors.SDB_CLS_EMPTY_GROUP);
-            }
-            BsonValue primaryIdValue = detail.Contains(SequoiadbConstants.FIELD_PRIMARYNODE) ? detail[SequoiadbConstants.FIELD_PRIMARYNODE] : null;
-            if (primaryIdValue == null)
-            {
-                hasPrimary = false;
-            }
-            else if (!primaryIdValue.IsInt32)
-            {
-                throw new BaseException((int)Errors.errors.SDB_SYS);
-            }
-            else if ((primaryId = primaryIdValue.AsInt32) == -1)
-            {
-                hasPrimary = false;
-            }
-            // try to mark the position of primary node in the nodes list,
-            // the value of position is [1, 7]
-            int counter = 0;
-            foreach (BsonDocument node in nodes)
-            {
-                counter++;
-                BsonValue nodeIdValue = node.Contains(SequoiadbConstants.FIELD_NODEID) ? node[SequoiadbConstants.FIELD_NODEID] : null;
-                if (nodeIdValue == null || !nodeIdValue.IsInt32)
-                {
-                    throw new BaseException((int)Errors.errors.SDB_SYS, "invalid node id in node list");
-                }
-                int nodeId = nodeIdValue.AsInt32;
-                if (hasPrimary && primaryId == nodeId)
-                {
-                    primaryNodePosition = counter;
-                }
-            }
-            return primaryNodePosition;
-        }
-
+        
         [TestMethod()]
         public void GetMasterAndSlaveNodeTest()
         {
@@ -259,68 +170,11 @@ namespace DriverTest
             {
                 return;
             }
-            groupName = "SYSCatalogGroup";
+            //groupName = "db2";
             group = sdb.GetReplicaGroup(groupName);
-            BsonDocument detail = group.GetDetail();
-            BsonArray nodeList = (BsonArray)detail["Group"];
-            int primaryNodePosition = _GetMasterPosition(group);
-            int nodeCount = nodeList.Count;
-            Assert.IsTrue(nodeCount != 0);
-
-            SequoiaDB.Node master = null;
-            SequoiaDB.Node slave = null;
-
-            // case 1
-            master = group.GetMaster();
-            slave = group.GetSlave();
-            Console.WriteLine(String.Format("case1: group is: {0}, master is: {1}, slave is: {2}", groupName,
-                    master == null ? null : master.NodeName,
-                    slave == null ? null : slave.NodeName));
-            if (nodeCount == 1) {
-                Assert.AreEqual(master.NodeName, slave.NodeName);
-            } else {
-                Assert.AreNotEqual(master.NodeName, slave.NodeName);
-            }
-
-            // case 2
-            slave = group.GetSlave(1,2,3,4,5,6,7);
-            Console.WriteLine(String.Format("case2: group is: {0}, master is: {1}, slave is: {2}", groupName,
-                    master == null ? null : master.NodeName,
-                    slave == null ? null : slave.NodeName));
-            if (nodeCount == 1) {
-                Assert.AreEqual(master.NodeName, slave.NodeName);
-            } else {
-                Assert.AreNotEqual(master.NodeName, slave.NodeName);
-            }
-
-            // case 3
-            Random random = new Random();
-            int pos1 = random.Next(7) + 1;
-            int pos2 = 0;
-            while(true) {
-                pos2 = random.Next(7) + 1;
-                if (pos2 != pos1) {
-                    break;
-                }
-            }
-            //pos1 = 4; pos2 = 7;
-            slave = group.GetSlave(pos1, pos2);
-            Console.WriteLine(String.Format("case3: group is: {0}, master is: {1}, slave is: {2}", groupName,
-                    master == null ? null : master.NodeName,
-                    slave == null ? null : slave.NodeName));
-            if (nodeCount == 1) {
-                Assert.AreEqual(master.NodeName, slave.NodeName);
-            } else {
-                if ((pos1 % nodeCount == pos2 % nodeCount) && 
-                    (primaryNodePosition == (pos1 - 1) % nodeCount + 1))
-                {
-                    Assert.AreEqual(master.NodeName, slave.NodeName);
-                }
-                else
-                {
-                    Assert.AreNotEqual(master.NodeName, slave.NodeName);
-                }
-            }
+            SequoiaDB.Node master = group.GetMaster();
+            SequoiaDB.Node slave = group.GetSlave();
+            Console.WriteLine("group is: " + groupName + ", master is: " + master.NodeName + ", slave is: " + slave.NodeName);
         }
 
         [TestMethod()]

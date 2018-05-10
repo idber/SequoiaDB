@@ -119,8 +119,8 @@ namespace engine
          }
 
          BSONObj result( buffObj.data() ) ;
-         authUser   = result.getStringField( OM_AUTH_FIELD_USER ) ;
-         authPasswd = result.getStringField( OM_AUTH_FIELD_PASSWD ) ;
+         authUser   = result.getStringField( OM_BUSINESSAUTH_USER ) ;
+         authPasswd = result.getStringField( OM_BUSINESSAUTH_PASSWD ) ;
          break ;
       }
    done:
@@ -280,7 +280,7 @@ namespace engine
          arrayBuilder.append( result ) ;
       }
 
-      bsonBuilder.append( OM_BSON_BUSINESS_INFO, arrayBuilder.arr() ) ;
+      bsonBuilder.append( OM_BSON_FIELD_BUSINESS_INFO, arrayBuilder.arr() ) ;
       clusterBusinessInfo = bsonBuilder.obj() ;
 
    done:

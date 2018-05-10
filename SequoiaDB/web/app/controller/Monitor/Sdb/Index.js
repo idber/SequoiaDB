@@ -1,4 +1,3 @@
-//@ sourceURL=Index.js
 (function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
@@ -384,31 +383,24 @@
          SdbRest.Exec( sql, {
             'success': function( versionList ){
                $scope.moduleInfo['version'] = '' ;
-               var versionRemoval = {} ;
+               var i = 0 ;
                $.each( versionList, function( index, versionInfo ){
                   if( typeof( versionInfo['Version'] ) == 'object' )
                   {
-                     var versionStr = versionInfo['Version']['Major'] + '.' + versionInfo['Version']['Minor'] ;
-                     if( versionInfo['Version']['Fix'] > 0 )
-                     {
-                        versionStr += '.' + versionInfo['Version']['Fix'] ;
-                     }
-                     if( versionRemoval[versionStr] === 1 )
-                     {
-                        return true ;
-                     }
-                     if( index > 0 )
+                     if( i > 0 )
                      {
                         $scope.moduleInfo['version'] += ', ' ;
                      }
-                     versionRemoval[versionStr] = 1 ;
-                     $scope.moduleInfo['version'] += versionStr ;
+                     $scope.moduleInfo['version'] += versionInfo['Version']['Major'] + '.' + versionInfo['Version']['Minor'] ;
+                     if( versionInfo['Version']['Fix'] > 0 )
+                        $scope.moduleInfo['version'] += '.' + versionInfo['Version']['Fix'] ;
+                     ++i ;
                   }
                } ) ;
             },
             'failed': function( errorInfo ){
                _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  getVersion() ;
+                  getSessions() ;
                   return true ;
                } ) ;
             }
@@ -440,21 +432,18 @@
       //获取组信息
       var getGroups = function(){
          var data = { 'cmd': 'list groups' } ;
-         SdbRest.DataOperation( data, {
-            'success': function( groups ){
-               $scope.moduleInfo['groups'] = groups.length ;
-               $scope.moduleInfo['nodes'] = 0 ;
-               $.each( groups, function( index, value ){
-                  $scope.moduleInfo['nodes'] += value['Group'].length ;
-               } )
-            },
-            'failed': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  getGroups() ;
-                  return true ;
-               } ) ;
-            }
-         } ) ;
+         SdbRest.DataOperation( data, function( groups ){
+            $scope.moduleInfo['groups'] = groups.length ;
+            $scope.moduleInfo['nodes'] = 0 ;
+            $.each( groups, function( index, value ){
+               $scope.moduleInfo['nodes'] += value['Group'].length ;
+            } )
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               getGroups() ;
+               return true ;
+            } ) ;
+         }, null, null, null, false ) ;
       } ;
       if( moduleMode == 'distribution' )
          getGroups() ;
@@ -462,17 +451,14 @@
       //获取域数量
       var getDomains = function(){
          var data = { 'cmd': 'list domains' } ;
-         SdbRest.DataOperation( data, {
-            'success': function( domains ){
-               $scope.moduleInfo['domains'] = domains.length ;
-            },
-            'failed': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  getDomains() ;
-                  return true ;
-               } ) ;
-            }
-         } ) ;
+         SdbRest.DataOperation( data, function( domains ){
+            $scope.moduleInfo['domains'] = domains.length ;
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               getDomains() ;
+               return true ;
+            } ) ;
+         }, null, null, null, false ) ;
       } ;
       if( moduleMode == 'distribution' )
          getDomains();

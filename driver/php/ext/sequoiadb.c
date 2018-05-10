@@ -118,7 +118,6 @@ const zend_function_entry sdbFun[] = {
    PHP_ME( SequoiaDB, setSessionAttr,        NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaDB, getSessionAttr,        NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaDB, forceSession,          NULL, ZEND_ACC_PUBLIC )
-   PHP_ME( SequoiaDB, analyze,               NULL, ZEND_ACC_PUBLIC )
    PHP_MALIAS( SequoiaDB, getSnapshot, snapshot, NULL, ZEND_ACC_PUBLIC )
    PHP_MALIAS( SequoiaDB, getList,     list,     NULL, ZEND_ACC_PUBLIC )
    PHP_MALIAS( SequoiaDB, listCSs,     listCS,   NULL, ZEND_ACC_PUBLIC )
@@ -187,7 +186,6 @@ const zend_function_entry clFun[] = {
    PHP_ME( SequoiaCL, dropIdIndex,    NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaCL, openLob,        NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaCL, removeLob,      NULL, ZEND_ACC_PUBLIC )
-   PHP_ME( SequoiaCL, truncateLob,    NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaCL, listLob,        NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaCL, listLobPieces,  NULL, ZEND_ACC_PUBLIC )
    PHP_MALIAS( SequoiaCL, deleteIndex, dropIndex,
@@ -229,6 +227,7 @@ const zend_function_entry nodeFun[] = {
    PHP_ME( SequoiaNode, getName,        NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaNode, getHostName,    NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaNode, getServiceName, NULL, ZEND_ACC_PUBLIC )
+   PHP_ME( SequoiaNode, getStatus,      NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaNode, connect,        NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaNode, start,          NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaNode, stop,           NULL, ZEND_ACC_PUBLIC )
@@ -250,12 +249,9 @@ const zend_function_entry lobFun[] = {
    PHP_ME( SequoiaLob, close,         NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaLob, getSize,       NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaLob, getCreateTime, NULL, ZEND_ACC_PUBLIC )
-   PHP_ME( SequoiaLob, getModificationTime, NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaLob, write,         NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaLob, read,          NULL, ZEND_ACC_PUBLIC )
    PHP_ME( SequoiaLob, seek,          NULL, ZEND_ACC_PUBLIC )
-   PHP_ME( SequoiaLob, lock,          NULL, ZEND_ACC_PUBLIC )
-   PHP_ME( SequoiaLob, lockAndSeek,   NULL, ZEND_ACC_PUBLIC )
    PHP_FE_END
 };
 
@@ -463,8 +459,6 @@ PHP_MINIT_FUNCTION(sequoiadb)
    PHP_REGISTER_LONG_CONSTANT( "SDB_SNAP_CATA",                8 ) ;
    PHP_REGISTER_LONG_CONSTANT( "SDB_SNAP_TRANSACTIONS",        9 ) ;
    PHP_REGISTER_LONG_CONSTANT( "SDB_SNAP_TRANSACTIONS_CURRENT",10 ) ;
-   PHP_REGISTER_LONG_CONSTANT( "SDB_SNAP_ACCESSPLANS",         11 ) ;
-   PHP_REGISTER_LONG_CONSTANT( "SDB_SNAP_HEALTH",              12 ) ;
 
    /* waste */
    PHP_REGISTER_LONG_CONSTANT( "SDB_SNAP_COLLECTION",          4 ) ;
@@ -485,7 +479,7 @@ PHP_MINIT_FUNCTION(sequoiadb)
    PHP_REGISTER_LONG_CONSTANT( "SDB_LIST_DOMAINS",             9 ) ;
    PHP_REGISTER_LONG_CONSTANT( "SDB_LIST_TASKS",               10 ) ;
    PHP_REGISTER_LONG_CONSTANT( "SDB_LIST_TRANSACTIONS",        11 ) ;
-   PHP_REGISTER_LONG_CONSTANT( "SDB_LIST_TRANSACTIONS_CURRENT",12 ) ;
+   PHP_REGISTER_LONG_CONSTANT( "SDB_LIST_TRANSACTIONS_CURRENT", 12 ) ;
    PHP_REGISTER_LONG_CONSTANT( "SDB_LIST_CL_IN_DOMAIN",        129 ) ;
    PHP_REGISTER_LONG_CONSTANT( "SDB_LIST_CS_IN_DOMAIN",        130 ) ;
 
@@ -497,23 +491,18 @@ PHP_MINIT_FUNCTION(sequoiadb)
    PHP_REGISTER_LONG_CONSTANT( "SDB_FLG_FIND_FORCE_HINT",      0x00000080 ) ;
    PHP_REGISTER_LONG_CONSTANT( "SDB_FLG_FIND_PARALLED",        0x00000100 ) ;
    PHP_REGISTER_LONG_CONSTANT( "SDB_FLG_FIND_WITH_RETURNDATA", 0x00000200 ) ;
-
+   
    PHP_REGISTER_LONG_CONSTANT( "SDB_FLG_QUERY_FORCE_HINT",     0x00000080 ) ;
    PHP_REGISTER_LONG_CONSTANT( "SDB_FLG_QUERY_PARALLED",       0x00000100 ) ;
    PHP_REGISTER_LONG_CONSTANT( "SDB_FLG_QUERY_WITH_RETURNDATA",0x00000200 ) ;
-   PHP_REGISTER_LONG_CONSTANT( "SDB_FLG_QUERY_PREPARE_MORE",   0x00004000 ) ;
-   PHP_REGISTER_LONG_CONSTANT( "SDB_FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE", 0x00008000 ) ;
-
-   PHP_REGISTER_LONG_CONSTANT( "SDB_FLG_UPDATE_KEEP_SHARDINGKEY", 0x00008000 ) ;
 
    PHP_REGISTER_LONG_CONSTANT( "SDB_NODE_ALL",      0 ) ;
    PHP_REGISTER_LONG_CONSTANT( "SDB_NODE_ACTIVE",   1 ) ;
    PHP_REGISTER_LONG_CONSTANT( "SDB_NODE_INACTIVE", 2 ) ;
    PHP_REGISTER_LONG_CONSTANT( "SDB_NODE_UNKNOWN",  3 ) ;
-
+   
    PHP_REGISTER_LONG_CONSTANT( "SDB_LOB_CREATEONLY", 0x00000001 ) ;
    PHP_REGISTER_LONG_CONSTANT( "SDB_LOB_READ",       0x00000004 ) ;
-   PHP_REGISTER_LONG_CONSTANT( "SDB_LOB_WRITE",      0x00000008 ) ;
    PHP_REGISTER_LONG_CONSTANT( "SDB_LOB_SET", 1 ) ;
    PHP_REGISTER_LONG_CONSTANT( "SDB_LOB_CUR", 2 ) ;
    PHP_REGISTER_LONG_CONSTANT( "SDB_LOB_END", 3 ) ;
@@ -593,7 +582,7 @@ PHP_FUNCTION( sdbInitClient )
    sdbConf.enableCacheStrategy = enableCacheStrategy ;
    sdbConf.cacheTimeInterval = (UINT32)cacheTimeInterval ;
    rc = initClient( &sdbConf ) ;
-
+                             
    if( rc )
    {
       goto error ;

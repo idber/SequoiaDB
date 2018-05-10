@@ -31,6 +31,7 @@
 *******************************************************************************/
 #include "omStrategyMgr.hpp"
 #include "omDef.hpp"
+#include "catCommon.hpp"
 #include "rtn.hpp"
 #include "../util/fromjson.hpp"
 
@@ -72,7 +73,7 @@ namespace engine
       m_pDmsCB = m_pKrCB->getDMSCB() ;
       m_pRtnCB = m_pKrCB->getRTNCB() ;
 
-      rc = rtnTestAndCreateCL( OM_CS_STRATEGY_CL_BUSINESS_TASK_PRO,
+      rc = catTestAndCreateCL( OM_CS_STRATEGY_CL_BUSINESS_TASK_PRO,
                                cb, m_pDmsCB, NULL, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create collection(name:%s, rc:%d)",
                    OM_CS_STRATEGY_CL_BUSINESS_TASK_PRO, rc ) ;
@@ -80,7 +81,7 @@ namespace engine
       rc = fromjson ( OM_CS_STRATEGY_CL_BUSINESSTASKPROIDX1, indexDef ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to build index object, rc = %d",
                     rc ) ;
-      rc = rtnTestAndCreateIndex( OM_CS_STRATEGY_CL_BUSINESS_TASK_PRO,
+      rc = catTestAndCreateIndex( OM_CS_STRATEGY_CL_BUSINESS_TASK_PRO,
                                   indexDef, cb, m_pDmsCB, NULL, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create index(cl:%s, index:%s, rc:%d)",
                    OM_CS_STRATEGY_CL_BUSINESS_TASK_PRO, OM_CS_STRATEGY_CL_BUSINESSTASKPROIDX1,
@@ -265,22 +266,15 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Query failed(rc=%d)!", rc ) ;
       rc = rtnGetMore( contextID, 1, buffObj, cb, m_pRtnCB ) ;
-      if ( rc )
-      {
-         if ( SDB_DMS_EOC != rc )
-         {
-            PD_LOG( PDERROR, "Get more failed, rc: %d", rc ) ;
-         }
-         contextID = -1 ;
-         goto error ;
-      }
+      PD_RC_CHECK( rc, PDERROR,
+                   "Getmore failed(rc=%d)!", rc ) ;
       rc = buffObj.nextObj( recordObj ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get the record, rc: %d", rc ) ;
-
+      PD_RC_CHECK( rc, PDERROR,
+                   "Failed to get the record(rc=%d)!", rc ) ;
    done:
-      if ( contextID != -1 )
+      if ( rc != SDB_DMS_EOC && contextID != -1 )
       {
-         m_pRtnCB->contextDelete( contextID, cb ) ;
+         rtnKillContexts(1, &contextID, cb, m_pRtnCB ) ;
       }
       return rc ;
    error:
@@ -342,7 +336,7 @@ namespace engine
       rc = incRecordRuleID( strategyInfo._id, cb ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to inc ruleID(rc=%d)!", rc ) ;
-
+      
       rc = strategyInfo.toBSON( obj ) ;
       PD_CHECK( SDB_OK ==rc, rc, rollback, PDERROR,
                 "Failed to generate the bson-obj(rc=%d)!",
@@ -475,7 +469,6 @@ namespace engine
       goto done ;
    }
 
-   /*
    INT32 omStrategyMgr::getTaskStrategy( const std::string &taskName,
                                          const std::string &userName,
                                          const std::string &IP )
@@ -487,5 +480,4 @@ namespace engine
    error:
       goto done ;
    }
-   */
 }

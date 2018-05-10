@@ -1,7 +1,7 @@
 <DeployModList type="array">
 	<FILLER>
 		<DeployMod>distribution</DeployMod>
-		<WebName>Distribution Mode</WebName>
+		<WebName>Cluster Mode</WebName>
 		<BusinessType>sequoiadb</BusinessType>
                 <Property type="array">
                 	<FILLER>

@@ -123,11 +123,6 @@ INT32 clientBuildRemoveLobMsgCpp( CHAR **ppBuffer, INT32 *bufferSize,
                                   SINT32 flags, SINT16 w,
                                   UINT64 reqID,
                                   BOOLEAN endianConvert ) ;
-INT32 clientBuildTruncateLobMsgCpp( CHAR **ppBuffer, INT32 *bufferSize,
-                                    const CHAR *pMeta,
-                                    SINT32 flags, SINT16 w,
-                                    UINT64 reqID,
-                                    BOOLEAN endianConvert ) ;
 #else
 INT32 clientBuildUpdateMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                              const CHAR *CollectionName, SINT32 flag,
@@ -182,12 +177,6 @@ INT32 clientBuildRemoveLobMsg( CHAR **ppBuffer, INT32 *bufferSize,
                                SINT32 flags, SINT16 w,
                                UINT64 reqID,
                                BOOLEAN endianConvert ) ;
-
-INT32 clientBuildTruncateLobMsg( CHAR **ppBuffer, INT32 *bufferSize,
-                                 const bson *meta,
-                                 SINT32 flags, SINT16 w,
-                                 UINT64 reqID,
-                                 BOOLEAN endianConvert ) ;
 
 #endif
 INT32 clientBuildGetMoreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
@@ -270,11 +259,6 @@ INT32 clientBuildReadLobMsg( CHAR **ppBuffer, INT32 *bufferSize,
 INT32 clientBuildWriteLobMsg( CHAR **ppBuffer, INT32 *bufferSize,
                               const CHAR *buf, UINT32 len,
                               SINT64 offset, SINT32 flags, SINT16 w,
-                              SINT64 contextID, UINT64 reqID,
-                              BOOLEAN endianConvert ) ;
-INT32 clientBuildLockLobMsg( CHAR ** ppBuffer, INT32 *bufferSize,
-                              INT64 offset, INT64 length,
-                              SINT32 flags, SINT16 w,
                               SINT64 contextID, UINT64 reqID,
                               BOOLEAN endianConvert ) ;
 INT32 clientBuildCloseLobMsg( CHAR **ppBuffer, INT32 *bufferSize,

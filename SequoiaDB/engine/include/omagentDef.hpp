@@ -123,18 +123,10 @@ namespace engine
    #define OMA_CMD_UPDATE_HOSTS                       OM_UPDATE_HOSTNAME_REQ
    #define OMA_CMD_QUERY_HOST_STATUS                  OM_QUERY_HOST_STATUS_REQ
 
-   #define OMA_CMD_SYNC_BUSINESS_CONF                 OM_SYNC_BUSINESS_CONF_REQ
-
-   #define OMA_CMD_CREATE_RELATIONSHIP                OM_CREATE_RELATIONSHIP_REQ
-   #define OMA_CMD_REMOVE_RELATIONSHIP                OM_REMOVE_RELATIONSHIP_REQ
-
-   #define OMA_CMD_START_PLUGIN                       "start plugins"
-   #define OMA_CMD_STOP_PLUGIN                        "stop plugins"
 
    /*
       oma background command
    */
-
    #define OMA_CMD_ADD_HOST                           OM_ADD_HOST_REQ
    #define OMA_CMD_REMOVE_HOST                        OM_REMOVE_HOST_REQ
    #define OMA_CMD_CHECK_ADD_HOST_INFO                "check add host info"
@@ -149,11 +141,6 @@ namespace engine
    #define OMA_CMD_RM_CATA_RG                         "remove cataloggroup"
    #define OMA_CMD_RM_COORD_RG                        "remove coordgroup"
    #define OMA_CMD_RM_DATA_RG                         "remove datagroup"
-   #define OMA_CMD_EXTEND_SEQUOIADB                   "extend sequoiadb"
-   #define OMA_CMD_SHRINK_BUSINESS                    "shrink business"
-   #define OMA_CMD_DEOLOY_PACKAGE                     "deploy package"
-   #define OMA_CMD_ADD_BUSINESS                       "add business"
-   #define OMA_CMD_REMOVE_BUSINESS                    "remove business"
    #define OMA_ROLLBACK_STANDALONE                    "rollback installed standalone"
    #define OMA_ROLLBACK_CATALOG                       "rollback installed catalog"
    #define OMA_ROLLBACK_COORD                         "rollback installed coord"
@@ -183,6 +170,7 @@ namespace engine
       oma js file
    */
    #define FILE_DEFINE                      "define.js"
+   #define FILE_ERROR                       "error.js"
    #define FILE_COMMON                      "common.js"
    #define FILE_LOG                         "log.js"
    #define FILE_FUNC                        "func.js"
@@ -219,18 +207,6 @@ namespace engine
    #define FILE_ROLLBACK_COORD              "rollbackCoord.js"
    #define FILE_ROLLBACK_DATA_RG            "rollbackDataRG.js"
 
-   #define FILE_ADD_BUSINESS                "addBusiness.js"
-   #define FILE_REMOVE_BUSINESS             "removeBusiness.js"
-   #define FILE_EXTEND_SEQUOIADB            "extendSequoiaDB.js"
-   #define FILE_SHRINK_BUSINESS             "shrinkBusiness.js"
-
-   #define FILE_DEPLOY_PACKAGE              "deployPackage.js"
-
-   #define FILE_SYNC_BUSINESS_CONF          "syncBusinessConf.js"
-
-   #define FILE_CREATE_RELATIONSHIP         "createRelationship.js"
-   #define FILE_REMOVE_RELATIONSHIP         "removeRelationship.js"
-
    #define FILE_INIT_ENV                    "initEnv.js"
    #define FILE_INSTALL_ZOOKEEPER           "installZNode.js"
    #define FILE_REMOVE_ZOOKEEPER            "removeZNode.js"
@@ -249,9 +225,6 @@ namespace engine
    #define FILE_RUN_PSQL                    "runPsql.js"
    #define FILE_CLEAN_SSQL_EXEC             "cleanPsql.js"
    #define FILE_GET_PSQL                    "getPsql.js"
-
-   #define FILE_START_PLUGINS               "startPlugins.js"
-   #define FILE_STOP_PLUGINS                "stopPlugins.js"
 
    /*
       oma js argument type
@@ -274,9 +247,6 @@ namespace engine
    */
    #define DEPLAY_SA                        "standalone"
    #define DEPLAY_DB                        "distribution"
-
-   #define EXTEND_HORZ                      "horizontal"
-   #define EXTEND_VERT                      "vertical"
 
    /*
       oma misc
@@ -333,8 +303,7 @@ namespace engine
    #define OMA_REMOTE_FILE_OPEN                   "file open"
    #define OMA_REMOTE_FILE_READ                   "file read"
    #define OMA_REMOTE_FILE_WRITE                  "file write"
-   #define OMA_REMOTE_FILE_SEEK                   "file seek"
-   #define OMA_REMOTE_FILE_CLOSE                  "file close"
+   #define OMA_REMOTE_FILE_seek                   "file seek"
    #define OMA_REMOTE_FILE_REMOVE                 "file remove"
    #define OMA_REMOTE_FILE_ISEXIST                "file is exist"
    #define OMA_REMOTE_FILE_COPY                   "file copy"
@@ -352,8 +321,6 @@ namespace engine
    #define OMA_REMOTE_FILE_STAT                   "file stat"
    #define OMA_REMOTE_FILE_MD5                    "file md5"
    #define OMA_REMOTE_FILE_GET_CONTENT_SIZE       "file get content size"
-   #define OMA_REMOTE_FILE_GET_PERMISSION         "file get permission"
-   #define OMA_REMOTE_FILE_READ_LINE              "file read line"
    #define OMA_REMOTE_OMA_TEST                    "oma test"
    #define OMA_REMOTE_OMA_GET_OMA_INSTALL_FILE    "oma get oma install file"
    #define OMA_REMOTE_OMA_GET_OMA_INSTALL_INFO    "oma get oma install info"

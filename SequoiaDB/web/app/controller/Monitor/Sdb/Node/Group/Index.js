@@ -1,5 +1,4 @@
-﻿//@ sourceURL=Index.js
-(function(){
+﻿(function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
    sacApp.controllerProvider.register( 'Monitor.SdbGroup.Index.Ctrl', function( $scope, $compile, $location, SdbRest, SdbFunction ){
@@ -49,7 +48,6 @@
          },
          'callback': {}
       } ;
-      
 
       //状态信息
       var setStatusMsg = function(){
@@ -73,6 +71,71 @@
          }
       }
 
+      //启动节点
+      var startNode = function( hostname, svcname ){
+         var data = { 'cmd': 'start node', 'HostName': hostname, 'svcname': svcname } ;
+         SdbRest.DataOperation( data, function(){
+            getGroupList() ;
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               startNode( hostname, svcname ) ;
+               return true ;
+            } ) ;
+         } ) ;
+      }
+
+      //停止节点
+      var stopNode = function( hostname, svcname ){
+         var data = { 'cmd': 'stop node', 'HostName': hostname, 'svcname': svcname } ;
+         SdbRest.DataOperation( data, function(){
+            getGroupList() ;
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               stopNode( hostname, svcname ) ;
+               return true ;
+            } ) ;
+         } ) ;
+      }
+
+      //打开 启动节点 窗口
+      $scope.OpenStartNodeWindow = function(){
+         if( $scope.StartNode['config']['select'].length > 0 )
+         {
+            //设置确定按钮
+            $scope.StartNode['callback']['SetOkButton']( $scope.autoLanguage( '确定' ), function(){
+               var hostname = $scope.StartNode['config']['value'].split( ':' ) ;
+               var svcname  = hostname[1] ;
+               hostname = hostname[0] ;
+               startNode( hostname, svcname ) ;
+               return true ;
+            } ) ;
+            //关闭窗口滚动条
+            $scope.StartNode['callback']['DisableBodyScroll']() ;
+            //设置标题
+            $scope.StartNode['callback']['SetTitle']( $scope.autoLanguage( '启动节点' ) ) ;
+            $scope.StartNode['callback']['Open']() ;
+         }
+      }
+
+      //打开 停止节点 窗口
+      $scope.OpenStopNodeWindow = function(){
+         if( $scope.StopNode['config']['select'].length > 0 )
+         {
+            //设置确定按钮
+            $scope.StopNode['callback']['SetOkButton']( $scope.autoLanguage( '确定' ), function(){
+               var hostname = $scope.StopNode['config']['value'].split( ':' ) ;
+               var svcname  = hostname[1] ;
+               hostname = hostname[0] ;
+               stopNode( hostname, svcname ) ;
+               return true ;
+            } ) ;
+            //关闭窗口滚动条
+            $scope.StopNode['callback']['DisableBodyScroll']() ;
+            //设置标题
+            $scope.StopNode['callback']['SetTitle']( $scope.autoLanguage( '停止节点' ) ) ;
+            $scope.StopNode['callback']['Open']() ;
+         }
+      }
       
       //获取CL列表
       var getClList = function(){
@@ -197,76 +260,71 @@
          $scope.StartNode['config']['select'] = [] ;
          $scope.StopNode['config']['select']  = [] ;
          var data = { 'cmd': 'list groups' } ;
-         SdbRest.DataOperation( data, {
-            'success': function( groups ){
-               if( groups.length > 0 )
+         SdbRest.DataOperation( data, function( groups ){
+            if( groups.length > 0 )
+            {
+               $.each( groups, function( index, groupInfo ){
+                  if( groupInfo['GroupName'] == groupName )
+                  {
+                     groupInfo['ErrNodes'] = [] ;
+                     $.each( groupInfo['Group'], function( nodeIndex, nodeInfo ){
+                        groupInfo['PrimaryNodeName'] = '-' ;
+                        groupInfo['Group'][nodeIndex]['NodeName'] = nodeInfo['HostName'] + ':' + nodeInfo['Service'][0]['Name'] ;
+                        groupInfo['Group'][nodeIndex]['TotalRecords'] = 0 ;
+                        groupInfo['Group'][nodeIndex]['ErrInfo'] = false ;
+                        groupInfo['Group'][nodeIndex]['LSN'] = '-' ;
+                     } ) ;
+                     $scope.groupInfo = groupInfo ;
+                  }
+               } ) ;
+               if( groupName === 'SYSCoord' )
                {
-                  $.each( groups, function( index, groupInfo ){
-                     if( groupInfo['GroupName'] == groupName )
+                  $.each( $scope.groupInfo['Group'], function( index, nodeInfo ){
+                     getCoordStatus( nodeInfo, nodeInfo['HostName'], nodeInfo['Service'][0]['Name'] ) ;
+                  } ) ;
+               }
+               else
+               {
+                  $.each( $scope.groupInfo['Group'], function( index, nodeInfo ){
+                     //获取主节点节点名
+                     if( $scope.groupInfo['PrimaryNode'] == nodeInfo['NodeID'] && $scope.groupInfo['Role'] != 1 )
                      {
-                        groupInfo['ErrNodes'] = [] ;
-                        $.each( groupInfo['Group'], function( nodeIndex, nodeInfo ){
-                           groupInfo['PrimaryNodeName'] = '-' ;
-                           groupInfo['Group'][nodeIndex]['NodeName'] = nodeInfo['HostName'] + ':' + nodeInfo['Service'][0]['Name'] ;
-                           groupInfo['Group'][nodeIndex]['TotalRecords'] = 0 ;
-                           groupInfo['Group'][nodeIndex]['ErrInfo'] = false ;
-                        } ) ;
-                        $scope.groupInfo = groupInfo ;
+                        $scope.groupInfo['PrimaryNodeName'] = nodeInfo['HostName'] + ':' + nodeInfo['Service'][0]['Name'] ;
+                        $scope.PrimaryNode = { 'hostName': nodeInfo['HostName'], 'serviceName': nodeInfo['Service'][0]['Name'] } ;
                      }
                   } ) ;
-                  if( groupName === 'SYSCoord' )
-                  {
-                     $.each( $scope.groupInfo['Group'], function( index, nodeInfo ){
-                        getCoordStatus( nodeInfo, nodeInfo['HostName'], nodeInfo['Service'][0]['Name'] ) ;
-                     } ) ;
-                  }
-                  else
-                  {
-                     $.each( $scope.groupInfo['Group'], function( index, nodeInfo ){
-                        //获取主节点节点名
-                        if( $scope.groupInfo['PrimaryNode'] == nodeInfo['NodeID'] && $scope.groupInfo['Role'] != 1 )
-                        {
-                           $scope.groupInfo['PrimaryNodeName'] = nodeInfo['HostName'] + ':' + nodeInfo['Service'][0]['Name'] ;
-                           $scope.PrimaryNode = { 'hostName': nodeInfo['HostName'], 'serviceName': nodeInfo['Service'][0]['Name'] } ;
-                        }
-                     } ) ;
-                     getClList() ;
-                  }
+                  getClList() ;
                }
-            },
-            'failed': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  getGroupList() ;
-                  return true ;
-               } ) ;
             }
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               getGroupList() ;
+               return true ;
+            } ) ;
          } ) ;
       }
 
       //获取domain列表
       var getDomainList = function(){
          var data = { 'cmd': 'list domains' } ;
-         SdbRest.DataOperation( data, {
-            'success': function( domainList ){
-               var groupInDomainList = [] ;
-               $.each( domainList, function( index, domainInfo ){
-                  $.each( domainInfo['Groups'], function( index2, groupInfo ){
-                     if( groupInfo['GroupName'] == groupName )
-                     {
-                        groupInDomainList.push( domainInfo['Name'] ) ;
-                        return false ;
-                     }
-                  } ) ;
-                  $scope.DomainList = groupInDomainList.join() ;
+         SdbRest.DataOperation( data, function( domainList ){
+            var groupInDomainList = [] ;
+            $.each( domainList, function( index, domainInfo ){
+               $.each( domainInfo['Groups'], function( index2, groupInfo ){
+                  if( groupInfo['GroupName'] == groupName )
+                  {
+                     groupInDomainList.push( domainInfo['Name'] ) ;
+                     return false ;
+                  }
                } ) ;
-               $scope
-            },
-            'failed': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  getDomainList() ;
-                  return true ;
-               } ) ;
-            }
+               $scope.DomainList = groupInDomainList.join() ;
+            } ) ;
+            $scope
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               getDomainList() ;
+               return true ;
+            } ) ;
          } ) ;
       }
 
@@ -274,79 +332,6 @@
          getDomainList() ;
 
       getGroupList() ;
-
-      //启动节点
-      var startNode = function( hostname, svcname ){
-         var data = { 'cmd': 'start node', 'HostName': hostname, 'svcname': svcname } ;
-         SdbRest.DataOperation( data, {
-            'success': function(){
-               getGroupList() ;
-            },
-            'falied': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  startNode( hostname, svcname ) ;
-                  return true ;
-               } ) ;
-            }
-         } ) ;
-      }
-
-      //停止节点
-      var stopNode = function( hostname, svcname ){
-         var data = { 'cmd': 'stop node', 'HostName': hostname, 'svcname': svcname } ;
-         SdbRest.DataOperation( data, {
-            'success': function(){
-               getGroupList() ;
-            },
-            'failed': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  stopNode( hostname, svcname ) ;
-                  return true ;
-               } ) ;
-            }
-         } ) ;
-      }
-
-      //打开 启动节点 窗口
-      $scope.OpenStartNodeWindow = function(){
-         if( $scope.StartNode['config']['select'].length > 0 )
-         {
-            //设置确定按钮
-            $scope.StartNode['callback']['SetOkButton']( $scope.autoLanguage( '确定' ), function(){
-               var hostname = $scope.StartNode['config']['value'].split( ':' ) ;
-               var svcname  = hostname[1] ;
-               hostname = hostname[0] ;
-               startNode( hostname, svcname ) ;
-               return true ;
-            } ) ;
-            //关闭窗口滚动条
-            $scope.StartNode['callback']['DisableBodyScroll']() ;
-            //设置标题
-            $scope.StartNode['callback']['SetTitle']( $scope.autoLanguage( '启动节点' ) ) ;
-            $scope.StartNode['callback']['Open']() ;
-         }
-      }
-
-      //打开 停止节点 窗口
-      $scope.OpenStopNodeWindow = function(){
-         if( $scope.StopNode['config']['select'].length > 0 )
-         {
-            //设置确定按钮
-            $scope.StopNode['callback']['SetOkButton']( $scope.autoLanguage( '确定' ), function(){
-               var hostname = $scope.StopNode['config']['value'].split( ':' ) ;
-               var svcname  = hostname[1] ;
-               hostname = hostname[0] ;
-               stopNode( hostname, svcname ) ;
-               return true ;
-            } ) ;
-            //关闭窗口滚动条
-            $scope.StopNode['callback']['DisableBodyScroll']() ;
-            //设置标题
-            $scope.StopNode['callback']['SetTitle']( $scope.autoLanguage( '停止节点' ) ) ;
-            $scope.StopNode['callback']['Open']() ;
-         }
-      }
-      
 
       //跳转至节点信息
       $scope.GotoNode = function( hostName, serviceName ){

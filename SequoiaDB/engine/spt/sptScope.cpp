@@ -35,8 +35,7 @@
 #include "sptObjDesc.hpp"
 #include "ossUtil.hpp"
 #include "sptCommon.hpp"
-#include <algorithm>
-using namespace std ;
+
 namespace engine
 {
 
@@ -126,52 +125,5 @@ namespace engine
       return rc ;
    error:
       goto done ;
-   }
-
-   void _sptScope::pushJSFileNameToStack( const string &filename )
-   {
-      _fileNameStack.push_back( filename ) ;
-   }
-
-   void _sptScope::popJSFileNameFromStack()
-   {
-      _fileNameStack.pop_back() ;
-   }
-
-   INT32 _sptScope::getStackSize()
-   {
-      return _fileNameStack.size() ;
-   }
-
-   void _sptScope::addJSFileNameToList( const string &filename )
-   {
-      _fileNameList.push_back( filename ) ;
-   }
-
-   void _sptScope::clearJSFileNameList()
-   {
-      _fileNameList.clear() ;
-   }
-
-   BOOLEAN _sptScope::isJSFileNameExistInStack( const string &filename )
-   {
-      BOOLEAN isExist = FALSE ;
-      if( find( _fileNameStack.begin(), _fileNameStack.end(), filename )
-          != _fileNameStack.end() )
-      {
-         isExist = TRUE ;
-      }
-      return isExist ;
-   }
-
-   BOOLEAN _sptScope::isJSFileNameExistInList( const string &filename )
-   {
-      BOOLEAN isExist = FALSE ;
-      if( find( _fileNameList.begin(), _fileNameList.end(), filename )
-          != _fileNameList.end() )
-      {
-         isExist = TRUE ;
-      }
-      return isExist ;
    }
 }

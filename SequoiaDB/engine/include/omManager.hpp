@@ -127,11 +127,6 @@ namespace engine
          INT32             refreshVersions() ;
          void              updateClusterVersion( string cluster ) ;
          void              removeClusterVersion( string cluster ) ;
-         void              updateClusterHostFilePrivilege( string clusterName,
-                                                           BOOLEAN privilege ) ;
-         void getPluginPasswd( string &passwd ) ;
-
-         void getUpdatePluginPasswdTimeDiffer( INT64 &differ ) ;
 
          omTaskManager     *getTaskManager() ;
 
@@ -147,8 +142,6 @@ namespace engine
 
          INT32             _initOmTables() ;
 
-         void              _getOMVersion( string &version ) ;
-
          INT32             _appendBusinessInfo( const string &businessName, 
                                                 const string &businessType, 
                                                 const string &clusterName,
@@ -159,13 +152,8 @@ namespace engine
                                               string &clusterName,
                                               string &deployMode ) ;
 
-         INT32             _appendHostPackage( const string &hostName,
-                                               const BSONObj &packageInfo ) ;
-
          INT32             _updateConfTable() ;
          INT32             _updateBusinessTable() ;
-         INT32             _updateClusterTable() ;
-         INT32             _updateHostTable() ;
          INT32             _updateTable() ;
 
          INT32             _createJobs() ;
@@ -195,16 +183,12 @@ namespace engine
                                            INT32 flag, 
                                            rtnContextBuf &buffObj ) ;
 
-         void              _checkTaskTimeout( const BSONObj &task ) ;
+         void              _checkSsqlTimeout() ;
 
-         INT32 _updatePluginPasswd() ;
+         void              _checkTaskTimeout( const BSONObj &task ) ;
 
          void              _createVersionFile() ;
 
-      private:
-         INT32 _appendClusterGrant( const string& clusertName,
-                                    const string& grantName,
-                                    BOOLEAN privilege ) ;
 
       protected:
 
@@ -235,12 +219,9 @@ namespace engine
 
          omTaskManager                          *_taskManager ;
 
-         INT64                                  _updateTimestamp ;
-         UINT64                                 _updatePluinUsrTimer ;
+         UINT64                                 _ssqlCheckTimer ;
 
          BOOLEAN                                _isInitTable ;
-
-         string                                 _usrPluginPasswd ;
    } ;
 
    typedef _omManager omManager ;

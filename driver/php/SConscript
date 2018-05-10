@@ -54,8 +54,6 @@ clientLibFiles2 = [
       root_dir + "/../../SequoiaDB/engine/client/bson/bson.c",
       root_dir + "/../../SequoiaDB/engine/client/bson/common_decimal.c",
       root_dir + "/../../SequoiaDB/engine/include/common_decimal.h",
-      root_dir + "/../../SequoiaDB/engine/include/common_decimal_fun.h",
-      root_dir + "/../../SequoiaDB/engine/include/common_decimal_type.h",
       root_dir + "/../../SequoiaDB/engine/client/bson/encoding.c"
       ]
 env.Execute(Mkdir(root_dir + "/ext/temp"))

@@ -171,7 +171,7 @@ namespace engine
          BSONObj   _taskIDObj ;
    } ;
 
-   /***************************** handle interrupt task ***********************/
+   /***************************** handle interrupt task **************************/
    /*
       _omaHandleInterruptTask
    */
@@ -191,7 +191,7 @@ namespace engine
          INT64    _taskID ;
    } ;
 
-   /***************************** handle ssql get more ************************/
+   /***************************** handle ssql get more **************************/
    /*
       _omaHandleSsqlGetMore
    */
@@ -211,57 +211,7 @@ namespace engine
          INT64    _taskID ;
    } ;
 
-   /************************** sync business configure ************************/
-   /*
-      _omaSyncBuzConfigure
-   */
-   class _omaSyncBuzConfigure : public _omaCommand
-   {
-   DECLARE_OACMD_AUTO_REGISTER()
-
-   public:
-      _omaSyncBuzConfigure() ;
-      ~_omaSyncBuzConfigure() ;
-
-      virtual const CHAR* name () { return OMA_CMD_SYNC_BUSINESS_CONF ; }
-      virtual INT32 init ( const CHAR *pInterruptInfo ) ;
-
-   } ;
-
-   /************************** create relationship ************************/
-   /*
-      _omaCreateRelationship
-   */
-   class _omaCreateRelationship : public _omaCommand
-   {
-   DECLARE_OACMD_AUTO_REGISTER()
-
-   public:
-      _omaCreateRelationship() ;
-      ~_omaCreateRelationship() ;
-
-      virtual const CHAR* name () { return OMA_CMD_CREATE_RELATIONSHIP ; }
-      virtual INT32 init ( const CHAR *pInfo ) ;
-
-   } ;
-
-   /************************** remove relationship ************************/
-   /*
-      _omaRemoveRelationship
-   */
-   class _omaRemoveRelationship : public _omaCommand
-   {
-   DECLARE_OACMD_AUTO_REGISTER()
-
-   public:
-      _omaRemoveRelationship() ;
-      ~_omaRemoveRelationship() ;
-
-      virtual const CHAR* name () { return OMA_CMD_REMOVE_RELATIONSHIP ; }
-      virtual INT32 init ( const CHAR *pInfo ) ;
-
-   } ;
-
+   
 } // namespace engine
 
 

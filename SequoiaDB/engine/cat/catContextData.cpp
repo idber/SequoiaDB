@@ -606,9 +606,6 @@ namespace engine
    /*
     * _catCtxDropCS implement
     */
-   RTN_CTX_AUTO_REGISTER( _catCtxDropCS, RTN_CONTEXT_CAT_DROP_CS,
-                          "CAT_DROP_CS" )
-
    _catCtxDropCS::_catCtxDropCS ( INT64 contextID, UINT64 eduID )
    : _catCtxCLMultiTask( contextID, eduID )
    {
@@ -873,10 +870,8 @@ namespace engine
 
                pUnlinkSubCLTask->addIgnoreRC( SDB_DMS_NOTEXIST ) ;
 
-               rc = rtnCollectionsInSameSpace ( clName.c_str(),
-                                                clName.size(),
-                                                subCLName.c_str(),
-                                                subCLName.size() ,
+               rc = catCollectionsInSameSpace ( clName.c_str(), clName.size(),
+                                                subCLName.c_str(), subCLName.size() ,
                                                 inSameSpace ) ;
                PD_RC_CHECK( rc, PDERROR,
                             "Failed to check whether main and sub collections "
@@ -915,10 +910,8 @@ namespace engine
 
                if ( externalMainCL.find( mainCLName ) == externalMainCL.end() )
                {
-                  rc = rtnCollectionsInSameSpace ( mainCLName.c_str(),
-                                                   mainCLName.size(),
-                                                   clName.c_str(),
-                                                   clName.size() ,
+                  rc = catCollectionsInSameSpace ( mainCLName.c_str(), mainCLName.size(),
+                                                   clName.c_str(), clName.size() ,
                                                    inSameSpace ) ;
                   PD_RC_CHECK( rc, PDERROR,
                                "Failed to check whether main and sub collections "
@@ -1009,9 +1002,6 @@ namespace engine
    /*
     * _catCtxCreateCL implement
     */
-   RTN_CTX_AUTO_REGISTER( _catCtxCreateCL, RTN_CONTEXT_CAT_CREATE_CL,
-                          "CAT_CREATE_CL" )
-
    _catCtxCreateCL::_catCtxCreateCL ( INT64 contextID, UINT64 eduID )
    : _catCtxDataBase( contextID, eduID )
    {
@@ -1077,7 +1067,7 @@ namespace engine
                 "Create failed, the collection [%s] exists",
                 _targetName.c_str() ) ;
 
-      rc = rtnResolveCollectionName( _targetName.c_str(),
+      rc = catResolveCollectionName( _targetName.c_str(),
                                      _targetName.size(),
                                      szSpace, DMS_COLLECTION_SPACE_NAME_SZ,
                                      szCollection, DMS_COLLECTION_NAME_SZ );
@@ -1132,27 +1122,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to check create collection obj [%s], rc: %d",
                    _boQuery.toString().c_str(), rc ) ;
-
-      {
-         BSONElement eleType = boSpace.getField( CAT_TYPE_NAME ) ;
-         if ( NumberInt == eleType.type() )
-         {
-            INT32 type = eleType.numberInt() ;
-            if ( ( DMS_STORAGE_NORMAL == type ) && clInfo._capped )
-            {
-               PD_LOG( PDERROR, "Capped colleciton can only be created on "
-                       "Capped collection space" ) ;
-               rc = SDB_OPERATION_INCOMPATIBLE ;
-               goto error ;
-            }
-
-            if ( ( DMS_STORAGE_CAPPED == type ) && !clInfo._capped )
-            {
-               clInfo._capped = TRUE ;
-               fieldMask |= CAT_MASK_CAPPED ;
-            }
-         }
-      }
 
       _version = catGetBucketVersion( _targetName.c_str(), cb ) ;
       clInfo._version = _version ;
@@ -1295,25 +1264,94 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_CATCTXCREATECL_CHOOSE_GRP ) ;
 
+      BSONObj gpObj ;
+      const CHAR *domain = NULL ;
+      BOOLEAN isSysDomain = domainObj.isEmpty() ;
+      std::map<string, UINT32> groupsOfDomain ;
+
       if ( NULL != clInfo._gpSpecified )
       {
-         rc = _chooseCLGroupBySpec( clInfo._gpSpecified, domainObj, cb,
-                                    groupIDList ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get group for collection by "
-                      "specified, rc: %d", rc ) ;
-      }
-      else if ( clInfo._autoSplit )
-      {
-         rc = _chooseCLGroupAutoSplit( domainObj, groupIDList, splitRange ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get groups for auto-split "
-                      "collection, rc: %d", rc ) ;
+         INT32 tmpGrpID = CAT_INVALID_GROUPID ;
+
+         rc = catGroupName2ID( clInfo._gpSpecified, (UINT32 &)tmpGrpID,
+                               TRUE, cb ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to convert group name [%s] to id, rc: %d",
+                      clInfo._gpSpecified, rc ) ;
+
+         if ( !isSysDomain )
+         {
+            rc = catGetDomainGroups( domainObj, groupsOfDomain ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get groups from domain info [%s], rc: %d",
+                         domainObj.toString().c_str(), rc ) ;
+            {
+               map<string, UINT32>::const_iterator itr =
+                  groupsOfDomain.find( clInfo._gpSpecified ) ;
+
+               if ( groupsOfDomain.end() == itr )
+               {
+                  PD_LOG( PDERROR, "[%s] is not a group of domain [%s]",
+                          clInfo._gpSpecified, domain ) ;
+                  rc = SDB_CAT_GROUP_NOT_IN_DOMAIN ;
+                  goto error ;
+               }
+
+               groupIDList.push_back( itr->second ) ;
+            }
+         }
+         else
+         {
+            groupIDList.push_back( (UINT32)tmpGrpID ) ;
+         }
       }
       else
       {
-         rc = _chooseCLGroupDefault( domainObj, csObj, clInfo._assignType,
-                                     cb, groupIDList ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get groups for collection, "
-                      "rc: %d", rc ) ;
+         if ( !isSysDomain && clInfo._autoSplit )
+         {
+            rc = catGetDomainGroups( domainObj, splitRange ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get groups from domain info [%s], rc: %d",
+                         domainObj.toString().c_str(), rc ) ;
+            rc = catGetDomainGroups( domainObj, groupIDList ) ;
+            PD_RC_CHECK( rc, PDERROR,
+                         "Failed to get groups from domain info [%s], rc: %d",
+                         domainObj.toString().c_str(), rc ) ;
+         }
+         else
+         {
+            std::vector<UINT32> candidateGroupList ;
+            UINT32 grpID = CAT_INVALID_GROUPID ;
+            if ( ASSIGN_FOLLOW == clInfo._assignType )
+            {
+               BSONElement ele = csObj.getField( CAT_COLLECTION_SPACE_NAME ) ;
+               rc = catGetCSGroupsFromCLs( ele.valuestrsafe(), cb,
+                                           candidateGroupList ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get collection space [%s]"
+                            " groups, rc: %d", csObj.toString().c_str(), rc ) ;
+            }
+
+            if ( candidateGroupList.empty() && !isSysDomain )
+            {
+               rc = catGetDomainGroups( domainObj, candidateGroupList ) ;
+               PD_RC_CHECK( rc, PDERROR,
+                            "Failed to get groups from domain info [%s], rc: %d",
+                            domainObj.toString().c_str(), rc ) ;
+            }
+
+            if ( candidateGroupList.empty() )
+            {
+               grpID = CAT_INVALID_GROUPID ;
+               rc = sdbGetCatalogueCB()->getAGroupRand( grpID ) ;
+               PD_RC_CHECK( rc, PDERROR, "Failed to get group from SYS, rc: %d",
+                            rc ) ;
+            }
+            else
+            {
+               grpID = candidateGroupList[ ossRand() % candidateGroupList.size() ] ;
+            }
+            groupIDList.push_back( grpID ) ;
+         }
       }
 
       rc = catCheckGroupsByID( groupIDList ) ;
@@ -1334,150 +1372,6 @@ namespace engine
    error :
       groupIDList.clear() ;
       splitRange.clear() ;
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXCREATECL__CHOOSECLGRPSPEC, "_catCtxCreateCL::_chooseCLGroupBySpec" )
-   INT32 _catCtxCreateCL::_chooseCLGroupBySpec ( const CHAR * groupName,
-                                                 const BSONObj & domainObj,
-                                                 _pmdEDUCB * cb,
-                                                 std::vector<UINT32> & groupIDList )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_CATCTXCREATECL__CHOOSECLGRPSPEC ) ;
-
-      BOOLEAN isSysDomain = domainObj.isEmpty() ;
-      INT32 tmpGrpID = CAT_INVALID_GROUPID ;
-
-
-      rc = catGroupName2ID( groupName, (UINT32 &)tmpGrpID, TRUE, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to convert group name [%s] to id, "
-                   "rc: %d", groupName, rc ) ;
-
-      if ( isSysDomain )
-      {
-         groupIDList.push_back( (UINT32)tmpGrpID ) ;
-      }
-      else
-      {
-         std::map<string, UINT32> groupsOfDomain ;
-         std::map<string, UINT32>::iterator itr ;
-
-         rc = catGetDomainGroups( domainObj, groupsOfDomain ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get groups from domain "
-                      "info [%s], rc: %d", domainObj.toString().c_str(), rc ) ;
-
-         itr = groupsOfDomain.find( groupName ) ;
-         PD_CHECK( groupsOfDomain.end() != itr, SDB_CAT_GROUP_NOT_IN_DOMAIN,
-                   error, PDERROR, "[%s] is not a group of given domain",
-                   groupName ) ;
-
-         groupIDList.push_back( itr->second ) ;
-      }
-
-   done :
-      PD_TRACE_EXITRC( SDB_CATCTXCREATECL__CHOOSECLGRPSPEC, rc ) ;
-      return rc ;
-
-   error :
-      groupIDList.clear() ;
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXCREATECL__CHOOSECLGRPAUTOSPLIT, "_catCtxCreateCL::_chooseCLGroupAutoSplit" )
-   INT32 _catCtxCreateCL::_chooseCLGroupAutoSplit ( const BSONObj & domainObj,
-                                                    std::vector<UINT32> & groupIDList,
-                                                    std::map<std::string, UINT32> & splitRange )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_CATCTXCREATECL__CHOOSECLGRPAUTOSPLIT ) ;
-
-      BOOLEAN isSysDomain = domainObj.isEmpty() ;
-
-      if ( isSysDomain )
-      {
-         sdbGetCatalogueCB()->getGroupsID( groupIDList, TRUE ) ;
-         sdbGetCatalogueCB()->getGroupNameMap( splitRange, TRUE ) ;
-      }
-      else
-      {
-         rc = catGetDomainGroups( domainObj, groupIDList ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get groups from domain info "
-                      "[%s], rc: %d", domainObj.toString().c_str(), rc ) ;
-         rc = catGetDomainGroups( domainObj, splitRange ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get groups from domain info "
-                      "[%s], rc: %d", domainObj.toString().c_str(), rc ) ;
-      }
-
-   done :
-      PD_TRACE_EXITRC( SDB_CATCTXCREATECL__CHOOSECLGRPAUTOSPLIT, rc ) ;
-      return rc ;
-
-   error :
-      splitRange.clear() ;
-      groupIDList.clear() ;
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXCREATECL__CHOOSECLGRPDEF, "_catCtxCreateCL::_chooseCLGroupDefault" )
-   INT32 _catCtxCreateCL::_chooseCLGroupDefault ( const BSONObj & domainObj,
-                                                  const BSONObj & csObj,
-                                                  INT32 assignType,
-                                                  _pmdEDUCB * cb,
-                                                  std::vector<UINT32> & groupIDList )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_CATCTXCREATECL__CHOOSECLGRPDEF ) ;
-
-      std::vector<UINT32> candidateGroupList ;
-      UINT32 tmpGrpID = CAT_INVALID_GROUPID ;
-      BOOLEAN isSysDomain = domainObj.isEmpty() ;
-
-      if ( ASSIGN_FOLLOW == assignType )
-      {
-         BSONElement ele = csObj.getField( CAT_COLLECTION_SPACE_NAME ) ;
-         rc = catGetCSGroupsFromCLs( ele.valuestrsafe(), cb,
-                                     candidateGroupList ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get collection space [%s]"
-                      " groups, rc: %d", csObj.toString().c_str(), rc ) ;
-      }
-
-      if ( candidateGroupList.empty() && !isSysDomain )
-      {
-         rc = catGetDomainGroups( domainObj, candidateGroupList ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to get groups from domain info [%s], rc: %d",
-                      domainObj.toString().c_str(), rc ) ;
-      }
-
-      if ( candidateGroupList.empty() )
-      {
-         tmpGrpID = CAT_INVALID_GROUPID ;
-         rc = sdbGetCatalogueCB()->getAGroupRand( tmpGrpID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get group from SYS, rc: %d",
-                      rc ) ;
-      }
-      else if ( 1 == candidateGroupList.size() )
-      {
-         tmpGrpID = candidateGroupList[ 0 ] ;
-      }
-      else
-      {
-         tmpGrpID = candidateGroupList[ ossRand() %
-                                        candidateGroupList.size() ] ;
-      }
-
-      groupIDList.push_back( tmpGrpID ) ;
-
-   done :
-      PD_TRACE_EXITRC( SDB_CATCTXCREATECL__CHOOSECLGRPDEF, rc ) ;
-      return rc ;
-
-   error :
-      groupIDList.clear() ;
       goto done ;
    }
 
@@ -1519,9 +1413,6 @@ namespace engine
    /*
     * _catCtxDropCL implement
     */
-   RTN_CTX_AUTO_REGISTER( _catCtxDropCL, RTN_CONTEXT_CAT_DROP_CL,
-                          "CAT_DROP_CL" )
-
    _catCtxDropCL::_catCtxDropCL ( INT64 contextID, UINT64 eduID )
    : _catCtxCLMultiTask( contextID, eduID )
    {
@@ -1840,9 +1731,6 @@ namespace engine
    /*
     * _catCtxAlterCL implement
     */
-   RTN_CTX_AUTO_REGISTER( _catCtxAlterCL, RTN_CONTEXT_CAT_ALTER_CL,
-                          "CAT_ALTER_CL" )
-
    _catCtxAlterCL::_catCtxAlterCL ( INT64 contextID, UINT64 eduID )
    : _catCtxIndexMultiTask( contextID, eduID )
    {
@@ -2200,69 +2088,6 @@ namespace engine
       PD_CHECK ( item, SDB_SYS, error, PDERROR,
                  "Failed to get first item from catalog set" ) ;
       attribute = cataSet.getAttribute() ;
-
-      if ( OSS_BIT_TEST( attribute, DMS_MB_ATTR_CAPPED )  )
-      {
-         PD_CHECK( !( ( CAT_MASK_SHDKEY & mask ) ||
-                      ( CAT_MASK_SHDIDX & mask ) ||
-                      ( CAT_MASK_SHDTYPE & mask ) ||
-                      ( CAT_MASK_SHDPARTITION & mask ) ),
-                   SDB_OPTION_NOT_SUPPORT, error, PDERROR,
-                   "The arguments are illegal for capped collection" ) ;
-         if ( ( ( CAT_MASK_COMPRESSED & mask ) && alterInfo._isCompressed ) ||
-              ( ( CAT_MASK_COMPRESSIONTYPE & mask ) &&
-                ( UTIL_COMPRESSOR_INVALID != alterInfo._compressorType ) ) )
-         {
-            PD_LOG( PDERROR,
-                    "Compression is not supported on capped collection" ) ;
-            rc = SDB_OPTION_NOT_SUPPORT ;
-            goto error ;
-         }
-
-         if ( ( ( CAT_MASK_AUTOASPLIT & mask ) && alterInfo._autoSplit ) ||
-              ( ( CAT_MASK_AUTOINDEXID & mask ) && alterInfo._autoIndexId ) )
-         {
-            PD_LOG( PDERROR, "Autosplit|AutoIndexId is not supported "
-                    "on capped collection" ) ;
-            rc = SDB_OPTION_NOT_SUPPORT ;
-            goto error ;
-         }
-
-         if ( ( CAT_MASK_CAPPED & mask ) && !alterInfo._capped )
-         {
-            PD_LOG( PDERROR, "Can't change from capped collection to normal "
-                    "collection" ) ;
-            rc = SDB_OPTION_NOT_SUPPORT ;
-            goto error ;
-         }
-
-         if ( ( CAT_MASK_CLMAXSIZE & mask ) || ( CAT_MASK_CLMAXRECNUM & mask )
-              || ( CAT_MASK_CLOVERWRITE & mask ) )
-         {
-            PD_LOG( PDERROR, "Can't change Size|Max|OverWrite" ) ;
-            rc = SDB_OPTION_NOT_SUPPORT ;
-            goto error ;
-         }
-      }
-      else
-      {
-         if ( ( CAT_MASK_CAPPED & mask ) && alterInfo._capped )
-         {
-            PD_LOG( PDERROR, "Can't change from normal collection to capped "
-                    "collection" ) ;
-            rc = SDB_OPTION_NOT_SUPPORT ;
-            goto error ;
-         }
-         if ( ( CAT_MASK_CLMAXRECNUM & mask ) || ( CAT_MASK_CLMAXSIZE & mask )
-              || ( CAT_MASK_CLOVERWRITE & mask ) )
-         {
-            PD_LOG( PDERROR, "Max|Size|OverWrite is only supported on capped "
-                    "collection" ) ;
-            rc = SDB_OPTION_NOT_SUPPORT ;
-            goto error ;
-         }
-      }
-
       {
          std::vector<UINT32> groupLst ;
          std::map<std::string, UINT32> splitLst ;
@@ -2285,9 +2110,6 @@ namespace engine
    /*
     * _catCtxLinkCL implement
     */
-   RTN_CTX_AUTO_REGISTER( _catCtxLinkCL, RTN_CONTEXT_CAT_LINK_CL,
-                          "CAT_LINK_CL" )
-
    _catCtxLinkCL::_catCtxLinkCL ( INT64 contextID, UINT64 eduID )
    : _catCtxDataBase( contextID, eduID )
    {
@@ -2494,9 +2316,6 @@ namespace engine
    /*
     *  _catCtxUnlinkCL implement
     */
-   RTN_CTX_AUTO_REGISTER( _catCtxUnlinkCL, RTN_CONTEXT_CAT_UNLINK_CL,
-                          "CAT_UNLINK_CL" )
-
    _catCtxUnlinkCL::_catCtxUnlinkCL ( INT64 contextID, UINT64 eduID )
    : _catCtxDataBase( contextID, eduID )
    {
@@ -2720,9 +2539,6 @@ namespace engine
    /*
     * _catCtxCreateIdx implement
     */
-   RTN_CTX_AUTO_REGISTER( _catCtxCreateIdx, RTN_CONTEXT_CAT_CREATE_IDX,
-                          "CAT_CREATE_IDX" )
-
    _catCtxCreateIdx::_catCtxCreateIdx ( INT64 contextID, UINT64 eduID )
    : _catCtxIndexMultiTask( contextID, eduID )
    {
@@ -2798,9 +2614,6 @@ namespace engine
    /*
     * _catCtxDropIdx implement
     */
-   RTN_CTX_AUTO_REGISTER( _catCtxDropIdx, RTN_CONTEXT_CAT_DROP_IDX,
-                          "CAT_DROP_IDX" )
-
    _catCtxDropIdx::_catCtxDropIdx ( INT64 contextID, UINT64 eduID )
    : _catCtxIndexMultiTask( contextID, eduID )
    {

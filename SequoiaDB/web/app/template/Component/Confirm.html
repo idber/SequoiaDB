@@ -17,7 +17,7 @@
       </div>
    </div>
    <div class="foot">
-      <button class="btn btn-primary" ng-class="{ confirmOk: data.normalOK != true }" ng-if="!(data.noOK == true)" ng-click="ok()">{{data.okText}}</button>
+      <button class="btn btn-primary confirmOk" ng-if="!(data.noOK == true)" ng-click="ok()">{{data.okText}}</button>
       <button class="btn btn-default confirmClose" ng-if="!(data.noClose == true)" ng-click="close()">{{data.closeText}}</button>
 	</div>
 </div>

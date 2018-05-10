@@ -56,14 +56,6 @@ namespace engine
 
 #define DPS_INVALID_LOG_FILE_ID     0xFFFFFFFF
 
-#define DPS_LSN_2_FILEID(offset,fileSize)    (UINT32)(offset/fileSize)
-
-#define DPS_FILEID_COMPARE(lID,rID) \
-   ( lID == rID ? 0 : \
-         ( DPS_INVALID_LOG_FILE_ID == lID ? -1 : \
-              ( DPS_INVALID_LOG_FILE_ID == rID ? 1 : \
-                   ( lID < rID ? -1 : 1 )  ) ) )
-
 #define DPS_LOG_FILE_VERSION1       (1)
 
    /*

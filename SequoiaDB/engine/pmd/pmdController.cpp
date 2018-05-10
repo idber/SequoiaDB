@@ -162,9 +162,11 @@ namespace engine
 
       rc = pEDUMgr->startEDU( EDU_TYPE_SYNCCLOCK, NULL, &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Start sync clock edu failed, rc: %d", rc ) ;
+      pEDUMgr->regSystemEDU( EDU_TYPE_SYNCCLOCK, eduID ) ;
 
       rc = pEDUMgr->startEDU( EDU_TYPE_DBMONITOR, NULL, &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Start db monitor edu failed, rc: %d", rc ) ;
+      pEDUMgr->regSystemEDU( EDU_TYPE_DBMONITOR, eduID ) ;
 
 #if defined ( _LINUX )
       if ( pmdGetOptionCB()->getSignalInterval() > 0 )
@@ -172,6 +174,7 @@ namespace engine
          pmdEDUCB *mainCB = pmdGetThreadEDUCB() ;
          rc = pEDUMgr->startEDU( EDU_TYPE_SIGNALTEST, (void*)mainCB, &eduID ) ;
          PD_RC_CHECK( rc, PDERROR, "Start signal test edu failed, rc: %d", rc ) ;
+         pEDUMgr->regSystemEDU( EDU_TYPE_SIGNALTEST, eduID ) ;
       }
 #endif // _LINUX
 
@@ -179,6 +182,7 @@ namespace engine
                               &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start tcp listerner, rc: %d",
                    rc ) ;
+      pEDUMgr->regSystemEDU( EDU_TYPE_TCPLISTENER, eduID ) ;
 
       rc = pEDUMgr->waitUntil ( eduID, PMD_EDU_RUNNING ) ;
       PD_RC_CHECK( rc, PDERROR, "Wait Tcp Listerner active failed, rc: %d",
@@ -188,6 +192,7 @@ namespace engine
                               &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start rest listerner, rc: %d",
                    rc ) ;
+      pEDUMgr->regSystemEDU( EDU_TYPE_RESTLISTENER, eduID ) ;
 
       rc = pEDUMgr->waitUntil ( eduID, PMD_EDU_RUNNING ) ;
       PD_RC_CHECK( rc, PDERROR, "Wait rest Listener active failed, rc: %d",
@@ -703,6 +708,7 @@ namespace engine
                               &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start FAP listerner, rc: %d",
                    rc ) ;
+      pEDUMgr->regSystemEDU( EDU_TYPE_FAPLISTENER, eduID ) ;
 
       rc = pEDUMgr->waitUntil ( eduID, PMD_EDU_RUNNING ) ;
       PD_RC_CHECK( rc, PDERROR, "Wait FAP Listener active failed, rc: %d",

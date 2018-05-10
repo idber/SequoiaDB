@@ -37,13 +37,12 @@
 #include "dmsLobDef.hpp"
 #include "rtnLobWindow.hpp"
 #include "rtnLobDataPool.hpp"
-#include "rtnLobPieces.hpp"
-#include "rtnLobSections.hpp"
 #include "msgDef.hpp"
 #include "../bson/bson.hpp"
 
 namespace engine
 {
+#define SDB_LOB_MODE_REMOVE 0x00000010
 
    class _pmdEDUCB ;
    class _dmsStorageUnit ;
@@ -76,10 +75,6 @@ namespace engine
                   _rtnContextBase *context,
                   _pmdEDUCB *cb,
                   UINT32 &read ) ;
-
-      INT32 lock( _pmdEDUCB *cb,
-                  INT64 offset,
-                  INT64 length ) ;
  
       INT32 next( _pmdEDUCB *cb,
                   const CHAR **buf,
@@ -88,7 +83,7 @@ namespace engine
       INT32 seek( SINT64 offset,
                   _pmdEDUCB *cb ) ;
 
-      INT32 truncate( INT64 len,
+      INT32 truncate( SINT64 len,
                       _pmdEDUCB *cb ) ;
 
       INT32 closeWithException( _pmdEDUCB *cb ) ;
@@ -125,28 +120,13 @@ namespace engine
 
       OSS_INLINE BOOLEAN isReadonly() const
       {
-         return SDB_LOB_MODE_READ == _mode ? TRUE : FALSE ;
+         return SDB_LOB_MODE_R == _mode ? TRUE : FALSE ;
       }
 
       virtual void   getErrorInfo( INT32 rc,
                                    _pmdEDUCB *cb,
                                    _rtnContextBuf *buf )
       {
-      }
-
-      OSS_INLINE INT64 uniqueId() const
-      {
-         return _uniqueId ;
-      }
-
-      OSS_INLINE void setUniqueId( INT64 uniqueId )
-      {
-         _uniqueId = uniqueId ;
-      }
-
-      OSS_INLINE INT32 mode() const
-      {
-         return _getMode() ;
       }
 
    protected:
@@ -160,37 +140,26 @@ namespace engine
          return _lobPageSz ;
       }
 
-      OSS_INLINE _dpsLogWrapper *_getDPSCB()
+   protected:
+      _dpsLogWrapper *_getDPSCB()
       {
          return _dpsCB ;
       }
 
-      OSS_INLINE _rtnLobDataPool &_getPool()
+      _rtnLobDataPool &_getPool()
       {
          return _pool ;
       }
 
-      OSS_INLINE _rtnLobPiecesInfo &_getPiecesInfo()
-      {
-         return _lobPieces ;
-      }
-
-      OSS_INLINE _rtnLobSections &_getLockSections()
-      {
-         return _lockSections ;
-      }
-
-      OSS_INLINE INT32 _getMode() const
+      INT32 _getMode() const
       {
          return _mode ;
       }
 
-      OSS_INLINE INT32 _getFlags() const
+      INT32 _getFlags() const
       {
          return _flags ;
       }
-
-      UINT32 _getSequence( INT64 offset ) const ;
 
    private:
       virtual INT32 _prepare( const CHAR *fullName,
@@ -199,9 +168,7 @@ namespace engine
                               _pmdEDUCB *cb ) = 0 ;
 
       virtual INT32 _queryLobMeta( _pmdEDUCB *cb,
-                                   _dmsLobMeta &meta,
-                                   BOOLEAN allowUncompleted = FALSE,
-                                   _rtnLobPiecesInfo* piecesInfo = NULL ) = 0 ;
+                                   _dmsLobMeta &meta ) = 0 ;
 
       virtual INT32 _ensureLob( _pmdEDUCB *cb,
                                 _dmsLobMeta &meta,
@@ -210,29 +177,16 @@ namespace engine
       virtual INT32 _getLobPageSize( INT32 &pageSize ) = 0 ;
 
       virtual INT32 _write( const _rtnLobTuple &tuple,
-                            _pmdEDUCB *cb,
-                            BOOLEAN orUpdate = FALSE ) = 0 ;
+                            _pmdEDUCB *cb ) = 0 ;
 
       virtual INT32 _writev( const RTN_LOB_TUPLES &tuples,
-                             _pmdEDUCB *cb,
-                             BOOLEAN orUpdate = FALSE ) = 0 ;
-
-      virtual INT32 _update( const _rtnLobTuple &tuple,
-                             _pmdEDUCB *cb ) = 0 ;
-
-      virtual INT32 _updatev( const RTN_LOB_TUPLES &tuples,
                              _pmdEDUCB *cb ) = 0 ;
 
       virtual INT32 _readv( const RTN_LOB_TUPLES &tuples,
-                            _pmdEDUCB *cb,
-                            const _rtnLobPiecesInfo* piecesInfo = NULL ) = 0 ;
+                            _pmdEDUCB *cb ) = 0 ;
 
       virtual INT32 _completeLob( const _rtnLobTuple &tuple,
                                   _pmdEDUCB *cb ) = 0 ;
-
-      virtual INT32 _lock( _pmdEDUCB *cb,
-                           INT64 offset,
-                           INT64 length ) = 0 ;
 
       virtual INT32 _close( _pmdEDUCB *cb ) = 0 ;
 
@@ -250,31 +204,18 @@ namespace engine
                            _pmdEDUCB *cb,
                            UINT32 &readLen ) ;
 
-      INT32 _open4Create( _pmdEDUCB *cb ) ;
-
       INT32 _open4Read( _pmdEDUCB *cb ) ;
 
-      INT32 _open4Write( _pmdEDUCB *cb ) ;
+      INT32 _open4Create( _pmdEDUCB *cb ) ;
 
       INT32 _open4Remove( _pmdEDUCB *cb ) ;
 
-      INT32 _open4Truncate( _pmdEDUCB *cb ) ;
-
-      INT32 _writeLobMeta( _pmdEDUCB *cb, BOOLEAN withData = TRUE ) ;
-
-      INT32 _meta2Obj( bson::BSONObj& obj ) const ;
-
-      INT32 _writeOrUpdate( const _rtnLobTuple &tuple,
-                            _pmdEDUCB *cb ) ;
-
-      INT32 _writeOrUpdateV( RTN_LOB_TUPLES &tuples,
-                            _pmdEDUCB *cb ) ;
+      bson::BSONObj _meta2Obj( const _dmsLobMeta &meta ) const ;
 
    private:
-      INT64                _uniqueId ;
       CHAR                 _fullName[ DMS_COLLECTION_SPACE_NAME_SZ +
                                       DMS_COLLECTION_NAME_SZ + 2 ] ;
-      _dpsLogWrapper*      _dpsCB ;
+      _dpsLogWrapper       *_dpsCB ;
       bson::OID            _oid ;
       _dmsLobMeta          _meta ;
       bson::BSONObj        _metaObj ;
@@ -283,16 +224,8 @@ namespace engine
       _rtnLobWindow        _lw ;
       UINT32               _mode ;
       INT32                _flags ;
-      INT32                _lobPageSz ;
-      UINT32               _logarithmic ;
-      INT64                _offset ;
-
-      _rtnLobPiecesInfo    _lobPieces ;
-      BOOLEAN              _hasPiecesInfo ;
-
-      _rtnLobSections      _lockSections ;
-      BOOLEAN              _wholeLobLocked ;
-      BOOLEAN              _truncated ;
+      SINT32               _lobPageSz ;
+      SINT64               _offset ;
    } ;
    typedef class _rtnLobStream rtnLobStream ;
 }

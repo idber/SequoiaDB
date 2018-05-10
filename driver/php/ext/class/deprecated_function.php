@@ -202,11 +202,4 @@ class SequoiaNode
     * @deprecated This function is deprecated, use the function getName() instead.
    */
    public function getNodeName(){}
-
-   /**
-    * Get node status.
-    *
-    * @deprecated This function is deprecated.
-   */
-   public function getStatus(){}
 }

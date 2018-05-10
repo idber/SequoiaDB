@@ -52,7 +52,6 @@ namespace engine
       SDB_ASSERT( NULL != buf, "can not be null" ) ;
       const MsgOpLob *header = NULL ;
       BSONObj obj ;
-      BSONObj meta ;
       contextID = -1 ;
 
       rc = msgExtractOpenLobRequest( (const CHAR*)pMsg, &header, obj ) ;
@@ -62,13 +61,11 @@ namespace engine
          goto error ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "Option:%s", obj.toString().c_str() ) ;
 
       rc = rtnOpenLob( obj, header->flags, FALSE, cb,
-                       NULL, 0, contextID,
-                       meta ) ;
+                       NULL, 0, contextID, *buf ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to open lob:%s, rc:%d",
@@ -76,7 +73,6 @@ namespace engine
          goto error ;
       }
 
-      *buf = rtnContextBuf( meta ) ;
    done:
       PD_TRACE_EXITRC( SDB_RTNCOORDOPENLOB_EXECUTE, rc ) ;
       return rc ;
@@ -107,12 +103,11 @@ namespace engine
          goto error ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "ContextID:%lld, Len:%u, Offset:%llu",
                           header->contextID, len, offset ) ;
 
-      rc = rtnWriteLob( header->contextID, cb, len, data ) ;
+      rc = rtnWriteLob( header->contextID, cb, len, data, buf ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to write lob:%d", rc ) ;
@@ -150,13 +145,12 @@ namespace engine
          goto error ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "ContextID:%lld, Len:%u, Offset:%llu",
                           header->contextID, readLen, offset ) ;
 
       rc = rtnReadLob( header->contextID, cb, len,
-                       offset, &data, readLen ) ;
+                       offset, &data, readLen, buf ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to read lob:%d", rc ) ;
@@ -189,11 +183,10 @@ namespace engine
          goto error ;
       } 
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "ContextID:%lld", header->contextID ) ;
 
-      rc = rtnCloseLob( header->contextID, cb ) ;
+      rc = rtnCloseLob( header->contextID, cb, buf ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to close lob:%d", rc ) ;
@@ -248,13 +241,13 @@ namespace engine
          goto error ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "Option:%s", obj.toString().c_str() ) ;
 
       rc = stream.open( fullName,
                         ele.__oid(), SDB_LOB_MODE_REMOVE,
                         header->flags,
+                        NULL,
                         cb ) ;
       if ( SDB_OK != rc )
       {
@@ -264,13 +257,13 @@ namespace engine
       }
       else
       {
-         /// do nothing.
       }
 
       rc = stream.truncate( 0, cb ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "faield to truncate lob:%d", rc ) ;
+         stream.getErrorInfo( rc, cb, buf ) ;
          goto error ;
       }
 

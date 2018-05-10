@@ -1,5 +1,4 @@
 #include <mongoc.h>
-//#include <mongoc-client-private.h>
 #include "TestSuite.h"
 #include "test-libmongoc.h"
 
@@ -26,7 +25,6 @@ ping (mongoc_database_t *db,
 
    cursor = mongoc_database_command(db, MONGOC_QUERY_NONE, 0, 1, 0, cmd, NULL, NULL);
    while (mongoc_cursor_next(cursor, &b)) {
-      //BSON_ASSERT(b);
       ASSERT_CMPPTR(b, !=, NULL);
       print_doc(b);
    }
@@ -47,7 +45,6 @@ fetch (mongoc_collection_t *col,
 
    cursor = mongoc_collection_find(col, MONGOC_QUERY_NONE, 0, 0, 0, spec, NULL, NULL);
    while (mongoc_cursor_next(cursor, &b)) {
-      //BSON_ASSERT(b);
       ASSERT_CMPPTR(b, !=, NULL);
       print_doc(b);
    }
@@ -72,7 +69,6 @@ test_load (void)
 
    client = mongoc_client_new (gTestUri);
    ASSERT_CMPPTR(client, !=, NULL);
-   //assert (client);
 
    bson_init(&b);
    bson_append_int32(&b, "ping", 4, 1);
@@ -81,7 +77,6 @@ test_load (void)
 
    col = setUp("test_load", client);
    db = mongoc_client_get_database(client, "admin");
-   //col = mongoc_client_get_collection(client, "test", "test");
 
    for (i = 0; i < iterations; i++) {
       ping(db, &b);
@@ -89,19 +84,12 @@ test_load (void)
    }
 
    tearDown(col);
-   //if (!mongoc_collection_drop(col, &error)) {
-   //     MONGOC_WARNING("Failed to drop collection: %s", error.message);
-  // }
 
    mongoc_database_destroy(db);
    db = mongoc_client_get_database(client, "test");
 
-  // if (!mongoc_database_drop(db, &error)) {
-  //    MONGOC_WARNING("Failed to drop database: %s", error.message);
-  // }
 
    mongoc_database_destroy(db);
-//   mongoc_collection_destroy(col);
    bson_destroy(&b);
 }
 

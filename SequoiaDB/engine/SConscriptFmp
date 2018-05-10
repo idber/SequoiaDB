@@ -17,6 +17,7 @@ bsonFiles = [
 sptFiles = [
       "spt/dbClasses.cpp",
       "spt/sptConvertor.cpp",
+      "spt/sptParseTroff.cpp",
       "spt/sptConvertorHelper.cpp",
       "spt/sptCommon.cpp"
       ]
@@ -35,13 +36,8 @@ spt2Files = [
       "spt/sptLibssh2Session.cpp",
       "spt/sptSshSession.cpp",
       "spt/sptRemote.cpp",
-      "spt/sptClassMetaInfo.cpp",
-      "spt/sptHelp.cpp",
-      "spt/sptWords.cpp",
-      "spt/sptFuncDef.cpp",
       "spt/usrdef/sptUsrSsh.cpp",
       "spt/sptProperty.cpp",
-      "spt/sptPrivateData.cpp",
       "spt/sptGlobalFunc.cpp",
       "spt/usrdef/sptUsrCmd.cpp",
       "spt/usrdef/sptUsrFile.cpp",
@@ -52,12 +48,7 @@ spt2Files = [
       "spt/usrdef/sptUsrSdbTool.cpp",
       "spt/usrdef/sptUsrRemote.cpp",
       "spt/usrdef/sptUsrRemoteAssit.cpp",
-      "spt/usrdef/sptUsrFilter.cpp",
-      "spt/usrdef/sptUsrFileContent.cpp",
-      "spt/usrdef/sptUsrFileCommon.cpp",
-      "spt/usrdef/sptUsrSystemCommon.cpp",
-      "spt/usrdef/sptUsrCmdCommon.cpp",
-      "spt/usrdef/sptUsrOmaCommon.cpp"
+      "spt/usrdef/sptUsrFilter.cpp"
       ]
 
 ssh2Files = [
@@ -85,6 +76,55 @@ ssh2Files = [
       "ssh2/version.c"
       ]
 
+mdocmlFiles = [
+      "mdocml/parseMandocCpp.cpp",
+      "mdocml/eqn_html.c",
+      "mdocml/html.c",
+      "mdocml/man_html.c",
+      "mdocml/mdoc_html.c",
+      "mdocml/tbl_html.c",
+      "mdocml/mdoc_man.c",
+      "mdocml/eqn_term.c",
+      "mdocml/man_term.c",
+      "mdocml/mdoc_term.c",
+      "mdocml/term.c",
+      "mdocml/term_ascii.c",
+      "mdocml/term_ps.c",
+      "mdocml/tbl_term.c",
+      "mdocml/parseMandoc.c",
+      "mdocml/out.c",
+      "mdocml/tree.c",
+      "mdocml/compat_fgetln.c",
+      "mdocml/compat_getsubopt.c",
+      "mdocml/compat_strlcat.c",
+      "mdocml/compat_strlcpy.c",
+      "mdocml/man.c",
+      "mdocml/man_hash.c",
+      "mdocml/man_macro.c",
+      "mdocml/man_validate.c",
+      "mdocml/arch.c",
+      "mdocml/att.c",
+      "mdocml/lib.c",
+      "mdocml/mdoc.c",
+      "mdocml/mdoc_argv.c",
+      "mdocml/mdoc_hash.c",
+      "mdocml/mdoc_macro.c",
+      "mdocml/mdoc_validate.c",
+      "mdocml/st.c",
+      "mdocml/vol.c",
+      "mdocml/eqn.c",
+      "mdocml/roff.c",
+      "mdocml/tbl.c",
+      "mdocml/tbl_data.c",
+      "mdocml/tbl_layout.c",
+      "mdocml/tbl_opts.c",
+      "mdocml/chars.c",
+      "mdocml/mandoc.c",
+      "mdocml/msec.c",
+      "mdocml/read.c",
+      "mdocml/common.c"
+]
+
 ossFiles = [
       "oss/ossSSLCertificate.c",
       "oss/ossSSLWrapper.c",
@@ -92,7 +132,6 @@ ossFiles = [
       "oss/oss.cpp",
       "oss/ossErr.cpp",
       "oss/ossUtil.cpp",
-      "oss/ossFile.cpp",
       "oss/ossPrimitiveFileOp.cpp",
       "oss/ossStackDump.cpp",
       "oss/ossEDU.cpp",
@@ -126,15 +165,14 @@ pdFiles = [
       "pd/pd.cpp",
       "pd/pdTrace.cpp",
       "pd/pdComponents.cpp",
-      "pd/pdFunctionList.cpp",
-      "pd/pdTraceAnalysis.cpp"
+      "pd/pdFunctionList.cpp"
       ]
 
 pmdFiles = [
       "cls/clsUtil.cpp",
       "pmd/pmdOptionsMgr.cpp",
       "pmd/pmdEnv.cpp",
-      "pmd/pmdSignalHandler.cpp",
+      "pmd/pmdSignalHandler.cpp"
       ]
 
 utilFiles = [
@@ -186,9 +224,11 @@ fmpEnv.StaticLibrary('fmp', fmpFiles)
 fmpEnv.StaticLibrary('spt', sptFiles)
 fmpEnv.StaticLibrary('spt2', spt2Files)
 fmpEnv.StaticLibrary('ssh2', ssh2Files)
+#Mdocml
+fmpEnv.StaticLibrary('mdocml', mdocmlFiles)
 
 #
 sdbfmp = fmpEnv.Program("sdbfmp", fmpMain,
-      LIBDEPS=["oss","pd","util","clientc","fmp","bson","pmd", "spt","spt2", "ssh2"],
+      LIBDEPS=["oss","pd","util","clientc","fmp","bson","pmd","mdocml","spt","spt2", "ssh2"],
       _LIBDEPS='$_LIBDEPS_OBJS' )
 fmpEnv.Install( '#/bin', sdbfmp )

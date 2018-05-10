@@ -3,12 +3,4 @@
 		<BusinessType>sequoiadb</BusinessType>
 		<BusinessDesc>数据库</BusinessDesc> 
 	</FILLER>
-	<FILLER>
-		<BusinessType>spark</BusinessType>
-		<BusinessDesc>spark</BusinessDesc> 
-	</FILLER>
-	<FILLER>
-		<BusinessType>zookeeper</BusinessType>
-		<BusinessDesc>zookeeper</BusinessDesc> 
-	</FILLER>
 </BusinessList>

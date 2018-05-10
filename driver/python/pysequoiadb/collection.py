@@ -25,7 +25,7 @@ from bson.objectid import ObjectId
 import pysequoiadb
 from bson.py3compat import (PY3, str_type, long_type)
 from pysequoiadb.cursor import cursor
-from pysequoiadb.lob import (lob, LOB_READ, LOB_WRITE)
+from pysequoiadb.lob import lob
 from pysequoiadb.error import (SDBBaseError,
                                SDBTypeError,
                                SDBSystemError,
@@ -35,13 +35,8 @@ from pysequoiadb.error import (SDBBaseError,
 from pysequoiadb.errcode import (SDB_OOM, SDB_INVALIDARG)
 
 QUERY_FLG_WITH_RETURNDATA = 0x00000080
-QUERY_FLG_PARALLED = 0x00000100
-QUERY_FLG_FORCE_HINT = 0x00000200
-QUERY_PREPARE_MORE = 0x00004000
-QUERY_FLG_KEEP_SHARDINGKEY_IN_UPDATE = 0x00008000
-
-UPDATE_FLG_KEEP_SHARDINGKEY = QUERY_FLG_KEEP_SHARDINGKEY_IN_UPDATE
-
+QUERY_FLG_PARALLED        = 0x00000100
+QUERY_FLG_FORCE_HINT      = 0x00000200
 
 class collection(object):
     """Collection for SequoiaDB
@@ -335,16 +330,11 @@ class collection(object):
                                       if not provided.
            - hint      dict     The hint, automatically match the optimal hint
                                       if not provided
-           - flags     int      The update flag
         Exceptions:
            pysequoiadb.error.SDBBaseError
-        Info:
-           query flags:
-           UPDATE_FLG_KEEP_SHARDINGKEY : The sharding key in update rule is not filtered, when executing
-                                               update or upsert.
         Note:
-           When flag is set to 0, it won't work to update the "ShardingKey" field, but the
-           other fields take effect.
+           It won't work to update the "ShardingKey" field, but the other fields
+               take effect.
         """
         if not isinstance(rule, dict):
             raise SDBTypeError("rule must be an instance of dict")
@@ -352,7 +342,6 @@ class collection(object):
         bson_rule = bson.BSON.encode(rule)
         bson_condition = None
         bson_hint = None
-        flags = 0
 
         if "condition" in kwargs:
             if not isinstance(kwargs.get("condition"), dict):
@@ -362,13 +351,8 @@ class collection(object):
             if not isinstance(kwargs.get("hint"), dict):
                 raise SDBTypeError("hint in kwargs must be an instance of dict")
             bson_hint = bson.BSON.encode(kwargs.get("hint"))
-        if "flags" in kwargs:
-            if not isinstance(kwargs.get("flags"), int):
-                raise SDBTypeError("flags must be an instance of int")
-            else:
-                flags = kwargs.get("flags")
 
-        rc = sdb.cl_update(self._cl, bson_rule, bson_condition, bson_hint, flags)
+        rc = sdb.cl_update(self._cl, bson_rule, bson_condition, bson_hint)
         raise_if_error(rc, "Failed to update")
 
     def upsert(self, rule, **kwargs):
@@ -385,16 +369,11 @@ class collection(object):
                                      if not provided
            - setOnInsert dict  The setOnInsert assigns the specified values
                                to the fileds when insert
-           - flags       int   The update flag
         Exceptions:
            pysequoiadb.error.SDBBaseError
-        Info:
-           query flags:
-           UPDATE_FLG_KEEP_SHARDINGKEY : The sharding key in update rule is not filtered, when executing
-                                               update or upsert.
         Note:
-           When flag is set to 0, it won't work to update the "ShardingKey" field, but the
-           other fields take effect.
+           It won't work to update the "ShardingKey" field, but the other fields
+               take effect.
         """
         if not isinstance(rule, dict):
             raise SDBTypeError("rule must be an instance of dict")
@@ -403,7 +382,6 @@ class collection(object):
         bson_condition = None
         bson_hint = None
         bson_setOnInsert = None
-        flags = 0
 
         if "condition" in kwargs:
             if not isinstance(kwargs.get("condition"), dict):
@@ -417,14 +395,8 @@ class collection(object):
             if not isinstance(kwargs.get("setOnInsert"), dict):
                 raise SDBTypeError("setOnInsert must be an instance of dict")
             bson_setOnInsert = bson.BSON.encode(kwargs.get("setOnInsert"))
-        if "flags" in kwargs:
-            if not isinstance(kwargs.get("flags"), int):
-                raise SDBTypeError("flags must be an instance of int")
-            else:
-                flags = kwargs.get("flags")
 
-        rc = sdb.cl_upsert(self._cl, bson_rule, bson_condition, bson_hint,
-                           bson_setOnInsert, flags)
+        rc = sdb.cl_upsert(self._cl, bson_rule, bson_condition, bson_hint, bson_setOnInsert)
         raise_if_error(rc, "Failed to update")
 
     def save(self, doc):
@@ -506,7 +478,6 @@ class collection(object):
            QUERY_FLG_WITH_RETURNDATA : Force to use specified hint to query, if database have no index assigned by the hint, fail to query
            QUERY_FLG_PARALLED        : Enable parallel sub query, each sub query will finish scanning different part of the data
            QUERY_FLG_FORCE_HINT      : In general, query won't return data until cursor gets from database, when add this flag, return data in query response, it will be more high-performance
-           QUERY_PREPARE_MORE        : Enable prepare more data when query
         """
 
         bson_condition = None
@@ -602,8 +573,6 @@ class collection(object):
            QUERY_FLG_FORCE_HINT                 : In general, query won't return data until cursor gets from
                                                         database, when add this flag, return data in query response,
                                                         it will be more high-performance
-           QUERY_FLG_KEEP_SHARDINGKEY_IN_UPDATE : The sharding key in update rule is not filtered, when executing
-                                                        queryAndUpdate.
         """
 
         bson_condition = None
@@ -1068,17 +1037,14 @@ class collection(object):
 
         return obj
 
-    def open_lob(self, oid, mode=LOB_READ):
-        """open the specified lob to read or write.
+    def get_lob(self, oid):
+        """get the specified lob.
 
         Parameters:
-           Name     Type                 Info:
-           oid      str/bson.ObjectId    The specified oid
-           mode     int                  The open mode:
-                                         lob.LOB_READ
-                                         lob.LOB_WRITE
+            Name     Type                 Info:
+            oid      str/bson.ObjectId    The specified oid
         Return values:
-           a lob object
+            a lob object
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
@@ -1091,34 +1057,15 @@ class collection(object):
             str_id = oid
             if len(oid) != 24:
                 raise SDBInvalidArgument(SDB_INVALIDARG, "invalid oid: '%s'" % oid)
-
-        if not isinstance(mode, int):
-            raise SDBTypeError("mode must be an instance of int")
-        if mode != LOB_READ and mode != LOB_WRITE:
-            raise SDBTypeError("mode must be lob.LOB_READ or lob.LOB_WRITE")
-
         obj = lob()
         try:
-            rc = sdb.cl_open_lob(self._cl, obj._handle, str_id, mode)
+            rc = sdb.cl_get_lob(self._cl, obj._handle, str_id)
             raise_if_error(rc, "Failed to get specified lob")
         except SDBBaseError:
             del obj
             raise
 
         return obj
-
-    def get_lob(self, oid):
-        """get the specified lob.
-
-        Parameters:
-           Name     Type                 Info:
-           oid      str/bson.ObjectId    The specified oid
-        Return values:
-           a lob object
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        return self.open_lob(oid, LOB_READ)
 
     def remove_lob(self, oid):
         """remove lob.
@@ -1140,31 +1087,6 @@ class collection(object):
 
         rc = sdb.cl_remove_lob(self._cl, str_id)
         raise_if_error(rc, "Failed to remove lob")
-
-    def truncate_lob(self, oid, length):
-        """truncate lob.
-
-        Parameters:
-           Name     Type                 Info:
-           oid      str/bson.ObjectId    The oid of the lob to be truncated.
-           length   int/long             The truncate length
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        if isinstance(oid, bson.ObjectId):
-            str_id = str(oid)
-        elif isinstance(oid, str):
-            str_id = oid
-            if len(oid) != 24:
-                raise SDBInvalidArgument(SDB_INVALIDARG, "invalid oid: '%s'" % oid)
-        else:
-            raise SDBTypeError("oid must be an instance of str or bson.ObjectId")
-
-        if not isinstance(length, (int, long_type)):
-            raise SDBTypeError("length must be an instance of int or long")
-
-        rc = sdb.cl_truncate_lob(self._cl, str_id, length)
-        raise_if_error(rc, "Failed to truncate lob")
 
     def list_lobs(self):
         """list all lobs.
@@ -1215,7 +1137,6 @@ class collection(object):
            QUERY_FLG_WITH_RETURNDATA : Force to use specified hint to query, if database have no index assigned by the hint, fail to query
            QUERY_FLG_PARALLED        : Enable parallel sub query, each sub query will finish scanning different part of the data
            QUERY_FLG_FORCE_HINT      : In general, query won't return data until cursor gets from database, when add this flag, return data in query response, it will be more high-performance
-           QUERY_PREPARE_MORE        : Enable prepare more data when query
         """
         bson_condition = None
         bson_selector = None

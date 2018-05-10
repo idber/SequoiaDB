@@ -64,10 +64,8 @@ namespace engine
       {
          return _stringOutput ;
       }
-
    public:
-      INT32 loadPattern( const bson::BSONObj &pattern, 
-                         BOOLEAN strictDataMode = FALSE ) ;
+      INT32 loadPattern( const bson::BSONObj &pattern ) ;
 
       INT32 select( const bson::BSONObj &source,
                     bson::BSONObj &target ) ;
@@ -88,7 +86,6 @@ namespace engine
       BOOLEAN _init ;
 
       BOOLEAN _stringOutput ;
-      BOOLEAN _strictDataMode ;
       INT32 _stringOutputBufferSize ;
       CHAR *_stringOutputBuffer ;
    } ;

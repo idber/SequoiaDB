@@ -365,7 +365,7 @@ do                                                                          \
                            &receivedLen,
                            SDB_CLIENT_DFT_NETWORK_TIMEOUT ) ;
          totalReceivedLen += receivedLen ;
-         if ( SDB_TIMEOUT == rc ) 
+         if ( SDB_TIMEOUT == rc )
          {
             continue ;
          }
@@ -401,7 +401,7 @@ do                                                                          \
       {
          rc = clientSend ( connection->_sock, pMsg + totalSentSize, 
                            msgLength - totalSentSize, &sentSize,
-                           SDB_CLIENT_DFT_NETWORK_TIMEOUT ) ;
+                        SDB_CLIENT_DFT_NETWORK_TIMEOUT ) ;
          totalSentSize += sentSize ;
          if ( SDB_TIMEOUT == rc )
          {

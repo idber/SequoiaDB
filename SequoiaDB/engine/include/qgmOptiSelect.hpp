@@ -45,7 +45,7 @@ namespace engine
 {
    class _qgmExtendSelectPlan ;
 
-   class _qgmOptiSelect : public _qgmOptiTreeNode
+   class _qgmOptiSelect : public qgmOptiTreeNode
    {
    public:
       _qgmOptiSelect( _qgmPtrTable *table, _qgmParamTable *param ) ;

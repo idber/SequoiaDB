@@ -189,13 +189,11 @@ struct _sdbLobStruct
    INT32 _mode ;
    CHAR _oid[12] ; //DMS_LOB_OID_LEN
    UINT64 _createTime ;
-   UINT64 _modificationTime ;
    SINT64 _lobSize ;
    SINT64 _currentOffset ;
    SINT64 _cachedOffset ;
    UINT32 _cachedSize ;
    UINT32 _pageSize ;
-   BOOLEAN _seekWrite ;
    const CHAR *_dataCache ;
 } ;
 typedef struct _sdbLobStruct sdbLobStruct ;

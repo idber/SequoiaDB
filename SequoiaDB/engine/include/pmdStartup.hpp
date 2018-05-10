@@ -57,8 +57,6 @@ namespace engine
 
    const CHAR* pmdGetStartTypeStr( SDB_START_TYPE type ) ;
 
-   SDB_START_TYPE pmdStr2StartType( const CHAR* str ) ;
-
    /*
       _pmdStartup define
    */

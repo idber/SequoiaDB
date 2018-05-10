@@ -20,8 +20,15 @@ function openLogModal()
 		sdbjs.fun.setCSS( 'logWell', { 'max-height': 350 } ) ;
 		sdbjs.parts.modalBox.show( 'logModal' ) ;
 		_isLogModalZooomin = false ;
-	}, function(){
-		showProcessError( _languagePack['error']['system']['networkErr'] ) ;
+	}, function( error ){
+		if( error['errno'] == -1 )
+      {
+         showProcessError( _languagePack['error']['system']['notFoundLog'] ) ;
+      }
+		else
+      {
+         showProcessError( _languagePack['error']['system']['networkErr'] ) ;
+      }
 	}, function(){
 		sdbjs.parts.loadingBox.hide( 'loading' ) ;
 	}, _taskID ) ;
@@ -206,13 +213,10 @@ function updateTaskInfo( taskInfo, isFirst )
 	if( taskInfo['errno'] !== 0 )
 	{
 		color = 'red' ;
-	}
-	if( taskInfo['errno'] !== 0 )
-	{
-		color = 'red' ;
 		$.each( taskInfo['ResultInfo'], function( index, resultInfo ){
 				_nodeStatus[index] = true ;
 				sdbjs.parts.gridBox.updateBody( 'nodeListGrid', index, 0, '<img src="./images/delete.png">' ) ;
+            sdbjs.parts.gridBox.updateBody( 'nodeListGrid', index, 6, htmlEncode( typeToStr2( 0, -1 ) ) ) ;
 		} ) ;
 	}
 	sdbjs.parts.progressBox2.update( 'Progress', color, taskInfo['Progress'] ) ;

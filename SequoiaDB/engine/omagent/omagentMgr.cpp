@@ -214,7 +214,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       std::string line ;
 
-      rc = pmdCfgRecord::toString( line, PMD_CFG_MASK_SKIP_UNFIELD ) ;
+      rc = pmdCfgRecord::toString( line ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to get the line str:%d", rc ) ;
@@ -301,17 +301,6 @@ namespace engine
       string omAddrLine = makeAddressLine( _vecOMAddr ) ;
       ossStrncpy( _omAddress, omAddrLine.c_str(), OSS_MAX_PATHSIZE ) ;
       _omAddress[ OSS_MAX_PATHSIZE ] = 0 ;
-      if ( 0 != _omAddress[ 0 ] )
-      {
-         _addToFieldMap( SDBCM_CONF_OMADDR, _omAddress, TRUE, TRUE ) ;
-      }
-
-      if ( TRUE == _isGeneralAgent )
-      {
-         _addToFieldMap( SDBCM_CONF_ISGENERAL,
-                         _isGeneralAgent ? "TRUE" : "FALSE",
-                         TRUE, TRUE ) ;
-      }
 
       return SDB_OK ;
    }
@@ -665,6 +654,7 @@ namespace engine
 
       rc = pEDUMgr->startEDU( EDU_TYPE_OMMGR, (_pmdObjBase*)this, &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start OM Manager edu, rc: %d", rc ) ;
+      pEDUMgr->regSystemEDU( EDU_TYPE_OMMGR, eduID ) ;
       rc = _attachEvent.wait( OMAGENT_WAIT_CB_ATTACH_TIMEOUT ) ;
       PD_RC_CHECK( rc, PDERROR, "Wait OM Manager edu attach failed, rc: %d",
                    rc ) ;
@@ -672,6 +662,7 @@ namespace engine
       rc = pEDUMgr->startEDU( EDU_TYPE_OMNET, (netRouteAgent*)&_netAgent,
                               &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start om net, rc: %d", rc ) ;
+      pEDUMgr->regSystemEDU( EDU_TYPE_OMNET, eduID ) ;
 
       rc = _netAgent.addTimer( OSS_ONE_SEC, &_timerHandler, _oneSecTimer ) ;
       if ( rc )
@@ -698,60 +689,6 @@ namespace engine
          }
       }
 
-      rc = _runStartPluginTask() ;
-      if( rc )
-      {
-         PD_LOG( PDERROR, "Failed to start plugin task, rc: %d", rc ) ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _omAgentMgr::_runStartPluginTask()
-   {
-      INT32 rc = SDB_OK ;
-      EDUID eduID = PMD_INVALID_EDUID ;
-      _omagentJob *pJob = NULL ;
-      _omaTask *pTask = NULL ;
-
-      pTask = SDB_OSS_NEW _omaStartPluginsTask( 0 ) ;
-      if ( NULL == pTask )
-      {
-         PD_LOG ( PDERROR, "Failed to alloc memory for running task "
-                  "with the plugin starter task" ) ;
-         rc = SDB_OOM ;
-         goto error ;
-      }
-
-      {
-         omaTaskPtr myTaskPtr( pTask ) ;
-         BSONObj info ;
-
-         pJob = SDB_OSS_NEW _omagentJob( myTaskPtr, info, NULL ) ;
-         if ( !pJob )
-         {
-            PD_LOG ( PDERROR, "Failed to alloc memory for running job "
-                     "with the plugin starter job" ) ;
-            rc = SDB_OOM ;
-            goto error ;
-         }
-
-         rc = rtnGetJobMgr()->startJob( pJob, RTN_JOB_MUTEX_NONE, &eduID,
-                                        FALSE ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to start plugin starter task, rc = %d",
-                     rc ) ;
-            goto done ;
-         }
-
-         pTask->setJobInfo( eduID ) ;
-      }
-
    done:
       return rc ;
    error:
@@ -774,56 +711,7 @@ namespace engine
 
       _sessionMgr.setForced() ;
 
-      _runStopPluginTask() ;
-
       return SDB_OK ;
-   }
-
-   INT32 _omAgentMgr::_runStopPluginTask()
-   {
-      INT32 rc = SDB_OK ;
-      EDUID eduID = PMD_INVALID_EDUID ;
-      _omagentJob *pJob = NULL ;
-      _omaTask *pTask = NULL ;
-
-      pTask = SDB_OSS_NEW _omaStopPluginsTask( 0 ) ;
-      if ( NULL == pTask )
-      {
-         PD_LOG ( PDERROR, "Failed to alloc memory for running task "
-                  "with the plugin stop task" ) ;
-         rc = SDB_OOM ;
-         goto error ;
-      }
-
-      {
-         omaTaskPtr myTaskPtr( pTask ) ;
-         BSONObj info ;
-
-         pJob = SDB_OSS_NEW _omagentJob( myTaskPtr, info, NULL ) ;
-         if ( !pJob )
-         {
-            PD_LOG ( PDERROR, "Failed to alloc memory for running job "
-                     "with the plugin stop job" ) ;
-            rc = SDB_OOM ;
-            goto error ;
-         }
-
-         rc = rtnGetJobMgr()->startJob( pJob, RTN_JOB_MUTEX_NONE, &eduID,
-                                        FALSE ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to start plugin stop task, rc = %d",
-                     rc ) ;
-            goto done ;
-         }
-
-         pTask->setJobInfo( eduID ) ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
    }
 
    INT32 _omAgentMgr::fini()
@@ -1453,21 +1341,17 @@ namespace engine
                      taskType, rc ) ;
          goto error ;
       }
-
-      if ( OMA_TASK_ADD_BUS == taskType || OMA_TASK_REMOVE_BUS == taskType ||
-           OMA_TASK_EXTEND_BUZ == taskType )
+      if ( OMA_TASK_ADD_BUS == taskType || OMA_TASK_REMOVE_BUS == taskType )
       {
          rc = omaGetObjElement( obj, OMA_FIELD_INFO, infoObj ) ;
          PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                    "Get field[%s] failed, rc: %d",
                    OMA_FIELD_INFO, rc ) ;
-
          rc = omaGetStringElement( infoObj, OMA_FIELD_BUSINESSTYPE,
                                    &pBusinessType) ;
          PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                    "Get field[%s] failed, rc: %d",
                    OMA_FIELD_BUSINESSTYPE, rc ) ;
-
          rc = omaGetStringElement( infoObj, OMA_FIELD_DEPLOYMOD,
                                    &pDeployMode ) ;
          PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
@@ -1481,19 +1365,13 @@ namespace engine
                *type = OMA_TASK_INSTALL_DB ;
                goto done ;
             }
-            else if ( string(OMA_BUS_TYPE_SEQUOIASQL_OLTP) ==
-                                                         string(pBusinessType) )
-            {
-               *type = OMA_TASK_ADD_BUS ;
-               goto done ;
-            }
             else if ( string(OMA_BUS_TYPE_ZOOKEEPER) == string(pBusinessType) )
             {
                *type = OMA_TASK_INSTALL_ZN ;
                goto done ;
             }
-            else if ( string(OMA_BUS_TYPE_SEQUOIASQL_OLAP) ==
-                                                         string(pBusinessType) )
+            else if ( string(OMA_BUS_TYPE_SEQUOIASQL) == string(pBusinessType) &&
+                      string(OM_SEQUOIASQL_DEPLOY_OLAP) == string(pDeployMode) )
             {
                *type = OMA_TASK_INSTALL_SSQL_OLAP ;
                goto done ;
@@ -1506,7 +1384,7 @@ namespace engine
                goto error ;
             }
          }
-         else if( OMA_TASK_REMOVE_BUS == taskType )
+         else
          {
             if ( string(OMA_BUS_TYPE_SEQUOIADB) == string(pBusinessType) )
             {
@@ -1518,29 +1396,11 @@ namespace engine
                *type = OMA_TASK_REMOVE_ZN ;
                goto done ;
             }
-            else if ( OMA_BUS_TYPE_SEQUOIASQL_OLAP == string(pBusinessType) )
+            else if ( OMA_BUS_TYPE_SEQUOIASQL == string(pBusinessType) &&
+                      OM_SEQUOIASQL_DEPLOY_OLAP == string(pDeployMode) )
             {
                *type = OMA_TASK_REMOVE_SSQL_OLAP ;
                goto done ;
-            }
-            else if ( OMA_BUS_TYPE_SEQUOIASQL_OLTP == string(pBusinessType) )
-            {
-               *type = OMA_TASK_REMOVE_BUS ;
-               goto done ;
-            }
-            else
-            {
-               rc = SDB_INVALIDARG ;
-               PD_LOG_MSG( PDERROR, "Unknow task sub type with name[%s], "
-                           "rc = %d", pBusinessType, rc ) ;
-               goto error ;
-            }
-         }
-         else if( taskType == OMA_TASK_EXTEND_BUZ )
-         {
-            if( string( pBusinessType ) == OMA_BUS_TYPE_SEQUOIADB )
-            {
-               *type = OMA_TASK_EXTEND_DB ;
             }
             else
             {

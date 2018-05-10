@@ -197,6 +197,15 @@ function filterNodeList()
 	var selectNode_1 = sdbjs.fun.getNode( 'roleSelect', 'selectBox' ) ;
 	var selectNode_2 = sdbjs.fun.getNode( 'groupSelect', 'selectBox' ) ;
 	var roleF = $( selectNode_1['obj'] ).val() ;
+   if( roleF == 'coord' || roleF == 'catalog' )
+   {
+      $( selectNode_2['obj'] ).val( 'all' ) ;
+      $( selectNode_2['obj'] ).attr( 'disabled', true ) ;
+   }
+   else
+   {
+      $( selectNode_2['obj'] ).attr( 'disabled', false ) ;
+   }
 	var groupF = $( selectNode_2['obj'] ).val() ;
 
 	$.each( _businessPara['Config'], function( index, nodeInfo ){

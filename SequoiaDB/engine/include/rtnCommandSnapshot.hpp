@@ -39,6 +39,7 @@ using namespace bson ;
 
 namespace engine
 {
+
    class _pmdEDUCB ;
    class _SDB_DMSCB ;
    class _SDB_RTNCB ;
@@ -92,43 +93,6 @@ namespace engine
       public:
          _rtnSnapshotSystemInner() {}
          virtual ~_rtnSnapshotSystemInner() {}
-
-         virtual const CHAR * name () ;
-         virtual RTN_COMMAND_TYPE type () ;
-
-      protected:
-         virtual INT32   _getFetchType() const ;
-         virtual BOOLEAN _isCurrent() const ;
-         virtual UINT32  _addInfoMask() const ;
-   } ;
-
-   class _rtnSnapshotHealth : public _rtnSnapshot
-   {
-      DECLARE_CMD_AUTO_REGISTER()
-
-      public :
-         _rtnSnapshotHealth () ;
-         virtual ~_rtnSnapshotHealth () ;
-
-         virtual const CHAR * name () ;
-         virtual RTN_COMMAND_TYPE type () ;
-
-      protected:
-         virtual INT32   _getFetchType() const ;
-         virtual BOOLEAN _isCurrent() const ;
-         virtual UINT32  _addInfoMask() const ;
-
-      private:
-         virtual const CHAR *getIntrCMDName() ;
-   };
-
-   class _rtnSnapshotHealthInner : public _rtnSnapshotInner
-   {
-      DECLARE_CMD_AUTO_REGISTER()
-
-      public:
-         _rtnSnapshotHealthInner() {}
-         virtual ~_rtnSnapshotHealthInner() {}
 
          virtual const CHAR * name () ;
          virtual RTN_COMMAND_TYPE type () ;
@@ -339,10 +303,6 @@ namespace engine
          virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL ) ;
-      private:
-         RTN_COMMAND_TYPE _type ;
-         EDUID _sessionID ;
-         BOOLEAN _resetAllSession ;
 
    };
 
@@ -490,49 +450,6 @@ namespace engine
          virtual INT32   _getFetchType() const ;
          virtual BOOLEAN _isCurrent() const ;
          virtual UINT32  _addInfoMask() const ;
-   } ;
-
-   /*
-      _rtnSnapshotAccessPlans define
-    */
-   class _rtnSnapshotAccessPlans : public _rtnSnapshot
-   {
-      DECLARE_CMD_AUTO_REGISTER () ;
-
-      public :
-         _rtnSnapshotAccessPlans () ;
-         virtual ~_rtnSnapshotAccessPlans () ;
-
-         virtual const CHAR * name () ;
-         virtual RTN_COMMAND_TYPE type () ;
-
-      protected :
-         virtual INT32   _getFetchType() const ;
-         virtual BOOLEAN _isCurrent() const ;
-         virtual UINT32  _addInfoMask() const ;
-
-      private :
-         virtual const CHAR *getIntrCMDName() ;
-   } ;
-
-   /*
-      _rtnSnapshotAccessPlansInner define
-    */
-   class _rtnSnapshotAccessPlansInner : public _rtnSnapshotInner
-   {
-      DECLARE_CMD_AUTO_REGISTER()
-
-      public:
-         _rtnSnapshotAccessPlansInner () ;
-         virtual ~_rtnSnapshotAccessPlansInner () ;
-
-         virtual const CHAR * name () ;
-         virtual RTN_COMMAND_TYPE type () ;
-
-      protected:
-         virtual INT32   _getFetchType () const ;
-         virtual BOOLEAN _isCurrent () const ;
-         virtual UINT32  _addInfoMask () const ;
    } ;
 
 }

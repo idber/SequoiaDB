@@ -382,79 +382,6 @@ public :
 } ;
 typedef class _ossSpinXLatch ossSpinXLatch ;
 
-class _ossSpinRecursiveXLatch : public ossXLatch
-{
-#if defined(_WIN32)
-private:
-   CRITICAL_SECTION _cs ;
-public:
-   _ossSpinRecursiveXLatch()
-   {
-      InitializeCriticalSection( &_cs ) ;
-   }
-
-   ~_ossSpinRecursiveXLatch()
-   {
-      DeleteCriticalSection( &_cs ) ;
-   }
-
-   void get()
-   {
-      EnterCriticalSection( &_cs ) ;
-   }
-
-   void release()
-   {
-      LeaveCriticalSection( &_cs ) ;
-   }
-
-   BOOLEAN try_get()
-   {
-      return TryEnterCriticalSection( &_cs ) ;
-   }
-#else
-private:
-   pthread_mutex_t _lock ;
-public:
-   _ossSpinRecursiveXLatch()
-   {
-      pthread_mutexattr_t _attr ;
-      SDB_ASSERT( pthread_mutexattr_init( &_attr ) == 0,
-                  "Failed to init mutex attribute" ) ;
-      SDB_ASSERT( pthread_mutexattr_settype( &_attr,
-                                             PTHREAD_MUTEX_RECURSIVE ) == 0,
-                  "Failed to set mutex type" ) ;
-
-      SDB_ASSERT( pthread_mutex_init( &_lock, &_attr ) == 0,
-                  "Failed to init mutex" ) ;
-   }
-
-   ~_ossSpinRecursiveXLatch()
-   {
-      SDB_ASSERT( pthread_mutex_destroy( &_lock ) == 0,
-                  "Failed to destroy mutex" ) ;
-   }
-
-   void get()
-   {
-      SDB_ASSERT( pthread_mutex_lock( &_lock ) == 0,
-                  "Failed to lock mutex" ) ;
-   }
-
-   void release()
-   {
-      SDB_ASSERT( pthread_mutex_unlock( &_lock ) == 0,
-                  "Failed to unlock mutex" ) ;
-   }
-
-   BOOLEAN try_get()
-   {
-      return ( pthread_mutex_trylock( &_lock ) == 0 ) ;
-   }
-#endif
-} ;
-typedef _ossSpinRecursiveXLatch ossSpinRecursiveXLatch ;
-
 #if defined (_WINDOWS)
 /*
    _ossSRWLock define
@@ -503,7 +430,7 @@ class _ossSRWLock
             }
             else if ( WAIT_TIMEOUT == retCode )
             {
-               return SDB_TIMEOUT ;
+               return SDB_TIMEOUT ;         
             }
             else
             {

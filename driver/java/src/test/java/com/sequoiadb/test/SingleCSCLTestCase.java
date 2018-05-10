@@ -1,8 +1,6 @@
 package com.sequoiadb.test;
 
 import com.sequoiadb.base.DBCollection;
-import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
 import org.bson.types.ObjectId;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -22,10 +20,7 @@ public abstract class SingleCSCLTestCase extends SingleCSTestCase {
         if (cs.isCollectionExist(clName)) {
             cs.dropCollection(clName);
         }
-
-        BSONObject options = new BasicBSONObject();
-        options.put("Group", TestConfig.getSingleGroup());
-        cl = cs.createCollection(clName, options);
+        cl = cs.createCollection(clName);
     }
 
     @AfterClass

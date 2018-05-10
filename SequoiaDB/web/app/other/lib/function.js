@@ -1,158 +1,3 @@
-var getBrowserInfo = function()
-{
-	var agent = window.navigator.userAgent.toLowerCase() ;
-	var regStr_ie = /msie [\d.]+;/gi ;
-	var regStr_ff = /firefox\/[\d.]+/gi ;
-	var regStr_chrome = /chrome\/[\d.]+/gi ;
-	var regStr_saf = /safari\/[\d.]+/gi ;
-	var temp = '' ;
-	var info = [] ;
-	if( agent.indexOf( 'msie' ) > 0 )
-	{
-		temp = agent.match( regStr_ie ) ;
-		info.push( 'ie' ) ;
-	}
-	else if( agent.indexOf( 'firefox' ) > 0 )
-	{
-		temp = agent.match( regStr_ff ) ;
-		info.push( 'firefox' ) ;
-	}
-	else if( agent.indexOf( 'chrome' ) > 0 )
-	{
-		temp = agent.match( regStr_chrome ) ;
-		info.push( 'chrome' ) ;
-	}
-	else if( agent.indexOf( 'safari' ) > 0 && agent.indexOf( 'chrome' ) < 0 )
-	{
-		temp = agent.match( regStr_saf ) ;
-		info.push( 'safari' ) ;
-	}
-	else
-	{
-		if( agent.indexOf( 'trident' ) > 0 && agent.indexOf( 'rv' ) > 0 )
-		{
-			info.push( 'ie' ) ;
-			temp = '11' ;
-		}
-		else
-		{
-			temp = '0' ;
-			info.push( 'unknow' ) ;
-		}
-	}
-	verinfo = ( temp + '' ).replace( /[^0-9.]/ig, '' ) ;
-	info.push( parseInt( verinfo ) ) ;
-	return info ;
-}
-
-var setBrowserStorage = function()
-{
-	var browser = getBrowserInfo() ;
-   var storageType ;
-	if( browser[0] === 'ie' && browser[1] <= 7 )
-	{
-      storageType = 'cookie' ;
-	}
-	else
-	{
-		if( window.localStorage )
-		{
-			storageType = 'localStorage' ;
-		}
-		else
-		{
-			if( navigator.cookieEnabled === true )
-			{
-				storageType = 'cookie' ;
-			}
-			else
-			{
-				storageType = '' ;
-			}
-		}
-	}
-	return storageType ;
-}
-
-var localLocalData = function( key, value )
-{
-   var storageType = setBrowserStorage() ;
-
-   if( typeof( value ) == 'undefined' )
-   {
-      //读取本地数据
-      var newValue = null ;
-	   if ( storageType === 'localStorage' )
-	   {
-		   newValue = window.localStorage.getItem( key ) ;
-	   }
-	   else if ( storageType === 'cookie' )
-	   {
-		   newValue = $.cookie( key ) ;
-	   }
-	   return newValue ;
-   }
-   else if( value == null )
-   {
-      //删除本地数据
-      if ( storageType === 'localStorage' )
-	   {
-		   window.localStorage.removeItem( key ) ;
-	   }
-	   else if ( storageType === 'cookie' )
-	   {
-		   $.removeCookie( key ) ;
-	   }
-   }
-   else
-   {
-      //写入本地数据
-      if ( storageType === 'localStorage' )
-	   {
-		   window.localStorage.setItem( key, value ) ;
-	   }
-	   else if ( storageType === 'cookie' )
-	   {
-		   var saveTime = new Date() ;
-		   saveTime.setDate( saveTime.getDate() + 365 ) ;
-		   $.cookie( key, value, { 'expires': saveTime } ) ;
-	   }
-   }
-}
-
-var isPluginPath = function( fileName )
-{
-   var files = fileName.split( '/' ) ;
-
-   if( files[0] == '.' || files[0] == '' )
-   {
-      files.splice( 0, 1 ) ;
-   }
-
-   if( files.length < 3 )
-   {
-      return false ;
-   }
-
-   if( files[0] != 'app' )
-   {
-      return false ;
-   }
-
-   if( files[1] != 'controller' )
-   {
-      return false ;
-   }
-
-   if( files[2] != 'Data' &&
-       files[2] != 'Monitor' )
-   {
-      return false ;
-   }
-
-   return true ;
-}
-
 //动态加载模块文件
 var resolveFun = function( files ){
    return {
@@ -160,47 +5,19 @@ var resolveFun = function( files ){
          var deferred = $q.defer();
          var dependencies = files ;
          var i = 0 ;
-
          function loadjs( fileName )
          {
-            $.ajax( {
-               'url': fileName,
-               'dataType': 'script',
-               'beforeSend': function( jqXHR ){
-                  if( isPluginPath( fileName ) == false )
-                  {
-                     return ;
-                  }
-
-	               var clusterName = localLocalData( 'SdbClusterName' ) ;
-	               if( clusterName !== null )
-	               {
-		               jqXHR.setRequestHeader( 'SdbClusterName', clusterName ) ;
-	               }
-	               var businessName = localLocalData( 'SdbModuleName' )
-	               if( businessName !== null )
-	               {
-		               jqXHR.setRequestHeader( 'SdbBusinessName', businessName ) ;
-	               }
-               },
-               'success': function( response, status ){
-                  ++i ;
-                  if( i == dependencies.length )
-                  {
-                     $rootScope.$apply( function(){
-                        deferred.resolve() ;
-                     } ) ;
-                  }
-                  else
-                  {
-                     loadjs( dependencies[i] ) ;
-                  }
-               },
-               'error': function( XMLHttpRequest, textStatus, errorThrown ){
-                  if( window.SdbDebug == true )
-                  {
-                     throw errorThrown ;
-                  }
+            $.getScript( fileName, function(){
+               ++i ;
+               if( i == dependencies.length )
+               {
+                  $rootScope.$apply( function(){
+                     deferred.resolve() ;
+                  } ) ;
+               }
+               else
+               {
+                  loadjs( dependencies[i] ) ;
                }
             } ) ;
          }
@@ -1010,7 +827,7 @@ function parseConditionValue( condition )
             subCondition[ field['field'] ] = fieldValue ;
             break ;
          case 'size':
-            subCondition[ field['field'] ] = { '$size': 1, '$et': fieldValue } ;
+            subCondition[ field['field'] ] = { '$size': fieldValue } ;
             break ;
          case 'regex':
             var regex = trim( fieldValue ) ;
@@ -1096,7 +913,7 @@ function parseConditionValue( condition )
                fieldValue = parseInt( fieldValue ) ;
                break ;
             }
-            subCondition[ field['field'] ] = { '$type': 1, '$et': fieldValue } ;
+            subCondition[ field['field'] ] = { '$type': fieldValue } ;
             break ;
          case 'null':
             subCondition[ field['field'] ] = { '$isnull': 1 } ;
@@ -1157,9 +974,6 @@ function parseHintValue( jobj )
    {
       hint[''] = null ;
    }
-   else if( jobj === 0 )
-   {
-   }
    else
    {
       hint[''] = jobj ;
@@ -1176,29 +990,6 @@ function parseUpdatorValue( jobj ){
    } ) ;
    updator = { '$set': updator } ;
    return updator ;
-}
-
-//指定光标移动到最后
-function set_focus( box )
-{
-   box.focus() ;
-   if( $.support.msie )
-   {
-      var range = document.selection.createRange();
-      this.last = range;
-      range.moveToElementText( box );
-      range.select();
-      document.selection.empty(); //取消选中
-   }
-   else
-   {
-      var range = document.createRange();
-      range.selectNodeContents( box );
-      range.collapse(false);
-      var sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(range);
-   }
 }
 
 //解析indexDef的值
@@ -1962,7 +1753,15 @@ function deleteJson( json, keys )
 {
    var newJson = {} ;
    $.each( json, function( key, value ){
-      if( keys.indexOf( key ) == -1 )
+      var isFind = false ;
+      $.each( keys, function( index ){
+         if( key == keys[index] )
+         {
+            isFind = true ;
+            return false ;
+         }
+      } ) ;
+      if( isFind == false )
       {
          newJson[key] = value ;
       }
@@ -2278,101 +2077,4 @@ function getJsonFirstKeys( json )
       keys.push( key ) ;
    } ) ;
    return keys ;
-}
-
-function parseOneJson( json_array, str, isParseJson, i, len, errType, errJson )
-{
-   var chars, isJson, isEsc, level, isString, start, json ;
-
-   level = 0, isEsc = false, isString = false, start = i ;
-
-   while( i < len )
-	{
-      isJson = true ;
-
-		chars = str.charAt( i ) ;
-
-		if( isEsc )
-      {
-         isEsc = false ;
-      }
-		else
-		{
-			if( ( chars === '{' || chars === '[' ) && isString === false )
-         {
-            ++level ;
-         }
-			else if( ( chars === '}' || chars === ']' ) && isString === false )
-			{
-				--level ;
-				if( level === 0 )
-				{
-					++i ;
-					subStr = str.substring( start, i ) ;
-
-               if( isParseJson )
-               {
-                  try
-                  {
-                     json = JSON.parse( subStr ) ;
-                  }
-                  catch( e )
-                  {
-                     isJson = false ;
-                     json = { " ": subStr } ;
-                  }
-
-                  if( errType == true )
-                  {
-                     errJson.push( !isJson ) ;
-                  }
-                  json_array.push( json ) ;
-               }
-               else
-               {
-                  json_array.push( subStr ) ;
-               }
-					break ;
-				}
-			}
-			else if( chars === '"' )
-         {
-            isString = !isString ;
-         }
-			else if( chars === '\\' )
-         {
-            isEsc = true ;
-         }
-		}
-		++i ;
-	}
-
-   return i ;
-}
-
-//解析响应的Json
-function parseJson2( str, isParseJson, errJson )
-{
-   var jsonArr = [] ;
-	var i = 0, len = str.length ;
-	var chars, end, subStr, json, errType ;
-
-   errType = isArray( errJson ) ;
-
-	while( i < len )
-	{
-		while( i < len )
-      {
-         chars = str.charAt( i ) ;
-         if( chars === '{' )
-         {
-            break ;
-         }
-         ++i ;
-      }
-
-		i = parseOneJson( jsonArr, str, isParseJson, i, len, errType, errJson ) ;
-	}
-
-	return jsonArr ;
 }

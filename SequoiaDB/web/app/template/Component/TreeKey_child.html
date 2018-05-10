@@ -29,5 +29,5 @@
          </td>
       </tr>
    </table>
-   <div ng-if="field.isOpen && (field.type=='Object' || field.type=='Array')" style="padding-left:14px;" ng-eval="items = field.val;" ng-include="'./app/template/Component/TreeKey_child.html'"></div>
+   <div ng-show="field.isOpen" style="padding-left:14px;" ng-if="field.type=='Object' || field.type=='Array'" ng-eval="items = field.val;" ng-include="'./app/template/Component/TreeKey_child.html'"></div>
 </div>

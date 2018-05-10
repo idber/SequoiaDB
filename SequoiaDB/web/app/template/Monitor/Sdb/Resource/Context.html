@@ -38,17 +38,16 @@
       </div>
 
       <div style="color:#606060;font-size:90%;height:30px;margin:10px 0;">
-         <button class="btn btn-default" ng-click="OpenBrushWindows()">
-            <span>{{sprintf(autoLanguage("刷新间隔： ? 秒"), IntervalTimeConfig.interval)}}</span>
-         </button>&nbsp;
-         <button class="btn btn-default" ng-click="RefreshCtrl()">{{RefreshType}}</button>&nbsp;
+         <button class="topBtn" ng-click="OpenBrushWindows()">{{autoLanguage("实时刷新设置")}}</button>&nbsp;
+         <button class="topBtn" ng-click="OpenShowFieldDropdown($event)">{{autoLanguage("选择显示列")}}&nbsp;<i class="fa fa-caret-down"></i></button>&nbsp;
          <!--
          <button class="btn btn-default" ng-click="OpenShowContextTypeDropdown($event)">
             <span ng-if="ContextType == 'all'">{{autoLanguage("所有上下文")}}</span><span ng-if="ContextType == 'current'">{{autoLanguage("当前上下文")}}</span>&nbsp;<i class="fa fa-caret-down"></i>
          </button>
          -->
          <div ng-dropdown="config in FieldDropdown.config" dropdown-callback="FieldDropdown.callback">
-            <label class="Ellipsis" style="padding:5px 10px;display:block;" ng-click="SaveField()"><input type="checkbox" ng-model="config.show" />&nbsp;{{config.key}}</label>
+            <label class="Ellipsis" style="padding:5px 10px;display:block;"><input type="checkbox" ng-model="config.show" />&nbsp;{{config.key}}</label>
+            <button class="btn btn-primary" style="width:100%;" dropdown-config="last" ng-click="SaveField()">{{autoLanguage("确定")}}</button>
          </div>
          <div ng-dropdown="config in ContextTypeDropdown.config" dropdown-callback="ContextTypeDropdown.callback">
             <label class="Ellipsis" style="padding:5px 10px;display:block;"><input type="radio" name="contexttypedropdown" ng-value="config.key" ng-model="ContextTypeDropdown.ContextType" />&nbsp;{{config.field}}</label>

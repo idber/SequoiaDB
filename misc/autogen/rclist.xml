@@ -2538,45 +2538,5 @@
          </description>
       </code>
 
-      <code>
-         <name>SDB_LOB_IS_IN_USE</name>
-         <description>
-            <en>LOB is in use</en>
-            <cn>LOB当前正在使用</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>SDB_VALUE_OVERFLOW</name>
-         <description>
-            <en>Data operation is overflowed</en>
-            <cn>数值运算出现溢出</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>SDB_LOB_PIECESINFO_OVERFLOW</name>
-         <description>
-            <en>LOB's pieces info is overflowed</en>
-            <cn>LOB切片信息溢出</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>SDB_LOB_LOCK_CONFLICTED</name>
-         <description>
-            <en>LOB lock is conflicted</en>
-            <cn>LOB锁冲突</cn>
-         </description>
-      </code>
-
-      <code>
-         <name>SDB_DMS_TRUNCATED</name>
-         <description>
-            <en>Collection is truncated</en>
-            <cn>集合被清空</cn>
-         </description>
-      </code>
-
    </codelist>
 </rclist>

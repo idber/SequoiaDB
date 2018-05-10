@@ -205,15 +205,9 @@ namespace engine
             rc = su->data()->getMBContext( &mbContext, pShortName, SHARED ) ;
             if ( SDB_OK == rc )
             {
-               paralla = ( mbContext->mbStat()->_uniqueIdxNum <= 1 &&
-                           0 == mbContext->mbStat()->_textIdxNum ) ?
+               paralla = mbContext->mbStat()->_uniqueIdxNum <= 1 ?
                          TRUE : FALSE ;
                su->data()->releaseMBContext( mbContext ) ;
-            }
-
-            if ( DMS_STORAGE_CAPPED == su->type() )
-            {
-               paralla = FALSE ;
             }
             _dmsCB->suUnlock( suID, SHARED ) ;
          }
@@ -330,7 +324,7 @@ namespace engine
             {
                goto error ;
             }
-            rc = rtnReplayInsert( fullname, obj, 0, eduCB, _dmsCB, _dpsCB, 1 ) ;
+            rc = rtnInsert( fullname, obj, 1, 0, eduCB, _dmsCB, _dpsCB, 1 ) ;
             if ( SDB_OK == rc && incCount )
             {
                _monDBCB->monOperationCountInc ( MON_INSERT_REPL ) ;
@@ -408,51 +402,19 @@ namespace engine
             }
             break ;
          }
-         case LOG_TYPE_DATA_POP:
-         {
-            const CHAR *fullName = NULL ;
-            INT64 logicalID = 0 ;
-            INT8 direction = 1 ;
-            rc = dpsRecord2Pop( (CHAR *)recordHeader, &fullName,
-                                logicalID, direction );
-            if ( rc )
-            {
-               goto error ;
-            }
-
-            rc = rtnPopCommand( fullName, logicalID, eduCB, _dmsCB,
-                                _dpsCB, 1, direction ) ;
-            if ( SDB_INVALIDARG == rc )
-            {
-               PD_LOG( PDINFO, "Logical id[ %lld ] is invalid when pop",
-                       logicalID ) ;
-               rc = SDB_OK ;
-            }
-            break ;
-         }
          case LOG_TYPE_CS_CRT :
          {
             const CHAR *cs = NULL ;
             INT32 pageSize = 0 ;
             INT32 lobPageSize = 0 ;
-            INT32 type = 0 ;
             rc = dpsRecord2CSCrt( (CHAR *)recordHeader,
-                                  &cs, pageSize, lobPageSize, type ) ;
+                                  &cs, pageSize, lobPageSize ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
             }
-
-            if ( type < DMS_STORAGE_NORMAL || type >= DMS_STORAGE_DUMMY )
-            {
-               PD_LOG( PDERROR, "Invalid cs type[%c] in replica log", type ) ;
-               rc = SDB_SYS ;
-               goto error ;
-            }
-
             rc = rtnCreateCollectionSpaceCommand( cs, eduCB, _dmsCB, _dpsCB,
-                                                  pageSize, lobPageSize,
-                                                  (DMS_STORAGE_TYPE)type ) ;
+                                                  pageSize, lobPageSize ) ;
             if ( SDB_DMS_CS_EXIST == rc )
             {
                PD_LOG( PDWARNING, "Collection space[%s] already exist when "
@@ -494,20 +456,15 @@ namespace engine
             const CHAR *cl = NULL ;
             UINT32 attribute = 0 ;
             UINT8 compType = UTIL_COMPRESSOR_INVALID ;
-            BSONObj extOptions ;
             rc = dpsRecord2CLCrt( (CHAR *)recordHeader, &cl, attribute,
-                                  compType, extOptions ) ;
+                                  compType ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
             }
 
             rc = rtnCreateCollectionCommand( cl, attribute, eduCB, _dmsCB,
-                                             _dpsCB,
-                                             (UTIL_COMPRESSOR_TYPE)compType,
-                                             0, TRUE,
-                                             ( extOptions.isEmpty() ?
-                                               NULL : &extOptions ) ) ;
+                           _dpsCB, (UTIL_COMPRESSOR_TYPE)compType, 0, TRUE ) ;
             if ( SDB_DMS_EXIST == rc )
             {
                PD_LOG( PDWARNING, "Collection [%s] already exist when "
@@ -621,82 +578,26 @@ namespace engine
          }
          case LOG_TYPE_INVALIDATE_CATA :
          {
-            UINT8 type = 0 ;
-            const CHAR *csName = NULL ;
-            const CHAR *clFullName = NULL ;
-            const CHAR *ixName = NULL ;
-
+            catAgent *pCatAgent = sdbGetShardCB()->getCataAgent() ;
+            const CHAR *name = NULL ;
             rc = dpsRecord2InvalidCata( (CHAR *)recordHeader,
-                                        type,
-                                        &clFullName,
-                                        &ixName ) ;
+                                        &name ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
             }
-
-            if ( NULL != clFullName &&
-                 NULL == ossStrchr( clFullName, '.' ) )
+            if ( pCatAgent )
             {
-               csName = clFullName ;
-               clFullName = NULL ;
-            }
-
-            if ( OSS_BIT_TEST( type, DPS_LOG_INVALIDCATA_TYPE_STAT ) )
-            {
-               rtnAnalyzeParam param ;
-               param._mode = SDB_ANALYZE_MODE_CLEAR ;
-               param._needCheck = FALSE ;
-
-               if ( csName && 0 == ossStrcmp( csName, "SYS" ) )
+               pCatAgent->lock_w() ;
+               if ( ossStrchr( name, '.' ) )
                {
-                  csName = NULL ;
-               }
-
-               rtnAnalyze( csName, clFullName, ixName, param,
-                           eduCB, _dmsCB, NULL, NULL ) ;
-            }
-
-            if ( OSS_BIT_TEST( type, DPS_LOG_INVALIDCATA_TYPE_CATA ) )
-            {
-               catAgent *pCatAgent = sdbGetShardCB()->getCataAgent() ;
-               if ( pCatAgent )
-               {
-                  pCatAgent->lock_w() ;
-                  if ( NULL != clFullName )
-                  {
-                     pCatAgent->clear( clFullName ) ;
-                  }
-                  else if ( NULL != csName )
-                  {
-                     pCatAgent->clearBySpaceName( csName, NULL, NULL ) ;
-                  }
-                  else
-                  {
-                     PD_LOG( PDERROR, "Failed to find fullname in record" ) ;
-                     rc = SDB_SYS ;
-                     goto error ;
-                  }
-                  pCatAgent->release_w() ;
-               }
-            }
-
-            if ( OSS_BIT_TEST( type, DPS_LOG_INVALIDCATA_TYPE_PLAN ) )
-            {
-               SDB_RTNCB * rtnCB = sdbGetRTNCB() ;
-
-               if ( NULL != clFullName )
-               {
-                  rtnCB->getAPM()->invalidateCLPlans( clFullName ) ;
-               }
-               else if ( NULL != csName )
-               {
-                  rtnCB->getAPM()->invalidateSUPlans( csName ) ;
+                  pCatAgent->clear( name ) ;
                }
                else
                {
-                  rtnCB->getAPM()->invalidateAllPlans() ;
+                  pCatAgent->clearBySpaceName( name ) ;
                }
+               pCatAgent->release_w() ;
             }
 
             rc = SDB_OK ;
@@ -854,7 +755,7 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREP_ROLBCK, "_clsReplayer::rollback" )
+   PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREP_ROLBCK, "_clsReplayer::rollback" )
    INT32 _clsReplayer::rollback( const dpsLogRecordHeader *recordHeader,
                                  _pmdEDUCB *eduCB )
    {
@@ -891,7 +792,6 @@ namespace engine
                   rc = SDB_INVALIDARG ;
                   goto error ;
                }
-
                {
                   BSONObjBuilder selectorBuilder ;
                   selectorBuilder.append( idEle ) ;
@@ -950,9 +850,8 @@ namespace engine
             const CHAR *cs = NULL ;
             INT32 pageSize = 0 ;
             INT32 lobPageSize = 0 ;
-            INT32 type = 0 ;
             rc = dpsRecord2CSCrt( (const CHAR *)recordHeader,
-                                  &cs, pageSize, lobPageSize, type ) ;
+                                  &cs, pageSize, lobPageSize ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
@@ -977,9 +876,8 @@ namespace engine
             const CHAR *fullname = NULL ;
             UINT32 attribute = 0 ;
             UINT8 compType = UTIL_COMPRESSOR_INVALID ;
-            BSONObj extOptions ;
-            rc = dpsRecord2CLCrt( (const CHAR *)recordHeader, &fullname,
-                                  attribute, compType, extOptions ) ;
+            rc = dpsRecord2CLCrt( (const CHAR *)recordHeader,
+                                  &fullname, attribute, compType) ;
             if ( SDB_OK != rc )
             {
                goto error ;
@@ -1190,11 +1088,6 @@ namespace engine
             }
             break ;
          }
-         case LOG_TYPE_DATA_POP:
-         {
-            rc = SDB_CLS_REPLAY_LOG_FAILED ;
-            goto error ;
-         }
          default :
          {
             rc = SDB_CLS_REPLAY_LOG_FAILED ;
@@ -1211,21 +1104,14 @@ namespace engine
          goto error ;
       }
 
-   done:
-      eduCB->resetLsn() ;
       if ( SDB_OK != rc )
       {
-         dpsLogRecord record ;
-         CHAR tmpBuff[4096] = {0} ;
-         INT32 rcTmp = record.load( (const CHAR*)recordHeader ) ;
-         if ( SDB_OK == rcTmp )
-         {
-            record.dump( tmpBuff, sizeof(tmpBuff)-1, DPS_DMP_OPT_FORMATTED ) ;
-         }
-         PD_LOG( PDERROR, "sync: rollback log [type:%d, lsn:%lld, data: %s] "
-                 "failed, rc: %d", recordHeader->_type, recordHeader->_lsn,
-                 tmpBuff, rc ) ;
+         PD_LOG( PDERROR, "sync:rollback log[type:%d, lsn:%lld] failed, rc: %d",
+                 recordHeader->_type, recordHeader->_lsn, rc ) ;
+         goto error ;
       }
+
+   done:
       PD_TRACE_EXITRC ( SDB__CLSREP_ROLBCK, rc );
       return rc ;
    error:
@@ -1233,7 +1119,7 @@ namespace engine
    }
 
    INT32 _clsReplayer::replayCrtCS( const CHAR *cs, INT32 pageSize,
-                                    INT32 lobPageSize, DMS_STORAGE_TYPE type,
+                                    INT32 lobPageSize,
                                     _pmdEDUCB *eduCB )
    {
       SDB_ASSERT( NULL != cs, "cs should not be NULL" ) ;
@@ -1242,7 +1128,8 @@ namespace engine
       {
          rc = rtnCreateCollectionSpaceCommand( cs, eduCB, _dmsCB,
                                                _dpsCB, pageSize,
-                                               lobPageSize, type, TRUE ) ;
+                                               lobPageSize,
+                                               TRUE ) ;
       }
       return rc ;
    }
@@ -1250,16 +1137,14 @@ namespace engine
    INT32 _clsReplayer::replayCrtCollection( const CHAR *collection,
                                             UINT32 attributes,
                                             _pmdEDUCB *eduCB,
-                                            UTIL_COMPRESSOR_TYPE compType,
-                                            const BSONObj *extOptions )
+                                            UTIL_COMPRESSOR_TYPE compType )
    {
       SDB_ASSERT( NULL != collection, "collection should not be NULL" ) ;
       INT32 rc = rtnTestCollectionCommand( collection, _dmsCB ) ;
       if ( SDB_DMS_NOTEXIST == rc )
       {
          rc = rtnCreateCollectionCommand( collection, attributes, eduCB,
-                                          _dmsCB, _dpsCB, compType,
-                                          0, TRUE, extOptions ) ;
+                                          _dmsCB, _dpsCB, compType, 0, TRUE ) ;
       }
       return rc ;
    }
@@ -1278,8 +1163,8 @@ namespace engine
                                      _pmdEDUCB *eduCB )
    {
       SDB_ASSERT( NULL != collection, "collection should not be NULL" ) ;
-      return rtnReplayInsert( collection, obj, FLG_INSERT_CONTONDUP, eduCB,
-                              _dmsCB, _dpsCB ) ;
+      return rtnInsert( collection, obj, 1, FLG_INSERT_CONTONDUP, eduCB,
+                        _dmsCB, _dpsCB ) ;
    }
 
    INT32 _clsReplayer::replayWriteLob( const CHAR *fullName,

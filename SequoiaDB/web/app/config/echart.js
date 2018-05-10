@@ -1073,39 +1073,7 @@
             'name': '总容量',
             'type': 'pie',
             'radius': '100px',
-            'center': ['250px', '160px'],
-            'data': [
-               { 'value': 0, 'name': '可用容量' },
-               { 'value': 0, 'name': '冗余容量' }
-            ]
-         }
-      ]
-   } ;
-
-   window.SdbSacManagerConf.ExtendRedundancyChart = {
-      'title': {
-         'text': '容量信息',
-         'x': 160
-      },
-      'tooltip': {
-         'trigger': 'item',
-         'formatter': '{a} <br/>{b} : {c}MB ( {d}% )',
-         'textStyle': {
-            'fontSize': 10
-         }
-      },
-      'legend': {
-         'orient': 'vertical',
-         'x': 'left',
-         'data': ['可用容量', '冗余容量']
-      },
-      'calculable': true,
-      'series': [
-         {
-            'name': '总容量',
-            'type': 'pie',
-            'radius': '75%',
-            'center': ['50%', '50%'],
+            'center': ['200px', '160px'],
             'data': [
                { 'value': 0, 'name': '可用容量' },
                { 'value': 0, 'name': '冗余容量' }

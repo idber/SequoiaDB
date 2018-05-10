@@ -39,15 +39,12 @@
 #ifndef DMSSTORAGEUNIT_HPP_
 #define DMSSTORAGEUNIT_HPP_
 
-#include "dmsStorageDataCommon.hpp"
+#include "dmsStorageData.hpp"
 #include "dmsStorageIndex.hpp"
 #include "dmsStorageLob.hpp"
+#include "rtnAPM.hpp"
 #include "monDMS.hpp"
 #include "utilCache.hpp"
-#include "dmsEventHandler.hpp"
-#include "dmsExtDataHandler.hpp"
-#include "dmsStatUnit.hpp"
-#include "dmsCachedPlanUnit.hpp"
 
 using namespace bson ;
 
@@ -58,21 +55,11 @@ namespace engine
    class _monStorageUnit ;
    class _monIndex ;
    class _ixmIndexCB ;
-   class _dmsTempSUMgr ;
+   class _dmsTempCB ;
    class _SDB_DMSCB ;
    class _pmdEDUCB ;
    class _mthMatchTree ;
-   class _mthMatchRuntime ;
    class _mthModifier ;
-
-   class _dmsStorageUnit ;
-   typedef _dmsStorageUnit dmsStorageUnit ;
-
-   class _dmsCacheHolder ;
-   typedef class _dmsCacheHolder dmsCacheHolder ;
-
-   class _dmsEventHolder ;
-   typedef class _dmsEventHolder dmsEventHolder ;
 
    /*
       _dmsStorageUnitStat define
@@ -95,172 +82,11 @@ namespace engine
    #define DMS_SU_ALL            ( 0xFFFF )
 
    /*
-      _dmsCacheHolder
-    */
-   class _dmsCacheHolder : public IDmsSUCacheHolder
-   {
-      public :
-         _dmsCacheHolder ( dmsStorageUnit *su ) ;
-
-         virtual ~_dmsCacheHolder () ;
-
-         virtual const CHAR *getCSName () const ;
-
-         virtual UINT32 getSUID () const ;
-
-         virtual UINT32 getSULID () const ;
-
-         virtual BOOLEAN isSysSU () const ;
-
-         virtual BOOLEAN checkCacheUnit ( utilSUCacheUnit *pCacheUnit ) ;
-
-         virtual BOOLEAN createSUCache ( UINT8 type ) ;
-
-         virtual BOOLEAN deleteSUCache ( UINT8 type ) ;
-
-         virtual void deleteAllSUCaches () ;
-
-         OSS_INLINE virtual dmsSUCache *getSUCache ( UINT8 type )
-         {
-            if ( type < DMS_CACHE_TYPE_NUM )
-            {
-               return _pSUCaches[ type ] ;
-            }
-            return NULL ;
-         }
-
-         dmsStorageUnit *getSU ()
-         {
-            return _su ;
-         }
-
-      protected :
-         INT32 _checkCollectionStat ( dmsCollectionStat *pCollectionStat ) ;
-         INT32 _checkIndexStat ( dmsIndexStat *pIndexStat,
-                                 dmsMBContext *mbContext ) ;
-
-      protected :
-         dmsStorageUnit *     _su ;
-         dmsSUCache *         _pSUCaches [ DMS_CACHE_TYPE_NUM ] ;
-   } ;
-
-   /*
-      _dmsEventHolder define
-    */
-   class _dmsEventHolder : public _IDmsEventHolder
-   {
-      public :
-         _dmsEventHolder( dmsStorageUnit *su ) ;
-
-         virtual ~_dmsEventHolder () ;
-
-         virtual void regHandler ( _IDmsEventHandler *pHandler ) ;
-
-         virtual void unregHandler ( _IDmsEventHandler *pHandler ) ;
-
-         virtual void unregAllHandlers () ;
-
-         virtual INT32 onCreateCS ( UINT32 mask,
-                                    pmdEDUCB *cb,
-                                    SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onLoadCS ( UINT32 mask,
-                                  pmdEDUCB *cb,
-                                  SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onUnloadCS ( UINT32 mask,
-                                    pmdEDUCB *cb,
-                                    SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onRenameCS ( UINT32 mask,
-                                    const CHAR *pOldCSName,
-                                    const CHAR *pNewCSName,
-                                    pmdEDUCB *cb,
-                                    SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onDropCS ( UINT32 mask,
-                                  pmdEDUCB *cb,
-                                  SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onCreateCL ( UINT32 mask,
-                                    const dmsEventCLItem &clItem,
-                                    pmdEDUCB *cb,
-                                    SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onRenameCL ( UINT32 mask,
-                                    const dmsEventCLItem &clItem,
-                                    const CHAR *pNewCLName,
-                                    pmdEDUCB *cb,
-                                    SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onTruncateCL ( UINT32 mask,
-                                      const dmsEventCLItem &clItem,
-                                      UINT32 newCLLID,
-                                      pmdEDUCB *cb,
-                                      SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onDropCL ( UINT32 mask,
-                                  const dmsEventCLItem &clItem,
-                                  pmdEDUCB *cb,
-                                  SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onCreateIndex ( UINT32 mask,
-                                       const dmsEventCLItem &clItem,
-                                       const dmsEventIdxItem &idxItem,
-                                       pmdEDUCB *cb,
-                                       SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onDropIndex ( UINT32 mask,
-                                     const dmsEventCLItem &clItem,
-                                     const dmsEventIdxItem &idxItem,
-                                     pmdEDUCB *cb,
-                                     SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onLinkCL ( UINT32 mask,
-                                  const dmsEventCLItem &clItem,
-                                  const CHAR *pMainCLName,
-                                  pmdEDUCB *cb,
-                                  SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onUnlinkCL ( UINT32 mask,
-                                    const dmsEventCLItem &clItem,
-                                    const CHAR *pMainCLName,
-                                    pmdEDUCB *cb,
-                                    SDB_DPSCB *dpsCB ) ;
-
-         virtual INT32 onClearSUCaches ( UINT32 mask ) ;
-
-         virtual INT32 onClearCLCaches ( UINT32 mask,
-                                         const dmsEventCLItem &clItem ) ;
-
-         virtual INT32 onChangeSUCaches ( UINT32 mask ) ;
-
-         virtual const CHAR *getCSName () const ;
-
-         virtual UINT32 getSUID () const ;
-
-         virtual UINT32 getSULID () const ;
-
-         OSS_INLINE virtual void setCacheHolder ( dmsCacheHolder *pCacheHolder )
-         {
-            _pCacheHolder = pCacheHolder ;
-         }
-
-      protected :
-         typedef _utilList<_IDmsEventHandler *> HANDLER_LIST ;
-
-         dmsStorageUnit *     _su ;
-         dmsCacheHolder *     _pCacheHolder ;
-         HANDLER_LIST         _handlers ;
-   } ;
-
-
-   /*
       _dmsStorageUnit define
    */
    class _dmsStorageUnit : public SDBObject
    {
-      friend class _dmsTempSUMgr ;
+      friend class _dmsTempCB ;
       friend class _SDB_DMSCB ;
 
       public:
@@ -268,9 +94,7 @@ namespace engine
                            UINT32 sequence,
                            utilCacheMgr *pMgr,
                            INT32 pageSize = DMS_PAGE_SIZE_DFT,
-                           INT32 lobPageSize = DMS_DEFAULT_LOB_PAGE_SZ,
-                           DMS_STORAGE_TYPE type = DMS_STORAGE_NORMAL,
-                           IDmsExtDataHandler *extDataHandler = NULL ) ;
+                           INT32 lobPageSize = DMS_DEFAULT_LOB_PAGE_SZ ) ;
          ~_dmsStorageUnit() ;
 
          INT32 open ( const CHAR *pDataPath,
@@ -283,10 +107,11 @@ namespace engine
          INT32 remove () ;
 
          INT32 renameCS( const CHAR *pNewName ) ;
-         dmsStorageDataCommon *data() { return _pDataSu ; }
 
+         dmsStorageData    *data() { return _pDataSu ; }
          dmsStorageIndex   *index() { return _pIndexSu ; }
          dmsStorageLob     *lob() { return _pLobSu ; }
+         rtnAccessPlanManager *getAPM () { return &_apm ; }
          utilCacheUnit     *cacheUnit() { return _pCacheUnit ; }
          dmsStorageInfo    *storageInfo() { return &_storageInfo ; }
 
@@ -302,8 +127,6 @@ namespace engine
          {
             return _pDataSu ? _pDataSu->CSID() : DMS_INVALID_SUID ;
          }
-
-         DMS_STORAGE_TYPE type() const { return _storageInfo._type ; }
 
          INT64       totalSize ( UINT32 type = DMS_SU_ALL ) const ;
          INT64       totalDataPages( UINT32 type = DMS_SU_ALL ) const ;
@@ -331,55 +154,31 @@ namespace engine
                                    BOOLEAN &lobFlag ) const ;
 
       public:
-         void     dumpInfo ( MON_CL_SIM_LIST &clList,
+         void     dumpInfo ( set<monCLSimple> &collectionList,
                              BOOLEAN sys = FALSE ) ;
-         INT32    dumpInfo ( monCLSimple &collection,
-                             dmsMBContext *context,
-                             BOOLEAN dumpIdx = FALSE ) ;
-         void     dumpInfo ( MON_CL_SIM_VEC &clList,
-                             BOOLEAN sys = FALSE,
-                             BOOLEAN dumpIdx = FALSE ) ;
-         void     dumpInfo ( MON_CL_LIST &clList,
+         void     dumpInfo ( vector<monCLSimple> &collectionList,
                              BOOLEAN sys = FALSE ) ;
-         void     dumpInfo ( monStorageUnit &storageUnit ) ;
-         void     dumpInfo ( monCSSimple &collectionSpace,
-                             BOOLEAN sys = FALSE,
-                             BOOLEAN dumpCL = FALSE,
-                             BOOLEAN dumpIdx = FALSE ) ;
-         void     dumpInfo ( monCollectionSpace &collectionSpace,
+         void     dumpInfo ( set<_monCollection> &collectionList,
+                             BOOLEAN sys = FALSE ) ;
+         void     dumpInfo ( set<_monStorageUnit> &storageUnitList,
                              BOOLEAN sys = FALSE ) ;
 
          INT32    getSegExtents ( const CHAR *pName,
                                   vector< dmsExtentID > &segExtents,
                                   dmsMBContext *context = NULL ) ;
 
-         INT32    getIndexes ( dmsMBContext *context,
-                               MON_IDX_LIST &resultIndexes ) ;
-
          INT32    getIndexes ( const CHAR *pName,
-                               MON_IDX_LIST &resultIndexes ) ;
+                               vector<_monIndex> &resultIndexes,
+                               dmsMBContext *context = NULL ) ;
 
-         INT32    getIndex ( dmsMBContext *context,
-                             const CHAR *pIndexName,
-                             _monIndex &resultIndex ) ;
-
-      protected :
-         INT32    _dumpCLInfo ( monCollection &collection,
-                                UINT16 mbID ) ;
-
-         INT32    _dumpCLInfo ( monCLSimple &collection,
-                                UINT16 mbID ) ;
-
-         INT32    _getIndexes ( const dmsMB *mb,
-                                MON_IDX_LIST &resultIndexes ) ;
-
-         INT32    _getIndex ( const dmsMB *mb,
-                              const CHAR *pIndexName,
-                              monIndex &resultIndex ) ;
+         INT32    getIndex( const CHAR *pName,
+                            const CHAR *pIndexName,
+                            _monIndex &resultIndex,
+                            dmsMBContext *context = NULL ) ;
 
       public:
          OSS_INLINE void    mapExtent2DelList( dmsMB * mb, dmsExtent * extAddr,
-                                               SINT32 extentID ) ;
+                                           SINT32 extentID ) ;
 
          OSS_INLINE INT32   extentRemoveRecord( dmsMBContext *context,
                                                 dmsExtRW &extRW,
@@ -396,19 +195,19 @@ namespace engine
          INT32        _resetCollection( dmsMBContext *context ) ;
 
       public:
+
          INT32    insertRecord ( const CHAR *pName,
                                  BSONObj &record,
                                  _pmdEDUCB *cb,
                                  SDB_DPSCB *dpscb,
                                  BOOLEAN mustOID = TRUE,
                                  BOOLEAN canUnLock = TRUE,
-                                 dmsMBContext *context = NULL,
-                                 INT64 position = -1 ) ;
+                                 dmsMBContext *context = NULL ) ;
 
          INT32    updateRecords ( const CHAR *pName,
                                   _pmdEDUCB *cb,
                                   SDB_DPSCB *dpscb,
-                                  _mthMatchRuntime *matchRuntime,
+                                  _mthMatchTree *matcher,
                                   _mthModifier &modifier,
                                   SINT64 &numRecords,
                                   SINT64 maxUpdate = -1,
@@ -417,7 +216,7 @@ namespace engine
          INT32    deleteRecords ( const CHAR *pName,
                                   _pmdEDUCB * cb,
                                   SDB_DPSCB *dpscb,
-                                  _mthMatchRuntime *matchRuntime,
+                                  _mthMatchTree *matcher,
                                   SINT64 &numRecords,
                                   SINT64 maxDelete = -1,
                                   dmsMBContext *context = NULL ) ;
@@ -464,11 +263,6 @@ namespace engine
          INT32    getCollectionCompType ( const CHAR *pName,
                                           UTIL_COMPRESSOR_TYPE &compType,
                                           dmsMBContext *context = NULL ) ;
-
-         INT32    getCollectionExtOptions( const CHAR *pName,
-                                           BSONObj &extOptions,
-                                           dmsMBContext *context = NULL ) ;
-
          INT32    loadExtentA ( dmsMBContext *mbContext, const CHAR *pBuffer,
                                 UINT16 numPages, const BOOLEAN toLoad = FALSE,
                                 SINT32 *allocatedExtent = NULL ) ;
@@ -476,36 +270,29 @@ namespace engine
          INT32    loadExtent ( dmsMBContext *mbContext, const CHAR *pBuffer,
                                UINT16 numPages ) ;
 
-      public :
-         _IDmsEventHolder * getEventHolder () ;
-
-         void regEventHandler ( _IDmsEventHandler *pHandler ) ;
-         void unregEventHandler ( _IDmsEventHandler *pHandler ) ;
-         void unregEventHandlers () ;
-
-         dmsSUCache *getSUCache ( UINT32 type ) ;
-
-         dmsStatCache *getStatCache () ;
-         dmsCachedPlanMgr *getCachedPlanMgr () ;
-
-      private:
-         INT32 _createStorageObjs() ;
-         INT32 _getTypeFromFile( const CHAR *dataPath,
-                                 DMS_STORAGE_TYPE &type ) ;
-
       private :
-         dmsStorageDataCommon                *_pDataSu ;
+         rtnAccessPlanManager                _apm ;
+
+         dmsStorageData                      *_pDataSu ;
          dmsStorageIndex                     *_pIndexSu ;
          dmsStorageInfo                      _storageInfo ;
          dmsStorageLob                       *_pLobSu ;
 
          utilCacheMgr                        *_pMgr ;
          utilCacheUnit                       *_pCacheUnit ;
-         dmsEventHolder                       _eventHolder ;
-         dmsCacheHolder                       _cacheHolder ;
-         IDmsExtDataHandler                  *_extDataHandler ;
-   } ;
 
+   } ;
+   typedef _dmsStorageUnit dmsStorageUnit ;
+
+   /*
+      _dmsStorageUnit OSS_INLINE functions
+   */
+   OSS_INLINE void _dmsStorageUnit::mapExtent2DelList( dmsMB * mb,
+                                                   dmsExtent *extAddr,
+                                                   SINT32 extentID )
+   {
+      return _pDataSu->_mapExtent2DelList( mb, extAddr, extentID ) ;
+   }
    OSS_INLINE INT32 _dmsStorageUnit::extentRemoveRecord( dmsMBContext *context,
                                                          dmsExtRW &extRW,
                                                          dmsRecordRW &recordRW,
@@ -531,6 +318,7 @@ namespace engine
          _pDataSu->_CSID = CSID ;
       }
    }
+
 }
 
 #endif //DMSSTORAGEUNIT_HPP_

@@ -46,13 +46,9 @@ namespace engine
       virtual ~_rtnLobWindow() ;
 
    public:
-      INT32 init( INT32 pageSize, BOOLEAN mergeMeta, BOOLEAN metaPageDataCached ) ;
+      INT32 init( INT32 pageSize, BOOLEAN mergeMeta ) ;
 
-      BOOLEAN continuous( INT64 offset ) const ;
-
-      UINT32 getLobSequence() const ;
-
-      INT32 prepare4Write( INT64 offset, UINT32 len, const CHAR *data ) ;
+      INT32 prepare2Write( SINT64 offset, UINT32 len, const CHAR *data ) ;
 
       BOOLEAN getNextWriteSequences( RTN_LOB_TUPLES &tuples ) ;
 
@@ -61,28 +57,29 @@ namespace engine
       BOOLEAN getCachedData( _rtnLobTuple &tuple ) ;
 
       BOOLEAN getMetaPageData( _rtnLobTuple &tuple ) ;
-
-      INT32 prepare4Read( INT64 lobLen,
-                          INT64 offset,
+      
+      INT32 prepare2Read( SINT64 lobLen,
+                          SINT64 offset,
                           UINT32 len,
                           RTN_LOB_TUPLES &tuples ) ;
    private:
       BOOLEAN _getNextWriteSequence( _rtnLobTuple &tuple ) ;
-      BOOLEAN _hasData() const ;
+
       UINT32  _getCurDataPageSize() const ;
+      UINT32  _getCurDataOffset() const ;
 
    private:
-      INT32          _pageSize ;
+      SINT32         _pageSize ;
       UINT32         _logarithmic ;
       BOOLEAN        _mergeMeta ;
-      BOOLEAN        _metaPageDataCached ;
 
-      INT64          _curOffset ;
-      CHAR*          _pool ;
+      SINT64         _curOffset ;
+      CHAR           *_pool ;
       INT32          _cachedSz ;
       INT32          _metaSize ;
 
       _rtnLobTuple   _writeData ;
+      BOOLEAN        _analysisCache ;
    } ;
    typedef class _rtnLobWindow rtnLobWindow ;
 }

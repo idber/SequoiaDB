@@ -46,9 +46,6 @@ namespace engine
    #define DMS_LOBD_FLAG_DIRECT     0x00000001
    #define DMS_LOBD_FLAG_SPARSE     0x00000002
 
-   #define DMS_LOBD_EYECATCHER            "SDBLOBD"
-   #define DMS_LOBD_EYECATCHER_LEN        8
-
    /*
       _dmsStorageLobData define
    */

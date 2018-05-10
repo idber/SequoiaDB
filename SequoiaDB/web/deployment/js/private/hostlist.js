@@ -228,8 +228,21 @@ function loadHostList()
 		{
 			inputStr = '<input type="checkbox" disabled="disabled">' ;
 		}
-		sdbjs.parts.gridBox.addBody( 'hostInfoGrid', [{ 'text': inputStr, 'width': '5%' },
-																	 { 'text': htmlEncode( hostInfo['HostName'] ), 'width': '20%' },
+		sdbjs.parts.gridBox.addBody( 'hostInfoGrid', [{ 'text': function( tdObj ){
+                                                       $( tdObj ).html( inputStr ) ;
+                                                       if( hostInfo['BusinessName'] !== '' || hostInfo['BusinessType'] !== '' )
+                                                       {
+                                                          sdbjs.fun.setLabel( tdObj, htmlEncode( _languagePack['tip']['web']['businesslist'][1] ) ) ;
+                                                       }
+                                                    }, 'width': '5%' },
+																	 { 'text': function( tdObj ){
+                                                       var spanObj = $( '<span></span>' ).text( hostInfo['HostName'] ) ;
+                                                       $( tdObj ).append( spanObj ) ;
+                                                       if( hostInfo['BusinessName'] !== '' || hostInfo['BusinessType'] !== '' )
+                                                       {
+                                                          sdbjs.fun.setLabel( spanObj, htmlEncode( _languagePack['tip']['web']['businesslist'][1] ) ) ;
+                                                       }
+                                                    }, 'width': '20%' },
 																	 { 'text': htmlEncode( hostInfo['IP'] ), 'width': '15%' },
 																	 { 'text': htmlEncode( hostInfo['OS']['Distributor'] + ' ' + hostInfo['OS']['Release'] + ' x' +  hostInfo['OS']['Bit'] ), 'width': '15%' },
 																	 { 'text': htmlEncode( hostInfo['CPU'].length ), 'width': '10%' },

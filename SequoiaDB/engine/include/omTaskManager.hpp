@@ -81,12 +81,6 @@ namespace engine
          virtual INT32     checkUpdateInfo( const BSONObj &updateInfo ) ;
 
       private:
-         void _getPackageVersion( const BSONObj resultInfo,
-                                  const string &hostName,
-                                  string &version ) ;
-
-         void              _getOMVersion( string &version ) ;
-
          INT32             _getSuccessHost( BSONObj &resultInfo, 
                                             set<string> &successHostSet ) ;
 
@@ -121,100 +115,45 @@ namespace engine
 
    class omAddBusinessTask : public omTaskBase
    {
-   public:
-      omAddBusinessTask( INT64 taskID ) ;
-      virtual ~omAddBusinessTask() ;
+      public:
+         omAddBusinessTask( INT64 taskID ) ;
+         virtual ~omAddBusinessTask() ;
 
-   public:
-      virtual INT32     finish( BSONObj &resultInfo ) ;
+      public:
+         virtual INT32     finish( BSONObj &resultInfo ) ;
 
-      virtual INT32     getType() ;
+         virtual INT32     getType() ;
 
-      virtual INT64     getTaskID() ;
+         virtual INT64     getTaskID() ;
 
-      virtual INT32     checkUpdateInfo( const BSONObj &updateInfo ) ;
+         virtual INT32     checkUpdateInfo( const BSONObj &updateInfo ) ;
 
-   private:
-      INT32             _storeBusinessInfo( BSONObj &taskInfoValue ) ;
+      private:
+         BOOLEAN           _isHostConfExist( const string &hostName, 
+                                             const string &businessName ) ;
 
-      INT32             _updateBizHostInfo( const string &businessName ) ;
+         INT32             _appendConfigure( const string &hostName,
+                                             const string &businessName,
+                                             BSONObj &oneNode ) ;
 
-      INT32             _storeConfigInfo( BSONObj &taskInfoValue ) ;
+         INT32             _insertConfigure( const string &hostName,
+                                             const string &businessName,
+                                             const string &businessType,
+                                             const string &clusterName,
+                                             const string &deployMode,
+                                             BSONObj &oneNode ) ;
 
-   private:
-      INT64             _taskID ;
-      INT32             _taskType ;
-   } ;
+         INT32             _updateBizHostInfo( const string &businessName ) ;
 
-   class omExtendBusinessTask : public omTaskBase
-   {
-   public:
-      omExtendBusinessTask( INT64 taskID ) ;
-      virtual ~omExtendBusinessTask() ;
+         void              _updateHostOMVersion( const string &hostName ) ;
 
-   public:
-      virtual INT32 finish( BSONObj &resultInfo ) ;
+         INT32             _storeBusinessInfo( BSONObj &taskInfoValue ) ;
 
-      virtual INT32 getType() ;
+         INT32             _storeConfigInfo( BSONObj &taskInfoValue ) ;
 
-      virtual INT64 getTaskID() ;
-
-   private:
-      INT32 _updateBizHostInfo( const string &businessName ) ;
-      INT32 _storeConfigInfo( const BSONObj &taskInfoValue ) ;
-
-   private:
-      INT64 _taskID ;
-      INT32 _taskType ;
-   } ;
-
-   class omShrinkBusinessTask : public omTaskBase
-   {
-   public:
-      omShrinkBusinessTask( INT64 taskID ) ;
-      virtual ~omShrinkBusinessTask() ;
-   
-   public:
-      virtual INT32 finish( BSONObj &resultInfo ) ;
-   
-      virtual INT32 getType() ;
-   
-      virtual INT64 getTaskID() ;
-
-   private:
-      INT32 _removeNodeConfig( const string &businessName,
-                               const string &hostName,
-                               const string &svcname ) ;
-      INT32 _removeConfig( const BSONObj &taskInfo,
-                           const BSONObj &resultInfo ) ;
-      INT32 _updateBizHostInfo( const string &businessName ) ;
-
-   private:
-      INT64 _taskID ;
-      INT32 _taskType ;
-
-   } ;
-
-   class omDeployPackageTask : public omTaskBase
-   {
-   public:
-      omDeployPackageTask( INT64 taskID ) ;
-      virtual ~omDeployPackageTask() ;
-   
-   public:
-      virtual INT32 finish( BSONObj &resultInfo ) ;
-   
-      virtual INT32 getType() ;
-   
-      virtual INT64 getTaskID() ;
-
-   private:
-      INT32 _addPackage( const BSONObj &taskInfo, const BSONObj &resultInfo ) ;
-
-   private:
-      INT64 _taskID ;
-      INT32 _taskType ;
-
+      private:
+         INT64             _taskID ;
+         INT32             _taskType ;
    } ;
 
    class omRemoveBusinessTask : public omTaskBase

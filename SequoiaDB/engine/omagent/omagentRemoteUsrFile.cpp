@@ -33,10 +33,8 @@
 #include "omagentRemoteUsrFile.hpp"
 #include "omagentMgr.hpp"
 #include "omagentDef.hpp"
-#include "omagentSession.hpp"
 #include "ossCmdRunner.hpp"
 #include "ossPrimitiveFileOp.hpp"
-#include "sptUsrFileCommon.hpp"
 #include <boost/algorithm/string.hpp>
 #include "../bson/lib/md5.hpp"
 #if defined(_LINUX)
@@ -48,58 +46,6 @@ using namespace bson ;
 
 namespace engine
 {
-   #define OMA_REMOTE_FIELD_NAME_FID            "FID"
-   #define OMA_REMOTE_FIELD_NAME_FILENAME       "Filename"
-   #define OMA_REMOTE_FIELD_NAME_DIRNAME        "Dirname"
-   #define OMA_REMOTE_FIELD_NAME_SIZE           "Size"
-   #define OMA_REMOTE_FIELD_NAME_SEEK_SIZE      "SeekSize"
-   #define OMA_REMOTE_FIELD_NAME_CONTENT        "Content"
-   #define OMA_REMOTE_FIELD_NAME_PATHNAME       "Pathname"
-   #define OMA_REMOTE_FIELD_NAME_PERMISSION     "Permission"
-   #define OMA_REMOTE_FIELD_NAME_READ_LEN       "ReadLen"
-   #define OMA_REMOTE_FIELD_NAME_SRC            "Src"
-   #define OMA_REMOTE_FIELD_NAME_DST            "Dst"
-   #define OMA_REMOTE_FIELD_NAME_MODE           "Mode"
-   #define OMA_REMOTE_FIELD_NAME_GROUPNAME      "Groupname"
-   #define OMA_REMOTE_FIELD_NAME_MASK           "Mask"
-   #define OMA_REMOTE_FIELD_NAME_IS_EXIST       "IsExist"
-   #define OMA_REMOTE_FIELD_NAME_PATH_TYPE      "PathType"
-   #define OMA_REMOTE_FIELD_NAME_IS_EMPTY       "IsEmpty"
-   #define OMA_REMOTE_FIELD_NAME_MD5            "MD5"
-   #define OMA_REMOTE_FIELD_NAME_IS_BINARY      "IsBinary"
-
-   static omaSession* _getThreadOmaSession()
-   {
-      ISession *pSession = NULL ;
-      omaSession *pAgentSession = NULL ;
-      pmdEDUCB *cb = NULL ;
-
-      cb = pmdGetThreadEDUCB() ;
-      if( NULL == cb )
-      {
-         PD_LOG_MSG( PDERROR, "Failed to get thread edu cb" ) ;
-         goto error ;
-      }
-      pSession = cb->getSession() ;
-      if( NULL == pSession )
-      {
-         PD_LOG( PDERROR, "Failed to get session" ) ;
-         goto error ;
-      }
-      if( pSession->sessionType() != SDB_SESSION_OMAGENT )
-      {
-         PD_LOG_MSG( PDERROR, "Session is not omagent session" ) ;
-         goto error ;
-      }
-
-      pAgentSession = dynamic_cast< omaSession* >( pSession ) ;
-   done:
-      return pAgentSession ;
-   error:
-      pAgentSession = NULL ;
-      goto done ;
-   }
-
    /*
       _remoteFileOpen implement
    */
@@ -121,50 +67,91 @@ namespace engine
    INT32 _remoteFileOpen::doit( BSONObj &retObj )
    {
       INT32 rc = SDB_OK ;
+      UINT32 permission = OSS_RWXU ;
       string filename ;
-      _sptUsrFileCommon *fileCommon = NULL ;
-      omaSession *pAgentSession = NULL ;
-      string err ;
-      UINT32 fID = 0 ;
+      INT32 mode ;
+      OSSFILE file ;
 
-      if ( FALSE == _valueObj.hasField( OMA_REMOTE_FIELD_NAME_FILENAME ) )
+      if ( FALSE == _valueObj.hasField( "filename" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
-         PD_LOG_MSG( PDERROR, "Filename must be config" ) ;
+         PD_LOG_MSG( PDERROR, "filename must be config" ) ;
          goto error ;
       }
-      if ( String != _valueObj.getField( OMA_REMOTE_FIELD_NAME_FILENAME ).type() )
+      if ( String != _valueObj.getField( "filename" ).type() )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "Filename must be string" ) ;
+         PD_LOG_MSG( PDERROR, "filename must be string" ) ;
          goto error ;
       }
-      filename = _valueObj.getStringField( OMA_REMOTE_FIELD_NAME_FILENAME ) ;
+      filename = _valueObj.getStringField( "filename" ) ;
 
-      pAgentSession = _getThreadOmaSession() ;
-      if( NULL == pAgentSession )
+      if ( TRUE == _optionObj.hasField( "mode" ) )
       {
-         rc = SDB_SYS ;
-         PD_LOG_MSG( PDERROR, "Failed to get omagent session" ) ;
-         goto error ;
+         if( NumberInt != _optionObj.getField( "mode" ).type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "mode must be INT32" );
+            goto error ;
+         }
+         mode = _optionObj.getIntField( "mode" ) ;
+
+         permission = 0 ;
+
+         if ( mode & 0x0001 )
+         {
+            permission |= OSS_XO ;
+         }
+         if ( mode & 0x0002 )
+         {
+            permission |= OSS_WO ;
+         }
+         if ( mode & 0x0004 )
+         {
+            permission |= OSS_RO ;
+         }
+         if ( mode & 0x0008 )
+         {
+            permission |= OSS_XG ;
+         }
+         if ( mode & 0x0010 )
+         {
+            permission |= OSS_WG ;
+         }
+         if ( mode & 0x0020 )
+         {
+            permission |= OSS_RG ;
+         }
+         if ( mode & 0x0040 )
+         {
+            permission |= OSS_XU ;
+         }
+         if ( mode & 0x0080 )
+         {
+            permission |= OSS_WU ;
+         }
+         if ( mode & 0x0100 )
+         {
+            permission |= OSS_RU ;
+         }
       }
 
-      rc = pAgentSession->newFileObj( fID, &fileCommon ) ;
-      if( SDB_OK != rc )
-      {
-         PD_LOG_MSG( PDERROR, "Failed to new sptUsrFileCommon obj" ) ;
-         goto error ;
-      }
+      rc = ossOpen( filename.c_str(),
+                    OSS_READWRITE | OSS_CREATE,
+                    permission,
+                    file ) ;
 
-      rc = fileCommon->open( filename, _optionObj, err ) ;
-      if( SDB_OK != rc )
+      if ( SDB_OK != rc )
       {
-         pAgentSession->releaseFileObj( fID ) ;
-         PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
+         PD_LOG_MSG( PDERROR, "failed to open file:%s, rc:%d",
+                     filename.c_str(), rc ) ;
          goto error ;
       }
-      retObj = BSON( OMA_REMOTE_FIELD_NAME_FID << fID ) ;
    done:
+      if ( file.isOpened() )
+      {
+         ossClose( file ) ;
+      }
       return rc ;
    error:
       goto done ;
@@ -175,8 +162,7 @@ namespace engine
    */
    IMPLEMENT_OACMD_AUTO_REGISTER( _remoteFileRead )
 
-   _remoteFileRead::_remoteFileRead():
-      _FID( 0 ), _size( 1024 ), _isBinary( FALSE )
+   _remoteFileRead::_remoteFileRead()
    {
    }
 
@@ -191,53 +177,50 @@ namespace engine
       rc = _remoteExec::init( pInfomation ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get argument, rc: %d", rc ) ;
 
-      if( _optionObj.hasField( OMA_REMOTE_FIELD_NAME_IS_BINARY ) )
-      {
-         BSONElement ele ;
-         ele = _optionObj.getField( OMA_REMOTE_FIELD_NAME_IS_BINARY ) ;
-         if( Bool == ele.type() )
-         {
-            _isBinary = _optionObj.getBoolField( OMA_REMOTE_FIELD_NAME_IS_BINARY ) ;
-         }
-         else
-         {
-            _isBinary = _optionObj.getIntField( OMA_REMOTE_FIELD_NAME_IS_BINARY ) ;
-         }
-      }
-
-      if( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_FID ) )
-      {
-         rc = SDB_OUT_OF_BOUND ;
-         PD_LOG_MSG( PDERROR, "FID must be config" ) ;
-         goto error ;
-      }
-      if( NumberInt != _matchObj.getField( OMA_REMOTE_FIELD_NAME_FID ).type() )
+      if ( FALSE == _valueObj.hasField( "filename" ) )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "FID must be numberInt" ) ;
+         PD_LOG_MSG( PDERROR, "filename must be config" ) ;
+         goto error;
+      }
+      if ( String != _valueObj.getField( "filename" ).type() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "filename must be string" ) ;
          goto error ;
       }
-      _FID = _matchObj.getIntField( OMA_REMOTE_FIELD_NAME_FID ) ;
+      _filename = _valueObj.getStringField( "filename" ) ;
 
-      if ( FALSE == _valueObj.hasField( OMA_REMOTE_FIELD_NAME_SIZE ) )
+      if ( FALSE == _valueObj.hasField( "location" ) )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "location must be config" ) ;
+         goto error ;
+      }
+      if ( NumberInt != _valueObj.getField( "location" ).type() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "location must be int" ) ;
+         goto error ;
+      }
+      _location = _valueObj.getIntField( "location" ) ;
+
+
+      if ( FALSE == _valueObj.hasField( "size" ) )
       {
          _size = SPT_READ_LEN ;
       }
+      else if ( NumberInt != _valueObj.getField( "size" ).type() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "size must be int" ) ;
+         goto error ;
+      }
       else
       {
-         BSONElement element  = _valueObj.getField( OMA_REMOTE_FIELD_NAME_SIZE ) ;
-         if( NumberInt != element.type() &&
-             NumberLong != element.type() )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG_MSG( PDERROR, "Size must be number" ) ;
-            goto error ;
-         }
-         else
-         {
-            _size = element.numberLong() ;
-         }
+         _size = _valueObj.getIntField( "size" ) ;
       }
+
    done:
       return rc ;
    error:
@@ -252,51 +235,62 @@ namespace engine
    INT32 _remoteFileRead::doit( BSONObj &retObj )
    {
       INT32 rc = SDB_OK ;
+      OSSFILE file ;
+      CHAR stackBuf[SPT_READ_LEN + 1] = { 0 } ;
       CHAR *buf = NULL ;
-      SINT64 readLen = 0 ;
-      omaSession *pAgentSession = NULL ;
-      BSONObjBuilder builder ;
-      _sptUsrFileCommon *fileCommon = NULL ;
-      string err ;
+      SINT64 read = 0 ;
 
-      pAgentSession = _getThreadOmaSession() ;
-      if( NULL == pAgentSession )
+      rc = ossOpen( _filename.c_str(),
+                    OSS_READWRITE | OSS_CREATE,
+                    OSS_RWXU,
+                    file ) ;
+      if ( SDB_OK != rc )
       {
-         rc = SDB_SYS ;
-         PD_LOG_MSG( PDERROR, "Failed to get omagent session" ) ;
+         PD_LOG_MSG( PDERROR, "failed to open file:%s, rc:%d",
+                     _filename.c_str(), rc ) ;
          goto error ;
       }
 
-      fileCommon = pAgentSession->getFileObjByID( _FID ) ;
-      if( NULL == fileCommon )
+      rc = ossSeek( &file, _location, OSS_SEEK_SET ) ;
+      if ( SDB_OK != rc )
       {
-         rc = SDB_IO ;
-         PD_LOG_MSG( PDERROR, "File is not opened" ) ;
+         PD_LOG( PDERROR, "failed to seek:%d", rc ) ;
          goto error ;
       }
 
-      rc = fileCommon->read( BSON( SPT_FILE_COMMON_FIELD_SIZE << _size ),
-                             err, &buf, readLen ) ;
-      if( SDB_OK != rc )
+      if ( SPT_READ_LEN < _size )
       {
-         PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
-         goto error ;
-      }
-      if( _isBinary )
-      {
-         builder.appendBinData( OMA_REMOTE_FIELD_NAME_CONTENT, readLen,
-                                BinDataGeneral, buf ) ;
+         buf = ( CHAR * )SDB_OSS_MALLOC( _size + 1 ) ;
+         if ( NULL == buf )
+         {
+            PD_LOG_MSG( PDERROR, "failed to allocate mem." ) ;
+            rc = SDB_OOM ;
+            goto error ;
+         }
       }
       else
       {
-         builder.append( OMA_REMOTE_FIELD_NAME_CONTENT, buf ) ;
+         buf = ( CHAR * )stackBuf ;
       }
 
-      retObj = builder.obj() ;
+      rc = ossReadN( &file, _size, buf, read ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to read file:%d", rc ) ;
+         goto error ;
+      }
+      buf[read] = '\0' ;
+
+      retObj = BSON( "readStr" << buf ) ;
    done:
-      if ( NULL != buf )
+      if ( SPT_READ_LEN < _size && NULL != buf )
       {
          SDB_OSS_FREE( buf ) ;
+      }
+
+      if ( file.isOpened() )
+      {
+         ossClose( file ) ;
       }
       return rc ;
    error:
@@ -308,8 +302,7 @@ namespace engine
    */
    IMPLEMENT_OACMD_AUTO_REGISTER( _remoteFileWrite )
 
-   _remoteFileWrite::_remoteFileWrite():
-      _FID( 0 ), _size( 0 ), _content( NULL )
+   _remoteFileWrite::_remoteFileWrite()
    {
    }
 
@@ -320,40 +313,38 @@ namespace engine
    INT32 _remoteFileWrite::init( const CHAR * pInfomation )
    {
       INT32 rc = SDB_OK ;
-      BSONElement ele ;
+
       rc = _remoteExec::init( pInfomation ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get argument, rc: %d", rc ) ;
 
-      ele = _valueObj.getField( OMA_REMOTE_FIELD_NAME_CONTENT );
-
-      if( String == ele.type() )
-      {
-         _content = ele.valuestr() ;
-         _size = ossStrlen( _content ) ;
-      }
-      else if( BinData == ele.type() )
-      {
-         _content = ele.binData( _size ) ;
-      }
-      else
-      {
-         PD_LOG_MSG( PDERROR, "Content must be binary or string" ) ;
-      }
-
-      if( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_FID ) )
-      {
-         rc = SDB_OUT_OF_BOUND ;
-         PD_LOG_MSG( PDERROR, "FID must be config" ) ;
-         goto error ;
-      }
-      if( NumberInt != _matchObj.getField( OMA_REMOTE_FIELD_NAME_FID ).type() )
+      if ( FALSE == _valueObj.hasField( "filename" ) )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "FID must be numberInt" ) ;
+         PD_LOG_MSG( PDERROR, "filename must be config" ) ;
+         goto error;
+      }
+      if ( String != _valueObj.getField( "filename" ).type() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "filename must be string" ) ;
          goto error ;
       }
-      _FID = _matchObj.getIntField( OMA_REMOTE_FIELD_NAME_FID ) ;
+      _filename = _valueObj.getStringField( "filename" ) ;
 
+      if ( FALSE == _valueObj.hasField( "location" ) )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "location must be config" ) ;
+         goto error ;
+      }
+      if ( NumberInt != _valueObj.getField( "location" ).type() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "location must be int" ) ;
+         goto error ;
+      }
+      _location = _valueObj.getIntField( "location" ) ;
+      _content = _valueObj.getStringField( "content" ) ;
    done:
       return rc ;
    error:
@@ -368,207 +359,38 @@ namespace engine
    INT32 _remoteFileWrite::doit( BSONObj &retObj )
    {
       INT32 rc = SDB_OK ;
-      omaSession *pAgentSession = NULL ;
-      _sptUsrFileCommon *fileCommon = NULL ;
-      string err ;
+      OSSFILE file ;
 
-      pAgentSession = _getThreadOmaSession() ;
-      if( NULL == pAgentSession )
+      rc = ossOpen( _filename.c_str(),
+                    OSS_READWRITE | OSS_CREATE,
+                    OSS_RWXU,
+                    file ) ;
+      if ( SDB_OK != rc )
       {
-         rc = SDB_SYS ;
-         PD_LOG_MSG( PDERROR, "Failed to get omagent session" ) ;
+         PD_LOG_MSG( PDERROR, "failed to open file:%s, rc:%d",
+                     _filename.c_str(), rc ) ;
          goto error ;
       }
 
-      fileCommon = pAgentSession->getFileObjByID( _FID ) ;
-      if( NULL == fileCommon )
+      rc = ossSeek( &file, _location, OSS_SEEK_SET ) ;
+      if ( SDB_OK != rc )
       {
-         rc = SDB_IO ;
-         PD_LOG_MSG( PDERROR, "File is not opened" ) ;
+         PD_LOG( PDERROR, "failed to seek:%d", rc ) ;
          goto error ;
       }
 
-      rc = fileCommon->write( _content, _size, err ) ;
-      if( SDB_OK != rc )
+      rc = ossWriteN( &file, _content.c_str(), _content.size() ) ;
+      if ( SDB_OK != rc )
       {
-         PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
-         goto error ;
-      }
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   /*
-      _remoteFileSeek implement
-   */
-   IMPLEMENT_OACMD_AUTO_REGISTER( _remoteFileSeek )
-
-   _remoteFileSeek::_remoteFileSeek(): _FID( 0 ), _seekSize( 0 )
-   {
-   }
-
-   _remoteFileSeek::~_remoteFileSeek()
-   {
-   }
-
-   INT32 _remoteFileSeek::init( const CHAR * pInfomation )
-   {
-      INT32 rc = SDB_OK ;
-      rc = _remoteExec::init( pInfomation ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get argument, rc: %d", rc ) ;
-
-      if( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_FID ) )
-      {
-         rc = SDB_OUT_OF_BOUND ;
-         PD_LOG_MSG( PDERROR, "FID must be config" ) ;
-         goto error ;
-      }
-      if( NumberInt != _matchObj.getField( OMA_REMOTE_FIELD_NAME_FID ).type() )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "FID must be numberInt" ) ;
-         goto error ;
-      }
-      _FID = _matchObj.getIntField( OMA_REMOTE_FIELD_NAME_FID ) ;
-
-      if( FALSE == _valueObj.hasField( OMA_REMOTE_FIELD_NAME_SEEK_SIZE ) )
-      {
-         rc = SDB_OUT_OF_BOUND ;
-         PD_LOG_MSG( PDERROR, "SeekSize must be config" ) ;
-         goto error ;
-      }
-
-      {
-         BSONElement element = _valueObj.getField( OMA_REMOTE_FIELD_NAME_SEEK_SIZE ) ;
-         if( NumberInt != element.type() &&
-             NumberLong != element.type() )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG_MSG( PDERROR, "SeekSize must be number" ) ;
-            goto error ;
-         }
-         _seekSize = element.numberLong() ;
-      }
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   const CHAR* _remoteFileSeek::name()
-   {
-      return OMA_REMOTE_FILE_SEEK ;
-   }
-
-   INT32 _remoteFileSeek::doit( BSONObj &retObj )
-   {
-      INT32 rc = SDB_OK ;
-      omaSession *pAgentSession = NULL ;
-      _sptUsrFileCommon *fileCommon = NULL ;
-      string err ;
-
-      pAgentSession = _getThreadOmaSession() ;
-      if( NULL == pAgentSession )
-      {
-         rc = SDB_SYS ;
-         PD_LOG_MSG( PDERROR, "Failed to get omagent session" ) ;
-         goto error ;
-      }
-
-      fileCommon = pAgentSession->getFileObjByID( _FID ) ;
-      if( NULL == fileCommon )
-      {
-         rc = SDB_IO ;
-         PD_LOG_MSG( PDERROR, "File is not opened" ) ;
-         goto error ;
-      }
-
-      rc = fileCommon->seek( _seekSize, _optionObj, err ) ;
-      if( SDB_OK != rc )
-      {
-         PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
+         PD_LOG( PDERROR, "failed to write to file:%d", rc ) ;
          goto error ;
       }
    done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   /*
-      _remoteFileClose implement
-   */
-   IMPLEMENT_OACMD_AUTO_REGISTER( _remoteFileClose )
-
-   _remoteFileClose::_remoteFileClose(): _FID( 0 )
-   {
-   }
-
-   _remoteFileClose::~_remoteFileClose()
-   {
-   }
-
-   INT32 _remoteFileClose::init( const CHAR * pInfomation )
-   {
-      INT32 rc = SDB_OK ;
-      rc = _remoteExec::init( pInfomation ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get argument, rc: %d", rc ) ;
-
-      if( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_FID ) )
+      if ( file.isOpened() )
       {
-         rc = SDB_OUT_OF_BOUND ;
-         PD_LOG_MSG( PDERROR, "FID must be config" ) ;
-         goto error ;
-      }
-      if( NumberInt != _matchObj.getField( OMA_REMOTE_FIELD_NAME_FID ).type() )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "FID must be numberInt" ) ;
-         goto error ;
-      }
-      _FID = _matchObj.getIntField( OMA_REMOTE_FIELD_NAME_FID ) ;
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   const CHAR* _remoteFileClose::name()
-   {
-      return OMA_REMOTE_FILE_CLOSE ;
-   }
-
-   INT32 _remoteFileClose::doit( BSONObj &retObj )
-   {
-      INT32 rc = SDB_OK ;
-      omaSession *pAgentSession = NULL ;
-      _sptUsrFileCommon *fileCommon = NULL ;
-      string err ;
-
-      pAgentSession = _getThreadOmaSession() ;
-      if( NULL == pAgentSession )
-      {
-         rc = SDB_SYS ;
-         PD_LOG_MSG( PDERROR, "Failed to get omagent session" ) ;
-         goto error ;
+         ossClose( file ) ;
       }
 
-      fileCommon = pAgentSession->getFileObjByID( _FID ) ;
-      if( NULL == fileCommon )
-      {
-         goto done ;
-      }
-
-      rc = fileCommon->close( err ) ;
-      if( SDB_OK != rc )
-      {
-         PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
-         goto error ;
-      }
-      pAgentSession->releaseFileObj( _FID ) ;
-   done:
       return rc ;
    error:
       goto done ;
@@ -596,26 +418,26 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       string filepath ;
-      string err ;
 
-      if ( FALSE == _valueObj.hasField( OMA_REMOTE_FIELD_NAME_PATHNAME ) )
+      if ( FALSE == _valueObj.hasField( "filepath" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
-         PD_LOG_MSG( PDERROR, "Filepath must be config" ) ;
+         PD_LOG_MSG( PDERROR, "filepath must be config" ) ;
          goto error ;
       }
-      if ( String != _valueObj.getField( OMA_REMOTE_FIELD_NAME_PATHNAME ).type() )
+      if ( String != _valueObj.getField( "filepath" ).type() )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "Filepath must be string" ) ;
+         PD_LOG_MSG( PDERROR, "filepath must be string" ) ;
          goto error ;
       }
-      filepath = _valueObj.getStringField( OMA_REMOTE_FIELD_NAME_PATHNAME ) ;
+      filepath = _valueObj.getStringField( "filepath" ) ;
 
-      rc = _sptUsrFileCommon::remove( filepath, err ) ;
-      if( SDB_OK != rc )
+      rc = ossDelete( filepath.c_str() ) ;
+      if ( SDB_OK != rc )
       {
-         PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
+         PD_LOG_MSG( PDERROR, "failed to remove file:%s, rc:%d",
+                 filepath.c_str(), rc ) ;
          goto error ;
       }
    done:
@@ -646,31 +468,36 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       string filepath ;
-      BOOLEAN fileExist = FALSE ;
-      string err ;
       BSONObjBuilder builder ;
+      BOOLEAN fileExist = FALSE ;
 
-      if ( FALSE == _valueObj.hasField( OMA_REMOTE_FIELD_NAME_PATHNAME ) )
+      if ( FALSE == _valueObj.hasField( "filepath" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
-         PD_LOG_MSG( PDERROR, "Filepath must be config" ) ;
+         PD_LOG_MSG( PDERROR, "filepath must be config" ) ;
          goto error ;
       }
-      if ( String != _valueObj.getField( OMA_REMOTE_FIELD_NAME_PATHNAME ).type() )
+      if ( String != _valueObj.getField( "filepath" ).type() )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "Filepath must be string" ) ;
+         PD_LOG_MSG( PDERROR, "filepath must be string" ) ;
          goto error ;
       }
-      filepath = _valueObj.getStringField( OMA_REMOTE_FIELD_NAME_PATHNAME ) ;
+      filepath = _valueObj.getStringField( "filepath" ) ;
 
-      rc = _sptUsrFileCommon::exist( filepath, err, fileExist ) ;
-      if( SDB_OK != rc )
+      rc = ossAccess( filepath.c_str() ) ;
+      if ( SDB_OK != rc && SDB_FNE != rc )
       {
-         PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
+         PD_LOG_MSG( PDERROR, "access file failed" ) ;
          goto error ;
       }
-      builder.appendBool( OMA_REMOTE_FIELD_NAME_IS_EXIST, fileExist ) ;
+      else if ( SDB_OK == rc )
+      {
+         fileExist = TRUE ;
+      }
+
+      rc = SDB_OK ;
+      builder.appendBool( "isExist", fileExist ) ;
       retObj = builder.obj() ;
    done:
       return rc ;
@@ -701,40 +528,152 @@ namespace engine
       INT32 rc = SDB_OK ;
       string src ;
       string dst ;
-      string err ;
+      BOOLEAN isReplace = TRUE ;
+      UINT32 permission = OSS_DEFAULTFILE ;
 
-      if ( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_SRC ) )
+      if ( FALSE == _matchObj.hasField( "src" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
          PD_LOG_MSG( PDERROR, "src is required" ) ;
          goto error ;
       }
-      if ( String != _matchObj.getField( OMA_REMOTE_FIELD_NAME_SRC ).type() )
+      if ( String != _matchObj.getField( "src" ).type() )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "Src must be string" ) ;
+         PD_LOG_MSG( PDERROR, "src must be string" ) ;
          goto error;
       }
-      src = _matchObj.getStringField( OMA_REMOTE_FIELD_NAME_SRC ) ;
+      src = _matchObj.getStringField( "src" ) ;
 
-      if ( FALSE == _valueObj.hasField( OMA_REMOTE_FIELD_NAME_DST) )
+      if ( FALSE == _valueObj.hasField( "dst" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
-         PD_LOG_MSG( PDERROR, "Dst is required" ) ;
+         PD_LOG_MSG( PDERROR, "dst is required" ) ;
          goto error ;
       }
-      if ( String != _valueObj.getField( OMA_REMOTE_FIELD_NAME_DST ).type() )
+      if ( String != _valueObj.getField( "dst" ).type() )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "Dst must be string" ) ;
+         PD_LOG_MSG( PDERROR, "dst must be string" ) ;
          goto error;
       }
-      dst = _valueObj.getStringField( OMA_REMOTE_FIELD_NAME_DST ) ;
+      dst = _valueObj.getStringField( "dst" ) ;
 
-      rc = _sptUsrFileCommon::copy( src, dst, _optionObj, err ) ;
-      if( SDB_OK != rc )
+      if ( TRUE == _optionObj.hasField( "replace" ) )
       {
-         PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
+         if( Bool != _optionObj.getField( "replace" ).type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "replace must be BOOLEAN" ) ;
+            goto error ;
+         }
+         isReplace = _optionObj.getBoolField( "replace" ) ;
+      }
+
+      if ( TRUE == _optionObj.hasField( "mode" ) )
+      {
+         if ( NumberInt != _optionObj.getField( "mode" ).type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "mode must be INT32" ) ;
+            goto error ;
+         }
+         INT32 mode = 0 ;
+         permission = 0 ;
+         mode = _optionObj.getIntField( "mode" ) ;
+
+         if ( mode & 0x0001 )
+         {
+            permission |= OSS_XO ;
+         }
+         if ( mode & 0x0002 )
+         {
+            permission |= OSS_WO ;
+         }
+         if ( mode & 0x0004 )
+         {
+            permission |= OSS_RO ;
+         }
+         if ( mode & 0x0008 )
+         {
+            permission |= OSS_XG ;
+         }
+         if ( mode & 0x0010 )
+         {
+            permission |= OSS_WG ;
+         }
+         if ( mode & 0x0020 )
+         {
+            permission |= OSS_RG ;
+         }
+         if ( mode & 0x0040 )
+         {
+            permission |= OSS_XU ;
+         }
+         if ( mode & 0x0080 )
+         {
+            permission |= OSS_WU ;
+         }
+         if ( mode & 0x0100 )
+         {
+            permission |= OSS_RU ;
+         }
+      }
+#if defined (_LINUX)
+      else
+      {
+         struct stat fileStat ;
+         mode_t fileMode ;
+         permission = 0 ;
+         if ( stat( src.c_str(), &fileStat ) )
+         {
+            PD_LOG_MSG( PDERROR, "Failed to get src file stat" ) ;
+            rc = SDB_SYS ;
+         }
+         fileMode = fileStat.st_mode ;
+         if ( fileMode & S_IRUSR )
+         {
+            permission |= OSS_RU ;
+         }
+         if ( fileMode & S_IWUSR )
+         {
+            permission |= OSS_WU ;
+         }
+         if ( fileMode & S_IXUSR )
+         {
+            permission |= OSS_XU ;
+         }
+         if ( fileMode & S_IRGRP )
+         {
+            permission |= OSS_RG ;
+         }
+         if ( fileMode & S_IWGRP )
+         {
+            permission |= OSS_WG ;
+         }
+         if ( fileMode & S_IXGRP )
+         {
+            permission |= OSS_XG ;
+         }
+         if ( fileMode & S_IROTH )
+         {
+            permission |= OSS_RO ;
+         }
+         if ( fileMode & S_IWOTH )
+         {
+            permission |= OSS_WO ;
+         }
+         if ( fileMode & S_IXOTH )
+         {
+            permission |= OSS_XO ;
+         }
+      }
+#endif
+
+      rc = ossFileCopy( src.c_str(), dst.c_str(), permission, isReplace ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "copy file failed" ) ;
          goto error ;
       }
    done:
@@ -766,40 +705,39 @@ namespace engine
       INT32 rc = SDB_OK ;
       string src ;
       string dst ;
-      string err ;
 
-      if ( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_SRC ) )
+      if ( FALSE == _matchObj.hasField( "src" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
-         PD_LOG_MSG( PDERROR, "Src is required" ) ;
+         PD_LOG_MSG( PDERROR, "src is required" ) ;
          goto error ;
       }
-      if ( String != _matchObj.getField( OMA_REMOTE_FIELD_NAME_SRC ).type() )
+      if ( String != _matchObj.getField( "src" ).type() )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "Src must be string" ) ;
+         PD_LOG_MSG( PDERROR, "src must be string" ) ;
          goto error ;
       }
-      src = _matchObj.getStringField( OMA_REMOTE_FIELD_NAME_SRC ) ;
+      src = _matchObj.getStringField( "src" ) ;
 
-      if ( FALSE == _valueObj.hasField( OMA_REMOTE_FIELD_NAME_DST ) )
+      if ( FALSE == _valueObj.hasField( "dst" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
-         PD_LOG_MSG( PDERROR, "Dst is required" ) ;
+         PD_LOG_MSG( PDERROR, "dst is required" ) ;
          goto error ;
       }
-      if ( String != _valueObj.getField( OMA_REMOTE_FIELD_NAME_DST ).type() )
+      if ( String != _valueObj.getField( "dst" ).type() )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "Dst must be string" ) ;
+         PD_LOG_MSG( PDERROR, "dst must be string" ) ;
          goto error ;
       }
-      dst = _valueObj.getStringField( OMA_REMOTE_FIELD_NAME_DST ) ;
+      dst = _valueObj.getStringField( "dst" ) ;
 
-      rc = _sptUsrFileCommon::move( src, dst, err ) ;
-      if( SDB_OK != rc )
+      rc = ossRenamePath( src.c_str(), dst.c_str() ) ;
+      if ( rc )
       {
-         PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
+         PD_LOG_MSG( PDERROR, "rename path failed" ) ;
          goto error ;
       }
    done:
@@ -829,27 +767,81 @@ namespace engine
    INT32 _remoteFileMkdir::doit( BSONObj &retObj )
    {
       INT32 rc = SDB_OK ;
+      UINT32 permission = OSS_DEFAULTDIR ;
       string name ;
-      string err ;
 
-      if ( FALSE == _valueObj.hasField( OMA_REMOTE_FIELD_NAME_DIRNAME ) )
+      if ( FALSE == _valueObj.hasField( "name" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
-         PD_LOG_MSG( PDERROR, "Dirname is required" ) ;
+         PD_LOG_MSG( PDERROR, "name is required" ) ;
          goto error ;
       }
-      if ( String != _valueObj.getField( OMA_REMOTE_FIELD_NAME_DIRNAME ).type() )
+      if ( String != _valueObj.getField( "name" ).type() )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "Dirname must be string" ) ;
+         PD_LOG_MSG( PDERROR, "name must be string" ) ;
          goto error ;
       }
-      name = _valueObj.getStringField( OMA_REMOTE_FIELD_NAME_DIRNAME ) ;
+      name = _valueObj.getStringField( "name" ) ;
 
-      rc = _sptUsrFileCommon::mkdir( name, _optionObj, err ) ;
-      if( SDB_OK != rc )
+      if ( TRUE == _optionObj.hasField( "mode" ) )
       {
-         PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
+         if ( NumberInt != _optionObj.getField( "mode" ).type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "mode must be INT32" ) ;
+            goto error ;
+         }
+         INT32 mode = 0 ;
+         mode = _optionObj.getIntField( "mode" ) ;
+         permission = 0 ;
+
+         if ( mode & 0x0001 )
+         {
+            permission |= OSS_XO ;
+         }
+         if ( mode & 0x0002 )
+         {
+            permission |= OSS_WO ;
+         }
+         if ( mode & 0x0004 )
+         {
+            permission |= OSS_RO ;
+         }
+         if ( mode & 0x0008 )
+         {
+            permission |= OSS_XG ;
+         }
+         if ( mode & 0x0010 )
+         {
+            permission |= OSS_WG ;
+         }
+         if ( mode & 0x0020 )
+         {
+            permission |= OSS_RG ;
+         }
+         if ( mode & 0x0040 )
+         {
+            permission |= OSS_XU ;
+         }
+         if ( mode & 0x0080 )
+         {
+            permission |= OSS_WU ;
+         }
+         if ( mode & 0x0100 )
+         {
+            permission |= OSS_RU ;
+         }
+      }
+
+      rc = ossMkdir( name.c_str(), permission ) ;
+      if ( SDB_FE == rc )
+      {
+         rc = SDB_OK ;
+      }
+      else if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "create dir failed" ) ;
          goto error ;
       }
    done:
@@ -878,21 +870,218 @@ namespace engine
 
    INT32 _remoteFileFind::doit( BSONObj &retObj )
    {
-      INT32 rc = SDB_OK ;
-      string err ;
+      INT32              rc = SDB_OK ;
+      string             findType = "n" ;
+      string             mode ;
+      UINT32             exitCode = 0 ;
+      string             rootDir ;
+      _ossCmdRunner      runner ;
+      string             value ;
+      string             pathname ;
+      string             outStr ;
+      BSONObjBuilder     builder ;
+      stringstream       cmd ;
 
       if ( TRUE == _optionObj.isEmpty() )
       {
          rc = SDB_OUT_OF_BOUND ;
-         PD_LOG_MSG( PDERROR, "OptionObj must be config") ;
+         PD_LOG_MSG( PDERROR, "optionObj must be config") ;
+         goto error ;
+      }
+      if ( TRUE == _optionObj.hasField( "value" ) )
+      {
+         if ( String != _optionObj.getField( "value" ).type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "value must be string" ) ;
+            goto error ;
+         }
+         value = _optionObj.getStringField( "value" ) ;
+      }
+
+      if ( TRUE == _optionObj.hasField( "mode" ) )
+      {
+         if ( String != _optionObj.getField( "mode" ).type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "mode must be string" ) ;
+            goto error ;
+         }
+         findType = _optionObj.getStringField( "mode" ) ;
+      }
+
+      /* get the way to find file:
+         -name:   filename
+         -user:   user uname
+         -group:  group gname
+         -perm:   permission
+      */
+      if ( "n" == findType )
+      {
+         if ( string::npos != value.find( "/", 0 ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "value shouldn't contain '/'" ) ;
+            goto error ;
+         }
+         mode = " -name" ;
+      }
+      else if ( "u" == findType )
+      {
+         mode = " -user" ;
+      }
+      else if ( "p" == findType )
+      {
+         mode = " -perm" ;
+      }
+      else if ( "g" == findType )
+      {
+         mode = " -group" ;
+      }
+      else
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "mode must be required type" ) ;
          goto error ;
       }
 
-      rc = _sptUsrFileCommon::find( _optionObj, err, retObj ) ;
-      if( SDB_OK != rc )
+      if ( TRUE == _optionObj.hasField( "pathname" ) )
       {
-         PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
+         if ( String != _optionObj.getField( "pathname" ).type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "pathname must be string" ) ;
+            goto error ;
+         }
+         pathname = _optionObj.getStringField( "pathname" ) ;
+      }
+
+#if defined (_LINUX)
+      cmd << "find" ;
+
+      if ( FALSE == pathname.empty() )
+      {
+         cmd << " " << pathname ;
+      }
+
+      if ( FALSE == value.empty() )
+      {
+         cmd << mode << " " << value ;
+      }
+#elif defined (_WINDOWS)
+      if ( " -name" != mode )
+      {
+         goto done ;
+      }
+
+      if ( !pathname.empty() &&
+           '\\' != pathname[ pathname.size() - 1 ] )
+      {
+         pathname += "\\" ;
+      }
+      cmd << "cmd /C dir /b /s "<< pathname << value ;
+#endif
+
+      rc = runner.exec( cmd.str().c_str(), exitCode,
+                     FALSE, -1, FALSE, NULL, TRUE ) ;
+      if ( SDB_OK != rc )
+      {
+         stringstream ss ;
+         ss << "failed to exec cmd " << cmd.str() << ",rc: "
+            << rc
+            << ",exit: "
+            << exitCode ;
+         PD_LOG_MSG( PDERROR, ss.str().c_str() ) ;
          goto error ;
+      }
+
+      rc = runner.read( outStr ) ;
+      if ( SDB_OK != rc )
+      {
+         stringstream ss ;
+         ss << "failed to read msg from cmd \"" << cmd.str() << "\", rc:"
+            << rc ;
+         PD_LOG_MSG( PDERROR, ss.str().c_str() ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != exitCode )
+      {
+         if ( '\n' == outStr[ outStr.size()-1 ] )
+         {
+            outStr.erase( outStr.size()-1, 1 ) ;
+         }
+         rc = exitCode ;
+         PD_LOG_MSG( PDERROR, outStr.c_str() ) ;
+         goto error ;
+      }
+
+      rc = _extractFindInfo( outStr.c_str(), builder ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "Failed to extract find info" ) ;
+         goto error ;
+      }
+
+      retObj = builder.obj() ;
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _remoteFileFind::_extractFindInfo( const CHAR* buf,
+                                        BSONObjBuilder &builder )
+   {
+      INT32 rc = SDB_OK ;
+      vector<string> splited ;
+
+      /*
+      content format:
+         xx/xxx/xxx1
+         xx/xxx/xxx2
+         xx/xxx/xxx3
+      */
+      try
+      {
+         boost::algorithm::split( splited, buf, boost::is_any_of("\r\n") ) ;
+      }
+      catch( std::exception e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Failed to split result, rc: %d, detail: %s",
+                 rc, e.what() ) ;
+         goto error ;
+      }
+
+      for ( vector<string>::iterator itr = splited.begin();
+            itr != splited.end();  )
+      {
+         if ( itr->empty() )
+         {
+            itr = splited.erase( itr ) ;
+         }
+         else
+         {
+            itr++ ;
+         }
+      }
+
+      for( UINT32 index = 0; index != splited.size(); index++ )
+      {
+         BSONObjBuilder objBuilder ;
+         objBuilder.append( "pathname", splited[index] ) ;
+         try
+         {
+            builder.append( boost::lexical_cast<string>( index ).c_str(),
+                            objBuilder.obj() ) ;
+         }
+         catch( std::exception &e )
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Fail to build retObj, rc: %d, detail: %s",
+                    rc, e.what() ) ;
+            goto error ;
+         }
       }
    done:
       return rc ;
@@ -920,49 +1109,95 @@ namespace engine
 
    INT32 _remoteFileChmod::doit( BSONObj &retObj )
    {
+#if defined (_LINUX)
       INT32 rc = SDB_OK ;
-      string pathname ;
-      INT32 mode = 0 ;
-      string err ;
+      UINT32 exitCode    = 0 ;
+      BOOLEAN isRecursive = FALSE ;
+      stringstream       cmd ;
+      _ossCmdRunner      runner ;
+      string             pathname ;
+      INT32              mode ;
+      string             outStr ;
 
-      if ( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_PATHNAME ) )
+      if ( FALSE == _matchObj.hasField( "pathname" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
-         PD_LOG_MSG( PDERROR, "Pathname must be config" ) ;
+         PD_LOG_MSG( PDERROR, "filename must be config" ) ;
          goto error ;
       }
-      if ( String != _matchObj.getField( OMA_REMOTE_FIELD_NAME_PATHNAME ).type() )
+      if ( String != _matchObj.getField( "pathname" ).type() )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "Pathname must be string" ) ;
+         PD_LOG_MSG( PDERROR, "filename must be string" ) ;
          goto error ;
       }
-      pathname = _matchObj.getStringField( OMA_REMOTE_FIELD_NAME_PATHNAME ) ;
+      pathname = _matchObj.getStringField( "pathname" ) ;
 
-      if ( FALSE == _valueObj.hasField( OMA_REMOTE_FIELD_NAME_MODE ) )
+      if ( FALSE == _valueObj.hasField( "mode" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
-         PD_LOG_MSG( PDERROR, "Mode must be config" ) ;
+         PD_LOG_MSG( PDERROR, "mode must be config" ) ;
          goto error ;
       }
-      if ( NumberInt != _valueObj.getField( OMA_REMOTE_FIELD_NAME_MODE ).type() )
+      if ( NumberInt != _valueObj.getField( "mode" ).type() )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "Mode must be INT32" ) ;
+         PD_LOG_MSG( PDERROR, "mode must be INT32" ) ;
          goto error ;
       }
-      mode = _valueObj.getIntField( OMA_REMOTE_FIELD_NAME_MODE ) ;
+      mode = _valueObj.getIntField( "mode" ) ;
 
-      rc = _sptUsrFileCommon::chmod( pathname, mode, _optionObj, err ) ;
-      if( SDB_OK != rc )
+      if ( TRUE == _optionObj.hasField( "recursive" ) )
       {
-         PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
+         if ( Bool != _optionObj.getField( "recursive" ).type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "recursive must be bool" ) ;
+            goto error ;
+         }
+         isRecursive = _optionObj.getBoolField( "recursive" ) ;
+      }
+
+      cmd << "chmod" ;
+      if ( TRUE == isRecursive )
+      {
+         cmd << " -R" ;
+      }
+      cmd << " " << oct << mode << " " << pathname ;
+
+      rc = runner.exec( cmd.str().c_str(), exitCode,
+                        FALSE, -1, FALSE, NULL, TRUE ) ;
+      if ( SDB_OK != rc )
+      {
+         stringstream ss ;
+         ss << "failed to exec cmd " << cmd.str() << ",rc:"
+            << rc
+            << ",exit:"
+            << exitCode ;
+         PD_LOG_MSG( PDERROR, ss.str().c_str() ) ;
+         goto error ;
+      }
+
+      rc = runner.read( outStr ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "Failed to read result" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != exitCode )
+      {
+         rc = exitCode ;
+         PD_LOG_MSG( PDERROR, outStr.c_str() ) ;
          goto error ;
       }
    done:
       return rc ;
    error:
       goto done ;
+
+#elif defined (_WINDOWS)
+      return SDB_OK ;
+#endif
    }
 
    /*
@@ -985,34 +1220,117 @@ namespace engine
 
    INT32 _remoteFileChown::doit( BSONObj &retObj )
    {
+#if defined (_LINUX)
       INT32 rc = SDB_OK ;
-      string pathname ;
-      string err ;
+      UINT32 exitCode    = 0 ;
+      BOOLEAN isRecursive = FALSE ;
+      string username = "" ;
+      string groupname = "" ;
+      stringstream       cmd ;
+      _ossCmdRunner      runner ;
+      string             pathname ;
+      BSONObj            optionObj ;
+      string             outStr ;
 
-      if ( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_PATHNAME ) )
+      if ( FALSE == _matchObj.hasField( "filename" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
-         PD_LOG_MSG( PDERROR, "Pathname must be config" ) ;
+         PD_LOG_MSG( PDERROR, "filename must be config" ) ;
          goto error ;
       }
-      if ( String != _matchObj.getField( OMA_REMOTE_FIELD_NAME_PATHNAME ).type() )
+      if ( String != _matchObj.getField( "filename" ).type() )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "Pathname must be string" ) ;
+         PD_LOG_MSG( PDERROR, "filename must be string" ) ;
          goto error ;
       }
-      pathname = _matchObj.getStringField( OMA_REMOTE_FIELD_NAME_PATHNAME ) ;
+      pathname = _matchObj.getStringField( "filename" ) ;
 
-      rc = _sptUsrFileCommon::chown( pathname, _valueObj, _optionObj, err ) ;
-      if( SDB_OK != rc )
+      if ( TRUE == _valueObj.isEmpty() )
       {
-         PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "optionObj must be config" ) ;
+         goto error ;
+      }
+      if ( FALSE == _valueObj.hasField( "username" ) &&
+           FALSE == _valueObj.hasField( "groupname" ) )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "username or groupname must be config" ) ;
+         goto error ;
+      }
+      if ( TRUE == _valueObj.hasField( "username" ) )
+      {
+         if ( String != _valueObj.getField( "username" ).type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "username must be string" ) ;
+            goto error ;
+         }
+         username = _valueObj.getStringField( "username" ) ;
+      }
+      if ( TRUE == _valueObj.hasField( "groupname" ) )
+      {
+         if ( String != _valueObj.getField( "groupname" ).type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "groupname must be string" ) ;
+            goto error ;
+         }
+         groupname = _valueObj.getStringField( "groupname" ) ;
+      }
+
+      if ( TRUE == _optionObj.hasField( "recursive" ) )
+      {
+         if ( Bool != _optionObj.getField( "recursive" ).type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "recursive must be bool" ) ;
+            goto error ;
+         }
+         isRecursive = _optionObj.getBoolField( "recursive" ) ;
+      }
+
+      cmd << "chown" ;
+      if ( TRUE == isRecursive )
+      {
+         cmd << " -R" ;
+      }
+      cmd << " " << username << ":" << groupname << " " << pathname ;
+
+      rc = runner.exec( cmd.str().c_str(), exitCode,
+                        FALSE, -1, FALSE, NULL, TRUE ) ;
+      if ( SDB_OK != rc )
+      {
+         stringstream ss ;
+         ss << "failed to exec cmd " << cmd.str() << ",rc:"
+            << rc
+            << ",exit:"
+            << exitCode ;
+         PD_LOG_MSG( PDERROR, ss.str().c_str() ) ;
+         goto error ;
+      }
+
+      rc = runner.read( outStr ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "Failed to read result" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != exitCode )
+      {
+         rc = exitCode ;
+         PD_LOG_MSG( PDERROR, outStr.c_str() ) ;
          goto error ;
       }
    done:
       return rc ;
    error:
       goto done ;
+
+#elif defined (_WINDOWS)
+      return SDB_OK ;
+#endif
    }
 
    /*
@@ -1035,48 +1353,95 @@ namespace engine
 
    INT32 _remoteFileChgrp::doit( BSONObj &retObj )
    {
+#if defined (_LINUX)
       INT32 rc = SDB_OK ;
-      string pathname ;
-      string groupname ;
-      string err ;
-      if ( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_PATHNAME ) )
+      UINT32 exitCode    = 0 ;
+      BOOLEAN isRecursive = FALSE ;
+      stringstream       cmd ;
+      _ossCmdRunner      runner ;
+      string             pathname ;
+      string             groupname ;
+      string             outStr ;
+
+      if ( FALSE == _matchObj.hasField( "filename" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
-         PD_LOG_MSG( PDERROR, "Pathname must be config" ) ;
+         PD_LOG_MSG( PDERROR, "filename must be config" ) ;
          goto error ;
       }
-      if ( String != _matchObj.getField( OMA_REMOTE_FIELD_NAME_PATHNAME ).type() )
+      if ( String != _matchObj.getField( "filename" ).type() )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "Pathname must be string" ) ;
+         PD_LOG_MSG( PDERROR, "filename must be string" ) ;
          goto error ;
       }
-      pathname = _matchObj.getStringField( OMA_REMOTE_FIELD_NAME_PATHNAME ) ;
+      pathname = _matchObj.getStringField( "filename" ) ;
 
-      if ( FALSE == _valueObj.hasField( OMA_REMOTE_FIELD_NAME_GROUPNAME ) )
+      if ( FALSE == _valueObj.hasField( "groupname" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
-         PD_LOG_MSG( PDERROR, "Groupname must be config" ) ;
+         PD_LOG_MSG( PDERROR, "groupname must be config" ) ;
          goto error ;
       }
-      if ( String != _valueObj.getField( OMA_REMOTE_FIELD_NAME_GROUPNAME ).type() )
+      if ( String != _valueObj.getField( "groupname" ).type() )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "Groupname must be string" ) ;
+         PD_LOG_MSG( PDERROR, "groupname must be string" ) ;
          goto error ;
       }
-      groupname = _valueObj.getStringField( OMA_REMOTE_FIELD_NAME_GROUPNAME ) ;
+      groupname = _valueObj.getStringField( "groupname" ) ;
 
-      rc = _sptUsrFileCommon::chgrp( pathname, groupname, _optionObj, err ) ;
-      if( SDB_OK != rc )
+      if ( TRUE == _optionObj.hasField( "recursive" ) )
       {
-         PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
+         if ( Bool != _optionObj.getField( "recursive" ).type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "recursive must be bool" ) ;
+            goto error ;
+         }
+         isRecursive = _optionObj.getBoolField( "recursive" ) ;
+      }
+
+      cmd << "chgrp" ;
+      if ( TRUE == isRecursive )
+      {
+         cmd << " -R" ;
+      }
+      cmd << " " << groupname << " " << pathname ;
+
+      rc = runner.exec( cmd.str().c_str(), exitCode,
+                        FALSE, -1, FALSE, NULL, TRUE ) ;
+      if ( SDB_OK != rc )
+      {
+         stringstream ss ;
+         ss << "failed to exec cmd " << cmd.str() << ",rc:"
+            << rc
+            << ",exit:"
+            << exitCode ;
+         PD_LOG_MSG( PDERROR, ss.str().c_str() ) ;
+         goto error ;
+      }
+
+      rc = runner.read( outStr ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "Failed to read result" ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != exitCode )
+      {
+         rc = exitCode ;
+         PD_LOG_MSG( PDERROR, outStr.c_str() ) ;
          goto error ;
       }
    done:
       return rc ;
    error:
       goto done ;
+
+#elif defined (_WINDOWS)
+      return SDB_OK ;
+#endif
    }
 
    /*
@@ -1100,21 +1465,50 @@ namespace engine
 
    INT32 _remoteFileGetUmask::doit( BSONObj &retObj )
    {
-      INT32 rc = SDB_OK ;
-      string outStr ;
-      string err ;
+#if defined(_LINUX)
+      INT32              rc = SDB_OK ;
+      UINT32             exitCode = 0 ;
+      string             outStr ;
+      string  cmd = "umask" ;
+      _ossCmdRunner runner ;
 
-      rc = _sptUsrFileCommon::getUmask( err, outStr ) ;
-      if( SDB_OK != rc )
+      rc = runner.exec( cmd.c_str(), exitCode,
+                        FALSE, -1, FALSE, NULL, TRUE ) ;
+      if ( SDB_OK != rc )
       {
-         PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
+         stringstream ss ;
+         ss << "failed to exec cmd " << cmd << ",rc:"
+            << rc
+            << ",exit:"
+            << exitCode ;
+         PD_LOG_MSG( PDERROR, ss.str().c_str() ) ;
          goto error ;
       }
-      retObj = BSON( OMA_REMOTE_FIELD_NAME_MASK << outStr.c_str() ) ;
+
+      rc = runner.read( outStr ) ;
+      if ( SDB_OK != rc )
+      {
+         stringstream ss ;
+         ss << "failed to read msg from cmd \"" << cmd << "\", rc:"
+            << rc ;
+         PD_LOG_MSG( PDERROR, ss.str().c_str() ) ;
+         goto error ;
+      }
+
+      if( outStr[ outStr.size() - 1 ] == '\n' )
+      {
+         outStr.erase( outStr.size()-1, 1 ) ;
+      }
+      retObj = BSON( "mask" << outStr.c_str() ) ;
    done:
       return rc ;
    error:
       goto done ;
+
+#elif defined (_WINDOWS)
+      retObj = BSON( "mask" << "" ) ;
+      return SDB_OK ;
+#endif
    }
 
    /*
@@ -1137,34 +1531,75 @@ namespace engine
 
    INT32 _remoteFileSetUmask::doit( BSONObj &retObj )
    {
-      INT32 rc = SDB_OK ;
-      string err ;
-      INT32 mask = 0 ;
+#if defined(_LINUX)
+      INT32              rc = SDB_OK ;
+      stringstream       cmd ;
+      _ossCmdRunner      runner ;
+      string             outStr ;
+      INT32              userMask ;
+      INT32              mask ;
 
-      if ( FALSE == _valueObj.hasField( OMA_REMOTE_FIELD_NAME_MASK ) )
+      if ( FALSE == _valueObj.hasField( "mask" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
-         PD_LOG_MSG( PDERROR, "Mask must be config" ) ;
+         PD_LOG_MSG( PDERROR, "mask must be config" ) ;
          goto error ;
       }
-      if ( NumberInt != _valueObj.getField( OMA_REMOTE_FIELD_NAME_MASK ).type() )
+      if ( NumberInt != _valueObj.getField( "mask" ).type() )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "Mask must be INT32" ) ;
+         PD_LOG_MSG( PDERROR, "mask must be INT32" ) ;
          goto error ;
       }
-      mask = _valueObj.getIntField( OMA_REMOTE_FIELD_NAME_MASK ) ;
+      mask = _valueObj.getIntField( "mask" ) ;
 
-      rc = _sptUsrFileCommon::setUmask( mask, err ) ;
-      if( SDB_OK != rc )
+      userMask = 0 ;
+      if ( mask & 0x0001 )
       {
-         PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
-         goto error ;
+         userMask |= S_IXOTH ;
       }
+      if ( mask & 0x0002 )
+      {
+         userMask |= S_IWOTH ;
+      }
+      if ( mask & 0x0004 )
+      {
+         userMask |= S_IROTH ;
+      }
+      if ( mask & 0x0008 )
+      {
+         userMask |= S_IXGRP ;
+      }
+      if ( mask & 0x0010 )
+      {
+         userMask |= S_IWGRP ;
+      }
+      if ( mask & 0x0020 )
+      {
+         userMask |= S_IRGRP ;
+      }
+      if ( mask & 0x0040 )
+      {
+         userMask |= S_IXUSR ;
+      }
+      if ( mask & 0x0080 )
+      {
+         userMask |= S_IWUSR ;
+      }
+      if ( mask & 0x0100 )
+      {
+         userMask |= S_IRUSR ;
+      }
+
+      umask( userMask ) ;
    done:
       return rc ;
    error:
       goto done ;
+
+#elif defined (_WINDOWS)
+      return SDB_OK ;
+#endif
    }
 
    /*
@@ -1188,19 +1623,437 @@ namespace engine
    INT32 _remoteFileList::doit( BSONObj &retObj )
    {
       INT32 rc = SDB_OK ;
-      string err ;
+      UINT32 exitCode    = 0 ;
+      BOOLEAN showDetail = FALSE ;
+      BSONObjBuilder     builder ;
+      stringstream       cmd ;
+      _ossCmdRunner      runner ;
+      string             outStr ;
+      string             pathname ;
+      BSONObj            optionObj ;
 
-      rc = _sptUsrFileCommon::list( _optionObj, err, retObj ) ;
-      if( SDB_OK != rc )
+#if defined (_LINUX)
+      cmd << "ls -A -l" ;
+#elif defined (_WINDOWS)
+      cmd << "cmd /C dir /-C /A" ;
+#endif
+      if ( TRUE == _optionObj.hasField( "pathname" ) )
       {
-         PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
+         if ( String != _optionObj.getField( "pathname" ).type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "pathname must be string" ) ;
+            goto error ;
+         }
+         cmd << " " << _optionObj.getStringField( "pathname" ) ;
+      }
+      showDetail = optionObj.getBoolField( "detail" ) ;
+
+      rc = runner.exec( cmd.str().c_str(), exitCode,
+                        FALSE, -1, FALSE, NULL, TRUE ) ;
+      if ( SDB_OK != rc )
+      {
+         stringstream ss ;
+         ss << "failed to exec cmd " << cmd.str() << ",rc:"
+            << rc
+            << ",exit:"
+            << exitCode ;
+         PD_LOG_MSG( PDERROR, ss.str().c_str() ) ;
          goto error ;
+      }
+
+      rc = runner.read( outStr ) ;
+      if ( SDB_OK != rc )
+      {
+         stringstream ss ;
+         ss << "failed to read msg from cmd \"" << cmd.str() << "\", rc:"
+            << rc ;
+         PD_LOG_MSG( PDERROR, ss.str().c_str() ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != exitCode )
+      {
+         rc = exitCode ;
+         PD_LOG_MSG( PDERROR, outStr.c_str() ) ;
+         goto error ;
+      }
+
+      rc = _extractListInfo( outStr.c_str(), builder, showDetail ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "Failed to extract list info" ) ;
+         goto error ;
+      }
+
+      retObj = builder.obj() ;
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+#if defined (_LINUX)
+   INT32 _remoteFileList::_extractListInfo( const CHAR* buf,
+                                            BSONObjBuilder &builder,
+                                            BOOLEAN showDetail )
+   {
+      INT32 rc = SDB_OK ;
+      vector<string> splited ;
+      vector< BSONObj > fileVec ;
+
+      if ( NULL == buf )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "buf can't be null, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      /*
+      content format:
+         total 2
+         drwxr-xr-x  7 root      root       4096 Oct 11 15:28 20000
+         drwxr-xr-x  7 root      root       4096 Oct 11 15:05 30000
+      */
+      try
+      {
+         boost::algorithm::split( splited, buf, boost::is_any_of("\r\n") ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Failed to split result, rc: %d, detail: %s",
+                 rc, e.what() ) ;
+         goto error ;
+      }
+
+      for ( vector<string>::iterator itr = splited.begin();
+            itr != splited.end();  )
+      {
+         if ( itr->empty() )
+         {
+            itr = splited.erase( itr ) ;
+         }
+         else
+         {
+            itr++ ;
+         }
+      }
+      splited.erase( splited.begin() ) ;
+
+      if( TRUE == showDetail )
+      {
+         for ( vector<string>::iterator itrSplit = splited.begin();
+            itrSplit != splited.end(); itrSplit++ )
+         {
+            vector<string> columns ;
+            BSONObjBuilder fileObjBuilder ;
+
+            try
+            {
+               boost::algorithm::split( columns, *itrSplit,
+                                        boost::is_any_of(" ") ) ;
+            }
+            catch( std::exception &e )
+            {
+               rc = SDB_SYS ;
+               PD_LOG( PDERROR, "Failed to split result, rc: %d, detail: %s",
+                       rc, e.what() ) ;
+               goto error ;
+            }
+            for ( vector<string>::iterator itrCol = columns.begin();
+                  itrCol != columns.end();  )
+            {
+               if ( itrCol->empty() )
+               {
+                  itrCol = columns.erase( itrCol ) ;
+               }
+               else
+               {
+                  itrCol++ ;
+               }
+            }
+
+            if ( 9 > columns.size() )
+            {
+               continue ;
+            }
+            else
+            {
+               for ( UINT32 index = 9; index < columns.size(); index++ )
+               {
+                  columns[8] += " " + columns[index] ;
+               }
+            }
+            fileObjBuilder.append( "name", columns[8] ) ;
+            fileObjBuilder.append( "size", columns[4] ) ;
+            fileObjBuilder.append( "mode", columns[0] ) ;
+            fileObjBuilder.append( "user", columns[2] ) ;
+            fileObjBuilder.append( "group", columns[3] ) ;
+            fileObjBuilder.append( "lasttime",
+                                   columns[ 5 ] + " " +
+                                   columns[ 6 ] + " " +
+                                   columns[ 7 ] ) ;
+            fileVec.push_back( fileObjBuilder.obj() ) ;
+         }
+      }
+      else
+      {
+         for ( vector<string>::iterator itrSplit = splited.begin();
+            itrSplit != splited.end(); itrSplit++ )
+         {
+            vector<string> columns ;
+            BSONObjBuilder fileObjBuilder ;
+            try
+            {
+               boost::algorithm::split( columns, *itrSplit,
+                                        boost::is_any_of(" ") ) ;
+            }
+            catch( std::exception &e )
+            {
+               rc = SDB_SYS ;
+               PD_LOG( PDERROR, "Failed to split result, rc: %d, detail: %s",
+                       rc, e.what() ) ;
+               goto error ;
+            }
+            for ( vector<string>::iterator itrCol = columns.begin();
+                  itrCol != columns.end();  )
+            {
+               if ( itrCol->empty() )
+               {
+                  itrCol = columns.erase( itrCol ) ;
+               }
+               else
+               {
+                  itrCol++ ;
+               }
+            }
+
+            if ( 9 > columns.size() )
+            {
+               rc = SDB_SYS ;
+               PD_LOG( PDERROR, "Failed to build result" ) ;
+               goto error ;
+            }
+            else
+            {
+               for ( UINT32 index = 9; index < columns.size(); index++ )
+               {
+                  columns[8] += " " + columns[index] ;
+               }
+            }
+            fileObjBuilder.append( "name", columns[8] ) ;
+            fileObjBuilder.append( "mode", columns[0] ) ;
+            fileObjBuilder.append( "user", columns[2] ) ;
+            fileVec.push_back( fileObjBuilder.obj() ) ;
+         }
+      }
+
+      for( UINT32 index = 0; index < fileVec.size(); index++ )
+      {
+         try
+         {
+            builder.append( boost::lexical_cast<string>( index ).c_str(),
+                            fileVec[index] ) ;
+         }
+         catch( std::exception &e )
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Fail to build retObj, rc: %d, detail: %s",
+                    rc, e.what() ) ;
+            goto error ;
+         }
       }
    done:
       return rc ;
    error:
       goto done ;
    }
+
+#elif defined (_WINDOWS)
+   INT32 _remoteFileList::_extractListInfo( const CHAR* buf,
+                                            BSONObjBuilder &builder,
+                                            BOOLEAN showDetail )
+   {
+      INT32 rc = SDB_OK ;
+      vector<string> splited ;
+      vector< BSONObj > fileVec ;
+
+      if ( NULL == buf )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "buf can't be null, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      /*
+       xxxxxxxxx
+      xxxxxxxxxxx
+
+      C:\Users\wujiaming\Documents\NetSarang\Xshell\Sessions xxxx
+
+      content format:
+         2016/10/11  13:26              3410 xxxxxx
+         2016/05/18  08:56              3391 xxxxxxx
+              12 xxxxx          37488 xxxx
+               2 xxxxx    20122185728 xxxx
+      */
+      try
+      {
+         boost::algorithm::split( splited, buf, boost::is_any_of( "\r\n" ) ) ;
+      }
+      catch( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Failed to split result, rc: %d, detail: %s",
+                 rc, e.what() ) ;
+         goto error ;
+      }
+
+      for ( vector<string>::iterator itr = splited.begin();
+            itr != splited.end();  )
+      {
+         if ( itr->empty() )
+         {
+            itr = splited.erase( itr ) ;
+         }
+         else
+         {
+            itr++ ;
+         }
+      }
+      splited.erase( splited.end() - 2, splited.end() ) ;
+      splited.erase( splited.begin() , splited.begin() + 5 ) ;
+
+      if( TRUE == showDetail )
+      {
+         for ( vector<string>::iterator itrSplit = splited.begin();
+            itrSplit != splited.end(); itrSplit++ )
+         {
+            vector<string> columns ;
+            BSONObjBuilder fileObjBuilder ;
+
+            try
+            {
+               boost::algorithm::split( columns, *itrSplit,
+                                        boost::is_any_of( " " ) ) ;
+            }
+            catch( std::exception &e )
+            {
+               rc = SDB_SYS ;
+               PD_LOG( PDERROR, "Failed to split result, rc: %d, detail: %s",
+                       rc, e.what() ) ;
+               goto error ;
+            }
+            for ( vector<string>::iterator itrCol = columns.begin();
+                  itrCol != columns.end();  )
+            {
+               if ( itrCol->empty() )
+               {
+                  itrCol = columns.erase( itrCol ) ;
+               }
+               else
+               {
+                  itrCol++ ;
+               }
+            }
+
+            if ( 4 > columns.size() )
+            {
+               continue ;
+            }
+            else
+            {
+               for ( UINT32 index = 4; index < columns.size(); index++ )
+               {
+                  columns[ 3 ] += " " + columns[ index ] ;
+               }
+            }
+            if ( "<DIV>" == columns[ 2 ] )
+            {
+               columns[ 2 ] = "" ;
+            }
+            fileObjBuilder.append( "name", columns[ 3 ] ) ;
+            fileObjBuilder.append( "size", columns[ 2 ] ) ;
+            fileObjBuilder.append( "mode", "" ) ;
+            fileObjBuilder.append( "user", "" ) ;
+            fileObjBuilder.append( "group", "" ) ;
+            fileObjBuilder.append( "lasttime",
+                                   columns[ 0 ] + " " +columns[ 1 ] ) ;
+            fileVec.push_back( fileObjBuilder.obj() ) ;
+         }
+      }
+      else
+      {
+         for ( vector<string>::iterator itrSplit = splited.begin();
+            itrSplit != splited.end(); itrSplit++ )
+         {
+            vector<string> columns ;
+            BSONObjBuilder fileObjBuilder ;
+
+            try
+            {
+               boost::algorithm::split( columns, *itrSplit,
+                                        boost::is_any_of(" ") ) ;
+            }
+            catch( std::exception &e )
+            {
+               rc = SDB_SYS ;
+               PD_LOG( PDERROR, "Failed to split result, rc: %d, detail: %s",
+                       rc, e.what() ) ;
+               goto error ;
+            }
+            for ( vector<string>::iterator itrCol = columns.begin();
+                  itrCol != columns.end();  )
+            {
+               if ( itrCol->empty() )
+               {
+                  itrCol = columns.erase( itrCol ) ;
+               }
+               else
+               {
+                  itrCol++ ;
+               }
+            }
+
+            if ( 4 > columns.size() )
+            {
+               continue ;
+            }
+            else
+            {
+               for ( UINT32 index = 4; index < columns.size(); index++ )
+               {
+                  columns[ 3 ] += " " + columns[ index ] ;
+               }
+            }
+            fileObjBuilder.append( "name", columns[ 3 ] ) ;
+            fileObjBuilder.append( "mode", "" ) ;
+            fileObjBuilder.append( "user", "" ) ;
+            fileVec.push_back( fileObjBuilder.obj() ) ;
+         }
+      }
+
+      for( UINT32 index = 0; index < fileVec.size(); index++ )
+      {
+         try
+         {
+            builder.append( boost::lexical_cast<string>( index ).c_str(),
+                            fileVec[ index ] ) ;
+         }
+         catch( std::exception &e )
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Fail to build retObj, rc: %d, detail: %s",
+                    rc, e.what() ) ;
+            goto error ;
+         }
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+#endif
 
    /*
       _remoteFileGetPathType implement
@@ -1225,29 +2078,65 @@ namespace engine
       INT32 rc = SDB_OK ;
       string pathname ;
       string pathType ;
-      string err ;
+      CHAR   realPath[ OSS_MAX_PATHSIZE + 1] = { '\0' } ;
+      SDB_OSS_FILETYPE type ;
 
-      if ( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_PATHNAME ) )
+      if ( FALSE == _matchObj.hasField( "pathname" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
-         PD_LOG_MSG( PDERROR, "Pathname must be config" ) ;
+         PD_LOG_MSG( PDERROR, "pathname must be config" ) ;
          goto error ;
       }
-      if ( String != _matchObj.getField( OMA_REMOTE_FIELD_NAME_PATHNAME ).type() )
+      if ( String != _matchObj.getField( "pathname" ).type() )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "Pathname must be string" ) ;
+         PD_LOG_MSG( PDERROR, "pathname must be string" ) ;
          goto error ;
       }
-      pathname = _matchObj.getStringField( OMA_REMOTE_FIELD_NAME_PATHNAME ) ;
+      pathname = _matchObj.getStringField( "pathname" ) ;
 
-      rc = _sptUsrFileCommon::getPathType( pathname, err, pathType ) ;
-      if( SDB_OK != rc )
+      if ( NULL == ossGetRealPath( pathname.c_str(),
+                                   realPath,
+                                   OSS_MAX_PATHSIZE + 1 ) )
       {
-         PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
+         rc = SDB_SYS ;
+         PD_LOG_MSG( PDERROR, "Failed to build real path" ) ;
          goto error ;
       }
-      retObj = BSON( OMA_REMOTE_FIELD_NAME_PATH_TYPE << pathType ) ;
+
+      rc = ossGetPathType( realPath, &type ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "Failed to get path type" ) ;
+         goto error ;
+      }
+
+      switch( type )
+      {
+         case SDB_OSS_FIL:
+            pathType = "FIL" ;
+            break ;
+         case SDB_OSS_DIR:
+            pathType = "DIR" ;
+            break ;
+         case SDB_OSS_SYM:
+            pathType = "SYM" ;
+            break ;
+         case SDB_OSS_DEV:
+            pathType = "DEV" ;
+            break ;
+         case SDB_OSS_PIP:
+            pathType = "PIP" ;
+            break ;
+         case SDB_OSS_SCK:
+            pathType = "SCK" ;
+            break ;
+         default:
+            pathType = "UNK" ;
+            break ;
+      }
+
+      retObj = BSON( "pathType" << pathType ) ;
    done:
       return rc ;
    error:
@@ -1274,32 +2163,93 @@ namespace engine
 
    INT32 _remoteFileIsEmptyDir::doit( BSONObj &retObj )
    {
-      INT32 rc = SDB_OK ;
-      BOOLEAN isEmpty = FALSE ;
-      string pathname ;
-      string err ;
+      INT32    rc      = SDB_OK ;
+      BOOLEAN  isEmpty = FALSE ;
+      UINT32             exitCode = 0 ;
+      string             pathname ;
+      SDB_OSS_FILETYPE   type ;
+       stringstream      cmd ;
+      _ossCmdRunner      runner ;
+      string             outStr ;
 
-      if ( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_PATHNAME ) )
+      if ( FALSE == _matchObj.hasField( "pathname" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
-         PD_LOG_MSG( PDERROR, "Pathname must be config" ) ;
+         PD_LOG_MSG( PDERROR, "pathname must be config" ) ;
          goto error ;
       }
-      if ( String != _matchObj.getField( OMA_REMOTE_FIELD_NAME_PATHNAME ).type() )
+      if ( String != _matchObj.getField( "pathname" ).type() )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "Pathname must be string" ) ;
+         PD_LOG_MSG( PDERROR, "pathname must be string" ) ;
          goto error ;
       }
-      pathname = _matchObj.getStringField( OMA_REMOTE_FIELD_NAME_PATHNAME ) ;
+      pathname = _matchObj.getStringField( "pathname" ) ;
 
-      rc = _sptUsrFileCommon::isEmptyDir( pathname, err, isEmpty ) ;
-      if( SDB_OK != rc )
+      rc = ossAccess( pathname.c_str() ) ;
+      if ( SDB_OK != rc )
       {
-         PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
+         PD_LOG_MSG( PDERROR, "pathname not exist" ) ;
          goto error ;
       }
-      retObj = BSON( OMA_REMOTE_FIELD_NAME_IS_EMPTY << isEmpty ) ;
+
+      rc = ossGetPathType( pathname.c_str(), &type ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "Failed to get path type" ) ;
+         goto error ;
+      }
+      if ( SDB_OSS_DIR != type )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "pathname must be dir" ) ;
+         goto error ;
+      }
+
+#if defined (_LINUX)
+      cmd << "ls -A " << pathname << " | wc -w" ;
+#elif defined (_WINDOWS)
+      cmd << "cmd /C dir /b " << pathname ;
+#endif
+      rc = runner.exec( cmd.str().c_str(), exitCode,
+                        FALSE, -1, FALSE, NULL, TRUE ) ;
+      if ( SDB_OK != rc )
+      {
+         stringstream ss ;
+         ss << "failed to exec cmd " << cmd.str() << ",rc:"
+            << rc
+            << ",exit:"
+            << exitCode ;
+         PD_LOG_MSG( PDERROR, ss.str().c_str() ) ;
+         goto error ;
+      }
+
+      rc = runner.read( outStr ) ;
+      if ( SDB_OK != rc )
+      {
+         stringstream ss ;
+         ss << "failed to read msg from cmd \"" << cmd.str() << "\", rc:"
+            << rc ;
+         PD_LOG_MSG( PDERROR, ss.str().c_str() ) ;
+         goto error ;
+      }
+
+      if( !outStr.empty() && outStr[ outStr.size() - 1 ] == '\n' )
+      {
+         outStr.erase( outStr.size()-1, 1 ) ;
+      }
+#if defined (_LINUX)
+      if ( "0" == outStr )
+      {
+         isEmpty = TRUE ;
+      }
+#elif defined (_WINDOWS)
+      if ( outStr.empty() )
+      {
+         isEmpty = TRUE ;
+      }
+#endif
+      retObj = BSON( "isEmpty" << isEmpty ) ;
    done:
       return rc ;
    error:
@@ -1324,38 +2274,256 @@ namespace engine
       return OMA_REMOTE_FILE_STAT ;
    }
 
+#if defined (_LINUX)
    INT32 _remoteFileStat::doit( BSONObj &retObj )
    {
-      INT32 rc = SDB_OK ;
-      string pathname ;
-      string err ;
+      INT32              rc = SDB_OK ;
+      UINT32             exitCode = 0 ;
+      string             pathname ;
+      stringstream       cmd ;
+      _ossCmdRunner      runner ;
+      string             outStr ;
+      vector<string>     splited ;
+      BSONObjBuilder     builder ;
+      string             fileType ;
 
-      if ( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_FILENAME ) )
+      if ( FALSE == _matchObj.hasField( "filename" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
-         PD_LOG_MSG( PDERROR, "Filename must be config" ) ;
+         PD_LOG_MSG( PDERROR, "filename must be config" ) ;
          goto error ;
       }
-      if ( String != _matchObj.getField( OMA_REMOTE_FIELD_NAME_FILENAME ).type() )
+      if ( String != _matchObj.getField( "filename" ).type() )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "Filename must be string" ) ;
+         PD_LOG_MSG( PDERROR, "filename must be string" ) ;
          goto error ;
       }
-      pathname = _matchObj.getStringField( OMA_REMOTE_FIELD_NAME_FILENAME ) ;
+      pathname = _matchObj.getStringField( "filename" ) ;
 
-      rc = _sptUsrFileCommon::getStat( pathname, err, retObj ) ;
-      if( SDB_OK != rc )
+      cmd << "stat -c\"%n|%s|%U|%G|%x|%y|%z|%A\" " << pathname ;
+
+      rc = runner.exec( cmd.str().c_str(), exitCode,
+                        FALSE, -1, FALSE, NULL, TRUE ) ;
+      if ( SDB_OK != rc )
       {
-         PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
+         stringstream ss ;
+         ss << "failed to exec cmd " << cmd.str() << ",rc:"
+            << rc
+            << ",exit:"
+            << exitCode ;
+         PD_LOG_MSG( PDERROR, "%s", ss.str().c_str() ) ;
          goto error ;
       }
+
+      rc = runner.read( outStr ) ;
+      if ( SDB_OK != rc )
+      {
+         stringstream ss ;
+         ss << "failed to read msg from cmd \"" << cmd.str() << "\", rc:"
+            << rc ;
+         PD_LOG_MSG( PDERROR, "%s", ss.str().c_str() ) ;
+         goto error ;
+      }
+      else if ( SDB_OK != exitCode )
+      {
+         rc = exitCode ;
+         PD_LOG_MSG( PDERROR, outStr.c_str() ) ;
+         goto error ;
+      }
+
+      /* extract result
+      format: xxx|xxx|xxx|xxx|xxx|xxx|xxx|xxx
+      explain: separate by '|'
+      col[0]: filename   e.g: /home/users/wjm/trunk/bin
+      col[1]: size       e.g: 4096
+      col[2]: usre name  e.g: root
+      col[3]: group name  e.g: root
+      col[4]: time of last access  e.g:2016-10-11 15:27:48.839198876 +0800
+      col[5]: time of last modification  e.g:2016-10-11 15:27:48.839198876 +0800
+      col[6]: time of last change e.g:2016-10-11 15:27:48.839198876 +0800
+      col[7]: access rights in human readable form   e.g: drwxrwxrwx
+      */
+      try
+      {
+         boost::algorithm::split( splited, outStr, boost::is_any_of("\r\n") ) ;
+      }
+      catch( std::exception )
+      {
+         rc = SDB_SYS ;
+         PD_LOG_MSG( PDERROR, "Failed to split result" ) ;
+         goto error ;
+      }
+      for ( vector<string>::iterator itr = splited.begin();
+            itr != splited.end();  )
+      {
+         if ( itr->empty() )
+         {
+            itr = splited.erase( itr ) ;
+         }
+         else
+         {
+            itr++ ;
+         }
+      }
+
+      for( vector<string>::iterator itr = splited.begin();
+           itr != splited.end(); itr++ )
+      {
+         vector<string> token ;
+         try
+         {
+            boost::algorithm::split( token, *itr, boost::is_any_of( "|" ) ) ;
+         }
+         catch( std::exception )
+         {
+            rc = SDB_SYS ;
+            PD_LOG_MSG( PDERROR, "Failed to split result" ) ;
+            goto error ;
+         }
+         for( vector<string>::iterator itr = token.begin();
+              itr != token.end(); )
+         {
+            if ( itr->empty() )
+            {
+               itr = token.erase( itr ) ;
+            }
+            else
+            {
+               itr++ ;
+            }
+         }
+         if( 8 != token.size() )
+         {
+            continue ;
+         }
+
+         switch( token[ 7 ][ 0 ] )
+         {
+            case '-':
+               fileType = "regular file" ;
+               break ;
+            case 'd':
+               fileType = "directory" ;
+               break ;
+            case 'c':
+               fileType = "character special file" ;
+               break ;
+            case 'b':
+               fileType = "block special file" ;
+               break ;
+            case 'l':
+               fileType = "symbolic link" ;
+               break ;
+            case 's':
+               fileType = "socket" ;
+               break ;
+            case 'p':
+               fileType = "pipe" ;
+               break ;
+            default:
+               fileType = "unknow" ;
+         }
+         builder.append( "name", token[ 0 ] ) ;
+         builder.append( "size", token[ 1 ] ) ;
+         builder.append( "mode", token[ 7 ].substr( 1 ) ) ;
+         builder.append( "user", token[ 2 ] ) ;
+         builder.append( "group", token[ 3 ] ) ;
+         builder.append( "accessTime", token[ 4 ] ) ;
+         builder.append( "modifyTime", token[ 5 ] ) ;
+         builder.append( "changeTime", token[ 6 ] ) ;
+         builder.append( "type", fileType ) ;
+         retObj = builder.obj() ;
+         goto done ;
+      }
+
+      rc = SDB_SYS ;
+      PD_LOG_MSG( PDERROR, "Failed to build result" ) ;
+      goto error ;
    done:
       return rc ;
    error:
       goto done ;
    }
 
+#elif defined (_WINDOWS)
+   INT32 _remoteFileStat::doit( BSONObj &retObj )
+   {
+      INT32              rc = SDB_OK ;
+      string             pathname ;
+      string             fileType ;
+      SDB_OSS_FILETYPE   ossFileType ;
+      CHAR               realPath[ OSS_MAX_PATHSIZE + 1 ] = { '\0' } ;
+      BSONObjBuilder     builder ;
+      INT64              fileSize ;
+      stringstream       fileSizeStr ;
+
+      if ( FALSE == _matchObj.hasField( "filename" ) )
+      {
+         rc = SDB_OUT_OF_BOUND ;
+         PD_LOG_MSG( PDERROR, "filename must be config" ) ;
+         goto error ;
+      }
+      if ( String != _matchObj.getField( "filename" ).type() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "filename must be string" ) ;
+         goto error ;
+      }
+      pathname = _matchObj.getStringField( "filename" ) ;
+
+      if ( NULL == ossGetRealPath( pathname.c_str(),
+                                   realPath,
+                                   OSS_MAX_PATHSIZE + 1 ) )
+      {
+         rc = SDB_SYS ;
+         PD_LOG_MSG( PDERROR, "Failed to build real path" ) ;
+         goto error ;
+      }
+
+      rc = ossGetPathType( realPath, &ossFileType ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "Failed to get file type" ) ;
+         goto error ;
+      }
+      switch( ossFileType )
+      {
+         case SDB_OSS_FIL:
+            fileType = "regular file" ;
+            break ;
+         case SDB_OSS_DIR:
+            fileType = "directory" ;
+            break ;
+         default:
+            fileType = "unknow" ;
+      }
+
+      rc = ossGetFileSizeByName( realPath, &fileSize ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "Failed to get file size" ) ;
+         goto error ;
+      }
+      fileSizeStr << fileSize ;
+
+      builder.append( "name", pathname ) ;
+      builder.append( "size", fileSizeStr.str() ) ;
+      builder.append( "mode", "" ) ;
+      builder.append( "user", "" ) ;
+      builder.append( "group", "" ) ;
+      builder.append( "accessTime", "" ) ;
+      builder.append( "modifyTime", "" ) ;
+      builder.append( "changeTime", "" ) ;
+      builder.append( "type", fileType ) ;
+      retObj = builder.obj() ;
+   done:
+      return rc ;
+   error:
+      goto done ;
+
+   }
+#endif
    /*
       _remoteFileMd5 implement
    */
@@ -1377,230 +2545,128 @@ namespace engine
    INT32 _remoteFileMd5::doit( BSONObj &retObj )
    {
       INT32 rc = SDB_OK ;
+      SINT64 bufSize = SPT_MD5_READ_LEN ;
+      SINT64 hasRead = 0 ;
+      CHAR readBuf[SPT_MD5_READ_LEN + 1] = { 0 } ;
+      OSSFILE file ;
       string filename ;
-      string err ;
+      stringstream ss ;
+      BOOLEAN isOpen = FALSE ;
+      md5_state_t st ;
+      md5_init( &st ) ;
+      md5::md5digest digest ;
       string code ;
 
-      if ( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_FILENAME ) )
+      if ( FALSE == _matchObj.hasField( "filename" ) )
       {
          rc = SDB_INVALIDARG  ;
-         err = "Filename must be config" ;
+         ss << "filename must be config" ;
          goto error ;
       }
-      if ( String != _matchObj.getField( OMA_REMOTE_FIELD_NAME_FILENAME ).type() )
+      if ( String != _matchObj.getField( "filename" ).type() )
       {
          rc = SDB_INVALIDARG ;
-         err = "filename must be string" ;
+         ss << "filename must be string" ;
          goto error ;
       }
-      filename = _matchObj.getStringField( OMA_REMOTE_FIELD_NAME_FILENAME ) ;
+      filename = _matchObj.getStringField( "filename" ) ;
 
-      rc = _sptUsrFileCommon::md5( filename, err, code ) ;
-      if( SDB_OK != rc )
+      rc = ossOpen( filename.c_str(), OSS_READONLY | OSS_SHAREREAD,
+                    OSS_DEFAULTFILE, file ) ;
+      if ( rc )
       {
+         ss << "open file[" << filename.c_str() << "] failed: " << rc ;
          goto error ;
       }
-      retObj = BSON( OMA_REMOTE_FIELD_NAME_MD5 << code.c_str() ) ;
+      isOpen = TRUE ;
+
+      while ( TRUE )
+      {
+         rc = ossReadN( &file, bufSize, readBuf, hasRead ) ;
+         if ( SDB_EOF == rc || 0 == hasRead )
+         {
+            rc = SDB_OK ;
+            break ;
+         }
+         else if ( rc )
+         {
+            ss << "Read file[" << filename.c_str() << "] failed, rc: " << rc ;
+            goto error ;
+         }
+         md5_append( &st, (const md5_byte_t *)readBuf, hasRead ) ;
+      }
+      md5_finish( &st, digest ) ;
+      code = md5::digestToString( digest ) ;
+      retObj = BSON( "md5" << code.c_str() ) ;
    done:
+      if ( TRUE == isOpen )
+         ossClose( file ) ;
       return rc ;
    error:
-      PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
+      PD_LOG_MSG( PDERROR, ss.str().c_str() ) ;
       goto done ;
    }
 
 
    /*
-      _remoteFileGetSize implement
+      _remoteFileGetContentSize implement
    */
-   IMPLEMENT_OACMD_AUTO_REGISTER( _remoteFileGetSize )
+   IMPLEMENT_OACMD_AUTO_REGISTER( _remoteFileGetContentSize )
 
-   _remoteFileGetSize::_remoteFileGetSize()
+   _remoteFileGetContentSize::_remoteFileGetContentSize()
    {
    }
 
-   _remoteFileGetSize::~_remoteFileGetSize()
+   _remoteFileGetContentSize::~_remoteFileGetContentSize()
    {
    }
 
-   const CHAR* _remoteFileGetSize::name()
+   const CHAR* _remoteFileGetContentSize::name()
    {
       return OMA_REMOTE_FILE_GET_CONTENT_SIZE ;
    }
 
-   INT32 _remoteFileGetSize::doit( BSONObj &retObj )
+   INT32 _remoteFileGetContentSize::doit( BSONObj &retObj )
    {
-      INT32 rc = SDB_OK ;
-      INT64 size = 0 ;
-      string name ;
-      string err ;
+      INT32 rc                       = SDB_OK ;
+      INT32 size                     = 0 ;
+      ossPrimitiveFileOp             op ;
+      ossPrimitiveFileOp::offsetType offset ;
+      string                         name ;
 
-      if ( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_FILENAME ) )
+      if ( FALSE == _matchObj.hasField( "name" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
-         PD_LOG_MSG( PDERROR, "Filename must be config" ) ;
+         PD_LOG_MSG( PDERROR, "name must be config" ) ;
          goto error ;
       }
-      if ( String != _matchObj.getField( OMA_REMOTE_FIELD_NAME_FILENAME ).type() )
+      if ( String != _matchObj.getField( "name" ).type() )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "Filename must be string" ) ;
+         PD_LOG_MSG( PDERROR, "name must be string" ) ;
          goto error ;
       }
-      name = _matchObj.getStringField( OMA_REMOTE_FIELD_NAME_FILENAME ) ;
+      name = _matchObj.getStringField( "name" ) ;
 
-      rc = _sptUsrFileCommon::getFileSize( name, err, size ) ;
-      if( SDB_OK != rc )
+      rc = op.Open ( name.c_str() , OSS_PRIMITIVE_FILE_OP_READ_ONLY ) ;
+      if ( rc != SDB_OK )
       {
-         PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
+         PD_LOG_MSG( PDERROR, "Can't open file: %s", name.c_str() ) ;
          goto error ;
       }
-      retObj = BSON( OMA_REMOTE_FIELD_NAME_SIZE << size ) ;
+
+      rc = op.getSize ( &offset ) ;
+      if ( rc != SDB_OK )
+      {
+         PD_LOG_MSG( PDERROR, "Failed to get file's size" ) ;
+         goto error ;
+      }
+      size = offset.offset ;
+      retObj = BSON( "size" << size ) ;
    done:
+      op.Close() ;
       return rc ;
    error:
       goto done ;
    }
-
-   /*
-      _remoteFileGetPermission implement
-   */
-   IMPLEMENT_OACMD_AUTO_REGISTER( _remoteFileGetPermission )
-
-   _remoteFileGetPermission::_remoteFileGetPermission()
-   {
-   }
-
-   _remoteFileGetPermission::~_remoteFileGetPermission()
-   {
-   }
-
-   const CHAR* _remoteFileGetPermission::name()
-   {
-      return OMA_REMOTE_FILE_GET_PERMISSION ;
-   }
-
-   INT32 _remoteFileGetPermission::doit( BSONObj &retObj )
-   {
-      INT32 rc = SDB_OK ;
-      string pathname ;
-      string err ;
-      INT32 permission = 0 ;
-
-      if( FALSE == _valueObj.hasField( OMA_REMOTE_FIELD_NAME_PATHNAME ) )
-      {
-         rc = SDB_OUT_OF_BOUND ;
-         PD_LOG_MSG( PDERROR, "Pathname must be config" ) ;
-         goto error ;
-      }
-      else if( String != _valueObj.getField( OMA_REMOTE_FIELD_NAME_PATHNAME ).type() )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "Pathname must be string" ) ;
-         goto error ;
-      }
-      pathname = _valueObj.getStringField( OMA_REMOTE_FIELD_NAME_PATHNAME ) ;
-
-      rc = _sptUsrFileCommon::getPermission( pathname, err, permission ) ;
-      if( SDB_OK != rc )
-      {
-         PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
-         goto error ;
-      }
-      retObj = BSON( OMA_REMOTE_FIELD_NAME_PERMISSION << permission ) ;
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   /*
-      _remoteFileReadLine implement
-   */
-   IMPLEMENT_OACMD_AUTO_REGISTER( _remoteFileReadLine )
-
-   _remoteFileReadLine::_remoteFileReadLine()
-   {
-   }
-
-   _remoteFileReadLine::~_remoteFileReadLine()
-   {
-   }
-
-   INT32 _remoteFileReadLine::init( const CHAR* pInfomation )
-   {
-      INT32 rc = SDB_OK ;
-
-      rc = _remoteExec::init( pInfomation ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to get argument, rc: %d", rc ) ;
-
-      if( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_FID ) )
-      {
-         rc = SDB_OUT_OF_BOUND ;
-         PD_LOG_MSG( PDERROR, "FID must be config" ) ;
-         goto error ;
-      }
-      if( NumberInt != _matchObj.getField( OMA_REMOTE_FIELD_NAME_FID ).type() )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "FID must be numberInt" ) ;
-         goto error ;
-      }
-      _FID = _matchObj.getIntField( OMA_REMOTE_FIELD_NAME_FID ) ;
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   const CHAR* _remoteFileReadLine::name()
-   {
-      return OMA_REMOTE_FILE_READ_LINE ;
-   }
-
-   INT32 _remoteFileReadLine::doit( BSONObj &retObj )
-   {
-      INT32 rc = SDB_OK ;
-      CHAR *buf = NULL ;
-      SINT64 readLen = 0 ;
-      omaSession *pAgentSession = NULL ;
-      BSONObjBuilder builder ;
-      _sptUsrFileCommon *fileCommon = NULL ;
-      string err ;
-
-      pAgentSession = _getThreadOmaSession() ;
-      if( NULL == pAgentSession )
-      {
-         rc = SDB_SYS ;
-         PD_LOG_MSG( PDERROR, "Failed to get omagent session" ) ;
-         goto error ;
-      }
-
-      fileCommon = pAgentSession->getFileObjByID( _FID ) ;
-      if( NULL == fileCommon )
-      {
-         rc = SDB_IO ;
-         PD_LOG_MSG( PDERROR, "File is not opened" ) ;
-         goto error ;
-      }
-
-      rc = fileCommon->readLine( err, &buf, readLen ) ;
-      if( SDB_OK != rc )
-      {
-         PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
-         goto error ;
-      }
-      builder.append( OMA_REMOTE_FIELD_NAME_CONTENT, buf, readLen + 1 ) ;
-      builder.append( OMA_REMOTE_FIELD_NAME_READ_LEN, readLen) ;
-
-      retObj = builder.obj() ;
-   done:
-      if ( NULL != buf )
-      {
-         SDB_OSS_FREE( buf ) ;
-      }
-      return rc ;
-   error:
-      goto done ;
-   }
-
 }

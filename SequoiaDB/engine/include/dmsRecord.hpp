@@ -39,7 +39,6 @@
 #define DMSRECORD_HPP_
 
 #include "dms.hpp"
-#include "../bson/bson.h"
 #include "oss.hpp"
 #include "ossUtil.hpp"
 
@@ -395,95 +394,6 @@ namespace engine
          }                                                              \
       } while ( FALSE )
 
-   class _dmsCappedRecord : public SDBObject
-   {
-   public:
-      union
-      {
-         CHAR     _recordHead[4] ;
-         UINT32   _flag_and_size ;
-      }           _head ;
-      UINT32      _recNo ;
-      INT64       _logicalID ;
-
-   public:
-      CHAR getFlag() const
-      {
-         return _head._recordHead[ 0 ] ;
-      }
-
-      void setSize( UINT32 size )
-      {
-         return ((dmsRecord*)this)->setSize( size ) ;
-      }
-
-      UINT32 getSize() const
-      {
-         return ((const dmsRecord*)this)->getSize() ;
-      }
-
-      void setLogicalID( INT64 logicalID )
-      {
-         _logicalID = logicalID ;
-      }
-
-      INT64 getLogicalID() const
-      {
-         return _logicalID ;
-      }
-
-      void setRecordNo( UINT32 recNo )
-      {
-         _recNo = recNo ;
-      }
-
-      UINT32 getRecordNo() const
-      {
-         return _recNo ;
-      }
-
-      void setNormal()
-      {
-         return ((dmsRecord*)this)->setNormal() ;
-      }
-
-      BOOLEAN isNormal() const
-      {
-         return ((const dmsRecord*)this)->isNormal() ;
-      }
-
-      void resetAttr()
-      {
-         return ((dmsRecord*)this)->resetAttr() ;
-      }
-
-      void setData( const dmsRecordData &data )
-      {
-         return ((dmsRecord*)this)->setData(data) ;
-      }
-
-      const CHAR* getData() const
-      {
-         return ((const dmsRecord*)this)->getData() ;
-      }
-
-      UINT32 getDataLength() const
-      {
-         return ((const dmsRecord*)this)->getDataLength() ;
-      }
-
-      BOOLEAN isCompressed() const
-      {
-         return ((const dmsRecord*)this)->isCompressed() ;
-      }
-
-      BYTE getState() const
-      {
-         return ((const dmsRecord*)this)->getState() ;
-      }
-   } ;
-   typedef _dmsCappedRecord dmsCappedRecord ;
-
    /*
       _dmsDeletedRecord defined
    */
@@ -551,7 +461,7 @@ namespace engine
 
    #define DMS_MIN_DELETEDRECORD_SZ    (DMS_DELETEDRECORD_METADATA_SZ+20)
    #define DMS_MIN_RECORD_SZ           DMS_MIN_DELETEDRECORD_SZ
-   #define DMS_MIN_RECORD_DATA_SZ      5
+
 }
 
 #endif //DMSRECORD_HPP_

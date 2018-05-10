@@ -5,39 +5,6 @@
  */
 (function(window, angular, undefined) {'use strict';
 
-function isPluginHtmlPath( fileName )
-{
-   var files = fileName.split( '/' ) ;
-
-   if( files[0] == '.' )
-   {
-      files.splice( 0, 1 ) ;
-   }
-
-   if( files.length < 3 )
-   {
-      return false ;
-   }
-
-   if( files[0] != 'app' )
-   {
-      return false ;
-   }
-
-   if( files[1] != 'template' )
-   {
-      return false ;
-   }
-
-   if( files[2] != 'Data' &&
-         files[2] != 'Monitor' )
-   {
-      return false ;
-   }
-
-   return true ;
-}
-
 /**
  * @ngdoc module
  * @name ngRoute
@@ -565,21 +532,7 @@ function $RouteProvider(){
                 templateUrl = $sce.getTrustedResourceUrl(templateUrl);
                 if (angular.isDefined(templateUrl)) {
                   next.loadedTemplateUrl = templateUrl;
-                  var headers = {} ;
-                  if( isPluginHtmlPath(templateUrl) )
-                  {
-                     var clusterName = localLocalData( 'SdbClusterName' ) ;
-	                  if( clusterName !== null )
-	                  {
-		                  headers['SdbClusterName'] = clusterName ;
-	                  }
-	                  var businessName = localLocalData( 'SdbModuleName' )
-	                  if( businessName !== null )
-	                  {
-                        headers['SdbBusinessName'] = businessName ;
-	                  }
-                  }
-                  template = $http.get(templateUrl, {cache: $templateCache,'headers':headers}).
+                  template = $http.get(templateUrl, {cache: $templateCache}).
                       then(function(response) { return response.data; });
                 }
               }

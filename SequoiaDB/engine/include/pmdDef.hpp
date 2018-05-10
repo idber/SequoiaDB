@@ -158,14 +158,12 @@ namespace engine
       EDU_TYPE_CATMGR,
       EDU_TYPE_CATNETWORK,
       EDU_TYPE_COORDNETWORK,
-      EDU_TYPE_COORDMGR,
       EDU_TYPE_OMMGR,
       EDU_TYPE_OMNET,
       EDU_TYPE_SYNCCLOCK,
       EDU_TYPE_PIPESLISTENER,
       EDU_TYPE_FAPLISTENER,
       EDU_TYPE_DBMONITOR,
-      EDU_TYPE_RTNNETWORK,
 #if defined (_LINUX)
       EDU_TYPE_SIGNALTEST,
 #endif // _LINUX
@@ -177,7 +175,6 @@ namespace engine
       EDU_TYPE_REPLAGENT,
       EDU_TYPE_RESTAGENT,
       EDU_TYPE_FAPAGENT,
-      EDU_TYPE_OMAAGENT,
 
       EDU_TYPE_AGENT_END,
 
@@ -187,13 +184,6 @@ namespace engine
       EDU_TYPE_PREFETCHER,
 
       EDU_TYPE_MAIN,
-
-      EDU_TYPE_SEADPTMGR,
-      EDU_TYPE_SE_SERVICE,
-      EDU_TYPE_SE_INDEXR,
-      EDU_TYPE_SE_INDEX,
-      EDU_TYPE_SE_AGENT,
-
       EDU_TYPE_UNKNOWN,
       EDU_TYPE_MAXIMUM = EDU_TYPE_UNKNOWN
    } ;
@@ -207,7 +197,7 @@ namespace engine
       PMD_EDU_RUNNING,
       PMD_EDU_WAITING,
       PMD_EDU_IDLE,
-
+      PMD_EDU_DESTROY,
       PMD_EDU_UNKNOW,
       PMD_EDU_STATUS_MAXIMUM = PMD_EDU_UNKNOW
    } ;
@@ -216,6 +206,7 @@ namespace engine
    #define PMD_IS_EDU_RUNNING(x)       ( PMD_EDU_RUNNING  == x )
    #define PMD_IS_EDU_WAITING(x)       ( PMD_EDU_WAITING  == x )
    #define PMD_IS_EDU_IDLE(x)          ( PMD_EDU_IDLE     == x )
+   #define PMD_IS_EDU_DESTROY(x)       ( PMD_EDU_DESTROY  == x )
 
    /*
       SDB_TYPE_STR DEFINE
@@ -234,13 +225,6 @@ namespace engine
    #define SDB_DB_OFFLINE_BK_STR       "OfflineBackup"
 
    /*
-      SDB_DATA_STATUS_STR DEFINE
-   */
-   #define SDB_DATA_NORMAL_STR           "Normal"
-   #define SDB_DATA_REPAIR_STR           "Repairing"
-   #define SDB_DATA_FAULT_STR            "Fault"
-
-   /*
       SDB_DB_MODE_STR DEFINE
    */
    #define SDB_DB_MODE_READONLY_STR    "Readonly"
@@ -249,11 +233,8 @@ namespace engine
    /*
       define
    */
-   #define PMD_CONF_DIR_NAME           "conf"
-   #define PMD_RUN_DIR_NAME            "run"
    #define PMD_DFT_CONF                "sdb.conf"
    #define PMD_DFT_CAT                 "sdb.cat"
-   #define PMD_DFT_RUN                 "sdb.id"
    #define PMD_OPTION_DIAG_PATH        "diaglog"
    #define PMD_OPTION_AUDIT_PATH       PMD_OPTION_DIAG_PATH
    #define PMD_OPTION_LOG_PATH         "replicalog"

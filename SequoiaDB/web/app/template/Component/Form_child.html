@@ -76,13 +76,4 @@
          </tr>
       </table>
    </div>
-   <div ng-switch-when="switch">
-      <span ng-if="inputInfo.value == true && inputInfo.disabled != true" ng-click="onChange(inputInfo)"><img style="height:30px;" src="../../../images/switch_on_1.png" /></span>
-      <span ng-if="inputInfo.value == false && inputInfo.disabled != true" ng-click="onChange(inputInfo)"><img style="height:30px;" src="../../../images/switch_off_1.png" /></span>
-      <span ng-if="inputInfo.value == true && inputInfo.disabled == true" ng-click="onChange(inputInfo)"><img style="height:30px;" src="../../../images/switch_on_2.png" /></span>
-      <span ng-if="inputInfo.value == false && inputInfo.disabled == true" ng-click="onChange(inputInfo)"><img style="height:30px;" src="../../../images/switch_off_2.png" /></span>
-   </div>
-   <div ng-switch-when="normal">
-      <span style="font-size:15px;">{{inputInfo.value}}</span>
-   </div>
 </div>

@@ -43,7 +43,8 @@
          <button class="topBtn" ng-click="OpenShowFieldDropdown($event)">{{autoLanguage("选择显示列")}}&nbsp;<i class="fa fa-caret-down"></i></button>
       </div>
       <div ng-dropdown="config in FieldDropdown.config" dropdown-callback="FieldDropdown.callback">
-         <label class="Ellipsis" style="padding:5px 10px;display:block;" ng-click="SaveField()"><input type="checkbox" ng-model="config.show" />&nbsp;{{config.field}}</label>
+         <label class="Ellipsis" style="padding:5px 10px;display:block;"><input type="checkbox" ng-model="config.show" />&nbsp;{{config.field}}</label>
+         <button class="btn btn-primary" style="width:100%;" dropdown-config="last" ng-click="SaveField()">{{autoLanguage("确定")}}</button>
       </div>
       <div ng-windows="config as CreateDomain.config" windows-callback="CreateDomain.callback">
          <div form-create para="config"></div>

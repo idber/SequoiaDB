@@ -42,23 +42,19 @@
 #include "oss.hpp"
 #include "netDef.hpp"
 #include "ossLatch.hpp"
-#include "netEventSuit.hpp"
 #include "netEventHandler.hpp"
 #include "netTimer.hpp"
 #include "ossAtomic.hpp"
-#include "sdbInterface.hpp"
 
 #include <map>
-#include <vector>
+#include <boost/shared_ptr.hpp>
+#include <boost/asio.hpp>
 
 using namespace std ;
 namespace engine
 {
    class _netMsgHandler ;
    class _netFrame ;
-   class _netRoute ;
-
-   typedef INT32 (*NET_START_THREAD_FUNC)( _netEventSuit *pSuit ) ;
 
    /*
       _netInnerTimeHandle define
@@ -77,12 +73,10 @@ namespace engine
                                const CHAR *pSvcName ) ;
 
          void         startTimer() ;
-         INT32        startDummyTimer() ;
 
       private:
          _netFrame            *_pFrame ;
          UINT32               _timeID ;
-         UINT32               _dummyTimerID ;
          string               _hostName ;
          string               _svcName ;
    } ;
@@ -93,76 +87,52 @@ namespace engine
    /*
       _netFrame define
    */
-   class _netFrame : public IIOService
+   class _netFrame : public SDBObject
    {
-      typedef map<UINT32, NET_TH>         MAP_TIMMER ;
-      typedef MAP_TIMMER::iterator        MAP_TIMMER_IT ;
-
-      typedef vector<netEvSuitPtr>        VEC_EVSUIT ;
-      typedef VEC_EVSUIT::iterator        VEC_EVSUIT_IT ;
-
-      typedef map<NET_HANDLE, NET_EH>     MAP_EVENT ;
-      typedef MAP_EVENT::iterator         MAP_EVENT_IT ;
-
-      typedef multimap<UINT64, NET_EH>    MULMAP_ROUTE ;
-      typedef MULMAP_ROUTE::iterator      MULMAP_ROUTE_IT ;
-      typedef pair<MULMAP_ROUTE_IT, MULMAP_ROUTE_IT>  MULMAP_ROUTE_IT_PAIR ;
-
       friend class _netInnerTimeHandle ;
-      friend class _netEventHandler ;
-
       public:
-         _netFrame( _netMsgHandler *handler, _netRoute *pRoute ) ;
+         _netFrame( _netMsgHandler *handler ) ;
 
          ~_netFrame() ;
 
       public:
-         virtual void      stop() ;
-         virtual void      resetMon() ;
+         OSS_INLINE io_service &ioservice()
+         {
+            return _ioservice ;
+         }
 
-      public:
+         OSS_INLINE NET_HANDLE allocateHandle()
+         {
+            return _handle.inc() ;
+         }
+
          OSS_INLINE void setLocal( const MsgRouteID &id )
          {
             _local = id ;
          }
-
-         void     setMaxSockPerNode( UINT32 maxSockPerNode ) ;
-         void     setMaxSockPerThread( UINT32 maxSockPerThread ) ;
-         void     setMaxThreadNum( UINT32 maxThreadNum ) ;
-
-         UINT32   getSockNumByNode( const _MsgRouteID &nodeID ) ;
-         UINT32   getSockNum() ;
-         UINT32   getNodeNum() ;
-         UINT32   getThreadNum() ;
-
-      public:
-         void     onRunSuitStart( netEvSuitPtr evSuitPtr ) ;
-         void     onRunSuitStop( netEvSuitPtr evSuitPtr ) ;
-         void     onSuitTimer( netEvSuitPtr evSuitPtr ) ;
-         UINT32   getEvSuitSize() ;
 
       public:
          static UINT32 getCurrentLocalAddress() ;
          static UINT32 getLocalAddress() ;
 
       public:
-         INT32    run( NET_START_THREAD_FUNC pFunc = NULL ) ;
+         void run();
 
-         void     heartbeat( UINT32 interval, INT32 serviceType = -1 ) ;
+         void stop() ;
 
-         void     setBeatInfo( UINT32 beatTimeout,
-                               UINT32 beatInteval = 0 ) ;
+         void heartbeat( UINT32 interval, INT32 serviceType = -1 ) ;
 
-         NET_EH   getEventHandle( const NET_HANDLE &handle ) ;
+         void setBeatInfo( UINT32 beatTimeout,
+                           UINT32 beatInteval = 0 ) ;
 
-         INT32    listen( const CHAR *hostName,
-                          const CHAR *serviceName ) ;
+         NET_EH getEventHandle( const NET_HANDLE &handle ) ;
+
+         INT32 listen( const CHAR *hostName,
+                       const CHAR *serviceName ) ;
 
          INT32 syncConnect( const CHAR *hostName,
                             const CHAR *serviceName,
                             const _MsgRouteID &id ) ;
-
-         INT32 syncConnect( NET_EH &eh ) ;
 
          INT32 syncSend( const NET_HANDLE &handle,
                          void *header ) ;
@@ -171,7 +141,7 @@ namespace engine
                             const CHAR *pBuff,
                             UINT32 buffSize ) ;
 
-         INT32 syncSend( const _MsgRouteID &id,
+         INT32 syncSend( const  _MsgRouteID &id,
                          void *header,
                          NET_HANDLE *pHandle = NULL ) ;
 
@@ -200,57 +170,45 @@ namespace engine
 
          INT32 removeTimer( UINT32 timerid ) ;
 
-         void  close( const _MsgRouteID &id ) ;
+         void close( const _MsgRouteID &id ) ;
 
-         void  close( const NET_HANDLE &handle ) ;
+         void close( const NET_HANDLE &handle ) ;
 
-         void  close() ;
+         void close() ;
 
-         void  closeListen() ;
+         void closeListen() ;
 
-         void  handleMsg( NET_EH eh ) ;
+         void handleMsg( NET_EH eh ) ;
 
-         void  handleClose( NET_EH eh, _MsgRouteID id ) ;
+         void handleClose( NET_EH eh, _MsgRouteID id ) ;
+
+         friend  class _netEventHandler ;
 
          INT64 netIn() ;
 
          INT64 netOut() ;
 
-         void  makeStat( UINT32 timeout ) ;
-
-      protected:
-         netEvSuitPtr      _getEvSuit( BOOLEAN needLock ) ;
-         void              _stopAllEvSuit() ;
-         void              _eraseSuit_i( netEvSuitPtr &ptr ) ;
-
-         INT32             _getHandle( const _MsgRouteID &id,
-                                       NET_EH &eh ) ;
+         void resetMon() ;
 
       private:
-         INT32    _asyncAccept() ;
-         void     _acceptCallback( NET_EH eh,
-                                   const boost::system::error_code &error ) ;
+         void _asyncAccept() ;
+         void _acceptCallback( NET_EH eh,
+                               const boost::system::error_code &
+                               error ) ;
 
-         void     _erase( const NET_HANDLE &handle ) ;
+         void _erase( const NET_HANDLE &handle ) ;
 
-         void     _addRoute( NET_EH eh ) ;
+         void _addRoute( NET_EH eh ) ;
 
-         void     _heartbeat( INT32 serviceType ) ;
+         void _heartbeat( INT32 serviceType ) ;
 
-         void     _checkBreak( UINT32 timeout, INT32 serviceType ) ;
+         void _checkBreak( UINT32 timeout, INT32 serviceType ) ;
 
       private:
-         _netRoute                        *_pRoute ;
-         netEvSuitPtr                     _mainSuitPtr ;
-         NET_START_THREAD_FUNC            _pThreadFunc ;
-
-         VEC_EVSUIT                       _vecEvSuit ;
-
-         MULMAP_ROUTE                     _route ;
-         MAP_EVENT                        _opposite ;
-
-         MAP_TIMMER                       _timers ;
-
+         io_service                       _ioservice ;
+         multimap<UINT64, NET_EH>         _route ;
+         map<NET_HANDLE, NET_EH>          _opposite ;
+         map<UINT32, NET_TH>              _timers ;
          _netMsgHandler                   *_handler ;
          MsgRouteID                       _local ;
          _ossSpinSLatch                   _mtx ;
@@ -266,10 +224,6 @@ namespace engine
          BOOLEAN                          _checkBeat ;
 
          netInnerTimeHandle               _innerTimeHandle ;
-
-         UINT32                           _maxSockPerNode ;    /// 0 for unlimited
-         UINT32                           _maxSockPerThread ;  /// 0 for unlimited
-         UINT32                           _maxThreadNum ;      /// 0 for unlimited
 
    } ;
 

@@ -135,11 +135,8 @@ int main(int argc, char* argv[])
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "Failed to run replayer, rc=%d", rc);
-         if (SDB_INTERRUPT != rc)
-         {
-            std::cerr << "Failed to run, see detail in sdbreplay.log"
-                      << std::endl;
-         }
+         std::cerr << "Failed to run, see detail in sdbreplay.log"
+                   << std::endl;
          goto error;
       }
    }

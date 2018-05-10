@@ -39,7 +39,6 @@
 #include "clsShardMgr.hpp"
 #include "clsMgr.hpp"
 #include "rtn.hpp"
-#include "rtnContextDel.hpp"
 #include "clsStorageCheckJob.hpp"
 
 namespace engine
@@ -73,15 +72,15 @@ namespace engine
                               checkInterval * STORAGE_CHECK_UNIT_INTERVAL :
                               STORAGE_CHECK_UNIT_INTERVAL ;
 
-         MON_CS_LIST csList ;
+         std::set<monCollectionSpace> csList ;
 
          /*
           * Before any one is found in the queue, the status of this thread is
           * wait. Once found, it will be changed to running.
           */
-         pEduMgr->waitEDU( cb ) ;
+         pEduMgr->waitEDU( cb->getID() ) ;
          cb->waitEvent( event, secInterval ) ;
-         pEduMgr->activateEDU( cb ) ;
+         pEduMgr->activateEDU( cb->getID() ) ;
 
          if ( PMD_IS_DB_DOWN() ||
               cb->isForced() )
@@ -117,7 +116,6 @@ namespace engine
             const _monCollectionSpace &cs = *iterCS ;
             UINT32 pageSize = DMS_PAGE_SIZE_DFT ;
             UINT32 lobPageSize = DMS_DEFAULT_LOB_PAGE_SZ ;
-            DMS_STORAGE_TYPE type = DMS_STORAGE_NORMAL ;
             dmsStorageUnitID suID = DMS_INVALID_SUID ;
             dmsStorageUnit *su = NULL ;
             SINT64 contextID = -1 ;
@@ -151,7 +149,7 @@ namespace engine
                continue ;
             }
 
-            rc = pShdMgr->rGetCSInfo( cs._name, pageSize, lobPageSize, type ) ;
+            rc = pShdMgr->rGetCSPageSize( cs._name, pageSize, lobPageSize ) ;
 
             pDmsCB->suUnlock( suID, SHARED ) ;
             suID = DMS_INVALID_SUID ;
@@ -192,8 +190,7 @@ namespace engine
                   break ;
                }
 
-               rc = pShdMgr->rGetCSInfo( cs._name, pageSize,
-                                         lobPageSize, type ) ;
+               rc = pShdMgr->rGetCSPageSize( cs._name, pageSize, lobPageSize ) ;
                if ( SDB_DMS_CS_NOTEXIST != rc )
                {
                   PD_LOG( PDWARNING,

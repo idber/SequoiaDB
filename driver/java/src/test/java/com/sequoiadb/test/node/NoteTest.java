@@ -16,8 +16,7 @@ public class NoteTest {
     private static Sequoiadb sdb;
     private static ReplicaGroup rg = null;
     private static Node node = null;
-    private static final String nodeHost = Constants.NODE_HOST;
-    private static final int nodePort = Constants.NODE_PORT;
+    private static final int PORT = 51000;
     private static boolean isCluster = true;
 
     @BeforeClass
@@ -36,7 +35,7 @@ public class NoteTest {
         if (!isCluster)
             return;
         rg = sdb.getReplicaGroup(Constants.GROUPNAME);
-        node = rg.getNode(nodeHost, nodePort);
+        node = rg.getNode(Constants.HOST, PORT);
     }
 
     @After
@@ -52,6 +51,7 @@ public class NoteTest {
         assertTrue(0 == 0);
     }
 
+    @Ignore
     @Test
     public void traverseClassNode() {
         if (!isCluster)
@@ -72,7 +72,7 @@ public class NoteTest {
         try {
             cursor = connect.getList(4, null, null, null);
         } catch (BaseException e) {
-            assertTrue(e.getErrorType().equals("SDB_NOT_CONNECTED"));
+            assertTrue(e.getErrorType().equals("SDB_NETWORK"));
         }
         Sequoiadb ddb = null;
         ddb = node.getSdb();
@@ -82,7 +82,7 @@ public class NoteTest {
         assertTrue(hostName != null);
         int port = 0;
         port = node.getPort();
-        assertTrue(port == nodePort);
+        assertTrue(port == PORT);
         String nodeName = null;
         nodeName = node.getNodeName();
         System.out.println(nodeName);

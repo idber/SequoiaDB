@@ -67,19 +67,12 @@ namespace replay
       case LOG_TYPE_LOB_TRUNCATE:
          return RPL_LOG_OP_LOB_TRUNCATE;
       case LOG_TYPE_DUMMY:
-         return RPL_LOG_OP_DUMMY;
       case LOG_TYPE_CL_RENAME:
-         return RPL_LOG_OP_CL_RENAME;
       case LOG_TYPE_TS_COMMIT:
-         return RPL_LOG_OP_TS_COMMIT;
       case LOG_TYPE_TS_ROLLBACK:
-         return RPL_LOG_OP_TS_ROLLBACK;
       case LOG_TYPE_INVALIDATE_CATA:
-         return RPL_LOG_OP_INVALIDATE_CATA;
       case LOG_TYPE_CS_RENAME:
-         return RPL_LOG_OP_CS_RENAME;
-      case LOG_TYPE_DATA_POP:
-         return RPL_LOG_OP_POP;
+         return "unsupported";
       default:
          SDB_ASSERT(FALSE, "unknown log type");
          return "unknown";

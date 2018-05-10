@@ -70,36 +70,6 @@ namespace DriverTest
         #endregion
 
 
-        [TestMethod()]
-        public void BulkInsertTmpTest()
-        {
-            int times = 3;
-            int bulkSize = 5000;
-            for (int i = 0; i < times; i++)
-            {
-                List<BsonDocument> list = new List<BsonDocument>(bulkSize);
-                for (int j = 0; j < bulkSize; j++)
-                {
-                    BsonDocument obj = new BsonDocument();
-                    obj.Add("bbs", "725").
-                            Add("csbh", 1817).
-                            Add("cljg", "工作状态").
-                            Add("sjym", "79H").
-                            Add("wxbs", "WX1558").
-                            Add("dmzbs", "DMZ2206").
-                            Add("cxbz", 0).
-                            Add("sjsj", new DateTime()).
-                            Add("rksj", new DateTime());
-                    list.Add(obj);
-                }
-                DateTime beginTime = DateTime.Now;
-                coll.BulkInsert(list, 0);
-                DateTime endTime = DateTime.Now;
-                System.TimeSpan takes = endTime - beginTime;
-                Console.WriteLine(String.Format("Times: {0}, tasks: {1}ms", i, takes.TotalMilliseconds));
-            }
-        }
-
         /// <summary>
         ///Testing for Insert
         ///</summary>

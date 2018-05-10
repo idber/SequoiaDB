@@ -40,8 +40,8 @@
 #include "pd.hpp"
 #include "catDef.hpp"
 #include "rtn.hpp"
-#include "rtnContextDump.hpp"
 #include "dpsLogWrapper.hpp"
+#include "rtnCoord.hpp"
 #include "msgMessage.hpp"
 #include "msgAuth.hpp"
 #include "../util/fromjson.hpp"
@@ -482,7 +482,7 @@ namespace engine
       PD_RC_CHECK ( rc, PDERROR, "Failed to build index object, rc = %d",
                     rc ) ;
 
-      rc = rtnTestAndCreateIndex( pCollection, indexDef, cb, _pDmsCB,
+      rc = catTestAndCreateIndex( pCollection, indexDef, cb, _pDmsCB,
                                   NULL, TRUE ) ;
       if ( rc )
       {
@@ -505,7 +505,7 @@ namespace engine
       PD_TRACE1 ( SDB_CATMAINCT__CREATESYSCOL,
                   PD_PACK_STRING ( pCollection ) ) ;
 
-      rc = rtnTestAndCreateCL( pCollection, cb, _pDmsCB, NULL, TRUE ) ;
+      rc = catTestAndCreateCL( pCollection, cb, _pDmsCB, NULL, TRUE ) ;
       if ( rc )
       {
          goto error ;

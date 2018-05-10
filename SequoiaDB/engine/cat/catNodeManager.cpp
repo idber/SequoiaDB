@@ -172,8 +172,6 @@ namespace engine
             try
             {
                BSONObj bsGrpInfo( buffObj.data() );
-               PD_TRACE1 ( SDB_CATNODEMGR_ACTIVE,
-                           PD_PACK_BSON ( bsGrpInfo ) ) ;
                rc = parseIDInfo( bsGrpInfo ) ;
                if ( rc )
                {
@@ -291,12 +289,7 @@ namespace engine
       {
          BSONObj boUpdater;
          BSONObj boMatcher;
-         if ( SPARE_GROUPID == groupID)
-         {
-             boMatcher = BSON( CAT_GROUPID_NAME << groupID) ;
-             boUpdater = BSON( "$unset" << BSON( CAT_PRIMARY_NAME<<"") ) ;
-         }
-         else if ( INVALID_GROUPID == groupID || INVALID_NODEID == nodeID )
+         if ( INVALID_GROUPID == groupID || INVALID_NODEID == nodeID )
          {
             boMatcher = BSON( CAT_GROUPID_NAME <<
                               pRequest->oldPrimary.columns.groupID <<
@@ -546,9 +539,6 @@ namespace engine
                    "Failed to process register-request, received "
                    "unexpected error:%s", e.what() );
       }
-
-      PD_TRACE1 ( SDB_CATNODEMGR_REGREQ,
-                  PD_PACK_BSON ( boReq ) ) ;
 
       PD_CHECK( ( pmdIsPrimary() || SDB_ROLE_CATALOG == nodeRole ),
                 SDB_CLS_NOT_PRIMARY, error, PDWARNING,
@@ -1074,8 +1064,6 @@ namespace engine
          {
             break;
          }
-         PD_TRACE1 ( SDB_CATNODEMGR_PARSECATCONF,
-                     PD_PACK_BSON ( boGroupInfo ) ) ;
          if ( 0 != boGroupInfo.nFields() )
          {
             rc = saveGroupInfo( boGroupInfo, 1 );
@@ -1184,8 +1172,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CATNODEMGR_GETNODEINFOBYCONF ) ;
-      PD_TRACE1 ( SDB_CATNODEMGR_GETNODEINFOBYCONF,
-                  PD_PACK_BSON ( boConf ) ) ;
       do
       {
          try
@@ -1353,8 +1339,6 @@ namespace engine
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_CATNODEMGR_PARSEIDINFO ) ;
-      PD_TRACE1 ( SDB_CATNODEMGR_PARSEIDINFO,
-                  PD_PACK_BSON ( obj ) ) ;
       try
       {
          MsgRouteID routeID;
@@ -1502,8 +1486,6 @@ namespace engine
       BOOLEAN found                    = FALSE ;
       const CHAR *strShardServiceName  = NULL ;
       PD_TRACE_ENTRY ( SDB_CATNODEMGR_GETNODEINFO ) ;
-      PD_TRACE1 ( SDB_CATNODEMGR_GETNODEINFO,
-                  PD_PACK_BSON ( boReq ) ) ;
       try
       {
          BSONObj boSelector;
@@ -1597,8 +1579,6 @@ namespace engine
 
          {
             BSONObj boGrpInfo ( buffObj.data() ) ;
-            PD_TRACE1 ( SDB_CATNODEMGR_GETNODEINFO,
-                        PD_PACK_BSON ( boGrpInfo ) ) ;
             BSONElement beGroup = boGrpInfo.getField( CAT_GROUP_NAME );
             if ( beGroup.type() == Array )
             {

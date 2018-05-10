@@ -15,7 +15,6 @@
 *******************************************************************************/
 
 #include "php_function.h"
-#include "timestamp.h"
 
 extern zend_class_entry *pSequoiadbInt64 ;
 extern zend_class_entry *pSequoiadbId ;
@@ -666,79 +665,6 @@ INT32 _assocArray2Bson( zval *pArray, bson *pBson TSRMLS_DC )
    }
    PHP_ARRAY_FOREACH_END()
 done:
-   return rc ;
-error:
-   goto done ;
-}
-
-INT32 php_assocArray2IntArray( zval *pArray, INT32 **ppIntArray,
-                               INT32 *pEleNum TSRMLS_DC )
-{
-   INT32 rc = SDB_OK ;
-   INT32 eleNum      = 0 ;
-   INT32 i           = 0 ;
-   INT32 arrayType = PHP_NOT_ARRAY ;
-   INT32 *pIntArray = NULL ;
-   HashTable *pTable = NULL ;
-   zval *pValue = NULL ;
-
-   if( !pArray )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-
-   if( IS_ARRAY != Z_TYPE_P( pArray ) )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-
-   arrayType = php_getArrayType( pArray TSRMLS_CC ) ;
-   if( PHP_INDEX_ARRAY != arrayType )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-
-   pTable = HASH_OF( pArray ) ;
-   if( pTable )
-   {
-      eleNum = zend_hash_num_elements( pTable ) ;
-      if( eleNum > 0 )
-      {
-         pIntArray = (INT32 *)emalloc( sizeof( INT32 ) * eleNum ) ;
-         if( !pIntArray )
-         {
-            rc = SDB_OOM ;
-            goto error ;
-         }
-
-         *pEleNum = eleNum ;
-
-         i = 0 ;
-         PHP_ARRAY_FOREACH_START( pTable )
-         {
-            PHP_ARRAY_FOREACH_VALUE( pTable, pValue ) ;
-            if( i >= eleNum )
-            {
-               goto done ;
-            }
-
-            rc = php_zval2Int( pValue, &pIntArray[i] TSRMLS_CC ) ;
-            if( rc )
-            {
-               goto error ;
-            }
-
-            ++i ;
-         }
-         PHP_ARRAY_FOREACH_END()
-      }
-   }
-
-done:
-   *ppIntArray = pIntArray ;
    return rc ;
 error:
    goto done ;
@@ -1496,121 +1422,6 @@ done:
    {
       (*pDouble) = n ;
    }
-}
-
-#define RELATIVE_YEAR 1900
-#define TIME_FORMAT  "%d-%d-%d-%d.%d.%d.%d"
-#define TIME_FORMAT2 "%d-%d-%d-%d:%d:%d.%d"
-#define DATE_FORMAT  "%d-%d-%d"
-/*
- * valType: 0 date
- *          1 timestamp
-*/
-BOOLEAN php_date2Time( const CHAR *pDate, INT32 valType,
-                       time_t *pTimestamp, INT32 *pMicros )
-{
-   /*
-      eg. before 1927-12-31-23.54.07,
-      will be more than 352 seconds
-      UTC time
-      date min 0000-01-01-00.00.00.000000
-      date max 9999-12-31-23.59.59.999999
-      timestamp min 1901-12-13-20.45.52.000000 +/- TZ
-      timestamp max 2038-01-19-03.14.07.999999 +/- TZ
-   */
-   /* date and timestamp */
-   BOOLEAN flag = TRUE ;
-   INT32 year   = 0 ;
-   INT32 month  = 0 ;
-   INT32 day    = 0 ;
-   INT32 hour   = 0 ;
-   INT32 minute = 0 ;
-   INT32 second = 0 ;
-   INT32 micros = 0 ;
-   time_t timep = 0 ;
-   struct tm t ;
-
-   ossMemset( &t, 0, sizeof( t ) ) ;
-   if( ossStrchr( pDate, 'T' ) ||
-       ossStrchr( pDate, 't' ) )
-   {
-      /* for mongo date type, iso8601 */
-      sdbTimestamp sdbTime ;
-      if( timestampParse( pDate,
-                          ossStrlen( pDate ),
-                          &sdbTime ) )
-      {
-         goto error ;
-      }
-      timep = (time_t)sdbTime.sec ;
-      micros = sdbTime.nsec / 1000 ;
-   }
-   else
-   {
-      if( valType == 1 )
-      {
-         /* for timestamp type, we provide yyyy-mm-dd-hh.mm.ss.uuuuuu */
-         BOOLEAN hasColon = FALSE ;
-
-         if( ossStrchr( pDate, ':' ) )
-         {
-            hasColon = TRUE ;
-         }
-
-         if( !sscanf ( pDate,
-                       hasColon ? TIME_FORMAT2 : TIME_FORMAT,
-                       &year,
-                       &month,
-                       &day,
-                       &hour,
-                       &minute,
-                       &second,
-                       &micros ) )
-         {
-            goto error ;
-         }
-      }
-      else
-      {
-         if( !sscanf ( pDate,
-                       DATE_FORMAT,
-                       &year,
-                       &month,
-                       &day ) )
-         {
-            goto error ;
-         }
-      }
-
-      --month ;
-      year -= RELATIVE_YEAR ;
-      /* construct tm */
-      t.tm_year  = year   ;
-      t.tm_mon   = month  ;
-      t.tm_mday  = day    ;
-      t.tm_hour  = hour   ;
-      t.tm_min   = minute ;
-      t.tm_sec   = second ;
-      /* create integer time representation */
-      timep = mktime( &t ) ;
-   }
-
-   if( valType == 1 )
-   {
-      if ( !ossIsTimestampValid( timep ) )
-      {
-         goto error ;
-      }
-   }
-
-   *pTimestamp = timep ;
-   *pMicros = micros ;
-
-done:
-   return flag ;
-error:
-   flag = FALSE ;
-   goto done ;
 }
 
 INT32 driver_connect( CHAR *pAddress,

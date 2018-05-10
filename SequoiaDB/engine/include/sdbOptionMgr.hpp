@@ -43,9 +43,6 @@
 #define SDB_COMMANDS_OPTIONS                                      \
       ("help,h", "help")                                          \
       ("version,v", "version")                                    \
-      ("language,l", po::value< string >(),                       \
-       "specified the display language, "                         \
-       "can be \"en\" or \"cn\", default to be \"en\"")           \
       ("file,f", po::value< string >(),                           \
        "if the -f option is present, then commands are read from "\
        "the file specified by <string>")                          \

@@ -39,6 +39,14 @@ namespace engine
    #define OM_SDB_PORT_NUM                (6)
    #define OM_INT32_MAXVALUE_STR          "2147483647"
 
+   #define OM_DEPLOY_MOD_STANDALONE       "standalone"
+   #define OM_DEPLOY_MOD_DISTRIBUTION     "distribution"
+
+   #define OM_NODE_ROLE_STANDALONE        SDB_ROLE_STANDALONE_STR
+   #define OM_NODE_ROLE_COORD             SDB_ROLE_COORD_STR
+   #define OM_NODE_ROLE_CATALOG           SDB_ROLE_CATALOG_STR
+   #define OM_NODE_ROLE_DATA              SDB_ROLE_DATA_STR
+
    #define OM_DG_NAME_PATTERN             "group"
 
    OmSdbNode::OmSdbNode()
@@ -56,10 +64,7 @@ namespace engine
       string dbPath = bsonNode.getStringField( OM_CONF_DETAIL_DBPATH ) ;
       string role = bsonNode.getStringField( OM_CONF_DETAIL_ROLE ) ;
       string serviceName = bsonNode.getStringField( OM_CONF_DETAIL_SVCNAME ) ;
-      string groupName = bsonNode.getStringField(
-                                                OM_CONF_DETAIL_DATAGROUPNAME ) ;
-      string transaction = bsonNode.getStringField(
-                                                OM_CONF_DETAIL_TRANSACTIONON ) ;
+      string groupName = bsonNode.getStringField( OM_CONF_DETAIL_DATAGROUPNAME ) ;
 
       rc = _setDBPath( dbPath, host ) ;
       if ( SDB_OK != rc )
@@ -77,7 +82,6 @@ namespace engine
 
       _setRole( role ) ;
       _setGroupName( groupName ) ;
-      _setTransaction( transaction ) ;
 
    done:
       return rc ;
@@ -860,11 +864,6 @@ namespace engine
       goto done ;
    }
 
-   #define OM_CONFIG_SDB_BUILDER_TRUE1    "true"
-   #define OM_CONFIG_SDB_BUILDER_TRUE2    "TRUE"
-   #define OM_CONFIG_SDB_BUILDER_FALSE1   "false"
-   #define OM_CONFIG_SDB_BUILDER_FALSE2   "FALSE"
-
    INT32 OmSdbConfigBuilder::_check( BSONObj& bsonConfig )
    {
       INT32 rc = SDB_OK ;
@@ -942,25 +941,13 @@ namespace engine
             INT32 coordNum = 0 ;
             INT32 cataNum = 0 ;
             INT32 dataNum = 0 ;
-            map<string, string> groupTransMap ;
-            map<string, string>::iterator groupIter ;
+            string transaction ;
 
             for ( OmNodes::ConstIterator it = nodes.begin() ;
                it != nodes.end() ; it++ )
             {
                OmSdbNode* node = dynamic_cast<OmSdbNode*>( *it ) ;
                string role = node->getRole() ;
-               string groupName = node->getGroupName() ;
-               string transaction = node->getTransaction() ;
-
-               if ( OM_CONFIG_SDB_BUILDER_TRUE1 == transaction )
-               {
-                  transaction = OM_CONFIG_SDB_BUILDER_TRUE2 ;
-               }
-               else if ( OM_CONFIG_SDB_BUILDER_FALSE1 == transaction )
-               {
-                  transaction = OM_CONFIG_SDB_BUILDER_FALSE2 ;
-               }
 
                if ( OM_NODE_ROLE_STANDALONE == role )
                {
@@ -981,24 +968,23 @@ namespace engine
                else if ( role == OM_NODE_ROLE_DATA )
                {
                   dataNum++ ;
-                  groupIter = groupTransMap.find( groupName ) ;
-                  if( groupIter == groupTransMap.end() )
+               }
+
+               if ( it == nodes.begin() )
+               {
+                  transaction = node->getTransaction();
+               }
+               else
+               {
+                  if ( transaction != node->getTransaction() )
                   {
-                     groupTransMap.insert(
-                           pair<string, string>( groupName, transaction ) ) ;
-                  }
-                  else
-                  {
-                     if( groupIter->second != transaction )
-                     {
-                        rc = SDB_INVALIDARG ;
-                        PD_LOG_MSG( PDERROR, "transaction exist conflict value:"
-                                    "host=%s, svcname=%s, transactionon=%s",
-                                    node->getHostName().c_str(),
-                                    node->getServiceName().c_str(),
-                                    transaction.c_str() ) ;
-                        goto error ;
-                     }
+                     rc = SDB_INVALIDARG ;
+                     PD_LOG_MSG( PDERROR, "transaction exist conflict value:"
+                                 "host=%s, svcname=%s, transaction=%s",
+                                 node->getHostName().c_str(),
+                                 node->getServiceName().c_str(),
+                                 transaction.c_str() ) ;
+                     goto error ;
                   }
                }
             }
@@ -1168,407 +1154,4 @@ namespace engine
 
       return false ;
    }
-
-   OmSdbConfExtendTemplate::OmSdbConfExtendTemplate()
-   {
-   }
-
-   OmSdbConfExtendTemplate::~OmSdbConfExtendTemplate()
-   {
-   }
-
-   INT32 OmSdbConfExtendTemplate::_init()
-   {
-      _dataNum = _dataGroupNum * _replicaNum ;
-      return SDB_OK ;
-   }
-
-   void OmSdbConfExtendTemplate::_reset()
-   {
-      _replicaNum   = -1 ;
-      _dataNum      = -1 ;
-      _dataGroupNum = -1 ;
-      _catalogNum   = -1 ;
-      _coordNum     = -1 ;
-   }
-
-   INT32 OmSdbConfExtendTemplate::_setPropery( const string& name,
-                                               const string& value )
-   {
-      if ( name.compare( OM_TEMPLATE_REPLICA_NUM ) == 0 )
-      {
-         _replicaNum = ossAtoi( value.c_str() ) ;
-      }
-      else if ( name.compare( OM_TEMPLATE_DATAGROUP_NUM ) == 0 )
-      {
-         _dataGroupNum = ossAtoi( value.c_str() ) ;
-      }
-      else if ( name.compare( OM_TEMPLATE_CATALOG_NUM ) == 0 )
-      {
-         _catalogNum = ossAtoi( value.c_str() ) ;
-      }
-      else if ( name.compare( OM_TEMPLATE_COORD_NUM ) == 0 )
-      {
-         _coordNum = ossAtoi( value.c_str() ) ;
-      }
-
-      return SDB_OK ;
-   }
-
-   bool OmSdbConfExtendTemplate::_isAllProperySet()
-   {
-      if ( _replicaNum == -1 )
-      {
-         PD_LOG_MSG( PDERROR, "%s have not been set", 
-                     OM_TEMPLATE_REPLICA_NUM ) ;
-         return false ;
-      }
-
-      if( _deployMod == OM_REST_DEPLOYMOD_HORIZONTAL )
-      {
-         if ( _dataGroupNum == -1 )
-         {
-            PD_LOG_MSG( PDERROR, "%s have not been set", 
-                        OM_TEMPLATE_DATAGROUP_NUM ) ;
-            return false ;
-         }
-         
-      }
-      else if ( _deployMod == OM_REST_DEPLOYMOD_VERTICAL )
-      {
-         
-         if ( _coordNum == -1 )
-         {
-            PD_LOG_MSG( PDERROR, "%s have not been set", OM_TEMPLATE_COORD_NUM ) ;
-            return false ;
-         }
-         else if ( _catalogNum == -1 )
-         {
-            PD_LOG_MSG( PDERROR, "%s have not been set", 
-                        OM_TEMPLATE_CATALOG_NUM ) ;
-            return false ;
-         }
-      }
-      else
-      {
-         PD_LOG_MSG( PDERROR, "unknown deploy mode:type=%s", 
-                     _deployMod.c_str() ) ;
-         return false ;
-      }
-
-      return true ;
-   }
-
-   OmExtendSdbConfigBuilder::OmExtendSdbConfigBuilder(
-      const OmBusinessInfo& businessInfo ) : OmSdbConfigBuilder( businessInfo )
-   {
-   }
-
-   OmExtendSdbConfigBuilder::~OmExtendSdbConfigBuilder()
-   {
-   }
-
-   INT32 OmExtendSdbConfigBuilder::_getGroupInfo( map<string, INT32>& groupMap,
-                                                  INT32& coordNum,
-                                                  INT32& catalogNum )
-   {
-      INT32 rc = SDB_OK ;
-      map<string, INT32>::iterator groupIter ;
-
-      /*
-      _bsonHostInfo:
-         { 
-           "HostInfo":[
-                {
-                   "HostName":"host1", "ClusterName":"c1", 
-                   "Disk":{"Name":"/dev/sdb", Size:"", Mount:"", Used:""},
-                   "Config":[{"BusinessName":"b2","dbpath":"", svcname:"", 
-                              "role":"", ... }, ...]
-                }
-                 , ... 
-            ]
-         }
-      */
-
-      BSONObj info = _bsonHostInfo.getObjectField( OM_BSON_FIELD_HOST_INFO ) ;
-      BSONObjIterator iter( info ) ;
-      while ( iter.more() )
-      {
-         BSONElement ele = iter.next() ;
-         if ( ele.type() != Object )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG_MSG( PDERROR, "field's element is not Object:field=%s"
-                        ",type=%d", OM_BSON_FIELD_CONFIG, ele.type() ) ;
-            goto error ;
-         }
-         BSONObj oneHost = ele.embeddedObject() ;
-
-         /*
-         oneHost
-           {
-              "HostName":"host1", "ClusterName":"c1",
-              "Config": [ { "datagroupname": "g1", "role": "data", ... }, ... ]
-               , ...
-           }
-         */
-         BSONObj tmpConfig = oneHost.getObjectField(
-                                                   OM_CONFIGURE_FIELD_CONFIG ) ;
-
-         {
-            BSONObjIterator iter( tmpConfig ) ;
-            while( iter.more() )
-            {
-               BSONElement ele = iter.next() ;
-               if( Object == ele.type() )
-               {
-                  BSONObj nodeInfo = ele.embeddedObject() ;
-                  string role = nodeInfo.getStringField( OM_CONF_DETAIL_ROLE ) ;
-                  string groupName = nodeInfo.getStringField(
-                                                OM_CONF_DETAIL_DATAGROUPNAME ) ;
-                  string businessName = nodeInfo.getStringField(
-                                             OM_CONFIGURE_FIELD_BUSINESSNAME ) ;
-                  if( businessName != _businessInfo.businessName )
-                  {
-                     continue ;
-                  }
-                  if( role == OM_NODE_ROLE_DATA )
-                  {
-                     groupIter = groupMap.find( groupName ) ;
-                     if( groupIter == groupMap.end() )
-                     {
-                        groupMap.insert( pair<string, INT32>( groupName, 1 ) ) ;
-                     }
-                     else
-                     {
-                        ++groupIter->second ;
-                     }
-                  }
-                  else if( role == OM_NODE_ROLE_COORD )
-                  {
-                     ++coordNum ;
-                  }
-                  else if( role == OM_NODE_ROLE_CATALOG )
-                  {
-                     ++catalogNum ;
-                  }
-               }
-            }
-         }
-         
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 OmExtendSdbConfigBuilder::_build( BSONArray& nodeConfig )
-   {
-      INT32 rc = SDB_OK ;
-      INT32 nodeNum = 0 ;
-      INT32 coordNum = 0 ;
-      INT32 catalogNum = 0 ;
-      map<string, INT32> groupMap ;
-      SDB_ASSERT( NULL != _business, "_business can't be NULL" ) ;
-
-      nodeNum = _business->nodeNum() ;
-
-      _setLocal() ;
-
-      rc = _getGroupInfo( groupMap, coordNum, catalogNum ) ;
-      if( rc )
-      {
-         PD_LOG_MSG( PDERROR, "failed to get group info, rc=%d", rc ) ;
-         goto error ;
-      }
-
-      if ( OM_REST_DEPLOYMOD_HORIZONTAL == _businessInfo.deployMode )
-      {
-         rc = _buildHorizontal( groupMap ) ;
-      }
-      else if ( OM_REST_DEPLOYMOD_VERTICAL == _businessInfo.deployMode )
-      {
-         rc = _buildVertical( coordNum, catalogNum, groupMap ) ;
-      }
-      else
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "unknown deploy mode:type=%s", 
-                     _businessInfo.deployMode.c_str() ) ;
-         goto error ;
-      }
-
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "generate config failed:rc=%d", rc ) ;
-         goto error ;
-      }
-
-      if( _business->nodeNum() < nodeNum )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "generate config failed:rc=%d", rc ) ;
-         goto error ;
-      }
-
-      {
-         INT32 i = 0 ;
-         BSONArrayBuilder arrBuilder ;
-         const OmNodes& nodes = _business->getNodes() ;
-
-         for( OmNodes::ConstIterator it = nodes.begin(); it != nodes.end();
-              ++it )
-         {
-            if( i < nodeNum )
-            {
-               ++i ;
-               continue ;
-            }
-            OmSdbNode* node = dynamic_cast<OmSdbNode*>( *it ) ;
-            BSONObjBuilder builder ;
-            builder.append( OM_BSON_FIELD_HOST_NAME, node->getHostName() ) ;
-            builder.append( OM_CONF_DETAIL_EX_DG_NAME, node->getGroupName() ) ;
-            builder.append( OM_CONF_DETAIL_DBPATH, node->getDBPath() ) ;
-            builder.append( OM_CONF_DETAIL_SVCNAME, node->getServiceName() ) ;
-            builder.append( OM_CONF_DETAIL_ROLE, node->getRole() ) ;
-
-            for ( OmConfProperties::ConstIterator it = _properties.begin() ;
-                  it != _properties.end() ; it++ )
-            {
-               const OmConfProperty* property = it->second ;
-               if ( !_properties.isPrivateProperty( property->getName() ) )
-               {
-                  builder.append( property->getName(), property->getDefaultValue() ) ;
-               }
-            }
-            arrBuilder.append( builder.obj() ) ;
-
-         }
-
-         nodeConfig = arrBuilder.arr() ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 OmExtendSdbConfigBuilder::_buildHorizontal(
-                                                  map<string, INT32>& groupMap )
-   {
-      INT32 rc = SDB_OK ;
-      INT32 replicaNum = _template.getReplicaNum() ;
-      INT32 groupNum = _template.getDataGroupNum() ;
-      INT32 k = 0 ;
-
-      for( INT32 i = 0; i < groupNum; ++k )
-      {
-         string groupName = strConnect( OM_DG_NAME_PATTERN, k + 1 ) ;
-         if( groupMap.find( groupName ) != groupMap.end() )
-         {
-            continue ;
-         }
-
-         for ( INT32 j = 0 ; j < replicaNum ; j++ )
-         {
-            rc = _createNode( OM_NODE_ROLE_DATA, groupName ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG_MSG( PDERROR, "failed to create node: "
-                           "businessName=%s, businessType=%s, role=%s, rc=%d",
-                           _businessInfo.businessType.c_str(),
-                           _businessInfo.businessName.c_str(),
-                           OM_NODE_ROLE_DATA, rc ) ;
-               goto error ;
-            }
-         }
-         ++i ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-
-   INT32 OmExtendSdbConfigBuilder::_buildVertical( INT32 existCoord,
-                                                   INT32 existCatalog,
-                                                   map<string, INT32>& dataGroup
-                                                 )
-   {
-      INT32 rc = SDB_OK ;
-      map<string, INT32>::iterator iter ;
-
-      {
-         INT32 coordNum = _template.getCoordNum() ;
-         if ( 0 == coordNum )
-         {
-            coordNum = _cluster.hostNum() ;
-         }
-
-         coordNum = coordNum - existCoord ;
-         for ( INT32 i = 0; i < coordNum; ++i )
-         {
-            rc = _createNode( OM_NODE_ROLE_COORD, "" ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG_MSG( PDERROR, "failed to create node: "
-                           "businessName=%s, businessType=%s, role=%s, rc=%d",
-                           _businessInfo.businessType.c_str(),
-                           _businessInfo.businessName.c_str(),
-                           OM_NODE_ROLE_COORD, rc ) ;
-               goto error ;
-            }
-         }
-      }
-
-      {
-         INT32 cataNum = _template.getCatalogNum() - existCatalog ;
-         for ( INT32 i = 0; i < cataNum; ++i )
-         {
-            rc = _createNode( OM_NODE_ROLE_CATALOG, "" ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG_MSG( PDERROR, "failed to create node: "
-                           "businessName=%s, businessType=%s, role=%s, rc=%d",
-                           _businessInfo.businessType.c_str(),
-                           _businessInfo.businessName.c_str(),
-                           OM_NODE_ROLE_CATALOG, rc ) ;
-               goto error ;
-            }
-         }
-      }
-
-      {
-         INT32 replicaNum = _template.getReplicaNum() ;
-         for( iter = dataGroup.begin(); iter != dataGroup.end(); ++iter )
-         {
-            INT32 dataNum = replicaNum - iter->second ;
-            string groupName = iter->first ;
-            for ( INT32 i = 0; i < dataNum; ++i )
-            {
-               rc = _createNode( OM_NODE_ROLE_DATA, groupName ) ;
-               if ( SDB_OK != rc )
-               {
-                  PD_LOG_MSG( PDERROR, "failed to create node: "
-                              "businessName=%s, businessType=%s, role=%s, rc=%d",
-                              _businessInfo.businessType.c_str(),
-                              _businessInfo.businessName.c_str(),
-                              OM_NODE_ROLE_DATA, rc ) ;
-                  goto error ;
-               }
-            }
-         }
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
 }

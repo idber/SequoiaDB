@@ -1,35 +1,40 @@
-/*
- * Copyright 2017 SequoiaDB Inc.
- *
+/**
+ * Copyright (C) 2012 SequoiaDB Inc.
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
-
+ */
 package com.sequoiadb.base;
 
+import com.sequoiadb.base.SequoiadbConstants.Operation;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
-import com.sequoiadb.message.request.AdminRequest;
-import com.sequoiadb.message.response.SdbReply;
+import com.sequoiadb.net.IConnection;
+import com.sequoiadb.util.SDBMessageHelper;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.*;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 /**
- * Replica group of SequoiaDB.
+ * @class ReplicaGroup
+ * @brief Database operation interfaces of replica group.
  */
 public class ReplicaGroup {
     private String name;
@@ -40,6 +45,8 @@ public class ReplicaGroup {
 
     /**
      * @return the current replica group's Sequoiadb
+     * @fn Sequoiadb getSequoiadb()
+     * @brief Get current replica group's Sequoiadb.
      */
     public Sequoiadb getSequoiadb() {
         return sequoiadb;
@@ -47,6 +54,8 @@ public class ReplicaGroup {
 
     /**
      * @return the current replica group's id
+     * @fn int getId()
+     * @brief Get current replica group's id.
      */
     public int getId() {
         return id;
@@ -54,6 +63,8 @@ public class ReplicaGroup {
 
     /**
      * @return the current replica group's name
+     * @fn String getGroupName()
+     * @brief Get current replica group's name.
      */
     public String getGroupName() {
         return name;
@@ -63,7 +74,8 @@ public class ReplicaGroup {
         this.sequoiadb = sdb;
         this.id = id;
         BSONObject group = sdb.getDetailById(id);
-        this.name = group.get(SdbConstants.FIELD_NAME_GROUPNAME).toString();
+        this.name = group.get(SequoiadbConstants.FIELD_NAME_GROUPNAME)
+                .toString();
         this.isCataRG = name.equals(Sequoiadb.CATALOG_GROUP_NAME);
     }
 
@@ -73,24 +85,22 @@ public class ReplicaGroup {
         BSONObject group = sdb.getDetailByName(name);
         this.isCataRG = (name == Sequoiadb.CATALOG_GROUP_NAME);
         this.id = Integer.parseInt(group.get(
-                SdbConstants.FIELD_NAME_GROUPID).toString());
+                SequoiadbConstants.FIELD_NAME_GROUPID).toString());
     }
 
     /**
-     * Get the amount of the nodes with the specified status.
-     *
      * @param status Node.NodeStatus
      * @return the amount of the nodes with the specified status
-     * @throws BaseException If error happens.
-     * @deprecated The status of node are invalid, never use this api again.
+     * @throws com.sequoiadb.exception.BaseException
+     * @fn int getNodeNum(Node.NodeStatus status)
+     * @brief Get the amount of the nodes with the specified status.
      */
     public int getNodeNum(Node.NodeStatus status) throws BaseException {
         BSONObject group = sequoiadb.getDetailById(id);
         try {
-            Object obj = group.get(SdbConstants.FIELD_NAME_GROUP);
-            if (obj == null) {
+            Object obj = group.get(SequoiadbConstants.FIELD_NAME_GROUP);
+            if (obj == null)
                 return 0;
-            }
             BasicBSONList list = (BasicBSONList) obj;
             return list.size();
         } catch (BaseException e) {
@@ -101,20 +111,20 @@ public class ReplicaGroup {
     }
 
     /**
-     * Get detail info of current replicaGroup
-     *
      * @return the detail info
-     * @throws BaseException If error happens.
+     * @throws com.sequoiadb.exception.BaseException
+     * @fn BSONObject getDetail()
+     * @brief Get detail info of current replicaGoup
      */
     public BSONObject getDetail() throws BaseException {
         return sequoiadb.getDetailById(id);
     }
 
     /**
-     * Get the master node of current replica group.
-     *
      * @return the master node
-     * @throws BaseException If error happens.
+     * @throws com.sequoiadb.exception.BaseException
+     * @fn Node getMaster()
+     * @brief Get the master node of current replica group.
      */
     public Node getMaster() throws BaseException {
         BSONObject groupInfoObj = sequoiadb.getDetailById(id);
@@ -122,29 +132,29 @@ public class ReplicaGroup {
             throw new BaseException(SDBError.SDB_CLS_GRP_NOT_EXIST,
                     String.format("no information of group id[%d]", id));
         }
-        Object nodesInfoArr = groupInfoObj.get(SdbConstants.FIELD_NAME_GROUP);
+        Object nodesInfoArr = groupInfoObj.get(SequoiadbConstants.FIELD_NAME_GROUP);
         if (nodesInfoArr == null || !(nodesInfoArr instanceof BasicBSONList)) {
             throw new BaseException(SDBError.SDB_SYS,
                     String.format("invalid content[%s] of field[%s]",
-                            nodesInfoArr == null ? "null" : nodesInfoArr.toString(), SdbConstants.FIELD_NAME_GROUP));
+                            nodesInfoArr == null ? "null" : nodesInfoArr.toString(), SequoiadbConstants.FIELD_NAME_GROUP));
         }
         BasicBSONList nodesInfoList = (BasicBSONList) nodesInfoArr;
         if (nodesInfoList.isEmpty()) {
             throw new BaseException(SDBError.SDB_CLS_EMPTY_GROUP);
         }
-        Object primaryNodeObj = groupInfoObj.get(SdbConstants.FIELD_NAME_PRIMARY);
+        Object primaryNodeObj = groupInfoObj.get(SequoiadbConstants.FIELD_NAME_PRIMARY);
         if (primaryNodeObj == null) {
             throw new BaseException(SDBError.SDB_RTN_NO_PRIMARY_FOUND);
         } else if (!(primaryNodeObj instanceof Number)) {
             throw new BaseException(SDBError.SDB_SYS, "invalid primary node's information: " + primaryNodeObj.toString());
-        } else if (primaryNodeObj.equals(Integer.valueOf(-1))) { // TODO: test it
+        } else if (primaryNodeObj.equals(Integer.valueOf(-1))) {
             throw new BaseException(SDBError.SDB_RTN_NO_PRIMARY_FOUND);
         }
         BSONObject primaryData = null;
         Object nodeId;
         for (Object nodeInfoObj : nodesInfoList) {
             BSONObject nodeInfo = (BSONObject) nodeInfoObj;
-            nodeId = nodeInfo.get(SdbConstants.FIELD_NAME_NODEID);
+            nodeId = nodeInfo.get(SequoiadbConstants.FIELD_NAME_NODEID);
             if (nodeId == null) {
                 throw new BaseException(SDBError.SDB_SYS, "node id can not be null");
             }
@@ -156,17 +166,17 @@ public class ReplicaGroup {
         if (primaryData == null) {
             throw new BaseException(SDBError.SDB_SYS, "no information about the primary node in node array");
         }
-        nodeId = primaryData.get(SdbConstants.FIELD_NAME_NODEID);
+        nodeId = primaryData.get(SequoiadbConstants.FIELD_NAME_NODEID);
         if (nodeId == null || !(nodeId instanceof Number)) {
             throw new BaseException(SDBError.SDB_SYS,
                     String.format("invalid content[%s] of field[%s]",
-                            nodeId == null ? "null" : nodeId.toString(), SdbConstants.FIELD_NAME_NODEID));
+                            nodeId == null ? "null" : nodeId.toString(), SequoiadbConstants.FIELD_NAME_NODEID));
         }
-        Object hostNameObj = primaryData.get(SdbConstants.FIELD_NAME_HOST);
+        Object hostNameObj = primaryData.get(SequoiadbConstants.FIELD_NAME_HOST);
         if (hostNameObj == null || !(hostNameObj instanceof String)) {
             throw new BaseException(SDBError.SDB_SYS,
                     String.format("invalid content[%s] of field[%s]",
-                            hostNameObj == null ? "null" : hostNameObj.toString(), SdbConstants.FIELD_NAME_HOST));
+                            hostNameObj == null ? "null" : hostNameObj.toString(), SequoiadbConstants.FIELD_NAME_HOST));
         }
         String hostName = hostNameObj.toString();
         int port = getNodePort(primaryData);
@@ -174,35 +184,14 @@ public class ReplicaGroup {
     }
 
     /**
-     * Get the random slave node of current replica group, when have no slave node, return master node.
-     *
      * @return the slave node
-     * @throws BaseException If error happens.
+     * @throws com.sequoiadb.exception.BaseException
+     * @fn Node getSlave()
+     * @brief Get the random slave of current replica group.
      */
     public Node getSlave() throws BaseException {
         List<Integer> list = new ArrayList<Integer>();
         return getSlave(list);
-    }
-
-    /**
-     * Get the slave node in the specified positions,
-     * when have no slave node in the specified positions, return master node.
-     *
-     * @param positions The positions of nodes, can be 1-7.
-     * @return the slave node
-     * @throws BaseException If error happens.
-     */
-    public Node getSlave(int... positions) throws BaseException {
-        List<Integer> list = null;
-        if (positions == null || positions.length == 0) {
-            return getSlave(list);
-        } else {
-            list = new ArrayList<Integer>();
-            for (int pos : positions) {
-                list.add(pos);
-            }
-            return getSlave(list);
-        }
     }
 
     private Node getSlave(List<Integer> positions) throws BaseException {
@@ -231,17 +220,17 @@ public class ReplicaGroup {
             throw new BaseException(SDBError.SDB_CLS_GRP_NOT_EXIST,
                     String.format("no information of group id[%d]", id));
         }
-        Object nodesInfoArr = groupInfoObj.get(SdbConstants.FIELD_NAME_GROUP);
+        Object nodesInfoArr = groupInfoObj.get(SequoiadbConstants.FIELD_NAME_GROUP);
         if (nodesInfoArr == null || !(nodesInfoArr instanceof BasicBSONList)) {
             throw new BaseException(SDBError.SDB_SYS,
                     String.format("invalid content[%s] of field[%s]",
-                            nodesInfoArr == null ? "null" : nodesInfoArr.toString(), SdbConstants.FIELD_NAME_GROUP));
+                            nodesInfoArr == null ? "null" : nodesInfoArr.toString(), SequoiadbConstants.FIELD_NAME_GROUP));
         }
         BasicBSONList nodesInfoList = (BasicBSONList) nodesInfoArr;
         if (nodesInfoList.isEmpty()) {
             throw new BaseException(SDBError.SDB_CLS_EMPTY_GROUP);
         }
-        Object primaryNodeId = groupInfoObj.get(SdbConstants.FIELD_NAME_PRIMARY);
+        Object primaryNodeId = groupInfoObj.get(SequoiadbConstants.FIELD_NAME_PRIMARY);
         boolean hasPrimary = true;
         if (primaryNodeId == null) {
             hasPrimary = false;
@@ -253,7 +242,7 @@ public class ReplicaGroup {
         int primaryNodePosition = 0;
         for (int i = 0; i < nodesInfoList.size(); i++) {
             BSONObject nodeInfo = (BSONObject) nodesInfoList.get(i);
-            Object nodeIdValue = nodeInfo.get(SdbConstants.FIELD_NAME_NODEID);
+            Object nodeIdValue = nodeInfo.get(SequoiadbConstants.FIELD_NAME_NODEID);
             if (nodeIdValue == null) {
                 throw new BaseException(SDBError.SDB_SYS, "node id can not be null");
             }
@@ -320,41 +309,10 @@ public class ReplicaGroup {
             nodeIndex = (position - 1) % nodeCount;
             nodeInfoObj = (BSONObject) nodesInfoList.get(nodeIndex);
         }
-        int nodeId = Integer.parseInt(nodeInfoObj.get(SdbConstants.FIELD_NAME_NODEID).toString());
-        String hostName = nodeInfoObj.get(SdbConstants.FIELD_NAME_HOST).toString();
+        int nodeId = Integer.parseInt(nodeInfoObj.get(SequoiadbConstants.FIELD_NAME_NODEID).toString());
+        String hostName = nodeInfoObj.get(SequoiadbConstants.FIELD_NAME_HOST).toString();
         int port = getNodePort(nodeInfoObj);
         return new Node(hostName, port, nodeId, this);
-    }
-
-    /**
-     * whether the specified node exists in current group or not
-     *
-     * @param nodeName the name of the node. e.g. "192.168.20.165:20000"
-     * @return true or false
-     */
-    public boolean isNodeExist(String nodeName) {
-        try {
-            getNode(nodeName);
-        } catch (BaseException e) {
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * whether the specified node exists in current group or not
-     *
-     * @param hostName
-     * @param port
-     * @return true or false
-     */
-    public boolean isNodeExist(String hostName, int port) {
-        try {
-            getNode(hostName, port);
-        } catch (BaseException e) {
-            return false;
-        }
-        return true;
     }
 
     /**
@@ -400,214 +358,235 @@ public class ReplicaGroup {
     }
 
     /**
-     * Attach node.
-     *
      * @param hostName  host name
      * @param port      port
      * @param configure configuration for this operation
      * @return the attach Node object
-     * @throws BaseException If error happens.
+     * @throws com.sequoiadb.exception.BaseException
+     * @fn Node attachNode(String hostName, int port,
+     * BSONObject configure)
+     * @brief Attach node.
      */
     public Node attachNode(String hostName, int port,
                            BSONObject configure) throws BaseException {
         BSONObject config = new BasicBSONObject();
-        config.put(SdbConstants.FIELD_NAME_GROUPNAME, name);
-        config.put(SdbConstants.FIELD_NAME_HOST, hostName);
-        config.put(SdbConstants.PMD_OPTION_SVCNAME, Integer.toString(port));
-        config.put(SdbConstants.FIELD_NAME_ONLY_ATTACH, true);
+        config.put(SequoiadbConstants.FIELD_NAME_GROUPNAME, name);
+        config.put(SequoiadbConstants.FIELD_NAME_HOST, hostName);
+        config.put(SequoiadbConstants.PMD_OPTION_SVCNAME,
+                Integer.toString(port));
+        config.put(SequoiadbConstants.FIELD_NAME_ONLY_ATTACH, true);
         if (configure != null) {
             for (String key : configure.keySet()) {
-                if (key.equals(SdbConstants.FIELD_NAME_GROUPNAME)
-                        || key.equals(SdbConstants.FIELD_NAME_HOST)
-                        || key.equals(SdbConstants.PMD_OPTION_SVCNAME)
-                        || key.equals(SdbConstants.FIELD_NAME_ONLY_ATTACH)) {
+                if (key.equals(SequoiadbConstants.FIELD_NAME_GROUPNAME)
+                        || key.equals(SequoiadbConstants.FIELD_NAME_HOST)
+                        || key.equals(SequoiadbConstants.PMD_OPTION_SVCNAME)
+                        || key.equals(SequoiadbConstants.FIELD_NAME_ONLY_ATTACH))
                     continue;
-                }
 
                 config.put(key, configure.get(key));
             }
         }
+        SDBMessage rtn = adminCommand(SequoiadbConstants.CREATE_CMD,
+                SequoiadbConstants.NODE, config);
+        int flags = rtn.getFlags();
+        if (flags != 0) {
+            String msg = "node = " + hostName + ":" + port +
+                    ", configure = " + configure;
+            throw new BaseException(flags, msg);
+        }
 
-        AdminRequest request = new AdminRequest(AdminCommand.CREATE_NODE, config);
-        SdbReply response = sequoiadb.requestAndResponse(request);
-        String msg = "node = " + hostName + ":" + port + ", configure = " + configure;
-        sequoiadb.throwIfError(response, msg);
         return getNode(hostName, port);
     }
 
     /**
-     * Detach node.
-     *
      * @param hostName  host name
      * @param port      port
      * @param configure configuration for this operation
-     * @throws BaseException If error happens.
+     * @return void
+     * @throws com.sequoiadb.exception.BaseException
+     * @fn void detachNode(String hostName, int port,
+     * BSONObject configure)
+     * @brief Detach node.
      */
     public void detachNode(String hostName, int port,
                            BSONObject configure) throws BaseException {
         BSONObject config = new BasicBSONObject();
-        config.put(SdbConstants.FIELD_NAME_GROUPNAME, name);
-        config.put(SdbConstants.FIELD_NAME_HOST, hostName);
-        config.put(SdbConstants.PMD_OPTION_SVCNAME,
+        config.put(SequoiadbConstants.FIELD_NAME_GROUPNAME, name);
+        config.put(SequoiadbConstants.FIELD_NAME_HOST, hostName);
+        config.put(SequoiadbConstants.PMD_OPTION_SVCNAME,
                 Integer.toString(port));
-        config.put(SdbConstants.FIELD_NAME_ONLY_DETACH, true);
+        config.put(SequoiadbConstants.FIELD_NAME_ONLY_DETACH, true);
         if (configure != null) {
             for (String key : configure.keySet()) {
-                if (key.equals(SdbConstants.FIELD_NAME_GROUPNAME)
-                        || key.equals(SdbConstants.FIELD_NAME_HOST)
-                        || key.equals(SdbConstants.PMD_OPTION_SVCNAME)
-                        || key.equals(SdbConstants.FIELD_NAME_ONLY_DETACH)) {
+                if (key.equals(SequoiadbConstants.FIELD_NAME_GROUPNAME)
+                        || key.equals(SequoiadbConstants.FIELD_NAME_HOST)
+                        || key.equals(SequoiadbConstants.PMD_OPTION_SVCNAME)
+                        || key.equals(SequoiadbConstants.FIELD_NAME_ONLY_DETACH))
                     continue;
-                }
 
                 config.put(key, configure.get(key));
             }
         }
-
-        AdminRequest request = new AdminRequest(AdminCommand.REMOVE_NODE, config);
-        SdbReply response = sequoiadb.requestAndResponse(request);
-        String msg = "node = " + hostName + ":" + port + ", configure = " + configure;
-        sequoiadb.throwIfError(response, msg);
+        SDBMessage rtn = adminCommand(SequoiadbConstants.REMOVE_CMD,
+                SequoiadbConstants.NODE, config);
+        int flags = rtn.getFlags();
+        if (flags != 0) {
+            String msg = "node = " + hostName + ":" + port +
+                    ", configure = " + configure;
+            throw new BaseException(flags, msg);
+        }
     }
 
     /**
-     * Create node.
-     *
      * @param hostName  host name
      * @param port      port
      * @param dbPath    the path for node
      * @param configure configuration for this operation
      * @return the created Node object
-     * @throws BaseException If error happens.
-     * @deprecated we have override this api by passing a "BSONObject" instead of a "Map"
+     * @throws com.sequoiadb.exception.BaseException
+     * @fn Node createNode(String hostName, int port, String dbPath,
+     * Map<String, String> configure)
+     * @brief Create node.
      */
     public Node createNode(String hostName, int port, String dbPath,
                            Map<String, String> configure) throws BaseException {
-        BSONObject obj = new BasicBSONObject();
-        if (configure != null) {
-            for (String key : configure.keySet()) {
-                obj.put(key, configure.get(key));
-            }
-        }
-        return createNode(hostName, port, dbPath, obj);
-    }
-
-    /**
-     * Create node.
-     *
-     * @param hostName host name
-     * @param port     port
-     * @param dbPath   the path for node
-     * @return the created Node object
-     * @throws BaseException If error happens.
-     */
-    public Node createNode(String hostName, int port, String dbPath) throws BaseException {
-        return createNode(hostName, port, dbPath, new BasicBSONObject());
-    }
-
-    /**
-     * Create node.
-     *
-     * @param hostName  host name
-     * @param port      port
-     * @param dbPath    the path for node
-     * @param configure configuration for this operation
-     * @return the created Node object
-     * @throws BaseException If error happens.
-     */
-    public Node createNode(String hostName, int port, String dbPath,
-                           BSONObject configure) throws BaseException {
         BSONObject config = new BasicBSONObject();
-        config.put(SdbConstants.FIELD_NAME_GROUPNAME, name);
-        config.put(SdbConstants.FIELD_NAME_HOST, hostName);
-        config.put(SdbConstants.PMD_OPTION_SVCNAME,
+        config.put(SequoiadbConstants.FIELD_NAME_GROUPNAME, name);
+        config.put(SequoiadbConstants.FIELD_NAME_HOST, hostName);
+        config.put(SequoiadbConstants.PMD_OPTION_SVCNAME,
                 Integer.toString(port));
-        config.put(SdbConstants.PMD_OPTION_DBPATH, dbPath);
-        if (configure != null && !configure.isEmpty()) {
+        config.put(SequoiadbConstants.PMD_OPTION_DBPATH, dbPath);
+        if (configure != null && !configure.isEmpty())
             for (String key : configure.keySet()) {
-                if (key.equals(SdbConstants.FIELD_NAME_GROUPNAME)
-                        || key.equals(SdbConstants.FIELD_NAME_HOST)
-                        || key.equals(SdbConstants.PMD_OPTION_SVCNAME)) {
+                if (key.equals(SequoiadbConstants.FIELD_NAME_GROUPNAME)
+                        || key.equals(SequoiadbConstants.FIELD_NAME_HOST)
+                        || key.equals(SequoiadbConstants.PMD_OPTION_SVCNAME))
                     continue;
-                }
                 config.put(key, configure.get(key));
             }
+        SDBMessage rtn = adminCommand(SequoiadbConstants.CREATE_CMD,
+                SequoiadbConstants.NODE, config);
+        int flags = rtn.getFlags();
+        if (flags != 0) {
+            String msg = "node = " + hostName + ":" + port +
+                    ", dbPath = " + dbPath +
+                    ", configure = " + configure;
+            throw new BaseException(flags, msg);
         }
-
-        AdminRequest request = new AdminRequest(AdminCommand.CREATE_NODE, config);
-        SdbReply response = sequoiadb.requestAndResponse(request);
-        String msg = "node = " + hostName + ":" + port +
-                ", dbPath = " + dbPath +
-                ", configure = " + configure;
-        sequoiadb.throwIfError(response, msg);
         return getNode(hostName, port);
     }
 
     /**
-     * Remove node.
-     *
+     * @param hostName  host name
+     * @param port      port
+     * @param dbPath    the path for node
+     * @param configure configuration for this operation
+     * @return the created Node object
+     * @throws com.sequoiadb.exception.BaseException
+     * @fn Node createNode(String hostName, int port, String dbPath,
+     * BSONObject configure)
+     * @brief Create node.
+     */
+    public Node createNode(String hostName, int port, String dbPath,
+                           BSONObject configure) throws BaseException {
+        BSONObject config = new BasicBSONObject();
+        config.put(SequoiadbConstants.FIELD_NAME_GROUPNAME, name);
+        config.put(SequoiadbConstants.FIELD_NAME_HOST, hostName);
+        config.put(SequoiadbConstants.PMD_OPTION_SVCNAME,
+                Integer.toString(port));
+        config.put(SequoiadbConstants.PMD_OPTION_DBPATH, dbPath);
+        if (configure != null && !configure.isEmpty())
+            for (String key : configure.keySet()) {
+                if (key.equals(SequoiadbConstants.FIELD_NAME_GROUPNAME)
+                        || key.equals(SequoiadbConstants.FIELD_NAME_HOST)
+                        || key.equals(SequoiadbConstants.PMD_OPTION_SVCNAME))
+                    continue;
+                config.put(key, configure.get(key));
+            }
+        SDBMessage rtn = adminCommand(SequoiadbConstants.CREATE_CMD,
+                SequoiadbConstants.NODE, config);
+        int flags = rtn.getFlags();
+        if (flags != 0) {
+            String msg = "node = " + hostName + ":" + port +
+                    ", dbPath = " + dbPath +
+                    ", configure = " + configure;
+            throw new BaseException(flags, msg);
+        }
+        return getNode(hostName, port);
+    }
+
+    /**
      * @param hostName  host name
      * @param port      port
      * @param configure configuration for this operation
-     * @throws BaseException If error happens.
+     * @throws com.sequoiadb.exception.BaseException
+     * @fn void removeNode(String hostName, int port,
+     * BSONObject configure)
+     * @brief Remove node.
      */
     public void removeNode(String hostName, int port,
                            BSONObject configure) throws BaseException {
         BSONObject config = new BasicBSONObject();
-        config.put(SdbConstants.FIELD_NAME_GROUPNAME, name);
-        config.put(SdbConstants.FIELD_NAME_HOST, hostName);
-        config.put(SdbConstants.PMD_OPTION_SVCNAME,
+        config.put(SequoiadbConstants.FIELD_NAME_GROUPNAME, name);
+        config.put(SequoiadbConstants.FIELD_NAME_HOST, hostName);
+        config.put(SequoiadbConstants.PMD_OPTION_SVCNAME,
                 Integer.toString(port));
-        if (configure != null) {
+        if (configure != null)
             for (String key : configure.keySet()) {
-                if (key.equals(SdbConstants.FIELD_NAME_GROUPNAME)
-                        || key.equals(SdbConstants.FIELD_NAME_HOST)
-                        || key.equals(SdbConstants.PMD_OPTION_SVCNAME)) {
+                if (key.equals(SequoiadbConstants.FIELD_NAME_GROUPNAME)
+                        || key.equals(SequoiadbConstants.FIELD_NAME_HOST)
+                        || key.equals(SequoiadbConstants.PMD_OPTION_SVCNAME))
                     continue;
-                }
                 config.put(key, configure.get(key));
             }
+        SDBMessage rtn = adminCommand(SequoiadbConstants.REMOVE_CMD,
+                SequoiadbConstants.NODE, config);
+        int flags = rtn.getFlags();
+        if (flags != 0) {
+            String msg = "node = " + hostName + ":" + port +
+                    ", configure = " + configure;
+            throw new BaseException(flags, msg);
         }
-
-        AdminRequest request = new AdminRequest(AdminCommand.REMOVE_NODE, config);
-        SdbReply response = sequoiadb.requestAndResponse(request);
-        String msg = "node = " + hostName + ":" + port +
-                ", configure = " + configure;
-        sequoiadb.throwIfError(response, msg);
     }
 
     /**
-     * Start current replica group.
-     *
-     * @throws BaseException If error happens.
+     * @return void
+     * @throws com.sequoiadb.exception.BaseException
+     * @fn void start()
+     * @brief Start current replica group.
      */
     public void start() throws BaseException {
         BSONObject groupName = new BasicBSONObject();
-        groupName.put(SdbConstants.FIELD_NAME_GROUPNAME, name);
-
-        AdminRequest request = new AdminRequest(AdminCommand.ACTIVE_GROUP, groupName);
-        SdbReply response = sequoiadb.requestAndResponse(request);
-        sequoiadb.throwIfError(response, name);
+        groupName.put(SequoiadbConstants.FIELD_NAME_GROUPNAME, this.name);
+        SDBMessage rtn = adminCommand(SequoiadbConstants.ACTIVE_CMD,
+                SequoiadbConstants.GROUP, groupName);
+        int flags = rtn.getFlags();
+        if (flags != 0) {
+            throw new BaseException(flags, this.name);
+        }
     }
 
     /**
-     * Stop current replica group.
-     *
-     * @throws BaseException If error happens.
+     * @return void
+     * @throws com.sequoiadb.exception.BaseException
+     * @fn void stop()
+     * @brief Stop current replica group.
      */
     public void stop() throws BaseException {
         BSONObject groupName = new BasicBSONObject();
-        groupName.put(SdbConstants.FIELD_NAME_GROUPNAME, name);
-
-        AdminRequest request = new AdminRequest(AdminCommand.SHUTDOWN_GROUP, groupName);
-        SdbReply response = sequoiadb.requestAndResponse(request);
-        sequoiadb.throwIfError(response, name);
+        groupName.put(SequoiadbConstants.FIELD_NAME_GROUPNAME, this.name);
+        SDBMessage rtn = adminCommand(SequoiadbConstants.SHUTDOWN_CMD,
+                SequoiadbConstants.GROUP, groupName);
+        int flags = rtn.getFlags();
+        if (flags != 0) {
+            throw new BaseException(flags, this.name);
+        }
     }
 
     /**
-     * Judge whether current replicaGroup is catalog replica group or not.
-     *
      * @return true is while false is not
+     * @fn boolean isCatalog()
+     * @brief Judge whether current replicaGroup is catalog replica group or not.
      */
     public boolean isCatalog() {
         return isCataRG;
@@ -623,11 +602,11 @@ public class ReplicaGroup {
             throw new BaseException(SDBError.SDB_CLS_GRP_NOT_EXIST,
                     String.format("no information of group id[%d]", id));
         }
-        Object nodesInfoArr = groupInfoObj.get(SdbConstants.FIELD_NAME_GROUP);
+        Object nodesInfoArr = groupInfoObj.get(SequoiadbConstants.FIELD_NAME_GROUP);
         if (nodesInfoArr == null || !(nodesInfoArr instanceof BasicBSONList)) {
             throw new BaseException(SDBError.SDB_SYS,
                     String.format("invalid content[%s] of field[%s]",
-                            nodesInfoArr == null ? "null" : nodesInfoArr.toString(), SdbConstants.FIELD_NAME_GROUP));
+                            nodesInfoArr == null ? "null" : nodesInfoArr.toString(), SequoiadbConstants.FIELD_NAME_GROUP));
         }
         BasicBSONList nodesInfoList = (BasicBSONList) nodesInfoArr;
         if (nodesInfoList.size() == 0) {
@@ -638,8 +617,8 @@ public class ReplicaGroup {
         int portFromCatalog = -1;
         for (Object nodeInfoObj : nodesInfoList) {
             BSONObject nodeInfo = (BSONObject) nodeInfoObj;
-            nodeIdFromCatalog = nodeInfo.get(SdbConstants.FIELD_NAME_NODEID);
-            hostNameFromCatalog = (String) nodeInfo.get(SdbConstants.FIELD_NAME_HOST);
+            nodeIdFromCatalog = nodeInfo.get(SequoiadbConstants.FIELD_NAME_NODEID);
+            hostNameFromCatalog = (String) nodeInfo.get(SequoiadbConstants.FIELD_NAME_HOST);
             portFromCatalog = getNodePort(nodeInfo);
             if (nodeIdFromCatalog == null || hostNameFromCatalog == null) {
                 throw new BaseException(SDBError.SDB_SYS, "invalid node's information");
@@ -656,21 +635,19 @@ public class ReplicaGroup {
         if (node == null) {
             throw new BaseException(SDBError.SDB_SYS, "invalid information of node");
         }
-        Object services = node.get(SdbConstants.FIELD_NAME_GROUPSERVICE);
-        if (services == null) {
+        Object services = node.get(SequoiadbConstants.FIELD_NAME_GROUPSERVICE);
+        if (services == null)
             throw new BaseException(SDBError.SDB_SYS, node.toString());
-        }
         BasicBSONList serviceInfos = (BasicBSONList) services;
-        if (serviceInfos.size() == 0) {
-            throw new BaseException(SDBError.SDB_SYS, node.toString());
-        }
+        if (serviceInfos.size() == 0)
+            throw new BaseException(SDBError.SDB_CLS_NODE_NOT_EXIST);
         int port = -1;
         for (Object obj : serviceInfos) {
             BSONObject service = (BSONObject) obj;
-            if (service.get(SdbConstants.FIELD_NAME_SERVICETYPE)
+            if (service.get(SequoiadbConstants.FIELD_NAME_SERVICETYPE)
                     .toString().equals("0")) {
                 port = Integer.parseInt(service.get(
-                        SdbConstants.FIELD_NAME_SERVICENAME).toString());
+                        SequoiadbConstants.FIELD_NAME_SERVICENAME).toString());
                 break;
             }
         }
@@ -678,5 +655,36 @@ public class ReplicaGroup {
             throw new BaseException(SDBError.SDB_SYS, node.toString());
         }
         return port;
+    }
+
+    private SDBMessage adminCommand(String cmdType, String contextType,
+                                    BSONObject query) throws BaseException {
+        IConnection connection = sequoiadb.getConnection();
+        BSONObject dummyObj = new BasicBSONObject();
+        SDBMessage sdbMessage = new SDBMessage();
+        String commandString = SequoiadbConstants.ADMIN_PROMPT + cmdType + " "
+                + contextType;
+        if (query != null)
+            sdbMessage.setMatcher(query);
+        else
+            sdbMessage.setMatcher(dummyObj);
+        sdbMessage.setCollectionFullName(commandString);
+        sdbMessage.setFlags(0);
+        sdbMessage.setNodeID(SequoiadbConstants.ZERO_NODEID);
+        sdbMessage.setRequestID(sequoiadb.getNextRequstID());
+        sdbMessage.setSkipRowsCount(-1);
+        sdbMessage.setReturnRowsCount(-1);
+        sdbMessage.setSelector(dummyObj);
+        sdbMessage.setOrderBy(dummyObj);
+        sdbMessage.setHint(dummyObj);
+        sdbMessage.setOperationCode(Operation.OP_QUERY);
+
+        byte[] request = SDBMessageHelper.buildQueryRequest(sdbMessage, sequoiadb.endianConvert);
+        connection.sendMessage(request);
+
+        ByteBuffer byteBuffer = connection.receiveMessage(sequoiadb.endianConvert);
+        SDBMessage rtnSDBMessage = SDBMessageHelper.msgExtractReply(byteBuffer);
+        SDBMessageHelper.checkMessage(sdbMessage, rtnSDBMessage);
+        return rtnSDBMessage;
     }
 }

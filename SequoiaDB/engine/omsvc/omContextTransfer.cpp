@@ -41,8 +41,6 @@ using namespace bson ;
 
 namespace engine
 {
-   RTN_CTX_AUTO_REGISTER(_omContextTransfer, RTN_CONTEXT_OM_TRANSFER, "OM_TRANSFER")
-
    _omContextTransfer::_omContextTransfer( INT64 contextID, UINT64 eduID )
                       :_rtnContextBase( contextID, eduID )
    {
@@ -126,17 +124,17 @@ namespace engine
       goto done ;
    }
 
-   std::string _omContextTransfer::name() const
-   {
-      return "OM_TRANSFER" ;
-   }
-
    RTN_CONTEXT_TYPE _omContextTransfer::getType() const
    {
       return RTN_CONTEXT_OM_TRANSFER ;
    }
 
    _dmsStorageUnit* _omContextTransfer::getSU() 
+   { 
+      return NULL ; 
+   }
+
+   _optAccessPlan* _omContextTransfer::getPlan() 
    { 
       return NULL ; 
    }

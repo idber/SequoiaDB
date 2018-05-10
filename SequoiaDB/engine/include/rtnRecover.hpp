@@ -117,52 +117,23 @@ namespace engine
    } ;
    typedef _rtnRUInfo rtnRUInfo ;
 
-   class _rtnCLRebuilderBase : public SDBObject
-   {
-      public:
-         _rtnCLRebuilderBase( dmsStorageUnit *pSU,
-                              const CHAR *pCLShortName ) ;
-         virtual ~_rtnCLRebuilderBase() ;
-
-         virtual INT32 rebuild( pmdEDUCB *cb, rtnRUInfo *ruInfo ) ;
-         virtual INT32 recover( pmdEDUCB *cb ) ;
-         virtual INT32 reorg( pmdEDUCB *cb, const BSONObj &hint ) ;
-
-      protected:
-         virtual INT32 _doRebuild( dmsMBContext *context, pmdEDUCB *cb,
-                                   rtnRUInfo *ruInfo ) = 0 ;
-         virtual INT32 _onRebuildDone() = 0 ;
-         virtual INT32 _doRecover( dmsMBContext *context, pmdEDUCB *cb ) = 0 ;
-         virtual INT32 _onRecoverDone() = 0 ;
-         virtual INT32 _doReorg( dmsMBContext *context, pmdEDUCB *cb,
-                                 const BSONObj &hint ) = 0 ;
-         virtual INT32 _onReorgDone() = 0 ;
-
-      private:
-         void _release() ;
-
-      protected:
-         dmsStorageUnit       *_pSU ;
-         string               _clName ;
-         string               _clFullName ;
-
-         UINT64               _totalRecord ;
-         UINT64               _totalLob ;
-         UINT32               _indexNum ;
-   } ;
-   typedef _rtnCLRebuilderBase rtnCLRebuilderBase ;
-
    /*
       _rtnCLRebuilder define
    */
-   class _rtnCLRebuilder : public rtnCLRebuilderBase
+   class _rtnCLRebuilder : public SDBObject
    {
       public:
          _rtnCLRebuilder( dmsStorageUnit *pSU,
                           const CHAR *pCLShortName ) ;
          ~_rtnCLRebuilder() ;
 
+         INT32    rebuild( pmdEDUCB *cb, rtnRUInfo *ruInfo ) ;
+         INT32    recover( pmdEDUCB *cb ) ;
+         INT32    reorg( pmdEDUCB *cb, const BSONObj &hint ) ;
+
       protected:
+         void     _release() ;
+
          INT32    _rebuild( pmdEDUCB *cb,
                             dmsMBContext *mbContext,
                             rtnRUInfo *ruInfo ) ;
@@ -227,61 +198,18 @@ namespace engine
          INT32    _reorgData( pmdEDUCB *cb,
                               dmsMBContext *mbContext,
                               const BSONObj &hint ) ;
+
       private:
-         virtual INT32 _doRebuild( dmsMBContext *context, pmdEDUCB *cb,
-                                   rtnRUInfo *ruInfo ) ;
-         virtual INT32 _onRebuildDone() ;
-         virtual INT32 _doRecover( dmsMBContext *context, pmdEDUCB *cb ) ;
-         virtual INT32 _onRecoverDone() ;
-         virtual INT32 _doReorg( dmsMBContext *context, pmdEDUCB *cb,
-                                 const BSONObj &hint ) ;
-         virtual INT32 _onReorgDone() ;
+         dmsStorageUnit       *_pSU ;
+         string               _clName ;
+         string               _clFullName ;
+
+         UINT64               _totalRecord ;
+         UINT64               _totalLob ;
+         UINT32               _indexNum ;
+
    } ;
    typedef _rtnCLRebuilder rtnCLRebuilder ;
-
-   class _rtnCappedCLRebuilder : public rtnCLRebuilderBase
-   {
-      public:
-         _rtnCappedCLRebuilder( dmsStorageUnit *pSU,
-                                const CHAR *pCLShortName ) ;
-         ~_rtnCappedCLRebuilder() ;
-
-      private:
-         virtual INT32 _doRebuild( dmsMBContext *context, pmdEDUCB *cb,
-                                   rtnRUInfo *ruInfo ) ;
-         virtual INT32 _onRebuildDone() ;
-         virtual INT32 _doRecover( dmsMBContext *context, pmdEDUCB *cb ) ;
-         virtual INT32 _onRecoverDone() ;
-         virtual INT32 _doReorg( dmsMBContext *context, pmdEDUCB *cb,
-                                 const BSONObj &hint ) ;
-         virtual INT32 _onReorgDone() ;
-
-         INT32 _rebuildData( dmsMBContext *context, pmdEDUCB *cb ) ;
-         INT32 _rebuildLob( dmsMBContext *context, pmdEDUCB *cb ) ;
-         void _recoverOneExtent( dmsExtentID extentID,
-                                 const dmsExtent *extent,
-                                 dmsMBContext *mbContext,
-                                 UINT32 &remainSpace ) ;
-         void _extLidAndOffset2RecLid( dmsExtentID extLID,
-                                       dmsOffset offset,
-                                       INT64 &logicalID ) ;
-   } ;
-   typedef _rtnCappedCLRebuilder rtnCappedCLRebuilder ;
-
-   class _rtnCLRebuilderFactory : public SDBObject
-   {
-      public:
-         _rtnCLRebuilderFactory() ;
-         ~_rtnCLRebuilderFactory() ;
-
-         INT32 create( dmsStorageUnit *pSU,
-                       const CHAR *pCLShortName,
-                       rtnCLRebuilderBase *&rebuilder) ;
-         void release( rtnCLRebuilderBase *rebuilder ) ;
-   } ;
-   typedef _rtnCLRebuilderFactory rtnCLRebuilderFactory ;
-
-   rtnCLRebuilderFactory* rtnGetCLRebuilderFactory() ;
 
    /*
       Type define

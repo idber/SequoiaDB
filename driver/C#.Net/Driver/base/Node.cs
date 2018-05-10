@@ -105,7 +105,6 @@ namespace SequoiaDB
          *  \return The status of current node
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
-         *  \deprecated Since v2.8, the status of node are invalid, nerver use this api again.
          */
         public SDBConst.NodeStatus GetStatus()
         {

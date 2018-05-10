@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program. If not, see <http://www.gnu.org/license/>.
 
-   Source File Name = dpsMessageBlock.hpp
+   Source File Name = dmsTempCB.cpp
 
    Descriptive Name = Data Management Service Temp Table Control Block
 

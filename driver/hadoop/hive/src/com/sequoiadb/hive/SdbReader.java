@@ -29,6 +29,7 @@ import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.util.logger;
 
 class SequoiaDBRecord {
 	private byte[] stream = null;

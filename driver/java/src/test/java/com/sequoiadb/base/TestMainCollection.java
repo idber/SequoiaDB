@@ -1,7 +1,5 @@
 package com.sequoiadb.base;
 
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.test.SingleCSCLTestCase;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
@@ -47,10 +45,6 @@ public class TestMainCollection extends SingleCSCLTestCase {
             BSONObject retObj = cursor.getNext();
             assertEquals(obj, retObj);
             assertFalse(cursor.hasNext());
-        } catch (BaseException e) {
-            if (e.getErrorCode() != SDBError.SDB_RTN_CMD_NO_SERVICE_AUTH.getErrorCode()) {
-                throw e;
-            }
         } finally {
             if (mainCL != null) {
                 cs.dropCollection(mainCLName);

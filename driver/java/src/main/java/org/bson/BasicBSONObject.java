@@ -652,10 +652,12 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 
 
 	/**
-	 * Return an instance of the class "cls", only for BasicBSONObject
-	 * @param cls target class object
+	 * @fn <T> T as(Class<T> cls)
+	 * @brief an instance of the class "cls", only for BasicBSONObject
+	 * @param cls
+	 *            target class object
 	 * @return the instance of the class
-	 * @throws Exception If error happens.
+	 * @throws Exception
 	 */
 	public /*! @cond x*/ <T> /*! @endcond */ T as(Class<T> cls) throws Exception {
 		return as(cls, null);

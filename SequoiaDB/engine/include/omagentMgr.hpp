@@ -263,8 +263,6 @@ namespace engine
       private:
          INT32           _getTaskType( const BSONObj &obj, OMA_TASK_TYPE *type ) ;
          INT32           _startTask( const BSONObj &obj ) ;
-         INT32           _runStartPluginTask() ;
-         INT32           _runStopPluginTask() ;
 
       private:
          omAgentOptions             _options ;

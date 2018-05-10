@@ -60,7 +60,6 @@ namespace engine
       CoordGroupInfoPtr cata ;
       REQUESTID_MAP nodes ;
       REPLY_QUE replyQue ;
-      //NodeID curNodeID = pmdGetNodeID() ;
       UINT32 times = 0 ;
       UINT32 primaryID = 0 ;
 
@@ -80,7 +79,6 @@ namespace engine
 
    retry:
       nodes.clear() ;
-      // send message
       rc = rtnCoordSendRequestToPrimary( (CHAR*)pMsg,
                                          cata, nodes,
                                          pRouteAgent,
@@ -136,7 +134,6 @@ namespace engine
       }
       else
       {
-         // auth ok
          cb->setUserInfo( user.valuestrsafe(), pass.valuestrsafe() ) ;
       }
 
@@ -147,7 +144,6 @@ namespace engine
              MSG_AUTH_DELUSR_REQ == pMsg->opCode )
          )
       {
-         /// AUDIT
          PD_AUDIT_OP( AUDIT_DCL, pMsg->opCode, AUDIT_OBJ_USER,
                       user.valuestrsafe(), rc, "" ) ;
       }

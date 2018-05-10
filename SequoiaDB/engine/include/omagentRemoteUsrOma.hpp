@@ -102,7 +102,7 @@ namespace engine
    /*
       _remoteOmaGetOmaConfigFile define
    */
-   class _remoteOmaGetOmaConfigFile : public _remoteExec
+   class _remoteOmaGetOmaConfigFile : public _remoteOmaConfigs
    {
       DECLARE_OACMD_AUTO_REGISTER()
       public:
@@ -118,7 +118,7 @@ namespace engine
    /*
       _remoteOmaGetOmaConfigs define
    */
-   class _remoteOmaGetOmaConfigs : public _remoteExec
+   class _remoteOmaGetOmaConfigs : public _remoteOmaConfigs
    {
       DECLARE_OACMD_AUTO_REGISTER()
       public:
@@ -135,7 +135,7 @@ namespace engine
    /*
       _remoteOmaSetOmaConfigs define
    */
-   class _remoteOmaSetOmaConfigs : public _remoteExec
+   class _remoteOmaSetOmaConfigs : public _remoteOmaConfigs
    {
       DECLARE_OACMD_AUTO_REGISTER()
       public:
@@ -151,7 +151,7 @@ namespace engine
    /*
       _remoteOmaGetAOmaSvcName define
    */
-   class _remoteOmaGetAOmaSvcName : public _remoteExec
+   class _remoteOmaGetAOmaSvcName : public _remoteOmaConfigs
    {
       DECLARE_OACMD_AUTO_REGISTER()
       public:
@@ -167,7 +167,7 @@ namespace engine
    /*
       _remoteOmaAddAOmaSvcName define
    */
-   class _remoteOmaAddAOmaSvcName : public _remoteExec
+   class _remoteOmaAddAOmaSvcName : public _remoteOmaConfigs
    {
       DECLARE_OACMD_AUTO_REGISTER()
       public:
@@ -183,7 +183,7 @@ namespace engine
    /*
       _remoteOmaDelAOmaSvcName define
    */
-   class _remoteOmaDelAOmaSvcName : public _remoteExec
+   class _remoteOmaDelAOmaSvcName : public _remoteOmaConfigs
    {
       DECLARE_OACMD_AUTO_REGISTER()
       public:

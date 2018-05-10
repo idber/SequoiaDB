@@ -1,22 +1,19 @@
 package com.sequoiadb.base;
 
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.exception.SDBError;
 import org.bson.*;
 import org.bson.io.Bits;
 import org.bson.types.*;
 import org.bson.util.JSON;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
-import javax.xml.bind.DatatypeConverter;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Date;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 import static org.junit.Assert.*;
@@ -91,7 +88,7 @@ public class TestBSON {
         objBytes = BSON.encode(obj);
     }
 
-    @Test
+   /* @Test
     public void testNewBSONDecoder() {
         byte[] bytes = objBytes;
 
@@ -115,9 +112,9 @@ public class TestBSON {
         UUID binary4 = (UUID) object.get("binary4");
         UUID bin4 = (UUID) decodedObj.get("binary4");
         assertEquals(binary4, bin4);
-    }
+    }*/
 
-    @Test
+    /*@Test
     public void testNewBSONDecoder2() {
         byte[] bytes = objBytes;
         byte[] bytes2 = new byte[bytes.length + 10];
@@ -147,100 +144,6 @@ public class TestBSON {
             fail();
         }
         assertEquals(Bits.readInt(bytes), length);
-    }
+    }*/
 
-    @Test
-    public void testBSONTimestamp() {
-        Date srcDate = new Date();
-        BSONTimestamp ts = new BSONTimestamp(srcDate);
-        Date toDate = ts.toDate();
-        assertEquals(srcDate, toDate);
-
-        Timestamp srcTS = new Timestamp(srcDate.getTime());
-        srcTS.setNanos(123456000);
-        BSONTimestamp ts2 = new BSONTimestamp(srcTS);
-        Timestamp toTS = ts2.toTimestamp();
-        assertEquals(srcTS, toTS);
-    }
-
-    @Test
-    public void testBSONCodecTimestamp() {
-        Timestamp ts = new Timestamp(new Date().getTime());
-        ts.setNanos(123456000);
-
-        BSONObject obj = new BasicBSONObject();
-        obj.put("ts", ts);
-
-        byte[] bytes = BSON.encode(obj);
-        BSONObject obj2 = BSON.decode(bytes);
-
-        BSONTimestamp bts = (BSONTimestamp)obj2.get("ts");
-        Timestamp ts2 = bts.toTimestamp();
-
-        assertEquals(ts, ts2);
-    }
-
-    @Test
-    public void testJSONParseDate() {
-        Date date = null;
-        try {
-            date = new SimpleDateFormat("yyyy-MM-dd").parse("2017-06-14");
-        } catch (ParseException e) {
-            e.printStackTrace();
-            fail();
-        }
-        java.sql.Date date2 = new java.sql.Date(date.getTime());
-
-        BSONObject obj = new BasicBSONObject();
-        obj.put("date", date);
-        obj.put("date2", date2);
-
-        String json = obj.toString();
-
-        BSONObject obj2 = (BSONObject) JSON.parse(json);
-
-        assertEquals(obj, obj2);
-    }
-
-    @Test
-    public void testJSONParseTimestamp() {
-        Timestamp ts = new Timestamp(new Date().getTime());
-        ts.setNanos(123456000);
-
-        BSONObject obj = new BasicBSONObject();
-        obj.put("ts", ts);
-
-        BSONObject obj2 = new BasicBSONObject();
-        obj2.put("ts", new BSONTimestamp(ts));
-
-        String json = JSON.serialize(obj);
-        BSONObject obj3 = (BSONObject) JSON.parse(json);
-
-        assertEquals(obj2, obj3);
-    }
-
-    @Test
-    public void testJSONParseBinary() {
-        String str = "hello world";
-        Binary binary = new Binary(str.getBytes());
-
-        BSONObject obj = new BasicBSONObject();
-        obj.put("bin", binary);
-
-        String json = obj.toString();
-        BSONObject obj2 = (BSONObject) JSON.parse(json);
-
-        assertEquals(obj, obj2);
-    }
-
-    @Test
-    public void testNumberLong() {
-        BSONObject exp = (BSONObject) JSON.parse("{'no':{'$numberLong':'8223372036854775296'}}");
-        BSONObject exp2 = (BSONObject) JSON.parse("{'no':{'$numberLong':'8223372036854775807'}}");
-        assertNotEquals(exp, exp2);
-
-        BSONObject exp3 = (BSONObject) JSON.parse("{'no':{'$numberLong':'8223372036854775296'}}");
-        BSONObject exp4 = (BSONObject) JSON.parse("{'no':{'$numberLong':'8223372036854775296'}}");
-        assertEquals(exp3, exp4);
-    }
 }

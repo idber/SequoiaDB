@@ -66,7 +66,6 @@ namespace engine
       _pNodeMgr   = NULL ;
       ossMemset( _detailName, 0, sizeof( _detailName ) ) ;
       sdbGetOMAgentMgr()->incSession() ;
-      _maxFileObjID = 0 ;
    }
 
    _omaSession::~_omaSession()
@@ -90,7 +89,7 @@ namespace engine
 
    EDU_TYPES _omaSession::eduType() const
    {
-      return EDU_TYPE_OMAAGENT ;
+      return EDU_TYPE_AGENT ;
    }
 
    void _omaSession::onRecieve( const NET_HANDLE netHandle, MsgHeader * msg )
@@ -124,75 +123,9 @@ namespace engine
    {
    }
 
-   INT32 _omaSession::newFileObj( UINT32 &fID, sptUsrFileCommon** fileObj )
-   {
-      INT32 rc = SDB_OK ;
-      sptUsrFileCommon *fileCommon =  NULL ;
-      if( NULL == fileObj )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      fileCommon = SDB_OSS_NEW sptUsrFileCommon ;
-      if( NULL == fileCommon )
-      {
-         rc = SDB_OOM ;
-         goto error ;
-      }
-
-      _maxFileObjID++ ;
-      fID = _maxFileObjID ;
-      _fileObjMap.insert( std::pair< UINT32,
-                                     sptUsrFileCommon* >( fID, fileCommon ) ) ;
-      *fileObj = fileCommon ;
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   void _omaSession::releaseFileObj( UINT32 fID )
-   {
-      std::map< UINT32, sptUsrFileCommon* >::iterator it ;
-      it = _fileObjMap.find( fID ) ;
-      if( it == _fileObjMap.end() )
-      {
-         PD_LOG( PDWARNING, "Failed to remove file obj, file obj not exist,"
-                 " fID: %u", fID ) ;
-      }
-      else
-      {
-         if( it->second )
-         {
-            SDB_OSS_DEL it->second ;
-            it->second = NULL ;
-         }
-         _fileObjMap.erase( it ) ;
-      }
-   }
-
-   sptUsrFileCommon* _omaSession::getFileObjByID( UINT32 fID )
-   {
-      std::map< UINT32, sptUsrFileCommon* >::iterator it ;
-      sptUsrFileCommon* pFileObj = NULL ;
-
-      it = _fileObjMap.find( fID ) ;
-      if( it == _fileObjMap.end() )
-      {
-         PD_LOG( PDWARNING, "Failed to find file obj, fID: %u", fID ) ;
-      }
-      else
-      {
-         pFileObj = it->second ;
-      }
-      return pFileObj ;
-   }
-
    void _omaSession::_onDetach()
    {
       sdbGetOMAgentMgr()->clearScopeBySession() ;
-      _clearFileObjMap() ;
    }
 
    void _omaSession::_onAttach()
@@ -549,20 +482,5 @@ namespace engine
       return SDB_OK ;
    }
 
-   void _omaSession::_clearFileObjMap()
-   {
-      for( map< UINT32, sptUsrFileCommon* >::iterator it = _fileObjMap.begin();
-           it != _fileObjMap.end();
-           it++ )
-      {
-         if( it->second )
-         {
-            SDB_OSS_DEL it->second ;
-         }
-         it->second = NULL ;
-      }
-      _fileObjMap.clear() ;
-      _maxFileObjID = 0 ;
-   }
 } // namespace engine
 

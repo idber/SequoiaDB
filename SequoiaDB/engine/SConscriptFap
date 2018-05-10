@@ -27,7 +27,6 @@ pdFiles = [
       "pd/pdErr.cpp",
       "pd/pd.cpp",
       "pd/pdTrace.cpp",
-      "pd/pdTraceAnalysis.cpp"
       ]
 
 utilFiles = [

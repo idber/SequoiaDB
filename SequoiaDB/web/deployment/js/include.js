@@ -103,7 +103,14 @@ function ajaxSendMsg( data, async, before, success, error, complete, isJson )
 	$.ajax( { 'type': 'POST', 'async': async, 'url': '/', 'data': data, 'success': function( json, textStatus, jqXHR ){
 		if( json === '' )
 		{
-			showProcessError( _languagePack['error']['system']['networkErr'] ) ;//'网络异常'
+         if( typeof( error ) === 'function' )
+			{
+				error( { 'errno': -1 }, textStatus, jqXHR ) ;
+			}
+			else
+         {
+            showProcessError( _languagePack['error']['system']['networkErr'] ) ;//'网络异常'
+         }
 		}
 		else
 		{

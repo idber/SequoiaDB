@@ -32,13 +32,13 @@
    Last Changed =
 
 *******************************************************************************/
-#include "oss.hpp"
+
+#include "core.hpp"
 #include "ossIO.hpp"
+#include "oss.hpp"
 #include "ossMem.h"
-#include "ossVer.h"
-#include "ossUtil.hpp"
-#include "utilOptions.hpp"
-#include "filenames.hpp"
+#include "pmdOptions.h"
+#include "pmdOptionsMgr.hpp"
 
 #include <iostream>
 #include <stdio.h>
@@ -48,141 +48,12 @@
 #include <boost/filesystem/path.hpp>
 
 using namespace std ;
-using namespace engine ;
 
+namespace po = boost::program_options ;
 namespace fs = boost::filesystem ;
 
-namespace memcheck
+namespace engine
 {
-   #define _TYPE(T) utilOptType(T)
-
-   #define MEMCHECK_OPTION_HELP              "help"
-   #define MEMCHECK_OPTION_VERSION           "version"
-   #define MEMCHECK_OPTION_CORE_FILE         "corefile"
-   #define MEMCHECK_OPTION_OUTPUT            "output"
-
-   #define MEMCHECK_EXPLAIN_HELP             "print help information"
-   #define MEMCHECK_EXPLAIN_VERSION          "print version"
-   #define MEMCHECK_EXPLAIN_CORE_FILE        "core file"
-   #define MEMCHECK_EXPLAIN_OUTPUT           "output file"
-
-   #define MEMCHECK_GENERAL_OPTIONS \
-      (MEMCHECK_OPTION_HELP",h",             /* no arg */     MEMCHECK_EXPLAIN_HELP) \
-      (MEMCHECK_OPTION_VERSION",V",          /* no arg */     MEMCHECK_EXPLAIN_VERSION) \
-      (MEMCHECK_EXPLAIN_CORE_FILE",f",      _TYPE(string),    MEMCHECK_EXPLAIN_CORE_FILE) \
-      (MEMCHECK_OPTION_OUTPUT",o",          _TYPE(string),    MEMCHECK_EXPLAIN_OUTPUT) \
-
-
-   class Options: public utilOptions
-   {
-   public:
-      Options();
-      ~Options();
-      INT32 parse(INT32 argc, CHAR* argv[]);
-      void printHelpInfo();
-      BOOLEAN hasHelp();
-      BOOLEAN hasVersion();
-
-      OSS_INLINE const string& coreFile() const { return _coreFile; }
-      OSS_INLINE const string& outputFile() const { return _outputFile; }
-
-   private:
-      INT32 setOptions();
-
-   private:
-      BOOLEAN        _parsed;
-      string         _coreFile;
-      string         _outputFile;
-   } ;
-
-   Options::Options()
-   {
-      _parsed = FALSE ;
-   }
-
-   Options::~Options()
-   {
-   }
-
-   INT32 Options::parse(INT32 argc, CHAR* argv[])
-   {
-      INT32 rc = SDB_OK;
-
-      SDB_ASSERT(!_parsed, "can't parse again");
-
-      addOptions("General Options")
-         MEMCHECK_GENERAL_OPTIONS
-      ;
-
-      rc = utilOptions::parse(argc, argv);
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-      _parsed = TRUE;
-
-      if (has(MEMCHECK_OPTION_HELP) ||
-          has(MEMCHECK_OPTION_VERSION))
-      {
-         goto done;
-      }
-
-      rc = setOptions();
-      if (SDB_OK != rc)
-      {
-         goto error;
-      }
-
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-   
-   void Options::printHelpInfo()
-   {
-      SDB_ASSERT(_parsed, "must be parsed");
-      print();
-   }
-   
-   BOOLEAN Options::hasHelp()
-   {
-      return has(MEMCHECK_OPTION_HELP);
-   }
-
-   BOOLEAN Options::hasVersion()
-   {
-      return has(MEMCHECK_OPTION_VERSION);
-   }
-   
-   INT32 Options::setOptions()
-   {
-      INT32 rc = SDB_OK;
-
-      if (has(MEMCHECK_EXPLAIN_CORE_FILE))
-      {
-         _coreFile = get<string>(MEMCHECK_EXPLAIN_CORE_FILE);
-      }
-
-      if (_coreFile.empty())
-      {
-         std::cerr << "Core file is not configured" << std::endl ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      if (has(MEMCHECK_OPTION_OUTPUT))
-      {
-         _outputFile = get<string>(MEMCHECK_OPTION_OUTPUT);
-      }
-
-   done:
-      return rc;
-   error:
-      goto done;
-   }
-   
    struct _memHeader
    {
       UINT32               _eye1 ;
@@ -219,6 +90,79 @@ namespace memcheck
    UINT64  g_totalMemSize  = 0 ;
    UINT64  g_totalMemNum   = 0 ;
    UINT32  g_errMemNum     = 0 ;
+
+   #define TEST_CORE_FILE     "corefile"
+   #define TEST_OUTPUT        "output"
+
+   #define TEST_MEM_OPTIONS  \
+      ( PMD_COMMANDS_STRING (PMD_OPTION_HELP, ",h"), "help" ) \
+      ( PMD_COMMANDS_STRING (TEST_CORE_FILE, ",f"), boost::program_options::value<string>(), "core file" ) \
+      ( PMD_COMMANDS_STRING (TEST_OUTPUT, ",o"), boost::program_options::value<string>(), "output file" ) \
+
+   INT32 resolveArguments( INT32 argc, CHAR** argv )
+   {
+      INT32 rc = SDB_OK ;
+
+      po::variables_map vm ;
+      po::options_description desc( "Command options" ) ;
+
+      PMD_ADD_PARAM_OPTIONS_BEGIN( desc )
+         TEST_MEM_OPTIONS
+      PMD_ADD_PARAM_OPTIONS_END
+
+      try
+      {
+         po::store( po::parse_command_line ( argc, argv, desc ), vm ) ;
+         po::notify ( vm ) ;
+      }
+      catch ( po::unknown_option &e )
+      {
+         std::cerr <<  "Unknown argument: "
+                   << e.get_option_name () << std::endl ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      catch ( po::invalid_option_value &e )
+      {
+         std::cerr <<  "Invalid argument: "
+                   << e.get_option_name () << std::endl ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      catch( po::error &e )
+      {
+         std::cerr << e.what () << std::endl ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      if ( vm.count( PMD_OPTION_HELP ) )
+      {
+         std::cout << desc << std::endl ;
+         rc = SDB_PMD_HELP_ONLY ;
+         goto done ;
+      }
+      if ( vm.count( TEST_CORE_FILE ) )
+      {
+         g_corefile = vm[TEST_CORE_FILE].as<string>() ;
+      }
+      if ( vm.count( TEST_OUTPUT ) )
+      {
+         g_outputfile = vm[TEST_OUTPUT].as<string>() ;
+      }
+
+      if ( g_corefile.empty() )
+      {
+         std::cerr << "Core file is not configed" << std::endl ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
 
    INT32 init()
    {
@@ -345,37 +289,21 @@ namespace memcheck
       }
    }
 
-   string getFileName( UINT32 fileCode )
-   {
-      map<UINT32, string>::const_iterator it ;
-      it = filenamesMap.find( fileCode ) ;
-      if (it != filenamesMap.end() )
-      {
-         return it->second ;
-      }
-      else
-      {
-         return "" ;
-      }
-   }
-
    void printMemInfo( CHAR *pointer, BOOLEAN isError )
    {
       memHeader *pHeader = (memHeader*)pointer ;
       if ( FALSE == isError )
       {
          ossSnprintf( g_textBuff, sizeof(g_textBuff)-1,
-                      "%p    %10ld    %25s(%10u)    %6u\n",
-                      pointer, pHeader->_size,
-                      getFileName(pHeader->_file).c_str(), pHeader->_file,
+                      "%p    %10ld    %10u    %6u\n",
+                      pointer, pHeader->_size, pHeader->_file,
                       pHeader->_line ) ;
       }
       else
       {
          ossSnprintf( g_textBuff, sizeof(g_textBuff)-1,
-                      "%p    %10ld    %25s(%10u)    %6u    ****(has error)\n",
-                      pointer, pHeader->_size,
-                      getFileName(pHeader->_file).c_str(), pHeader->_file,
+                      "%p    %10ld    %10u    %6u    ****(has error)\n",
+                      pointer, pHeader->_size, pHeader->_file,
                       pHeader->_line ) ;
       }
 
@@ -453,9 +381,7 @@ namespace memcheck
       UINT32 line = 0 ;
       INT64 writeLen = 0 ;
 
-      ossSnprintf( g_textBuff, sizeof(g_textBuff)-1,
-                   "\n\nStat Info:\n"
-                   "                      File           :   Line ----      Count\n\n") ;
+      ossSnprintf( g_textBuff, sizeof(g_textBuff)-1, "\n\nStat:\n" ) ;
       if ( g_openOutFile )
       {
          ossWrite( &g_pOutFile, g_textBuff, ossStrlen(g_textBuff), &writeLen ) ;
@@ -465,23 +391,13 @@ namespace memcheck
          ossPrintf ( "%s", g_textBuff ) ;
       }
 
-      multimap<UINT32, UINT64> countFileMap ;
-      map< UINT64, UINT32 >::iterator fileCountIt = g_memMap.begin() ;
-      while ( fileCountIt != g_memMap.end() )
+      map< UINT64, UINT32 >::iterator it = g_memMap.begin() ;
+      while ( it != g_memMap.end() )
       {
-         countFileMap.insert(
-            multimap<UINT32, UINT64>::value_type(
-               fileCountIt->second, fileCountIt->first ) ) ;
-         ++fileCountIt ;
-      }
+         ossUnpack32From64( it->first, file, line ) ;
 
-      multimap<UINT32, UINT64>::reverse_iterator it = countFileMap.rbegin() ;
-      while ( it != countFileMap.rend() )
-      {
-         ossUnpack32From64( it->second, file, line ) ;
-
-         ossSnprintf( g_textBuff, sizeof(g_textBuff)-1, "%25s(%10u): %6u ---- %10u\n",
-                      getFileName(file).c_str(), file, line, it->first ) ;
+         ossSnprintf( g_textBuff, sizeof(g_textBuff)-1, "%u : %u ---- %u\n",
+                      file, line, it->second ) ;
          
          if ( g_openOutFile )
          {
@@ -512,46 +428,16 @@ namespace memcheck
    INT32 mastMain( int argc, char **argv )
    {
       INT32 rc = SDB_OK ;
-      CHAR    titleStr[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-      Options options ;
 
-      rc = options.parse(argc, argv);
-      if (SDB_OK != rc)
-      {
-         goto error ;
-      }
-
-      if (options.hasHelp())
-      {
-         options.printHelpInfo();
-         goto done;
-      }
-
-      if (options.hasVersion())
-      {
-         ossPrintVersion("sdbmemcheck");
-         goto done;
-      }
-
-      g_corefile = options.coreFile();
-      g_outputfile = options.outputFile();
-
-      rc = init() ;
+      rc = resolveArguments( argc, argv ) ;
       if ( rc )
       {
          goto error ;
       }
-
-      ossSnprintf( titleStr, OSS_MAX_PATHSIZE,
-                   "Memory Info List:\n"
-                   "  Address                Size                        File                  Line\n\n" ) ;
-      if ( g_openOutFile )
+      rc = init() ;
+      if ( rc )
       {
-         ossWriteN( &g_pOutFile, titleStr, ossStrlen( titleStr ) ) ;
-      }
-      else
-      {
-         ossPrintf( "%s", titleStr ) ;
+         goto error ;
       }
 
       while ( SDB_OK == getNextBlock() )
@@ -576,6 +462,6 @@ namespace memcheck
 
 int main ( int argc, char **argv )
 {
-   return memcheck::mastMain( argc, argv ) ;
+   return engine::mastMain( argc, argv ) ;
 }
 

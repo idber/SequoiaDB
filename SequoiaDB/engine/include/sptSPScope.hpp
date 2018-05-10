@@ -131,10 +131,11 @@ namespace engine
       INT32 _loadUsrClass( _sptObjDesc *desc ) ;
 
       INT32 _loadGlobal( _sptObjDesc *desc ) ;
-         
+
       INT32 _rval2obj( JSContext *cx,
                        const jsval &jsrval,
                        bson::BSONObj &rval ) ;
+
    private:
       JSRuntime *_runtime ;
       JSContext *_context ;

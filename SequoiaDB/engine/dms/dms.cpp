@@ -208,7 +208,7 @@ namespace engine
       {
          rc = SDB_INVALIDARG ;
          PD_LOG ( PDERROR, "collection name is system: %s", collectionName ) ;
-         goto error ;
+         goto error ;         
       }
    done :
       PD_TRACE_EXITRC ( SDB_DMSCHKCLNM, rc );

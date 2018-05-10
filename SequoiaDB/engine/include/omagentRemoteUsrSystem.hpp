@@ -87,12 +87,15 @@ namespace engine
          const CHAR *name() ;
 
          INT32 doit( BSONObj &retObj ) ;
+      private:
+         INT32 _extractReleaseInfo( const CHAR *buf,
+                                    BSONObjBuilder &builder ) ;
    } ;
 
    /*
       _remoteSystemGetHostsMap define
    */
-   class _remoteSystemGetHostsMap : public _remoteExec
+   class _remoteSystemGetHostsMap : public _remoteHost
    {
       DECLARE_OACMD_AUTO_REGISTER()
       public:
@@ -108,7 +111,7 @@ namespace engine
    /*
       _remoteSystemGetAHostMap define
    */
-   class _remoteSystemGetAHostMap : public _remoteExec
+   class _remoteSystemGetAHostMap : public _remoteHost
    {
       DECLARE_OACMD_AUTO_REGISTER()
       public:
@@ -129,7 +132,7 @@ namespace engine
    /*
       _remoteSystemAddAHostMap define
    */
-   class _remoteSystemAddAHostMap : public _remoteExec
+   class _remoteSystemAddAHostMap : public _remoteHost
    {
       DECLARE_OACMD_AUTO_REGISTER()
       public:
@@ -152,7 +155,7 @@ namespace engine
    /*
       _remoteSystemDelAHostMap define
    */
-   class _remoteSystemDelAHostMap : public _remoteExec
+   class _remoteSystemDelAHostMap : public _remoteHost
    {
       DECLARE_OACMD_AUTO_REGISTER()
       public:
@@ -184,6 +187,11 @@ namespace engine
          const CHAR *name() ;
 
          INT32 doit( BSONObj &retObj ) ;
+
+      private:
+         INT32 _getCpuInfo ( BSONObj &retObj ) ;
+         INT32 _extractCpuInfo( const CHAR *buf,
+                                BSONObjBuilder &builder ) ;
    } ;
 
    /*
@@ -216,6 +224,9 @@ namespace engine
          const CHAR *name() ;
 
          INT32 doit( BSONObj &retObj ) ;
+
+      private:
+         INT32 _extractMemInfo( const CHAR *buf, BSONObjBuilder &builder ) ;
    } ;
 
    /*
@@ -232,6 +243,18 @@ namespace engine
          const CHAR *name() ;
 
          INT32 doit( BSONObj &retObj ) ;
+
+      private:
+         INT32 _getDiskInfo( BSONObj &retObj ) ;
+
+#if defined (_LINUX)
+         INT32 _extractDiskInfo( const CHAR *buf, BSONObj &retObj ) ;
+#endif
+
+#if defined (_WINDOWS)
+         INT32 _extractDiskInfo( const CHAR *buf, BSONObjBuilder &builder ) ;
+#endif
+
    } ;
 
    /*
@@ -248,6 +271,9 @@ namespace engine
          const CHAR *name() ;
 
          INT32 doit( BSONObj &retObj ) ;
+
+      private:
+         INT32 _extractNetcards( BSONObjBuilder &builder ) ;
    } ;
 
    /*
@@ -264,6 +290,12 @@ namespace engine
          const CHAR *name() ;
 
          INT32 doit( BSONObj &retObj ) ;
+
+      private:
+         INT32 _snapshotNetcardInfo( BSONObjBuilder &builder ) ;
+
+         INT32 _extractNetCardSnapInfo( const CHAR *buf,
+                                        BSONObjBuilder &builder ) ;
    } ;
 
    /*
@@ -335,6 +367,11 @@ namespace engine
          const CHAR *name() ;
 
          INT32 doit( BSONObj &retObj ) ;
+
+      private:
+         INT32 _extractProcessInfo( const CHAR *buf,
+                                    BSONObjBuilder &builder,
+                                    BOOLEAN showDetail ) ;
       private:
          BOOLEAN _showDetail ;
    } ;
@@ -433,6 +470,11 @@ namespace engine
          const CHAR *name() ;
 
          INT32 doit( BSONObj &retObj ) ;
+
+      private:
+         INT32 _extractLoginUsersInfo( const CHAR *buf,
+                                       BSONObjBuilder &builder,
+                                       BOOLEAN showDetail ) ;
    } ;
 
    /*
@@ -449,6 +491,11 @@ namespace engine
          const CHAR *name() ;
 
          INT32 doit( BSONObj &retObj ) ;
+
+      private:
+         INT32 _extractAllUsersInfo( const CHAR *buf,
+                                     BSONObjBuilder &builder,
+                                     BOOLEAN showDetail ) ;
    } ;
 
    /*
@@ -476,7 +523,7 @@ namespace engine
    /*
       _remoteSystemGetCurrentUser define
    */
-   class _remoteSystemGetCurrentUser : public _remoteExec
+   class _remoteSystemGetCurrentUser : public _remoteOmaGetHomePath
    {
       DECLARE_OACMD_AUTO_REGISTER()
       public:
@@ -576,7 +623,7 @@ namespace engine
    /*
       _remoteSystemBuildTrusty define
    */
-   class _remoteSystemBuildTrusty : public _remoteExec
+   class _remoteSystemBuildTrusty : public _remoteOmaGetHomePath
    {
       DECLARE_OACMD_AUTO_REGISTER()
       public:
@@ -595,7 +642,7 @@ namespace engine
    /*
       _remoteSystemRemoveTrusty define
    */
-   class _remoteSystemRemoveTrusty : public _remoteExec
+   class _remoteSystemRemoveTrusty : public _remoteOmaGetHomePath
    {
       DECLARE_OACMD_AUTO_REGISTER()
       public:

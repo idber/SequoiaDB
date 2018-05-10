@@ -1,12 +1,7 @@
 ﻿<div ng-controller="Deploy.Task.Install.Ctrl" ng-container="{}">
    <div style="border-bottom:1px solid #eee;" step-chart="stepList" ng-show="DeployType != 'Task'"></div>
    <div style="padding:10px 15px;" ng-container="{'true':ContainerBox[0],'false':ContainerBox[1]}[DeployType != 'Task']">
-      
-      <div ng-windows="info as GetLogWindow.config" windows-callback="GetLogWindow.callback">
-         <div class="well" style="overflow-y:auto;">
-            <pre style="padding:10px;margin:0;white-space:pre-wrap;">{{Logstr}}</pre>
-         </div>
-      </div>
+
       <div ng-container="{offsetY:-45}">
          <div class="pull-left" ng-container="{width:400}">
 
@@ -15,7 +10,7 @@
             <div class="borderBox" style="padding:10px;font-size:90%;overflow-y:auto;" ng-container="{offsetY:-30}">
                
                <div style="margin-bottom:10px;">
-                  <button class="btn btn-default" ng-click="ShowGetLog()">{{autoLanguage("查看任务日志")}}</button>
+                  <button class="btn btn-default" ng-click="GetLog()">{{autoLanguage("查看任务日志")}}</button>
                </div>
 
                <table class="table loosen border">
@@ -34,10 +29,6 @@
                   <tr>
                      <td>{{autoLanguage("任务类型")}}</td>
                      <td>{{TaskInfo['TaskName']}}</td>
-                  </tr>
-                  <tr>
-                     <td>{{autoLanguage("业务类型")}}</td>
-                     <td>{{ModuleType}}</td>
                   </tr>
                   <tr>
                      <td>{{autoLanguage("项目数")}}</td>
@@ -78,7 +69,7 @@
                   <div class="bar" ng-class="{'0':'blue','1':'orange','2':'red','3':'green'}[BarColor]" ng-style="{'width':TaskInfo['Progress']+'%'}"></div>
                </div>
 
-               <div ng-container="{offsetY:-50,marginTop:10}" ng-if="(TaskInfo['TaskName'] == 'ADD_BUSINESS' || TaskInfo['TaskName'] == 'REMOVE_BUSINESS' || TaskInfo['TaskName'] == 'SHRINK_BUSINESS' ) && ModuleType == 'sequoiadb'" ng-table="TaskTable['options']" table-title="TaskTable['title']" table-content="installInfo in NewTaskInfo['ResultInfo']">
+               <div ng-container="{offsetY:-50,marginTop:10}" ng-if="(TaskInfo['TaskName'] == 'ADD_BUSINESS' || TaskInfo['TaskName'] == 'REMOVE_BUSINESS') && ModuleType == 'sequoiadb'" ng-table="TaskTable['options']" table-title="TaskTable['title']" table-content="installInfo in TaskInfo['ResultInfo']">
                   <div table-key="Status">
                      <img src="./images/loading2.gif" style="width:22px;height:22px;" ng-if="installInfo['Status'] == 1 || installInfo['Status'] == 0" />
                      <i class="fa fa-undo" style="font-size:22px;color:#F9A937;" ng-if="installInfo['Status'] == 2"></i>
@@ -93,43 +84,32 @@
                   <div class="Ellipsis" table-key="Flow">{{installInfo['Flow'][installInfo['Flow'].length-1]}}</div>
                </div>
 
-               <div ng-container="{offsetY:-50,marginTop:10}" ng-if="(TaskInfo['TaskName'] == 'ADD_BUSINESS' || TaskInfo['TaskName'] == 'REMOVE_BUSINESS') && ModuleType == 'sequoiasql'" ng-table="TaskTable['options']" table-title="TaskTable['title']" table-content="installInfo in NewTaskInfo['ResultInfo']">
-                  <div table-key="Status">
+               <div ng-container="{offsetY:-50,marginTop:10}" ng-if="(TaskInfo['TaskName'] == 'ADD_BUSINESS' || TaskInfo['TaskName'] == 'REMOVE_BUSINESS') && ModuleType == 'sequoiasql'" ng-table="TaskTable['options']" table-title="TaskTable['title']" table-content="installInfo in TaskInfo['ResultInfo']">
+                  <div>
                      <img src="./images/loading2.gif" style="width:22px;height:22px;" ng-if="installInfo['Status'] == 1 || installInfo['Status'] == 0" />
                      <i class="fa fa-undo" style="font-size:22px;color:#F9A937;" ng-if="installInfo['Status'] == 2"></i>
                      <i class="fa fa-check" style="font-size:22px;color:#00CC66;" ng-if="installInfo['Status'] == 4 && installInfo['errno'] == 0"></i>
                      <i class="fa fa-times" style="font-size:22px;color:#D9534F;" ng-if="installInfo['Status'] == 4 && installInfo['errno'] != 0"></i>
                   </div>
-                  <div class="Ellipsis" table-key="HostName">{{installInfo['HostName']}}</div>
-                  <div class="Ellipsis" table-key="role">{{installInfo['role']}}</div>
-                  <div class="Ellipsis" table-key="StatusDesc">{{installInfo['StatusDesc']}}</div>
-                  <div class="Ellipsis" table-key="Flow">{{installInfo['Flow'][installInfo['Flow'].length-1]}}</div>
+                  <div class="GridTd Ellipsis">{{installInfo['HostName']}}</div>
+                  <div class="GridTd Ellipsis">{{installInfo['role']}}</div>
+                  <div class="GridTd Ellipsis">{{installInfo['StatusDesc']}}</div>
+                  <div class="GridTd Ellipsis">{{installInfo['Flow'][installInfo['Flow'].length-1]}}</div>
                </div>
 
-               <div ng-container="{offsetY:-50,marginTop:10}" ng-if="(TaskInfo['TaskName'] == 'ADD_BUSINESS' || TaskInfo['TaskName'] == 'REMOVE_BUSINESS') && ModuleType == 'zookeeper'" ng-table="TaskTable['options']" table-title="TaskTable['title']" table-content="installInfo in NewTaskInfo['ResultInfo']">
-                  <div table-key="Status">
+               <div ng-container="{offsetY:-50,marginTop:10}" ng-if="(TaskInfo['TaskName'] == 'ADD_BUSINESS' || TaskInfo['TaskName'] == 'REMOVE_BUSINESS') && ModuleType == 'zookeeper'" ng-table="TaskTable['options']" table-title="TaskTable['title']" table-content="installInfo in TaskInfo['ResultInfo']">
+                  <div>
                      <img src="./images/loading2.gif" style="width:22px;height:22px;" ng-if="installInfo['Status'] == 1 || installInfo['Status'] == 0" />
                      <i class="fa fa-undo" style="font-size:22px;color:#F9A937;" ng-if="installInfo['Status'] == 2"></i>
                      <i class="fa fa-check" style="font-size:22px;color:#00CC66;" ng-if="installInfo['Status'] == 4 && installInfo['errno'] == 0"></i>
                      <i class="fa fa-times" style="font-size:22px;color:#D9534F;" ng-if="installInfo['Status'] == 4 && installInfo['errno'] != 0"></i>
                   </div>
-                  <div class="Ellipsis" table-key="zooid">{{installInfo['zooid']}}</div>
-                  <div class="Ellipsis" table-key="HostName">{{installInfo['HostName']}}</div>
-                  <div class="Ellipsis" table-key="StatusDesc">{{installInfo['StatusDesc']}}</div>
-                  <div class="Ellipsis" table-key="Flow">{{installInfo['Flow'][installInfo['Flow'].length-1]}}</div>
+                  <div class="GridTd Ellipsis">{{installInfo['zooid']}}</div>
+                  <div class="GridTd Ellipsis">{{installInfo['HostName']}}</div>
+                  <div class="GridTd Ellipsis">{{installInfo['StatusDesc']}}</div>
+                  <div class="GridTd Ellipsis">{{installInfo['Flow'][installInfo['Flow'].length-1]}}</div>
                </div>
 
-               <div ng-container="{offsetY:-50,marginTop:10}" ng-if="(TaskInfo['TaskName'] == 'ADD_BUSINESS' || TaskInfo['TaskName'] == 'REMOVE_BUSINESS') && ModuleType == 'sequoiasql-oltp'" ng-table="TaskTable['options']" table-title="TaskTable['title']" table-content="installInfo in NewTaskInfo['ResultInfo']">
-                  <div table-key="Status">
-                     <img src="./images/loading2.gif" style="width:22px;height:22px;" ng-if="installInfo['Status'] == 1 || installInfo['Status'] == 0" />
-                     <i class="fa fa-undo" style="font-size:22px;color:#F9A937;" ng-if="installInfo['Status'] == 2"></i>
-                     <i class="fa fa-check" style="font-size:22px;color:#00CC66;" ng-if="installInfo['Status'] == 4 && installInfo['errno'] == 0"></i>
-                     <i class="fa fa-times" style="font-size:22px;color:#D9534F;" ng-if="installInfo['Status'] == 4 && installInfo['errno'] != 0"></i>
-                  </div>
-                  <div class="Ellipsis" table-key="HostName">{{installInfo['HostName']}}</div>
-                  <div class="Ellipsis" table-key="StatusDesc">{{installInfo['StatusDesc']}}</div>
-                  <div class="Ellipsis" table-key="Flow">{{installInfo['Flow'][installInfo['Flow'].length-1]}}</div>
-               </div>
             </div>
 
          </div>

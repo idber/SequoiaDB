@@ -1,4 +1,3 @@
-//@ sourceURL=Lobs.js
 (function(){
    var sacApp = window.SdbSacManagerModule ;
    var GridId ;
@@ -65,17 +64,14 @@
       //查询所有Lob
       $scope.queryAll = function(){
          var data = { 'cmd': 'list lobs', 'name': $scope.fullName } ;
-         SdbRest.DataOperation( data, {
-            'success': function( lobs ){
-               lobList = lobs ;
-               $scope.execResult = sprintf( $scope.autoLanguage( '? ? 执行查询成功，总计 ? 条记录' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName, lobList.length ) ;
-               $scope.execRc = true ;
-               $scope.lobTable['body'] = lobs ;
-            },
-            'failed': function( errorInfo ){
-               $scope.execResult = sprintf( $scope.autoLanguage( '? ? 执行查询失败，错误码: ?，?. ?' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName, errorInfo['errno'], errorInfo['description'], errorInfo['detail'] ) ;
-               $scope.execRc = false ;
-            }
+         SdbRest.DataOperation( data, function( lobs ){
+            lobList = lobs ;
+            $scope.execResult = sprintf( $scope.autoLanguage( '? ? 执行查询成功，总计 ? 条记录' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName, lobList.length ) ;
+            $scope.execRc = true ;
+            $scope.lobTable['body'] = lobs ;
+         }, function( errorInfo ){
+            $scope.execResult = sprintf( $scope.autoLanguage( '? ? 执行查询失败，错误码: ?，?. ?' ), timeFormat( new Date(), 'hh:mm:ss' ), $scope.fullName, errorInfo['errno'], errorInfo['description'], errorInfo['detail'] ) ;
+            $scope.execRc = false ;
          } ) ;
       }
       

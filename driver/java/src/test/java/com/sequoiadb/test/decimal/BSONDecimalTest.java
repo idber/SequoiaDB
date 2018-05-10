@@ -11,13 +11,11 @@ import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BSONDecimal;
 import org.junit.*;
-import org.junit.rules.ExpectedException;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
 
-import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -30,8 +28,6 @@ public class BSONDecimalTest {
     private static CollectionSpace cs;
     private static DBCollection cl;
     private static DBCursor cur;
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
 
     @BeforeClass
     public static void beforeClass() throws Exception {
@@ -63,37 +59,6 @@ public class BSONDecimalTest {
     @After
     public void tearDown() throws Exception {
         cl.truncate();
-    }
-
-    @Test
-    public void convertMAXValueToBigDecimalTest() {
-        BSONDecimal bsonDecimal;
-        BigDecimal bigDecimal;
-        thrown.expect(BaseException.class);
-        thrown.expectMessage(containsString("can't convert MAX to BigDecimal"));
-        bsonDecimal = new BSONDecimal("MAX", 20, 10);
-        bigDecimal = bsonDecimal.toBigDecimal();
-    }
-
-    @Test
-    public void convertMINValueToBigDecimalTest() {
-        BSONDecimal bsonDecimal;
-        BigDecimal bigDecimal;
-        thrown.expect(BaseException.class);
-        thrown.expectMessage(containsString("can't convert MIN to BigDecimal"));
-
-        bsonDecimal = new BSONDecimal("MIN", 20, 10);
-        bigDecimal = bsonDecimal.toBigDecimal();
-    }
-
-    @Test
-    public void convertNANValueToBigDecimalTest() {
-        BSONDecimal bsonDecimal;
-        BigDecimal bigDecimal;
-        thrown.expect(BaseException.class);
-        thrown.expectMessage(containsString("can't convert NaN to BigDecimal"));
-        bsonDecimal = new BSONDecimal("NAN", 20, 10);
-        bigDecimal = bsonDecimal.toBigDecimal();
     }
 
     /**

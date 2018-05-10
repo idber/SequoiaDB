@@ -39,22 +39,58 @@
 #include "core.hpp"
 #include <stdio.h>
 #include "pd.hpp"
+#include "ossEDU.hpp"
 #include "ossMem.hpp"
 #include "pmdEDU.hpp"
-#include "pmdEntryPoint.hpp"
+#include "pmdEDUMgr.hpp"
 #include "pmd.hpp"
 #include "pdTrace.hpp"
 #include "pmdTrace.hpp"
 #include <map>
+
+#if defined ( SDB_ENGINE )
+#include "rtnCB.hpp"
+#endif // SDB_ENGINE
 
 namespace engine
 {
    const UINT32 EDU_MEM_ALIGMENT_SIZE  = 1024 ; // must for times for 4
    const UINT32 EDU_MAX_CATCH_SIZE     = 16*1024*1024 ;
 
+   static std::map<EDU_TYPES, std::string> mapEDUName ;
+   static std::map<EDU_TYPES,EDU_TYPES>    mapEDUTypeSys ;
+
    /*
       TOOL FUNCTIONS
    */
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_REGEDUNAME, "registerEDUName" )
+   INT32 registerEDUName ( EDU_TYPES type, const CHAR * name, BOOLEAN system )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_REGEDUNAME );
+      std::map<EDU_TYPES, std::string>::iterator it =
+         mapEDUName.find ( type ) ;
+      if ( it != mapEDUName.end() )
+      {
+         PD_LOG ( PDERROR, "EDU type confict[type:%d, %s<->%s]", (INT32)type,
+            it->second.c_str(), name ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      mapEDUName[type] = std::string( name ) ;
+
+      if ( system )
+      {
+         mapEDUTypeSys[type] = type ;
+      }
+   done :
+      PD_TRACE_EXIT ( SDB_REGEDUNAME );
+      return rc ;
+   error :
+      goto done ;
+   }
+
    const CHAR * getEDUStatusDesp ( EDU_STATUS status )
    {
       const CHAR *desp = "Unknown" ;
@@ -73,6 +109,9 @@ namespace engine
          case PMD_EDU_IDLE :
             desp = "Idle" ;
             break ;
+         case PMD_EDU_DESTROY :
+            desp = "Destroying" ;
+            break ;
          default :
             break ;
       }
@@ -80,10 +119,28 @@ namespace engine
       return desp ;
    }
 
+   const CHAR * getEDUName( EDU_TYPES type )
+   {
+      std::map<EDU_TYPES, std::string>::iterator it =
+         mapEDUName.find ( type ) ;
+      if ( it != mapEDUName.end() )
+      {
+         return it->second.c_str() ;
+      }
+
+      return "Unknow" ;
+   }
+
+   BOOLEAN isSystemEDU ( EDU_TYPES type )
+   {
+      std::map<EDU_TYPES,EDU_TYPES>::iterator it = mapEDUTypeSys.find( type ) ;
+      return it == mapEDUTypeSys.end() ? FALSE : TRUE ;
+   }
+
    /*
       _pmdEDUCB implement
    */
-   _pmdEDUCB::_pmdEDUCB( _pmdEDUMgr *mgr, INT32 type )
+   _pmdEDUCB::_pmdEDUCB( _pmdEDUMgr *mgr, EDU_TYPES type )
    {
       _eduMgr           = mgr ;
       _eduID            = PMD_INVALID_EDUID ;
@@ -91,14 +148,12 @@ namespace engine
       _status           = PMD_EDU_UNKNOW ;
       _eduType          = type ;
       _ctrlFlag         = 0 ;
-      _isInterruptSelf  = FALSE ;
       _writingDB        = FALSE ;
       _writingID        = 0 ;
       _processEventCount= 0 ;
       ossMemset( _name, 0, sizeof( _name ) ) ;
       _threadHdl        = 0 ;
       _pSession         = NULL ;
-      _pRemoteSite      = NULL ;
       _pCompressBuff    = NULL ;
       _compressBuffLen  = 0 ;
       _pUncompressBuff  = NULL ;
@@ -124,11 +179,14 @@ namespace engine
 #endif // _LINUX
 
 #if defined ( SDB_ENGINE )
+      _pCoordSession    = NULL ;
       _relatedTransLSN  = DPS_INVALID_LSN_OFFSET ;
       _pTransNodeMap    = NULL ;
       _transRC          = SDB_OK ;
 
       _curRequestID     = 1 ;
+
+      _monCfgCB = *( (monConfigCB*)(pmdGetKRCB()->getMonCB()) ) ;
 #endif // SDB_ENGINE
 
       _pErrorBuff = (CHAR *)SDB_OSS_MALLOC( EDU_ERROR_BUFF_SIZE + 1 ) ;
@@ -170,7 +228,6 @@ namespace engine
       _passWord = "" ;
 
       _ctrlFlag = 0 ;
-      _isInterruptSelf = FALSE ;
       resetLsn() ;
       writingDB( FALSE ) ;
       releaseAlignedBuff() ;
@@ -247,25 +304,16 @@ namespace engine
       _pSession = NULL ;
    }
 
-   void _pmdEDUCB::attachRemoteSite( IRemoteSite *pSite )
+   void _pmdEDUCB::setType ( EDU_TYPES type )
    {
-      _pRemoteSite = pSite ;
-   }
-
-   void _pmdEDUCB::detachRemoteSite()
-   {
-      _pRemoteSite = NULL ;
-   }
-
-   void _pmdEDUCB::setType ( INT32 type )
-   {
+      SDB_ASSERT ( PMD_EDU_IDLE == _status,
+                   "Type can't be changed during active" ) ;
       _eduType = type ;
    }
 
-   void _pmdEDUCB::interrupt( BOOLEAN onlySelf )
+   void _pmdEDUCB::interrupt ()
    {
       _ctrlFlag |= EDU_CTRL_INTERRUPTED ;
-      _isInterruptSelf = onlySelf ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUCB_DISCONNECT, "_pmdEDUCB::disconnect" )
@@ -290,7 +338,6 @@ namespace engine
    void _pmdEDUCB::resetInterrupt ()
    {
       _ctrlFlag &= ~EDU_CTRL_INTERRUPTED ;
-      _isInterruptSelf = FALSE ;
    }
 
    void _pmdEDUCB::resetDisconnect ()
@@ -695,7 +742,6 @@ namespace engine
          if ( _pClientSock->isClosed() )
          {
             _ctrlFlag |= ( EDU_CTRL_INTERRUPTED | EDU_CTRL_DISCONNECTED ) ;
-            _isInterruptSelf = FALSE ;
             ret = TRUE ;
          }
          else
@@ -704,13 +750,11 @@ namespace engine
             MsgHeader header ;
             INT32 rc = _pClientSock->recv( (CHAR*)&header , sizeof(header),
                                            receivedLen, 0, MSG_PEEK, TRUE, TRUE ) ;
-            if ( ( rc >= (INT32)sizeof(header) &&
-                   MSG_BS_DISCONNECT == header.opCode ) ||
-                 SDB_NETWORK_CLOSE == rc ||
-                 SDB_NETWORK == rc )
+            if ( ( rc >= (INT32)sizeof(header)
+                   && MSG_BS_DISCONNECT == header.opCode )
+                 || SDB_NETWORK_CLOSE == rc || SDB_NETWORK == rc )
             {
                _ctrlFlag |= ( EDU_CTRL_INTERRUPTED | EDU_CTRL_DISCONNECTED ) ;
-               _isInterruptSelf = FALSE ;
                ret = TRUE ;
             }
             else if ( rc >= (INT32)sizeof(header) &&
@@ -718,8 +762,6 @@ namespace engine
                         MSG_BS_INTERRUPTE_SELF == header.opCode ) )
             {
                _ctrlFlag |= EDU_CTRL_INTERRUPTED ;
-               _isInterruptSelf = MSG_BS_INTERRUPTE_SELF == header.opCode ?
-                                  TRUE : FALSE ;
                ret = TRUE ;
             }
          }
@@ -728,11 +770,6 @@ namespace engine
       PD_TRACE1 ( SDB__PMDEDUCB_ISINT, PD_PACK_INT(ret) );
       PD_TRACE_EXIT ( SDB__PMDEDUCB_ISINT );
       return ret ;
-   }
-
-   BOOLEAN _pmdEDUCB::isOnlySelfWhenInterrupt() const
-   {
-      return _isInterruptSelf ;
    }
 
    BOOLEAN _pmdEDUCB::isDisconnected ()
@@ -790,66 +827,6 @@ namespace engine
       _curTransLSN = lsn ;
    }
 
-   void _pmdEDUCB::contextInsert( INT64 contextID )
-   {
-      ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
-      _contextList.insert ( contextID ) ;
-   }
-
-   void _pmdEDUCB::contextDelete( INT64 contextID )
-   {
-      ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
-      _contextList.erase ( contextID ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUCB_CONTXTPEEK, "_pmdEDUCB::contextPeek" )
-   INT64 _pmdEDUCB::contextPeek()
-   {
-      PD_TRACE_ENTRY ( SDB__PMDEDUCB_CONTXTPEEK );
-      ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
-      SINT64 contextID = -1 ;
-      SET_CONTEXT::const_iterator it ;
-      if ( _contextList.empty() )
-      {
-         goto done ;
-      }
-      it = _contextList.begin() ;
-      contextID = (*it) ;
-      _contextList.erase(it) ;
-
-   done :
-      PD_TRACE1 ( SDB__PMDEDUCB_CONTXTPEEK, PD_PACK_LONG(contextID) );
-      PD_TRACE_EXIT ( SDB__PMDEDUCB_CONTXTPEEK );
-      return contextID ;
-   }
-
-   BOOLEAN _pmdEDUCB::contextFind( INT64 contextID )
-   {
-      ossScopedLock _lock ( &_mutex, SHARED ) ;
-      return _contextList.end() != _contextList.find( contextID ) ;
-   }
-
-   UINT32 _pmdEDUCB::contextNum()
-   {
-      ossScopedLock _lock ( &_mutex, SHARED ) ;
-      return _contextList.size() ;
-   }
-
-   void _pmdEDUCB::contextCopy( _pmdEDUCB::SET_CONTEXT &contextList )
-   {
-      ossScopedLock _lock ( &_mutex, SHARED ) ;
-      contextList = _contextList ;
-   }
-
-   void _pmdEDUCB::initMonAppCB()
-   {
-      _monApplCB.reset() ;
-      if ( _monCfgCB.timestampON )
-      {
-         _monApplCB.recordConnectTimestamp() ;
-      }
-   }
-
    void _pmdEDUCB::incEventCount( UINT32 step )
    {
       _processEventCount += step ;
@@ -884,6 +861,48 @@ namespace engine
       }
    }
 
+#if defined ( SDB_ENGINE )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUCB_CONTXTPEEK, "_pmdEDUCB::contextPeek" )
+   SINT64 _pmdEDUCB::contextPeek ()
+   {
+      PD_TRACE_ENTRY ( SDB__PMDEDUCB_CONTXTPEEK );
+      ossScopedLock _lock ( &_mutex, EXCLUSIVE ) ;
+      SINT64 contextID = -1 ;
+      std::set<SINT64>::const_iterator it ;
+      if ( _contextList.empty() )
+         goto done ;
+      it = _contextList.begin() ;
+      contextID = (*it) ;
+      _contextList.erase(it) ;
+   done :
+      PD_TRACE1 ( SDB__PMDEDUCB_CONTXTPEEK, PD_PACK_LONG(contextID) );
+      PD_TRACE_EXIT ( SDB__PMDEDUCB_CONTXTPEEK );
+      return contextID ;
+   }
+
+   void _pmdEDUCB::clearTransInfo()
+   {
+      _curTransID = DPS_INVALID_TRANS_ID ;
+      _relatedTransLSN = DPS_INVALID_LSN_OFFSET ;
+      _curTransLSN = DPS_INVALID_LSN_OFFSET ;
+      dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB();
+      if ( pTransCB )
+      {
+         pTransCB->transLockReleaseAll( this );
+      }
+      delTransaction() ;
+   }
+
+   void _pmdEDUCB::setWaitLock( const dpsTransLockId &lockId )
+   {
+      _waitLock = lockId ;
+   }
+
+   void _pmdEDUCB::clearWaitLock()
+   {
+      _waitLock.reset() ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB___PMDEDUCB_DUMPINFO, "_pmdEDUCB::dumpInfo" )
    void _pmdEDUCB::dumpInfo ( monEDUSimple &simple )
    {
@@ -908,7 +927,6 @@ namespace engine
          simple._relatedTID = _tid ;
          simple._relatedNID = 0 ;
       }
-
       PD_TRACE_EXIT ( SDB___PMDEDUCB_DUMPINFO );
    }
 
@@ -942,32 +960,7 @@ namespace engine
          full._relatedTID = _tid ;
          full._relatedNID = 0 ;
       }
-
       PD_TRACE_EXIT ( SDB___PMDEDUCB_DUMPINFO2 );
-   }
-
-#if defined ( SDB_ENGINE )
-   void _pmdEDUCB::clearTransInfo()
-   {
-      _curTransID = DPS_INVALID_TRANS_ID ;
-      _relatedTransLSN = DPS_INVALID_LSN_OFFSET ;
-      _curTransLSN = DPS_INVALID_LSN_OFFSET ;
-      dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB();
-      if ( pTransCB )
-      {
-         pTransCB->transLockReleaseAll( this );
-      }
-      delTransaction() ;
-   }
-
-   void _pmdEDUCB::setWaitLock( const dpsTransLockId &lockId )
-   {
-      _waitLock = lockId ;
-   }
-
-   void _pmdEDUCB::clearWaitLock()
-   {
-      _waitLock.reset() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUCB_GETTRANSLOCK, "_pmdEDUCB::getTransLock" )
@@ -1068,7 +1061,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUCB_ADDTRANSNODE, "_pmdEDUCB::addTransNode" )
-   void _pmdEDUCB::addTransNode( const MsgRouteID &routeID )
+   void _pmdEDUCB::addTransNode( MsgRouteID &routeID )
    {
       PD_TRACE_ENTRY ( SDB__PMDEDUCB_ADDTRANSNODE );
       if ( _pTransNodeMap )
@@ -1078,7 +1071,7 @@ namespace engine
       PD_TRACE_EXIT ( SDB__PMDEDUCB_ADDTRANSNODE );
    }
 
-   void _pmdEDUCB::delTransNode( const MsgRouteID &routeID )
+   void _pmdEDUCB::delTransNode( MsgRouteID &routeID )
    {
       if ( _pTransNodeMap )
       {
@@ -1167,6 +1160,200 @@ namespace engine
    }
 
 #endif // SDB_ENGINE
+
+   /*
+      edu entry point functions
+   */
+   INT32 pmdEDUEntryPointWrapper ( EDU_TYPES type, pmdEDUCB *cb, void *arg )
+   {
+#if defined (_WINDOWS)
+      __try
+      {
+#endif
+         return pmdEDUEntryPoint ( type, pmdDeclareEDUCB ( cb ), arg ) ;
+#if defined (_WINDOWS)
+      }
+      __except ( engine::ossEDUExceptionFilter ( GetExceptionInformation() ) )
+      {}
+#endif
+      return SDB_SYS ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDEDUENTPNT, "pmdEDUEntryPoint" )
+   INT32 pmdEDUEntryPoint ( EDU_TYPES type, pmdEDUCB *cb, void *arg )
+   {
+      INT32       rc           = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_PMDEDUENTPNT );
+#if defined ( SDB_ENGINE )
+      pmdKRCB     *krcb        = pmdGetKRCB () ;
+#endif
+      EDUID       myEDUID      = cb->getID () ; // edu id for myself
+      pmdEDUMgr  *eduMgr       = cb->getEDUMgr() ; // the manager class
+      pmdEDUEvent event ;
+      BOOLEAN     eduDestroyed = FALSE ;
+      BOOLEAN     isForced     = FALSE ;
+      CHAR        eduName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+
+#if defined (_WINDOWS)
+      HANDLE      tHdl = NULL ;
+      BOOLEAN     isHdlCreated = false ;
+
+      if ( DuplicateHandle( GetCurrentProcess(), GetCurrentThread(),
+                            GetCurrentProcess(), &tHdl, 0, false, 
+                            DUPLICATE_SAME_ACCESS ) )
+      {
+         isHdlCreated = true ;
+      }
+#elif defined (_LINUX )
+      OSSTID tHdl = ossGetCurrentThreadID() ;
+      cb->setThreadID ( ossPThreadSelf() ) ;
+#endif
+      cb->setThreadHdl( tHdl ) ;
+      cb->setTID ( ossGetCurrentThreadID() ) ;
+      eduMgr->setEDU ( ossGetCurrentThreadID(), myEDUID ) ;
+
+      PD_LOG ( PDEVENT, "Start thread[%d] for EDU[ID:%lld, type:%s, Name:%s]",
+               ossGetCurrentThreadID(), myEDUID, getEDUName( type ),
+               cb->getName() ) ;
+
+      while ( !eduDestroyed )
+      {
+         type = cb->getType () ;
+         if ( !cb->waitEvent ( event, OSS_ONE_SEC, TRUE ) )
+         {
+            if ( cb->isForced () )
+            {
+               isForced = TRUE ;
+            }
+            else
+            {
+               continue ;
+            }
+         }
+
+         initCurAuditMask( getAuditMask() ) ;
+
+         if ( !isForced && PMD_EDU_EVENT_RESUME == event._eventType )
+         {
+            eduMgr->waitEDU ( cb->getID () ) ;
+            pmdEntryPoint entryFunc = getEntryFuncByType ( cb->getType() ) ;
+            if ( NULL == entryFunc )
+            {
+               PD_LOG ( PDERROR , "EDU[type=%d] entry point func is NULL",
+                        cb->getType() ) ;
+               PMD_SHUTDOWN_DB( SDB_SYS ) ;
+               rc = SDB_SYS ;
+            }
+            else
+            {
+#if defined ( SDB_ENGINE )
+               *(cb->getMonConfigCB() ) = *( (monConfigCB*)(krcb->getMonCB()) );
+               cb->initMonAppCB() ;
+#endif // SDB_ENGINE
+
+               rc = entryFunc ( cb, event._Data ) ;
+
+               ossStrncpy( eduName, cb->getName(), OSS_MAX_PATHSIZE ) ;
+            }
+
+            if ( PMD_IS_DB_UP() )
+            {
+               if ( isSystemEDU( cb->getType() ) )
+               {
+                  PD_LOG ( PDSEVERE, "System EDU[ID:%lld, type:%s] exit "
+                           "with %d", cb->getID(), getEDUName(cb->getType()),
+                           rc ) ;
+                  PMD_SHUTDOWN_DB( rc ) ;
+               }
+               else if ( SDB_OK != rc )
+               {
+                  PD_LOG ( PDWARNING, "EDU[ID:%lld, type:%s, Name:%s] exit "
+                           "with %d", cb->getID(), getEDUName(cb->getType()),
+                           cb->getName(), rc ) ;
+               }
+            }
+
+            eduMgr->waitEDU ( cb->getID () ) ;
+         }
+         else if ( !isForced && PMD_EDU_EVENT_TERM != event._eventType )
+         {
+            PD_LOG ( PDERROR, "Recieve the error event[type=%d] in "
+                     "EDU[ID:%lld, type:%s]", event._eventType, myEDUID,
+                     getEDUName(cb->getType()) ) ;
+            rc = SDB_SYS ;
+         }
+         else if ( !isForced && PMD_EDU_EVENT_TERM == event._eventType &&
+                   cb->isForced () )
+         {
+            isForced = TRUE ;
+         }
+
+         if ( !isForced )
+         {
+            pmdEduEventRelase( event, cb ) ;
+            event.reset () ;
+
+            if ( cb->isForced() )
+            {
+               isForced = TRUE ;
+            }
+         }
+
+
+#if defined ( SDB_ENGINE )
+         cb->resetMon() ;
+
+         {
+            SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+            SINT64 contextID = -1 ;
+            while ( -1 != (contextID = cb->contextPeek() ) )
+            {
+               rtnCB->contextDelete( contextID, NULL ) ;
+               PD_LOG ( PDWARNING, "EDU[%lld,%s] context[%d] leaked",
+                        myEDUID, getEDUName(type), contextID ) ;
+            }
+         }
+
+         cb->assertLocks() ;
+
+#endif // SDB_ENGINE
+
+         cb->clear() ;
+         rc = eduMgr->returnEDU ( cb->getID (), isForced, &eduDestroyed ) ;
+
+         if ( SDB_OK != rc )
+         {
+            PD_LOG ( PDERROR, "Invalid EDU Status for EDU[TID:%d, ID:%lld, "
+                     "type:%s, Name: %s]", ossGetCurrentThreadID(), myEDUID,
+                     getEDUName( type ), eduName ) ;
+         }
+         else if ( !eduDestroyed )
+         {
+            PD_LOG( PDINFO, "Push thread[%d] for EDU[ID:%lld, Type:%s, "
+                    "Name: %s] to thread pool", ossGetCurrentThreadID(),
+                    myEDUID, getEDUName( type ), eduName ) ;
+         }
+      }
+
+      if ( pmdGetEDUHook() )
+      {
+         PMD_ON_EDU_EXIT_FUNC pFunc = pmdGetEDUHook() ;
+         pFunc() ;
+      }
+      pmdUndeclareEDUCB () ;
+      PD_LOG ( PDEVENT, "Terminating thread[%d] for EDU[ID:%lld, Type:%s, "
+               "Name: %s]", ossGetCurrentThreadID(), myEDUID,
+               getEDUName( type ), eduName ) ;
+
+   #if defined (_WINDOWS)
+      if ( isHdlCreated )
+      {
+         CloseHandle( tHdl ) ;
+      }
+   #endif
+      PD_TRACE_EXITRC ( SDB_PMDEDUENTPNT, rc );
+      return rc ;
+   }
 
    static OSS_THREAD_LOCAL _pmdEDUCB *__eduCB ;
 

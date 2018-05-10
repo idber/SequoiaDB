@@ -475,21 +475,12 @@ namespace engine
       }
       case QGM_OPTI_TYPE_UPDATE:
       {
-         INT32 flag = 0 ;
-
          _qgmPlUpdate *update = NULL ;
          _qgmOptiUpdate *up = ( _qgmOptiUpdate* )logicalTree ;
-         rc = up->getHint( flag ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Fail to get hint." ) ;
-            goto error ;
-         }
 
          update = SDB_OSS_NEW _qgmPlUpdate( up->_collection,
                                             up->_modifer,
-                                            up->_condition,
-                                            flag ) ;
+                                            up->_condition ) ;
          if ( NULL == update )
          {
             PD_LOG( PDERROR, "failed to allocate mem." ) ;
@@ -1242,8 +1233,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__QGMBUILDER__BUILDUPDATE ) ;
       INT32 rc = SDB_OK ;
       SDB_ASSERT( 2 == root->children.size() ||
-                  3 == root->children.size() ||
-                  4 == root->children.size(), "impossible" ) ;
+                  3 == root->children.size(), "impossible" ) ;
 
       SQL_CON_ITR itr = root->children.begin() ;
       rc = _table->getAttr( itr, update->_collection ) ;
@@ -1264,30 +1254,11 @@ namespace engine
          update->_modifer = builder.obj() ;
       }
 
-      ++itr ;
-      for ( ; itr != root->children.end(); itr++ )
+      if ( root->children.end() != ++itr )
       {
-         INT32 type = (INT32)(itr->value.id().to_long()) ;
-         if ( SQL_GRAMMAR::WHERE == type )
+         rc = _buildCondition( itr, update->_condition ) ;
+         if ( SDB_OK != rc )
          {
-            rc = _buildCondition( itr, update->_condition ) ;
-            if ( SDB_OK != rc )
-            {
-               goto error ;
-            }
-         }
-         else if ( SQL_GRAMMAR::HINT == type )
-         {
-            rc = _addHint( itr, update ) ;
-            if ( SDB_OK != rc )
-            {
-               goto error ;
-            }
-         }
-         else
-         {
-            PD_LOG( PDERROR, "err type:%d", type ) ;
-            rc = SDB_SYS ;
             goto error ;
          }
       }
@@ -2731,41 +2702,6 @@ namespace engine
       }
    done:
       PD_TRACE_EXITRC( SDB__QGMBUILDER__ADDVALUES, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMBUILDER__ADDHINT2, "_qgmBuilder::_addHint" )
-   INT32 _qgmBuilder::_addHint( const SQL_CON_ITR &root,
-                                _qgmOptiUpdate *node )
-   {
-      PD_TRACE_ENTRY( SDB__QGMBUILDER__ADDHINT2 ) ;
-      INT32 rc = SDB_OK ;
-      SQL_CON_ITR itr = root->children.begin() ;
-      for ( ; itr != root->children.end(); itr++ )
-      {
-         INT32 type = (INT32)(itr->value.id().to_long()) ;
-         if ( SQL_GRAMMAR::FUNC == type )
-         {
-            _qgmHint hint ;
-            rc = qgmFindFieldFromFunc( QGM_VALUEPTR( itr),
-                                       QGM_VALUESIZE( itr ),
-                                       hint.value,
-                                       hint.param,
-                                       _table,
-                                       FALSE ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG( PDERROR, "failed to parse hint from itr:%d", rc ) ;
-               goto error ;
-            }
-
-            node->_hints.push_back( hint ) ;
-         }
-      }
-   done:
-      PD_TRACE_EXITRC( SDB__QGMBUILDER__ADDHINT2, rc ) ;
       return rc ;
    error:
       goto done ;

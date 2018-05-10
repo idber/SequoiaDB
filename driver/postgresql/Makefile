@@ -20,7 +20,7 @@ EXTERNAL_SOURCE = $(EXTERNAL_PATH)/client.c  $(EXTERNAL_PATH)/oss.c     $(EXTERN
                   $(EXTERNAL_PATH)/timestampValid.c                     $(EXTERNAL_PATH)/cJSON_ext.c \
                   $(EXTERNAL_PATH)/cJSON_iterator.c
 
-BSON_HEADER = $(BSON_PATH)/sdbbson.h $(BSON_PATH)/encoding.h $(BSON_PATH)/common_decimal.h $(BSON_PATH)/common_decimal_fun.h $(BSON_PATH)/common_decimal_type.h 
+BSON_HEADER = $(BSON_PATH)/sdbbson.h $(BSON_PATH)/encoding.h $(BSON_PATH)/common_decimal.h 
 
 EXTERNAL_HEADER = $(EXTERNAL_PATH)/client.h   $(EXTERNAL_PATH)/jstobs.h  $(EXTERNAL_PATH)/base64c.h \
                   $(EXTERNAL_PATH)/core.h     $(EXTERNAL_PATH)/ossErr.h  $(EXTERNAL_PATH)/ossFeat.h \
@@ -56,8 +56,6 @@ $(EXTERNAL_PATH)/timestampValid.c:  $(ENGINE_PATH)/client/timestampValid.c
 
 $(BSON_PATH)/sdbbson.h:             $(ENGINE_PATH)/client/bson/bson.h
 $(BSON_PATH)/common_decimal.h:      $(ENGINE_PATH)/include/common_decimal.h
-$(BSON_PATH)/common_decimal_fun.h:  $(ENGINE_PATH)/include/common_decimal_fun.h
-$(BSON_PATH)/common_decimal_type.h: $(ENGINE_PATH)/include/common_decimal_type.h
 $(BSON_PATH)/encoding.h:            $(ENGINE_PATH)/client/bson/encoding.h
 $(EXTERNAL_PATH)/client.h:          $(ENGINE_PATH)/client/client.h
 $(EXTERNAL_PATH)/jstobs.h:          $(ENGINE_PATH)/client/jstobs.h

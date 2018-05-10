@@ -323,11 +323,6 @@ static INT32 pdLogFileWrite ( _pdLogType type, const CHAR *pData )
 open:
 #endif // SDB_CLIENT
 
-   if ( !logFile._logFile.isExist() )
-   {
-      logFile._logFile.Close() ;
-   }
-
    if ( !logFile._logFile.isValid() )
    {
       rc = logFile._logFile.Open ( info._pdLogFile ) ;
@@ -373,6 +368,7 @@ open:
    logFile._fileSize += dataSize ;
 
 done :
+   logFile._logFile.Close() ;
    logFile._mutex.release() ;
    PD_TRACE_EXITRC ( SDB_PDLOGFILEWRITE, rc ) ;
    return rc ;

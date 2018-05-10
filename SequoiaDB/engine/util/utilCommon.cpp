@@ -234,19 +234,6 @@ namespace engine
       }
    }
 
-   const CHAR* utilDataStatusStr( BOOLEAN dataIsOK, SDB_DB_STATUS dbStatus )
-   {
-      if ( dataIsOK )
-      {
-         return SDB_DATA_NORMAL_STR ;
-      }
-      if ( SDB_DB_REBUILDING == dbStatus || SDB_DB_FULLSYNC == dbStatus )
-      {
-         return SDB_DATA_REPAIR_STR ;
-      }
-      return SDB_DATA_FAULT_STR ;
-   }
-
    std::string utilDBModeStr( UINT32 dbMode )
    {
       std::stringstream ss ;

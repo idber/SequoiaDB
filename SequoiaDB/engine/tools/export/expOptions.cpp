@@ -211,20 +211,6 @@ namespace exprt
          buf += OSS_NEWLINE ; \
       }
 
-   inline void WRITE_INT32_OPTION( string &buf, const CHAR *pOption,
-                                   INT32 value, BOOLEAN has )
-   {
-      if( has )
-      {
-         CHAR tmpBuff[32] = { 0 } ;
-         buf += pOption ;
-         buf += " = " ;
-         ossSnprintf( tmpBuff, 32, "%d", value ) ;
-         buf += tmpBuff ;
-         buf += OSS_NEWLINE ;
-      }
-   }
-
    inline void WRITE_INT64_OPTION( string &buf, const CHAR *pOption,
                                    INT64 value, BOOLEAN has )
    {

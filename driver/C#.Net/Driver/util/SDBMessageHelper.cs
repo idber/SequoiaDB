@@ -953,7 +953,7 @@ namespace SequoiaDB
         }
 
         // TODO: going to use ByteBuffer to replace it
-        static byte[] BuildOperatingLobRequest(SDBMessage sdbMessage, bool isBigEndian)
+        internal static byte[] BuildRemoveLobRequest(SDBMessage sdbMessage, bool isBigEndian)
         {
             /*
                 /// remove lob reg msg is |MsgOpLob|bsonobj|
@@ -1034,16 +1034,6 @@ namespace SequoiaDB
                 logger.Debug("Remove Lob Request string==>" + buff.ToString() + "<==");
             }
             return msgInByteArray;
-        }
-
-        internal static byte[] BuildRemoveLobRequest(SDBMessage sdbMessage, bool isBigEndian)
-        {
-            return BuildOperatingLobRequest(sdbMessage, isBigEndian);
-        }
-
-        internal static byte[] BuildTruncateLobRequest(SDBMessage sdbMessage, bool isBigEndian)
-        {
-            return BuildOperatingLobRequest(sdbMessage, isBigEndian);
         }
 
         internal static SDBMessage MsgExtractReply(byte[] inBytes, bool isBigEndian)

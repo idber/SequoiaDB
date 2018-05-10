@@ -75,11 +75,6 @@ namespace engine
    SDB_DB_STATUS utilGetDBStatusEnum( const CHAR *status ) ;
 
    /*
-      SDB_DATA_STATUS AND STRING TRANSFER
-   */
-   const CHAR* utilDataStatusStr( BOOLEAN dataIsOK, SDB_DB_STATUS dbStatus ) ;
-
-   /*
       SDB_DB_MODE AND STRING TRANSFER
    */
    string      utilDBModeStr( UINT32 dbMode ) ;

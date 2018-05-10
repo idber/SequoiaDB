@@ -44,7 +44,6 @@
 #include "optQgmOptimizer.hpp"
 #include "rtnSQLFunc.hpp"
 #include "rtnSQLFuncFactory.hpp"
-#include "rtnContextQGM.hpp"
 
 namespace engine
 {
@@ -79,8 +78,7 @@ namespace engine
    }
 
    INT32 _sqlCB::exec( const CHAR *sql, _pmdEDUCB *cb,
-                       SINT64 &contextID,
-                       BOOLEAN &needRollback )
+                       SINT64 &contextID )
    {
       SDB_ASSERT( NULL != sql, "impossible" ) ;
       INT32 rc = SDB_OK ;
@@ -156,7 +154,6 @@ namespace engine
                   "impossible" ) ;
 
       rc = container->execute( cb ) ;
-      needRollback = container->needRollback() ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to execute pty tree:%d", rc ) ;
@@ -182,8 +179,8 @@ namespace engine
       {
          SAFE_OSS_DELETE( opti ) ;
       }
-      if ( NULL != container &&
-           QGM_PLAN_TYPE_RETURN != container->type() )
+      if ( NULL != container
+           && QGM_PLAN_TYPE_RETURN != container->type() )
       {
          SAFE_OSS_DELETE( container ) ;
       }

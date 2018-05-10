@@ -79,39 +79,8 @@ public class SdbSnapshotList {
         } catch (BaseException e) {
             if (!e.getErrorType().equals("SDB_RTN_COORD_ONLY"))
                 assertTrue(false);
+            return;
         }
-
-        try {
-            sdb.beginTransaction();
-            cl.insert(new BasicBSONObject());
-            cursor = sdb.getSnapshot(Sequoiadb.SDB_SNAP_TRANSACTIONS_CURRENT, "", "", "");
-            System.out.println("result of SDB_SNAP_TRANSACTIONS_CURRENT is: ");
-            while(cursor.hasNext()){
-                System.out.println(cursor.getNext());
-            }
-            cursor = sdb.getSnapshot(Sequoiadb.SDB_SNAP_TRANSACTIONS, "", "", "");
-            System.out.println("result of SDB_SNAP_TRANSACTIONS is: ");
-            while(cursor.hasNext()){
-                System.out.println(cursor.getNext());
-            }
-        } catch(BaseException e) {
-            Assert.assertTrue(e.getErrorType().equals("SDB_DPS_TRANS_DIABLED"));
-        }finally {
-            sdb.commit();
-        }
-
-        cursor = sdb.getSnapshot(Sequoiadb.SDB_SNAP_ACCESSPLANS, "", "", "");
-        System.out.println("result of SDB_SNAP_ACCESSPLANS is: ");
-        while(cursor.hasNext()){
-            System.out.println(cursor.getNext());
-        }
-        
-        cursor = sdb.getSnapshot(Sequoiadb.SDB_SNAP_HEALTH, "", "", "");
-        System.out.println("result of SDB_SNAP_HEALTH is: ");
-        while(cursor.hasNext()){
-            System.out.println(cursor.getNext());
-        }     
-
     }
 
     @Test
@@ -167,27 +136,6 @@ public class SdbSnapshotList {
             cursor = null;
             cursor = sdb.getList(10, null, null, null);
             assertTrue(null != cursor);
-        }
-
-        try {
-            sdb.beginTransaction();
-            BSONObject dump = new BasicBSONObject();
-            BSONObject obj = new BasicBSONObject();
-            cl.insert(obj);
-            cursor = sdb.getList(Sequoiadb.SDB_LIST_TRANSACTIONS_CURRENT, dump, dump, dump);
-            System.out.println("result of SDB_LIST_TRANSACTIONS_CURRENT is: ");
-            while(cursor.hasNext()){
-                System.out.println(cursor.getNext());
-            }
-            cursor = sdb.getList(Sequoiadb.SDB_LIST_TRANSACTIONS, dump, dump, dump);
-            System.out.println("result of SDB_LIST_TRANSACTIONS is: ");
-            while(cursor.hasNext()){
-                System.out.println(cursor.getNext());
-            }
-        } catch(BaseException e) {
-            Assert.assertTrue(e.getErrorType().equals("SDB_DPS_TRANS_DIABLED"));
-        } finally {
-            sdb.commit();
         }
     }
 }

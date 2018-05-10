@@ -86,8 +86,7 @@ namespace engine
 
       pmdGetKRCB()->regEventHandler( this ) ;
 
-      if ( pmdGetKRCB()->isCBValue( SDB_CB_DPS ) &&
-           !pmdGetKRCB()->isRestore() )
+      if ( pmdGetKRCB()->isCBValue( SDB_CB_DPS ) )
       {
          UINT64 logFileSize = pmdGetOptionCB()->getReplLogFileSz() ;
          UINT32 logFileNum = pmdGetOptionCB()->getReplLogFileNum() ;
@@ -153,11 +152,6 @@ namespace engine
    {
       pmdGetKRCB()->unregEventHandler( this ) ;
       return SDB_OK ;
-   }
-
-   void dpsTransCB::onConfigChange()
-   {
-      dpsLockBucket::setLockTimeout( pmdGetOptionCB()->transTimeout() * 1000 ) ;
    }
 
    DPS_TRANS_ID dpsTransCB::allocTransID()

@@ -44,29 +44,16 @@
 #include <string>
 using namespace std ;
 
-typedef enum _SPT_CONVERT_MODE
-{
-   SPT_CONVERT_NORMAL = 0,
-   SPT_CONVERT_MATCHER,
-   SPT_CONVERT_AGGREGATE
-} SPT_CONVERT_MODE ;
-
 /*
    sptConvertor
 */
 class sptConvertor
 {
 public:
-   sptConvertor( JSContext *cx, SPT_CONVERT_MODE mode = SPT_CONVERT_NORMAL )
-   : _hasSetErrMsg( FALSE ),
-     _inMatcher( FALSE ),
-     _mode( mode ),
-     _cx( cx )
+   sptConvertor( JSContext *cx )
+   :_hasSetErrMsg( FALSE ), _cx( cx )
    {
-      if ( SPT_CONVERT_MATCHER == _mode )
-      {
-         _inMatcher = TRUE ;
-      }
+
    }
 
    ~sptConvertor()
@@ -155,8 +142,6 @@ private:
 
 private:
    BOOLEAN _hasSetErrMsg ;
-   BOOLEAN _inMatcher ;
-   SPT_CONVERT_MODE _mode ;
    JSContext *_cx ;
    string _errorMsg ;
 } ;

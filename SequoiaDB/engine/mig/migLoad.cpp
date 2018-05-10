@@ -389,14 +389,6 @@ namespace engine
 
       sendMsgToClient ( "Load start" ) ;
 
-      rc = dmsCB->writable( cb ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Database is not writable, rc = %d", rc ) ;
-         goto error;
-      }
-      writable = TRUE;
-
       rc = rtnCollectionSpaceLock ( _pParameters->pCollectionSpaceName,
                                     dmsCB,
                                     FALSE,
@@ -449,6 +441,14 @@ namespace engine
       dmsLoadExtent.setFlagLoadLoad ( mbContext->mb() ) ;
 
       mbContext->mbUnlock() ;
+
+      rc = dmsCB->writable( cb ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Database is not writable, rc = %d", rc ) ;
+         goto error;
+      }
+      writable = TRUE;
 
       dataWorker.pMaster = this ;
       dataWorker.masterEDUID = cb->getID() ;
@@ -709,8 +709,7 @@ namespace engine
          PD_LOG ( PDERROR, "memory error" ) ;
          goto error ;
       }
-      rc = su->data()->getMBContext( &mbContext, collectionID, clLID,
-                                     DMS_INVALID_CLID, -1 ) ;
+      rc = su->data()->getMBContext( &mbContext, collectionID, clLID, -1 ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Failed to get dms mb context, rc: %d", rc ) ;

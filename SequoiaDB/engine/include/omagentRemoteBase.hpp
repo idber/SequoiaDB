@@ -34,6 +34,7 @@
 #define OMAGENT_REMOTE_BASE_HPP__
 
 #include "omagentCmdBase.hpp"
+#include "cmdUsrSystemUtil.hpp"
 #include <string>
 
 using namespace bson ;
@@ -56,13 +57,34 @@ namespace engine
 
          virtual const CHAR * name() = 0 ;
 
-         virtual BOOLEAN needCheckBusiness() const { return FALSE ; }
-
       protected:
          BSONObj _optionObj ;
          BSONObj _matchObj ;
          BSONObj _valueObj ;
 
+   } ;
+
+   /*
+      _remoteHost define
+   */
+   class _remoteHost : public _remoteExec
+   {
+      public:
+         _remoteHost() ;
+
+         virtual ~_remoteHost() ;
+
+         virtual const CHAR * name() = 0 ;
+
+      protected:
+         INT32 _parseHostsFile( VEC_HOST_ITEM &vecItems, string &err ) ;
+
+         INT32 _writeHostsFile( VEC_HOST_ITEM &vecItems, string &err ) ;
+
+         INT32 _extractHosts( const CHAR *buf, VEC_HOST_ITEM &vecItems ) ;
+
+         void  _buildHostsResult( VEC_HOST_ITEM &vecItems,
+                                  bson::BSONObjBuilder &builder ) ;
    } ;
 
    /*
@@ -78,6 +100,11 @@ namespace engine
          virtual const CHAR * name() = 0 ;
 
       protected:
+         INT32 _getOmaConfFile( string &confFile ) ;
+
+         INT32 _getOmaConfInfo( const string & confFile, bson::BSONObj &conf,
+                             string &errMsg, BOOLEAN allowNotExist = FALSE  ) ;
+
          INT32  _confObj2Str( const bson::BSONObj &conf, string &str,
                               string &errMsg, const CHAR* pExcept = NULL ) ;
 
@@ -85,6 +112,19 @@ namespace engine
 
          INT32 _getNodeConfInfo( const string & confFile, bson::BSONObj &conf,
                              string &errMsg, BOOLEAN allowNotExist = FALSE  ) ;
+   } ;
+
+   class _remoteOmaGetHomePath : public _remoteExec
+   {
+      public:
+         _remoteOmaGetHomePath() ;
+
+         virtual ~_remoteOmaGetHomePath() ;
+
+         virtual const CHAR *name() = 0 ;
+
+      protected:
+         INT32 _getHomePath( string &homePath ) ;
    } ;
 }
 #endif

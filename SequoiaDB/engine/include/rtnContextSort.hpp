@@ -44,51 +44,22 @@
 
 namespace engine
 {
-   class _rtnContextSort : public _rtnContextBase,
-                           public _rtnSubContextHolder
+   class _rtnContextSort : public _rtnContextBase
    {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
    public:
       _rtnContextSort( INT64 contextID, UINT64 eduID ) ;
       virtual ~_rtnContextSort() ;
 
    public:
-      virtual std::string      name() const ;
       virtual RTN_CONTEXT_TYPE getType() const ;
       virtual _dmsStorageUnit*  getSU () { return NULL ; }
-
-      OSS_INLINE virtual optAccessPlanRuntime * getPlanRuntime ()
-      {
-         return &_planRuntime ;
-      }
-
-      OSS_INLINE virtual const optAccessPlanRuntime * getPlanRuntime () const
-      {
-         return &_planRuntime ;
-      }
-
-      OSS_INLINE const rtnContext * getSubContext () const
-      {
-         return _getSubContext() ;
-      }
-
-      OSS_INLINE BOOLEAN isInMemorySort () const
-      {
-         return _sorting.isInMemorySort() ;
-      }
-
-      OSS_INLINE const rtnReturnOptions & getReturnOptions () const
-      {
-         return _returnOptions ;
-      }
+      virtual _optAccessPlan *getPlan() { return _planForExplain ; }
 
       INT32 open( const BSONObj &orderBy,
                   rtnContext *context,
                   _pmdEDUCB *cb,
                   SINT64 numToSkip = 0,
                   SINT64 numToReturn = -1 ) ;
-
-      virtual void setQueryActivity ( BOOLEAN hitEnd ) ;
 
    protected:
       virtual INT32 _prepareData( _pmdEDUCB *cb ) ;
@@ -100,14 +71,16 @@ namespace engine
                                 rtnContext *srcContext ) ;
 
    private:
+      rtnContext* _dataContext ;
+      _pmdEDUCB * _eduCB;
       BSONObj _orderby ;
       _ixmIndexKeyGen _keyGen ;
       BOOLEAN _dataSorted ;
       _rtnSorting _sorting ;
-      SINT64 _numToSkip ;
-      SINT64 _numToReturn ;
-      rtnReturnOptions _returnOptions ;
-      optAccessPlanRuntime _planRuntime ;
+      SINT64 _skip ;
+      SINT64 _limit ;
+      _mthSelector _selector ;
+      _optAccessPlan *_planForExplain ;
    } ;
    typedef class _rtnContextSort rtnContextSort ;
 }

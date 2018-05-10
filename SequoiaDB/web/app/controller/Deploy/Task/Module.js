@@ -1,6 +1,4 @@
-﻿//@ sourceURL=Module.js
-//"use strict" ;
-(function(){
+﻿(function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
    sacApp.controllerProvider.register( 'Deploy.Task.Install.Ctrl', function( $scope, $compile, $location, $rootScope, SdbRest, SdbFunction ){
@@ -20,11 +18,7 @@
       } ;
       $scope.TaskInfo = [] ;
 
-      //输出到表格task的数据
-      $scope.NewTaskInfo = [] ;
-
       var installTask = $rootScope.tempData( 'Deploy', 'ModuleTaskID' ) ;
-      var shrink = $rootScope.tempData( 'Deploy', 'Shrink' ) ;
       $scope.DeployType  = $rootScope.tempData( 'Deploy', 'Model' ) ;
       $scope.ModuleType  = $rootScope.tempData( 'Deploy', 'Module' ) ;
       if( $scope.DeployType == null || $scope.ModuleType == null || installTask == null )
@@ -35,19 +29,7 @@
 
       if( $scope.DeployType != 'Task' )
       {
-         if( shrink == true )
-         {
-            $scope.stepList = _Deploy.BuildSdbShrinkStep( $scope, $location, $scope['Url']['Action'], 'sequoiadb' ) ;
-         }
-         else if( $scope.ModuleType == 'sequoiasql-oltp' )
-         {
-            $scope.stepList = _Deploy.BuildSdbOltpStep( $scope, $location, $scope['Url']['Action'] ) ;
-         }
-         else
-         {
-            $scope.stepList = _Deploy.BuildSdbStep( $scope, $location, $scope.DeployType, $scope['Url']['Action'], $scope.ModuleType ) ;
-         }
-
+         $scope.stepList = _Deploy.BuildSdbStep( $scope, $location, $scope.DeployType, $scope['Url']['Action'], $scope.ModuleType ) ;
          if( $scope.DeployType != 'Task' && $scope.stepList['info'].length == 0 )
          {
             $location.path( '/Deploy/Index' ).search( { 'r': new Date().getTime() } ) ;
@@ -69,13 +51,13 @@
                'Flow':           $scope.autoLanguage( '描述' )
             } ;
             $scope.TaskTable['options']['width'] = {
-               'Status':         '24px',
-               'HostName':       '25%',
-               'svcname':        '15%',
-               'role':           '100px',
-               'datagroupname':  '15%',
-               'StatusDesc':     '10%',
-               'Flow':           '35%'
+               'Status': '24px',
+               'HostName': '25%',
+               'svcname': '15%',
+               'role': '100px',
+               'datagroupname': '15%',
+               'StatusDesc': '10%',
+               'Flow': '35%'
             } ;
          }
          else if( moduleType == 'sequoiasql' )
@@ -88,43 +70,28 @@
                'Flow':           $scope.autoLanguage( '描述' )
             } ;
             $scope.TaskTable['options']['width'] = {
-               'Status':      '24px',
-               'HostName':    '30%',
-               'role':        '20%',
-               'StatusDesc':  '20%',
-               'Flow':        '30%'
+               'Status': '24px',
+               'HostName': '30%',
+               'role': '20%',
+               'StatusDesc': '20%',
+               'Flow': '30%'
             } ;
          }
          else if( moduleType == 'zookeeper' )
          {
             $scope.TaskTable['title'] = {
                'Status':         '',
-               'zooid':          $scope.autoLanguage( '节点Id' ),
-               'HostName':       $scope.autoLanguage( '主机名' ),
+               'HostName':       $scope.autoLanguage( '节点Id' ),
+               'svcname':        $scope.autoLanguage( '主机名' ),
                'StatusDesc':     $scope.autoLanguage( '状态' ),
                'Flow':           $scope.autoLanguage( '描述' )
             } ;
             $scope.TaskTable['options']['width'] = {
-               'Status':      '24px',
-               'zooid':       '30%',
-               'HostName':    '15%',
-               'StatusDesc':  '15%',
-               'Flow':        '40%'
-            } ;
-         }
-         else if( moduleType == 'sequoiasql-oltp' )
-         {
-            $scope.TaskTable['title'] = {
-               'Status':         '',
-               'HostName':       $scope.autoLanguage( '主机名' ),
-               'StatusDesc':     $scope.autoLanguage( '状态' ),
-               'Flow':           $scope.autoLanguage( '描述' )
-            } ;
-            $scope.TaskTable['options']['width'] = {
-               'Status':      '24px',
-               'HostName':    '35%',
-               'StatusDesc':  '30%',
-               'Flow':        '35%'
+               'Status': '24px',
+               'HostName': '30%',
+               'svcname': '15%',
+               'StatusDesc': '15%',
+               'Flow': '40%'
             } ;
          }
       }
@@ -145,10 +112,6 @@
          {
             $location.path( '/Deploy/ZKP-Mod' ).search( { 'r': new Date().getTime() } ) ;
          }
-         else if( $scope.ModuleType == 'sequoiasql-oltp' )
-         {
-            $location.path( '/Deploy/OLTP-Mod' ).search( { 'r': new Date().getTime() } ) ;
-         }
       }
 
       //返回
@@ -164,34 +127,45 @@
          }
       }
 
-      //获取日志 弹窗
-      $scope.GetLogWindow = {
-         'config': {},
-         'callback': {}
-      } ;
-
-      //打开 获取日志 弹窗
-      $scope.ShowGetLog = function(){
+      //获取日志
+      $scope.GetLog = function(){
          var data = { 'cmd': 'get log', 'name': './task/' + installTask + '.log' } ;
+         var pre = null ;
+         var div = null ;
          SdbRest.GetLog( data, function( logstr ){
             var browser = SdbFunction.getBrowserInfo() ;
             if( browser[0] == 'ie' && browser[1] == 7 )
             {
                logstr = logstr.replace( /\n/gi, '\n\r' ) ;
             }
-            $scope.Logstr = logstr ;
+            $scope.Components.Modal.icon = '' ;
+            $scope.Components.Modal.title = $scope.autoLanguage( '日志' ) ;
+            $scope.Components.Modal.isShow = true ;
+            $scope.Components.Modal.Context = function( bodyEle ){
+               pre = $( '<pre></pre>' ).text( logstr ).css( {
+                  'padding': '10px',
+                  'margin': '0',
+                  'white-space': 'pre-wrap'
+               } ) ;
+               div = $( '<div></div>' ).addClass( 'well' ).append( pre ).css( { 'overflow-y': 'auto' } ) ;
+               $( bodyEle ).html( div ) ;
+            }
+            $scope.Components.Modal.onResize = function( width, height ){
+               if( div !== null )
+               {
+                  div.css( { 'height': height - 5 } ) ;
+               }
+            }
+            $scope.Components.Modal.ok = function(){
+               return true ;
+            }
          }, function(){
             _IndexPublic.createRetryModel( $scope, null, function(){
-               $scope.ShowGetLog() ;
+               $scope.GetLog() ;
                return true ;
             }, $scope.autoLanguage( '错误' ), $scope.autoLanguage( '获取日志失败。' ) ) ;
          } ) ;
-         $scope.GetLogWindow['callback']['SetOkButton']( $scope.autoLanguage( '确定' ) ) ;
-         $scope.GetLogWindow['callback']['SetTitle']( $scope.autoLanguage( '日志' ) ) ;
-         $scope.GetLogWindow['callback']['Open']() ;
       }
-
-      var firstTime = true ;
 
       //循环查询任务信息
       var queryTask = function( taskID ){
@@ -207,7 +181,18 @@
                   //因为从任务管理器跳转进来的，是不知道任务是什么业务的，所以通过字段来判断
                   if( $scope.ModuleType == 'None' )
                   {
-                     $scope.ModuleType = taskInfo[0]['Info']['BusinessType'] ;
+                     if( typeof( $scope.TaskInfo['ResultInfo'][0]['role'] ) != 'undefined' && typeof( $scope.TaskInfo['ResultInfo'][0]['svcname'] ) != 'undefined' )
+                     {
+                        $scope.ModuleType = 'sequoiadb' ;
+                     }
+                     else if( typeof( $scope.TaskInfo['ResultInfo'][0]['role'] ) != 'undefined' )
+                     {
+                        $scope.ModuleType = 'sequoiasql' ;
+                     }
+                     else if( typeof( $scope.TaskInfo['ResultInfo'][0]['zooid'] ) != 'undefined' )
+                     {
+                        $scope.ModuleType = 'zookeeper' ;
+                     }
                      setTaskTable( $scope.ModuleType ) ;
                   }
 
@@ -240,7 +225,7 @@
                         $scope.BarColor = 2 ;
                      }
                   }
-                  else if( $scope.ModuleType == 'zookeeper' || $scope.ModuleType == 'sequoiasql' || $scope.ModuleType == 'sequoiasql-oltp' )
+                  else if( $scope.ModuleType == 'zookeeper' || $scope.ModuleType == 'sequoiasql' )
                   {
                      $.each( $scope.TaskInfo['ResultInfo'], function( index, nodeInfo ){
                         if( nodeInfo['errno'] != 0 )
@@ -316,29 +301,7 @@
                         $scope.TaskInfo['Progress'] = 90 ;
                      }
                   }
-                  
-                  if( firstTime == true )
-                  {
-                     $scope.NewTaskInfo = $scope.TaskInfo ;
-                  }
-                  $.each( $scope.NewTaskInfo['ResultInfo'], function( index, hostInfo ){
-                     if( hostInfo['Status'] == $scope.TaskInfo['ResultInfo'][index]['Status'] && hostInfo['errno'] == $scope.TaskInfo['ResultInfo'][index]['errno'] )
-                     {
-                        $scope.NewTaskInfo['ResultInfo'][index]['StatusDesc'] = $scope.TaskInfo['ResultInfo'][index]['StatusDesc'] ;
-                        $scope.NewTaskInfo['ResultInfo'][index]['detail'] = $scope.TaskInfo['ResultInfo'][index]['detail'] ;
-                        $scope.NewTaskInfo['ResultInfo'][index]['Flow'] = $scope.TaskInfo['ResultInfo'][index]['Flow'] ;
-                     }
-                     else
-                     {
-                        $scope.NewTaskInfo['ResultInfo'][index]['Status'] = $scope.TaskInfo['ResultInfo'][index]['Status'] ;
-                        $scope.NewTaskInfo['ResultInfo'][index]['StatusDesc'] = $scope.TaskInfo['ResultInfo'][index]['StatusDesc'] ;
-                        $scope.NewTaskInfo['ResultInfo'][index]['detail'] = $scope.TaskInfo['ResultInfo'][index]['detail'] ;
-                        $scope.NewTaskInfo['ResultInfo'][index]['Flow'] = $scope.TaskInfo['ResultInfo'][index]['Flow'] ;
-                        $scope.NewTaskInfo['ResultInfo'][index]['errno'] = $scope.TaskInfo['ResultInfo'][index]['errno'] ;
-                     }
-                  } ) ;
-
-                  firstTime = false ;
+               
                   $rootScope.bindResize() ;
                   $scope.$apply() ;
 

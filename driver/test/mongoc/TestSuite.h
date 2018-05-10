@@ -44,6 +44,7 @@ extern "C" {
                          "%s:%d  %s()\n", \
                          a, #eq, b, \
                          __FILE__, __LINE__, __FUNCTION__); \
+         suite.failurenum += 1; \
          output_report(&suite);\
          abort(); \
       } \
@@ -56,6 +57,7 @@ extern "C" {
                          "%s:%d  %s()\n", \
                          a, #eq, b, \
                          __FILE__, __LINE__, __FUNCTION__); \
+         suite.failurenum += 1; \
          output_report(&suite);\
          abort(); \
       } \
@@ -67,6 +69,7 @@ extern "C" {
       if (((a) != (b)) && !!strcmp((a), (b))) { \
          fprintf(stderr, "FAIL\n\nAssert Failure: \"%s\" != \"%s\"\n", \
                          a, b); \
+         suite.failurenum += 1; \ 
          output_report(&suite);\
          abort(); \
       } \
@@ -86,6 +89,8 @@ struct _Test
    int exit_code;
    unsigned seed;
    int (*check) (void);
+   int isbegin;
+   void * starttime;
 };
 
 
@@ -103,6 +108,7 @@ struct _TestSuite
    int failurenum;
    int errornum;
    void * reportnodes;
+   void * starttime;
 };
 
 typedef struct _XmlNode XmlNode;

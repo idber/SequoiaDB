@@ -480,12 +480,10 @@ class client(object):
                     8     : Get catalog's snapshot
                     9     : Get transactions' snapshot
                     10    : Get current session's transaction snapshot
-                    11    : Get cached access plan snapshot
-                    12    : Get node health detection snapshot
         """
         if not isinstance(snap_type, int):
             raise SDBTypeError("snap type must be an instance of int")
-        if snap_type < 0 or snap_type > 12:
+        if snap_type < 0 or snap_type > 10:
             raise SDBTypeError("snap_type value is invalid")
 
         bson_condition = None
@@ -516,39 +514,28 @@ class client(object):
 
         return result
 
-    def reset_snapshot(self, options=None):
+    def reset_snapshot(self, condition=None):
         """Reset the snapshot.
 
         Parameters:
            Name         Type     Info:
-           options      dict     The control options:
-                                 Type:
-                                    (Int32) Specify the snapshot type to be reset (default is "all"):
-                                    "sessions"
-                                    "sessions current"
-                                    "database"
-                                    "health"
-                                    "all"
-                                 SessionID:
-                                    (String) Specify the session ID to be reset.
-                                 Others options:
-                                    Some of other options are as below:(please visit the official website to search "Location Elements" for more detail.)
-                                    GroupID:INT32,
-                                    GroupName:String,
-                                    NodeID:INT32,
-                                    HostName:String,
-                                    svcname:String,
-                                    ...
+           condition    dict     The control options are as below:(please visit the official website to search "Location Elements" for more detail.)
+                                       GroupID:INT32,
+                                       GroupName:String,
+                                       NodeID:INT32,
+                                       HostName:String,
+                                       svcname:String,
+                                       ...
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
-        if options is None:
-            options = {}
-        if not isinstance(options, dict):
-            raise SDBTypeError("options must be an instance of dict")
-        bson_options = bson.BSON.encode(options)
+        bson_condition = None
+        if condition is not None:
+            if not isinstance(condition, dict):
+                raise SDBTypeError("condition must be an instance of dict")
+            bson_condition = bson.BSON.encode(condition)
 
-        rc = sdb.sdb_reset_snapshot(self._client, bson_options)
+        rc = sdb.sdb_reset_snapshot(self._client, bson_condition)
         raise_if_error(rc, "Failed to reset snapshot")
 
     def get_list(self, list_type, **kwargs):
@@ -1575,77 +1562,4 @@ class client(object):
             raise
 
         return dm
-
-    def sync(self, options=None):
-        """Sync database which are specified.
-
-        Parameters:
-           Name         Type     Info:
-           options      dict     The control options:
-                                 Deep:
-                                     (INT32) Flush with deep mode or not. 1 in default.
-                                     0 for non-deep mode,1 for deep mode,-1 means use the configuration with server
-                                 Block:
-                                     (Bool) Flush with block mode or not. false in default.
-                                 CollectionSpace:
-                                     (String) Specify the collectionspace to sync.
-                                     If not set, will sync all the collectionspaces and logs,
-                                     otherwise, will only sync the collectionspace specified.
-                                 Others:(Only take effect in coordinate nodes)
-                                     GroupID:INT32,
-                                     GroupName:String,
-                                     NodeID:INT32,
-                                     HostName:String,
-                                     svcname:String
-                                     ...
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        bson_options = None
-        if options is not None:
-            if not isinstance(options, dict):
-                raise SDBTypeError("options must be an instance of dict")
-            bson_options = bson.BSON.encode(options)
-
-        rc = sdb.sdb_sync(self._client, bson_options)
-        raise_if_error(rc, "Failed to sync")
-
-    def analyze(self, options=None):
-        """Analyze collection or index to collect statistics information
-
-        Parameters:
-           Name         Type     Info:
-           options      dict     The control options:
-                                 CollectionSpace:
-                                    (String) Specify the collection space to be analyzed.
-                                 Collection:
-                                    (String) Specify the collection to be analyzed.
-                                 Index:
-                                    (String) Specify the index to be analyzed.
-                                 Mode:
-                                    (Int32) Specify the analyze mode (default is 1):
-                                    Mode 1 will analyze with data samples.
-                                    Mode 2 will analyze with full data.
-                                    Mode 3 will generate default statistics.
-                                    Mode 4 will reload statistics into memory cache.
-                                    Mode 5 will clear statistics from memory cache.
-                                 Others:
-                                    Only take effect in coordinate nodes)
-                                    GroupID:INT32,
-                                    GroupName:String,
-                                    NodeID:INT32,
-                                    HostName:String,
-                                    svcname:String,
-                                    ...
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        bson_options = None
-        if options is not None:
-            if not isinstance(options, dict):
-                raise SDBTypeError("options must be an instance of dict")
-            bson_options = bson.BSON.encode(options)
-
-        rc = sdb.sdb_analyze(self._client, bson_options)
-        raise_if_error(rc, "Failed to analyze")
 

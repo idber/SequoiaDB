@@ -1,8 +1,7 @@
-//@ sourceURL=GroupList.js
 (function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
-   sacApp.controllerProvider.register( 'Monitor.SdbOverview.Index.Ctrl', function( $scope, $compile, $rootScope, $location, SdbRest, SdbFunction ){
+   sacApp.controllerProvider.register( 'Monitor.SdbOverview.Index.Ctrl', function( $scope, $compile, $location, SdbRest, SdbFunction ){
       
       _IndexPublic.checkMonitorEdition( $location ) ; //检测是不是企业版
 
@@ -48,7 +47,7 @@
          'callback': {}
       } ;
 
-      //启动分区组 弹窗
+      //启动分区组的窗口
       $scope.StartGroup = {
          'config': {
             'select': [],
@@ -57,7 +56,7 @@
          'callback': {}
       } ;
 
-      //停止分区组 弹窗
+      //停止分区组的窗口
       $scope.StopGroup = {
          'config': {
             'select': [],
@@ -66,47 +65,29 @@
          'callback': {}
       } ;
 
-
-      //跳转至扩容
-      $scope.GotoExtend = function(){
-         $rootScope.tempData( 'Deploy', 'Model', 'Module' ) ;
-         $rootScope.tempData( 'Deploy', 'Module', 'sequoiadb' ) ;
-         $rootScope.tempData( 'Deploy', 'ModuleName', moduleName ) ;
-         $rootScope.tempData( 'Deploy', 'ClusterName', clusterName ) ;
-         $rootScope.tempData( 'Deploy', 'ExtendMode', 'horizontal' ) ;
-         $rootScope.tempData( 'Deploy', 'DeployMod', 'distribution' ) ;
-         $location.path( '/Deploy/SDB-ExtendConf' ).search( { 'r': new Date().getTime() } ) ;
-      }
-
       //开启分区组
       var startGroup = function( groupName ){
          var data = { 'cmd': 'start group', 'name': groupName } ;
-         SdbRest.DataOperation( data, {
-            'success': function(){
-               getGroupList() ;
-            },
-            'failed': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  startNode( groupName ) ;
-                  return true ;
-               } ) ;
-            }
+         SdbRest.DataOperation( data, function(){
+            getGroupList() ;
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               startNode( groupName ) ;
+               return true ;
+            } ) ;
          } ) ;
       } ;
 
       //停止分区组
       var stopGroup = function( groupName ){
          var data = { 'cmd': 'stop group', 'name': groupName } ;
-         SdbRest.DataOperation( data,{
-            'success': function(){
-               getGroupList() ;
-            },
-            'failed': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  stopGroup( groupName ) ;
-                  return true ;
-               } ) ;
-            }
+         SdbRest.DataOperation( data, function(){
+            getGroupList() ;
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               stopGroup( groupName ) ;
+               return true ;
+            } ) ;
          } ) ;
       } ;
 
@@ -171,8 +152,6 @@
                   return true ;
                } ) ;
             }
-         },{
-            'showLoading': false
          } ) ;
       }
       
@@ -303,27 +282,20 @@
                   return true ;
                } ) ;
             }
-         },{
-            'showLoading': false
          } ) ;
       }
 
       //获取分区组列表
       var getGroupList = function(){
          var data = { 'cmd': 'list groups' } ;
-         SdbRest.DataOperation( data, {
-            'success':function( groups ){
-               $scope.GroupList = groups ;
-               getClInfo() ;
-            },
-            'failed': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  getGroupList() ;
-                  return true ;
-               } ) ;
-            }
-         },{
-            'showLoading': false
+         SdbRest.DataOperation( data, function( groups ){
+            $scope.GroupList = groups ;
+            getClInfo() ;
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               getGroupList() ;
+               return true ;
+            } ) ;
          } ) ;
       }
 

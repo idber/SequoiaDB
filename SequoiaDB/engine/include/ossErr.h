@@ -355,16 +355,10 @@ const CHAR* getErrDesp ( INT32 errCode );
 #define SDB_UTIL_COMPRESS_BUFF_SMALL     -305  /**< Buffer for compression is too small */
 #define SDB_UTIL_DECOMPRESS_BUFF_SMALL   -306  /**< Buffer for decompression is too small */
 #define SDB_OSS_UP_TO_LIMIT              -307  /**< Up to the limit */
-#define SDB_DS_NOT_ENABLE                -308  /**< data source is not enabled yet */
-#define SDB_DS_NO_REACHABLE_COORD        -309  /**< No reachable coord notes */
+#define SDB_DS_NOTINIT_OR_DISABLED       -308  /**< sdbDataSource not init or disabled */
+#define SDB_DS_NO_COORD                  -309  /**< sdbDataSource has no valid coord */
 #define SDB_RULE_ID_IS_NOT_EXIST         -310  /**< the record which exclusive ruleID is not exist */
 #define SDB_STRTGY_TASK_NAME_CONFLICT    -311  /**< Task name conflict */
 #define SDB_STRTGY_TASK_NOT_EXISTED      -312  /**< The task is not existed */
 #define SDB_DPS_LOG_NOT_ARCHIVED         -313  /**< Replica log is not archived */
-#define SDB_DS_NOT_INIT                  -314  /**< Data source has not been initialized */
-#define SDB_OPERATION_INCOMPATIBLE       -315  /**< Operation is incompatible with the object */
-#define SDB_CAT_CLUSTER_IS_DEACTIVED     -316  /**< This cluster is deactived */
-#define SDB_LOB_IS_IN_USE                -317  /**< LOB is in use */
-#define SDB_VALUE_OVERFLOW               -318  /**< Data operation is overflowed */
-#define SDB_LOB_PIECESINFO_OVERFLOW      -319  /**< LOB's pieces info is overflowed */
 #endif /* OSSERR_H_ */

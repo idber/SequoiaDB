@@ -48,7 +48,6 @@
 #include "pmdStartup.hpp"
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
-#include "rtnExtDataHandler.hpp"
 
 namespace fs = boost::filesystem ;
 namespace engine
@@ -207,29 +206,6 @@ namespace engine
                  "Unexpected field type : %s, supposed to be number",
                  obj.toString().c_str()) ;
       value = ele.numberLong() ;
-   done :
-      PD_TRACE_EXITRC ( SDB_RTNGETLONGELE, rc );
-      return rc ;
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNGETDOUBLEELE, "rtnGetDoubleElement" )
-   INT32 rtnGetDoubleElement ( const BSONObj &obj, const CHAR *fieldName,
-                               double &value )
-   {
-      SINT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_RTNGETLONGELE );
-      SDB_ASSERT ( fieldName, "field name can't be NULL" ) ;
-      BSONElement ele = obj.getField ( fieldName ) ;
-      PD_CHECK ( !ele.eoo(), SDB_FIELD_NOT_EXIST, error, PDDEBUG,
-                 "Can't locate field '%s': %s",
-                 fieldName,
-                 obj.toString().c_str() ) ;
-      PD_CHECK ( ele.isNumber(), SDB_INVALIDARG, error, PDDEBUG,
-                 "Unexpected field type : %s, supposed to be number",
-                 obj.toString().c_str()) ;
-      value = ele.numberDouble() ;
    done :
       PD_TRACE_EXITRC ( SDB_RTNGETLONGELE, rc );
       return rc ;
@@ -429,6 +405,7 @@ namespace engine
 
       dmsStorageUnit *su = NULL ;
       dmsStorageUnitID suID = DMS_INVALID_SUID ;
+      UINT32 clLID = DMS_INVALID_CLID ;
       dmsMBContext *context = NULL ;
       dmsMB *mb = NULL ;
 
@@ -442,10 +419,7 @@ namespace engine
 
       for ( UINT16 mbID = 0; mbID < DMS_MME_SLOTS; ++mbID )
       {
-         rc = su->data()->getMBContext( &context, mbID,
-                                        DMS_INVALID_CLID,
-                                        DMS_INVALID_CLID,
-                                        SHARED ) ;
+         rc = su->data()->getMBContext( &context, mbID, clLID, SHARED ) ;
          if ( rc )
          {
             if ( SDB_DMS_NOTEXIST == rc )
@@ -506,7 +480,6 @@ namespace engine
                                   const CHAR *indexPath,
                                   const CHAR *lobPath,
                                   const CHAR *lobMetaPath,
-                                  pmdEDUCB *cb,
                                   SDB_DMSCB *dmsCB,
                                   BOOLEAN checkOnly )
    {
@@ -551,11 +524,7 @@ namespace engine
                      {
                         storageUnit = SDB_OSS_NEW dmsStorageUnit ( csName,
                                                                    sequence,
-                                                                   pmdGetBuffPool(),
-                                                                   DMS_PAGE_SIZE_DFT,
-                                                                   DMS_DEFAULT_LOB_PAGE_SZ,
-                                                                   DMS_STORAGE_NORMAL,
-                                                                   rtnGetExtDataHandler() ) ;
+                                                                   pmdGetBuffPool() ) ;
                         if ( !storageUnit )
                         {
                            PD_LOG_MSG ( PDERROR, "Failed to allocate "
@@ -582,10 +551,9 @@ namespace engine
                                                     optCB->getSyncRecordNum(),
                                                     optCB->getSyncDirtyRatio() ) ;
                         storageUnit->setSyncDeep( optCB->isSyncDeep() ) ;
-
                         rc = dmsCB->addCollectionSpace ( csName, sequence,
                                                          storageUnit, NULL,
-                                                         NULL, FALSE ) ;
+                                                         NULL ) ;
                         if ( rc )
                         {
                            SDB_OSS_DEL storageUnit ;
@@ -603,9 +571,7 @@ namespace engine
                            }
                            continue ;
                         }
-
                         storageUnit = NULL ;
-
                         /*
                          * Scan all the collections, to check if any one should be
                          * put into the dictionary creating list. This should be
@@ -691,13 +657,10 @@ namespace engine
                                                          DMS_SU_FILENAME_SZ,
                                                          sequence ) )
                   {
+                     PD_LOG ( PDDEBUG, "Candidate Filename: %s", pFileName ) ;
                      storageUnit = SDB_OSS_NEW dmsStorageUnit ( csName,
                                                                 sequence,
-                                                                pmdGetBuffPool(),
-                                                                DMS_PAGE_SIZE_DFT,
-                                                                DMS_DEFAULT_LOB_PAGE_SZ,
-                                                                DMS_STORAGE_NORMAL,
-                                                                rtnGetExtDataHandler()) ;
+                                                                pmdGetBuffPool() ) ;
                      PD_CHECK ( storageUnit, SDB_OOM, error, PDERROR,
                                 "Failed to allocate dmsStorageUnit for %s",
                                 dir_iter->path().string().c_str() ) ;
@@ -724,7 +687,7 @@ namespace engine
                      storageUnit->setSyncDeep( optCB->isSyncDeep() ) ;
                      rc = dmsCB->addCollectionSpace ( csName, sequence,
                                                       storageUnit, NULL,
-                                                      NULL, FALSE ) ;
+                                                      NULL ) ;
                      if ( rc )
                      {
                         SDB_OSS_DEL storageUnit ;
@@ -734,8 +697,6 @@ namespace engine
                         PMD_RESTART_DB( rc ) ;
                         goto error ;
                      }
-
-
                      storageUnit = NULL ;
 
                      /*
@@ -974,7 +935,7 @@ namespace engine
                                        pmdGetOptionCB()->getIndexPath(),
                                        pmdGetOptionCB()->getLobPath(),
                                        pmdGetOptionCB()->getLobMetaPath(),
-                                       NULL, dmsCB, FALSE ) ;
+                                       dmsCB, FALSE ) ;
          if ( rc )
          {
             PD_LOG_MSG ( PDERROR, "Unable to load collection %s from %s",
@@ -996,9 +957,7 @@ namespace engine
                                            SDB_DMSCB *dmsCB,
                                            dmsStorageUnit **ppsu,
                                            const CHAR **ppCollectionName,
-                                           dmsStorageUnitID &suID,
-                                           OSS_LATCH_MODE lockType,
-                                           INT32 millisec )
+                                           dmsStorageUnitID &suID )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNRESOLVECLNAL );
@@ -1038,7 +997,7 @@ namespace engine
       }
 
       rc = rtnCollectionSpaceLock ( strCollectionFullName, dmsCB,
-                                    FALSE, ppsu, suID, lockType, millisec ) ;
+                                    FALSE, ppsu, suID ) ;
       if ( rc )
       {
          PD_LOG ( PDINFO, "Failed to lock collection space %s, rc: %d",
@@ -1267,7 +1226,7 @@ namespace engine
    }
 
    INT32 rtnGetIXScanner ( const CHAR *pCollectionShortName,
-                           optAccessPlanRuntime *planRuntime,
+                           optAccessPlan *plan,
                            dmsStorageUnit *su,
                            dmsMBContext *mbContext,
                            pmdEDUCB *cb,
@@ -1279,11 +1238,12 @@ namespace engine
       SDB_ASSERT ( pCollectionShortName, "collection name can't be NULL" ) ;
       SDB_ASSERT ( su, "su can't be NULL" ) ;
       SDB_ASSERT ( cb, "cb can't be NULL" ) ;
-      SDB_ASSERT ( planRuntime, "planRuntime can't be NULL" ) ;
+      SDB_ASSERT ( plan, "plan can't be NULL" ) ;
       SDB_ASSERT ( mbContext, "mb context can't be NULL" ) ;
       SDB_ASSERT ( ppScanner, "Scanner can't be NULL" ) ;
 
-      mthMatchRuntime *matchRuntime = NULL ;
+      rtnPredicateList *predList = NULL ;
+      _mthMatchTree *matcher     = NULL ;
       rtnIXScanner * scanner     = NULL ;
 
       rc = mbContext->mbLock( SHARED ) ;
@@ -1295,28 +1255,29 @@ namespace engine
       }
 
       {
-         rtnPredicateList *predList = NULL ;
-         ixmIndexCB indexCB ( planRuntime->getIndexCBExtent(), su->index(), NULL ) ;
+         ixmIndexCB indexCB ( plan->getIndexCBExtent(), su->index(), NULL ) ;
          if ( !indexCB.isInitialized() )
          {
             PD_LOG ( PDERROR, "unable to get proper index control block" ) ;
             rc = SDB_SYS ;
             goto error ;
          }
-         if ( indexCB.getLogicalID() != planRuntime->getIndexLID() )
+         if ( indexCB.getLogicalID() != plan->getIndexLID() )
          {
             PD_LOG( PDERROR, "Index[extent id: %d] logical id[%d] is not "
-                    "expected[%d]", planRuntime->getIndexCBExtent(),
-                    indexCB.getLogicalID(), planRuntime->getIndexLID() ) ;
+                    "expected[%d]", plan->getIndexCBExtent(),
+                    indexCB.getLogicalID(), plan->getIndexLID() ) ;
             rc = SDB_IXM_NOTEXIST ;
             goto error ;
          }
 
-         predList = planRuntime->getPredList() ;
+         predList = plan->getPredList() ;
          SDB_ASSERT ( predList, "predList can't be NULL" ) ;
-
-         matchRuntime = planRuntime->getMatchRuntime( TRUE ) ;
-
+         if ( plan->getMatcher().isInitialized() &&
+              FALSE == plan->getMatcher().isMatchesAll() )
+         {
+            matcher = &plan->getMatcher() ;
+         }
          scanner = SDB_OSS_NEW rtnIXScanner ( &indexCB, predList, su, cb ) ;
          if ( !scanner )
          {
@@ -1327,8 +1288,8 @@ namespace engine
       }
       mbContext->mbUnlock() ;
 
-      *ppScanner = SDB_OSS_NEW dmsIXScanner( su->data(), mbContext,
-                                             matchRuntime, scanner, TRUE,
+      *ppScanner = SDB_OSS_NEW dmsIXScanner( su->data(), mbContext, matcher,
+                                             scanner, TRUE,
                                              accessType ) ;
       if ( !(*ppScanner) )
       {
@@ -1350,7 +1311,7 @@ namespace engine
    }
 
    INT32 rtnGetTBScanner ( const CHAR *pCollectionShortName,
-                           optAccessPlanRuntime *planRuntime,
+                           _mthMatchTree &matcher,
                            dmsStorageUnit *su,
                            dmsMBContext *mbContext,
                            pmdEDUCB *cb,
@@ -1358,7 +1319,7 @@ namespace engine
                            DMS_ACCESS_TYPE accessType )
    {
       INT32 rc                 = SDB_OK ;
-      mthMatchRuntime *matchRuntime = planRuntime->getMatchRuntime() ;
+      _mthMatchTree *pMatcher  = matcher.isMatchesAll() ? NULL : &matcher ;
 
       SDB_ASSERT ( pCollectionShortName, "collection name can't be NULL" ) ;
       SDB_ASSERT ( su, "su can't be NULL" ) ;
@@ -1366,8 +1327,8 @@ namespace engine
       SDB_ASSERT ( cb, "cb can't be NULL" ) ;
       SDB_ASSERT ( ppScanner, "scanner can't be NULL" ) ;
 
-      *ppScanner = SDB_OSS_NEW dmsTBScanner( su->data(), mbContext,
-                                             matchRuntime, accessType ) ;
+      *ppScanner = SDB_OSS_NEW dmsTBScanner( su->data(), mbContext, pMatcher,
+                                             accessType ) ;
       if ( !(*ppScanner) )
       {
          PD_LOG( PDERROR, "Unable to allocate memory for dms tbscanner" ) ;
@@ -1432,7 +1393,7 @@ namespace engine
       UINT64 beginTick = pmdGetDBTick() ;
       DPS_LSN commitLSN ;
       BOOLEAN sync = FALSE ;
-      MON_CS_LIST allCS ;
+      std::set<monCollectionSpace> allCS ;
       BOOLEAN dmsLocked = FALSE ;
       BOOLEAN syncSpecCS = FALSE ;
       UINT32 syncCSNum = 0 ;
@@ -1487,7 +1448,7 @@ namespace engine
 
       dmsCB->dumpInfo( allCS, TRUE ) ;
 
-      for ( MON_CS_LIST::const_iterator itr = allCS.begin() ;
+      for ( std::set<monCollectionSpace>::const_iterator itr = allCS.begin() ;
             itr != allCS.end() ;
             ++itr )
       {
@@ -1570,212 +1531,6 @@ namespace engine
       PD_TRACE_EXITRC( SDB_RTNSYNCDB, rc ) ;
       return rc ;
    error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNTESTCRTCL, "rtnTestAndCreateCL" )
-   INT32 rtnTestAndCreateCL ( const CHAR *pCLFullName, pmdEDUCB *cb,
-                              _SDB_DMSCB *dmsCB, _dpsLogWrapper *dpsCB,
-                              BOOLEAN sys )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_RTNTESTCRTCL ) ;
-
-      rc = rtnTestCollectionCommand( pCLFullName, dmsCB ) ;
-      if ( SDB_DMS_CS_NOTEXIST == rc || SDB_DMS_NOTEXIST == rc )
-      {
-         rc = rtnCreateCollectionCommand( pCLFullName, 0, cb, dmsCB, dpsCB,
-                                          UTIL_COMPRESSOR_INVALID,
-                                          FLG_CREATE_WHEN_NOT_EXIST, sys ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to create collection[%s], rc: %d",
-                      pCLFullName, rc ) ;
-      }
-      else if ( rc )
-      {
-         PD_LOG( PDERROR, "Test collection[%s] failed, rc: %d", pCLFullName,
-                 rc ) ;
-         goto error ;
-      }
-
-   done :
-      PD_TRACE_EXITRC( SDB_RTNTESTCRTCL, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNTESTCRTIDX, "rtnTestAndCreateIndex" )
-   INT32 rtnTestAndCreateIndex ( const CHAR *pCLFullName,
-                                 const BSONObj &indexDef,
-                                 pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
-                                 _dpsLogWrapper *dpsCB, BOOLEAN sys,
-                                 INT32 sortBufferSize )
-   {
-      INT32 rc          = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB_RTNTESTCRTIDX ) ;
-
-      BOOLEAN isSame    = FALSE ;
-
-      try
-      {
-         rc = rtnTestIndex( pCLFullName, "", dmsCB, &indexDef, &isSame ) ;
-         if ( SDB_IXM_NOTEXIST == rc || ( SDB_OK == rc && isSame == FALSE ) )
-         {
-            if ( SDB_OK == rc && isSame == FALSE )
-            {
-               BSONElement ele = indexDef.getField( IXM_NAME_FIELD ) ;
-               rc = rtnDropIndexCommand( pCLFullName, ele, cb, dmsCB,
-                                         dpsCB, sys ) ;
-               PD_RC_CHECK( rc, PDERROR, "Failed to drop index[%s] for "
-                            "collection[%s], rc: %d", ele.valuestr(),
-                            pCLFullName, rc ) ;
-            }
-            rc = rtnCreateIndexCommand( pCLFullName, indexDef, cb, dmsCB,
-                                        dpsCB, sys, sortBufferSize ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to create index[%s] for "
-                         "collection[%s], rc: %d", indexDef.toString().c_str(),
-                         pCLFullName, rc ) ;
-         }
-         else if ( rc )
-         {
-            PD_LOG( PDERROR, "Test index[%s] for collection[%s] failed, "
-                    "rc: %d", indexDef.toString().c_str(), pCLFullName, rc ) ;
-            goto error ;
-         }
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-   done :
-      PD_TRACE_EXITRC( SDB_RTNTESTCRTIDX, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNRESOLVECOLLECTIONNAME, "rtnResolveCollectionName" )
-   INT32 rtnResolveCollectionName ( const CHAR *pInput, UINT32 inputLen,
-                                    CHAR *pSpaceName, UINT32 spaceNameSize,
-                                    CHAR *pCollectionName,
-                                    UINT32 collectionNameSize )
-   {
-      INT32 rc = SDB_OK ;
-      UINT32 curPos = 0 ;
-      UINT32 i = 0 ;
-      PD_TRACE_ENTRY ( SDB_RTNRESOLVECOLLECTIONNAME ) ;
-      while ( pInput[curPos] != '.' )
-      {
-         if ( curPos >= inputLen )
-         {
-            PD_LOG_MSG ( PDERROR, "Invalid format for collection name: %s,"
-                         "Expected format: <collectionspace>.<collectionname>",
-                         pInput ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         else if ( i >= spaceNameSize )
-         {
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         pSpaceName[ i++ ] = pInput[ curPos++ ] ;
-      }
-      pSpaceName[i] = '\0' ;
-
-      i = 0 ;
-      ++curPos ;
-      while ( curPos < inputLen )
-      {
-         if ( i >= collectionNameSize )
-         {
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         pCollectionName[ i++ ] = pInput[ curPos++ ] ;
-      }
-      pCollectionName[i] = '\0' ;
-
-   done:
-      PD_TRACE_EXITRC ( SDB_RTNRESOLVECOLLECTIONNAME, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNRESOLVECOLLECTIONSPACENAME, "rtnResolveCollectionSpaceName" )
-   INT32 rtnResolveCollectionSpaceName ( const CHAR *pInput,
-                                         UINT32 inputLen,
-                                         CHAR *pSpaceName,
-                                         UINT32 spaceNameSize )
-   {
-      INT32 rc = SDB_OK ;
-      UINT32 curPos = 0 ;
-      UINT32 i = 0 ;
-
-      PD_TRACE_ENTRY ( SDB_RTNRESOLVECOLLECTIONSPACENAME ) ;
-      while ( pInput[curPos] != '.' )
-      {
-         if ( curPos >= inputLen )
-         {
-            PD_LOG_MSG ( PDERROR, "Invalid format for collection name: %s,"
-                         "Expected format: <collectionspace>.<collectionname>",
-                         pInput ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         else if ( i >= spaceNameSize )
-         {
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         pSpaceName[ i++ ] = pInput[ curPos++ ] ;
-      }
-      pSpaceName[i] = '\0' ;
-
-   done:
-      PD_TRACE_EXITRC ( SDB_RTNRESOLVECOLLECTIONSPACENAME, rc ) ;
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCLINSAMECS, "rtnCollectionsInSameSpace" )
-   INT32 rtnCollectionsInSameSpace ( const CHAR *pCLNameA, UINT32 lengthA,
-                                     const CHAR *pCLNameB, UINT32 lengthB,
-                                     BOOLEAN &inSameSpace )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY ( SDB_RTNCLINSAMECS ) ;
-
-      CHAR csNameA[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = {0} ;
-      CHAR csNameB[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = {0} ;
-
-      rc = rtnResolveCollectionSpaceName( pCLNameA, lengthA, csNameA,
-                                          DMS_COLLECTION_SPACE_NAME_SZ ) ;
-      if ( SDB_OK != rc )
-      {
-         goto error ;
-      }
-      rc = rtnResolveCollectionSpaceName( pCLNameB, lengthB, csNameB,
-                                          DMS_COLLECTION_SPACE_NAME_SZ ) ;
-      if ( SDB_OK != rc )
-      {
-         goto error ;
-      }
-      inSameSpace = ( ossStrcmp( csNameA, csNameB ) == 0 ) ;
-
-   done :
-      PD_TRACE_EXITRC ( SDB_RTNCLINSAMECS, rc ) ;
-      return rc ;
-   error :
       goto done ;
    }
 

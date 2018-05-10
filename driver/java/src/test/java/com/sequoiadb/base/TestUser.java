@@ -1,7 +1,5 @@
 package com.sequoiadb.base;
 
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.test.SingleCSCLTestCase;
 import org.junit.Test;
 
@@ -15,10 +13,8 @@ public class TestUser extends SingleCSCLTestCase {
         try {
             sdb.createUser(user, password);
             sdb.removeUser(user, password);
-        } catch (BaseException e) {
-            if (e.getErrorCode() != SDBError.SDB_RTN_COORD_ONLY.getErrorCode()) {
-                fail(e.toString());
-            }
+        } catch (Exception e) {
+            fail(e.toString());
         }
     }
 }

@@ -93,11 +93,6 @@ namespace engine
       goto done ;
    }
 
-   BOOLEAN _qgmPlanContainer::needRollback() const
-   {
-      return _plan ? _plan->needRollback() : FALSE ;
-   }
-
    INT32 _qgmPlanContainer::fetch( BSONObj &obj )
    {
       INT32 rc = SDB_OK ;

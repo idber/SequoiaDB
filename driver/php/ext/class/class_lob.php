@@ -91,26 +91,6 @@ class SequoiaLob
    public function getCreateTime(){}
 
    /**
-    * Get the lob last modification time (millisecond).
-    *
-    * @return Returns the create time.
-    *
-    * @retval integer|SequoiaINT64 millisecond
-    *
-    * Example:
-    * @code
-    * $times = $lobObj -> getModificationTime() ;
-    * $err = $db -> getError() ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to get lob modification time, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * echo "Lob modification time is: ".$times ;
-    * @endcode
-   */
-   public function getModificationTime(){}
-
-   /**
     * Write lob.
     *
     * @param $buffer	the string argument. The buffer of write.
@@ -153,7 +133,7 @@ class SequoiaLob
    public function read( integer|SequoiaINT64 $length ){}
    
    /**
-    * Seek the place to read or write.
+    * Seek the place to read.
     *
     * @param $offset	an integer or the SequoiaINT64 object argument. Lob offset position.
     *
@@ -179,50 +159,4 @@ class SequoiaLob
     * @endcode
    */
    public function seek( integer|SequoiaINT64 $offset, integer $whence = SDB_LOB_SET ){}
-
-   /**
-    * Lock LOB section for write mode.
-    *
-    * @param $offset	an integer or the SequoiaINT64 object argument. The lock start position.
-    *
-    * @param $length	an integer or the SequoiaINT64 object argument. The lock length, -1 means lock to the end of lob.
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example:
-    * @code
-    * $err = $lobObj -> lock( 10, 100 ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to call lock, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-   */
-   public function lock( integer|SequoiaINT64 offset, integer|SequoiaINT64 length ){}
-
-   /**
-    * Lock LOB section for write mode and seek to the offset position.
-    *
-    * @param $offset	an integer or the SequoiaINT64 object argument. The lock start position.
-    *
-    * @param $length	an integer or the SequoiaINT64 object argument. The lock length, -1 means lock to the end of lob.
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example:
-    * @code
-    * $err = $lobObj -> lockAndSeek( 10, 100 ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to call lockAndSeek, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-   */
-   public function lockAndSeek( integer|SequoiaINT64 offset, integer|SequoiaINT64 length ){}
 }

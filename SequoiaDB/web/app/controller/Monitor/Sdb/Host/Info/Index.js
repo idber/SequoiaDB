@@ -1,5 +1,3 @@
-//@ sourceURL=Index.js
-//"use strict" ;
 (function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
@@ -51,7 +49,6 @@
          'HostName': hostName,
          'IP': '-',
          'OS': '-',
-         'AgentService': '-',
          'CPU': '-',
          'Processes': '-',
          'Memory': '-',
@@ -76,8 +73,6 @@
                   return true ;
                } ) ;
             }
-         },{
-            'showLoading': false
          } ) ;
       }
       
@@ -181,7 +176,6 @@
             'success': function( hostInfo ){
                if( isArray( hostInfo[0]['Disk'] ) )
                {
-                  $scope.hostInfo['AgentService'] = hostInfo[0]['AgentService'] ;
                   $.each( hostInfo[0]['Disk'], function( index3, diskInfo ){
                      diskSize += diskInfo['Size'] ;
                   } ) ;
@@ -201,8 +195,6 @@
                   return true ;
                } ) ;
             } 
-         },{
-            'showLoading': false
          } ) ;
       }
       

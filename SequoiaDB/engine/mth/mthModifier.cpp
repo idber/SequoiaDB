@@ -43,7 +43,6 @@
 #include "rtn.hpp"
 #include "pdTrace.hpp"
 #include "mthTrace.hpp"
-#include "utilMath.hpp"
 
 using namespace bson ;
 using namespace std ;
@@ -282,65 +281,24 @@ namespace engine
          }
          else if ( NumberLong == a || NumberLong == b )
          {
-            INT64 arg1 = in.numberLong() ;
-            INT64 arg2 = elt.numberLong() ;
-            INT64 result = arg1 + arg2 ;
-            if ( !utilAddIsOverflow( arg1, arg2, result) )
-            {
-               bb.append ( in.fieldName(), result) ;
-               ADD_CHG_NUMBER ( _dstChgBuilder, pRoot, result, "$set" ) ;
-            }
-            else if ( !_strictDataMode )
-            {
-               bsonDecimal decimalE ;
-               bsonDecimal decimalArg ;
-               bsonDecimal decimalResult ;
-
-               decimalE   = in.numberDecimal() ;
-               decimalArg = elt.numberDecimal() ;
-               rc = decimalE.add( decimalArg, decimalResult ) ;
-               if ( SDB_OK != rc )
-               {
-                  PD_LOG( PDERROR, "failed to add decimal:%s+%s,rc=%d",
-                          decimalE.toString().c_str(),
-                          decimalArg.toString().c_str(), rc ) ;
-                  goto error ;
-               }
-               bb.append( in.fieldName(), decimalResult ) ;
-               ADD_CHG_NUMBER ( _dstChgBuilder, pRoot, decimalResult, "$set" ) ;
-            }
-            else
-            {
-               rc = SDB_VALUE_OVERFLOW ;
-               PD_LOG( PDERROR, "overflow happened, field: %s(%lld, inc: %lld), rc = %d",
-                       in.fieldName(), arg1, arg2, rc ) ;
-               goto error ;
-
-            }
+            bb.append ( in.fieldName(), in.numberLong() + elt.numberLong()) ;
+            ADD_CHG_NUMBER ( _dstChgBuilder, pRoot,
+                             in.numberLong() + elt.numberLong(), "$set" ) ;
          }
          else
          {
-            INT32 arg1 = in.numberInt();
-            INT32 arg2 = elt.numberInt() ;
-
-            INT32 result = arg1 + arg2 ;
-            INT64 result64 = (INT64)arg1 + (INT64)arg2 ;
-            if ( result64 == (INT64)result )
+            INT32 result = in.numberInt() + elt.numberInt() ;
+            INT64 result64 = (INT64)in.numberInt() + (INT64)elt.numberInt() ;
+            if ( result64 != (INT64)result )
+            {
+               bb.append ( in.fieldName(), in.numberLong() + elt.numberLong()) ;
+               ADD_CHG_NUMBER ( _dstChgBuilder, pRoot,
+                                in.numberLong() + elt.numberLong(), "$set" ) ;
+            }
+            else
             {
                bb.append ( in.fieldName(), result ) ;
                ADD_CHG_NUMBER ( _dstChgBuilder, pRoot, result, "$set" ) ;
-            }
-            else if ( !_strictDataMode )
-            {
-               bb.append ( in.fieldName(), result64) ;
-               ADD_CHG_NUMBER ( _dstChgBuilder, pRoot, result64, "$set" ) ;
-            }
-            else 
-            {
-               rc = SDB_VALUE_OVERFLOW ;
-               PD_LOG( PDERROR, "overflow happened, field: %s(%d, inc: %d), rc = %d",
-                       in.fieldName(), arg1, arg2, rc ) ;
-               goto error ;
             }
          }
       }
@@ -1993,9 +1951,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMDF_LDPTN, "_mthModifier::loadPattern" )
    INT32 _mthModifier::loadPattern ( const BSONObj &modifierPattern,
                                      vector<INT64> *dollarList,
-                                     BOOLEAN ignoreTypeError,
-                                     const BSONObj* shardingKey,
-                                     BOOLEAN strictDataMode )
+                                     BOOLEAN ignoreTypeError )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__MTHMDF_LDPTN );
@@ -2033,22 +1989,7 @@ namespace engine
       }
 
       modifierSort() ;
-
-      if ( NULL != shardingKey && !shardingKey->isEmpty() )
-      {
-         _shardingKeyGen = SDB_OSS_NEW _ixmIndexKeyGen(
-                              *shardingKey, GEN_OBJ_KEEP_FIELD_NAME ) ;
-         if ( NULL == _shardingKeyGen )
-         {
-            rc = SDB_OOM ;
-            PD_LOG_MSG( PDERROR,
-                        "Failed to create new sharding key gen, rc=%d", rc ) ;
-            goto error ;
-         }
-      }
-
       _initialized = TRUE ;
-      _strictDataMode = strictDataMode ;
 
    done :
       PD_TRACE_EXITRC ( SDB__MTHMDF_LDPTN, rc );
@@ -2523,6 +2464,7 @@ namespace engine
                {
                   PD_LOG_MSG ( PDERROR, "Failed to build object: %s, rc: %d",
                                e.toString().c_str(), rc ) ;
+                  rc = SDB_INVALIDARG ;
                   goto error ;
                }
                bb.done() ;
@@ -2538,6 +2480,7 @@ namespace engine
                {
                   PD_LOG_MSG ( PDERROR, "Failed to build array: %s, rc: %d",
                                e.toString().c_str(), rc ) ;
+                  rc = SDB_INVALIDARG ;
                   goto error ;
                }
                ba.done() ;
@@ -2647,9 +2590,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMDF_MODIFY, "_mthModifier::modify" )
    INT32 _mthModifier::modify ( const BSONObj &source, BSONObj &target,
                                 BSONObj *srcID, BSONObj *srcChange,
-                                BSONObj *dstID, BSONObj *dstChange,
-                                BSONObj *srcShardingKey,
-                                BSONObj *dstShardingKey )
+                                BSONObj *dstID, BSONObj *dstChange )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__MTHMDF_MODIFY );
@@ -2747,43 +2688,6 @@ namespace engine
       if ( dstChange )
       {
          *dstChange = _dstChgBuilder->obj () ;
-      }
-
-      if ( NULL != _shardingKeyGen )
-      {
-         if ( NULL != srcShardingKey )
-         {
-            BSONObjSet keySet ;
-            rc = _shardingKeyGen->getKeys( source, keySet, NULL, TRUE, TRUE, TRUE ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG ( PDERROR, "Failed to get sharding key from obj: %s, rc=%d",
-                        source.toString().c_str(), rc ) ;
-               goto error ;
-            }
-
-            if ( keySet.size() == 1 )
-            {
-               *srcShardingKey = *keySet.begin() ;
-            }
-         }
-
-         if ( NULL != dstShardingKey )
-         {
-            BSONObjSet keySet ;
-            rc = _shardingKeyGen->getKeys( target, keySet, NULL, TRUE, TRUE, TRUE ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG ( PDERROR, "Failed to get sharding key from obj: %s, rc=%d",
-                        target.toString().c_str(), rc ) ;
-               goto error ;
-            }
-
-            if ( keySet.size() == 1 )
-            {
-               *dstShardingKey = *keySet.begin() ;
-            }
-         }
       }
 
    done :

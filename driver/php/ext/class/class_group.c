@@ -349,72 +349,33 @@ error:
 PHP_METHOD( SequoiaGroup, getSlave )
 {
    INT32 rc = SDB_OK ;
-   INT32 i  = 0 ;
-   INT32 positionsCount        = 0 ;
-   INT32 *pPositionsArray      = NULL ;
    zval *pThisObj              = getThis() ;
-   zval *pPositions            = NULL ;
    const CHAR *pNodeName       = NULL ;
    sdbReplicaGroupHandle group = SDB_INVALID_HANDLE ;
    sdbNodeHandle node          = SDB_INVALID_HANDLE ;
-
    PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
-
-   if ( PHP_GET_PARAMETERS( "|z", &pPositions ) == FAILURE )
+   PHP_READ_HANDLE( pThisObj,
+                    group,
+                    sdbReplicaGroupHandle,
+                    SDB_GROUP_HANDLE_NAME,
+                    groupDesc ) ;
+   rc = sdbGetNodeSlave( group, &node ) ;
+   if( rc )
    {
-      rc = SDB_INVALIDARG ;
       goto error ;
    }
-
-   PHP_READ_HANDLE( pThisObj, group, sdbReplicaGroupHandle,
-                    SDB_GROUP_HANDLE_NAME, groupDesc ) ;
-
-   if ( pPositions )
-   {
-      rc = php_assocArray2IntArray( pPositions, &pPositionsArray,
-                                    &positionsCount TSRMLS_CC ) ;
-      if( rc )
-      {
-         goto error ;
-      }
-   }
-
-   if( positionsCount > 0 )
-   {
-      rc = sdbGetNodeSlave1( group, pPositionsArray, positionsCount, &node ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
-   }
-   else
-   {
-      rc = sdbGetNodeSlave( group, &node ) ;
-      if( rc )
-      {
-         goto error ;
-      }
-   }
-
    PHP_BUILD_CLASS( FALSE,
                     pThisObj,
                     pSequoiadbNode,
                     node,
                     nodeDesc ) ;
-
    rc = sdbGetNodeAddr( node, NULL, NULL, &pNodeName, NULL ) ;
    if( rc == SDB_OK )
    {
       PHP_SAVE_VAR_STRING( return_value, "_name", pNodeName ) ;
    }
-
    rc = SDB_OK ;
-
 done:
-   if( pPositionsArray )
-   {
-      efree( pPositionsArray ) ;
-   }
    return ;
 error:
    RETVAL_NULL() ;

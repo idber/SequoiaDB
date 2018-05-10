@@ -46,7 +46,6 @@
 #include "mthMatchNode.hpp"
 #include "mthMatchLogicNode.hpp"
 #include "mthMatchOpNode.hpp"
-#include "mthMatchNormalizer.hpp"
 #include "rtnPredicate.hpp"
 #include <vector>
 
@@ -69,10 +68,8 @@ namespace engine
 
    public:
       _mthMatchOpNode*        createOpNode( _mthNodeAllocator *allocator,
-                                            const mthNodeConfig *configPtr,
                                             EN_MATCH_OP_FUNC_TYPE type ) ;
       _mthMatchLogicNode*     createLogicNode( _mthNodeAllocator *allocator,
-                                               const mthNodeConfig *config,
                                                EN_MATCH_OP_FUNC_TYPE type ) ;
       void                    releaseNode( _mthMatchNode *node ) ;
 
@@ -92,32 +89,28 @@ namespace engine
 
    _mthMatchNodeFactory *mthGetMatchNodeFactory() ;
 
-   class _mthMatchTree : public SDBObject,
-                         public _mthMatchConfigHolder
+   class _mthMatchTree : public SDBObject
    {
       public:
          _mthMatchTree() ;
          ~_mthMatchTree() ;
 
       public:
-         INT32    loadPattern ( const BSONObj &matcher,
-                                BOOLEAN needConfigMixCmp = TRUE ) ;
-
-         INT32    loadPattern ( const BSONObj &matcher,
-                                mthMatchNormalizer &normalizer ) ;
+         INT32    loadPattern( const BSONObj &matcher,
+                               BOOLEAN needPredicate = TRUE ) ;
 
          INT32    matches( const BSONObj &matchTarget, BOOLEAN &result,
-                           _mthMatchTreeContext *context = NULL,
-                           rtnParamList *parameters = NULL ) ;
+                           _mthMatchTreeContext *context = NULL ) ;
          void     clear() ;
-         BSONObj  getEqualityQueryObject( const rtnParamList *parameters = NULL ) ;
-         BOOLEAN  isInitialized() const ;
-         BOOLEAN  isMatchesAll() const ;
+         BSONObj  getEqualityQueryObject() ;
+         BOOLEAN  isInitialized() ;
+         BOOLEAN  isMatchesAll() ;
+         const rtnPredicateSet &getPredicateSet() ;
          BSONObj& getMatchPattern() ;
          BOOLEAN  hasDollarFieldName() ;
          BOOLEAN  totallyConverted() const ;
          void     setMatchesAll( BOOLEAN matchesAll ) ;
-         BSONObj  getParsedMatcher( const rtnParamList &parameters ) const ;
+         BSONObj  getParsedQuery() const ;
          BSONObj  toBson() ;
          string   toString() ;
 
@@ -125,35 +118,23 @@ namespace engine
          BOOLEAN hasReturnMatch() ;
          const CHAR *getAttrFieldName() ;
 
-         void evalEstimation ( optCollectionStat *pCollectionStat,
-                               double &estSelectivity, UINT32 &estCPUCost ) ;
-
-         INT32    calcPredicate ( rtnPredicateSet &predicateSet,
-                                  const rtnParamList * paramList ) ;
-
       private:
          INT32    _matches( const BSONObj &matchTarget, BOOLEAN &result,
                             _mthMatchTreeContext &context ) ;
          INT32    _addOperator( const CHAR *fieldName, const BSONElement &ele,
                                 EN_MATCH_OP_FUNC_TYPE nodeType,
                                 MTH_FUNC_LIST &funcList,
-                                _mthMatchLogicNode *parent,
-                                INT8 paramIndex,
-                                INT8 fuzzyIndex,
-                                _mthMatchOpNode **retNode = NULL ) ;
+                                _mthMatchLogicNode *parent ) ;
          INT32    _addFunction( const CHAR *fieldName,
                                 const BSONElement &ele,
                                 EN_MATCH_OP_FUNC_TYPE nodeType,
                                 MTH_FUNC_LIST &funcList ) ;
          INT32    _addRegExOp( const CHAR *fieldName, const CHAR *regex,
                                const CHAR *options, MTH_FUNC_LIST &funcList,
-                               _mthMatchLogicNode *parent,
-                               _mthMatchOpNode **retNode = NULL ) ;
+                               _mthMatchLogicNode *parent ) ;
          INT32    _addExpandOp( const CHAR *fieldName,
                                 const BSONElement &ele,
                                 _mthMatchLogicNode *parent ) ;
-         INT32    _parseOpItem ( mthMatchOpItem *opItem,
-                                 _mthMatchLogicNode *parent ) ;
          INT32    _parseRegExElement( const BSONElement &ele,
                                       _mthMatchLogicNode *parent ) ;
          INT32    _parseNormalElement( const BSONElement &ele,
@@ -168,8 +149,8 @@ namespace engine
                                    _mthMatchLogicNode *parent ) ;
          INT32    _parseArrayElement( const BSONElement &ele,
                                       _mthMatchLogicNode *parent ) ;
-         INT32    _checkInnerObject ( const BSONElement &innerEle,
-                                      UINT32 level, BSONElement *pOutEle ) ;
+         BOOLEAN  _isExistOpFieldRecursive( const BSONElement &ele,
+                                          BOOLEAN ignoreCurrentField = FALSE ) ;
          INT32    _getElementKeysFormat( const BSONElement &ele ) ;
 
          void     _clearFuncList( MTH_FUNC_LIST &funcList ) ;
@@ -199,7 +180,8 @@ namespace engine
          INT32    _deleteNode( _mthMatchNode *parent, _mthMatchNode *node ) ;
          void     _setWeight( _mthMatchNode *node ) ;
          void     _sortByWeight() ;
-         INT32    _optimize() ;
+         INT32    _optimize( BOOLEAN needPredicate ) ;
+         INT32    _setPredicate() ;
          void     _checkTotallyConverted() ;
          void     _checkTotallyConverted( _mthMatchNode *node,
                                           BOOLEAN &isTotallyConverted ) ;
@@ -208,13 +190,6 @@ namespace engine
          void     _releaseBuilderVec( vector< BSONObjBuilder* > &builderVec ) ;
 
          INT32    _adjustReturnMatchIndex( _mthMatchTreeContext &context ) ;
-
-         INT32    _preLoadPattern ( const BSONObj &matcher,
-                                    BOOLEAN enableMixCmp,
-                                    BOOLEAN parameterized,
-                                    BOOLEAN fuzzyOptr,
-                                    BOOLEAN copyQuery ) ;
-         INT32    _postLoadPattern ( BOOLEAN needOptimize ) ;
 
       private:
          _mthMatchNode     *_root ;
@@ -229,11 +204,11 @@ namespace engine
          const CHAR *      _attrFieldName ;
          _mthMatchOpNode*  _returnMatchNode ;
 
+         _rtnPredicateSet  _predicateSet ;
          _mthNodeAllocator _allocator ;
+
          vector< BSONObjBuilder* > _builderVec ;
    } ;
-
-   typedef class _mthMatchTree mthMatchTree ;
 
    class _mthRecordGenerator
    {

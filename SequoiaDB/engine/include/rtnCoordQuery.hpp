@@ -52,11 +52,9 @@ namespace engine
 
       BOOLEAN     _openEmptyContext ;  // open context without sel & orderby ...
       BOOLEAN     _allCataGroups ;     // send to all catalog info groups,
-                                       // don't use query to filter
 
       rtnQueryConf()
       {
-         // don't change the default value
          _updateAndGetCata = FALSE ;
          _openEmptyContext = FALSE ;
          _allCataGroups    = FALSE ;
@@ -91,7 +89,8 @@ namespace engine
                                           pmdEDUCB *cb,
                                           rtnContextCoord **pContext,
                                           rtnSendOptions &sendOpt,
-                                          rtnQueryConf *pQueryConf = NULL ) ;
+                                          rtnQueryConf *pQueryConf = NULL,
+                                          rtnContextBuf *buf = NULL ) ;
 
       INT32                queryOrDoOnCL( MsgHeader *pMsg,
                                           netMultiRouteAgent *pRouteAgent,
@@ -99,7 +98,8 @@ namespace engine
                                           rtnContextCoord **pContext,
                                           rtnSendOptions &sendOpt,
                                           CoordGroupList &sucGrpLst,
-                                          rtnQueryConf *pQueryConf = NULL ) ;
+                                          rtnQueryConf *pQueryConf = NULL,
+                                          rtnContextBuf *buf = NULL ) ;
 
    protected:
       INT32                _queryOrDoOnCL( MsgHeader *pMsg,
@@ -108,7 +108,8 @@ namespace engine
                                            rtnContextCoord **pContext,
                                            rtnSendOptions &sendOpt,
                                            CoordGroupList *pSucGrpLst = NULL,
-                                           rtnQueryConf *pQueryConf = NULL ) ;
+                                           rtnQueryConf *pQueryConf = NULL,
+                                           rtnContextBuf *buf = NULL ) ;
 
    private:
 
@@ -178,7 +179,6 @@ namespace engine
                                                 rtnProcessResult &result ) ;
 
    private:
-      /// can't define members, because it's single instance
 
    };
 

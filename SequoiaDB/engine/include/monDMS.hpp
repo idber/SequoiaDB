@@ -41,7 +41,6 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "dms.hpp"
-#include "ixm.hpp"
 #include "ossUtil.hpp"
 #include "../bson/bson.h"
 #include "../bson/bsonobj.h"
@@ -52,80 +51,6 @@ using namespace bson ;
 
 namespace engine
 {
-
-   /*
-      _monIndex define
-   */
-   class _monIndex : public SDBObject
-   {
-   public:
-      UINT16         _indexFlag ;
-      CHAR           _version ;
-      dmsExtentID    _scanExtLID ;
-      dmsExtentID    _indexLID ;
-      BSONObj        _indexDef ;
-
-      _monIndex()
-      {
-         _indexFlag = 0 ;
-         _version = 0 ;
-         _scanExtLID = -1 ;
-         _indexLID = -1 ;
-      }
-
-      OSS_INLINE const CHAR *getIndexName () const
-      {
-         return _indexDef.getStringField( IXM_NAME_FIELD ) ;
-      }
-
-      OSS_INLINE BSONObj getKeyPattern () const
-      {
-         return _indexDef.getObjectField( IXM_KEY_FIELD ) ;
-      }
-
-      OSS_INLINE BOOLEAN isUnique () const
-      {
-         return _indexDef.getBoolField( IXM_UNIQUE_FIELD ) ;
-      }
-
-      OSS_INLINE INT32 getIndexType( UINT16 &type ) const
-      {
-         INT32 rc = SDB_OK ;
-         UINT16 indexType = IXM_EXTENT_TYPE_NONE ;
-         if ( !ixmIndexCB::generateIndexType( _indexDef, indexType ) )
-         {
-            PD_LOG( PDERROR, "Get index type from definition failed" ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-
-         if ( IXM_EXTENT_HAS_TYPE( indexType, IXM_EXTENT_TYPE_POSITIVE ) )
-         {
-            type |= IXM_EXTENT_TYPE_POSITIVE ;
-         }
-         if ( IXM_EXTENT_HAS_TYPE( indexType, IXM_EXTENT_TYPE_REVERSE ) )
-         {
-            type |= IXM_EXTENT_TYPE_REVERSE ;
-         }
-         if ( IXM_EXTENT_HAS_TYPE( indexType, IXM_EXTENT_TYPE_2D ) )
-         {
-            type |= IXM_EXTENT_TYPE_2D ;
-         }
-         if ( IXM_EXTENT_HAS_TYPE( indexType, IXM_EXTENT_TYPE_TEXT ) )
-         {
-            type |= IXM_EXTENT_TYPE_TEXT ;
-         }
-
-      done:
-         return rc ;
-      error:
-         goto done ;
-      }
-   } ;
-
-   typedef class _monIndex monIndex ;
-   typedef vector<monIndex> MON_IDX_LIST ;
-
    /*
       _detailedInfo define
    */
@@ -195,7 +120,6 @@ namespace engine
       }
    } ;
    typedef class _detailedInfo detailedInfo ;
-   typedef std::map<UINT32, detailedInfo> MON_CL_DETAIL_MAP ;
 
    /*
       _monCLSimple define
@@ -205,61 +129,17 @@ namespace engine
       public:
          CHAR  _name[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
 
-         CHAR _csname [ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] ;
-         CHAR _clname [ DMS_COLLECTION_NAME_SZ + 1 ] ;
-
-         UINT16 _blockID ;
-         UINT32 _logicalID ;
-
-         MON_IDX_LIST _idxList ;
-
-         _monCLSimple ()
+         _monCLSimple()
          {
             _name[ 0 ] = 0 ;
-            _clname[ 0 ] = 0 ;
-            _csname[ 0 ] = 0 ;
-            _blockID = 0 ;
-            _logicalID = 0 ;
          }
 
-         BOOLEAN operator< (const _monCLSimple &r) const
+         BOOLEAN operator<(const _monCLSimple &r) const
          {
-            return ossStrncmp( _name, r._name, sizeof( _name ) ) < 0 ;
-         }
-
-         OSS_INLINE void setName ( const CHAR *pCSName, const CHAR *pCLName )
-         {
-            ossMemset( _name, 0, sizeof( _name ) ) ;
-            ossStrncpy( _name, pCSName, DMS_COLLECTION_SPACE_NAME_SZ ) ;
-            ossStrncat( _name, ".", 1 ) ;
-            ossStrncat( _name, pCLName, DMS_COLLECTION_NAME_SZ ) ;
-
-            ossMemset( _csname, 0, sizeof( _csname ) ) ;
-            ossStrncpy( _csname, pCSName, DMS_COLLECTION_SPACE_NAME_SZ ) ;
-
-            ossMemset( _clname, 0, sizeof( _clname ) ) ;
-            ossStrncpy( _clname, pCLName, DMS_COLLECTION_NAME_SZ ) ;
-         }
-
-         const monIndex *getIndex ( const CHAR *pIndexName ) const
-         {
-            MON_IDX_LIST::const_iterator iterIdx = _idxList.begin() ;
-            while ( iterIdx != _idxList.end() )
-            {
-               if ( 0 == ossStrcmp( iterIdx->getIndexName(), pIndexName ) )
-               {
-                  return &(*iterIdx) ;
-               }
-               ++ iterIdx ;
-            }
-            return NULL ;
+            return ossStrncmp( _name, r._name, sizeof(_name))<0 ;
          }
    } ;
-
-   typedef class _monCLSimple monCLSimple ;
-
-   typedef std::set<monCLSimple> MON_CL_SIM_LIST ;
-   typedef std::vector<monCLSimple> MON_CL_SIM_VEC ;
+   typedef _monCLSimple monCLSimple ;
 
    /*
       _monCollection define
@@ -268,7 +148,7 @@ namespace engine
    {
    public :
       CHAR _name [ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
-      MON_CL_DETAIL_MAP _details ;
+      std::map<UINT32, detailedInfo>   _details ;
 
       _monCollection()
       {
@@ -303,83 +183,28 @@ namespace engine
          return info ;
       }
 
-      OSS_INLINE void setName ( const CHAR *pCSName, const CHAR *pCLName )
-      {
-         ossMemset( _name, 0, sizeof( _name ) ) ;
-         ossStrncpy( _name, pCSName, DMS_COLLECTION_SPACE_NAME_SZ ) ;
-         ossStrncat( _name, ".", 1 ) ;
-         ossStrncat( _name, pCLName, DMS_COLLECTION_NAME_SZ ) ;
-      }
-
    } ;
    typedef class _monCollection monCollection ;
-   typedef std::set<monCollection> MON_CL_LIST ;
 
    /*
       _monCSSimple define
    */
-
-   class _monCSSimple ;
-   typedef class _monCSSimple monCSSimple ;
-   typedef std::set<monCSSimple> MON_CS_SIM_LIST ;
-
    class _monCSSimple : public SDBObject
    {
       public:
-         CHAR  _name[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] ;
-         dmsStorageUnitID _suID ;
-         UINT32 _logicalID ;
-         MON_CL_SIM_VEC _clList ;
+         CHAR  _name[ DMS_COLLECTION_SPACE_NAME_SZ + 1 + 1 ] ;
 
-         _monCSSimple ()
+         _monCSSimple()
          {
             _name[ 0 ] = 0 ;
-            _suID = DMS_INVALID_SUID ;
-            _logicalID = DMS_INVALID_LOGICCSID ;
          }
 
-         BOOLEAN operator< ( const _monCSSimple &r ) const
+         BOOLEAN operator<(const _monCSSimple &r) const
          {
-            return ossStrncmp( _name, r._name, sizeof( _name ) ) < 0 ;
-         }
-
-         OSS_INLINE void setName ( const CHAR *pCSName )
-         {
-            ossMemset ( _name, 0, sizeof( _name ) ) ;
-            ossStrncpy ( _name, pCSName, DMS_COLLECTION_SPACE_NAME_SZ ) ;
-         }
-
-         const monCLSimple *getCollection ( const CHAR *pCLName ) const
-         {
-            MON_CL_SIM_VEC::const_iterator iterCL = _clList.begin() ;
-            while ( iterCL != _clList.end() )
-            {
-               if ( 0 == ossStrncmp( iterCL->_clname, pCLName,
-                                     DMS_COLLECTION_NAME_SZ ) )
-               {
-                  return &(*iterCL) ;
-               }
-               ++ iterCL ;
-            }
-            return NULL ;
-         }
-
-         static const monCSSimple *getCollectionSpace ( const MON_CS_SIM_LIST &monCSList,
-                                                        const CHAR *pCSName )
-         {
-            MON_CS_SIM_LIST::const_iterator iterCS = monCSList.begin() ;
-            while ( iterCS != monCSList.end() )
-            {
-               if ( 0 == ossStrncmp( iterCS->_name, pCSName,
-                                     DMS_COLLECTION_SPACE_NAME_SZ ) )
-               {
-                  return &(*iterCS) ;
-               }
-               ++ iterCS ;
-            }
-            return NULL ;
+            return ossStrncmp( _name, r._name, sizeof(_name))<0 ;
          }
    } ;
+   typedef _monCSSimple monCSSimple ;
 
    /*
       _monCollectionSpace define
@@ -388,7 +213,7 @@ namespace engine
    {
    public :
       CHAR _name [ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] ;
-      MON_CL_SIM_VEC _collections ;
+      vector<monCLSimple> _collections ;
       INT32 _pageSize ;
       INT32 _clNum ;
       INT64 _totalRecordNum ;
@@ -410,7 +235,6 @@ namespace engine
       BOOLEAN _lobIsValid ;
 
       UINT32 _dirtyPage ;
-      DMS_STORAGE_TYPE _type ;
 
       _monCollectionSpace ()
       {
@@ -436,11 +260,10 @@ namespace engine
          _lobIsValid = FALSE ;
 
          _dirtyPage = 0 ;
-         _type = DMS_STORAGE_NORMAL ;
       }
       _monCollectionSpace ( const _monCollectionSpace &right )
       {
-         ossStrcpy ( _name, right._name ) ;
+         ossMemcpy ( _name, right._name, sizeof(_name) ) ;
          _collections = right._collections ;
          _pageSize = right._pageSize ;
          _clNum    = right._clNum ;
@@ -463,7 +286,6 @@ namespace engine
          _lobIsValid = right._lobIsValid ;
 
          _dirtyPage = right._dirtyPage ;
-         _type = right._type ;
       }
       ~_monCollectionSpace()
       {
@@ -476,7 +298,7 @@ namespace engine
       }
       _monCollectionSpace &operator= (const _monCollectionSpace &right)
       {
-         ossStrcpy ( _name, right._name ) ;
+         ossMemcpy ( _name, right._name, sizeof(_name) ) ;
          _collections = right._collections ;
          _pageSize = right._pageSize ;
          _clNum    = right._clNum ;
@@ -499,12 +321,11 @@ namespace engine
          _lobIsValid = right._lobIsValid ;
 
          _dirtyPage = right._dirtyPage ;
-         _type = right._type ;
+
          return *this ;
       }
    } ;
    typedef class _monCollectionSpace monCollectionSpace ;
-   typedef std::set<monCollectionSpace> MON_CS_LIST ;
 
    /*
       _monStorageUnit define
@@ -530,12 +351,6 @@ namespace engine
          return rc ;
       }
 
-      OSS_INLINE void setName ( const CHAR *pCSName )
-      {
-         ossMemset ( _name, 0, sizeof( _name ) ) ;
-         ossStrncpy ( _name, pCSName, DMS_COLLECTION_SPACE_NAME_SZ ) ;
-      }
-
       _monStorageUnit()
       {
          _name[ 0 ] = 0 ;
@@ -550,8 +365,26 @@ namespace engine
       }
    } ;
    typedef class _monStorageUnit monStorageUnit ;
-   typedef std::set<monStorageUnit> MON_SU_LIST ;
 
+   /*
+      _monIndex define
+   */
+   class _monIndex : public SDBObject
+   {
+   public:
+      UINT16         _indexFlag ;
+      CHAR           _version ;
+      dmsExtentID    _scanExtLID ;
+      BSONObj        _indexDef ;
+
+      _monIndex()
+      {
+         _indexFlag = 0 ;
+         _version = 0 ;
+         _scanExtLID = -1 ;
+      }
+   } ;
+   typedef _monIndex monIndex ;
    /*
       _monCSName define
    */

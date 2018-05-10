@@ -27,8 +27,8 @@
 #define _DATAPATH2          "/home/users/tanzhaobo/data/node2"
 #define _DATAPATH3          "/home/users/tanzhaobo/data/node3"
 
-#define HOST                "192.168.20.42"
-#define SERVER              "50000"
+#define HOST                "localhost"
+#define SERVER              "11810"
 #define SERVER1             "58000"
 #define SERVER2             "58100"
 #define SERVER3             "58200"

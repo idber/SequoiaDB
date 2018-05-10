@@ -38,11 +38,8 @@
 #include "qgmPlScan.hpp"
 #include "qgmConditionNodeHelper.hpp"
 #include "pmd.hpp"
-#include "dmsCB.hpp"
-#include "rtnCB.hpp"
-#include "rtn.hpp"
-#include "coordCB.hpp"
-#include "coordQueryOperator.hpp"
+#include "pmdCB.hpp"
+#include "netMultiRouteAgent.hpp"
 #include "ossMem.hpp"
 #include "msgMessage.hpp"
 #include "qgmUtil.hpp"
@@ -257,45 +254,31 @@ namespace engine
       INT32 rc = SDB_OK ;
       INT32 bufSize = 0 ;
       CHAR *qMsg = NULL ;
+      BSONObj *err = NULL ;
       BSONObj selector = _selector.selector() ;
-
-      CoordCB *pCoord = pmdGetKRCB()->getCoordCB() ;
-      coordQueryOperator opr ;
-      rtnContextBuf buff ;
-
-      rc = opr.init( pCoord->getResource(), eduCB ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Init operator[%s] failed, rc: %d",
-                 opr.getName(), rc ) ;
-         goto error ;
-      }
 
       rc = msgBuildQueryMsg ( &qMsg, &bufSize,
                               _collection.toString().c_str(),
-                              FLG_QUERY_WITH_RETURNDATA, 0,
-                              _skip, _return,
+                              0, 0, _skip, _return,
                               &_condition, &selector,
-                              &_orderby, &_hint,
-                              eduCB ) ;
-      if ( rc )
+                              &_orderby, &_hint ) ;
+
+      if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "Build message failed, rc: %d", rc ) ;
          goto error ;
       }
 
-      rc = opr.execute( (MsgHeader*)qMsg, eduCB, _contextID, &buff ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Execute operator[%s] failed, rc: %d",
-                 opr.getName(), rc ) ;
-         goto error ;
-      }
+      rc = _coordQuery.execute ( (MsgHeader*)qMsg, eduCB,
+                                 _contextID, NULL ) ;
+      SDB_ASSERT( NULL == err, "impossible" ) ;
+      PD_RC_CHECK ( rc, PDERROR,
+                    "Failed to execute coordQuery, rc = %d", rc ) ;
 
    done:
       if ( NULL != qMsg )
       {
-         msgReleaseBuffer( qMsg, eduCB ) ;
+         SDB_OSS_FREE( qMsg ) ;
+         qMsg = NULL ;
       }
       PD_TRACE_EXITRC( SDB__QGMPLSCAN__EXECONCOORD, rc ) ;
       return rc ;

@@ -385,6 +385,7 @@ namespace DriverTest
                 Assert.IsNotNull(obj);
             }
             sdb2.Disconnect();
+
             // snapshot transation
             sdb.TransactionBegin();
             try
@@ -404,53 +405,10 @@ namespace DriverTest
                     Console.WriteLine(o);
                 }
             }
-            catch (BaseException e)
-            {
-                Console.WriteLine("The error info is: " + e.ErrorType + ", " + e.ErrorCode + ", " + e.Message);
-                Assert.IsTrue(e.ErrorType == "SDB_DPS_TRANS_DIABLED");             
-            }
             finally
             {
                 sdb.TransactionCommit();
             }
-
-            // snapshot accessplans
-            {
-                BsonDocument o = null;
-                cursor = sdb.GetSnapshot(SDBConst.SDB_SNAP_ACCESSPLANS, dummy, dummy, dummy);
-                Console.WriteLine("the result of SDB_SNAP_TRANSACTIONS is: ");
-                while (null != (o = cursor.Next()))
-                {
-                    Console.WriteLine(o);
-                }
-            }
-
-            // node health 
-            {
-                cursor = sdb.GetSnapshot(SDBConst.SDB_SNAP_HEALTH, dummy, dummy, dummy);
-                Console.WriteLine("the result of SDB_SNAP_HEALTH is: ");
-                BsonDocument rec = null;
-                while (null != (rec = cursor.Next()))
-                {
-                    Console.WriteLine(rec);
-                }
-            }
-            
-        }
-
-        [TestMethod()]
-        public void RestSnapshot()
-        {
-            Sequoiadb db = new Sequoiadb(config.conf.Coord.Address);
-            db.Connect();
-
-            sdb.ResetSnapshot(null);
-
-            BsonDocument options = new BsonDocument();
-            sdb.ResetSnapshot(options);
-
-            options.Add("Type", "database");
-            sdb.ResetSnapshot(options);
         }
 
         [TestMethod()]
@@ -567,7 +525,6 @@ namespace DriverTest
             bson = cursor.Next();
             Assert.IsNotNull(bson);
             db.Disconnect();
-
         }
 
         [TestMethod()]
@@ -1057,18 +1014,6 @@ namespace DriverTest
         }
 
         [TestMethod()]
-        public void Sync_DB_Test()
-        {
-            BsonDocument options = new BsonDocument();
-            options.Add("Deep", 1);
-            options.Add("Block", true);
-            coll.Insert(new BsonDocument("a", 1));
-            sdb.Sync(options);
-            coll.Insert(new BsonDocument("b", 1));
-            sdb.Sync();
-        }
-
-        [TestMethod()]
         [Ignore]
         public void KeepAlive_Test()
         {
@@ -1083,18 +1028,5 @@ namespace DriverTest
             node.Start();
         }
 
-        [TestMethod()]
-        public void Analyze_Test()
-        {
-            sdb.Analyze();
-        }
-
-        [TestMethod()]
-        public void Analyze_CL_Test()
-        {
-            BsonDocument options = new BsonDocument();
-            options.Add("Collection", csName + "." + cName);
-            sdb.Analyze(options);
-        }
     }
 }

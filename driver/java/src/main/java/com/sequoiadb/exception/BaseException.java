@@ -19,7 +19,8 @@ package com.sequoiadb.exception;
 import java.util.Arrays;
 
 /**
- * Base exception of SequoiaDB.
+ * @class BaseException
+ * @brief Base exception of SequoiaDB.
  */
 public class BaseException extends RuntimeException {
 
@@ -110,9 +111,8 @@ public class BaseException extends RuntimeException {
 
 
     /**
-     * Get the error message.
-     *
      * @return The error message.
+     * @brief Get the error message.
      */
     @Override
     public String getMessage() {
@@ -130,18 +130,16 @@ public class BaseException extends RuntimeException {
     }
 
     /**
-     * Get the error type.
-     *
      * @return The error type.
+     * @brief Get the error type.
      */
     public String getErrorType() {
         return error != null ? error.getErrorType() : "SDB_UNKNOWN";
     }
 
     /**
-     * Get the error code.
-     *
      * @return The error code.
+     * @brief Get the error code.
      */
     public int getErrorCode() {
         return errcode;

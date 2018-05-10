@@ -37,8 +37,6 @@
 #include "oss.hpp"
 #include "sptSPDef.hpp"
 #include "../bson/bson.hpp"
-#include <list>
-#include <string>
 
 namespace engine
 {
@@ -94,14 +92,6 @@ namespace engine
       const CHAR* getLastErrMsg() const ;
       bson::BSONObj getLastErrObj() const ;
 
-      void pushJSFileNameToStack( const string &filename ) ;
-      void popJSFileNameFromStack() ;
-      INT32 getStackSize() ;
-      void addJSFileNameToList( const string &filename ) ;
-      void clearJSFileNameList() ;
-      BOOLEAN isJSFileNameExistInStack( const string &filename ) ;
-      BOOLEAN isJSFileNameExistInList( const string &filename ) ;
-
    public:
       virtual INT32 start( UINT32 loadMask = SPT_OBJ_MASK_ALL ) = 0 ;
 
@@ -137,10 +127,6 @@ namespace engine
 
    private:
       virtual INT32 _loadUsrDefObj( _sptObjDesc *desc ) = 0 ;
-
-   private:
-      std::list< std::string > _fileNameList ;
-      std::list< std::string > _fileNameStack ;
 
    protected:
       UINT32         _loadMask ;

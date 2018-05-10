@@ -155,9 +155,7 @@ get_test_database (mongoc_client_t *client)
 {
    static mongoc_database_t * database;
    char *databasename = "fapmongo_test";
-  // databasename = gen_database_name("fapmongo_test");
    database =  mongoc_client_get_database (client, databasename);
-  // free(databasename);
    return database;
 }
 
@@ -242,7 +240,6 @@ int
 main (int   argc,
       char *argv[])
 {
-   //TestSuite suite;
    int ret;
 
    mongoc_init ();
@@ -264,7 +261,6 @@ main (int   argc,
    test_cursor_install (&suite);
    test_database_install (&suite);
    test_load_install(&suite);
-   //test_gridfs_install (&suite);
 
    ret = TestSuite_Run (&suite);
 

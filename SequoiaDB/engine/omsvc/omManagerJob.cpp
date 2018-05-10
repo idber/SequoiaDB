@@ -68,41 +68,10 @@ namespace engine
       _lock.release() ;
    }
 
-   void omHostVersion::setPrivilege( string clusterName, BOOLEAN privilege )
-   {
-      _lock.get() ;
-      _mapClusterPrivilege[clusterName] = privilege ;
-      _lock.release() ;
-   }
-
-   BOOLEAN omHostVersion::getPrivilege( string clusterName )
-   {
-      BOOLEAN privilege = TRUE ;
-
-      _lock.get() ;
-      {
-         map<string, BOOLEAN>::iterator iter ;
-
-         iter = _mapClusterPrivilege.find( clusterName ) ;
-         if ( iter == _mapClusterPrivilege.end() )
-         {
-            privilege = TRUE ;
-         }
-         else
-         {
-            privilege = _mapClusterPrivilege[clusterName] ;
-         }
-      }
-      _lock.release() ;
-
-      return privilege ;
-   }
-
    void omHostVersion::removeVersion( string clusterName )
    {
       _lock.get() ;
       _mapClusterVersion.erase( clusterName ) ;
-      _mapClusterPrivilege.erase( clusterName ) ;
       _lock.release() ;
    }
 
@@ -588,35 +557,23 @@ namespace engine
                                         map<string, UINT32> &mapClusterVersion )
    {
       map<string, UINT32>::iterator iter = mapClusterVersion.begin() ;
-
       while ( iter != mapClusterVersion.end() )
       {
-         omClusterNotifier *pNotifier = NULL ;
-         UINT32 version     = iter->second ;
          string clusterName = iter->first ;
+         UINT32 version     = iter->second ;
          _MAP_CLUSTER_ITER clusterIter = _mapClusters.find( clusterName ) ;
-
          if ( clusterIter == _mapClusters.end() )
          {
-            pNotifier = SDB_OSS_NEW omClusterNotifier( eduCB(), _om, 
-                                                       clusterName ) ;
-            if ( NULL == pNotifier )
-            {
-               SDB_ASSERT( FALSE, "failed to alloc memory" ) ;
-            }
-
+            omClusterNotifier *notifier = NULL ;
+            notifier = SDB_OSS_NEW omClusterNotifier( eduCB(), _om, 
+                                                      clusterName ) ;
             _mapClusters.insert( _MAP_CLUSTER_VALUE( clusterName, 
-                                                     pNotifier ) ) ;
-         }
-         else
-         {
-            pNotifier = clusterIter->second ;
+                                                     notifier ) ) ;
+            clusterIter = _mapClusters.find( clusterName ) ;
          }
 
-         if ( _shareVersion->getPrivilege( clusterName ) && pNotifier )
-         {
-            pNotifier->notify( version ) ;
-         }
+         omClusterNotifier *pNotifier = clusterIter->second ;
+         pNotifier->notify( version ) ;
 
          iter++ ;
       }
@@ -636,11 +593,7 @@ namespace engine
          if ( iter == mapClusterVersion.end() )
          {
             _mapClusters.erase( clusterIter++ ) ;
-            if ( notifier )
-            {
-               SDB_OSS_DEL notifier ;
-               notifier = NULL ;
-            }
+            SDB_OSS_DEL notifier ;
             continue ;
          }
 

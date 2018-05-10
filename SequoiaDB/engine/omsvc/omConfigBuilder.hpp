@@ -182,20 +182,13 @@ namespace engine
 
    public:
       virtual ~OmConfigBuilder() {}
-      static INT32 createInstance( const OmBusinessInfo& businessInfo,
-                                   string &operationType,
-                                   OmConfigBuilder*& builder ) ;
+      static INT32 createInstance( const OmBusinessInfo& businessInfo, OmConfigBuilder*& builder ) ;
 
    public:
-      void setOperationType( string& operationType )
-      {
-         _operationType = operationType ;
-      }
       INT32 generateConfig( const BSONObj& bsonTemplate, 
                             const BSONObj& confProperties, 
                             const BSONObj& bsonHostInfo,
                             const BSONObj& bsonBusinessInfo,
-                            const set<string>& hostNames,
                             BSONObj& bsonConfig ) ;
 
       INT32 checkConfig( const BSONObj& confProperties, 
@@ -204,17 +197,12 @@ namespace engine
                          BSONObj& newBusinessConfig,
                          BOOLEAN force = FALSE ) ;
 
-      virtual INT32 getHostNames( const BSONObj& bsonConfig,
-                                  const CHAR *pFieldName,
-                                  set<string>& hostNames ) ;
+      virtual INT32 getHostNames( const BSONObj& bsonConfig, set<string>& hostNames ) ;
 
       const string& getErrorDetail() const { return _errorDetail ; }
 
    private:
       INT32 _parseProperties( const BSONObj& confProperties ) ;
-      INT32 _filterGenerateHost( const BSONObj& bsonHostInfo,
-                                 const set<string>& hostNames,
-                                 BSONObj& bsonBuildHost ) ;
 
    protected:
       virtual OmConfTemplate&    _getConfTemplate() = 0 ;
@@ -224,11 +212,9 @@ namespace engine
 
    protected:
       BOOLEAN           _force ;
-      BSONObj           _bsonHostInfo ;
       OmBusinessInfo    _businessInfo ;
       OmCluster         _cluster ;
       OmBusiness*       _business ;
-      string            _operationType ;
       string            _errorDetail ;
    } ;
 }

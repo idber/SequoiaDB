@@ -38,16 +38,6 @@ public class BasicBSONDecoder implements BSONDecoder {
         }
     }
 
-    @Override
-    public BSONObject readObject(byte[] b, int offset) {
-        try {
-            return readObject( new ByteArrayInputStream( b, offset, b.length - offset ) );
-        }
-        catch ( IOException ioe ){
-            throw new BSONException( "should be impossible" , ioe );
-        }
-    }
-
     public BSONObject readObject( InputStream in )
         throws IOException {
         BasicBSONCallback c = new BasicBSONCallback();
@@ -58,16 +48,6 @@ public class BasicBSONDecoder implements BSONDecoder {
     public int decode( byte[] b , BSONCallback callback ){
         try {
             return _decode( new BSONInput( new ByteArrayInputStream(b) ) , callback );
-        }
-        catch ( IOException ioe ){
-            throw new BSONException( "should be impossible" , ioe );
-        }
-    }
-
-    @Override
-    public int decode(byte[] b, int offset, BSONCallback callback) {
-        try {
-            return _decode( new BSONInput( new ByteArrayInputStream(b, offset, b.length - offset) ) , callback );
         }
         catch ( IOException ioe ){
             throw new BSONException( "should be impossible" , ioe );

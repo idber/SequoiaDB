@@ -41,7 +41,6 @@
 #include "msg.hpp"
 #include "migLoad.hpp"
 #include "rtnAlterRunner.hpp"
-#include "rtnQueryOptions.hpp"
 
 using namespace bson ;
 
@@ -89,8 +88,6 @@ namespace engine
          virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL ) = 0 ;
-
-         virtual void setMainCLName ( const CHAR * mainCL ) {}
 
       protected:
          INT32             _fromService ;
@@ -306,7 +303,7 @@ namespace engine
          virtual const CHAR * name () { return NAME_REMOVE_PROCEDURE ; }
          virtual RTN_COMMAND_TYPE type () { return CMD_REMOVE_PROCEDURE ; }
    } ;
-
+   
    class _rtnListCSInDomain : public _rtnCoordOnly
    {
       DECLARE_CMD_AUTO_REGISTER()
@@ -509,14 +506,11 @@ namespace engine
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
 
-      private:
-         void _clean( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB, _dpsLogWrapper *dpsCB ) ;
       protected:
-         const CHAR              *_collectionName ;
-         BSONObj                 _shardingKey ;
-         UINT32                  _attributes ;
-         UTIL_COMPRESSOR_TYPE    _compressorType ;
-         BSONObj                 _extOptions ; // Store options accorrding to attributes.
+         const CHAR                 *_collectionName ;
+         BSONObj                    _shardingKey ;
+         UINT32                     _attributes ;
+         UTIL_COMPRESSOR_TYPE       _compressorType ;
    };
 
    class _rtnCreateCollectionspace : public _rtnCommand
@@ -544,7 +538,7 @@ namespace engine
          const CHAR                 *_spaceName ;
          INT32                      _pageSize ;
          INT32                      _lobPageSize ;
-         DMS_STORAGE_TYPE           _storageType ;
+
    };
 
    class _rtnCreateIndex : public _rtnCommand
@@ -568,13 +562,12 @@ namespace engine
          virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
-      private:
-         INT32 _validateDef( const BSONObj &index ) ;
+
       protected:
          const CHAR              *_collectionName ;
          BSONObj                 _index ;
          INT32                   _sortBufferSize ;
-         BOOLEAN                 _textIdx ;
+
    };
 
    class _rtnDropCollection : public _rtnCommand
@@ -670,15 +663,17 @@ namespace engine
          virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
-
-         virtual void setMainCLName ( const CHAR * mainCL )
-         {
-            _options.setMainCLName( mainCL ) ;
-         }
-
       protected:
-         rtnQueryOptions      _options ;
+         const CHAR           *_collectionName ;
+         INT64                _numToReturn ;
+         INT64                _numToSkip ;
+         const CHAR           *_matcherBuff ;
+         const CHAR           *_selectBuff ;
+         const CHAR           *_orderByBuff ;
+         BSONObj              _hintObj ;
          BOOLEAN              _hintExist ;
+         INT32                _flags ;
+
    } ;
 
    class _rtnGetCount : public _rtnGet
@@ -1082,7 +1077,7 @@ namespace engine
       DECLARE_CMD_AUTO_REGISTER()
 
       public :
-         _rtnExportConf() ;
+         _rtnExportConf(){}
          virtual ~_rtnExportConf(){}
 
          virtual const CHAR * name () { return NAME_EXPORT_CONFIGURATION ; }
@@ -1092,14 +1087,14 @@ namespace engine
                               const CHAR *pMatcherBuff,
                               const CHAR *pSelectBuff,
                               const CHAR *pOrderByBuff,
-                              const CHAR *pHintBuff ) ;
+                              const CHAR *pHintBuff )
+         {
+            return SDB_OK ;
+         }
 
          virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL ) ;
-
-      private:
-         UINT32            _mask ;
 
    } ;
 
@@ -1263,47 +1258,6 @@ namespace engine
       const CHAR * _fullName ;
    } ;
 
-   class _rtnPop : public _rtnCommand
-   {
-   DECLARE_CMD_AUTO_REGISTER()
-   public:
-      _rtnPop()
-      : _fullName( NULL ),
-        _logicalID( 0 ),
-        _direction( 1 )
-      {
-      }
-
-      virtual ~_rtnPop() {}
-
-   public:
-      virtual const CHAR *name() { return NAME_POP ; }
-      virtual RTN_COMMAND_TYPE type() { return CMD_POP; }
-      virtual BOOLEAN writable()
-      {
-         return TRUE ;
-      }
-
-      virtual const CHAR* collectionFullName()
-      {
-         return _fullName ;
-      }
-
-      virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
-                           const CHAR *pMatcherBuff,
-                           const CHAR *pSelectBuff,
-                           const CHAR *pOrderByBuff,
-                           const CHAR *pHintBuff ) ;
-      virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
-                           _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
-                           INT16 w = 1, INT64 *pContextID = NULL ) ;
-
-   private:
-      const CHAR *_fullName ;
-      INT64 _logicalID ;
-      INT8 _direction ;
-   };
-
    class _rtnAlterCollection: public _rtnCommand
    {
    DECLARE_CMD_AUTO_REGISTER()
@@ -1408,90 +1362,6 @@ namespace engine
       virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                            _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                            INT16 w = 1, INT64 *pContextID = NULL ) ;
-   } ;
-
-   struct _rtnAnalyzeParam
-   {
-      _rtnAnalyzeParam ()
-      {
-         _mode = SDB_ANALYZE_MODE_SAMPLE ;
-         _sampleByNum = TRUE ;
-         _sampleRecords = SDB_ANALYZE_SAMPLE_DEF ;
-         _samplePercent = 0.0 ;
-         _needCheck = TRUE ;
-      }
-
-      _rtnAnalyzeParam ( const _rtnAnalyzeParam &param )
-      {
-         _mode = param._mode ;
-         _sampleByNum = param._sampleByNum ;
-         _sampleRecords = param._sampleRecords ;
-         _samplePercent = param._samplePercent ;
-         _needCheck = param._needCheck ;
-      }
-
-      INT32    _mode ;
-      BOOLEAN  _sampleByNum ;
-      UINT32   _sampleRecords ;
-      double   _samplePercent ;
-      BOOLEAN  _needCheck ;
-   } ;
-
-   typedef struct _rtnAnalyzeParam rtnAnalyzeParam ;
-
-   class _rtnAnalyze : public _rtnCommand
-   {
-
-   DECLARE_CMD_AUTO_REGISTER()
-
-   public :
-
-      _rtnAnalyze () ;
-
-      virtual ~_rtnAnalyze () ;
-
-   public :
-
-      virtual const CHAR * name () { return NAME_ANALYZE ; }
-
-      virtual RTN_COMMAND_TYPE type () { return CMD_ANALYZE ; }
-
-      virtual BOOLEAN writable ()
-      {
-         return ( _param._mode != SDB_ANALYZE_MODE_RELOAD &&
-                  _param._mode != SDB_ANALYZE_MODE_CLEAR ) ;
-      }
-
-      virtual const CHAR * collectionFullName ()
-      {
-         return _clname ;
-      }
-
-      const CHAR * getIndexName () const
-      {
-         return _ixname ;
-      }
-
-      const rtnAnalyzeParam &getAnalyzeParam () const
-      {
-         return _param ;
-      }
-
-      virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
-                           const CHAR *pMatcherBuff,
-                           const CHAR *pSelectBuff,
-                           const CHAR *pOrderByBuff,
-                           const CHAR *pHintBuff ) ;
-
-      virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
-                           _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
-                           INT16 w = 1, INT64 *pContextID = NULL ) ;
-
-   private :
-      const CHAR *      _csname ;
-      const CHAR *      _clname ;
-      const CHAR *      _ixname ;
-      rtnAnalyzeParam   _param ;
    } ;
 
 }

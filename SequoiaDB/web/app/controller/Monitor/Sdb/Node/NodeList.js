@@ -1,8 +1,7 @@
-﻿//@ sourceURL=NodeList.js
-(function(){
+﻿(function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
-   sacApp.controllerProvider.register( 'Monitor.SdbOverview.Node.Ctrl', function( $scope, $compile, $location, $rootScope, SdbRest, SdbFunction ){
+   sacApp.controllerProvider.register( 'Monitor.SdbOverview.Node.Ctrl', function( $scope, $compile, $location, SdbRest, SdbFunction ){
       
       _IndexPublic.checkMonitorEdition( $location ) ; //检测是不是企业版
 
@@ -105,32 +104,26 @@
       //启动节点
       var startNode = function( hostname, svcname ){
          var data = { 'cmd': 'start node', 'HostName': hostname, 'svcname': svcname } ;
-         SdbRest.DataOperation( data, {
-            'success': function(){
-               getClList() ;
-            },
-            'failed': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  startNode( hostname, svcname ) ;
-                  return true ;
-               } ) ;
-            }
+         SdbRest.DataOperation( data, function(){
+            getClList() ;
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               startNode( hostname, svcname ) ;
+               return true ;
+            } ) ;
          } ) ;
       }
 
       //停止节点
       var stopNode = function( hostname, svcname ){
          var data = { 'cmd': 'stop node', 'HostName': hostname, 'svcname': svcname } ;
-         SdbRest.DataOperation( data, {
-            'success': function(){
-               getClList() ;
-            },
-            'failed': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  stopNode( hostname, svcname ) ;
-                  return true ;
-               } ) ;
-            }
+         SdbRest.DataOperation( data, function(){
+            getClList() ;
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               stopNode( hostname, svcname ) ;
+               return true ;
+            } ) ;
          } ) ;
       }
 
@@ -221,117 +214,110 @@
                   return true ;
                } ) ;
             }
-         },{
-            'showLoading': false
          } ) ;
       }
 
       //获取节点列表
       var getNodesList = function(){
          var data = { 'cmd': 'list groups' } ;
-         SdbRest.DataOperation( data, {
-            'success': function( groups ){
-               var nodesList = [] ;
-               $scope.GroupList = groups ;
-               $.each( groups, function( index, groupInfo ){
-                  if( groupInfo['Role'] == 2 )
-                     groupInfo['Role'] = 'catalog' ;
-                  else if( groupInfo['Role'] == 1 )
-                     groupInfo['Role'] = 'coord' ;
-                  else if( groupInfo['Role'] == 0 )
-                     groupInfo['Role'] = 'data' ;
-                  $.each( groupInfo['Group'], function( index2, nodeInfo ){
-                     var isPrimary = false ;
-                     if( groupInfo['Role'] == 'coord' )
-                        isPrimary = '-' ;
-                     else if( nodeInfo['NodeID'] == groupInfo['PrimaryNode'] )
-                        isPrimary = true ;
-                     nodesList.push( {
-                        'HostName': nodeInfo['HostName'],
-                        'ServiceName': nodeInfo['Service']['0']['Name'],
-                        'GroupName': groupInfo['GroupName'],
-                        'Role': groupInfo['Role'],
-                        'NodeID': nodeInfo['NodeID'],
-                        'Status': true,
-                        'IsPrimary': isPrimary
-                     } ) ;
+         SdbRest.DataOperation( data, function( groups ){
+            var nodesList = [] ;
+            $scope.GroupList = groups ;
+            $.each( groups, function( index, groupInfo ){
+               if( groupInfo['Role'] == 2 )
+                  groupInfo['Role'] = 'catalog' ;
+               else if( groupInfo['Role'] == 1 )
+                  groupInfo['Role'] = 'coord' ;
+               else if( groupInfo['Role'] == 0 )
+                  groupInfo['Role'] = 'data' ;
+               $.each( groupInfo['Group'], function( index2, nodeInfo ){
+                  var isPrimary = false ;
+                  if( groupInfo['Role'] == 'coord' )
+                     isPrimary = '-' ;
+                  else if( nodeInfo['NodeID'] == groupInfo['PrimaryNode'] )
+                     isPrimary = true ;
+                  nodesList.push( {
+                     'HostName': nodeInfo['HostName'],
+                     'ServiceName': nodeInfo['Service']['0']['Name'],
+                     'GroupName': groupInfo['GroupName'],
+                     'Role': groupInfo['Role'],
+                     'NodeID': nodeInfo['NodeID'],
+                     'Status': true,
+                     'IsPrimary': isPrimary
                   } ) ;
                } ) ;
-               $.each( nodesList, function( index, nodeInfo ){
-                  nodesList[index]['NodeName'] = nodeInfo['HostName'] + ':' + nodeInfo['ServiceName'] ;
-                  nodesList[index]['TotalRecords'] = '-' ;
-                  nodesList[index]['TotalLobs'] = '-' ;
-                  nodesList[index]['TotalCL'] = '-' ;
-                  //统计数据节点的数据
-                  if( nodeInfo['Role'] == 'data' )
-                  {
-                     nodesList[index]['TotalRecords'] = 0 ;
-                     nodesList[index]['TotalLobs'] = 0 ;
-                     nodesList[index]['TotalCL'] = 0 ;
-                     $.each( clList, function( index3, ClInfo ){
-                        if( nodesList[index]['NodeName'] == ClInfo['NodeName'] )
-                        {
-                           nodesList[index]['TotalCL'] += 1 ;
-                           nodesList[index]['TotalRecords'] += ClInfo['TotalRecords'] ;
-                           nodesList[index]['TotalLobs'] += ClInfo['TotalLobs'] ;
-                        }
-                     } ) ;
-                  }
-                  else if( nodeInfo['Role'] == 'coord' )
-                  {
-                     getCoordStatus( nodeInfo, nodeInfo['HostName'], nodeInfo['ServiceName'] ) ;
-                  }
-                  //如果节点错误，那么数据为空
-                  if( clList.length > 0 )
-                  {
-                     $.each( clList, function( nodeIndex2, nodeInfo2 ){
-                        if( isArray( nodeInfo2['ErrNodes'] ) )
-                        {
-                           $.each( nodeInfo2['ErrNodes'], function( nodeIndex, errNodeInfo ){
-                              if( nodesList[index]['NodeName'] == errNodeInfo['NodeName'] )
-                              {
-                                 nodesList[index]['Status'] = false ;
-                                 nodesList[index]['Flag'] = errNodeInfo['Flag'] ;
-                                 nodesList[index]['TotalRecords'] = '-' ;
-                                 nodesList[index]['TotalLobs'] = '-' ;
-                                 nodesList[index]['TotalCL'] = '-' ;
-                                 return false ;
-                              }
-                           } ) ;
-                        }
-                     } ) ;
-                  }
-                  if( nodesList[index]['Role'] !== 'coord' )   //coord节点另外处理
-                  {
-                     //记录停止的节点
-                     if( nodesList[index]['Status'] == false && $scope.StartNode['config']['select'].length == 0 )
-                        $scope.StartNode['config']['value'] = nodesList[index]['NodeName'] ;
-                     if( nodesList[index]['Status'] == false )
-                        $scope.StartNode['config']['select'].push( {
-                           'key': nodesList[index]['Role'] == 'data' ? ( nodesList[index]['GroupName'] + ' ' + nodesList[index]['NodeName'] ) : ( nodesList[index]['Role'] + ' ' + nodesList[index]['NodeName'] ),
-                           'value': nodesList[index]['NodeName']
+            } ) ;
+            $.each( nodesList, function( index, nodeInfo ){
+               nodesList[index]['NodeName'] = nodeInfo['HostName'] + ':' + nodeInfo['ServiceName'] ;
+               nodesList[index]['TotalRecords'] = '-' ;
+               nodesList[index]['TotalLobs'] = '-' ;
+               nodesList[index]['TotalCL'] = '-' ;
+               //统计数据节点的数据
+               if( nodeInfo['Role'] == 'data' )
+               {
+                  nodesList[index]['TotalRecords'] = 0 ;
+                  nodesList[index]['TotalLobs'] = 0 ;
+                  nodesList[index]['TotalCL'] = 0 ;
+                  $.each( clList, function( index3, ClInfo ){
+                     if( nodesList[index]['NodeName'] == ClInfo['NodeName'] )
+                     {
+                        nodesList[index]['TotalCL'] += 1 ;
+                        nodesList[index]['TotalRecords'] += ClInfo['TotalRecords'] ;
+                        nodesList[index]['TotalLobs'] += ClInfo['TotalLobs'] ;
+                     }
+                  } ) ;
+               }
+               else if( nodeInfo['Role'] == 'coord' )
+               {
+                  getCoordStatus( nodeInfo, nodeInfo['HostName'], nodeInfo['ServiceName'] ) ;
+               }
+               //如果节点错误，那么数据为空
+               if( clList.length > 0 )
+               {
+                  $.each( clList, function( nodeIndex2, nodeInfo2 ){
+                     if( isArray( nodeInfo2['ErrNodes'] ) )
+                     {
+                        $.each( nodeInfo2['ErrNodes'], function( nodeIndex, errNodeInfo ){
+                           if( nodesList[index]['NodeName'] == errNodeInfo['NodeName'] )
+                           {
+                              nodesList[index]['Status'] = false ;
+                              nodesList[index]['Flag'] = errNodeInfo['Flag'] ;
+                              nodesList[index]['TotalRecords'] = '-' ;
+                              nodesList[index]['TotalLobs'] = '-' ;
+                              nodesList[index]['TotalCL'] = '-' ;
+                              return false ;
+                           }
                         } ) ;
+                     }
+                  } ) ;
+               }
+               if( nodesList[index]['Role'] !== 'coord' )   //coord节点另外处理
+               {
+                  //记录停止的节点
+                  if( nodesList[index]['Status'] == false && $scope.StartNode['config']['select'].length == 0 )
+                     $scope.StartNode['config']['value'] = nodesList[index]['NodeName'] ;
+                  if( nodesList[index]['Status'] == false )
+                     $scope.StartNode['config']['select'].push( {
+                        'key': nodesList[index]['Role'] == 'data' ? ( nodesList[index]['GroupName'] + ' ' + nodesList[index]['NodeName'] ) : ( nodesList[index]['Role'] + ' ' + nodesList[index]['NodeName'] ),
+                        'value': nodesList[index]['NodeName']
+                     } ) ;
 
-                     //记录启动的节点
-                     if( nodesList[index]['Status'] == true && $scope.StopNode['config']['select'].length == 0 )
-                        $scope.StopNode['config']['value'] = nodesList[index]['NodeName'] ;
-                     if( nodesList[index]['Status'] == true )
-                        $scope.StopNode['config']['select'].push( {
-                           'key': nodesList[index]['Role'] == 'data' ? ( nodesList[index]['GroupName'] + ' ' + nodesList[index]['NodeName'] ) : ( nodesList[index]['Role'] + ' ' + nodesList[index]['NodeName'] ),
-                           'value': nodesList[index]['NodeName']
-                        } ) ;
-                  }
-               } ) ;
-               $scope.NodeTable['body'] = nodesList ;
-            }, 
-            'faild': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  getNodesList() ;
-                  return true ;
-               } ) ;
-            }
-         },{
-            'showLoading': false
+                  //记录启动的节点
+                  if( nodesList[index]['Status'] == true && $scope.StopNode['config']['select'].length == 0 )
+                     $scope.StopNode['config']['value'] = nodesList[index]['NodeName'] ;
+                  if( nodesList[index]['Status'] == true )
+                     $scope.StopNode['config']['select'].push( {
+                        'key': nodesList[index]['Role'] == 'data' ? ( nodesList[index]['GroupName'] + ' ' + nodesList[index]['NodeName'] ) : ( nodesList[index]['Role'] + ' ' + nodesList[index]['NodeName'] ),
+                        'value': nodesList[index]['NodeName']
+                     } ) ;
+               }
+            } ) ;
+            $scope.NodeTable['body'] = nodesList ;
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               getNodesList() ;
+               return true ;
+            } ) ;
          } ) ;
       } ;
 
@@ -352,16 +338,8 @@
                   return true ;
                } ) ;
             }
-         },{
-            'showLoading': false
          } ) ;
       } ;
-
-      $scope.GotoSync = function(){
-         $rootScope.tempData( 'Deploy', 'ModuleName',  moduleName ) ;
-         $rootScope.tempData( 'Deploy', 'ClusterName', clusterName ) ;
-         $location.path( '/Deploy/SDB-Sync' ).search( { 'r': new Date().getTime() } ) ;
-      }
 
        //跳转至资源
       $scope.GotoResources = function(){

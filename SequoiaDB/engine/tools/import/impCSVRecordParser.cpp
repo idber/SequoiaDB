@@ -675,18 +675,6 @@ namespace import
                                      CSV_TYPE& type, CSVFieldValue& value,
                                      INT32& valueLength ) ;
 
-   static inline INT32 _stringToRawDecimalMax( const CHAR* data, INT32 length,
-                                               CSV_TYPE &type ) ;
-
-   static inline INT32 _stringToRawDecimalMin( const CHAR* data, INT32 length,
-                                               CSV_TYPE &type ) ;
-
-   static inline INT32 _stringToRawDecimalInf( const CHAR* data, INT32 length,
-                                               CSV_TYPE &type ) ;
-
-   static inline INT32 _stringToRawDecimalNan( const CHAR* data, INT32 length,
-                                               CSV_TYPE &type ) ;
-
    static inline INT32 _stringToRawNum(const CHAR* data, INT32 length,
                                           CSV_TYPE& type, CSVFieldValue& value,
                                           INT32& valueLength, BOOLEAN allowDot)
@@ -793,88 +781,6 @@ namespace import
       goto done;
    }
 
-   #define CSV_STR_DECIMAL_MAX "max"
-   #define CSV_STR_DECIMAL_MAX2 "MAX"
-   #define CSV_STR_DECIMAL_MAX_LEN ((INT32)sizeof(CSV_STR_DECIMAL_MAX)-1)
-   static inline INT32 _stringToRawDecimalMax( const CHAR* data, INT32 length,
-                                               CSV_TYPE &type )
-   {
-      INT32 rc = SDB_OK ;
-
-      if( 0 == ossStrncmp( data, CSV_STR_DECIMAL_MAX,
-                           CSV_STR_DECIMAL_MAX_LEN ) ||
-          0 == ossStrncmp( data, CSV_STR_DECIMAL_MAX2,
-                           CSV_STR_DECIMAL_MAX_LEN ) )
-      {
-         type = CSV_TYPE_DECIMAL ;
-      }
-
-      return rc ;
-   }
-
-   #define CSV_STR_DECIMAL_MIN "min"
-   #define CSV_STR_DECIMAL_MIN2 "MIN"
-   #define CSV_STR_DECIMAL_MIN_LEN ((INT32)sizeof(CSV_STR_DECIMAL_MIN)-1)
-   static inline INT32 _stringToRawDecimalMin( const CHAR* data, INT32 length,
-                                               CSV_TYPE &type )
-   {
-      INT32 rc = SDB_OK ;
-
-      if( 0 == ossStrncmp( data, CSV_STR_DECIMAL_MIN,
-                           CSV_STR_DECIMAL_MIN_LEN ) ||
-          0 == ossStrncmp( data, CSV_STR_DECIMAL_MIN2,
-                           CSV_STR_DECIMAL_MIN_LEN ) )
-      {
-         type = CSV_TYPE_DECIMAL ;
-      }
-
-      return rc ;
-   }
-
-   #define CSV_STR_DECIMAL_INF "inf"
-   #define CSV_STR_DECIMAL_INF2 "INF"
-   #define CSV_STR_DECIMAL_INF_LEN ((INT32)sizeof(CSV_STR_DECIMAL_INF)-1)
-   static inline INT32 _stringToRawDecimalInf( const CHAR* data, INT32 length,
-                                               CSV_TYPE &type )
-   {
-      INT32 rc = SDB_OK ;
-
-      if( length == 4 && data[0] == '-' )
-      {
-         ++data ;
-         --length ;
-      }
-
-      if( 0 == ossStrncmp( data, CSV_STR_DECIMAL_INF,
-                           CSV_STR_DECIMAL_INF_LEN ) ||
-          0 == ossStrncmp( data, CSV_STR_DECIMAL_INF2,
-                           CSV_STR_DECIMAL_INF_LEN ) )
-      {
-         type = CSV_TYPE_DECIMAL ;
-      }
-
-      return rc ;
-   }
-
-   #define CSV_STR_DECIMAL_NAN "nan"
-   #define CSV_STR_DECIMAL_NAN2 "NaN"
-   #define CSV_STR_DECIMAL_NAN_LEN ((INT32)sizeof(CSV_STR_DECIMAL_NAN)-1)
-   static inline INT32 _stringToRawDecimalNan( const CHAR* data, INT32 length,
-                                               CSV_TYPE &type )
-   {
-      INT32 rc = SDB_OK ;
-
-      if( 0 == ossStrncmp( data, CSV_STR_DECIMAL_NAN,
-                           CSV_STR_DECIMAL_NAN_LEN ) ||
-          0 == ossStrncmp( data, CSV_STR_DECIMAL_NAN2,
-                           CSV_STR_DECIMAL_NAN_LEN ) )
-      {
-         type = CSV_TYPE_DECIMAL ;
-      }
-
-      return rc ;
-   }
-
    static INT32 _stringToRawDecimal(const CHAR* data, INT32 length,
                                     bson_decimal& value, INT32& valueLength)
    {
@@ -886,60 +792,6 @@ namespace import
 
       SDB_ASSERT(NULL != data, "data can't be NULL");
       SDB_ASSERT(length > 0, "length must be greater than 0");
-
-      if( length == 3 )
-      {
-         CSV_TYPE tmpType = CSV_TYPE_AUTO;
-
-         rc = _stringToRawDecimalMax( data, length, tmpType ) ;
-         if( rc == SDB_OK && tmpType == CSV_TYPE_DECIMAL )
-         {
-            start = str;
-            str += 3 ;
-            len -= 3 ;
-            goto decimal ;
-         }
-
-         rc = _stringToRawDecimalMin( data, length, tmpType ) ;
-         if( rc == SDB_OK && tmpType == CSV_TYPE_DECIMAL )
-         {
-            start = str;
-            str += 3 ;
-            len -= 3 ;
-            goto decimal ;
-         }
-
-         rc = _stringToRawDecimalInf( data, length, tmpType ) ;
-         if( rc == SDB_OK && tmpType == CSV_TYPE_DECIMAL )
-         {
-            start = str;
-            str += 3 ;
-            len -= 3 ;
-            goto decimal ;
-         }
-
-         rc = _stringToRawDecimalNan( data, length, tmpType ) ;
-         if( rc == SDB_OK && tmpType == CSV_TYPE_DECIMAL )
-         {
-            start = str;
-            str += 3 ;
-            len -= 3 ;
-            goto decimal ;
-         }
-      }
-      else if( length == 4 )
-      {
-         CSV_TYPE tmpType = CSV_TYPE_AUTO;
-
-         rc = _stringToRawDecimalInf( data, length, tmpType ) ;
-         if( rc == SDB_OK && tmpType == CSV_TYPE_DECIMAL )
-         {
-            start = str;
-            str += 4 ;
-            len -= 4 ;
-            goto decimal ;
-         }
-      }
 
       if ('#' == *str)
       {
@@ -1077,8 +929,8 @@ namespace import
    }
 
    #define CSV_STR_NAN1 "NAN"
-   #define CSV_STR_NAN2 CSV_STR_DECIMAL_NAN2
-   #define CSV_STR_NAN3 CSV_STR_DECIMAL_NAN
+   #define CSV_STR_NAN2 "NaN"
+   #define CSV_STR_NAN3 "nan"
    #define CSV_STR_NAN_LEN ((INT32)sizeof(CSV_STR_NAN1)-1)
    #define CSV_VALUE_NAN (0x7ff8000000000000)
    static inline INT32 _stringToNan( const CHAR *data, INT32 length,

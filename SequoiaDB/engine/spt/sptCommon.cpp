@@ -34,7 +34,6 @@
 *******************************************************************************/
 
 #include "sptCommon.hpp"
-#include "sptPrivateData.hpp"
 #include "pd.hpp"
 #include "ossUtil.h"
 #include "ossMem.h"
@@ -42,7 +41,6 @@
 #include <sstream>
 #include "msg.h"
 #include "sptSPDef.hpp"
-#include "jsinterp.h"
 
 using namespace std ;
 
@@ -66,7 +64,10 @@ namespace engine
    static OSS_THREAD_LOCAL BOOLEAN  __hasSetErrNo__      = FALSE ;
    static OSS_THREAD_LOCAL BOOLEAN  __hasSetErrObj__     = FALSE ;
    static OSS_THREAD_LOCAL BOOLEAN  __needClearErrorInfo__ = FALSE ;
-   static OSS_THREAD_LOCAL BOOLEAN  __ignoreErrorPrefix__ = FALSE ;
+
+   static OSS_THREAD_LOCAL const void* __curJSContext__  = NULL ;
+   static OSS_THREAD_LOCAL const void* __curJSGlobal__   = NULL ;
+
    /*
       Local Functions Define
    */
@@ -337,6 +338,9 @@ namespace engine
          __errobj__ = NULL ;
          __errobjSize__ = 0 ;
       }
+
+      __curJSContext__ = NULL ;
+      __curJSGlobal__ = NULL ;
    }
 
    void sdbErrorCallback( const CHAR *pErrorObj,
@@ -347,7 +351,6 @@ namespace engine
    {
       sdbSetErrorObj( pErrorObj, objSize ) ;
       sdbSetErrno( flag, FALSE ) ;
-
       if ( pDescription && pDetail &&
            0 != ossStrcmp( pDescription, pDetail ) )
       {
@@ -376,16 +379,6 @@ namespace engine
       __printError__ = print ;
    }
 
-   BOOLEAN sdbNeedIgnoreErrorPrefix()
-   {
-      return __ignoreErrorPrefix__ ;
-   }
-
-   void sdbSetIgnoreErrorPrefix( BOOLEAN ignore )
-   {
-      __ignoreErrorPrefix__ = ignore ;
-   }
-
    void sdbSetReadData( BOOLEAN hasRead )
    {
       __hasReadData__ = hasRead ;
@@ -409,27 +402,8 @@ namespace engine
    void sdbReportError( JSContext *cx, const char *msg,
                         JSErrorReport *report )
    {
-      const CHAR* filename = NULL ;
-      UINT32 lineno = 0 ;
-
-      sptPrivateData *privateData = ( sptPrivateData* ) JS_GetContextPrivate( cx ) ;
-      if( NULL != privateData && privateData->isSetErrInfo() )
-      {
-         filename = privateData->getErrFileName().c_str() ;
-         lineno = privateData->getErrLineno() ;
-      }
-      else
-      {
-         filename = report->filename ;
-         lineno = report->lineno ;
-      }
-
-      sdbReportError( filename , lineno, msg,
-                      JSREPORT_IS_EXCEPTION( report->flags ) ) ;
-      if( NULL != privateData )
-      {
-         privateData->clearErrInfo() ;
-      }
+      return sdbReportError( report->filename, report->lineno, msg,
+                             JSREPORT_IS_EXCEPTION( report->flags ) ) ;
    }
 
    void sdbReportError( const CHAR *filename, UINT32 lineno,
@@ -454,7 +428,16 @@ namespace engine
 
       if ( ( sdbIsErrMsgEmpty() || !__hasSetErrMsg__ ) && msg )
       {
-         sdbSetErrMsg( msg ) ;
+         if ( filename )
+         {
+            stringstream ss ;
+            ss << filename << ":" << lineno << " " << msg ;
+            sdbSetErrMsg( ss.str().c_str() ) ;
+         }
+         else
+         {
+            sdbSetErrMsg( msg ) ;
+         }
          add = TRUE ;
       }
 
@@ -470,7 +453,8 @@ namespace engine
                     filename ? filename : "(nofile)" ,
                     lineno, msg ) ;
 
-         if ( !add && !sdbIsErrMsgEmpty() )
+         if ( !add && !sdbIsErrMsgEmpty() &&
+              NULL == ossStrstr( sdbGetErrMsg(), msg ) )
          {
             ossPrintf( "%s\n", sdbGetErrMsg() ) ;
          }
@@ -478,13 +462,48 @@ namespace engine
       __hasSetErrMsg__ = FALSE ;
       __hasSetErrNo__  = FALSE ;
       __hasSetErrObj__ = FALSE ;
-
    }
 
    UINT32 sdbGetGlobalID()
    {
       static UINT32 _gid = 0 ;
       return ++_gid ;
+   }
+
+   const void* sdbGetThreadContext()
+   {
+      return __curJSContext__ ;
+   }
+
+   void  sdbDeclareThreadContext( const void *pContext )
+   {
+      __curJSContext__ = pContext ;
+   }
+
+   void  sdbUndeclareThreadContext( const void *pContext )
+   {
+      if ( pContext == __curJSContext__ )
+      {
+         __curJSContext__ = NULL ;
+      }
+   }
+
+   const void* sdbGetThreadGlobal()
+   {
+      return __curJSGlobal__ ;
+   }
+
+   void  sdbDeclareThreadGlobal( const void *pGlobal )
+   {
+      __curJSGlobal__ = pGlobal ;
+   }
+
+   void  sdbUndeclareThreadGlobal( const void *pGlobal )
+   {
+      if ( pGlobal == __curJSGlobal__ )
+      {
+         __curJSGlobal__ = NULL ;
+      }
    }
 
    BOOLEAN sptIsOpGetProperty( UINT32 opcode )

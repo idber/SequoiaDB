@@ -114,11 +114,6 @@ namespace engine
       INT32 getHttpHeader( pmdRestSession *pSession,
                            const CHAR *pKey,
                            const CHAR **ppValue ) ;
-      const CHAR *getRequestHeader( pmdRestSession *pSession ) ;
-      INT32 getRequestHeaderSize( pmdRestSession *pSession ) ;
-      const CHAR *getRequestBody( pmdRestSession *pSession ) ;
-      INT32 getRequestBodySize( pmdRestSession *pSession ) ;
-      BOOLEAN isKeepAlive( pmdRestSession *pSession ) ;
       void getQuery( pmdRestSession *pSession,
                      const CHAR *pKey,
                      const CHAR **ppValue ) ;

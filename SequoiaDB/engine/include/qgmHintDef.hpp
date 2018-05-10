@@ -40,14 +40,8 @@
 
 namespace engine
 {
-#define QGM_HINT_HASHJOIN        "use_hash"
-#define QGM_HINT_HASHJOIN_SIZE   ( sizeof( QGM_HINT_HASHJOIN ) -1 )
-
-#define QGM_HINT_USEINDEX        "use_index"
-#define QGM_HINT_USEINDEX_SIZE   ( sizeof( QGM_HINT_USEINDEX ) -1 )
-
-#define QGM_HINT_USEFLAG         "use_flag"
-#define QGM_HINT_USEFLAG_SIZE    ( sizeof( QGM_HINT_USEFLAG ) -1 )
+#define QGM_HINT_HASHJOIN "use_hash"
+#define QGM_HINT_USEINDEX "use_index"
 }
 
 #endif

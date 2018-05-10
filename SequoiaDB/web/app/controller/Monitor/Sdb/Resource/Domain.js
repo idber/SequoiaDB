@@ -1,5 +1,4 @@
-﻿//@ sourceURL=Domain.js
-(function(){
+﻿(function(){
    var sacApp = window.SdbSacManagerModule ;
    //控制器
    sacApp.controllerProvider.register( 'Monitor.SdbResource.Domain.Ctrl', function( $scope, $compile, $location, SdbRest, SdbFunction ){
@@ -114,7 +113,7 @@
       //获取CS列表
       var getCsList = function(){
          var sql = 'select Collection, Domain, Name from $LIST_CS where not Domain is null' ;
-         SdbRest.Exec( sql, {
+         SdbRest.Exec( sql,{
             'success': function( csList ){
                if( csList.length > 0 )
                {
@@ -138,17 +137,13 @@
                }
                $.each( domainList, function( domainIndex, domainInfo ){
                   var groupList = [] ;
-                  domainList[domainIndex]['CLList'] = domainInfo['CLList'] ? ( domainInfo['CLList'].length > 0 ? domainInfo['CLList'].join() : '-' ) : '-' ;
-                  domainList[domainIndex]['CSList'] = domainInfo['CSList'] ? ( domainInfo['CSList'].length > 0 ? domainInfo['CSList'].join() : '-' ) : '-' ;
-                  if( domainInfo['Groups'] )
-                  {
-                     $.each( domainInfo['Groups'], function( groupIndex, groupInfo ){
-                        groupList.push( groupInfo['GroupName'] ) ;
-                     } ) ;
-                  }
+                  domainList[domainIndex]['CLList'] = domainInfo['CLList'].length > 0 ? domainInfo['CLList'].join() : '-' ;
+                  domainList[domainIndex]['CSList'] = domainInfo['CSList'].length > 0 ? domainInfo['CSList'].join() : '-' ;
+                  $.each( domainInfo['Groups'], function( groupIndex, groupInfo ){
+                     groupList.push( groupInfo['GroupName'] ) ;
+                  } ) ;
                   domainList[domainIndex]['GroupList'] = groupList ;
                   domainList[domainIndex]['Groups'] = groupList.length > 0 ? groupList.join() : '-' ;
-                  
                } ) ;
                $scope.DomainTable['body'] = domainList ;
             },
@@ -167,26 +162,23 @@
       var getGroupList = function(){
          groupNameList = [] ;
          var data = { 'cmd': 'list groups' } ;
-         SdbRest.DataOperation( data, {
-            'success': function( groups ){
-               if( groups.length > 0 )
-               {
-                  $.each( groups, function( index, groupInfo ){
-                     if( groupInfo['Role'] == 0 )
-                     {
-                        groupNameList.push( groupInfo['GroupName'] ) ;
-                     }
-                  } ) ;
-               }
-               $scope.GroupList = groups ;
-            },
-            'failed': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  getGroupList() ;
-                  return true ;
+         SdbRest.DataOperation( data, function( groups ){
+            if( groups.length > 0 )
+            {
+               $.each( groups, function( index, groupInfo ){
+                  if( groupInfo['Role'] == 0 )
+                  {
+                     groupNameList.push( groupInfo['GroupName'] ) ;
+                  }
                } ) ;
-            } 
-         }, { 'showLoading': false } ) ;
+            }
+            $scope.GroupList = groups ;
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               getGroupList() ;
+               return true ;
+            } ) ;
+         }, null, null, null, false ) ;
       }
 
       //获取domain列表
@@ -195,33 +187,29 @@
          $scope.DomainTable['body'] = [] ;
          domainList = [] ;
          var data = { 'cmd': 'list domains' } ;
-         SdbRest.DataOperation( data, {
-            'success': function( domains ){
-               //存在域时才执行
-               if( domains.length > 0 )
-               {
-                  $.each( domains, function( index, domainInfo ){
-                     domainInfo['_id'] = domainInfo['_id']['$oid'] ;
-                     domainInfo['TotalGroups'] = domainInfo['Groups'] ? domainInfo['Groups'].length : 0 ;
-                     domainInfo['AutoSplit'] = typeof( domainInfo['AutoSplit'] ) == 'undefined' ? 'false' : domainInfo['AutoSplit'] ;
-                     domainInfo['CSList'] = [] ;
-                     domainInfo['TotalCS'] = 0 ;
-                     domainInfo['CLList'] = [] ;
-                     domainInfo['TotalCL'] = 0 ;
-                     //弹窗表单用
-                     domainNameList.push( { 'key': domainInfo['Name'], 'value': domainInfo['Name'] } ) ;
-                  } ) ;
-                  domainList = domains ;
-                  getCsList() ;
-               }
-            },
-            'failed': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  getDomainList() ;
-                  return true ;
+         SdbRest.DataOperation( data, function( domains ){
+            //存在域时才执行
+            if( domains.length > 0 )
+            {
+               $.each( domains, function( index, domainInfo ){
+                  domainInfo['_id'] = domainInfo['_id']['$oid'] ;
+                  domainInfo['TotalGroups'] = domainInfo['Groups'].length ;
+                  domainInfo['CSList'] = [] ;
+                  domainInfo['TotalCS'] = 0 ;
+                  domainInfo['CLList'] = [] ;
+                  domainInfo['TotalCL'] = 0 ;
+                  //弹窗表单用
+                  domainNameList.push( { 'key': domainInfo['Name'], 'value': domainInfo['Name'] } ) ;
                } ) ;
+               domainList = domains ;
+               getCsList() ;
             }
-         }, { 'showLoading': false } ) ;
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               getDomainList() ;
+               return true ;
+            } ) ;
+         } ) ;
       }
 
       getDomainList();
@@ -237,52 +225,43 @@
                'Groups': groupList
             } )
          } ;
-         SdbRest.DataOperation( data, {
-            'success': function(){
-               //刷新domain页面
-               getDomainList() ;
-            },
-            'failed': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  createDomain( domainName, autoSplit, groupList ) ;
-                  return true ;
-               } ) ;
-            }
+         SdbRest.DataOperation( data, function(){
+            //刷新domain页面
+            getDomainList() ;
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               createDomain( domainName, autoSplit, groupList ) ;
+               return true ;
+            } ) ;
          } ) ;
       }
       
       //删除domain - 在弹窗删除domain时使用
       var deleteDomain = function( domainName ){
          var data = { 'cmd': 'drop domain', 'name': domainName } ;
-         SdbRest.DataOperation( data, {
-            'success': function(){
-               //刷新domain页面
-               getDomainList() ;
+         SdbRest.DataOperation( data, function(){
+            //刷新domain页面
+            getDomainList() ;
             
-            },
-            'failed': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  deleteDomain( domainName ) ;
-                  return true ;
-               } ) ;
-            }
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               deleteDomain( domainName ) ;
+               return true ;
+            } ) ;
          } ) ;
       }
 
       //修改domain属性 - 在弹窗编辑domain时使用
       var alterDomain = function( domainName, autoSplit, groupList ){
          var data = { 'cmd': 'alter domain', 'name': domainName, 'options':JSON.stringify( { 'AutoSplit': autoSplit, 'Groups': groupList } ) } ;
-         SdbRest.DataOperation( data, {
-            'success': function(){
-               //刷新domain页面
-               getDomainList() ;
-            },
-            'failed': function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  alterDomain( domainName, autoSplit, groupList ) ;
-                  return true ;
-               } ) ;
-            }
+         SdbRest.DataOperation( data, function(){
+            //刷新domain页面
+            getDomainList() ;
+         }, function( errorInfo ){
+            _IndexPublic.createRetryModel( $scope, errorInfo, function(){
+               alterDomain( domainName, autoSplit, groupList ) ;
+               return true ;
+            } ) ;
          } ) ;
       }
       
@@ -499,6 +478,7 @@
          $.each( $scope.FieldDropdown['config'], function( index, fieldInfo ){
             $scope.DomainTable['title'][fieldInfo['key']] = fieldInfo['show'] ? fieldInfo['key'] : false ;
          } ) ;
+         $scope.FieldDropdown['callback']['Close']() ;
          $scope.DomainTable['callback']['ShowCurrentPage']() ;
       }
 
