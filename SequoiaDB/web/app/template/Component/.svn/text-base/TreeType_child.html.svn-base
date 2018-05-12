@@ -1,4 +1,0 @@
-﻿<div ng-repeat="field in items track by $index">
-   <div class="JsontTreeTypeBox">{{field.type}}</div>
-   <div ng-show="field.isOpen" ng-if="field.type=='Object' || field.type=='Array'" ng-eval="items = field.val;" ng-include="'./app/template/Component/TreeType_child.html'"></div>
-</div>

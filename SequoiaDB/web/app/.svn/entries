@@ -1,83 +1,0 @@
-10
-
-dir
-22138
-http://svn/sequoiadb/trunk/SequoiaDB/web/app
-http://svn/sequoiadb
-
-
-
-2016-02-22T03:15:49.204624Z
-22123
-jwhe
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-6121f079-4a18-41d3-8c30-8870a322f2c2
-
-service
-dir
-
-other
-dir
-
-controller
-dir
-
-language
-dir
-
-config
-dir
-
-template
-dir
-
-app.js
-file
-
-
-
-
-2017-09-05T03:42:53.806671Z
-1da6286f7bb4daea0e1e4f9446e08d05
-2015-11-05T06:14:04.636558Z
-20822
-jwhe
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-177
-
-directive
-dir
-

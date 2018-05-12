@@ -1,43 +1,0 @@
-10
-
-dir
-22138
-http://svn/sequoiadb/trunk/driver/hadoop
-http://svn/sequoiadb
-
-
-
-2015-09-22T05:03:32.285037Z
-20440
-chenzichuan
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-6121f079-4a18-41d3-8c30-8870a322f2c2
-
-hadoop-connector
-dir
-
-hive-connector-1.8
-dir
-
-hive-1.2
-dir
-
-pig_connector
-dir
-
-hive
-dir
-

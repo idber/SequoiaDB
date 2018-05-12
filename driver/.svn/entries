@@ -1,58 +1,0 @@
-10
-
-dir
-22138
-http://svn/sequoiadb/trunk/driver
-http://svn/sequoiadb
-
-
-
-2016-02-19T04:51:04.857793Z
-22116
-linyoubin
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-6121f079-4a18-41d3-8c30-8870a322f2c2
-
-test
-dir
-
-spark
-dir
-
-java
-dir
-
-python
-dir
-
-postgresql
-dir
-
-storm
-dir
-
-C#.Net
-dir
-
-hadoop
-dir
-
-php5
-dir
-
-sequoiadb-jdbc
-dir
-

@@ -1,80 +1,0 @@
-10
-
-dir
-22138
-http://svn/sequoiadb/trunk/driver/C%23.Net/Driver
-http://svn/sequoiadb
-
-
-
-2015-11-07T05:53:13.375852Z
-20897
-tanzhaobo
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-6121f079-4a18-41d3-8c30-8870a322f2c2
-
-Bson
-dir
-
-net
-dir
-
-base
-dir
-
-Driver.csproj
-file
-
-
-
-
-2017-09-05T03:38:04.501424Z
-660f9391a3168f421a972077e5686a53
-2015-07-08T08:49:00.953369Z
-19594
-tanzhaobo
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-3765
-
-Properties
-dir
-
-util
-dir
-
-exception
-dir
-
