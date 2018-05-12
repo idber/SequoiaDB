@@ -3,7 +3,7 @@ SequoiaDB README
 
 Welcome to SequoiaDB!
 
-SequoiaDB is a distributed document-oriented NoSQL Database.
+SequoiaDB is a distributed Multi-Model Database.
 
 Engine:
 -----------------
