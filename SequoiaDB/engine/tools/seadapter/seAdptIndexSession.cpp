@@ -496,7 +496,7 @@ namespace seadapter
       INT32 bufSize = 0 ;
 
       rc = msgBuildGetMoreMsg( (CHAR **)&msgBuf, &bufSize, -1,
-                               contextID, requestID ) ;
+                               contextID, requestID, _pEDUCB ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Failed to build get more request, rc: %d", rc ) ;
@@ -527,7 +527,8 @@ namespace seadapter
 
       rc = msgBuildQueryMsg( (CHAR **)&msg, &bufSize,
                               _origCLFullName.c_str(),
-                              0, 0, 0, -1, &_queryCond, &_selector ) ;
+                              0, 0, 0, -1, &_queryCond, &_selector,
+                              NULL, NULL, _pEDUCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Build query message failed[ %d ]", rc ) ;
       msg->version = _origCLVersion ;
       msg->header.TID = SEADPT_TID( _sessionID ) ;
@@ -559,7 +560,7 @@ namespace seadapter
 
          rc = msgBuildQueryMsg( (CHAR **)&msg, &bufSize, _cappedCLFullName.c_str(),
                                 FLG_QUERY_WITH_RETURNDATA, 0, 0, 1, NULL,
-                                &selector, &orderBy ) ;
+                                &selector, &orderBy, NULL, _pEDUCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Build query message failed[ %d ]", rc ) ;
          msg->TID = SEADPT_TID( _sessionID ) ;
          rc = sdbGetSeAdapterCB()->sendToDataNode( msg ) ;
@@ -593,7 +594,7 @@ namespace seadapter
                              _cappedCLFullName.c_str(),
                              0, 0, 0, -1,
                              ( condition.isEmpty() ) ? NULL : &condition,
-                             NULL ) ;
+                             NULL, NULL, NULL, _pEDUCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Build query message failed[ %d ]", rc ) ;
       msg->TID = SEADPT_TID( _sessionID ) ;
       rc = sdbGetSeAdapterCB()->sendToDataNode( msg ) ;
@@ -632,7 +633,7 @@ namespace seadapter
 
       rc = msgBuildQueryMsg( (CHAR **)&msg, &msgLen,
                              CMD_ADMIN_PREFIX CMD_NAME_POP,
-                             0, 0, -1, -1, &query, NULL, NULL ) ;
+                             0, 0, -1, -1, &query, NULL, NULL, NULL, _pEDUCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Build pop message failed[ %d ], logical "
                    "id: %lld", rc, recLID ) ;
 

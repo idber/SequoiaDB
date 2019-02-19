@@ -172,6 +172,7 @@ namespace engine
                      rc = SDB_DMS_EOC ;
                      goto error ;
                   }
+                  continue ;
                }
             }
          }

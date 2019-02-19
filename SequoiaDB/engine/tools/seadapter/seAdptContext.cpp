@@ -269,6 +269,9 @@ namespace seadapter
 
       objBuff.reset() ;
 
+      rc = searchResult.init() ;
+      PD_RC_CHECK( rc, PDERROR, "Init result buffer failed[ %d ]", rc ) ;
+
       rc = _fetchNextBatch( searchResult ) ;
       PD_RC_CHECK( rc, PDERROR, "Get next batch of documents failed[ %d ]",
                    rc ) ;
