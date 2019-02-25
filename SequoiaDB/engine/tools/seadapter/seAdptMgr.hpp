@@ -270,6 +270,7 @@ namespace seadapter
 
       INT64                   _localIdxVer ;
       seIdxMetaMgr            _idxMetaCache ;
+      MsgHeader              *_regMsgBuff ;
    } ;
    typedef _seAdptCB seAdptCB ;
 

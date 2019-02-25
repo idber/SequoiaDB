@@ -725,7 +725,7 @@ namespace seadapter
 
       try
       {
-         PD_LOG( PDDEBUG, "Result object: %s", replyObj.toString().c_str() ) ;
+         PD_LOG( PDDEBUG, "Result object: %s", replyObj.toString( FALSE, TRUE ).c_str() ) ;
          {
             BSONElement hitsObj = replyObj.getField( "hits" ) ;
             if ( Object == hitsObj.type() )

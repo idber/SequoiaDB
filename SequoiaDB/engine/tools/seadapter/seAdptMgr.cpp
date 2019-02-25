@@ -290,10 +290,15 @@ namespace seadapter
       _oneSecTimerID = NET_INVALID_TIMER_ID ;
       _clVersion = -1 ;
       _localIdxVer = -1 ;
+      _regMsgBuff = NULL ;
    }
 
    _seAdptCB::~_seAdptCB()
    {
+      if ( _regMsgBuff )
+      {
+         SDB_OSS_FREE( _regMsgBuff ) ;
+      }
    }
 
    SDB_CB_TYPE _seAdptCB::cbType() const
@@ -1315,7 +1320,6 @@ namespace seadapter
       INT32 rc = SDB_OK ;
 
       BSONObj msgBody ;
-      MsgOpMsg *msg = NULL ;
       INT32 msgLen = 0 ;
 
       try
@@ -1333,24 +1337,27 @@ namespace seadapter
       msgLen = sizeof( MsgHeader ) +
                ossRoundUpToMultipleX( msgBody.objsize(), 4 ) ;
 
-      msg = ( MsgOpMsg * )SDB_OSS_MALLOC( msgLen ) ;
-      if ( !msg )
+      if ( !_regMsgBuff )
       {
-         PD_LOG( PDERROR, "Allocate memory of size[ %d ] for message failed",
-                 msgLen ) ;
-         rc = SDB_OOM ;
-         goto error ;
+         _regMsgBuff = ( MsgHeader * )SDB_OSS_MALLOC( msgLen ) ;
+         if ( !_regMsgBuff )
+         {
+            PD_LOG( PDERROR, "Allocate memory of size[ %d ] for message failed",
+                    msgLen ) ;
+            rc = SDB_OOM ;
+            goto error ;
+         }
+         _regMsgBuff->opCode = MSG_SEADPT_UPDATE_IDXINFO_REQ ;
+         _regMsgBuff->messageLength = sizeof( MsgHeader ) + msgBody.objsize() ;
+         _regMsgBuff->routeID.value = 0 ;
+         _regMsgBuff->TID = 0 ;
+         _regMsgBuff->requestID = 0 ;
       }
 
-      msg->header.opCode = MSG_SEADPT_UPDATE_IDXINFO_REQ ;
-      msg->header.messageLength = sizeof( MsgHeader ) + msgBody.objsize() ;
-      msg->header.routeID.value = 0 ;
-      msg->header.TID = 0 ;
-      msg->header.requestID = 0 ;
-      ossMemcpy( (CHAR *)msg + sizeof( MsgHeader ),
+      ossMemcpy( (CHAR *)_regMsgBuff + sizeof( MsgHeader ),
                  msgBody.objdata(), msgBody.objsize() ) ;
 
-      rc = sendToDataNode( (MsgHeader *)msg ) ;
+      rc = sendToDataNode( _regMsgBuff ) ;
       PD_RC_CHECK( rc, PDERROR, "Send message to data node failed[ %d ]", rc ) ;
       PD_LOG( PDDEBUG, "Send text index update request to data node. "
               "Message: %s", msgBody.toString().c_str() ) ;
