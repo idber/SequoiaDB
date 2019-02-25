@@ -44,6 +44,7 @@
 #define SEADPT_FIELD_NAME_LID        "_lid"
 #define SEADPT_OPERATOR_STR_OR       "$or"
 #define SEADPT_OPERATOR_STR_EXIST    "$exists"
+#define SEADPT_OPERATOR_STR_INCLUDE  "$include"
 #define SEADPT_TID(sessionID)        ((UINT32)(sessionID & 0xFFFFFFFF))
 
 namespace seadapter
@@ -430,8 +431,11 @@ namespace seadapter
          BSONObjIterator idxItr( _indexDef ) ;
          BSONArrayBuilder queryObj( queryBuilder.subarrayStart( SEADPT_OPERATOR_STR_OR ) ) ;
          BSONObj existTmp = BSON( SEADPT_OPERATOR_STR_EXIST << 1 ) ;
+         BSONObj includeObj = BSON( SEADPT_OPERATOR_STR_INCLUDE << 1 ) ;
 
-         selectorBuilder.append( SEADPT_FIELD_NAME_ID, "" ) ;
+         selectorBuilder.appendObject( SEADPT_FIELD_NAME_ID,
+                                       includeObj.objdata(),
+                                       includeObj.objsize() ) ;
 
          while ( idxItr.more() )
          {
@@ -439,7 +443,8 @@ namespace seadapter
             const CHAR *fieldName = ele.fieldName() ;
             SDB_ASSERT( 0 != ossStrcmp( fieldName, SEADPT_FIELD_NAME_ID ),
                         "Text index should not include _id" ) ;
-            selectorBuilder.append( fieldName, "" ) ;
+            selectorBuilder.appendObject( fieldName, includeObj.objdata(),
+                                          includeObj.objsize() ) ;
             BSONObjBuilder existObj( queryObj.subobjStart() ) ;
             existObj.appendObject( fieldName, existTmp.objdata(),
                                    existTmp.objsize() ) ;
