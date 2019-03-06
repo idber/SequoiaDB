@@ -205,12 +205,20 @@ namespace engine
          BSONElement ele ;
 
          ixmIndexKeyGen keygen( &indexCB, GEN_OBJ_KEEP_FIELD_NAME ) ;
-         rc = keygen.getKeys( originalObj, keySetOri, NULL, TRUE, FALSE ) ;
+         rc = keygen.getKeys( originalObj, keySetOri, NULL,
+                              TRUE, FALSE, TRUE ) ;
          PD_RC_CHECK( rc, PDERROR, "Generate key from object[ %s ] "
                       "failed[ %d ]", originalObj.toString().c_str(), rc ) ;
-         rc = keygen.getKeys( newObj, keySetNew, NULL, TRUE, FALSE ) ;
+         rc = keygen.getKeys( newObj, keySetNew, NULL, TRUE, FALSE, TRUE ) ;
          PD_RC_CHECK( rc, PDERROR, "Generate key from object[ %s ] "
                       "failed[ %d ]", newObj.toString().c_str(), rc ) ;
+
+         if ( 0 == keySetNew.size() )
+         {
+            rc = prepareDelete( indexCB, originalObj, recordObj ) ;
+            PD_RC_CHECK( rc, PDERROR, "Prepare for delete failed[ %d ]", rc ) ;
+            goto done ;
+         }
 
          {
             BSONObjSet::iterator origItr = keySetOri.begin() ;
