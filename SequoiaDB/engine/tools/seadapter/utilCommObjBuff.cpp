@@ -74,6 +74,7 @@ namespace seadapter
       {
          SDB_OSS_FREE( _buff ) ;
          _buff = NULL ;
+         _init = FALSE ;
       }
 
       _buff = (CHAR *)SDB_OSS_MALLOC( size ) ;
@@ -119,31 +120,17 @@ namespace seadapter
       goto done ;
    }
 
-   INT32 _utilCommObjBuff::realloc( UINT32 size )
-   {
-      INT32 rc = SDB_OK ;
-      CHAR *newBuff = NULL ;
-      newBuff = (CHAR *)SDB_OSS_REALLOC( _buff, size ) ;
-      if ( !newBuff )
-      {
-         rc = SDB_OOM ;
-         PD_LOG( PDERROR, "Failed to allocate memory, size: %u, rc: %d",
-                 size, rc ) ;
-         goto error ;
-      }
-      _buff = newBuff ;
-      _buffSize = size ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
    INT32 _utilCommObjBuff::appendObj( const BSONObj &obj)
    {
       INT32 rc = SDB_OK ;
       CHAR *writePos = NULL ;
+
+      if ( _init )
+      {
+         rc =  SDB_SYS ;
+         PD_LOG( PDERROR, "Object buffer is not initialized" ) ;
+         goto error ;
+      }
 
       try
       {
@@ -183,6 +170,13 @@ namespace seadapter
    {
       INT32 rc = SDB_OK ;
       CHAR *writePos = NULL ;
+
+      if ( _init )
+      {
+         rc =  SDB_SYS ;
+         PD_LOG( PDERROR, "Object buffer is not initialized" ) ;
+         goto error ;
+      }
 
       try
       {
@@ -232,9 +226,30 @@ namespace seadapter
          targetSize = _sizeLimit ;
       }
 
-      rc = realloc( targetSize ) ;
+      rc = _realloc( targetSize ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to realloc object buffer, rc: %d",
                    rc ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _utilCommObjBuff::_realloc( UINT32 size )
+   {
+      INT32 rc = SDB_OK ;
+      CHAR *newBuff = NULL ;
+      newBuff = (CHAR *)SDB_OSS_REALLOC( _buff, size ) ;
+      if ( !newBuff )
+      {
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Failed to allocate memory, size: %u, rc: %d",
+                 size, rc ) ;
+         goto error ;
+      }
+      _buff = newBuff ;
+      _buffSize = size ;
 
    done:
       return rc ;

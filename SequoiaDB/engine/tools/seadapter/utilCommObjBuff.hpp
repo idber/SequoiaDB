@@ -62,7 +62,7 @@ namespace seadapter
                      UINT32 extendSize = 0 ) ;
          BOOLEAN valid() const ;
          INT32 reset() ;
-         INT32 realloc( UINT32 size ) ;
+
          INT32 appendObj( const BSONObj &obj) ;
          INT32 appendObj( const BSONObj *obj) ;
          const CHAR *data() { return _buff ; }
@@ -79,6 +79,7 @@ namespace seadapter
       private:
          OSS_INLINE BOOLEAN _enough( INT32 size ) ;
          INT32 _extendBuff() ;
+         INT32 _realloc( UINT32 size ) ;
 
       private:
          BOOLEAN  _init ;
