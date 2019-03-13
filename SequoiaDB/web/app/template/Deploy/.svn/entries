@@ -1,0 +1,98 @@
+10
+
+dir
+34610
+http://192.168.20.11/sequoiadb/trunk/SequoiaDB/web/app/template/Deploy
+http://192.168.20.11/sequoiadb
+
+
+
+2018-03-05T11:32:52.413454Z
+34610
+huangweigang
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+6121f079-4a18-41d3-8c30-8870a322f2c2
+
+SyncModule
+dir
+
+Task
+dir
+
+DiscoverModule
+dir
+
+InstallHost
+dir
+
+ShrinkModule
+dir
+
+TestModule
+dir
+
+AddHost
+dir
+
+FindModule
+dir
+
+DeployPackage
+dir
+
+Index.html
+file
+
+
+
+
+2019-03-13T12:34:03.450976Z
+3ad5a8bc4ad22928d26634bf2368125a
+2018-03-05T11:32:52.413454Z
+34610
+huangweigang
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+27020
+
+InstallModule
+dir
+
+ExtendModule
+dir
+
+FindHost
+dir
+

@@ -1,0 +1,53 @@
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/20434/trunk/driver/sequoiadb-jdbc/src/com/sequoiadb/jdbc
+END
+Connection.java
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/sequoiadb/!svn/ver/20434/trunk/driver/sequoiadb-jdbc/src/com/sequoiadb/jdbc/Connection.java
+END
+NotUpdatable.java
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/sequoiadb/!svn/ver/20434/trunk/driver/sequoiadb-jdbc/src/com/sequoiadb/jdbc/NotUpdatable.java
+END
+NotImplemented.java
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/sequoiadb/!svn/ver/20434/trunk/driver/sequoiadb-jdbc/src/com/sequoiadb/jdbc/NotImplemented.java
+END
+Statement.java
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/sequoiadb/!svn/ver/20434/trunk/driver/sequoiadb-jdbc/src/com/sequoiadb/jdbc/Statement.java
+END
+DatabaseMetaData.java
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/sequoiadb/!svn/ver/20434/trunk/driver/sequoiadb-jdbc/src/com/sequoiadb/jdbc/DatabaseMetaData.java
+END
+PreparedStatement.java
+K 25
+svn:wc:ra_dav:version-url
+V 99
+/sequoiadb/!svn/ver/20434/trunk/driver/sequoiadb-jdbc/src/com/sequoiadb/jdbc/PreparedStatement.java
+END
+ResultSet.java
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/sequoiadb/!svn/ver/20434/trunk/driver/sequoiadb-jdbc/src/com/sequoiadb/jdbc/ResultSet.java
+END
+Driver.java
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/sequoiadb/!svn/ver/20434/trunk/driver/sequoiadb-jdbc/src/com/sequoiadb/jdbc/Driver.java
+END

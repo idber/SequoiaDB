@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/sequoiadb/!svn/ver/34584/trunk/driver/java/src/test/java/com/sequoiadb/test/decimal
+END
+BSONDecimalTest.java
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/sequoiadb/!svn/ver/34584/trunk/driver/java/src/test/java/com/sequoiadb/test/decimal/BSONDecimalTest.java
+END
+BSONTest.java
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/test/decimal/BSONTest.java
+END
+DecimalCommonTest.java
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/test/decimal/DecimalCommonTest.java
+END
+CompatibilityTest.java
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/sequoiadb/!svn/ver/29550/trunk/driver/java/src/test/java/com/sequoiadb/test/decimal/CompatibilityTest.java
+END
+CorrectnessTest.java
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/test/decimal/CorrectnessTest.java
+END

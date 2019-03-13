@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 139
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-build-1.5.1.RELEASE/resources/src/main/resources/docbkx/legacy/xsl
+END
+html_chunk.xsl
+K 25
+svn:wc:ra_dav:version-url
+V 154
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-build-1.5.1.RELEASE/resources/src/main/resources/docbkx/legacy/xsl/html_chunk.xsl
+END
+html.xsl
+K 25
+svn:wc:ra_dav:version-url
+V 148
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-build-1.5.1.RELEASE/resources/src/main/resources/docbkx/legacy/xsl/html.xsl
+END
+highlight.xsl
+K 25
+svn:wc:ra_dav:version-url
+V 153
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-build-1.5.1.RELEASE/resources/src/main/resources/docbkx/legacy/xsl/highlight.xsl
+END
+highlight-fo.xsl
+K 25
+svn:wc:ra_dav:version-url
+V 156
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-build-1.5.1.RELEASE/resources/src/main/resources/docbkx/legacy/xsl/highlight-fo.xsl
+END
+pdf.xsl
+K 25
+svn:wc:ra_dav:version-url
+V 147
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-build-1.5.1.RELEASE/resources/src/main/resources/docbkx/legacy/xsl/pdf.xsl
+END

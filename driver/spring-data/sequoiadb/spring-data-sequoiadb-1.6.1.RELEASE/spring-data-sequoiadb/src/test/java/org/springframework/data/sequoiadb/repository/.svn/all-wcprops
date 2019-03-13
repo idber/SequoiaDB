@@ -1,0 +1,107 @@
+K 25
+svn:wc:ra_dav:version-url
+V 178
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository
+END
+RedeclaringRepositoryMethodsRepository.java
+K 25
+svn:wc:ra_dav:version-url
+V 222
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/RedeclaringRepositoryMethodsRepository.java
+END
+Person.java
+K 25
+svn:wc:ra_dav:version-url
+V 190
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/Person.java
+END
+PersonRepository.java
+K 25
+svn:wc:ra_dav:version-url
+V 200
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/PersonRepository.java
+END
+User.java
+K 25
+svn:wc:ra_dav:version-url
+V 188
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/User.java
+END
+AbstractPersonRepositoryIntegrationTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 224
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/AbstractPersonRepositoryIntegrationTests.java
+END
+ContactRepositoryIntegrationTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 217
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/ContactRepositoryIntegrationTests.java
+END
+RepositoryIndexCreationIntegrationTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 223
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/RepositoryIndexCreationIntegrationTests.java
+END
+PersonSummary.java
+K 25
+svn:wc:ra_dav:version-url
+V 197
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/PersonSummary.java
+END
+Address.java
+K 25
+svn:wc:ra_dav:version-url
+V 191
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/Address.java
+END
+UsernameAndPassword.java
+K 25
+svn:wc:ra_dav:version-url
+V 203
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/UsernameAndPassword.java
+END
+RedeclaringRepositoryMethodsTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 217
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/RedeclaringRepositoryMethodsTests.java
+END
+Contact.java
+K 25
+svn:wc:ra_dav:version-url
+V 191
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/Contact.java
+END
+PersonRepositoryLazyLoadingIntegrationTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 227
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/PersonRepositoryLazyLoadingIntegrationTests.java
+END
+ContactRepository.java
+K 25
+svn:wc:ra_dav:version-url
+V 201
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/ContactRepository.java
+END
+Credentials.java
+K 25
+svn:wc:ra_dav:version-url
+V 195
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/Credentials.java
+END
+PersonRepositoryIntegrationTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 216
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/PersonRepositoryIntegrationTests.java
+END
+SequoiadbRepositoryTextSearchIntegrationTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 229
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/SequoiadbRepositoryTextSearchIntegrationTests.java
+END

@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/39117/trunk/driver/java/src/main/java/com/sequoiadb/message
+END
+MsgOpCode.java
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/sequoiadb/!svn/ver/35501/trunk/driver/java/src/main/java/com/sequoiadb/message/MsgOpCode.java
+END
+SysInfoHeader.java
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/sequoiadb/!svn/ver/35501/trunk/driver/java/src/main/java/com/sequoiadb/message/SysInfoHeader.java
+END
+Msg.java
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/sequoiadb/!svn/ver/35501/trunk/driver/java/src/main/java/com/sequoiadb/message/Msg.java
+END
+SdbMsgHeader.java
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/sequoiadb/!svn/ver/35501/trunk/driver/java/src/main/java/com/sequoiadb/message/SdbMsgHeader.java
+END
+ResultSet.java
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/sequoiadb/!svn/ver/35501/trunk/driver/java/src/main/java/com/sequoiadb/message/ResultSet.java
+END

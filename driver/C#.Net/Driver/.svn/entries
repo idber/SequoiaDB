@@ -1,0 +1,80 @@
+10
+
+dir
+39808
+http://192.168.20.11/sequoiadb/trunk/driver/C%23.Net/Driver
+http://192.168.20.11/sequoiadb
+
+
+
+2019-02-19T02:41:09.032867Z
+39400
+tanzhaobo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+6121f079-4a18-41d3-8c30-8870a322f2c2
+
+Bson
+dir
+
+net
+dir
+
+base
+dir
+
+Driver.csproj
+file
+
+
+
+
+2019-03-13T08:21:48.317986Z
+e72dfc1d5fca724cc6f91858a13e2f75
+2016-12-21T02:00:45.289278Z
+26434
+tanzhaobo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3814
+
+Properties
+dir
+
+util
+dir
+
+exception
+dir
+

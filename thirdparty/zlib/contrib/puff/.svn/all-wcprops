@@ -1,0 +1,41 @@
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/puff
+END
+puff.c
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/puff/puff.c
+END
+pufftest.c
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/puff/pufftest.c
+END
+puff.h
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/puff/puff.h
+END
+zeros.raw
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/puff/zeros.raw
+END
+Makefile
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/puff/Makefile
+END
+README
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/puff/README
+END

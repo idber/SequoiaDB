@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/thread/concurrent_queues/detail
+END
+sync_deque_base.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 106
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/thread/concurrent_queues/detail/sync_deque_base.hpp
+END
+sync_queue_base.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 106
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/thread/concurrent_queues/detail/sync_queue_base.hpp
+END

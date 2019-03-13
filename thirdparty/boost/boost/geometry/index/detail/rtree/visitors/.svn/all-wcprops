@@ -1,0 +1,65 @@
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/visitors
+END
+destroy.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 103
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/visitors/destroy.hpp
+END
+iterator.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 104
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/visitors/iterator.hpp
+END
+copy.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/visitors/copy.hpp
+END
+remove.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/visitors/remove.hpp
+END
+distance_query.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 110
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/visitors/distance_query.hpp
+END
+children_box.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 108
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/visitors/children_box.hpp
+END
+is_leaf.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 103
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/visitors/is_leaf.hpp
+END
+spatial_query.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/visitors/spatial_query.hpp
+END
+insert.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/visitors/insert.hpp
+END
+count.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/visitors/count.hpp
+END

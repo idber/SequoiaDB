@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 185
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/custom
+END
+CustomRepositoryImplementationTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 226
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/custom/CustomRepositoryImplementationTests.java
+END
+CustomSequoiadbRepository.java
+K 25
+svn:wc:ra_dav:version-url
+V 216
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/custom/CustomSequoiadbRepository.java
+END
+CustomSequoiadbRepositoryImpl.java
+K 25
+svn:wc:ra_dav:version-url
+V 220
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/custom/CustomSequoiadbRepositoryImpl.java
+END

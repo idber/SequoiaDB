@@ -1,0 +1,41 @@
+K 25
+svn:wc:ra_dav:version-url
+V 112
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/lib/missioncontrol/plugins/com.jrockit.mc.rjmx_5.5.0.165303/lib
+END
+dsn.jar
+K 25
+svn:wc:ra_dav:version-url
+V 120
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/lib/missioncontrol/plugins/com.jrockit.mc.rjmx_5.5.0.165303/lib/dsn.jar
+END
+imap.jar
+K 25
+svn:wc:ra_dav:version-url
+V 121
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/lib/missioncontrol/plugins/com.jrockit.mc.rjmx_5.5.0.165303/lib/imap.jar
+END
+mailapi.jar
+K 25
+svn:wc:ra_dav:version-url
+V 124
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/lib/missioncontrol/plugins/com.jrockit.mc.rjmx_5.5.0.165303/lib/mailapi.jar
+END
+gimap.jar
+K 25
+svn:wc:ra_dav:version-url
+V 122
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/lib/missioncontrol/plugins/com.jrockit.mc.rjmx_5.5.0.165303/lib/gimap.jar
+END
+pop3.jar
+K 25
+svn:wc:ra_dav:version-url
+V 121
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/lib/missioncontrol/plugins/com.jrockit.mc.rjmx_5.5.0.165303/lib/pop3.jar
+END
+smtp.jar
+K 25
+svn:wc:ra_dav:version-url
+V 121
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/lib/missioncontrol/plugins/com.jrockit.mc.rjmx_5.5.0.165303/lib/smtp.jar
+END

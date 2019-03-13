@@ -1,0 +1,77 @@
+10
+
+dir
+39808
+http://192.168.20.11/sequoiadb/trunk/misc/ci/src
+http://192.168.20.11/sequoiadb
+
+
+
+2019-03-02T05:34:21.409255Z
+39651
+chensiqin
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+6121f079-4a18-41d3-8c30-8870a322f2c2
+
+test
+dir
+
+install_deploy
+dir
+
+conf
+dir
+
+solve_result
+dir
+
+compile
+dir
+
+build.xml
+file
+
+
+
+
+2019-03-13T08:21:34.507986Z
+1ef2d6d6342b372fc9458aa01c1bab2d
+2018-11-08T08:54:47.895142Z
+37618
+chensiqin
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+27686
+

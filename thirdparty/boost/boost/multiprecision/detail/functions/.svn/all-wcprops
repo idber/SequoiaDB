@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/detail/functions
+END
+constants.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/detail/functions/constants.hpp
+END
+pow.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/detail/functions/pow.hpp
+END
+trig.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 95
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/detail/functions/trig.hpp
+END

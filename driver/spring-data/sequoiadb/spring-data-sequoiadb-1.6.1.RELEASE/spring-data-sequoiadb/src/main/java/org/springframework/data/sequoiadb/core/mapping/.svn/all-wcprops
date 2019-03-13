@@ -1,0 +1,89 @@
+K 25
+svn:wc:ra_dav:version-url
+V 180
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/mapping
+END
+CachingSequoiadbPersistentProperty.java
+K 25
+svn:wc:ra_dav:version-url
+V 220
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/mapping/CachingSequoiadbPersistentProperty.java
+END
+TextScore.java
+K 25
+svn:wc:ra_dav:version-url
+V 195
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/mapping/TextScore.java
+END
+DBRef.java
+K 25
+svn:wc:ra_dav:version-url
+V 191
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/mapping/DBRef.java
+END
+SequoiadbPersistentProperty.java
+K 25
+svn:wc:ra_dav:version-url
+V 213
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/mapping/SequoiadbPersistentProperty.java
+END
+Field.java
+K 25
+svn:wc:ra_dav:version-url
+V 191
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/mapping/Field.java
+END
+Language.java
+K 25
+svn:wc:ra_dav:version-url
+V 194
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/mapping/Language.java
+END
+BasicSequoiadbPersistentProperty.java
+K 25
+svn:wc:ra_dav:version-url
+V 218
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/mapping/BasicSequoiadbPersistentProperty.java
+END
+package-info.java
+K 25
+svn:wc:ra_dav:version-url
+V 198
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/mapping/package-info.java
+END
+Version.java
+K 25
+svn:wc:ra_dav:version-url
+V 193
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/mapping/Version.java
+END
+SequoiadbPersistentEntity.java
+K 25
+svn:wc:ra_dav:version-url
+V 211
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/mapping/SequoiadbPersistentEntity.java
+END
+SequoiadbSimpleTypes.java
+K 25
+svn:wc:ra_dav:version-url
+V 206
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/mapping/SequoiadbSimpleTypes.java
+END
+BasicSequoiadbPersistentEntity.java
+K 25
+svn:wc:ra_dav:version-url
+V 216
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/mapping/BasicSequoiadbPersistentEntity.java
+END
+SequoiadbMappingContext.java
+K 25
+svn:wc:ra_dav:version-url
+V 209
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/mapping/SequoiadbMappingContext.java
+END
+Document.java
+K 25
+svn:wc:ra_dav:version-url
+V 194
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/mapping/Document.java
+END

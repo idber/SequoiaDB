@@ -1,0 +1,43 @@
+10
+
+dir
+39808
+http://192.168.20.11/sequoiadb/trunk/driver/hadoop
+http://192.168.20.11/sequoiadb
+
+
+
+2017-03-24T08:31:24.101814Z
+28203
+liweichao
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+6121f079-4a18-41d3-8c30-8870a322f2c2
+
+hadoop-connector
+dir
+
+hive-connector-1.8
+dir
+
+hive-1.2
+dir
+
+pig_connector
+dir
+
+hive
+dir
+

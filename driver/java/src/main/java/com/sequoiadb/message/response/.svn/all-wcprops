@@ -1,0 +1,47 @@
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/sequoiadb/!svn/ver/35501/trunk/driver/java/src/main/java/com/sequoiadb/message/response
+END
+SdbReply.java
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/sequoiadb/!svn/ver/35501/trunk/driver/java/src/main/java/com/sequoiadb/message/response/SdbReply.java
+END
+CommonResponse.java
+K 25
+svn:wc:ra_dav:version-url
+V 108
+/sequoiadb/!svn/ver/35501/trunk/driver/java/src/main/java/com/sequoiadb/message/response/CommonResponse.java
+END
+LobReadResponse.java
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/sequoiadb/!svn/ver/35501/trunk/driver/java/src/main/java/com/sequoiadb/message/response/LobReadResponse.java
+END
+SdbResponse.java
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/sequoiadb/!svn/ver/35501/trunk/driver/java/src/main/java/com/sequoiadb/message/response/SdbResponse.java
+END
+SysInfoResponse.java
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/sequoiadb/!svn/ver/35501/trunk/driver/java/src/main/java/com/sequoiadb/message/response/SysInfoResponse.java
+END
+LobOpenResponse.java
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/sequoiadb/!svn/ver/35501/trunk/driver/java/src/main/java/com/sequoiadb/message/response/LobOpenResponse.java
+END
+Response.java
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/sequoiadb/!svn/ver/35501/trunk/driver/java/src/main/java/com/sequoiadb/message/response/Response.java
+END

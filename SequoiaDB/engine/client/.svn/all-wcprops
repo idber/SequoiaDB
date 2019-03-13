@@ -1,0 +1,197 @@
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/sequoiadb/!svn/ver/34322/trunk/SequoiaDB/engine/client
+END
+timestampParse.c
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/27890/trunk/SequoiaDB/engine/client/timestampParse.c
+END
+sdbDataSourceComm.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/24517/trunk/SequoiaDB/engine/client/sdbDataSourceComm.cpp
+END
+sdbDataSourceComm.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/33288/trunk/SequoiaDB/engine/client/sdbDataSourceComm.hpp
+END
+timestampTm.c
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/21077/trunk/SequoiaDB/engine/client/timestampTm.c
+END
+sdbDataSourceStrategy.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/sequoiadb/!svn/ver/26925/trunk/SequoiaDB/engine/client/sdbDataSourceStrategy.cpp
+END
+timestamp.h
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/21077/trunk/SequoiaDB/engine/client/timestamp.h
+END
+sdbDataSourceStrategy.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/sequoiadb/!svn/ver/26925/trunk/SequoiaDB/engine/client/sdbDataSourceStrategy.hpp
+END
+cJSON.c
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/sequoiadb/!svn/ver/33727/trunk/SequoiaDB/engine/client/cJSON.c
+END
+client.c
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/34273/trunk/SequoiaDB/engine/client/client.c
+END
+cJSON.h
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/sequoiadb/!svn/ver/27725/trunk/SequoiaDB/engine/client/cJSON.h
+END
+clientcpp.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/34222/trunk/SequoiaDB/engine/client/clientcpp.cpp
+END
+client.h
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/33963/trunk/SequoiaDB/engine/client/client.h
+END
+network.c
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/31689/trunk/SequoiaDB/engine/client/network.c
+END
+cJSON_ext.c
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/32521/trunk/SequoiaDB/engine/client/cJSON_ext.c
+END
+network.h
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/31494/trunk/SequoiaDB/engine/client/network.h
+END
+cJSON_ext.h
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/27725/trunk/SequoiaDB/engine/client/cJSON_ext.h
+END
+clientDef.h
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/33893/trunk/SequoiaDB/engine/client/clientDef.h
+END
+jstobs.c
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/33829/trunk/SequoiaDB/engine/client/jstobs.c
+END
+clientImpl.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/33895/trunk/SequoiaDB/engine/client/clientImpl.hpp
+END
+jstobs.h
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/29677/trunk/SequoiaDB/engine/client/jstobs.h
+END
+sdbDataSourceWorker.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/26925/trunk/SequoiaDB/engine/client/sdbDataSourceWorker.cpp
+END
+client_internal.h
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/33785/trunk/SequoiaDB/engine/client/client_internal.h
+END
+sdbDataSourceWorker.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/24517/trunk/SequoiaDB/engine/client/sdbDataSourceWorker.hpp
+END
+sdbDataSource.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/26925/trunk/SequoiaDB/engine/client/sdbDataSource.cpp
+END
+timestampValid.c
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/21077/trunk/SequoiaDB/engine/client/timestampValid.c
+END
+client.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/34197/trunk/SequoiaDB/engine/client/client.hpp
+END
+cJSON_iterator.c
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/25105/trunk/SequoiaDB/engine/client/cJSON_iterator.c
+END
+base64c.c
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/21234/trunk/SequoiaDB/engine/client/base64c.c
+END
+sdbDataSource.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/26925/trunk/SequoiaDB/engine/client/sdbDataSource.hpp
+END
+common.c
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/33282/trunk/SequoiaDB/engine/client/common.c
+END
+base64c.h
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/20636/trunk/SequoiaDB/engine/client/base64c.h
+END
+common.h
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/32380/trunk/SequoiaDB/engine/client/common.h
+END

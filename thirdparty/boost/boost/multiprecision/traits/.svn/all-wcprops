@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/traits
+END
+extract_exponent_type.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/traits/extract_exponent_type.hpp
+END
+is_byte_container.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/traits/is_byte_container.hpp
+END
+is_backend.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/traits/is_backend.hpp
+END
+explicit_conversion.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/traits/explicit_conversion.hpp
+END
+is_restricted_conversion.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/traits/is_restricted_conversion.hpp
+END

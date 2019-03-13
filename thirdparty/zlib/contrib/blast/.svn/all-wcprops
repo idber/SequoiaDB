@@ -1,0 +1,41 @@
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/blast
+END
+blast.c
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/blast/blast.c
+END
+test.pk
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/blast/test.pk
+END
+blast.h
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/blast/blast.h
+END
+Makefile
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/blast/Makefile
+END
+README
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/blast/README
+END
+test.txt
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/blast/test.txt
+END

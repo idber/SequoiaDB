@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 177
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/resources/org/springframework/data/mongodb/config
+END
+MongoNamespaceTests-context.xml
+K 25
+svn:wc:ra_dav:version-url
+V 209
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/resources/org/springframework/data/mongodb/config/MongoNamespaceTests-context.xml
+END
+auditing.xml
+K 25
+svn:wc:ra_dav:version-url
+V 190
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/resources/org/springframework/data/mongodb/config/auditing.xml
+END
+MongoDbFactoryNoDatabaseRunningTests-context.xml
+K 25
+svn:wc:ra_dav:version-url
+V 226
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/resources/org/springframework/data/mongodb/config/MongoDbFactoryNoDatabaseRunningTests-context.xml
+END
+mongo.properties
+K 25
+svn:wc:ra_dav:version-url
+V 194
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/resources/org/springframework/data/mongodb/config/mongo.properties
+END
+MongoNamespaceReplicaSetTests-context.xml
+K 25
+svn:wc:ra_dav:version-url
+V 219
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/resources/org/springframework/data/mongodb/config/MongoNamespaceReplicaSetTests-context.xml
+END

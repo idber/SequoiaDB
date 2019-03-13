@@ -1,0 +1,125 @@
+K 25
+svn:wc:ra_dav:version-url
+V 168
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/query
+END
+Update_bak.java
+K 25
+svn:wc:ra_dav:version-url
+V 184
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/query/Update_bak.java
+END
+Field_bak.java
+K 25
+svn:wc:ra_dav:version-url
+V 183
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/query/Field_bak.java
+END
+Criteria.java
+K 25
+svn:wc:ra_dav:version-url
+V 182
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/query/Criteria.java
+END
+Query.java
+K 25
+svn:wc:ra_dav:version-url
+V 179
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/query/Query.java
+END
+BasicQuery.java
+K 25
+svn:wc:ra_dav:version-url
+V 184
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/query/BasicQuery.java
+END
+Term.java
+K 25
+svn:wc:ra_dav:version-url
+V 178
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/query/Term.java
+END
+TextCriteria.java
+K 25
+svn:wc:ra_dav:version-url
+V 186
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/query/TextCriteria.java
+END
+GeoCommand.java
+K 25
+svn:wc:ra_dav:version-url
+V 184
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/query/GeoCommand.java
+END
+TextQuery.java
+K 25
+svn:wc:ra_dav:version-url
+V 183
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/query/TextQuery.java
+END
+Order.java
+K 25
+svn:wc:ra_dav:version-url
+V 179
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/query/Order.java
+END
+NearQuery.java
+K 25
+svn:wc:ra_dav:version-url
+V 183
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/query/NearQuery.java
+END
+CriteriaDefinition.java
+K 25
+svn:wc:ra_dav:version-url
+V 192
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/query/CriteriaDefinition.java
+END
+Criteria_bak.java
+K 25
+svn:wc:ra_dav:version-url
+V 186
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/query/Criteria_bak.java
+END
+Query_bak.java
+K 25
+svn:wc:ra_dav:version-url
+V 183
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/query/Query_bak.java
+END
+Update.java
+K 25
+svn:wc:ra_dav:version-url
+V 180
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/query/Update.java
+END
+Field.java
+K 25
+svn:wc:ra_dav:version-url
+V 179
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/query/Field.java
+END
+BasicUpdate.java
+K 25
+svn:wc:ra_dav:version-url
+V 185
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/query/BasicUpdate.java
+END
+package-info.java
+K 25
+svn:wc:ra_dav:version-url
+V 186
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/query/package-info.java
+END
+Meta.java
+K 25
+svn:wc:ra_dav:version-url
+V 178
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/query/Meta.java
+END
+SerializationUtils.java
+K 25
+svn:wc:ra_dav:version-url
+V 192
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/query/SerializationUtils.java
+END

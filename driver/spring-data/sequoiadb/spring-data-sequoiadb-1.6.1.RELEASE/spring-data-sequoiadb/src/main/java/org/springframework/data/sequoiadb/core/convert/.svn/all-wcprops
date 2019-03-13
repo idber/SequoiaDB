@@ -1,0 +1,149 @@
+K 25
+svn:wc:ra_dav:version-url
+V 180
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/convert
+END
+DBObjectAccessor.java
+K 25
+svn:wc:ra_dav:version-url
+V 202
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/convert/DBObjectAccessor.java
+END
+ConverterRegistration.java
+K 25
+svn:wc:ra_dav:version-url
+V 207
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/convert/ConverterRegistration.java
+END
+CustomConversions.java
+K 25
+svn:wc:ra_dav:version-url
+V 203
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/convert/CustomConversions.java
+END
+SequoiadbConverter.java
+K 25
+svn:wc:ra_dav:version-url
+V 204
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/convert/SequoiadbConverter.java
+END
+DBObjectPropertyAccessor.java
+K 25
+svn:wc:ra_dav:version-url
+V 210
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/convert/DBObjectPropertyAccessor.java
+END
+DbRefResolver.java
+K 25
+svn:wc:ra_dav:version-url
+V 199
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/convert/DbRefResolver.java
+END
+DefaultDbRefResolver.java
+K 25
+svn:wc:ra_dav:version-url
+V 206
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/convert/DefaultDbRefResolver.java
+END
+SequoiadbWriter.java
+K 25
+svn:wc:ra_dav:version-url
+V 201
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/convert/SequoiadbWriter.java
+END
+QueryMapper.java
+K 25
+svn:wc:ra_dav:version-url
+V 197
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/convert/QueryMapper.java
+END
+LazyLoadingProxy.java
+K 25
+svn:wc:ra_dav:version-url
+V 202
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/convert/LazyLoadingProxy.java
+END
+MappingSequoiadbConverter.java
+K 25
+svn:wc:ra_dav:version-url
+V 211
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/convert/MappingSequoiadbConverter.java
+END
+DbRefResolverCallback.java
+K 25
+svn:wc:ra_dav:version-url
+V 207
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/convert/DbRefResolverCallback.java
+END
+DbRefProxyHandler.java
+K 25
+svn:wc:ra_dav:version-url
+V 203
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/convert/DbRefProxyHandler.java
+END
+ObjectPath.java
+K 25
+svn:wc:ra_dav:version-url
+V 196
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/convert/ObjectPath.java
+END
+SequoiadbTypeMapper.java
+K 25
+svn:wc:ra_dav:version-url
+V 205
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/convert/SequoiadbTypeMapper.java
+END
+package-info.java
+K 25
+svn:wc:ra_dav:version-url
+V 198
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/convert/package-info.java
+END
+GeoConverters.java
+K 25
+svn:wc:ra_dav:version-url
+V 199
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/convert/GeoConverters.java
+END
+DefaultDbRefResolverCallback.java
+K 25
+svn:wc:ra_dav:version-url
+V 214
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/convert/DefaultDbRefResolverCallback.java
+END
+UpdateMapper.java
+K 25
+svn:wc:ra_dav:version-url
+V 198
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/convert/UpdateMapper.java
+END
+SequoiadbConverters.java
+K 25
+svn:wc:ra_dav:version-url
+V 205
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/convert/SequoiadbConverters.java
+END
+DefaultDbRefProxyHandler.java
+K 25
+svn:wc:ra_dav:version-url
+V 210
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/convert/DefaultDbRefProxyHandler.java
+END
+DefaultSequoiadbTypeMapper.java
+K 25
+svn:wc:ra_dav:version-url
+V 212
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/convert/DefaultSequoiadbTypeMapper.java
+END
+AbstractSequoiadbConverter.java
+K 25
+svn:wc:ra_dav:version-url
+V 212
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/convert/AbstractSequoiadbConverter.java
+END
+ValueResolver.java
+K 25
+svn:wc:ra_dav:version-url
+V 199
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/core/convert/ValueResolver.java
+END

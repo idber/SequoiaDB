@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/jre/lib/jfr
+END
+profile.jfc
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/jre/lib/jfr/profile.jfc
+END
+default.jfc
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/jre/lib/jfr/default.jfc
+END

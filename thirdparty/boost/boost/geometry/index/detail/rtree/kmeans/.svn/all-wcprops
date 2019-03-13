@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/kmeans
+END
+split.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 99
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/kmeans/split.hpp
+END
+kmeans.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/kmeans/kmeans.hpp
+END

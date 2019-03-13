@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/fusion/algorithm/auxiliary
+END
+copy.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/fusion/algorithm/auxiliary/copy.hpp
+END
+move.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/fusion/algorithm/auxiliary/move.hpp
+END

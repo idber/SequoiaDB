@@ -1,0 +1,47 @@
+K 25
+svn:wc:ra_dav:version-url
+V 157
+/sequoiadb/!svn/ver/33744/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb
+END
+package-info.java
+K 25
+svn:wc:ra_dav:version-url
+V 175
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/package-info.java
+END
+CannotGetMongoDbConnectionException.java
+K 25
+svn:wc:ra_dav:version-url
+V 198
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/CannotGetMongoDbConnectionException.java
+END
+UncategorizedMongoDbException.java
+K 25
+svn:wc:ra_dav:version-url
+V 192
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/UncategorizedMongoDbException.java
+END
+InvalidMongoDbApiUsageException.java
+K 25
+svn:wc:ra_dav:version-url
+V 194
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/InvalidMongoDbApiUsageException.java
+END
+LazyLoadingException.java
+K 25
+svn:wc:ra_dav:version-url
+V 183
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/LazyLoadingException.java
+END
+MongoCollectionUtils.java
+K 25
+svn:wc:ra_dav:version-url
+V 183
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/MongoCollectionUtils.java
+END
+MongoDbFactory.java
+K 25
+svn:wc:ra_dav:version-url
+V 177
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/MongoDbFactory.java
+END

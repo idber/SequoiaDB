@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/iterators/dispatch
+END
+segment_iterator.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 103
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/iterators/dispatch/segment_iterator.hpp
+END
+point_iterator.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/iterators/dispatch/point_iterator.hpp
+END

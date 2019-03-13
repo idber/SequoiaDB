@@ -1,0 +1,71 @@
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/sequoiadb/!svn/ver/20653/trunk/java/jdk_linux64/lib
+END
+ir.idl
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/lib/ir.idl
+END
+dt.jar
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/lib/dt.jar
+END
+javafx-doclet.jar
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/lib/javafx-doclet.jar
+END
+sa-jdi.jar
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/lib/sa-jdi.jar
+END
+jconsole.jar
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/lib/jconsole.jar
+END
+orb.idl
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/lib/orb.idl
+END
+ant-javafx.jar
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/lib/ant-javafx.jar
+END
+tools.jar
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/lib/tools.jar
+END
+javafx-mx.jar
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/lib/javafx-mx.jar
+END
+ct.sym
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/lib/ct.sym
+END
+jexec
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/lib/jexec
+END

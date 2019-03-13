@@ -1,0 +1,215 @@
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/sequoiadb/!svn/ver/34595/trunk/SequoiaDB/engine/omsvc
+END
+omManager.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/34286/trunk/SequoiaDB/engine/omsvc/omManager.cpp
+END
+omConfigBuilder.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/sequoiadb/!svn/ver/32363/trunk/SequoiaDB/engine/omsvc/omConfigBuilder.cpp
+END
+omStrategyDef.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/21882/trunk/SequoiaDB/engine/omsvc/omStrategyDef.cpp
+END
+omConfigBuilder.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/sequoiadb/!svn/ver/32363/trunk/SequoiaDB/engine/omsvc/omConfigBuilder.hpp
+END
+omTransferProcessor.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/sequoiadb/!svn/ver/20589/trunk/SequoiaDB/engine/omsvc/omTransferProcessor.cpp
+END
+omTransferProcessor.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/sequoiadb/!svn/ver/27241/trunk/SequoiaDB/engine/omsvc/omTransferProcessor.hpp
+END
+omContextTransfer.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/33105/trunk/SequoiaDB/engine/omsvc/omContextTransfer.cpp
+END
+omTaskManager.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/33505/trunk/SequoiaDB/engine/omsvc/omTaskManager.cpp
+END
+omConfigZoo.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/23053/trunk/SequoiaDB/engine/omsvc/omConfigZoo.cpp
+END
+omConfigSdb.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/32363/trunk/SequoiaDB/engine/omsvc/omConfigSdb.cpp
+END
+omContextTransfer.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/33105/trunk/SequoiaDB/engine/omsvc/omContextTransfer.hpp
+END
+omCommandInterface.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/31745/trunk/SequoiaDB/engine/omsvc/omCommandInterface.cpp
+END
+omConfigZoo.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/23053/trunk/SequoiaDB/engine/omsvc/omConfigZoo.hpp
+END
+omConfigSdb.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/29274/trunk/SequoiaDB/engine/omsvc/omConfigSdb.hpp
+END
+omCommandInterface.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/29274/trunk/SequoiaDB/engine/omsvc/omCommandInterface.hpp
+END
+omManagerJob.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/30557/trunk/SequoiaDB/engine/omsvc/omManagerJob.cpp
+END
+omConfigSsqlOltp.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/32527/trunk/SequoiaDB/engine/omsvc/omConfigSsqlOltp.cpp
+END
+omStrategyMgr.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/33057/trunk/SequoiaDB/engine/omsvc/omStrategyMgr.cpp
+END
+omCommandTool.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/34595/trunk/SequoiaDB/engine/omsvc/omCommandTool.cpp
+END
+omConfigSsqlOltp.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/32527/trunk/SequoiaDB/engine/omsvc/omConfigSsqlOltp.hpp
+END
+omStrategyMgr.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/33057/trunk/SequoiaDB/engine/omsvc/omStrategyMgr.hpp
+END
+omCommand.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/34303/trunk/SequoiaDB/engine/omsvc/omCommand.cpp
+END
+omCmdBusiness.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/32282/trunk/SequoiaDB/engine/omsvc/omCmdBusiness.cpp
+END
+omCommandTool.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/34595/trunk/SequoiaDB/engine/omsvc/omCommandTool.hpp
+END
+omRestSession.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/33570/trunk/SequoiaDB/engine/omsvc/omRestSession.cpp
+END
+omSdbConnector.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/28253/trunk/SequoiaDB/engine/omsvc/omSdbConnector.cpp
+END
+omCommand.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/34595/trunk/SequoiaDB/engine/omsvc/omCommand.hpp
+END
+omConfigSsqlOlap.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/23460/trunk/SequoiaDB/engine/omsvc/omConfigSsqlOlap.cpp
+END
+omCmdRelationship.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/34595/trunk/SequoiaDB/engine/omsvc/omCmdRelationship.cpp
+END
+omConfigModel.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/31605/trunk/SequoiaDB/engine/omsvc/omConfigModel.cpp
+END
+omRestSession.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/33570/trunk/SequoiaDB/engine/omsvc/omRestSession.hpp
+END
+omMsgEventHandler.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/29062/trunk/SequoiaDB/engine/omsvc/omMsgEventHandler.cpp
+END
+omSdbConnector.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/27241/trunk/SequoiaDB/engine/omsvc/omSdbConnector.hpp
+END
+omConfigSsqlOlap.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/23210/trunk/SequoiaDB/engine/omsvc/omConfigSsqlOlap.hpp
+END
+omConfigModel.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/29274/trunk/SequoiaDB/engine/omsvc/omConfigModel.hpp
+END

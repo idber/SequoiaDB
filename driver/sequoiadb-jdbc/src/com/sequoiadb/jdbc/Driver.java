@@ -32,6 +32,7 @@ public class Driver implements java.sql.Driver{
 	}
     
 	public Driver() throws SQLException {
+		// Required for Class.forName().newInstance()
 	}
 	
 	public Connection connect(String url, Properties info) throws SQLException {
@@ -70,6 +71,7 @@ public class Driver implements java.sql.Driver{
 	public boolean jdbcCompliant() {return false;}
 
 	public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+		// TODO Auto-generated method stub
 		return null;
 	}
     

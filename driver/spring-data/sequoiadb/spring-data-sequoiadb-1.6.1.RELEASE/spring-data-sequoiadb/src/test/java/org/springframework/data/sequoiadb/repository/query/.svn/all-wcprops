@@ -1,0 +1,65 @@
+K 25
+svn:wc:ra_dav:version-url
+V 184
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/query
+END
+SdbParametersUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 212
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/query/SdbParametersUnitTests.java
+END
+SdbQueryCreatorUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 214
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/query/SdbQueryCreatorUnitTests.java
+END
+StubParameterAccessor.java
+K 25
+svn:wc:ra_dav:version-url
+V 211
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/query/StubParameterAccessor.java
+END
+SdbQueryMethodUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 213
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/query/SdbQueryMethodUnitTests.java
+END
+SdbParametersParameterAccessorUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 229
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/query/SdbParametersParameterAccessorUnitTests.java
+END
+AbstractSdbQueryUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 215
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/query/AbstractSdbQueryUnitTests.java
+END
+ConvertingParameterAccessorUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 226
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/query/ConvertingParameterAccessorUnitTests.java
+END
+StringBasedSdbQueryUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 218
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/query/StringBasedSdbQueryUnitTests.java
+END
+PartTreeSdbQueryUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 215
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/query/PartTreeSdbQueryUnitTests.java
+END
+MappingSdbEntityInformationUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 226
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/query/MappingSdbEntityInformationUnitTests.java
+END

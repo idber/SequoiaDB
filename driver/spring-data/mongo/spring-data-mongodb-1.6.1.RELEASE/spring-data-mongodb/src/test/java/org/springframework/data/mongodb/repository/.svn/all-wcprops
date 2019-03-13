@@ -1,0 +1,107 @@
+K 25
+svn:wc:ra_dav:version-url
+V 168
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository
+END
+MongoRepositoryTextSearchIntegrationTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 215
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository/MongoRepositoryTextSearchIntegrationTests.java
+END
+RedeclaringRepositoryMethodsRepository.java
+K 25
+svn:wc:ra_dav:version-url
+V 212
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository/RedeclaringRepositoryMethodsRepository.java
+END
+PersonRepository.java
+K 25
+svn:wc:ra_dav:version-url
+V 190
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository/PersonRepository.java
+END
+Person.java
+K 25
+svn:wc:ra_dav:version-url
+V 180
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository/Person.java
+END
+User.java
+K 25
+svn:wc:ra_dav:version-url
+V 178
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository/User.java
+END
+AbstractPersonRepositoryIntegrationTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 214
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository/AbstractPersonRepositoryIntegrationTests.java
+END
+ContactRepositoryIntegrationTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 207
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository/ContactRepositoryIntegrationTests.java
+END
+RepositoryIndexCreationIntegrationTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 213
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository/RepositoryIndexCreationIntegrationTests.java
+END
+PersonSummary.java
+K 25
+svn:wc:ra_dav:version-url
+V 187
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository/PersonSummary.java
+END
+Address.java
+K 25
+svn:wc:ra_dav:version-url
+V 181
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository/Address.java
+END
+UsernameAndPassword.java
+K 25
+svn:wc:ra_dav:version-url
+V 193
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository/UsernameAndPassword.java
+END
+RedeclaringRepositoryMethodsTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 207
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository/RedeclaringRepositoryMethodsTests.java
+END
+Contact.java
+K 25
+svn:wc:ra_dav:version-url
+V 181
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository/Contact.java
+END
+ContactRepository.java
+K 25
+svn:wc:ra_dav:version-url
+V 191
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository/ContactRepository.java
+END
+PersonRepositoryLazyLoadingIntegrationTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 217
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository/PersonRepositoryLazyLoadingIntegrationTests.java
+END
+Credentials.java
+K 25
+svn:wc:ra_dav:version-url
+V 185
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository/Credentials.java
+END
+PersonRepositoryIntegrationTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 206
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository/PersonRepositoryIntegrationTests.java
+END

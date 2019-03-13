@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/jre/lib/management
+END
+jmxremote.password.template
+K 25
+svn:wc:ra_dav:version-url
+V 95
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/jre/lib/management/jmxremote.password.template
+END
+snmp.acl.template
+K 25
+svn:wc:ra_dav:version-url
+V 85
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/jre/lib/management/snmp.acl.template
+END
+management.properties
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/jre/lib/management/management.properties
+END
+jmxremote.access
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/jre/lib/management/jmxremote.access
+END

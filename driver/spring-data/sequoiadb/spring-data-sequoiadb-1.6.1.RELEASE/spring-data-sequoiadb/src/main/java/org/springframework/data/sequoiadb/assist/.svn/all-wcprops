@@ -1,0 +1,281 @@
+K 25
+svn:wc:ra_dav:version-url
+V 174
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist
+END
+ReplicaSetStatus.java
+K 25
+svn:wc:ra_dav:version-url
+V 196
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/ReplicaSetStatus.java
+END
+OperationCallbacks.java
+K 25
+svn:wc:ra_dav:version-url
+V 198
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/OperationCallbacks.java
+END
+DBConnector.java
+K 25
+svn:wc:ra_dav:version-url
+V 191
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/DBConnector.java
+END
+BasicBSONObjectBuilder.java
+K 25
+svn:wc:ra_dav:version-url
+V 202
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/BasicBSONObjectBuilder.java
+END
+DBCollection.java
+K 25
+svn:wc:ra_dav:version-url
+V 192
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/DBCollection.java
+END
+WriteRequest.java
+K 25
+svn:wc:ra_dav:version-url
+V 192
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/WriteRequest.java
+END
+BulkWriteResult.java
+K 25
+svn:wc:ra_dav:version-url
+V 195
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/BulkWriteResult.java
+END
+SdbClient.java
+K 25
+svn:wc:ra_dav:version-url
+V 189
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/SdbClient.java
+END
+SequoiadbCredential.java
+K 25
+svn:wc:ra_dav:version-url
+V 199
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/SequoiadbCredential.java
+END
+AggregationOutput.java
+K 25
+svn:wc:ra_dav:version-url
+V 197
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/AggregationOutput.java
+END
+Sdb.java
+K 25
+svn:wc:ra_dav:version-url
+V 183
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/Sdb.java
+END
+ReadPreference.java
+K 25
+svn:wc:ra_dav:version-url
+V 194
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/ReadPreference.java
+END
+DBApiLayer.java
+K 25
+svn:wc:ra_dav:version-url
+V 190
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/DBApiLayer.java
+END
+Cursor.java
+K 25
+svn:wc:ra_dav:version-url
+V 186
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/Cursor.java
+END
+DBEncoderFactory.java
+K 25
+svn:wc:ra_dav:version-url
+V 196
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/DBEncoderFactory.java
+END
+GridFS.java
+K 25
+svn:wc:ra_dav:version-url
+V 186
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/GridFS.java
+END
+GridFSFile.java
+K 25
+svn:wc:ra_dav:version-url
+V 190
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/GridFSFile.java
+END
+QueryResultIterator.java
+K 25
+svn:wc:ra_dav:version-url
+V 199
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/QueryResultIterator.java
+END
+Helper.java
+K 25
+svn:wc:ra_dav:version-url
+V 186
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/Helper.java
+END
+DBCursor.java
+K 25
+svn:wc:ra_dav:version-url
+V 188
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/DBCursor.java
+END
+SdbClientOptions.java
+K 25
+svn:wc:ra_dav:version-url
+V 196
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/SdbClientOptions.java
+END
+GridFSDBFile.java
+K 25
+svn:wc:ra_dav:version-url
+V 192
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/GridFSDBFile.java
+END
+DB.java
+K 25
+svn:wc:ra_dav:version-url
+V 182
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/DB.java
+END
+DBEncoder.java
+K 25
+svn:wc:ra_dav:version-url
+V 189
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/DBEncoder.java
+END
+SequoiadbOptions.java
+K 25
+svn:wc:ra_dav:version-url
+V 196
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/SequoiadbOptions.java
+END
+BulkWriteOperation.java
+K 25
+svn:wc:ra_dav:version-url
+V 198
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/BulkWriteOperation.java
+END
+GroupCommand.java
+K 25
+svn:wc:ra_dav:version-url
+V 192
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/GroupCommand.java
+END
+GridFSInputFile.java
+K 25
+svn:wc:ra_dav:version-url
+V 195
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/GridFSInputFile.java
+END
+WriteConcern.java
+K 25
+svn:wc:ra_dav:version-url
+V 192
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/WriteConcern.java
+END
+AggregationOptions.java
+K 25
+svn:wc:ra_dav:version-url
+V 198
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/AggregationOptions.java
+END
+DBDecoderFactory.java
+K 25
+svn:wc:ra_dav:version-url
+V 196
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/DBDecoderFactory.java
+END
+MapReduceCommand.java
+K 25
+svn:wc:ra_dav:version-url
+V 196
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/MapReduceCommand.java
+END
+DBDecoder.java
+K 25
+svn:wc:ra_dav:version-url
+V 189
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/DBDecoder.java
+END
+ServerAddress.java
+K 25
+svn:wc:ra_dav:version-url
+V 193
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/ServerAddress.java
+END
+CommandResult.java
+K 25
+svn:wc:ra_dav:version-url
+V 193
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/CommandResult.java
+END
+DBRefBase.java
+K 25
+svn:wc:ra_dav:version-url
+V 189
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/DBRefBase.java
+END
+ParallelScanOptions.java
+K 25
+svn:wc:ra_dav:version-url
+V 199
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/ParallelScanOptions.java
+END
+DBRef.java
+K 25
+svn:wc:ra_dav:version-url
+V 185
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/DBRef.java
+END
+DBCollectionImpl.java
+K 25
+svn:wc:ra_dav:version-url
+V 196
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/DBCollectionImpl.java
+END
+Bytes.java
+K 25
+svn:wc:ra_dav:version-url
+V 185
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/Bytes.java
+END
+MapReduceOutput.java
+K 25
+svn:wc:ra_dav:version-url
+V 195
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/MapReduceOutput.java
+END
+SdbClientURI.java
+K 25
+svn:wc:ra_dav:version-url
+V 192
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/SdbClientURI.java
+END
+WriteResult.java
+K 25
+svn:wc:ra_dav:version-url
+V 191
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/WriteResult.java
+END
+ConnectionManager.java
+K 25
+svn:wc:ra_dav:version-url
+V 197
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/ConnectionManager.java
+END
+DBAddress.java
+K 25
+svn:wc:ra_dav:version-url
+V 189
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/DBAddress.java
+END
+SequoiadbURI.java
+K 25
+svn:wc:ra_dav:version-url
+V 192
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/assist/SequoiadbURI.java
+END

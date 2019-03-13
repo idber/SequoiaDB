@@ -1,0 +1,83 @@
+10
+
+dir
+34610
+http://192.168.20.11/sequoiadb/trunk/SequoiaDB/web/app
+http://192.168.20.11/sequoiadb
+
+
+
+2018-03-05T11:32:52.413454Z
+34610
+huangweigang
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+6121f079-4a18-41d3-8c30-8870a322f2c2
+
+service
+dir
+
+other
+dir
+
+controller
+dir
+
+language
+dir
+
+config
+dir
+
+template
+dir
+
+app.js
+file
+39808
+
+
+
+2019-03-13T08:30:10.717986Z
+1f78364a67ad65a8e6604bd1f1987984
+2016-12-30T08:49:06.745542Z
+26721
+jwhe
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+538
+
+directive
+dir
+

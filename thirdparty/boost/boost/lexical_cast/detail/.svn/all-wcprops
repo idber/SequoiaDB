@@ -1,0 +1,53 @@
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/lexical_cast/detail
+END
+converter_numeric.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/lexical_cast/detail/converter_numeric.hpp
+END
+lcast_unsigned_converters.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 104
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/lexical_cast/detail/lcast_unsigned_converters.hpp
+END
+widest_char.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/lexical_cast/detail/widest_char.hpp
+END
+lcast_char_constants.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 99
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/lexical_cast/detail/lcast_char_constants.hpp
+END
+converter_lexical_streams.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 104
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/lexical_cast/detail/converter_lexical_streams.hpp
+END
+is_character.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/lexical_cast/detail/is_character.hpp
+END
+converter_lexical.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/lexical_cast/detail/converter_lexical.hpp
+END
+inf_nan.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/lexical_cast/detail/inf_nan.hpp
+END

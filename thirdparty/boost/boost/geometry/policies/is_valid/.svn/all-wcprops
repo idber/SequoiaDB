@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/policies/is_valid
+END
+failing_reason_policy.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/policies/is_valid/failing_reason_policy.hpp
+END
+default_policy.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/policies/is_valid/default_policy.hpp
+END
+failure_type_policy.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/policies/is_valid/failure_type_policy.hpp
+END

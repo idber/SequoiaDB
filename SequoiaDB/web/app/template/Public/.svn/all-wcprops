@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/33488/trunk/SequoiaDB/web/app/template/Public
+END
+Top.html
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/sequoiadb/!svn/ver/24607/trunk/SequoiaDB/web/app/template/Public/Top.html
+END
+Bottom.html
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/25647/trunk/SequoiaDB/web/app/template/Public/Bottom.html
+END
+Transfer.html
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/22123/trunk/SequoiaDB/web/app/template/Public/Transfer.html
+END
+Login.html
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/23291/trunk/SequoiaDB/web/app/template/Public/Login.html
+END
+Left.html
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/33488/trunk/SequoiaDB/web/app/template/Public/Left.html
+END

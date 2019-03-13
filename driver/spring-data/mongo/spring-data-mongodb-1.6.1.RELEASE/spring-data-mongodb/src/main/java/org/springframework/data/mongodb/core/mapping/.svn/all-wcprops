@@ -1,0 +1,89 @@
+K 25
+svn:wc:ra_dav:version-url
+V 170
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/mapping
+END
+BasicMongoPersistentEntity.java
+K 25
+svn:wc:ra_dav:version-url
+V 202
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/mapping/BasicMongoPersistentEntity.java
+END
+MongoMappingContext.java
+K 25
+svn:wc:ra_dav:version-url
+V 195
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/mapping/MongoMappingContext.java
+END
+TextScore.java
+K 25
+svn:wc:ra_dav:version-url
+V 185
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/mapping/TextScore.java
+END
+CachingMongoPersistentProperty.java
+K 25
+svn:wc:ra_dav:version-url
+V 206
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/mapping/CachingMongoPersistentProperty.java
+END
+DBRef.java
+K 25
+svn:wc:ra_dav:version-url
+V 181
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/mapping/DBRef.java
+END
+Field.java
+K 25
+svn:wc:ra_dav:version-url
+V 181
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/mapping/Field.java
+END
+Language.java
+K 25
+svn:wc:ra_dav:version-url
+V 184
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/mapping/Language.java
+END
+package-info.java
+K 25
+svn:wc:ra_dav:version-url
+V 188
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/mapping/package-info.java
+END
+MongoPersistentProperty.java
+K 25
+svn:wc:ra_dav:version-url
+V 199
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/mapping/MongoPersistentProperty.java
+END
+Version.java
+K 25
+svn:wc:ra_dav:version-url
+V 183
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/mapping/Version.java
+END
+BasicMongoPersistentProperty.java
+K 25
+svn:wc:ra_dav:version-url
+V 204
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/mapping/BasicMongoPersistentProperty.java
+END
+MongoPersistentEntity.java
+K 25
+svn:wc:ra_dav:version-url
+V 197
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/mapping/MongoPersistentEntity.java
+END
+Document.java
+K 25
+svn:wc:ra_dav:version-url
+V 184
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/mapping/Document.java
+END
+MongoSimpleTypes.java
+K 25
+svn:wc:ra_dav:version-url
+V 192
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/core/mapping/MongoSimpleTypes.java
+END

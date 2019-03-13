@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/rstar
+END
+rstar.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/rstar/rstar.hpp
+END
+redistribute_elements.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 114
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/rstar/redistribute_elements.hpp
+END
+choose_next_node.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/rstar/choose_next_node.hpp
+END
+insert.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 99
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/rstar/insert.hpp
+END

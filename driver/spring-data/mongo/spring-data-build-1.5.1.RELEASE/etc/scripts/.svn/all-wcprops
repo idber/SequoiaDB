@@ -1,0 +1,11 @@
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-build-1.5.1.RELEASE/etc/scripts
+END
+new-issue-branch.sh
+K 25
+svn:wc:ra_dav:version-url
+V 120
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-build-1.5.1.RELEASE/etc/scripts/new-issue-branch.sh
+END

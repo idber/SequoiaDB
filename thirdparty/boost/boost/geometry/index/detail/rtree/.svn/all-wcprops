@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree
+END
+options.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/options.hpp
+END
+iterators.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/iterators.hpp
+END
+adaptors.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 95
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/adaptors.hpp
+END
+pack_create.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/pack_create.hpp
+END
+query_iterators.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/query_iterators.hpp
+END
