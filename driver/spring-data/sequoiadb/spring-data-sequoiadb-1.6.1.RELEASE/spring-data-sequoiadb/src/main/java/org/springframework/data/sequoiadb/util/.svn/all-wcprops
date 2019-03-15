@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 172
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/util
+END
+package-info.java
+K 25
+svn:wc:ra_dav:version-url
+V 190
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/util/package-info.java
+END
+DBObjectUtils.java
+K 25
+svn:wc:ra_dav:version-url
+V 191
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/java/org/springframework/data/sequoiadb/util/DBObjectUtils.java
+END

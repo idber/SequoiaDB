@@ -1,0 +1,65 @@
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/vmd/seq
+END
+is_vmd_seq.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/vmd/seq/is_vmd_seq.hpp
+END
+size.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/vmd/seq/size.hpp
+END
+to_tuple.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/vmd/seq/to_tuple.hpp
+END
+remove.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/vmd/seq/remove.hpp
+END
+to_list.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/vmd/seq/to_list.hpp
+END
+pop_back.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/vmd/seq/pop_back.hpp
+END
+push_back.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/vmd/seq/push_back.hpp
+END
+to_array.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/vmd/seq/to_array.hpp
+END
+pop_front.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/vmd/seq/pop_front.hpp
+END
+push_front.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/vmd/seq/push_front.hpp
+END

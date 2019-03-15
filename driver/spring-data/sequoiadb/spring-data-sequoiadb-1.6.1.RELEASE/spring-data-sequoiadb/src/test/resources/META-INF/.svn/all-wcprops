@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 146
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/resources/META-INF
+END
+beans.xml
+K 25
+svn:wc:ra_dav:version-url
+V 156
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/resources/META-INF/beans.xml
+END
+mongo-named-queries.properties
+K 25
+svn:wc:ra_dav:version-url
+V 177
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/resources/META-INF/mongo-named-queries.properties
+END

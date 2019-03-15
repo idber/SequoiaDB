@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/lexical_cast
+END
+lexical_cast_old.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/lexical_cast/lexical_cast_old.hpp
+END
+try_lexical_convert.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/lexical_cast/try_lexical_convert.hpp
+END
+bad_lexical_cast.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/lexical_cast/bad_lexical_cast.hpp
+END

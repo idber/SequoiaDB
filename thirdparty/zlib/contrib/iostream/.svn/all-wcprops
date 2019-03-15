@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/iostream
+END
+test.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/iostream/test.cpp
+END
+zfstream.h
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/iostream/zfstream.h
+END
+zfstream.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/iostream/zfstream.cpp
+END

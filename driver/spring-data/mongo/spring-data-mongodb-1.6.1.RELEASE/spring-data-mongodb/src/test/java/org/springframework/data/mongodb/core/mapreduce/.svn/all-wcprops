@@ -1,0 +1,59 @@
+K 25
+svn:wc:ra_dav:version-url
+V 172
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/core/mapreduce
+END
+NumberAndVersion.java
+K 25
+svn:wc:ra_dav:version-url
+V 194
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/core/mapreduce/NumberAndVersion.java
+END
+ContentAndVersion.java
+K 25
+svn:wc:ra_dav:version-url
+V 195
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/core/mapreduce/ContentAndVersion.java
+END
+ValueObject.java
+K 25
+svn:wc:ra_dav:version-url
+V 189
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/core/mapreduce/ValueObject.java
+END
+MapReduceCountsUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 202
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/core/mapreduce/MapReduceCountsUnitTests.java
+END
+MapReduceOptionsTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 199
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/core/mapreduce/MapReduceOptionsTests.java
+END
+MapReduceTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 192
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/core/mapreduce/MapReduceTests.java
+END
+GroupByTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 190
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/core/mapreduce/GroupByTests.java
+END
+MapReduceResultsUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 203
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/core/mapreduce/MapReduceResultsUnitTests.java
+END
+XObject.java
+K 25
+svn:wc:ra_dav:version-url
+V 185
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/core/mapreduce/XObject.java
+END

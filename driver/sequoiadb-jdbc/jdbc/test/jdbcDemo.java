@@ -19,9 +19,18 @@ public static void main(String[] args) throws SQLException {
 		Statement stmt = conn.createStatement();
 		ResultSet rs = stmt.executeQuery("select * from foo.bar where T9 = null");
 		while(rs.next()){	
+//		Double str1 = rs.getDouble("T1");
 		Double str2 = rs.getDouble(1);
 		int str3 = rs.getInt(3);
 		System.out.println(str2+" "+str3);
+//		Double str4 = rs.getDouble("T4");
+//		Date str15 = rs.getDate("T15");
+//		String str16 = rs.getString("T16");
+//		String str18 = rs.getString("T18");
+//		String str19 = rs.getString("T19");
+//		int str20 = rs.getInt("T20");
+//		String str21 = rs.getString("T21");
+//		System.out.println(" "+str2+" "+str3+" "+str4+" "+str16+"  "+str15+"  "+str18+" "+str21+"  "+str19+"  "+str20);
 		}
 	} catch (Exception e) {
 		e.printStackTrace();

@@ -1,0 +1,65 @@
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/sequoiadb/!svn/ver/38927/trunk/misc/ci/src/test/exec_testcase
+END
+exec_java_case.xml
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/sequoiadb/!svn/ver/38191/trunk/misc/ci/src/test/exec_testcase/exec_java_case.xml
+END
+exec_c_case.xml
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/sequoiadb/!svn/ver/28475/trunk/misc/ci/src/test/exec_testcase/exec_c_case.xml
+END
+exec_mongoc_case.xml
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/sequoiadb/!svn/ver/31594/trunk/misc/ci/src/test/exec_testcase/exec_mongoc_case.xml
+END
+exec_php_case.xml
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/sequoiadb/!svn/ver/38462/trunk/misc/ci/src/test/exec_testcase/exec_php_case.xml
+END
+common.xml
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/32869/trunk/misc/ci/src/test/exec_testcase/common.xml
+END
+exec_python_case_new.xml
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/sequoiadb/!svn/ver/31187/trunk/misc/ci/src/test/exec_testcase/exec_python_case_new.xml
+END
+exec_om_case.xml
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/36208/trunk/misc/ci/src/test/exec_testcase/exec_om_case.xml
+END
+exec_js_case.xml
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/38927/trunk/misc/ci/src/test/exec_testcase/exec_js_case.xml
+END
+report_fail_temple.xml
+K 25
+svn:wc:ra_dav:version-url
+V 85
+/sequoiadb/!svn/ver/28308/trunk/misc/ci/src/test/exec_testcase/report_fail_temple.xml
+END
+report_succ_temple.xml
+K 25
+svn:wc:ra_dav:version-url
+V 85
+/sequoiadb/!svn/ver/28308/trunk/misc/ci/src/test/exec_testcase/report_succ_temple.xml
+END

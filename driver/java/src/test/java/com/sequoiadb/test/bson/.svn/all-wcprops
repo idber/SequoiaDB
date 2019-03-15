@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/sequoiadb/!svn/ver/36511/trunk/driver/java/src/test/java/com/sequoiadb/test/bson
+END
+BSONTest.java
+K 25
+svn:wc:ra_dav:version-url
+V 95
+/sequoiadb/!svn/ver/36511/trunk/driver/java/src/test/java/com/sequoiadb/test/bson/BSONTest.java
+END
+BsonEncodeDecodeHookTest.java
+K 25
+svn:wc:ra_dav:version-url
+V 111
+/sequoiadb/!svn/ver/36250/trunk/driver/java/src/test/java/com/sequoiadb/test/bson/BsonEncodeDecodeHookTest.java
+END
+BSONNumberLongTest.java
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/sequoiadb/!svn/ver/32215/trunk/driver/java/src/test/java/com/sequoiadb/test/bson/BSONNumberLongTest.java
+END
+BSONCodeTypeTest.java
+K 25
+svn:wc:ra_dav:version-url
+V 103
+/sequoiadb/!svn/ver/32215/trunk/driver/java/src/test/java/com/sequoiadb/test/bson/BSONCodeTypeTest.java
+END

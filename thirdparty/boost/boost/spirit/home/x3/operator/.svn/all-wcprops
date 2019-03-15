@@ -1,0 +1,59 @@
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/spirit/home/x3/operator
+END
+difference.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/spirit/home/x3/operator/difference.hpp
+END
+list.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/spirit/home/x3/operator/list.hpp
+END
+alternative.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/spirit/home/x3/operator/alternative.hpp
+END
+not_predicate.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/spirit/home/x3/operator/not_predicate.hpp
+END
+and_predicate.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/spirit/home/x3/operator/and_predicate.hpp
+END
+kleene.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/spirit/home/x3/operator/kleene.hpp
+END
+plus.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/spirit/home/x3/operator/plus.hpp
+END
+optional.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/spirit/home/x3/operator/optional.hpp
+END
+sequence.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/spirit/home/x3/operator/sequence.hpp
+END

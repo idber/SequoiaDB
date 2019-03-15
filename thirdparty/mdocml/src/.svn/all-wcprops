@@ -1,0 +1,971 @@
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/sequoiadb/!svn/ver/29436/trunk/thirdparty/mdocml/src
+END
+compat_strtonum.c
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/compat_strtonum.c
+END
+compat_strcasestr.c
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/compat_strcasestr.c
+END
+test-isblank.c
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-isblank.c
+END
+mandoc.c
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mandoc.c
+END
+mandoc.h
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mandoc.h
+END
+out.c
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/out.c
+END
+mandoc.css
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mandoc.css
+END
+term.c
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/term.c
+END
+test-fts.c
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-fts.c
+END
+read.c
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/29436/trunk/thirdparty/mdocml/src/read.c
+END
+out.h
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/out.h
+END
+term.h
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/term.h
+END
+libmdoc.h
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/libmdoc.h
+END
+mandoc_char.7
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mandoc_char.7
+END
+demandoc.1
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/demandoc.1
+END
+libroff.h
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/libroff.h
+END
+tbl.3
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/tbl.3
+END
+tbl.7
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/tbl.7
+END
+predefs.in
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/predefs.in
+END
+test-stringlist.c
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-stringlist.c
+END
+compat_reallocarray.c
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/compat_reallocarray.c
+END
+mdoc_hash.c
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mdoc_hash.c
+END
+msec.c
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/msec.c
+END
+compat_getline.c
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/compat_getline.c
+END
+parseMandoc.c
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/parseMandoc.c
+END
+man.cgi.3
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/man.cgi.3
+END
+test-strsep.c
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-strsep.c
+END
+test-sandbox_init.c
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-sandbox_init.c
+END
+parseMandoc.h
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/parseMandoc.h
+END
+man.cgi.8
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/man.cgi.8
+END
+test-sqlite3_errstr.c
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-sqlite3_errstr.c
+END
+mandoc_html.3
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mandoc_html.3
+END
+make.sh
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/make.sh
+END
+mdoc.7
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mdoc.7
+END
+soelim.1
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/soelim.1
+END
+mandocdb.c
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mandocdb.c
+END
+test-strcasestr.c
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-strcasestr.c
+END
+demandoc.c
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/demandoc.c
+END
+mdoc_man.c
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mdoc_man.c
+END
+test-strlcpy.c
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-strlcpy.c
+END
+tbl_layout.c
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/tbl_layout.c
+END
+man_hash.c
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/man_hash.c
+END
+term_ascii.c
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/term_ascii.c
+END
+roff.7
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/roff.7
+END
+mansearch.3
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mansearch.3
+END
+tbl.c
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/tbl.c
+END
+mdoc_state.c
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mdoc_state.c
+END
+test-strptime.c
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-strptime.c
+END
+INSTALL
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/INSTALL
+END
+st.c
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/st.c
+END
+test-strlcat.c
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-strlcat.c
+END
+libmandoc.h
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/libmandoc.h
+END
+make.bat
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/make.bat
+END
+apropos.1
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/apropos.1
+END
+mdoc_argv.c
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mdoc_argv.c
+END
+lib.c
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/lib.c
+END
+mansearch_const.c
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mansearch_const.c
+END
+mandoc_malloc.3
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mandoc_malloc.3
+END
+test-mkdtemp.c
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-mkdtemp.c
+END
+mandoc_aux.c
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mandoc_aux.c
+END
+mdoc.c
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mdoc.c
+END
+mandoc_aux.h
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mandoc_aux.h
+END
+main.c
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/main.c
+END
+compat_isblank.c
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/compat_isblank.c
+END
+mdoc.h
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mdoc.h
+END
+common.c
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/common.c
+END
+soelim.c
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/soelim.c
+END
+main.h
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/main.h
+END
+roff.c
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/roff.c
+END
+common.h
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/common.h
+END
+compat_fts.c
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/compat_fts.c
+END
+roff.h
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/roff.h
+END
+mansearch.c
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mansearch.c
+END
+compat_fts.h
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/compat_fts.h
+END
+test-err.c
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-err.c
+END
+mdoc_html.c
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mdoc_html.c
+END
+mansearch.h
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mansearch.h
+END
+mandoc.db.5
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mandoc.db.5
+END
+term_ps.c
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/term_ps.c
+END
+config.h
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/config.h
+END
+tbl_data.c
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/tbl_data.c
+END
+st.in
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/st.in
+END
+msec.in
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/msec.in
+END
+mandoc_headers.3
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mandoc_headers.3
+END
+test-rewb-sysv.c
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-rewb-sysv.c
+END
+compat_getsubopt.c
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/compat_getsubopt.c
+END
+man_validate.c
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/man_validate.c
+END
+tbl_opts.c
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/tbl_opts.c
+END
+att.c
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/att.c
+END
+manpath.c
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/manpath.c
+END
+test-getsubopt.c
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-getsubopt.c
+END
+lib.in
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/lib.in
+END
+NEWS
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/NEWS
+END
+Makefile
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/Makefile
+END
+tree.c
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/tree.c
+END
+man_html.c
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/man_html.c
+END
+chars.c
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/chars.c
+END
+mandoc_escape.3
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mandoc_escape.3
+END
+mdoc_macro.c
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mdoc_macro.c
+END
+compat_ohash.c
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/compat_ohash.c
+END
+libman.h
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/libman.h
+END
+eqn_html.c
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/eqn_html.c
+END
+mdoc_term.c
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mdoc_term.c
+END
+compat_ohash.h
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/compat_ohash.h
+END
+tag.c
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/tag.c
+END
+test-ohash.c
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-ohash.c
+END
+tag.h
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/tag.h
+END
+man.conf.5
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/man.conf.5
+END
+makewhatis.8
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/makewhatis.8
+END
+configure.local.example
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/configure.local.example
+END
+test-progname.c
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-progname.c
+END
+manconf.h
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/manconf.h
+END
+man.1
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/man.1
+END
+man.7
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/man.7
+END
+configure
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/configure
+END
+man_term.c
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/man_term.c
+END
+compat_strlcpy.c
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/compat_strlcpy.c
+END
+test-getline.c
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-getline.c
+END
+tbl_html.c
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/tbl_html.c
+END
+eqn.7
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/eqn.7
+END
+test-mmap.c
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-mmap.c
+END
+test-strtonum.c
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-strtonum.c
+END
+eqn_term.c
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/eqn_term.c
+END
+gmdiff
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/gmdiff
+END
+roff_int.h
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/roff_int.h
+END
+test-pledge.c
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-pledge.c
+END
+compat_vasprintf.c
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/compat_vasprintf.c
+END
+compat_strlcat.c
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/compat_strlcat.c
+END
+mandoc.1
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mandoc.1
+END
+mandoc.3
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mandoc.3
+END
+test-wchar.c
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-wchar.c
+END
+test-rewb-bsd.c
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-rewb-bsd.c
+END
+test-vasprintf.c
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-vasprintf.c
+END
+man_macro.c
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/man_macro.c
+END
+test-sqlite3.c
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-sqlite3.c
+END
+LICENSE
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/LICENSE
+END
+cgi.h.example
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/cgi.h.example
+END
+cgi.c
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/cgi.c
+END
+compat_mkdtemp.c
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/compat_mkdtemp.c
+END
+html.c
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/html.c
+END
+compat_stringlist.c
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/compat_stringlist.c
+END
+mchars_alloc.3
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mchars_alloc.3
+END
+tbl_term.c
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/tbl_term.c
+END
+manpage.c
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/manpage.c
+END
+html.h
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/html.h
+END
+test-dirent-namlen.c
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-dirent-namlen.c
+END
+compat_stringlist.h
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/compat_stringlist.h
+END
+man.c
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/man.c
+END
+compat_progname.c
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/compat_progname.c
+END
+preconv.c
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/preconv.c
+END
+man.h
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/man.h
+END
+eqn.c
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/eqn.c
+END
+compat_strsep.c
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/compat_strsep.c
+END
+mandoc_ohash.c
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mandoc_ohash.c
+END
+TODO
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/TODO
+END
+compat_sqlite3_errstr.c
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/compat_sqlite3_errstr.c
+END
+mandoc_ohash.h
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mandoc_ohash.h
+END
+Makefile.depend
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/Makefile.depend
+END
+mdoc_validate.c
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/mdoc_validate.c
+END
+compat_err.c
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/compat_err.c
+END
+test-reallocarray.c
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/29425/trunk/thirdparty/mdocml/src/test-reallocarray.c
+END

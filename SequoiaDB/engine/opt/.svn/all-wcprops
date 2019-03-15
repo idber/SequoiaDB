@@ -1,0 +1,77 @@
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/sequoiadb/!svn/ver/34286/trunk/SequoiaDB/engine/opt
+END
+optStatUnit.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/33105/trunk/SequoiaDB/engine/opt/optStatUnit.cpp
+END
+optAccessPlan.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/33642/trunk/SequoiaDB/engine/opt/optAccessPlan.cpp
+END
+optAccessPlanHelper.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/33105/trunk/SequoiaDB/engine/opt/optAccessPlanHelper.cpp
+END
+optPlanClearJob.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/34286/trunk/SequoiaDB/engine/opt/optPlanClearJob.cpp
+END
+optAPM.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/sequoiadb/!svn/ver/33561/trunk/SequoiaDB/engine/opt/optAPM.cpp
+END
+optAccessPlanRuntime.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/34285/trunk/SequoiaDB/engine/opt/optAccessPlanRuntime.cpp
+END
+optPlanNode.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/33950/trunk/SequoiaDB/engine/opt/optPlanNode.cpp
+END
+optQgmSpecStrategy.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/29714/trunk/SequoiaDB/engine/opt/optQgmSpecStrategy.cpp
+END
+optAccessPlanKey.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/33105/trunk/SequoiaDB/engine/opt/optAccessPlanKey.cpp
+END
+optPlanPath.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/33949/trunk/SequoiaDB/engine/opt/optPlanPath.cpp
+END
+optQgmOptimizer.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/11730/trunk/SequoiaDB/engine/opt/optQgmOptimizer.cpp
+END
+optQgmStrategy.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/20332/trunk/SequoiaDB/engine/opt/optQgmStrategy.cpp
+END

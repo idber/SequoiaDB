@@ -1,0 +1,59 @@
+K 25
+svn:wc:ra_dav:version-url
+V 186
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/mapping/event
+END
+AuditingEventListenerUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 222
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/mapping/event/AuditingEventListenerUnitTests.java
+END
+ApplicationContextEventTestsAppConfig.java
+K 25
+svn:wc:ra_dav:version-url
+V 229
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/mapping/event/ApplicationContextEventTestsAppConfig.java
+END
+AfterSaveListener.java
+K 25
+svn:wc:ra_dav:version-url
+V 209
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/mapping/event/AfterSaveListener.java
+END
+ValidatingSdbEventListenerTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 223
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/mapping/event/ValidatingSdbEventListenerTests.java
+END
+AbstractSdbEventListenerUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 225
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/mapping/event/AbstractSdbEventListenerUnitTests.java
+END
+ApplicationContextEventTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 220
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/mapping/event/ApplicationContextEventTests.java
+END
+SimpleMappingEventListener.java
+K 25
+svn:wc:ra_dav:version-url
+V 218
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/mapping/event/SimpleMappingEventListener.java
+END
+PersonBeforeSaveListener.java
+K 25
+svn:wc:ra_dav:version-url
+V 216
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/mapping/event/PersonBeforeSaveListener.java
+END
+User.java
+K 25
+svn:wc:ra_dav:version-url
+V 196
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/mapping/event/User.java
+END

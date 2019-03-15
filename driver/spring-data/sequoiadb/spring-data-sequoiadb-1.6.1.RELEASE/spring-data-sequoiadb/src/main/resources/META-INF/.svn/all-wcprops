@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 146
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/resources/META-INF
+END
+spring.handlers
+K 25
+svn:wc:ra_dav:version-url
+V 162
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/resources/META-INF/spring.handlers
+END
+spring.schemas
+K 25
+svn:wc:ra_dav:version-url
+V 161
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/resources/META-INF/spring.schemas
+END
+spring.tooling
+K 25
+svn:wc:ra_dav:version-url
+V 161
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/main/resources/META-INF/spring.tooling
+END

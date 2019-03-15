@@ -1,0 +1,353 @@
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/sequoiadb/!svn/ver/34066/trunk/SequoiaDB/engine/util
+END
+utilLZWDictionary.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/24414/trunk/SequoiaDB/engine/util/utilLZWDictionary.cpp
+END
+utilCompressorZlib.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/29778/trunk/SequoiaDB/engine/util/utilCompressorZlib.cpp
+END
+csv2rawbson.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/16673/trunk/SequoiaDB/engine/util/csv2rawbson.hpp
+END
+utilParseCSV.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/16668/trunk/SequoiaDB/engine/util/utilParseCSV.cpp
+END
+utilParseJSONs.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/16667/trunk/SequoiaDB/engine/util/utilParseJSONs.cpp
+END
+utilCompressorSnappy.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/sequoiadb/!svn/ver/29775/trunk/SequoiaDB/engine/util/utilCompressorSnappy.cpp
+END
+rawbson2json.c
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/24155/trunk/SequoiaDB/engine/util/rawbson2json.c
+END
+utilFileStream.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/24738/trunk/SequoiaDB/engine/util/utilFileStream.cpp
+END
+base64.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/11730/trunk/SequoiaDB/engine/util/base64.hpp
+END
+text.h
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/11730/trunk/SequoiaDB/engine/util/text.h
+END
+utilStream.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/24738/trunk/SequoiaDB/engine/util/utilStream.cpp
+END
+utilCompressor.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/29781/trunk/SequoiaDB/engine/util/utilCompressor.cpp
+END
+rawbson2json.h
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/11730/trunk/SequoiaDB/engine/util/rawbson2json.h
+END
+fromjson.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/22566/trunk/SequoiaDB/engine/util/fromjson.hpp
+END
+utilNodeOpr.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/23393/trunk/SequoiaDB/engine/util/utilNodeOpr.cpp
+END
+utilJsonFile.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/25123/trunk/SequoiaDB/engine/util/utilJsonFile.cpp
+END
+rawbson2csv.c
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/33878/trunk/SequoiaDB/engine/util/rawbson2csv.c
+END
+des.c
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/33722/trunk/SequoiaDB/engine/util/des.c
+END
+rawbson2csv.h
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/32325/trunk/SequoiaDB/engine/util/rawbson2csv.h
+END
+des.h
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/33285/trunk/SequoiaDB/engine/util/des.h
+END
+utilDecodeRawbson.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/32302/trunk/SequoiaDB/engine/util/utilDecodeRawbson.hpp
+END
+utilBsongen.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/16429/trunk/SequoiaDB/engine/util/utilBsongen.cpp
+END
+utilAccessDataLocalIO.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/11730/trunk/SequoiaDB/engine/util/utilAccessDataLocalIO.cpp
+END
+utilBsonHashObsolete.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/sequoiadb/!svn/ver/19756/trunk/SequoiaDB/engine/util/utilBsonHashObsolete.cpp
+END
+utilBsonHash.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/33123/trunk/SequoiaDB/engine/util/utilBsonHash.cpp
+END
+utilDictionary.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/22934/trunk/SequoiaDB/engine/util/utilDictionary.cpp
+END
+utilString.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/25131/trunk/SequoiaDB/engine/util/utilString.cpp
+END
+utilSdb.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/21527/trunk/SequoiaDB/engine/util/utilSdb.cpp
+END
+csv2rawbson.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/22317/trunk/SequoiaDB/engine/util/csv2rawbson.cpp
+END
+utilZlibStream.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/32123/trunk/SequoiaDB/engine/util/utilZlibStream.cpp
+END
+utilLinenoiseWrapper.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/sequoiadb/!svn/ver/32823/trunk/SequoiaDB/engine/util/utilLinenoiseWrapper.cpp
+END
+utilCompressorLZ4.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/30079/trunk/SequoiaDB/engine/util/utilCompressorLZ4.cpp
+END
+base64.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/12959/trunk/SequoiaDB/engine/util/base64.cpp
+END
+utilMath.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/31099/trunk/SequoiaDB/engine/util/utilMath.cpp
+END
+json2rawbson.c
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/25105/trunk/SequoiaDB/engine/util/json2rawbson.c
+END
+utilCompressorSnappy.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/sequoiadb/!svn/ver/23025/trunk/SequoiaDB/engine/util/utilCompressorSnappy.hpp
+END
+linenoise.h
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/30807/trunk/SequoiaDB/engine/util/linenoise.h
+END
+json2rawbson.h
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/20906/trunk/SequoiaDB/engine/util/json2rawbson.h
+END
+fromjson.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/20906/trunk/SequoiaDB/engine/util/fromjson.cpp
+END
+utilParam.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/34066/trunk/SequoiaDB/engine/util/utilParam.cpp
+END
+utilAccessDataHdfs.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/11730/trunk/SequoiaDB/engine/util/utilAccessDataHdfs.cpp
+END
+utilCache.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/33986/trunk/SequoiaDB/engine/util/utilCache.cpp
+END
+utilParseData.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/12225/trunk/SequoiaDB/engine/util/utilParseData.cpp
+END
+url.c
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/13078/trunk/SequoiaDB/engine/util/url.c
+END
+utilStr.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/32635/trunk/SequoiaDB/engine/util/utilStr.cpp
+END
+url.h
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/16429/trunk/SequoiaDB/engine/util/url.h
+END
+utilDecodeRawbson.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/32325/trunk/SequoiaDB/engine/util/utilDecodeRawbson.cpp
+END
+utilUnicodeGen.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/16429/trunk/SequoiaDB/engine/util/utilUnicodeGen.cpp
+END
+text.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/sequoiadb/!svn/ver/11730/trunk/SequoiaDB/engine/util/text.cpp
+END
+utilEnvCheck.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/33447/trunk/SequoiaDB/engine/util/utilEnvCheck.cpp
+END
+linenoise.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/32823/trunk/SequoiaDB/engine/util/linenoise.cpp
+END
+utilCommon.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/33970/trunk/SequoiaDB/engine/util/utilCommon.cpp
+END
+utilCompressorLZW.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/29778/trunk/SequoiaDB/engine/util/utilCompressorLZW.cpp
+END
+hex.h
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/11730/trunk/SequoiaDB/engine/util/hex.h
+END
+hdfs.h
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/32813/trunk/SequoiaDB/engine/util/hdfs.h
+END
+utilOptions.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/25049/trunk/SequoiaDB/engine/util/utilOptions.cpp
+END
+utilPath.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/24773/trunk/SequoiaDB/engine/util/utilPath.cpp
+END
+utilPipe.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/27595/trunk/SequoiaDB/engine/util/utilPipe.cpp
+END

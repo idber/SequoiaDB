@@ -1,0 +1,203 @@
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/sequoiadb/!svn/ver/34001/trunk/SequoiaDB/engine/spt
+END
+sptSPArguments.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/31569/trunk/SequoiaDB/engine/spt/sptSPArguments.cpp
+END
+sptScope.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/30673/trunk/SequoiaDB/engine/spt/sptScope.cpp
+END
+sptLibssh2Session.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/sequoiadb/!svn/ver/33213/trunk/SequoiaDB/engine/spt/sptLibssh2Session.cpp
+END
+sptGlobalFunc.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/32031/trunk/SequoiaDB/engine/spt/sptGlobalFunc.cpp
+END
+dbClasses.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/34001/trunk/SequoiaDB/engine/spt/dbClasses.cpp
+END
+sptInvoker.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/32058/trunk/SequoiaDB/engine/spt/sptInvoker.cpp
+END
+sdbSP.js
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/sequoiadb/!svn/ver/33237/trunk/SequoiaDB/engine/spt/sdbSP.js
+END
+sptHelp.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/30689/trunk/SequoiaDB/engine/spt/sptHelp.cpp
+END
+sptCommon.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/33159/trunk/SequoiaDB/engine/spt/sptCommon.cpp
+END
+sptClassMetaInfo.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/29351/trunk/SequoiaDB/engine/spt/sptClassMetaInfo.cpp
+END
+help.js
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/31457/trunk/SequoiaDB/engine/spt/help.js
+END
+sptRemote.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/31494/trunk/SequoiaDB/engine/spt/sptRemote.cpp
+END
+sptBsonobj.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/26340/trunk/SequoiaDB/engine/spt/sptBsonobj.cpp
+END
+sptClassMetaInfo.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/29319/trunk/SequoiaDB/engine/spt/sptClassMetaInfo.hpp
+END
+sptHelp.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/29351/trunk/SequoiaDB/engine/spt/sptHelp.hpp
+END
+sptWords.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/29509/trunk/SequoiaDB/engine/spt/sptWords.cpp
+END
+sptSshSession.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/33062/trunk/SequoiaDB/engine/spt/sptSshSession.cpp
+END
+sptWords.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/29442/trunk/SequoiaDB/engine/spt/sptWords.hpp
+END
+sptObjDesc.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/30673/trunk/SequoiaDB/engine/spt/sptObjDesc.cpp
+END
+sptFuncDef.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/29319/trunk/SequoiaDB/engine/spt/sptFuncDef.cpp
+END
+sdb.js
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/33893/trunk/SequoiaDB/engine/spt/sdb.js
+END
+sptSPScope.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/32031/trunk/SequoiaDB/engine/spt/sptSPScope.cpp
+END
+sptFuncDef.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/29319/trunk/SequoiaDB/engine/spt/sptFuncDef.hpp
+END
+sptConvertor.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/34001/trunk/SequoiaDB/engine/spt/sptConvertor.cpp
+END
+sptConvertorHelper.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/32116/trunk/SequoiaDB/engine/spt/sptConvertorHelper.cpp
+END
+sptReturnVal.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/26340/trunk/SequoiaDB/engine/spt/sptReturnVal.cpp
+END
+sptContainer.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/30673/trunk/SequoiaDB/engine/spt/sptContainer.cpp
+END
+sptProperty.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/30673/trunk/SequoiaDB/engine/spt/sptProperty.cpp
+END
+sptBsonobjArray.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/26425/trunk/SequoiaDB/engine/spt/sptBsonobjArray.cpp
+END
+sptParseMandoc.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/29442/trunk/SequoiaDB/engine/spt/sptParseMandoc.cpp
+END
+sptParseMandoc.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/29442/trunk/SequoiaDB/engine/spt/sptParseMandoc.hpp
+END
+sptConvertor2.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/25687/trunk/SequoiaDB/engine/spt/sptConvertor2.cpp
+END
+sptPrivateData.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/30673/trunk/SequoiaDB/engine/spt/sptPrivateData.cpp
+END

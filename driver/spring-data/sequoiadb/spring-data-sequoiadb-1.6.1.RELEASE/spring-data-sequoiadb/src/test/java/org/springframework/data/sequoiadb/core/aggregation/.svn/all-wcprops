@@ -1,0 +1,161 @@
+K 25
+svn:wc:ra_dav:version-url
+V 184
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation
+END
+StateStats.java
+K 25
+svn:wc:ra_dav:version-url
+V 200
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/StateStats.java
+END
+GroupOperationUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 213
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/GroupOperationUnitTests.java
+END
+TypeBasedAggregationOperationContextUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 235
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/TypeBasedAggregationOperationContextUnitTests.java
+END
+UserWithLikes.java
+K 25
+svn:wc:ra_dav:version-url
+V 203
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/UserWithLikes.java
+END
+LikeStats.java
+K 25
+svn:wc:ra_dav:version-url
+V 199
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/LikeStats.java
+END
+LineItem.java
+K 25
+svn:wc:ra_dav:version-url
+V 198
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/LineItem.java
+END
+City.java
+K 25
+svn:wc:ra_dav:version-url
+V 194
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/City.java
+END
+Data.java
+K 25
+svn:wc:ra_dav:version-url
+V 194
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/Data.java
+END
+SkipOperationUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 212
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/SkipOperationUnitTests.java
+END
+AggregationTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 206
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/AggregationTests.java
+END
+AggregationUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 210
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/AggregationUnitTests.java
+END
+Order.java
+K 25
+svn:wc:ra_dav:version-url
+V 195
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/Order.java
+END
+ZipInfo.java
+K 25
+svn:wc:ra_dav:version-url
+V 197
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/ZipInfo.java
+END
+ProjectionOperationUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 218
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/ProjectionOperationUnitTests.java
+END
+Product.java
+K 25
+svn:wc:ra_dav:version-url
+V 197
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/Product.java
+END
+ExposedFieldsUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 212
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/ExposedFieldsUnitTests.java
+END
+TagCount.java
+K 25
+svn:wc:ra_dav:version-url
+V 198
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/TagCount.java
+END
+GeoNearOperationUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 215
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/GeoNearOperationUnitTests.java
+END
+AggregationOptionsTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 213
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/AggregationOptionsTests.java
+END
+DataItem.java
+K 25
+svn:wc:ra_dav:version-url
+V 198
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/DataItem.java
+END
+SpelExpressionTransformerUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 224
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/SpelExpressionTransformerUnitTests.java
+END
+FieldsUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 205
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/FieldsUnitTests.java
+END
+SortOperationUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 212
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/SortOperationUnitTests.java
+END
+Invoice.java
+K 25
+svn:wc:ra_dav:version-url
+V 197
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/Invoice.java
+END
+SpelExpressionTransformerIntegrationTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 231
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/SpelExpressionTransformerIntegrationTests.java
+END
+ZipInfoStats.java
+K 25
+svn:wc:ra_dav:version-url
+V 202
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/aggregation/ZipInfoStats.java
+END

@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/sequoiadb/!svn/ver/20497/trunk/SequoiaDB/engine/tools/import/plugin/jdbc/sdb/src/com/sequoiadb/tasks
+END
+WirteSdb.java
+K 25
+svn:wc:ra_dav:version-url
+V 115
+/sequoiadb/!svn/ver/19866/trunk/SequoiaDB/engine/tools/import/plugin/jdbc/sdb/src/com/sequoiadb/tasks/WirteSdb.java
+END
+ReadSdb.java
+K 25
+svn:wc:ra_dav:version-url
+V 114
+/sequoiadb/!svn/ver/20497/trunk/SequoiaDB/engine/tools/import/plugin/jdbc/sdb/src/com/sequoiadb/tasks/ReadSdb.java
+END

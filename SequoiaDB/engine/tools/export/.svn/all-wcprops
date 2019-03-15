@@ -1,0 +1,71 @@
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/sequoiadb/!svn/ver/33384/trunk/SequoiaDB/engine/tools/export
+END
+expExport.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/27546/trunk/SequoiaDB/engine/tools/export/expExport.cpp
+END
+expUtil.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/24485/trunk/SequoiaDB/engine/tools/export/expUtil.hpp
+END
+expCL.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/29380/trunk/SequoiaDB/engine/tools/export/expCL.hpp
+END
+expOutput.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/24485/trunk/SequoiaDB/engine/tools/export/expOutput.hpp
+END
+expExport.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/24485/trunk/SequoiaDB/engine/tools/export/expExport.hpp
+END
+expOptions.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/33372/trunk/SequoiaDB/engine/tools/export/expOptions.cpp
+END
+expUtil.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/24485/trunk/SequoiaDB/engine/tools/export/expUtil.cpp
+END
+sdbExport.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/24485/trunk/SequoiaDB/engine/tools/export/sdbExport.cpp
+END
+expCL.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/33384/trunk/SequoiaDB/engine/tools/export/expCL.cpp
+END
+expOptions.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/33372/trunk/SequoiaDB/engine/tools/export/expOptions.hpp
+END
+expOutput.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/33372/trunk/SequoiaDB/engine/tools/export/expOutput.cpp
+END

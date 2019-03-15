@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/39400/trunk/driver/C%23.Net/Driver/exception
+END
+SDBErrorLookup.cs
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/sequoiadb/!svn/ver/35526/trunk/driver/C%23.Net/Driver/exception/SDBErrorLookup.cs
+END
+SDBError.cs
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/35526/trunk/driver/C%23.Net/Driver/exception/SDBError.cs
+END
+BaseException.cs
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/sequoiadb/!svn/ver/39400/trunk/driver/C%23.Net/Driver/exception/BaseException.cs
+END

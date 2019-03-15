@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/coroutine2
+END
+fixedsize_stack.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 85
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/coroutine2/fixedsize_stack.hpp
+END
+segmented_stack.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 85
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/coroutine2/segmented_stack.hpp
+END
+coroutine.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/coroutine2/coroutine.hpp
+END
+all.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/coroutine2/all.hpp
+END
+protected_fixedsize_stack.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 95
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/coroutine2/protected_fixedsize_stack.hpp
+END

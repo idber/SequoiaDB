@@ -1,0 +1,65 @@
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/39117/trunk/driver/java/src/test/java/com/sequoiadb/test/db
+END
+SdbJSProcedures.java
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/sequoiadb/!svn/ver/28053/trunk/driver/java/src/test/java/com/sequoiadb/test/db/SdbJSProcedures.java
+END
+testMultiThreadCreateGetDropCS.java
+K 25
+svn:wc:ra_dav:version-url
+V 115
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/test/db/testMultiThreadCreateGetDropCS.java
+END
+SdbConnect.java
+K 25
+svn:wc:ra_dav:version-url
+V 95
+/sequoiadb/!svn/ver/28053/trunk/driver/java/src/test/java/com/sequoiadb/test/db/SdbConnect.java
+END
+SdbSetSessionAttr.java
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/sequoiadb/!svn/ver/34222/trunk/driver/java/src/test/java/com/sequoiadb/test/db/SdbSetSessionAttr.java
+END
+SdbSnapshotList.java
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/sequoiadb/!svn/ver/39117/trunk/driver/java/src/test/java/com/sequoiadb/test/db/SdbSnapshotList.java
+END
+CreateDropConn.java
+K 25
+svn:wc:ra_dav:version-url
+V 99
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/test/db/CreateDropConn.java
+END
+DBClientCache.java
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/sequoiadb/!svn/ver/27987/trunk/driver/java/src/test/java/com/sequoiadb/test/db/DBClientCache.java
+END
+SdbTest.java
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/sequoiadb/!svn/ver/32852/trunk/driver/java/src/test/java/com/sequoiadb/test/db/SdbTest.java
+END
+SdbAnalyze.java
+K 25
+svn:wc:ra_dav:version-url
+V 95
+/sequoiadb/!svn/ver/33841/trunk/driver/java/src/test/java/com/sequoiadb/test/db/SdbAnalyze.java
+END
+SdbTransaction.java
+K 25
+svn:wc:ra_dav:version-url
+V 99
+/sequoiadb/!svn/ver/28012/trunk/driver/java/src/test/java/com/sequoiadb/test/db/SdbTransaction.java
+END

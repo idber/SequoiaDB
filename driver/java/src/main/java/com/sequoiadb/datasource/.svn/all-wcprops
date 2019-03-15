@@ -1,0 +1,95 @@
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/sequoiadb/!svn/ver/36009/trunk/driver/java/src/main/java/com/sequoiadb/datasource
+END
+ConcreteLocalStrategy.java
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/sequoiadb/!svn/ver/35532/trunk/driver/java/src/main/java/com/sequoiadb/datasource/ConcreteLocalStrategy.java
+END
+IConnectionPool.java
+K 25
+svn:wc:ra_dav:version-url
+V 103
+/sequoiadb/!svn/ver/35532/trunk/driver/java/src/main/java/com/sequoiadb/datasource/IConnectionPool.java
+END
+DatasourceOptions.java
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/sequoiadb/!svn/ver/35532/trunk/driver/java/src/main/java/com/sequoiadb/datasource/DatasourceOptions.java
+END
+UsedConnectionPool.java
+K 25
+svn:wc:ra_dav:version-url
+V 106
+/sequoiadb/!svn/ver/35532/trunk/driver/java/src/main/java/com/sequoiadb/datasource/UsedConnectionPool.java
+END
+ConnectStrategy.java
+K 25
+svn:wc:ra_dav:version-url
+V 103
+/sequoiadb/!svn/ver/35532/trunk/driver/java/src/main/java/com/sequoiadb/datasource/ConnectStrategy.java
+END
+package.html
+K 25
+svn:wc:ra_dav:version-url
+V 95
+/sequoiadb/!svn/ver/32637/trunk/driver/java/src/main/java/com/sequoiadb/datasource/package.html
+END
+ConnectionItemMgr.java
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/sequoiadb/!svn/ver/35532/trunk/driver/java/src/main/java/com/sequoiadb/datasource/ConnectionItemMgr.java
+END
+IConnectStrategy.java
+K 25
+svn:wc:ra_dav:version-url
+V 104
+/sequoiadb/!svn/ver/35532/trunk/driver/java/src/main/java/com/sequoiadb/datasource/IConnectStrategy.java
+END
+ConcreteSerialStrategy.java
+K 25
+svn:wc:ra_dav:version-url
+V 110
+/sequoiadb/!svn/ver/35532/trunk/driver/java/src/main/java/com/sequoiadb/datasource/ConcreteSerialStrategy.java
+END
+ConcreteRandomStrategy.java
+K 25
+svn:wc:ra_dav:version-url
+V 110
+/sequoiadb/!svn/ver/35532/trunk/driver/java/src/main/java/com/sequoiadb/datasource/ConcreteRandomStrategy.java
+END
+AbstractStrategy.java
+K 25
+svn:wc:ra_dav:version-url
+V 104
+/sequoiadb/!svn/ver/35532/trunk/driver/java/src/main/java/com/sequoiadb/datasource/AbstractStrategy.java
+END
+SequoiadbDatasource.java
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/sequoiadb/!svn/ver/36009/trunk/driver/java/src/main/java/com/sequoiadb/datasource/SequoiadbDatasource.java
+END
+IdleConnectionPool.java
+K 25
+svn:wc:ra_dav:version-url
+V 106
+/sequoiadb/!svn/ver/35532/trunk/driver/java/src/main/java/com/sequoiadb/datasource/IdleConnectionPool.java
+END
+DatasourceConstants.java
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/sequoiadb/!svn/ver/35532/trunk/driver/java/src/main/java/com/sequoiadb/datasource/DatasourceConstants.java
+END
+ConcreteBalanceStrategy.java
+K 25
+svn:wc:ra_dav:version-url
+V 111
+/sequoiadb/!svn/ver/35532/trunk/driver/java/src/main/java/com/sequoiadb/datasource/ConcreteBalanceStrategy.java
+END

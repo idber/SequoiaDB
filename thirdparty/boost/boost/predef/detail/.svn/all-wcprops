@@ -1,0 +1,53 @@
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/detail
+END
+_exception.h
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/detail/_exception.h
+END
+test_def.h
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/detail/test_def.h
+END
+comp_detected.h
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/detail/comp_detected.h
+END
+test.h
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/detail/test.h
+END
+endian_compat.h
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/detail/endian_compat.h
+END
+os_detected.h
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/detail/os_detected.h
+END
+_cassert.h
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/detail/_cassert.h
+END
+platform_detected.h
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/detail/platform_detected.h
+END

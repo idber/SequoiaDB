@@ -1,0 +1,59 @@
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/vstudio/vc11
+END
+miniunz.vcxproj
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/vstudio/vc11/miniunz.vcxproj
+END
+zlib.rc
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/vstudio/vc11/zlib.rc
+END
+zlibvc.vcxproj
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/vstudio/vc11/zlibvc.vcxproj
+END
+zlibvc.sln
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/vstudio/vc11/zlibvc.sln
+END
+testzlibdll.vcxproj
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/vstudio/vc11/testzlibdll.vcxproj
+END
+zlibstat.vcxproj
+K 25
+svn:wc:ra_dav:version-url
+V 85
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/vstudio/vc11/zlibstat.vcxproj
+END
+zlibvc.def
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/vstudio/vc11/zlibvc.def
+END
+minizip.vcxproj
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/vstudio/vc11/minizip.vcxproj
+END
+testzlib.vcxproj
+K 25
+svn:wc:ra_dav:version-url
+V 85
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/vstudio/vc11/testzlib.vcxproj
+END

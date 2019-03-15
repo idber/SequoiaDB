@@ -1,0 +1,59 @@
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/strategies/agnostic
+END
+point_in_poly_oriented_winding.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 118
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/strategies/agnostic/point_in_poly_oriented_winding.hpp
+END
+relate.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/strategies/agnostic/relate.hpp
+END
+buffer_distance_symmetric.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 113
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/strategies/agnostic/buffer_distance_symmetric.hpp
+END
+buffer_distance_asymmetric.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 114
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/strategies/agnostic/buffer_distance_asymmetric.hpp
+END
+point_in_poly_winding.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/strategies/agnostic/point_in_poly_winding.hpp
+END
+hull_graham_andrew.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 106
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/strategies/agnostic/hull_graham_andrew.hpp
+END
+point_in_box_by_side.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 108
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/strategies/agnostic/point_in_box_by_side.hpp
+END
+point_in_point.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/strategies/agnostic/point_in_point.hpp
+END
+simplify_douglas_peucker.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 112
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/strategies/agnostic/simplify_douglas_peucker.hpp
+END

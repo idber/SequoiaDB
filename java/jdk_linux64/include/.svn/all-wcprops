@@ -1,0 +1,41 @@
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/include
+END
+jvmti.h
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/include/jvmti.h
+END
+jni.h
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/include/jni.h
+END
+classfile_constants.h
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/include/classfile_constants.h
+END
+jdwpTransport.h
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/include/jdwpTransport.h
+END
+jawt.h
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/include/jawt.h
+END
+jvmticmlr.h
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/include/jvmticmlr.h
+END

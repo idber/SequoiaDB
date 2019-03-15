@@ -1,0 +1,95 @@
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/detail
+END
+et_ops.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/detail/et_ops.hpp
+END
+big_lanczos.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/detail/big_lanczos.hpp
+END
+number_compare.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 95
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/detail/number_compare.hpp
+END
+rebind.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/detail/rebind.hpp
+END
+utype_helper.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/detail/utype_helper.hpp
+END
+default_ops.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/detail/default_ops.hpp
+END
+ublas_interop.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/detail/ublas_interop.hpp
+END
+float_string_cvt.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/detail/float_string_cvt.hpp
+END
+integer_ops.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/detail/integer_ops.hpp
+END
+generic_interconvert.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/detail/generic_interconvert.hpp
+END
+number_base.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/detail/number_base.hpp
+END
+dynamic_array.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/detail/dynamic_array.hpp
+END
+digits.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/detail/digits.hpp
+END
+bitscan.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/detail/bitscan.hpp
+END
+no_et_ops.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/multiprecision/detail/no_et_ops.hpp
+END

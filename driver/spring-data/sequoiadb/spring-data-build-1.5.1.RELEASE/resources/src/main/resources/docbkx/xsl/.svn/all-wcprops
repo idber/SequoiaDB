@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 132
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-build-1.5.1.RELEASE/resources/src/main/resources/docbkx/xsl
+END
+html-singlepage.xsl
+K 25
+svn:wc:ra_dav:version-url
+V 152
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-build-1.5.1.RELEASE/resources/src/main/resources/docbkx/xsl/html-singlepage.xsl
+END
+html.xsl
+K 25
+svn:wc:ra_dav:version-url
+V 141
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-build-1.5.1.RELEASE/resources/src/main/resources/docbkx/xsl/html.xsl
+END
+common.xsl
+K 25
+svn:wc:ra_dav:version-url
+V 143
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-build-1.5.1.RELEASE/resources/src/main/resources/docbkx/xsl/common.xsl
+END
+html-multipage.xsl
+K 25
+svn:wc:ra_dav:version-url
+V 151
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-build-1.5.1.RELEASE/resources/src/main/resources/docbkx/xsl/html-multipage.xsl
+END
+pdf.xsl
+K 25
+svn:wc:ra_dav:version-url
+V 140
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-build-1.5.1.RELEASE/resources/src/main/resources/docbkx/xsl/pdf.xsl
+END

@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/sections
+END
+sectionalize.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/sections/sectionalize.hpp
+END
+range_by_section.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 111
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/sections/range_by_section.hpp
+END
+section_functions.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 112
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/sections/section_functions.hpp
+END
+section_box_policies.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 115
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/sections/section_box_policies.hpp
+END

@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/39117/trunk/driver/java/src/test/java/com/sequoiadb/test
+END
+SingleCSCLTestCase.java
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/sequoiadb/!svn/ver/36551/trunk/driver/java/src/test/java/com/sequoiadb/test/SingleCSCLTestCase.java
+END
+SingleCSTestCase.java
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/sequoiadb/!svn/ver/31383/trunk/driver/java/src/test/java/com/sequoiadb/test/SingleCSTestCase.java
+END
+TestConfig.java
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/sequoiadb/!svn/ver/36551/trunk/driver/java/src/test/java/com/sequoiadb/test/TestConfig.java
+END
+TestCase.java
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/sequoiadb/!svn/ver/26344/trunk/driver/java/src/test/java/com/sequoiadb/test/TestCase.java
+END
+SingleTestCase.java
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/sequoiadb/!svn/ver/28079/trunk/driver/java/src/test/java/com/sequoiadb/test/SingleTestCase.java
+END

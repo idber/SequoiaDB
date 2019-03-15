@@ -1,0 +1,53 @@
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/sequoiadb/!svn/ver/39303/trunk/misc/autogen/version
+END
+versionGenForDoc.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/36932/trunk/misc/autogen/version/versionGenForDoc.hpp
+END
+versionGenForBuild.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/36932/trunk/misc/autogen/version/versionGenForBuild.cpp
+END
+versionGeneratorBase.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/36932/trunk/misc/autogen/version/versionGeneratorBase.cpp
+END
+versionGenForPython.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/39303/trunk/misc/autogen/version/versionGenForPython.cpp
+END
+versionGenForBuild.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/36932/trunk/misc/autogen/version/versionGenForBuild.hpp
+END
+versionGenForDoc.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/36932/trunk/misc/autogen/version/versionGenForDoc.cpp
+END
+versionGeneratorBase.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/36932/trunk/misc/autogen/version/versionGeneratorBase.hpp
+END
+versionGenForPython.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/36932/trunk/misc/autogen/version/versionGenForPython.hpp
+END

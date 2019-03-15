@@ -1,0 +1,53 @@
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/sequoiadb/!svn/ver/19918/trunk/SequoiaDB/engine/tools/import/plugin/jdbc/sdb/lib
+END
+sqljdbc4.jar
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/sequoiadb/!svn/ver/19858/trunk/SequoiaDB/engine/tools/import/plugin/jdbc/sdb/lib/sqljdbc4.jar
+END
+db2jcc.jar
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/sequoiadb/!svn/ver/19858/trunk/SequoiaDB/engine/tools/import/plugin/jdbc/sdb/lib/db2jcc.jar
+END
+ojdbc6.jar
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/sequoiadb/!svn/ver/19858/trunk/SequoiaDB/engine/tools/import/plugin/jdbc/sdb/lib/ojdbc6.jar
+END
+mysql-connector-java-5.1.28-bin.jar
+K 25
+svn:wc:ra_dav:version-url
+V 117
+/sequoiadb/!svn/ver/19858/trunk/SequoiaDB/engine/tools/import/plugin/jdbc/sdb/lib/mysql-connector-java-5.1.28-bin.jar
+END
+sequoiadb.jar
+K 25
+svn:wc:ra_dav:version-url
+V 95
+/sequoiadb/!svn/ver/19858/trunk/SequoiaDB/engine/tools/import/plugin/jdbc/sdb/lib/sequoiadb.jar
+END
+commons-cli-1.2.jar
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/sequoiadb/!svn/ver/19858/trunk/SequoiaDB/engine/tools/import/plugin/jdbc/sdb/lib/commons-cli-1.2.jar
+END
+log4j.jar
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/sequoiadb/!svn/ver/19858/trunk/SequoiaDB/engine/tools/import/plugin/jdbc/sdb/lib/log4j.jar
+END
+log4j.properties
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/sequoiadb/!svn/ver/19918/trunk/SequoiaDB/engine/tools/import/plugin/jdbc/sdb/lib/log4j.properties
+END

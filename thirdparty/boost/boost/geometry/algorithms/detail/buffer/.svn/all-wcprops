@@ -1,0 +1,59 @@
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/buffer
+END
+get_piece_turns.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 108
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/buffer/get_piece_turns.hpp
+END
+buffer_policies.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 108
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/buffer/buffer_policies.hpp
+END
+parallel_continue.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 110
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/buffer/parallel_continue.hpp
+END
+buffered_ring.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 106
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/buffer/buffered_ring.hpp
+END
+turn_in_original_visitor.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 117
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/buffer/turn_in_original_visitor.hpp
+END
+buffered_piece_collection.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 118
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/buffer/buffered_piece_collection.hpp
+END
+turn_in_piece_visitor.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 114
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/buffer/turn_in_piece_visitor.hpp
+END
+buffer_inserter.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 108
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/buffer/buffer_inserter.hpp
+END
+line_line_intersection.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 115
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/buffer/line_line_intersection.hpp
+END

@@ -1,0 +1,83 @@
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/disjoint
+END
+segment_box.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 106
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/disjoint/segment_box.hpp
+END
+linear_areal.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/disjoint/linear_areal.hpp
+END
+multipoint_geometry.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 114
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/disjoint/multipoint_geometry.hpp
+END
+box_box.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/disjoint/box_box.hpp
+END
+interface.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 104
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/disjoint/interface.hpp
+END
+point_box.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 104
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/disjoint/point_box.hpp
+END
+multirange_geometry.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 114
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/disjoint/multirange_geometry.hpp
+END
+point_point.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 106
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/disjoint/point_point.hpp
+END
+linear_linear.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 108
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/disjoint/linear_linear.hpp
+END
+linear_segment_or_box.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 116
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/disjoint/linear_segment_or_box.hpp
+END
+point_geometry.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/disjoint/point_geometry.hpp
+END
+implementation.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/disjoint/implementation.hpp
+END
+areal_areal.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 106
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/disjoint/areal_areal.hpp
+END

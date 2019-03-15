@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/test/tools/old
+END
+interface.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/test/tools/old/interface.hpp
+END
+impl.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/test/tools/old/impl.hpp
+END

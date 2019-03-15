@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 166
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/core/geo
+END
+GeoSpatialIndexTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 192
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/core/geo/GeoSpatialIndexTests.java
+END
+GeoSpatialTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 187
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/core/geo/GeoSpatialTests.java
+END

@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 162
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/util
+END
+package-info.java
+K 25
+svn:wc:ra_dav:version-url
+V 180
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/util/package-info.java
+END
+DBObjectUtils.java
+K 25
+svn:wc:ra_dav:version-url
+V 181
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/main/java/org/springframework/data/mongodb/util/DBObjectUtils.java
+END

@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/35288/trunk/driver/java/src/test/java/com/sequoiadb/test/rg
+END
+SDBGetRG.java
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/sequoiadb/!svn/ver/35288/trunk/driver/java/src/test/java/com/sequoiadb/test/rg/SDBGetRG.java
+END
+ShardTest.java
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/test/rg/ShardTest.java
+END

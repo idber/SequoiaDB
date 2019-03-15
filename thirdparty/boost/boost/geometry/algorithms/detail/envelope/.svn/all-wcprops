@@ -1,0 +1,77 @@
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/envelope
+END
+point.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/envelope/point.hpp
+END
+linear.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/envelope/linear.hpp
+END
+range.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/envelope/range.hpp
+END
+transform_units.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 110
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/envelope/transform_units.hpp
+END
+interface.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 104
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/envelope/interface.hpp
+END
+range_of_boxes.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/envelope/range_of_boxes.hpp
+END
+initialize.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/envelope/initialize.hpp
+END
+segment.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/envelope/segment.hpp
+END
+multipoint.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/envelope/multipoint.hpp
+END
+implementation.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/envelope/implementation.hpp
+END
+intersects_antimeridian.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 118
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/envelope/intersects_antimeridian.hpp
+END
+box.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/envelope/box.hpp
+END

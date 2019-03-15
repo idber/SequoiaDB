@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/doc
+END
+txtvsbin.txt
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/doc/txtvsbin.txt
+END
+algorithm.txt
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/doc/algorithm.txt
+END
+rfc1950.txt
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/doc/rfc1950.txt
+END
+rfc1951.txt
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/doc/rfc1951.txt
+END
+rfc1952.txt
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/doc/rfc1952.txt
+END

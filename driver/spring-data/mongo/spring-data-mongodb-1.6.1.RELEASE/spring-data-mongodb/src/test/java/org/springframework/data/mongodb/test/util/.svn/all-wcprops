@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 167
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/test/util
+END
+CleanMongoDB.java
+K 25
+svn:wc:ra_dav:version-url
+V 185
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/test/util/CleanMongoDB.java
+END
+CleanMongoDBTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 190
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/test/util/CleanMongoDBTests.java
+END
+CleanMongoDBJunitRunListener.java
+K 25
+svn:wc:ra_dav:version-url
+V 201
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/test/util/CleanMongoDBJunitRunListener.java
+END
+MongoVersionRule.java
+K 25
+svn:wc:ra_dav:version-url
+V 189
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/test/util/MongoVersionRule.java
+END
