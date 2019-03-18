@@ -93,7 +93,6 @@ public class GeoSpatialTests extends AbstractIntegrationTests {
 		template.insert(new Venue("Shake Shack", -73.98820, 40.74164));
 		template.insert(new Venue("Penn Station", -73.99408, 40.75057));
 		template.insert(new Venue("Empire State Building", -73.98602, 40.74894));
-		// template.insert(new Venue("Washington Square Park", -73.99756, 40.73083));
 		template.insert(new Venue("Ulaanbaatar, Mongolia", 106.9154, 47.9245));
 		template.insert(new Venue("Maplewood, NJ", -74.2713, 40.73137));
 	}
@@ -111,53 +110,27 @@ public class GeoSpatialTests extends AbstractIntegrationTests {
 
 	@Test
 	public void withinCenter() {
-//		Circle circle = new Circle(-73.99171, 40.738868, 0.01);
-//		List<Venue> venues = template.find(query(where("location").within(circle)), Venue.class);
-//		assertThat(venues.size(), is(7));
 	}
 
 	@Test
 	public void withinCenterSphere() {
-//		Circle circle = new Circle(-73.99171, 40.738868, 0.003712240453784);
-//		List<Venue> venues = template.find(query(where("location").withinSphere(circle)), Venue.class);
-//		assertThat(venues.size(), is(11));
 	}
 
 	@Test
 	public void withinBox() {
 
-//		Box box = new Box(new Point(-73.99756, 40.73083), new Point(-73.988135, 40.741404));
-//		List<Venue> venues = template.find(query(where("location").within(box)), Venue.class);
-//		assertThat(venues.size(), is(4));
 	}
 
 	@Test
 	public void withinPolygon() {
-//
-//		Point first = new Point(-73.99756, 40.73083);
-//		Point second = new Point(-73.99756, 40.741404);
-//		Point third = new Point(-73.988135, 40.741404);
-//		Point fourth = new Point(-73.988135, 40.73083);
-//
-//		Polygon polygon = new Polygon(first, second, third, fourth);
-//
-//		List<Venue> venues = template.find(query(where("location").within(polygon)), Venue.class);
-//		assertThat(venues.size(), is(4));
 	}
 
 	@Test
 	public void nearPoint() {
-//		Point point = new Point(-73.99171, 40.738868);
-//		List<Venue> venues = template.find(query(where("location").near(point).maxDistance(0.01)), Venue.class);
-//		assertThat(venues.size(), is(7));
 	}
 
 	@Test
 	public void nearSphere() {
-//		Point point = new Point(-73.99171, 40.738868);
-//		Query query = query(where("location").nearSphere(point).maxDistance(0.003712240453784));
-//		List<Venue> venues = template.find(query, Venue.class);
-//		assertThat(venues.size(), is(11));
 	}
 
 	@Test
@@ -204,7 +177,6 @@ public class GeoSpatialTests extends AbstractIntegrationTests {
 		assertThat(fields, hasItem(IndexField.geo("location")));
 	}
 
-	// TODO move to MongoAdmin
 	public List<DBObject> getIndexInfo(Class<?> clazz) {
 		return template.execute(clazz, new CollectionCallback<List<DBObject>>() {
 

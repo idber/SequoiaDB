@@ -231,7 +231,6 @@ namespace engine
          UINT32               _buffEnd ;
          UINT32               _buffCount ;
 
-         /// identify info
          UINT64               _identifyID ;
          UINT32               _identifyTID ;
          UINT64               _identifyEDUID ;
@@ -358,7 +357,6 @@ namespace engine
          DEQSESSION                 _deqCacheSessions ;
          UINT32                     _cacheSessionNum ;
 
-         // Delay delete sessions
          DEQSESSION                 _deqDeletingSessions ;
          ossSpinXLatch              _deqDeletingMutex ;
 
@@ -370,7 +368,6 @@ namespace engine
          UINT32                     _sessionTimerID ;
          UINT32                     _timerInterval ;
 
-         // for _quit edu by edu mgr, not by session mgr
          UINT32                     _forceChecktimer ;
          std::deque< UINT64 >       _forceSessions ;
          ossSpinXLatch              _forceLatch ;

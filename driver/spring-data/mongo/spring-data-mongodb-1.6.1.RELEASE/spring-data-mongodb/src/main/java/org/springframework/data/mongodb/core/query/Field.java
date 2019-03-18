@@ -310,7 +310,6 @@ public class Field {
 			} else {
 				doc = new BasicDBObject();
 			}
-			// add contents
 			if (type instanceof Integer) {
 				doc.put("$cast", (Integer)type);
 			} else if (type instanceof String) {

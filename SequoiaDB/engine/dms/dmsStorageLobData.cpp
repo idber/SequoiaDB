@@ -126,7 +126,6 @@ namespace engine
             goto error ;
          }
          pHeader = ( dmsStorageUnitHeader*)pBuff ;
-         /// get header
          rc = _getFileHeader( *pHeader, cb ) ;
          if ( rc )
          {
@@ -137,7 +136,6 @@ namespace engine
          utilCatPath( tmpPathFile, OSS_MAX_PATHSIZE, suFileName ) ;
 
 #ifdef _WINDOWS
-         /// modify header
          ossStrncpy( pHeader->_name, csName, DMS_SU_NAME_SZ ) ;
          pHeader->_name[ DMS_SU_NAME_SZ ] = 0 ;
 
@@ -147,9 +145,7 @@ namespace engine
             PD_LOG( PDERROR, "Write file header failed, rc: %d", rc ) ;
             goto error ;
          }
-         /// close
          close() ;
-         /// rename
          rc = ossRenamePath( _fullPath, tmpPathFile ) ;
          if ( rc )
          {
@@ -157,7 +153,6 @@ namespace engine
                     _fullPath, tmpPathFile, rc ) ;
             goto error ;
          }
-         /// reopen
          _fileName = suFileName ;
          ossStrcpy( _fullPath, tmpPathFile ) ;
          {
@@ -182,7 +177,6 @@ namespace engine
             }
          }
 #else
-         /// rename filename
          rc = ossRenamePath( _fullPath, tmpPathFile ) ;
          if ( rc )
          {
@@ -194,7 +188,6 @@ namespace engine
          _fileName = suFileName ;
          ossStrcpy( _fullPath, tmpPathFile ) ;
 
-         /// modify header
          ossStrncpy( pHeader->_name, csName, DMS_SU_NAME_SZ ) ;
          pHeader->_name[ DMS_SU_NAME_SZ ] = 0 ;
 
@@ -291,7 +284,6 @@ namespace engine
                     _fileName.c_str(), rc ) ;
             goto error ;
          }
-         // then we get the size again to make sure it's what we need
          rc = ossGetFileSize( &_file, &fileSize ) ;
          if ( SDB_OK != rc )
          {
@@ -319,13 +311,11 @@ namespace engine
          goto error ;
       }
 
-      /// make sure the file size is multiple of segments
       if ( 0 != ( _fileSz - sizeof( dmsStorageUnitHeader ) ) % getSegmentSize() )
       {
          PD_LOG ( PDWARNING, "Unexpected length[%llu] of file: %s", _fileSz,
                   _fileName.c_str() ) ;
 
-         /// need to truncate the file
          rightSize = ( ( _fileSz - sizeof( dmsStorageUnitHeader ) ) /
                        getSegmentSize() ) * getSegmentSize() +
                        sizeof( dmsStorageUnitHeader ) ;
@@ -338,7 +328,6 @@ namespace engine
          }
          PD_LOG( PDEVENT, "Truncate file[%s] to size[%llu] succeed",
                  _fileName.c_str(), rightSize ) ;
-         // then we get the size again to make sure it's what we need
          rc = ossGetFileSize( &_file, &_fileSz ) ;
          if ( rc )
          {
@@ -350,7 +339,6 @@ namespace engine
 
       rightSize = (INT64)totalDataPages * _pageSz +
                   sizeof( dmsStorageUnitHeader ) ;
-      /// make sure the file is correct with meta data
       if ( _fileSz > rightSize )
       {
          PD_LOG( PDWARNING, "File[%s] size[%llu] is grater than storage "
@@ -391,7 +379,6 @@ namespace engine
 
       if ( reGetSize )
       {
-         // then we get the size again to make sure it's what we need
          rc = ossGetFileSize( &_file, &_fileSz ) ;
          if ( rc )
          {
@@ -785,7 +772,6 @@ namespace engine
       SDB_ASSERT( 0 == len % OSS_FILE_DIRECT_IO_ALIGNMENT, "impossible" ) ;
       OSSFILE file ;
       UINT32 mode = OSS_READWRITE | OSS_SHAREREAD  ;
-      /// free in done.
       CHAR *extendBuf = NULL ;
       UINT32 bufSize = DMS_LOBD_EXTEND_LEN ;
 
@@ -859,7 +845,6 @@ namespace engine
             }
             else
             {
-               /// we only need to write some bytes at the end of file.
                bufSize = OSS_FILE_DIRECT_IO_ALIGNMENT ;
                extendSize = OSS_FILE_DIRECT_IO_ALIGNMENT ;
             }
@@ -1042,7 +1027,6 @@ namespace engine
                goto error ;
             }
          }
-         /// rename the file
          rc = ossRenamePath( _fullPath, tmpFile ) ;
          if ( rc )
          {
@@ -1082,7 +1066,6 @@ namespace engine
 
       pHeader = ( dmsStorageUnitHeader* )pBuff ;
       pHeader->reset() ;
-      /// Init
       ossStrncpy( pHeader->_eyeCatcher, DMS_LOBD_EYECATCHER,
                   DMS_LOBD_EYECATCHER_LEN ) ;
       pHeader->_version = DMS_LOB_CUR_VERSION ;
@@ -1095,7 +1078,6 @@ namespace engine
       pHeader->_pageNum  = 0 ;
       pHeader->_secretValue = info._secretValue ;
 
-      /// extend and write
       rc = extend( sizeof( dmsStorageUnitHeader ) ) ;
       if ( rc )
       {

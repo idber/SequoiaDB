@@ -57,8 +57,6 @@ namespace seadapter
    {
    }
 
-   // Initialize the rebuilder with the original message. It will store separate
-   // parts of the query.
    INT32 _seAdptQueryRebuilder::init( const BSONObj &matcher,
                                       const BSONObj &selector,
                                       const BSONObj &orderBy,
@@ -72,8 +70,6 @@ namespace seadapter
       return SDB_OK ;
    }
 
-   // Rebuild the query message. The vectors of the second and third arguments
-   // contain the items to be modified to the original.
    INT32 _seAdptQueryRebuilder::rebuild( REBUILD_ITEM_MAP &rebuildItems,
                                          utilCommObjBuff &objBuff )
    {
@@ -118,9 +114,6 @@ namespace seadapter
                    rc ) ;
 
       {
-         // The original hint is used to pass the text index name. In the
-         // replay, we give an empty hint.
-         // Any problem ?
          BSONObj object ;
          rc = objBuff.appendObj( object ) ;
          PD_RC_CHECK( rc, PDERROR, "Append hint to object buffer failed[ %d ]",
@@ -188,7 +181,6 @@ namespace seadapter
          goto error ;
       }
 
-      // { "" : { "$Text" : { condition } } }
       textRootObj = textNode->toBson() ;
       PD_LOG( PDDEBUG, "Text query object: %s", textRootObj.toString().c_str() ) ;
       {
@@ -201,7 +193,6 @@ namespace seadapter
             goto error ;
          }
 
-         // { "$Text" : { condition } }
          textObj = eleTmp.Obj() ;
          eleTmp = textObj.firstElement() ;
          if ( Object != eleTmp.type() )
@@ -212,7 +203,6 @@ namespace seadapter
             goto error ;
          }
 
-         // { condition }
          queryCond = eleTmp.Obj().toString() ;
       }
 
@@ -220,17 +210,12 @@ namespace seadapter
       PD_RC_CHECK( rc, PDERROR, "Initialize query rebuilder failed[ %d ]",
                    rc ) ;
 
-      // The search result should only contain _id objects.
       if ( !_esClt->isActive() )
       {
          rc = _esClt->active() ;
          PD_RC_CHECK( rc, PDERROR, "Reactive ES client failed[ %d ]", rc ) ;
       }
 
-      // If the text index query is inside a $not clause, try to fetch all
-      // the documents which match the condition. Because if that is done in
-      // more than one round, the result on SDB node will be wrong.
-      // Otherwise, fetch one batch of records.
       if ( _condTree.textNodeInNot() )
       {
          rc = _fetchAll( queryCond, searchResult, SEADPT_FETCH_MAX_SIZE ) ;
@@ -320,7 +305,6 @@ namespace seadapter
          PD_RC_CHECK( rc, PDERROR, "Reactive ES client failed[ %d ]", rc ) ;
       }
 
-      // We just want the scroll id and document id. So use the filter path.
       rc = _esClt->initScroll( _scrollID, _indexName.c_str(), _type.c_str(),
                                queryCond, result, SEADPT_FETCH_BATCH_SIZE,
                                SEADPT_ES_ID_FILTER_PATH ) ;
@@ -334,8 +318,6 @@ namespace seadapter
       goto done ;
    }
 
-   // New objects will be appened to the result buffer. So if you do not want
-   // the former ones, reset the buffer before invoke this function.
    INT32 _seAdptContextQuery::_fetchNextBatch( utilCommObjBuff &result )
    {
       INT32 rc = SDB_OK ;
@@ -379,9 +361,6 @@ namespace seadapter
       {
          totalNum = result.getObjNum() ;
 
-         // Two conditions to terminate this loop:
-         // 1. Number exceeds the limit.
-         // 2. The result buffer is full.
          if ( totalNum > limitNum )
          {
             rc = SDB_INVALIDARG ;
@@ -391,7 +370,6 @@ namespace seadapter
          rc = _fetchNextBatch( result ) ;
          PD_RC_CHECK( rc, PDERROR, "Fetch next batch of documents failed[ %d ]",
                       rc ) ;
-         // No more record, break.
          if ( totalNum == result.getObjNum() )
          {
             break ;
@@ -430,7 +408,6 @@ namespace seadapter
             objBuff.nextObj( obj ) ;
             idValue = obj.getStringField( SEADPT_ID_KEY_NAME ) ;
             SDB_ASSERT( idValue, "id value should not be NULL" ) ;
-            // Skip the SDBCOMMIT mark record.
             if ( 0 == ossStrcmp( SDB_SEADPT_COMMIT_ID, idValue ) )
             {
                continue ;

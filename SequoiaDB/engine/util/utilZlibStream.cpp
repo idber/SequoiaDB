@@ -335,7 +335,6 @@ namespace engine
 
       while ( 0 == _zstream->avail_out )
       {
-         // Reset the output buffer for multiple loops
          _zstream->next_out = (Bytef*)_zbuf ;
          _zstream->avail_out = _zbufSize ;
 
@@ -408,7 +407,6 @@ namespace engine
 
       for ( ;; )
       {
-         // Reset the output buffer for multiple loops
          _zstream->next_out = (Bytef*)_zbuf ;
          _zstream->avail_out = _zbufSize ;
 

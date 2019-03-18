@@ -123,7 +123,6 @@ namespace engine
       return ss.str() ;
    }
 
-   // archivelog.<fileId>[.p|.m]
    BOOLEAN dpsArchiveFileMgr::isArchiveFileName( const string& fileName )
    {
       if ( utilStrStartsWith( fileName, DPS_ARCHIVE_FILE_PREFIX ) )
@@ -134,7 +133,6 @@ namespace engine
       return FALSE ;
    }
 
-   // archivelog.<fileId>
    BOOLEAN dpsArchiveFileMgr::isFullFileName( const string& fileName )
    {
       SDB_ASSERT( isArchiveFileName( fileName ), "not archive file" ) ;
@@ -154,7 +152,6 @@ namespace engine
       return TRUE ;
    }
 
-   // archivelog.<fileId>.p
    BOOLEAN dpsArchiveFileMgr::isPartialFileName( const string& fileName )
    {
       SDB_ASSERT( isArchiveFileName( fileName ), "not archive file" ) ;
@@ -167,7 +164,6 @@ namespace engine
       return FALSE ;
    }
 
-   // archivelog.<fileId>.m
    BOOLEAN dpsArchiveFileMgr::isMovedFileName( const string& fileName )
    {
       SDB_ASSERT( isArchiveFileName( fileName ), "not archive file" ) ;
@@ -190,7 +186,6 @@ namespace engine
       return FALSE ;
    }
 
-   // archivelog.<fileId>[.p|.m]
    INT32 dpsArchiveFileMgr::getFileId( const string& fileName, UINT32& fileId )
    {
       INT32 rc = SDB_OK ;
@@ -304,7 +299,6 @@ namespace engine
       in = &fileIn ;
       out = &fileOut ;
 
-      // copy archive file header
       rc = stream.copy( *in, *out, DPS_LOG_HEAD_LEN, &streamSize ) ;
       if ( SDB_OK != rc )
       {
@@ -345,7 +339,6 @@ namespace engine
          out = &fileOut ;
       }
 
-      // copy archive file body
       rc = stream.copy( *in, *out, NULL, si ) ;
       if ( SDB_OK != rc )
       {
@@ -530,8 +523,6 @@ namespace engine
          goto error ;
       }
 
-      // if move forward, 
-      // don't delete moved file if no full or partial file
       if ( existMoved && (!forward || existFull || existPartial ) )
       {
          rc = ossFile::deleteFile( movedPath ) ;
@@ -738,7 +729,6 @@ namespace engine
 
       if ( lastTime > time )
       {
-         // not expired
          continued = FALSE ;
          goto done ;
       }

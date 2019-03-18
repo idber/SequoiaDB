@@ -78,7 +78,6 @@ namespace engine
          virtual void            _onAttach () ;
          virtual void            _onDetach () ;
 
-      // message process functions
       protected:
 
       protected:

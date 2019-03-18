@@ -64,7 +64,6 @@ namespace seadapter
       SEADPT_SESSION_STAT_MAX
    } ;
 
-   // Indexer sessions on search engine adapter.
    class _seAdptIndexSession : public _pmdAsyncSession
    {
       DECLARE_OBJ_MSG_MAP()
@@ -80,11 +79,9 @@ namespace seadapter
       INT32 handleGetMoreRes( NET_HANDLE handle, MsgHeader *msg ) ;
       INT32 handleKillCtxRes( NET_HANDLE handle, MsgHeader *msg ) ;
 
-      // Called by net io thread.
       virtual void onRecieve( const NET_HANDLE netHandle, MsgHeader * msg ) ;
       virtual BOOLEAN timeout( UINT32 interval ) ;
 
-      // Called by self thread, in the main loop of the thread.
       virtual void onTimer( UINT64 timerID, UINT32 interval ) ;
    protected:
       virtual void _onAttach() ;
@@ -108,7 +105,6 @@ namespace seadapter
       INT32 _markProgress( BSONObj &infoObj ) ;
       INT32 _updateProgress( INT64 logicalID ) ;
 
-      // Check if the mark of normal collection end has been written in ES.
       INT32 _chkDoneMark( BOOLEAN &found ) ;
       INT32 _consult() ;
       INT32 _ensureESClt() ;
@@ -136,14 +132,9 @@ namespace seadapter
       utilESClt               *_esClt ;
       SEADPT_SESSION_STATUS   _status ;
       INT64                   _lastPopLID ;
-      // Whether the session should quit. If the targe collection dosn't exist
-      // any more, it means the index has been dropped. In this case, this
-      // session should quit.
       BOOLEAN                 _quit ;
       INT64                   _queryCtxID ;
       BOOLEAN                 _queryBusy ;   // Where one query is in progress.
-                                             // A new query can be started only
-                                             // when it's FALSE.
       INT64                   _expectLID ;
       utilESBulkBuilder       _bulkBuilder ;
    } ;

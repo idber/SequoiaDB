@@ -82,7 +82,6 @@ namespace engine
 
    BOOLEAN utilCheckIsOpenVZ()
    {//return TRUE means system is running on openVZ,
-    //suggest DO NOT run sequoiadb on openVZ
       BOOLEAN isOpenVZ = FALSE ;
 
       if( ( SDB_OK == ossAccess( "/proc/vz" ) ) &&
@@ -243,7 +242,6 @@ namespace engine
 
    BOOLEAN utilCheckVmStatus()
    {//return TRUE means all of the linux kernel vm parameters are best
-    //for SequoiaDB ;
       vector<CHAR *> vmPathVec( 8 ) ;
       vector<INT64> vmIdealValVec( 8 ) ;
 
@@ -276,7 +274,6 @@ namespace engine
       BOOLEAN goodStat = TRUE ;
       for( ; i < vmPathVec.size() ; i++ )
       {
-         //walk through all the Parameters, and log the unmatch Parameter.
          if( vmIdealValVec[i] != utilCheckVmParamVal( vmPathVec[i],
                                                       vmIdealValVec[i] ) )
          {

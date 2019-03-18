@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 SequoiaDB Inc.
+ * Copyright 2017 SequoiaDB Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+*/
 
 package com.sequoiadb.datasource;
 
@@ -39,7 +39,7 @@ public class DatasourceOptions implements Cloneable {
     private int _checkInterval = 1 * 60 * 1000; // 1 min
     private int _syncCoordInterval = 0; // 0 min
     private boolean _validateConnection = false;
-    private ConnectStrategy _connectStrategy = ConnectStrategy.SERIAL;
+    private ConnectStrategy _connectStrategy = ConnectStrategy.BALANCE;
     private List<Object> _preferedInstance = null;
     private String _preferedInstanceMode = DEFAULT_PREFERRD_INSTANCE_MODE; // "random" or "ordered"
     private int _sessionTimeout = DEFAULT_SESSION_TIMEOUT;
@@ -114,17 +114,12 @@ public class DatasourceOptions implements Cloneable {
      * Set the interval for updating coord's addresses from catalog in milliseconds.
      * The updated coord addresses will cover the addresses in the pool.
      * When "syncCoordInterval" is 0, the pool will stop updating coord's addresses from
-     * catalog. when "syncCoordInterval" is less than 60,000 milliseconds,
-     * use 60,000 milliseconds instead.
+     * catalog.
      * @param syncCoordInterval Default to be 1 * 60 * 1000ms.
      * @since 2.2
      */
     public void setSyncCoordInterval(int syncCoordInterval) {
-        if (syncCoordInterval > 0 && syncCoordInterval < 60000) {
-            _syncCoordInterval = 60000;
-        } else {
-            _syncCoordInterval = syncCoordInterval;
-        }
+        _syncCoordInterval = syncCoordInterval;
     }
 
     /**
@@ -149,11 +144,7 @@ public class DatasourceOptions implements Cloneable {
      * @since 2.2
      */
     public void setConnectStrategy(ConnectStrategy strategy) {
-        if (strategy == ConnectStrategy.BALANCE) {
-            _connectStrategy = ConnectStrategy.SERIAL;
-        } else {
-            _connectStrategy = strategy;
-        }
+        _connectStrategy = strategy;
     }
 
     /**
@@ -342,7 +333,6 @@ public class DatasourceOptions implements Cloneable {
     public int getSessionTimeout() {
         return _sessionTimeout;
     }
-    // The following methods are deprecated.
 
     /**
      * Set the initial number of connection.
@@ -499,16 +489,13 @@ public class DatasourceOptions implements Cloneable {
     BSONObject getSessionAttr() {
         BSONObject obj = new BasicBSONObject();
         if (_preferedInstance != null && _preferedInstance.size() > 0) {
-            // preferred instance
             BSONObject list = new BasicBSONList();
             int i = 0;
             for(Object o : _preferedInstance) {
                 list.put("" + i++, o);
             }
             obj.put(DatasourceConstants.FIELD_NAME_PREFERED_INSTANCE, list);
-            // preferred instance mode
             obj.put(DatasourceConstants.FIELD_NAME_PREFERED_INSTANCE_MODE, _preferedInstanceMode);
-            // timeout
             obj.put(DatasourceConstants.FIELD_NAME_SESSION_TIMEOUT, _sessionTimeout);
         }
         return obj;

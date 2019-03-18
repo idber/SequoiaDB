@@ -156,7 +156,6 @@ namespace engine
             }
          }
 
-         /// copy data
          ossMemcpy( _t.buf + _usrOffset - _t.offset,
                     _usrBuf, _usrSize ) ;
       }

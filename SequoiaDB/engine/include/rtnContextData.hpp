@@ -107,7 +107,6 @@ namespace engine
          virtual INT32     _prepareData( _pmdEDUCB *cb ) ;
          virtual BOOLEAN   _canPrefetch () const
          {
-            // If contain modifier, do not use prefetch
             return ( _queryModifier ? FALSE : TRUE ) ;
          }
          virtual void      _toString( stringstream &ss ) ;
@@ -149,26 +148,20 @@ namespace engine
          optAccessPlanRuntime       _planRuntime ;
          optScanType                _scanType ;
 
-         // rest number of records to expect, -1 means select all
          SINT64                     _numToReturn ;
-         // rest number of records need to skip
          SINT64                     _numToSkip ;
-         // Original return options, number of skip, etc.
          rtnReturnOptions           _returnOptions ;
 
-         // TBSCAN
          dmsExtentID                _extentID ;
          dmsExtentID                _lastExtLID ;
          BOOLEAN                    _segmentScan ;
          std::vector< dmsExtentID > _segments ;
-         // Index scan
          _rtnIXScanner              *_scanner ;
          std::vector< BSONObj >     _indexBlocks ;
          std::vector< dmsRecordID > _indexRIDs ;
          BOOLEAN                    _indexBlockScan ;
          INT32                      _direction ;
 
-         // query modify
          rtnQueryModifier*          _queryModifier ;
    } ;
 

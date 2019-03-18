@@ -49,7 +49,6 @@ using namespace bson ;
 
 namespace engine
 {
-   //class omTaskManager ;
 
    class omTaskBase : public SDBObject
    {

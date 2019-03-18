@@ -156,8 +156,6 @@ namespace engine
               newVersion, _clusterName.c_str() ) ;
       if ( _version != newVersion )
       {
-         // if version changed, generate the hosttable in _vHostTable
-         // and record which host need to update in _mapTargetAgents
          rc = _updateNotifier() ;
          if ( SDB_OK != rc )
          {
@@ -350,7 +348,6 @@ namespace engine
       VEC_SUB_SESSIONPTR subSessionVec ;
       CHAR localHostName[ OSS_MAX_HOSTNAME + 1 ] ;
 
-      // if all agent have update hosttable, do nothing
       if ( _mapTargetAgents.size() == 0 )
       {
          goto done ;
@@ -374,7 +371,6 @@ namespace engine
          goto error ;
       }
 
-      // continue to send others if error happened
       remoteSession->sendMsg( &sucNum, &totalNum ) ;
       if ( totalNum != sucNum )
       {
@@ -441,7 +437,6 @@ namespace engine
             continue ;
          }
 
-         // this agent add hostname success, no need to send request anymore
          {
             string host ;
             string service ;
@@ -670,13 +665,10 @@ namespace engine
          if ( count % 5 == 0 )
          {
             map< string, UINT32 > mapClusterVersion ;
-            // get all cluster's hostname version
             _shareVersion->getVersionMap( mapClusterVersion );
 
-            // notify agent to update /etc/hosts if cluster's version changed
             _checkUpdateCluster( mapClusterVersion ) ;
 
-            // delete if cluster is not exist
             _checkDeleteCluster( mapClusterVersion ) ;
          }
 

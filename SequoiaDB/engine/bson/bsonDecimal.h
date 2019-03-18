@@ -97,7 +97,6 @@ namespace bson {
 
       INT32          getPrecision() const ;
 
-      // decimal->dscale | decimal->sign ;
       INT16          getStorageScale() const ;
 
       INT16          getScale() const ;

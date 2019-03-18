@@ -12,8 +12,8 @@ do
    o=`find $dir -maxdepth 1 \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" -o -name "*.c" \) -exec wc {} \; | awk '{print($1)}'`
    for i in $o
    do
-      out=$(($out+$i))
-      sum=$(($sum+$i))
+      out=$out+$i
+      sum=$sum+$i
    done
    echo $dir ": " $out
 done
@@ -27,8 +27,8 @@ do
    o=`find $dir -maxdepth 1 \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" -o -name "*.c" -o -name "*.java" \) -exec wc {} \; | awk '{print($1)}'`
    for i in $o
    do
-      out=$(($out+$i))
-      sum=$(($sum+$i))
+      out=$out+$i
+      sum=$sum+$i
    done
    if [ $out -ne 0 ]; then
       echo $dir ": " $out

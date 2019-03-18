@@ -71,7 +71,6 @@ namespace engine
          if ( 0 == ossStrcmp( vecObjs[ i ]->getJSClassName(),
                                    objName.c_str() ) )
          {
-            /// find
             return ( INT32 )i ;
          }
       }
@@ -93,7 +92,6 @@ namespace engine
          }
          if ( desc == vecObjs[ i ] )
          {
-            /// find
             return ( INT32 )i ;
          }
       }
@@ -190,13 +188,10 @@ namespace engine
                                          set< string > &setFuns,
                                          BOOLEAN showHide )
    {
-      /// 1. to get native funcs
       string className = getClassName( cx, obj ) ;
       _getClassMemFuncNamesByNative( className, setFuns, showHide ) ;
 
-      /// 2. to get self func2
       _getObjFuncNames( cx, obj, setFuns ) ;
-      /// 3. get prototype's funcs
       JSObject *prototype = JS_GetPrototype( cx, obj ) ;
       while( prototype )
       {
@@ -210,11 +205,9 @@ namespace engine
                                               set < string > &setFuns,
                                               BOOLEAN showHide )
    {
-      /// 1. to get native static funcs
       string className = getClassName( cx, obj ) ;
       _getClassStaticFuncNamesByNative( className, setFuns, showHide ) ;
 
-      /// 2. to get constructor's static functions
       JSObject *constructor = JS_GetConstructor( cx, obj ) ;
       if ( constructor )
       {
@@ -252,9 +245,7 @@ namespace engine
                                          JSObject *obj,
                                          set< string > &setProp )
    {
-      /// first get self prop
       _getObjPropNames( cx, obj, setProp ) ;
-      /// then get prototype's prop
       JSObject *prototype = NULL ;
       prototype = JS_GetPrototype( cx, obj ) ;
       while( prototype )
@@ -339,7 +330,6 @@ namespace engine
          JS_free( cx, str ) ;
       }
 
-      /// free
       JS_DestroyIdArray( cx, properties ) ;
 
    done:
@@ -391,7 +381,6 @@ namespace engine
          setProp.insert( str ) ;
          JS_free( cx, str ) ;
       }
-      /// free
       JS_DestroyIdArray( cx, properties ) ;
 
    done:
@@ -401,22 +390,18 @@ namespace engine
    void _sptObjFactory::_sortAndAssert( SPT_VEC_OBJDESC &vecObj,
                                         const sptObjDesc *desc )
    {
-      /// no name
       if ( desc->isIgnoredName() )
       {
          vecObj.push_back( desc ) ;
       }
-      /// no parent
       else if ( desc->isIgnoredParent() )
       {
          vecObj.push_back( desc ) ;
       }
-      /// parent existed
       else if ( -1 != _find( desc->getParent(), vecObj ) )
       {
          vecObj.push_back( desc ) ;
       }
-      /// parent is not existed
       else
       {
          INT32 tmpPos = _find( desc->getParent(), _vecObjs ) ;

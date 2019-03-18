@@ -141,7 +141,6 @@ namespace engine
       ~_rtnLobSections() ;
 
    private:
-      // disallow copy and assign
       _rtnLobSections( const _rtnLobSections& ) ;
       void operator=( const _rtnLobSections& ) ;
 

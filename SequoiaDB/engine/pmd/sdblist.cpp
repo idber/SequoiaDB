@@ -86,7 +86,6 @@ namespace engine
    #define PMD_LIST_LONG_FORMAT  "%-10.9s %-13.12s %-11.10s %-9.8s %-6.5s %-6.5s %-4.3s %-20.19s %-20.19s %s"
    #define PMD_LIST_TITLE        "Name       SvcName       Role        PID       GID    NID    PRY  GroupName            StartTime            DBPath"
 
-   //print node's detail configuration by sdb conf file and svcname
    void _printfDetail( const CHAR *rootPath, const CHAR *svcname, INT32 type )
    {
       INT32 rc = SDB_OK ;
@@ -125,7 +124,6 @@ namespace engine
       }
    }
 
-   //print node's expand configuration by sdb conf file and svcname
    void _printfExpand( const CHAR *rooPath, const CHAR *svcname, INT32 type )
    {
       INT32 rc = SDB_OK ;
@@ -189,7 +187,6 @@ namespace engine
       }
    }
 
-   //printf detail or expand
    void _printfAll( const CHAR *rooPath, utilNodeInfo &node,
                     BOOLEAN detail, BOOLEAN expand,
                     BOOLEAN showLong )
@@ -218,9 +215,6 @@ namespace engine
          CHAR tmpPRY[ 11 ] = { '-', 0 } ;
          CHAR tmpTime[ 21 ] = { 0 } ;
          string roleStr = utilDBRoleStr( (SDB_ROLE)node._role ) ;
-         // name       svcname       role        pid    gid    nid    gname           StartTime            dbpath
-         // sequoaidb  11810         standalone  15896  1001   1001   db1             2014-02-02-11:01:01  /opt/sequoiadb/database/coord/11810
-         // sdbcm      11790         -           10076  -      -      -               2014-02-02-11:01:01  -
 
 #if defined (_WINDOWS)
          localtime_s( &otm, &tt ) ;
@@ -273,7 +267,6 @@ namespace engine
       }
    }
 
-   // initialize options
    void init ( po::options_description &desc )
    {
       PMD_ADD_PARAM_OPTIONS_BEGIN ( desc )
@@ -321,7 +314,6 @@ namespace engine
       if ( vm.count ( PMD_OPTION_SVCNAME ) )
       {
          string svcname = vm[PMD_OPTION_SVCNAME].as<string>() ;
-         // break service names using ';'
          rc = utilSplitStr( svcname, listServices, ", \t" ) ;
          if ( rc )
          {
@@ -436,7 +428,6 @@ namespace engine
       po::options_description desc ( "Command options" ) ;
       init ( desc ) ;
 
-      // validate arguments
       rc = resolveArgument ( desc, argc, argv, listServices, typeFilter,
                              modeFilter, roleFilter, detail, expand,
                              showLong ) ;
@@ -450,7 +441,6 @@ namespace engine
          goto done ;
       }
 
-      // get program's running  path
       rc = ossGetEWD( rootPath, OSS_MAX_PATHSIZE ) ;
       if( rc )
       {
@@ -468,7 +458,6 @@ namespace engine
 
       if ( listServices.size() > 0 )
       {
-         // if used -p, so list all nodes
          typeFilter = -1 ;
          roleFilter = -1 ;
       }
@@ -555,17 +544,14 @@ namespace engine
 
       if ( showLong )
       {
-         // print title
          ossPrintf( "%s"OSS_NEWLINE, PMD_LIST_TITLE ) ;
       }
-      // print
       for ( UINT32 i = 0 ; i < listNodes.size() ; ++i )
       {
          ++total ;
          _printfAll( rootPath, listNodes[ i ], detail, expand, showLong ) ;
       }
 
-      // if no -p, and list all/list cm, need to show sdbcmd
       if ( listServices.size() == 0 &&
            ( SDB_TYPE_OMA == typeFilter || -1 == typeFilter ) &&
            ( roleFilter == -1 || SDB_ROLE_OMA == roleFilter ) )

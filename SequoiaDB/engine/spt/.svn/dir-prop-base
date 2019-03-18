@@ -1,7 +1,0 @@
-K 10
-svn:ignore
-V 23
-error.js
-js_in_cpp.hpp
-
-END

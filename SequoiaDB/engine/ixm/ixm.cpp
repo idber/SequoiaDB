@@ -47,9 +47,6 @@ using namespace bson;
 
 namespace engine
 {
-   // Before using ixmIndexCB, after create the object user must check
-   // isInitialized ()
-   // create index details from existing extent
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMINXCB1, "_ixmIndexCB::_ixmIndexCB" )
    _ixmIndexCB::_ixmIndexCB ( dmsExtentID extentID,
                               _dmsStorageIndex *pIndexSu,
@@ -92,7 +89,6 @@ namespace engine
       extRW = pIndexSu->extent2RW( extentID, context->mbID() ) ;
       pExtent = extRW.writePtr<ixmIndexCBExtent>( 0, _pageSize ) ;
 
-      // make sure the index object is not too big
       if ( infoObj.objsize() + IXM_INDEX_CB_EXTENT_METADATA_SIZE >=
            (UINT32)_pageSize )
       {
@@ -107,11 +103,7 @@ namespace engine
          goto error ;
       }
 
-      // Caller must make sure the given extentID is free and can be used
-      // In ixmIndexDetails we don't bother to check whether the extent is
-      // freed or not
 
-      // write stuff into extent
       pExtent->_flag           = DMS_EXTENT_FLAG_INUSE ;
       pExtent->_eyeCatcher [0] = IXM_EXTENT_CB_EYECATCHER0 ;
       pExtent->_eyeCatcher [1] = IXM_EXTENT_CB_EYECATCHER1 ;
@@ -120,11 +112,8 @@ namespace engine
       pExtent->_version        = DMS_EXTENT_CURRENT_V ;
       pExtent->_logicID        = DMS_INVALID_EXTENT ;
       pExtent->_scanExtLID     = DMS_INVALID_EXTENT ;
-      // not creating index root page yet
       pExtent->_rootExtentID   = DMS_INVALID_EXTENT ;
       ossMemset( pExtent->_reserved, 0, sizeof( pExtent->_reserved ) ) ;
-      // copy index def into extent. when it is replay op(has oid already),
-      // no need to add oid.
       if ( !infoObj.hasField (DMS_ID_KEY_NAME) )
       {
          _IDToInsert oid ;
@@ -150,7 +139,6 @@ namespace engine
                      infoObj.objdata(),
                      infoObj.objsize() ) ;
       }
-      // call _init() to load things back from page
       _init() ;
 
    done :
@@ -243,7 +231,6 @@ namespace engine
       goto done ;
    }
 
-   // if the field exist in the index object, returns the ith position
    INT32 _ixmIndexCB::keyPatternOffset( const CHAR *key ) const
    {
       SDB_ASSERT ( _isInitialized,
@@ -260,7 +247,6 @@ namespace engine
       return -1 ;
    }
 
-   // allocate an extent for the index
    INT32 _ixmIndexCB::allocExtent ( dmsExtentID &extentID )
    {
       SDB_ASSERT ( _isInitialized,
@@ -314,7 +300,6 @@ namespace engine
    BOOLEAN _ixmIndexCB::isSameDef( const BSONObj &defObj,
                                    BOOLEAN strict ) const
    {
-      //PD_TRACE_ENTRY ( SDB__IXMINXCB_ISSAMEDEF );
       BOOLEAN rs = TRUE;
       SDB_ASSERT( TRUE == _isInitialized, "indexCB must be intialized!" );
       try
@@ -344,8 +329,6 @@ namespace engine
          {
             if ( lIsUnique )
             {
-               /// it is useless to create any same defined index
-               /// when an unique index exists.
                rs = TRUE ;
                goto done ;
             }
@@ -356,7 +339,6 @@ namespace engine
             }
             else
             {
-               /// do nothing.
             }
          }
          else
@@ -394,7 +376,6 @@ namespace engine
       }
 
    done:
-      //PD_TRACE_EXIT( SDB__IXMINXCB_ISSAMEDEF );
       return rs;
    }
 

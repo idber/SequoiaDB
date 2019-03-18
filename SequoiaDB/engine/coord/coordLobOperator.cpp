@@ -77,11 +77,9 @@ namespace engine
          goto error ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "Option:%s", obj.toString().c_str() ) ;
 
-      /// pStream will free in context
       pStream = SDB_OSS_NEW _coordLobStream( _pResource, getTimeout() ) ;
       if ( !pStream )
       {
@@ -141,7 +139,6 @@ namespace engine
          goto error ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "ContextID:%lld, Len:%u, Offset:%llu",
                           header->contextID, len, offset ) ;
@@ -199,7 +196,6 @@ namespace engine
          goto error ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "ContextID:%lld, Len:%u, Offset:%llu",
                           header->contextID, readLen, offset ) ;
@@ -254,7 +250,6 @@ namespace engine
          goto error ;
       } 
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "ContextID:%lld", header->contextID ) ;
 
@@ -303,7 +298,6 @@ namespace engine
          goto error ;
       } 
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "ContextID:%lld", header->contextID ) ;
 
@@ -376,13 +370,10 @@ namespace engine
          goto error ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "Option:%s", obj.toString().c_str() ) ;
 
-      /// release operator's groupSession to improve perfermance
       _groupSession.release() ;
-      /// then open stream, will init it's groupSession
       rc = stream.open( fullName,
                         ele.__oid(), SDB_LOB_MODE_REMOVE,
                         header->flags,
@@ -399,7 +390,6 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "faield to remove lob pieces:%d", rc ) ;
-         /// get error info
          stream.getErrorInfo( rc, cb, buf ) ;
          goto error ;
       }
@@ -494,13 +484,10 @@ namespace engine
       }
       length = ele.numberLong() ;
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "Option:%s", obj.toString().c_str() ) ;
 
-      /// release operator's groupSession to improve perfermance
       _groupSession.release() ;
-      /// then open stream, will init it's groupSession
       rc = stream.open( fullName.c_str(),
                         oid, SDB_LOB_MODE_TRUNCATE,
                         header->flags,
@@ -517,7 +504,6 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "faield to truncate lob:%d", rc ) ;
-         /// get error info
          stream.getErrorInfo( rc, cb, buf ) ;
          goto error ;
       }

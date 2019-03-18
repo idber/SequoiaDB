@@ -1,20 +1,4 @@
-﻿/*
- * Copyright 2018 SequoiaDB Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
-*/
-
-using SequoiaDB;
+﻿using SequoiaDB;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
@@ -423,7 +407,7 @@ namespace DriverTest
             catch (BaseException e)
             {
                 Console.WriteLine("The error info is: " + e.ErrorType + ", " + e.ErrorCode + ", " + e.Message);
-                Assert.IsTrue(e.ErrorType == "SDB_DPS_TRANS_DIABLED");
+                Assert.IsTrue(e.ErrorType == "SDB_DPS_TRANS_DIABLED");             
             }
             finally
             {
@@ -451,21 +435,7 @@ namespace DriverTest
                     Console.WriteLine(rec);
                 }
             }
-
-            // sequences
-            {
-                cursor.Close();
-                cursor = null;
-                cursor = sdb.GetSnapshot(SDBConst.SDB_SNAP_SEQUENCES, dummy, dummy, dummy);
-                Assert.IsNotNull(cursor);
-                Console.WriteLine("the result of SDB_SNAP_SEQUENCES is: ");
-                BsonDocument rec = null;
-                while (null != (rec = cursor.Next()))
-                {
-                    Console.WriteLine(rec);
-                }
-            }
-
+            
         }
 
         [TestMethod()]
@@ -511,27 +481,10 @@ namespace DriverTest
                     Console.WriteLine(o);
                 }
             }
-            catch (BaseException e)
-            {
-                Assert.AreEqual("SDB_DPS_TRANS_DIABLED", e.ErrorType);
-            }
             finally
             {
                 sdb.TransactionCommit();
             }
-
-            // list sequences
-            {
-                cursor = db.GetList(SDBConst.SDB_LIST_SEQUENCES, dummy, dummy, dummy);
-                Assert.IsNotNull(cursor);
-                Console.WriteLine("the result of SDB_LIST_SEQUENCES is: ");
-                BsonDocument rec = null;
-                while (null != (rec = cursor.Next()))
-                {
-                    Console.WriteLine(rec);
-                }
-            }
-
 
             // list cs
             cursor = db.GetList(SDBConst.SDB_LIST_COLLECTIONSPACES, dummy, dummy, dummy);
@@ -579,6 +532,12 @@ namespace DriverTest
             Assert.IsNotNull(cursor);
 
             // list all the contexts
+            if (Constants.isClusterEnv(db))
+            {
+                db.Disconnect();
+                db = new Sequoiadb(config.conf.Data.Address);
+                db.Connect(config.conf.UserName, config.conf.Password);
+            }
             cursor = db.GetList(SDBConst.SDB_LIST_CONTEXTS, dummy, dummy, dummy);
             Assert.IsNotNull(cursor);
             bson = cursor.Next();
@@ -602,35 +561,11 @@ namespace DriverTest
             bson = cursor.Next();
             Assert.IsNotNull(bson);
 
-            // list 16
-            cursor = db.GetList(SDBConst.SDB_LIST_USERS, dummy, dummy, dummy, null, 0, -1);
-            Assert.IsNotNull(cursor);
-            while ((bson = cursor.Next()) != null)
-            {
-                Console.WriteLine("Result of SDB_LIST_SVCTASKS: " + base.ToString());
-            }
-
-            // list 14
-            cursor = db.GetList(SDBConst.SDB_LIST_SVCTASKS, dummy, dummy, dummy);
-            Assert.IsNotNull(cursor);
-            while ((bson = cursor.Next()) != null)
-            {
-                Console.WriteLine("Result of SDB_LIST_SVCTASKS: " + base.ToString());
-            }
-           
-
-            if (Constants.isClusterEnv(db))
-            {
-                db.Disconnect();
-                db = new Sequoiadb(config.conf.Data.Address);
-                db.Connect(config.conf.UserName, config.conf.Password);
-            }
             // list storge units
             cursor = db.GetList(SDBConst.SDB_LIST_STORAGEUNITS, dummy, dummy, dummy);
             Assert.IsNotNull(cursor);
             bson = cursor.Next();
             Assert.IsNotNull(bson);
-
             db.Disconnect();
 
         }
@@ -1160,83 +1095,6 @@ namespace DriverTest
             BsonDocument options = new BsonDocument();
             options.Add("Collection", csName + "." + cName);
             sdb.Analyze(options);
-        }
-
-        [TestMethod]
-        public void Rename_CS_CL_Test()
-        {
-            String csName = "rename_cs";
-            String clName = "rename_cl";
-
-            String newCSName = "new_rename_cs";
-            String newCLName = "new_rename_cl";
-
-            if (sdb.IsCollectionSpaceExist(csName)) {
-                sdb.DropCollectionSpace(csName);
-            }
-            if (sdb.IsCollectionSpaceExist(newCSName)) {
-                sdb.DropCollectionSpace(newCSName);
-            }
-
-            try
-            {
-
-                Assert.IsFalse(sdb.IsCollectionSpaceExist(csName));
-                Assert.IsFalse(sdb.IsCollectionSpaceExist(newCSName));
-
-                sdb.CreateCollectionSpace(csName).CreateCollection(clName);
-                Assert.IsTrue(sdb.IsCollectionSpaceExist(csName));
-                sdb.RenameCollectionSpace(csName, newCSName);
-                Assert.IsFalse(sdb.IsCollectionSpaceExist(csName));
-                Assert.IsTrue(sdb.IsCollectionSpaceExist(newCSName));
-
-                CollectionSpace cs = sdb.GetCollecitonSpace(newCSName);
-                Assert.IsTrue(cs.IsCollectionExist(clName));
-                cs.RenameCollection(clName, newCLName);
-                Assert.IsFalse(cs.IsCollectionExist(clName));
-                Assert.IsTrue(cs.IsCollectionExist(newCLName));
-            }
-            finally
-            {
-                try
-                {
-                    sdb.DropCollectionSpace(csName);
-                }
-                catch (Exception e) { }
-                try
-                {
-                    sdb.DropCollectionSpace(newCSName);
-                }
-                catch (Exception e) { }
-            }
-
-
-        }
-
-        [TestMethod]
-        public void Exception_Test()
-        {
-            string csName = "exception_test";
-            try
-            {
-                CollectionSpace cs = sdb.GetCollecitonSpace(csName);
-            }
-            catch (BaseException e)
-            {
-                BsonDocument errobj = e.ErrorObject;
-                Console.WriteLine("error obj is: {0}", errobj.ToString());
-            }
-
-            string clName = "exception_test";
-            try
-            {
-                DBCollection cl = cs.GetCollection(clName);
-            }
-            catch (BaseException e)
-            {
-                BsonDocument errobj = e.ErrorObject;
-                Console.WriteLine("error obj is: {0}", errobj.ToString());
-            }
         }
     }
 }

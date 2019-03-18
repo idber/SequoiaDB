@@ -70,18 +70,7 @@ public class BasicUpdate extends Update {
 		return this;
 	}
 
-	// TODO: maybe we don't need to override
-//	@Override
-//	public Update addToSet(String key, Object value) {
-//		updateObject.put("$addToSet", Collections.singletonMap(key, value));
-//		return this;
-//	}
 
-//	@Override
-//	public Update pop(String key, Position pos) {
-//		updateObject.put("$pop", Collections.singletonMap(key, (pos == Position.FIRST ? -1 : 1)));
-//		return this;
-//	}
 
 	@Override
 	public Update pull(String key, Object value) {

@@ -98,7 +98,6 @@ namespace engine
          BSONElement beSource     = boRequest.getField ( CAT_SOURCE_NAME ) ;
          BSONElement bePercent    = boRequest.getField ( CAT_SPLITPERCENT_NAME ) ;
 
-         // validate collection name and read
          PD_CHECK ( !beName.eoo() && beName.type() == String,
                     SDB_INVALIDARG, error, PDERROR,
                     "Invalid collection name: %s", beName.toString().c_str() ) ;
@@ -111,7 +110,6 @@ namespace engine
          ossStrncpy ( _szCollection, pCollectionName,
                          DMS_COLLECTION_SPACE_NAME_SZ +
                           DMS_COLLECTION_NAME_SZ + 1 ) ;
-         // validate target name and read
          PD_CHECK ( !beTarget.eoo() && beTarget.type() == String,
                     SDB_INVALIDARG, error, PDERROR,
                     "Invalid target group name: %s",
@@ -122,7 +120,6 @@ namespace engine
                     "target group name is too long: %s",
                     pTargetName ) ;
          ossStrncpy ( _szTargetName, pTargetName, OP_MAXNAMELENGTH ) ;
-         // validate source name and read
          PD_CHECK ( !beSource.eoo() && beSource.type() == String,
                     SDB_INVALIDARG, error, PDERROR,
                     "Invalid source group name: %s",
@@ -133,13 +130,11 @@ namespace engine
                     "source group name is too long: %s",
                     pSourceName ) ;
          ossStrncpy ( _szSourceName, pSourceName, OP_MAXNAMELENGTH ) ;
-         // read split key
          PD_CHECK ( !beSplitKey.eoo() && beSplitKey.type() == Object,
                     SDB_INVALIDARG, error, PDERROR,
                     "Invalid split key: %s",
                     beSplitKey.toString().c_str() ) ;
          _splitKey = beSplitKey.embeddedObject () ;
-         // percent
          _percent = bePercent.numberDouble() ;
       }
       catch ( std::exception &e )
@@ -318,7 +313,6 @@ namespace engine
                                     _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                                     INT16 w, INT64 *pContextID )
    {
-      /// need to update sub collection catalog info
       INT32 rc = sdbGetShardCB()->syncUpdateCatalog( _subCLName ) ;
       if ( rc )
       {
@@ -328,10 +322,8 @@ namespace engine
          pCatAgent->release_w() ;
       }
 
-      // Clear cached main-collection plans
       rtnCB->getAPM()->invalidateCLPlans( _collectionName ) ;
 
-      // Tell secondary nodes to clear catalog and plan caches
       sdbGetClsCB()->invalidateCache ( _collectionName,
                                        DPS_LOG_INVALIDCATA_TYPE_CATA |
                                        DPS_LOG_INVALIDCATA_TYPE_PLAN ) ;
@@ -362,7 +354,6 @@ namespace engine
                                       _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                                       INT16 w, INT64 *pContextID )
    {
-      /// need to update sub collection catalog info
       catAgent *pCatAgent = sdbGetShardCB()->getCataAgent() ;
       INT32 rc = sdbGetShardCB()->syncUpdateCatalog( _subCLName ) ;
       if ( rc )
@@ -372,15 +363,12 @@ namespace engine
          pCatAgent->release_w() ;
       }
 
-      /// clear main catalog info
       pCatAgent->lock_w() ;
       pCatAgent->clear( _collectionName ) ;
       pCatAgent->release_w() ;
 
-      // Clear cached main-collection plans
       rtnCB->getAPM()->invalidateCLPlans( _collectionName ) ;
 
-      // Tell secondary nodes to clear catalog and plan caches
       sdbGetClsCB()->invalidateCache( _collectionName,
                                       DPS_LOG_INVALIDCATA_TYPE_CATA |
                                       DPS_LOG_INVALIDCATA_TYPE_PLAN ) ;
@@ -706,7 +694,6 @@ namespace engine
          }
       }
 
-      /// when is active or disable readonly
       if ( pClsCB->isPrimary() &&
            ( 0 == ossStrcasecmp( CMD_VALUE_NAME_DISABLE_READONLY,
                                  _pAction ) ||

@@ -83,7 +83,6 @@ namespace engine
       }
 
    private:
-      // disallow copy and assign
       _coordSubContext () ;
       _coordSubContext ( const _coordSubContext& ) ;
       void operator=( const _coordSubContext& ) ;
@@ -174,7 +173,6 @@ namespace engine
          BOOLEAN                    _preRead ;
 
          BOOLEAN                    _needReOrder ;
-         /// error info
          ROUTE_RC_MAP               _nokRC ;
 
          _pmdRemoteSessionSite      *_pSite ;
@@ -192,8 +190,6 @@ namespace engine
 
    OSS_INLINE BOOLEAN _rtnContextCoord::_requireExplicitSorting () const
    {
-      // 1. order is required ( sort is not empty )
-      // 2. has more than one sub-context
       return requireOrder() &&
              ( _orderedContextMap.size() + _emptyContextMap.size() +
                _prepareContextMap.size() > 1 ) ;

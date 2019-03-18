@@ -145,7 +145,6 @@ namespace engine
       UINT32 _pageSize ;
       UINT32 _lobPageSize ;
 
-      // stat info
       UINT64 _totalRecords ;
       UINT64 _totalLobs ;
       UINT32 _totalDataPages ;
@@ -154,9 +153,7 @@ namespace engine
       UINT64 _totalDataFreeSpace ;
       UINT64 _totalIndexFreeSpace ;
       UINT32 _currCompressRatio ;
-      // end
 
-      /// sync info
       UINT64 _dataCommitLSN ;
       UINT64 _idxCommitLSN ;
       UINT64 _lobCommitLSN ;
@@ -189,7 +186,6 @@ namespace engine
          _totalIndexFreeSpace = 0 ;
          _currCompressRatio   = 0 ;
 
-         /// sync info
          _dataCommitLSN       = -1 ;
          _idxCommitLSN        = -1 ;
          _lobCommitLSN        = -1 ;
@@ -406,7 +402,6 @@ namespace engine
       INT64 _freeIndexSize ;
       INT64 _freeLobSize ;
 
-      /// commit info
       UINT64 _dataCommitLsn ;
       UINT64 _idxCommitLsn ;
       UINT64 _lobCommitLsn ;
@@ -414,7 +409,6 @@ namespace engine
       BOOLEAN _idxIsValid ;
       BOOLEAN _lobIsValid ;
 
-      /// cache info
       UINT32 _dirtyPage ;
       DMS_STORAGE_TYPE _type ;
 
@@ -531,7 +525,6 @@ namespace engine
       OSS_INLINE BOOLEAN operator<(const _monStorageUnit &r) const
       {
          SINT32 rc = ossStrncmp( _name, r._name, sizeof(_name))<0 ;
-         // if two storage unit got same name, let's check sequence
          if ( !rc )
             return _sequence < r._sequence ;
          return rc ;

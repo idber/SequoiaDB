@@ -7,7 +7,6 @@ import org.bson.BasicBSONObject;
  * Created by tanzhaobo on 2017/9/1.
  */
 public class CommandResult extends BasicBSONObject {
-    // TODO: this is a useless class, maybe we don't need to export it, so, try to remove it
 
     private  ServerAddress _address;
     private int _errCode;

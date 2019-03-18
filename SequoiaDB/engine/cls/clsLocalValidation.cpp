@@ -50,11 +50,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       const UINT32 pLen = 512 ;
-      //SDB_RTNCB *rtnCB = sdbGetRTNCB() ;
-      //SDB_DMSCB *dmsCB = sdbGetDMSCB() ;
       MON_CS_LIST csList ;
 
-      /// 1. malloc
       CHAR *p = (CHAR *)SDB_OSS_MALLOC( pLen ) ;
       if ( NULL == p )
       {
@@ -66,7 +63,6 @@ namespace engine
       *p = '\0' ;
       *( p + pLen - 1 ) = '\0' ;
 
-      /// 2. create new thread
       /*try
       {
          boost::thread t( func ) ;
@@ -80,10 +76,7 @@ namespace engine
          goto error ;
       }*/
 
-      /// 3. dump dms
-      //dmsCB->dumpInfo( csList, TRUE ) ;
 
-      /// 4. update validation tick
       pmdUpdateValidationTick() ;
 
    done:

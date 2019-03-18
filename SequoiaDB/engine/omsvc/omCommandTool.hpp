@@ -126,14 +126,12 @@ namespace engine
 
    public:
 
-      //task
       INT64 getTaskIdOfRunningBuz( const string &businessName ) ;
       INT64 getTaskIdOfRunningHost( const string &hostName ) ;
       BOOLEAN hasTaskRunning() ;
       INT32 getMaxTaskID( INT64 &taskID ) ;
       INT32 removeTask( INT64 taskID ) ;
 
-      //business
       INT32 addBusinessInfo( const INT32 addType,
                              const string &clusterName,
                              const string &businessName,
@@ -157,7 +155,6 @@ namespace engine
                                 INT64 &updateNum ) ;
       INT32 removeBusiness( const string &businessName ) ;
 
-      //cluster
       INT32 addCluster( const BSONObj &clusterInfo ) ;
       INT32 getClusterInfo( const string &clusterName,
                             BSONObj &clusterInfo ) ;
@@ -171,7 +168,6 @@ namespace engine
                                     const string &grantName,
                                     const BOOLEAN privilege ) ;
 
-      //configure
       INT32 getOneNodeConfig( const string &businessName,
                               const string &hostName,
                               const string &svcname,
@@ -208,7 +204,6 @@ namespace engine
                              const string &hostName ) ;
       INT32 removeConfigure( const string &businessName ) ;
 
-      //auth
       INT32 getAuth( const string &businessName,
                      string &authUser, string &authPasswd ) ;
       INT32 getAuth( const string &businessName, BSONObj &authInfo ) ;
@@ -218,7 +213,6 @@ namespace engine
                         const string &authPasswd, BSONObj &options ) ;
       INT32 removeAuth( const string &businessName ) ;
 
-      //host
       INT32 upsertPackage( const string &hostName,
                            const string &packageName,
                            const string &installPath,
@@ -240,7 +234,6 @@ namespace engine
       INT32 removeHost( const string &address,
                         const string &clusterName ) ;
 
-      //relationship
       INT32 createRelationship( const string &name,
                                 const string &fromBuzName,
                                 const string &toBuzName,
@@ -253,7 +246,6 @@ namespace engine
       INT32 getRelationshipList( list<BSONObj> &relationshipList ) ;
       INT32 removeRelationship( const string &name ) ;
 
-      //plugin
       BOOLEAN isPluginExist( const string &name ) ;
       BOOLEAN isPluginBusinessTypeExist( const string& businessType ) ;
       INT32 getPluginInfoByBusinessType( const string &businessType,
@@ -262,7 +254,6 @@ namespace engine
       INT32 upsertPlugin( const string &name, const string&businessType,
                           const string &serviceName ) ;
 
-      //trans
       INT32 addPackageOfHosts( set<string> &hostList,
                                const string &packageName,
                                const string &installPath,
@@ -277,30 +268,24 @@ namespace engine
       INT32 unbindHost( const string &clusterName,
                         list<string> &hostList ) ;
 
-      //collection
       INT32 createCollection( const CHAR *pCollection ) ;
       INT32 createCollectionIndex( const CHAR *pCollection,
                                    const CHAR *pIndex ) ;
    private:
-      //task
       INT32 _getOneTasktInfo( const BSONObj &matcher, const BSONObj &selector,
                               BSONObj &taskInfo ) ;
 
-      //host
       INT32 _getOneHostInfo( const BSONObj &matcher, const BSONObj &selector,
                              BSONObj &hostInfo ) ;
 
-      //configure
       INT32 _getOneConfigure( const BSONObj &condition, const BSONObj &selector,
                               BSONObj &configure ) ;
       INT32 _removeConfigure( const BSONObj &condition ) ;
 
-      //relationship
       INT32 _getOneRelationship( const BSONObj &condition,
                                  const BSONObj &selector,
                                  BSONObj &info ) ;
 
-      //plugin
       INT32 _getOnePluginInfo( const BSONObj &condition,
                                const BSONObj &selector,
                                BSONObj &info ) ;

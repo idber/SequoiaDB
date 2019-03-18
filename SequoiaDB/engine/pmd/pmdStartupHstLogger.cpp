@@ -83,7 +83,6 @@ namespace engine
       INT32 mode = OSS_READWRITE | OSS_CREATE ;
       INT32 permission = OSS_RU | OSS_WU | OSS_RG | OSS_RO ;
 
-      // 1. open file
       rc = _buildFileName() ;
       if ( SDB_OK != rc )
       {
@@ -107,7 +106,6 @@ namespace engine
                     "rc: %d", _fileName, rc ) ;
       }
 
-      // 2. load logs
       rc = _clearEarlyLogs() ;
       if ( SDB_OK != rc )
       {
@@ -120,7 +118,6 @@ namespace engine
          goto error ;
       }
 
-      // 3. print log
       rc = _log() ;
       if ( SDB_OK != rc )
       {
@@ -155,7 +152,6 @@ namespace engine
       CHAR* relativePath                   = NULL ;
       const CHAR* svcName                  = pmdGetKRCB()->getSvcname() ;
 
-      // 1. build path name: "conf/run/[svcname]"
       rc = ossGetEWD( curPath, OSS_MAX_PATHSIZE ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to build get current path, "
                     "rc: %d", rc ) ;
@@ -170,7 +166,6 @@ namespace engine
       PD_RC_CHECK ( rc, PDERROR, "Failed to build run path for service[%s], "
                     "rc: %d", svcName, rc ) ;
 
-      // 2. create path, if not exists
       rc = ossAccess( svcPath, OSS_MODE_WRITE ) ;
       if ( SDB_FNE == rc )
       {
@@ -185,7 +180,6 @@ namespace engine
          goto error ;
       }
 
-      // 3. build file name: "conf/run/[svcname]/sdb.id"
       rc = utilBuildFullPath( svcPath, PMD_DFT_RUN, OSS_MAX_PATHSIZE,
                               _fileName ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to build full file name for sdb.id, "
@@ -213,7 +207,6 @@ namespace engine
       CHAR* readBuf = NULL ;
       vector<string> records ;
 
-      // if sdb.id too large, it is abnormal
       rc = _file.getFileSize( fileSize ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to get size of file[%s], rc: %d",
                     _file.getPath().c_str(), rc ) ;
@@ -226,7 +219,6 @@ namespace engine
          goto error ;
       }
 
-      // read all string
       readBuf = ( CHAR* )SDB_OSS_MALLOC( fileSize + 1 ) ;
       if ( !readBuf )
       {
@@ -250,7 +242,6 @@ namespace engine
       }
       records.erase( records.begin() ) ; // erase header
 
-      // format log
       for ( vector<string>::iterator i = records.begin();
             i != records.end();
             ++i )
@@ -291,13 +282,11 @@ namespace engine
       PD_RC_CHECK ( rc, PDERROR, "Failed to get size of file[%s], rc: %d",
                     _file.getPath().c_str(), rc ) ;
 
-      /// if file isn't large enough, do nothing
       if ( fileSize < PMD_STARTUP_LOGSIZE_MAX )
       {
          goto done ;
       }
 
-      /// if file is too large, just truncate it
       if ( fileSize > PMD_STARTUP_FILESIZE_LIMIT )
       {
          rc = _file.truncate( PMD_STARTUP_LOG_HEADER_SIZE );
@@ -306,7 +295,6 @@ namespace engine
          goto done ;
       }
 
-      /// pop half logs
       readBuf = ( CHAR* )SDB_OSS_MALLOC( fileSize + 1 ) ;
       if ( !readBuf )
       {
@@ -361,13 +349,11 @@ namespace engine
       pmdStartupLog log ;
       string strLog ;
 
-      // build log
       log._type = pmdGetStartup().getStartType() ;
       log._pid = ossGetCurrentProcessID() ;
       ossGetCurrentTime( log._time ) ;
       strLog = log.toString() ;
 
-      // write to file
       rc = _file.seek( 0, OSS_SEEK_END ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to write seek file[%s], ",
                     "rc: %d", _file.getPath().c_str(), rc ) ;
@@ -375,7 +361,6 @@ namespace engine
       PD_RC_CHECK ( rc, PDERROR, "Failed to write start info into file[%s], "
                     "rc: %d", _file.getPath().c_str(), rc ) ;
 
-      // add this log to buffer
       _buffer.push_back( log ) ;
 
    done :

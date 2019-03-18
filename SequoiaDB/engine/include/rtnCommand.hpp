@@ -147,7 +147,6 @@ namespace engine
    _rtnCmdBuilder * getRtnCmdBuilder () ;
 
 
-   //Command list
    class _rtnCoordOnly : public _rtnCommand
    {
       protected:
@@ -1338,10 +1337,8 @@ namespace engine
                                INT16 w = 1, INT64 *pContextID = NULL ) ;
 
    private:
-      /// old version
       BSONObj _alterObj ;
 
-      /// new version
       _rtnAlterRunner _runner ;
    } ;
 
@@ -1461,7 +1458,6 @@ namespace engine
 
       virtual BOOLEAN writable ()
       {
-         // Reload is read-only operation
          return ( _param._mode != SDB_ANALYZE_MODE_RELOAD &&
                   _param._mode != SDB_ANALYZE_MODE_CLEAR ) ;
       }

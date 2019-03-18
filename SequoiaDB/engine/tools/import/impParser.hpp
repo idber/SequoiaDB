@@ -66,7 +66,6 @@ namespace import
       BOOLEAN           _stopped;
       LogFile           _logFile;
 
-      // statistics
       INT64             _parsedNum;
       INT64             _failedNum;
 

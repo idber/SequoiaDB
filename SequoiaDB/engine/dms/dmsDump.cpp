@@ -364,13 +364,11 @@ namespace engine
          goto exit ;
       }
 
-      // if we want to find a specific collection
       if ( collectionName )
       {
          if ( ossStrncmp ( mb->_collectionName, collectionName,
                            DMS_COLLECTION_NAME_SZ ) != 0 )
          {
-            // if it doesn't match our expectation
             goto exit ;
          }
       }
@@ -382,7 +380,6 @@ namespace engine
       }
       else if ( !force )
       {
-         // if not enable force, when mb is invalid, ignored
          goto exit ;
       }
 
@@ -456,7 +453,6 @@ namespace engine
                              mb->_loadLastExtentID, mb->_loadLastExtentID,
                              mb->_mbExExtentID, mb->_mbExExtentID ) ;
 
-         /// stat
          len += ossSnprintf( outBuf + len, outSize - len,
                              " Total records     : %llu"OSS_NEWLINE
                              " Total lobs        : %llu"OSS_NEWLINE
@@ -477,7 +473,6 @@ namespace engine
                              mb->_totalOrgDataLen,
                              mb->_totalDataLen ) ;
 
-         /// compress
          len += ossSnprintf( outBuf + len, outSize - len,
                              " Dict extent ID    : 0x%08x (%d)"OSS_NEWLINE
                              " New Dict extent ID: 0x%08x (%d)"OSS_NEWLINE
@@ -510,7 +505,6 @@ namespace engine
          CHAR strLobTime[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
          ossTimestampToString( lobTm, strLobTime ) ;
 
-         /// commit info
          len += ossSnprintf( outBuf + len, outSize - len,
                              " Data Commit Flag  : %d"OSS_NEWLINE
                              " Data Commit LSN   : 0x%016lx (%lld)"OSS_NEWLINE
@@ -530,11 +524,9 @@ namespace engine
                              mb->_lobCommitFlag,
                              mb->_lobCommitLSN, mb->_lobCommitLSN,
                              strLobTime, mb->_lobCommitTime ) ;
-         // Extent option extent id
          len += ossSnprintf( outBuf + len, outSize - len,
                              " Extend option extent ID: 0x%08x (%d)"OSS_NEWLINE,
                              mb->_mbOptExtentID, mb->_mbOptExtentID ) ;
-         // Delete list
          len += ossSnprintf( outBuf + len, outSize - len,
                              " Deleted list :"OSS_NEWLINE ) ;
          tmpInt = 16 ;
@@ -569,7 +561,6 @@ namespace engine
                                 mb->_deleteList[i]._offset ) ;
          }
 
-         // index list
          len += ossSnprintf( outBuf + len, outSize - len,
                              " Index extent:"OSS_NEWLINE ) ;
 
@@ -655,7 +646,6 @@ namespace engine
                               " Meta Extent Header :"OSS_NEWLINE ) ;
          len += dumpExtentHeader ( inBuf, inSize, outBuf + len,
                                    outSize - len ) ;
-         // make sure the extent is valid and in use
          if ( DMS_EXTENT_FLAG_FREED == mbEx->_header._flag )
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
@@ -929,7 +919,6 @@ namespace engine
                               " Data Extent Header:"OSS_NEWLINE ) ;
          len += dumpExtentHeader ( inBuf, inSize, outBuf + len,
                                    outSize - len ) ;
-         // make sure the extent is valid and in use
          if ( DMS_EXTENT_FLAG_FREED == extent->_flag )
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
@@ -1233,12 +1222,8 @@ namespace engine
          record = (dmsCappedRecord*)( ((CHAR*)inBuf) + nextRecord ) ;
          logicalID = record->getLogicalID() ;
 
-         // If we have gone beyond the last record offset, we see it as the end.
-         // In that case, no error will be reported.
          if ( logicalID < 0 )
          {
-            // If we are still before the last record offset, print the current
-            // record, but stop going to the next one.
             if ( nextRecord <= lastRecord )
             {
                len += ossSnprintf( outBuf + len, outSize - len,
@@ -1254,8 +1239,6 @@ namespace engine
          }
          else
          {
-            // Check if the logical id in the record header matches the position
-            // (extent and offset). If not, print the current record, and stop.
             myOffset = logicalID % DMS_CAP_EXTENT_BODY_SZ +
                        DMS_EXTENT_METADATA_SZ ;
             if ( myOffset != nextRecord )
@@ -1390,7 +1373,6 @@ namespace engine
       nextRecord = record->_nextOffset ;
       if ( isDel )
       {
-         // dump nothing for deleted record, and set nextRecord to invalid
          nextRecord = DMS_INVALID_OFFSET ;
          goto exit ;
       }
@@ -1409,7 +1391,6 @@ namespace engine
       }
       else
       {
-         // for normal and ovfto types, let's dump data
          try
          {
             ossValuePtr recordPtr = 0 ;
@@ -1523,7 +1504,6 @@ namespace engine
          goto exit ;
       }
 
-      // get all child extents
       for ( INT32 i = 0 ; i < extentHead->_totalKeyNodeNum ; ++i )
       {
          UINT32 keyOffset = sizeof(ixmExtentHead) + sizeof(ixmKeyNode)*i ;
@@ -1546,7 +1526,6 @@ namespace engine
       {
          childExtents.push_back ( extentHead->_right ) ;
       }
-      // dump hex
       if ( DMS_SU_DMP_OPT_HEX & options )
       {
          if ( DMS_SU_DMP_OPT_HEX_PREFIX_AS_ADDR & options )
@@ -1567,7 +1546,6 @@ namespace engine
                               " Index Extent Header:"OSS_NEWLINE ) ;
          len += dumpExtentHeader ( inBuf, inSize, outBuf + len,
                                    outSize - len ) ;
-         // make sure extent is valid and in use
          if ( DMS_EXTENT_FLAG_FREED == extentHead->_flag )
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
@@ -1577,7 +1555,6 @@ namespace engine
 
          if( dumpIndexKey )
          {
-            // dump all index keys
             for ( INT32 i = 0; i < extentHead->_totalKeyNodeNum; ++i )
             {
                UINT32 keyOffset = sizeof(ixmExtentHead) +
@@ -1979,7 +1956,6 @@ UINT32 _dmsDump::dumpDmsLobData( CHAR *inBuf, UINT32 inSize,
 
    if ( DMS_SU_DMP_OPT_FORMATTED & options )
    {
-      ///TODO:dump record
    }
 
    len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;

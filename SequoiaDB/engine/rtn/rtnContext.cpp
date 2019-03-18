@@ -79,10 +79,8 @@ namespace engine
 
       newSize = ( _bufferSize == 0 ) ? RTN_DFT_BUFFERSIZE : _bufferSize ;
 
-      // make sure we get enough memory in result buffer
       while ( newSize < ensuredSize )
       {
-         // make sure we haven't hit max
          if ( newSize >= RTN_CONTEXT_MAX_BUFF_SIZE )
          {
             PD_LOG ( PDERROR, "Result buffer is greater than %d bytes",
@@ -91,7 +89,6 @@ namespace engine
             goto error ;
          }
 
-         // double buffer size until hitting RTN_CONTEXT_MAX_BUFF_SIZE
          newSize = newSize << 1 ;
          if (newSize > RTN_CONTEXT_MAX_BUFF_SIZE )
          {
@@ -106,7 +103,6 @@ namespace engine
       }
       else
       {
-         // reallocate memory
          _buffer = (CHAR*)SDB_OSS_REALLOC(
                                  RTN_BUFF_TO_REAL_PTR( _buffer ),
                                  RTN_BUFF_TO_PTR_SIZE( newSize ) ) ;
@@ -223,9 +219,7 @@ namespace engine
          _readOffset = ossAlign4( (UINT32)_readOffset ) ;
          buf._pOrgBuff = _buffer ;
          buf._pBuff = &_buffer[ _readOffset ] ;
-         //buf._startFrom = _totalRecords - _numRecords ;
 
-         // return current all records
          if ( maxNumToReturn < 0 )
          {
             buf._buffSize = _writeOffset - _readOffset ;
@@ -576,7 +570,6 @@ namespace engine
       }
 
    done:
-      // inc idle
       pmdGetKRCB()->getBPSCB()->_idlePrefAgentNum.inc() ;
       if ( locked )
       {
@@ -622,14 +615,11 @@ namespace engine
 
          currentPreparedSize = _buffer.writeOffset() - startOffset ;
 
-         // assume next prepared size equals current,
-         // so break if data size exceeds limit when prepare once more time
          if ( _buffer.writeOffset() + currentPreparedSize >= _prepareMoreDataLimit )
          {
             break ;
          }
 
-         // prepare timeout
          currentTime = ossGetCurrentMicroseconds() ;
          if ( currentTime - beginTime >= PREPARE_TIMEOUT )
          {
@@ -683,7 +673,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       BOOLEAN locked = FALSE ;
 
-      // release buff obj
       buffObj.release() ;
 
       if ( !isOpened() )
@@ -698,7 +687,6 @@ namespace engine
          goto error ;
       }
 
-      // need to get data lock
       while ( TRUE )
       {
          rc = _dataLock.lock_r( OSS_ONE_SEC ) ;
@@ -718,7 +706,6 @@ namespace engine
       {
          ++_prefetchID ;
       }
-      // check prefetch has error
       if ( _prefetchRet && SDB_DMS_EOC != _prefetchRet )
       {
          rc = _prefetchRet ;
@@ -726,7 +713,6 @@ namespace engine
          goto error ;
       }
 
-      // need to get more datas
       if ( isEmpty() && !eof() )
       {
          UINT64 tmpTotalRead = cb->getMonAppCB()->totalDataRead ;
@@ -750,7 +736,6 @@ namespace engine
                                    tmpTotalRead ) ;
       }
 
-      // if not empty, get current data
       if ( !isEmpty() )
       {
          INT64 numRecords = _buffer.numRecords() ;
@@ -770,7 +755,6 @@ namespace engine
             buffObj._reference( _buffer.getRefCountPointer(), &_dataLock ) ;
             locked = FALSE ;
 
-            // if get all data
             if ( isEmpty() && !eof() )
             {
                _buffer.empty() ;

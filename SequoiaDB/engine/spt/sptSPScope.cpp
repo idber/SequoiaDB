@@ -73,9 +73,7 @@ namespace engine
       _sptSPArguments arg( cx, argc, vp ) ;
       string jsClassName ;
 
-      // set return value
       JS_SET_RVAL( cx, vp, JSVAL_VOID ) ;
-      // try to get the js class name
       constructor = JS_GetConstructor( cx, JS_THIS_OBJECT ( cx , vp ) ) ;
       if ( !constructor )
       {
@@ -107,7 +105,6 @@ namespace engine
       jsClassName.assign( pStr ) ;
       JS_free( cx, pStr ) ;
 
-      // display method or manpage
       if ( arg.argc() == 0 )
       {
          rc = sptHelp::getInstance().displayMethod( jsClassName, TRUE ) ;
@@ -154,10 +151,8 @@ namespace engine
       _sptSPArguments arg( cx, argc, vp ) ;
       string jsClassName ;
 
-      // set return value
       JS_SET_RVAL( cx, vp, JSVAL_VOID ) ;
 
-      // get js class name
       if ( !JS_GetProperty( cx, JS_THIS_OBJECT ( cx , vp ), "name", &jsVal ) ||
            !JSVAL_IS_STRING( jsVal ) )
       {
@@ -182,7 +177,6 @@ namespace engine
       jsClassName.assign( pStr ) ;
       JS_free( cx, pStr ) ;
 
-      // display method or manpage
       if ( arg.argc() == 0 )
       {
          rc = sptHelp::getInstance().displayMethod( jsClassName, FALSE ) ;
@@ -660,7 +654,6 @@ namespace engine
          parent_proto = (JSObject*)parentDesc->getPrototypeDef() ;
       }
 
-      /// one for instance help method, another for FS_END
       fSpecs = new JSFunctionSpec[memberFuncs.size() + 1 + 1] ;
       if ( NULL == fSpecs )
       {
@@ -780,7 +773,6 @@ namespace engine
       _rval.reset( _context ) ;
       jsval *pRval = ( jsval* )_rval.rawPtr() ;
 
-      // set error report
       sdbSetPrintError( ( flag & SPT_EVAL_FLAG_PRINT ) ? TRUE : FALSE ) ;
       sdbSetIgnoreErrorPrefix( ( flag & SPT_EVAL_FLAG_IGNORE_ERR_PREFIX ) ?
                                TRUE : FALSE ) ;
@@ -812,7 +804,6 @@ namespace engine
          }
       }
 
-      // clear return error
       if ( sdbIsNeedClearErrorInfo() &&
            !JS_IsExceptionPending( _context ) )
       {
@@ -827,7 +818,6 @@ namespace engine
       SAFE_JS_FREE ( _context , print ) ;
       return rc ;
    error:
-      // report error while calling eval() recursively
       if ( JS_IsExceptionPending( _context ) &&
            JS_GetPendingException ( _context , &exception ) )
       {
@@ -844,7 +834,6 @@ namespace engine
             std::stringstream errPrefix ;
             sptPrivateData *privateData  = NULL ;
 
-            // get privateData to get exception filename and lineno
             privateData = ( sptPrivateData* ) JS_GetContextPrivate( _context ) ;
             /*
              * Branch 1: userdef function throw errno
@@ -885,7 +874,6 @@ namespace engine
                errObj = JSVAL_TO_OBJECT( exception ) ;
                if( NULL != errObj )
                {
-                  // get Error obj fileName
                   if( JS_GetProperty( _context, errObj,
                                       JS_ERROBJ_FILENAME, &fileName )
                       && JSVAL_IS_STRING( fileName ) )
@@ -896,7 +884,6 @@ namespace engine
                         errfileName = JS_EncodeString ( _context , jsStr ) ;
                      }
                   }
-                  // get Error obj lineno
                   if( JS_GetProperty( _context, errObj,
                                       JS_ERROBJ_LINENO, &lineNumber )
                       && JSVAL_IS_INT( lineNumber ) )

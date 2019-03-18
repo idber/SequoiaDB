@@ -50,14 +50,10 @@ public class SequoiadbExceptionTranslator implements PersistenceExceptionTransla
 				case SDB_AUTH_AUTHORITY_FORBIDDEN: // -179
 					return new PermissionDeniedDataAccessException(ex.getMessage(), ex);
 				default:
-					// TODO: modify the name
 					return new UncategorizedSequoiadbException(ex.getMessage(), ex);
 			}
 		}
 
-		// If we get here, we have an exception that resulted from user code,
-		// rather than the persistence provider, so we return null to indicate
-		// that translation should not occur.
 		return null;
 	}
 }

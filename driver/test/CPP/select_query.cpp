@@ -19,14 +19,12 @@
 using namespace std ;
 using namespace sdbclient ;
 
-// global
 
 void selectCreateCollection( sdb &db, sdbCollection *cl, const CHAR *clName )
 {
    sdbCollectionSpace cs ;
    INT32 rc = SDB_OK ;
    const CHAR *csName = "select_query_cs" ;
-   //const CHAR *clName = "select_query_cl" ;
    const CHAR *hostName = HOST ;
    const CHAR *svcPort = SERVER ;
    const CHAR *usr = USER ;
@@ -34,8 +32,6 @@ void selectCreateCollection( sdb &db, sdbCollection *cl, const CHAR *clName )
 
    rc = db.connect( hostName, svcPort, usr, passwd ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   //cout << "Host: " << hostName << endl ;
-   //cout << "svcPort: " << svcPort << endl ;
    rc = db.createCollectionSpace( csName, 4096, cs ) ;
    if( SDB_DMS_CS_EXIST == rc )
    {
@@ -43,7 +39,6 @@ void selectCreateCollection( sdb &db, sdbCollection *cl, const CHAR *clName )
    }
    ASSERT_EQ( SDB_OK, rc ) ;
    BSONObj optionObj = BSON( "ReplSize" << 0 ) ;
-   //cout << "option object: " << optionObj.toString() << endl ;
    rc = cs.createCollection( clName, optionObj, *cl ) ;
    if( SDB_DMS_EXIST == rc )
    {
@@ -54,7 +49,6 @@ void selectCreateCollection( sdb &db, sdbCollection *cl, const CHAR *clName )
    ASSERT_EQ( SDB_OK, rc ) ;
 }
 
-// selector: $elemMatch
 TEST( select, elementMatch )
 {
    sdb db ;
@@ -65,7 +59,6 @@ TEST( select, elementMatch )
    const CHAR *clName = "select_query_elementMatch" ;
 
    selectCreateCollection( db, &cl, clName ) ;
-   // { Group: [{"GroupInfo":[ { "GroupName":"group1", "SvcType": 1000, "Name": 41000},...]}]}
    BSONObj obj ;
    obj = BSON( "Group" << BSON_ARRAY( BSON( "GroupInfo" << BSON_ARRAY( BSON(
                "GroupName" << "group1" << "SvcType" << 1000 << "Name" <<
@@ -76,7 +69,6 @@ TEST( select, elementMatch )
    cout << "<Insert Record>:\n" << obj.toString() << endl ;
    rc = cl.insert( obj ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // $elementMatch: {"Group.GroupInfo":{"$elemMatch":{"Name":41000}}}
    BSONObj condObj ;
    BSONObj selectObj ;
    selectObj = BSON( "Group.GroupInfo" << BSON( "$elemMatch" <<
@@ -97,7 +89,6 @@ TEST( select, elementMatch )
    cout << "success to test" << endl ;
 }
 
-// selector: $elemMatchOne
 TEST( select, elementMatchOne )
 {
    sdb db ;
@@ -108,7 +99,6 @@ TEST( select, elementMatchOne )
    const CHAR *clName = "select_query_elementMatchOne" ;
 
    selectCreateCollection( db, &cl, clName ) ;
-   // { Group: [{"GroupInfo":[ { "GroupName":"group1", "SvcType": 1000, "Name": 41000},...]}]}
    BSONObj obj ;
    obj = BSON( "Group" << BSON_ARRAY( BSON( "GroupInfo" << BSON_ARRAY( BSON(
                "GroupName" << "group1" << "SvcType" << 1000 << "Name" <<
@@ -119,7 +109,6 @@ TEST( select, elementMatchOne )
    cout << "<Insert Record>:\n" << obj.toString() << endl ;
    rc = cl.insert( obj ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // $elementMatch: {"Group.GroupInfo":{"$elemMatch":{"Name":41000}}}
    BSONObj condObj ;
    BSONObj selectObj ;
    selectObj = BSON( "Group.GroupInfo" << BSON( "$elemMatchOne" <<
@@ -140,7 +129,6 @@ TEST( select, elementMatchOne )
    cout << "success to test" << endl ;
 }
 
-// selector: $slice
 TEST( select, slice )
 {
    sdb db ;
@@ -151,14 +139,12 @@ TEST( select, slice )
    const CHAR *clName = "select_query_slice" ;
 
    selectCreateCollection( db, &cl, clName ) ;
-   // { Group:["rg1", "rg2", "rg3", "rg4", "rg5", "rg6", "rg7", "rg8"]}
    BSONObj obj ;
    obj = BSON( "Group" << BSON_ARRAY( "rg1" << "rg2" << "rg3" <<
                "rg4" << "rg5" << "rg6" << "rg7" << "rg8" ) ) ;
    cout << "<Insert Record>:\n" << obj.toString() << endl ;
    rc = cl.insert( obj ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // $elementMatch: {"Group.GroupInfo":{"$elemMatch":{"Name":41000}}}
    BSONObj condObj ;
    BSONObj selectObj ;
    selectObj = BSON( "Group" << BSON( "$slice" << BSON_ARRAY( -7 << 3 ) ) ) ;
@@ -178,7 +164,6 @@ TEST( select, slice )
    cout << "success to test" << endl ;
 }
 
-// selector: $default
 TEST( select, _default )
 {
    sdb db ;
@@ -189,7 +174,6 @@ TEST( select, _default )
    const CHAR *clName = "select_query_default" ;
 
    selectCreateCollection( db, &cl, clName ) ;
-   // { Group: [{"GroupInfo":[ { "GroupName":"group1", "SvcType": 1000, "Name": 41000},...]}]}
    BSONObj obj ;
    obj = BSON( "Group" << BSON_ARRAY( BSON( "GroupInfo" << BSON_ARRAY( BSON(
                "GroupName" << "group1" << "SvcType" << 1000 << "Name" <<
@@ -200,7 +184,6 @@ TEST( select, _default )
    cout << "<Insert Record>:\n" << obj.toString() << endl ;
    rc = cl.insert( obj ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // $elementMatch: {"Group.GroupInfo":{"$elemMatch":{"Name":41000}}}
    BSONObj condObj ;
    BSONObj selectObj ;
    selectObj = BSON( "Group.GroupInfo.GroupName" << BSON( "$default" <<
@@ -221,7 +204,6 @@ TEST( select, _default )
    cout << "success to test" << endl ;
 }
 
-// selector: $include
 TEST( select, include )
 {
    sdb db ;
@@ -232,7 +214,6 @@ TEST( select, include )
    const CHAR *clName = "select_query_include" ;
 
    selectCreateCollection( db, &cl, clName ) ;
-   // { Group: [{"GroupInfo":[ { "GroupName":"group1", "SvcType": 1000, "Name": 41000},...]}]}
    BSONObj obj ;
    obj = BSON( "Group" << BSON_ARRAY( BSON( "GroupInfo" << BSON_ARRAY( BSON(
                "GroupName" << "group1" << "SvcType" << 1000 << "Name" <<
@@ -243,7 +224,6 @@ TEST( select, include )
    cout << "<Insert Record>:\n" << obj.toString() << endl ;
    rc = cl.insert( obj ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // $elementMatch: {"Group.GroupInfo":{"$elemMatch":{"Name":41000}}}
    BSONObj condObj ;
    BSONObj selectObj ;
    selectObj = BSON( "Group.GroupInfo.GroupName" << BSON( "$include" << 0 ) ) ;
@@ -263,7 +243,6 @@ TEST( select, include )
    cout << "success to test" << endl ;
 }
 
-// selector: abnormal
 TEST( select, includeAbnormal )
 {
    sdb db ;
@@ -274,7 +253,6 @@ TEST( select, includeAbnormal )
    const CHAR *clName = "select_query_includeAbnormal" ;
 
    selectCreateCollection( db, &cl, clName ) ;
-   // { Group: [{"GroupInfo":[ { "GroupName":"group1", "SvcType": 1000, "Name": 41000},...]}]}
    BSONObj obj ;
    obj = BSON( "Group" << BSON_ARRAY( BSON( "GroupInfo" << BSON_ARRAY( BSON(
                "GroupName" << "group1" << "SvcType" << 1000 << "Name" <<
@@ -285,7 +263,6 @@ TEST( select, includeAbnormal )
    cout << "<Insert Record>:\n" << obj.toString() << endl ;
    rc = cl.insert( obj ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // $elementMatch: {"Group.GroupInfo":{"$elemMatch":{"Name":41000}}}
    BSONObj condObj ;
    BSONObj selectObj ;
    selectObj = BSON( "Group.GroupInfo.GroupName" << BSON( "$include" << 1 ) <<

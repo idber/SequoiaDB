@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 SequoiaDB Inc.
+ * Copyright 2017 SequoiaDB Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,9 +45,6 @@ final class SdbConstants {
     final static String FIELD_NAME_TASKID = "TaskID";
     final static String FIELD_NAME_OPTIONS = "Options";
     final static String FIELD_NAME_DOMAIN = "Domain";
-    final static String FIELD_NAME_CELLECTIONSPACE = "CollectionSpace";
-    final static String FIELD_NAME_AUTOINCREMENT = "AutoIncrement";
-    final static String FIELD_NAME_AUTOINC_FIELD = "Field";
 
     final static String FIELD_NAME_ARGS = "Args";
     final static String FIELD_NAME_ALTER = "Alter";
@@ -56,24 +53,8 @@ final class SdbConstants {
 
     final static int SDB_ALTER_VERSION = 1;
     final static String SDB_ALTER_CL = "collection";
-    final static String SDB_ALTER_CS = "collection space";
-    final static String SDB_ALTER_DOMAIN = "domain";
     final static String SDB_ALTER_CRT_ID_INDEX = "create id index";
     final static String SDB_ALTER_DROP_ID_INDEX = "drop id index";
-    final static String SDB_ALTER_ENABLE_SHARDING = "enable sharding";
-    final static String SDB_ALTER_DISABLE_SHARDING = "disable sharding";
-    final static String SDB_ALTER_ENABLE_COMPRESSION = "enable compression";
-    final static String SDB_ALTER_DISABLE_COMPRESSION = "disable compression";
-    final static String SDB_ALTER_SET_ATTRIBUTES = "set attributes" ;
-    final static String SDB_ALTER_SET_DOMAIN = "set domain";
-    final static String SDB_ALTER_REMOVE_DOMAIN = "remove domain";
-    final static String SDB_ALTER_ENABLE_CAPPED = "enable capped";
-    final static String SDB_ALTER_DISABLE_CAPPED = "disable capped";
-    final static String SDB_ALTER_ADD_GROUPS = "add groups";
-    final static String SDB_ALTER_SET_GROUPS = "set groups";
-    final static String SDB_ALTER_REMOVE_GROUPS = "remove groups";
-    final static String SDB_ALTER_CL_CRT_AUTOINC_FLD = "create autoincrement";
-    final static String SDB_ALTER_CL_DROP_AUTOINC_FLD = "drop autoincrement";
 
     final static String FIELD_NAME_MODIFY = "$Modify";
     final static String FIELD_NAME_OP = "OP";
@@ -113,5 +94,4 @@ final class SdbConstants {
     final static String OID = "_id";
 
     final static int FLG_UPDATE_UPSERT = 0x00000001;
-
 }

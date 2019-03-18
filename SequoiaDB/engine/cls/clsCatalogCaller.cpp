@@ -70,7 +70,6 @@ namespace engine
             SDB_OSS_FREE( meta.header ) ;
             meta.bufLen = 0 ;
          }
-         // memory is free in destructor
          meta.header = ( MsgHeader *)SDB_OSS_MALLOC( header->messageLength ) ;
          if ( NULL == meta.header )
          {
@@ -85,7 +84,6 @@ namespace engine
       PD_LOG( PDEVENT, "send msg[%d] to catalog node.",
               meta.header->opCode ) ;
 
-      /// reset info
       meta.timeout = 0 ;
       meta.sendTimes = times ;
 
@@ -154,7 +152,6 @@ namespace engine
             itr->second.timeout += millisec ;
             if ( CLS_CALLER_INTERVAL <= itr->second.timeout )
             {
-               /// don't need to update catalog info
                pmdGetKRCB()->getClsCB()->sendToCatlog( itr->second.header) ;
                itr->second.timeout = 0 ;
             }

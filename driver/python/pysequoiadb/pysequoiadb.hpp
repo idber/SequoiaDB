@@ -3,7 +3,6 @@
 
 #include "util.hpp"
 
-///< sdb client
 __METHOD_DECLARE(sdb_create_client) ;
 __METHOD_DECLARE(sdb_release_client) ;
 __METHOD_DECLARE(sdb_connect) ;
@@ -17,7 +16,6 @@ __METHOD_DECLARE(sdb_get_collection_space) ;
 __METHOD_DECLARE(sdb_get_collection) ;
 __METHOD_DECLARE(sdb_create_collection_space) ;
 __METHOD_DECLARE(sdb_drop_collection_space) ;
-__METHOD_DECLARE(sdb_rename_collection_space);
 __METHOD_DECLARE(sdb_list_collection_spaces) ;
 __METHOD_DECLARE(sdb_list_collections) ;
 __METHOD_DECLARE(sdb_list_replica_groups) ;
@@ -32,8 +30,6 @@ __METHOD_DECLARE(sdb_transaction_begin) ;
 __METHOD_DECLARE(sdb_transaction_commit) ;
 __METHOD_DECLARE(sdb_transaction_rollback) ;
 __METHOD_DECLARE(sdb_flush_configure) ;
-__METHOD_DECLARE(sdb_update_config) ;
-__METHOD_DECLARE(sdb_delete_config) ;
 __METHOD_DECLARE(sdb_create_JS_procedure) ;
 __METHOD_DECLARE(sdb_remove_procedure) ;
 __METHOD_DECLARE(sdb_list_procedures) ;
@@ -56,25 +52,15 @@ __METHOD_DECLARE(sdb_get_domain) ;
 __METHOD_DECLARE(sdb_sync) ;
 __METHOD_DECLARE(sdb_get_datacenter) ;
 __METHOD_DECLARE(sdb_analyze) ;
-__METHOD_DECLARE(sdb_invalidate_cache) ;
-__METHOD_DECLARE(sdb_get_last_error) ;
-__METHOD_DECLARE(sdb_clear_last_error) ;
-__METHOD_DECLARE(sdb_force_session) ;
-__METHOD_DECLARE(sdb_reload_config) ;
-__METHOD_DECLARE(sdb_set_pdlevel) ;
-__METHOD_DECLARE(sdb_force_stepup) ;
 
-///< collection space
 __METHOD_DECLARE(create_cs) ;
 __METHOD_DECLARE(release_cs) ;
 __METHOD_DECLARE(cs_get_collection) ;
 __METHOD_DECLARE(cs_create_collection) ;
 __METHOD_DECLARE(cs_create_collection_use_opt) ;
 __METHOD_DECLARE(cs_drop_collection) ;
-__METHOD_DECLARE(cs_rename_collection);
 __METHOD_DECLARE(cs_get_collection_space_name) ;
 
-///< collection
 __METHOD_DECLARE(create_cl) ;
 __METHOD_DECLARE(release_cl) ;
 __METHOD_DECLARE(cl_get_count) ;
@@ -108,24 +94,19 @@ __METHOD_DECLARE(cl_list_lobs) ;
 __METHOD_DECLARE(cl_truncate) ;
 __METHOD_DECLARE(cl_create_id_index) ;
 __METHOD_DECLARE(cl_drop_id_index) ;
-__METHOD_DECLARE(cl_create_autoincrement) ;
-__METHOD_DECLARE(cl_drop_autoincrement) ;
 
-///< domain
 __METHOD_DECLARE(create_domain) ;
 __METHOD_DECLARE(release_domain) ;
 __METHOD_DECLARE(domain_alter) ;
 __METHOD_DECLARE(domain_list_cs) ;
 __METHOD_DECLARE(domain_list_cl) ;
 
-///< cursor
 __METHOD_DECLARE(create_cursor) ;
 __METHOD_DECLARE(release_cursor) ;
 __METHOD_DECLARE(cr_next) ;
 __METHOD_DECLARE(cr_current) ;
 __METHOD_DECLARE(cr_close) ;
 
-///< group
 __METHOD_DECLARE(create_group) ;
 __METHOD_DECLARE(release_group) ;
 __METHOD_DECLARE(gp_get_nodenum) ;
@@ -141,9 +122,7 @@ __METHOD_DECLARE(gp_detach_node) ;
 __METHOD_DECLARE(gp_start) ;
 __METHOD_DECLARE(gp_stop) ;
 __METHOD_DECLARE(gp_is_catalog) ;
-__METHOD_DECLARE(gp_reelect) ;
 
-///< node
 __METHOD_DECLARE(create_node) ;
 __METHOD_DECLARE(release_node) ;
 __METHOD_DECLARE(nd_connect) ;
@@ -154,7 +133,6 @@ __METHOD_DECLARE(nd_get_nodename) ;
 __METHOD_DECLARE(nd_stop) ;
 __METHOD_DECLARE(nd_start) ;
 
-///< lob
 __METHOD_DECLARE(create_lob) ;
 __METHOD_DECLARE(release_lob) ;
 __METHOD_DECLARE(lob_close) ;
@@ -167,9 +145,7 @@ __METHOD_DECLARE(lob_get_create_time) ;
 __METHOD_DECLARE(lob_get_modification_time) ;
 __METHOD_DECLARE(lob_get_size) ;
 __METHOD_DECLARE(lob_get_oid) ;
-__METHOD_DECLARE(lob_is_eof) ;
 
-///< data center
 __METHOD_DECLARE(create_dc) ;
 __METHOD_DECLARE(release_dc) ;
 __METHOD_DECLARE(dc_get_name) ;

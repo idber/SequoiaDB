@@ -275,7 +275,6 @@ namespace engine
    #define DEPLAY_SA                        "standalone"
    #define DEPLAY_DB                        "distribution"
 
-   // oma extend mode
    #define EXTEND_HORZ                      "horizontal"
    #define EXTEND_VERT                      "vertical"
 

@@ -128,7 +128,6 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__MTHSCOLUMN_CLEAR ) ;
 
-      /// columns and actions will be freed by their pools.
       MTH_S_COLUMNS::iterator i( _subColumns ) ;
       while ( i.more() )
       {
@@ -281,7 +280,6 @@ namespace engine
       }
       else
       {
-         /// do noting.
       }
    done:
       PD_TRACE_EXITRC( SDB__MTHSCOLUMN__BUILDFROMCHILDREN, rc ) ;
@@ -342,7 +340,6 @@ namespace engine
       }
       else
       {
-         /// do nothing.
       }
    done:
       PD_TRACE_EXITRC( SDB__MTHSCOLUMN__BUILDFROMCHILDREN2, rc ) ;
@@ -395,9 +392,6 @@ namespace engine
          }
          else if ( addOtherChild )
          {
-            // If the field has action, we should also show its other children
-            // eg: selector is {a:null,'a.b':{$add:10}}, record is {a:{b:1,c:1}
-            //     result is {a:{b:11,c:1}, instead of {a:{b:11}
             builder.append( e ) ;
          }
       }
@@ -484,7 +478,6 @@ namespace engine
             }
             goto done ;
          }
-         /// a <-> a.b   ||  a <-> d
          else if ( ( compare == RIGHT_SUBFIELD ) || ( compare == LEFT_BEFORE ) )
          {
             end = mid ;

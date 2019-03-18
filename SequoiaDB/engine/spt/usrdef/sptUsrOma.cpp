@@ -169,7 +169,6 @@ namespace engine
       rval.addSelfProperty( "_host" )->setValue( _hostname ) ;
       rval.addSelfProperty( "_svcname" )->setValue( _svcname ) ;
 
-      // check remote info
       rc = _assit.runCommand( "oma test", NULL, &retBuf, retCode ) ;
       sdbClearErrorInfo() ;
       if( SDB_OK != rc )
@@ -278,7 +277,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to get config, rc: %d", rc ) ;
       }
 
-      // add role
       {
          BSONObjBuilder builder ;
          BSONObjIterator it( config ) ;
@@ -357,7 +355,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to get config, rc: %d", rc ) ;
       }
 
-      // add role
       {
          BSONObjBuilder builder ;
          BSONObjIterator it( config ) ;
@@ -501,7 +498,6 @@ namespace engine
       BSONObj recvObj ;
       string command ;
 
-      // merge arg
       rc = _mergeArg( arg, detail, command, &mergeObj ) ;
       if ( SDB_OK != rc )
       {
@@ -510,7 +506,6 @@ namespace engine
          goto error ;
       }
 
-      // get argument needRecv
       if ( arg.argc() >= 5 )
       {
          rc = arg.getNative( 4, &needRecv, SPT_NATIVE_INT32 ) ;
@@ -521,7 +516,6 @@ namespace engine
          }
       }
 
-      // run command and get retrun BSONObj
       rc = _assit.runCommand( command, mergeObj.objdata(),
                               &retBuffer, retCode, needRecv ) ;
       if ( SDB_OK != rc )
@@ -531,10 +525,8 @@ namespace engine
          goto error ;
       }
 
-      // if need recv, need to build recvObj ;
       if ( needRecv )
       {
-         // build recvObj
          SDB_ASSERT( retBuffer, "retBuffer can't be null" ) ;
          try
          {
@@ -549,7 +541,6 @@ namespace engine
             goto error ;
          }
 
-         // if remote cm failed to exec command, retObj contain error detail
          if ( SDB_OK != retCode )
          {
             rc = retCode ;
@@ -676,18 +667,15 @@ namespace engine
 
       if ( !asStandalone )
       {
-         // first to check whether the process exist
          ossEnumProcesses( procs, procShortName.c_str(), TRUE, TRUE ) ;
          if ( procs.size() > 0 )
          {
-            // find it
             outStr << "Success: sdbcmd is already started ("
                    << (*procs.begin())._pid << ")" << endl ;
             goto done ;
          }
       }
 
-      // start progress
       rc = _startSdbcm ( argvs, pid, asProc ) ;
       if ( rc )
       {
@@ -718,7 +706,6 @@ namespace engine
          }
       }
 
-      // wait bussiness ok
       rc = utilWaitNodeOK( cmInfo, NULL,
                            asStandalone ? pid : OSS_INVALID_PID,
                            SDB_TYPE_OMA, SDB_SDBCM_WAIT_TIMEOUT,
@@ -947,7 +934,6 @@ namespace engine
       BSONObjBuilder matchObjBuilder ;
       string err ;
 
-      // hostname
       rc = arg.getString( 0, hostname ) ;
       if ( rc == SDB_OUT_OF_BOUND )
       {
@@ -967,7 +953,6 @@ namespace engine
       }
       valueObjBuilder.append( "hostname", hostname ) ;
 
-      // svcname
       rc = arg.getString( 1, svcname ) ;
       if ( rc == SDB_OUT_OF_BOUND )
       {
@@ -987,7 +972,6 @@ namespace engine
       }
       valueObjBuilder.append( "svcname", svcname ) ;
 
-      // get isReplace
       if ( arg.argc() > 2 )
       {
          rc = arg.getNative( 2, (void*)&isReplace, SPT_NATIVE_INT32 ) ;
@@ -999,7 +983,6 @@ namespace engine
          optionObjBuilder.appendBool( "isReplace", isReplace ) ;
       }
 
-      // get confFile
       if ( arg.argc() > 3 )
       {
          rc = arg.getString( 3, confFile ) ;
@@ -1104,7 +1087,6 @@ namespace engine
       BSONObj matchObj ;
       BSONObj valueObj ;
 
-      // get command
       rc = arg.getString( 0, command ) ;
       if ( rc == SDB_OUT_OF_BOUND )
       {
@@ -1126,7 +1108,6 @@ namespace engine
          goto error ;
       }
 
-      // get optionObj
       if ( arg.argc() >= 2 )
       {
          rc = arg.getBsonobj( 1, optionObj ) ;
@@ -1138,7 +1119,6 @@ namespace engine
          }
       }
 
-      // get matchObj
       if ( arg.argc() >= 3 )
       {
          rc = arg.getBsonobj( 2, matchObj ) ;
@@ -1150,7 +1130,6 @@ namespace engine
          }
       }
 
-      // get valueObj
       if ( arg.argc() >= 4 )
       {
          rc = arg.getBsonobj( 3, valueObj ) ;
@@ -1162,7 +1141,6 @@ namespace engine
          }
       }
 
-      // merge argument
       {
          BSONObjBuilder builder ;
          builder.append( "$optionObj", optionObj ) ;

@@ -85,7 +85,6 @@ namespace engine
                            const CHAR *pDescription,
                            const CHAR *pDetail ) ;
 
-   // clear msg and errno
    void  sdbClearErrorInfo() ;
 
    BOOLEAN  sdbNeedPrintError() ;

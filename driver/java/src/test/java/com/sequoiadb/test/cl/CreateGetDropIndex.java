@@ -36,13 +36,11 @@ public class CreateGetDropIndex {
 
     @Before
     public void setUp() throws Exception {
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } else
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        // cl
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
@@ -76,11 +74,9 @@ public class CreateGetDropIndex {
 
     @Test(expected = BaseException.class)
     public void testCreateSameIndex() {
-        // ceate index
         BSONObject index = new BasicBSONObject();
         index.put("Id", 1);
         cl.createIndex(Constants.TEST_INDEX_NAME, index, false, false);
-        // TODO:
         BSONObject sameindex = new BasicBSONObject();
         sameindex.put("Id", 1);
         cl.createIndex(Constants.TEST_INDEX_NAME, sameindex, false, false);
@@ -88,7 +84,6 @@ public class CreateGetDropIndex {
 
     @Test
     public void testGetIndex() {
-        // ceate index
         BSONObject index = new BasicBSONObject();
         index.put("Id", 1);
         cl.createIndex(Constants.TEST_INDEX_NAME, index, false, false);
@@ -100,12 +95,10 @@ public class CreateGetDropIndex {
 
     @Test
     public void testGetIndexes() {
-        // ceate index
         BSONObject index = new BasicBSONObject();
         index.put("Id", 1);
         cl.createIndex(Constants.TEST_INDEX_NAME, index, false, false);
         SDBTestHelper.waitIndexCreateFinish(cl, Constants.TEST_INDEX_NAME, 100);
-        // TODO:
         DBCursor cursor = cl.getIndexes();
         int count = 0;
         while (cursor.hasNext()) {
@@ -117,11 +110,9 @@ public class CreateGetDropIndex {
 
     @Test
     public void testDropIndex() {
-        // ceate index
         BSONObject index = new BasicBSONObject();
         index.put("Id", 1);
         cl.createIndex(Constants.TEST_INDEX_NAME, index, false, false);
-        // TODO:
         cl.dropIndex(Constants.TEST_INDEX_NAME);
         SDBTestHelper.waitIndexDropFinish(cl, Constants.TEST_INDEX_NAME, 100);
         DBCursor cursor = cl.getIndex(Constants.TEST_INDEX_NAME);
@@ -156,7 +147,6 @@ public class CreateGetDropIndex {
         cl.insert(obj);
     }
 
-    //after create a unique index for the filed name Id ,then can not insert two same records
     @Test(expected = BaseException.class)
     public void testInsertSameRecord() {
         BSONObject key_field = new BasicBSONObject();
@@ -166,7 +156,6 @@ public class CreateGetDropIndex {
         obj.put("Id", 1);
         obj.put("name", "hu");
         cl.insert(obj);
-        // TODO:
         BSONObject obj1 = new BasicBSONObject();
         obj1.put("Id", 1);
         obj1.put("name", "shan");
@@ -182,7 +171,6 @@ public class CreateGetDropIndex {
         obj.put("Id", 1);
         obj.put("name", "hu");
         cl.insert(obj);
-        // TODO:
         BSONObject obj2 = new BasicBSONObject();
         obj2.put("Id", 2);
         obj2.put("name", "hu");
@@ -202,7 +190,6 @@ public class CreateGetDropIndex {
         obj2.put("Id", 2);
         obj2.put("name", "hu");
         cl.insert(obj2);
-        // TODO:
         BSONObject matcher = new BasicBSONObject();
         BSONObject matcher2 = new BasicBSONObject();
         matcher.put("Id", 1);

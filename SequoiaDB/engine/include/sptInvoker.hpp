@@ -206,7 +206,6 @@ namespace engine
                                SPT_PROP_PERMANENT )->setValue(
                                sdbGetGlobalID() ) ;
 
-         /// set properties
          if ( !rval.getSelfProperties().empty() )
          {
             rc = setProperty( cx, jsObj, rval.getSelfProperties() ) ;
@@ -291,7 +290,6 @@ namespace engine
             jsval vp[ 3 ] = { JSVAL_VOID, JSVAL_VOID, valID } ;
             _sptSPArguments args( cx, 1, &vp[0] ) ;
 
-            /// when the property is exist, ignored
             JSObject *prototype = JS_GetPrototype( cx, obj ) ;
             if ( prototype )
             {
@@ -324,7 +322,6 @@ namespace engine
                string idstr ;
                args.getString( 0, idstr ) ;
 
-               /// member function will be called.
                if ( T::__desc.getFuncMap().isMemberFunc( idstr.c_str() ) )
                {
                   goto done ;
@@ -346,7 +343,6 @@ namespace engine
             }
             else if ( !processed )
             {
-               /// don't processed
                goto done ;
             }
             else if ( !callFunc.empty() )
@@ -377,7 +373,6 @@ namespace engine
          }
          else
          {
-            /// not surpported yet
             goto done ;
          }
 

@@ -126,7 +126,6 @@ namespace engine
          CHAR *pBuff = ( CHAR* )SDB_OSS_MALLOC( _buffSize ) ;
          if ( pBuff )
          {
-            // copy buf data to own
             ossMemcpy( pBuff, _pBuff, _buffSize ) ;
             _pBuff = pBuff ;
             _owned = TRUE ;
@@ -228,7 +227,6 @@ namespace engine
 
    _rtnContextBuf& _rtnContextBuf::operator=( const _rtnContextBuf &right )
    {
-      // release cur
       release () ;
 
       _rtnObjBuff::operator=( right ) ;
@@ -240,7 +238,6 @@ namespace engine
       _pOrgBuff = right._pOrgBuff ;
       _startFrom = right._startFrom ;
 
-      // increase counter
       if ( !_released && NULL != _pBuffCounter )
       {
          ++(*_pBuffCounter) ;

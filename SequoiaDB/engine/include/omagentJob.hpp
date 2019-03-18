@@ -72,7 +72,6 @@ namespace engine
    } ;
 
 
-   // start omagent job
    INT32 startOmagentJob ( OMA_TASK_TYPE taskType, INT64 taskID,
                            const BSONObj &info, omaTaskPtr &taskPtr,
                            void *ptr = NULL ) ;

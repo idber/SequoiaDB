@@ -1,17 +1,17 @@
-/* Copyright (c) 2018, SequoiaDB and/or its affiliates. All rights reserved.
+/* Copyright (c) 2003, 2011, Oracle and/or its affiliates. All rights reserved.
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; version 2 of the License.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; version 2 of the License.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
 
 #ifndef SDB_CONF__H
 #define SDB_CONF__H
@@ -35,15 +35,6 @@ public:
 
    int get_coord_num() ;
 
-   const char * get_global_domain_name()
-   {
-      return "mysql_storage_engine_domain" ;
-   }
-
-   void set_use_partition( my_bool val ) ;
-
-   my_bool get_use_partition() ;
-
 private:
 
    sdb_conf() ;
@@ -58,7 +49,6 @@ private:
    char                          *pAddrs[SDB_COORD_NUM_MAX] ;
    int                           coord_num ;
    pthread_rwlock_t              addrs_mutex ;
-   my_bool                       use_partition ;
 } ;
 
 #define SDB_CONF_INST            sdb_conf::get_instance()

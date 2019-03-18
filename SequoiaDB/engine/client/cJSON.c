@@ -533,7 +533,6 @@ static const CHAR* tokenObjKey( CJSON *pItem,
 {
    if( *pStr == CHAR_COMMA )
    {
-      // { xx : xx, , <--- is error
       CJSON_PRINTF_LOG( "Syntax Error: extra ','" ) ;
       goto error ;
    }
@@ -680,7 +679,6 @@ static const CHAR* tokenArrValue( CJSON *pItem,
 {
    if( *pStr == CHAR_COMMA )
    {
-      // [ xx , , <--- is error
       CJSON_PRINTF_LOG( "Syntax Error: extra ','" ) ;
       goto error ;
    }
@@ -772,22 +770,18 @@ static const CHAR* readKey( CJSON *pItem,
    INT32 keyLen  = 0 ;
    const CHAR *pStrStart = NULL ;
 
-   // step: 1
    if( *pStr == CHAR_QUOTE )
    {
-      // 'xxxx
       type = TYPE_STRING_QUOTE ;
       ++pStr ;
    }
    else if( *pStr == CHAR_DOUBLE_QUOTES )
    {
-      // "xxxx
       type = TYPE_STRING_DOUBLE_QUOTES ;
       ++pStr ;
    }
    pStrStart = pStr ;
 
-   // step: 2
    pStr = parseCommand( pStr, type, &keyAttr, &keyType ) ;
    if( pStr == NULL )
    {
@@ -801,14 +795,11 @@ static const CHAR* readKey( CJSON *pItem,
       ++pStr ;
    }
 
-   // step: 3
    if( keyAttr == SYMBOL_NONE )
    {
-      // xxx
       if( *pStrStart == CHAR_DOLLAR &&
           pMachine->parseMode == CJSON_RIGOROUS_PARSE )
       {
-         // $???
          CJSON_PRINTF_LOG( "Rigorous mode, can's use\
  an undefined command: %.*s", keyLen, pStrStart ) ;
          goto error ;
@@ -822,11 +813,9 @@ static const CHAR* readKey( CJSON *pItem,
    }
    else
    {
-      // $xxx
       if( keyAttr == SYMBOL_DATATYPE ||
           keyAttr == SYMBOL_UNCERTAIN )
       {
-         // $<type>
          pItem->keyType = keyType ;
       }
       pItem->pKey = parseString( pStrStart, keyLen, pMachine ) ;
@@ -869,7 +858,6 @@ static const CHAR* readValue( CJSON *pItem,
       pTmpStr = parseFun( pTmpStr, pMachine, &pReadInfo ) ;
       if( pTmpStr == NULL )
       {
-         //CJSON_PRINTF_LOG( "Failed to call parse function" ) ;
          goto error ;
       }
       if( cJsonReadInfoExecState( pReadInfo ) == CJSON_EXEC_IGNORE )
@@ -1547,16 +1535,13 @@ static CHAR* parseString( const CHAR *pStr,
 
             if( ( uc >= 0xDC00 && uc <= 0xDFFF ) || uc == 0 )
             {
-               // check for invalid.
                break ;
             }
 
             if( uc >= 0xD800 && uc <= 0xDBFF )
             {
-               // UTF16 surrogate pairs.
                if( pStr[1] != '\\' || pStr[2] != 'u' )
                {
-                  // missing second-half of surrogate.
                   break ;
                }
                sscanf( pStr + 3, "%4x", &ucTmp ) ;
@@ -1565,7 +1550,6 @@ static CHAR* parseString( const CHAR *pStr,
                length -= 6 ;
                if( uc2 < 0xDC00 || uc2 > 0xDFFF )
                {
-                  // invalid second-half of surrogate.
                   break ;
                }
                uc = 0x10000 | ( ( uc & 0x3FF ) << 10 ) | ( uc2 & 0x3FF ) ;
@@ -1651,63 +1635,51 @@ static const CHAR* parseNumber( const CHAR *pStr,
    INT64 n2 = 0 ;
    CJSON_VALUE_TYPE numType = CJSON_INT32 ;
 
-   //step 1
    if( *pStr == '#' )
    {
-      //#xxx
       ++pStr ;
       ++len ;
    }
    if( *pStr == '-' )
    {
-      //-xxx
       sign = -1 ;
       ++pStr ;
       ++len ;
    }
    else if( *pStr == '+' )
    {
-      //+xxx
       sign = 1 ;
       ++pStr ;
       ++len ;
    }
 
-   //step 2
    while( *pStr == '0' )
    {
-      //0xxxxx
       ++pStr ;
       ++len ;
    }
 
-   //step 3
    while( *pStr >= '0' && *pStr <= '9' )
    {
-      //<number>xxxx
       INT32 num = *pStr - '0' ;
       if( numType == CJSON_INT32 )
       {
          if( n1 > CJSON_INT32_MAX )
          {
-            //n1 * 10 is greater than the int range
             numType = CJSON_INT64 ;
          }
          else if( n1 < CJSON_INT32_MIN )
          {
-            //n1 * 10 is less than the int range
             numType = CJSON_INT64 ;
          }
          else if( n1 == CJSON_INT32_MAX || n1 == CJSON_INT32_MIN )
          {
             if( sign == 1 && num > 7 )
             {
-               //n1 * 10 + num is greater than the max int
                numType = CJSON_INT64 ;
             }
             else if( sign == -1 && num > 8 )
             {
-               //n1 * 10 - num is less then the min int
                numType = CJSON_INT64 ;
             }
          }
@@ -1716,24 +1688,20 @@ static const CHAR* parseNumber( const CHAR *pStr,
       {
          if( n2 > CJSON_INT64_MAX )
          {
-            //n2 * 10 is greater than the long long range
             numType = CJSON_DECIMAL ;
          }
          else if( n2 < CJSON_INT64_MIN )
          {
-            //n2 * 10 is less than the long long range
             numType = CJSON_DECIMAL ;
          }
          else if( n2 == CJSON_INT64_MAX || n2 == CJSON_INT64_MIN )
          {
             if( sign == 1 && num > 7 )
             {
-               //n2 * 10 + num is greater than the max long long
                numType = CJSON_DECIMAL ;
             }
             else if( sign == -1 && num > 8 )
             {
-               //n2 * 10 - num is less then the min long long
                numType = CJSON_DECIMAL ;
             }
          }
@@ -1745,10 +1713,8 @@ static const CHAR* parseNumber( const CHAR *pStr,
       ++len ;
    }
 
-   //step 4
    if( *pStr == '.' && pStr[1] >= '0' && pStr[1] <= '9' ) 
    {
-      //<number>.xxx
       numType = CJSON_DOUBLE ;
       ++pStr ;
       ++len ;
@@ -1763,11 +1729,9 @@ static const CHAR* parseNumber( const CHAR *pStr,
       n = n + sign * decimal / pow( 10.0, scale ) ;
    }
 
-   //step 5
    if( *pStr == 'e' || *pStr == 'E' )
    {
       numType = CJSON_DOUBLE ;
-      //<number>[e/E]xxx
       ++pStr ;
       ++len ;
       if( *pStr == '+' )
@@ -1789,10 +1753,8 @@ static const CHAR* parseNumber( const CHAR *pStr,
       }
    }
 
-   //step 6
    if ( numType == CJSON_DOUBLE )
    {
-      // number = +/- number.fraction * 10^+/- exponent
       n = n * pow( 10.0, ( subscale * signsubscale * 1.0 ) ) ;
    }
    *pValDouble = n ;
@@ -1967,7 +1929,6 @@ static const CHAR* parseArgImpl( const CHAR *pStr,
 
    if( *pStr == CHAR_DOUBLE_QUOTES || *pStr == CHAR_QUOTE )
    {
-      // "xxxx  or  'xxxx
       BOOLEAN isSlash = FALSE ;
       STRING_TYPE stringType = TYPE_STRING_NONE ;
       const CHAR *pStrStart = NULL ;
@@ -2024,7 +1985,6 @@ static const CHAR* parseArgImpl( const CHAR *pStr,
             *pStr == '-' ||
             *pStr == '#' )
    {
-      // <number>
       valType = CJSON_NUMBER ;
       pStr = parseNumber( pStr, &valInt, &valDouble, &valInt64, &valType, &length ) ;
       pStr = skip( pStr ) ;
@@ -2037,7 +1997,6 @@ static const CHAR* parseArgImpl( const CHAR *pStr,
    else
    {
       const CHAR *pStrStart = pStr ;
-      //true false null
       if( pStrStart[0] == 't' &&
           pStrStart[1] == 'r' &&
           pStrStart[2] == 'u' &&
@@ -2352,7 +2311,6 @@ static const CHAR* parseArgs( const CHAR *pStr,
          }
          else if( *pStr == CHAR_RIGHT_ROUND_BRACKET )
          {
-            // do nothing
          }
          else
          {
@@ -2465,7 +2423,6 @@ static BOOLEAN checkCustomType( CJSON *pItem,
          {
             if( pMachine->parseMode == CJSON_RIGOROUS_PARSE )
             {
-               //$命令同级下存在其他普通字段
                CJSON_PRINTF_LOG( "The %s and the %s can not coexist",
                                  pKey,
                                  pItem->pKey ) ;
@@ -2480,7 +2437,6 @@ static BOOLEAN checkCustomType( CJSON *pItem,
                 assistType != CJSON_NONE &&
                 assistType != CJSON_OPTIONS )
             {
-               //$regex和非$options的辅助字段
                if( pMachine->parseMode == CJSON_RIGOROUS_PARSE )
                {
                   CJSON_PRINTF_LOG( "The %s and the %s can not coexist",
@@ -2494,7 +2450,6 @@ static BOOLEAN checkCustomType( CJSON *pItem,
                      assistType != CJSON_NONE &&
                      assistType != CJSON_TYPE )
             {
-               //$binary和非$type的辅助字段
                if( pMachine->parseMode == CJSON_RIGOROUS_PARSE )
                {
                   CJSON_PRINTF_LOG( "The %s and the %s can not coexist",
@@ -2508,7 +2463,6 @@ static BOOLEAN checkCustomType( CJSON *pItem,
                      assistType != CJSON_NONE &&
                      assistType != CJSON_PRECISION )
             {
-               //$decimal和非$precision的辅助字段
                if( pMachine->parseMode == CJSON_RIGOROUS_PARSE )
                {
                   CJSON_PRINTF_LOG( "The %s and the %s can not coexist",
@@ -2522,7 +2476,6 @@ static BOOLEAN checkCustomType( CJSON *pItem,
          }
          else
          {
-            //同一级下,有多个类型字段
             if( pMachine->parseMode == CJSON_RIGOROUS_PARSE )
             {
                CJSON_PRINTF_LOG( "The %s and the %s can not coexist",
@@ -2545,7 +2498,6 @@ static BOOLEAN checkCustomType( CJSON *pItem,
                 customType != CJSON_NONE &&
                 customType != CJSON_REGEX )
             {
-               //$options和非$regex的类型字段
                if( pMachine->parseMode == CJSON_RIGOROUS_PARSE )
                {
                   CJSON_PRINTF_LOG( "The %s and the %s can not coexist",
@@ -2559,7 +2511,6 @@ static BOOLEAN checkCustomType( CJSON *pItem,
                      customType != CJSON_NONE &&
                      customType != CJSON_BINARY )
             {
-               //$type和非$binary的类型字段
                if( pMachine->parseMode == CJSON_RIGOROUS_PARSE )
                {
                   CJSON_PRINTF_LOG( "The %s and the %s can not coexist",
@@ -2573,7 +2524,6 @@ static BOOLEAN checkCustomType( CJSON *pItem,
                      customType != CJSON_NONE &&
                      customType != CJSON_DECIMAL )
             {
-               //$type和非$binary的类型字段
                if( pMachine->parseMode == CJSON_RIGOROUS_PARSE )
                {
                   CJSON_PRINTF_LOG( "The %s and the %s can not coexist",
@@ -2587,7 +2537,6 @@ static BOOLEAN checkCustomType( CJSON *pItem,
          }
          else
          {
-            //同一级下,有多个辅助字段
             if( pMachine->parseMode == CJSON_RIGOROUS_PARSE )
             {
                CJSON_PRINTF_LOG( "The %s and the %s can not coexist",
@@ -2605,7 +2554,6 @@ static BOOLEAN checkCustomType( CJSON *pItem,
          {
             if( pMachine->parseMode == CJSON_RIGOROUS_PARSE )
             {
-               //$命令同级下存在其他普通字段
                CJSON_PRINTF_LOG( "The %s and the %s can not coexist",
                                  pKey,
                                  pItem->pKey ) ;

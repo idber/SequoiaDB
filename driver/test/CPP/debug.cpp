@@ -61,31 +61,24 @@ TEST( debug, SdbIsValid )
    BSONObj obj ;
    const CHAR *pCSName = "debug" ;
    const CHAR *pCLName = "debug" ;
-   // initialize local variables
    const CHAR *pHostName                    = HOST ;
    const CHAR *pPort                        = SERVER ;
    const CHAR *pUsr                         = USER ;
    const CHAR *pPasswd                      = PASSWD ;
    INT32 rc                                 = SDB_OK ;
    BOOLEAN result = FALSE ;
-   // initialize the work environment
-   //rc = initEnv() ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // connect to database
    rc = db.connect( pHostName, pPort, pUsr, pPasswd ) ;
    ASSERT_TRUE( rc==SDB_OK ) ;
    db.dropCollectionSpace( COLLECTION_SPACE_NAME ) ; 
    rc = db.createCollectionSpace( COLLECTION_SPACE_NAME, SDB_PAGESIZE_4K, cs ) ; 
    ASSERT_EQ( SDB_OK, rc ) << "fail to create cs" ; 
 
-   // use cl twice to check mem leak 
    rc = cs.createCollection( COLLECTION_NAME, cl ) ; 
    ASSERT_EQ( SDB_OK, rc ) << "fail to create cl" ; 
    rc = cs.getCollection( COLLECTION_NAME, cl ) ; 
    ASSERT_EQ( SDB_OK, rc ) << "fail to get cl" ; 
 
-   // query
-//   _genObjectForInOperator( obj ) ;
    _genObject( obj ) ;
    
    rc = cl.query( cursor, obj ) ;

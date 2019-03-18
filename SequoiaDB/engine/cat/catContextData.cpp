@@ -67,9 +67,6 @@ namespace engine
 
       if ( !_groupList.empty() )
       {
-         // If the Data group list is not empty, we need the Coord and Catalog
-         // walk through this context step by step, so send dummy object to
-         // keep one GetMore for one step.
          if ( ( CAT_CONTEXT_READY == _status && !_executeAfterLock ) ||
               ( CAT_CONTEXT_CAT_DONE == _status && _executeAfterLock ) )
          {
@@ -85,8 +82,6 @@ namespace engine
       }
       else
       {
-         // If the Data group list is empty, we don't need Data group to
-         // participate, send empty object get all GetMores back.
       }
 
       PD_TRACE_EXITRC ( SDB_CATCTXDATA_MAKEREPLY, rc ) ;
@@ -101,13 +96,11 @@ namespace engine
                                                         UINT64 eduID )
    : _catCtxDataBase( contextID, eduID )
    {
-      // Always need rollback for finished sub-tasks
       _needRollbackAlways = TRUE ;
    }
 
    _catCtxDataMultiTaskBase::~_catCtxDataMultiTaskBase ()
    {
-      // Clear sub tasks
       _catSubTasks::iterator iter = _subTasks.begin() ;
       while ( iter != _subTasks.end() )
       {
@@ -443,7 +436,6 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_CATCTXINDEX_CREATEIDX_TASKS ) ;
 
-      // Unlock immediately
       catCtxLockMgr lockMgr ;
       _catCtxCreateIdxTask *pCreateIdxTask = NULL ;
 
@@ -579,7 +571,6 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_CATCTXINDEX_DROPIDX_TASKS ) ;
 
-      // Unlock immediately
       catCtxLockMgr lockMgr ;
       _catCtxDropIdxTask *pDropIdxTask = NULL ;
 
@@ -776,7 +767,6 @@ namespace engine
 
                rc = _addDropCLTask( clFullName, -1, &pDropCLTask );
 
-               // Space has been locked already
                pDropCLTask->disableLocks() ;
 
                rc = pDropCLTask->checkTask( cb, _lockMgr ) ;
@@ -846,9 +836,6 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_CATCTXDROPCS_DROPCL_SUBTASK ) ;
 
-      // For DropCL inside a DropCS:
-      // 1. if cl is a sub-collection, need unlink it's main-collection
-      // 2. if cl is a main-collection, need unlink it's sub-collections
 
       try
       {
@@ -875,11 +862,9 @@ namespace engine
             {
                std::string subCLName = (*iterSubCL) ;
 
-               // Do not delete sub-collections when dropping space
                BOOLEAN inSameSpace = FALSE ;
                _catCtxUnlinkSubCLTask *pUnlinkSubCLTask = NULL ;
 
-               // Unlink the sub collection from deleting collection
                rc = _addUnlinkSubCLTask( clName, subCLName, &pUnlinkSubCLTask ) ;
                PD_RC_CHECK( rc, PDERROR,
                             "Failed to create unlink collection task for "
@@ -899,7 +884,6 @@ namespace engine
                             clName.c_str(), subCLName.c_str(), rc ) ;
                if ( inSameSpace )
                {
-                  // Collection Space has been already locked
                   pUnlinkSubCLTask->disableLocks() ;
                }
                rc = pUnlinkSubCLTask->checkTask( cb, _lockMgr ) ;
@@ -1087,14 +1071,12 @@ namespace engine
       std::map<std::string, UINT32> splitList ;
 
 
-      // Just check the existence of collection, no lock is needed
       rc = catGetCollection( _targetName, boDummy, cb ) ;
       PD_CHECK( SDB_DMS_NOTEXIST == rc,
                 SDB_DMS_EXIST, error, PDERROR,
                 "Create failed, the collection [%s] exists",
                 _targetName.c_str() ) ;
 
-      // split collection full name to csname and clname
       rc = rtnResolveCollectionName( _targetName.c_str(),
                                      _targetName.size(),
                                      szSpace, DMS_COLLECTION_SPACE_NAME_SZ,
@@ -1103,23 +1085,18 @@ namespace engine
                     "Failed to resolve collection name [%s], rc: %d",
                     _targetName.c_str(), rc ) ;
 
-      // make sure the name is valid
       rc = dmsCheckCLName( szCollection, FALSE ) ;
       PD_RC_CHECK ( rc, PDERROR,
                     "Failed to check collection name [%s], rc: %d",
                     szCollection, rc ) ;
 
-      // get collection-space
       rc = catGetAndLockCollectionSpace( szSpace, boSpace, cb, NULL, SHARED ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get the collection space [%s], rc: %d",
                    szSpace, rc ) ;
 
-      // here we do not care what the values are
-      // we care how many records in the specified collection space
       {
          BSONElement ele = boSpace.getField( CAT_COLLECTION ) ;
-         /// some times, the CAT_COLLECTION will be not exist
          if ( Array == ele.type() )
          {
             if ( ele.embeddedObject().nFields() >= DMS_MME_SLOTS )
@@ -1133,19 +1110,16 @@ namespace engine
          }
       }
 
-      // Lock the collection name
       PD_CHECK( _lockMgr.tryLockCollection( szSpace, _targetName, EXCLUSIVE ),
                 SDB_LOCK_FAILED, error, PDERROR,
                 "Failed to lock collection [%s]",
                 _targetName.c_str() ) ;
 
-      // try to get domain obj of cl.
       {
          BSONElement eleDomain = boSpace.getField( CAT_DOMAIN_NAME ) ;
          if ( String == eleDomain.type() )
          {
             std::string domainName = eleDomain.str() ;
-            // get Domain
             rc = catGetAndLockDomain( domainName, boDomain, cb,
                                       &_lockMgr, SHARED ) ;
             PD_RC_CHECK( rc, PDERROR,
@@ -1154,14 +1128,12 @@ namespace engine
          }
       }
 
-      // Build the new object
       rc = catCheckAndBuildCataRecord( _boQuery, fieldMask, clInfo, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to check create collection obj [%s], rc: %d",
                    _boQuery.toString().c_str(), rc ) ;
 
       {
-         // Capped collection check.
          BSONElement eleType = boSpace.getField( CAT_TYPE_NAME ) ;
          if ( NumberInt == eleType.type() )
          {
@@ -1174,8 +1146,6 @@ namespace engine
                goto error ;
             }
 
-            // If the user create a collection on a Capped CS, without specify
-            // "Capped" for collection, it's also OK.
             if ( ( DMS_STORAGE_CAPPED == type ) && !clInfo._capped )
             {
                clInfo._capped = TRUE ;
@@ -1184,7 +1154,6 @@ namespace engine
          }
       }
 
-      // Get last history version of collection name
       _version = catGetBucketVersion( _targetName.c_str(), cb ) ;
       clInfo._version = _version ;
 
@@ -1199,7 +1168,6 @@ namespace engine
          goto error ;
       }
 
-      /// choose a group to create cl
       rc = _chooseGroupOfCl( boDomain, boSpace, clInfo, cb,
                              _groupList, splitList ) ;
       PD_RC_CHECK( rc, PDERROR,
@@ -1212,7 +1180,6 @@ namespace engine
                    rc ) ;
 
       {
-         // build new collection record for meta data.
          BSONObj boNewObj ;
          rc = catBuildCatalogRecord ( clInfo, fieldMask, 0,
                                       _groupList, splitList,
@@ -1280,7 +1247,6 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_CATCTXCREATECL_COMBINE_OPTS ) ;
 
-      /// it is a sysdomain.
       if ( boDomain.isEmpty() )
       {
          goto done ;
@@ -1357,7 +1323,6 @@ namespace engine
 
       if ( clInfo._isMainCL )
       {
-         /// For main CL only test for available group
          groupIDList.clear() ;
          splitRange.clear() ;
       }
@@ -1385,11 +1350,7 @@ namespace engine
       BOOLEAN isSysDomain = domainObj.isEmpty() ;
       INT32 tmpGrpID = CAT_INVALID_GROUPID ;
 
-      /// if the group is specified.
-      /// 1) whether the group exists.
-      /// 2) whether the group is one of the groups of domain.
 
-      // test group first
       rc = catGroupName2ID( groupName, (UINT32 &)tmpGrpID, TRUE, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to convert group name [%s] to id, "
                    "rc: %d", groupName, rc ) ;
@@ -1437,13 +1398,11 @@ namespace engine
 
       if ( isSysDomain )
       {
-         // Split to all SYS domain groups
          sdbGetCatalogueCB()->getGroupsID( groupIDList, TRUE ) ;
          sdbGetCatalogueCB()->getGroupNameMap( splitRange, TRUE ) ;
       }
       else
       {
-         // Split to all domain groups
          rc = catGetDomainGroups( domainObj, groupIDList ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get groups from domain info "
                       "[%s], rc: %d", domainObj.toString().c_str(), rc ) ;
@@ -1477,7 +1436,6 @@ namespace engine
       UINT32 tmpGrpID = CAT_INVALID_GROUPID ;
       BOOLEAN isSysDomain = domainObj.isEmpty() ;
 
-      // FOLLOW is given
       if ( ASSIGN_FOLLOW == assignType )
       {
          BSONElement ele = csObj.getField( CAT_COLLECTION_SPACE_NAME ) ;
@@ -1487,10 +1445,8 @@ namespace engine
                       " groups, rc: %d", csObj.toString().c_str(), rc ) ;
       }
 
-      // Collection space has domain
       if ( candidateGroupList.empty() && !isSysDomain )
       {
-         /// Randomly choose one group in the domain
          rc = catGetDomainGroups( domainObj, candidateGroupList ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get groups from domain info [%s], rc: %d",
@@ -1499,7 +1455,6 @@ namespace engine
 
       if ( candidateGroupList.empty() )
       {
-         // No candidate groups, choose one from SYS domain
          tmpGrpID = CAT_INVALID_GROUPID ;
          rc = sdbGetCatalogueCB()->getAGroupRand( tmpGrpID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get group from SYS, rc: %d",
@@ -1507,12 +1462,10 @@ namespace engine
       }
       else if ( 1 == candidateGroupList.size() )
       {
-         // Got a single group, assign directly
          tmpGrpID = candidateGroupList[ 0 ] ;
       }
       else
       {
-         // Got multiple groups, randomly choose one
          tmpGrpID = candidateGroupList[ ossRand() %
                                         candidateGroupList.size() ] ;
       }
@@ -1624,9 +1577,6 @@ namespace engine
 
       _catCtxDropCLTask *pDropCLTask = NULL ;
 
-      // Add the dropCL task after removing CL from CS
-      // If one of them is interupted by multiple times of system crashes, we
-      // could use the same dropCL command to continue the drop process.
       rc = _addDropCLTask( _targetName, _version, &pDropCLTask, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to create drop collection task, rc: %d", rc ) ;
@@ -1669,10 +1619,8 @@ namespace engine
 
          if ( _needUpdateCoord )
          {
-            // Version of collection in Coord need to be updated
             retObjBuilder.appendElements(
                   BSON( CAT_COLLECTION << _boTarget.getOwned() ) ) ;
-            // Append GROUP field even if the list is empty
             _pCatCB->makeGroupsObj( retObjBuilder, _groupList, TRUE ) ;
          }
          else if ( !_groupList.empty() )
@@ -1704,9 +1652,6 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_CATCTXDROPCL_DROPCL_SUBTASK ) ;
 
-      // For DropCL:
-      // 1. if cl is a sub-collection, need unlink it's main-collection
-      // 2. if cl is a main-collection, need delete it's sub-collections
 
       try
       {
@@ -1718,15 +1663,11 @@ namespace engine
                       "Failed to parse catalog info [%s], rc: %d",
                       clName.c_str(), rc ) ;
 
-         // Since we might need to drop a batch of collections, we use
-         // DelCLsFromCSTask to handle the changes to each "Collection" array
-         // of the spaces which the collections belong
          _catCtxDelCLsFromCSTask *pDelCLsFromCSTask = NULL ;
          rc = _addDelCLsFromCSTask ( &pDelCLsFromCSTask, FALSE ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to create delCLsFromCS task, "
                       "rc: %d", rc ) ;
-         // Add the dropping collection to DelCLsFromCSTask first
          rc = pDelCLsFromCSTask->deleteCL( clName ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to add collection [%s] into delCLsFromCS task, "
@@ -1734,7 +1675,6 @@ namespace engine
 
          if ( cataSet.isMainCL() )
          {
-            // For main-collection
             std::vector< std::string > subCLLst;
             std::vector< std::string >::iterator iterSubCL;
 
@@ -1748,7 +1688,6 @@ namespace engine
             {
                std::string subCLName = (*iterSubCL) ;
 
-               // Drop sub-collection
                _catCtxDropCLTask *pDropSubCLTask = NULL ;
                rc = _addDropCLTask( subCLName, -1, &pDropSubCLTask ) ;
                PD_RC_CHECK( rc, PDERROR,
@@ -2049,7 +1988,6 @@ namespace engine
                   "Failed to parse catalog info [%s], rc: %d",
                   boCollection.toString().c_str(), rc );
 
-      // Build the new object
       rc = catCheckAndBuildCataRecord( _alterFields, fieldMask,
                                        newCLInfo, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR,
@@ -2071,7 +2009,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to lock groups, rc: %d", rc ) ;
 
-      /// Get updated collection object
       _boTarget = tmpObj.getOwned() ;
 
    done :
@@ -2141,7 +2078,6 @@ namespace engine
                       "Task name [%s] not matched, expected %s",
                       taskName.c_str(), SDB_ALTER_CRT_ID_INDEX ) ;
 
-            // IdIndex is unique, but id is not in sharding key
             rc = _addCreateIdxTasks( _targetName, IXM_ID_KEY_NAME,
                                      boIdx, FALSE, cb ) ;
             PD_RC_CHECK( rc, PDERROR,
@@ -2244,8 +2180,6 @@ namespace engine
 
       if ( cataSet.isSharding() || cataSet.isMainCL() )
       {
-         /// this is a splited collection or a main cl.
-         /// we can only change replsize or auto rebalance.
          BSONObjBuilder builder ;
          if ( mask & CAT_MASK_REPLSIZE )
          {
@@ -2267,7 +2201,6 @@ namespace engine
                  "Failed to get first item from catalog set" ) ;
       attribute = cataSet.getAttribute() ;
 
-      // Check unsupported alter options for capped collection.
       if ( OSS_BIT_TEST( attribute, DMS_MB_ATTR_CAPPED )  )
       {
          PD_CHECK( !( ( CAT_MASK_SHDKEY & mask ) ||
@@ -2313,8 +2246,6 @@ namespace engine
       }
       else
       {
-         // For normal collection, it can not be change to capped collection,
-         // or modify the Max|Size|OverWrite options.
          if ( ( CAT_MASK_CAPPED & mask ) && alterInfo._capped )
          {
             PD_LOG( PDERROR, "Can't change from normal collection to capped "
@@ -2426,23 +2357,19 @@ namespace engine
 
       string tmpMainCLName ;
 
-      // 1. check main-collection
       rc = catGetAndLockCollection( _targetName, _boTarget, cb,
                                     &_lockMgr, EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get the main-collection [%s], rc: %d",
                    _targetName.c_str(), rc ) ;
 
-      // Main-collection should be main collection
       rc = catCheckMainCollection( _boTarget, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Collection [%s] is not a main-collection, rc: %d",
                    _targetName.c_str(), rc ) ;
 
-      // 2. check sub-collection
       if ( 0 == _targetName.compare( _subCLName ) )
       {
-         // Avoid repeating locked, report error eventually
          _boSubCL = _boTarget ;
       }
       else
@@ -2454,20 +2381,17 @@ namespace engine
                       _subCLName.c_str(), rc ) ;
       }
 
-      // Sub-collection should not be main collection
       rc = catCheckMainCollection( _boSubCL, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Collection [%s] could not be a main-collection, rc: %d",
                    _subCLName.c_str(), rc ) ;
 
-      // Check if sub-collection already linked
       rc = catCheckRelinkCollection ( _boSubCL, tmpMainCLName ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Duplicate attach collection partition [%s], "
                    "its partitioned-collection is %s",
                    _subCLName.c_str(), tmpMainCLName.c_str() ) ;
 
-      /// Lock groups of sub-collection
       rc = catGetAndLockCollectionGroups( _boSubCL,
                                           _groupList,
                                           _lockMgr, SHARED ) ;
@@ -2493,12 +2417,9 @@ namespace engine
 
       BOOLEAN subCLUpdated = FALSE ;
 
-      // Always update the sub-collection first, so if error happens between
-      // these two steps, we could always clean the wrong status with unlink
 
       if ( _needUpdateSubCL )
       {
-         // update sub-collection catalog info
          rc = catLinkSubCLStep( _targetName, _subCLName, cb, _pDmsCB, _pDpsCB, w ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to update the sub-collection [%s], rc: %d",
@@ -2507,7 +2428,6 @@ namespace engine
          subCLUpdated = TRUE ;
       }
 
-      // update main-collection catalog info
       rc = catLinkMainCLStep( _targetName, _subCLName, _lowBound, _upBound,
                               cb, _pDmsCB, _pDpsCB, w ) ;
       PD_RC_CHECK( rc, PDERROR,
@@ -2520,7 +2440,6 @@ namespace engine
    error :
       if ( subCLUpdated )
       {
-         // Rollback sub-collection immediately
          INT32 tmpRC = SDB_OK ;
          tmpRC = catUnlinkSubCLStep( _subCLName,
                                      cb, _pDmsCB, _pDpsCB, w ) ;
@@ -2544,12 +2463,9 @@ namespace engine
       INT32 tmpRC = SDB_OK ;
       BSONObj dummyLowBound, dummyUpBound ;
 
-      // Always update the sub-collection first, so if error happens between
-      // these two steps, we could always clean the wrong status with unlink
 
       if ( _needUpdateSubCL )
       {
-         // Rollback sub-collection update
          tmpRC = catUnlinkSubCLStep( _subCLName, cb, _pDmsCB, _pDpsCB, w ) ;
          if ( SDB_OK != tmpRC )
          {
@@ -2560,7 +2476,6 @@ namespace engine
          }
       }
 
-      // Rollback main-collection update
       tmpRC = catUnlinkMainCLStep( _targetName, _subCLName,
                                    FALSE, dummyLowBound, dummyUpBound,
                                    cb, _pDmsCB, _pDpsCB, w ) ;
@@ -2640,23 +2555,19 @@ namespace engine
 
       string tmpMainCLName ;
 
-      // 1. check main-collection
       rc = catGetAndLockCollection( _targetName, _boTarget, cb,
                                     &_lockMgr, EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get the main-collection [%s], rc: %d",
                    _targetName.c_str(), rc ) ;
 
-      // Main-collection should be main collection
       rc = catCheckMainCollection( _boTarget, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Collection[%s] is not a main-collection, rc: %d",
                    _targetName.c_str(), rc ) ;
 
-      // 2. check sub-collection
       if ( 0 == _targetName.compare( _subCLName ) )
       {
-         // Avoid repeating locked, report error eventually
          _boSubCL = _boTarget ;
       }
       else
@@ -2668,13 +2579,11 @@ namespace engine
                       _subCLName.c_str(), rc ) ;
       }
 
-      // Sub-collection should not be main collection
       rc = catCheckMainCollection( _boSubCL, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Collection [%s] could not be a main-collection, rc: %d",
                    _subCLName.c_str(), rc ) ;
 
-      // Check if sub-collection already linked
       rc = catCheckRelinkCollection ( _boSubCL, tmpMainCLName ) ;
       if ( rc == SDB_RELINK_SUB_CL )
       {
@@ -2692,8 +2601,6 @@ namespace engine
                  "Sub-collection [%s] hasn't been linked",
                  _subCLName.c_str() ) ;
 
-         // Check if the mainCL contain the subCL, if so, still need
-         // to update mainCL to remove the item in its the subCL list
          clsCatalogSet mainCLSet( _targetName.c_str() ) ;
 
          rc = mainCLSet.updateCatSet( _boTarget ) ;
@@ -2709,7 +2616,6 @@ namespace engine
          _needUpdateSubCL = FALSE ;
       }
 
-      // Lock groups of sub-collection
       rc = catGetAndLockCollectionGroups( _boSubCL,
                                           _groupList,
                                           _lockMgr, SHARED ) ;
@@ -2732,12 +2638,9 @@ namespace engine
 
       BOOLEAN subCLUpdated = FALSE ;
 
-      // Always update the sub-collection first, so if error happens between
-      // these two steps, we could always clean the wrong status with unlink
 
       if ( _needUpdateSubCL )
       {
-         // update main-collection catalog info
          rc = catUnlinkSubCLStep( _subCLName, cb, _pDmsCB, _pDpsCB, w ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to update the sub-collection [%s], rc: %d",
@@ -2746,7 +2649,6 @@ namespace engine
          subCLUpdated = TRUE ;
       }
 
-      // update main-collection catalog info
       rc = catUnlinkMainCLStep( _targetName, _subCLName,
                                 TRUE, _lowBound, _upBound,
                                 cb, _pDmsCB, _pDpsCB, w ) ;
@@ -2760,7 +2662,6 @@ namespace engine
    error :
       if ( subCLUpdated )
       {
-         /// Rollback sub-collection immediately
          INT32 tmpRC = SDB_OK ;
          tmpRC = catLinkSubCLStep( _targetName, _subCLName,
                                    cb, _pDmsCB, _pDpsCB, w ) ;
@@ -2783,12 +2684,9 @@ namespace engine
 
       INT32 tmpRC = SDB_OK ;
 
-      // Always update the sub-collection first, so if error happens between
-      // these two steps, we could always clean the wrong status with unlink
 
       if ( _needUpdateSubCL )
       {
-         // Rollback sub-collection update
          tmpRC = catLinkSubCLStep( _targetName, _subCLName,
                                    cb, _pDmsCB, _pDpsCB, w ) ;
          if ( SDB_OK != tmpRC )
@@ -2800,10 +2698,8 @@ namespace engine
          }
       }
 
-      // Make sure lowBound and upBound are valid
       if ( !_lowBound.isEmpty() && !_upBound.isEmpty() )
       {
-         // Rollback main-collection update
          tmpRC = catLinkMainCLStep( _targetName, _subCLName,
                                     _lowBound, _upBound,
                                     cb, _pDmsCB, _pDpsCB, w ) ;

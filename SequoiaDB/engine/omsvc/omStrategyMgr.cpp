@@ -139,7 +139,6 @@ namespace engine
       SDB_ASSERT( beginID < m_curRuleID, "RuleID error!" ) ;
       if ( m_curRuleID - 1 == beginID )
       {
-         // it is the last one and not need to inc
          goto done ;
       }
       {
@@ -164,7 +163,6 @@ namespace engine
       SDB_ASSERT( beginID < m_curRuleID, "RuleID error!" ) ;
       if ( m_curRuleID - 1 == beginID )
       {
-         // it is the last one and not need to dec
          goto done ;
       }
       {
@@ -484,10 +482,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       SDB_ASSERT( FALSE, "TODO!" ) ;
-      // TODO: match: taskname, username, ip
-      // TODO: match: taskName, username
-      // TODO: match: taskName
-      // TODO: default
    done:
       return rc ;
    error:

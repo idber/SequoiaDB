@@ -147,7 +147,6 @@ namespace engine
          return _buf ;
       }
 
-      /// does not include terminating character
       OSS_INLINE UINT32 len() const
       {
          return _len ;

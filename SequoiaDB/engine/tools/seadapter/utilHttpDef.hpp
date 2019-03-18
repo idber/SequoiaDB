@@ -38,11 +38,6 @@
 #ifndef UTIL_HTTP_DEF_HPP_
 #define UTIL_HTTP_DEF_HPP_
 
-// Maximum size of the http header and body.
-// Note: HTTP_MAX_HEADER_SIZE should be defined before including http_parser.hpp
-//       with exactly this name. It will be used in http_parser.
-//       If not defined here, the default value of 80k defined in http_parser
-//       itself will be used.
 #define HTTP_MAX_HEADER_SIZE        ( 64 * 1024 )
 #define HTTP_MAX_BODY_SIZE          ( 64 * 1024 * 1024 - HTTP_MAX_HEADER_SIZE )
 #define HTTP_CHUNK_SIZE             1024
@@ -64,7 +59,6 @@
 #define HTTP_REQ_POST_STR        "POST"
 #define HTTP_REQ_DELETE_STR      "DELETE"
 
-   // Default send and receive buffer size: 1MB.
 #define HTTP_DEF_BUF_SIZE        ( 1024 * 1024 )
 
 #endif /* UTIL_HTTP_DEF_HPP_ */

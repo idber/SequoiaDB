@@ -88,7 +88,6 @@ namespace engine
       ossEvent        _planEvent ;
       ossSpinSLatch   _planLatch ;
       vector<BSONObj> _planTaskArgList ;
-      //vector<BSONObj> _planTaskResultList ;
    } ;
    typedef _omaAsyncTask omaAsyncTask ;
 

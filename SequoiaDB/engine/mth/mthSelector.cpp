@@ -41,7 +41,6 @@
 
 using namespace bson ;
 
-// 4 bytes size, 1 byte type, 1 byte 0, 4 bytes string length
 #define FIRST_ELEMENT_STARTING_POS     10
 #define MAX_SELECTOR_BUFFER_THRESHOLD  67108864 // 64MB
 
@@ -189,7 +188,6 @@ namespace engine
       BOOLEAN result = FALSE ;
       INT32 stringLength = 0 ;
 
-      // in the first round, let's allocate memory
       if ( 0 == _stringOutputBufferSize )
       {
          rc = mthDoubleBufferSize ( &_stringOutputBuffer,
@@ -228,17 +226,11 @@ namespace engine
 
       stringLength =
                ossStrlen ( &_stringOutputBuffer[FIRST_ELEMENT_STARTING_POS] ) ;
-      // assign object length, 1 for 0 at the end, 1 for the eoo
       *(INT32*)_stringOutputBuffer = FIRST_ELEMENT_STARTING_POS + 2 +
                                         stringLength ;
       _stringOutputBuffer[ *(INT32*)_stringOutputBuffer -1 ] = EOO ;
-      // assign string length, 1 for 0 at the end
       *(INT32*)(&_stringOutputBuffer[FIRST_ELEMENT_STARTING_POS-4]) =
                stringLength + 1 ;
-      // it should not cause memory leak even if there's previous owned
-      // buffer because _stringOutputBuffer is owned by context, and we don't
-      // touch holder in BSONObj, so smart pointer should still holding the
-      // original buffer it owns
       csv.init ( _stringOutputBuffer ) ;
    done:
       PD_TRACE_EXITRC( SDB__MTHSELECTOR__BUILDCSV, rc ) ;

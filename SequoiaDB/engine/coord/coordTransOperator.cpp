@@ -71,7 +71,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       ROUTE_RC_MAP newNodeMap ;
 
-      /// first to build trans session on new data groups
       rc = buildTransSession( options._groupLst, cb, newNodeMap ) ;
       if ( rc )
       {
@@ -82,13 +81,10 @@ namespace engine
 
       if ( cb->isTransaction() )
       {
-         // need add transaction info for the send msg
          _prepareForTrans( cb, inMsg.msg() ) ;
       }
 
       rc = coordOperator::doOnGroups( inMsg, options, cb, result ) ;
-      // release the nodes transaction session( node in newNodeMap, but not
-      // in result._sucGroupLst )
       if ( cb->isTransaction() && ( rc || result.nokSize() > 0 ) )
       {
          SET_NODEID nodes ;
@@ -167,7 +163,6 @@ namespace engine
          pSub = pSession->addSubSession( *itSet ) ;
          pSub->setReqMsg( ( MsgHeader* )&msgReq, PMD_EDU_MEM_NONE ) ;
 
-         /// delete trans node
          cb->delTransNode( pSub->getNodeID() ) ;
 
          rc = pSession->sendMsg( pSub ) ;
@@ -175,13 +170,11 @@ namespace engine
          {
             PD_LOG( PDWARNING, "Release node[%s] failed, rc: %d",
                     routeID2String( *itSet ).c_str(), rc ) ;
-            /// remove the sub session
             pSession->resetSubSession( *itSet ) ;
          }
          ++itSet ;
       }
 
-      /// get reply
       rc = pSession->waitReply1( TRUE ) ;
       if ( rc )
       {
@@ -204,7 +197,6 @@ namespace engine
          }
       }
 
-      /// clear all sub session
       pSession->resetAllSubSession() ;
 
       return rc ;
@@ -271,7 +263,6 @@ namespace engine
             iterTrans = pTransNodeLst->find( iterGroup->first );
             if ( pTransNodeLst->end() == iterTrans )
             {
-               /// not found, need to being the trans
                options._groupLst[ iterGroup->first ] = iterGroup->second ;
             }
             ++iterGroup ;
@@ -280,7 +271,6 @@ namespace engine
          newNodeMap.clear() ;
          result._pOkRC = &newNodeMap ;
          rc = coordOperator::doOnGroups( inMsg, options, cb, result ) ;
-         // add ok route id to trans node id
          if ( newNodeMap.size() > 0 )
          {
             MsgRouteID nodeID ;
@@ -303,7 +293,6 @@ namespace engine
    done :
       return rc ;
    error :
-      /// will rollback all suc node and the node before session
       goto done ;
    }
 
@@ -414,7 +403,6 @@ namespace engine
          goto error ;
       }
 
-      // execute on data nodes
       rc = executeOnDataGroup( (MsgHeader*)pMsgReq, cb, contextID, buf ) ;
       if ( rc )
       {
@@ -450,7 +438,6 @@ namespace engine
          goto error ;
       }
 
-      // execute on data nodes
       rc = executeOnDataGroup( (MsgHeader*)pMsgReq, cb, contextID, buf ) ;
       if ( rc )
       {
@@ -474,7 +461,6 @@ namespace engine
                                        INT64 &contextID,
                                        rtnContextBuf *buf )
    {
-      // do nothing, rollback will do in session
       return SDB_OK ;
    }
 
@@ -507,7 +493,6 @@ namespace engine
       DpsTransNodeMap::iterator iterMap = pNodeMap->begin() ;
       ROUTE_RC_MAP nokRC ;
 
-      /// clear
       _groupSession.resetSubSession() ;
 
       while( iterMap != pNodeMap->end() )
@@ -623,7 +608,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), MSG_BS_TRANS_COMMIT_REQ,
                           "TransactionID: 0x%016x(%llu)",
                           cb->getTransID(),
@@ -635,13 +619,11 @@ namespace engine
          goto error ;
       }
 
-      // complete, delete transaction
       cb->delTransaction() ;
 
    done:
       return rc ;
    error:
-      // rollback in session
       goto done ;
    }
 
@@ -677,7 +659,6 @@ namespace engine
          goto done ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), MSG_BS_TRANS_ROLLBACK_REQ,
                           "TransactionID: 0x%016x(%llu)",
                           cb->getTransID(),

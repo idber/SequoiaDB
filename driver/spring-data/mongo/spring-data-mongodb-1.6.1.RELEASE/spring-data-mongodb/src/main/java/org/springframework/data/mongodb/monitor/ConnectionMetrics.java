@@ -46,7 +46,6 @@ public class ConnectionMetrics extends AbstractMonitor {
 	@SuppressWarnings("unchecked")
 	private <T> T getConnectionData(String key, Class<T> targetClass) {
 		DBObject mem = (DBObject) getServerStatus().get("connections");
-		// Class c = mem.get(key).getClass();
 		return (T) mem.get(key);
 	}
 

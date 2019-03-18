@@ -47,7 +47,6 @@ namespace engine
 
    _sptReturnVal::~_sptReturnVal()
    {
-      /// release
       UINT32 i = 0 ;
       for ( i = 0 ; i < _valProperties.size() ; ++i )
       {

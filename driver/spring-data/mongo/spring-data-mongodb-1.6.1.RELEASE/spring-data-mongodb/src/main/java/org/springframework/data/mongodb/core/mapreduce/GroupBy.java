@@ -42,7 +42,6 @@ public class GroupBy {
 		dboKeys = dbo;
 	}
 
-	// NOTE GroupByCommand does not handle keyfunction.
 
 	public GroupBy(String key, boolean isKeyFunction) {
 		DBObject dbo = new BasicDBObject();
@@ -83,7 +82,6 @@ public class GroupBy {
 	}
 
 	public DBObject getGroupByObject() {
-		// return new GroupCommand(dbCollection, dboKeys, condition, initial, reduce, finalize);
 		BasicDBObject dbo = new BasicDBObject();
 		if (dboKeys != null) {
 			dbo.put("key", dboKeys);

@@ -27,14 +27,12 @@ public class MongoOptions {
      *
      */
     public static class Builder {
-        // options for connection
         private int connectTimeout = 10000;
         private int socketTimeout = 0;
         private boolean socketKeepAlive = false;
         private boolean useNagle = false;
         private boolean useSSL = false;
 
-        // options for datasource
         private int deltaIncCount = 10;
         private int maxIdleCount = 10;
         private int maxCount = 500;
@@ -44,7 +42,6 @@ public class MongoOptions {
         private boolean validateConnection = false;
         private ConnectStrategy connectStrategy = ConnectStrategy.BALANCE;
 
-        // options for session
         private List<String> preferedInstance = null;
         private String preferedInstanceMode = DEFAULT_PREFERRD_INSTANCE_MODE; // "random" or "ordered"
         private int sessionTimeout = DEFAULT_SESSION_TIMEOUT;
@@ -595,14 +592,12 @@ public class MongoOptions {
     }
 
     private MongoOptions(final Builder builder) {
-        // options for connection
         connectTimeout = builder.connectTimeout;
         socketTimeout = builder.socketTimeout;
         socketKeepAlive = builder.socketKeepAlive;
         useNagle = builder.useNagle;
         useSSL = builder.useSSL;
 
-        // options for datasource
         deltaIncCount = builder.deltaIncCount;
         maxIdleCount = builder.maxIdleCount;
         maxCount = builder.maxCount;
@@ -616,13 +611,11 @@ public class MongoOptions {
         sessionTimeout = builder.sessionTimeout;
     }
 
-    // options for connection
     private final int connectTimeout;
     private final int socketTimeout;
     private final boolean socketKeepAlive;
     private final boolean useNagle;
     private final boolean useSSL;
-    // options for datasource
     private final int deltaIncCount;
     private final int maxIdleCount;
     private final int maxCount;
@@ -631,7 +624,6 @@ public class MongoOptions {
     private final int syncCoordInterval;
     private final boolean validateConnection;
     private final ConnectStrategy connectStrategy;
-    // options for session
     private final List<String> preferedInstance;
     private final String preferedInstanceMode;
     private final int sessionTimeout;

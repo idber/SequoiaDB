@@ -129,8 +129,6 @@ namespace engine
 
       _event.reset() ;
 
-      /// if node changes to secondary now, all write requests
-      /// may be waked up. they will get 'not primary'.
       _level = lvl ;
 
       rc = _wait4AllWriteDone( timePassed, seconds, cb ) ;
@@ -141,9 +139,6 @@ namespace engine
          goto error ;
       }
 
-      /// we need at least one replication done.
-      /// otherwise this node will still be the primary.
-      /// WARNING: do not compare with _level.
       if ( CLS_REELECTION_LEVEL_1 < lvl )
       {
          rc = _wait4Replica( timePassed, seconds, cb ) ;

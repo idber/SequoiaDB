@@ -112,7 +112,6 @@ namespace engine
          */
          virtual BOOLEAN _onNotify ( MsgClsFSNotifyRes *pMsg ) = 0 ;
 
-      //message function
       protected:
          INT32 handleMetaRes( NET_HANDLE handle, MsgHeader* header ) ;
          INT32 handleIndexRes( NET_HANDLE handle, MsgHeader* header ) ;
@@ -171,7 +170,6 @@ namespace engine
          UINT64               _requestID ;
          DPS_LSN              _expectLSN ;
          UINT64               _lastOprLSN ;
-         /// when we begin to get lob, we do not want to sync doc any more.
          BOOLEAN              _needMoreDoc ;
 
    };
@@ -254,14 +252,9 @@ namespace engine
       {
          STEP_NONE      = 0,
          STEP_SYNC_DATA ,     // after sync data from peer node, and need to
-                              // sync the last log from peer node
          STEP_POST_SYNC ,     // after sync the last log from peer node, and
-                              // need to notify meta change to catalog
          STEP_META ,          // when cleanup notify to catalog and catalog
-                              // split the catalog and response, begin to
-                              // update catalog in local, and check it
          STEP_END_NTY ,       // notify the peer node to update catalog and
-                              // check it
          STEP_FINISH,         // notify catalog get all data, will to clean
          STEP_CLEANUP ,       // notify the peer node to clean up data
          STEP_REMOVE,         // remove notify to catalog
@@ -274,7 +267,6 @@ namespace engine
          virtual EDU_TYPES eduType () const ;
          virtual BOOLEAN canAttachMeta() const ;
 
-      //message fuction
       protected:
          INT32 handleTaskNotifyRes ( NET_HANDLE handle, MsgHeader* header ) ;
          INT32 handleBeginRes( NET_HANDLE handle, MsgHeader* header ) ;

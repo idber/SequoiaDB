@@ -163,7 +163,6 @@ namespace engine
          rc = _firstInit( cb ) ;
          PD_RC_CHECK( rc, PDWARNING, "first init failed, rc: %d", rc ) ;
       }
-      // have locked, but not trans, need to release record X lock
       else if ( _needUnLock && DMS_INVALID_OFFSET != _curRID._offset )
       {
          _pTransCB->transLockRelease( cb, _pSu->logicalID(), _context->mbID(),
@@ -173,7 +172,6 @@ namespace engine
       rc = _fetchNext( recordID, generator, cb, mthContext ) ;
       if ( rc )
       {
-         // Do not write error log when EOC.
          if ( SDB_DMS_EOC != rc )
          {
             PD_LOG( PDERROR, "Get next record failed, rc: %d", rc ) ;
@@ -260,7 +258,6 @@ namespace engine
          goto error ;
       }
 
-      // send pre-load request
       if ( bPreLoadEnabled && DMS_INVALID_EXTENT != _extent->_nextExtent )
       {
          pBPSCB->sendPreLoadRequest ( bpsPreLoadReq( _pSu->CSID(),
@@ -271,7 +268,6 @@ namespace engine
       _cb   = cb ;
       _next = _extent->_firstRecordOffset ;
 
-      // unset first run
       _firstRun = FALSE ;
 
    done:
@@ -291,7 +287,6 @@ namespace engine
       dmsRecordData recordData ;
       BOOLEAN lockedRecord    = FALSE ;
 
-      // skip extent all
       if ( !_matchRuntime && _skipNum > 0 && _skipNum >= _extent->_recCount )
       {
          _skipNum -= _extent->_recCount ;
@@ -314,8 +309,6 @@ namespace engine
                PD_CHECK( SDB_DPS_TRANS_APPEND_TO_WAIT == rc, rc, error, PDERROR,
                          "Failed to get record, append lock-wait-queue failed, "
                          "rc: %d", rc ) ;
-               // now haved append to lock-wait-queue, release latch and then
-               // wait the lock
                _context->pause() ;
                {
                DPS_TRANS_WAIT_LOCK _transWaitLock( cb, _pSu->logicalID(),
@@ -325,7 +318,6 @@ namespace engine
                }
                PD_RC_CHECK( rc, PDERROR, "Failed to wait record lock, rc: %d",
                             rc ) ;
-               // got the record-X-Lock, re-get the latch
                lockedRecord = TRUE ;
                rc = _context->resume() ;
                if ( rc )
@@ -380,7 +372,6 @@ namespace engine
             recordDataPtr = ( ossValuePtr )recordData.data() ;
             generator.setDataPtr( recordDataPtr ) ;
 
-            // math
             if ( _matchRuntime && _matchRuntime->getMatchTree() )
             {
                result = TRUE ;
@@ -389,7 +380,6 @@ namespace engine
                   _mthMatchTree *matcher = _matchRuntime->getMatchTree() ;
                   rtnParamList *parameters = _matchRuntime->getParametersPointer() ;
                   BSONObj obj( recordData.data() ) ;
-                  //do not clear dollarlist flag
                   mthContextClearRecordInfoSafe( mthContext ) ;
                   rc = matcher->matches( obj, result, mthContext, parameters ) ;
                   if ( rc )
@@ -556,9 +546,6 @@ namespace engine
       _workExtInfo =
          (( _dmsStorageDataCapped * )_pSu)->getWorkExtInfo( _context->mbID() ) ;
 
-      // Check if we are about to scan the working extent. As the extent is very
-      // big, in order to improve performance, try to avoid getting the last
-      // offset again and again from the extent head when in advance.
       if ( _curRID._extent == _workExtInfo->getID() )
       {
          _next = _workExtInfo->_firstRecordOffset ;
@@ -647,7 +634,6 @@ namespace engine
                   _mthMatchTree *matcher = _matchRuntime->getMatchTree() ;
                   rtnParamList *parameters = _matchRuntime->getParametersPointer() ;
                   BSONObj obj( recordData.data() ) ;
-                  //do not clear dollarlist flag
                   mthContextClearRecordInfoSafe( mthContext ) ;
                   rc = matcher->matches( obj, result, mthContext, parameters ) ;
                   if ( rc )
@@ -731,8 +717,6 @@ namespace engine
       return ( id / DMS_CAP_EXTENT_BODY_SZ ) ;
    }
 
-   // Filter out the extents that we really need to scan(in the range of the
-   // condition).
    INT32 _dmsCappedExtScanner::_initFastScanRange()
    {
       INT32 rc = SDB_OK ;
@@ -753,7 +737,6 @@ namespace engine
          else
          {
             _fastScanByID = TRUE ;
-            // Add valid logical id range.
             BSONObj boStartKey = BSON( DMS_ID_KEY_NAME << 0 ) ;
             BSONObj boStopKey = BSON( DMS_ID_KEY_NAME << OSS_SINT64_MAX ) ;
 
@@ -794,16 +777,10 @@ namespace engine
       goto done ;
    }
 
-   // As there is no index on capped table, query with condition will be slow as
-   // we always need to do full table scan. But if _id is specified in the
-   // condition, we can first filter out the extents which are in the range of
-   // the condition. This will lead to much better performance.
    INT32 _dmsCappedExtScanner::_validateRange( BOOLEAN &inRange )
    {
       INT32 rc = SDB_OK ;
 
-      // If there is no condition, or no _id in the condition, the validation
-      // result should always be TRUE.
       inRange = TRUE ;
       if ( _matchRuntime )
       {
@@ -816,8 +793,6 @@ namespace engine
 
          if ( _fastScanByID )
          {
-            // Traverse the range set to check if the current extent is in any
-            // valid range.
             for ( EXT_RANGE_SET_ITR itr = _rangeSet.begin();
                   itr != _rangeSet.end(); ++itr )
             {
@@ -1067,7 +1042,6 @@ namespace engine
          _includeEndKey = TRUE ;
       }
 
-      // reset start/end RID
       if ( _getStartRID()->isNull() )
       {
          if ( 1 == _scanner->getDirection() )
@@ -1153,7 +1127,6 @@ namespace engine
 
       _cb   = cb ;
 
-      // unset first run
       _firstRun = FALSE ;
       _onceRestNum = (INT64)pmdGetKRCB()->getOptionCB()->indexScanStep() ;
 
@@ -1216,7 +1189,6 @@ namespace engine
          rc = _firstInit( cb ) ;
          PD_RC_CHECK( rc, PDWARNING, "first init failed, rc: %d", rc ) ;
       }
-      // have locked, but not trans, need to release record X lock
       else if ( _needUnLock && DMS_INVALID_OFFSET != _curRID._offset )
       {
          _pTransCB->transLockRelease( cb, _pSu->logicalID(), _context->mbID(),
@@ -1239,7 +1211,6 @@ namespace engine
          }
          SDB_ASSERT( _curRID.isValid(), "rid msut valid" ) ;
 
-         // index block scan
          if ( _indexBlockScan )
          {
             INT32 result = 0 ;
@@ -1255,7 +1226,6 @@ namespace engine
                }
                if ( result < 0 )
                {
-                  // need to relocate
                   rc = _scanner->relocateRID( *_getStartKey(),
                                               *_getStartRID() ) ;
                   PD_RC_CHECK( rc, PDERROR, "Failed to relocateRID, rc: %d",
@@ -1278,7 +1248,6 @@ namespace engine
             }
          }
 
-         // don't read data
          if ( !_matchRuntime )
          {
             if ( _skipNum > 0 )
@@ -1310,8 +1279,6 @@ namespace engine
                PD_CHECK( SDB_DPS_TRANS_APPEND_TO_WAIT == rc, rc, error, PDERROR,
                          "Failed to get record, append lock-wait-queue failed, "
                          "rc: %d", rc ) ;
-               // now haved append to lock-wait-queue, release latch and then
-               // wait the lock
                rc = _scanner->pauseScan( _recordXLock ? FALSE : TRUE ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to pause ixscan, rc: %d", rc ) ;
 
@@ -1325,7 +1292,6 @@ namespace engine
                }
                PD_RC_CHECK( rc, PDERROR, "Failed to wait record lock, rc: %d",
                             rc ) ;
-               // got the record-X-Lock, re-get the latch
                lockedRecord = TRUE ;
                rc = _context->resume() ;
                if ( rc )
@@ -1385,7 +1351,6 @@ namespace engine
          recordDataPtr = ( ossValuePtr )recordData.data() ;
          generator.setDataPtr( recordDataPtr ) ;
 
-         // math
          if ( _matchRuntime && _matchRuntime->getMatchTree() )
          {
             result = TRUE ;
@@ -1394,7 +1359,6 @@ namespace engine
                _mthMatchTree *matcher = _matchRuntime->getMatchTree() ;
                rtnParamList *parameters = _matchRuntime->getParametersPointer() ;
                BSONObj obj ( recordData.data() ) ;
-               //do not clear dollarlist flag
                mthContextClearRecordInfoSafe( mthContext ) ;
                rc = matcher->matches( obj, result, mthContext, parameters ) ;
                if ( rc )

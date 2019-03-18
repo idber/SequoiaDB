@@ -20,44 +20,12 @@
 #include <iostream>
 #include "../spt/engine.h"
 #include "../bson/bson.h"
-//#include "../bson/util/json.h"
 #include "../bson/bson-inl.h"
 
 using namespace engine;
 using namespace bson;
 
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// create a sample native function here
-// any native function (C function that can be called in javascript) need to take 2 arguments
-// 1) const BSONObj & args
-//	this variable contains the user input data in javascript
-//	we always need to do few things
-//	a) check the number of arguments
-//	b) check the data type of each arguments
-//	c) if everything satisfy what we need, then we proceed
-// 2) void* data
-//	this is the memory address we could optionally pass to variable when we create the function
-//	for example some functions may need to use static memory information (say database control block)
-//	whenever we need to use such thing, we need to construct a memory block contains everything the function need
-//	and pass the pointer of the block when calling injectNative() function
-// Return
-//	this function returns BSONObj that received by javascript client
-//	in simplest case we give a string "success" or "failure" to a new BSONObj and return to app
-//	in native helper function, we simply retrieve the value of the first element in the return object
-//	that means the string "return" is not important, it will ignore such thing and always pickup the first
-//	element in the obj
-// Remark
-//	Since the purpose of engine.h wrapper, the application should NOT directly talk with JS engine at all
-//	In this case, we should avoid using JS_DefineFunctions to define native function that can be directly
-//	called by SM engine
-//	That's why there's native_helper function helps map a native C function to javascript
-//	The basic idea of such mapping is that creating an object in javascript contains the function address
-//	And then create a javascript function that always call native_helper function and pass the function addr
-//	Once native helper function received the function addr, it will parser the arguments and construct BSONObj
-//	Then will call func() pointer to run our native function
-//	For the return value, it's always parsed by native_helper and construct JS_RVAL(cx, vp) return variable to SM
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 BSONObj getTimeNative(const BSONObj &args, void* data)
 {
 	BSONObjBuilder b;
@@ -70,7 +38,6 @@ BSONObj getTimeNative(const BSONObj &args, void* data)
 	{
 		char timeBuffer[50];
 		time_t t;
-		// when user didn't input any variable, we get default system time
 		if(args.nFields()==0)
 		{
 			t = time(NULL); 
@@ -99,7 +66,6 @@ int main(int argc, char** argv)
 		return 0;
 	}
 
-   /// TODO
 
 	return 0;
 }

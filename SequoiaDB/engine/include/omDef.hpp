@@ -40,7 +40,6 @@
 namespace engine
 {
 
-//********************************** NEW **************************************
 
    #define OM_CS_DEPLOY                         "SYSDEPLOY"
 
@@ -305,7 +304,6 @@ _IDX1\",key: {"OM_RELATIONSHIP_FIELD_NAME":1}, unique: true, enforced: true }"
 \",key: {"OM_PLUGINS_FIELD_BUSINESSTYPE":1}, unique: true, enforced: true }"
 
 
-//********************************** OLD **************************************
 
    #define OM_PATH_WEB                       "web"
    #define OM_PATH_CONFIG                    "config"
@@ -316,17 +314,14 @@ _IDX1\",key: {"OM_RELATIONSHIP_FIELD_NAME":1}, unique: true, enforced: true }"
    #define OM_VALUE_BOOLEAN_FALSE1            "false"
    #define OM_VALUE_BOOLEAN_FALSE2            "FALSE"
 
-   // Sequoiadb's template configure
    #define OM_TEMPLATE_REPLICA_NUM           "replicanum"
    #define OM_TEMPLATE_DATAGROUP_NUM         "datagroupnum"
    #define OM_TEMPLATE_CATALOG_NUM           "catalognum"
    #define OM_TEMPLATE_COORD_NUM             "coordnum"
    #define OM_TEMPLATE_TRANSACTION           PMD_OPTION_TRANSACTIONON
 
-   // database
    #define OM_DBPATH_PREFIX_DATABASE         "database"
 
-   // extend configure
    #define OM_CONF_DETAIL_EX_DG_NAME         "datagroupname"
    #define OM_CONF_DETAIL_DBPATH             PMD_OPTION_DBPATH
    #define OM_CONF_DETAIL_SVCNAME            PMD_OPTION_SVCNAME
@@ -342,14 +337,10 @@ _IDX1\",key: {"OM_RELATIONSHIP_FIELD_NAME":1}, unique: true, enforced: true }"
    #define OM_CONF_DETAIL_DATAGROUPNAME      "datagroupname"
    #define OM_CONF_DETAIL_TRANSACTIONON      PMD_OPTION_TRANSACTIONON
 
-   // Zookeeper's template configure
    #define OM_TEMPLATE_ZOO_NUM               "zoonodenum"
 
-   // Zookeeper's extend configure
    #define OM_ZOO_CONF_DETAIL_ZOOID          "zooid"
-   // /opt/$businessType/$businessName/$dataport
    #define OM_ZOO_CONF_DETAIL_INSTALLPATH    "installpath"
-   // /disk/$businessType/$businessName/database/$$dataport
    #define OM_ZOO_CONF_DETAIL_DATAPATH       "datapath"
    #define OM_ZOO_CONF_DETAIL_DATAPORT       "dataport"
    #define OM_ZOO_CONF_DETAIL_ELECTPORT      "electport"
@@ -358,10 +349,8 @@ _IDX1\",key: {"OM_RELATIONSHIP_FIELD_NAME":1}, unique: true, enforced: true }"
    #define OM_ZOO_CONF_DETAIL_INITLIMIT      "initlimit"
    #define OM_ZOO_CONF_DETAIL_TICKTIME       "ticktime"
 
-   // sequoiasql oltp
    #define OM_SEQUOIASQL_DEPLOY_OLTP            "oltp"
 
-   // sequoiasql olap
    #define OM_SEQUOIASQL_DEPLOY_OLAP            "olap"
    #define OM_SSQL_OLAP_DEPLOY_STANDBY          "deploy_standby"
    #define OM_SSQL_OLAP_SEGMENT_NUM             "segment_num"
@@ -400,7 +389,6 @@ _IDX1\",key: {"OM_RELATIONSHIP_FIELD_NAME":1}, unique: true, enforced: true }"
 
 
 
-   // strategy.business_task_property
    #define OM_CS_STRATEGY                          "SYSSTRATEGY"
    #define OM_CS_STRATEGY_CL_BUSINESS_TASK_PRO     OM_CS_STRATEGY".SYSBUSINESSTASKPROPERTY"
    #define OM_STRATEGY_FIELD_TASKID                FIELD_NAME_TASKID
@@ -419,7 +407,6 @@ _IDX1\",key: {"OM_RELATIONSHIP_FIELD_NAME":1}, unique: true, enforced: true }"
       }
    */
    #define OM_TASKINFO_FIELD_FLOW            "Flow"
-   //**********************************************
 
    #define OM_CS_DEPLOY_CL_TASKINFOIDX1      "{name:\"SYSDEPLOY_TASKINFO_IDX1\",key: {"\
                                              OM_TASKINFO_FIELD_TASKID":1}, unique: true, enforced: true } "
@@ -468,7 +455,6 @@ _IDX1\",key: {"OM_RELATIONSHIP_FIELD_NAME":1}, unique: true, enforced: true }"
 
    const CHAR *getTaskStatusStr( INT32 taskStatus ) ;
 
-   // OM_REST_DEFINE
    #define  OM_REST_LOGIN_HTML               "login.html"
    #define  OM_REST_INDEX_HTML               "index.html"
    #define  OM_REST_FAVICON_ICO              "favicon.ico"
@@ -481,7 +467,6 @@ _IDX1\",key: {"OM_RELATIONSHIP_FIELD_NAME":1}, unique: true, enforced: true }"
                                              "<meta http-equiv=\"refresh\" content=\"0;url="\
                                              OM_REST_INDEX_HTML"\"></head></html>"
 
-   //#define  OM_REST_RES_RETCODE              OP_ERRNOFIELD
    #define  OM_REST_RES_RETCODE              OP_ERRNOFIELD
    #define  OM_REST_RES_DESP                 OP_ERRDESP_FIELD
    #define  OM_REST_RES_DETAIL               OP_ERR_DETAIL
@@ -499,17 +484,13 @@ _IDX1\",key: {"OM_RELATIONSHIP_FIELD_NAME":1}, unique: true, enforced: true }"
    #define  OM_DEFAULT_INSTALL_ROOT_PATH     "/opt/"
 #endif
 
-   //*************************default values***********************************
    #define  OM_DEFAULT_SDB_USER              "sdbadmin"
    #define  OM_DEFAULT_SDB_PASSWD            "sdbadmin"
    #define  OM_DEFAULT_SDB_USERGROUP         "sdbadmin_group"
    #define  OM_REST_LANGUAGE_EN              "en"
    #define  OM_REST_LANGUAGE_ZH_CN           "zh-CN"
-   // MB
    #define  OM_MIN_DISK_FREE_SIZE            (600)
-   // agent default localhost
    #define  OM_DEFAULT_LOCAL_HOST            "localhost"
-   // agent default port
    #define  OM_AGENT_DEFAULT_PORT            SDBCM_DFT_PORT
 
    /*
@@ -519,8 +500,6 @@ _IDX1\",key: {"OM_RELATIONSHIP_FIELD_NAME":1}, unique: true, enforced: true }"
    #define OM_REST_DEPLOYMOD_VERTICAL        "vertical"
 
 
-   // milliseconds
-   //two hours
    #define  OM_MSG_TIMEOUT_TWO_HOUR          (2 * 3600 * 1000)
    #define  OM_MSG_TIMEOUT_TEN_SECS          (10 * 1000)
 
@@ -530,7 +509,6 @@ _IDX1\",key: {"OM_RELATIONSHIP_FIELD_NAME":1}, unique: true, enforced: true }"
    #define  OM_WAIT_AGENT_UNISTALL_INTERVAL  OM_MSG_TIMEOUT_TWO_HOUR
    #define  OM_WAIT_SCAN_RES_INTERVAL        OM_MSG_TIMEOUT_TWO_HOUR
 
-   // wait for response's timeout
    #define  OM_NOTIFY_TASK_TIMEOUT           OM_MSG_TIMEOUT_TEN_SECS
    #define  OM_QUERY_HOST_STATUS_TIMEOUT     OM_MSG_TIMEOUT_TEN_SECS
 
@@ -543,14 +521,11 @@ _IDX1\",key: {"OM_RELATIONSHIP_FIELD_NAME":1}, unique: true, enforced: true }"
    #define OM_INT32_LENGTH                   (20)
    #define OM_INT64_LENGTH                   (20)
 
-   // OM user's table
    #define  OM_DEFAULT_LOGIN_USER            "admin"
    #define  OM_DEFAULT_LOGIN_PASSWD          "admin"
 
    #define  OM_DEFAULT_PLUGIN_USER           "plugin"
-   //**************************************************************************
 
-   //*********************command between rest and om**************************
    #define  OM_REST_FIELD_COMMAND            "cmd"
    #define  OM_CREATE_CLUSTER_REQ            "create cluster"
    #define  OM_QUERY_CLUSTER_REQ             "query cluster"
@@ -611,10 +586,7 @@ _IDX1\",key: {"OM_RELATIONSHIP_FIELD_NAME":1}, unique: true, enforced: true }"
    #define  OM_REGISTER_PLUGIN_REQ           "register plugin"
    #define  OM_LIST_PLUGIN_REQ               "list plugins"
 
-   //**************************************************************************
 
-   //*********************param between rest and om****************************
-   //field names
    #define  OM_REST_CLUSTER_INFO             "ClusterInfo"
    #define  OM_BSON_FIELD_CLUSTER_DESC       OM_CLUSTER_FIELD_DESC
    #define  OM_BSON_FIELD_SDB_USER           OM_CLUSTER_FIELD_SDBUSER
@@ -724,7 +696,6 @@ _IDX1\",key: {"OM_RELATIONSHIP_FIELD_NAME":1}, unique: true, enforced: true }"
    #define  OM_CONF_PATH_STR                 "conf"
    #define  OM_LOG_PATH_STR                  "log"
 
-   //xml file
    #define  OM_CONFIG_FILE_TYPE              ".xml"
    #define  OM_XMLATTR_KEY                   "<xmlattr>"
    #define  OM_XMLATTR_TYPE                  "<xmlattr>.type"
@@ -749,9 +720,7 @@ _IDX1\",key: {"OM_RELATIONSHIP_FIELD_NAME":1}, unique: true, enforced: true }"
    #define  OM_XML_CONFIG                    "config"
    #define  OM_REST_TEMPLATE_INFO            "TemplateInfo"
    #define  OM_BSON_PROPERTY_VALUE           "Value"
-   //**************************************************************************
 
-   //*********************command between om and agent*************************
    #define  OM_PRE_CHECK_HOST                "pre-check host"
    #define  OM_POST_CHECK_HOST               "post-check host"
    #define  OM_UPDATE_HOSTNAME_REQ           "update hostname"
@@ -760,9 +729,7 @@ _IDX1\",key: {"OM_RELATIONSHIP_FIELD_NAME":1}, unique: true, enforced: true }"
    #define  OM_NOTIFY_TASK                   "notify task"
    #define  OM_SSQL_GET_MORE_REQ             "ssql getmore"
    #define  OM_INTERRUPT_TASK_REQ            "interrupt task"
-   //**************************************************************************
 
-   // this is for the web transfer request.  web -> om -> coord/data
    #define  OM_REST_HEAD_CLUSTERNAME         "sdbClusterName"
    #define  OM_REST_HEAD_BUSINESSNAME        "sdbBusinessName"
 

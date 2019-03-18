@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 SequoiaDB Inc.
+ * Copyright 2017 SequoiaDB Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ import com.sequoiadb.message.request.AdminRequest;
 import com.sequoiadb.message.response.SdbReply;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.bson.types.BasicBSONList;
 
 /**
  * Domain of SequoiaDB.
@@ -54,18 +53,6 @@ public class Domain {
         this.sequoiadb = sequoiadb;
     }
 
-    private void alterInternal(String taskName, BSONObject options, boolean allowNullArgs) throws BaseException {
-        if (null == options && !allowNullArgs) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "options is null");
-        }
-        BSONObject argumentObj = new BasicBSONObject();
-        argumentObj.put(SdbConstants.FIELD_NAME_NAME, taskName);
-        argumentObj.put(SdbConstants.FIELD_NAME_ARGS, options);
-        BSONObject alterObject = new BasicBSONObject();
-        alterObject.put(SdbConstants.FIELD_NAME_ALTER, argumentObj);
-        alterDomain(alterObject);
-    }
-
     /**
      * Alter current domain.
      *
@@ -90,96 +77,12 @@ public class Domain {
         }
 
         BSONObject newObj = new BasicBSONObject();
-        if (!options.containsField(SdbConstants.FIELD_NAME_ALTER)) {
-            newObj.put(SdbConstants.FIELD_NAME_NAME, this.name);
-            newObj.put(SdbConstants.FIELD_NAME_OPTIONS, options);
-        } else {
-            Object tmpAlter = options.get(SdbConstants.FIELD_NAME_ALTER);
-            if (tmpAlter instanceof BasicBSONObject ||
-                tmpAlter instanceof BasicBSONList) {
-                newObj.put(SdbConstants.FIELD_NAME_ALTER, tmpAlter);
-            } else {
-                throw new BaseException(SDBError.SDB_INVALIDARG, options.toString());
-            }
-            newObj.put(SdbConstants.FIELD_NAME_ALTER_TYPE, SdbConstants.SDB_ALTER_DOMAIN);
-            newObj.put(SdbConstants.FIELD_NAME_VERSION, SdbConstants.SDB_ALTER_VERSION);
-            newObj.put(SdbConstants.FIELD_NAME_NAME, name);
-
-            if (options.containsField(SdbConstants.FIELD_NAME_OPTIONS)) {
-                Object tmpOptions = options.get(SdbConstants.FIELD_NAME_OPTIONS);
-                if (tmpOptions instanceof BasicBSONObject) {
-                    newObj.put(SdbConstants.FIELD_NAME_OPTIONS, tmpOptions);
-                } else {
-                    throw new BaseException(SDBError.SDB_INVALIDARG, options.toString());
-                }
-            }
-        }
+        newObj.put(SdbConstants.FIELD_NAME_NAME, this.name);
+        newObj.put(SdbConstants.FIELD_NAME_OPTIONS, options);
 
         AdminRequest request = new AdminRequest(AdminCommand.ALTER_DOMAIN, newObj);
         SdbReply response = sequoiadb.requestAndResponse(request);
         sequoiadb.throwIfError(response);
-    }
-
-    /**
-     * Alter current domain to add groups
-     *
-     * @param options the options user wants to alter:
-     *                <ul>
-     *                <li>Groups:    The list of replica groups' names which the domain is going to add.
-     *                </ul>
-     * @throws BaseException If error happens.
-     */
-    public void addGroups(BSONObject options) throws BaseException {
-        alterInternal(SdbConstants.SDB_ALTER_ADD_GROUPS, options, false);
-    }
-
-    /**
-     * Alter current domain to set groups
-     *
-     * @param options the options user wants to alter:
-     *                <ul>
-     *                <li>Groups:    The list of replica groups' names which the domain is going to contain.
-     *                </ul>
-     * @throws BaseException If error happens.
-     */
-    public void setGroups(BSONObject options) throws BaseException {
-        alterInternal(SdbConstants.SDB_ALTER_SET_GROUPS, options, false);
-    }
-
-    /**
-     * Alter current domain to remove groups
-     *
-     * @param options the options user wants to alter:
-     *                <ul>
-     *                <li>Groups:    The list of replica groups' names which the domain is going to remove.
-     *                If a group has data in it, remove it out of domain will be failing.
-     *                </ul>
-     * @throws BaseException If error happens.
-     */
-    public void removeGroups(BSONObject options) throws BaseException {
-        alterInternal(SdbConstants.SDB_ALTER_REMOVE_GROUPS, options, false);
-    }
-
-    /**
-     * Alter current domain to set attributes.
-     *
-     * @param options the options user wants to alter:
-     *                <ul>
-     *                <li>Groups:    The list of replica groups' names which the domain is going to contain.
-     *                eg: { "Groups": [ "group1", "group2", "group3" ] }, it means that domain
-     *                changes to contain "group1", "group2" and "group3".
-     *                We can add or remove groups in current domain. However, if a group has data
-     *                in it, remove it out of domain will be failing.
-     *                <li>AutoSplit: Alter current domain to have the ability of automatically split or not.
-     *                If this option is set to be true, while creating collection(ShardingType is "hash") in this domain,
-     *                the data of this collection will be split(hash split) into all the groups in this domain automatically.
-     *                However, it won't automatically split data into those groups which were add into this domain later.
-     *                eg: { "Groups": [ "group1", "group2", "group3" ], "AutoSplit: true" }
-     *                </ul>
-     * @throws BaseException If error happens.
-     */
-    public void setAttributes(BSONObject options) throws BaseException {
-        alterInternal(SdbConstants.SDB_ALTER_SET_ATTRIBUTES, options, false);
     }
 
     /**
@@ -203,12 +106,10 @@ public class Domain {
     }
 
     private DBCursor listCSCL(int type) throws BaseException {
-        // append argument
         BSONObject matcher = new BasicBSONObject();
         BSONObject selector = new BasicBSONObject();
         matcher.put(SdbConstants.FIELD_NAME_DOMAIN, this.name);
         selector.put(SdbConstants.FIELD_NAME_NAME, null);
-        // get cs or cl in current domain
         DBCursor cursor = this.sequoiadb.getList(type, matcher, selector, null);
         return cursor;
     }

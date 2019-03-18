@@ -38,15 +38,12 @@ public class CompatibilityTest {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             cs = sdb.getCollectionSpace(Constants.TEST_CS_NAME_1);
         } else {
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         }
-        // cl
         if (cs.isCollectionExist(Constants.TEST_CL_NAME_1)) {
             cl = cs.getCollection(Constants.TEST_CL_NAME_1);
         } else {
@@ -76,15 +73,12 @@ public class CompatibilityTest {
     }
 
     @Test
-//	@Ignore
     public void tmpTest() {
-        // case 1: specify integer value
         BSONDecimal decimal1 = new BSONDecimal("1234.56789", 10, 5);
         System.out.println("decimal1 is: " + decimal1);
 
         BSONObject obj = new BasicBSONObject("a", decimal1);
 
-        // obj = new BasicBSONObject("a", new BSONTimestamp(1000, 123456));
 
         System.out.println("inserted record is: " + obj);
         cl.insert(obj);
@@ -104,7 +98,6 @@ public class CompatibilityTest {
     }
 
     @Test
-//	@Ignore
     public void tmpTest2() {
         List<String> list = new ArrayList<String>();
         list.add("a");
@@ -113,7 +106,6 @@ public class CompatibilityTest {
         BSONObject obj = new BasicBSONObject();
         obj.put("list", list);
 
-        // obj = new BasicBSONObject("a", new BSONTimestamp(1000, 123456));
 
         System.out.println("inserted record is: " + obj);
         cl.insert(obj);
@@ -127,7 +119,6 @@ public class CompatibilityTest {
      * Java插入，sdb shell读取
      */
     @Test
-//	@Ignore
     public void javaInsertCQueryTest() {
         BSONDecimal decimal1 = new BSONDecimal("-1234.56789", 10, 5);
         System.out.println("decimal1 is: " + decimal1);
@@ -147,11 +138,9 @@ public class CompatibilityTest {
         cur = cl.query();
         assertTrue(cur.hasNext());
         BSONObject obj = cur.getNext();
-        // { "a" : [ { "b" : { "$decimal" : "1234567.00009888"}} , { "c" : { "$decimal" : "123.45679" , "$precision" : [ 10 , 5]}}]}
         System.out.println("queried record is: " + obj);
     }
 
-    //// testing api
 
     /**
      * this api is in com.sequoiadb.util
@@ -159,17 +148,14 @@ public class CompatibilityTest {
     @Test
     @Ignore
     public void api_bsonEndianConvert() {
-        // no need to do here, when we run the test case in power, we know the result
     }
 
     @Test
     @Ignore
     public void api_BasicBSONObject_toString() {
-        // we had test it in other test case
     }
 
     @Test
-//	@Ignore
     public void api_BasicBSONObject_equals() {
         BSONObject obj1 = new BasicBSONObject().append("a", 1);
         BSONObject obj2 = new BasicBSONObject().append("a", 2);
@@ -192,11 +178,9 @@ public class CompatibilityTest {
     @Test
     @Ignore
     public void api_BasicBSONObject_BasicTypeWrite() {
-        // no need to care about
     }
 
     @Test
-//	@Ignore
     public void api_BasicBSONObject_as() {
         ArrayList<Integer> list = new ArrayList<Integer>();
         list.add(0);
@@ -218,7 +202,6 @@ public class CompatibilityTest {
             append("fieldE", decimal).
             append("fieldF", list);
 
-        // case 1
         DecimalTmpA myObj = new DecimalTmpA();
         cl.save(myObj);
         cur = cl.query();
@@ -232,7 +215,6 @@ public class CompatibilityTest {
             e.printStackTrace();
             Assert.fail();
         }
-        // check
         Assert.assertEquals(myObj.getFieldA(), retObj.getFieldA());
         Assert.assertEquals(myObj.getFieldB(), retObj.getFieldB());
         Assert.assertEquals(myObj.getFieldC(), retObj.getFieldC());
@@ -241,7 +223,6 @@ public class CompatibilityTest {
         Assert.assertEquals(myObj.getFieldF(), retObj.getFieldF());
         Assert.assertEquals(myObj.getFieldZ(), retObj.getFieldZ());
 
-        // case 2: as before insert
         retObj = null;
         try {
             retObj = obj1.as(DecimalTmpA.class);
@@ -250,7 +231,6 @@ public class CompatibilityTest {
             e.printStackTrace();
             Assert.fail();
         }
-        // check
         Assert.assertEquals(num, retObj.getFieldA());
         Assert.assertEquals(str, retObj.getFieldB());
         Assert.assertEquals(oid.toString(), retObj.getFieldC().toString());
@@ -259,7 +239,6 @@ public class CompatibilityTest {
         Assert.assertEquals(list, retObj.getFieldF());
         Assert.assertEquals(bd, retObj.getFieldZ());
 
-        // case 3: as after query
         obj1.removeField("case2");
         obj1.put("case3", "test_in_java");
         cl.insert(obj1);
@@ -274,7 +253,6 @@ public class CompatibilityTest {
             e.printStackTrace();
             Assert.fail();
         }
-        // check
         Assert.assertEquals(num, retObj.getFieldA());
         Assert.assertEquals(str, retObj.getFieldB());
         Assert.assertEquals(oid.toString(), retObj.getFieldC().toString());
@@ -286,7 +264,6 @@ public class CompatibilityTest {
     }
 
     @Test
-//	@Ignore
     public void api_BasicBSONObject_asMap() {
         BasicBSONObject obj = new BasicBSONObject("a", new BSONTimestamp(1000, 1000)).append("b", new BSONDecimal("1.234"));
         HashMap map = (HashMap) obj.asMap();
@@ -297,7 +274,6 @@ public class CompatibilityTest {
     }
 
     @Test
-//	@Ignore
     public void api_BasicBSONObject_typeToBson() {
         DecimalTmpA a = new DecimalTmpA();
         DecimalTmpA b = new DecimalTmpA();
@@ -324,7 +300,6 @@ public class CompatibilityTest {
         BigDecimal after = new BigDecimal(decimal.getValue());
         Assert.assertEquals(0, original.compareTo(after));
 
-        // case 2: 
         b.setFieldA(1000);
         b.setFieldB("hello");
         b.setFieldC(new ObjectId());
@@ -354,23 +329,19 @@ public class CompatibilityTest {
     @Test
     @Ignore
     public void api_BasicBSONList_toMap() {
-        // no need to care about
     }
 
     @Test
     @Ignore
     public void api_BasicBSONList_as() {
-        // no need to care about
     }
 
     @Test
     @Ignore
     public void api_BasicBSONList_asList() {
-        // no need to care about
     }
 
     @Test
-//	@Ignore
     public void api_JSONParse() {
         String str1 = "{a:{\"$decimal\" : \"789.1234\"}}";
         String str2 = "{b:{\"$decimal\" : \"123.4567\", \"$precision\" :[10, 5]}}";
@@ -390,7 +361,6 @@ public class CompatibilityTest {
     }
 
     @Test
-//	@Ignore
     public void api_JSONParse_all_type() {
         BSONObject obj = null;
         try {
@@ -450,7 +420,6 @@ public class CompatibilityTest {
         cl.insert(obj11);
         cl.insert(obj12);
 
-        // number
         cur = cl.query(obj1, null, null, null);
         assertTrue(cur.hasNext());
         obj = cur.getNext();
@@ -458,14 +427,12 @@ public class CompatibilityTest {
         Assert.assertEquals(9223372036854775807L, obj.get("k_long"));
         Assert.assertEquals(3.14, obj.get("k_float"));
 
-        // decimal
         cur = cl.query(obj2, null, null, null);
         assertTrue(cur.hasNext());
         obj = cur.getNext();
         BSONDecimal decimal1 = null;
         BSONDecimal decimal2 = null;
         try {
-            // what i care about is the type
             decimal1 = (BSONDecimal) obj.get("k_decimal");
             decimal2 = (BSONDecimal) obj.get("k_decimal2");
         } catch (Exception e) {
@@ -473,13 +440,11 @@ public class CompatibilityTest {
             Assert.fail("failed to transform to BSONDecimal");
         }
 
-        // string
         cur = cl.query(obj3, null, null, null);
         assertTrue(cur.hasNext());
         obj = cur.getNext();
         Assert.assertEquals("hello world", obj.get("k_string"));
 
-        // oid
         cur = cl.query(obj4, null, null, null);
         assertTrue(cur.hasNext());
         obj = cur.getNext();
@@ -491,13 +456,11 @@ public class CompatibilityTest {
             Assert.fail("failed to transform to ObjectId");
         }
 
-        // bool
         cur = cl.query(obj5, null, null, null);
         assertTrue(cur.hasNext());
         obj = cur.getNext();
         Assert.assertEquals(true, obj.get("k_bool"));
 
-        // date
         cur = cl.query(obj6, null, null, null);
         assertTrue(cur.hasNext());
         obj = cur.getNext();
@@ -509,7 +472,6 @@ public class CompatibilityTest {
             Assert.fail("failed to transform to Date");
         }
 
-        // timestamp
         cur = cl.query(obj7, null, null, null);
         assertTrue(cur.hasNext());
         obj = cur.getNext();
@@ -521,7 +483,6 @@ public class CompatibilityTest {
             Assert.fail("failed to transform to BSONTimestamp");
         }
 
-        // binary
         cur = cl.query(obj8, null, null, null);
         assertTrue(cur.hasNext());
         obj = cur.getNext();
@@ -533,7 +494,6 @@ public class CompatibilityTest {
             Assert.fail("failed to transform to Binary");
         }
 
-        // regex
         String str_regex_query = "{ k_regex : { \"$et\": { \"$regex\" : \"^张\", \"$options\" : \"i\" } } }";
         BSONObject obj9query = (BSONObject) JSON.parse(str_regex_query);
         cur = cl.query(obj9query, null, null, null);
@@ -547,7 +507,6 @@ public class CompatibilityTest {
             Assert.fail("failed to transform to Pattern");
         }
 
-        // object
         cur = cl.query(obj10, null, null, null);
         assertTrue(cur.hasNext());
         obj = cur.getNext();
@@ -569,7 +528,6 @@ public class CompatibilityTest {
         Assert.assertEquals(1, subObj2.get("b1"));
         Assert.assertEquals(0, subArr.get("0"));
 
-        // array
         cur = cl.query(obj11, null, null, null);
         assertTrue(cur.hasNext());
         obj = cur.getNext();
@@ -594,7 +552,6 @@ public class CompatibilityTest {
         Assert.assertEquals(1, subArr.get("1"));
         Assert.assertEquals(2, subArr.get("2"));
 
-        // null
         cur = cl.query(obj12, null, null, null);
         assertTrue(cur.hasNext());
         obj = cur.getNext();

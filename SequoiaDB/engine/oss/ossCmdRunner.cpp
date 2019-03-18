@@ -122,8 +122,6 @@ namespace engine
          }
          timeout -= onceTime ;
 #ifdef _WINDOWS
-         // The asyncRead thread may cause the process hangs in Windows system,
-         // we terminate the thread if the start thread is finished
          if ( _stop )
          {
             TerminateThread( _pThread->native_handle(), 0 ) ;
@@ -260,8 +258,6 @@ namespace engine
       }
       else
       {
-         // background mode, the process is not quit, so, the pipe will
-         // all the way in use, so can't wait here
       }
 
       exit = res.exitcode ;

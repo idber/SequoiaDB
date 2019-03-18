@@ -189,7 +189,6 @@ namespace engine
          _rtnLobPieces pieces = info.getSection( 0 ) ;
          if ( 0 == pieces.first && last == pieces.last )
          {
-            // no skipped piece, so no need to save pieces info
             info.clear() ;
          }
       }

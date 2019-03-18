@@ -41,7 +41,6 @@
 namespace engine
 {
 
-   /////////////////////////////////////////////////////////////////////////////
 
    static BOOLEAN isCondNotInAggrFunc( qgmConditionNode *condNode,
                                        qgmOptiAggregation *aggrNode )
@@ -65,7 +64,6 @@ namespace engine
                                        const qgmOPFieldVec &fields,
                                        qgmOPFieldVec &more )
    {
-      // empty for wildcard
       if ( 0 == fields.size() )
       {
          return SDB_OK ;
@@ -92,7 +90,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   /////////////////////////////////////////////////////////////////////////////
 
    static INT32 findSameSortField( const qgmOpField &field,
                                    const qgmOPFieldVec &fieldVec )
@@ -115,9 +112,6 @@ namespace engine
                                          qgmOptiTreeNode * subNode,
                                          OPT_QGM_SS_RESULT & result )
    {
-      // Accept: When sort fields is the same with Aggr' group by fields
-      //       : When Aggr has not group by field
-      // Refuse: otherwise
 
       INT32 rc = SDB_OK ;
       qgmOPFieldVec outSorts ;
@@ -192,7 +186,6 @@ namespace engine
                                          qgmOptiTreeNode * subNode,
                                          OPT_QGM_SS_RESULT & result )
    {
-      // T/R
       INT32 rc = SDB_OK ;
       qgmOptiNLJoin *joinNode = ( qgmOptiNLJoin* )subNode ;
       qgmOPFieldVec *sortFields = oprUnit->getFields() ;
@@ -234,7 +227,6 @@ namespace engine
                goto done ;
             }
 
-            // if inner join, need to judge is same with inner
             if ( SQL_GRAMMAR::INNERJOIN == joinNode->joinType() &&
                  joinNode->canSwapInnerOuter() && !hasSwap )
             {
@@ -267,7 +259,6 @@ namespace engine
                                            qgmOptiTreeNode * subNode,
                                            OPT_QGM_SS_RESULT & result )
    {
-      // if the filter has limit or skip, refused, otherwise, takeover
       qgmOptiSelect *filter = (qgmOptiSelect*)subNode ;
 
       if ( filter->hasConstraint() )
@@ -344,17 +335,13 @@ namespace engine
          }
       }
 
-      // all order by fields is exist in select fields
       if ( 0 == sortMore.size() )
       {
          result = OPT_SS_TAKEOVER ;
          goto done ;
       }
-      // create a optional filter unit
       else
       {
-         // if ther filter node is not the top node, and top output stream is
-         // not wildcard(*)
          if ( !oprUnit->isOptional() && curNode->getParent() )
          {
             qgmOpStream outputStream ;
@@ -381,7 +368,6 @@ namespace engine
 
          newUnit->setNodeID( curNode->getNodeID() ) ;
 
-         // condition
          if ( filterUnit->hasCondition() )
          {
             qgmConditionNodePtrVec subConds = filterUnit->getConditions() ;
@@ -425,7 +411,6 @@ namespace engine
                                              qgmOptiTreeNode * subNode,
                                              OPT_QGM_SS_RESULT & result )
    {
-      // is filter has constraint, only can accpet FILTER_SEC filter
       qgmOptiSelect *filter = (qgmOptiSelect*)subNode ;
       qgmFilterUnit *filterUnit = (qgmFilterUnit*)oprUnit ;
       qgmFilterUnit *newCopy = NULL ;
@@ -442,7 +427,6 @@ namespace engine
       {
          result = OPT_SS_REFUSE ;
 
-         // if the filter has selectors, can create a copy
          qgmOPFieldVec *fields = filterUnit->getFields() ;
 
          if ( fields->size() > 0 && !oprUnit->isWildCardField() )
@@ -458,7 +442,6 @@ namespace engine
                goto error ;
             }
 
-            // add condition fields
             filterUnit->getCondFields( attrs ) ;
             itAttr = attrs.begin() ;
             while ( itAttr != attrs.end() )
@@ -559,7 +542,6 @@ namespace engine
          }
       }
 
-      // if field and attr not use aggr func field
       if ( fieldNotInAggrFunc && attrNotInAggrFunc )
       {
          filterUnit->addCondition( pushConds ) ;
@@ -593,7 +575,6 @@ namespace engine
 
       newUnit->setNodeID( curNode->getNodeID() ) ;
 
-      // all condition field is in selector
       if ( moreField.size() == 0 )
       {
          fields->clear() ;
@@ -693,7 +674,6 @@ namespace engine
          ++itSub ;
       }
 
-      // only cond filter and all conds rele is same
       if ( FILTER_CON == filterUnit->filterType() && condReleSame )
       {
          filterUnit->addCondition( pushConds ) ;
@@ -701,7 +681,6 @@ namespace engine
          goto done ;
       }
 
-      // whether condition more field rele is valid
       if ( fieldReleValid )
       {
          qgmOPFieldVec::iterator itField = moreField.begin() ;
@@ -738,7 +717,6 @@ namespace engine
       }
       newUnit->setNodeID( curNode->getNodeID() ) ;
 
-      // push condition
       if ( pushConds.size() > 0 )
       {
          newUnit->addCondition( pushConds ) ;
@@ -821,9 +799,6 @@ namespace engine
    }
 
 
-///////////////////////////
-//   _optQgmFilterScanSty
-//
    INT32  _optQgmFilterScanSty::calcResult( qgmOprUnit *oprUnit,
                                             qgmOptiTreeNode *curNode,
                                             qgmOptiTreeNode *subNode,
@@ -841,9 +816,6 @@ namespace engine
    {
       return "FilterScan-Strategy" ;
    }
-   /////////////////////////////////////////////////////////////////////////////
-   // tool functions
-   /////////////////////////////////////////////////////////////////////////////
 
    BOOLEAN isCondSameRele( qgmConditionNode * condNode, BOOLEAN allowEmpty )
    {

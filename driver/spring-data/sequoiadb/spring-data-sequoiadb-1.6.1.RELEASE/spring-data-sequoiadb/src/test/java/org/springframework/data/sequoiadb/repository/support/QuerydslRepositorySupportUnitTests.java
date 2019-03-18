@@ -22,11 +22,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.sequoiadb.core.SequoiadbOperations;
 import org.springframework.data.sequoiadb.core.query.Query;
 import org.springframework.data.sequoiadb.repository.Person;
-//import org.springframework.data.sequoiadb.repository.QPerson;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-//import com.mysema.query.sequoiadb.SequoiadbQuery;
 
 /**
  * Unit tests for {@link QuerydslRepositorySupport}.
@@ -50,10 +48,6 @@ public class QuerydslRepositorySupportUnitTests {
 
 	@Test
 	public void providesSequoiadbQuery() {
-//		QPerson p = QPerson.person;
-//		QuerydslRepositorySupport support = new QuerydslRepositorySupport(operations) {};
-//		SequoiadbQuery<Person> query = support.from(p).where(p.lastname.eq("Matthews"));
-//		assertThat(query.uniqueResult(), is(person));
 	}
 
 	/**
@@ -61,16 +55,5 @@ public class QuerydslRepositorySupportUnitTests {
 	 */
 	@Test
 	public void shouldAllowAny() {
-//
-//		person.setSkills(Arrays.asList("vocalist", "songwriter", "guitarist"));
-//
-//		operations.save(person);
-//
-//		QPerson p = QPerson.person;
-//		QuerydslRepositorySupport support = new QuerydslRepositorySupport(operations) {};
-//
-//		SequoiadbQuery<Person> query = support.from(p).where(p.skills.any().in("guitarist"));
-//
-//		assertThat(query.uniqueResult(), is(person));
 	}
 }

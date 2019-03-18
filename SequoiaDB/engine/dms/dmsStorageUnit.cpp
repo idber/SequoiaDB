@@ -116,7 +116,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONCRTCS ) ;
 
-      // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
       {
          rc = SDB_INVALIDARG ;
@@ -152,7 +151,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONLOADCS ) ;
 
-      // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
       {
          rc = SDB_INVALIDARG ;
@@ -188,7 +186,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONUNLOADCS ) ;
 
-      // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
       {
          rc = SDB_INVALIDARG ;
@@ -226,7 +223,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONRENAMECS ) ;
 
-      // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
       {
          rc = SDB_INVALIDARG ;
@@ -263,7 +259,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONDROPCS ) ;
 
-      // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
       {
          rc = SDB_INVALIDARG ;
@@ -303,7 +298,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONCRTCL ) ;
 
-      // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
       {
          rc = SDB_INVALIDARG ;
@@ -344,7 +338,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONRENAMECL ) ;
 
-      // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
       {
          rc = SDB_INVALIDARG ;
@@ -385,7 +378,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONTRUNCCL ) ;
 
-      // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
       {
          rc = SDB_INVALIDARG ;
@@ -425,7 +417,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONDROPCL ) ;
 
-      // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
       {
          rc = SDB_INVALIDARG ;
@@ -466,7 +457,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONCRTIDX ) ;
 
-      // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
       {
          rc = SDB_INVALIDARG ;
@@ -507,7 +497,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONDROPIDX ) ;
 
-      // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
       {
          rc = SDB_INVALIDARG ;
@@ -548,7 +537,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONLINKCL ) ;
 
-      // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
       {
          rc = SDB_INVALIDARG ;
@@ -589,7 +577,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DMSEVTHLD_ONUNLINKCL ) ;
 
-      // Event could not be handled in main thread
       if ( !cb || cb->getType() == EDU_TYPE_MAIN )
       {
          rc = SDB_INVALIDARG ;
@@ -932,12 +919,9 @@ namespace engine
          dmsIndexStat *pIndexStat = iterIdx->second ;
          if ( SDB_OK != _checkIndexStat( pIndexStat, mbContext ) )
          {
-            // Remove field statistics reference
             pCollectionStat->removeFieldStat( pIndexStat->getFirstField(),
                                               TRUE ) ;
-            // Remove index statistics reference
             iterIdx = indexStats.erase( iterIdx ) ;
-            // Delete the index statistics
             SAFE_OSS_DELETE( pIndexStat ) ;
          }
          else
@@ -1090,13 +1074,11 @@ namespace engine
       _storageInfo._pageAllocTimeout = options->getPageAllocTimeout() ;
       _storageInfo._dataIsOK = pmdGetStartup().isOK() ;
       _storageInfo._curLSNOnStart = pmdGetSyncMgr()->getCompleteLSN() ;
-      // make secret value
       _storageInfo._secretValue = ossPack32To64( (UINT32)time(NULL),
                                                  (UINT32)(ossRand()*239641) ) ;
       _storageInfo._type = type ;
       _storageInfo._extDataHandler = extDataHandler ;
 
-      // Create caches
       _cacheHolder.createSUCache( DMS_CACHE_TYPE_STAT ) ;
       _cacheHolder.createSUCache( DMS_CACHE_TYPE_PLAN ) ;
       _eventHolder.setCacheHolder( &_cacheHolder ) ;
@@ -1128,7 +1110,6 @@ namespace engine
          SDB_OSS_DEL _pCacheUnit ;
          _pCacheUnit = NULL ;
       }
-      // _pDataSu must be delete at the last
       if ( _pDataSu )
       {
          SDB_OSS_DEL _pDataSu ;
@@ -1148,7 +1129,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSSU_OPEN ) ;
 
-      // If openning existing storage unit, get the type from the header.
       if ( !createNew )
       {
          rc = _getTypeFromFile( pDataPath, _storageInfo._type ) ;
@@ -1160,7 +1140,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Create storage objects for storage unit[ %s ] "
                    "failed[ %d ]", _storageInfo._suName, rc ) ;
 
-      // open data
       rc = _pDataSu->openStorage( pDataPath, pSyncMgr, createNew ) ;
       if ( rc )
       {
@@ -1172,7 +1151,6 @@ namespace engine
          goto error ;
       }
 
-      // open index
       rc = _pIndexSu->openStorage( pIndexPath, pSyncMgr, createNew ) ;
       if ( rc )
       {
@@ -1189,13 +1167,11 @@ namespace engine
                    _pDataSu->isCrashed() &&
                    0 == _pDataSu->getCollectionNum() )
          {
-            /// create data file then crashed, so clean the data file
             goto rmdata ;
          }
          goto error ;
       }
 
-      // open lob
       rc = _pLobSu->open( pLobPath, pLobMetaPath, pSyncMgr, createNew ) ;
       if ( SDB_OK != rc )
       {
@@ -1241,8 +1217,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DMSSU_CLOSE ) ;
       pmdEDUCB *cb = pmdGetThreadEDUCB() ;
 
-      /// The order is:
-      /// cacheUnit -> lob -> index -> data( must be in last )
       if ( _pCacheUnit )
       {
          _pCacheUnit->fini( cb ) ;
@@ -1268,8 +1242,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSSU_REMOVE ) ;
 
-      /// The order is:
-      /// cacheUnit -> lob -> index -> data( must be in last )
 
       if ( _pCacheUnit )
       {
@@ -1283,7 +1255,6 @@ namespace engine
 
       if ( _pIndexSu )
       {
-         /// first clear all page map
          _pIndexSu->getPageMapUnit()->clear() ;
 
          rc = _pIndexSu->removeStorage() ;
@@ -1323,7 +1294,6 @@ namespace engine
          goto error ;
       }
 
-      /// data and index
       ossSnprintf( dataFileName, DMS_SU_FILENAME_SZ, "%s.%d.%s",
                    pNewName, _storageInfo._sequence,
                    DMS_DATA_SU_EXT_NAME ) ;
@@ -1344,7 +1314,6 @@ namespace engine
          goto error ;
       }
 
-      /// lobm and lobd
       ossMemset( dataFileName, 0, sizeof( dataFileName ) ) ;
       ossMemset( idxFileName, 0 , sizeof( idxFileName ) ) ;
       ossSnprintf( dataFileName, DMS_SU_FILENAME_SZ, "%s.%d.%s",
@@ -1361,7 +1330,6 @@ namespace engine
          goto error ;
       }
 
-      /// update storage info
       ossStrncpy( _storageInfo._suName, pNewName, DMS_SU_NAME_SZ ) ;
       _storageInfo._suName[DMS_SU_NAME_SZ] = 0 ;
 
@@ -1379,12 +1347,10 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DMSSU__RESETCOLLECTION ) ;
       SDB_ASSERT( context, "context can't be NULL" ) ;
 
-      // drop all indexes
       rc = _pIndexSu->dropAllIndexes( context, NULL, NULL ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Drop all indexes failed, rc: %d", rc ) ;
-         // don't go to error, continue
       }
 
       rc = _pDataSu->_truncateCollection( context ) ;
@@ -1411,7 +1377,6 @@ namespace engine
       dmsExtent *extAddr = NULL ;
       SINT32 allocatedExtent = DMS_INVALID_EXTENT ;
 
-      // allocate a new extent
       rc = _pDataSu->_allocateExtent( mbContext, numPages, FALSE, toLoad,
                                       &allocatedExtent ) ;
       if ( rc )
@@ -1423,7 +1388,6 @@ namespace engine
 
       extRW = _pDataSu->extent2RW( allocatedExtent, mbContext->mbID() ) ;
       extRW.setNothrow( TRUE ) ;
-      // get the address
       extAddr = extRW.writePtr<dmsExtent>( 0, getPageSize() * numPages ) ;
       if ( !extAddr )
       {
@@ -1432,12 +1396,10 @@ namespace engine
          rc = SDB_SYS ;
          goto error ;
       }
-      // copy data part
       ossMemcpy ( &((CHAR*)extAddr)[DMS_EXTENT_METADATA_SZ],
                   &pBuffer[DMS_EXTENT_METADATA_SZ],
                   _pDataSu->pageSize() * numPages  - DMS_EXTENT_METADATA_SZ ) ;
 
-      // reset header part
       extAddr->_recCount          = sourceExt->_recCount ;
       extAddr->_firstRecordOffset = sourceExt->_firstRecordOffset ;
       extAddr->_lastRecordOffset  = sourceExt->_lastRecordOffset ;
@@ -1490,7 +1452,6 @@ namespace engine
 
       _pDataSu->postLoadExt( mbContext, extAddr, allocatedExtent ) ;
 
-      // add count
       addExtentRecordCount( mbContext->mb(), extAddr->_recCount ) ;
 
    done :
@@ -1828,7 +1789,6 @@ namespace engine
    {
       INT32 rc                     = SDB_OK ;
       BOOLEAN getContext           = FALSE ;
-      //dmsExtent *pExtent           = NULL ;
       recordNum                    = 0 ;
 
       PD_TRACE_ENTRY ( SDB__DMSSU_COUNTCOLLECTION ) ;
@@ -2270,7 +2230,6 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__DMSSU_DUMPINFO_CLSIMVEC ) ;
 
-      // lock meta data
       _pDataSu->_metadataLatch.get_shared() ;
 
       dmsStorageData::COLNAME_MAP_IT it = _pDataSu->_collectionNameMap.begin() ;
@@ -2286,19 +2245,16 @@ namespace engine
 
          if ( SDB_OK == _dumpCLInfo( collection, it->second ) )
          {
-            // add
             clList.push_back ( collection ) ;
          }
 
          ++it ;
       }
 
-      // release meta lock
       _pDataSu->_metadataLatch.release_shared() ;
 
       if ( dumpIdx )
       {
-         // Dump indexes for each collection
          MON_CL_SIM_VEC::iterator iter = clList.begin() ;
          while ( iter != clList.end() )
          {
@@ -2309,8 +2265,6 @@ namespace engine
             }
             else
             {
-               // Dump index with error, erase this collection from list
-               // The collection may be dropped
                iter = clList.erase( iter ) ;
             }
          }
@@ -2325,7 +2279,6 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__DMSSU_DUMPINFO_CLSIMLIST ) ;
 
-      // lock meta
       _pDataSu->_metadataLatch.get_shared() ;
 
       dmsStorageData::COLNAME_MAP_IT it = _pDataSu->_collectionNameMap.begin() ;
@@ -2341,14 +2294,12 @@ namespace engine
 
          if ( SDB_OK == _dumpCLInfo( collection, it->second ) )
          {
-            //add
             clList.insert ( collection ) ;
          }
 
          ++it ;
       }
 
-      // release meta
       _pDataSu->_metadataLatch.release_shared() ;
 
       PD_TRACE_EXIT ( SDB__DMSSU_DUMPINFO_CLSIMLIST ) ;
@@ -2398,7 +2349,6 @@ namespace engine
                                     BOOLEAN sys )
    {
       PD_TRACE_ENTRY ( SDB__DMSSU_DUMPINFO_CLLIST ) ;
-      // lock meta
       _pDataSu->_metadataLatch.get_shared() ;
 
       dmsStorageData::COLNAME_MAP_IT it = _pDataSu->_collectionNameMap.begin() ;
@@ -2414,14 +2364,12 @@ namespace engine
 
          if ( SDB_OK == _dumpCLInfo( collection, it->second ) )
          {
-            //add
             clList.insert ( collection ) ;
          }
 
          ++it ;
       }
 
-      // release meta
       _pDataSu->_metadataLatch.release_shared() ;
 
       PD_TRACE_EXIT ( SDB__DMSSU_DUMPINFO_CLLIST ) ;
@@ -2476,7 +2424,6 @@ namespace engine
 
       dmsStorageUnitStat statInfo ;
 
-      // get stat info
       getStatInfo( statInfo ) ;
       INT64 totalDataFreeSize    = totalFreeSize( DMS_SU_DATA ) +
                                    statInfo._totalDataFreeSpace ;
@@ -2500,7 +2447,6 @@ namespace engine
       collectionSpace._totalLobSize = totalSize( DMS_SU_LOB ) ;
       collectionSpace._freeLobSize = totalLobFreeSize ;
 
-      /// sync info
       collectionSpace._dataCommitLsn = getCurrentDataLSN() ;
       collectionSpace._idxCommitLsn = getCurrentIdxLSN() ;
       collectionSpace._lobCommitLsn = getCurrentLobLSN() ;
@@ -2508,7 +2454,6 @@ namespace engine
                     collectionSpace._idxIsValid,
                     collectionSpace._lobIsValid ) ;
 
-      /// cache info
       collectionSpace._dirtyPage = cacheUnit()->dirtyPages() ;
       collectionSpace._type = type() ;
 
@@ -2690,7 +2635,6 @@ namespace engine
 
       dmsMBStatInfo *mbStat = NULL ;
 
-      // lock meta
       _pDataSu->_metadataLatch.get_shared() ;
 
       dmsStorageData::COLNAME_MAP_IT it = _pDataSu->_collectionNameMap.begin() ;
@@ -2709,7 +2653,6 @@ namespace engine
          ++it ;
       }
 
-      // release meta
       _pDataSu->_metadataLatch.release_shared() ;
       PD_TRACE_EXIT ( SDB__DMSSU_GETSTATINFO ) ;
    }
@@ -2759,7 +2702,6 @@ namespace engine
          info._lobPageSize = getLobPageSize() ;
          info._currCompressRatio = mbStat->_lastCompressRatio ;
 
-         /// sync info
          info._dataCommitLSN = mb->_commitLSN ;
          info._idxCommitLSN = mb->_idxCommitLSN ;
          info._lobCommitLSN = mb->_lobCommitLSN ;
@@ -2837,9 +2779,7 @@ namespace engine
          indexItem._scanExtLID = indexCB.scanExtLID () ;
          indexItem._indexLID = indexCB.getLogicalID () ;
          indexItem._version = indexCB.version () ;
-         // copy the index def to it's owned buffer
          indexItem._indexDef = indexCB.getDef().copy () ;
-         // add
          resultIndexes.push_back ( indexItem ) ;
       }
 
@@ -2875,7 +2815,6 @@ namespace engine
             resultIndex._scanExtLID = indexCB.scanExtLID () ;
             resultIndex._indexLID = indexCB.getLogicalID () ;
             resultIndex._version = indexCB.version () ;
-            // copy the index def to it's owned buffer
             resultIndex._indexDef = indexCB.getDef().copy () ;
 
             rc = SDB_OK ;
@@ -2975,7 +2914,6 @@ namespace engine
          {
             PD_LOG( PDWARNING, "Sync file[%s] failed, rc: %d",
                     _pLobSu->getSuFileName(), rc ) ;
-            /// not go to error
             rc = rc ? rc : rcTmp ;
          }
       }
@@ -2989,12 +2927,10 @@ namespace engine
          {
             PD_LOG( PDWARNING, "Sync file[%s] failed, rc: %d",
                     _pLobSu->getSuFileName(), rc ) ;
-            /// not go to error
             rc = rc ? rc : rcTmp ;
          }
       }
 
-      /// data file must be the last
       if ( NULL != _pDataSu )
       {
          _pDataSu->lock() ;
@@ -3004,7 +2940,6 @@ namespace engine
          {
             PD_LOG( PDWARNING, "Sync file[%s] failed, rc: %d",
                     _pLobSu->getSuFileName(), rc ) ;
-            /// not go to error
             rc = rc ? rc : rcTmp ;
          }
       }
@@ -3039,7 +2974,6 @@ namespace engine
       idxFlag = NULL == _pIndexSu ?
                 TRUE : ( _pIndexSu->getCommitFlag() ? TRUE : FALSE ) ;
 
-      /// _pLobSu may be NULL, set it as 1
       lobFlag = ( NULL == _pLobSu || !_pLobSu->isOpened() ) ?
                 TRUE : ( _pLobSu->getCommitFlag() ? TRUE : FALSE ) ;
    }
@@ -3118,7 +3052,6 @@ namespace engine
          goto error ;
       }
 
-      /// alloc cache unit
       _pCacheUnit = SDB_OSS_NEW utilCacheUnit( _pMgr ) ;
       if ( !_pCacheUnit )
       {
@@ -3127,7 +3060,6 @@ namespace engine
          goto error ;
       }
 
-      /// reuse buf for lob
       ossMemset( dataFileName, 0, sizeof( dataFileName ) ) ;
       ossMemset( idxFileName, 0 , sizeof( idxFileName ) ) ;
       ossSnprintf( dataFileName, DMS_SU_FILENAME_SZ, "%s.%d.%s",
@@ -3205,7 +3137,6 @@ namespace engine
       rc = ossGetFileSize( &file, &fileSize ) ;
       PD_RC_CHECK( rc, PDERROR, "Get file[ %s ] size failed[ %d ]",
                    fullFilePath, rc ) ;
-      // Only read the eyecathcer
       if ( fileSize < DMS_HEADER_EYECATCHER_LEN )
       {
          rc = SDB_SYS ;

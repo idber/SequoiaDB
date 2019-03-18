@@ -134,14 +134,6 @@ namespace engine
       INT32 index = -1 ;
       BSONObj boEmpty ;
 
-      // The output idx means:
-      // 1. idx is 0
-      //    1. isEqual is true, value == _pValues[0]
-      //    2. isEqual is false, value < _pValues[0]
-      // 2. idx is 1 to _size - 1
-      //    1. isEqual is true, value == _pValues[idx]
-      //    2. isEqual is false, _pValues[idx-1]< value < _pValues[idx]
-      // 3. idx is _size: _pValues[_size - 1] < value
 
       if ( 0 == _size )
       {
@@ -272,8 +264,6 @@ namespace engine
 
       if ( pStartKey )
       {
-         // Expect start key < value[idx]
-         // The first element is compared in earlier range comparison
          if ( !pStartKey->compareAllValues( 1, -1, _pValues[idx] ) )
          {
             return FALSE ;
@@ -281,8 +271,6 @@ namespace engine
       }
       if ( pStopKey )
       {
-         // Expect stop key > value[idx]
-         // The first element is compared in earlier range comparison
          if ( !pStopKey->compareAllValues( 1, 1, _pValues[idx] ) )
          {
             return FALSE ;
@@ -393,14 +381,12 @@ namespace engine
                   pStartKey || pStopKey, SDB_INVALIDARG, error, PDWARNING,
                   "Numbers of keys are not matched" ) ;
 
-      // Only check holes when number of keys are larger than 1
       if ( _numKeys > 1 && ( ( pStartKey && pStartKey->size() > 1 ) ||
                              ( pStopKey && pStopKey->size() > 1 ) ) )
       {
          checkHoles = TRUE ;
       }
 
-      // Get the index of start key
       if ( pStartKey )
       {
          startIncluded = pStartKey->isIncluded() ;
@@ -412,13 +398,11 @@ namespace engine
       }
       else
       {
-         // $lt operator, include all smaller MCV items
          startIdx = 0 ;
          startIncluded = TRUE ;
          startEqual = FALSE ;
       }
 
-      // Get the index of stop key
       if ( pStopKey )
       {
          stopIncluded = pStopKey->isIncluded() ;
@@ -430,13 +414,11 @@ namespace engine
       }
       else
       {
-         // $gt operator, include all greater MCV items
          stopIdx = getSize() ;
          stopIncluded = TRUE ;
          stopEqual = FALSE ;
       }
 
-      // Don't need to check holes if the range is too large
       if ( checkHoles && ( stopIdx - startIdx > DMS_STAT_CHECKHOLE_THRESHOLD ) )
       {
          checkHoles = FALSE ;
@@ -444,10 +426,8 @@ namespace engine
 
       if ( startIdx != stopIdx )
       {
-         // Check startIdx
          if ( startIncluded || !startEqual )
          {
-            // The start key <= value case, add the first selected MCV item
             tmpScanSel += getFracInt( startIdx ) ;
             if ( checkHoles && ( ( startIncluded && startEqual ) ||
                                  _inRange( (UINT32)startIdx, pStartKey, pStopKey ) ) )
@@ -457,10 +437,8 @@ namespace engine
             rangeCount ++ ;
          }
 
-         // Check startIdx + 1 to stopIdx - 1
          for ( INT32 idx = startIdx + 1 ; idx < stopIdx ; idx ++ )
          {
-            // Every ranges between selected MCV items are needed
             tmpScanSel += getFracInt( idx ) ;
             if ( checkHoles && _inRange( idx, pStartKey, pStopKey ) )
             {
@@ -469,11 +447,8 @@ namespace engine
             rangeCount ++ ;
          }
 
-         // Check stopIdx
          if ( stopIncluded && stopEqual && stopIdx < (INT32)getSize() )
          {
-            // The stop key is equal to the last selected MCV item, add
-            // the last selected MCV item
             tmpScanSel += getFracInt( stopIdx ) ;
             if ( checkHoles )
             {
@@ -484,13 +459,9 @@ namespace engine
       }
       else
       {
-         // start idx is equal to stop idx, which means the start key and stop
-         // key are equal to the same MCV item
          if ( stopIncluded && startEqual && stopIncluded && stopEqual &&
               startIdx < (INT32)getSize() )
          {
-            // The stop key is equal to the selected MCV item, which should
-            // be included
             tmpScanSel = getFracInt( startIdx ) ;
             if ( checkHoles )
             {
@@ -596,7 +567,6 @@ namespace engine
       {
          BSONElement beItem ;
 
-         // Required fields
 
          beItem = boStat.getField( DMS_STAT_COLLECTION_SPACE ) ;
          PD_CHECK( String == beItem.type(),
@@ -759,7 +729,6 @@ namespace engine
             case Undefined :
                break ;
             default :
-               // Ignore non-supported types
                goto done ;
          }
 
@@ -771,10 +740,8 @@ namespace engine
 
       boFullValue = keyBuilder.obj() ;
 
-      // Round to 0 ~ 1.0 and scaled to 10000x
       fraction = DMS_STAT_ROUND_SELECTIVITY( fraction ) *
                  DMS_STAT_FRACTION_SCALE ;
-      // Round to integer
       scaledFraction = (UINT16)DMS_STAT_ROUND_INT( fraction ) ;
       rc = _mcvSet.pushBack( boFullValue, scaledFraction ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to insert mcv value [%s], rc: %d",
@@ -814,7 +781,6 @@ namespace engine
 
       BOOLEAN hitMCV = FALSE ;
 
-      // Special case for unique index, could be one of the totalRecords
       if ( _isUnique && key.size() == _numKeys )
       {
          predSelectivity = 1.0 / (double)_totalRecords ;
@@ -830,7 +796,6 @@ namespace engine
 
       if ( !hitMCV )
       {
-         // The value is not in MCV set, evaluate in the rest of values
          if ( _distinctValues == _mcvSet.getSize() )
          {
             predSelectivity = ( 1.0 - _mcvSet.getTotalFrac() ) *
@@ -904,8 +869,6 @@ namespace engine
 
       if ( !hitMCV )
       {
-         // The values do not include any MCV items, try to evaluate from
-         // the rest of values
          predSelectivity = ( 1.0 - _mcvSet.getTotalFrac() ) *
                            DMS_STAT_PRED_RANGE_DEF_SELECTIVITY ;
          scanSelectivity = predSelectivity ;
@@ -927,7 +890,6 @@ namespace engine
 
       BSONElement beItem ;
 
-      // Required fields
 
       beItem = boStat.getField( DMS_STAT_IDX_INDEX ) ;
       PD_CHECK( String == beItem.type(), SDB_INVALIDARG, error, PDWARNING,
@@ -955,7 +917,6 @@ namespace engine
                 "Field [%s] is not matched", DMS_STAT_IDX_LEVELS ) ;
       setIndexLevels( (UINT32)beItem.numberInt() ) ;
 
-      // Optional fields
 
       beItem = boStat.getField( DMS_STAT_IDX_NULL_FRAC ) ;
       if ( beItem.isNumber() )
@@ -996,7 +957,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_DMSIDXSTAT__POSTINIT ) ;
 
-      // Initialize the distinct value number if it's not found
       if ( 0 == _distinctValues )
       {
          if ( _isUnique )
@@ -1217,7 +1177,6 @@ namespace engine
                  pTempStat->getCreateTime() < pIndexStat->getCreateTime() )
             {
                _indexStats.erase( iter ) ;
-               // Update field statistics before delete it
                _findNewFieldStat( pTempStat ) ;
                SAFE_OSS_DELETE( pTempStat ) ;
 
@@ -1233,7 +1192,6 @@ namespace engine
 
          if ( added )
          {
-            // The name pointer should be fixed
             pIndexStat->setCSName( _pCSName ) ;
             pIndexStat->setCLName( _pCLName ) ;
             _addFieldStat( pIndexStat, ignoreCrtTime ) ;
@@ -1325,7 +1283,6 @@ namespace engine
                   _removeFieldStat( pDeletingStat ) ;
                }
             }
-            // Erase item only, no need to delete statistics
             _fieldStats.erase( iter ) ;
             deleted = TRUE ;
          }
@@ -1381,7 +1338,6 @@ namespace engine
 
       BSONElement beItem ;
 
-      // Required fields
 
       beItem = boStat.getField( DMS_STAT_CL_TOTAL_DATA_PAGES ) ;
       PD_CHECK( beItem.isNumber(),
@@ -1395,7 +1351,6 @@ namespace engine
                 "Field [%s] is not matched", DMS_STAT_CL_TOTAL_DATA_SIZE ) ;
       setTotalDataSize( (UINT64)beItem.numberLong() ) ;
 
-      // Optional fields
 
       beItem = boStat.getField( DMS_STAT_CL_AVG_NUM_FIELDS ) ;
       if ( beItem.isNumber() )

@@ -116,7 +116,6 @@ namespace engine
    class _optScanPath ;
    typedef class _optScanPath optScanPath ;
 
-   // Store searched paths during optimization
    typedef _utilList< optScanPath, OPT_MAX_CANDIDATE_COUNT > optScanPathList ;
 
    class _optScanPath : public _optPlanPath
@@ -299,13 +298,11 @@ namespace engine
       protected :
          CHAR                 _clFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
 
-         /// info before explain
          monAppCB             _beginMon ;
          ossTimestamp         _beginTime ;
          FLOAT64              _beginUsrCpu ;
          FLOAT64              _beginSysCpu ;
 
-         /// info after explain
          monAppCB             _endMon ;
          ossTimestamp         _endTime ;
          FLOAT64              _endUsrCpu ;

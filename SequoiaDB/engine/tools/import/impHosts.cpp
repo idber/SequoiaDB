@@ -67,7 +67,6 @@ namespace import
          string hostname1 = host1.hostname;
          string hostname2 = host2.hostname;
 
-         // "localhost" equals "127.0.0.1"
 
          if ("127.0.0.1" == hostname1)
          {
@@ -88,7 +87,6 @@ namespace import
       }
    };
 
-   // "locahost:11810, localhost:11910"
    INT32 Hosts::parse(const string& hostList, vector<Host>& hosts)
    {
       INT32 rc = SDB_OK;
@@ -107,7 +105,6 @@ namespace import
          host = boost::algorithm::trim_copy_if(host, boost::is_space());
          if (host.empty())
          {
-            // ignore empty string or white space
             continue;
          }
 
@@ -117,7 +114,6 @@ namespace import
             string hostname;
             string svcname;
 
-            // first is hostname
             if (nameIt == nameTok.end())
             {
                rc = SDB_INVALIDARG;
@@ -133,7 +129,6 @@ namespace import
                goto error;
             }
 
-            // second is svcname
             *nameIt++;
             if (nameIt == nameTok.end())
             {
@@ -150,7 +145,6 @@ namespace import
                goto error;
             }
 
-            // error if still have string
             *nameIt++;
             if (nameIt != nameTok.end())
             {

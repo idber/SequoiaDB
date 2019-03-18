@@ -70,13 +70,11 @@ namespace engine
       CoordGroupList allgroups ;
       const CHAR *pAction = NULL ;
 
-      // fill default-reply
       contextID                        = -1 ;
 
       MsgOpQuery *pAttachMsg           = (MsgOpQuery *)pMsg ;
       pAttachMsg->header.opCode        = MSG_CAT_ALTER_IMAGE_REQ ;
 
-      // extrace query msg
       {
          CHAR *pQuery = NULL ;
          rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
@@ -106,7 +104,6 @@ namespace engine
          }
       }
 
-      // 1. execute on catalog
       rc = executeOnCataGroup( pMsg, cb, &datagroups, NULL, TRUE,
                                NULL, buf ) ;
       if ( rc )
@@ -116,7 +113,6 @@ namespace engine
          goto error ;
       }
 
-      // update all groups
       rc = _pResource->updateGroupList( allgroups, cb, NULL,
                                         FALSE, TRUE, TRUE ) ;
       if ( rc )
@@ -125,7 +121,6 @@ namespace engine
          rc = SDB_OK ;
       }
 
-      // 2. execute on the special groups or special nodes, ignore error
       pAttachMsg->header.opCode        = MSG_BS_QUERY_REQ ;
       if ( 0 == ossStrcasecmp( CMD_VALUE_NAME_ENABLE_READONLY, pAction ) ||
            0 == ossStrcasecmp( CMD_VALUE_NAME_DISABLE_READONLY, pAction ) ||

@@ -255,10 +255,6 @@ namespace engine
 
       fixLenTotalBits = codeVec.size() * dictionary->getCodeSize() ;
 
-      // Whether to use variable length compression or fixed length compression.
-      // If ( Variable Length Compression Length )
-      //    <= 95% * ( Fixed Length Compression Length )
-      // use variable length compression.
       useVarLenComp = ( ( varLenTotalBits * 100 / fixLenTotalBits ) <= 95 ) ?
                       TRUE : FALSE ;
 

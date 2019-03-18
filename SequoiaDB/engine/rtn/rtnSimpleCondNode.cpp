@@ -85,7 +85,6 @@ namespace engine
    {
       if ( NULL != allocator && allocator->isAllocatedByme( p ) )
       {
-         // do nothing
       }
       else
       {
@@ -127,7 +126,6 @@ namespace engine
       }
 
       _children[ child->_idxInParent ] = newChild ;
-      // Release the old child.
       child->release() ;
 
    done:
@@ -203,7 +201,6 @@ namespace engine
                                   const BSONElement &element )
    {
       _rtnCondNode::init( fieldName ) ;
-      // For normal node, directory use the element.
       _element = element ;
    }
 
@@ -251,7 +248,6 @@ namespace engine
                                 const BSONElement &element )
    {
       _rtnCondNode::init( fieldName ) ;
-      // For text node, directly use the element.
       _element = element ;
    }
 

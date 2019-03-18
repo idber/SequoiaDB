@@ -48,7 +48,6 @@ namespace engine
    {
    public:
       _qgmSelectorExprNode() ;
-      /// guarantee ele be valid
       ~_qgmSelectorExprNode() ;
 
    public:

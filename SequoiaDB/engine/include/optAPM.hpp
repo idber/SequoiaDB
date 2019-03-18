@@ -284,52 +284,36 @@ namespace engine
                                    BOOLEAN criticalMode ) ;
 
       protected :
-         // Begin to the free index, where to get free activities
          ossAtomic64 _freeIndexBegin ;
 
-         // End to the free index, where to return free activities
          ossAtomic64 _freeIndexEnd ;
 
-         // Free index
          UINT32 *_pFreeActivityIDs ;
 
-         // Thread flag to clearing procedure
          ossAtomic32 _clearThread ;
 
-         // Thread flag to allocate activity during clearing procedure
          ossAtomic32 _allocateThread ;
 
-         // Mutex to protect clearing procedure
          ossRWMutex _clearLock ;
 
-         // Clear event to signal clear job
          ossEvent _clearEvent ;
 
-         // Number of activities ( The capacity of plan cache )
          UINT32 _activityNum ;
 
-         // High water mark to clear cached plans
          UINT32 _highWaterMark ;
 
-         // Low water mark to stop clear cached plans
          UINT32 _lowWaterMark ;
 
-         // Clock index to scan the activity table
          UINT32 _clockIndex ;
 
-         // Activity table
          optCachedPlanActivity *_pActivities ;
 
-         // Total number of cached plans
          ossAtomic32 _cachedPlanCount ;
 
-         // Access timestamp for cached plans
          ossAtomic64 _accessTimestamp ;
 
-         // Last timestamp to finished clearing procedure
          UINT64 _lastClearTimestamp ;
 
-         // Pointer to plan cache
          optAccessPlanCache *_pPlanCache ;
    } ;
 
@@ -380,15 +364,12 @@ namespace engine
             return &_monitor ;
          }
 
-         // Try to get access plan from cache, if could not get access plan
-         // from cache, create one
          INT32 getAccessPlan ( const rtnQueryOptions &options,
                                BOOLEAN keepSearchPaths,
                                dmsStorageUnit *su,
                                dmsMBContext *mbContext,
                                optAccessPlanRuntime &planRuntime ) ;
 
-         // Create access plan directly without caching
          INT32 getTempAccessPlan ( const rtnQueryOptions &options,
                                    dmsStorageUnit *su,
                                    dmsMBContext *mbContext,
@@ -404,7 +385,6 @@ namespace engine
                                  const optQueryActivity &queryActivity ) ;
 
       public :
-         // For _IDmsEventHandler
          virtual INT32 onCreateCS ( IDmsEventHolder *pEventHolder,
                                     IDmsSUCacheHolder *pCacheHolder,
                                     pmdEDUCB *cb,
@@ -519,7 +499,6 @@ namespace engine
 
          BOOLEAN _cacheAccessPlan ( optAccessPlan *pPlan ) ;
 
-         // Helpers for parameterized plans
          INT32 _validateParamPlan ( dmsStorageUnit *su,
                                     dmsMBContext *mbContext,
                                     optAccessPlanKey &planKey,
@@ -527,7 +506,6 @@ namespace engine
                                     optAccessPlanHelper &planHelper,
                                     optParamAccessPlan *plan ) ;
 
-         // Helpers for main-collection plans
          INT32 _createMainCLPlan ( optAccessPlanKey &planKey,
                                    const rtnQueryOptions &subOptions,
                                    dmsStorageUnit *su,
@@ -550,7 +528,6 @@ namespace engine
                                  optAccessPlanRuntime &planRuntime,
                                  optAccessPlanHelper &planHelper ) ;
 
-         // Helpers for _IDmsEventHandler
          void _invalidSUPlans ( IDmsSUCacheHolder *pCacheHolder ) ;
 
          void _invalidCLPlans ( IDmsSUCacheHolder *pCacheHolder,
@@ -558,7 +535,6 @@ namespace engine
 
          void _resetSUPlanCache ( IDmsSUCacheHolder *pCacheHolder ) ;
 
-         // Helpers for clear background job
          INT32 _startClearJob () ;
          void  _stopClearJob () ;
 
@@ -568,7 +544,6 @@ namespace engine
          optCachedPlanMonitor    _monitor ;
          EDUID                   _clearJobEduID ;
 
-         // Configured options
          OPT_PLAN_CACHE_LEVEL    _cacheLevel ;
    } ;
 

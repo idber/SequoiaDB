@@ -43,7 +43,6 @@ using namespace boost::property_tree;
 namespace engine
 {
 
-   // ***************** omCreateRelationshipCommand ****************************
    omCreateRelationshipCommand::omCreateRelationshipCommand(
                                                    restAdaptor *pRestAdaptor,
                                                    pmdRestSession *pRestSession,
@@ -115,7 +114,6 @@ namespace engine
       string businessType ;
       omDatabaseTool dbTool( _cb ) ;
 
-      //get from business info
       rc = dbTool.getOneBusinessInfo( _fromBuzName, fromBuzInfo ) ;
       if ( SDB_DMS_RECORD_NOTEXIST == rc )
       {
@@ -132,7 +130,6 @@ namespace engine
          goto error ;
       }
 
-      //check business type
       businessType = fromBuzInfo.getStringField( OM_BUSINESS_FIELD_TYPE ) ;
       if ( OM_BUSINESS_SEQUOIASQL_OLTP != businessType )
       {
@@ -143,7 +140,6 @@ namespace engine
          goto error ;
       }
 
-      //get to business info
       rc = dbTool.getOneBusinessInfo( _toBuzName, toBuzInfo ) ;
       if ( SDB_DMS_RECORD_NOTEXIST == rc )
       {
@@ -160,7 +156,6 @@ namespace engine
          goto error ;
       }
 
-      //check business type
       businessType = toBuzInfo.getStringField( OM_BUSINESS_FIELD_TYPE ) ;
       if ( OM_BUSINESS_SEQUOIADB != businessType )
       {
@@ -180,7 +175,6 @@ namespace engine
          goto error ;
       }
 
-      //check business does not running
       taskID = dbTool.getTaskIdOfRunningBuz( _fromBuzName ) ;
       if( 0 <= taskID )
       {
@@ -268,7 +262,6 @@ namespace engine
 
       requestBuilder.append( OM_BSON_NAME, _name ) ;
 
-      //from business config
       rc = dbTool.getConfigByBusiness( _fromBuzName, fromBuzConfig ) ;
       if ( rc )
       {
@@ -278,7 +271,6 @@ namespace engine
          goto error ;
       }
 
-      //build from business info
       {
          string businessType ;
          BSONObj authInfo ;
@@ -287,7 +279,6 @@ namespace engine
          BSONArrayBuilder configBuilder ;
          list<BSONObj>::iterator iter ;
 
-         //from business auth
          rc = dbTool.getAuth( _fromBuzName, authInfo ) ;
          if ( rc )
          {
@@ -340,7 +331,6 @@ namespace engine
          requestBuilder.append( OM_BSON_FROM, fromBuilder.obj() ) ;
       }
 
-      //to business config
       rc = dbTool.getConfigByBusiness( _toBuzName, toBuzConfig ) ;
       if ( rc )
       {
@@ -350,7 +340,6 @@ namespace engine
          goto error ;
       }
 
-      //builder to business info
       {
          string businessType ;
          BSONObj authInfo ;
@@ -359,7 +348,6 @@ namespace engine
          BSONArrayBuilder configBuilder ;
          list<BSONObj>::iterator iter ;
 
-         //to business auth
          rc = dbTool.getAuth( _toBuzName, authInfo ) ;
          if ( rc )
          {
@@ -421,7 +409,6 @@ namespace engine
       goto done ;
    }
 
-   // ***************** omRemoveRelationshipCommand ****************************
    omRemoveRelationshipCommand::omRemoveRelationshipCommand(
                                                    restAdaptor *pRestAdaptor,
                                                    pmdRestSession *pRestSession,
@@ -499,7 +486,6 @@ namespace engine
          goto error ;
       }
 
-      //get from business info
       rc = dbTool.getOneBusinessInfo( _fromBuzName, fromBuzInfo ) ;
       if ( rc )
       {
@@ -508,7 +494,6 @@ namespace engine
          goto error ;
       }
 
-      //get to business info
       rc = dbTool.getOneBusinessInfo( _toBuzName, toBuzInfo ) ;
       if ( rc )
       {
@@ -517,7 +502,6 @@ namespace engine
          goto error ;
       }
 
-      //get relationship options
       rc = dbTool.getRelationshipOptions( _name, options ) ;
       if ( SDB_DMS_RECORD_NOTEXIST == rc )
       {
@@ -534,7 +518,6 @@ namespace engine
          goto error ;
       }
 
-      //check business does not running
       taskID = dbTool.getTaskIdOfRunningBuz( _fromBuzName ) ;
       if( 0 <= taskID )
       {
@@ -620,7 +603,6 @@ namespace engine
 
       requestBuilder.append( OM_BSON_NAME, _name ) ;
 
-      //from business config
       rc = dbTool.getConfigByBusiness( _fromBuzName, fromBuzConfig ) ;
       if ( rc )
       {
@@ -630,7 +612,6 @@ namespace engine
          goto error ;
       }
 
-      //build from business info
       {
          string businessType ;
          BSONObj authInfo ;
@@ -639,7 +620,6 @@ namespace engine
          BSONArrayBuilder configBuilder ;
          list<BSONObj>::iterator iter ;
 
-         //from business auth
          rc = dbTool.getAuth( _fromBuzName, authInfo ) ;
          if ( rc )
          {
@@ -692,7 +672,6 @@ namespace engine
          requestBuilder.append( OM_BSON_FROM, fromBuilder.obj() ) ;
       }
 
-      //to business config
       rc = dbTool.getConfigByBusiness( _toBuzName, toBuzConfig ) ;
       if ( rc )
       {
@@ -702,7 +681,6 @@ namespace engine
          goto error ;
       }
 
-      //builder to business info
       {
          string businessType ;
          BSONObj authInfo ;
@@ -711,7 +689,6 @@ namespace engine
          BSONArrayBuilder configBuilder ;
          list<BSONObj>::iterator iter ;
 
-         //to business auth
          rc = dbTool.getAuth( _toBuzName, authInfo ) ;
          if ( rc )
          {
@@ -773,7 +750,6 @@ namespace engine
       goto done ;
    }
 
-   // ***************** omListRelationshipCommand ****************************
    omListRelationshipCommand::omListRelationshipCommand(
                                                 restAdaptor *pRestAdaptor,
                                                 pmdRestSession *pRestSession )

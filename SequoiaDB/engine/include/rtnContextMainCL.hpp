@@ -122,10 +122,6 @@ namespace engine
 
       BOOLEAN _requireExplicitSorting () const
       {
-         // 1. order is required
-         //    1. sort is not empty
-         //    2. sort keys are not included in sharding keys
-         // 2. has more than one sub-collections
          return ( _orderedContextMap.size() > 0 || _subContextMap.size() > 1 ) &&
                 requireOrder() ;
       }

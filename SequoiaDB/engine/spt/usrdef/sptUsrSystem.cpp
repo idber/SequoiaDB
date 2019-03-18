@@ -364,7 +364,6 @@ namespace engine
       string err ;
       VEC_HOST_ITEM vecItems ;
 
-      // hostname
       rc = arg.getString( 0, hostname ) ;
       if ( rc == SDB_OUT_OF_BOUND )
       {
@@ -383,7 +382,6 @@ namespace engine
          goto error ;
       }
 
-      // ip
       rc = arg.getString( 1, ip ) ;
       if ( rc == SDB_OUT_OF_BOUND )
       {
@@ -402,7 +400,6 @@ namespace engine
          goto error ;
       }
 
-      // isReplace
       if ( arg.argc() > 2 )
       {
          rc = arg.getNative( 2, (void*)&isReplace, SPT_NATIVE_INT32 ) ;
@@ -434,7 +431,6 @@ namespace engine
       string err ;
       VEC_HOST_ITEM vecItems ;
 
-      // hostname
       rc = arg.getString( 0, hostname ) ;
       if ( rc == SDB_OUT_OF_BOUND )
       {
@@ -820,7 +816,6 @@ namespace engine
       BSONObj          retObj ;
       BOOLEAN          showDetail = FALSE ;
       string           err ;
-      // get optionObj
       if( arg.argc() > 0 )
       {
          rc = arg.getBsonobj( 0, optionObj ) ;
@@ -853,7 +848,6 @@ namespace engine
       INT32 rc           = SDB_OK ;
       BSONObj            optionObj ;
       string             err ;
-      // check argument
       if ( 1 < arg.argc() )
       {
          rc = SDB_INVALIDARG ;
@@ -891,7 +885,6 @@ namespace engine
       INT32 rc          = SDB_OK ;
       BSONObj           userObj ;
       string            err ;
-      // check argument and build cmd
       rc = arg.getBsonobj( 0, userObj ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
@@ -922,7 +915,6 @@ namespace engine
       INT32 rc        = SDB_OK ;
       BSONObj         groupObj ;
       string          err ;
-      // check argument and build cmd
       rc = arg.getBsonobj( 0, groupObj ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
@@ -953,7 +945,6 @@ namespace engine
       INT32 rc          = SDB_OK ;
       BSONObj           optionObj ;
       string            err ;
-      // check argument and build cmd
       rc = arg.getBsonobj( 0, optionObj ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
@@ -984,7 +975,6 @@ namespace engine
       INT32 rc          = SDB_OK ;
       BSONObj           optionObj ;
       string            err ;
-      // check argument and build cmd
       rc = arg.getBsonobj( 0, optionObj ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
@@ -1015,7 +1005,6 @@ namespace engine
       INT32 rc          = SDB_OK ;
       string            name ;
       string            err ;
-      // check argument
       rc = arg.getString( 0, name ) ;
       if( SDB_OUT_OF_BOUND == rc )
       {
@@ -1047,7 +1036,6 @@ namespace engine
       BSONObj            optionObj ;
       BSONObj            retObj ;
       string             err ;
-      // check argument
       if ( 1 < arg.argc() )
       {
          rc = SDB_INVALIDARG ;
@@ -1084,7 +1072,6 @@ namespace engine
       BSONObj            retObj ;
       BSONObj            optionObj ;
       string             err ;
-      // check argument
       if ( 1 < arg.argc() )
       {
          rc = SDB_INVALIDARG ;
@@ -1122,7 +1109,6 @@ namespace engine
       BSONObj            retObj ;
       BSONObj            optionObj ;
       string             err ;
-      // check argument
       if ( 1 < arg.argc() )
       {
          rc = SDB_INVALIDARG ;
@@ -1214,7 +1200,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       BSONObj retObj ;
       string err ;
-      // check argument
       if ( 1 <= arg.argc() )
       {
          rc = SDB_INVALIDARG ;
@@ -1242,7 +1227,6 @@ namespace engine
       INT32 rc           = SDB_OK ;
       BSONObj            configsObj ;
       string             err ;
-      // get argument
       rc = arg.getBsonobj( 0, configsObj ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
@@ -1277,7 +1261,6 @@ namespace engine
       string             options ;
       string             retStr ;
       string             err ;
-      // check argument
       rc = arg.getString( 0, serviceName ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {

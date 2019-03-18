@@ -1,8 +1,9 @@
 package com.sequoiadb.test.cl;
 
-import com.sequoiadb.base.*;
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.exception.SDBError;
+import com.sequoiadb.base.CollectionSpace;
+import com.sequoiadb.base.DBCollection;
+import com.sequoiadb.base.DBCursor;
+import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.test.common.Constants;
 import com.sequoiadb.testdata.SDBTestHelper;
 import org.bson.BSONObject;
@@ -10,7 +11,6 @@ import org.bson.BasicBSONObject;
 import org.bson.types.ObjectId;
 import org.junit.*;
 
-import static com.sequoiadb.base.DBCollection.FLG_INSERT_CONTONDUP;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -24,16 +24,13 @@ public class CLInsert {
 
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
 
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } else
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        // cl
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
@@ -59,7 +56,6 @@ public class CLInsert {
     public void insertOneRecord() {
         System.out.println("begin to test insertOneRecord ...");
 
-        // create record
         BSONObject obj = new BasicBSONObject();
         BSONObject obj1 = new BasicBSONObject();
         ObjectId id = new ObjectId();
@@ -78,9 +74,7 @@ public class CLInsert {
         obj.put("boolean2", false);
         obj.put("nullobj", null);
         obj.put("intnum", 999999999);
-//		obj.put("floatnum",9999999999.9999999999);
 
-        // record current session totalInsert num
         BSONObject temp = new BasicBSONObject();
         DBCursor cur = sdb.getSnapshot(3, temp, temp, temp);
         long time1 = SDBTestHelper.getTotalBySnapShotKey(cur, "TotalInsert");
@@ -88,7 +82,6 @@ public class CLInsert {
         long count = 0;
         count = cl.getCount();
         System.out.println("before insert, the count is: " + count);
-        // insert
         cl.insert(obj);
         long count1 = 0;
         count1 = cl.getCount();
@@ -99,7 +92,6 @@ public class CLInsert {
         System.out.println("after insert, current session total insert num is " + time2);
         assertEquals(1, time2 - time1);
 
-        //query without condition
         BSONObject tmp = new BasicBSONObject();
         DBCursor tmpCursor = cl.query(tmp, null, null, null);
         while (tmpCursor.hasNext()) {
@@ -107,7 +99,6 @@ public class CLInsert {
             System.out.println(temp1.toString());
         }
 
-        // query
         BSONObject query = new BasicBSONObject();
         query.put("Id", 10);
         query.put("姓名", "汤姆");
@@ -119,7 +110,6 @@ public class CLInsert {
         query.put("boolean2", false);
         query.put("nullobj", null);
         query.put("intnum", 999999999);
-//		query.put("floatnum",9999999999.9999999999);
         cursor = cl.query(query, null, null, null);
         while (cursor.hasNext()) {
             BSONObject temp1 = cursor.getNext();
@@ -129,7 +119,6 @@ public class CLInsert {
         long count2 = cl.getCount();
         System.out.println("after cl.query(), i is: " + i);
         System.out.println("after cl.query(), the count is: " + count2);
-        // check
         assertEquals(1, i);
     }
 
@@ -145,22 +134,7 @@ public class CLInsert {
         DBCursor cursor = cl.query(qobj, null, null, null);
         while (cursor.hasNext()) {
             BSONObject record = cursor.getNext();
-            // check
             assertTrue(record.toString().indexOf(result) >= 0);
-        }
-    }
-
-    @Test
-    public void insertWithFlag() {
-        BSONObject obj1 = new BasicBSONObject().append("_id", 1).append("a",1);
-        BSONObject obj2 = new BasicBSONObject().append("_id", 1).append("a",1);
-        cl.insert(obj1, FLG_INSERT_CONTONDUP);
-        cl.insert(obj2, FLG_INSERT_CONTONDUP);
-        try {
-            cl.insert(obj2, 0);
-            Assert.fail();
-        } catch (BaseException e) {
-            Assert.assertEquals(SDBError.SDB_IXM_DUP_KEY.getErrorCode(), e.getErrorCode());
         }
     }
 }

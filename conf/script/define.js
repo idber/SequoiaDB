@@ -1,6 +1,6 @@
 /*******************************************************************************
 
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -245,10 +245,6 @@ var OMA_PATH_TEMP_LOCAL_DIR                = "/tmp/omatmp/conf/local/" ;
 var OMA_PATH_TEMP_SPT_DIR                  = "/tmp/omatmp/conf/script/" ;
 var OMA_PATH_BIN                           = "bin/";
 
-var OMA_TEMP_ROOT_PATH                     = "/tmp/omatmp"
-var OMA_TEMP_PACKET_PATH                   = "/tmp/omatmp/packet"
-var OMA_TEMP_EXPECT_PATH                   = "/tmp/omatmp/expect"
-
 var OMA_PATH_OMA_WORK_DIR                  = "/tmp/omagent" ;
 var OMA_PATH_OMA_WORK_TASK_DIR             = "/tmp/omagent/task" ;
 //  /tmp/omagent/task/$taskID/pid.txt
@@ -335,12 +331,12 @@ var FIELD_SAC_TASKID                       = "sactaskid" ;
 var FIELD_ADDRESS                          = "Address" ;
 var FIELD_ADDRESS2                         = "address" ;
 var FIELD_BUSINESS_NAME                    = BusinessName ;
-var FIELD_BUSINESS_NAME2                   = BusinessName2 ;
 var FIELD_BUSINESS_TYPE                    = BusinessType ;
 var FIELD_CLUSTER_NAME                     = ClusterName ;
-var FIELD_CLUSTER_NAME2                    = ClusterName2 ;
+var FIELD_CONFIG                           = Config ;
 var FIELD_HOST_INFO                        = HostInfo ;
 var FIELD_SEQUOIADB                        = "sequoiadb" ;
+var FIELD_SEQUOIASQL_OLTP                  = "sequoiasql-oltp" ;
 var FIELD_HOSTLIST                         = "HostList" ;
 var FIELD_IP                               = IP ;
 var FIELD_HOSTS                            = Hosts ;
@@ -363,23 +359,6 @@ var FIELD_TO                               = "To" ;
 var FIELD_OPTIONS                          = "Options" ;
 var FIELD_HTTP_NAME                        = "httpname" ;
 var FIELD_DB_NAME                          = DbName ;
-var FIELD_OM_ADDR                          = "omaddr" ;
-var FIELD_AUTH_USER                        = AuthUser ;
-var FIELD_AUTH_PASSWD                      = AuthPasswd ;
-var FIELD_GRANT_TYPE                       = "GrantType" ;
-var FIELD_FORCE                            = "Force" ;
-var FIELD_COMMAND                          = "Command" ;
-var FIELD_UPDATE_BUSINESS_CONFIG           = "update business config" ;
-var FIELD_DELETE_BUSINESS_CONFIG           = "delete business config" ;
-var FIELD_PROPERTY                         = "property" ;
-var FIELD_OPTIONS2                         = "options" ;
-var FIELD_NODE_INFO                        = "NodeInfo" ;
-var FIELD_ERR_NODES                        = "ErrNodes" ;
-var FIELD_DESCRIPTION                      = Description ;
-var FIELD_DESCRIPTION2                     = "description" ;
-var FIELD_SEQUOIADB_CONN_ADDR              = "sequoiadb_conn_addr" ;
-var FIELD_SEQUOIADB_USER                   = "sequoiadb_user" ;
-var FIELD_SEQUOIADB_PASSWORD               = "sequoiadb_password" ;
 
 // Async task step
 var STEP_GENERATE_PLAN                     = "Generate plan" ;

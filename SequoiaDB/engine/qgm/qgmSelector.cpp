@@ -278,7 +278,6 @@ namespace engine
          {
             string name = itr->value.attr().toString() ;
 
-            /// do not pass name like 'a.$[1]' to query
             const CHAR *dollarArray = ossStrstr( name.c_str(), ".$[" ) ;
             if ( NULL == dollarArray )
             {

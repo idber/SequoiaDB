@@ -213,7 +213,6 @@ public class MappingSequoiadbConverter extends AbstractSequoiadbConverter implem
 			throw new MappingException(String.format(INCOMPATIBLE_TYPES, dbo, BasicBSONList.class, typeToUse.getType(), path));
 		}
 
-		// Retrieve persistent entity info
 		SequoiadbPersistentEntity<S> persistentEntity = (SequoiadbPersistentEntity<S>) mappingContext
 				.getPersistentEntity(typeToUse);
 		if (persistentEntity == null) {
@@ -245,7 +244,6 @@ public class MappingSequoiadbConverter extends AbstractSequoiadbConverter implem
 		final SequoiadbPersistentProperty idProperty = entity.getIdProperty();
 		final S result = wrapper.getBean();
 
-		// make sure id property is set before all other properties
 		Object idValue = null;
 
 		if (idProperty != null) {
@@ -255,11 +253,9 @@ public class MappingSequoiadbConverter extends AbstractSequoiadbConverter implem
 
 		final ObjectPath currentPath = path.push(result, entity, idValue);
 
-		// Set properties not already set in the constructor
 		entity.doWithProperties(new PropertyHandler<SequoiadbPersistentProperty>() {
 			public void doWithPersistentProperty(SequoiadbPersistentProperty prop) {
 
-				// we skip the id property since it was already set
 				if (idProperty != null && idProperty.equals(prop)) {
 					return;
 				}
@@ -272,7 +268,6 @@ public class MappingSequoiadbConverter extends AbstractSequoiadbConverter implem
 			}
 		});
 
-		// Handle associations
 		entity.doWithAssociations(new AssociationHandler<SequoiadbPersistentProperty>() {
 			public void doWithAssociation(Association<SequoiadbPersistentProperty> association) {
 
@@ -310,7 +305,6 @@ public class MappingSequoiadbConverter extends AbstractSequoiadbConverter implem
 			Assert.isTrue(annotation != null, "The referenced property has to be mapped with @DBRef!");
 		}
 
-		// @see DATA_JIRA-913
 		if (object instanceof LazyLoadingProxy) {
 			return ((LazyLoadingProxy) object).toDBRef();
 		}
@@ -401,7 +395,6 @@ public class MappingSequoiadbConverter extends AbstractSequoiadbConverter implem
 			} catch (ConversionException ignored) {}
 		}
 
-		// Write the properties
 		entity.doWithProperties(new PropertyHandler<SequoiadbPersistentProperty>() {
 			public void doWithPersistentProperty(SequoiadbPersistentProperty prop) {
 
@@ -485,7 +478,6 @@ public class MappingSequoiadbConverter extends AbstractSequoiadbConverter implem
 			obj = ((LazyLoadingProxy) obj).getTarget();
 		}
 
-		// Lookup potential custom target type
 		Class<?> basicTargetType = conversions.getCustomWriteTarget(obj.getClass(), null);
 
 		if (basicTargetType != null) {
@@ -634,8 +626,6 @@ public class MappingSequoiadbConverter extends AbstractSequoiadbConverter implem
 			Object key = entry.getKey();
 			Object val = entry.getValue();
 			if (conversions.isSimpleType(key.getClass())) {
-				// Don't use conversion service here as removal of ObjectToString converter results in some primitive types not
-				// being convertable
 				String simpleKey = potentiallyEscapeMapKey(key.toString());
 				if (val == null || conversions.isSimpleType(val.getClass())) {
 					writeSimpleInternal(val, dbo, simpleKey);
@@ -933,7 +923,6 @@ public class MappingSequoiadbConverter extends AbstractSequoiadbConverter implem
 		}
 
 		if (conversions.isSimpleType(obj.getClass())) {
-			// Doesn't need conversion
 			return getPotentiallyConvertedSimpleWrite(obj);
 		}
 

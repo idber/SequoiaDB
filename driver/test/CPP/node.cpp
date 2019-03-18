@@ -29,13 +29,11 @@ TEST(node,getStatus)
    sdbShard shard ;
    sdbNode node ;
    sdbCursor cursor ;
-   // initialize local variables
    const CHAR *pHostName                    = HOST ;
    const CHAR *pPort                        = SERVER ;
    const CHAR *pUsr                         = USER ;
    const CHAR *pPasswd                      = PASSWD ;
    INT32 rc                                 = SDB_OK ;
-   // connect to database
    rc = connect.connect( pHostName, pPort, pUsr, pPasswd ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = connect.getShard("group1", shard) ;
@@ -45,9 +43,6 @@ TEST(node,getStatus)
    sdbNodeStatus status = SDB_NODE_UNKNOWN;
    status = node.getStatus();
    cout << "status = " << status << endl ;
-   // disconnect the connection
    connect.disconnect() ;
 }
 
-// TODO:
-//all

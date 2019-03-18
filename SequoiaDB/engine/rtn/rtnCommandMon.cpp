@@ -107,7 +107,6 @@ namespace engine
          goto error ;
       }
 
-      /// init
       rc = pNewFetch->init( cb, _isCurrent(), _isDetail(),
                             _addInfoMask(), _getOptObj() ) ;
       if ( rc )
@@ -163,7 +162,6 @@ namespace engine
          goto error ;
       }
 
-      // create cursors
       rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, (rtnContext**)&context,
                                *pContextID, cb ) ;
       if ( rc )
@@ -178,20 +176,17 @@ namespace engine
                           orderBy.isEmpty() ? _numToSkip : 0 ) ;
       PD_RC_CHECK( rc, PDERROR, "Open context failed, rc: %d", rc ) ;
 
-      // sample timetamp
       if ( cb->getMonConfigCB()->timestampON )
       {
          context->getMonCB()->recordStartTimestamp() ;
       }
 
-      /// create and init fetch
       rc = _createFetch( cb, &pFetch ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create fetch, rc: %d", rc ) ;
 
       context->setMonFetch( pFetch, TRUE ) ;
       pFetch = NULL ;
 
-      /// when has orderby
       if ( !orderBy.isEmpty() )
       {
          rc = rtnSort( (rtnContext**)&context, orderBy, cb,
@@ -276,7 +271,6 @@ namespace engine
 
       if ( vecUserAggr.size() > 0 )
       {
-         /// add new matcher
          if ( !matcher.isEmpty() )
          {
             rc = appendObj( BSON( AGGR_MATCH_PARSER_NAME << matcher ),
@@ -285,7 +279,6 @@ namespace engine
                          rc ) ;
          }
 
-         /// order by
          if ( !orderBy.isEmpty() )
          {
             rc = appendObj( BSON( AGGR_SORT_PARSER_NAME << orderBy ),
@@ -303,7 +296,6 @@ namespace engine
                          rc ) ;
          }
 
-         /// open context
          rc = openContext( pOutBuff, buffObjNum, getIntrCMDName(),
                            selector, cb, *pContextID ) ;
          PD_RC_CHECK( rc, PDERROR, "Open context failed, rc: %d", rc ) ;

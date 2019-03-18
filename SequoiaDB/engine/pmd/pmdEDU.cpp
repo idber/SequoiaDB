@@ -159,7 +159,6 @@ namespace engine
 
    void _pmdEDUCB::clear()
    {
-      // clear all queue msg
       pmdEDUEvent data ;
       while ( _queue.try_pop( data ) )
       {
@@ -182,7 +181,6 @@ namespace engine
       clearTransInfo() ;
 #endif // SDB_ENGINE
 
-      // release buff
       if ( _pCompressBuff )
       {
          releaseBuff( _pCompressBuff ) ;
@@ -196,7 +194,6 @@ namespace engine
       }
       _uncompressBuffLen = 0 ;
 
-      // clean catch
       CATCH_MAP_IT it = _catchMap.begin() ;
       while ( it != _catchMap.end() )
       {
@@ -207,7 +204,6 @@ namespace engine
       }
       _catchMap.clear() ;
 
-      // clean alloc memory
       ALLOC_MAP_IT itAlloc = _allocMap.begin() ;
       while ( itAlloc != _allocMap.end() )
       {
@@ -337,7 +333,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__PMDEDUCB_PRINTINFO );
-      //already exist, return ok
       if ( getInfo ( type ) )
       {
          goto done ;
@@ -433,7 +428,6 @@ namespace engine
 
    void _pmdEDUCB::saveBuffs( _pmdEDUCB::CATCH_MAP &catchMap )
    {
-      // release buff
       if ( _pCompressBuff )
       {
          releaseBuff( _pCompressBuff ) ;
@@ -447,7 +441,6 @@ namespace engine
       }
       _uncompressBuffLen = 0 ;
 
-      // clean alloc memory
       CHAR *pBuff = NULL ;
       ALLOC_MAP_IT itAlloc = _allocMap.begin() ;
       while ( itAlloc != _allocMap.end() )
@@ -458,7 +451,6 @@ namespace engine
       }
       _allocMap.clear() ;
 
-      // restore catch map
       CATCH_MAP_IT it = _catchMap.begin() ;
       while ( it != _catchMap.end() )
       {
@@ -554,14 +546,12 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      // first alloc from catch
       if ( _totalCatchSize >= len &&
            _allocFromCatch( len, ppBuff, pRealSize ) )
       {
          goto done ;
       }
 
-      // malloc
       len = ossRoundUpToMultipleX( len, EDU_MEM_ALIGMENT_SIZE ) ;
       *ppBuff = ( CHAR* )SDB_OSS_MALLOC( len ) ;
       if( !*ppBuff )
@@ -572,7 +562,6 @@ namespace engine
          goto error ;
       }
 
-      // update meta info
       _totalMemSize += len ;
       _allocMap[ *ppBuff ] = len ;
 
@@ -627,11 +616,9 @@ namespace engine
 
       if ( pOld != *ppBuff )
       {
-         /// the old pointer has release, so need del from map
          _allocMap.erase( pOld ) ;
       }
 
-      // update meta info
       _totalMemSize += ( len - oldLen ) ;
 
       _allocMap[ *ppBuff ] = len ;
@@ -674,11 +661,9 @@ namespace engine
       }
       else
       {
-         // add to catch
          _catchMap.insert( std::make_pair( buffLen, pBuff ) ) ;
          _totalCatchSize += buffLen ;
 
-         // re-org catch
          while ( _totalCatchSize > EDU_MAX_CATCH_SIZE )
          {
             CATCH_MAP_IT it = _catchMap.begin() ;
@@ -696,7 +681,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__PMDEDUCB_ISINT );
       BOOLEAN ret = FALSE ;
 
-      // mask interrupt while doing rollback
       if ( !onlyFlag && _isDoRollback )
       {
          goto done;
@@ -1040,7 +1024,6 @@ namespace engine
       DpsTransCBLockList::iterator iterLst = _transLockLst.begin();
       while ( iterLst != _transLockLst.end() )
       {
-         // delete local lock-info
          if ( iterLst->second )
          {
             SDB_OSS_DEL iterLst->second;
@@ -1203,8 +1186,6 @@ namespace engine
       __eduCB = NULL ;
    }
 
-   // for pmdRecv, we wait indefinitely until the agent is forced, because
-   // client may not send us anything due to idle of user activities
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDRECV, "pmdRecv" )
    INT32 pmdRecv ( CHAR *pBuffer, INT32 recvSize,
                    ossSocket *sock, pmdEDUCB *cb,
@@ -1306,7 +1287,6 @@ namespace engine
       {
          goto error ;
       }
-      // recieve msg length
       rc = pmdRecv( (CHAR*)&msgLen, sizeof(INT32), sock, cb, timeout,
                     forceTimeout ) ;
       if ( rc )
@@ -1321,7 +1301,6 @@ namespace engine
          sock->close() ;
          goto error ;
       }
-      // alloc memory
       if ( useCBMem )
       {
          rc = cb->allocBuff( msgLen, &pRecvBuf, NULL ) ;
@@ -1341,7 +1320,6 @@ namespace engine
          }
       }
       ossMemcpy( pRecvBuf, ( CHAR* )&msgLen, sizeof( INT32 ) ) ;
-      // recieve last msg
       rc = pmdRecv( pRecvBuf + sizeof( INT32 ), msgLen - sizeof( INT32 ),
                     sock, cb, timeout ) ;
       if ( rc )

@@ -48,7 +48,6 @@ DECLARE_COMMAND_VAR( query )
 DECLARE_COMMAND_VAR( getMore )
 DECLARE_COMMAND_VAR( killCursors )
 
-// other command
 DECLARE_COMMAND_VAR( getnonce )
 DECLARE_COMMAND_VAR( authenticate )
 DECLARE_COMMAND_VAR( createUser )
@@ -77,7 +76,6 @@ void generateNonce( std::stringstream &ss )
    ss << std::hex << ull ;
 }
 
-/// implement of commands
 INT32 insertCommand::convert( msgParser &parser )
 {
    INT32 rc                = SDB_OK ;
@@ -113,11 +111,9 @@ INT32 insertCommand::convert( msgParser &parser )
 
    if ( packet.with( OPTION_CMD ) )
    {
-      // hit here means insert with write command
    }
    else
    {
-      // one or more doc
    }
 
 
@@ -262,11 +258,9 @@ INT32 deleteCommand::convert( msgParser &parser )
 
    if ( packet.with( OPTION_CMD ) )
    {
-      //parser.skipBytes( sizeof( packet.nToSkip ) + sizeof( packet.nToReturn ) ) ;
    }
    else
    {
-      // do nothing here
       parser.readInt( sizeof( INT32 ), (CHAR *)&packet.nToSkip ) ;
    }
 
@@ -415,11 +409,9 @@ INT32 updateCommand::convert( msgParser &parser )
 
    if ( packet.with( OPTION_CMD ) )
    {
-      //parser.skipBytes( sizeof( packet.nToSkip ) + sizeof( packet.nToReturn ) ) ;
    }
    else
    {
-      // in update option, nToSkip is used as updateFlags
       parser.readInt( sizeof( INT32 ), (CHAR *)&packet.nToSkip ) ;
    }
 
@@ -473,7 +465,6 @@ INT32 updateCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
       {
          subObj = (*cit).Obj() ;
          obj = subObj.getObjectField( "q" ) ;
-         //cond = getQueryObj( obj ) ;
          updator = subObj.getObjectField( "u" ) ;
          hint = getHintObj( obj ) ;
 
@@ -510,7 +501,6 @@ INT32 updateCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
 
       update->nameLength = packet.fullName.length() ;
       sdbMsg.write( packet.fullName.c_str(), update->nameLength + 1, TRUE ) ;
-      // in update option, nToSkip is used as updateFlags
       if ( packet.nToSkip & UPDATE_UPSERT )
       {
          update->flags |= FLG_UPDATE_UPSERT ;
@@ -523,7 +513,6 @@ INT32 updateCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
       bson::BSONObj cond, updator, hint ;
       if ( !parser.more() )
       {
-         // lack of updator object
          rc = SDB_INVALIDARG ;
          goto error ;
       }
@@ -721,7 +710,6 @@ INT32 getMoreCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
    }
    more->numToReturn = packet.nToReturn ;
    parser.readInt( sizeof( packet.cursorId ), ( CHAR * )&packet.cursorId ) ;
-   // match to sequoiadb contextID, need decrease 1
    more->contextID = packet.cursorId - 1;
 
    sdbMsg.doneLen() ;
@@ -916,7 +904,6 @@ INT32 createUserCommand::buildMsg( msgParser& parser, msgBuffer &sdbMsg )
       pName = packet.all.getStringField( "user" ) ;
       pPasswd = packet.all.getStringField( "pwd" ) ;
    }
-   // build md5
    {
       std::stringstream ss ;
       generateNonce( ss ) ;
@@ -1724,11 +1711,7 @@ INT32 listIndexesCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
       parser.setCurrentOp( OP_CMD_NOT_SUPPORTED ) ;
       goto error ;
 
-      //packet.fullName = packet.csName ;
-      //packet.fullName += "." ;
-      //packet.fullName += packet.all.getStringField( "listIndexes" ) ;
 
-      //obj = BSON( FIELD_NAME_COLLECTION << packet.fullName.c_str() ) ;
    }
 
    sdbMsg.write( indexObj, TRUE ) ;

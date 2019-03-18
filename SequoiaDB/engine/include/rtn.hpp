@@ -105,15 +105,12 @@ namespace engine
                      INT32 *pInsertedNum = NULL,
                      INT32 *pIgnoredNum = NULL ) ;
 
-   // for insert/update/delete, if dpsCB = NULL, that means we don't log
    INT32 rtnInsert ( const CHAR *pCollectionName, BSONObj &objs, INT32 objNum,
                      INT32 flags, pmdEDUCB *cb, SDB_DMSCB *dmsCB,
                      SDB_DPSCB *dpsCB, INT16 w = 1,
                      INT32 *pInsertedNum = NULL,
                      INT32 *pIgnoredNum = NULL ) ;
 
-   // for replaying insert operation. Only one record will be inserted in one
-   // call.
    INT32 rtnReplayInsert( const CHAR *pCollectionName, BSONObj &obj,
                           INT32 flags, pmdEDUCB *cb, SDB_DMSCB *dmsCB,
                           SDB_DPSCB *dpsCB, INT16 w = 1 ) ;
@@ -163,18 +160,6 @@ namespace engine
 
    INT32 rtnMsg ( MsgOpMsg *pMsg ) ;
 
-   // pCollectionName : requested collection name
-   // selector        : fields want to select
-   // matcher         : condition to match
-   // orderBy         : orderBy for result
-   // hint            : optimizer hint
-   // flags           : query flag
-   // cb              : EDU control block
-   // numToSkip       : number of records to skip
-   // numToReturn     : maximum number of records to return
-   // dmsCB           : dms control block
-   // rtnCB           : runtime control block
-   // contextID       : newly created context
    INT32 rtnQuery ( const CHAR *pCollectionName,
                     const BSONObj &selector,
                     const BSONObj &matcher,
@@ -206,14 +191,6 @@ namespace engine
                    SINT64 numToReturn,
                    SINT64 &contextID ) ;
 
-   // traversal the collection from a given key
-   // the key must be normalized by ixm index key generator
-   // 1) full collection name
-   // 2) normalized index key
-   // 3) index key that used for traversal
-   // 4) direction (1 or -1 only)
-   // ...
-   // return context id, which can be used for getmore
    INT32 rtnTraversalQuery ( const CHAR *pCollectionName,
                              const BSONObj &key,
                              const CHAR *pIndexName,
@@ -329,10 +306,6 @@ namespace engine
 
    BOOLEAN rtnIsInBackup () ;
 
-   // perform collection offline reorg. Note ignoreError usually used by full
-   // database rebuild. This option is trying best to ignore data corruption (
-   // not all corruptions can be ignored, for example if metadata is corrupted
-   // there's nothing we can do ).
    INT32 rtnReorgOffline ( const CHAR *pCollectionName,
                            const BSONObj &hint,
                            pmdEDUCB *cb,
@@ -345,7 +318,6 @@ namespace engine
                            SDB_RTNCB *rtnCB ) ;
 
 
-   //RTN common fuction declare
    INT32 rtnGetStringElement ( const BSONObj &obj, const CHAR *fieldName,
                                const CHAR **value ) ;
 

@@ -1,17 +1,17 @@
-/* Copyright (c) 2018, SequoiaDB and/or its affiliates. All rights reserved.
+/* Copyright (c) 2003, 2011, Oracle and/or its affiliates. All rights reserved.
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; version 2 of the License.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; version 2 of the License.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
 
 #ifndef SDB_ITEM__H
 #define SDB_ITEM__H
@@ -86,7 +86,6 @@ public:
 
    virtual int push( sdb_item *cond_item ) ;
    virtual int push( Item *cond_item ) ;
-   virtual int pop( Item *&para_item ) ;
    virtual void update_stat() ;
    virtual int get_item_val( const char *field_name,
                              Item *item_val,
@@ -97,14 +96,10 @@ public:
    virtual const char *name() = 0 ;
    virtual Item_func::Functype type() = 0 ;
 
-   uint get_para_num(){ return para_num_max ; }
-
 protected:
    List<Item >                      para_list ;
    uint                             para_num_cur ;
    uint                             para_num_max ;
-   sdb_item                         *l_child ;
-   sdb_item                         *r_child ;
 } ;
 
 class sdb_func_unkown : public sdb_func_item
@@ -113,6 +108,7 @@ public:
    sdb_func_unkown( Item_func *item ) ;
    ~sdb_func_unkown() ;
 
+   virtual int push( Item *cond_item ) ;
    virtual int to_bson( bson::BSONObj &obj ) { return SDB_ERR_COND_UNKOWN_ITEM ; }
    virtual const char *name() { return "unkown" ; }
    virtual Item_func::Functype type() { return Item_func::UNKNOWN_FUNC ; }
@@ -175,7 +171,6 @@ public:
    ~sdb_func_cmp() ;
 
    virtual int to_bson( bson::BSONObj &obj ) ;
-   int to_bson_with_child( bson::BSONObj &obj ) ;
    virtual const char *name() = 0 ;
    virtual const char *inverse_name() = 0 ;
    virtual Item_func::Functype type() = 0 ;

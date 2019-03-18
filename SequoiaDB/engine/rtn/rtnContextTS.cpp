@@ -100,9 +100,6 @@ namespace engine
       rc = messenger->prepareSession( eduCB, _remoteSessionID ) ;
       PD_RC_CHECK( rc, PDERROR, "Prepare remote task failed[ %d ]", rc ) ;
 
-      // 1. Store the query items.
-      // 2. Send the query to search engine adapter, and get the replay. Then
-      //    call query interface again, to get a sub context id.
       _options = options ;
       rc = _options.getOwned() ;
       PD_RC_CHECK( rc, PDERROR, "Get owned of query options failed[ %d ]",
@@ -299,7 +296,6 @@ namespace engine
             goto error ;
          }
 
-         // 4 objects are expected: matcher, selector, order by, hint.
          if ( objList.size() != 4 )
          {
             PD_LOG( PDERROR, "Respond message size is wrong, expect[ %d ], "
@@ -315,7 +311,6 @@ namespace engine
          goto error ;
       }
 
-      // Do a query, and get another subcontext.
       rc = rtnQuery( _options.getCLFullName(), objList[1], objList[0],
                      objList[2], objList[3], _options.getFlag(), eduCB,
                      _options.getSkip(), _options.getLimit(), dmsCB, rtnCB,
@@ -406,7 +401,6 @@ namespace engine
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
       rtnRemoteMessenger *messenger = rtnCB->getRemoteMessenger() ;
 
-      // Format the message, and send it to search engine adapter.
       rc = options.toQueryMsg( (CHAR **)&queryMsg, msgSize, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Build query message from options failed[ %d ]",
                    rc ) ;

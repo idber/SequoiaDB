@@ -22,20 +22,16 @@ For example:
 <profile>
     <id>dev</id>
     <properties>
-        <single.host>ubuntu-dev1</single.host>
-        <single.ip>192.168.20.42</single.ip>
-        <single.port>11810</single.port>
-        <single.username></single.username>
-        <single.password></single.password>
-        <cluster.urls>${single.host}:${single.port}</cluster.urls>
-        <cluster.username>${single.username}</cluster.username>
-        <cluster.password>${single.password}</cluster.password>
-        <coord.host>${single.host}</coord.host>
-        <coord.port>${single.port}</coord.port>
-        <coord.path>/sequoiadb/database/coord/${coord.port}</coord.path>
-        <data.group>db1</data.group>
-        <data.host>${single.host}</data.host>
-        <data.port>20000</data.port>
+        <single.host>192.168.20.42</single.host>
+        <single.port>50000</single.port>
+        <single.username> </single.username>
+        <single.password> </single.password>
+        <single.group>group1</single.group>
+        <node.host>ubuntu-dev1</node.host>
+        <node.port>20000</node.port>
+        <cluster.urls> </cluster.urls>
+        <cluster.username> </cluster.username>
+        <cluster.password> </cluster.password>
     </properties>
 </profile>
 ```

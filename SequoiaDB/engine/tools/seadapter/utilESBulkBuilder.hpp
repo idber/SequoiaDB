@@ -62,11 +62,9 @@
 #include "oss.hpp"
 #include <string>
 
-// Max and default data size of _bulk operation.
 #define UTIL_ESBULK_MAX_SIZE        (16 * 1024 * 1024)
 #define UTIL_ESBULK_DFT_SIZE        (10 * 1024 * 1024)
 
-// Space size for the action name and format characters, such as '{', ':'.
 #define UTIL_ESBULK_MIN_META_SIZE   64
 
 namespace seadapter
@@ -91,7 +89,6 @@ namespace seadapter
          INT32 setSourceData( const CHAR *sourceData, INT32 length,
                               BOOLEAN copy = FALSE ) ;
 
-         // Estimate the output size requirement for output.
          INT32 outSizeEstimate() const  ;
          INT32 output( CHAR *buffer, INT32 size, INT32 &length,
                        BOOLEAN withIndex = TRUE, BOOLEAN withType = TRUE,
@@ -122,7 +119,6 @@ namespace seadapter
    } ;
    typedef _utilESBulkActionBase utilESBulkActionBase ;
 
-   // create action in _bulk.
    class _utilESActionCreate : public _utilESBulkActionBase
    {
       public:
@@ -139,7 +135,6 @@ namespace seadapter
    } ;
    typedef _utilESActionCreate utilESActionCreate ;
 
-   // index action in _bulk.
    class _utilESActionIndex : public _utilESBulkActionBase
    {
       public:
@@ -156,7 +151,6 @@ namespace seadapter
    } ;
    typedef _utilESActionIndex utilESActionIndex ;
 
-   // update action in _bulk.
    class _utilESActionUpdate : public _utilESBulkActionBase
    {
       public:
@@ -173,7 +167,6 @@ namespace seadapter
    } ;
    typedef _utilESActionUpdate utilESActionUpdate ;
 
-   // delete action in _bulk.
    class _utilESActionDelete : public _utilESBulkActionBase
    {
       public:
@@ -190,7 +183,6 @@ namespace seadapter
    } ;
    typedef _utilESActionDelete utilESActionDelete ;
 
-   // Builder to build the entire body of data for _bulk.
    class _utilESBulkBuilder : public SDBObject
    {
       public:

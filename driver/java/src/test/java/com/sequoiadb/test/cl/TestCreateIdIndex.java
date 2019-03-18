@@ -28,15 +28,12 @@ public class TestCreateIdIndex {
 
     @Before
     public void setUp() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } else
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        // cl
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
@@ -55,7 +52,6 @@ public class TestCreateIdIndex {
         boolean canDelete = true;
         cl.insert(new BasicBSONObject(strAge, iAge));
 
-        // once dropIdIndex, delete can't be execute;
         cl.dropIdIndex();
 
         try {
@@ -67,7 +63,6 @@ public class TestCreateIdIndex {
 
         assertEquals(canDelete, false);
 
-        // once createIdIndex, delete can be execute
         cl.createIdIndex(new BasicBSONObject());
         try {
             cl.delete(new BasicBSONObject(strAge, iAge));
@@ -89,7 +84,6 @@ public class TestCreateIdIndex {
         BSONObject modifier = new BasicBSONObject();
         modifier.put("$set", new BasicBSONObject(strAge, iAgeNew));
 
-        // once dropIdIndex, delete can't be execute;
         cl.dropIdIndex();
 
         try {
@@ -102,7 +96,6 @@ public class TestCreateIdIndex {
 
         assertEquals(canUpdate, false);
 
-        // once createIdIndex, delete can be execute
         cl.createIdIndex(new BasicBSONObject());
         try {
             cl.update(new BasicBSONObject(strAge, iAge), modifier, null);

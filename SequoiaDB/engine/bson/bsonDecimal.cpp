@@ -250,7 +250,6 @@ namespace bson {
       rc = decimal.fromInt( right ) ;
       if ( SDB_OK != rc )
       {
-         // always bigger than error
          return 1 ;
       }
 
@@ -388,7 +387,6 @@ namespace bson {
       return precision ;
    }
 
-   // decimal->dscale | decimal->sign ;
    INT16 bsonDecimal::getStorageScale() const
    {
       return ( _decimal.dscale & DECIMAL_DSCALE_MASK ) | _decimal.sign ;

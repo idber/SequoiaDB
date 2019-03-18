@@ -140,7 +140,6 @@ namespace engine
          COMMANDS_HIDE_OPTIONS
       PMD_ADD_PARAM_OPTIONS_END
 
-      /// 1.validate arguments
       rc = utilReadCommandLine( argc, argv, all, vm, FALSE ) ;
       if ( rc )
       {
@@ -151,7 +150,6 @@ namespace engine
       if ( vm.count( PMD_OPTION_HELP ) )
       {
          displayArg( desc ) ;
-         //rc = SDB_PMD_HELP_ONLY ;
          goto done ;
       }
       if ( vm.count( PMD_OPTION_HELPFULL ) )
@@ -162,7 +160,6 @@ namespace engine
       if ( vm.count( PMD_OPTION_VERSION ) )
       {
          ossPrintVersion( "Sdb CM Start version" ) ;
-         //rc = SDB_PMD_VERSION_ONLY ;
          goto done ;
       }
 #if defined( _WINDOWS )
@@ -178,7 +175,6 @@ namespace engine
          procShortName = SDBSDBCMPROG ;
       }
 
-      /// 2.check ulimit
       if ( !vm.count( PMD_OPTION_IGNOREULIMIT ) )
       {
          rc = utilSetAndCheckUlimit() ;
@@ -192,13 +188,11 @@ namespace engine
          }
       }
 
-      /// 3.check user info before create dir or files
       if ( !vm.count( PMD_OPTION_CURUSER ) )
       {
          UTIL_CHECK_AND_CHG_USER() ;
       }
 
-      /// 4.build dialog info
       rc = ossGetEWD ( progName, OSS_MAX_PATHSIZE ) ;
       if ( rc )
       {
@@ -213,7 +207,6 @@ namespace engine
          ossPrintf( "Failed to build dialog path: %d"OSS_NEWLINE, rc ) ;
          goto error ;
       }
-      // make sure the dir exist
       rc = ossMkdir( dialogFile ) ;
       if ( rc && SDB_FE != rc )
       {
@@ -228,7 +221,6 @@ namespace engine
          ossPrintf( "Failed to build dialog file: %d"OSS_NEWLINE, rc ) ;
          goto error ;
       }
-      // enable pd log
       sdbEnablePD( dialogFile ) ;
       setPDLevel( PDINFO ) ;
 
@@ -244,18 +236,15 @@ namespace engine
 
       if ( !asStandalone )
       {
-         // first to check whether the process exist
          ossEnumProcesses( procs, procShortName.c_str(), TRUE, TRUE ) ;
          if ( procs.size() > 0 )
          {
-            // find it
             ossPrintf( "Success: sdbcmd is already started (%d)"OSS_NEWLINE,
                        (*procs.begin())._pid ) ;
             goto done ;
          }
       }
 
-      /// 5.start progress
       rc = startSdbcm ( argvs, pid, asProc ) ;
       if ( rc )
       {
@@ -287,7 +276,6 @@ namespace engine
          }
       }
 
-      /// 6.wait bussiness ok
       rc = utilWaitNodeOK( cmInfo, NULL,
                            asStandalone ? pid : OSS_INVALID_PID,
                            SDB_TYPE_OMA, PMD_SDBCM_WAIT_TIMEOUT,

@@ -207,12 +207,10 @@ namespace engine
                    "Failed to get field [%s], rc: %d",
                    CAT_GROUP_STATUS, rc ) ;
 
-      // if catalog group or status is already active
       PD_CHECK( CATALOG_GROUPID != _groupID && SDB_CAT_GRP_ACTIVE != groupStatus,
                 SDB_OK, done, PDWARNING,
                 "Group [%s] is already active", _targetName.c_str() ) ;
 
-      // lock group
       PD_CHECK( _lockMgr.tryLockGroup( _targetName, SHARED ),
                 SDB_LOCK_FAILED, error, PDERROR,
                 "Failed to lock group [%s]", _targetName.c_str() ) ;
@@ -326,7 +324,6 @@ namespace engine
                    "Failed to get group [%s], rc: %d",
                    _targetName.c_str(), rc ) ;
 
-      // lock group
       PD_CHECK( _lockMgr.tryLockGroup( _targetName, SHARED ),
                 SDB_LOCK_FAILED, error, PDERROR,
                 "Failed to lock group [%s]", _targetName.c_str() ) ;
@@ -418,7 +415,6 @@ namespace engine
 
       BSONObj boNodeList ;
 
-      // check name is valid
       if ( 0 != _targetName.compare( COORD_GROUPNAME ) &&
            0 != _targetName.compare( CATALOG_GROUPNAME ) &&
            0 != _targetName.compare( SPARE_GROUPNAME ) )
@@ -460,10 +456,8 @@ namespace engine
       else
       {
          UINT64 count = 0 ;
-         /// hard code.
          BSONObj matcher = BSON( FIELD_NAME_CATALOGINFO".GroupID" << _groupID ) ;
 
-         /// confirm that no there is no data in this group.
          rc = _countNodes( CAT_COLLECTION_INFO_COLLECTION, matcher, count, cb ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to count collection: %s, match: %s, rc: %d",
@@ -473,7 +467,6 @@ namespace engine
                    SDB_CAT_RM_GRP_FORBIDDEN, error, PDERROR,
                    "Can not remove a group with data in it" ) ;
 
-         /// confirm that no there is no task in this group.
          matcher = BSON( FIELD_NAME_TARGETID << _groupID ) ;
          rc = _countNodes( CAT_TASK_INFO_COLLECTION, matcher, count, cb ) ;
          PD_RC_CHECK( rc, PDERROR,
@@ -485,7 +478,6 @@ namespace engine
                    "Can not remove a group with task in it" ) ;
       }
 
-      // lock group
       PD_CHECK( _lockMgr.tryLockGroup( _targetName, EXCLUSIVE ),
                 SDB_LOCK_FAILED, error, PDERROR,
                 "Failed to lock group [%s]", _targetName.c_str() ) ;
@@ -510,15 +502,12 @@ namespace engine
 
       if ( CATALOG_GROUPID == _groupID )
       {
-         // Will be shutdown anyway
          goto done ;
       }
 
-      // remove group
       _pCatCB->removeGroupID( _groupID ) ;
       isDeleted = TRUE ;
 
-      // remove from all domain
       rc = catDelGroupFromDomain( NULL, _targetName.c_str(), _groupID,
                                   cb, _pDmsCB, _pDpsCB, 1 ) ;
       PD_RC_CHECK( rc, PDERROR,
@@ -555,7 +544,6 @@ namespace engine
       }
       else if ( CAT_CONTEXT_END != _status )
       {
-         // Send dummy object to keep one GetMore for one step.
          BSONObj dummy ;
          buffObj = rtnContextBuf( dummy.getOwned() ) ;
       }
@@ -694,7 +682,6 @@ namespace engine
                    "Failed to get field [%s], rc: %d",
                    CAT_GROUP_NAME, rc ) ;
 
-      // coord group not limited
       if ( COORD_GROUPID != _groupID )
       {
          PD_CHECK( boNodeList.nFields() < CLS_REPLSET_MAX_NODE_SIZE,
@@ -702,11 +689,9 @@ namespace engine
                    "Reached the maximum number of nodes!" ) ;
       }
 
-      // check if 'localhost' or '127.0.0.1' is used
       if ( 0 == _hostName.compare( OSS_LOCALHOST ) ||
            0 == _hostName.compare( OSS_LOOPBACK_IP ) )
       {
-         // add localhost, coord must be the same with catalog
          if ( !_isLocalConnection )
          {
             rc = SDB_CAT_NOT_LOCALCONN ;
@@ -729,7 +714,6 @@ namespace engine
                    "Failed to get field [%s], rc: %d",
                    PMD_OPTION_SVCNAME, rc ) ;
 
-      // check local service whether exist or not
       rc = catServiceCheck( _hostName.c_str(), _localSvc.c_str(), svcExist, cb ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to check local service [%s], rc: %d",
@@ -762,7 +746,6 @@ namespace engine
                 SDB_CM_CONFIG_CONFLICTS, error, PDERROR,
                 "Repl service [%s] conflict", _replSvc.c_str() ) ;
 
-      // shard service
       rc = rtnGetSTDStringElement( _boQuery, PMD_OPTION_SHARDNAME, _shardSvc ) ;
       if ( SDB_FIELD_NOT_EXIST == rc )
       {
@@ -783,12 +766,10 @@ namespace engine
 
       if ( SDB_ROLE_MAX == _nodeRole )
       {
-         // Role of node is not specified, use the role of group
          _nodeRole = _groupRole ;
       }
       else
       {
-         // Role of node is specified, should be the same with the group
          PD_CHECK( _nodeRole == _groupRole,
                    SDB_CM_CONFIG_CONFLICTS, error, PDERROR,
                    "Role of node [%d] conflicts with role of group [%d]",
@@ -830,7 +811,6 @@ namespace engine
                 SDB_SYS, error, PDERROR,
                 "Failed to allocate node id, maybe node is full" ) ;
 
-      // lock node
       _nodeName = _hostName + ":" + _localSvc ;
       PD_CHECK( _lockMgr.tryLockNode( _targetName, _nodeName, EXCLUSIVE ),
                 SDB_LOCK_FAILED, error, PDERROR,
@@ -873,7 +853,6 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_CATCTXCREATENODE_ROLLBACK_INT ) ;
 
-      // do not need to wait
       w = 1 ;
       catSetSyncW( 1 ) ;
 
@@ -898,7 +877,6 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB_CATCTXCREATENODE_MAKEREPLY ) ;
 
-      // Send dummy object to keep one GetMore for one step.
       BSONObj dummy ;
       buffObj = rtnContextBuf( dummy.getOwned() ) ;
 
@@ -925,13 +903,10 @@ namespace engine
 
       if ( 0 == count )
       {
-         // There is no group, so it can be used no matter localhost or not.
          isValid = TRUE;
          goto done;
       }
 
-      // check whether 'localhost' or '127.0.0.1' is used
-      // {"Group.HostName":{"$in":["localhost","127.0.0.1"]}}
       matcher = BSON(
             CAT_GROUP_NAME"."CAT_HOST_FIELD_NAME <<
             BSON ( "$in" << BSON_ARRAY( OSS_LOCALHOST << OSS_LOOPBACK_IP ) ) ) ;
@@ -939,9 +914,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to get number of nodes" ) ;
 
-      // if count == 0, then no node uses 'localhost' or '127.0.0.1',
-      // so localhost cannot be used.
-      // otherwise (count > 0), localhost can be used.
       isValid = isLocalHost ^ ( 0 == count) ;
 
    done :
@@ -1107,7 +1079,6 @@ namespace engine
 
       _nodeCount = boNodeList.nFields() ;
 
-      // node num judge
       if ( !isSpareGroup && 1 == _nodeCount && !_forced )
       {
          rc = SDB_CATA_RM_NODE_FORBIDDEN ;
@@ -1117,7 +1088,6 @@ namespace engine
          goto error ;
       }
 
-      // Forced to remove last data node, should deavtive the group
       if ( _forced &&  1 == _nodeCount && !isSpareGroup &&
            SDB_ROLE_DATA == groupRole )
       {
@@ -1125,11 +1095,9 @@ namespace engine
          _needDeactive = TRUE ;
       }
 
-      // check if 'localhost' or '127.0.0.1' is used
       if ( 0 == _hostName.compare( OSS_LOCALHOST ) ||
            0 == _hostName.compare( OSS_LOOPBACK_IP ) )
       {
-         // add localhost, coord must be the same with catalog
          if ( !_isLocalConnection )
          {
             rc = SDB_CAT_NOT_LOCALCONN ;
@@ -1137,7 +1105,6 @@ namespace engine
          }
       }
 
-      // lock node
       _nodeName = _hostName + ":" + _localSvc ;
 
       if ( lockGroup )
@@ -1177,9 +1144,6 @@ namespace engine
 
       if ( !_needDeactive )
       {
-         // Re-check again for parallel removing nodes from the same group
-         // Note: if need deactive, group has been locked exclusively, no
-         // need to re-check
          _lockMgr.unlockObjects() ;
 
          rc = _checkInternal( cb ) ;
@@ -1188,9 +1152,6 @@ namespace engine
                       contextID(), rc ) ;
       }
 
-      // For below cases, we don't wait sync
-      // 1. forced remove-node command
-      // 2. during forced reelect
       if ( _forced || pReplCB->isInStepUp() )
       {
          w = 1 ;
@@ -1201,8 +1162,6 @@ namespace engine
          INT16 tmpW = 1 ;
          if ( _nodeCount > 0 )
          {
-            // Reduce sync w at the end of command,
-            // since we are removing a Catalog node
             tmpW = (INT16)( ( _nodeCount - 1 ) / 2 + 1 ) ;
          }
          if ( w > tmpW )
@@ -1217,7 +1176,6 @@ namespace engine
                     "Failed to remove node [%s] from group [%s], rc: %d",
                     _nodeName.c_str(), _targetName.c_str(), rc ) ;
 
-      // release node
       _pCatCB->releaseNodeID( _nodeID ) ;
 
       if ( _needDeactive )
@@ -1239,7 +1197,6 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB_CATCTXRMNODE_MAKEREPLY ) ;
 
-      // Send dummy object to keep one GetMore for one step.
       BSONObj dummy ;
       buffObj = rtnContextBuf( dummy.getOwned() ) ;
 
@@ -1282,7 +1239,6 @@ namespace engine
          }
          tmpSvcName = getServiceName( beService, MSG_ROUTE_LOCAL_SERVICE ) ;
 
-         // hostname not same
          if ( 0 == _hostName.compare( tmpHostName ) &&
               0 == _localSvc.compare( tmpSvcName ) )
          {

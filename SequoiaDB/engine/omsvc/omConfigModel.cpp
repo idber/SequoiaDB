@@ -1016,8 +1016,6 @@ namespace engine
          goto error ;
       }
 
-      // add node to cluser
-      // must be at the last, because the cluster manages the node
       rc = _addNode( node ) ;
       if ( SDB_OK != rc )
       {
@@ -1069,7 +1067,6 @@ namespace engine
 
       SDB_ASSERT( NULL != node, "node can't be NULL") ;
 
-      // add to business
       {
          OmBusiness* business = NULL ;
          rc = getBusiness( node->getBusinessInfo().businessName, business ) ;
@@ -1088,7 +1085,6 @@ namespace engine
          }
       }
 
-      // add to host
       {
          OmHost* host = NULL ;
          rc = getHost( node->getHostName(), host ) ;
@@ -1107,8 +1103,6 @@ namespace engine
          }
       }
 
-      // must be at the last, because of the node memory is managed by cluster
-      // add to nodes
       rc = _addNode( node ) ;
       if ( SDB_OK != rc )
       {

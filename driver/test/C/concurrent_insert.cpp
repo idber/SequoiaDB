@@ -10,9 +10,7 @@
 
 #define NUM_RECORD            5
 
-// quantities of threads
 const int N                   = 10 ;
-// size of each operator
 const SINT64 NUM              = 5000 ;
 
 pthread_mutex_t mutex ;
@@ -20,10 +18,8 @@ pthread_cond_t cond ;
 int thread_amount = 0 ;
 int cnt = 1 ;
 
-//initialize the environment
 void initEnv()
 {
-   // initialize local variables
    sdbConnectionHandle connection    = 0 ;
    sdbCSHandle cs                    = 0 ;
    sdbCollectionHandle collection    = 0 ;
@@ -38,27 +34,21 @@ void initEnv()
    INT32 count = 0;
    INT32 rc    = SDB_OK ;
    bson objList [ NUM_RECORD ] ;
-   // connect to db
    rc = sdbConnect ( pHostName, pServiceName, pUsr, pPasswd, &connection ) ;
    if( rc != SDB_OK )
       printf( "*** initEnv():sdbConnect() fail! ***\n" ) ;
-   // get cs
    rc = getCollectionSpace ( connection,
                              COLLECTION_SPACE_NAME,
                              &cs ) ;
    if( rc != SDB_OK )
       printf( "*** initEnv():getCollectionSpace() fail! ***\n" ) ;
-   // get cl
    rc = getCollection ( connection,
                         COLLECTION_FULL_NAME,
                         &collection ) ;
    if( rc != SDB_OK )
       printf( "*** initEnv():getCollection() fail! ***\n" ) ;
-   // delete all the record of this collection
    sdbDelete( collection, NULL, NULL ) ;
-   // create name list using objList
    createNameList ( &objList[0], NUM_RECORD ) ;
-   // insert obj and free memory that allocated by createNameList
    for ( count = 0; count < NUM_RECORD; count++ )
    {
       rc = sdbInsert ( collection, &objList[count] ) ;
@@ -68,9 +58,7 @@ void initEnv()
       }
       bson_destroy ( &objList[count] ) ;
    }
-   // disconnect the connection
    sdbDisconnect ( connection ) ;
-   // release the local variables
    sdbReleaseCursor ( cursor ) ;
    sdbReleaseCollection ( collection ) ;
    sdbReleaseCS( cs ) ;
@@ -93,22 +81,18 @@ void sdbBulkInsert()
    bson obj ;
    bson *objList [ NUM ] ;
 
-   // connect to database
    rc = sdbConnect ( pHostName, pServiceName, pUsr, pPasswd, &connection ) ;
    if( rc != SDB_OK )
       printf( "*** sdbBulkInsert():sdbConnect() fail! ***\n" ) ;
-   // get cl
    rc = getCollection ( connection, COLLECTION_FULL_NAME , &collection ) ;
    if( rc != SDB_OK )
       printf( "*** sdbBulkInsert():getCollection() fail! ***\n" ) ;
 
-   // count the total number of records before bulkInsert
    rc = sdbGetCount ( collection, NULL, &totalNum ) ;
    if( rc != SDB_OK )
       printf( "*** sdbBulkInsert():sdbGetCount() fail! ***\n" ) ;
 
    printf("Before bulk insert, the total number of records is %lld\n",totalNum ) ;
-   // allocate memory and add data
    for ( count = 0; count < NUM; count++ )
    {
       objList[count] = bson_create() ;
@@ -119,18 +103,12 @@ void sdbBulkInsert()
          continue ;
       }
    }
-   // bulk insert,if the argument "flags" is set FLG_INSERT_CONTONDUP,
-   // datebase will not stop bulk insert while one failed with dup key
    rc = sdbBulkInsert ( collection, 0, objList, NUM ) ;
-//   if( rc != SDB_OK )
-//      printf( "*** sdbBulkInsert():sdbBulkInsert() fail! ***\n" ) ;
-   // count the total number of records after insert
    rc = sdbGetCount ( collection, NULL, &totalNum ) ;
    if( rc != SDB_OK )
       printf( "*** sdbBulkInsert():sdbGetCount() fail! ***\n" ) ;
    printf("After bulk insert,the total number of records is %lld\n",totalNum ) ;
 
-   // free memory that allocated by bson_create()
    for ( count = 0; count < NUM; count++ )
    {
       bson_dispose ( objList[count] ) ;
@@ -154,7 +132,6 @@ void *p_thread( void *arg )
    }
 
    pthread_mutex_unlock( &mutex ) ;
-   // do something
    sdbBulkInsert() ;
 
    printf( "thread %d end!!!\n", i ) ;
@@ -236,7 +213,5 @@ TEST( concurrent, insert )
                                 endtime.tv_usec - starttime.tv_usec ;
    timeuse /= 1000000 ;
    printf( "time consumption is %lf s \n", timeuse ) ;
-//   pthread_exit( 0 ) ;
-//   return 0 ;
 }
 

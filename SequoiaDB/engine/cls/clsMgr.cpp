@@ -52,7 +52,6 @@ using namespace bson ;
 namespace engine
 {
 
-   //The max del session deque size
    #define MAX_SHD_SESSION_CATCH_DEQ_SIZE          (1000)
 
    #define CLS_WAIT_CB_ATTACH_TIMEOUT              ( 300 * OSS_ONE_SEC )
@@ -119,25 +118,17 @@ namespace engine
       UINT32 tid = 0 ;
 
       ossUnpack32From64( sessionID, nodeID, tid ) ;
-      // if nodeID <= PMD_BASE_HANDLE_ID, that means the request come from
-      // the request from other nodes within the shard ( currently only
-      // split request uses this part )
       if ( PMD_BASE_HANDLE_ID >= nodeID )
       {
          if ( PMD_SESSION_ACTIVE == startType )
          {
-            // If it's proactive request, that means it's split destination
-            // During split the destination part "asks" for the data from source
             sessionType = SDB_SESSION_SPLIT_DST ;
          }
          else
          {
-            // otherwise it's the source, which receives the split request
             sessionType = SDB_SESSION_SPLIT_SRC ;
          }
       }
-      // if nodeID > PMD_BASE_HANDLE_ID, that means the request come from
-      // coord
       else
       {
          sessionType = SDB_SESSION_SHARD ;
@@ -162,11 +153,6 @@ namespace engine
              maxPool : MAX_SHD_SESSION_CATCH_DEQ_SIZE ;
    }
 
-   // create session request for the manager
-   // there are 3 types of sessions for shardsessions
-   // 1) split destination
-   // 2) split source
-   // 3) regular shard session
    pmdAsyncSession* _clsShardSessionMgr::_createSession(
          SDB_SESSION_TYPE sessionType,
          INT32 startType,
@@ -175,7 +161,6 @@ namespace engine
    {
       pmdAsyncSession *pSession = NULL ;
 
-      // Based on session type, let's create Async session
       if ( SDB_SESSION_SPLIT_DST == sessionType )
       {
          pSession = SDB_OSS_NEW _clsSplitDstSession ( sessionID, _pRTAgent,
@@ -221,7 +206,6 @@ namespace engine
       {
          _checkUnShardSessions( interval ) ;
 
-         // start split task
          _pClsMgr->_startInnerSession( CLS_SHARD, this ) ;
 
          goto done ;
@@ -240,9 +224,6 @@ namespace engine
       return rc ;
    }
 
-   // check timeout for the irregular shard sessions ( like split sessions )
-   // usually those types of sessions are for communication within between shard
-   // like one shard directly send msg to another shard
    void _clsShardSessionMgr::_checkUnShardSessions( UINT32 interval )
    {
       pmdAsyncSession *pSession = NULL ;
@@ -250,13 +231,11 @@ namespace engine
       while ( it != _mapSession.end() )
       {
          pSession = it->second ;
-         // skip regular shard sessions
          if ( SDB_SESSION_SHARD == pSession->sessionType() )
          {
             ++it ;
             continue ;
          }
-         // get rid of timeout sessions
          if ( !pSession->isProcess() && pSession->timeout( interval ) )
          {
             PD_LOG ( PDEVENT, "Session[%s] timeout", pSession->sessionName() ) ;
@@ -275,7 +254,6 @@ namespace engine
          _clsShdSession *pShdSession = ( _clsShdSession* )pSession ;
          if( !pShdSession->isSetLogout() )
          {
-            /// save identify info
             clsIdentifyInfo info ;
             info._id = pSession->identifyID() ;
             info._eduid = pSession->identifyEDUID() ;
@@ -292,7 +270,6 @@ namespace engine
 
    void _clsShardSessionMgr::onSessionDisconnect( pmdAsyncSession *pSession )
    {
-      /// recv the disconnect msg, so need to logout
       if ( SDB_SESSION_SHARD == pSession->sessionType() )
       {
          _clsShdSession *pShdSession = ( _clsShdSession* )pSession ;
@@ -308,7 +285,6 @@ namespace engine
 
    void _clsShardSessionMgr::onSessionHandleClose( pmdAsyncSession *pSession )
    {
-      /// when net handle closed, need to logout
       if ( SDB_SESSION_SHARD == pSession->sessionType() )
       {
          _clsShdSession *pShdSession = ( _clsShdSession* )pSession ;
@@ -331,7 +307,6 @@ namespace engine
 
       if ( nodeID > PMD_BASE_HANDLE_ID )
       {
-         /// shard session
          ret = _reply( handle, rc, pReq ) ;
       }
       else if ( 0 == sessionID )
@@ -363,7 +338,6 @@ namespace engine
       rc = _pmdAsycSessionMgr::handleSessionTimeout( timerID, interval ) ;
       if ( SDB_OK == rc )
       {
-         // start repl/fs sessions
          _pClsMgr->_startInnerSession( CLS_REPL, this ) ;
       }
 
@@ -418,12 +392,6 @@ namespace engine
       return 0 ;
    }
 
-   // create replication sessions manager
-   // include:
-   // 1) replication destination
-   // 2) replication source
-   // 3) full sync destination
-   // 4) full sync source
    pmdAsyncSession* _clsReplSessionMgr::_createSession(
          SDB_SESSION_TYPE sessionType,
          INT32 startType,
@@ -431,29 +399,22 @@ namespace engine
          void *data )
    {
       pmdAsyncSession *pSession = NULL ;
-      // check session type for replication sessions
       if ( SDB_SESSION_REPL_DST == sessionType )
       {
-         // slave node uses dest
          pSession = SDB_OSS_NEW clsReplDstSession( sessionID ) ;
       }
       else if ( SDB_SESSION_REPL_SRC == sessionType )
       {
-         // primary node uses src
          UINT32 nodeID = 0 ;
          UINT32 tid = 0 ;
          ossUnpack32From64( sessionID, nodeID, tid ) ;
 
-         // if we find the requested nodeID is not the nodeID for the current
-         // node, that means we get something from another node and we are
-         // going to create a new replsrc session
          if ( pmdGetNodeID().columns.nodeID != 0 &&
               pmdGetNodeID().columns.nodeID != nodeID )
          {
             pSession = SDB_OSS_NEW clsReplSrcSession( sessionID ) ;
          }
       }
-      // FS means full sync
       else if ( SDB_SESSION_FS_DST == sessionType )
       {
          pSession = SDB_OSS_NEW _clsFSDstSession ( sessionID,
@@ -496,7 +457,6 @@ namespace engine
       ON_MSG ( MSG_CAT_QUERY_TASK_RSP, _onCatQueryTaskRes )
       ON_EVENT( PMD_EDU_EVENT_STEP_DOWN, _onStepDown )
       ON_EVENT( PMD_EDU_EVENT_STEP_UP, _onStepUp )
-      //ON_EVENT FUCTION MAP
    END_OBJ_MSG_MAP()
 
    _clsMgr::_clsMgr ()
@@ -544,7 +504,6 @@ namespace engine
       const CHAR* hostName = pmdGetKRCB()->getHostName() ;
       pmdOptionsCB *optCB = pmdGetOptionCB() ;
 
-      // 1. init param
       ossStrncpy( _shdServiceName, optCB->shardService(),
                   OSS_MAX_SERVICENAME ) ;
       ossStrncpy( _replServiceName, optCB->replService(),
@@ -553,7 +512,6 @@ namespace engine
       INIT_OBJ_GOTO_ERROR ( getShardCB() ) ;
       INIT_OBJ_GOTO_ERROR ( getReplCB() ) ;
 
-      // 2. create listen socket
       nodeID.columns.serviceID = _replServiceID ;
       _replNetRtAgent.updateRoute( nodeID, hostName, _replServiceName ) ;
       rc = _replNetRtAgent.listen( nodeID ) ;
@@ -578,7 +536,6 @@ namespace engine
       PD_LOG ( PDEVENT, "Create sharding listen[ServiceName:%s] succeed",
                _shdServiceName ) ;
 
-      // 3. init session manager
       rc = _shardSessionMgr.init( &_shardNetRtAgent, &_shdTimerHandler,
                                   60 * OSS_ONE_SEC ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to init shard session manager, rc: %d",
@@ -589,7 +546,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to init repl session manager, rc: %d",
                    rc ) ;
 
-      // 4. set bussiness not ok( need wait register to change )
       pmdGetKRCB()->setBusinessOK( FALSE ) ;
 
    done:
@@ -604,7 +560,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSMGR_ACTIVE ) ;
 
-      // 1. start cls edu and shard edu
       _attachEvent.reset() ;
       rc = _startEDU ( EDU_TYPE_CLUSTER, PMD_EDU_UNKNOW,
                        (_pmdObjBase*)this, TRUE ) ;
@@ -626,7 +581,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Wait cluster-shard attach failed, rc: %d",
                    rc ) ;
 
-      // Start log notify
       rc = _startEDU( EDU_TYPE_CLSLOGNTY, PMD_EDU_UNKNOW,
                       (_pmdObjBase*)getReplCB(), TRUE ) ;
       if ( rc )
@@ -634,7 +588,6 @@ namespace engine
          goto error ;
       }
 
-      // 2. start network daemons for shard/repl reader
       rc = _startEDU ( EDU_TYPE_SHARDR, PMD_EDU_RUNNING,
                        (netRouteAgent*)getShardRouteAgent(), TRUE ) ;
       if ( rc )
@@ -648,7 +601,6 @@ namespace engine
          goto error ;
       }
 
-      // 3. set timer
       _oneSecTimerID = setTimer ( CLS_REPL, OSS_ONE_SEC ) ;
 
       if ( CLS_INVALID_TIMERID == _oneSecTimerID )
@@ -667,10 +619,8 @@ namespace engine
          goto error ;
       }
 
-      // 4. send register msg
       _sendRegisterMsg () ;
 
-      // Start storage check job only for data nodes
       if ( SDB_ROLE_DATA == pmdGetKRCB()->getDBRole() )
       {
          rc = startStorageCheckJob( NULL ) ;
@@ -688,15 +638,12 @@ namespace engine
 
    INT32 _clsMgr::deactive ()
    {
-      // 1. stop listen
       _replNetRtAgent.closeListen() ;
       _shardNetRtAgent.closeListen() ;
 
-      // 2. members to deactive
       _replObj.deactive() ;
       _shdObj.deactive() ;
 
-      // 3. stop io
       _replNetRtAgent.stop() ;
       _shardNetRtAgent.stop() ;
 
@@ -731,11 +678,9 @@ namespace engine
    {
       if ( EDU_TYPE_CLUSTER == pMainCB->getType() )
       {
-         //Set MsgHandler EDU
          _shdMsgHandlerObj.attach ( pMainCB ) ;
          _replMsgHandlerObj.attach ( pMainCB ) ;
 
-         //Set TimerHandler EDU
          _shdTimerHandler.attach ( pMainCB ) ;
          _replTimerHandler.attach ( pMainCB ) ;
       }
@@ -751,11 +696,9 @@ namespace engine
    {
       if ( EDU_TYPE_CLUSTER == pMainCB->getType() )
       {
-         //Set MsgHandler EDU
          _shdMsgHandlerObj.detach() ;
          _replMsgHandlerObj.detach () ;
 
-         //Set TimerHandler EDU
          _shdTimerHandler.detach () ;
          _replTimerHandler.detach () ;
       }
@@ -775,7 +718,6 @@ namespace engine
       pmdKRCB *pKRCB = pmdGetKRCB () ;
       pmdEDUMgr *pEDUMgr = pKRCB->getEDUMgr () ;
 
-      //Start EDU
       rc = pEDUMgr->startEDU( (EDU_TYPES)type, (void *)agrs, &eduID ) ;
       if ( SDB_OK != rc )
       {
@@ -784,7 +726,6 @@ namespace engine
          goto error ;
       }
 
-      //Wait edu running
       if ( PMD_EDU_UNKNOW != waitStatus )
       {
          rc = pEDUMgr->waitUntil( eduID, waitStatus ) ;
@@ -817,7 +758,6 @@ namespace engine
                   primary ? "Primary" : "Secondary" ) ;
       }
 
-      // let's ignore the event if the node is still starting up
       if ( !pmdGetStartup().isOK() ||
            _shdObj.getDCMgr()->getDCBaseInfo()->isReadonly() ||
            !_shdObj.getDCMgr()->getDCBaseInfo()->isActivated() )
@@ -825,36 +765,27 @@ namespace engine
          return ;
       }
 
-      // if we are switching to primary, let's increase log version BEFORE
-      // it actually happen
       if ( primary && SDB_EVT_OCCUR_BEFORE == type )
       {
-         // inc dps log version
          sdbGetDPSCB()->incVersion() ;
       }
-      // if we are switching to slave, let's interrupt all EDUs that doing write
       else if ( !primary && SDB_EVT_OCCUR_BEFORE == type )
       {
          sdbGetDPSCB()->cancelIncVersion() ;
-         // interrupt writing edus
          pmdGetKRCB()->getEDUMgr()->interruptWritingEDUS() ;
       }
 
-      // notify sub members
       getShardCB()->ntyPrimaryChange( primary, type ) ;
       getReplCB()->ntyPrimaryChange( primary, type ) ;
 
-      // for "post trigger" event
       if ( SDB_EVT_OCCUR_AFTER == type )
       {
-         // if change to primary, need to start query task
          if ( primary )
          {
             BSONObj match = BSON ( CAT_TARGETID_NAME <<
                                    _selfNodeID.columns.groupID ) ;
             startTaskCheck( match ) ;
          }
-         // if change to secondary, need to clean up all query task
          else
          {
             ossScopedLock lock ( &_clsLatch, EXCLUSIVE ) ;
@@ -862,7 +793,6 @@ namespace engine
          }
       }
 
-      // call other handler
       pmdGetKRCB()->callPrimaryChangeHandler( primary, type ) ;
 
       PD_TRACE_EXIT ( SDB__CLSMGR__ONPRMCHG );
@@ -939,7 +869,6 @@ namespace engine
 
       if ( isPrimary() )
       {
-         /// write sync cata info log
          SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
          dpsMergeInfo info ;
          info.setInfoEx( ~0, ~0, DMS_INVALID_EXTENT, NULL ) ;
@@ -972,7 +901,6 @@ namespace engine
 
       if ( isPrimary() )
       {
-         /// write sync cata info log
          SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
          dpsMergeInfo info ;
          info.setInfoEx( ~0, ~0, DMS_INVALID_EXTENT, NULL ) ;
@@ -1029,7 +957,6 @@ namespace engine
 
       if ( isPrimary() )
       {
-         /// write sync cata info log
          SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
          dpsMergeInfo info ;
          info.setInfoEx( ~0, ~0, DMS_INVALID_EXTENT, NULL ) ;
@@ -1056,12 +983,6 @@ namespace engine
       goto done ;
    }
 
-   // Register async internal sessions
-   // The function itself doesn't start session. Instead the function place
-   // a request in _vecInnerSessionParam vector so that another daemon will
-   // create a background inernal sessions afterwards
-   // By default the daemon will be triggered every single seconds to detect
-   // if the queue is empty or not
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR_STARTINSN, "_clsMgr::startInnerSession" )
    INT32 _clsMgr::startInnerSession ( INT32 type, INT32 innerTID, void *data )
    {
@@ -1081,9 +1002,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   // Start a background task check request
-   // Another daemon will be triggered every second, it will send the check
-   // request to CATALOG to check for task collection
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR_STARTTSKCHK, "_clsMgr::startTaskCheck" )
    INT32 _clsMgr::startTaskCheck ( const BSONObj & match )
    {
@@ -1113,7 +1031,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   // remove the task from local
    INT32 _clsMgr::removeTask( UINT64 taskID )
    {
       ossScopedLock lock ( &_clsLatch, EXCLUSIVE ) ;
@@ -1130,8 +1047,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSMGR__DFTMSGFUNC );
-      // the msg is not mine, dispatch to sub object
-      // restore the type
       INT32 type = (INT32) msg->TID ;
       INT32 opCode = msg->opCode ;
       msg->TID = 0 ;
@@ -1155,30 +1070,22 @@ namespace engine
    void _clsMgr::onTimer ( UINT64 timerID, UINT32 interval )
    {
       PD_TRACE_ENTRY ( SDB__CLSMGR_ONTMR );
-      //Judge the timer is myself, if not my self will dispatch to sub object
       if ( timerID == _regTimerID )
       {
          _sendRegisterMsg () ;
       }
-      // if we hit one second
       else if ( timerID == _oneSecTimerID )
       {
-         //Check _deqShdDeletingSessions
          _shardSessionMgr.onTimer( interval ) ;
          _replSessionMgr.onTimer( interval ) ;
 
-         //prepare task
          _prepareTask () ;
 
-         // if we have one or more pending tasks, and if the unshard timer
-         // not started yet, let's start one
          if ( _taskMgr.taskCount() > 0 &&
               !_shardSessionMgr.isUnShardTimerStarted() )
          {
             _shardSessionMgr.startUnShardTimer( OSS_ONE_SEC ) ;
          }
-         // if unshard time is already started but pending tasks are 0, let's
-         // stop it
          else if ( _shardSessionMgr.isUnShardTimerStarted() &&
                    0 == _taskMgr.taskCount() )
          {
@@ -1187,9 +1094,6 @@ namespace engine
       }
       else
       {
-         // otherwise let's extract the type from timerID, and call onTimer
-         // call back functions based on the request type
-         // For now we only have 2 possible types, shard or repl
          UINT32 type = 0 ;
          UINT32 netTimerID = 0 ;
          ossUnpack32From64 ( timerID, type, netTimerID ) ;
@@ -1214,13 +1118,9 @@ namespace engine
       ossScopedLock lock ( &_clsLatch, EXCLUSIVE ) ;
 
       VECINNERPARAM::iterator it = _vecInnerSessionParam.begin() ;
-      // iterate for all pending internal session requests
       while ( it != _vecInnerSessionParam.end() )
       {
          _innerSessionInfo &info = *it ;
-         // skip for any unmatch types or existing sessions
-         // if the session already started, we simply ignore the request in
-         // the list and wait for start next time
          if ( info.type != type ||
               SDB_OK == pSessionMgr->getSession( info.sessionID,
                                                  info.startType,
@@ -1231,7 +1131,6 @@ namespace engine
             ++it ;
             continue ;
          }
-         // let's start the session
          rc = pSessionMgr->getSession ( info.sessionID, info.startType,
                                         NET_INVALID_HANDLE, TRUE, 0,
                                         info.data,
@@ -1243,8 +1142,6 @@ namespace engine
             it = _vecInnerSessionParam.erase ( it ) ;
             continue ;
          }
-         // if we get here, that means something wrong and we can't start
-         // the session
          PD_LOG ( PDERROR, "Create inner session[TID:%d] failed, rc: %d",
                   info.innerTid, rc ) ;
          ++it ;
@@ -1263,7 +1160,6 @@ namespace engine
       MAPTASKQUERY::iterator it = _mapTaskQuery.begin () ;
       while ( it != _mapTaskQuery.end() )
       {
-         // send query msg to catalog
          rc = _sendQueryTaskReq ( it->first, "CAT", &(it->second) ) ;
          if ( SDB_OK != rc )
          {
@@ -1306,7 +1202,6 @@ namespace engine
       {
          case CLS_TASK_SPLIT :
             taskID = _taskMgr.getTaskID() ;
-            // memory will be freed in clsTaskMgr destructor
             pTask = SDB_OSS_NEW _clsSplitTask ( taskID ) ;
             type = CLS_SHARD ;
             break ;
@@ -1335,7 +1230,6 @@ namespace engine
          goto error ;
       }
 
-      //add to taskMgr, the task will delete in taskMgr whether suc or failed
       rc = _taskMgr.addTask( pTask, taskID ) ;
       if ( SDB_OK != rc )
       {
@@ -1348,7 +1242,6 @@ namespace engine
       _mapTaskID[ pTask->taskID() ] = taskID ;
       _clsLatch.release() ;
 
-      //start inner session
       tid = (UINT32)taskID ;
       rc = startInnerSession ( type, tid, (void *)pTask ) ;
       if ( rc )
@@ -1435,7 +1328,6 @@ namespace engine
       BSONObj regObj = regAssit.buildRequestObj () ;
       length = regObj.objsize () + sizeof ( MsgCatRegisterReq ) ;
 
-      // free by end of the function
       buff = (CHAR *)SDB_OSS_MALLOC ( length ) ;
       if ( buff == NULL )
       {
@@ -1488,7 +1380,6 @@ namespace engine
       msg->TID = 0 ;
       msg->routeID.value = 0 ;
 
-      // send msg
       rc = sendToCatlog( msg ) ;
       PD_LOG ( PDDEBUG, "Send MSG_CAT_QUERY_TASK_REQ[%s] to catalog[rc:%d]",
                match->toString().c_str(), rc ) ;
@@ -1509,7 +1400,6 @@ namespace engine
       return _shdObj.updateCatGroup ( millisec ) ;
    }
 
-   //message function
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR__ONCATREGRES, "_clsMgr::_onCatRegisterRes" )
    INT32 _clsMgr::_onCatRegisterRes ( NET_HANDLE handle, MsgHeader* msg )
    {
@@ -1521,7 +1411,6 @@ namespace engine
       NodeID routeID ;
       clsRegAssit regAssit ;
 
-      // have register succeed
       if ( _regTimerID == CLS_INVALID_TIMERID )
       {
          goto done ;
@@ -1539,19 +1428,16 @@ namespace engine
          goto error ;
       }
 
-      //get nodeid
       rc = regAssit.extractResponseMsg ( msg ) ;
       PD_RC_CHECK( rc, PDERROR, "Node register response error, rc: %d", rc ) ;
       groupID = regAssit.getGroupID () ;
       nodeID = regAssit.getNodeID () ;
       hostname = regAssit.getHostname () ;
 
-      //Kill register timer
       killTimer ( _regTimerID ) ;
       _regTimerID = CLS_INVALID_TIMERID ;
       _regFailedTimes = 0 ;
 
-      //Update the net route agent the local id
       _selfNodeID.columns.groupID = groupID ;
       _selfNodeID.columns.nodeID = nodeID ;
       _shdObj.setNodeID( _selfNodeID ) ;
@@ -1567,7 +1453,6 @@ namespace engine
       pmdGetKRCB()->setHostName( hostname ) ;
 
       {
-         /// update dc base info
          BSONObj msgObject ( MSG_GET_INNER_REPLY_DATA( msg ) ) ;
          if ( msgIsInnerOpReply( msg ) &&
               msg->messageLength > (INT32)sizeof( MsgOpReply ) +
@@ -1593,19 +1478,16 @@ namespace engine
       routeID.columns.serviceID = _shardServiceID ;
       _shardNetRtAgent.setLocalID ( routeID ) ;
 
-      // set global id
       pmdSetNodeID( _selfNodeID ) ;
 
       pmdGetKRCB()->callRegisterEventHandler( _selfNodeID ) ;
       pmdGetKRCB()->setBusinessOK( TRUE ) ;
 
-      //Update the primary catlog node
       if ( SDB_OK != _shdObj.updatePrimary( msg->routeID, TRUE ) )
       {
          _shdObj.updateCatGroup () ;
       }
 
-      //Active the shard and repl CBs
       rc = _shdObj.active () ;
       if ( rc != SDB_OK )
       {
@@ -1624,7 +1506,6 @@ namespace engine
       PD_TRACE_EXITRC (SDB__CLSMGR__ONCATREGRES, rc );
       return rc ;
    error:
-      //Need to shutdown
       if ( rc == SDB_CAT_AUTH_FAILED )
       {
          ++_regFailedTimes ;
@@ -1654,7 +1535,6 @@ namespace engine
       vector<BSONObj> objList ;
       MAPTASKQUERY::iterator it ;
 
-      // need to update catalog group
       if ( SDB_CLS_NOT_PRIMARY == res->flags )
       {
          if ( SDB_OK != _shdObj.updatePrimaryByReply( msg ) )
@@ -1662,13 +1542,10 @@ namespace engine
             updateCatGroup() ;
          }
       }
-      // need to clear the query task
       else if ( SDB_DMS_EOC == res->flags ||
                 SDB_CAT_TASK_NOTFOUND == res->flags )
       {
          _clsLatch.get() ;
-         /// if is the last query and not { TargetID : groupID }, need to
-         /// query all( by { TargetID : groupID } )
          it = _mapTaskQuery.find ( msg->requestID ) ;
          if ( it != _mapTaskQuery.end() )
          {
@@ -1701,7 +1578,6 @@ namespace engine
             goto error ;
          }
 
-         // find the task query map, and remove it
          {
             ossScopedLock lock ( &_clsLatch, EXCLUSIVE ) ;
             it = _mapTaskQuery.find ( msg->requestID ) ;
@@ -1712,14 +1588,12 @@ namespace engine
                rc = SDB_INVALIDARG ;
                goto error ;
             }
-            //remove the query task
             _mapTaskQuery.erase ( it ) ;
          }
 
          PD_LOG ( PDINFO, "The query task[%lld] has %d jobs", msg->requestID,
                   numReturned ) ;
 
-         // add task inner session
          {
             UINT32 index = 0 ;
             while ( index < objList.size() )

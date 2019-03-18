@@ -43,7 +43,6 @@ public class GroupBy {
 		dboKeys = dbo;
 	}
 
-	// NOTE GroupByCommand does not handle keyfunction.
 
 	public GroupBy(String key, boolean isKeyFunction) {
 		BSONObject dbo = new BasicBSONObject();
@@ -84,7 +83,6 @@ public class GroupBy {
 	}
 
 	public BSONObject getGroupByObject() {
-		// return new GroupCommand(dbCollection, dboKeys, condition, initial, reduce, finalize);
 		BasicBSONObject dbo = new BasicBSONObject();
 		if (dboKeys != null) {
 			dbo.put("key", dboKeys);

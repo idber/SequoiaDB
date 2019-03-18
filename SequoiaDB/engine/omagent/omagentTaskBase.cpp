@@ -163,7 +163,6 @@ namespace engine
       BSONObj retObj ;
       _omaInitEnv runCmd( _taskID, obj ) ;
 
-      // 1. run command
       rc = runCmd.init( NULL ) ;
       if ( SDB_OK != rc )
       {
@@ -178,8 +177,6 @@ namespace engine
                  "rc = %d", rc ) ;
          goto error ;
       }
-      // 2. check
-      // extract "errno"
       rc = omaGetIntElement ( retObj, OMA_FIELD_ERRNO, errNum ) ;
       if ( rc )
       {
@@ -187,11 +184,9 @@ namespace engine
                  "environment for execting js script, rc = %d", rc ) ;
          goto error ;
       }
-      // to see whether execute js successfully or not
       if ( SDB_OK != errNum )
       {
          rc = errNum ;
-         // get error detail
          tmpRc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pDetail ) ;
          if ( SDB_OK != tmpRc )
          {
@@ -273,7 +268,6 @@ namespace engine
            rc = SDB_CLS_MUTEX_TASK_EXIST ;
            goto error ;
       }
-      // add to map
       _taskMap[ taskID ] = pTask ;
    done:
       return rc ;
@@ -315,7 +309,6 @@ namespace engine
          if ( 0 == ossStrncmp( name, pTaskName, ossStrlen(pTaskName) ) )
          {
             rc = removeTask( pTask ) ;
-            // when remove old task, must stop iterate
             break ;
          }
       }
@@ -333,7 +326,6 @@ namespace engine
       return NULL ;
    }
 
-   // get omagent task manager
    _omaTaskMgr* getTaskMgr()
    {
       static _omaTaskMgr taskMgr ;

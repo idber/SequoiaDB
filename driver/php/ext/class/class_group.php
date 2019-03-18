@@ -1,6 +1,6 @@
 <?php
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ class SequoiaGroup
     * Example:
     * @code
     * $groupName = $groupObj -> getName() ;
-    * $err = $db -> getLastErrorMsg() ;
+    * $err = $db -> getError() ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to get group name, error code: ".$err['errno'] ;
     *    return ;
@@ -124,6 +124,28 @@ class SequoiaGroup
     * @endcode
    */
    public function reelect( array|string $options = NULL ){}
+   
+   /**
+    * Get the status node number.
+    *
+    * @param $status	an integer argument. The node status, can not be null
+    *
+    * @return Returns the number of node.
+    *
+    * @retval integer Nodes number
+    *
+    * Example:
+    * @code
+    * $NodeNum = $groupObj -> getNodeNum() ;
+    * if( $NodeNum < 0 ) {
+    *    $err = $db -> getError() ;
+    *    echo "Failed to call getNodeNum, error code: ".$err['errno'] ;
+    *    return ;
+    * }
+    * echo "Node number: ".$NodeNum ;
+    * @endcode
+   */
+   public function getNodeNum( integer $status ){}
 
    /**
     * Get the group detail.
@@ -136,7 +158,7 @@ class SequoiaGroup
     * Example:
     * @code
     * $detail = $groupObj -> getDetail() ;
-    * $err = $db -> getLastErrorMsg() ;
+    * $err = $db -> getError() ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to call getDetail, error code: ".$err['errno'] ;
     *    return ;
@@ -157,7 +179,7 @@ class SequoiaGroup
     * @code
     * $nodeObj = $groupObj -> getMaster() ;
     * if( empty( $nodeObj ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to get the master node, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -178,7 +200,7 @@ class SequoiaGroup
     * @code
     * $nodeObj = $groupObj -> getSlave() ;
     * if( empty( $nodeObj ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to get the slave node, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -188,7 +210,7 @@ class SequoiaGroup
     * @code
     * $nodeObj = $groupObj -> getSlave( array( 1, 2, 3 ) ) ;
     * if( empty( $nodeObj ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to get the slave node, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -209,7 +231,7 @@ class SequoiaGroup
     * @code
     * $nodeObj = $groupObj -> getNode( 'host1:11910' ) ;
     * if( empty( $nodeObj ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to get the node, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -276,10 +298,9 @@ class SequoiaGroup
     *
     * @param $serviceName	the string argument. The servicename for the catalog replica group.
     *
-    * @param $options	an array or the string argument. The options of attach. Can be the follow options:
+    * @param $options	an array or the string argument. The options of attach.
     *                                                  @code
-    *                                                  KeepData : Whether to keep the original data of the new node. This option has no default value.
-    *                                                             User should specify its value explicitly.
+    *                                                  KeepData : Whether the node data is preserved, default false.
     *                                                  @endcode
     *
     * @return Returns the result, default return array.
@@ -289,14 +310,14 @@ class SequoiaGroup
     *
     * Example:
     * @code
-    * $err = $groupObj -> attachNode( 'host1', '11900', array( 'KeepData' => true ) ) ;
+    * $err = $groupObj -> attachNode( 'host1', '11900' ) ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to attach node, error code: ".$err['errno'] ;
     *    return ;
     * }
     * @endcode
    */
-   public function attachNode( string $hostName, string $serviceName, array|string $options ){}
+   public function attachNode( string $hostName, string $serviceName, array|string $options = NULL ){}
 
    /**
     * Detach a node from the group.
@@ -305,11 +326,9 @@ class SequoiaGroup
     *
     * @param $serviceName	the string argument. The servicename for the catalog replica group.
     *
-    * @param $options	an array or the string argument. The options of detach. Can be the follow options:
+    * @param $options	an array or the string argument. The options of detach.
     *                                                  @code
-    *                                                  KeepData : Whether to keep the original data of the detached node. This option has no default value.
-    *                                                             User should specify its value explicitly.
-    *                                                  Enforced : Whether to detach the node forcibly, default to be false.
+    *                                                  KeepData : Whether the node data is preserved, default false.
     *                                                  @endcode
     *
     * @return Returns the result, default return array.
@@ -319,12 +338,12 @@ class SequoiaGroup
     *
     * Example:
     * @code
-    * $err = $groupObj -> detachNode( 'host1', '11900', array( 'KeepData' => true ) ) ;
+    * $err = $groupObj -> detachNode( 'host1', '11900' ) ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to detach node, error code: ".$err['errno'] ;
     *    return ;
     * }
     * @endcode
    */
-   public function detachNode( string $hostName, string $serviceName, array|string $options ){}
+   public function detachNode( string $hostName, string $serviceName, array|string $options = NULL ){}
 }

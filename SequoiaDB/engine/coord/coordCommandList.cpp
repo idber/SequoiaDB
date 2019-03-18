@@ -732,7 +732,6 @@ namespace engine
          goto error ;
       }
 
-      /// build result
       rc = _rebuildListResult( replyFromCata, cb, contextID ) ;
       if ( SDB_OK != rc )
       {
@@ -913,7 +912,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "List lobs[%s] on groups failed, rc: %d",
                    queryConf._realCLName.c_str(), rc ) ;
 
-      // set context id
       contextID = context->contextID() ;
 
    done:

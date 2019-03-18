@@ -61,7 +61,6 @@ public class AssertMetrics extends AbstractMonitor {
 
 	private int getBtree(String key) {
 		BSONObject asserts = (BSONObject) getServerStatus().get("asserts");
-		// Class c = btree.get(key).getClass();
 		return (Integer) asserts.get(key);
 	}
 

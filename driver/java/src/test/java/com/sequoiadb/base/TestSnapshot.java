@@ -9,12 +9,10 @@ import org.junit.Test;
 public class TestSnapshot extends SingleCSCLTestCase {
     @Test
     public void testResetSnapshot() {
-        // without options
         sdb.resetSnapshot();
 
         sdb.resetSnapshot( null );
         
-        // with options
         BSONObject option = new BasicBSONObject();
         option.put("Type", "database");
         sdb.resetSnapshot(option);

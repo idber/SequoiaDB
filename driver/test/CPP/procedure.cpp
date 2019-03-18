@@ -43,11 +43,9 @@ TEST( procedure, eval )
    rc = db.connect( pHostName, pPort, pUsr, pPasswd ) ;
    EXPECT_EQ( SDB_OK, rc ) ;
 
-   // Inspect the run mode
    rc = db.listReplicaGroups( rgCursor ) ;
    if ( -159 == rc )
    {
-      // when standalone
       isStandalone = true ;
       goto done ;
    }

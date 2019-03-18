@@ -72,7 +72,6 @@ namespace engine
          CHAR              _userName[SESSION_USER_NAME_LEN+1] ;
       } _attr ;
 
-      // status
       UINT64               _activeTime ;
       INT64                _timeoutCounter ; // ms
       BOOLEAN              _authOK ;
@@ -168,8 +167,6 @@ namespace engine
 
          virtual INT32     run() ;
 
-         // run1() will take place of run()
-//         INT32             run1() ;
 
       public:
          httpConnection*   getRestConn() { return &_restConn ; }
@@ -308,7 +305,6 @@ namespace engine
          INT32       _convertGetCount( restAdaptor *pAdaptor,
                                        MsgHeader **msg ) ;
 
-         //list
          INT32       _convertListContexts( restAdaptor *pAdaptor,
                                            MsgHeader **msg ) ;
          INT32       _convertListBase( restAdaptor *pAdaptor,
@@ -368,7 +364,6 @@ namespace engine
          INT32       _convertListIndexes( restAdaptor *pAdaptor,
                                           MsgHeader **msg ) ;
 
-         //snapshot
          INT32       _convertSnapshotContext( restAdaptor *pAdaptor,
                                               MsgHeader **msg ) ;
          INT32       _convertSnapshotContextCurrent( restAdaptor *pAdaptor,

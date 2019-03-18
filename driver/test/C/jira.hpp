@@ -5,7 +5,6 @@
 #include <gtest/gtest.h>
 
 using namespace std;
-//using namespace testing;
 
 class jiraTestCase : public testing::Test
 {

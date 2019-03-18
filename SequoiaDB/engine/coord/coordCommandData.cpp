@@ -179,8 +179,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_DATA2PHASE_DOONDATA ) ;
 
-      // For DropCL/DropCS, this will guarantee data updates are
-      // started before catalog updates
       if ( _flagDoOnCollection() )
       {
          rc = executeOnCL( pMsg, cb, pArgs->_targetName.c_str(),
@@ -322,7 +320,6 @@ namespace engine
          goto error ;
       }
 
-      /// get more
       rc = rtnGetMore( contextID, -1, buffObj, cb, pRtncb ) ;
       if ( rc )
       {
@@ -535,7 +532,6 @@ namespace engine
       CoordGroupList groupLst ;
       INT32 rcTmp = SDB_OK ;
 
-      // extract msg
       CHAR *pQueryBuf = NULL ;
       rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL, &pQueryBuf,
                             NULL, NULL, NULL ) ;
@@ -566,7 +562,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Excute on catalog failed, rc: %d", rc ) ;
 
       pMsg->opCode                     = MSG_BS_QUERY_REQ ;
-      // notify to data node
       rcTmp = executeOnDataGroup( pMsg, cb, groupLst,
                                   TRUE, NULL, NULL, NULL,
                                   buf ) ;
@@ -575,7 +570,6 @@ namespace engine
          PD_LOG( PDWARNING, "Failed to notify to data node, rc: %d", rcTmp ) ;
       }
 
-      // if sync
       if ( !async )
       {
          pFactory = coordGetFactory() ;
@@ -701,7 +695,6 @@ namespace engine
 
       CHAR *pQuery = NULL ;
 
-      // fill default-reply
       contextID = -1 ;
       MsgOpQuery *pCreateReq = (MsgOpQuery *)pMsg;
 
@@ -731,13 +724,10 @@ namespace engine
          pCSName = ele.valuestr() ;
 
          pCreateReq->header.opCode = MSG_CAT_CREATE_COLLECTION_SPACE_REQ ;
-         // execute create collection on catalog
          rc = executeOnCataGroup ( pMsg, cb, TRUE, NULL, NULL, buf ) ;
-         /// AUDIT
          PD_AUDIT_COMMAND( AUDIT_DDL, getName(), AUDIT_OBJ_CS,
                            pCSName, rc, "Option:%s",
                            boQuery.toString().c_str() ) ;
-         /// CHECK ERRORS
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to create collection space[%s], rc: %d",
@@ -800,7 +790,6 @@ namespace engine
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-         // Add ignore return codes
          pArgs->_ignoreRCList.insert( SDB_DMS_CS_NOTEXIST ) ;
       }
       catch( std::exception &e )
@@ -846,7 +835,6 @@ namespace engine
       vector< string > subCLSet ;
       _pResource->removeCataInfoByCS( pArgs->_targetName.c_str(), &subCLSet ) ;
 
-      /// clear relate sub collection's catalog info
       vector< string >::iterator it = subCLSet.begin() ;
       while( it != subCLSet.end() )
       {
@@ -906,7 +894,6 @@ namespace engine
             goto error ;
          }
 
-         // There are some restrictions for capped collections. Do the check.
          rc = rtnGetBooleanElement( pArgs->_boQuery, FIELD_NAME_CAPPED,
                                     isCapped ) ;
          if ( SDB_FIELD_NOT_EXIST == rc )
@@ -993,9 +980,7 @@ namespace engine
 
          if ( isMainCL )
          {
-            // Check sharding keys
             BSONObj boShardingKey ;
-            // Check sharding type
             string shardingType ;
 
             if ( isCapped )
@@ -1042,7 +1027,6 @@ namespace engine
             }
          }
 
-         // Add ignored error return code
          pArgs->_ignoreRCList.insert( SDB_DMS_EXIST ) ;
       }
       catch( std::exception &e )
@@ -1153,7 +1137,6 @@ namespace engine
          }
       }
 
-      // Clear Coord catalog info
       _pResource->removeCataInfo( pArgs->_targetName.c_str() ) ;
 
    done :
@@ -1262,7 +1245,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_DROPCL_GENDATAMSG ) ;
 
-      /// alloc message
       rc = _coordDataCMD3Phase::_generateDataMsg( pMsg, cb, pArgs,
                                                   cataObjs, ppMsgBuf,
                                                   pBufSize ) ;
@@ -1280,8 +1262,6 @@ namespace engine
             if ( Object == beCollection.type() )
             {
                objCata = beCollection.embeddedObject() ;
-               // The catalog info of collection maybe too old
-               // The reply from Catalog implies that info need to be updated
                PD_LOG( PDDEBUG, "Updating catalog info of collection [%s]",
                        pArgs->_targetName.c_str() ) ;
                rc = coordInitCataPtrFromObj( objCata, cataPtr ) ;
@@ -1391,7 +1371,6 @@ namespace engine
 
          if ( isOldAlterCMD )
          {
-            /// we only want to update data's catalog version.
             pArgs->_ignoreRCList.insert( SDB_MAIN_CL_OP_ERR ) ;
             pArgs->_ignoreRCList.insert( SDB_CLS_COORD_NODE_CAT_VER_OLD ) ;
          }
@@ -1710,7 +1689,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_UNLINKCL_GENROLLBACKMSG ) ;
 
-      // The Data Group doesn't care about lowBound and upBound
       rc = msgBuildLinkCLMsg( ppMsgBuf, pBufSize,
                               pArgs->_targetName.c_str(),
                               _subCLName.c_str(),
@@ -1837,7 +1815,6 @@ namespace engine
       }
       else
       {
-         // get count data
          BSONObj countObj ( buffObj.data() ) ;
          BSONElement beTotal = countObj.getField( FIELD_NAME_TOTAL ) ;
          if ( !beTotal.isNumber() )
@@ -1876,8 +1853,6 @@ namespace engine
       CHAR *pQuery = NULL ;
       CoordGroupList srcGrpLst ;
 
-      // first round we perform prepare, so catalog node is able to do sanity
-      // check for collection name and nodes
       MsgOpQuery *pSplitReq            = (MsgOpQuery *)pMsg ;
       pSplitReq->header.opCode         = MSG_CAT_SPLIT_PREPARE_REQ ;
 
@@ -1945,7 +1920,6 @@ namespace engine
 
       _eleSplitQuery = obj.getField ( CAT_SPLITQUERY_NAME ) ;
 
-      /// source group
       ele = obj.getField ( CAT_SOURCE_NAME ) ;
       if ( String != ele.type() )
       {
@@ -1963,7 +1937,6 @@ namespace engine
       }
       _srcGroup = ele.valuestr() ;
 
-      /// target group
       ele = obj.getField ( CAT_TARGET_NAME ) ;
       if ( String != ele.type() )
       {
@@ -1981,7 +1954,6 @@ namespace engine
       }
       _dstGroup = ele.valuestr() ;
 
-      /// async
       ele = obj.getField ( FIELD_NAME_ASYNC ) ;
       if ( Bool == ele.type() )
       {
@@ -1995,11 +1967,9 @@ namespace engine
          goto error ;
       }
 
-      /// percent
       ele = obj.getField( CAT_SPLITPERCENT_NAME ) ;
       _percent = ele.numberDouble() ;
 
-      // make sure we have either split value or split query
       if ( !_eleSplitQuery.eoo() )
       {
          if ( Object != _eleSplitQuery.type() )
@@ -2063,7 +2033,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       clsCatalogSet *pSet = _cataSel.getCataPtr()->getCatalogSet() ;
 
-      /// hash sharding
       if ( pSet->isHashSharding() )
       {
          if ( !_eleSplitQuery.eoo() )
@@ -2132,7 +2101,6 @@ namespace engine
       try
       {
          BSONObj boSend ;
-         // construct the record that we are going to send to catalog
          boSend = BSON ( CAT_COLLECTION_NAME << _clName<<
                          CAT_SOURCE_NAME << _srcGroup <<
                          CAT_TARGET_NAME << _dstGroup <<
@@ -2173,7 +2141,6 @@ namespace engine
          goto error ;
       }
 
-      // Get task ID
       if ( vecObjs.empty() )
       {
          PD_LOG( PDERROR, "Failed to get task id from result msg" ) ;
@@ -2201,7 +2168,6 @@ namespace engine
          goto error ;
       }
 
-      /// notify to data
       pSplitReadyMsg->header.opCode = MSG_BS_QUERY_REQ ;
       pSplitReadyMsg->version = _cataSel.getCataPtr()->getVersion() ;
 
@@ -2289,7 +2255,6 @@ namespace engine
       rtnContextDump *pContext = NULL ;
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
 
-      // if sync, need to wait task finished
       if ( !_async )
       {
          try
@@ -2320,7 +2285,6 @@ namespace engine
          {
             PD_LOG( PDWARNING, "Create operator[%s] failed, rc: %d",
                     CMD_NAME_WAITTASK, rc ) ;
-            /// ignored the error
             rc = SDB_OK ;
             goto done ;
          }
@@ -2337,7 +2301,6 @@ namespace engine
          {
             PD_LOG( PDWARNING, "Wait task[%lld] failed, rc: %d",
                     taskID, rc ) ;
-            /// ignored the error
             rc = SDB_OK ;
             goto done ;
          }
@@ -2410,26 +2373,22 @@ namespace engine
          replacedInstanceOption = TRUE ;
       }
 
-      /// prepare
       rc = _splitPrepare( pMsg, cb, contextID, buf ) ;
       if ( rc )
       {
          goto error ;
       }
 
-      /// ready
       rc = _splitReady( cb, contextID, buf, taskID, taskInfoObj ) ;
       if ( rc )
       {
          if ( CLS_INVALID_TASKID != taskID )
          {
-            /// rollback
             _splitRollback( taskID, cb ) ;
          }
          goto error ;
       }
 
-      /// wait
       rc = _splitPost( taskID, cb, contextID, buf ) ;
       if ( rc )
       {
@@ -2437,7 +2396,6 @@ namespace engine
       }
 
    done :
-      /// restore
       if ( NULL != pSiteProp && replacedInstanceOption )
       {
          pSiteProp->setInstanceOption( instanceOption ) ;
@@ -2484,7 +2442,6 @@ namespace engine
       CHAR *pMsg = NULL ;
       INT32 msgSize = 0 ;
 
-      // check condition has invalid fileds
       if ( !condition.okForStorage() )
       {
          PD_LOG( PDERROR, "Condition[%s] has invalid field name",
@@ -2528,11 +2485,9 @@ namespace engine
          obj = condition ;
       }
 
-      // product split key
       {
          PD_LOG( PDINFO, "Split found record: %s", obj.toString().c_str() ) ;
 
-         // we need to compare with boShardingKey and extract the partition key
          ixmIndexKeyGen keyGen ( shardingKey ) ;
          BSONObjSet keys ;
          BSONObjSet::iterator keyIter ;
@@ -2558,7 +2513,6 @@ namespace engine
          keyIter = keys.begin() ;
          record = (*keyIter).getOwned() ;
 
-         // validate key does not contains Undefined
          /*
          {
             BSONObjIterator iter ( record ) ;
@@ -2650,7 +2604,6 @@ namespace engine
       PD_TRACE_ENTRY( COORD_SPLIT_GETBOUNDBYPERCENT ) ;
       INT32 rc = SDB_OK ;
 
-      // if split percent is 100.0%, get the group low bound
       if ( 100.0 - percent < OSS_EPSILON )
       {
          rc = cataInfo->getGroupLowBound( groupList.begin()->second,
@@ -2688,8 +2641,6 @@ namespace engine
 
             skipCount = (INT64)(totalCount * ( ( 100 - percent ) / 100 ) ) ;
 
-            /// sort by shardingKey that if $shard index does not exist
-            /// can still match index.
             rc = _getBoundRecordOnData( cl, BSONObj(), hint, _shardkingKey,
                                         flag, skipCount, groupList,
                                         cb, _shardkingKey, lowBound, buf ) ;
@@ -2710,7 +2661,6 @@ namespace engine
          }
       }
 
-      /// upbound always be empty.
       upBound = BSONObj() ;
    done:
       PD_TRACE_EXITRC( COORD_SPLIT_GETBOUNDBYPERCENT, rc ) ;
@@ -2771,7 +2721,6 @@ namespace engine
             goto error ;
          }
 
-         // get embedded index name
          rc = rtnGetSTDStringElement( boIndex, IXM_FIELD_NAME_NAME,
                                       _indexName ) ;
          if ( rc )
@@ -2892,7 +2841,6 @@ namespace engine
          goto done ;
       }
 
-      /// rollback
       ignoreRC.insert( SDB_IXM_NOTEXIST ) ;
       rc = executeOnCL( pMsg, cb, pArgs->_targetName.c_str(),
                         FALSE, &groupLst, &ignoreRC, NULL,

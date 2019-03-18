@@ -171,9 +171,6 @@ do                                                            \
    {
       if ( _connection )
       {
-         // if the cursor had been closed manually
-         // it would be unregister in function close()
-         // so no need to do here
          if ( !_isClosed )
          {
             if ( -1 != _contextID )
@@ -185,9 +182,6 @@ do                                                            \
       }
       if ( _collection )
       {
-         // if the cursor had been closed manually
-         // it would be unregister in function close()
-         // so no need to do here
          if ( !_isClosed )
          {
             _collection->_unregCursor ( this ) ;
@@ -228,12 +222,10 @@ do                                                            \
       BOOLEAN result   = FALSE ;
       BOOLEAN locked   = FALSE ;
 
-      // check
       if ( -1 == _contextID || !_connection )
       {
          goto done ;
       }
-      // build msg
       rc = clientBuildKillContextsMsg ( &_pSendBuffer, &_sendBufferSize, 0,
                                         1, &_contextID,
                                         _connection->_endianConvert ) ;
@@ -243,20 +235,17 @@ do                                                            \
       }
       _connection->lock () ;
       locked = TRUE ;
-      // send msg
       rc = _connection->_send ( _pSendBuffer ) ;
       if ( rc )
       {
          goto error ;
       }
-      // receive msg from engine
       rc = _connection->_recvExtract ( &_pReceiveBuffer, &_receiveBufferSize,
                                        contextID, result ) ;
       if ( rc )
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
    done :
       if ( locked )
@@ -274,19 +263,16 @@ do                                                            \
       BOOLEAN result = FALSE ;
       BOOLEAN locked  = FALSE ;
       SINT64 contextID = 0 ;
-      // if contextid is not invalid
       if ( -1 == _contextID )
       {
          rc = SDB_DMS_EOC ;
          goto error ;
       }
-      // check
       if ( !_connection )
       {
          rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
-      // build msg
       rc = clientBuildGetMoreMsg ( &_pSendBuffer, &_sendBufferSize, -1,
                                    _contextID, 0, _connection->_endianConvert ) ;
       if ( rc )
@@ -295,20 +281,17 @@ do                                                            \
       }
       _connection->lock () ;
       locked = TRUE ;
-      // send msg
       rc = _connection->_send ( _pSendBuffer ) ;
       if ( rc )
       {
          goto error ;
       }
-      // receive from engine
       rc = _connection->_recvExtract ( &_pReceiveBuffer, &_receiveBufferSize,
                                        contextID, result ) ;
       if ( rc || contextID != _contextID )
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
    done :
       if ( locked )
@@ -317,7 +300,6 @@ do                                                            \
       }
       return rc ;
    error :
-      // release resource kept in cursor
       if ( SDB_DMS_EOC != rc )
       {
          _killCursor () ;
@@ -343,15 +325,11 @@ do                                                            \
       INT32 rc = SDB_OK ;
       BSONObj localobj ;
       MsgOpReply *pReply = NULL ;
-      // check wether the cursor had been close or not
       if ( _isClosed )
       {
          rc = SDB_DMS_CONTEXT_IS_CLOSE ;
          goto error ;
       }
-      // begin to get next record
-      // when we come here, it means we need don't need the current record again
-      // let's clean the temporary buffer applied for modifying current record
       if ( _modifiedCurrent )
       {
          delete _modifiedCurrent ;
@@ -375,20 +353,15 @@ do                                                            \
       }
    retry :
       pReply = (MsgOpReply*)_pReceiveBuffer ;
-      // let it jump to next record
       if ( -1 == _offset )
       {
-         // if it's the first time we fetch record, let's place offset to very
-         // beginning of first record
          _offset = ossRoundUpToMultipleX ( sizeof ( MsgOpReply ), 4 ) ;
       }
       else
       {
-         // otherwise let's skip the current one
          _offset += ossRoundUpToMultipleX ( *(INT32*)&_pReceiveBuffer[_offset],
                                             4 ) ;
       }
-      // let's see if we have jump out of bound
       if ( _offset >= pReply->header.messageLength ||
            _offset >= _receiveBufferSize )
       {
@@ -408,7 +381,6 @@ do                                                            \
             goto error ;
          }
       }
-      // then let's read the object
       localobj.init ( &_pReceiveBuffer [ _offset ] ) ;
       obj = localobj.copy () ;
       ++ _totalRead ;
@@ -424,29 +396,23 @@ do                                                            \
       INT32 rc = SDB_OK ;
       MsgOpReply *pReply = NULL ;
       BSONObj localobj ;
-      // check wether the cursor had been close or not
       if ( _isClosed )
       {
          rc = SDB_DMS_CONTEXT_IS_CLOSE ;
          goto error ;
       }
-      // begin to get next record
-      //we can't get the current record when it was deleted
       if(_isDeleteCurrent)
       {
          rc = SDB_CURRENT_RECORD_DELETED ;
          goto error ;
       }
-      //invalid parameter
       if ( !&obj )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      //make sure the obj has been initialized
       if ( _modifiedCurrent )
       {
-         //deep copy,never use ossmencpy() which is shallow copy
          obj=_modifiedCurrent->copy() ;
          goto done ;
       }
@@ -472,7 +438,6 @@ do                                                            \
       {
          _offset = ossRoundUpToMultipleX ( sizeof ( MsgOpReply ), 4 ) ;
       }
-      // let's see if we are still within bound
       if ( _offset > pReply->header.messageLength ||
            _offset >= _receiveBufferSize )
       {
@@ -507,7 +472,6 @@ do                                                            \
       BOOLEAN locked = FALSE ;
       BOOLEAN result ;
       SINT64 contextID = 0 ;
-      // check wether the cursor had been close or not
       if ( _isClosed || -1 == _contextID )
       {
          goto done ;
@@ -536,11 +500,9 @@ do                                                            \
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       _contextID = -1 ;
       _isClosed = TRUE ;
-      // unreg from _connecton  and _collection
       if ( _connection )
       {
          _connection->_unregCursor ( this ) ;
@@ -576,20 +538,16 @@ do                                                            \
       BSONObj modifiedObj ;
       BSONElement it ;
       _sdbCursor *tempQuery = NULL ;
-      //we can't update the current record when it was deleted
       if(_isDeleteCurrent)
       {
          rc = SDB_CURRENT_RECORD_DELETED ;
          goto error ;
       }
-      // some resultset can't be updated, like snapshot
-      // we have to check whether we have a valid collection first
       if ( !_collection )
       {
          rc = SDB_CLT_OBJ_NOT_EXIST ;
          goto error ;
       }
-      // if this is a valid collection, let's try to get the current object
       rc = current ( obj ) ;
       if ( rc )
       {
@@ -621,16 +579,12 @@ do                                                            \
          rc = SDB_CORRUPTED_RECORD ;
          goto error ;
       }
-      // let's try to update the collection using the provided rule, the _id for
-      // the object and {"":"_id"} hint
       rc = _collection->update ( &rule, &updateCondition,
                                  &_hintObj ) ;
       if ( rc )
       {
          goto error ;
       }
-      // query will allocate memory for tempQuery, this variable will be freed
-      // by end of the function
       rc = _collection->query(&tempQuery, updateCondition,
                _sdbStaticObject, _sdbStaticObject, _hintObj, 0, 1) ;
       if ( rc )
@@ -642,8 +596,6 @@ do                                                            \
       {
          goto error ;
       }
-   // now the new modified data is stored in modifiedObj
-   // then let's delete the current one if there's exist
    if ( !_modifiedCurrent )
    {
       _modifiedCurrent = (bson*)SDB_OSS_MALLOC ( sizeof(bson) ) ;
@@ -654,8 +606,6 @@ do                                                            \
       }
       bson_init ( _modifiedCurrent ) ;
    }
-   // perform a copy because modifiedObj is local variable, the memory will
-   // be freed once release tempQuery handle
    rc = bson_copy ( _modifiedCurrent, &modifiedObj ) ;
    if ( BSON_OK != rc )
    {
@@ -687,26 +637,21 @@ do                                                            \
       bson deleteCondition ;
       bson_init ( &deleteCondition ) ;
       bson_iterator it ;
-      // some resultset can't be deleted, like snapshot
-      // we have to check whether we have a valid collection first
       if ( !_collection )
       {
          rc = SDB_CLT_OBJ_NOT_EXIST ;
          goto error ;
       }
-      //we can't delete current record twice
       if(_isDeleteCurrent)
       {
          rc = SDB_CURRENT_RECORD_DELETED ;
          goto error ;
       }
-      // if this is a valid collection, let's try to get the current object
       rc = current ( obj ) ;
       if ( rc )
       {
          goto error ;
       }
-      // let's try to extract _id field and build a delete condition
       if ( BSON_EOO != bson_find ( &it, &obj, CLIENT_RECORD_ID_FIELD ) )
       {
          rc = bson_append_element ( &deleteCondition, NULL, &it ) ;
@@ -722,8 +667,6 @@ do                                                            \
             goto error ;
          }
       }
-      // let's try to delete the collection using the provided _id and
-      // {"":"_id"} hint
       rc = _collection->del ( &deleteCondition, &_hintObj ) ;
       if ( rc )
       {
@@ -852,7 +795,6 @@ do                                                            \
    _sdbCollectionImpl::~_sdbCollectionImpl ()
    {
       std::set<ossValuePtr>::iterator it ;
-      // if there's any opened cursor, we should mark their collection NULL
       for ( it = _cursors.begin(); it != _cursors.end(); ++it )
       {
          ((_sdbCursorImpl*)(*it))->_setCollection ( NULL ) ;
@@ -909,7 +851,6 @@ do                                                            \
       _IDToInsert oid ;
       _idToInsert oidEle((CHAR*)(&oid)) ;
       INT32 oidLen = 0 ;
-      // if it already has _id, let's jump to done
       if ( !input.getField( CLIENT_RECORD_ID_FIELD ).eoo() )
       {
          output = input ;
@@ -917,7 +858,6 @@ do                                                            \
       }
       oid._oid.init() ;
       oidLen = oidEle.size() ;
-      // let's make sure the buffer length is sufficient
       if ( _appendOIDBufferSize < input.objsize() + oidLen )
       {
          CHAR *pOld = _pAppendOIDBuffer ;
@@ -1002,18 +942,15 @@ do                                                            \
          goto error ;
       }
 
-      // check return cursor
       if ( NULL == pCursor )
       {
          rc = SDB_SYS ;
          goto error ;
       }
 
-      // there should only 1 record read
       rc = pCursor->next ( countObj ) ;
       if ( rc )
       {
-         // if we didn't read anything, let's return unexpected
          if ( SDB_DMS_EOC == rc )
          {
             rc = SDB_UNEXPECTED_RESULT ;
@@ -1060,7 +997,6 @@ do                                                            \
       }
       if ( num <= 0 )
       {
-         // in this case, prevent use '_pSendBuffer' to send anything to engine
          goto exit ;
       }
       for ( count = 0; count < num; ++count )
@@ -1100,7 +1036,6 @@ do                                                            \
          goto error ;
       }
 
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       rc = updateCachedObject( rc, _connection->_getCachedContainer(),
                                _collectionFullName ) ;
@@ -1123,7 +1058,6 @@ do                                                            \
       SINT64 contextID = 0 ;
       BOOLEAN result ;
       BSONObj temp ;
-      // make sure the object is initialized
       if ( _collectionFullName [0] == '\0' || !_connection )
       {
          rc = SDB_INVALIDARG ;
@@ -1153,7 +1087,6 @@ do                                                            \
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       rc = updateCachedObject( rc, _connection->_getCachedContainer(),
                                _collectionFullName ) ;
@@ -1260,7 +1193,6 @@ do                                                            \
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       rc = updateCachedObject( rc, _connection->_getCachedContainer(),
                                _collectionFullName ) ;
@@ -1310,7 +1242,6 @@ do                                                            \
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       rc = updateCachedObject( rc, _connection->_getCachedContainer(),
                                _collectionFullName ) ;
@@ -1350,8 +1281,6 @@ do                                                            \
 
       try
       {
-         // Append all the options except the collection name, if any.
-         // We should use the collection by which this function is called.
          builder.append( FIELD_NAME_COLLECTION, _collectionFullName ) ;
          BSONObjIterator itr( option ) ;
          while ( itr.more() )
@@ -1399,13 +1328,11 @@ do                                                            \
       INT32 newFlags        = 0 ;
       _sdbCursor *pCursor   = NULL ;
 
-      // check
       if ( _collectionFullName [0] == '\0' || !_connection || !cursor )
       {
          rc = SDB_INVALIDARG ;
          goto done;
       }
-      // try to regulate query flags
       if ( 0 != flags )
       {
          rc = regulateQueryFlags( &newFlags, flags ) ;
@@ -1414,13 +1341,11 @@ do                                                            \
             goto error ;
          }
       }
-      // try to set flag to be find one
       if ( 1 == numToReturn )
       {
          newFlags |= FLG_QUERY_WITH_RETURNDATA ;
       }
 
-      // run command
       rc = _connection->_runCommand( _collectionFullName,
                                      &condition, &selected,
                                      &orderBy, &hint,
@@ -1438,7 +1363,6 @@ do                                                            \
          goto error ;
       }
 
-      // check return cursor
       if ( NULL == pCursor )
       {
          rc = _connection->_buildEmptyCursor( &pCursor ) ;
@@ -1453,11 +1377,8 @@ do                                                            \
          }
       }
 
-      // register cursor to collection
-      // but, it seems no use
       ((_sdbCursorImpl*)pCursor)->_setCollection ( this ) ;
 
-      // return cursor
       *cursor = pCursor ;
    done :
       return rc ;
@@ -1522,7 +1443,6 @@ do                                                            \
          BSONObjBuilder modifyBuilder ;
          BSONObj modify ;
 
-         // create $Modify
          if ( isUpdate )
          {
             if ( update.isEmpty() )
@@ -1542,7 +1462,6 @@ do                                                            \
          }
          modify = modifyBuilder.obj() ;
 
-         // create new hint with $Modify
          if ( !hint.isEmpty() )
          {
             newHintBuilder.appendElements( hint ) ;
@@ -1624,7 +1543,6 @@ do                                                            \
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       rc = updateCachedObject( rc, _connection->_getCachedContainer(),
                                _collectionFullName ) ;
@@ -1660,8 +1578,6 @@ do                                                            \
       goto done;
    }
 
-   // rename attempt, this function should be called by
-   // sdbImpl::_changeCollectionName
    /*PD_TRACE_DECLARE_FUNCTION ( SDB_CLIENT__RENAMEATTEMP, "_sdbCollectionImpl::_renameAttempt" )
    void _sdbCollectionImpl::_renameAttempt ( const CHAR *pOldName,
                                              const CHAR *pNewName )
@@ -1803,7 +1719,6 @@ do                                                            \
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       rc = updateCachedObject( rc, _connection->_getCachedContainer(),
                                _collectionFullName ) ;
@@ -1882,7 +1797,6 @@ do                                                            \
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       rc = updateCachedObject( rc, _connection->_getCachedContainer(),
                                _collectionFullName ) ;
@@ -1963,7 +1877,6 @@ do                                                            \
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       rc = updateCachedObject( rc, _connection->_getCachedContainer(),
                                _collectionFullName ) ;
@@ -2016,7 +1929,6 @@ do                                                            \
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
 
       rc = insertCachedObject( _connection->_getCachedContainer(),
@@ -2070,7 +1982,6 @@ do                                                            \
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
 
       rc = removeCachedObject( _connection->_getCachedContainer(),
@@ -2133,7 +2044,6 @@ do                                                            \
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       rc = updateCachedObject( rc, _connection->_getCachedContainer(),
                                _collectionFullName ) ;
@@ -2200,7 +2110,6 @@ do                                                            \
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       rc = updateCachedObject( rc, _connection->_getCachedContainer(),
                                _collectionFullName ) ;
@@ -2277,7 +2186,6 @@ do                                                            \
          goto error ;
       }
 
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       rc = updateCachedObject( rc, _connection->_getCachedContainer(),
                                _collectionFullName ) ;
@@ -2295,11 +2203,9 @@ do                                                            \
       ((_sdbCursorImpl*)cursor)->_setCollection ( NULL ) ;
       ((_sdbCursorImpl*)cursor)->_contextID = contextID ;
       ((_sdbCursorImpl*)cursor)->_setConnection ( _connection ) ;
-      // there should only 1 record read
       rc = cursor->next ( countObj ) ;
       if ( rc )
       {
-         // if we didn't read anything, let't return unexpected
          if ( SDB_DMS_EOC == rc )
          {
             rc = SDB_UNEXPECTED_RESULT ;
@@ -2389,7 +2295,6 @@ do                                                            \
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       rc = updateCachedObject( rc, _connection->_getCachedContainer(),
                                _collectionFullName ) ;
@@ -2407,11 +2312,9 @@ do                                                            \
       ((_sdbCursorImpl*)cursor)->_setCollection ( NULL ) ;
       ((_sdbCursorImpl*)cursor)->_contextID = contextID ;
       ((_sdbCursorImpl*)cursor)->_setConnection ( _connection ) ;
-      // there should only 1 record read
       rc = cursor->next ( countObj ) ;
       if ( rc )
       {
-         // if we didn't read anything, let't return unexpected
          if ( SDB_DMS_EOC == rc )
          {
             rc = SDB_UNEXPECTED_RESULT ;
@@ -2480,7 +2383,6 @@ do                                                            \
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       rc = updateCachedObject( rc, _connection->_getCachedContainer(),
                                _collectionFullName ) ;
@@ -2530,7 +2432,6 @@ error:
       BSONObj newObj ;
       BSONObjBuilder ob ;
       string command = string ( CMD_ADMIN_PREFIX CMD_NAME_UNLINK_CL ) ;
-      // check argument
       if ( !subClFullName || !_connection ||
             (nameLength = ossStrlen ( subClFullName) ) >
             CLIENT_COLLECTION_NAMESZ ||
@@ -2539,9 +2440,7 @@ error:
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // main collection fullname is required
       ob.append ( FIELD_NAME_NAME, _collectionFullName ) ;
-      // sub collection fullname is required
       ob.append ( FIELD_NAME_SUBCLNAME, subClFullName ) ;
       newObj = ob.obj() ;
       rc = clientBuildQueryMsgCpp ( &_pSendBuffer, &_sendBufferSize,
@@ -2566,7 +2465,6 @@ error:
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       rc = updateCachedObject( rc, _connection->_getCachedContainer(),
                                _collectionFullName ) ;
@@ -2596,7 +2494,6 @@ error:
       BSONObj newObj ;
       BSONObjBuilder ob ;
       string command = string ( CMD_ADMIN_PREFIX CMD_NAME_LINK_CL ) ;
-      // check argument
       if ( !subClFullName || !_connection ||
          ( nameLength = ossStrlen ( subClFullName) ) >
            CLIENT_COLLECTION_NAMESZ ||
@@ -2605,9 +2502,7 @@ error:
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // main collection fullname is required
       ob.append ( FIELD_NAME_NAME, _collectionFullName ) ;
-      // sub collection fullname is required
       ob.append ( FIELD_NAME_SUBCLNAME, subClFullName ) ;
       {
          BSONObjIterator it( options ) ;
@@ -2639,7 +2534,6 @@ error:
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       rc = updateCachedObject( rc, _connection->_getCachedContainer(),
                                _collectionFullName ) ;
@@ -2667,13 +2561,11 @@ error:
       BSONObj newObj ;
       string collectionS ;
       string command = string ( CMD_ADMIN_PREFIX CMD_NAME_ALTER_COLLECTION ) ;
-      // check
       if ( '\0' == _collectionFullName[0] || !_connection )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // build bson
       collectionS = string (_collectionFullName) ;
       try
       {
@@ -2710,7 +2602,6 @@ error:
          rc = SDB_DRIVER_BSON_ERROR ;
          goto error ;
       }
-      // run command
       rc = _connection->_runCommand ( command.c_str(), result, &newObj ) ;
       if ( rc )
       {
@@ -2739,13 +2630,11 @@ error:
       BSONObj newObj ;
       string collectionS ;
       string command = string ( CMD_ADMIN_PREFIX CMD_NAME_ALTER_COLLECTION ) ;
-      // check
       if ( '\0' == _collectionFullName[0] || !_connection )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // build bson
       collectionS = string (_collectionFullName) ;
       try
       {
@@ -2758,7 +2647,6 @@ error:
          rc = SDB_DRIVER_BSON_ERROR ;
          goto error ;
       }
-      // run command
       rc = _connection->_runCommand ( command.c_str(), result, &newObj ) ;
       if ( rc )
       {
@@ -2819,13 +2707,11 @@ error:
       BSONObjBuilder bob ;
       BSONObj newObj ;
 
-      // check
       if ( '\0' == _collectionFullName[0] || !_connection )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // append info
       try
       {
          bob.append( FIELD_NAME_HINT, hint ) ;
@@ -2837,7 +2723,6 @@ error:
          rc = SDB_DRIVER_BSON_ERROR ;
          goto error ;
       }
-      // get query explain
       rc = query( cursor, condition, select, orderBy, newObj,
                   numToSkip, numToReturn, flags | FLG_QUERY_EXPLAIN ) ;
       if ( rc )
@@ -2864,13 +2749,11 @@ error:
       const CHAR *bsonBuf = NULL ;
       OID oidObj ;
 
-      // check
       if ( '\0' == _collectionFullName[0] || NULL == _connection )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // build oid
       if ( oid )
       {
          oidObj = *oid ;
@@ -2879,7 +2762,6 @@ error:
       {
          oidObj = OID::gen() ;
       }
-      // append info
       try
       {
          bob.append( FIELD_NAME_COLLECTION, _collectionFullName ) ;
@@ -2892,7 +2774,6 @@ error:
          rc = SDB_DRIVER_BSON_ERROR ;
          goto error ;
       }
-      // build msg
       rc = clientBuildOpenLobMsgCpp( &_pSendBuffer, &_sendBufferSize,
                                      obj.objdata(), 0, 1, 0,
                                      _connection->_endianConvert ) ;
@@ -2902,20 +2783,17 @@ error:
       }
       _connection->lock() ;
       locked = TRUE ;
-      // send msg
       rc = _connection->_send ( _pSendBuffer ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
       }
-      // receive and extract msg
       rc = _connection->_recvExtract ( &_pReceiveBuffer, &_receiveBufferSize,
                                        contextID, result ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       rc = updateCachedObject( rc, _connection->_getCachedContainer(),
                                _collectionFullName ) ;
@@ -2924,7 +2802,6 @@ error:
          goto error ;
       }
 
-      // get reply bson from received msg
       bsonBuf = _pReceiveBuffer + sizeof( MsgOpReply ) ;
       try
       {
@@ -2935,7 +2812,6 @@ error:
          rc = SDB_DRIVER_BSON_ERROR ;
          goto error ;
       }
-      // build _sdbLob object
       if ( *lob )
       {
          delete *lob ;
@@ -2947,7 +2823,6 @@ error:
          rc = SDB_OOM ;
          goto error ;
       }
-      // set attribute of the newly created _sdbLob object
       ((_sdbLobImpl*)*lob)->_setConnection( _connection ) ;
       ((_sdbLobImpl*)*lob)->_setCollection( this ) ;
       ((_sdbLobImpl*)*lob)->_oid = oidObj ;
@@ -2969,7 +2844,6 @@ error:
          rc = SDB_SYS ;
          goto error ;
       }
-      // createTime
       ele = obj.getField( FIELD_NAME_LOB_CREATETIME ) ;
       bType = ele.type() ;
       if ( NumberLong == bType )
@@ -2981,7 +2855,6 @@ error:
          rc = SDB_SYS ;
          goto error ;
       }
-      // modificationTime
       ele = obj.getField( FIELD_NAME_LOB_MODIFICATION_TIME ) ;
       bType = ele.type() ;
       if ( NumberLong == bType )
@@ -2993,7 +2866,6 @@ error:
          ((_sdbLobImpl*)*lob)->_modificationTime =
             ((_sdbLobImpl*)*lob)->_createTime ;
       }
-      // lob pageSize
       ele = obj.getField( FIELD_NAME_LOB_PAGE_SIZE ) ;
       bType = ele.type() ;
       if ( NumberInt == bType )
@@ -3028,13 +2900,11 @@ error:
       BSONObjBuilder bob ;
       BSONObj meta ;
 
-      // check
       if ( '\0' == _collectionFullName[0] || NULL == _connection )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // append info
       try
       {
          bob.append( FIELD_NAME_COLLECTION, _collectionFullName ) ;
@@ -3046,7 +2916,6 @@ error:
          rc = SDB_DRIVER_BSON_ERROR ;
          goto error ;
       }
-      // build msg
       rc = clientBuildRemoveLobMsgCpp( &_pSendBuffer, &_sendBufferSize,
                                        meta.objdata(), 0, 1, 0,
                                        _connection->_endianConvert ) ;
@@ -3056,13 +2925,11 @@ error:
       }
       _connection->lock() ;
       locked = TRUE ;
-      // send msg
       rc = _connection->_send ( _pSendBuffer ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
       }
-      // receive and extract msg
       rc = _connection->_recvExtract ( &_pReceiveBuffer, &_receiveBufferSize,
                                        contextID, result ) ;
       if ( SDB_OK != rc )
@@ -3070,7 +2937,6 @@ error:
          goto error ;
       }
 
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       rc = updateCachedObject( rc, _connection->_getCachedContainer(),
                                _collectionFullName ) ;
@@ -3096,7 +2962,6 @@ error:
       BSONObjBuilder bob ;
       BSONObj meta ;
 
-      // check
       if ( '\0' == _collectionFullName[0] || NULL == _connection )
       {
          rc = SDB_INVALIDARG ;
@@ -3109,7 +2974,6 @@ error:
          goto error ;
       }
 
-      // append info
       try
       {
          bob.append( FIELD_NAME_COLLECTION, _collectionFullName ) ;
@@ -3122,7 +2986,6 @@ error:
          rc = SDB_DRIVER_BSON_ERROR ;
          goto error ;
       }
-      // build msg
       rc = clientBuildTruncateLobMsgCpp( &_pSendBuffer, &_sendBufferSize,
                                          meta.objdata(), 0, 1, 0,
                                          _connection->_endianConvert ) ;
@@ -3132,13 +2995,11 @@ error:
       }
       _connection->lock() ;
       locked = TRUE ;
-      // send msg
       rc = _connection->_send ( _pSendBuffer ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
       }
-      // receive and extract msg
       rc = _connection->_recvExtract ( &_pReceiveBuffer, &_receiveBufferSize,
                                        contextID, result ) ;
       if ( SDB_OK != rc )
@@ -3146,7 +3007,6 @@ error:
          goto error ;
       }
 
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       rc = updateCachedObject( rc, _connection->_getCachedContainer(),
                                _collectionFullName ) ;
@@ -3177,7 +3037,6 @@ error:
       BOOLEAN locked = FALSE ;
       const CHAR *bsonBuf = NULL ;
 
-      // check
       if ( '\0' == _collectionFullName[0] || NULL == _connection )
       {
          rc = SDB_INVALIDARG ;
@@ -3195,7 +3054,6 @@ error:
          flag |= FLG_LOBOPEN_WITH_RETURNDATA ;
       }
 
-      // append info
       try
       {
          bob.append( FIELD_NAME_COLLECTION, _collectionFullName ) ;
@@ -3208,7 +3066,6 @@ error:
          rc = SDB_DRIVER_BSON_ERROR ;
          goto error ;
       }
-      // build msg
       rc = clientBuildOpenLobMsgCpp( &_pSendBuffer, &_sendBufferSize,
                                      obj.objdata(), flag,
                                      1, 0, _connection->_endianConvert ) ;
@@ -3218,20 +3075,17 @@ error:
       }
       _connection->lock() ;
       locked = TRUE ;
-      // send msg
       rc = _connection->_send ( _pSendBuffer ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
       }
-      // receive and extract msg
       rc = _connection->_recvExtract ( &_pReceiveBuffer, &_receiveBufferSize,
                                        contextID, result ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       rc = updateCachedObject( rc, _connection->_getCachedContainer(),
                                _collectionFullName ) ;
@@ -3240,7 +3094,6 @@ error:
          goto error ;
       }
 
-      // get reply bson from received msg
       bsonBuf = _pReceiveBuffer + sizeof( MsgOpReply ) ;
       try
       {
@@ -3251,7 +3104,6 @@ error:
          rc = SDB_DRIVER_BSON_ERROR ;
          goto error ;
       }
-      // build _sdbLob object
       if ( *lob )
       {
          delete *lob ;
@@ -3263,7 +3115,6 @@ error:
          rc = SDB_OOM ;
          goto error ;
       }
-      // set attribute of the newly created _sdbLob object
       ((_sdbLobImpl*)*lob)->_setConnection( _connection ) ;
       ((_sdbLobImpl*)*lob)->_setCollection( this ) ;
       ((_sdbLobImpl*)*lob)->_oid = oid ;
@@ -3274,8 +3125,6 @@ error:
       ((_sdbLobImpl*)*lob)->_cachedOffset = -1 ;
       ((_sdbLobImpl*)*lob)->_cachedSize =0 ;
       ((_sdbLobImpl*)*lob)->_dataCache = 0 ;
-      // set another info received from engine
-      // lobSize
       ele = obj.getField( FIELD_NAME_LOB_SIZE ) ;
       bType = ele.type() ;
       if ( NumberInt == bType || NumberLong == bType )
@@ -3287,7 +3136,6 @@ error:
          rc = SDB_SYS ;
          goto error ;
       }
-      // createTime
       ele = obj.getField( FIELD_NAME_LOB_CREATETIME ) ;
       bType = ele.type() ;
       if ( NumberLong == bType )
@@ -3299,7 +3147,6 @@ error:
          rc = SDB_SYS ;
          goto error ;
       }
-      // modificationTime
       ele = obj.getField( FIELD_NAME_LOB_MODIFICATION_TIME ) ;
       bType = ele.type() ;
       if ( NumberLong == bType )
@@ -3311,7 +3158,6 @@ error:
          ((_sdbLobImpl*)*lob)->_modificationTime =
             ((_sdbLobImpl*)*lob)->_createTime ;
       }
-      // lob pageSize
       ele = obj.getField( FIELD_NAME_LOB_PAGE_SIZE ) ;
       bType = ele.type() ;
       if ( NumberInt == bType )
@@ -3338,10 +3184,7 @@ error:
       {
          ((_sdbLobImpl*)*lob)->_piecesInfo = BSONArray( ele.embeddedObject() ) ;
       }
-      /// prepare cache from return data
       {
-      // the return message format is as below:
-      // "MsgOpReply  |  Meta Object  |  _MsgLobTuple   | Data"
       const MsgLobTuple *tuple = NULL ;
       const CHAR *body = NULL ;
       UINT32 retMsgLen =
@@ -3350,17 +3193,12 @@ error:
          ossRoundUpToMultipleX( sizeof( MsgOpReply ) + obj.objsize(), 4 ) ;
       if ( retMsgLen > tupleOffset )
       {
-         // let lob's receive buffer pointer points to the cl's receive buffer
          ((_sdbLobImpl*)*lob)->_pReceiveBuffer = _pReceiveBuffer ;
          _pReceiveBuffer = NULL ;
          ((_sdbLobImpl*)*lob)->_receiveBufferSize = _receiveBufferSize ;
          _receiveBufferSize = 0 ;
-         // initialize lob with the return data
          tuple = (MsgLobTuple *)(((_sdbLobImpl*)*lob)->_pReceiveBuffer +
                                   tupleOffset) ;
-         // "tuple->columns.offset" is the offset of lob content
-         // in engine, at the very beginning, the offset must be 0,
-         // for we have not read anything yet
          if ( 0 != tuple->columns.offset )
          {
             rc = SDB_SYS ;
@@ -3376,8 +3214,6 @@ error:
          body = (CHAR*)tuple + sizeof( MsgLobTuple ) ;
          ((_sdbLobImpl*)*lob)->_currentOffset = 0 ;
          ((_sdbLobImpl*)*lob)->_cachedOffset = 0 ;
-         // "tuple->columns.len" is the length of lob content return
-         // by engine
          ((_sdbLobImpl*)*lob)->_cachedSize = tuple->columns.len ;
          ((_sdbLobImpl*)*lob)->_dataCache = body ;
       }
@@ -3402,13 +3238,11 @@ error:
       BSONObjBuilder bob ;
       BSONObj obj ;
 
-      // check
       if ( '\0' == _collectionFullName[0] || NULL == _connection )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // append info
       try
       {
          bob.append( FIELD_NAME_COLLECTION, _collectionFullName ) ;
@@ -3419,7 +3253,6 @@ error:
          rc = SDB_DRIVER_BSON_ERROR ;
          goto error ;
       }
-      // run command
       rc = _runCmdOfLob( CMD_ADMIN_PREFIX CMD_NAME_LIST_LOBS, obj, cursor ) ;
       if ( SDB_OK != rc )
       {
@@ -3448,7 +3281,6 @@ error:
          rc = SDB_DRIVER_BSON_ERROR ;
          goto error ;
       }
-      // run command
       rc = _runCmdOfLob( CMD_ADMIN_PREFIX CMD_NAME_LIST_LOBS,
                          query, cursor ) ;
       if ( SDB_OK != rc )
@@ -3476,7 +3308,6 @@ error:
       BOOLEAN locked = FALSE ;
       SINT64 contextID = -1 ;
 
-      // check
       if ( '\0' == _collectionFullName[0] || NULL == _connection )
       {
          rc = SDB_INVALIDARG ;
@@ -3487,7 +3318,6 @@ error:
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // build msg
       rc = clientBuildQueryMsgCpp ( &_pSendBuffer, &_sendBufferSize,
                                     cmd, 0, 0, -1, -1,
                                     obj.objdata(), NULL, NULL, NULL,
@@ -3498,20 +3328,17 @@ error:
       }
       _connection->lock() ;
       locked = TRUE ;
-      // send msg
       rc = _connection->_send ( _pSendBuffer ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
       }
-      // receive and extract msg
       rc = _connection->_recvExtract ( &_pReceiveBuffer, &_receiveBufferSize,
                                        contextID, result ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       rc = updateCachedObject( rc, _connection->_getCachedContainer(),
                                _collectionFullName ) ;
@@ -3520,7 +3347,6 @@ error:
          goto error ;
       }
 
-      // build return cursor object
       if ( -1 != contextID )
       {
          if ( *cursor )
@@ -3759,7 +3585,6 @@ error:
          }
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       sns = SDB_NODE_ACTIVE ;
    done :
@@ -3857,7 +3682,6 @@ error:
          goto error ;
       }
       ele = result.getField ( CAT_GROUP_NAME ) ;
-      // get total number of nodes
       if ( ele.type() == Array )
       {
          BSONObjIterator it ( ele.embeddedObject() ) ;
@@ -3895,19 +3719,14 @@ error:
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // GroupName is required
       ob.append ( CAT_GROUPNAME_NAME, _replicaGroupName ) ;
 
-      // HostName is required
       ob.append ( CAT_HOST_FIELD_NAME, pHostName ) ;
 
-      // service name is required
       ob.append ( PMD_OPTION_SVCNAME, pServiceName ) ;
 
-      // database path is required
       ob.append ( PMD_OPTION_DBPATH, pDatabasePath ) ;
 
-      // append all other parameters into configuration
       pattern = BSON( CAT_GROUPNAME_NAME   << 1 <<
                       CAT_HOST_FIELD_NAME  << 1 <<
                       PMD_OPTION_SVCNAME   << 1 <<
@@ -3916,7 +3735,6 @@ error:
       ob.appendElements( tmpObj ) ;
       configuration = ob.obj () ;
 
-      // run command
       rc = _connection->_runCommand ( command.c_str(), result, &configuration );
       if ( rc )
       {
@@ -3946,23 +3764,18 @@ error:
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // GroupName is required
       ob.append ( CAT_GROUPNAME_NAME, _replicaGroupName ) ;
       config.erase ( CAT_GROUPNAME_NAME ) ;
 
-      // HostName is required
       ob.append ( CAT_HOST_FIELD_NAME, pHostName ) ;
       config.erase ( CAT_HOST_FIELD_NAME ) ;
 
-      // service name is required
       ob.append ( PMD_OPTION_SVCNAME, pServiceName ) ;
       config.erase ( PMD_OPTION_SVCNAME ) ;
 
-      // database path is required
       ob.append ( PMD_OPTION_DBPATH, pDatabasePath ) ;
       config.erase ( PMD_OPTION_DBPATH ) ;
 
-      // append all other parameters into configuration
       for ( it = config.begin(); it != config.end(); ++it )
       {
          ob.append ( it->first.c_str(),
@@ -3970,7 +3783,6 @@ error:
       }
       configuration = ob.obj () ;
 
-      // run command
       rc = _connection->_runCommand ( command.c_str(), result, &configuration );
       if ( rc )
       {
@@ -3998,15 +3810,11 @@ error:
          goto error ;
       }
 
-      // GroupName is required
       ob.append ( CAT_GROUPNAME_NAME, _replicaGroupName ) ;
-      // HostName is required
       ob.append ( FIELD_NAME_HOST, pHostName ) ;
 
-      // ServiceName is required
       ob.append ( PMD_OPTION_SVCNAME, pServiceName ) ;
 
-      // append all other parameters
       {
          BSONObjIterator it ( configure ) ;
          while ( it.more() )
@@ -4017,7 +3825,6 @@ error:
                  ossStrcmp ( key, FIELD_NAME_HOST ) == 0  ||
                  ossStrcmp ( key, PMD_OPTION_SVCNAME ) == 0 )
             {
-               // skip the ones we already created
                continue ;
             }
             ob.append ( ele ) ;
@@ -4074,7 +3881,6 @@ error:
          rc = SDB_INVALIDARG ;
          goto error1 ;
       }
-      // create new node object
       pNode = new ( std::nothrow) _sdbNodeImpl () ;
       if ( !pNode )
       {
@@ -4082,7 +3888,6 @@ error:
          goto error ;
       }
       pNode->_replicaGroupID = _replicaGroupID ;
-      // setup connection
       pNode->_connection = this->_connection ;
       _connection->_regNode ( pNode ) ;
 
@@ -4125,7 +3930,6 @@ error:
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // get information of nodes from catalog
       rc = getDetail ( result ) ;
       if ( rc )
       {
@@ -4135,11 +3939,9 @@ error:
          }
          goto error ;
       }
-      // check the nodes in current group
       ele = result.getField ( CAT_GROUP_NAME ) ;
       if ( ele.type() != Array )
       {
-         // the replica group is not array
          rc = SDB_SYS ;
          goto error ;
       }
@@ -4151,11 +3953,9 @@ error:
             goto error ;
          }
       }
-      // check have primary or not
       ele = result.getField ( CAT_PRIMARY_NAME ) ;
       if ( ele.type() == EOO )
       {
-         // cannot find primary
          rc = SDB_RTN_NO_PRIMARY_FOUND ;
          goto error ;
       }
@@ -4167,11 +3967,9 @@ error:
       primaryNode = ele.numberInt () ;
       if ( -1 == primaryNode )
       {
-         // cannot find primary
          rc = SDB_RTN_NO_PRIMARY_FOUND ;
          goto error ;
       }
-      // walk through the replica group and find out the NodeID
       {
          ele = result.getField ( CAT_GROUP_NAME ) ;
          BSONObjIterator it ( ele.embeddedObject() ) ;
@@ -4179,21 +3977,15 @@ error:
          {
             BSONObj embObj ;
             BSONElement embEle = it.next() ;
-            // make sure each element is object and construct intObj object
-            // bson_init_finished_data does not accept const CHAR*,
-            // however since we are NOT going to perform any change, it's afe to
-            // cast const CHAR* to CHAR* here
             if ( Object == embEle.type() )
             {
                embObj = embEle.embeddedObject() ;
-               // look for "NodeID" in each object
                BSONElement embEle1 = embObj.getField ( CAT_NODEID_NAME ) ;
                if ( embEle1.type() != NumberInt )
                {
                   rc = SDB_SYS ;
                   goto error ;
                }
-               // if we find the master, let's record the pointer and jump out
                if ( primaryNode == embEle1.numberInt() )
                {
                   primaryData = embObj.objdata() ;
@@ -4217,8 +4009,6 @@ error:
       }
       else
       {
-         // it is impossible for us to find primary id but cannot
-         // find primary node in list
          rc = SDB_SYS ;
          goto error ;
       }
@@ -4228,7 +4018,6 @@ error:
       goto done ;
    }
 
-   // attempt to get slave, if no slave exist, return primary
    INT32 _sdbReplicaGroupImpl::getSlave ( _sdbNode **node,
                                           const vector<INT32>& positions )
    {
@@ -4244,7 +4033,6 @@ error:
       BOOLEAN hasPrimary = TRUE ;
       BOOLEAN needGeneratePosition = FALSE ;
 
-      // check arguments
       if ( !_connection || !node )
       {
          rc = SDB_INVALIDARG ;
@@ -4272,13 +4060,10 @@ error:
             validPositions.push_back( *it ) ;
          }
       }
-      // when user do not specify any positions,
-      // we add 2 to select a slave node
       if ( validPositions.size() == 0 )
       {
          needGeneratePosition = TRUE ;
       }
-      // get detail of group from catalog
       rc = getDetail ( result ) ;
       if ( rc )
       {
@@ -4288,11 +4073,9 @@ error:
          }
          goto error ;
       }
-      // check the nodes in current group
       ele = result.getField ( CAT_GROUP_NAME ) ;
       if ( ele.type() != Array )
       {
-         // the replica group is not array
          rc = SDB_SYS ;
          goto error ;
       }
@@ -4316,35 +4099,27 @@ error:
       }
       else
       {
-         // get the primary node and skip it later
          primaryNodeId = ele.numberInt () ;
          if ( -1 == primaryNodeId )
          {
             hasPrimary = FALSE ;
          }
       }
-      // walk through replica group and skip primary node, and pick up a random one
       {
          ele = result.getField ( CAT_GROUP_NAME ) ;
          BSONObj objReplicaGroupList = ele.embeddedObject() ;
          BSONObjIterator it ( objReplicaGroupList ) ;
-         // loop for all elements in the replica group
          INT32 counter = 0 ;
          while ( it.more() )
          {
             ++counter ;
             BSONObj embObj ;
             BSONElement embEle ;
-            // make sure each element is object and construct intObj object
-            // bson_init_finished_data does not accept const CHAR*,
-            // however since we are NOT going to perform any change, it's safe
-            // to cast const CHAR* to CHAR* here
             embEle = it.next() ;
             if ( embEle.type() == Object )
             {
                embObj = embEle.embeddedObject() ;
                BSONElement embEle1 = embObj.getField ( CAT_NODEID_NAME ) ;
-               // look for "NodeID" in each object
                if ( embEle1.type() != NumberInt )
                {
                   rc = SDB_SYS ;
@@ -4363,13 +4138,11 @@ error:
             }
          }
       }
-      // check
       if ( hasPrimary && 0 == primaryNodePosition )
       {
          rc = SDB_SYS ;
          goto error ;
       }
-      // try to generate slave node's positions
       nodeCount = nodeDatas.size() ;
       if ( needGeneratePosition )
       {
@@ -4383,7 +4156,6 @@ error:
             validPositions.push_back( i + 1 ) ;
          }
       }
-      // Build sdbNode based on hostname and service name
       if ( nodeCount == 1 )
       {
          rc = _extractNode ( node, nodeDatas[0] ) ;
@@ -4440,7 +4212,6 @@ error:
                }
             }
          }
-         // after removing, let's select a slave node
          if ( excludePrimaryPositions.size() > 0 )
          {
             position = rand % excludePrimaryPositions.size() ;
@@ -4482,13 +4253,11 @@ error:
          goto error ;
       }
       *node = NULL ;
-      // get detail of the current node's replica group
       rc = getDetail ( result ) ;
       if ( rc )
       {
          goto error ;
       }
-      // find the replica group field
       ele = result.getField ( CAT_GROUP_NAME ) ;
       if ( ele.type() != Array )
       {
@@ -4497,7 +4266,6 @@ error:
       }
       {
          BSONObjIterator it ( ele.embeddedObject() ) ;
-         // iterate all members in the replica group
          while ( it.more() )
          {
             BSONElement embEle ;
@@ -4506,25 +4274,21 @@ error:
             if ( embEle.type() == Object )
             {
                embObj = embEle.embeddedObject() ;
-               // build a temp node
                rc = _extractNode ( node, embObj.objdata() ) ;
                if ( rc )
                {
                   goto error ;
                }
-               // if we get a match
                if ( ossStrcmp ( ((_sdbNodeImpl*)(*node))->_hostName,
                                 pHostName ) == 0 &&
                     ossStrcmp ( ((_sdbNodeImpl*)(*node))->_serviceName,
                                 pServiceName ) == 0 )
                   break ;
-               // if no match, let's clear
                SDB_OSS_DEL ( (*node ) ) ;
                *node = NULL ;
             }
          }
       }
-      // if we didn't find anything, return not exist
       if ( !(*node) )
       {
          rc = SDB_CLS_NODE_NOT_EXIST ;
@@ -4643,7 +4407,6 @@ error:
       BOOLEAN result = FALSE ;
       string command = string ( CMD_ADMIN_PREFIX CMD_NAME_CREATE_NODE ) ;
 
-      // check
       if ( !_connection || ossStrlen ( _replicaGroupName ) == 0 )
       {
          rc = SDB_INVALIDARG ;
@@ -4655,7 +4418,6 @@ error:
          goto error ;
       }
 
-      // build obj
       bob.append( FIELD_NAME_GROUPNAME, _replicaGroupName ) ;
       bob.append( FIELD_NAME_HOST, pHostName ) ;
       bob.append( PMD_OPTION_SVCNAME, pSvcName ) ;
@@ -4671,7 +4433,6 @@ error:
       }
       newObj = bob.obj() ;
 
-      // run command
       rc = _connection->_runCommand ( command.c_str(), result, &newObj ) ;
       if ( rc )
       {
@@ -4697,7 +4458,6 @@ error:
       BOOLEAN result = FALSE ;
       string command = string ( CMD_ADMIN_PREFIX CMD_NAME_REMOVE_NODE ) ;
 
-      // check
       if ( !_connection || ossStrlen ( _replicaGroupName ) == 0 )
       {
          rc = SDB_INVALIDARG ;
@@ -4709,7 +4469,6 @@ error:
          goto error ;
       }
 
-      // build obj
       bob.append( FIELD_NAME_GROUPNAME, _replicaGroupName ) ;
       bob.append( FIELD_NAME_HOST, pHostName ) ;
       bob.append( PMD_OPTION_SVCNAME, pSvcName ) ;
@@ -4725,7 +4484,6 @@ error:
       }
       newObj = bob.obj() ;
 
-      // run command
       rc = _connection->_runCommand ( command.c_str(), result, &newObj ) ;
       if ( rc )
       {
@@ -4854,7 +4612,6 @@ error:
       if ( fetchCachedObject( _connection->_getCachedContainer(),
                               collectionS.c_str() ) )
       {
-         // DO NOTHING
       }
       else
       {
@@ -5192,7 +4949,6 @@ error :
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // build bson
       try
       {
          ob.append ( FIELD_NAME_NAME, _domainName ) ;
@@ -5204,7 +4960,6 @@ error :
          rc = SDB_DRIVER_BSON_ERROR ;
          goto error ;
       }
-      // run command
       rc = _connection->_runCommand(command.c_str(), result, &newObj ) ;
       if ( rc )
       {
@@ -5230,7 +4985,6 @@ error :
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // build bson
       try
       {
          ob1.append ( FIELD_NAME_DOMAIN, _domainName ) ;
@@ -5267,7 +5021,6 @@ error :
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // build bson
       try
       {
          ob1.append ( FIELD_NAME_DOMAIN, _domainName ) ;
@@ -5384,7 +5137,6 @@ error :
       BSONObjBuilder bob ;
       BSONObj newObj ;
 
-      // check
       if ( NULL == _connection )
       {
          rc = SDB_NOT_CONNECTED ;
@@ -5396,7 +5148,6 @@ error :
          goto error ;
       }
 
-      // build obj to send
       bob.append( FIELD_NAME_ACTION, pValue ) ;
       if ( NULL != pInfo )
       {
@@ -5404,7 +5155,6 @@ error :
       }
       newObj = bob.obj() ;
 
-      // run command
       rc = _connection->_runCommand( pCommand, &newObj, NULL, NULL, NULL,
                                      0, 0, -1, -1, NULL ) ;
       if ( SDB_OK != rc )
@@ -5424,14 +5174,12 @@ error :
       const CHAR *pCommand      = CMD_ADMIN_PREFIX CMD_NAME_GET_DCINFO ;
       _sdbCursor *retInfoCursor = NULL ;
 
-      // check
       if ( NULL == _connection )
       {
          rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
 
-      // run command
       rc = _connection->_runCommand( pCommand, NULL, NULL, NULL, NULL,
                                      0, 0, -1, -1, &retInfoCursor ) ;
       if ( SDB_OK != rc )
@@ -5445,7 +5193,6 @@ error :
          goto error ;
       }
 
-      // get dc detail
       rc = retInfoCursor->next( retInfo ) ;
       if ( SDB_OK != rc )
       {
@@ -5493,17 +5240,14 @@ error :
       INT32 rc = SDB_OK ;
       BSONObj newObj ;
 
-      // check
       if ( NULL == pCataAddrList )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
 
-      // build obj
       newObj = BSON( FIELD_NAME_ADDRESS << pCataAddrList ) ;
 
-      // run command
       rc = _DCCommon( CMD_VALUE_NAME_CREATE, &newObj ) ;
       if ( SDB_OK != rc )
       {
@@ -5614,10 +5358,6 @@ error :
 
    void _sdbLobImpl::_close()
    {
-      // 1. we are not going to release send/receive buffer,
-      // let destructor do it
-      // 2. we will set _connection to be null in destructor
-      // for we still need to use the lock which is kept in it
       _isOpen = FALSE ;
       _collection = NULL ;
       _contextID = -1 ;
@@ -5630,8 +5370,6 @@ error :
 
    BOOLEAN _sdbLobImpl::_dataCached()
    {
-      // "lob->_currentOffset" may be changed by seek(),
-      // so take care of it
       return ( NULL != _dataCache && 0 < _cachedSize &&
                0 <= _cachedOffset &&
                _cachedOffset <= _currentOffset &&
@@ -5728,7 +5466,6 @@ error :
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       reply = ( const MsgOpReply * )( _pReceiveBuffer ) ;
       if ( ( UINT32 )( reply->header.messageLength ) <
@@ -5793,18 +5530,15 @@ error :
       BOOLEAN locked = FALSE ;
       const MsgOpReply* reply = NULL ;
 
-      // check wether the lob had been close or not
       if ( !_isOpen || -1 == _contextID )
       {
          goto done ;
       }
-      // check
       if ( !_connection )
       {
          rc = SDB_NOT_CONNECTED ;
          goto error;
       }
-      // build msg
       rc = clientBuildCloseLobMsg( &_pSendBuffer, &_sendBufferSize,
                                    0, 1, _contextID, 0,
                                    _connection->_endianConvert ) ;
@@ -5814,31 +5548,24 @@ error :
       }
       _connection->lock() ;
       locked = TRUE ;
-      // send msg
       rc = _connection->_send ( _pSendBuffer ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
       }
-      // receive and extract msg from engine
       rc = _connection->_recvExtract ( &_pReceiveBuffer, &_receiveBufferSize,
                                        contextID, result ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
-      // release the resource hold in _sdbLobImpl
-      // and cleanup data member of this object then
-      // set this lob to be close
       _close() ;
 
       reply = ( const MsgOpReply * )( _pReceiveBuffer ) ;
       if ( reply->numReturned > 0 &&
            (UINT32)reply->header.messageLength > ossRoundUpToMultipleX( sizeof(MsgOpReply), 4 ) )
       {
-         // get reply bson from received msg
          const CHAR* bsonBuf = _pReceiveBuffer + sizeof( MsgOpReply ) ;
          try
          {
@@ -5874,7 +5601,6 @@ error :
       UINT32 onceRead = 0 ;
       UINT32 totalRead = 0 ;
 
-      // check
       if ( !_connection && !_isOpen )
       {
          rc = SDB_DMS_CONTEXT_IS_CLOSE ;
@@ -5890,7 +5616,6 @@ error :
          rc = SDB_LOB_NOT_OPEN ;
          goto error ;
       }
-      // check argument
       if ( NULL == buf )
       {
          rc = SDB_INVALIDARG ;
@@ -5957,7 +5682,6 @@ error :
       UINT32 totalLen = 0 ;
       const UINT32 maxSendLen = 2 * 1024 * 1024 ;
 
-      // check
       if ( !_connection && !_isOpen )
       {
          rc = SDB_DMS_CONTEXT_IS_CLOSE ;
@@ -5978,7 +5702,6 @@ error :
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // check argument
       if ( NULL == buf )
       {
          rc = SDB_INVALIDARG ;
@@ -5995,7 +5718,6 @@ error :
       {
          goto done ;
       }
-      // build msg
       do
       {
          INT64 offset = _seekWrite ? _currentOffset : -1 ;
@@ -6011,20 +5733,17 @@ error :
          }
          _connection->lock() ;
          locked = TRUE ;
-         // send msg
          rc = _connection->_send ( _pSendBuffer ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
          }
-         // receive and extract msg from engine
          rc = _connection->_recvExtract ( &_pReceiveBuffer, &_receiveBufferSize,
                                           contextID, result ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
          }
-         // check return msg header
          CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
          locked = FALSE ;
          _connection->unlock() ;
@@ -6050,7 +5769,6 @@ error :
    {
       INT32 rc = SDB_OK ;
 
-      // check
       if ( !_connection && !_isOpen )
       {
          rc = SDB_DMS_CONTEXT_IS_CLOSE ;
@@ -6078,7 +5796,6 @@ error :
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // set seek point
       if ( SDB_LOB_SEEK_SET == whence )
       {
          if ( size < 0 || ( _lobSize < size && SDB_LOB_READ == _mode ) )
@@ -6174,20 +5891,17 @@ error :
 
       _connection->lock() ;
       locked = TRUE ;
-      // send msg
       rc = _connection->_send ( _pSendBuffer ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
       }
-      // receive and extract msg from engine
       rc = _connection->_recvExtract ( &_pReceiveBuffer, &_receiveBufferSize,
                                        contextID, result ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, _connection ) ;
       _connection->unlock() ;
       locked = FALSE ;
@@ -6306,15 +6020,12 @@ error :
    _attributeCache ()
    {
       initHashTable( &_tb ) ;
-      // get current time
       ossGetCurrentTime(_lastAliveTime);
    }
 
    _sdbImpl::~_sdbImpl ()
    {
       std::set<ossValuePtr>::iterator it ;
-      // if there's any opened cursor, we should mark them not-connected before
-      // releasing connection memory
       for ( it = _cursors.begin(); it != _cursors.end(); ++it )
       {
          ((_sdbCursorImpl*)(*it))->_dropConnection () ;
@@ -6409,7 +6120,6 @@ error :
          goto error ;
       }
       _sock->disableNagle () ;
-      // set keep alive
       _sock->setKeepAlive( 1, OSS_SOCKET_KEEP_IDLE,
                            OSS_SOCKET_KEEP_INTERVAL,
                            OSS_SOCKET_KEEP_CONTER ) ;
@@ -6424,7 +6134,6 @@ error :
          }
          goto done;
 #endif
-         // do not support SSL
          rc = SDB_INVALIDARG ;
          goto error;
       }
@@ -6528,7 +6237,6 @@ error :
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
    done :
       if ( locked )
@@ -6559,11 +6267,9 @@ error :
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // calculate the start position
       i = _sdbRand() % arrSize ;
       mark = i ;
 
-      // get host and port
       do
       {
          addr = pConnAddrs[i] ;
@@ -6591,7 +6297,6 @@ error :
          if ( rc == SDB_OK)
             goto done ;
       } while ( mark != i ) ;
-      // if we go here, means no valid addresses
       rc = SDB_NET_CANNOT_CONNECT ;
    done :
       return rc ;
@@ -6643,7 +6348,6 @@ error :
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
    done :
       if ( locked )
@@ -6698,7 +6402,6 @@ error :
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
    done :
       if ( locked )
@@ -6793,7 +6496,6 @@ error :
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
       if ( *result )
       {
@@ -6934,7 +6636,6 @@ error :
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
       if ( *result )
       {
@@ -7040,7 +6741,6 @@ error :
       {
          goto error ;
       }
-      // get current time
       ossGetCurrentTime(_lastAliveTime);
    done :
       return rc ;
@@ -7058,7 +6758,6 @@ error :
          rc = SDB_NOT_CONNECTED ;
          goto error ;
       }
-      // first let's get message length
       rc = clientSocketRecv ( _sock,
                               (CHAR*)&length,
                               sizeof(length) ) ;
@@ -7084,7 +6783,6 @@ error :
          goto error ;
       }
 
-      // get current time
       ossGetCurrentTime(_lastAliveTime);
    done :
       return rc ;
@@ -7137,7 +6835,6 @@ error :
       INT32 rc           = SDB_OK ;
       _sdbCursor *cursor = NULL ;
 
-      // if nothing return by engine, see we need to return cursor or not
       if ( -1 == contextID &&
            ( ((UINT32)((MsgHeader*)*ppBuffer)->messageLength) <=
               ossRoundUpToMultipleX( sizeof(MsgOpReply), 4 ) ) )
@@ -7149,14 +6846,12 @@ error :
          goto done ;
       }
 
-      // check
       if ( NULL == ppCursor )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
 
-      // build cursor obj
       cursor = (_sdbCursor*)( new(std::nothrow) sdbCursorImpl() ) ;
       if ( NULL == cursor )
       {
@@ -7167,7 +6862,6 @@ error :
       ((_sdbCursorImpl*)cursor)->_contextID = contextID ;
       ((_sdbCursorImpl*)cursor)->_setConnection ( this ) ;
 
-      // if we can get info from _ppBuffer, do it
       if ( NULL != ppBuffer )
       {
          if ( ((UINT32)((MsgHeader*)*ppBuffer)->messageLength) >
@@ -7180,7 +6874,6 @@ error :
          }
       }
 
-      // return cursor
       *ppCursor = cursor ;
 
    done :
@@ -7220,7 +6913,6 @@ error :
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
    done :
       unlock () ;
@@ -7271,15 +6963,12 @@ error :
          }
          else // error happened in engine
          {
-            // TODO: get error info
             goto error ;
          }
       }
 
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
 
-      // try to get retObj
       if ( NULL != ppCursor )
       {
          rc = _getRetInfo( &_pReceiveBuffer, &_receiveBufferSize,
@@ -7293,7 +6982,6 @@ error :
       unlock () ;
       return rc ;
    error :
-      // TODO: maybe need to handle error msg caused by driver
       goto done ;
    }
 
@@ -7302,7 +6990,6 @@ error :
       INT32 rc           = SDB_OK ;
       _sdbCursor *cursor = NULL ;
 
-      // build cursor obj
       cursor = (_sdbCursor*)( new(std::nothrow) sdbCursorImpl() ) ;
       if ( NULL == cursor )
       {
@@ -7344,7 +7031,6 @@ error :
 
       if ( fetchCachedObject( _tb, pCollectionFullName ) )
       {
-         // DO NOTHING
       }
       else
       {
@@ -7404,7 +7090,6 @@ error :
       }
       if ( fetchCachedObject( _tb, pCollectionSpaceName ) )
       {
-         // DO NOTHING
       }
       else
       {
@@ -7509,7 +7194,6 @@ error :
       }
 
 
-      // build bson
       try
       {
          bob.append ( FIELD_NAME_NAME, pCollectionSpaceName ) ;
@@ -7518,7 +7202,6 @@ error :
          {
             bob.append ( it.next() ) ;
          }
-//         ob.append ( FIELD_NAME_OPTIONS, options ) ;
          newObj = bob.obj () ;
       }
       catch ( std::exception )
@@ -7616,7 +7299,6 @@ error :
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // create search condition
       condition = BSON ( CAT_GROUPNAME_NAME << pName ) ;
       rc = getList ( &resultCursor.pCursor, SDB_LIST_GROUPS, condition ) ;
       if ( rc )
@@ -7675,7 +7357,6 @@ error :
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // create search condition
       condition = BSON ( CAT_GROUPID_NAME << id ) ;
       rc = getList ( &resultCursor.pCursor, SDB_LIST_GROUPS, condition ) ;
       if ( rc )
@@ -7814,16 +7495,12 @@ error :
          goto error ;
       }
 
-      // HostName is required
       ob.append ( CAT_HOST_FIELD_NAME, pHostName ) ;
 
-      // ServiceName is required
       ob.append ( PMD_OPTION_SVCNAME, pServiceName ) ;
 
-      // database path is required
       ob.append ( PMD_OPTION_DBPATH, pDatabasePath ) ;
 
-      // append all other parameters
       {
          BSONObjIterator it ( configure ) ;
          while ( it.more() )
@@ -7834,7 +7511,6 @@ error :
                  ossStrcmp ( key, PMD_OPTION_SVCNAME ) == 0  ||
                  ossStrcmp ( key, CAT_HOST_FIELD_NAME ) == 0 )
             {
-               // skip the ones we already created
                continue ;
             }
             ob.append ( ele ) ;
@@ -7927,7 +7603,6 @@ error :
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
    done :
       if ( locked )
@@ -7973,7 +7648,6 @@ error :
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
       if ( *result )
       {
@@ -8024,7 +7698,6 @@ error :
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
    done :
       if ( locked )
@@ -8061,7 +7734,6 @@ error :
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
    done :
       if ( locked )
@@ -8098,7 +7770,6 @@ error :
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
    done :
       if ( locked )
@@ -8138,7 +7809,6 @@ error :
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
    done:
       if ( locked )
@@ -8189,7 +7859,6 @@ error :
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
    done:
       if ( locked )
@@ -8235,7 +7904,6 @@ error :
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
    done:
       if ( locked )
@@ -8291,7 +7959,6 @@ error :
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
 
       if ( *cursor )
@@ -8381,7 +8048,6 @@ error :
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
    done :
       return rc ;
@@ -8433,7 +8099,6 @@ error :
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
       if ( *cursor )
       {
@@ -8493,7 +8158,6 @@ error :
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
    done :
       return rc ;
@@ -8526,24 +8190,20 @@ error :
       BSONObj subObj ;
       INT32 i = 0 ;
 
-      // check argument
       if ( !taskIDs || num < 0 )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
 
-      // append argument
       try
       {
-         // append subObj first
          for ( i = 0 ; i < num; i++ )
          {
             bab.append(taskIDs[i]) ;
          }
          subBob.appendArray ( "$in", bab.arr() ) ;
          subObj = subBob.obj () ;
-         // append the top level of bson
          bob.append ( FIELD_NAME_TASKID, subObj ) ;
          newObj = bob.obj () ;
       }
@@ -8576,7 +8236,6 @@ error :
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
    done :
       if ( locked )
@@ -8598,14 +8257,12 @@ error :
       BSONObjBuilder it ;
       BSONObj newObj ;
 
-      // check argument
       if ( taskID <= 0 )
       {
          rc = SDB_INVALIDARG ;
        goto error ;
       }
 
-      // append argument
       try
       {
          it.appendIntOrLL ( FIELD_NAME_TASKID, taskID ) ;
@@ -8640,7 +8297,6 @@ error :
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
    done :
       if ( locked )
@@ -8712,19 +8368,16 @@ error :
                      if ( 0 == strcmp( "M", str_value ) ||
                           0 == strcmp( "m", str_value ) )
                      {
-                        // master
                         value = PREFER_REPL_MASTER ;
                      }
                      else if ( 0 == strcmp( "S", str_value ) ||
                                0 == strcmp( "s", str_value ) )
                      {
-                        // slave
                         value = PREFER_REPL_SLAVE ;
                      }
                      else if ( 0 == strcmp( "A", str_value ) ||
                                0 == strcmp( "a", str_value ) )
                      {
-                        //anyone
                         value = PREFER_REPL_ANYONE ;
                      }
                      else
@@ -8764,7 +8417,6 @@ error :
 
       _clearSessionAttrCache( TRUE ) ;
 
-      // build msg
       rc = clientBuildQueryMsgCpp( &_pSendBuffer, &_sendBufferSize,
                                    CMD_ADMIN_PREFIX CMD_NAME_SETSESS_ATTR,
                                    0, 0, 0, -1, newObj.objdata(), NULL,
@@ -8787,7 +8439,6 @@ error :
          goto error ;
       }
 
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
 
    done :
@@ -8827,7 +8478,6 @@ error :
          goto error ;
       }
 
-      // Empty result
       if ( NULL == cursor )
       {
          _clearSessionAttrCache( TRUE ) ;
@@ -8888,9 +8538,6 @@ error :
          goto error ;
       }
 
-      // release resource of cursors in local
-      // remember to handle cursor._connection,
-      // cursor._collection, cursor._isClose
       cursors = _cursors ;
       for ( it = cursors.begin(); it != cursors.end(); ++it )
       {
@@ -8899,7 +8546,6 @@ error :
          ((_sdbCursorImpl*)(*it))->_close () ;
       }
       _cursors.clear();
-      // release resource of lob in local
       lobs = _lobs ;
       for ( it = lobs.begin(); it != lobs.end(); ++it )
       {
@@ -8922,7 +8568,6 @@ error :
    INT32 _sdbImpl::isValid( BOOLEAN *result )
    {
       INT32 rc = SDB_OK ;
-      // check argument
       if ( result == NULL )
       {
          rc = SDB_INVALIDARG ;
@@ -8938,8 +8583,6 @@ error :
    BOOLEAN _sdbImpl::isValid()
    {
       BOOLEAN flag = FALSE ;
-      // if client don't connect to database or
-      // it had closed the connection
       if ( _sock == NULL )
       {
          flag = FALSE ;
@@ -8966,7 +8609,6 @@ error :
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // build bson
       try
       {
          ob.append ( FIELD_NAME_NAME, pDomainName ) ;
@@ -9016,7 +8658,6 @@ error :
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // build bson
       try
       {
          ob.append ( FIELD_NAME_NAME, pDomainName ) ;
@@ -9053,7 +8694,6 @@ error :
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // build bson
       try
       {
          ob.append ( FIELD_NAME_NAME, pDomainName ) ;
@@ -9064,7 +8704,6 @@ error :
          rc = SDB_DRIVER_BSON_ERROR ;
          goto error ;
       }
-      // test wether the demain is exsit or not
       rc = getList ( &cursor.pCursor, SDB_LIST_DOMAINS, newObj ) ;
       if ( rc )
       {
@@ -9072,7 +8711,6 @@ error :
       }
       if ( SDB_OK == ( rc = cursor.next( result ) ) )
       {
-         // if domain exsit
          *domain = (_sdbDomain*)( new(std::nothrow) sdbDomainImpl() ) ;
          if ( !(*domain) )
          {
@@ -9084,13 +8722,11 @@ error :
       }
       else if ( SDB_DMS_EOC == rc )
       {
-         // if domain not exsit
          rc = SDB_CAT_DOMAIN_NOT_EXIST ;
          goto done ;
       }
       else
       {
-         // error happen
          goto error ;
       }
 
@@ -9108,7 +8744,6 @@ error :
                       )
    {
       INT32 rc = SDB_OK ;
-      // todo: add hint
       rc = getList ( cursor, SDB_LIST_DOMAINS,
                      condition, selector, orderBy ) ;
       if ( rc )
@@ -9129,7 +8764,6 @@ error :
       BSONObj retObj ;
       BSONObj subObj ;
 
-      // check
       if ( NULL == _sock )
       {
          rc = SDB_NOT_CONNECTED ;
@@ -9141,7 +8775,6 @@ error :
          goto error ;
       }
 
-      // build dc obj
       pDC = (_sdbDataCenter*)( new(std::nothrow) _sdbDataCenterImpl() ) ;
       if ( NULL == pDC )
       {
@@ -9149,10 +8782,8 @@ error :
          goto error ;
       }
 
-      // register
       ((sdbDataCenterImpl*)pDC)->_setConnection ( this ) ;
 
-      // get dc name
       rc = pDC->getDetail( retObj ) ;
       if ( SDB_OK != rc )
       {
@@ -9184,7 +8815,6 @@ error :
          goto error ;
       }
 
-      // return the newly build dc obj
       *dc = pDC ;
 
    done :
@@ -9202,7 +8832,6 @@ error :
       INT32 rc                  = SDB_OK ;
       const CHAR *pCommand      = CMD_ADMIN_PREFIX CMD_NAME_SYNC_DB ;
 
-      // run command
       rc = _runCommand( pCommand, &options ) ;
       if ( SDB_OK != rc )
       {
@@ -9219,7 +8848,6 @@ error :
       INT32 rc                  = SDB_OK ;
       const CHAR *pCommand      = CMD_ADMIN_PREFIX CMD_NAME_ANALYZE ;
 
-      // run command
       rc = _runCommand( pCommand, &options ) ;
       if ( SDB_OK != rc )
       {
@@ -9360,7 +8988,6 @@ error :
       {
          goto error ;
       }
-      // check return msg header
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
    done :
       if ( locked )
@@ -9501,7 +9128,6 @@ error :
       {
          BSONObjBuilder queryBuilder ;
          queryBuilder.append( FIELD_NAME_SIZE, traceBufferSize ) ;
-         // append array element, field name: Components
          {
             BSONArrayBuilder componentBuilder(
                queryBuilder.subarrayStart( FIELD_NAME_COMPONENTS ) ) ;
@@ -9513,7 +9139,6 @@ error :
                goto error ;
             }
          }
-         // append array element, field name: Breakpoint
          {
             BSONArrayBuilder breakpointBuilder(
                queryBuilder.subarrayStart( FIELD_NAME_BREAKPOINTS ) ) ;
@@ -9526,7 +9151,6 @@ error :
             }
          }
 
-         // append array element, field name: Threads
          {
             BSONArrayBuilder threadsBuilder(
                queryBuilder.subarrayStart( FIELD_NAME_THREADS ) ) ;

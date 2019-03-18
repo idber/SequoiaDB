@@ -61,9 +61,7 @@ public class PersonExample {
 
 		LOGGER.debug("Found: " + p);
 
-		// mongoOps.updateFirst(new Query(where("firstName").is("Sven")), new Update().set("age", 24));
 
-		// mongoOps.updateFirst(new Query(where("firstName").is("Sven")), update("age", 24));
 
 		p = mongoOps.findById(p.getId(), PersonWithIdPropertyOfTypeString.class);
 		LOGGER.debug("Updated: " + p);
@@ -74,7 +72,6 @@ public class PersonExample {
 			LOGGER.debug(element.toString());
 		}
 
-		// mongoOps.remove( query(whereId().is(p.getId())), p.getClass());
 
 		mongoOps.remove(p);
 

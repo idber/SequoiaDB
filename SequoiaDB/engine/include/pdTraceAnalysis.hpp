@@ -172,7 +172,6 @@ struct _pdFunctionSummaryRecord
          }
       }
 
-      //inset idx+1
       if ( idx + 1 < NUMBER_OF_FUNCTION_RECORD_RESERVATION )
       {
          _reserveRecords[ idx + 1 ] = record ;
@@ -241,9 +240,6 @@ class _pdTraceParser
       INT32    _analysisTraceRecords( OSSFILE *file,
                                       const pdTraceHeader *pHeader ) ;
 
-      // 1 output program execution sequence
-      // 2 calculate function execution time
-      // 3 analyze exception record
       INT32    _analysisRecordsByThread( UINT32 tid,
                                          const pdTraceHeader *pHeader,
                                          const PD_VEC_RECORD_IDX &vecRecordIdx,
@@ -252,8 +248,6 @@ class _pdTraceParser
                                          PD_MAP_FUNCS &errFunctions,
                                          PD_MAP_RECORD &summaryRecords ) ;
 
-      // 1 select exception 
-      // 2 output exception 
       INT32 _dealWithExceptRecords( const pdTraceHeader *pHeader,
                                     OSSFILE *inFile,
                                     OSSFILE *funcRecFile,
@@ -267,9 +261,6 @@ class _pdTraceParser
                               UINT64 cursor,
                               CHAR *tempBuf ) ;
 
-      // 1 calculate function execution time
-      // 2 maxtimeInterval
-      // 3 handing error records
       void  _analysisFunctionStack( PD_STACK_FUNCS &funStack,
                                     UINT32 recdIndexIdx,
                                     UINT32 sequenceNum,

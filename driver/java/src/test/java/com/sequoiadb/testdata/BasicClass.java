@@ -3,7 +3,6 @@ package com.sequoiadb.testdata;
 import java.util.Date;
 
 public class BasicClass {
-    //	private ObjectId _id = ObjectId.get();
     private long id = 0;
     private String name = "name";
     private int age = 25;
@@ -16,13 +15,6 @@ public class BasicClass {
     private Date date = new Date();
 
 
-//	public ObjectId get_id() {
-//		return _id;
-//	}
-//	
-//	public void set_id(ObjectId value) {
-//		_id = value;
-//	}
 
     public long getId() {
         return id;
@@ -116,10 +108,6 @@ public class BasicClass {
         }
         BasicClass otherObj = (BasicClass) other;
 
-//		if (!this._id.equals(otherObj._id))
-//		{
-//			return false;
-//		}
         if (this.age != otherObj.age) {
             return false;
         }

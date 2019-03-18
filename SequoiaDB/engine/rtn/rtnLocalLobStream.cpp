@@ -210,7 +210,6 @@ namespace engine
 
       record.set( &getOID(), DMS_LOB_META_SEQUENCE, 0, len, NULL ) ;
 
-      /// read whole the meta page
       rc = _su->lob()->read( record, _mbContext, cb, buf, readLen ) ;
       if ( SDB_OK == rc )
       {
@@ -222,7 +221,6 @@ namespace engine
             rc = SDB_SYS ;
             goto error ;
          }
-         /// copy data
          ossMemcpy( (void*)&meta, buf, sizeof( meta ) ) ;
          if ( !meta.isDone() && !allowUncompleted )
          {
@@ -237,7 +235,6 @@ namespace engine
             meta._modificationTime = meta._createTime ;
          }
 
-         /// if meta page has data, push the data to pool
          if ( meta._version >= DMS_LOB_META_MERGE_DATA_VERSION &&
               meta._lobLen > 0 &&
               readLen > DMS_LOB_META_LENGTH )
@@ -643,12 +640,6 @@ namespace engine
             }
             ossMemset( buf, 0, DMS_LOB_META_LENGTH ) ;
 
-            // copy record data to buf,
-            // because in local stream,
-            // tuple.data actually is rtnLobStream->_meta
-            // we can't directly override its memory,
-            // especially when newCache has pieces info,
-            // it will override memory after rtnLobStream->_meta
             ossMemcpy( buf, record._data, record._dataLen ) ;
             record._data = (const CHAR*)buf ;
 
@@ -860,7 +851,6 @@ namespace engine
                     piece._sequence, rc ) ;
             if ( SDB_LOB_SEQUENCE_NOT_EXIST != rc )
             {
-               /// include SDB_DMS_CS_DELETING
                goto error ;
             }
             rc = SDB_OK ;

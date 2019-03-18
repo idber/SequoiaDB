@@ -67,16 +67,12 @@ SDB_EXPORT int decimal_to_str_get_len( const bson_decimal *decimal,
 SDB_EXPORT int decimal_to_str( const bson_decimal *decimal, char *value, 
                                int value_size ) ;
 
-// the caller is responsible for freeing this decimal( decimal_free )
 SDB_EXPORT int decimal_from_int( int value, bson_decimal *decimal ) ;
 
-// the caller is responsible for freeing this decimal( decimal_free )
 SDB_EXPORT int decimal_from_long( int64_t value, bson_decimal *decimal) ;
 
-// the caller is responsible for freeing this decimal( decimal_free )
 SDB_EXPORT int decimal_from_double( double value, bson_decimal *decimal ) ;
 
-// the caller is responsible for freeing this decimal( decimal_free )
 SDB_EXPORT int decimal_from_str( const char *value, bson_decimal *decimal ) ;
 
 SDB_EXPORT int decimal_get_typemod( const bson_decimal *decimal, int *precision, 

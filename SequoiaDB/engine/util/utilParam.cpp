@@ -164,7 +164,6 @@ namespace engine
          ossDelete( tmpFile.c_str() ) ;
       }
 
-      // 1. first back up the file
       if ( SDB_OK == ossAccess( pFile ) )
       {
          if ( createOnly )
@@ -178,7 +177,6 @@ namespace engine
          }
       }
 
-      // 2. Create the file
       rc = ossOpen ( pFile, OSS_READWRITE|OSS_SHAREWRITE|OSS_REPLACE,
                      OSS_RWXU, file ) ;
       if ( rc )
@@ -187,7 +185,6 @@ namespace engine
       }
       isOpen = TRUE ;
 
-      // 3. write data
       {
          SINT64 written = 0 ;
          SINT64 len = ossStrlen( pData ) ;
@@ -206,7 +203,6 @@ namespace engine
          }
       }
 
-      // 4. remove tmp
       if ( SDB_OK == ossAccess( tmpFile.c_str() ) )
       {
          ossDelete( tmpFile.c_str() ) ;
@@ -499,7 +495,6 @@ namespace engine
       vector<pair<string, string> > vec ;
       vector<pair<string, string> >::iterator it ;
 
-      /// get full path of limits.conf
       rc = ossGetEWD( rootPath, OSS_MAX_PATHSIZE ) ;
       if ( rc )
       {
@@ -517,7 +512,6 @@ namespace engine
          goto error ;
       }
 
-      /// load limits.conf
       limitDesc.add_options()
       ( PMD_OPTION_LIMIT_CORE,      po::value<INT64>(), "" )
       ( PMD_OPTION_LIMIT_DATA,      po::value<INT64>(), "" )
@@ -539,7 +533,6 @@ namespace engine
          goto error ;
       }
 
-      /// set ulimit and check
       vec.push_back( make_pair<string,string>( PMD_OPTION_LIMIT_CORE,
                                                OSS_LIMIT_CORE_SZ ) ) ;
       vec.push_back( make_pair<string,string>( PMD_OPTION_LIMIT_DATA,
@@ -564,14 +557,12 @@ namespace engine
          INT64 curSoft = 0, curHard = 0 ;
          BOOLEAN hasGot = FALSE ;
 
-         // set ulimit
          hasGot = procLim.getLimit( limStr.c_str(), curSoft, curHard ) ;
          if ( !hasGot ||  curSoft != limVal )
          {
             procLim.setLimit( limStr.c_str(), limVal, limVal ) ;
          }
 
-         // check ulimit
          hasGot = procLim.getLimit( limStr.c_str(), curSoft, curHard ) ;
          if ( !hasGot )
          {
@@ -604,7 +595,6 @@ namespace engine
       OSSUID curUID  = OSS_INVALID_UID ;
       OSSGID curGID  = OSS_INVALID_GID ;
 
-      // first compare file:cur uid/gid
       ossGetFileUserInfo( curFileName, fileUID, fileGID ) ;
       curUID = ossGetCurrentProcessUID() ;
       curGID = ossGetCurrentProcessGID() ;
@@ -612,19 +602,15 @@ namespace engine
       if ( OSS_INVALID_UID == fileUID || 0 == fileUID ||
            OSS_INVALID_GID == fileGID || 0 == fileGID )
       {
-         // get install user info
          rc = utilGetInstallInfo( info ) ;
          if ( rc )
          {
-            // no install info, not change
             rc = SDB_OK ;
             goto done ;
          }
-         // get install user uid and gid
          rc = ossGetUserInfo( info._user.c_str(), fileUID, fileGID ) ;
          if ( rc )
          {
-            // no install user, not change
             rc = SDB_OK ;
             goto done ;
          }

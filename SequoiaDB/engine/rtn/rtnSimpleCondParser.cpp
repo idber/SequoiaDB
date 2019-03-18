@@ -46,13 +46,10 @@ namespace engine
 {
    #define UTIL_OPERATOR_EYECATCHER          '$'
    #define FIELD_NAME_TEXT                   "$Text"
-   // all elements start with $
    #define UTIL_ELEMENT_KEY_ALL_OP           0
 
-   // all elements start without $
    #define UTIL_ELEMENT_KEY_ALL_NORMAL       1
 
-   // mix $ and not $
    #define UTIL_ELEMENT_KEY_MIX              2
 
    _rtnCondNodeFactory::_rtnCondNodeFactory()
@@ -133,7 +130,6 @@ namespace engine
          goto error ;
       }
 
-      // Traverse all the elements in this bson.
       {
          BSONObjIterator itr( _condition ) ;
          while ( itr.more() )
@@ -301,7 +297,6 @@ namespace engine
       PD_TRACE_ENTRY( SDB__RTNSIMPLECONDPARSETREE__PARSEARRAYELEMENT ) ;
       const CHAR *fieldName = ele.fieldName() ;
 
-      // Array element should be in logical operation or a normal array.
       if ( UTIL_OPERATOR_EYECATCHER == fieldName[0] )
       {
          if ( 0 == ossStrcmp( RTN_OPERATOR_STR_AND, fieldName ) )
@@ -328,7 +323,6 @@ namespace engine
       }
       else
       {
-         // just normal array
          rc = _parseNormalElement( ele, parent ) ;
          PD_RC_CHECK( rc, PDERROR, "Parse element[ %s ] failed[ %d ]" ) ;
       }
@@ -375,8 +369,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNSIMPLECONDPARSETREE__PARSELOGICAND ) ;
-      // create a logical node and add to parent.
-      // then parse the logical items.
       rtnCondLogicAndNode *logicAndNode = (rtnCondLogicAndNode *)
          rtnGetCondNodeFactory()->createNode( &_allocator,
                                               RTN_COND_NODE_LOGIC_AND ) ;
@@ -470,8 +462,6 @@ namespace engine
    INT32 _rtnSimpleCondParseTree::_parseOpText( const BSONElement &ele,
                                                 rtnCondNode *parent )
    {
-      // The format of a text search condition is as follows:
-      // { "" : { "Text" : { ... } } }
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNSIMPLECONDPARSETREE__PARSEOPTEXT ) ;
       rtnCondTextNode *textNode = NULL ;
@@ -517,7 +507,6 @@ namespace engine
 
       _textNode = textNode ;
 
-      // Check if the text node is in a $not clause.
       while ( parentTmp )
       {
          if ( RTN_COND_NODE_LOGIC_NOT == parentTmp->getType() )

@@ -160,8 +160,6 @@ namespace engine
       MTH_S_ATTRIBUTE _attribute ;
       BOOLEAN     _strictDataMode ;
 
-      /// think about placement new ?
-      /// that we can use different child classes.
       bson::BSONObj _obj ;
       bson::BSONObj _arg ;
    } ;

@@ -189,7 +189,6 @@ namespace engine
          }
          if ( idValue < (INT32)_vecObj.size() )
          {
-            /// set the return value
             rval.getReturnVal().setValue( _vecObj[idValue] ) ;
          }
          processed = TRUE ;

@@ -45,13 +45,9 @@
 
 namespace engine
 {
-   // 2^24 = 16MB, shouldn't be changed without completely redesign the
-   // dmsRecord structure this size includes metadata header
 
    #define DMS_RECORD_MAX_SZ           0x01000000
 
-   // since DPS may need extra space for header, let's make sure the max size of
-   // user record ( the ones need to log ) cannot exceed 16M-4K
 
    #define DMS_RECORD_USER_MAX_SZ      (DMS_RECORD_MAX_SZ-4096)
 
@@ -159,14 +155,11 @@ namespace engine
    /*
       Record Flag define:
    */
-   // 0~3 bit for STATE
    #define DMS_RECORD_FLAG_NORMAL            0x00
    #define DMS_RECORD_FLAG_OVERFLOWF         0x01
    #define DMS_RECORD_FLAG_OVERFLOWT         0x02
    #define DMS_RECORD_FLAG_DELETED           0x04
-   // 4~7 bit for ATTR
    #define DMS_RECORD_FLAG_COMPRESSED        0x10
-   // some one wait X-lock, the last one who get X-lock will delete the record
    #define DMS_RECORD_FLAG_DELETING          0x80
 
    #define DMS_RECORD_METADATA_SZ   sizeof(_dmsRecord)
@@ -380,7 +373,6 @@ namespace engine
    } ;
    typedef _dmsRecord dmsRecord ;
 
-   // Extract Data
    #define DMS_RECORD_EXTRACTDATA( pRecord, retPtr, compressorEntry )   \
    do {                                                                 \
          if ( !pRecord->isCompressed() )                                \
@@ -403,23 +395,14 @@ namespace engine
          }                                                              \
       } while ( FALSE )
 
-   // Capped collectionr record header.
    class _dmsCappedRecord : public SDBObject
    {
-      // Caution: This structure will use dmsRecord structure for data and
-      // attribute setting. DO NOT modify the members!
    public:
       union
       {
          CHAR     _recordHead[4] ;
          UINT32   _flag_and_size ;
       }           _head ;
-      // Record number which have been inserted into this extent. It's used to
-      // calculate record number being popped in pop operation, avoid scanning
-      // the whole extent.
-      // Note: It includes records which have been popped out forward, but
-      // excludes those which have been popped out backward. In a valid record,
-      // it should always be greater than 0.
       UINT32      _recNo ;
       INT64       _logicalID ;
 
@@ -566,10 +549,8 @@ namespace engine
    typedef _dmsDeletedRecord dmsDeletedRecord ;
    #define DMS_DELETEDRECORD_METADATA_SZ  sizeof(dmsDeletedRecord)
 
-   // oid + one field = 12 + 5 = 17, Algned:20
    #define DMS_MIN_DELETEDRECORD_SZ    (DMS_DELETEDRECORD_METADATA_SZ+20)
    #define DMS_MIN_RECORD_SZ           DMS_MIN_DELETEDRECORD_SZ
-   // The min size of BSONObj data.
    #define DMS_MIN_RECORD_DATA_SZ      5
 }
 

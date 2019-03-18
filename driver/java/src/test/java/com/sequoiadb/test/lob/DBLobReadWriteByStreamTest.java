@@ -33,16 +33,13 @@ public class DBLobReadWriteByStreamTest {
 
     @Before
     public void setUp() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "admin", "admin");
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } else {
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         }
-        // cl
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
@@ -63,19 +60,13 @@ public class DBLobReadWriteByStreamTest {
      * 测试java驱动使用lob流式接口读写,功能的正确性。
      * */
     @Test
-//    @Ignore
     public void testLobReadWriteByStreamAPI() throws BaseException {
-        // prepare file
         String inputFileName = null;
         String outputFileName = null;
         if (System.getProperty("os.name").startsWith("Windows")) {
-//        	inputFileName = "E:\\tmp\\sequoiadb-2.6-linux_x86_64-enterprise-installer.run";
-//        	outputFileName = "E:\\tmp\\output\\sequoiadb-2.6-linux_x86_64-enterprise-installer.run";
             inputFileName = "input.txt";
             outputFileName = "output.txt";
         } else {
-//        	inputFileName = "/opt/sequoiadb/packet/sequoiadb-2.8-linux_x86_64-enterprise-installer.run";
-//        	outputFileName = "/opt/sequoiadb/packet/sequoiadb-2.8-linux_x86_64-enterprise-installer.run_out";
             inputFileName = "input.txt";
             outputFileName = "output.txt";
         }
@@ -84,7 +75,6 @@ public class DBLobReadWriteByStreamTest {
         LobHelper.deleteOnExist(inputFileName);
         LobHelper.deleteOnExist(outputFileName);
 
-        // write lob
         String inputFileMd5 = null;
         String outputFileMd5 = null;
         FileInputStream fileInputStream = null;
@@ -139,7 +129,6 @@ public class DBLobReadWriteByStreamTest {
                 }
             }
 
-            // read lob
             try {
                 lob = cl.openLob(id);
                 try {
@@ -169,7 +158,6 @@ public class DBLobReadWriteByStreamTest {
                 }
             }
 
-            // check
             try {
                 startTime = System.currentTimeMillis();
                 inputFileMd5 = LobHelper.getMD5(inputFileName);

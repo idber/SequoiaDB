@@ -158,7 +158,6 @@ public class Query_bak {
 	 * @return
 	 */
 	public Query_bak withHint(String name) {
-		// TODO: name can be null for table scan
 		Assert.hasText(name, "Hint must not be empty or null!");
 		this.hint = name;
 		return this;

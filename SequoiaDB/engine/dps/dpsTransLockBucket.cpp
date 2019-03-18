@@ -77,7 +77,6 @@ namespace engine
       {
          ossScopedLock _lock( &_lstMutex );
 
-         // search lock in bucket
          dpsTransLockUnitList::iterator iterLst
                                  = _lockLst.find( lockId );
          if ( _lockLst.end() == iterLst )
@@ -95,13 +94,9 @@ namespace engine
             pLockUnit = iterLst->second ;
          }
 
-         // try to append to the run-queue.
-         // it is means get lock success if success to
-         // append to run-queue
          rc = appendToRun( eduCB, lockType, pLockUnit );
          if ( rc )
          {
-            // get lock failed then append to wait-queue
             appendToWait( eduCB, lockId, pLockUnit );
             rc = SDB_OK ;
          }
@@ -114,7 +109,6 @@ namespace engine
                    rc );
 
    waitretry:
-      // waitting for the lock
       rc = waitLock( eduCB );
 
       {
@@ -122,9 +116,6 @@ namespace engine
 
          if ( rc )
          {
-            // get lock failed,
-            // wait timeout or other unexpected error,
-            // then remove from waitQueue
             removeFromWait( eduCB, pLockUnit, lockId );
             goto error ;
          }
@@ -132,10 +123,8 @@ namespace engine
          rc = appendToRun( eduCB, lockType, pLockUnit );
          if ( rc )
          {
-            // lock failed, go on to wait until timeout
             goto waitretry;
          }
-         // success to get the lock
          removeFromWait( eduCB, pLockUnit, lockId );
       }
    done:
@@ -155,7 +144,6 @@ namespace engine
       dpsTransLockUnit *pLockUnit = NULL;
       {
          ossScopedLock _lock( &_lstMutex );
-         // search lock in bucket
          dpsTransLockUnitList::iterator iterLst
                                  = _lockLst.find( lockId );
          if ( _lockLst.end() == iterLst )
@@ -174,9 +162,6 @@ namespace engine
 
          if ( rc )
          {
-            // get lock failed,
-            // wait timeout or other unexpected error,
-            // then remove from waitQueue
             removeFromWait( eduCB, pLockUnit, lockId );
             goto error ;
          }
@@ -184,10 +169,8 @@ namespace engine
          rc = appendToRun( eduCB, DPS_TRANSLOCK_X, pLockUnit );
          if ( rc )
          {
-            // lock failed, go on to wait until timeout
             goto waitretry;
          }
-         // success to get the lock
          removeFromWait( eduCB, pLockUnit, lockId );
       }
    done:
@@ -227,13 +210,9 @@ namespace engine
             pLockUnit = iterLst->second ;
          }
 
-         // try to append to the run-queue.
-         // it is means get lock success if success to
-         // append to run-queue
          rc = appendToRun( eduCB, lockType, pLockUnit );
          if ( rc )
          {
-            // get lock failed then append to wait-queue head
             appendHeadToWait( eduCB, lockId, pLockUnit );
             rc = SDB_OK ;
          }
@@ -245,7 +224,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get the lock, append failed(rc=%d)",
                    rc );
    waitretry:
-      // waitting for the lock
       rc = waitLock( eduCB );
 
       {
@@ -253,9 +231,6 @@ namespace engine
 
          if ( rc )
          {
-            // get lock failed,
-            // wait timeout or other unexpected error,
-            // then remove from waitQueue
             removeFromWait( eduCB, pLockUnit, lockId );
             goto error ;
          }
@@ -263,10 +238,8 @@ namespace engine
          rc = appendToRun( eduCB, lockType, pLockUnit );
          if ( rc )
          {
-            // lock failed, go on to wait until timeout
             goto waitretry;
          }
-         // success to get the lock
          removeFromWait( eduCB, pLockUnit, lockId );
       }
    done:
@@ -295,7 +268,6 @@ namespace engine
          }
          pLockUnit = iterLst->second ;
 
-         // remove from the run-queue
          removeFromRun(  eduCB, pLockUnit );
          if ( NULL == pLockUnit->_pWaitCB
             && pLockUnit->_runList.size() == 0 )
@@ -324,7 +296,6 @@ namespace engine
          goto error;
       }
 
-      // the lock-type is compatible, add the EDU to run-queue
       pLockUnit->_runList[eduCB->getTID()] = lockType;
    done:
       PD_TRACE_EXIT ( SDB_DPSLOCKBUCKET_APPENDTORUN );
@@ -392,13 +363,11 @@ namespace engine
       SDB_ASSERT( eduCB, "eduCB can't be null" ) ;
       SDB_ASSERT( pLockUnit, "pLockUnit can't be null" ) ;
 
-      // remove from run queue
       dpsTransLockRunList::iterator iterLst;
       pLockUnit->_runList.erase( eduCB->getTID() );
 
       if ( pLockUnit->_pWaitCB != NULL )
       {
-         // wake up the wait queue
          wakeUp( pLockUnit->_pWaitCB );
       }
       PD_TRACE_EXIT ( SDB_DPSLOCKBUCKET_REMOVEFROMRUN );
@@ -417,7 +386,6 @@ namespace engine
       _pmdEDUCB *pWaitCB = pLockUnit->_pWaitCB;
       SDB_ASSERT( pWaitCB, "waitCB can't be NULL" );
 
-      // it is the first one in wait-queue
       if ( pWaitCB->getTID() == id )
       {
          pLockInfo = pWaitCB->getTransLock( lockId );
@@ -425,12 +393,10 @@ namespace engine
          {
             pLockUnit->_pWaitCB = pLockInfo->getNextWaitCB();
 
-            // maybe some error occured wakeup next one
             wakeUp( pLockUnit->_pWaitCB );
          }
          else
          {
-            // only one in wait-queue
             pLockUnit->_pWaitCB = NULL;
          }
          goto done ;
@@ -476,7 +442,6 @@ namespace engine
 
       if ( event._eventType != PMD_EDU_EVENT_LOCKWAKEUP )
       {
-         // interrupt by unexpected event
          rc = SDB_INTERRUPT ;
          eduCB->postEvent( event );
          goto error;
@@ -519,8 +484,6 @@ namespace engine
                               = pLockUnit->_runList.begin() ;
       while( iterLst != pLockUnit->_runList.end() )
       {
-         // it is means the lock-type is compatible,
-         // if there is a same lock-type in run-queue
          if ( iterLst->second == lockType &&
               DPS_TRANSLOCK_X != lockType )
          {
@@ -535,7 +498,6 @@ namespace engine
                        "(myTID:%d, myLockType:%d, curTID:%d, curLockType=%d)",
                        eduCB->getTID(), lockType, iterLst->first,
                        iterLst->second );
-               //SDB_ASSERT( FALSE, "lock conflict!!!!!!!! " );
                break ;
             }
          }
@@ -556,12 +518,10 @@ namespace engine
       {
          ossScopedLock _lock( &_lstMutex );
 
-         // search lock in bucket
          dpsTransLockUnitList::iterator iterLst
                                  = _lockLst.find( lockId );
          if ( _lockLst.end() == iterLst )
          {
-            // none lock then return ok
             goto done;
          }
          else
@@ -593,7 +553,6 @@ namespace engine
       {
          ossScopedLock _lock( &_lstMutex );
 
-         // search lock in bucket
          dpsTransLockUnitList::iterator iterLst
                                  = _lockLst.find( lockId );
          if ( _lockLst.end() == iterLst )
@@ -611,9 +570,6 @@ namespace engine
             pLockUnit = iterLst->second ;
          }
 
-         // try to append to the run-queue.
-         // it is means get lock success if success to
-         // append to run-queue
          rc = appendToRun( eduCB, lockType, pLockUnit );
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to get the lock, append failed(rc=%d)",
@@ -638,7 +594,6 @@ namespace engine
       {
          ossScopedLock _lock( &_lstMutex );
 
-         // search lock in bucket
          dpsTransLockUnitList::iterator iterLst
                                  = _lockLst.find( lockId );
          if ( _lockLst.end() == iterLst )
@@ -656,9 +611,6 @@ namespace engine
             pLockUnit = iterLst->second ;
          }
 
-         // try to append to the run-queue.
-         // it is means get lock success if success to
-         // append to run-queue
          rc = appendToRun( eduCB, lockType, pLockUnit );
 
          if ( rc )
@@ -694,7 +646,6 @@ namespace engine
       {
          ossScopedLock _lock( &_lstMutex );
 
-         // search lock in bucket
          dpsTransLockUnitList::iterator iterLst
                                  = _lockLst.find( lockId );
          if ( iterLst != _lockLst.end())

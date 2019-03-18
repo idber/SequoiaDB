@@ -298,7 +298,6 @@ INT32 utilDecodeBson::_parseSubField( CHAR *pField, fieldResolve *pParent )
          PD_LOG ( PDERROR, "Field does not has the\".\" symbol", rc ) ;
          goto error ;
       }
-      //off export a.b
       *pSubField = 0 ;
       ++pSubField ;
       pFieldRe->pField = pField ;
@@ -463,7 +462,6 @@ INT32 utilDecodeBson::parseJSONSize( CHAR *pbson, INT32 *pJSONSize )
       PD_LOG ( PDERROR, "Failed to get json size, rc = %d", rc ) ;
       goto error ;
    }
-   //因为bson_sprint_length评估的长度跟实际需要有差距，所以加大估算长度
    *pJSONSize = (*pJSONSize) * 2 ;
 done:
    return rc ;

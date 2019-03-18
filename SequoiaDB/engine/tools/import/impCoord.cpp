@@ -271,8 +271,6 @@ namespace import
          {
             if (SDB_RTN_COORD_ONLY == rc)
             {
-               // may be standalone node or data node in replica,
-               // so we just set _hostname to it
                PD_LOG(PDWARNING, "%s:%s is not coordinator",
                       host.hostname.c_str(), host.svcname.c_str());
                rc = SDB_OK;
@@ -445,9 +443,6 @@ namespace import
          goto error;
       }
 
-      // choose a random coordinator, but it can't be 
-      // used much more than other coordinator
-      // try 100 times at most
       thres = refCount / size + 1;
 
       for (INT32 t = 0; t < 100; t++)

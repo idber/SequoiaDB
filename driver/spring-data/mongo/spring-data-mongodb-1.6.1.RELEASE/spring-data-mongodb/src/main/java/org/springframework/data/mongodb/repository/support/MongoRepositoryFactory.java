@@ -67,8 +67,6 @@ public class MongoRepositoryFactory extends RepositoryFactorySupport {
 	 */
 	@Override
 	protected Class<?> getRepositoryBaseClass(RepositoryMetadata metadata) {
-//		return isQueryDslRepository(metadata.getRepositoryInterface()) ? QueryDslMongoRepository.class
-//				: SimpleMongoRepository.class;
 		return SimpleMongoRepository.class;
 	}
 
@@ -83,11 +81,6 @@ public class MongoRepositoryFactory extends RepositoryFactorySupport {
 		Class<?> repositoryInterface = metadata.getRepositoryInterface();
 		MongoEntityInformation<?, Serializable> entityInformation = getEntityInformation(metadata.getDomainType());
 
-//		if (isQueryDslRepository(repositoryInterface)) {
-//			return new QueryDslMongoRepository(entityInformation, mongoOperations);
-//		} else {
-//			return new SimpleMongoRepository(entityInformation, mongoOperations);
-//		}
 		return new SimpleMongoRepository(entityInformation, mongoOperations);
 	}
 

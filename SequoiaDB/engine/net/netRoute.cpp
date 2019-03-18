@@ -71,7 +71,6 @@ namespace engine
       }
       else
       {
-         /// set des len with local value.
          ossMemset( host, 0, hostLen ) ;
          ossStrncpy( host, itr->second._host, hostLen - 1 ) ;
          ossMemset( service, 0, svcLen ) ;

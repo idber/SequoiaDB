@@ -276,7 +276,6 @@ namespace engine
       UINT8             _thinCopy ;
       UINT8             _compressed ;
       CHAR              _reserved[10] ;
-      // up for header(64B), down for meta bson obj data(max 960B)
       CHAR              _metaData[960] ;
 
       void init ()
@@ -419,7 +418,6 @@ namespace engine
          dpsTransCB                    *_pTransCB ;
          _pmdOptionsMgr                *_pOptCB ;
          _clsMgr                       *_pClsCB ;
-         /// compressor
          _utilCompressor               *_pCompressor ;
          CHAR                          *_pCompressBuff ;
          UINT64                        _buffSize ;
@@ -697,7 +695,6 @@ namespace engine
          OSSFILE              _curSUFile ;
          BOOLEAN              _openedSU ;
 
-         /// reply dps
          clsBucket            _replBucket ;
    } ;
    typedef _barRSOfflineLogger barRSOfflineLogger ;
@@ -775,7 +772,6 @@ namespace engine
       protected:
          INT32          _enumBackups ( const string &fullPath,
                                        const string &subPath ) ;
-         //INT32          _enumSpecBackup () ;
 
          INT32          _backupToBSON ( const barBackupInfo &info,
                                         vector< BSONObj > &vecBackup,

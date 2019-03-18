@@ -130,8 +130,6 @@ namespace engine
                                         UINT32 curLogicalFileId,
                                         UINT32 curFileId ) = 0 ;
 
-         // moment is callback time,
-         // it's value can be DPS_BEFORE/DPS_AFTER
          virtual void  onMoveLog( DPS_LSN_OFFSET moveToOffset,
                                   DPS_LSN_VER moveToVersion,
                                   DPS_LSN_OFFSET expectOffset,

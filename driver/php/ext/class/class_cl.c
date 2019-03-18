@@ -1,5 +1,5 @@
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@ PHP_METHOD( SequoiaCL, __construct )
 {
 }
 
-//cl
 PHP_METHOD( SequoiaCL, drop )
 {
    INT32 rc = SDB_OK ;
@@ -107,168 +106,6 @@ PHP_METHOD( SequoiaCL, alter )
       goto error ;
    }
    rc = sdbAlterCollection( cl, &options ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-done:
-   PHP_RETURN_AUTO_ERROR( FALSE, pThisObj, rc ) ;
-   bson_destroy( &options ) ;
-   return ;
-error:
-   PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
-   goto done ;
-}
-
-PHP_METHOD( SequoiaCL, enableSharding )
-{
-   INT32 rc = SDB_OK ;
-   zval *pOptions = NULL ;
-   zval *pThisObj = getThis() ;
-   sdbCollectionHandle cl = SDB_INVALID_HANDLE ;
-   bson options ;
-   bson_init( &options ) ;
-   PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
-   if ( PHP_GET_PARAMETERS( "|z", &pOptions ) == FAILURE )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-   PHP_READ_HANDLE( pThisObj,
-                    cl,
-                    sdbCollectionHandle,
-                    SDB_CL_HANDLE_NAME,
-                    clDesc ) ;
-   rc = php_auto2Bson( pOptions, &options TSRMLS_CC ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-   rc = sdbEnableSharding( cl, &options ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-done:
-   PHP_RETURN_AUTO_ERROR( FALSE, pThisObj, rc ) ;
-   bson_destroy( &options ) ;
-   return ;
-error:
-   PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
-   goto done ;
-}
-
-PHP_METHOD( SequoiaCL, disableSharding )
-{
-   INT32 rc = SDB_OK ;
-   zval *pThisObj = getThis() ;
-   sdbCollectionHandle cl = SDB_INVALID_HANDLE ;
-   PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
-   PHP_READ_HANDLE( pThisObj,
-                    cl,
-                    sdbCollectionHandle,
-                    SDB_CL_HANDLE_NAME,
-                    clDesc ) ;
-   rc = sdbDisableSharding( cl ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-done:
-   PHP_RETURN_AUTO_ERROR( FALSE, pThisObj, rc ) ;
-   return ;
-error:
-   PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
-   goto done ;
-}
-
-PHP_METHOD( SequoiaCL, enableCompression )
-{
-   INT32 rc = SDB_OK ;
-   zval *pOptions = NULL ;
-   zval *pThisObj = getThis() ;
-   sdbCollectionHandle cl = SDB_INVALID_HANDLE ;
-   bson options ;
-   bson_init( &options ) ;
-   PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
-   if ( PHP_GET_PARAMETERS( "|z", &pOptions ) == FAILURE )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-   PHP_READ_HANDLE( pThisObj,
-                    cl,
-                    sdbCollectionHandle,
-                    SDB_CL_HANDLE_NAME,
-                    clDesc ) ;
-   rc = php_auto2Bson( pOptions, &options TSRMLS_CC ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-   rc = sdbEnableCompression( cl, &options ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-done:
-   PHP_RETURN_AUTO_ERROR( FALSE, pThisObj, rc ) ;
-   bson_destroy( &options ) ;
-   return ;
-error:
-   PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
-   goto done ;
-}
-
-PHP_METHOD( SequoiaCL, disableCompression )
-{
-   INT32 rc = SDB_OK ;
-   zval *pThisObj = getThis() ;
-   sdbCollectionHandle cl = SDB_INVALID_HANDLE ;
-   PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
-   PHP_READ_HANDLE( pThisObj,
-                    cl,
-                    sdbCollectionHandle,
-                    SDB_CL_HANDLE_NAME,
-                    clDesc ) ;
-   rc = sdbDisableCompression( cl ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-done:
-   PHP_RETURN_AUTO_ERROR( FALSE, pThisObj, rc ) ;
-   return ;
-error:
-   PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
-   goto done ;
-}
-
-PHP_METHOD( SequoiaCL, setAttributes )
-{
-   INT32 rc = SDB_OK ;
-   zval *pOptions = NULL ;
-   zval *pThisObj = getThis() ;
-   sdbCollectionHandle cl = SDB_INVALID_HANDLE ;
-   bson options ;
-   bson_init( &options ) ;
-   PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
-   if ( PHP_GET_PARAMETERS( "|z", &pOptions ) == FAILURE )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-   PHP_READ_HANDLE( pThisObj,
-                    cl,
-                    sdbCollectionHandle,
-                    SDB_CL_HANDLE_NAME,
-                    clDesc ) ;
-   rc = php_auto2Bson( pOptions, &options TSRMLS_CC ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-   rc = sdbCLSetAttributes( cl, &options ) ;
    if( rc )
    {
       goto error ;
@@ -526,7 +363,6 @@ error:
    goto done ;
 }
 
-//e.g. Rename getCollectionName
 PHP_METHOD( SequoiaCL, getName )
 {
    INT32 rc = SDB_OK ;
@@ -634,152 +470,39 @@ error:
    goto done ;
 }
 
-PHP_METHOD( SequoiaCL, createAutoIncrement )
-{
-   INT32 rc = SDB_OK ;
-   zval *pOptions = NULL ;
-   zval *pThisObj = getThis() ;
-   sdbCollectionHandle cl = SDB_INVALID_HANDLE ;
-   bson options ;
-   bson_init( &options ) ;
-
-   PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
-
-   if ( PHP_GET_PARAMETERS( "z", &pOptions ) == FAILURE )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-
-   PHP_READ_HANDLE( pThisObj,
-                    cl,
-                    sdbCollectionHandle,
-                    SDB_CL_HANDLE_NAME,
-                    clDesc ) ;
-
-   rc = php_auto2Bson( pOptions, &options TSRMLS_CC ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-
-   rc = sdbCreateAutoIncrement( cl, &options ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-
-done:
-   PHP_RETURN_AUTO_ERROR( FALSE, pThisObj, rc ) ;
-   bson_destroy( &options ) ;
-   return ;
-error:
-   PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
-   goto done ;
-}
-
-PHP_METHOD( SequoiaCL, dropAutoIncrement )
-{
-   INT32 rc = SDB_OK ;
-   zval *pOptions = NULL ;
-   zval *pThisObj = getThis() ;
-   sdbCollectionHandle cl = SDB_INVALID_HANDLE ;
-   bson options ;
-   bson_init( &options ) ;
-
-   PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
-
-   if ( PHP_GET_PARAMETERS( "z", &pOptions ) == FAILURE )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-
-   PHP_READ_HANDLE( pThisObj,
-                    cl,
-                    sdbCollectionHandle,
-                    SDB_CL_HANDLE_NAME,
-                    clDesc ) ;
-
-   rc = php_auto2Bson( pOptions, &options TSRMLS_CC ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-
-   rc = sdbDropAutoIncrement( cl, &options ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-
-done:
-   PHP_RETURN_AUTO_ERROR( FALSE, pThisObj, rc ) ;
-   bson_destroy( &options ) ;
-   return ;
-error:
-   PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
-   goto done ;
-}
-
-//record
 PHP_METHOD( SequoiaCL, insert )
 {
    INT32 rc = SDB_OK ;
-   INT32 flag = FLG_INSERT_RETURN_OID ;
    zval *pRecord = NULL ;
-   zval *pFlag   = NULL ;
    zval *pThisObj = getThis() ;
    sdbCollectionHandle cl = SDB_INVALID_HANDLE ;
    bson record ;
-   bson result ;
-   bson tmp ;
-
-   bson_init( &tmp ) ;
+   bson_iterator id ;
    bson_init( &record ) ;
-   bson_init( &result ) ;
-
    PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
-
-   if ( PHP_GET_PARAMETERS( "z|z", &pRecord, &pFlag ) == FAILURE )
+   if ( PHP_GET_PARAMETERS( "z", &pRecord ) == FAILURE )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-
    PHP_READ_HANDLE( pThisObj,
                     cl,
                     sdbCollectionHandle,
                     SDB_CL_HANDLE_NAME,
                     clDesc ) ;
-
    rc = php_auto2Bson( pRecord, &record TSRMLS_CC ) ;
    if( rc )
    {
       goto error ;
    }
-
-   rc = php_zval2Int( pFlag, &flag TSRMLS_CC ) ;
+   rc = sdbInsert1( cl, &record, &id ) ;
    if( rc )
    {
       goto error ;
    }
-
-   rc = sdbInsert2( cl, &record, flag, &tmp ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-
-   bson_append_elements( &result, &tmp ) ;
-
 done:
-   bson_append_int( &result, "errno", rc ) ;
-   bson_finish( &result ) ;
-   PHP_RETURN_AUTO_RECORD( FALSE, pThisObj, FALSE, result ) ;
+   PHP_RETURN_AUTO_ERROR_ID( FALSE, pThisObj, rc, id ) ;
    bson_destroy( &record ) ;
-   bson_destroy( &result ) ;
-   bson_destroy( &tmp ) ;
    return ;
 error:
    PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
@@ -796,27 +519,18 @@ PHP_METHOD( SequoiaCL, bulkInsert )
    zval *pFlags     = NULL ;
    zval *pThisObj   = getThis() ;
    sdbCollectionHandle cl = SDB_INVALID_HANDLE ;
-   bson result ;
-   bson tmp ;
    bson **ppBsonRecords = NULL ;
-
-   bson_init( &tmp ) ;
-   bson_init( &result ) ;
-
    PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
-
    if ( PHP_GET_PARAMETERS( "z|z", &pRecords, &pFlags ) == FAILURE )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-
    PHP_READ_HANDLE( pThisObj,
                     cl,
                     sdbCollectionHandle,
                     SDB_CL_HANDLE_NAME,
                     clDesc ) ;
-
    rc = php_assocArray2BsonArray( pRecords,
                                   &ppBsonRecords,
                                   (INT32 *)&insertNum TSRMLS_CC ) ;
@@ -824,27 +538,18 @@ PHP_METHOD( SequoiaCL, bulkInsert )
    {
       goto error ;
    }
-
    rc = php_zval2Int( pFlags, (INT32 *)&flags TSRMLS_CC ) ;
    if( rc )
    {
       goto error ;
    }
-
-   rc = sdbBulkInsert2( cl, flags, ppBsonRecords, insertNum, &tmp ) ;
+   rc = sdbBulkInsert( cl, flags, ppBsonRecords, insertNum ) ;
    if( rc )
    {
       goto error ;
    }
-
-   bson_append_elements( &result, &tmp ) ;
-
 done:
-   bson_append_int( &result, "errno", rc ) ;
-   bson_finish( &result ) ;
-   PHP_RETURN_AUTO_RECORD( FALSE, pThisObj, FALSE, result ) ;
-   bson_destroy( &result ) ;
-   bson_destroy( &tmp ) ;
+   PHP_RETURN_AUTO_ERROR( FALSE, pThisObj, rc ) ;
    if( ppBsonRecords )
    {
       for( i = 0; i < insertNum; ++i )
@@ -1623,11 +1328,7 @@ error:
 }
 
 
-//不需要实现
-//PHP_METHOD( SequoiaCL, getDataBlocks )
-//PHP_METHOD( SequoiaCL, getQueryMeta ) ;
 
-//index
 PHP_METHOD( SequoiaCL, createIndex )
 {
    INT32 rc = SDB_OK ;
@@ -1775,82 +1476,6 @@ error:
    goto done ;
 }
 
-PHP_METHOD( SequoiaCL, getIndexes )
-{
-   INT32 rc = SDB_OK ;
-   zval *pThisObj         = getThis() ;
-   sdbCollectionHandle cl = SDB_INVALID_HANDLE ;
-   sdbCursorHandle cursor = SDB_INVALID_HANDLE ;
-
-   PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
-
-   PHP_READ_HANDLE( pThisObj,
-                    cl,
-                    sdbCollectionHandle,
-                    SDB_CL_HANDLE_NAME,
-                    clDesc ) ;
-
-   rc = sdbGetIndexInfo( cl, &cursor ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-
-   PHP_BUILD_CLASS( FALSE,
-                    pThisObj,
-                    pSequoiadbCursor,
-                    cursor,
-                    cursorDesc ) ;
-done:
-   return ;
-error:
-   RETVAL_NULL() ;
-   PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
-   goto done ;
-}
-
-PHP_METHOD( SequoiaCL, getIndexInfo )
-{
-   INT32 rc = SDB_OK ;
-   PHP_LONG indexNameLen  = 0 ;
-   CHAR *pIndexName       = NULL ;
-   zval *pThisObj         = getThis() ;
-   sdbCollectionHandle cl = SDB_INVALID_HANDLE ;
-   bson record ;
-   bson_init( &record ) ;
-
-   PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
-
-   if ( PHP_GET_PARAMETERS( "s", &pIndexName, &indexNameLen ) == FAILURE )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-
-   PHP_READ_HANDLE( pThisObj,
-                    cl,
-                    sdbCollectionHandle,
-                    SDB_CL_HANDLE_NAME,
-                    clDesc ) ;
-
-   rc = sdbGetIndex( cl, pIndexName, &record ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-
-done:
-   PHP_RETURN_AUTO_RECORD( FALSE,
-                           pThisObj,
-                           (rc == SDB_OK ? FALSE : TRUE),
-                           record ) ;
-   bson_destroy( &record ) ;
-   return ;
-error:
-   PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
-   goto done ;
-}
-
 PHP_METHOD( SequoiaCL, createIdIndex )
 {
    INT32 rc = SDB_OK ;
@@ -1913,7 +1538,6 @@ error:
    goto done ;
 }
 
-//lob
 PHP_METHOD( SequoiaCL, openLob )
 {
    INT32 rc = SDB_OK ;

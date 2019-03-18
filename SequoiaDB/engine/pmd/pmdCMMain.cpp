@@ -63,7 +63,6 @@ namespace engine
       std::cout << desc << std::endl ;
    }
 
-   // initialize options
    INT32 initArgs ( INT32 argc, CHAR **argv, po::variables_map &vm )
    {
       INT32 rc = SDB_OK ;
@@ -79,7 +78,6 @@ namespace engine
          COMMANDS_OPTIONS
       PMD_ADD_PARAM_OPTIONS_END
 
-      // validate arguments
       rc = utilReadCommandLine( argc, argv, all, vm ) ;
       if ( rc )
       {
@@ -88,7 +86,6 @@ namespace engine
          goto done ;
       }
 
-      /// read cmd first
       if ( vm.count( PMD_OPTION_HELP ) )
       {
          displayArg( desc ) ;
@@ -139,17 +136,14 @@ namespace engine
          goto done ;
       }
 
-      // 1. get root path
       rc = ossGetEWD( currentPath, OSS_MAX_PATHSIZE ) ;
       if ( rc )
       {
          std::cout << "Get current path failed: " << rc << std::endl ;
          goto error ;
       }
-      /// set current path
       ossChDir( currentPath ) ;
 
-      // 2. enable dialog
       rc = utilBuildFullPath( currentPath, SDBCM_LOG_PATH,
                               OSS_MAX_PATHSIZE, dialogPath ) ;
       if ( rc )
@@ -157,7 +151,6 @@ namespace engine
          std::cout << "Build dialog path failed: " << rc << std::endl ;
          goto error ;
       }
-      // make sure the dir exist
       rc = ossMkdir( dialogPath ) ;
       if ( rc && SDB_FE != rc )
       {
@@ -177,7 +170,6 @@ namespace engine
       ossSprintVersion( "Version", verText, OSS_MAX_PATHSIZE, FALSE ) ;
       PD_LOG( PDEVENT, "Start cm[%s]...", verText) ;
 
-      // 3. init param
       rc = sdbGetOMAgentOptions()->init( currentPath ) ;
       if ( rc )
       {
@@ -205,7 +197,6 @@ namespace engine
       }
       setPDLevel( sdbGetOMAgentOptions()->getDiagLevel() ) ;
 
-      // 4. print all config
       {
          string configs ;
          sdbGetOMAgentOptions()->toString( configs ) ;
@@ -214,7 +205,6 @@ namespace engine
 
       pmdSetDBRole( SDB_ROLE_OMA ) ;
 
-      // 5. handlers and init global mem
       rc = pmdEnableSignalEvent( dialogPath, (PMD_ON_QUIT_FUNC)pmdOnQuit,
                                  delSig ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to enable trap, rc: %d", rc ) ;
@@ -223,17 +213,14 @@ namespace engine
       signal( SIGCHLD, SIG_IGN ) ;
 #endif // _LINUX
 
-      // 6. register agent cb
       PMD_REGISTER_CB( sdbGetOMAgentMgr() ) ;
 
-      // 7. init krcb
       rc = krcb->init() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to init krcb, rc: %d", rc ) ;
 
       {
          EDUID agentEDU = PMD_INVALID_EDUID ;
          pmdEDUMgr *eduMgr = krcb->getEDUMgr() ;
-         // Then start windows listener thread for "backdoor" listening
          rc = eduMgr->startEDU ( EDU_TYPE_PIPESLISTENER,
                                  (void*)sdbGetOMAgentOptions()->getCMServiceName(),
                                  &agentEDU ) ;
@@ -245,7 +232,6 @@ namespace engine
                       "failed, rc: %d", rc ) ;
       }
 
-      // 8. change process name
 #if defined (_LINUX)
       {
          CHAR pmdProcessName [ OSS_RENAME_PROCESS_BUFFER_LEN + 1 ] = {0} ;
@@ -257,7 +243,6 @@ namespace engine
       }
 #endif // _LINUX
 
-      // Now master thread get into big loop and check shutdown flag
       while ( PMD_IS_DB_UP() )
       {
          ossSleepsecs ( 1 ) ;

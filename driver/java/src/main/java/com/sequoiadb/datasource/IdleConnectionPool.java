@@ -1,19 +1,3 @@
-/*
- * Copyright 2018 SequoiaDB Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.sequoiadb.datasource;
 
 import com.sequoiadb.base.Sequoiadb;
@@ -24,6 +8,8 @@ import java.util.concurrent.locks.ReentrantLock;
 class IdleConnectionPool implements IConnectionPool {
 
     private HashMap<ConnItem, Sequoiadb> _conns = new HashMap<ConnItem, Sequoiadb>();
+    private ReentrantLock _lockForConns = new ReentrantLock();
+
 
     class IdlePairIterator implements Iterator<Pair> {
         Iterator<Map.Entry<ConnItem, Sequoiadb>> _entries;
@@ -49,21 +35,24 @@ class IdleConnectionPool implements IConnectionPool {
         }
     }
 
-    public synchronized Sequoiadb peek(ConnItem connItem) {
-            return _conns.get(connItem);
-    }
-
     /**
-     * @brief Poll a connection out from the pool according to the offered ConnItem.
      * @return a connection or null for no connection in that ConnItem
+     * @throws
+     * @fn Sequoiadb poll(ConnItem pos)
+     * @brief Poll a connection out from the pool according to the offered ConnItem.
      */
     @Override
-    public synchronized Sequoiadb poll(ConnItem connItem) {
-        return _conns.remove(connItem);
+    public Sequoiadb poll(ConnItem pos) {
+        _lockForConns.lock();
+        try {
+            return _conns.remove(pos);
+        } finally {
+            _lockForConns.unlock();
+        }
     }
 
     @Override
-    public synchronized ConnItem poll(Sequoiadb sdb) {
+    public ConnItem poll(Sequoiadb sdb) {
         return null;
     }
 
@@ -74,8 +63,13 @@ class IdleConnectionPool implements IConnectionPool {
      * @brief Insert a connection into the pool.
      */
     @Override
-    public synchronized void insert(ConnItem pos, Sequoiadb sdb) {
-        _conns.put(pos, sdb);
+    public void insert(ConnItem pos, Sequoiadb sdb) {
+        _lockForConns.lock();
+        try {
+            _conns.put(pos, sdb);
+        } finally {
+            _lockForConns.unlock();
+        }
     }
 
     /**
@@ -84,7 +78,7 @@ class IdleConnectionPool implements IConnectionPool {
      * @brief Return a iterator for the item of the items of the idle connections.
      */
     @Override
-    public synchronized Iterator<Pair> getIterator() {
+    public Iterator<Pair> getIterator() {
         return new IdlePairIterator(_conns.entrySet().iterator());
     }
 
@@ -94,23 +88,33 @@ class IdleConnectionPool implements IConnectionPool {
      * @brief Return the count of idle connections in idle container.
      */
     @Override
-    public synchronized int count() {
-        return _conns.size();
+    public int count() {
+        _lockForConns.lock();
+        try {
+            return _conns.size();
+        } finally {
+            _lockForConns.unlock();
+        }
     }
 
     @Override
-    public synchronized boolean contains(Sequoiadb sdb) {
+    public boolean contains(Sequoiadb sdb) {
         return false;
     }
 
     @Override
-    public synchronized List<ConnItem> clear() {
+    public List<ConnItem> clear() {
         List<ConnItem> list = new ArrayList<ConnItem>();
-        for (ConnItem item : _conns.keySet()) {
-            list.add(item);
+        _lockForConns.lock();
+        try {
+            for (ConnItem item : _conns.keySet()) {
+                list.add(item);
+            }
+            _conns.clear();
+            return list;
+        } finally {
+            _lockForConns.unlock();
         }
-        _conns.clear();
-        return list;
     }
 
 }

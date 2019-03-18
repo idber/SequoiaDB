@@ -45,7 +45,6 @@ namespace engine
 
 namespace import
 {
-   // use CataInfo to avoid bson namespace conflict between c and C++ bson API
    class CataInfo: public SDBObject
    {
    public:

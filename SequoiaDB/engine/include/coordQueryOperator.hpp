@@ -54,11 +54,9 @@ namespace engine
 
       BOOLEAN     _openEmptyContext ;  // open context without sel & orderby ...
       BOOLEAN     _allCataGroups ;     // send to all catalog info groups,
-                                       // don't use query to filter
 
       coordQueryConf()
       {
-         // don't change the default value
          _updateAndGetCata = FALSE ;
          _openEmptyContext = FALSE ;
          _allCataGroups    = FALSE ;

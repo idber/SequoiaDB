@@ -128,7 +128,6 @@ namespace engine
       }
       else
       {
-         /// process return val
          if ( EOO == rpro.getType() )
          {
             *rvp = JSVAL_VOID ;
@@ -165,10 +164,8 @@ namespace engine
                                        SPT_PROP_PERMANENT )->setValue(
                                        sdbGetGlobalID() ) ;
 
-            /// need to take over the object
             rpro.takeoverObject() ;
 
-            /// set the return val's properties
             if ( !rval.getReturnValProperties().empty() )
             {
                rc = _sptInvoker::setProperty( cx, jsObj,
@@ -213,7 +210,6 @@ namespace engine
             }
          }
 
-         /// set self properties
          if ( obj && !rval.getSelfProperties().empty() )
          {
             rc = _sptInvoker::setProperty( cx, obj, rval.getSelfProperties() ) ;
@@ -223,7 +219,6 @@ namespace engine
             }
          }
 
-         /// set the return val to property
          if ( obj && !rpro.getName().empty() )
          {
             if ( rpro.isNeedDelete() )
@@ -248,7 +243,6 @@ namespace engine
             }
             else if ( !JS_DefineProperty( cx, obj, rpro.getName().c_str(),
                                           val, 0, 0, rpro.getAttr() ) )
-            // if ( !JS_SetProperty( cx, obj, rpro.getName().c_str(), &val ) )
             {
                PD_LOG( PDERROR, "failed to set obj to parent obj" ) ;
                rc = SDB_SYS ;
@@ -325,7 +319,6 @@ namespace engine
                goto error ;
             }
 
-            /// need to take over the object
             prop->takeoverObject() ;
 
             val = OBJECT_TO_JSVAL( jsObj ) ;
@@ -364,7 +357,6 @@ namespace engine
          }
          if ( !JS_DefineProperty( cx, obj, prop->getName().c_str(),
                                   val, 0, 0, prop->getAttr() ) )
-         //if ( !JS_SetProperty( cx, obj, prop->getName().c_str(), &val ) )
          {
             PD_LOG( PDERROR, "failed to set property of obj" ) ;
             rc = SDB_SYS ;
@@ -411,7 +403,6 @@ namespace engine
 
             JS_SetPrivate( cx, jsObj, prop->getValue() ) ;
 
-            /// need to take over the object
             prop->takeoverObject() ;
 
             val = OBJECT_TO_JSVAL( jsObj ) ;
@@ -527,7 +518,6 @@ namespace engine
          }
 
          {
-            // get privateData to set exception filename and lineno
             sptPrivateData *privateData = ( sptPrivateData* )
                                             JS_GetContextPrivate( cx ) ;
             if( NULL != privateData )

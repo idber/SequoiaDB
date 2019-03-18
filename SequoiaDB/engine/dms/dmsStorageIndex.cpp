@@ -61,7 +61,6 @@ namespace engine
    :_dmsStorageBase( pSuFileName, pInfo )
    {
       SDB_ASSERT( pDataSu, "Data Su can't be NULL" ) ;
-      // TODO: temporary cast
       _pDataSu = (dmsStorageData *)pDataSu ;
 
       _pDataSu->_attach( this ) ;
@@ -155,7 +154,6 @@ namespace engine
             {
                if ( 0 == _pDataSu->_dmsMME->_mbList[i]._idxCommitFlag )
                {
-                  /// upgrade from the old version( _commitLSN = 0 )
                   if ( 0 == _pDataSu->_dmsMME->_mbList[i]._commitLSN )
                   {
                      _pDataSu->_dmsMME->_mbList[i]._commitLSN =
@@ -177,7 +175,6 @@ namespace engine
             _pDataSu->_mbStatInfo[i]._idxLastLSN.init(
                _pDataSu->_dmsMME->_mbList[i]._idxCommitLSN ) ;
 
-            // analyze the unique index number
             for ( UINT32 j = 0 ; j < DMS_COLLECTION_MAX_INDEX ; ++j )
             {
                if ( DMS_INVALID_EXTENT ==
@@ -193,8 +190,6 @@ namespace engine
                                             indexCB.getIndexType() ) )
                   {
                      _pDataSu->_mbStatInfo[i]._textIdxNum++ ;
-                     // If there is any text indices, register the external
-                     // data handler, and invoke the onOpenTextIdx method.
                      if ( !extHandler )
                      {
                         SDB_ASSERT( _pStorageInfo->_extDataHandler,
@@ -234,7 +229,6 @@ namespace engine
 
    void _dmsStorageIndex::_onClosed()
    {
-      /// Flush all pageMap to disk
       UINT16 pos = 0 ;
       dmsPageMap *pPageMap = NULL ;
       dmsPageMap::MAP_PAGES_IT it ;
@@ -272,7 +266,6 @@ namespace engine
       {
          while( !pPageMap->isEmpty() )
          {
-            /// lock
             _pDataSu->_mblock[ pos ].get() ;
             locked = TRUE ;
 
@@ -292,14 +285,12 @@ namespace engine
             {
                break ;
             }
-            /// unlock
             _pDataSu->_mblock[ pos ].release() ;
             locked = FALSE ;
          }
 
          if ( locked )
          {
-            /// unlock
             _pDataSu->_mblock[ pos ].release() ;
             locked = FALSE ;
          }
@@ -337,7 +328,6 @@ namespace engine
                needFlush = TRUE ;
             }
 
-            /// update last lsn
             if ( (UINT64)~0 == lastLSN ||
                  ( (UINT64)~0 != tmpLSN && lastLSN < tmpLSN ) )
             {
@@ -401,7 +391,6 @@ namespace engine
       for ( INT32 i = 0; i < DMS_MME_SLOTS ; i++ )
       {
          lastWriteTick = _pDataSu->_mbStatInfo[i]._idxLastWriteTick ;
-         /// The collection is commit valid, should ignored
          if ( 0 == _pDataSu->_mbStatInfo[i]._idxCommitFlag.peek() &&
               lastWriteTick < oldestWriteTick )
          {
@@ -582,12 +571,10 @@ namespace engine
          goto error ;
       }
 
-      // let's first reserve extent
       rc = reserveExtent ( context->mbID(), extentID, context ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to reserve extent for collection[%u], "
                    "rc: %d", context->mbID(), rc ) ;
 
-      // then let's reserve another extent for root extent ID
       rc = reserveExtent ( context->mbID(), rootExtentID, context ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to reserve root extent for collection"
                    "[%u], rc: %d", context->mbID(), rc ) ;
@@ -652,20 +639,14 @@ namespace engine
       }
 
       {
-         // initialize index control block, set flag to invalid
          ixmIndexCB indexCB ( extentID, index, context->mbID(), this,
                               context ) ;
-         // verify the index control block is initialized
          if ( !indexCB.isInitialized() )
          {
-            // if we can't initialize control block, we shouldn't call dropIndex
-            // at the moment. So let's just reset _indexExtent to invalid and
-            // free the extents
             PD_LOG ( PDERROR, "Failed to initialize index" ) ;
             rc = SDB_DMS_INIT_INDEX ;
             goto error ;
          }
-         //set logical id
          indexLID = context->mb()->_indexHWCount ;
          indexCB.setLogicalID( indexLID ) ;
          indexDef = indexCB.getDef().getOwned() ;
@@ -688,7 +669,6 @@ namespace engine
             }
          }
 
-         // calc the reserve size
          if ( dpscb )
          {
             _pDataSu->_clFullName( context->mb()->_collectionName, fullName,
@@ -711,9 +691,7 @@ namespace engine
             }
          }
 
-         // initialize the root extent
          {
-            // once the control block is allocated, let's do root extent
             ixmExtent idx( rootExtentID, context->mbID(), this ) ;
          }
          indexCB.setRoot ( rootExtentID ) ;
@@ -724,12 +702,10 @@ namespace engine
          }
       }
 
-      // change mb metadata
       context->mb()->_indexExtent[indexID] = extentID ;
       context->mb()->_numIndexes ++ ;
       context->mb()->_indexHWCount++ ;
 
-      // log it
       if ( dpscb )
       {
          rc = _pDataSu->_logDPS( dpscb, info, cb, context,
@@ -749,11 +725,9 @@ namespace engine
       }
       dropDps = dpscb ;
 
-      /// flush some page
       flushPages( extentID, 1, isSyncDeep() ) ;
       flushPages( rootExtentID, 1, isSyncDeep() ) ;
 
-      // now we finished allocation part, let's get into build part
       rc = _rebuildIndex( context, extentID, cb, sortBufferSize, indexType ) ;
       if ( rc )
       {
@@ -768,7 +742,6 @@ namespace engine
          PD_LOG( PDERROR, "failed to lock mb:%d", rc ) ;
          goto error_after_create ;
       }
-      // if it is $oid, set DMS_MB_ATTR_NOIDINDEX with false
       if ( isSys && 0 == ossStrcmp( indexName, IXM_ID_KEY_NAME ) )
       {
          OSS_BIT_CLEAR( context->mb()->_attributes,
@@ -785,7 +758,6 @@ namespace engine
                                                  idxItem, cb, dpscb ) ;
       }
 
-      /// creating index may cost long time. we mark file dirty again here.
    done :
       if ( 0 != logRecSize )
       {
@@ -1038,10 +1010,8 @@ namespace engine
       }
 
       {
-         // get index control block
          ixmIndexCB indexCB ( context->mb()->_indexExtent[indexID], this,
                               context ) ;
-         // verify the index control block is initialized
          if ( !indexCB.isInitialized() )
          {
             PD_LOG ( PDERROR, "Failed to initialize index" ) ;
@@ -1084,7 +1054,6 @@ namespace engine
 
          _pDataSu->_clFullName( context->mb()->_collectionName, fullName,
                                 sizeof(fullName) ) ;
-         // reserved log-size
          if ( dpscb )
          {
             indexDef = indexCB.getDef().getOwned() ;
@@ -1107,7 +1076,6 @@ namespace engine
             }
          }
 
-         // If it's text index, let's gather information for external operation.
          if ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(),
                                    IXM_EXTENT_TYPE_TEXT ) )
          {
@@ -1121,15 +1089,12 @@ namespace engine
             }
          }
 
-         // truncate index, do remove root
          rc = indexCB.truncate ( TRUE ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to truncate index, rc: %d", rc ) ;
             goto error ;
          }
-         // truncate will set status back to normal, so we'll have to reset to
-         // dropping again
          indexCB.setFlag ( IXM_INDEX_FLAG_DROPPING ) ;
          indexCB.clearLogicID() ;
 
@@ -1143,7 +1108,6 @@ namespace engine
             context->mbStat()->_textIdxNum-- ;
          }
 
-         // release index control block extent
          rc = releaseExtent ( context->mb()->_indexExtent[indexID], TRUE ) ;
          if ( rc )
          {
@@ -1162,7 +1126,6 @@ namespace engine
                          "text index failed[ %d ]", rc ) ;
          }
 
-         // copy back
          ossMemmove (&context->mb()->_indexExtent[indexID],
                      &context->mb()->_indexExtent[indexID+1],
                      sizeof(dmsExtentID)*(DMS_COLLECTION_MAX_INDEX-indexID-1));
@@ -1171,7 +1134,6 @@ namespace engine
       }
       context->mb()->_numIndexes -- ;
 
-      // log it
       if ( dpscb )
       {
          rc = _pDataSu->_logDPS( dpscb, info, cb, context,
@@ -1262,7 +1224,6 @@ namespace engine
       rc = truncateIndexes( context, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "truncate indexes failed, rc: %d", rc ) ;
 
-      // need to lock mb
       rc = context->mbLock( EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
@@ -1315,8 +1276,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       monAppCB * pMonAppCB = cb ? cb->getMonAppCB() : NULL ;
 
-      // get root in each loop, since root page may change after each
-      // insert (root split)
       ixmExtent rootidx ( indexCB->getRoot(), this ) ;
 
       rc = rootidx.insert ( key, rid, order, dupAllowed, indexCB ) ;
@@ -1384,7 +1343,6 @@ namespace engine
       goto done ;
    }
 
-   // caller is responsible to rollback the change if indexesInsert fail
    INT32 _dmsStorageIndex::indexesInsert( dmsMBContext *context,
                                           dmsExtentID extLID,
                                           BSONObj & inputObj,
@@ -1415,13 +1373,11 @@ namespace engine
          PD_CHECK ( indexCB.isInitialized(), SDB_DMS_INIT_INDEX, error,
                     PDERROR, "Failed to init index" ) ;
 
-         // if index is 'IXM_INDEX_FLAG_CREATING', then judge extent LID
          if ( IXM_INDEX_FLAG_CREATING == indexCB.getFlag() &&
               extLID > indexCB.scanExtLID() )
          {
             continue ;
          }
-         // only attempt to insert into normal and creating indexes
          else if ( indexCB.getFlag() != IXM_INDEX_FLAG_NORMAL &&
                    indexCB.getFlag() != IXM_INDEX_FLAG_CREATING )
          {
@@ -1430,7 +1386,6 @@ namespace engine
          unique = indexCB.unique() ;
          dropDups = indexCB.dropDups() ;
 
-         // If it's text index
          if ( IXM_EXTENT_HAS_TYPE( indexCB.getIndexType(),
                                    IXM_EXTENT_TYPE_TEXT ) )
          {
@@ -1507,9 +1462,6 @@ namespace engine
                newObj.toString().c_str() ) ;
 #endif
 
-      // do merge scan for two sets, unindex the keys if the one in keySetOri
-      // doesn't appear in keySetNew, and insert the one in keySetNew doesn't
-      // appear in keySetOri
       {
          BSONObjSet::iterator itori ;
          BSONObjSet::iterator itnew ;
@@ -1526,16 +1478,12 @@ namespace engine
             INT32 result = (*itori).woCompare((*itnew), BSONObj(), FALSE ) ;
             if ( 0 == result )
             {
-               // new and original are the same, we don't need to change
-               // anything in the index
                itori++ ;
                itnew++ ;
                continue ;
             }
             else if ( result < 0 )
             {
-               // original smaller than new, that means the original doesn't
-               // appear in the new list anymore, let's delete it
                ixmExtent rootidx ( indexCB->getRoot(), this ) ;
                ixmKeyOwned ko ((*itori)) ;
                rc = rootidx.unindex ( ko, rid, order, indexCB, found ) ;
@@ -1545,10 +1493,6 @@ namespace engine
                   goto error ;
                }
                DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_WRITE, 1 ) ;
-               // during rollback, since the previous change may half-way
-               // completed, there could be some keys that has not been
-               // inserted. So if we found any rid+key that does not in the
-               // index, that means we've finished rollback
                if ( !found && isRollback )
                {
                   goto done ;
@@ -1558,17 +1502,11 @@ namespace engine
             }
             else
             {
-               // new smaller than original, that means the new one doesn't
-               // appear in the original list, let's add it
                ixmExtent rootidx ( indexCB->getRoot(), this ) ;
                ixmKeyOwned ko ((*itnew)) ;
                rc = rootidx.insert ( ko, rid, order, !unique, indexCB ) ;
                if ( rc )
                {
-                  // during rollback, since the previous change may half-way
-                  // completed, there could be some keys that has not been
-                  // removed. So if we hit error indicating the key and rid are
-                  // identical, that means we've finished rollback
                   if ( SDB_IXM_IDENTICAL_KEY == rc && isRollback )
                   {
                      rc = SDB_OK ;
@@ -1583,7 +1521,6 @@ namespace engine
             }
          }
 
-         // delete reset of itori
          while ( keySetOri.end() != itori )
          {
 #if defined (_DEBUG)
@@ -1598,10 +1535,6 @@ namespace engine
                goto error ;
             }
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INDEX_WRITE, 1 ) ;
-            // during rollback, since the previous change may half-way
-            // completed, there could be some keys that has not been
-            // inserted. So if we found any rid+key that does not in the
-            // index, that means we've finished rollback
             if ( !found && isRollback )
             {
                goto done ;
@@ -1609,7 +1542,6 @@ namespace engine
             itori++ ;
          }
 
-         // insert rest of itnew
          while ( keySetNew.end() != itnew )
          {
 #if defined (_DEBUG)
@@ -1620,10 +1552,6 @@ namespace engine
             rc = rootidx.insert ( ko, rid, order, !unique, indexCB ) ;
             if ( rc )
             {
-               // during rollback, since the previous change may half-way
-               // completed, there could be some keys that has not been
-               // removed. So if we hit error indicating the key and rid are
-               // identical, that means we've finished rollback
                if ( SDB_IXM_IDENTICAL_KEY == rc && isRollback )
                {
                   rc = SDB_OK ;
@@ -1643,7 +1571,6 @@ namespace engine
       goto done ;
    }
 
-   // caller is responsible to rollback the change
    INT32 _dmsStorageIndex::indexesUpdate( dmsMBContext *context,
                                           dmsExtentID extLID,
                                           BSONObj &originalObj,
@@ -1680,7 +1607,6 @@ namespace engine
          {
             continue ;
          }
-         // only attempt to insert into normal and creating indexes
          else if ( indexCB.getFlag() != IXM_INDEX_FLAG_NORMAL &&
                    indexCB.getFlag() != IXM_INDEX_FLAG_CREATING )
          {
@@ -1758,8 +1684,6 @@ namespace engine
             PD_LOG ( PDDEBUG, "Key %s", (*it).toString().c_str() ) ;
 #endif
 
-            // get root in each loop, since root page may change after each
-            // insert (root split)
             ixmExtent rootidx ( indexCB->getRoot(), this ) ;
             ixmKeyOwned ko ((*it)) ;
             rc = rootidx.unindex ( ko, rid, order, indexCB, result ) ;
@@ -1815,7 +1739,6 @@ namespace engine
          {
             continue ;
          }
-         // only attempt to insert into normal and creating indexes
          else if ( indexCB.getFlag() != IXM_INDEX_FLAG_NORMAL &&
                    indexCB.getFlag() != IXM_INDEX_FLAG_CREATING )
          {
@@ -1888,8 +1811,6 @@ namespace engine
          {
             continue ;
          }
-         // we don't check index flag since we are doing full index rebuild now
-         // truncate index, do remove root
          rc = indexCB.truncate ( FALSE ) ;
          if ( rc )
          {

@@ -85,26 +85,20 @@ namespace engine
       RTN_CONTEXT_OM_TRANSFER,
       RTN_CONTEXT_TS,            // Context of text search
 
-      /// Catalog contexts
 
       RTN_CONTEXT_CAT_BEGIN,
 
-      /// Group related
       RTN_CONTEXT_CAT_REMOVE_GROUP,
       RTN_CONTEXT_CAT_ACTIVE_GROUP,
       RTN_CONTEXT_CAT_SHUTDOWN_GROUP,
-      /// Node related
       RTN_CONTEXT_CAT_CREATE_NODE,
       RTN_CONTEXT_CAT_REMOVE_NODE,
-      /// CollectionSpace related
       RTN_CONTEXT_CAT_DROP_CS,
-      /// Collection related
       RTN_CONTEXT_CAT_CREATE_CL,
       RTN_CONTEXT_CAT_DROP_CL,
       RTN_CONTEXT_CAT_ALTER_CL,
       RTN_CONTEXT_CAT_LINK_CL,
       RTN_CONTEXT_CAT_UNLINK_CL,
-      /// Index related
       RTN_CONTEXT_CAT_CREATE_IDX,
       RTN_CONTEXT_CAT_DROP_IDX,
 
@@ -297,12 +291,10 @@ namespace engine
          }
          BOOLEAN  isCountMode() const { return _countOnly ; }
 
-         /// write info( some context will write data, drop collection, etc..)
          void           setWriteInfo( SDB_DPSCB *dpsCB, INT16 w ) ;
          SDB_DPSCB*     getDPSCB() { return _pDpsCB ; }
          INT16          getW() const { return _w ; }
 
-      // prefetch
       public:
          void     enablePrefetch ( _pmdEDUCB *cb,
                                    rtnPrefWatcher *pWatcher = NULL ) ;
@@ -336,7 +328,6 @@ namespace engine
             return NULL ;
          }
 
-      // Monitor
       public :
          monContextCB* getMonCB ()
          {
@@ -370,7 +361,6 @@ namespace engine
 
          virtual void setQueryActivity ( BOOLEAN hitEnd )
          {
-            // Do nothing
          }
 
       protected:
@@ -399,14 +389,12 @@ namespace engine
          monContextCB            _monCtxCB ;
          _mthSelector            _selector ;
 
-         // status
          BOOLEAN                 _hitEnd ;
          BOOLEAN                 _isOpened ;
 
          SDB_DPSCB               *_pDpsCB ;
          INT16                   _w ;
 
-         // Enable performance monitor
          BOOLEAN                 _enableMonContext ;
          BOOLEAN                 _enableQueryActivity ;
 
@@ -415,7 +403,6 @@ namespace engine
          UINT64                  _eduID ;
          _rtnContextStoreBuf     _buffer ;
          INT64                   _totalRecords ;
-         // mutex
          ossRWMutex              _dataLock ;
          ossRWMutex              _prefetchLock ;
          UINT32                  _prefetchID ;

@@ -14,7 +14,6 @@ TEST(sdb,sdbGetSnapshot_SDB_SANP_CONTEXTS)
    sdbCursorHandle cursor3        = 0 ;
    INT32 rc                       = SDB_OK ;
 
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &db ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbGetList( db, SDB_LIST_GROUPS, NULL, NULL, NULL, &cursor ) ;
@@ -23,7 +22,6 @@ TEST(sdb,sdbGetSnapshot_SDB_SANP_CONTEXTS)
       rc = sdbGetSnapshot( db, SDB_SNAP_CONTEXTS,
                            NULL, NULL, NULL, &cursor1 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
-      //displayRecord( &cursor1 ) ;
    } // standalone mode
    else if ( rc == SDB_OK )
    {
@@ -35,11 +33,9 @@ TEST(sdb,sdbGetSnapshot_SDB_SANP_CONTEXTS)
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetSnapshot( cdb, SDB_SNAP_CONTEXTS,
                            NULL, NULL, NULL, &cursor2 ) ;
-      //displayRecord( &cursor2 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetSnapshot( ddb, SDB_SNAP_CONTEXTS,
                            NULL, NULL, NULL, &cursor3 ) ;
-      //displayRecord( &cursor3 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       goto exit ;
    }
@@ -76,7 +72,6 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_CONTEXTS_CURRENT)
    sdbCursorHandle cursor3        = 0 ;
    INT32 rc                       = SDB_OK ;
 
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &db ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbGetList( db, SDB_LIST_GROUPS, NULL, NULL, NULL, &cursor ) ;
@@ -85,7 +80,6 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_CONTEXTS_CURRENT)
       rc = sdbGetSnapshot( db, SDB_SNAP_CONTEXTS_CURRENT,
                            NULL, NULL, NULL, &cursor1 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
-      //displayRecord( &cursor1 ) ;
    } // standalone mode
    else if ( rc == SDB_OK )
    {
@@ -95,11 +89,9 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_CONTEXTS_CURRENT)
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetSnapshot( cdb, SDB_SNAP_CONTEXTS_CURRENT,
                            NULL, NULL, NULL, &cursor2 ) ;
-      //displayRecord( &cursor2 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetSnapshot( ddb, SDB_SNAP_CONTEXTS_CURRENT,
                            NULL, NULL, NULL, &cursor3 ) ;
-      //displayRecord( &cursor3 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       goto exit ;
    }
@@ -136,7 +128,6 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_SESSIONS)
    sdbCursorHandle cursor3        = 0 ;
    INT32 rc                       = SDB_OK ;
 
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &db ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbGetList( db, SDB_LIST_GROUPS, NULL, NULL, NULL, &cursor ) ;
@@ -145,7 +136,6 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_SESSIONS)
       rc = sdbGetSnapshot( db, SDB_SNAP_SESSIONS,
                            NULL, NULL, NULL, &cursor1 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
-      //displayRecord( &cursor1 ) ;
    } // standalone mode
    else if ( rc == SDB_OK )
    {
@@ -155,11 +145,9 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_SESSIONS)
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetSnapshot( cdb, SDB_SNAP_SESSIONS,
                            NULL, NULL, NULL, &cursor2 ) ;
-      //displayRecord( &cursor2 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetSnapshot( ddb, SDB_SNAP_SESSIONS,
                            NULL, NULL, NULL, &cursor3 ) ;
-      //displayRecord( &cursor3 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       goto exit ;
    }
@@ -195,7 +183,6 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_SESSIONS_CURRENT)
    sdbCursorHandle cursor3        = 0 ;
    INT32 rc                       = SDB_OK ;
 
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &db ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbGetList( db, SDB_LIST_GROUPS, NULL, NULL, NULL, &cursor ) ;
@@ -204,7 +191,6 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_SESSIONS_CURRENT)
       rc = sdbGetSnapshot( db, SDB_SNAP_SESSIONS_CURRENT,
                            NULL, NULL, NULL, &cursor1 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
-      //displayRecord( &cursor1 ) ;
    } // standalone mode
    else if ( rc == SDB_OK )
    {
@@ -214,11 +200,9 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_SESSIONS_CURRENT)
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetSnapshot( cdb, SDB_SNAP_SESSIONS_CURRENT,
                            NULL, NULL, NULL, &cursor2 ) ;
-      //displayRecord( &cursor2 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetSnapshot( ddb, SDB_SNAP_SESSIONS_CURRENT,
                            NULL, NULL, NULL, &cursor3 ) ;
-      //displayRecord( &cursor3 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       goto exit ;
    }
@@ -254,7 +238,6 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_COLLECTIONS)
    sdbCursorHandle cursor3        = 0 ;
    INT32 rc                       = SDB_OK ;
 
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &db ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbGetList( db, SDB_LIST_GROUPS, NULL, NULL, NULL, &cursor ) ;
@@ -263,7 +246,6 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_COLLECTIONS)
       rc = sdbGetSnapshot( db, SDB_SNAP_COLLECTIONS,
                            NULL, NULL, NULL, &cursor1 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
-      //displayRecord( &cursor1 ) ;
    } // standalone mode
    else if ( rc == SDB_OK )
    {
@@ -273,11 +255,9 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_COLLECTIONS)
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetSnapshot( cdb, SDB_SNAP_COLLECTIONS,
                            NULL, NULL, NULL, &cursor2 ) ;
-      //displayRecord( &cursor2 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetSnapshot( ddb, SDB_SNAP_COLLECTIONS,
                            NULL, NULL, NULL, &cursor3 ) ;
-      //displayRecord( &cursor3 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       goto exit ;
    }
@@ -313,7 +293,6 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_COLLECTIONSPACES)
    sdbCursorHandle cursor3        = 0 ;
    INT32 rc                       = SDB_OK ;
 
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &db ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbGetList( db, SDB_LIST_GROUPS, NULL, NULL, NULL, &cursor ) ;
@@ -322,7 +301,6 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_COLLECTIONSPACES)
       rc = sdbGetSnapshot( db, SDB_SNAP_COLLECTIONSPACES,
                            NULL, NULL, NULL, &cursor1 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
-      //displayRecord( &cursor1 ) ;
    } // standalone mode
    else if ( rc == SDB_OK )
    {
@@ -332,11 +310,9 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_COLLECTIONSPACES)
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetSnapshot( cdb, SDB_SNAP_COLLECTIONSPACES,
                            NULL, NULL, NULL, &cursor2 ) ;
-      //displayRecord( &cursor2 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetSnapshot( ddb, SDB_SNAP_COLLECTIONSPACES,
                            NULL, NULL, NULL, &cursor3 ) ;
-      //displayRecord( &cursor3 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       goto exit ;
    }
@@ -372,7 +348,6 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_DATABASE)
    sdbCursorHandle cursor3        = 0 ;
    INT32 rc                       = SDB_OK ;
 
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &db ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbGetList( db, SDB_LIST_GROUPS, NULL, NULL, NULL, &cursor ) ;
@@ -381,7 +356,6 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_DATABASE)
       rc = sdbGetSnapshot( db, SDB_SNAP_DATABASE,
                            NULL, NULL, NULL, &cursor1 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
-      //displayRecord( &cursor1 ) ;
    } // standalone mode
    else if ( rc == SDB_OK )
    {
@@ -391,11 +365,9 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_DATABASE)
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetSnapshot( cdb, SDB_SNAP_DATABASE,
                            NULL, NULL, NULL, &cursor2 ) ;
-      //displayRecord( &cursor2 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetSnapshot( ddb, SDB_SNAP_DATABASE,
                            NULL, NULL, NULL, &cursor3 ) ;
-      //displayRecord( &cursor3 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       goto exit ;
    }
@@ -431,7 +403,6 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_SYSTEM)
    sdbCursorHandle cursor3        = 0 ;
    INT32 rc                       = SDB_OK ;
 
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &db ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbGetList( db, SDB_LIST_GROUPS, NULL, NULL, NULL, &cursor ) ;
@@ -440,7 +411,6 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_SYSTEM)
       rc = sdbGetSnapshot( db, SDB_SNAP_SYSTEM,
                            NULL, NULL, NULL, &cursor1 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
-      //displayRecord( &cursor1 ) ;
    } // standalone mode
    else if ( rc == SDB_OK )
    {
@@ -450,11 +420,9 @@ TEST(sdb,sdbGetSnapshot_SDB_SNAP_SYSTEM)
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetSnapshot( cdb, SDB_SNAP_SYSTEM,
                            NULL, NULL, NULL, &cursor2 ) ;
-      //displayRecord( &cursor2 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetSnapshot( ddb, SDB_SNAP_SYSTEM,
                            NULL, NULL, NULL, &cursor3 ) ;
-      //displayRecord( &cursor3 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       goto exit ;
    }
@@ -479,7 +447,6 @@ exit:
    goto done ;
 }
 /*
-// doubtful
 
 TEST(sdb,sdbResetSnapshot)
 {
@@ -488,12 +455,10 @@ TEST(sdb,sdbResetSnapshot)
    INT32 rc                       = SDB_OK ;
 
    bson condition ;
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbResetSnapshot( connection, &condition ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // display records
    sdbDisconnect ( connection ) ;
    sdbReleaseConnection ( connection ) ;
 }
@@ -510,7 +475,6 @@ TEST(sdb,sdbGetList_SDB_LIST_CONTEXTS)
    sdbCursorHandle cursor3        = 0 ;
    INT32 rc                       = SDB_OK ;
 
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &db ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbGetList( db, SDB_LIST_GROUPS, NULL, NULL, NULL, &cursor ) ;
@@ -519,7 +483,6 @@ TEST(sdb,sdbGetList_SDB_LIST_CONTEXTS)
       rc = sdbGetList( db, SDB_LIST_CONTEXTS,
                        NULL, NULL, NULL, &cursor1 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
-      //displayRecord( &cursor1 ) ;
    } // standalone mode
    else if ( rc == SDB_OK )
    {
@@ -529,11 +492,9 @@ TEST(sdb,sdbGetList_SDB_LIST_CONTEXTS)
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetList( cdb, SDB_LIST_CONTEXTS,
                        NULL, NULL, NULL, &cursor2 ) ;
-      //displayRecord( &cursor2 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetList( ddb, SDB_LIST_CONTEXTS,
                        NULL, NULL, NULL, &cursor3 ) ;
-      //displayRecord( &cursor3 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       goto exit ;
    }
@@ -569,7 +530,6 @@ TEST(sdb,sdbGetList_SDB_LIST_CONTEXTS_CURRENT)
    sdbCursorHandle cursor3        = 0 ;
    INT32 rc                       = SDB_OK ;
 
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &db ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbGetList( db, SDB_LIST_GROUPS, NULL, NULL, NULL, &cursor ) ;
@@ -578,7 +538,6 @@ TEST(sdb,sdbGetList_SDB_LIST_CONTEXTS_CURRENT)
       rc = sdbGetList( db, SDB_LIST_CONTEXTS_CURRENT,
                        NULL, NULL, NULL, &cursor1 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
-      //displayRecord( &cursor1 ) ;
    } // standalone mode
    else if ( rc == SDB_OK )
    {
@@ -588,11 +547,9 @@ TEST(sdb,sdbGetList_SDB_LIST_CONTEXTS_CURRENT)
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetList( cdb, SDB_LIST_CONTEXTS_CURRENT,
                        NULL, NULL, NULL, &cursor2 ) ;
-      //displayRecord( &cursor2 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetList( ddb, SDB_LIST_CONTEXTS_CURRENT,
                        NULL, NULL, NULL, &cursor3 ) ;
-      //displayRecord( &cursor3 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       goto exit ;
    }
@@ -628,7 +585,6 @@ TEST(sdb,sdbGetList_SDB_LIST_SESSIONS)
    sdbCursorHandle cursor3        = 0 ;
    INT32 rc                       = SDB_OK ;
 
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &db ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbGetList( db, SDB_LIST_GROUPS, NULL, NULL, NULL, &cursor ) ;
@@ -637,7 +593,6 @@ TEST(sdb,sdbGetList_SDB_LIST_SESSIONS)
       rc = sdbGetList( db, SDB_LIST_SESSIONS,
                        NULL, NULL, NULL, &cursor1 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
-      //displayRecord( &cursor1 ) ;
    } // standalone mode
    else if ( rc == SDB_OK )
    {
@@ -647,11 +602,9 @@ TEST(sdb,sdbGetList_SDB_LIST_SESSIONS)
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetList( cdb, SDB_LIST_SESSIONS,
                        NULL, NULL, NULL, &cursor2 ) ;
-      //displayRecord( &cursor2 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetList( ddb, SDB_LIST_SESSIONS,
                        NULL, NULL, NULL, &cursor3 ) ;
-      //displayRecord( &cursor3 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       goto exit ;
    }
@@ -687,7 +640,6 @@ TEST(sdb,sdbGetList_SDB_LIST_SESSIONS_CURRENT)
    sdbCursorHandle cursor3        = 0 ;
    INT32 rc                       = SDB_OK ;
 
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &db ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbGetList( db, SDB_LIST_GROUPS, NULL, NULL, NULL, &cursor ) ;
@@ -696,7 +648,6 @@ TEST(sdb,sdbGetList_SDB_LIST_SESSIONS_CURRENT)
       rc = sdbGetList( db, SDB_LIST_SESSIONS_CURRENT,
                        NULL, NULL, NULL, &cursor1 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
-      //displayRecord( &cursor1 ) ;
    } // standalone mode
    else if ( rc == SDB_OK )
    {
@@ -706,11 +657,9 @@ TEST(sdb,sdbGetList_SDB_LIST_SESSIONS_CURRENT)
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetList( cdb, SDB_LIST_SESSIONS_CURRENT,
                        NULL, NULL, NULL, &cursor2 ) ;
-      //displayRecord( &cursor2 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetList( ddb, SDB_LIST_SESSIONS_CURRENT,
                        NULL, NULL, NULL, &cursor3 ) ;
-      //displayRecord( &cursor3 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       goto exit ;
    }
@@ -746,7 +695,6 @@ TEST(sdb,sdbGetList_SDB_LIST_COLLECTIONS)
    sdbCursorHandle cursor3        = 0 ;
    INT32 rc                       = SDB_OK ;
 
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &db ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbGetList( db, SDB_LIST_GROUPS, NULL, NULL, NULL, &cursor ) ;
@@ -755,7 +703,6 @@ TEST(sdb,sdbGetList_SDB_LIST_COLLECTIONS)
       rc = sdbGetList( db, SDB_LIST_COLLECTIONS,
                        NULL, NULL, NULL, &cursor1 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
-      //displayRecord( &cursor1 ) ;
    } // standalone mode
    else if ( rc == SDB_OK )
    {
@@ -765,11 +712,9 @@ TEST(sdb,sdbGetList_SDB_LIST_COLLECTIONS)
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetList( cdb, SDB_LIST_COLLECTIONS,
                        NULL, NULL, NULL, &cursor2 ) ;
-      //displayRecord( &cursor2 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetList( ddb, SDB_LIST_COLLECTIONS,
                        NULL, NULL, NULL, &cursor3 ) ;
-      //displayRecord( &cursor3 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       goto exit ;
    }
@@ -805,7 +750,6 @@ TEST(sdb,sdbGetList_SDB_LIST_COLLECTIONSPACES)
    sdbCursorHandle cursor3        = 0 ;
    INT32 rc                       = SDB_OK ;
 
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &db ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbGetList( db, SDB_LIST_GROUPS, NULL, NULL, NULL, &cursor ) ;
@@ -814,7 +758,6 @@ TEST(sdb,sdbGetList_SDB_LIST_COLLECTIONSPACES)
       rc = sdbGetList( db, SDB_LIST_COLLECTIONSPACES,
                        NULL, NULL, NULL, &cursor1 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
-      //displayRecord( &cursor1 ) ;
    } // standalone mode
    else if ( rc == SDB_OK )
    {
@@ -824,11 +767,9 @@ TEST(sdb,sdbGetList_SDB_LIST_COLLECTIONSPACES)
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetList( cdb, SDB_LIST_COLLECTIONSPACES,
                        NULL, NULL, NULL, &cursor2 ) ;
-      //displayRecord( &cursor2 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetList( ddb, SDB_LIST_COLLECTIONSPACES,
                        NULL, NULL, NULL, &cursor3 ) ;
-      //displayRecord( &cursor3 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       goto exit ;
    }
@@ -864,7 +805,6 @@ TEST(sdb,sdbGetList_SDB_LIST_STORAGEUNITS)
    sdbCursorHandle cursor3        = 0 ;
    INT32 rc                       = SDB_OK ;
 
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &db ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbGetList( db, SDB_LIST_GROUPS, NULL, NULL, NULL, &cursor ) ;
@@ -873,7 +813,6 @@ TEST(sdb,sdbGetList_SDB_LIST_STORAGEUNITS)
       rc = sdbGetList( db, SDB_LIST_STORAGEUNITS,
                        NULL, NULL, NULL, &cursor1 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
-      //displayRecord( &cursor1 ) ;
    } // standalone mode
    else if ( rc == SDB_OK )
    {
@@ -883,11 +822,9 @@ TEST(sdb,sdbGetList_SDB_LIST_STORAGEUNITS)
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetList( cdb, SDB_LIST_STORAGEUNITS,
                        NULL, NULL, NULL, &cursor2 ) ;
-      //displayRecord( &cursor2 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       rc = sdbGetList( ddb, SDB_LIST_STORAGEUNITS,
                        NULL, NULL, NULL, &cursor3 ) ;
-      //displayRecord( &cursor3 ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
       goto exit ;
    }
@@ -923,7 +860,6 @@ TEST(sdb,sdbGetList_SDB_LIST_GROUPS)
    sdbCursorHandle cursor3        = 0 ;
    INT32 rc                       = SDB_OK ;
 
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &db ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbGetList( db, SDB_LIST_GROUPS, NULL, NULL, NULL, &cursor ) ;
@@ -932,7 +868,6 @@ TEST(sdb,sdbGetList_SDB_LIST_GROUPS)
       rc = sdbGetList( db, SDB_LIST_GROUPS,
                        NULL, NULL, NULL, &cursor ) ;
       ASSERT_EQ( SDB_RTN_COORD_ONLY, rc ) ;
-      //displayRecord( &cursor ) ;
    } // standalone mode
    else
    {

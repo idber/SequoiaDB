@@ -205,16 +205,10 @@ namespace engine
          mthMatchNormalizer   _normalizer ;
          rtnPredicateSet      _predicateSet ;
 
-         /// Cost or selectivity estimations
-         // Flag to indicate whether the cost and selectivity are estimated
          BOOLEAN           _isEstimated ;
-         // Selectivity of the matcher
          double            _estSelectivity ;
-         // The final selectivity of the predicates
          double            _predSelectivity ;
-         // The scan selectivity of the predicates
          double            _scanSelectivity ;
-         // The CPU cost of the matcher
          UINT32            _estCPUCost ;
 
          BOOLEAN           _keepSearchPaths ;

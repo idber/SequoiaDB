@@ -71,7 +71,7 @@ driver_version = get_version()
 
 
 def init_client(on, cache_time_interval=0, max_cache_slot=0):
-    """enable cache strategy to improve performance
+    '''enable cache strategy to improve performance
 
     Parameters:
           Name                Type      Info:
@@ -79,6 +79,6 @@ def init_client(on, cache_time_interval=0, max_cache_slot=0):
           cache_time_interval int       The life cycle of cached object
           max_cache_slot      int       The count of slot to cache objects,
                                               one slot holds an object
-    """
+    '''
     enable = on and 1 or 0
     sdb.sdb_init_client(enable, cache_time_interval, max_cache_slot)

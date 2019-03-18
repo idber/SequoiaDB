@@ -27,11 +27,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.repository.Person;
-//import org.springframework.data.mongodb.repository.QPerson;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-//import com.mysema.query.mongodb.MongodbQuery;
 
 /**
  * Unit tests for {@link QuerydslRepositorySupport}.
@@ -54,10 +52,6 @@ public class QuerydslRepositorySupportUnitTests {
 
 	@Test
 	public void providesMongoQuery() {
-//		QPerson p = QPerson.person;
-//		QuerydslRepositorySupport support = new QuerydslRepositorySupport(operations) {};
-//		MongodbQuery<Person> query = support.from(p).where(p.lastname.eq("Matthews"));
-//		assertThat(query.uniqueResult(), is(person));
 	}
 
 	/**
@@ -65,16 +59,5 @@ public class QuerydslRepositorySupportUnitTests {
 	 */
 	@Test
 	public void shouldAllowAny() {
-//
-//		person.setSkills(Arrays.asList("vocalist", "songwriter", "guitarist"));
-//
-//		operations.save(person);
-//
-//		QPerson p = QPerson.person;
-//		QuerydslRepositorySupport support = new QuerydslRepositorySupport(operations) {};
-//
-//		MongodbQuery<Person> query = support.from(p).where(p.skills.any().in("guitarist"));
-//
-//		assertThat(query.uniqueResult(), is(person));
 	}
 }

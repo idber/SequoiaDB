@@ -62,7 +62,6 @@ namespace engine
       string code ;
       string str ;
 
-      // check, we need 1 argument
       if ( 0 == arg.argc() )
       {
          rc = SDB_INVALIDARG ;
@@ -104,7 +103,6 @@ namespace engine
       md5::md5digest digest ;
       string code ;
 
-      // check, we need 1 argument filename
       if ( 0 == arg.argc() )
       {
          rc = SDB_INVALIDARG ;
@@ -118,7 +116,6 @@ namespace engine
          ss << "argument \'filename\' must be a string" ;
          goto error ;
       }
-      // open the file
       rc = ossOpen( filename.c_str(), OSS_READONLY, 0, file ) ;
       if ( rc )
       {

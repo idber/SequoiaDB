@@ -151,7 +151,6 @@ public class DBAddress extends ServerAddress {
             return new DBAddress( _host , _port , name );
         }
         catch ( UnknownHostException uh ){
-            // TODO: tanzhaobo, think abount he exception
             throw new BaseException(SDBError.SDB_NETWORK,"shouldn't be possible" , uh);
         }
     }

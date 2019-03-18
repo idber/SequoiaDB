@@ -59,15 +59,11 @@ namespace engine
 
       OSS_INLINE virtual optAccessPlanRuntime * getPlanRuntime ()
       {
-         /// WARNING: do not use this plan runtime to do anything
-         /// except keeping plan for explaining and performance monitor.
          return &_planRuntime ;
       }
 
       OSS_INLINE virtual const optAccessPlanRuntime * getPlanRuntime () const
       {
-         /// WARNING: do not use this plan runtime to do anything
-         /// except keeping plan for explaining and performance monitor.
          return &_planRuntime ;
       }
 

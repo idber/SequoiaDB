@@ -54,7 +54,6 @@ namespace engine
       _omaSession implement
    */
    BEGIN_OBJ_MSG_MAP( _omaSession, _pmdAsyncSession )
-      // msg map or event map
       ON_MSG( MSG_CM_REMOTE, _onNodeMgrReq )
       ON_MSG( MSG_AUTH_VERIFY_REQ, _onAuth )
       ON_MSG( MSG_BS_QUERY_REQ, _onOMAgentReq )
@@ -108,13 +107,11 @@ namespace engine
 
       if ( sdbGetOMAgentOptions()->isStandAlone() )
       {
-         // will be release
          ret = TRUE ;
          goto done ;
       }
       else if ( curTime.time - _lastRecvTime.time > OMAGENT_SESESSION_TIMEOUT )
       {
-         // will be release
          ret = TRUE ;
          goto done ;
       }
@@ -194,9 +191,7 @@ namespace engine
 
    void _omaSession::_onDetach()
    {
-      /// clear self scopes
       sdbGetOMAgentMgr()->clearScopeBySession() ;
-      /// clear open file
       _clearFileObjMap() ;
    }
 
@@ -206,7 +201,6 @@ namespace engine
                    _pmdAsyncSession::sessionName(), _client.getPeerIPAddr(),
                    _client.getPeerPort() ) ;
       eduCB()->setName( _detailName ) ;
-      /// register edu exit hook func
       pmdSetEDUHook( (PMD_ON_EDU_EXIT_FUNC)sdbHookFuncOnThreadExit ) ;
       _pNodeMgr = sdbGetOMAgentMgr()->getNodeMgr() ;
    }
@@ -235,7 +229,6 @@ namespace engine
          goto error ;
       }
 
-      //Send message
       if ( bodyLen > 0 )
       {
          rc = routeAgent()->syncSend ( _netHandle, (MsgHeader *)header,
@@ -265,7 +258,6 @@ namespace engine
       INT32 bLen = NULL == bodyLen ?
                    0 : *bodyLen ;
 
-      //Build reply message
       _replyHeader.header.opCode = MAKE_REPLY_TYPE( pSrcReqMsg->opCode ) ;
       _replyHeader.header.messageLength = sizeof ( MsgOpReply ) + bLen ;
       _replyHeader.header.requestID = pSrcReqMsg->requestID ;
@@ -274,8 +266,6 @@ namespace engine
       _replyHeader.flags = flags ;
       _replyHeader.contextID = -1 ;
 
-      /// when we have more than one record to return,
-      /// rewrite here.
       _replyHeader.numReturned = ( ( SINT32 )sizeof( MsgOpReply )
                                           < _replyHeader.header.messageLength )
                                  ?  1 : 0 ;
@@ -306,7 +296,6 @@ namespace engine
       user = obj.getField( SDB_AUTH_USER ) ;
       pass = obj.getField( SDB_AUTH_PASSWD ) ;
 
-      // check usr and passwd
       if ( 0 != ossStrcmp( user.valuestrsafe(), SDB_OMA_USER ) )
       {
          PD_LOG( PDERROR, "User name[%s] is not support",
@@ -446,11 +435,8 @@ namespace engine
       BSONObjBuilder builder ;
 
       PD_LOG ( PDDEBUG, "Omagent receive requset from omsvc" ) ;
-      // compute the time takes
       ossGetCurrentTime( tmBegin ) ;
-      // build reply massage header
       _buildReplyHeader( pMsg ) ;
-      // extract command
       rc = msgExtractQuery ( (CHAR *)pMsg, &flags, &pCollectionName,
                              &numToSkip, &numToReturn, &pQuery,
                              &pFieldSelector, &pOrderByBuffer,
@@ -463,7 +449,6 @@ namespace engine
          goto error ;
       }
 
-      // handle command
       if ( omaIsCommand ( pCollectionName ) )
       {
          PD_LOG( PDDEBUG, "Omagent receive command: %s, argument: %s",
@@ -501,23 +486,19 @@ namespace engine
          goto error ;
       }
 
-      // consturct reply
       builder.appendElements( retObj ) ;
 
    done :
-      // release command
       if ( pCommand )
       {
          omaReleaseCommand( &pCommand ) ;
       }
-      // reply
       retObj = builder.obj() ;
       _replyHeader.header.messageLength += retObj.objsize() ;
       _replyHeader.numReturned = 1 ;
       _replyHeader.flags = rc ;
 
       ossGetCurrentTime ( tmEnd ) ;
-      // time takes
       tkTime = ( tmEnd.time * 1000000 + tmEnd.microtm ) -
                ( tmBegin.time * 1000000 + tmBegin.microtm ) ;
       sec = tkTime/1000000 ;
@@ -527,10 +508,8 @@ namespace engine
       PD_LOG ( PDDEBUG, "Excute command[%s] takes %lld.%llds.",
                pCollectionName, sec, microSec ) ;
 
-      // reply message
       return _reply( &_replyHeader, retObj.objdata(), retObj.objsize() ) ;
    error :
-      // check flags
       if ( rc < -SDB_MAX_ERROR || rc > SDB_MAX_WARNING )
       {
          PD_LOG ( PDERROR, "Error code is invalid[rc:%d]", rc ) ;
@@ -576,7 +555,6 @@ namespace engine
            it != _fileObjMap.end();
            it++ )
       {
-         // release obj
          if( it->second )
          {
             SDB_OSS_DEL it->second ;

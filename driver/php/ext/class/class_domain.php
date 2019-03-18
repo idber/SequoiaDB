@@ -1,6 +1,6 @@
 <?php
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -62,124 +62,6 @@ class SequoiaDomain
    public function alter( array|string $options ){}
 
    /**
-    * Alter the current domain to add groups.
-    *
-    * @param $options an array or the string argument. The options user wants to alter.
-    *                                                  @code
-    *                                                  Groups:    The list of replica group names which the domain is going to add.
-    *                                                             eg:
-    *                                                                 array( 'Groups' => array( 'group1', 'group2', 'group3' ) )
-    *                                                  @endcode
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example:
-    * @code
-    * $err = $domainObj -> addGroups( array( 'Groups' => array( 'group1', 'group2', 'group3' ) ) ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to call alter, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-   */
-   public function addGroups( array|string $options ){}
-
-   /**
-    * Alter the current domain to set groups.
-    *
-    * @param $options an array or the string argument. The options user wants to alter.
-    *                                                  @code
-    *                                                  Groups:    The list of replica group names which the domain is going to contain.
-    *                                                             eg:
-    *                                                                 array( 'Groups' => array( 'group1', 'group2', 'group3' ) )
-    *                                                             We can add or remove groups in current domain. However, if a group has data
-    *                                                             in it, remove it out of domain will be failing.
-    *                                                  @endcode
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example:
-    * @code
-    * $err = $domainObj -> setGroups( array( 'Groups' => array( 'group1', 'group2', 'group3' ) ) ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to call alter, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-   */
-   public function setGroups( array|string $options ){}
-
-   /**
-    * Alter the current domain to remove groups.
-    *
-    * @param $options an array or the string argument. The options user wants to alter.
-    *                                                  @code
-    *                                                  Groups:    The list of replica group names which the domain is going to remove.
-    *                                                             eg:
-    *                                                                 array( 'Groups' => array( 'group1', 'group2', 'group3' ) )
-    *                                                             If a group has data in it, remove it out of domain will be failing.
-    *                                                  @endcode
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example:
-    * @code
-    * $err = $domainObj -> removeGroups( array( 'Groups' => array( 'group1', 'group2', 'group3' ) ) ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to call alter, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-   */
-   public function removeGroups( array|string $options ){}
-
-   /**
-    * Alter the current domain.
-    *
-    * @param $options an array or the string argument. The options user wants to alter.
-    *                                                  @code
-    *                                                  Groups:    The list of replica group names which the domain is going to contain.
-    *                                                             eg:
-    *                                                                 array( 'Groups' => array( 'group1', 'group2', 'group3' ) )
-    *
-    *                                                             it means that domain changes to contain "group1", "group2" or "group3".
-    *                                                             We can add or remove groups in current domain. However, if a group has data
-    *                                                             in it, remove it out of domain will be failing.
-    *
-    *                                                  AutoSplit: Alter current domain to have the ability of automatically split or not. 
-    *                                                             If this option is set to be true, while creating collection(ShardingType is "hash") in this domain,
-    *                                                             the data of this collection will be split(hash split) into all the groups in this domain automatically.
-    *                                                             However, it will not automatically split data into those groups which were add into this domain later.
-    *                                                             eg:
-    *                                                                 array( 'Groups' => array( 'group1', 'group2', 'group3' ), 'AutoSplit' => true )
-    *                                                  @endcode
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example:
-    * @code
-    * $err = $domainObj -> setAttributes( array( 'Groups' => array( 'group1', 'group2', 'group3' ), 'AutoSplit' => true ) ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to call alter, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-   */
-   public function setAttributes( array|string $options ){}
-
-   /**
     * List the collection spaces in domain.
     *
     * @param $condition	an array or the string argument. This parameter is reserved and must be null.
@@ -198,7 +80,7 @@ class SequoiaDomain
     * @code
     * $cursor = $domainObj -> listCS() ;
     * if( empty( $cursor ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call listCS, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -228,7 +110,7 @@ class SequoiaDomain
     * @code
     * $cursor = $domainObj -> listCL() ;
     * if( empty( $cursor ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call listCL, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -258,7 +140,7 @@ class SequoiaDomain
     * @code
     * $cursor = $domainObj -> listGroup() ;
     * if( empty( $cursor ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call listGroup, error code: ".$err['errno'] ;
     *    return ;
     * }

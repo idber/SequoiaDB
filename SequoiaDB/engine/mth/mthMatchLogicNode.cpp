@@ -143,7 +143,6 @@ namespace engine
       return builder.obj() ;
    }
 
-   //*******************_mthMatchLogicAndNode***********************
    _mthMatchLogicAndNode::_mthMatchLogicAndNode( _mthNodeAllocator *allocator,
                                                  const mthNodeConfig *config )
                          :_mthMatchLogicNode( allocator, config )
@@ -203,7 +202,6 @@ namespace engine
 
    BOOLEAN _mthMatchLogicAndNode::isTotalConverted()
    {
-      //treat and as true
       return TRUE ;
    }
 
@@ -244,7 +242,6 @@ namespace engine
       cpuCost += OPT_MTH_OPTR_BASE_CPU_COST ;
    }
 
-   //*******************_mthMatchLogicAndNode***********************
    _mthMatchLogicOrNode::_mthMatchLogicOrNode( _mthNodeAllocator *allocator,
                                                const mthNodeConfig *config )
                         :_mthMatchLogicNode( allocator, config )
@@ -313,14 +310,12 @@ namespace engine
    INT32 _mthMatchLogicOrNode::calcPredicate( rtnPredicateSet &predicateSet,
                                               const rtnParamList * paramList )
    {
-      // Logic or do not have predicatekey.
       return SDB_OK ;
    }
 
    INT32 _mthMatchLogicOrNode::extraEqualityMatches( BSONObjBuilder &builder,
                                                      const rtnParamList *parameters )
    {
-      // do not extraEqualityMatches in logic or.
       return SDB_OK ;
    }
 
@@ -361,7 +356,6 @@ namespace engine
       cpuCost += OPT_MTH_OPTR_BASE_CPU_COST ;
    }
 
-   //*******************_mthMatchLogicNotNode***************************
    _mthMatchLogicNotNode::_mthMatchLogicNotNode( _mthNodeAllocator *allocator,
                                                  const mthNodeConfig *config )
                          :_mthMatchLogicAndNode( allocator, config )
@@ -415,14 +409,12 @@ namespace engine
    INT32 _mthMatchLogicNotNode::calcPredicate( rtnPredicateSet &predicateSet,
                                                const rtnParamList * paramList )
    {
-      // Logic not do not have predicatekey.
       return SDB_OK ;
    }
 
    INT32 _mthMatchLogicNotNode::extraEqualityMatches( BSONObjBuilder &builder,
                                                       const rtnParamList *parameters )
    {
-      // do not extraEqualityMatches in logic not.
       return SDB_OK ;
    }
 

@@ -670,19 +670,16 @@ public class ProjectionOperation implements FieldsExposingAggregationOperation {
 
 			private Object renderFieldValue(AggregationOperationContext context) {
 
-				// implicit reference or explicit include?
 				if (value == null || Boolean.TRUE.equals(value)) {
 
 					if (Aggregation.SystemVariable.isReferingToSystemVariable(field.getTarget())) {
 						return field.getTarget();
 					}
 
-					// check whether referenced field exists in the context
 					return context.getReference(field).getReferenceValue();
 
 				} else if (Boolean.FALSE.equals(value)) {
 
-					// render field as excluded
 					return 0;
 				}
 
@@ -770,8 +767,6 @@ public class ProjectionOperation implements FieldsExposingAggregationOperation {
 					@Override
 					protected List<Object> getOperationArguments(AggregationOperationContext context) {
 
-						// We have to make sure that we use the arguments from the "previous" OperationProjection that we replace
-						// with this new instance.
 
 						return OperationProjection.this.getOperationArguments(context);
 					}

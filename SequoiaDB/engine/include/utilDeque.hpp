@@ -84,12 +84,10 @@ namespace engine
             {
                if ( _pData && rhs._pData )
                {
-                  /// left, right is end
                   BOOLEAN leftEnd = _pData >= _pSrc + *_pEleSize ?
                                     TRUE : FALSE ;
                   BOOLEAN rightEnd = rhs._pData > rhs._pSrc + *(rhs._pEleSize) ?
                                      TRUE : FALSE ;
-                  /// both end, equal
                   if ( leftEnd && rightEnd &&
                        _pSrc == rhs._pSrc &&
                        _pEleSize == rhs._pEleSize )
@@ -354,7 +352,6 @@ namespace engine
                   rc = SDB_OOM ;
                   goto error ;
                }
-               /// copy stack data to deque
                for ( UINT32 i = 0 ; i < _eleSize ; ++i )
                {
                   (*_pDeque)[i] = _staticBuf[ i ] ;
@@ -582,11 +579,8 @@ namespace engine
       {
          UINT32 rSize = rhs.size() ;
 
-         /// clear self
          clear( TRUE ) ;
-         /// alloc space
          _ensureSpace( rSize ) ;
-         /// copy all elements
          for ( UINT32 i = 0 ; i < rSize ; ++i )
          {
             push_back( rhs[ i ] ) ;
@@ -605,13 +599,11 @@ namespace engine
             }
             if ( _pDeque->size() <= threshold )
             {
-               /// copy data to stack
                _eleSize = _pDeque->size() ;
                for ( UINT32 i = 0 ; i < _eleSize ; ++i )
                {
                   _staticBuf[ i ] = (*_pDeque)[ i ] ;
                }
-               /// release the deque
                delete _pDeque ;
                _pDeque = NULL ;
             }
@@ -640,7 +632,6 @@ namespace engine
                rc = SDB_OOM ;
                goto error ;
             }
-            /// copy stack data to deque
             for ( UINT32 i = 0 ; i < _eleSize ; ++i )
             {
                (*_pDeque)[i] = _staticBuf[i] ;

@@ -1,6 +1,6 @@
 /*******************************************************************************
 
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -224,8 +224,6 @@ function main()
          installSvcName     = BUS_JSON[InstallSvcName] ;
          installPath        = BUS_JSON[InstallPath] ;
          installConfig      = BUS_JSON[InstallConfig] ;
-
-         delete installConfig[InstallPath] ;
       }
       catch( e )
       {

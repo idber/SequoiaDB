@@ -58,7 +58,6 @@ namespace engine
    class _dmsIxmKeySorter: public SDBObject
    {
    private:
-      // disallow copy and assign
       _dmsIxmKeySorter( const _dmsIxmKeySorter& ) ;
       void operator=( const _dmsIxmKeySorter& ) ;
 
@@ -84,7 +83,6 @@ namespace engine
    class _dmsIxmKeySorterCreator: public SDBObject
    {
    private:
-      // disallow copy and assign
       _dmsIxmKeySorterCreator( const _dmsIxmKeySorterCreator& ) ;
       void operator=( const _dmsIxmKeySorterCreator& ) ;
 

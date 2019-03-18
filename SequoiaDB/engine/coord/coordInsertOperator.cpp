@@ -94,7 +94,6 @@ namespace engine
       INT32 rcTmp = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_INSERTOPR_EXE ) ;
 
-      // process define
       coordSendOptions sendOpt( TRUE ) ;
       sendOpt._useSpecialGrp = TRUE ;
 
@@ -106,7 +105,6 @@ namespace engine
       coordCataSel cataSel ;
       MsgRouteID errNodeID ;
 
-      // fill default-reply(insert success)
       MsgOpInsert *pInsertMsg          = (MsgOpInsert *)pMsg ;
       INT32 oldFlag                    = pInsertMsg->flags ;
       pInsertMsg->flags               |= FLG_INSERT_RETURNNUM ;
@@ -125,7 +123,6 @@ namespace engine
          goto error ;
       }
 
-      // add list op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "Collection:%s, Insertors:%s, ObjNum:%d, "
                           "Flag:0x%08x(%u)",
@@ -142,7 +139,6 @@ namespace engine
       }
 
    retry:
-      /// Do on collection
       pInsertMsg->version = cataSel.getCataPtr()->getVersion() ;
       pInsertMsg->w = 0 ;
       rcTmp = doOpOnCL( cataSel, BSONObj(), inMsg, sendOpt, cb, result ) ;
@@ -165,7 +161,6 @@ namespace engine
       }
 
    done:
-      /// AUDIT
       if ( pCollectionName )
       {
          PD_AUDIT_OP( AUDIT_DML, MSG_BS_INSERT_REQ, AUDIT_OBJ_CL,
@@ -176,7 +171,6 @@ namespace engine
       }
       if ( oldFlag & FLG_INSERT_RETURNNUM )
       {
-         /// InsertedNum(Hi) + IgnoredNum(Lo)
          contextID = ossPack32To64( _insertedNum, _ignoredNum ) ;
       }
       PD_TRACE_EXITRC ( COORD_INSERTOPR_EXE, rc ) ;
@@ -203,14 +197,11 @@ namespace engine
                                             pInsertMsg->nameLength + 1, 4 ) -
                     sizeof( MsgHeader ) ) ;
 
-      // clear send groups
       options._groupLst.clear() ;
 
       if ( !cataSel.getCataPtr()->isSharded() )
       {
-         // get group
          cataSel.getCataPtr()->getGroupLst( options._groupLst ) ;
-         // don't change the msg
          goto done ;
       }
       else if ( inMsg.data()->size() == 0 )
@@ -230,7 +221,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to shard data by group, rc: %d",
                       rc ) ;
 
-         // only one group, send by normal
          if ( 1 == inMsg._datas.size() )
          {
             UINT32 groupID = inMsg._datas.begin()->first ;
@@ -247,13 +237,11 @@ namespace engine
             }
          }
       }
-      // reshard
       else
       {
          rc = reshardData( cataSel.getCataPtr(), fixed, inMsg._datas ) ;
          PD_RC_CHECK( rc, PDERROR, "Re-shard data failed, rc: %d", rc ) ;
 
-         // build groups
          {
             GROUP_2_IOVEC::iterator it = inMsg._datas.begin() ;
             while( it != inMsg._datas.end() )
@@ -276,7 +264,6 @@ namespace engine
                                          pmdEDUCB *cb,
                                          coordProcessResult &result )
    {
-      // remove the datas by succeed group
       if ( inMsg._datas.size() > 0 )
       {
          CoordGroupList::iterator it = result._sucGroupLst.begin() ;
@@ -287,7 +274,6 @@ namespace engine
          }
       }
 
-      // clear all succeed group
       result._sucGroupLst.clear() ;
    }
 
@@ -304,7 +290,6 @@ namespace engine
       if ( pReply->contextID > 0 )
       {
          UINT32 hi1 = 0, lo1 = 0 ;
-         /// (UINT32)insertedNum + (UINT32)ignoredNum
          ossUnpack32From64( pReply->contextID, hi1, lo1 ) ;
          _insertedNum += hi1 ;
          _ignoredNum += lo1 ;
@@ -335,7 +320,6 @@ namespace engine
             goto error ;
          }
 
-         // add 2 group
          {
             netIOVec &iovec = datas[ groupID ] ;
             UINT32 size = iovec.size() ;
@@ -344,7 +328,6 @@ namespace engine
                if ( (const CHAR*)( iovec[size-1].iovBase ) +
                     iovec[size-1].iovLen == pInsertor )
                {
-                  // only change the length
                   iovec[size-1].iovLen += roundLen ;
                }
                else
@@ -434,7 +417,6 @@ namespace engine
       {
          netIOVec &iovec = it->second ;
          UINT32 size = iovec.size() ;
-         // skip the first
          for ( UINT32 i = 1 ; i < size ; ++i )
          {
             netIOV &ioItem = iovec[ i ] ;
@@ -517,15 +499,12 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Re-shard data failed, rc: %d", rc ) ;
       }
 
-      // build msg
       inMsg._datas.clear() ;
 
       rc = buildInsertMsg( fixed, _grpSubCLDatas, _vecObject, inMsg._datas ) ;
       PD_RC_CHECK( rc, PDERROR, "Build insert msg failed, rc: %d" ) ;
 
-      // clear send groups
       options._groupLst.clear() ;
-      // build group list
       it = inMsg._datas.begin() ;
       while( it != inMsg._datas.end() )
       {
@@ -546,7 +525,6 @@ namespace engine
                                              pmdEDUCB *cb,
                                              coordProcessResult &result )
    {
-      // remove the datas by succeed group
       if ( _grpSubCLDatas.size() > 0 )
       {
          CoordGroupList::iterator it = result._sucGroupLst.begin() ;
@@ -557,7 +535,6 @@ namespace engine
          }
       }
 
-      // clear all succeed group
       result._sucGroupLst.clear() ;
 
       _vecObject.clear() ;
@@ -589,7 +566,6 @@ namespace engine
             goto error ;
          }
 
-         /// get sub-collection's catalog info
          rc = _pResource->getOrUpdateCataInfo( subCLName.c_str(),
                                                subClCataInfo, cb ) ;
          if ( rc )
@@ -610,7 +586,6 @@ namespace engine
             goto error ;
          }
 
-         /// add to group
          (groupSubCLMap[ groupID ])[ subCLName ].push_back(
             netIOV( (const void*)pInsertor, roundLen ) ) ;
       }
@@ -730,7 +705,6 @@ namespace engine
             UINT32 dataLen = netCalcIOVecSize( subCLIOVec ) ;
             UINT32 objNum = subCLIOVec.size() ;
 
-            // first for sub cl info
             BSONObjBuilder subCLInfoBuild ;
             subCLInfoBuild.append( FIELD_NAME_SUBOBJSNUM, (INT32)objNum ) ;
             subCLInfoBuild.append( FIELD_NAME_SUBOBJSSIZE, (INT32)dataLen ) ;
@@ -742,7 +716,6 @@ namespace engine
             ioCLInfo.iovLen = subCLInfoObj.objsize() ;
             iovec.push_back( ioCLInfo ) ;
 
-            // need fill
             UINT32 infoRoundSize = ossRoundUpToMultipleX( ioCLInfo.iovLen,
                                                           4 ) ;
             if ( infoRoundSize > ioCLInfo.iovLen )

@@ -44,7 +44,6 @@ namespace exprt
    #define W_OK         2
    #endif
 
-   // general
    #define OPTION_HELP              "help"
    #define OPTION_VERSION           "version"
    #define OPTION_HOSTNAME          "hostname"
@@ -61,7 +60,6 @@ namespace exprt
    #define OPTION_FLOATFMT          "floatfmt"
    #define OPTION_REPLACE           "replace"
 
-   // single collection
    #define OPTION_COLLECTSPACE      "csname"
    #define OPTION_COLLECTION        "clname"
    #define OPTION_SELECT            "select"
@@ -71,15 +69,12 @@ namespace exprt
    #define OPTION_SKIP              "skip"
    #define OPTION_LIMIT             "limit"
 
-   // multi collection
    #define OPTION_CSCL              "cscl"
    #define OPTION_EXCLUDECSCL       "excludecscl"
    #define OPTION_DIRNAME           "dir"
 
-   //json
    #define OPTION_STRICT            "strict"
 
-   // csv
    #define OPTION_DELCHAR           "delchar"
    #define OPTION_DELFIELD          "delfield"
    #define OPTION_INCLUDE           "included"
@@ -88,13 +83,11 @@ namespace exprt
    #define OPTION_FORCE             "force"
    #define OPTION_KICKNULL          "kicknull"
      
-   // conf
    #define OPTION_CONF              "conf"
    #define OPTION_GENCONF           "genconf"
    #define OPTION_GENFIELDS         "genfields"
 
 
-   // general
    #define EXPLAIN_HELP             "help information"
    #define EXPLAIN_VERSION          "version"
    #define EXPLAIN_HOSTNAME         "host name, default: localhost"
@@ -115,10 +108,8 @@ namespace exprt
                                     "format %[+][.precision](f|e|E|g|G) ( float only )"
    #define EXPLAIN_REPLACE          "whether to overwrite the output file"
 
-   //json
    #define EXPLAIN_STRICT           "strict export of data types, default: false"
 
-   // csv
    #define EXPLAIN_DELCHAR          "string delimiter, default: '\"'"
    #define EXPLAIN_DELFIELD         "field delimiter, default: ',' "
    #define EXPLAIN_INCLUDE          "whether to include field names as csv head-line, default: true "
@@ -128,7 +119,6 @@ namespace exprt
                                     "the fields(except '_id') of first record in collection will be taken by default"
    #define EXPLAIN_KICKNULL         "whether kick null value, default: false"
 
-   // single collection
    #define EXPLAIN_COLLECTSPACE     "collection space name"
    #define EXPLAIN_COLLECTION       "collection name"
    #define EXPLAIN_SELECT           "the select rule(e.g. --select '{ age:\"\", address:{$trim:1} }')"
@@ -138,12 +128,10 @@ namespace exprt
    #define EXPLAIN_SKIP             "set the number of skip records, default: 0"
    #define EXPLAIN_LIMIT            "set the number of return records, default: -1 ( all return )"
 
-   // multi collection
    #define EXPLAIN_CSCL             "collection full name or collection space name to export, seperated by ','"
    #define EXPLAIN_EXCLUDECSCL      "collection full name or collection space name to exclude, seperated by ','"
    #define EXPLAIN_DIRNAME          "output dir path for collections"
 
-   // conf
    #define EXPLAIN_CONF             "the name of configure file"
    #define EXPLAIN_GENCONF          "the name of configure file to generate"
    #define EXPLAIN_GENFIELDS        "whether to generate option \"fields\" for each collection, default: true"
@@ -386,7 +374,6 @@ namespace exprt
       INT32 rc = SDB_OK ;
       string writeBuf ;
 
-      // general options
       WRITE_STR_OPTION( writeBuf, OPTION_HOSTNAME, _hostName, TRUE ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_SVCNAME, _svcName , TRUE ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_USER, _user, TRUE ) ;
@@ -396,10 +383,8 @@ namespace exprt
       WRITE_STR_OPTION( writeBuf, OPTION_FLOATFMT, _floatFmt, TRUE ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_REPLACE, "", _has( OPTION_REPLACE ) ) ;
 
-      // json options
       WRITE_BOOL_OPTION( writeBuf, OPTION_STRICT, _strict, _has(OPTION_STRICT) ) ;
 
-      // csv options
       WRITE_STR_OPTION( writeBuf, OPTION_DELCHAR, _delChar, TRUE ) ; 
       WRITE_STR_OPTION( writeBuf, OPTION_DELFIELD, _delField, TRUE ) ; 
       WRITE_BOOL_OPTION( writeBuf, OPTION_INCLUDE, _headLine, TRUE ) ;
@@ -409,7 +394,6 @@ namespace exprt
       WRITE_BOOL_OPTION( writeBuf, OPTION_KICKNULL, _kickNull, TRUE ) ;
       WRITE_BOOL_OPTION( writeBuf, OPTION_WITHID, _withId, FALSE ) ;
 
-      // single collection options
       WRITE_STR_OPTION( writeBuf, OPTION_COLLECTSPACE, _csName, _has(OPTION_COLLECTSPACE) ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_COLLECTION, _clName, _has(OPTION_COLLECTION) ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_SELECT, _select, _has(OPTION_SELECT) ); 
@@ -419,11 +403,9 @@ namespace exprt
       WRITE_INT64_OPTION( writeBuf, OPTION_SKIP, _skip,_has(OPTION_SKIP));
       WRITE_INT64_OPTION( writeBuf, OPTION_LIMIT, _limit,_has(OPTION_LIMIT));
 
-      // multi collection options
       WRITE_STR_OPTION( writeBuf, OPTION_CSCL, _cscl, _has(OPTION_CSCL) ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_EXCLUDECSCL, _excludeCscl, _has(OPTION_EXCLUDECSCL) ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_DIRNAME, _dir,_has(OPTION_DIRNAME) ) ;
-      // fields
       if ( _genFields )
       {
          for ( expCLSet::const_iterator i = clSet.begin(); clSet.end() != i;++i)
@@ -439,7 +421,6 @@ namespace exprt
          }
       }
       
-      // write conf
       rc = utilWriteConfigFile( _genConf.c_str(), writeBuf.c_str(), TRUE ) ;
       if ( SDB_FE == rc )
       {
@@ -654,7 +635,6 @@ namespace exprt
             str++ ;
             len-- ;
 
-            // escape ascii char
             if ( isdigit( nextCh ) )
             {
                INT64 c = 0 ;
@@ -662,7 +642,6 @@ namespace exprt
                while ( len > 0 && isdigit( *str ) )
                {
                   c = c * 10 + ( *str - '0' ) ;
-                  // the max ascii is 127
                   if ( c < 0 || c > 127 )
                   {
                      rc = SDB_INVALIDARG ;
@@ -712,7 +691,6 @@ namespace exprt
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-         // detect 0x
          else if ( '0' == ch )
          {
             CHAR nextCh = *( str + 1 ) ;
@@ -741,7 +719,6 @@ namespace exprt
 
                   c = c * 16 + hexValue( *str ) ;
 
-                  // the max ascii is 127
                   if ( c < 0 || c > 127 )
                   {
                      rc = SDB_INVALIDARG ;
@@ -786,7 +763,6 @@ namespace exprt
       goto done ;
    }
 
-   // check and set the delimiter options
    INT32 expOptions::_setDelOptions() 
    {
       INT32 rc = SDB_OK ;
@@ -869,7 +845,6 @@ namespace exprt
       goto done ;
    }
 
-   // check and set the configure-file options
    INT32 expOptions::_setConfOptions() 
    {
       INT32 rc = SDB_OK ;
@@ -969,12 +944,10 @@ namespace exprt
       goto done ;
    }
 
-   // check and set the single collection options
    INT32 expOptions::_setCollectionOptions() 
    {
       INT32 rc = SDB_OK ;
 
-      // -c,-l must be specified together
       if ( ( !_has(OPTION_COLLECTSPACE) && _has(OPTION_COLLECTION) ) ||
            ( _has(OPTION_COLLECTSPACE) && !_has(OPTION_COLLECTION) ) )
       {
@@ -986,7 +959,6 @@ namespace exprt
          goto error ;
       }
 
-      // -c/-l cant be used mixing with --cscl/--excludecscl
       if ( _has(OPTION_COLLECTSPACE) &&
            ( _has(OPTION_CSCL) || _has(OPTION_EXCLUDECSCL) ) )
       {
@@ -1001,7 +973,6 @@ namespace exprt
          goto error ;
       }
 
-      // --select cant be used with --fields
       if ( _has(OPTION_SELECT) && _has(OPTION_FIELDS) )
       {
          cerr << "option \"" << OPTION_SELECT << "\" and "

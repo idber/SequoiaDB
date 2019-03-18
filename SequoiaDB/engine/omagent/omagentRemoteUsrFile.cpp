@@ -68,7 +68,6 @@ namespace engine
    #define OMA_REMOTE_FIELD_NAME_MD5            "MD5"
    #define OMA_REMOTE_FIELD_NAME_IS_BINARY      "IsBinary"
 
-   // function to get current thread omagent session
    static omaSession* _getThreadOmaSession()
    {
       ISession *pSession = NULL ;
@@ -128,7 +127,6 @@ namespace engine
       string err ;
       UINT32 fID = 0 ;
 
-      // get argument
       if ( FALSE == _valueObj.hasField( OMA_REMOTE_FIELD_NAME_FILENAME ) )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -161,7 +159,6 @@ namespace engine
       rc = fileCommon->open( filename, _optionObj, err ) ;
       if( SDB_OK != rc )
       {
-         // Need to release file obj if failed to open file
          pAgentSession->releaseFileObj( fID ) ;
          PD_LOG_MSG( PDERROR, "%s", err.c_str() ) ;
          goto error ;
@@ -194,7 +191,6 @@ namespace engine
       rc = _remoteExec::init( pInfomation ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get argument, rc: %d", rc ) ;
 
-      // Check flags to determine if need to return data using binary type
       if( _optionObj.hasField( OMA_REMOTE_FIELD_NAME_IS_BINARY ) )
       {
          BSONElement ele ;
@@ -279,7 +275,6 @@ namespace engine
          goto error ;
       }
 
-      // read content
       rc = fileCommon->read( BSON( SPT_FILE_COMMON_FIELD_SIZE << _size ),
                              err, &buf, readLen ) ;
       if( SDB_OK != rc )
@@ -393,7 +388,6 @@ namespace engine
          goto error ;
       }
 
-      // write content
       rc = fileCommon->write( _content, _size, err ) ;
       if( SDB_OK != rc )
       {
@@ -425,7 +419,6 @@ namespace engine
       rc = _remoteExec::init( pInfomation ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get argument, rc: %d", rc ) ;
 
-      // get FID
       if( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_FID ) )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -440,7 +433,6 @@ namespace engine
       }
       _FID = _matchObj.getIntField( OMA_REMOTE_FIELD_NAME_FID ) ;
 
-      // get SeekSize
       if( FALSE == _valueObj.hasField( OMA_REMOTE_FIELD_NAME_SEEK_SIZE ) )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -524,7 +516,6 @@ namespace engine
       rc = _remoteExec::init( pInfomation ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get argument, rc: %d", rc ) ;
 
-      // get FID
       if( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_FID ) )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -607,7 +598,6 @@ namespace engine
       string filepath ;
       string err ;
 
-      // get pathname
       if ( FALSE == _valueObj.hasField( OMA_REMOTE_FIELD_NAME_PATHNAME ) )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -713,7 +703,6 @@ namespace engine
       string dst ;
       string err ;
 
-      // get argument
       if ( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_SRC ) )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -779,7 +768,6 @@ namespace engine
       string dst ;
       string err ;
 
-      // get argument
       if ( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_SRC ) )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -844,7 +832,6 @@ namespace engine
       string name ;
       string err ;
 
-      // get argument
       if ( FALSE == _valueObj.hasField( OMA_REMOTE_FIELD_NAME_DIRNAME ) )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -894,7 +881,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       string err ;
 
-      // get argument
       if ( TRUE == _optionObj.isEmpty() )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -939,7 +925,6 @@ namespace engine
       INT32 mode = 0 ;
       string err ;
 
-      // get argument
       if ( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_PATHNAME ) )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -1004,7 +989,6 @@ namespace engine
       string pathname ;
       string err ;
 
-      // get argument
       if ( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_PATHNAME ) )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -1055,7 +1039,6 @@ namespace engine
       string pathname ;
       string groupname ;
       string err ;
-      // get argument
       if ( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_PATHNAME ) )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -1158,7 +1141,6 @@ namespace engine
       string err ;
       INT32 mask = 0 ;
 
-      // get argument
       if ( FALSE == _valueObj.hasField( OMA_REMOTE_FIELD_NAME_MASK ) )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -1245,7 +1227,6 @@ namespace engine
       string pathType ;
       string err ;
 
-      // get argument
       if ( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_PATHNAME ) )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -1298,7 +1279,6 @@ namespace engine
       string pathname ;
       string err ;
 
-      // get pathname
       if ( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_PATHNAME ) )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -1350,7 +1330,6 @@ namespace engine
       string pathname ;
       string err ;
 
-      // get argument
       if ( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_FILENAME ) )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -1402,7 +1381,6 @@ namespace engine
       string err ;
       string code ;
 
-      // check, we need 1 argument filename
       if ( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_FILENAME ) )
       {
          rc = SDB_INVALIDARG  ;
@@ -1456,7 +1434,6 @@ namespace engine
       string name ;
       string err ;
 
-      // get filename
       if ( FALSE == _matchObj.hasField( OMA_REMOTE_FIELD_NAME_FILENAME ) )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -1509,7 +1486,6 @@ namespace engine
       string err ;
       INT32 permission = 0 ;
 
-      // get pathname
       if( FALSE == _valueObj.hasField( OMA_REMOTE_FIELD_NAME_PATHNAME ) )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -1607,7 +1583,6 @@ namespace engine
          goto error ;
       }
 
-      // read content
       rc = fileCommon->readLine( err, &buf, readLen ) ;
       if( SDB_OK != rc )
       {

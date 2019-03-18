@@ -97,18 +97,15 @@ namespace engine
 
          OSS_INLINE virtual INT32 createMatchTree ()
          {
-            // Do nothing
             return SDB_OK ;
          }
 
          OSS_INLINE virtual void deleteMatchTree ()
          {
-            // Do nothing
          }
 
          OSS_INLINE virtual void setMatchTree ( mthMatchTree *matchTree )
          {
-            // Do nothing
          }
 
       protected :
@@ -163,11 +160,9 @@ namespace engine
 
          OSS_INLINE virtual void setParamPredList ( RTN_PARAM_PREDICATE_LIST *paramPredList )
          {
-            // Do nothing
          }
 
       protected :
-         // Predicate set generated from matcher tree
          RTN_PARAM_PREDICATE_LIST _stackParamPredList ;
    } ;
 

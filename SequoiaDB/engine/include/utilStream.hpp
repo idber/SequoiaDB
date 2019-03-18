@@ -47,7 +47,6 @@ namespace engine
    class utilInStream: public SDBObject
    {
    private:
-      // disallow copy and assign
       utilInStream( const utilInStream& ) ;
       void operator=( const utilInStream& ) ;
    protected:
@@ -62,7 +61,6 @@ namespace engine
    class utilOutStream: public SDBObject
    {
    private:
-      // disallow copy and assign
       utilOutStream( const utilOutStream& ) ;
       void operator=( const utilOutStream& ) ;
    protected:

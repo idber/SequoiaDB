@@ -1,6 +1,6 @@
 /*******************************************************************************
 
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -53,11 +53,6 @@ function _getPluginList()
    {
       var fileInfo = record.toObj() ;
       var fileName = fileInfo[FIELD_NAME2] ;
-
-      if ( fileName == 'SequoiaSQL-PostgreSQL' )
-      {
-         continue ;
-      }
 
       if( File.isDir( rootPath + "/" + fileName ) )
       {
@@ -211,29 +206,14 @@ function _startPlugins( isChange )
 
 function _getOmConfig()
 {
-   var isFind = false ;
-   var httpName = "11784" ;
-   var cursor = Sdbtool.listNodes( { "type": "om", "mode": "run", "expand": true } ) ;
-   var record ;
+   var httpName = "8000" ;
+   var cursor = Sdbtool.listNodes( { "type": "om", "expand": true } ) ;
 
    while( record = cursor.next() )
    {
       var omInfo = record.toObj() ;
       httpName = omInfo[FIELD_HTTP_NAME] ;
-      isFind = true ;
       break ;
-   }
-
-   if( isFind == false )
-   {
-      cursor = Sdbtool.listNodes( { "type": "om", "mode": "local", "expand": true } ) ;
-      while( record = cursor.next() )
-      {
-         var omInfo = record.toObj() ;
-         httpName = omInfo[FIELD_HTTP_NAME] ;
-         isFind = true ;
-         break ;
-      }
    }
 
    return httpName ;

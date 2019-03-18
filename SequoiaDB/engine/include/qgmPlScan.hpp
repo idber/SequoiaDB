@@ -50,11 +50,8 @@ namespace engine
    class _qgmPlScan : public _qgmPlan
    {
    public:
-      //  element in orderby  does not include the collection name.
       _qgmPlScan( const qgmDbAttr &collection,
 
-                  // element should be:
-                  // field:alias
                   const qgmOPFieldVec &selector,
                   const BSONObj &orderby,
                   const BSONObj &hint,
@@ -99,7 +96,6 @@ namespace engine
       INT64 _skip ;
       INT64 _return ;
 
-      /// if it is a data
       SDB_DMSCB *_dmsCB ;
       SDB_RTNCB *_rtnCB ;
 

@@ -52,7 +52,6 @@ const CHAR* serviceID2String( UINT32 serviceID ) ;
 string routeID2String( MsgRouteID routeID ) ;
 string routeID2String( UINT64 nodeID ) ;
 
-///  get the msg type string desp
 const CHAR* msgType2String( MSG_TYPE msgType, BOOLEAN isCommand = FALSE ) ;
 
 /*

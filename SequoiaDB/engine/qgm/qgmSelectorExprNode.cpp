@@ -270,7 +270,6 @@ namespace engine
       }
       else
       {
-         //MOD
          rc = lv.mod( rv, v ) ;
          if ( SDB_OK != rc )
          {

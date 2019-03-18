@@ -42,7 +42,6 @@ namespace import
 
       if (data[0] == str[0])
       {
-         // accelerate for single character
          if (1 == strLen)
          {
             return TRUE;
@@ -103,7 +102,6 @@ namespace import
       SDB_ASSERT(length > 0, "length must be greater than 0");
       SDB_ASSERT(recDelLen > 0, "recDelLen must be greater than 0");
 
-      // no need to consider string
       if (_linePriority || _stringDelimiter.empty())
       {
          while(len > 0)
@@ -120,7 +118,6 @@ namespace import
             str++;
          }
       }
-      // should consider string
       else
       {
          const CHAR* strDel = _stringDelimiter.c_str();
@@ -151,7 +148,6 @@ namespace import
             {
                if (_startWith(str, len, strDel, strDelLen))
                {
-                  // previous character is escape
                   /*if ('\\' == *(str - 1))
                   {
                      len -= strDelLen;
@@ -162,7 +158,6 @@ namespace import
                   len -= strDelLen;
                   str += strDelLen;
 
-                  // two consecutive string delimiter
                   if (len > 0 && _startWith(str, len, strDel, strDelLen))
                   {
                      len -= strDelLen;
@@ -170,7 +165,6 @@ namespace import
                      continue;
                   }
 
-                  // the string is end
                   inString = FALSE;
                   continue;
                }
@@ -184,7 +178,6 @@ namespace import
       if (SDB_EOF == rc && final)
       {
          recordLength = length;
-         // it's safe to terminate the string
          str = (CHAR*)data + length;
          *str = '\0';
          rc = SDB_OK;
@@ -247,7 +240,6 @@ namespace import
             }
             break;
          case '\\':
-            // escape char, so skip one more char
             str++;
             len--;
             break;
@@ -258,7 +250,6 @@ namespace import
          str++;
          len--;
 
-         // json is closed
          if (hasJson && level == 0)
          {
             rc = SDB_OK;
@@ -268,7 +259,6 @@ namespace import
 
       if (SDB_OK == rc)
       {
-         // skip chars until next json
          while (len > 0)
          {
             if ('{' == *str)
@@ -285,7 +275,6 @@ namespace import
       else if (SDB_EOF == rc && final)
       {
          recordLength = length;
-         // it's safe to terminate the string
          str = (CHAR*)data + length;
          *str = '\0';
          rc = SDB_OK;

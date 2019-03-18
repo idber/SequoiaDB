@@ -167,11 +167,9 @@ namespace engine
       if ( cb )
       {
          tid = cb->getTID() ;
-         // get all pre-read reply
          _getPrepareNodesData( cb, TRUE ) ;
       }
 
-      // push all ordered context to prepare map
       SUB_ORDERED_CTX_MAP::iterator itSub = _orderedContextMap.begin() ;
       while ( _orderedContextMap.end() != itSub )
       {
@@ -194,7 +192,6 @@ namespace engine
       }
       _emptyContextMap.clear() ;
 
-      // kill sub context
       if ( cb && !cb->isInterrupted() )
       {
          MsgOpKillContexts killMsg ;
@@ -214,7 +211,6 @@ namespace engine
             contextID = pSubContext->contextID() ;
             if ( -1 == contextID )
             {
-               // Ignore invalid context ID
                ++it ;
                continue ;
             }
@@ -233,12 +229,10 @@ namespace engine
 
          if ( _prepareContextMap.size() > 0 )
          {
-            /// recv reply, avoid timeout and kill with cascade
             _pSession->waitReply1( TRUE, NULL, FALSE ) ;
          }
       }
 
-      // release all context
       it = _prepareContextMap.begin() ;
       while ( it != _prepareContextMap.end() )
       {
@@ -463,7 +457,6 @@ namespace engine
             }
             else
             {
-               // release data
                SDB_OSS_FREE( (CHAR*)pReply ) ;
                pReply = NULL ;
             }
@@ -581,9 +574,6 @@ namespace engine
          goto error ;
       }
 
-      // after appendData success, the data-pointer is manage by subContext.
-      // if the data-pointer will be delete by others, the clearData should be
-      // called first.
       pSubContext->appendData( pReply ) ;
 
       rc = _processSubContext( pSubContext, skipData ) ;
@@ -729,7 +719,6 @@ namespace engine
          goto error ;
       }
 
-      // query with return data
       if ( pReply->numReturned > 0 )
       {
          EMPTY_CONTEXT_MAP::iterator it ;
@@ -884,10 +873,7 @@ namespace engine
       SDB_ASSERT( NULL != subCtx, "subCtx can't be NULL" ) ;
       SDB_ASSERT( subCtx->recordNum() == 0, "sub ctx is not empty" ) ;
 
-      // move empty sub ctx from _orderedContextMap to _emptyContextMap
 
-      // generally, subctx is first element of _orderedContextMap
-      // so don't worry about performance
       for ( SUB_ORDERED_CTX_MAP::iterator iter = _orderedContextMap.begin() ;
             iter != _orderedContextMap.end() ;
             ++iter )
@@ -902,7 +888,6 @@ namespace engine
       rc = _saveEmptyOrderedSubCtx( subCtx ) ;
       if ( SDB_OK != rc )
       {
-         // rtnContextMain will delete subCtx
          goto error ;
       }
 
@@ -917,8 +902,6 @@ namespace engine
       SDB_ASSERT( NULL != subCtx, "subCtx can't be NULL" ) ;
       SDB_ASSERT( subCtx->recordNum() > 0, "sub ctx is empty" ) ;
 
-      // sub ctx is in _orderedContextMap,
-      // no need to do anything
       return SDB_OK ;
    }
 
@@ -1245,9 +1228,6 @@ namespace engine
 
          coordContext->optimizeReturnOptions( pQueryMsg, targetGroupNum ) ;
 
-         // Reset local skip and limit values
-         // NOTE: no need to reset _queryOptions which is the options passed to
-         //       COORD rather than options executed on COORD
          _numToSkip = coordContext->getNumToSkip() ;
          _numToReturn = coordContext->getNumToReturn() ;
 
@@ -1359,7 +1339,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to register explain processor, "
                    "rc: %d", rc ) ;
 
-      // Reset selector
       if ( options.testFlag( FLG_QUERY_STRINGOUT ) )
       {
          needResetSubQuery = TRUE ;
@@ -1370,7 +1349,6 @@ namespace engine
                                needResetSubQuery ) ;
       }
 
-      // Will not process selector in coord context
       if ( !needResetSubQuery )
       {
          subOptions.setSelector( BSONObj() ) ;
@@ -1420,7 +1398,6 @@ namespace engine
 
       if ( _needRun )
       {
-         // Calculate wait time
          rtnContextCoord * coordContext = NULL ;
          ossTickDelta waitTime ;
 
@@ -1522,7 +1499,6 @@ namespace engine
       {
          hasOption = FALSE ;
 
-         // Get location option
          ele = explainOptions.getField( FIELD_NAME_LOCATION ) ;
          if ( Object == ele.type() )
          {
@@ -1533,8 +1509,6 @@ namespace engine
          {
             if ( explainOptions.hasField( FIELD_NAME_SUB_COLLECTIONS ) )
             {
-               // The COORD doesn't need "SubCollections" option,
-               // but it need to make sure "Detail" option is enabled
                hasOption = TRUE ;
             }
             goto done ;

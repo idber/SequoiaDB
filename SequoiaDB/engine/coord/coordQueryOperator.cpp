@@ -95,7 +95,6 @@ namespace engine
             }
          }
 
-         // modification can only be executed in primary node
          options._primary = TRUE ;
       }
 
@@ -268,15 +267,12 @@ namespace engine
          netIOVec &iovec = inMsg._datas[ it->first ] ;
          netIOV ioItem ;
 
-         // 1. first vec
          ioItem.iovBase = (CHAR*)inMsg.msg() + sizeof( MsgHeader ) ;
          ioItem.iovLen = ossRoundUpToMultipleX ( offsetof(MsgOpQuery, name) +
                          pQueryMsg->nameLength + 1, 4 ) - sizeof( MsgHeader ) ;
          iovec.push_back( ioItem ) ;
 
-         // 2. new query vec
          newQuery = _buildNewQuery( objQuery, subCLLst ) ;
-         // 2.1 add to buff
          UINT32 roundLen = ossRoundUpToMultipleX( newQuery.objsize(), 4 ) ;
          if ( buffPos + roundLen > buffLen )
          {
@@ -295,7 +291,6 @@ namespace engine
          buffPos += roundLen ;
          iovec.push_back( ioItem ) ;
 
-         // 3. last vec
          ioItem.iovBase = objSelector.objdata() ;
          ioItem.iovLen = ossRoundUpToMultipleX( objSelector.objsize(), 4 ) +
                          ossRoundUpToMultipleX( objOrderby.objsize(), 4 ) +
@@ -356,7 +351,6 @@ namespace engine
       coordCommandFactory *pFactory    = NULL ;
       coordOperator *pOperator         = NULL ;
 
-      // fill default-reply(query success)
       contextID                        = -1 ;
 
       CHAR *pCollectionName            = NULL ;
@@ -378,7 +372,6 @@ namespace engine
          goto error ;
       }
 
-      // process command
       if ( pCollectionName != NULL && '$' == pCollectionName[0] )
       {
          pFactory = coordGetFactory() ;
@@ -412,7 +405,6 @@ namespace engine
       {
          coordSendOptions sendOpt ;
 
-         // add last op info
          MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                              "Collection:%s, Matcher:%s, Selector:%s, "
                              "OrderBy:%s, Hint:%s, Skip:%llu, Limit:%lld, "
@@ -426,7 +418,6 @@ namespace engine
                              flag, flag ) ;
 
          rc = queryOrDoOnCL( pMsg, cb, &pContext, sendOpt, NULL, buf ) ;
-         /// AUDIT
          PD_AUDIT_OP( ( flag & FLG_QUERY_MODIFY ? AUDIT_DML : AUDIT_DQL ),
                       MSG_BS_QUERY_REQ, AUDIT_OBJ_CL,
                       pCollectionName, rc,
@@ -532,7 +523,6 @@ namespace engine
       }
       updator = ele.Obj() ;
 
-      /// Init kicker
       kicker.bind( _pResource, cataInfo ) ;
 
       rc = kicker.kickShardingKey( updator, newUpdator,
@@ -545,7 +535,6 @@ namespace engine
       }
       isEmpty = newUpdator.isEmpty() ? TRUE : FALSE ;
 
-      /// Builder new hint
       if ( isChanged )
       {
          BSONObjBuilder builder( hint.objsize() ) ;
@@ -558,7 +547,6 @@ namespace engine
             {
                if ( isEmpty )
                {
-                  /// new updator is empty, the whole $Modify will be removed
                   continue ;
                }
 
@@ -726,7 +714,6 @@ namespace engine
                contextType = RTN_CONTEXT_COORD_EXP ;
             }
 
-            // create context
             rc = pRtncb->contextNew( contextType,
                                      (rtnContext **)pContext,
                                      contextID, cb ) ;
@@ -736,7 +723,6 @@ namespace engine
          else
          {
             contextID = (*pContext)->contextID() ;
-            // the context is create in out side, do nothing
          }
          _pContext = *pContext ;
       }
@@ -762,7 +748,6 @@ namespace engine
                rtnNeedResetSelector( objSelector, objOrderby, needResetSubQuery ) ;
             }
 
-            // build new selector
             if ( needResetSubQuery )
             {
                static BSONObj emptyObj = BSONObj() ;
@@ -785,7 +770,6 @@ namespace engine
             options.setLimit( pQueryMsg->numToReturn ) ;
             options.resetFlag( pQueryMsg->flags ) ;
 
-            // The explain will reset the selector itself for sub-context
             if ( OSS_BIT_TEST( pQueryMsg->flags, FLG_QUERY_EXPLAIN ) ||
                  needResetSubQuery )
             {
@@ -796,17 +780,12 @@ namespace engine
                options.setSelector( BSONObj() ) ;
             }
 
-            // open context
             rc = _pContext->open( options,
                                   ( FLG_QUERY_MODIFY & pQueryMsg->flags )
                                   ? FALSE : TRUE ) ;
 
-            // change some data
             if ( pQueryMsg->numToReturn > 0 && pQueryMsg->numToSkip > 0 )
             {
-               // some record may skip on coord,
-               // so the num of records from data-node must
-               // more than "numToReturn + numToSkip"
                pQueryMsg->numToReturn += pQueryMsg->numToSkip ;
             }
             pQueryMsg->numToSkip = 0 ;
@@ -818,7 +797,6 @@ namespace engine
          }
          PD_RC_CHECK( rc, PDERROR, "Open context failed, rc: %d", rc ) ;
 
-         // sample timetamp
          if ( cb->getMonConfigCB()->timestampON )
          {
             _pContext->getMonCB()->recordStartTimestamp() ;
@@ -841,21 +819,17 @@ namespace engine
          _groupSession.getGroupCtrl()->incRetry() ;
       }
 
-      //e.g. objHint = {"$Modify":{"OP":"update", "Update":{"$set":{a:1}} } }
       isUpdate = _isUpdate( objHint, pQueryMsg->flags ) ;
-      /// save the last msg
       pLastMsg = ( const CHAR* )pQueryMsg ;
 
    retry:
       do
       {
-         /// restore the last msg
          pQueryMsg = ( MsgOpQuery* )pLastMsg ;
          inMsg._pMsg = ( MsgHeader* )pLastMsg ;
 
          if ( isUpdate && cataSel.getCataPtr()->isSharded() )
          {
-            //kick shardingKey
             BOOLEAN isChanged = FALSE ;
             BSONObj tmpNewHint ;
             BOOLEAN isEmpty = FALSE ;
@@ -961,7 +935,6 @@ namespace engine
       }
       sendOpt._pIgnoreRC = pOldIgnoreRC ;
 
-      /// reset info
       _pContext = NULL ;
       _processRet = SDB_OK ;
       return rc ;

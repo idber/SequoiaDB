@@ -102,11 +102,7 @@ namespace engine
             {
                BSONObjBuilder objBD( arrayBD.subobjStart() ) ;
                objBD.append( FIELD_NAME_NODE_NAME, strNodeName ) ;
-               //objBD.append( FIELD_NAME_HOST, strHostName ) ;
-               //objBD.append( FIELD_NAME_SERVICE_NAME, strServiceName ) ;
                objBD.append( FIELD_NAME_GROUPNAME, strGroupName ) ;
-               //objBD.append( FIELD_NAME_GROUPID, routeID.columns.groupID ) ;
-               //objBD.append( FIELD_NAME_NODEID, (INT32)routeID.columns.nodeID ) ;
                objBD.append( FIELD_NAME_RCFLAG, iter->second._rc ) ;
                objBD.append( FIELD_NAME_ERROR_IINFO, iter->second._obj ) ;
                objBD.done() ;
@@ -115,7 +111,6 @@ namespace engine
             {
                PD_LOG( PDWARNING, "Build error object occur exception: %s",
                        e.what() ) ;
-               /// then ignored this record
             }
             ++iter ;
          }
@@ -145,7 +140,6 @@ namespace engine
       builder.append( OP_ERRNOFIELD, flag ) ;
       builder.append( OP_ERRDESP_FIELD, getErrDesp( flag ) ) ;
       builder.append( OP_ERR_DETAIL, pDetail ? pDetail : "" ) ;
-      /// add ErrNodes
       if ( pFailedNodes && pFailedNodes->size() > 0 )
       {
          coordBuildFailedNodeReply( pResource, *pFailedNodes, builder ) ;
@@ -191,7 +185,6 @@ namespace engine
                goto error ;
             }
 
-            // add to group list
             groupLst[ beTmp.numberInt() ] = beTmp.numberInt() ;
             PD_LOG( PDDEBUG, "Get group[%d] into list", beTmp.numberInt() ) ;
          }
@@ -228,13 +221,11 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Parse object[%s] group list failed, rc: %d",
                    obj.toString().c_str(), rc ) ;
 
-      /// group id
       for ( i = 0 ; i < tmpVecInt.size() ; ++i )
       {
          groupList[(UINT32)tmpVecInt[i]] = (UINT32)tmpVecInt[i] ;
       }
 
-      /// group name
       for ( i = 0 ; i < tmpVecStr.size() ; ++i )
       {
          rc = pResource->getGroupInfo( tmpVecStr[i], grpPtr ) ;
@@ -341,7 +332,6 @@ namespace engine
       {
          if ( !reNew && groupMap.end() != groupMap.find( it->second ) )
          {
-            // alredy exist, don't update group info
             ++it ;
             continue ;
          }
@@ -408,7 +398,6 @@ namespace engine
          emptyFilter = FALSE ;
       }
 
-      /// parse nodes
       it = groupPtrs.begin() ;
       while ( it != groupPtrs.end() )
       {
@@ -423,7 +412,6 @@ namespace engine
             randNum %= grp->nodeCount() ;
          }
 
-         /// calc pos
          while ( calTimes++ < grp->nodeCount() )
          {
             if ( NODE_SEL_SECONDARY == emptyFilterSel &&
@@ -450,7 +438,6 @@ namespace engine
             {
                BOOLEAN findNode = FALSE ;
                UINT32 index = 0 ;
-               /// check node id
                for ( index = 0 ; index < vecNodeID.size() ; ++index )
                {
                   if ( (UINT16)vecNodeID[ index ] == itrn->_id.columns.nodeID )
@@ -465,7 +452,6 @@ namespace engine
                }
 
                findNode = FALSE ;
-               /// check host name
                for ( index = 0 ; index < vecHostName.size() ; ++index )
                {
                   if ( 0 == ossStrcmp( vecHostName[ index ],
@@ -481,7 +467,6 @@ namespace engine
                }
 
                findNode = FALSE ;
-               /// check svcname
                for ( index = 0 ; index < vecSvcName.size() ; ++index )
                {
                   if ( 0 == ossStrcmp( vecSvcName[ index ],

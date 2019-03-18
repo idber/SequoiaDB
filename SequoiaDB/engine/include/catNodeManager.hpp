@@ -69,7 +69,6 @@ namespace engine
       INT32 active() ;
       INT32 deactive() ;
 
-   // message process functions
    protected:
       INT32 processCommandMsg( const NET_HANDLE &handle, MsgHeader *pMsg,
                                BOOLEAN writable ) ;
@@ -103,7 +102,6 @@ namespace engine
    protected:
       void  _fillRspHeader( MsgHeader *rspMsg, const MsgHeader *reqMsg ) ;
 
-   // tool fuctions
    private:
       INT32 _createGrp( const CHAR *groupName ) ;
       INT32 _updateNodeToGrp ( BSONObj &boGroupInfo,

@@ -46,7 +46,6 @@ namespace engine
    #define DMS_LOBM_EYECATCHER               "SDBLOBM"
    #define DMS_LOBM_EYECATCHER_LEN           8
 
-   /// must be power of 2
    const UINT32 DMS_BUCKETS_NUM =   16777216 ; // 16MB
    #define DMS_BUCKETS_MODULO       16777215
    #define DMS_BUCKETS_LATCH_SIZE   128
@@ -134,8 +133,6 @@ namespace engine
                     _pmdEDUCB *cb,
                     SDB_DPSCB *dpscb ) ;
 
-      /// user should make sure that the length of
-      ///  buf is enough
       INT32 read( const dmsLobRecord &record,
                   dmsMBContext *mbContext,
                   _pmdEDUCB *cb,
@@ -216,7 +213,6 @@ namespace engine
                                           dmsStorageInfo *pInfo ) ;
       virtual INT32  _checkPageSize( dmsStorageUnitHeader *pHeader ) ;
 
-      /// flush callback:  SDB_OK: continue, no SDB_OK: stop
       virtual INT32  _onFlushDirty( BOOLEAN force, BOOLEAN sync ) ;
 
       virtual INT32  _onMarkHeaderValid( UINT64 &lastLSN,
@@ -257,10 +253,8 @@ namespace engine
                        DMS_LOB_PAGEID page,
                        dmsMBContext *mbContext ) ;
 
-      /// only release space of page. will not change other meta data.
       INT32 _releasePage( DMS_LOB_PAGEID page, dmsMBContext *mbContext ) ;
 
-      /// release space of page and change other meta data.
       INT32 _removePage( DMS_LOB_PAGEID page,
                          _dmsLobDataMapBlk *blk,
                          const UINT32 *bucket,

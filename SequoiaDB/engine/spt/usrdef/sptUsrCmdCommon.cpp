@@ -135,10 +135,8 @@ namespace engine
       }
 
 #if defined( _LINUX )
-      // we should block SIGCHLD and rembmer caller's mask
       sigemptyset ( &childmask ) ;
       sigaddset ( &childmask, SIGCHLD ) ;
-      // set new mask, save old mask
       rc = pthread_sigmask( SIG_BLOCK, &childmask, &savemask ) ;
       if ( rc )
       {
@@ -146,10 +144,8 @@ namespace engine
          rc = SDB_SYS ;
          goto error ;
       }
-      // once we changed signal mask, we have to restore it later
       restoreSigMask = TRUE ;
 
-      // change sigchld action to default
       ignore.sa_handler = SIG_DFL ;
       sigemptyset ( &ignore.sa_mask ) ;
       ignore.sa_flags = 0 ;
@@ -160,7 +156,6 @@ namespace engine
          rc = SDB_SYS ;
          goto error ;
       }
-      // once we change signal handler, we have to restore it later
       restoreSIGCHLDHandling = TRUE ;
 #endif //_LINUX
 
@@ -192,7 +187,6 @@ namespace engine
                }
                else
                {
-                  /// get exitcode and out string
                   rc = ossGetExitCodeProcess( processHandle, _retCode ) ;
                   if ( rc )
                   {

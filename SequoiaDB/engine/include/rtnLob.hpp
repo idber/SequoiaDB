@@ -43,7 +43,6 @@ namespace engine
 {
    class _rtnLobStream ;
 
-   /// interfaces for stream
 
    /*
       Note: The pStream will be takeover in cases both failed and succed
@@ -98,7 +97,6 @@ namespace engine
                             pmdEDUCB *cb,
                             BSONObj &meta ) ;
 
-   /// interfaces for non-stream
    INT32 rtnCreateLob( const CHAR *fullName,
                        const bson::OID &oid,
                        _dmsLobMeta &meta,

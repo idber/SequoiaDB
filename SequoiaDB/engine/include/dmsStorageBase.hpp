@@ -72,9 +72,6 @@ namespace engine
    {
       UINT32      _pageSize ;
       CHAR        _suName [ DMS_SU_NAME_SZ + 1 ] ; // storage unit file name is
-                                                   // foo.0 / foo.1, where foo
-                                                   // is suName, and 0/1 are
-                                                   // _sequence
       UINT32      _sequence ;
       UINT64      _secretValue ;
       UINT32       _lobdPageSize ;
@@ -87,7 +84,6 @@ namespace engine
       UINT32      _cacheMergeSize ;
       UINT32      _pageAllocTimeout ;
 
-      /// Data is OK
       BOOLEAN     _dataIsOK ;
       UINT64      _curLSNOnStart ;
 
@@ -242,7 +238,6 @@ namespace engine
          void     setFullDirty() { _fullDirty = TRUE ; }
          BOOLEAN  isFullDirty() const { return _fullDirty ; }
 
-         /// return -1 for no find the pos
          INT32    nextDirtyPos( UINT32 &fromPos ) const ;
          void     cleanAll() ;
          UINT32   dirtyNumber() const ;
@@ -360,7 +355,6 @@ namespace engine
                           dmsStorageInfo *pInfo ) ;
          virtual ~_dmsStorageBase() ;
 
-      /// For Persistence
       public:
          virtual BOOLEAN      isClosed() const ;
          virtual BOOLEAN      canSync( BOOLEAN &force ) const ;
@@ -461,7 +455,6 @@ namespace engine
          INT32 renameStorage( const CHAR *csName,
                               const CHAR *suFileName ) ;
 
-         /// flush functions
          INT32 flushHeader( BOOLEAN sync = FALSE ) ;
          INT32 flushSME( BOOLEAN sync = FALSE ) ;
          INT32 flushMeta( BOOLEAN sync = FALSE,
@@ -475,7 +468,6 @@ namespace engine
                                    BOOLEAN force = TRUE,
                                    BOOLEAN sync = TRUE ) ;
 
-         /// virtual interface
          virtual void  syncMemToMmap () {}
          virtual BOOLEAN isOpened() const { return ossMmapFile::_opened ; }
 
@@ -497,7 +489,6 @@ namespace engine
          /*
             For Persistence
          */
-         /// flush callback:  SDB_OK: continue, no SDB_OK: stop
          virtual INT32  _onFlushDirty( BOOLEAN force, BOOLEAN sync )
          {
             return SDB_OK ;
@@ -515,8 +506,6 @@ namespace engine
             return SDB_OK ;
          }
 
-         // Called when trying to find freespace. The return value specifies
-         // whether to do the allocation or not.
          virtual void _onAllocSpaceReady( dmsContext *context, BOOLEAN &doit )
          {
             doit = TRUE ;
@@ -530,7 +519,6 @@ namespace engine
          virtual INT32 _extendSegments( UINT32 numSeg ) ;
 
       protected:
-         // No space will extent new segment
          INT32    _findFreeSpace ( UINT16 numPages, SINT32 &foundPage,
                                    dmsContext *context ) ;
          INT32    _releaseSpace ( SINT32 pageStart, UINT16 numPages ) ;
@@ -568,7 +556,6 @@ namespace engine
          UINT32                        _pageSize ;    // cache, not use header
          UINT32                        _lobPageSize ; // cache, not use header
 
-      /// for persistence
       private:
          dmsDirtyList                  _dirtyList ;
          IDataSyncManager              *_pSyncMgr ;
@@ -666,10 +653,8 @@ namespace engine
    {
       if ( pSegOffset )
       {
-         // the same with : extentID % _segmentPages
          *pSegOffset = extentID & (( 1 << _segmentPagesSquare ) - 1 ) ;
       }
-      // the same with: extentID / _segmentPages + _dataSegID
       return ( extentID >> _segmentPagesSquare ) + _dataSegID ;
    }
    OSS_INLINE dmsExtentID _dmsStorageBase::segment2Extent( UINT32 segID,
@@ -679,7 +664,6 @@ namespace engine
       {
          return DMS_INVALID_EXTENT ;
       }
-      // the same with: ( segID - _dataSegID ) * _segmentPages + segOffset
       return (( segID - _dataSegID ) << _segmentPagesSquare ) + segOffset ;
    }
    OSS_INLINE ossValuePtr _dmsStorageBase::extentAddr( INT32 extentID )
@@ -696,7 +680,6 @@ namespace engine
       }
       return getSegmentInfo( segID ) +
              (ossValuePtr)( segOffset << _pageSizeSquare ) ;
-      // the same with: segOffset * _segmentPages
    }
    OSS_INLINE dmsExtentID _dmsStorageBase::extentID( ossValuePtr extendAddr )
    {
@@ -704,7 +687,6 @@ namespace engine
       {
          return DMS_INVALID_EXTENT ;
       }
-      // find seg ID
       INT32 segID = 0 ;
       UINT32 segOffset = 0 ;
       ossValuePtr tmpPtr = 0 ;
@@ -758,7 +740,6 @@ namespace engine
       }
       _lastWriteTick = pmdGetDBTick() ;
       _dirtyList.setFullDirty() ;
-      /// Notify Change
       if ( _pSyncMgr && _syncRecordNum > 0 &&
            _writeReordNum >= _syncRecordNum )
       {
@@ -780,7 +761,6 @@ namespace engine
          _lastWriteTick = pmdGetDBTick() ;
          _dirtyList.setDirty( segID - _dataSegID ) ;
 
-         /// Notify Change
          if ( _pSyncMgr && _syncRecordNum > 0 &&
               _writeReordNum >= _syncRecordNum )
          {

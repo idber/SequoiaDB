@@ -61,9 +61,7 @@ public class DecimalCommon {
         while (tmpNum-- > 0) {
             decimalPartStr += rand.nextInt(10);
         }
-        // build a value
         String targetValue = (decimalPartStr != "") ? (intPartStr + "." + decimalPartStr) : (intPartStr);
-        // build return BSONDecimal
         targetValue = rand.nextBoolean() ? targetValue : ("-" + targetValue);
         retDecimal = new BSONDecimal(targetValue, precision, scale);
 
@@ -92,32 +90,26 @@ public class DecimalCommon {
             precision = _genPrecision();
             scale = _genScale(precision);
             intPartDigits = _genIntegerDigitsNum(precision, scale);
-            // build the first digits
             if (hasIntPart && intPartDigits > 0) {
                 firstDigit = (intPartDigits != 1) ? (rand.nextInt(9) + 1) : rand.nextInt(10);
                 targetValue += firstDigit;
                 while (--intPartDigits > 0) {
                     targetValue += rand.nextInt(10);
                 }
-                // append digits after the decimal point
                 if (scale > 0) {
                     targetValue += ".";
                 }
             } else {
-                // append digits after the decimal point
                 targetValue += ".";
             }
-            // append digits after the decimal point
             scalePartDigits = scale;
             while (scalePartDigits-- > 0) {
                 targetValue += rand.nextInt(10);
             }
-            // append exponent
             if (hasE) {
                 targetValue += "E" + eNum;
             }
             targetValue = rand.nextBoolean() ? ("-" + targetValue) : targetValue;
-            // build return BSONDecimal
             retDecimal = new BSONDecimal(targetValue, precision, scale);
         } else {
             intPartDigits = rand.nextInt(3 * MAX_PRECISION) + 1;
@@ -142,12 +134,10 @@ public class DecimalCommon {
             while (scalePartDigits-- > 0) {
                 targetValue += rand.nextInt(10);
             }
-            // append exponent
             if (hasE) {
                 targetValue += "E" + eNum;
             }
             targetValue = rand.nextBoolean() ? ("-" + targetValue) : targetValue;
-            // build return BSONDecimal
             retDecimal = new BSONDecimal(targetValue);
         }
 

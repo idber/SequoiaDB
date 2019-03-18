@@ -56,7 +56,6 @@ namespace engine
    typedef UINT32 NET_NODE_ID ;
    typedef UINT16 NET_SERVICE_ID ;
 
-   // invalid timer id
    #define NET_INVALID_TIMER_ID        ( 0 )
 
    /*
@@ -92,7 +91,6 @@ namespace engine
 
    private:
       SINT32 _status;     // make sure the addr of _status is aligned 4 bytes,
-                          // so the assignment of _status is atomic
       UINT64 _faultTime ; // fault time
 
    public:
@@ -218,7 +216,6 @@ namespace engine
 
    typedef std::vector<netIOV> netIOVec ;
 
-   /// calc the netio vec len
    UINT32 netCalcIOVecSize( const netIOVec &ioVec ) ;
 
 }

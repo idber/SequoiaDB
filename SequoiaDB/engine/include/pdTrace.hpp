@@ -113,62 +113,33 @@
 */
 const INT32 _pdTraceComponentNum = 28 ;
 
-// component masks
-// authentication
 #define PD_TRACE_COMPONENT_AUTH    0x00000001
-// bufferpool service
 #define PD_TRACE_COMPONENT_BPS     0x00000002
-// catalog service
 #define PD_TRACE_COMPONENT_CAT     0x00000004
-// cluster service
 #define PD_TRACE_COMPONENT_CLS     0x00000008
-// data protection service
 #define PD_TRACE_COMPONENT_DPS     0x00000010
-// migration services
 #define PD_TRACE_COMPONENT_MIG     0x00000020
-// messages
 #define PD_TRACE_COMPONENT_MSG     0x00000040
-// network
 #define PD_TRACE_COMPONENT_NET     0x00000080
-// operating system services
 #define PD_TRACE_COMPONENT_OSS     0x00000100
-// problem determination
 #define PD_TRACE_COMPONENT_PD      0x00000200
-// runtime
 #define PD_TRACE_COMPONENT_RTN     0x00000400
-// sql
 #define PD_TRACE_COMPONENT_SQL     0x00000800
-// tools
 #define PD_TRACE_COMPONENT_TOOL    0x00001000
-// backup recovery
 #define PD_TRACE_COMPONENT_BAR     0x00002000
-// client
 #define PD_TRACE_COMPONENT_CLIENT  0x00004000
-// coord services
 #define PD_TRACE_COMPONENT_COORD   0x00008000
-// data management services
 #define PD_TRACE_COMPONENT_DMS     0x00010000
-// index management services
 #define PD_TRACE_COMPONENT_IXM     0x00020000
-// monitoring
 #define PD_TRACE_COMPONENT_MON     0x00040000
-// methods
 #define PD_TRACE_COMPONENT_MTH     0x00080000
-// optimizer
 #define PD_TRACE_COMPONENT_OPT     0x00100000
-// process model
 #define PD_TRACE_COMPONENT_PMD     0x00200000
-// REST
 #define PD_TRACE_COMPONENT_REST    0x00400000
-// scripting
 #define PD_TRACE_COMPONENT_SPT     0x00800000
-// utilities
 #define PD_TRACE_COMPONENT_UTIL    0x01000000
-// aggregation
 #define PD_TRACE_COMPONENT_AGGR    0x02000000
-// stored procedure
 #define PD_TRACE_COMPONENT_SPD     0x04000000
-// query graph manger
 #define PD_TRACE_COMPONENT_QGM     0x08000000
 
 /*
@@ -206,7 +177,6 @@ typedef _pdTraceArgumentType pdTraceArgumentType ;
 
 #pragma pack(4)
 
-// each argument got 8 bytes header for size and type
 class _pdTraceArgument : public SDBObject
 {
 private :
@@ -312,7 +282,6 @@ struct _pdTraceRecord
    {
       CHAR *pArg = NULL ;
 
-      /// zero
       pArg = ( CHAR* )this + sizeof( _pdTraceRecord ) ;
 
       while ( id > 0 )
@@ -507,7 +476,6 @@ private :
 
    ossAtomic32          _metaOpr ;
    volatile BOOLEAN     _traceStarted ; // whether trace is started or not
-   // number of sessions that currently writing into trace buffer
    ossAtomic32          _currentWriter ;
 
    UINT32               _componentMask ;   // each bit represent one component
@@ -584,9 +552,6 @@ typedef struct _pdTraceArgTuple pdTraceArgTuple ;
 
 #else
 
-// dummy macro declare, this just defines an macro perform nothing activities.
-// The autogen component will scan all .C/.cpp/.h/.hpp and pickup this keyword
-// and generate unique id for each function
 #define PD_TRACE_DECLARE_FUNCTION(x,y) \
 
 #define PD_PACK_NONE      _pdTraceArgTuple ( PD_TRACE_ARGTYPE_NONE, NULL, 0 )

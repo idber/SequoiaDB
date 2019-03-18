@@ -358,7 +358,6 @@ namespace engine
 
             if ( successHostSet.find( hostName ) == successHostSet.end() )
             {
-               // ignore the failure host
                continue ;
             }
 
@@ -438,7 +437,6 @@ namespace engine
       }
 
       {
-         // get local result info
          BSONObj filterResult = BSON( OM_TASKINFO_FIELD_RESULTINFO << "" ) ;
          BSONObj selector ;
          BSONObj matcher = BSON( OM_TASKINFO_FIELD_TASKID << _taskID ) ;
@@ -578,7 +576,6 @@ namespace engine
             string hostName = oneHost.getStringField( OM_HOST_FIELD_NAME ) ;
             if ( successHostSet.find( hostName ) == successHostSet.end() )
             {
-               // ignore the failure host
                continue ;
             }
 
@@ -630,7 +627,6 @@ namespace engine
       }
 
       {
-         // get local result info
          BSONObj filterResult = BSON( OM_TASKINFO_FIELD_RESULTINFO << "" ) ;
          BSONObj selector ;
          BSONObj matcher = BSON( OM_TASKINFO_FIELD_TASKID << _taskID ) ;
@@ -885,64 +881,9 @@ namespace engine
          goto error ;
       }
 
-//      {
-//         // get local result info
-//         BSONObj selector ;
-//         BSONObj matcher = BSON( OM_TASKINFO_FIELD_TASKID << _taskID ) ;
-//         BSONObj orderBy ;
-//         BSONObj hint ;
-//         rc = queryOneTask( selector, matcher, orderBy, hint, localTask ) ;
-//         if ( SDB_OK != rc )
-//         {
-//            PD_LOG( PDERROR, "query task failed:taskID="OSS_LL_PRINT_FORMAT
-//                    ",rc=%d", _taskID, rc ) ;
-//            goto error ;
-//         }
 
-//         localResultInfo = localTask.getObjectField( 
-//                                              OM_TASKINFO_FIELD_RESULTINFO ) ;
-//      }
 
-//      resultInfoEle = updateInfo.getField( OM_TASKINFO_FIELD_RESULTINFO ) ;
-//      if ( Array != resultInfoEle.type() )
-//      {
-//         rc = SDB_INVALIDARG ;
-//         PD_LOG( PDERROR, "%s is not Array type", 
-//                 OM_TASKINFO_FIELD_RESULTINFO ) ;
-//         goto error ;
-//      }
-//      agentResultInfo = resultInfoEle.embeddedObject() ;
-//      {
-//         BSONObj filter = BSON( OM_BSON_FIELD_HOST_NAME << ""
-//                                << OM_CONF_DETAIL_SVCNAME << "" 
-//                                << OM_CONF_DETAIL_ROLE << "" 
-//                                << OM_CONF_DETAIL_DATAGROUPNAME << "" ) ;
-//         BSONObjIterator iterResult( agentResultInfo ) ;
-//         while ( iterResult.more() )
-//         {
-//            BSONObj find ;
-//            BSONObj oneResult ;
-//            BSONElement ele = iterResult.next() ;
-//            if ( ele.type() != Object )
-//            {
-//               rc = SDB_INVALIDARG ;
-//               PD_LOG( PDERROR, "%s's element is not Object type", 
-//                       OM_TASKINFO_FIELD_RESULTINFO ) ;
-//               goto error ;
-//            }
 
-//            oneResult = ele.embeddedObject() ;
-//            find      = oneResult.filterFieldsUndotted( filter, true ) ;
-//            if ( !isInElement( localResultInfo, OM_TASKINFO_FIELD_RESULTINFO, 
-//                               find ) )
-//            {
-//               rc = SDB_INVALIDARG ;
-//               PD_LOG( PDERROR, "agent's result is not in localTask:"
-//                       "agentResult=%s", find.toString().c_str() ) ;
-//               goto error ;
-//            }
-//         }
-//      }
 
    done:
       return rc ;
@@ -1139,7 +1080,6 @@ namespace engine
       condition = BSON( OM_CONFIGURE_FIELD_BUSINESSNAME << businessName <<
                         OM_CONFIGURE_FIELD_HOSTNAME << hostName ) ;
 
-      // query table
       rc = rtnQuery( OM_CS_DEPLOY_CL_CONFIGURE, selector, condition, sort,
                      hint, 0, cb, 0, 1, pdmsCB, pRtnCB, contextID );
       if ( rc )
@@ -1637,64 +1577,9 @@ namespace engine
          goto error ;
       }
 
-//      {
-//         // get local result info
-//         BSONObj selector ;
-//         BSONObj matcher = BSON( OM_TASKINFO_FIELD_TASKID << _taskID ) ;
-//         BSONObj orderBy ;
-//         BSONObj hint ;
-//         rc = queryOneTask( selector, matcher, orderBy, hint, localTask ) ;
-//         if ( SDB_OK != rc )
-//         {
-//            PD_LOG( PDERROR, "query task failed:taskID="OSS_LL_PRINT_FORMAT
-//                    ",rc=%d", _taskID, rc ) ;
-//            goto error ;
-//         }
 
-//         localResultInfo = localTask.getObjectField( 
-//                                              OM_TASKINFO_FIELD_RESULTINFO ) ;
-//      }
 
-//      resultInfoEle = updateInfo.getField( OM_TASKINFO_FIELD_RESULTINFO ) ;
-//      if ( Array != resultInfoEle.type() )
-//      {
-//         rc = SDB_INVALIDARG ;
-//         PD_LOG( PDERROR, "%s is not Array type", 
-//                 OM_TASKINFO_FIELD_RESULTINFO ) ;
-//         goto error ;
-//      }
-//      agentResultInfo = resultInfoEle.embeddedObject() ;
-//      {
-//         BSONObj filter = BSON( OM_BSON_FIELD_HOST_NAME << ""
-//                                << OM_CONF_DETAIL_SVCNAME << "" 
-//                                << OM_CONF_DETAIL_ROLE << "" 
-//                                << OM_CONF_DETAIL_DATAGROUPNAME << "" ) ;
-//         BSONObjIterator iterResult( agentResultInfo ) ;
-//         while ( iterResult.more() )
-//         {
-//            BSONObj find ;
-//            BSONObj oneResult ;
-//            BSONElement ele = iterResult.next() ;
-//            if ( ele.type() != Object )
-//            {
-//               rc = SDB_INVALIDARG ;
-//               PD_LOG( PDERROR, "%s's element is not Object type", 
-//                       OM_TASKINFO_FIELD_RESULTINFO ) ;
-//               goto error ;
-//            }
 
-//            oneResult = ele.embeddedObject() ;
-//            find      = oneResult.filterFieldsUndotted( filter, true ) ;
-//            if ( !isInElement( localResultInfo, OM_TASKINFO_FIELD_RESULTINFO, 
-//                               find ) )
-//            {
-//               rc = SDB_INVALIDARG ;
-//               PD_LOG( PDERROR, "agent's result is not in localTask:"
-//                       "agentResult=%s", find.toString().c_str() ) ;
-//               goto error ;
-//            }
-//         }
-//      }
 
    done:
       return rc ;

@@ -85,7 +85,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNUPDATE2 ) ;
       BSONObj dummy ;
-      // matcher, selector, order, hint, collection, skip, limit, flag
       rtnQueryOptions options( matcher, dummy, dummy, hint, pCollectionName,
                                0, -1, flags ) ;
       rc = rtnUpdate( options, updator, cb, dmsCB, dpsCB, w, pUpdateNum,
@@ -127,7 +126,6 @@ namespace engine
       monContextCB monCtxCB ;
       rtnReturnOptions returnOptions ;
 
-      // updator is modifier
       if ( updator.isEmpty() )
       {
          PD_LOG ( PDERROR, "modifier can't be empty" ) ;
@@ -135,7 +133,6 @@ namespace engine
          goto error ;
       }
 
-      // writeable judge
       rc = dmsCB->writable( cb ) ;
       if ( rc )
       {
@@ -150,7 +147,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s, rc: %d",
                    options.getCLFullName(), rc ) ;
 
-      // get mb context
       rc = su->data()->getMBContext( &mbContext, pCollectionShortName, -1 ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s] mb context, "
                    "rc: %d", options.getCLFullName(), rc ) ;
@@ -190,7 +186,6 @@ namespace engine
       apm = rtnCB->getAPM() ;
       SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
 
-      // plan is released when exiting the function
       rc = apm->getAccessPlan( options, FALSE, su, mbContext, planRuntime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s for update, "
                    "rc: %d", options.getCLFullName(), rc ) ;
@@ -214,7 +209,6 @@ namespace engine
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to get dms scanner, rc: %d", rc ) ;
 
-      // update
       {
          _mthRecordGenerator generator ;
          _mthMatchTreeContext mthContext ;
@@ -268,8 +262,6 @@ namespace engine
          monCtxCB.setQueryTime( queryTime ) ;
       }
 
-      // if we didn't update anything, let's attempt to insert if we are doing
-      // upsert
       if ( ( 0 == numUpdatedRecords ) && options.testFlag( FLG_UPDATE_UPSERT ) )
       {
          BSONObj source = planRuntime.getEqualityQueryObject() ;
@@ -281,7 +273,6 @@ namespace engine
 
          execStartTime = krcb->getCurTime() ;
 
-         // upsertor means generate a new record from empty source
          rc = modifier.modify ( source, target ) ;
          if ( rc )
          {

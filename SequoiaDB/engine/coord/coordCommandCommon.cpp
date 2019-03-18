@@ -302,13 +302,11 @@ namespace engine
       if ( ( !ctrlParam._rawData && getInnerAggrContent() ) ||
            vecUserAggr.size() > 0 )
       {
-         /// add aggr operators
          BSONObj nodeMatcher ;
          BSONObj newMatcher ;
          rc = parseMatcher( queryOption.getQuery(), nodeMatcher, newMatcher ) ;
          PD_RC_CHECK( rc, PDERROR, "Parse matcher failed, rc: %d", rc ) ;
 
-         /// add nodes matcher to the botton
          if ( !nodeMatcher.isEmpty() )
          {
             rc = appendObj( BSON( AGGR_MATCH_PARSER_NAME << nodeMatcher ),
@@ -326,7 +324,6 @@ namespace engine
                          getInnerAggrContent(), rc ) ;
          }
 
-         /// add new matcher
          if ( !newMatcher.isEmpty() )
          {
             rc = appendObj( BSON( AGGR_MATCH_PARSER_NAME << newMatcher ),
@@ -335,7 +332,6 @@ namespace engine
                          rc ) ;
          }
 
-         /// order by
          if ( !queryOption.isOrderByEmpty() )
          {
             rc = appendObj( BSON( AGGR_SORT_PARSER_NAME <<
@@ -354,7 +350,6 @@ namespace engine
                          rc ) ;
          }
 
-         /// open context
          rc = openContext( pOutBuff, buffObjNum, getIntrCMDName(),
                            queryOption.getSelector(), cb, contextID ) ;
          PD_RC_CHECK( rc, PDERROR, "Open context failed, rc: %d", rc ) ;
@@ -435,7 +430,6 @@ namespace engine
       BSONObj outSelector ;
       rtnQueryOptions queryOpt ;
 
-      // parse msg
       rc = queryOpt.fromQueryMsg( (CHAR*)pMsg ) ;
       if ( rc )
       {
@@ -456,7 +450,6 @@ namespace engine
       }
       queryOpt.clearFlag( FLG_QUERY_WITH_RETURNDATA ) ;
 
-      // query on catalog
       rc = queryOnCatalog( queryOpt, cb, contextID, buf ) ;
       if ( rc )
       {
@@ -471,7 +464,6 @@ namespace engine
          rtnContext *pContext = rtnCB->contextFind( contextID ) ;
          if ( pContext )
          {
-            /// re-load pattern
             pContext->getSelector().clear() ;
             pContext->getSelector().loadPattern( outSelector ) ;
          }

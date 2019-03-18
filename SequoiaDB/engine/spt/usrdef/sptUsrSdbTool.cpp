@@ -215,7 +215,6 @@ namespace engine
 
             utilBuildFullPath( rootPath, SDBCM_CONF_PATH_FILE,
                                OSS_MAX_PATHSIZE, confFile ) ;
-            // file exist
             if ( 0 == ossAccess( confFile ) )
             {
                utilGetCMService( rootPath, hostName, node._svcname, TRUE ) ;
@@ -257,7 +256,6 @@ namespace engine
          }
       }
 
-      // filter
       for ( UINT32 k = 0 ; k < nodes.size() ; ++k )
       {
          BSONObj obj = _nodeInfo2Bson( nodes[ k ],
@@ -272,7 +270,6 @@ namespace engine
          }
       }
 
-      // if no -p, and list all/list cm, need to show sdbcmd
       if ( optionParam._svcnames.size() == 0 &&
            ( SDB_TYPE_OMA == optionParam._typeFilter ||
              -1 == optionParam._typeFilter ) &&
@@ -293,7 +290,6 @@ namespace engine
          }
       }
 
-      // set result
       rval.getReturnVal().setValue( vecObj ) ;
 
    done:
@@ -488,7 +484,6 @@ namespace engine
       BSONObj obj ;
       CHAR confFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 
-      // not cm
       if ( type != SDB_TYPE_OMA )
       {
          pmdOptionsCB conf ;
@@ -540,19 +535,16 @@ namespace engine
       {
          BOOLEAN subMatch = FALSE ;
          BSONElement e = itFilter.next() ;
-         // $and
          if ( 0 == ossStrcmp( e.fieldName(), "$and" ) &&
               Array == e.type() )
          {
             subMatch = _match( obj, e.embeddedObject(), SPT_MATCH_AND ) ;
          }
-         // $or
          else if ( 0 == ossStrcmp( e.fieldName(), "$or" ) &&
                    Array == e.type() )
          {
             subMatch = _match( obj, e.embeddedObject(), SPT_MATCH_OR ) ;
          }
-         // $not
          else if ( 0 == ossStrcmp( e.fieldName(), "$not" ) &&
                    Array == e.type() )
          {

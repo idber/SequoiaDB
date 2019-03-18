@@ -99,13 +99,11 @@ namespace import
          inQueue->wait_and_pop(records);
          if (NULL == records)
          {
-            // stop signal
             break;
          }
 
          if (records->empty())
          {
-            // empty signal
             _emptyShardingGroups(groups, outQueue);
             freeRecordArray(&records);
             PD_LOG(PDINFO, "empty sharding groups");
@@ -145,7 +143,6 @@ namespace import
             it = subGroups->find(groupId);
             if (it != subGroups->end())
             {
-               // find the group
                RecordArray* array = it->second;
 
                SDB_ASSERT(!array->full(), "record array can't be full");
@@ -160,7 +157,6 @@ namespace import
             }
             else
             {
-               // add new group
                RecordArray* array = NULL;
 
                rc = getRecordArray(options->batchSize(), &array);
@@ -198,8 +194,6 @@ namespace import
             }
 
             shardingCount++;
-            // clear this record in array,
-            // otherwise the bson will be freed by freeRecordArray
             records->pop(i);
          }
 
@@ -289,7 +283,6 @@ namespace import
           !_options->enableSharding() ||
           _options->batchSize() <= 1)
       {
-         // no need to do anything
          _inited = TRUE;
          goto done;
       }
@@ -355,7 +348,6 @@ namespace import
       {
          RecordArray* empty = NULL;
 
-         // push empty RecordArray as stop signal
          _inQueue->push(empty);
 
          rc = _worker->waitStop();

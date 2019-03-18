@@ -58,7 +58,6 @@ namespace engine
       pmdKRCB *krcb = pmdGetKRCB () ;
       SDB_DMSCB *dmsCB = krcb->getDMSCB () ;
       SDB_DPSCB *dpsCB = krcb->getDPSCB () ;
-      //EDUID eduId = cb->getID() ;
 
       if ( dpsCB && cb->isFromLocal() && !dpsCB->isLogLocal() )
       {
@@ -132,10 +131,8 @@ namespace engine
          {
             BSONObj record ( (const CHAR*)pDataPos ) ;
             rc = su->insertRecord ( pCollectionShortName, record, cb, dpsCB ) ;
-            // check return code
             if ( rc )
             {
-               // if we want to skip duplicate key error
                if ( ( SDB_IXM_DUP_KEY == rc ) &&
                     ( FLG_INSERT_CONTONDUP & flags ) )
                {
@@ -225,7 +222,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s",
                    pCollectionName ) ;
 
-      // Insertion on capped collection should be done by position.
       if ( DMS_STORAGE_CAPPED == su->type() )
       {
          positionELe = obj.getField( DMS_ID_KEY_NAME ) ;

@@ -120,10 +120,8 @@ namespace engine
 
       ossTimestampToString( startTime, timestampStr ) ;
 
-      // Context ID
       builder.append( OPT_FIELD_CONTEXT_ID, _contextMonitor.getContextID() ) ;
 
-      // Query type
       switch ( _optrType )
       {
          case MON_UPDATE :
@@ -140,13 +138,11 @@ namespace engine
             break ;
       }
 
-      // Parameters
       if ( !_parameters.isEmpty() )
       {
          builder.append( _parameters.firstElement() ) ;
       }
 
-      // Monitor statistics: start timestamp, query time spent, etc.
       builder.append( OPT_FIELD_QUERY_START_TIME, timestampStr ) ;
       builder.append( OPT_FIELD_QUERY_TIME_SPENT, queryTime ) ;
       builder.append( OPT_FIELD_EXECUTE_TIME_SPENT, executeTime ) ;
@@ -239,11 +235,9 @@ namespace engine
 
       if ( NULL != plan )
       {
-         // The plan is reused, increase the reference count
          plan->incRefCount() ;
          setPlan( plan, planRuntime->_apm, FALSE ) ;
 
-         // Set match runtime and query info
          setMatchRuntime( planRuntime->getMatchRuntime() ) ;
          setCLScanInfo( planRuntime->getCLScanInfo() ) ;
       }
@@ -335,10 +329,6 @@ namespace engine
       rc = plan->bindMatchRuntime( matchRuntime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to bind match runtime, rc: %d", rc ) ;
 
-      // Only need to bind predicates for
-      // 1. index-scan plan
-      // 2. no predicates in current match runtime
-      // 3. the plan's predicates are not fixed
       if ( IXSCAN == plan->getScanType() &&
            NULL == matchRuntime->getPredList() &&
            !plan->getMatchRuntime()->isFixedPredList() )

@@ -396,7 +396,6 @@ namespace engine
          goto error ;
       }
 
-      // init meta header
       _metaHeader.makeBeginTime() ;
       if ( !backupName || 0 == ossStrlen( backupName ) )
       {
@@ -507,7 +506,6 @@ namespace engine
          goto done ;
       }
 
-      // check
       if ( 0 != ossStrncmp( pHeader->_eyeCatcher, BAR_BACKUP_META_EYECATCHER,
                             BAR_BACKUP_HEADER_EYECATCHER_LEN ) )
       {
@@ -559,7 +557,6 @@ namespace engine
          goto done ;
       }
 
-      // check
       if ( 0 != ossStrncmp( pHeader->_eyeCatcher, BAR_BACKUP_DATA_EYECATCHER,
                             BAR_BACKUP_HEADER_EYECATCHER_LEN ) )
       {
@@ -730,7 +727,6 @@ namespace engine
          rc = SDB_INVALIDARG ;
       }
 
-      // 1. init meta header
       _metaHeader._type                = _getBackupType() ;
       _metaHeader._opType              = opType ;
       _metaHeader._maxDataFileSize     = (UINT64)maxDataFileSize << 20 ;
@@ -747,10 +743,8 @@ namespace engine
       }
       _rewrite                         = rewrite ;
 
-      // 2. ensure meta file seq
       _metaFileSeq = _ensureMetaFileSeq () ;
 
-      // 3. init check and prepare for backup
       rc = _initCheckAndPrepare() ;
       PD_RC_CHECK( rc, PDWARNING, "Prepare check for backup failed, rc: %d",
                    rc ) ;
@@ -769,14 +763,12 @@ namespace engine
 
       PD_LOG( PDEVENT, "Begin to backup[%s]...", backupName() ) ;
 
-      // init compressor
       if ( _compressed )
       {
          _pCompressor = getCompressorByType(
             (UTIL_COMPRESSOR_TYPE)_metaHeader._compressionType ) ;
       }
 
-      // 1. prepare for backup
       rc = _prepareBackup( cb, isEmpty ) ;
       PD_RC_CHECK( rc, PDERROR, "Prepare for backup failed, rc: %d", rc ) ;
 
@@ -784,15 +776,12 @@ namespace engine
 
       if ( !isEmpty )
       {
-         // 2. backup config
          rc = _backupConfig() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to backup config, rc: %d", rc ) ;
 
-         // 3. do backup data
          rc = _doBackup ( cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to do backup, rc: %d", rc ) ;
 
-         // 4. write meta file
          rc = _writeMetaFile () ;
          PD_RC_CHECK( rc, PDERROR, "Failed to write meta file, rc: %d", rc ) ;
       }
@@ -802,7 +791,6 @@ namespace engine
                  backupName() ) ;
       }
 
-      // 5. clean up after backup
       rc = _afterBackup ( cb ) ;
       hasPrepared = FALSE ;
       PD_RC_CHECK( rc, PDERROR, "Failed to cleanup after backup, rc: %d", rc ) ;
@@ -837,7 +825,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      // 1. ensure path valid
       rc = ossMkdir( _metaHeader._path ) ;
       if ( rc && SDB_FE != rc )
       {
@@ -847,7 +834,6 @@ namespace engine
       }
       rc = SDB_OK ;
 
-      // 2. backup exist check
       if ( BAR_BACKUP_OP_TYPE_INC == _metaHeader._opType &&
            0 == _metaFileSeq )
       {
@@ -871,7 +857,6 @@ namespace engine
          }
       }
 
-      // 3. read last info for INC backup
       if ( BAR_BACKUP_OP_TYPE_INC == _metaHeader._opType )
       {
          _metaHeader._secretValue = 0 ;
@@ -911,7 +896,6 @@ namespace engine
          goto error ;
       }
 
-      // update info
       _metaHeader._lastDataSequence = pHeader->_lastDataSequence ;
       _metaHeader._beginLSNOffset   = pHeader->_endLSNOffset ;
       _metaHeader._lastExtentID     = pHeader->_lastExtentID ;
@@ -1021,13 +1005,11 @@ namespace engine
          } // if ( pBuff )
       }
 
-      /// write header
       rc = _writeData( (const CHAR*)pHeader, BAR_BACKUP_EXTENT_HEADER_SIZE,
                        TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to write extent header, rc: %d",
                    rc ) ;
 
-      /// write data
       if ( 0 == pHeader->_thinCopy )
       {
          rc = _writeData( pData, pHeader->_dataSize, FALSE ) ;
@@ -1036,7 +1018,6 @@ namespace engine
       }
 
    done:
-      /// restore
       pHeader->_dataSize = srcDataSize ;
       pHeader->_compressed = srcCompressed ;
       return rc ;
@@ -1065,7 +1046,6 @@ namespace engine
       }
       _isOpened = TRUE ;
 
-      // write header
       pHeader = SDB_OSS_NEW barBackupDataHeader ;
       if ( !pHeader )
       {
@@ -1147,18 +1127,15 @@ namespace engine
       tmpSize = ossAlign4( (UINT32)cfgData.objsize() ) - cfgData.objsize() ;
       pHeader->_dataSize = ossAlign4( (UINT32)cfgData.objsize () ) ;
 
-      // write extent header
       rc = _writeData( (const CHAR*)pHeader, BAR_BACKUP_EXTENT_HEADER_SIZE,
                        TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to write config extent header, rc: %d",
                    rc ) ;
-      // wirte config
       rc = _writeData( cfgData.objdata(), cfgData.objsize(), FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to write config, rc: %d", rc ) ;
 
       if ( 0 != tmpSize )
       {
-         // wirte align data
          rc = _writeData( (const CHAR*)tmpBuff, tmpSize, FALSE ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to write config align data, rc: %d",
                       rc ) ;
@@ -1209,7 +1186,6 @@ namespace engine
 
       _closeCurFile() ;
 
-      // 1. remove data files
       while ( _metaHeader._lastDataSequence > 0 &&
               _metaHeader._dataFileNum > 0 )
       {
@@ -1225,7 +1201,6 @@ namespace engine
          --_metaHeader._lastDataSequence ;
       }
 
-      // 2. remove meta file
       fileName = getIncFileName( _metaFileSeq ) ;
       if ( SDB_OK == ossAccess( fileName.c_str() ) )
       {
@@ -1305,7 +1280,6 @@ namespace engine
 
             _pClsCB->getReplCB()->getSyncEmptyEvent()->wait() ;
 
-            // wait all log complete
             while ( TRUE )
             {
                if ( cb->isInterrupted() )
@@ -1325,7 +1299,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to register backup, rc: %d", rc ) ;
          _hasRegBackup = TRUE ;
 
-         /// sync
          rtnSyncDB( cb, -1, NULL, FALSE ) ;
       }
       else
@@ -1335,7 +1308,6 @@ namespace engine
          _hasRegBackup = TRUE ;
       }
 
-      // if increase backup, need to check lsn
       beginlsn = _pDPSCB->getStartLsn( FALSE ) ;
       expectlsn = _pDPSCB->expectLsn() ;
       currentLSN = _pDPSCB->getCurrentLsn() ;
@@ -1357,7 +1329,6 @@ namespace engine
             goto done ;
          }
 
-         /// when need to check last lsn's hash code
          if ( 0 != _lastLSNCode && (UINT64)~0 != _lastLSN )
          {
             dpsMessageBlock mb( DPS_MSG_BLOCK_DEF_LEN ) ;
@@ -1455,7 +1426,6 @@ namespace engine
 
             su = (*itr)->_su ;
 
-            // skip the SYSTEMP
             if ( su->data()->isTempSU () )
             {
                ++itr ;
@@ -1466,14 +1436,12 @@ namespace engine
 
             _curSequence = su->CSSequence() ;
 
-            // backup data file
             _curDataType = BAR_DATA_TYPE_RAW_DATA ;
             _curOffset = 0 ;
             rc = _backupSU( su->data(), cb ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to backup storage unit[%s] data "
                          "su, rc: %d", su->CSName(), rc ) ;
 
-            // backup index file
             _curDataType = BAR_DATA_TYPE_RAW_IDX ;
             _curOffset = 0 ;
             rc = _backupSU ( su->index(), cb ) ;
@@ -1482,14 +1450,12 @@ namespace engine
 
             if ( su->lob()->isOpened() )
             {
-               // backup lob meta file
                _curDataType = BAR_DATA_TYPE_RAW_LOBM ;
                _curOffset = 0 ;
                rc = _backupSU( su->lob(), cb ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to backup storage unit[%s] "
                             "lob meta su, rc: %d", su->CSName(), rc ) ;
 
-               // backup lob data file
                _curDataType = BAR_DATA_TYPE_RAW_LOBD ;
                _curOffset = 0 ;
                rc = _backupLobData( su->lob(), cb ) ;
@@ -1504,7 +1470,6 @@ namespace engine
          }
       }
 
-      // back up repl-log
       PD_LOG( PDEVENT, "Begin to backup repl-log: %lld",
               _metaHeader._beginLSNOffset ) ;
       rc = _backupLog( cb ) ;
@@ -1638,15 +1603,12 @@ namespace engine
       UINT32 length     = 0 ;
       BOOLEAN thinCopy  = FALSE ;
 
-      // thin copy related
       UINT32 segmentID = 0 ;
       UINT32 curExtentID = 0 ;
       UINT32 maxExtNum = BAR_MAX_EXTENT_DATA_SIZE >> pSU->pageSizeSquareRoot() ;
 
-      // sync memory to mmap
       pSU->syncMemToMmap() ;
 
-      // judge need to thin copy
       if ( pSU->dataSize() > ((UINT64)BAR_THINCOPY_THRESHOLD_SIZE << 20 ) )
       {
          FLOAT64 ratio = (FLOAT64)pSU->getSMEMgr()->totalFree() /
@@ -1680,7 +1642,6 @@ namespace engine
                metaObj = _makeExtentMeta( pSU ) ;
                pHeader->setMetaData( metaObj.objdata(), metaObj.objsize() ) ;
 
-               // write extent
                rc = _writeExtent( pHeader, (const CHAR *)ptr ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to write extent, rc: %d",
                             rc ) ;
@@ -1708,7 +1669,6 @@ namespace engine
                metaObj = _makeExtentMeta( pSU ) ;
                pHeader->setMetaData( metaObj.objdata(), metaObj.objsize() ) ;
 
-               // write extent
                rc = _writeExtent( pHeader, (const CHAR*)ptr ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to write extent, rc: %d",
                             rc ) ;
@@ -1739,7 +1699,6 @@ namespace engine
       UINT64 metaLen    = pLobData->getFileSz() - pLobData->getDataSz() ;
       UINT32 readLen    = 0 ;
 
-      // thin copy related
       UINT32 curExtentID = 0 ;
       UINT32 maxExtNum = BAR_MAX_EXTENT_DATA_SIZE >>
                          pLobData->pageSizeSquareRoot() ;
@@ -1755,7 +1714,6 @@ namespace engine
          }
       }
 
-      // judge need to thin copy
       if ( (UINT64)pLobData->getDataSz() >
            ((UINT64)BAR_THINCOPY_THRESHOLD_SIZE << 20 ) )
       {
@@ -1800,7 +1758,6 @@ namespace engine
                metaObj = _makeExtentMeta( pLobSU ) ;
                pHeader->setMetaData( metaObj.objdata(), metaObj.objsize() ) ;
 
-               // read data
                rc = pLobData->readRaw( _curOffset, pHeader->_dataSize,
                                        _pExtentBuff, readLen, cb, FALSE ) ;
                if ( rc )
@@ -1820,7 +1777,6 @@ namespace engine
                   goto error ;
                }
 
-               // write extent
                rc = _writeExtent( pHeader, _pExtentBuff ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to write extent, rc: %d",
                             rc ) ;
@@ -1846,7 +1802,6 @@ namespace engine
                metaObj = _makeExtentMeta( pLobSU ) ;
                pHeader->setMetaData( metaObj.objdata(), metaObj.objsize() ) ;
 
-               // read data
                rc = pLobData->readRaw( _curOffset, pHeader->_dataSize,
                                        _pExtentBuff, readLen, cb, FALSE ) ;
                if ( rc )
@@ -1866,7 +1821,6 @@ namespace engine
                   goto error ;
                }
 
-               // write extent
                rc = _writeExtent( pHeader, _pExtentBuff ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to write extent, rc: %d",
                             rc ) ;
@@ -1920,7 +1874,6 @@ namespace engine
             }
             else if ( rc )
             {
-               /// Print current dps info
                DPS_LSN fileBegin ;
                DPS_LSN memBegin ;
                DPS_LSN endLsn ;
@@ -1949,12 +1902,10 @@ namespace engine
          pHeader = _nextDataExtent( BAR_DATA_TYPE_REPL_LOG ) ;
          pHeader->_dataSize = mb.length() ;
 
-         /// write extent
          rc = _writeExtent( pHeader, mb.startPtr() ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to write extent, rc: %d", rc ) ;
       }
 
-      /// check lsn
       if ( lsn.compareOffset( _metaHeader._endLSNOffset ) < 0 )
       {
          PD_LOG( PDWARNING, "Real end lsn[%u,%llu] is smaller than expect "
@@ -1969,7 +1920,6 @@ namespace engine
                  _metaHeader._endLSNOffset ) ;
          _metaHeader._endLSNOffset = lsn.offset ;
       }
-      /// check trans lsn
       if ( oldTransLsn != _metaHeader._transLSNOffset )
       {
          PD_LOG( PDWARNING, "Old trans lsn[%lld] is not the same with "
@@ -2089,7 +2039,6 @@ namespace engine
       }
       _isOpened = TRUE ;
 
-      // read header
       pHeader = SDB_OSS_NEW barBackupDataHeader ;
       if ( !pHeader )
       {
@@ -2138,10 +2087,8 @@ namespace engine
          goto error ;
       }
 
-      // 1. ensure meta file seq
       _metaFileSeq = _ensureMetaFileSeq( &setSeq ) ;
 
-      // 2. init check and prepare for restore
       rc = _initCheckAndPrepare ( incID, beginID, setSeq ) ;
       PD_RC_CHECK( rc, PDWARNING, "Prepare check for resotre failed, rc: %d",
                    rc ) ;
@@ -2169,7 +2116,6 @@ namespace engine
          goto error ;
       }
 
-      // 1. backup file exist check
       if ( 0 == _metaFileSeq || setSeq.empty() )
       {
          rc = SDB_BAR_BACKUP_NOTEXIST ;
@@ -2191,7 +2137,6 @@ namespace engine
          _metaFileSeq = (UINT32)incID ;
       }
 
-      /// check value
       if ( beginID >= 0 )
       {
          if ( (UINT32)beginID > _metaFileSeq )
@@ -2216,12 +2161,10 @@ namespace engine
          tmpID = *it ;
       }
 
-      // 2. read meta file header
       rc = _updateFromMetafile( _metaFileSeq ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to read meta file[%d], rc: %d",
                    _metaFileSeq, rc ) ;
 
-      // 3. init _mapBackupInfo
       while( tmpID < _metaFileSeq )
       {
          rc = _readMetaHeader( tmpID, pHeader, TRUE, _secretValue ) ;
@@ -2245,11 +2188,9 @@ namespace engine
       }
       _mapBackupInfo[ _metaFileSeq ] = barBackupHeaderSimple( &_metaHeader ) ;
 
-      // 4. load config
       rc = _loadConf() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to load config, rc: %d", rc ) ;
 
-      // 5. reset
       _reset() ;
 
    done:
@@ -2272,7 +2213,6 @@ namespace engine
          goto error ;
       }
 
-      // update info
       if ( 0 == _secretValue )
       {
          _secretValue = _metaHeader._secretValue ;
@@ -2336,7 +2276,6 @@ namespace engine
 
       PD_LOG( PDEVENT, "Begin to restore[%s]...", backupName() ) ;
 
-      // 1. prepare for restore
       rc = _prepareRestore( cb, isEmpty ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to prepare for restore, rc: %d", rc ) ;
 
@@ -2344,17 +2283,14 @@ namespace engine
 
       if ( !isEmpty )
       {
-         // 2. restore config
          rc = _restoreConfig () ;
          PD_RC_CHECK( rc, PDERROR, "Failed to restore config, rc: %d", rc ) ;
 
          _isDoRestoring = TRUE ;
-         // 3. do restore data
          rc = _doRestore( cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to do restore, rc: %d", rc ) ;
       }
 
-      // 4. after restore
       rc = _afterRestore( cb ) ;
       prepared = FALSE ;
       PD_RC_CHECK( rc, PDERROR, "Failed to clean up after restore", rc ) ;
@@ -2370,7 +2306,6 @@ namespace engine
    error:
       {
          INT32 tempRC = SDB_OK ;
-         /// only when restore full need to rollback
          if ( 0 == _beginID )
          {
             tempRC = cleanDMSData () ;
@@ -2402,7 +2337,6 @@ namespace engine
 
       PD_LOG ( PDEVENT, "Clear dms data for restore" ) ;
 
-      //dump all collectionspace
       _pDMSCB->dumpInfo( csList, TRUE ) ;
       std::set<_monCollectionSpace>::const_iterator it = csList.begin() ;
       while ( it != csList.end() )
@@ -2459,7 +2393,6 @@ namespace engine
       *pExtHeader = NULL ;
       *pBuff = NULL ;
 
-      // finished
       if ( _expectExtID > _metaHeader._lastExtentID )
       {
          if ( _curDataFileSeq != _metaHeader._lastDataSequence )
@@ -2482,7 +2415,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to open data file, rc: %d", rc ) ;
       }
 
-      // read extent header
       rc = _read( _curFile, (CHAR*)_pDataExtent,
                   BAR_BACKUP_EXTENT_HEADER_SIZE ) ;
       if ( SDB_EOF == rc )
@@ -2500,7 +2432,6 @@ namespace engine
 
       _curOffset += BAR_BACKUP_EXTENT_HEADER_SIZE ;
 
-      // check
       if ( 0 != ossStrncmp( _pDataExtent->_eyeCatcher, BAR_EXTENT_EYECATCH,
                            BAR_BACKUP_HEADER_EYECATCHER_LEN ) )
       {
@@ -2529,7 +2460,6 @@ namespace engine
 
       *pExtHeader = _pDataExtent ;
 
-      // read data
       if ( _pDataExtent->_dataSize > 0 )
       {
          rc = _allocBuff( _pDataExtent->_dataSize ) ;
@@ -2548,7 +2478,6 @@ namespace engine
             ossMemset( _pBuff, 0, _pDataExtent->_dataSize ) ;
          }
 
-         /// uncompress
          if ( 0 != _pDataExtent->_compressed )
          {
             CHAR *pBuffTmp = NULL ;
@@ -2579,7 +2508,6 @@ namespace engine
                rc = SDB_OOM ;
                goto error ;
             }
-            // uncompress data
             rc = _pCompressor->decompress( _pBuff, _pDataExtent->_dataSize,
                                            pBuffTmp, destLen, NULL ) ;
             PD_RC_CHECK( rc, PDERROR, "Uncompress data failed, rc: %d",
@@ -2711,11 +2639,9 @@ namespace engine
 
       isEmpty = FALSE ;
 
-      /// init repl bucket
       rc = _replBucket.init() ;
       PD_RC_CHECK( rc, PDERROR, "Init repl bucket failed, rc: %d", rc ) ;
 
-      /// find the right beginID
       if ( 0 == expectLSN.offset && _beginID < 0 )
       {
          _beginID = 0 ;
@@ -2742,7 +2668,6 @@ namespace engine
             }
             else if ( expectLSN.compareOffset( pInfo->_endLSNOffset ) < 0 )
             {
-               /// find it
                _beginID = it->first ;
                PD_LOG( PDEVENT, "Find the begin increase id[%d]", _beginID ) ;
                std::cout << "Find the begin increase id: " << _beginID
@@ -2788,7 +2713,6 @@ namespace engine
          goto done ;
       }
 
-      /// full restore
       if ( 0 == _beginID )
       {
          _incDataFileBeginSeq = pInfo->_lastDataSequence + 1 ;
@@ -2796,7 +2720,6 @@ namespace engine
          rc = cleanDMSData() ;
          PD_RC_CHECK( rc, PDERROR, "Clear all data failed, rc: %d", rc ) ;
       }
-      /// inc restore
       else
       {
          _curDataFileSeq = pInfo->_lastDataSequence - pInfo->_dataFileNum ;
@@ -2819,7 +2742,6 @@ namespace engine
          }
       }
 
-      /// move lsn
       if ( DPS_INVALID_LSN_OFFSET != beginLSN )
       {
          rc = _pDPSCB->move( beginLSN, 1 ) ;
@@ -2828,7 +2750,6 @@ namespace engine
       }
 
    done:
-      /// forbidden trans rollback
       _metaHeader._transLSNOffset = DPS_INVALID_LSN_OFFSET ;
       return rc ;
    error:
@@ -2843,7 +2764,6 @@ namespace engine
       BOOLEAN restoreDPS = FALSE ;
       BOOLEAN restoreInc = FALSE ;
 
-      // read data
       while ( TRUE )
       {
          if ( cb->isInterrupted() )
@@ -2854,7 +2774,6 @@ namespace engine
          rc = _readData( &pExtHeader, &pBuff ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to read data, rc: %d", rc ) ;
 
-         // finished
          if ( NULL == pExtHeader )
          {
             break ;
@@ -2892,7 +2811,6 @@ namespace engine
                   PD_LOG( PDEVENT, "Begin to load all collection spaces..." ) ;
                   std::cout << "Begin to load all collection spaces..."
                             << std::endl ;
-                  // need to load dms
                   pmdGetKRCB()->setIsRestore( FALSE ) ;
                   rc = _pDMSCB->init() ;
                   pmdGetKRCB()->setIsRestore( TRUE ) ;
@@ -2915,10 +2833,8 @@ namespace engine
 
    done:
       _closeSUFile() ;
-      /// wait all log complete
       if ( _replBucket.maxReplSync() > 0 )
       {
-         // wait all repl-sync log processed
          PD_LOG( PDEVENT, "Begin to wait repl bucket empty[%s]",
                  _replBucket.toBson().toString().c_str() ) ;
          std::cout << "Begin to wait repl bucket empty..." << std::endl ;
@@ -3000,7 +2916,6 @@ namespace engine
          dpsLogRecordHeader *pHeader = (dpsLogRecordHeader *)pLogIndex ;
          lsn = _pDPSCB->expectLsn() ;
 
-         // judge lsn valid
          if ( 0 != lsn.compareOffset( pHeader->_lsn ) )
          {
             PD_LOG( PDERROR, "Expect lsn[%lld] is not the same with cur "
@@ -3009,7 +2924,6 @@ namespace engine
             goto error ;
          }
 
-         // if in inc backup data file
          if ( isIncData )
          {
             if ( _replBucket.maxReplSync() > 0 )
@@ -3029,12 +2943,10 @@ namespace engine
                goto error ;
             }
          }
-         // write lsn
          rc = _pDPSCB->recordRow( pLogIndex, pHeader->_length ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to write lsn[%d,%lld], length: %d, "
                       "rc: %d", pHeader->_version, pHeader->_lsn,
                       pHeader->_length, rc ) ;
-         // update trans info
          if ( DPS_INVALID_LSN_OFFSET != _metaHeader._transLSNOffset )
          {
             dpsLogRecord record ;
@@ -3090,7 +3002,6 @@ namespace engine
       }
       else
       {
-         /// lob meta
          path = _pOptCB->getLobMetaPath() ;
       }
 
@@ -3160,7 +3071,6 @@ namespace engine
             PD_LOG( PDEVENT, "Begin to load all collection spaces..." ) ;
             std::cout << "Begin to load all collection spaces..." << std::endl ;
 
-            // load all collectionspaces
             pmdGetKRCB()->setIsRestore( FALSE ) ;
             rc = _pDMSCB->init() ;
             pmdGetKRCB()->setIsRestore( TRUE ) ;
@@ -3171,7 +3081,6 @@ namespace engine
 
          PD_LOG( PDEVENT, "Begin to rollback all trans..." ) ;
          std::cout << "Begin to rollback all trans..." << std::endl ;
-         // rollback trans
          rc = rtnTransRollbackAll( cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to rollback all trans, rc: %d",
                       rc ) ;
@@ -3241,7 +3150,6 @@ namespace engine
                const std::string fileName =
                   dir_iter->path().filename().string() ;
 
-               /// clear info
                info._setSeq.clear() ;
 
                if ( parseMetaFile( fileName, info._name, incID ) &&
@@ -3336,7 +3244,6 @@ namespace engine
          }
          PD_RC_CHECK( rc, PDERROR, "Failed to read meta header, rc: %d", rc ) ;
 
-         // if check node info
          if ( !_checkGroupName.empty() &&
               0 != ossStrncmp( _metaHeader._groupName, _checkGroupName.c_str(),
                                BAR_BACKUP_GROUPNAME_LEN - 1 ) )
@@ -3418,7 +3325,6 @@ namespace engine
                       pHeader->_opType == BAR_BACKUP_OP_TYPE_INC ?
                       true : false ) ;
 
-      // stat info
       builder.append( "BeginLSNOffset", (INT64)pHeader->_beginLSNOffset ) ;
       builder.append( "EndLSNOffset", (INT64)pHeader->_endLSNOffset ) ;
       builder.append( "TransLSNOffset", (INT64)pHeader->_transLSNOffset ) ;
@@ -3508,7 +3414,6 @@ namespace engine
       string tmpName ;
       UINT32 seq = 0 ;
 
-      /// enum data and remove
       rc = ossEnumFiles2( _path, mapFiles, filterData.c_str(),
                           OSS_MATCH_LEFT, 1 ) ;
       if ( rc )
@@ -3537,7 +3442,6 @@ namespace engine
       }
       mapFiles.clear() ;
 
-      /// enum meta and remove
       rc = ossEnumFiles2(_path, mapFiles, filterMeta.c_str(),
                           OSS_MATCH_LEFT, 1 ) ;
       if ( rc )
@@ -3586,7 +3490,6 @@ namespace engine
          goto error ;
       }
 
-      // drop data file
       while ( _metaHeader._dataFileNum > 0 )
       {
          fileName = getDataFileName( backupName,
@@ -3601,7 +3504,6 @@ namespace engine
          --_metaHeader._lastDataSequence ;
       }
 
-      // drop meta file
       fileName = getIncFileName( backupName, incID ) ;
       if ( SDB_OK == ossAccess( fileName.c_str() ) )
       {

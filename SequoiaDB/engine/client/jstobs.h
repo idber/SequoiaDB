@@ -39,10 +39,8 @@ SDB_EXPORT void JsonSetPrintfLog( void (*pFun)( const CHAR *pFunc,
                                                 const CHAR *pFmt,
                                                 ... ) ) ;
 
-//Compatible with the old version, the new code is not recommended use.
 SDB_EXPORT BOOLEAN jsonToBson ( bson *bs, const CHAR *json_str ) ;
 
-//Compatible with the old version, the new code is not recommended use.
 SDB_EXPORT BOOLEAN jsonToBson2 ( bson *bs,
                                  const CHAR *json_str,
                                  BOOLEAN isMongo,

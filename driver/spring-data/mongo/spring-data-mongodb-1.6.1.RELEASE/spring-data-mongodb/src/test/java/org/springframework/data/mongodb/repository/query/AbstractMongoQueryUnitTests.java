@@ -24,7 +24,6 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-//import java.util.Optional;
 
 import org.bson.types.ObjectId;
 import org.hamcrest.core.Is;
@@ -168,7 +167,6 @@ public class AbstractMongoQueryUnitTests {
 		verify(this.mongoOperationsMock, times(1))
 				.find(captor.capture(), Matchers.eq(Person.class), Matchers.eq("persons"));
 
-//		assertThat(captor.getValue().getMeta().getComment(), nullValue());
 	}
 
 	/**
@@ -184,7 +182,6 @@ public class AbstractMongoQueryUnitTests {
 
 		verify(this.mongoOperationsMock, times(1))
 				.find(captor.capture(), Matchers.eq(Person.class), Matchers.eq("persons"));
-//		assertThat(captor.getValue().getMeta().getComment(), is("comment"));
 	}
 
 	/**
@@ -199,7 +196,6 @@ public class AbstractMongoQueryUnitTests {
 		ArgumentCaptor<Query> captor = ArgumentCaptor.forClass(Query.class);
 
 		verify(this.mongoOperationsMock, times(1)).count(captor.capture(), Matchers.eq("persons"));
-//		assertThat(captor.getValue().getMeta().getComment(), is("comment"));
 	}
 
 	/**
@@ -215,7 +211,6 @@ public class AbstractMongoQueryUnitTests {
 
 		verify(this.mongoOperationsMock, times(1))
 				.find(captor.capture(), Matchers.eq(Person.class), Matchers.eq("persons"));
-//		assertThat(captor.getValue().getMeta().getComment(), is("comment"));
 	}
 
 	/**
@@ -364,6 +359,5 @@ public class AbstractMongoQueryUnitTests {
 		/** @see DATAMONGO-1057 */
 		Slice<Person> findByLastname(String lastname, Pageable page);
 
-//		Optional<Person> findByLastname(String lastname);
 	}
 }

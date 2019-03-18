@@ -4,8 +4,6 @@ import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
 import com.sequoiadb.base.Sequoiadb;
-import com.sequoiadb.exception.BaseException;
-import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.test.common.Constants;
 import com.sequoiadb.test.common.ConstantsInsert;
 import org.bson.BSONObject;
@@ -34,9 +32,7 @@ public class TestIndex {
 
     @Before
     public void setUp() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
         }
@@ -62,35 +58,5 @@ public class TestIndex {
 
         DBCursor cursor = cl.getIndex(idxName);
         assertTrue(cursor.hasNext());
-    }
-
-    @Test
-    public void testGetEmptyIndex() {
-
-        String emptyIndexName = "aaaaaaaaa";
-        // case 1:
-        DBCursor cursor;
-        cursor = cl.getIndex(emptyIndexName);
-        while(cursor.hasNext()) {
-            System.out.println("index is: " + cursor.getNext());
-        }
-
-        // case 2:
-        Assert.assertFalse(cl.isIndexExist(emptyIndexName));
-        try {
-            cl.getIndexInfo(emptyIndexName);
-            Assert.fail();
-        } catch (BaseException e) {
-            Assert.assertEquals(SDBError.SDB_IXM_NOTEXIST.getErrorCode(),
-                    e.getErrorCode());
-        }
-
-        // case 3:
-        String idIdxName = "$id";
-        Assert.assertTrue(cl.isIndexExist(idIdxName));
-        BSONObject indexObj = cl.getIndexInfo(idIdxName);
-        Assert.assertNotNull(indexObj);
-        System.out.println("id index is: " + indexObj.toString());
-
     }
 }

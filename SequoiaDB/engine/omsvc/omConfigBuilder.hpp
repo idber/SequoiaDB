@@ -170,7 +170,6 @@ namespace engine
       virtual void      _reset() ;
 
    protected:
-      //allow set configure not exist
       BOOLEAN _force ;
       map<string, OmConfProperty*> _properties ;
    } ;
@@ -224,9 +223,7 @@ namespace engine
       virtual INT32 _check( BSONObj& bsonConfig ) = 0 ;
 
    protected:
-      //allow set configure not exist
       BOOLEAN           _force ;
-      //The config and node info for all hosts of the cluster
       BSONObj           _bsonHostInfo ;
       OmBusinessInfo    _businessInfo ;
       OmCluster         _cluster ;

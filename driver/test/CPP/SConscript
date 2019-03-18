@@ -13,7 +13,6 @@ gtestMainFile = [
       ]
 
 testCommonFiles = [
-        "testWorker.cpp",
         "testcommon.cpp"
       ]
 
@@ -60,7 +59,7 @@ testFiles13 = [
       ]
 
 testFiles14 = [
-         "datasource.cpp"
+         "dc.cpp"
 ]
 
 # compile common lib
@@ -81,7 +80,7 @@ query = dllBuildEnv.Program("query", [testFiles10, gtestMainObj, testCommonFiles
 selectQuery = dllBuildEnv.Program("selectQuery", [testFiles11, gtestMainObj, testCommonFiles])
 procedure = dllBuildEnv.Program("procedure", [testFiles12, gtestMainObj, testCommonFiles])
 rg = dllBuildEnv.Program("rg", [testFiles13, gtestMainObj, testCommonFiles])
-datasource = dllBuildEnv.Program("datasource", [testFiles14, gtestMainObj, testCommonFiles])
+dc = dllBuildEnv.Program("dc", [testFiles14, gtestMainObj, testCommonFiles])
 
 # static compile
 # dll compile
@@ -98,7 +97,7 @@ query.static = staticBuildEnv.Program("query.static", [testFiles10, gtestMainObj
 selectQuery.static = staticBuildEnv.Program("selectQuery.static", [testFiles11, gtestMainObj, testCommonFiles])
 procedure.static = staticBuildEnv.Program("procedure.static", [testFiles12, gtestMainObj, testCommonFiles])
 rg.static = staticBuildEnv.Program("rg.static", [testFiles13, gtestMainObj, testCommonFiles])
-datasource.static = staticBuildEnv.Program("datasource.static", [testFiles14, gtestMainObj, testCommonFiles])
+dc.static = staticBuildEnv.Program("dc.static", [testFiles14, gtestMainObj, testCommonFiles])
 
 
 #env.Install( '#/build_test',[collection,collectionspace,cursor,query,
@@ -110,10 +109,10 @@ datasource.static = staticBuildEnv.Program("datasource.static", [testFiles14, gt
 
 # dll compile, "rg, dc" don't run in ci
 env.Install( '#/build_test',[collection,collectionspace,cursor,query,
-                             sdb,cppbson, debug, domain, lob, selectQuery, procedure, datasource ] )
+                             sdb,cppbson, debug, domain, lob, selectQuery, procedure ] )
 
 # static compile, "rg, dc" don't run in ci
 env.Install( '#/build_test',[collection.static, collectionspace.static, cursor.static, query.static,
                              sdb.static, cppbson.static, debug.static, domain.static, lob.static,
-                             selectQuery.static, procedure.static, datasource.static] )
+                             selectQuery.static, procedure.static] )
 

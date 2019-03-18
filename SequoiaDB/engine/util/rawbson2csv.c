@@ -70,9 +70,6 @@ static void local_time ( time_t *Time, struct tm *TM )
 #if defined (__linux__ )
    localtime_r( Time, TM ) ;
 #elif defined (_WIN32)
-   // The Time represents the seconds elapsed since midnight (00:00:00),
-   // January 1, 1970, UTC. This value is usually obtained from the time
-   // function.
    localtime_s( TM, Time ) ;
 #endif
 }
@@ -644,7 +641,6 @@ INT32 _appendValue( const CHAR *delChar, INT32 delCharSize, bson_iterator *pIt,
          if( tempSize > 0 )
          {
             base64Size = getEnBase64Size ( tempSize ) ;
-            //free before the function return.
             pBase64 = (CHAR *)SDB_OSS_MALLOC( base64Size ) ;
             if( NULL == pBase64 )
             {
@@ -823,12 +819,10 @@ INT32 bson2csv( const CHAR *delChar, const CHAR *delField, INT32 delFieldSize,
    while ( bson_iterator_next( &it ) )
    {
       fieldType = bson_iterator_type( &it ) ;
-      //if BSON_EOO == fieldType ( which is 0 ),that means we hit end of object
       if ( BSON_EOO == fieldType )
       {
          break ;
       }
-      // do NOT concat "," for first entrance
       if ( isFirst )
       {
          isFirst = FALSE ;
@@ -848,7 +842,6 @@ INT32 bson2csv( const CHAR *delChar, const CHAR *delField, INT32 delFieldSize,
       {
          continue ;
       }
-      //then we check the data type
       rc = _appendValue( delChar, delCharSize, &it,
                          ppBuffer, pCSVSize,
                          includeBinary,

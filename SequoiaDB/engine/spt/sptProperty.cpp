@@ -63,7 +63,6 @@ namespace engine
          _pReleaseFunc( (void*)_value ) ;
       }
 
-      /// clear the array
       for ( UINT32 i = 0 ; i < _array.size() ; ++i )
       {
          SDB_OSS_DEL _array[ i ] ;

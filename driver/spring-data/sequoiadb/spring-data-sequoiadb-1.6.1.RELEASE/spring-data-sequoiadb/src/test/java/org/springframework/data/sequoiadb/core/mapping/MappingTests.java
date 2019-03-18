@@ -100,7 +100,6 @@ public class MappingTests extends AbstractIntegrationTests {
 		assertNotNull(result2.get(0).getLastName());
 		assertThat(result2.get(0).getLastName(), is("LastName"));
 
-		// Test "in" query
 		List<PersonCustomIdName> result3 = template.find(new Query(Criteria.where("lastName").in("LastName")),
 				PersonCustomIdName.class);
 		assertThat(result3.size(), is(1));
@@ -405,7 +404,6 @@ public class MappingTests extends AbstractIntegrationTests {
 
 	@Test
 	public void testNoMappingAnnotationsUsingStringAsId() {
-		// Assign the String Id in code
 		PersonPojoStringId p = new PersonPojoStringId("1", "Text");
 		template.insert(p);
 		template.updateFirst(query(where("id").is("1")), update("text", "New Text"), PersonPojoStringId.class);

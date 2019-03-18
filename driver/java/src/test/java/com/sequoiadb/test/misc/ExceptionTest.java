@@ -18,7 +18,6 @@ public class ExceptionTest {
 
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
     }
 
@@ -29,12 +28,10 @@ public class ExceptionTest {
 
     @Before
     public void setUp() throws Exception {
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
         }
         cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        // cl
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
@@ -52,9 +49,7 @@ public class ExceptionTest {
     }
 
     @Test
-//	@Ignore
     public void TestDeprecatedExceptionAPI() {
-        // case 1: test error type
         try {
             ConfigOptions opt = new ConfigOptions();
             opt.setMaxAutoConnectRetryTime(0);
@@ -73,7 +68,6 @@ public class ExceptionTest {
             Assert.assertEquals("SDB_NETWORK(-15): Network error, detail: failed to connect to /0.0.0.123:1234", e.getMessage());
         }
 
-		// case 2: test error code
 		try {
             cs.dropCollection("cs_not_exist");
 			Assert.fail();
@@ -89,7 +83,6 @@ public class ExceptionTest {
     }
 
     @Test
-//	@Ignore
     public void TestFormalExceptionAPI() {
         try {
             try {
@@ -115,17 +108,5 @@ public class ExceptionTest {
 
     }
 
-    @Test
-    public void testExceptionInfo() {
-
-        try {
-            BSONObject obj = new BasicBSONObject();
-            obj.put("_id", 1);
-            cl.insert(obj);
-            cl.insert(obj);
-        } catch (BaseException e) {
-            e.printStackTrace();
-        }
-    }
 
 }

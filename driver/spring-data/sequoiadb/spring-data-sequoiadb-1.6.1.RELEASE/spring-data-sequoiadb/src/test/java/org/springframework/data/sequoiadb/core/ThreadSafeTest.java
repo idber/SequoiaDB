@@ -72,7 +72,6 @@ public class ThreadSafeTest
                 try {
                     while (cursor.hasNext()) {
                         BSONObject obj = cursor.next();
-//                        System.out.println(obj);
                         recordCounter++;
                     }
                 } finally {
@@ -80,7 +79,6 @@ public class ThreadSafeTest
                 }
                 checkConnectionStatus(template, "Query task");
                 try {
-//                    Thread.sleep(random.nextInt(3000) + 1000);
                     Thread.sleep(random.nextInt(1000));
                 } catch (InterruptedException e) {
                     e.printStackTrace();
@@ -101,14 +99,10 @@ public class ThreadSafeTest
             int counter = 0;
             while (runTimes-- != 0) {
                 counter++;
-//                System.out.println("counter is: " + counter);
                 int times = random.nextInt(300);
-//                int times = 300;
                 List<BSONObject> list = new ArrayList<BSONObject>(times);
-//                List<BSONObject> list = new ArrayList<BSONObject>(times);
                 while (times-- >= 0) {
                     BSONObject obj = new BasicBSONObject();
-//                    BSONObject obj = new BasicBSONObject();
                     obj.put("a", random.nextInt(1000));
                     obj.put("b", random.nextInt(1000));
                     obj.put("c", random.nextInt(1000));
@@ -149,30 +143,24 @@ public class ThreadSafeTest
         Thread[] queryTaskTheads = new Thread[queryThreadCount];
         Thread[] insertTaskTheads = new Thread[insertThreadCount];
 
-        // init
         initForTest(template, clName);
 
-        // create insert threads
         for(int i = 0; i < insertThreadCount; i++) {
             insertTaskTheads[i] = new Thread(new InsertTask(template, insertRumTimes, clName, i));
         }
 
-        // start insert threads
         for(int i = 0; i < insertThreadCount; i++) {
             insertTaskTheads[i].start();
         }
 
-        // create query threads
         for(int i = 0; i < queryThreadCount; i++) {
             queryTaskTheads[i] = new Thread(new QueryTask(template, queryRumTimes, clName, i));
         }
 
-        // start query threads
         for(int i = 0; i < queryThreadCount; i++) {
             queryTaskTheads[i].start();
         }
 
-        // join theads
         for(int i = 0; i < queryThreadCount; i++) {
 
             try {
@@ -190,7 +178,6 @@ public class ThreadSafeTest
             }
         }
 
-        // finish
         System.out.println(String.format("Takes %dms", (int)atomicLong.get() / insertThreadCount));
         System.out.println("Finish!");
     }

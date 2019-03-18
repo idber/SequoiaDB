@@ -51,7 +51,6 @@ namespace engine
 
    #define MTH_OPERATOR_EYECATCHER              '$'
 
-   // basic operation flags
    #define MTH_OPERATION_FLAG_OVERFLOW   0x00000001
 
 

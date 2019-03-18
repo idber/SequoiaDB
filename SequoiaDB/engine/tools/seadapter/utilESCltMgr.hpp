@@ -44,7 +44,6 @@
 #define UTIL_ESCLT_DFT_CACHE_NUM    100
 namespace seadapter
 {
-   // Management of search engine client.
    class _utilESCltMgr : public SDBObject
    {
    public:

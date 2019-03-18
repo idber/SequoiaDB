@@ -101,7 +101,6 @@ namespace engine
          goto error ;
       }
 
-      /// set primary
       _groupSession.getGroupSel()->setPrimary( ( SDB_LOB_MODE_READ != mode ) ?
                                                TRUE : FALSE ) ;
       _groupSession.getGroupCtrl()->setMaxRetryTimes( LOB_MAX_RETRYTIMES ) ;
@@ -136,7 +135,6 @@ namespace engine
          rc = _pResource->updateCataInfo( getFullName(), _cataInfo, cb ) ;
          if ( rc )
          {
-            /// Lob doesn't support main collection
             if ( SDB_CLS_COORD_NODE_CAT_VER_OLD == rc )
             {
                rc = SDB_DMS_NOTEXIST ;
@@ -169,7 +167,6 @@ namespace engine
             PD_LOG( PDERROR, "failed to get meta group:%d", rc ) ;
             goto error ;
          }
-         // get group info
          rc = _pResource->getOrUpdateGroupInfo( _metaGroup, _metaGroupInfo,
                                                 cb ) ;
          if ( rc )
@@ -230,7 +227,6 @@ namespace engine
       coordGroupSessionCtrl *pCtrl = _groupSession.getGroupCtrl() ;
       coordGroupSel *pSel = _groupSession.getGroupSel() ;
 
-      /// reset retry times
       pCtrl->resetRetry() ;
 
       builder.append( FIELD_NAME_COLLECTION, fullName )
@@ -239,7 +235,6 @@ namespace engine
              .appendBool( FIELD_NAME_LOB_IS_MAIN_SHD, FALSE ) ;
       if ( SDB_LOB_MODE_READ == mode )
       {
-         /// send meta data to every group.
          builder.append( FIELD_NAME_LOB_META_DATA, _metaObj ) ;
       }
 
@@ -294,7 +289,6 @@ namespace engine
                goto error ;
             }
 
-            /// add group info
             pSel->addGroupPtr2Map( itMap->second ) ;
 
             sendGrpLst[ itr->first ] = itr->second ;
@@ -312,9 +306,6 @@ namespace engine
 
          rc = _getReply( cb, FALSE, tag ) ;
          pCtrl->incRetry() ;
-         /// need to add succeed nodes to subs whether successful or not,
-         /// because it can close all opened contexts that on data node
-         /// when some nodes failed
          rcTmp = _addSubStreamsFromReply() ;
          if ( SDB_OK != rc )
          {
@@ -370,7 +361,6 @@ namespace engine
       coordGroupSessionCtrl *pCtrl = _groupSession.getGroupCtrl() ;
       coordGroupSel *pSel = _groupSession.getGroupSel() ;
 
-      /// reset retry times
       pCtrl->resetRetry() ;
 
       builder.append( FIELD_NAME_COLLECTION, fullName )
@@ -411,7 +401,6 @@ namespace engine
          INT32 tag = RETRY_TAG_NULL ;
          header.version = _cataInfo->getVersion() ;
 
-         /// add group info
          pSel->addGroupPtr2Map( _metaGroupInfo ) ;
 
          rc = _groupSession.sendMsg( (MsgHeader*)&header,
@@ -448,7 +437,6 @@ namespace engine
          rc = _extractMeta( reply, _metaObj, dataTuple ) ;
          if ( dataTuple.data && dataTuple.len > 0 )
          {
-            /// push data to pool
             rc = _getPool().push( dataTuple.data,
                                   dataTuple.len,
                                   dataTuple.offset ) ;
@@ -727,7 +715,6 @@ namespace engine
       pmdRemoteSession *pSession = _groupSession.getSession() ;
       pmdSubSession *pSub = NULL ;
 
-      /// reset retry times
       pCtrl->resetRetry() ;
 
       _initHeader( header, opCode,
@@ -831,10 +818,8 @@ namespace engine
       pmdRemoteSession *pSession = _groupSession.getSession() ;
       pmdSubSession *pSub = NULL ;
 
-      /// reset retry times
       pCtrl->resetRetry() ;
 
-      /// will reassign length
       _initHeader( header, opCode,
                    0, -1 ) ;
 
@@ -872,7 +857,6 @@ namespace engine
                continue ;
             }
 
-            /// we have pushed part of header to body.
             header.header.messageLength = sizeof( MsgHeader ) + dg.bodyLen ;
             header.contextID = dg.contextID ;
 
@@ -1134,7 +1118,6 @@ namespace engine
          }
       }
 
-      /// reset retry times
       pCtrl->resetRetry() ;
 
       _initHeader( header, MSG_BS_LOB_READ_REQ,
@@ -1330,7 +1313,6 @@ namespace engine
       pmdRemoteSession *pSession = _groupSession.getSession() ;
       pmdSubSession *pSub = NULL ;
 
-      /// reset retry times
       pCtrl->resetRetry() ;
 
       builder.append( FIELD_NAME_LOB_OFFSET, offset )
@@ -1444,7 +1426,6 @@ namespace engine
       pmdRemoteSession *pSession = _groupSession.getSession() ;
       pmdSubSession *pSub = NULL ;
 
-      /// reset retry times
       pCtrl->resetRetry() ;
 
       _initHeader( header, MSG_BS_LOB_CLOSE_REQ,
@@ -1509,8 +1490,6 @@ namespace engine
          }
          else
          {
-            /// here we only need to close opened sub streams.
-            /// do not reopen new streams.
             continue ;
          }
       } while ( TRUE ) ;
@@ -1530,8 +1509,6 @@ namespace engine
       PD_TRACE_ENTRY( COORD_LOBSTREAM_CLOSESUBSTREAMWITHEXCEP ) ;
 
       pmdRemoteSession *pSession = _groupSession.getSession() ;
-      /// When the cb->isInterrupted(), don't kill context, because the
-      /// session will send interrupt or disconnect message to peer node
       if ( pSession && !cb->isInterrupted() )
       {
          MsgOpKillContexts killMsg ;
@@ -1558,11 +1535,9 @@ namespace engine
                PD_LOG( PDWARNING, "Kill sub-context on node[%d:%d] failed, "
                        "rc:%d", itr->second.id.columns.groupID,
                        itr->second.id.columns.nodeID, rc ) ;
-               /// try to rollback all substreams, so do not goto error.
             }
          }
 
-         /// wait reply, avoid timeout and kill with cascade
          rc = pSession->waitReply1( TRUE, NULL, FALSE ) ;
          if ( rc )
          {
@@ -1621,7 +1596,6 @@ namespace engine
          goto error ;
       }
 
-      /// If have data, need add to pool
       if ( (UINT32)header->header.messageLength >
            dataOffset + sizeof( MsgLobTuple ) )
       {
@@ -1665,7 +1639,6 @@ namespace engine
       pmdRemoteSession *pSession = _groupSession.getSession() ;
       pmdSubSession *pSub = NULL ;
 
-      /// reset retry times
       pCtrl->resetRetry() ;
 
       _initHeader( header,
@@ -1824,7 +1797,6 @@ namespace engine
          if ( SDB_OK == flags ||
               ( pIgoreErr && pIgoreErr->count( flags ) > 0 ) )
          {
-            /// pReply will be released by _clearMsgData()    
             _results.push_back( pReply ) ;
             continue ;
          }
@@ -1833,7 +1805,6 @@ namespace engine
                  "new primary: %d", id.columns.groupID, id.columns.nodeID,
                  flags, pReply->startFrom ) ;
 
-         // get group info
          CoordGroupMap::iterator it = _mapGroupInfo.find( id.columns.groupID ) ;
          if ( it == _mapGroupInfo.end() )
          {
@@ -1848,13 +1819,11 @@ namespace engine
             tag |= RETRY_TAG_RETRY ;
             flags = SDB_OK ;
 
-            /// if meta group has update, so need to update meta group
             if ( _metaGroup == it->first )
             {
                _metaGroupInfo = it->second ;
             }
          }
-         // then catalog
          else if ( pCtrl->canRetry( flags, cataSel, FALSE ) &&
                    SDB_OK == ( flags = _updateCataInfo( TRUE, cb ) ) )
          {
@@ -2060,7 +2029,6 @@ namespace engine
          }
       }
 
-      /// we need to keep reply msg in memory.
       {
       std::vector<MsgOpReply *>::const_iterator itr = _results.begin() ;
       for ( ; itr != _results.end(); ++itr )

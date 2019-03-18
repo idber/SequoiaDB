@@ -315,7 +315,6 @@ namespace engine
          INT32 diskNum2 = _host.count( byDisk( disk2->diskName ) ) ;
          if ( diskNum1 != diskNum2 )
          {
-            //total count less, the better
             if ( diskNum1 < diskNum2 )
             {
                return 1 ;
@@ -376,7 +375,6 @@ namespace engine
             builder.append( OM_BSON_DBPATH, node->getDBPath() ) ;
             builder.append( OM_BSON_PORT, node->getServiceName() ) ;
 
-            // append public properties
             for ( OmConfProperties::ConstIterator it = _properties.begin() ;
                   it != _properties.end() ; ++it )
             {

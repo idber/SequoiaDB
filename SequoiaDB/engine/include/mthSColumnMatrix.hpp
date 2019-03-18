@@ -66,7 +66,6 @@ namespace engine
                     bson::BSONObj &selected ) ;
 
    private:
-      /// build matirx
       INT32 _load( const bson::BSONElement &e, BOOLEAN strictDataMode ) ;
 
       INT32 _loadObj( _mthSColumn *column,
@@ -76,7 +75,6 @@ namespace engine
 
       INT32 _loadDefaultValue( const bson::BSONElement &e ) ;
 
-      /// build column
       INT32 _getColumn( const CHAR *name, _mthSColumn *&column ) ;
 
       INT32 _getColumn( const CHAR *name,

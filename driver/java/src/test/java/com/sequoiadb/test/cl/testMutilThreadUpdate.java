@@ -25,15 +25,12 @@ public class testMutilThreadUpdate {
 
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } else
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        // cl
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
@@ -91,7 +88,6 @@ public class testMutilThreadUpdate {
             query.put(field, updateThreadList[i].getName());
 
             int size = 0;
-            //System.out.println(query);
             cursor = cl.query(query, null, null, null);
             if (cursor == null)
                 System.out.println("cursor is null");

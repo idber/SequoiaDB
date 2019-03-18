@@ -85,7 +85,6 @@ namespace engine
          goto error ;
       }
 
-      // whole lob is already locked
       if ( -1 != _accessId )
       {
          if ( section.accessId != _accessId )
@@ -97,12 +96,10 @@ namespace engine
          }
          else
          {
-            // whole lob is locked by the same accessId
             goto done ;
          }
       }
 
-      // lock whole lob
       if ( 0 == section.offset && OSS_SINT64_MAX == section.length )
       {
          if ( NULL != _lockSections &&
@@ -233,9 +230,7 @@ namespace engine
             switch ( lobAccessInfo->getMode() )
             {
             case SDB_LOB_MODE_CREATEONLY:
-               // pass through
             case SDB_LOB_MODE_REMOVE:
-               // pass through
             case SDB_LOB_MODE_TRUNCATE:
                rc = SDB_LOB_IS_IN_USE ;
                goto error ;
@@ -363,9 +358,7 @@ namespace engine
          switch ( lobAccessInfo->getMode() )
          {
          case SDB_LOB_MODE_CREATEONLY:
-            // pass through
          case SDB_LOB_MODE_REMOVE:
-            // pass through
          case SDB_LOB_MODE_TRUNCATE:
             bucket.erase( key ) ;
             SAFE_OSS_DELETE( lobAccessInfo ) ;

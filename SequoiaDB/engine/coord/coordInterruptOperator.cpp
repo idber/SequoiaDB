@@ -71,18 +71,14 @@ namespace engine
 
       contextID = -1 ;
 
-      /// send interrupt to all nodes associate with the session,
-      /// and kill all context
       if ( cb->getRemoteSite() )
       {
          pSite = (pmdRemoteSessionSite*)cb->getRemoteSite() ;
          pSite->interruptAllSubSession() ;
       }
 
-      /// set cb interrupted
       cb->interrupt() ;
 
-      // delete all opened contexts when received the interrupt message
       while ( -1 != ( tmpContextID = cb->contextPeek() ) )
       {
          pRtncb->contextDelete( tmpContextID, NULL ) ;

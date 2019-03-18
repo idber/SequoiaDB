@@ -139,7 +139,6 @@ namespace engine
                                    INT64 &contextID,
                                    rtnContextBuf *buf )
    {
-      /// do nothing
       return SDB_OK ;
    }
 
@@ -184,7 +183,6 @@ namespace engine
       UINT32 groupID = 0 ;
       BOOLEAN needRetry = FALSE ;
 
-      /// set options
       _remoteHandler.enableInterruptWhenFailed( _interruptWhenFailed(),
                                                 options._pIgnoreRC ) ;
       pGroupSel->setPrimary( options._primary ) ;
@@ -192,10 +190,8 @@ namespace engine
 
    retry:
       needRetry = FALSE ;
-      /// clear sub-sessions
       _groupSession.resetSubSession() ;
 
-      /// send request to groups
       if ( !inMsg.hasData() )
       {
          rcTmp = _groupSession.sendMsg( inMsg.msg(), options._groupLst,
@@ -210,7 +206,6 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to send request[%s] to groups, rc: %d",
                  msg2String( inMsg.msg() ).c_str(), rcTmp ) ;
-         /// don't goto error, need to process the reply
          rc = rc ? rc : rcTmp ;
 
          if ( _interruptWhenFailed() )
@@ -219,17 +214,14 @@ namespace engine
          }
       }
 
-      /// reply the reply from groups
       rcTmp = pRemoteSession->waitReply1( TRUE ) ;
       if ( rcTmp )
       {
          PD_LOG( PDERROR, "Failed to recieve replys from groups, rc: %d",
                  rcTmp ) ;
-         /// don't goto error
          rc = rc ? rc : rcTmp ;
       }
 
-      /// process the replys
       result.clearError() ;
       itr = pRemoteSession->getSubSessionItr( PMD_SSITR_REPLY ) ;
       while( itr.more() )
@@ -244,8 +236,6 @@ namespace engine
 
          if ( rcTmp && !options.isIgnored( rcTmp ) )
          {
-            /// if error is not 'SDB_CLS_COORD_NODE_CAT_VER_OLD', 
-            /// in transaction report error
             if ( _isTrans( cb, (MsgHeader*)pReply ) )
             {
                processType = COORD_PROCESS_NOK ;
@@ -285,13 +275,11 @@ namespace engine
          else
          {
             processType = COORD_PROCESS_OK ;
-            // process succeed
             result._sucGroupLst[ groupID ] = groupID ;
             result.pushOkRC( routeID.value, rcTmp ) ;
             options._groupLst.erase( groupID ) ;
          }
 
-         // callback for parse
          _onNodeReply( processType, pReply, cb, inMsg ) ;
 
          if ( !result.pushReply( (MsgHeader *)pReply, processType ) )
@@ -344,7 +332,6 @@ namespace engine
          PD_LOG( PDDEBUG, "Using specified group" ) ;
       }
 
-      // construct msg
       if ( cataSel.getCataPtr()->isMainCL() )
       {
          rc = _prepareMainCLOp( cataSel, inMsg, options, cb, result ) ;
@@ -356,7 +343,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Prepare collection operation failed, "
                    "rc: %d", rc ) ;
 
-      // do
       rc = doOnGroups( inMsg, options, cb, result ) ;
 
       if ( cataSel.getCataPtr()->isMainCL() )
@@ -402,7 +388,6 @@ namespace engine
 
       if ( SDB_OK == rc && ( !pRC || pRC->empty() ) )
       {
-         // is succeed, don't need to retry
          retry = FALSE ;
          goto done ;
       }
@@ -496,7 +481,6 @@ namespace engine
                                       pmdEDUCB *cb,
                                       coordSendMsgIn &inMsg )
    {
-      // do nothing
    }
 
 }

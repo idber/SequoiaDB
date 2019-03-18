@@ -418,7 +418,6 @@ namespace engine
          BOOLEAN hasSessionID = TRUE ;
          string type ;
 
-         // check Type
          rc = rtnGetSTDStringElement( obj, FIELD_NAME_TYPE, type ) ;
          if ( SDB_FIELD_NOT_EXIST == rc )
          {
@@ -448,7 +447,6 @@ namespace engine
             _type = CMD_SNAPSHOT_ALL ; ;
          }
 
-         // check SessionID
          rc = rtnGetNumberLongElement( obj, FIELD_NAME_SESSIONID,
                                        (INT64 &)_sessionID ) ;
          if ( SDB_FIELD_NOT_EXIST == rc )
@@ -459,7 +457,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
                       FIELD_NAME_SESSIONID, rc ) ;
 
-         // check conflict
          if ( hasSessionID && _type != CMD_SNAPSHOT_SESSIONS )
          {
             PD_LOG( PDERROR, "Field[%s] take effect only when reset snapshot "
@@ -468,7 +465,6 @@ namespace engine
             goto error ;
          }
 
-         // reset all session
          if ( _type == CMD_SNAPSHOT_SESSIONS && !hasSessionID )
          {
             _resetAllSession = TRUE ;
@@ -777,7 +773,6 @@ namespace engine
 
    BOOLEAN _rtnSnapshotCollections::_isCurrent() const
    {
-      /// for include system
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          return TRUE ;
@@ -812,7 +807,6 @@ namespace engine
 
    BOOLEAN _rtnSnapshotCollectionsInner::_isCurrent() const
    {
-      /// for include system
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          return TRUE ;
@@ -851,7 +845,6 @@ namespace engine
 
    BOOLEAN _rtnSnapshotCollectionSpaces::_isCurrent() const
    {
-      /// for include system
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          return TRUE ;
@@ -886,7 +879,6 @@ namespace engine
 
    BOOLEAN _rtnSnapshotCollectionSpacesInner::_isCurrent() const
    {
-      /// for include system
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          return TRUE ;
@@ -925,7 +917,6 @@ namespace engine
 
    BOOLEAN _rtnSnapshotAccessPlans::_isCurrent() const
    {
-      /// for include system
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          return TRUE ;
@@ -968,7 +959,6 @@ namespace engine
 
    BOOLEAN _rtnSnapshotAccessPlansInner::_isCurrent() const
    {
-      /// for include system
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          return TRUE ;

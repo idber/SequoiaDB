@@ -54,7 +54,6 @@ namespace engine
    #define PMD_STARTUP_STR_LEN            ( 32 )
 
    const CHAR *g_startupChars[] = {
-   /// business status        DO             OK
    /*SDB_START_NORMAL*/  "STOPOFF:DO",  "STOPOFF:OK",
    /*SDB_START_CRASH*/   "STARTUP:DO",  "STARTUP:OK",
    /*SDB_START_ERROR*/   "RESTART:DO",  "RESTART:OK"
@@ -195,10 +194,8 @@ namespace engine
       }
       _fileName += PMD_STARTUP_FILE_NAME ;
 
-      // attempt to access the file
       PD_TRACE1 ( SDB__PMDSTARTUP_INIT, PD_PACK_STRING ( _fileName.c_str() ) ) ;
       rc = ossAccess ( _fileName.c_str() ) ;
-      // if the file does not exist, that means we were normally shutdown
       if ( SDB_FNE == rc )
       {
          _startType = SDB_START_NORMAL ;
@@ -211,19 +208,16 @@ namespace engine
             goto done ;
          }
       }
-      // if we get permission error, we can't continue
       else if ( SDB_PERM == rc )
       {
          PD_LOG ( PDSEVERE, "Permission denied when creating startup file" ) ;
          goto error ;
       }
-      // for unknown error, let's stop starting up the engine
       else if ( rc )
       {
          PD_LOG ( PDSEVERE, "Failed to access startup file, rc = %d", rc ) ;
          goto error ;
       }
-      // file exist means business is not ok
       else
       {
          _ok = FALSE ;
@@ -250,7 +244,6 @@ namespace engine
       _fileOpened = TRUE ;
 
    retry:
-      // lock the file
       rc = ossLockFile ( &_file, OSS_LOCK_EX ) ;
       if ( SDB_PERM == rc )
       {
@@ -293,7 +286,6 @@ namespace engine
          }
       }
 
-      //write char
       rc = _writeStartStr( SDB_START_CRASH, FALSE ) ;
       if ( SDB_OK != rc )
       {

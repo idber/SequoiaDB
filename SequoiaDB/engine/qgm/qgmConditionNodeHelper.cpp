@@ -188,7 +188,6 @@ namespace engine
          _separate( predicate->left, nodes ) ;
          _separate( predicate->right, nodes ) ;
 
-         /// release the node
          predicate->dettach() ;
          SAFE_OSS_DELETE( predicate ) ;
       }
@@ -215,7 +214,6 @@ namespace engine
          goto error ;
       }
 
-      /// $and | $or
       if ( SQL_GRAMMAR::AND == node->type ||
            SQL_GRAMMAR::OR == node->type )
       {
@@ -229,7 +227,6 @@ namespace engine
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-         /// left
          {
             BSONObjBuilder leftBuilder( logicalBuilder.subobjStart() ) ;
             rc = _crtBson( node->left, leftBuilder, keepAlias ) ;
@@ -239,7 +236,6 @@ namespace engine
             }
             leftBuilder.done() ;
          }
-         /// right
          {
             BSONObjBuilder rightBuilder( logicalBuilder.subobjStart() ) ;
             rc = _crtBson( node->right, rightBuilder, keepAlias ) ;
@@ -251,7 +247,6 @@ namespace engine
          }
          logicalBuilder.done() ;
       }
-      /// $not
       else if ( SQL_GRAMMAR::NOT == node->type )
       {
          if ( !node->left )
@@ -273,7 +268,6 @@ namespace engine
             logicalBuilder.done() ;
          }
       }
-      /// is null ==> { $isnull:1 }
       else if ( ( SQL_GRAMMAR::IS == node->type ||
                   SQL_GRAMMAR::ISNOT == node->type ) &&
                 node->left && SQL_GRAMMAR::DBATTR == node->left->type &&
@@ -288,7 +282,6 @@ namespace engine
                             SQL_GRAMMAR::IS == node->type ? 1 : 0 ) ;
          oprBuilder.done() ;
       }
-      /// like  ==> { $regex:"", $option:"" }
       else if ( SQL_GRAMMAR::LIKE == node->type &&
                 node->left && SQL_GRAMMAR::DBATTR == node->left->type &&
                 node->right && SQL_GRAMMAR::STR == node->right->type )

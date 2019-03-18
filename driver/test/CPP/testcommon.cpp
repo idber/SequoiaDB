@@ -309,7 +309,6 @@ int initEnv( void )
    sdb connection ;
    sdbCollectionSpace cs ;
    sdbCollection cl ;
-   // initialize local variables
    const CHAR *pHostName                    = HOST ;
    const CHAR *pPort                        = SERVER ;
    const CHAR *pUsr                         = USER ;
@@ -319,35 +318,30 @@ int initEnv( void )
    BSONObjBuilder bob ;
    BSONObj indexDef ;
    int rc = SDB_OK ;
-   // connect to database
    rc = connectTo ( pHostName, pPort, pUsr, pPasswd, connection ) ;
    if ( rc )
    {
       cout << "Failed to connect to database" << endl ;
       goto error ;
    }
-   // get cs
    rc = getCollectionSpace ( connection, COLLECTION_SPACE_NAME, cs  ) ;
    if ( rc )
    {
       cout << "Failed to get cs" << endl ;
       goto error ;
    }
-   // drop cs
    rc =  connection.dropCollectionSpace ( COLLECTION_SPACE_NAME ) ;
    if ( rc )
    {
       cout << "Failed to drop cs" << endl ;
       goto error ;
    }
-   // create cs
    rc = connection.createCollectionSpace ( COLLECTION_SPACE_NAME, SDB_PAGESIZE_4K, cs ) ;
    if ( rc )
    {
       cout << "Failed to create cs" << endl ;
       goto error ;
    }
-   // create cl
    bob.append ( "ReplSize", 0 ) ;
    conf = bob.done() ;
    rc = cs.createCollection ( COLLECTION_NAME, conf, cl ) ;
@@ -356,7 +350,6 @@ int initEnv( void )
       cout << "Failed to create cl" << endl ;
       goto error ;
    }
-   // create index
    indexDef = BSON( "age" << 1 ) ;
    rc = cl.createIndex ( indexDef, INDEX_NAME, false, false ) ;
    if ( rc )
@@ -364,7 +357,6 @@ int initEnv( void )
       cout << "Failed to create index" << endl ;
       goto error ;
    }
-   // disconnect the connection
    connection.disconnect() ;
 done :
    return rc ;
@@ -441,9 +433,7 @@ INT32 insertRecords ( sdbCollection &cl, SINT64 num )
    INT32 count                    = 0;
    vector<BSONObj> objList ;
    BSONObj obj ;
-   // create name list using objList
    createNameList( objList, num ) ;
-   // insert obj and free memory that allocated by createNameList
    for ( count = 0; count < num; count++ )
    {
       rc = cl.insert( objList[count] ) ;
@@ -590,9 +580,6 @@ INT32 addGroup ( sdb &connection, const CHAR *newGroupName, sdbReplicaGroup &sha
       printf ( "Group name is too long" OSS_NEWLINE ) ;
       goto error ;
    }
-//   sdbReplicaGroup rg ;
-//   printf ( "Please input the new group name: " ) ;
-//   scanf ( "%s", newGroupName ) ;
    rc = connection.createReplicaGroup ( newGroupName, shard ) ;
    if ( rc )
    {

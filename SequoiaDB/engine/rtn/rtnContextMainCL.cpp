@@ -304,7 +304,6 @@ namespace engine
       rtnContextBase *contextObj = NULL ;
       if ( !_subs.empty() )
       {
-         // Construct query options of sub-collection
          const string &clName = *( _subs.begin() ) ;
          rtnQueryOptions subCLOptions( _options ) ;
          subCLOptions.setMainCLQuery( _options.getCLFullName(),
@@ -326,7 +325,6 @@ namespace engine
          }
 
          _subs.pop_front() ;
-         /// do not use clName again.
       }
    done:
       contextID = context ;
@@ -355,7 +353,6 @@ namespace engine
       _numToSkip = _options.getSkip() ;
       _includeShardingOrder = shardSort ;
 
-      /// _options._skip will be used in sub query.
       _options.setSkip( 0 ) ;
       _keyGen = SDB_OSS_NEW _ixmIndexKeyGen( _options.getOrderBy() ) ;
       PD_CHECK( _keyGen != NULL, SDB_OOM, error, PDERROR,
@@ -499,7 +496,6 @@ namespace engine
          else
          {
             SDB_ASSERT( _subs.empty(), "must be empty" ) ;
-            /// do nothing.
          }
       }
       else if ( SDB_OK != rc )
@@ -702,8 +698,6 @@ namespace engine
       SDB_ASSERT( NULL != subCtx, "subCtx can't be NULL" ) ;
       SDB_ASSERT( subCtx->recordNum() == 0, "sub ctx is not empty" ) ;
 
-      // normal sub ctx is in _subContextMap,
-      // no need to do anything
       return SDB_OK ;
    }
 
@@ -712,8 +706,6 @@ namespace engine
       SDB_ASSERT( NULL != subCtx, "subCtx can't be NULL" ) ;
       SDB_ASSERT( subCtx->recordNum() > 0, "sub ctx is empty" ) ;
 
-      // normal sub ctx is in _subContextMap,
-      // no need to do anything
       return SDB_OK ;
    }
 
@@ -724,7 +716,6 @@ namespace engine
       SDB_RTNCB *pRtncb = pKrcb->getRTNCB();
       pmdEDUCB *cb = pKrcb->getEDUMgr()->getEDUByID( eduID() );
 
-      // clean normal context
       SUBCL_CTX_MAP::iterator iter = _subContextMap.begin();
       while( iter != _subContextMap.end() )
       {
@@ -955,14 +946,11 @@ namespace engine
       {
          hasOption = FALSE ;
 
-         // Get sub-collections option
          BSONElement ele = explainOptions.getField( FIELD_NAME_SUB_COLLECTIONS ) ;
          if ( ele.eoo() )
          {
             if ( Object == explainOptions.getField( FIELD_NAME_LOCATION ).type() )
             {
-               // The MERGE doesn't need "Location" option,
-               // but it need to make sure "Detail" option is enabled
                hasOption = TRUE ;
             }
             goto done ;

@@ -50,7 +50,6 @@ namespace engine
    class ossFile: public SDBObject
    {
    private:
-      // disallow copy and assign
       ossFile( const ossFile& ) ;
       void operator=( const ossFile& ) ;
 

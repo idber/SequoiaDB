@@ -228,7 +228,6 @@ namespace engine
 
       SDB_ASSERT( NULL != lobContext, "can not be null" ) ;
       rc = lobContext->open( lob, flags, cb, dpsCB, pStream ) ;
-      /// when called open function, the pStream has been take over
       pStream = NULL ;
       if ( SDB_OK != rc )
       {
@@ -237,7 +236,6 @@ namespace engine
          goto error ;
       }
 
-      /// get data
       rc = lobContext->getMore( -1, buffObj, cb ) ;
       if ( rc )
       {
@@ -461,7 +459,6 @@ namespace engine
       rtnContext *context = rtnCB->contextFind ( contextID, cb ) ;
       if ( NULL == context )
       {
-         /// context has been closed.
          goto done ;
       }
 
@@ -561,7 +558,6 @@ namespace engine
       }
       else
       {
-         /// do nothing.
       }
 
       rc = stream.truncate( 0, cb ) ;
@@ -751,7 +747,6 @@ namespace engine
                                               cb, tmpMeta ) ;
       if ( SDB_FNE == rc )
       {
-         /// do nothing.
          rc = SDB_OK ;
       }
       else if ( SDB_OK != rc )

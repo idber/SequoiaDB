@@ -45,7 +45,6 @@ namespace import
    class InputStream: public SDBObject
    {
    private:
-      // disallow copy and assign
       InputStream(const InputStream&);
       void operator=(const InputStream&);
    protected:
@@ -99,7 +98,6 @@ namespace import
 
    class GBXInputStream: public InputStream
    {
-      //TODO
    };
 
    class SubProcessInputStream: public InputStream

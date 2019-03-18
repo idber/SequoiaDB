@@ -61,32 +61,24 @@ namespace engine
 
       pmdEDUParam *param = ( pmdEDUParam * )pData ;
       ossSocket *pListerner = (ossSocket *)(param->pSocket) ;
-      // reserved protocol
       IPmdAccessProtocol *protocol = param->protocol ;
-      // delete pmdEDUParam object
       SDB_OSS_DEL param ;
       param = NULL ;
 
-      // let's set the state of EDU to RUNNING
       if ( SDB_OK != ( rc = eduMgr->activateEDU ( cb ) ) )
       {
          goto error ;
       }
 
-      // master loop for tcp listener
       while ( ! cb->isDisconnected() )
       {
          SOCKET s ;
-         // timeout in 10ms, so we won't hold global bind latch for too long
-         // and it's only held at first time into the loop
          rc = pListerner->accept ( &s, NULL, NULL ) ;
-         // if we don't get anything for a period of time, let's loop
          if ( SDB_TIMEOUT == rc || SDB_TOO_MANY_OPEN_FD == rc )
          {
             rc = SDB_OK ;
             continue ;
          }
-         // if we receive error due to database down, we finish
          if ( rc && PMD_IS_DB_DOWN() )
          {
             rc = SDB_OK ;
@@ -94,7 +86,6 @@ namespace engine
          }
          else if ( rc )
          {
-            // if we fail due to error, let's restart socket
             PD_LOG ( PDERROR, "Failed to accept socket in TcpListener(rc=%d)",
                      rc ) ;
             if ( pListerner->isClosed() )
@@ -110,7 +101,6 @@ namespace engine
          cb->incEventCount() ;
 
          pmdEDUParam *pParam = SDB_OSS_NEW pmdEDUParam() ;
-         // assign the socket to the pProtocolData
          *(( SOCKET *)&pParam->pSocket) = s ;
          pParam->protocol = protocol ;
 
@@ -133,8 +123,6 @@ namespace engine
             continue ;
          }
 
-         // now we have a tcp socket for a new connection, let's get an 
-         // agent, Note the new new socket sent passing to startEDU
          rc = eduMgr->startEDU ( EDU_TYPE_FAPAGENT, (void *)pParam,
                                  &agentEDU ) ;
          if ( rc )
@@ -142,7 +130,6 @@ namespace engine
             PD_LOG( ( rc == SDB_QUIESCED ? PDWARNING : PDERROR ),
                       "Failed to start edu, rc: %d", rc ) ;
 
-            // close remote connection if we can't create new thread
             ossSocket newsock ( &s ) ;
             newsock.close () ;
             mondbcb->connDec();
@@ -150,8 +137,6 @@ namespace engine
             pParam = NULL ;
             continue ;
          }
-         // Now EDU is started and posted with the new socket, let's
-         // get back to wait for another request
       } //while ( ! cb->isDisconnected() )
 
       if ( SDB_OK != ( rc = eduMgr->waitEDU ( cb ) ) )
@@ -176,7 +161,6 @@ namespace engine
       goto done ;
    }
 
-   /// Register
    PMD_DEFINE_ENTRYPOINT( EDU_TYPE_FAPLISTENER, TRUE,
                           pmdFapListenerEntryPoint,
                           "FAPListener" ) ;
@@ -189,11 +173,9 @@ namespace engine
       pmdEDUParam *pParam = ( pmdEDUParam * )arg ;
       SOCKET s = *((SOCKET *)&pParam->pSocket) ;
       IPmdAccessProtocol* protocol = pParam->protocol ;
-      // delete pmdEDUParam object
       SDB_OSS_DEL pParam ;
       pParam = NULL ;
 
-      /// get session
       session = protocol->getSession( s ) ;
       if ( NULL == session )
       {
@@ -234,7 +216,6 @@ namespace engine
       goto done ;
    }
 
-   /// Register
    PMD_DEFINE_ENTRYPOINT( EDU_TYPE_FAPAGENT, FALSE,
                           pmdFapAgentEntryPoint,
                           "FAPAgent" ) ;

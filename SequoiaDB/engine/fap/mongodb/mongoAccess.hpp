@@ -58,8 +58,6 @@ public:
       return ACCESS_FOR_MONGODB_CLIENT;
    }
 
-   // use bases
-   //virtual UINT32 maxConnNum() const ;
 
 public:
    virtual INT32 init( engine::IResource *pResource ) ;

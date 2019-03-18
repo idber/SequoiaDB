@@ -1,4 +1,3 @@
-// JSONCallback.java
 
 /**
  *      Copyright (C) 2008 10gen Inc.
@@ -45,7 +44,6 @@ import sun.misc.BASE64Decoder;
 public class JSONCallback extends BasicBSONCallback {
 
 
-	//@Override
 	public void objectStart(boolean array) {
 		_stackIsArrayType.addLast(array);
 		super.objectStart(array);
@@ -68,7 +66,6 @@ public class JSONCallback extends BasicBSONCallback {
 		}
 		Boolean isArrayType = _stackIsArrayType.removeLast();
 
-		// override the object if it's a special type
 		if (!isArrayType) {
 			if (b.containsField("$oid")) {
 				o = new ObjectId((String) b.get("$oid"));
@@ -95,7 +92,6 @@ public class JSONCallback extends BasicBSONCallback {
 					o = format.parse(dateValue.toString(), new ParsePosition(0));
 
 					if (o == null) {
-						// try older format with no ms
 						format = new SimpleDateFormat(_secDateFormat);
 						format.setCalendar(new GregorianCalendar(
 								new SimpleTimeZone(0, "GMT")));
@@ -103,7 +99,6 @@ public class JSONCallback extends BasicBSONCallback {
 					}
 
 					if (o == null) {
-						// try older format with day
 						format = new SimpleDateFormat(_dayDateFormat);
 						o = format.parse(dateValue.toString(), new ParsePosition(0));
 					}
@@ -123,9 +118,6 @@ public class JSONCallback extends BasicBSONCallback {
 							.lastIndexOf('.') + 1);
 
 					SimpleDateFormat format = new SimpleDateFormat(_secTSFormat);
-					// Convert to GMT
-					// format.setCalendar(new GregorianCalendar(new
-					// SimpleTimeZone(0, "GMT")));
 					Date date = null;
 					try {
 						date = format.parse(dateStr);
@@ -148,15 +140,12 @@ public class JSONCallback extends BasicBSONCallback {
 					int scale = -1;
 					Object arr = b.get("$precision");
 					if (arr instanceof ArrayList) {
-						// get precision
-						//@SuppressWarnings("rawtypes")
 						Object ret = ((ArrayList)arr).get(0);
 						if (ret instanceof Integer) {
 							precision = (Integer)ret;
 						} else {
 							precision = Integer.parseInt(((String)ret));
 						}
-						// get scale
 						ret = ((ArrayList)arr).get(1);
 						if (ret instanceof Integer) {
 							scale = (Integer)ret;
@@ -243,9 +232,6 @@ public class JSONCallback extends BasicBSONCallback {
 		return o;
 	}
 
-	// true for the nesting object is array, false for not 
-	// we should note that, when we use the inherited "objectStart" and "objectDone", we
-	// should handle this stack
 	private final LinkedList<Boolean> _stackIsArrayType = new LinkedList<Boolean>();
 
 	public static final String _msDateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";

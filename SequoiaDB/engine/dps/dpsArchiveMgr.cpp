@@ -119,7 +119,6 @@ namespace engine
    class dpsArchiveEvent: public SDBObject
    {
    private:
-      // disallow copy and assign
       dpsArchiveEvent( const dpsArchiveEvent& ) ;
       void operator=( const dpsArchiveEvent& );
    protected:
@@ -196,8 +195,6 @@ namespace engine
       _logMgr = NULL ;
       ossGetCurrentTime( _lastActiveTime ) ;
 
-      // set zero so that it will check if archive files expired immediately
-      // when archive mgr start
       _lastExpiredTime.time = 0 ;
       _lastExpiredTime.microtm = 0 ;
       _archiveSize = 0 ;
@@ -356,7 +353,6 @@ namespace engine
       goto done ;
    }
 
-   // ensure log file can't be wrapped
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSARCHIVEMGR_CANASSIGNLOGPAGE, "dpsArchiveMgr::canAssignLogPage" )
    INT32 dpsArchiveMgr::canAssignLogPage( UINT32 reqLen, _pmdEDUCB *cb )
    {
@@ -367,10 +363,8 @@ namespace engine
       DPS_LSN_OFFSET unsafeOffset ;
       UINT32 logFileSize = _logMgr->getLogFileSz() ;
 
-      // log file can't be wrapped if diff <= safeOffset
       safeOffset = ( _logMgr->getLogFileNum() - 1 ) * logFileSize ;
 
-      // log file may be warpped if diff > safeOffset and <= unsafeOffset
       unsafeOffset = _logMgr->getLogFileNum() * logFileSize ;
 
       while ( PMD_IS_DB_AVAILABLE() )
@@ -388,29 +382,24 @@ namespace engine
             goto done ;
          }
 
-         // archived LSN is ahead of end LSN or euqals, it's safe
          if ( nextOffset >= endOffset )
          {
             goto done ;
          }
 
-         // log file can't be wrapped
          if ( diff <= safeOffset )
          {
             goto done ;
          }
 
-         // log file may be wrapped, let's check it
          if ( diff <= unsafeOffset )
          {
-            // LSNs are not in the same physical log file, so it's safe
             if ( _logMgr->calcFileID( endOffset ) != 
                  _logMgr->calcFileID( nextOffset ) )
             {
                goto done ;
             }
 
-            // LSNs are in the same logical log file, so it's safe
             if ( _logMgr->calcLogicalFileID( endOffset ) ==
                  _logMgr->calcLogicalFileID( nextOffset ) )
             {
@@ -418,7 +407,6 @@ namespace engine
             }
          }
 
-         // log file will be wrapped in the next log, so wait for archiving
          if ( waitTime < DPS_ARCHIVE_MAX_WAIT_TIME )
          {
             ossSleep( DPS_ARCHIVE_ONE_WAIT_TIME ) ;
@@ -426,7 +414,6 @@ namespace engine
          }
          else
          {
-            // timeout
             rc = SDB_DPS_LOG_NOT_ARCHIVED ;
             PD_LOG( PDWARNING, "Replica log is not archived, " \
                     "expect LSN: %lld[file: %u(%u)], reqLen=%u, " \
@@ -527,12 +514,9 @@ namespace engine
 
       infoStartLSN = _infoMgr.getInfo().startLSN ;
 
-      // dpsCB->getStartLsn() will return invalid LSN before init finished,
-      // so we directly get start LSN from logMgr.
       dpsStartLSN = _logMgr->getStartLsn( FALSE ) ;
       dpsNextLSN = _logMgr->expectLsn() ;
 
-      // no replica log yet
       if ( dpsNextLSN.offset == 0 )
       {
          return dpsNextLSN ;
@@ -609,7 +593,6 @@ namespace engine
                break ;
             }
 
-            // endOffset is the first physical LSN
             if ( startOffset == endOffset )
             {
                break ;
@@ -631,10 +614,8 @@ namespace engine
          if ( _logMgr->calcFirstPhysicalLSNOfFile( i ) == startOffset &&
               i != endFileId )
          {
-            // the whole log file
             event->isPartial = FALSE ;
             event->startLSN.offset = startOffset ;
-            // go to the next log file
             startOffset = _logMgr->calcFirstPhysicalLSNOfFile( i + 1 ) ;
             event->endLSN.offset = startOffset ;
          }
@@ -646,14 +627,11 @@ namespace engine
             if ( i != endFileId )
             {
                SDB_ASSERT( i == startFileId, "i != startFileId" ) ;
-               // the first log file
-               // until the end of the log file, so we go to the next log file
                startOffset = _logMgr->calcFirstPhysicalLSNOfFile( i + 1 ) ;
                event->endLSN.offset = startOffset ;
             }
             else
             {
-               // the last log file
                event->endLSN.offset = endOffset ;
             }
          }
@@ -765,7 +743,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_DPSARCHIVEMGR__ARCHIVE ) ;
       dpsArchiveInfo info = _infoMgr.getInfo() ;
       DPS_LSN_OFFSET startOffset = startLSN.offset ;
-      // endOffset is not archived at this time
       DPS_LSN_OFFSET endOffset = endLSN.offset ;
 
       SDB_ASSERT( startOffset != endOffset, "startOffset == endOffset" ) ;
@@ -782,8 +759,6 @@ namespace engine
          if ( _logMgr->calcFirstPhysicalLSNOfFile( logicalFileId ) ==
               startOffset )
          {
-            // if startLSN is the first LSN of current file,
-            // then endLSN can't be LSN of next file.
             SDB_ASSERT( endLogicalFileId == logicalFileId,
                         "startLSN and endLSN should be in the same log file" ) ;
             SDB_ASSERT(
@@ -794,9 +769,6 @@ namespace engine
          else if ( _logMgr->calcFirstPhysicalLSNOfFile( endLogicalFileId ) ==
                    endOffset )
          {
-            // if endLSN is the first LSN of log file,
-            // it should be in the next file,
-            // and startLSN can't be the first LSN of current file.
             SDB_ASSERT( endLogicalFileId == logicalFileId + 1,
                         "endLSN should be in the next log file" ) ;
             SDB_ASSERT(
@@ -806,7 +778,6 @@ namespace engine
          }
          else
          {
-            // startLSN and endLSN are in current log file
             SDB_ASSERT( endLogicalFileId == logicalFileId,
                      "startLSN and endLSN are in current log file" ) ;
             SDB_ASSERT(
@@ -902,12 +873,6 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_DPSARCHIVEMGR__ARCHIVE, rc ) ;
       return rc ;
    error:
-      // current archive failed,
-      // so we should re-archive current startLSN,
-      // but the queue may have archive event after startLSN,
-      // so here clear the queue,
-      // the archive event of current startLSN will be re-created
-      // by next switch event or timeout.
       _clearQueue() ;
       goto done ;
    }
@@ -1082,10 +1047,6 @@ namespace engine
          goto error ;
       }
 
-      // if partial file does not exist,
-      // create a temp file firstly,
-      // then rename it to partial file after archiving,
-      // so replay tool can't read a partial file with un-inited file header
       if ( !exist )
       {
          rc = _fileMgr.deleteTmpFile() ;
@@ -1185,7 +1146,6 @@ namespace engine
          _dpsLogHeader& srcLogHeader = logFile->header() ;
          _dpsLogHeader* destLogHeader = archiveFile.getLogHeader() ;
 
-         // a new partial archive file, need to init file header
          if ( DPS_INVALID_LOG_FILE_ID == destLogHeader->_logID )
          {
             *destLogHeader = srcLogHeader ;
@@ -1219,7 +1179,6 @@ namespace engine
          archiveFile.close() ;
       }
 
-      // after archiving, rename tmp file to partial file
       if ( !exist )
       {
          rc = ossFile::rename( tmpPath, partialPath ) ;
@@ -1238,7 +1197,6 @@ namespace engine
       PD_LOG( PDEVENT, "Partial replica log file[%u(%u):%lld-%lld] is archived",
               fileId, logicalFileId, startOffset, endOffset ) ;
 
-      // partial log file is full
       if ( _logMgr->calcLogicalFileID( endOffset ) == logicalFileId + 1 )
       {
          BOOLEAN compress = pmdGetKRCB()->getOptionCB()->archiveCompressOn() ;
@@ -1374,9 +1332,6 @@ namespace engine
             }
          }
 
-         // we have moved the whole file,
-         // but if the moveLSN is not the first LSN of file,
-         // we should archive logs before the moveLSN in the file again.
          if ( !_logMgr->isFirstPhysicalLSNOfFile( moveOffset ) )
          {
             moveOffset = _logMgr->calcFirstPhysicalLSNOfFile( moveFileId ) ;
@@ -1389,8 +1344,6 @@ namespace engine
 
          if ( moveFileId == curFileId )
          {
-            // if move in the same log file,
-            // there will be a gap between moved LSN and current start LSN
             rc = _fileMgr.moveArchiveFile( curFileId, TRUE ) ;
             if ( SDB_OK != rc )
             {
@@ -1399,9 +1352,6 @@ namespace engine
                goto error ;
             }
 
-            // we have moved the whole file,
-            // but if the moveLSN is not the first LSN of file,
-            // we should archive logs before the moveLSN in the file again.
             if ( !_logMgr->isFirstPhysicalLSNOfFile( moveOffset ) )
             {
                moveOffset = _logMgr->calcFirstPhysicalLSNOfFile( moveFileId ) ;
@@ -1442,14 +1392,12 @@ namespace engine
       timeout = pmdGetKRCB()->getOptionCB()->getArchiveTimeout() ;
       if ( 0 == timeout )
       {
-         // zero means disable timeout check
          goto done ;
       }
 
       ossGetCurrentTime( curTime ) ;
       if ( curTime.time < _lastActiveTime.time )
       {
-         // time is go back, so we set current time to it
          _lastActiveTime = curTime ;
       }
       if ( curTime.time - _lastActiveTime.time < timeout )
@@ -1498,16 +1446,13 @@ namespace engine
       expired = pmdGetKRCB()->getOptionCB()->getArchiveExpired() ;
       if ( 0 == expired )
       {
-         // zero means disable expiration check
          goto done ;
       }
-      // exipred unit is HOURS, here convert to SECONDS
       expired *= DPS_ARCHIVE_EXPIRED_SECONDS ;
 
       ossGetCurrentTime( curTime ) ;
       if ( curTime.time < _lastExpiredTime.time )
       {
-         // time is go back, so we set current time to it
          _lastExpiredTime = curTime ;
       }
       if ( curTime.time - _lastExpiredTime.time < ( expired / 2 ) )
@@ -1524,7 +1469,6 @@ namespace engine
 
       if ( DPS_INVALID_LOG_FILE_ID == minFileId )
       {
-         // no archive file
          goto done ;
       }
 
@@ -1543,7 +1487,6 @@ namespace engine
 
       ossGetCurrentTime( _lastExpiredTime ) ;
 
-      // stats archive total size again
       rc = _fileMgr.getTotalSize( _archiveSize ) ;
       if ( SDB_OK != rc )
       {
@@ -1570,17 +1513,14 @@ namespace engine
       quota = pmdGetKRCB()->getOptionCB()->getArchiveQuota() ;
       if ( 0 == quota )
       {
-         // zero means disable quota check
          goto done ;
       }
       quota *= DPS_ARCHIVE_QUOTA_BYTES ;
 
-      // at least 3 log file size for quota
       if ( quota < logFileSize * 3 )
       {
          quota = logFileSize * 3 ;
       }
-      // keep one log file size for safty
       quota -= logFileSize ;
 
       if ( _archiveSize <= (INT64)quota )
@@ -1639,15 +1579,9 @@ namespace engine
 
    void dpsArchiveMgr::_beforeMove()
    {
-      // before move we just stop archiving
-      // to avoid concurrency between DPS move and archive
 
       SDB_ASSERT( !_isDPSMoving, "is moving" ) ;
 
-      // move operation is mutually exclusive in DPS,
-      // so only one thread can modify _isDPSMoving,
-      // set true until dps move is finished,
-      // to stop archiving during move
       _isDPSMoving = TRUE ;
    }
 

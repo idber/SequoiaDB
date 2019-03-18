@@ -84,7 +84,6 @@ namespace engine
          goto done ;
       }
 
-      // in this case pt.size() == 1
       {
          ptree::iterator ite = pt.begin() ;
          string key          = ite->first ;
@@ -149,7 +148,6 @@ namespace engine
          }
          else
          {
-            // obj
             BSONObj obj ;
             _recurseParseObj( child, obj ) ;
             builder.append(key, obj ) ;
@@ -203,7 +201,6 @@ namespace engine
          }
          else
          {
-            // obj
             BSONObj obj ;
             _recurseParseObj( child, obj ) ;
             builder.append(key, obj ) ;
@@ -465,7 +462,6 @@ namespace engine
       string businessKey ;
       rtnContextBuf buffObj ;
 
-      //Status not in( OM_TASK_STATUS_FINISH, OM_TASK_STATUS_CANCEL )
       BSONArrayBuilder arrBuilder ;
       arrBuilder.append( OM_TASK_STATUS_FINISH ) ;
       arrBuilder.append( OM_TASK_STATUS_CANCEL ) ;
@@ -492,7 +488,6 @@ namespace engine
             goto error ;
          }
 
-         // notice: if rc != SDB_OK, contextID is deleted in rtnGetMore
          goto done ;
       }
 
@@ -560,10 +555,6 @@ namespace engine
       BSONObj hint ;
       rtnContextBuf buffObj ;
 
-      //Status not in( OM_TASK_STATUS_FINISH, OM_TASK_STATUS_CANCEL )
-      //BSONArrayBuilder arrBuilder ;
-      //arrBuilder.append( OM_TASK_STATUS_FINISH ) ;
-      //arrBuilder.append( OM_TASK_STATUS_CANCEL ) ;
       BSONObj status = BSON( "$nin" << BSON_ARRAY( OM_TASK_STATUS_FINISH <<
                                                    OM_TASK_STATUS_CANCEL ) ) ;
 
@@ -587,7 +578,6 @@ namespace engine
             goto error ;
          }
 
-         // notice: if rc != SDB_OK, contextID is deleted in rtnGetMore
          goto done ;
       }
 
@@ -755,7 +745,6 @@ namespace engine
       BSONObj hint ;
       BSONObj condition = BSON( OM_BUSINESS_FIELD_NAME << businessName )  ;
 
-      // query table
       rc = rtnQuery( OM_CS_DEPLOY_CL_BUSINESS, selector, condition, order,
                      hint, 0, _cb, 0, 1, _pDMSCB, _pRTNCB, contextID );
       if ( rc )
@@ -976,10 +965,8 @@ namespace engine
       BSONObj newClusterInfo = clusterInfo.filterFieldsUndotted( filter,
                                                                  TRUE ) ;
 
-      // ClusterName Desc SdbUser SdbPasswd SdbUserGroup
       recordBuilder.appendElements( newClusterInfo ) ;
 
-      // InstallPath
       installPath = clusterInfo.getStringField( OM_BSON_FIELD_INSTALL_PATH ) ;
       if ( installPath.empty() )
       {
@@ -988,7 +975,6 @@ namespace engine
       recordBuilder.append( OM_BSON_FIELD_INSTALL_PATH,
                             OM_DEFAULT_INSTALL_PATH ) ;
 
-      // GrantConf
       grantConfEle = clusterInfo.getField( OM_BSON_FIELD_GRANTCONF ) ;
       if ( bson::Array == grantConfEle.type() )
       {
@@ -1069,7 +1055,6 @@ namespace engine
       BSONObj hint ;
       BSONObj condition = BSON( OM_CLUSTER_FIELD_NAME << clusterName ) ;
 
-      // query table
       rc = rtnQuery( OM_CS_DEPLOY_CL_CLUSTER, selector, condition, order,
                      hint, 0, _cb, 0, -1, _pDMSCB, _pRTNCB, contextID );
       if ( rc )
@@ -1246,7 +1231,6 @@ namespace engine
       BSONObj order ;
       BSONObj hint ;
 
-      // query table
       rc = rtnQuery( OM_CS_DEPLOY_CL_CONFIGURE, selector, condition, order,
                      hint, 0, _cb, 0, 1, _pDMSCB, _pRTNCB, contextID );
       if ( rc )
@@ -1320,7 +1304,6 @@ namespace engine
 
       condition = BSON( OM_CONFIGURE_FIELD_BUSINESSNAME << businessName ) ;
 
-      // query table
       rc = rtnQuery( OM_CS_DEPLOY_CL_CONFIGURE, selector, condition, order,
                      hint, 0, _cb, 0, -1, _pDMSCB, _pRTNCB, contextID );
       if ( rc )
@@ -1399,7 +1382,6 @@ namespace engine
       BSONObjBuilder confBuilder ;
       BSONArrayBuilder arrayBuilder ;
 
-      // query table
       rc = rtnQuery( OM_CS_DEPLOY_CL_CONFIGURE, selector, condition, order,
                      hint, 0, _cb, 0, -1, _pDMSCB, _pRTNCB, contextID );
       if ( rc )
@@ -1519,7 +1501,6 @@ namespace engine
       string businessType = "" ;
       string deployMod = "" ;
 
-      // query table
       rc = rtnQuery( OM_CS_DEPLOY_CL_CONFIGURE, selector, condition, order,
                      hint, 0, _cb, 0, -1, _pDMSCB, _pRTNCB, contextID );
       if ( rc )
@@ -1626,7 +1607,6 @@ namespace engine
       string businessType = "" ;
       string deployMod = "" ;
 
-      // query table
       rc = rtnQuery( OM_CS_DEPLOY_CL_CONFIGURE, selector, condition, order,
                      hint, 0, _cb, 0, -1, _pDMSCB, _pRTNCB, contextID );
       if ( rc )
@@ -2004,7 +1984,6 @@ namespace engine
       BSONObj hint ;
       BSONObj condition = BSON( OM_BUSINESS_FIELD_NAME << businessName )  ;
 
-      // query table
       rc = rtnQuery( OM_CS_DEPLOY_CL_BUSINESS_AUTH, selector, condition, order,
                      hint, 0, _cb, 0, 1, _pDMSCB, _pRTNCB, contextID );
       if ( rc )
@@ -2205,7 +2184,6 @@ namespace engine
       BSONObj order ;
       BSONObj hint ;
 
-      // query table
       rc = rtnQuery( OM_CS_DEPLOY_CL_CONFIGURE, selector, condition, order,
                      hint, 0, _cb, 0, 1, _pDMSCB, _pRTNCB, contextID );
       if ( rc )
@@ -2502,7 +2480,6 @@ namespace engine
       BSONObj order ;
       BSONObj hint ;
 
-      //query table
       rc = rtnQuery( OM_CS_DEPLOY_CL_HOST, selector, condition, order, hint, 0,
                      _cb, 0, -1, _pDMSCB, _pRTNCB, contextID );
       if ( rc )
@@ -3150,13 +3127,11 @@ namespace engine
                goto error ;
             }
 
-            //used to construct business info
             hostLocation.append( BSON( OM_CONFIGURE_FIELD_HOSTNAME <<
                                        hostName ) ) ;
          }
       }
 
-      //add business
       builder.append( OM_BUSINESS_FIELD_LOCATION, hostLocation.arr() ) ;
       rc = addBusinessInfo( OM_BUSINESS_ADDTYPE_INSTALL, clusterName,
                             businessName, businessType,
@@ -3242,7 +3217,6 @@ namespace engine
          goto error ;
       }
 
-      //host and node info by omagent
       {
          BSONObj hostInfoList = newConfig.getObjectField(
                                                    OM_BSON_FIELD_HOST_INFO ) ;
@@ -3274,13 +3248,11 @@ namespace engine
                goto error ;
             }
 
-            //used to construct business info
             hostLocation.append( BSON( OM_CONFIGURE_FIELD_HOSTNAME <<
                                        hostName ) ) ;
          }
       }
 
-      //delete the host config that does not exist
       {
          BSONObj deleteCondition ;
          BSONObjBuilder deleteBuilder ;
@@ -3309,7 +3281,6 @@ namespace engine
          }
       }
 
-      //upsert business
       {
          BSONObj condition = BSON( OM_BUSINESS_FIELD_LOCATION << "" <<
                                    OM_BUSINESS_FIELD_DEPLOYMOD << "" <<
@@ -3786,7 +3757,6 @@ namespace engine
          goto error ;
       }
 
-      // create remote session
       om = sdbGetOMManager() ;
       remoteSession = om->getRSManager()->addSession( _cb,
                                                       OM_WAIT_SCAN_RES_INTERVAL,
@@ -3798,7 +3768,6 @@ namespace engine
          goto error ;
       }
 
-      // send message to agent
       pMsg = (MsgHeader *)pContent ;
       rc = _sendMsgToLocalAgent( om, remoteSession, pMsg ) ;
       if( rc )
@@ -3808,7 +3777,6 @@ namespace engine
          goto error ;
       }
 
-      // receiving for agent's response
       rc = _receiveFromAgent( remoteSession, flag, result ) ;
       if( rc )
       {
@@ -4055,7 +4023,6 @@ namespace engine
 
             if ( 's' == character )
             {
-               //string
                string *pArg = va_arg( vaList, string * ) ;
 
                SDB_ASSERT( ( NULL != pArg ), "pArg can not null" ) ;
@@ -4064,7 +4031,6 @@ namespace engine
             }
             else if ( 'l' == character )
             {
-               //int32
                INT32 *pArg = va_arg( vaList, INT32 * ) ;
 
                SDB_ASSERT( ( NULL != pArg ), "pArg can not null" ) ;
@@ -4073,7 +4039,6 @@ namespace engine
             }
             else if ( 'L' == character )
             {
-               //int64
                INT64 *pArg = va_arg( vaList, INT64 * ) ;
 
                SDB_ASSERT( ( NULL != pArg ), "pArg can not null" ) ;
@@ -4082,7 +4047,6 @@ namespace engine
             }
             else if ( 'b' == character )
             {
-               //bool
                BOOLEAN *pArg = va_arg( vaList, BOOLEAN * ) ;
                string value = string( pValue ) ;
 
@@ -4108,7 +4072,6 @@ namespace engine
             }
             else if ( 'j' == character )
             {
-               //json
                BSONObj *pArg = va_arg( vaList, BSONObj * ) ;
 
                SDB_ASSERT( ( NULL != pArg ), "pArg can not null" ) ;

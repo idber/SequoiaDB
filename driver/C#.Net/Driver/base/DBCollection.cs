@@ -1,20 +1,4 @@
-﻿/*
- * Copyright 2018 SequoiaDB Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
-*/
-
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System;
 using SequoiaDB.Bson;
 
@@ -151,7 +135,7 @@ namespace SequoiaDB
             SDBMessage rtn = AdminCommand(command, matcher, dummyObj, dummyObj, dummyObj, -1, -1, 0);
             int flags = rtn.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
             // upsert cache
             sdb.UpsertCache(collectionFullName);
         }
@@ -184,7 +168,7 @@ namespace SequoiaDB
             SDBMessage rtn = AdminCommand(command, matcher, dummyObj, dummyObj, dummyObj, -1, -1, 0);
             int flags = rtn.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
             // upsert cache
             sdb.UpsertCache(collectionFullName);
         }
@@ -236,7 +220,7 @@ namespace SequoiaDB
             // check return flag
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtnSDBMessage.ErrorObject);
+                throw new BaseException(flags);
             // build cursor object to get result from database
             DBCursor cursor = new DBCursor(rtnSDBMessage, this);
             BsonDocument result = cursor.Next();
@@ -288,7 +272,7 @@ namespace SequoiaDB
             // check return flag
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtnSDBMessage.ErrorObject);
+                throw new BaseException(flags);
             // build cursor object to get result from database
             DBCursor cursor = new DBCursor(rtnSDBMessage, this);
             BsonDocument result = cursor.Next();
@@ -303,143 +287,20 @@ namespace SequoiaDB
             return taskid;
         }
 
-        /** \fn void BulkInsert(List<BsonDocument> records, int flags)
-         *  \brief Insert a bulk of bson objects into current collection
-         *  \param records The Bson document of insertor list, can't be null
-         *  \param flags The flag to control the behavior of inserting. The
-         *               value of flags default to be 0, and it can choose
-         *               the follow values:
-         *      <ul>
-         *      <li>0                             : while 0 is set(default to be 0), database 
-         *                                          will stop inserting when the record hit 
-         *                                          index key duplicate error.
-         *      <li>SDBConst.FLG_INSERT_CONTONDUP : if the record hit index key duplicate
-         *                                          error, database will skip them and go on inserting.
-         *      </ul>
+        /** \fn BsonValue Insert(BsonDocument record)
+         *  \brief Insert a document into current collection
+         *  \param insertor The Bson document of insertor, can't be null
+         *  \return The value of field "_id" in "insertor", if "insertor" has no field "_id",
+         *          API will add one and return the value which type is ObjectId
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
          */
-        public void BulkInsert(List<BsonDocument> records, int flags)
-        {
-            flags = DBQuery.eraseSingleFlag(flags, SDBConst.FLG_INSERT_RETURN_OID);
-            Insert(records, flags);
-        }
-
-        /** \fn BsonDocument Insert(List<BsonDocument> recordList, int flags)
-         *  \brief Insert documents into current collection.
-         *  \param record The Bson document of insertor, can't be null.
-         *  \param flags The flag to control the behavior of inserting. The
-         *               value of flags default to be 0, and it can choose
-         *               the follow values:
-         *              <ul>
-         *               <li>0:     while 0 is set(default to be 0), database 
-         *                      will stop inserting when the record hit 
-         *                      index key duplicate error.
-         *               <li>SDBConst.FLG_INSERT_CONTONDUP: 
-         *                      if the record hit index key duplicate
-         *                      error, database will skip them and go on 
-         *                      inserting.
-         *               <li>SDBConst.FLG_INSERT_RETURN_OID:
-         *                      return the value of "_id" field in the record.
-         *               </ul>
-         *  \return The result of inserting, can be the follow value:
-         *              <ul>
-         *                   <li> null: when there is no result to return.</li>
-         *                   <li> bson which contains the "_id" field: when flag "FLG_INSERT_RETURN_OID" is set, return the
-         *                   value of "_id" field of the inserted record.
-         *                   e.g.: { "_id": { "$oid": "5c456e8eb17ab30cfbf1d5d1" } } </li>
-         *              </ul>
-         *  \exception SequoiaDB.BaseException
-         *  \exception System.Exception
-         */
-        public BsonDocument Insert(List<BsonDocument> recordList, int flags)
-        {
-            if (recordList == null || recordList.Count == 0)
-            {
-                throw new BaseException((int)Errors.errors.SDB_INVALIDARG);
-            }
-            BsonDocument result = null;
-            SDBMessage sdbMessage = new SDBMessage();
-            sdbMessage.OperationCode = Operation.OP_INSERT;
-            sdbMessage.Version = SequoiadbConstants.DEFAULT_VERSION;
-            sdbMessage.W = SequoiadbConstants.DEFAULT_W;
-            sdbMessage.Padding = 0;
-            sdbMessage.CollectionFullName = collectionFullName;
-            sdbMessage.NodeID = SequoiadbConstants.ZERO_NODEID;
-            sdbMessage.RequestID = 0;
-
-            if ((flags & SDBConst.FLG_INSERT_RETURN_OID) != 0)
-            {
-                if (!EnsureOID)
-                {
-                    EnsureOID = true;
-                }
-            }
-
-            sdbMessage.Flags = flags;
-            byte[] request = SDBMessageHelper.BuildBulkInsertRequest(sdbMessage, recordList, EnsureOID, isBigEndian);
-            connection.SendMessage(request);
-            SDBMessage rtnSDBMessage = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
-            rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
-            int errorCode = rtnSDBMessage.Flags;
-            if (errorCode != 0)
-            {
-                throw new BaseException(errorCode, rtnSDBMessage.ErrorObject);
-            }
-            // upsert cache
-            sdb.UpsertCache(collectionFullName);
-
-            // build the result for return
-            if ((flags & SDBConst.FLG_INSERT_RETURN_OID) != 0)
-            {
-                result = new BsonDocument();
-                BsonArray array = new BsonArray();
-                foreach(BsonDocument doc in recordList)
-                {
-                    array.Add(doc.GetValue(SequoiadbConstants.OID));
-                }
-                result.Add(SequoiadbConstants.OID, array);
-            }
-            return result;
-        }
-
-        /** \fn BsonDocument Insert(BsonDocument record, int flags)
-         *  \brief Insert a document into current collection.
-         *  \param record The Bson document of insertor, can't be null.
-         *  \param flags The flag to control the behavior of inserting. The
-         *               value of flags default to be 0, and it can choose
-         *               the follow values:
-         *              <ul>
-         *               <li>0:     while 0 is set(default to be 0), database 
-         *                      will stop inserting when the record hit 
-         *                      index key duplicate error.
-         *               <li>SDBConst.FLG_INSERT_CONTONDUP: 
-         *                      if the record hit index key duplicate
-         *                      error, database will skip them and go on 
-         *                      inserting.
-         *               <li>SDBConst.FLG_INSERT_RETURN_OID:
-         *                      return the value of "_id" field in the record.
-         *                      When set this flag, "EnsureOID" will be set to true.
-         *              </ul>
-         *  \return The result of inserting, can be the follow value:
-         *          <ul>
-         *               <li> null: when there is no result to return.</li>
-         *               <li> bson which contains the "_id" field:
-         *               when flag "FLG_INSERT_RETURN_OID" is set, return all the
-         *               values of "_id" field in a bson array.
-         *               e.g.: { "_id": [ { "$oid": "5c456e8eb17ab30cfbf1d5d1" },
-         *               { "$oid": "5c456e8eb17ab30cfbf1d5d2" } ] }</li>
-         *           </ul>
-         *  \exception SequoiaDB.BaseException
-         *  \exception System.Exception
-         */
-        public BsonDocument Insert(BsonDocument record, int flags)
+        public BsonValue Insert(BsonDocument record) 
         {
             if (record == null)
             {
                 throw new BaseException("SDB_INVALIDARG");
             }
-            BsonDocument result = null;
             SDBMessage sdbMessage = new SDBMessage();
             sdbMessage.OperationCode = Operation.OP_INSERT;
             sdbMessage.Version = SequoiadbConstants.DEFAULT_VERSION;
@@ -460,29 +321,48 @@ namespace SequoiaDB
             }
             List<BsonDocument> list = new List<BsonDocument>(1);
             list.Add(record);
-            BulkInsert(list, flags);
-            // try to return result
-            if ((flags & SDBConst.FLG_INSERT_RETURN_OID) != 0)
-            {
-                result = new BsonDocument();
-                result.Add(SequoiadbConstants.OID, retVal);
-            }
-            return result;
+            BulkInsert(list, 0);
+            return retVal;
         }
 
-        /** \fn BsonValue Insert(BsonDocument record)
-         *  \brief Insert a document into current collection
-         *  \param record The Bson document of insertor, can't be null.
-         *  \return Return the value of field "_id" in "insertor". If "insertor" has no field "_id",
-         *          API will add one and return the value which type is ObjectId, so we can get the 
-         *          return value by BsonValue::AsObjectId property.
+        /** \fn void BulkInsert(List<BsonDocument> records, int flag)
+         *  \brief Insert a bulk of bson objects into current collection
+         *  \param records The Bson document of insertor list, can't be null
+         *  \param flag SDBConst.FLG_INSERT_CONTONDUP or 0
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
          */
-        public BsonValue Insert(BsonDocument record)
+        public void BulkInsert(List<BsonDocument> records, int flag)
         {
-            BsonDocument result = Insert(record, SDBConst.FLG_INSERT_RETURN_OID);
-            return result.GetValue(SequoiadbConstants.OID);
+            if (records == null || records.Count == 0)
+            {
+                throw new BaseException((int)Errors.errors.SDB_INVALIDARG);
+            }
+            SDBMessage sdbMessage = new SDBMessage();
+            sdbMessage.OperationCode = Operation.OP_INSERT;
+            sdbMessage.Version = SequoiadbConstants.DEFAULT_VERSION;
+            sdbMessage.W = SequoiadbConstants.DEFAULT_W;
+            sdbMessage.Padding = 0;
+            sdbMessage.CollectionFullName = collectionFullName;
+            sdbMessage.NodeID = SequoiadbConstants.ZERO_NODEID;
+            sdbMessage.RequestID = 0;
+            if (flag != 0 && flag != SDBConst.FLG_INSERT_CONTONDUP)
+            {
+                throw new BaseException((int)Errors.errors.SDB_INVALIDARG, "invalid input flag");
+            }
+            sdbMessage.Flags = flag;
+
+            byte[] request = SDBMessageHelper.BuildBulkInsertRequest(sdbMessage, records, EnsureOID, isBigEndian);
+            connection.SendMessage(request);
+            SDBMessage rtnSDBMessage = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
+            rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
+            int errorCode = rtnSDBMessage.Flags;
+            if (errorCode != 0)
+            {
+                throw new BaseException(errorCode);
+            }
+            // upsert cache
+            sdb.UpsertCache(collectionFullName);
         }
 
         /** \fn void Delete(BsonDocument matcher)
@@ -541,7 +421,7 @@ namespace SequoiaDB
             int errorCode = rtnSDBMessage.Flags;
             if (errorCode != 0)
             {
-                throw new BaseException(errorCode, rtnSDBMessage.ErrorObject);
+                throw new BaseException(errorCode);
             }
             // upsert cache
             sdb.UpsertCache(collectionFullName);
@@ -557,10 +437,6 @@ namespace SequoiaDB
          */
         public void Update(DBQuery query)
         {
-            if (query == null)
-            {
-                throw new BaseException("SDB_INVALIDARG");
-            }
             _Update(query.Flag, query.Matcher, query.Modifier, query.Hint);
         }
 
@@ -812,7 +688,6 @@ namespace SequoiaDB
          *      DBQuery.FLG_QUERY_FORCE_HINT
          *      DBQuery.FLG_QUERY_PARALLED
          *      DBQuery.FLG_QUERY_WITH_RETURNDATA
-         *      DBQuery.FLG_QUERY_FOR_UPDATE
          *
          *  \return The DBCursor of matching documents or null
          *  \exception SequoiaDB.BaseException
@@ -821,14 +696,7 @@ namespace SequoiaDB
         public DBCursor Query(BsonDocument query, BsonDocument selector, BsonDocument orderBy, BsonDocument hint,
                               long skipRows, long returnRows, int flag)
         {
-            flag = DBQuery.eraseSingleFlag(flag, DBQuery.FLG_QUERY_EXPLAIN);
-            return _Query(query, selector, orderBy, hint, skipRows, returnRows, flag);
-        }
-
-        private DBCursor _Query(BsonDocument query, BsonDocument selector, BsonDocument orderBy, BsonDocument hint,
-                              long skipRows, long returnRows, int flag)
-        {
-            int newFlags = DBQuery.RegulateFlags(flag);
+            int newFlags = DBQuery.RegulateFlag(flag);
             BsonDocument dummyObj = new BsonDocument();
             if (query == null)
             {
@@ -864,7 +732,7 @@ namespace SequoiaDB
                 }
                 else
                 {
-                    throw new BaseException(errorCode, rtnSDBMessage.ErrorObject);
+                    throw new BaseException(errorCode);
                 }
             // upsert cache
             sdb.UpsertCache(collectionFullName);
@@ -898,6 +766,7 @@ namespace SequoiaDB
                 newHint.Merge(hint);
             }
             newHint.Add(SequoiadbConstants.FIELD_MODIFY, modify);
+
             flag |= DBQuery.FLG_QUERY_MODIFY;
             return Query(query, selector, orderBy, newHint, skipRows, returnRows, flag);
         }
@@ -932,7 +801,6 @@ namespace SequoiaDB
          *      DBQuery.FLG_QUERY_PARALLED
          *      DBQuery.FLG_QUERY_WITH_RETURNDATA
          *      DBQuery.FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE
-         *      DBQuery.FLG_QUERY_FOR_UPDATE
          *
          *  \param returnNew When true, returns the updated document rather than the original
          *  \return The DBCursor of matching documents or null
@@ -973,7 +841,6 @@ namespace SequoiaDB
          *      DBQuery.FLG_QUERY_FORCE_HINT
          *      DBQuery.FLG_QUERY_PARALLED
          *      DBQuery.FLG_QUERY_WITH_RETURNDATA
-         *      DBQuery.FLG_QUERY_FOR_UPDATE
          *
          *  \return The DBCursor of matching documents or null
          *  \exception SequoiaDB.BaseException
@@ -1035,7 +902,7 @@ namespace SequoiaDB
                 newObj.Add(SequoiadbConstants.FIELD_OPTIONS, options);
             }
 
-            return _Query(query, selector, orderBy, newObj, skipRows, returnRows, flag | DBQuery.FLG_QUERY_EXPLAIN);
+            return Query(query, selector, orderBy, newObj, skipRows, returnRows, flag | DBQuery.FLG_QUERY_EXPLAIN);
         }
 
         /** \fn DBCursor GetIndexes()
@@ -1059,7 +926,7 @@ namespace SequoiaDB
                     return null;
                 else
                 {
-                    throw new BaseException(flags, rtn.ErrorObject);
+                    throw new BaseException(flags);
                 }
             // upsert cache
             sdb.UpsertCache(collectionFullName);
@@ -1072,7 +939,6 @@ namespace SequoiaDB
          *  \return A index, if not exist then return null
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
-         *  \deprecated Use "GetIndexes" and "GetIndexInfo" instead.
          */
         public DBCursor GetIndex(string name)
         {
@@ -1094,89 +960,11 @@ namespace SequoiaDB
                     return null;
                 else
                 {
-                    throw new BaseException(flags, rtn.ErrorObject);
+                    throw new BaseException(flags);
                 }
             // upsert cache
             sdb.UpsertCache(collectionFullName);
             return new DBCursor(rtn, this);
-        }
-
-        /** \fn BsonDocument GetIndexInfo(string name)
-         *  \brief Get the information of index in current collection.
-         *  \param name The index name.
-         *  \return The index information.
-         *  \exception SequoiaDB.BaseException
-         *  \exception System.Exception
-         */
-        public BsonDocument GetIndexInfo(string name)
-        {
-            if (name == null || name == "")
-            {
-                throw new BaseException("SDB_INVALIDARG");
-            }
-            string commandString = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.GET_INXES;
-            BsonDocument dummyObj = new BsonDocument();
-            BsonDocument obj = new BsonDocument();
-            BsonDocument conndition = new BsonDocument();
-            obj.Add(SequoiadbConstants.FIELD_COLLECTION, collectionFullName);
-            conndition.Add(SequoiadbConstants.IXM_INDEXDEF + "." + SequoiadbConstants.IXM_NAME,
-                    name);
-
-            SDBMessage rtn = AdminCommand(commandString, conndition, dummyObj, dummyObj, obj, -1, -1, 0);
-
-            int flags = rtn.Flags;
-            if (flags != 0)
-            {
-                throw new BaseException(flags, rtn.ErrorObject);
-            }
-            // upsert cache
-            sdb.UpsertCache(collectionFullName);
-            BsonDocument indexObj;
-            DBCursor cursor = new DBCursor(rtn, this);
-            try
-            {
-                indexObj = cursor.Next();
-                if (indexObj != null)
-                {
-                    return indexObj;
-                }
-                else
-                {
-                    throw new BaseException("SDB_IXM_NOTEXIST");
-                }
-            }
-            finally 
-            {
-                cursor.Close();
-            }
-        }
-
-        /** \fn bool IsIndexExist(string name)
-         *  \brief Test the specified index exist or not.
-         *  \param name The index name.
-         *  \return True for exist while false for not.
-         */
-        public bool IsIndexExist(string name)
-        {
-            if (name == null || name == "")
-                return false;
-            BsonDocument indexObj;
-            try
-            {
-                indexObj = GetIndexInfo(name);
-            }
-            catch (Exception e)
-            {
-                return false;
-            }
-            if (indexObj == null)
-            {
-                return false;
-            }
-            else
-            {
-                return true;
-            }
         }
 
         /** \fn void CreateIndex(string name, BsonDocument key, bool isUnique, bool isEnforced)
@@ -1229,7 +1017,7 @@ namespace SequoiaDB
             SDBMessage rtn = AdminCommand(commandString, dropObj, dummyObj, dummyObj, dummyObj, -1, -1, 0);
             int flags = rtn.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
             // upsert cache
             sdb.UpsertCache(collectionFullName);
         }
@@ -1264,7 +1052,7 @@ namespace SequoiaDB
             SDBMessage rtnSDBMessage = AdminCommand(commandString, matcher, dummyObj, dummyObj, newHint, 0, -1, 0);
             int errorCode = rtnSDBMessage.Flags;
             if (errorCode != 0)
-                throw new BaseException(errorCode, rtnSDBMessage.ErrorObject);
+                throw new BaseException(errorCode);
             // upsert cache
             sdb.UpsertCache(collectionFullName);
             List<BsonDocument> rtn = GetMoreCommand(rtnSDBMessage);
@@ -1321,7 +1109,7 @@ namespace SequoiaDB
                     return null;
                 else
                 {
-                    throw new BaseException(flags, rtnSDBMessage.ErrorObject);
+                    throw new BaseException(flags);
                 }
             // upsert cache
             sdb.UpsertCache(collectionFullName);
@@ -1381,7 +1169,7 @@ namespace SequoiaDB
                     return null;
                 else
                 {
-                    throw new BaseException(flags, rtnSDBMessage.ErrorObject);
+                    throw new BaseException(flags);
                 }
             // upsert cache
             sdb.UpsertCache(collectionFullName);
@@ -1421,7 +1209,7 @@ namespace SequoiaDB
             // check the return flag
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtnSDBMessage.ErrorObject);
+                throw new BaseException(flags);
             // upsert cache
             sdb.UpsertCache(collectionFullName);
         }
@@ -1453,7 +1241,7 @@ namespace SequoiaDB
             // check the return flag
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtnSDBMessage.ErrorObject);
+                throw new BaseException(flags);
             // upsert cache
             sdb.UpsertCache(collectionFullName);
         }
@@ -1477,7 +1265,7 @@ namespace SequoiaDB
             // check the return flag
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtnSDBMessage.ErrorObject);
+                throw new BaseException(flags);
             // upsert cache
             sdb.UpsertCache(collectionFullName);
         }
@@ -1498,7 +1286,7 @@ namespace SequoiaDB
             newObj.Add(SequoiadbConstants.FIELD_NAME, collectionFullName);
             // append alters
             flag = options.TryGetElement(SequoiadbConstants.FIELD_NAME_ALTER, out elem);
-            if (true == flag && (elem.Value.IsBsonDocument || elem.Value.IsBsonArray))
+            if (true == flag && elem.Value.IsBsonDocument)
             {
                 newObj.Add(elem);
             }
@@ -1529,7 +1317,7 @@ namespace SequoiaDB
             // check the return flag
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtnSDBMessage.ErrorObject);
+                throw new BaseException(flags);
             // upsert cache
             sdb.UpsertCache(collectionFullName);
         }
@@ -1542,13 +1330,7 @@ namespace SequoiaDB
          *     ShardingKey  : Assign the sharding key
          *     ShardingType : Assign the sharding type
          *     Partition    : When the ShardingType is "hash", need to assign Partition, it's the bucket number for hash, the range is [2^3,2^20]
-         *     CompressionType : The compression type of data, could be "snappy" or "lzw"
-         *     EnsureShardingIndex : Assign to true to build sharding index
-         *     StrictDataMode : Using strict date mode in numeric operations or not
          *                    e.g. {RepliSize:0, ShardingKey:{a:1}, ShardingType:"hash", Partition:1024}
-         *     AutoIncrement : Assign attributes of an autoincrement field or batch autoincrement fields.
-         *                     e.g. {AutoIncrement:{Field:"a",MaxValue:2000}}, 
-         *                          {AutoIncrement:[{Field:"a",MaxValue:2000},{Field:"a",MaxValue:4000}]}
          * \note Can't alter attributes about split in partition collection; After altering a collection to
          *       be a partition collection, need to split this collection manually
          * \exception SequoiaDB.BaseException
@@ -1572,20 +1354,6 @@ namespace SequoiaDB
             {
                 _Alter1(options);
             }
-        }
-
-        private void _AlterInternal(string taskName, BsonDocument arguments, Boolean allowNullArgs)
-        {
-            if (null == arguments && !allowNullArgs)
-            {
-                throw new BaseException("SDB_INVALIDARG");
-            }
-            BsonDocument alterObj = new BsonDocument();
-            BsonDocument tmpObj = new BsonDocument();
-            tmpObj.Add(SequoiadbConstants.FIELD_NAME, taskName);
-            tmpObj.Add(SequoiadbConstants.FIELD_NAME_ARGS, arguments);
-            alterObj.Add(SequoiadbConstants.FIELD_NAME_ALTER, tmpObj);
-            Alter(alterObj);
         }
 
         /** \fn DBCursor ListLobs()
@@ -1617,7 +1385,7 @@ namespace SequoiaDB
                 }
                 else
                 {
-                    throw new BaseException(flags, rtnSDBMessage.ErrorObject);
+                    throw new BaseException(flags);
                 }
             }
             // upsert cache
@@ -1719,7 +1487,7 @@ namespace SequoiaDB
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
             {
-                throw new BaseException(flags, rtnSDBMessage.ErrorObject);
+                throw new BaseException(flags);
             }
             // upsert cache
             sdb.UpsertCache(collectionFullName);
@@ -1761,7 +1529,7 @@ namespace SequoiaDB
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
             {
-                throw new BaseException(flags, rtnSDBMessage.ErrorObject);
+                throw new BaseException(flags);
             }
             // upsert cache
             sdb.UpsertCache(collectionFullName);
@@ -1786,7 +1554,7 @@ namespace SequoiaDB
             // check the return flag
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtnSDBMessage.ErrorObject);
+                throw new BaseException(flags);
             // upsert cache
             sdb.UpsertCache(collectionFullName);
         }
@@ -1804,7 +1572,22 @@ namespace SequoiaDB
          */
         public void CreateIdIndex(BsonDocument options)
         {
-            _AlterInternal(SequoiadbConstants.SDB_ALTER_CRT_ID_INDEX, options, true);
+            BsonDocument newObj = new BsonDocument();
+            BsonDocument subObj = new BsonDocument();
+
+            subObj.Add(SequoiadbConstants.FIELD_NAME, SequoiadbConstants.SDB_ALTER_CRT_ID_INDEX);
+            if (null == options)
+            {
+                subObj.Add(SequoiadbConstants.FIELD_NAME_ARGS, null);
+            }
+            else
+            {
+                subObj.Add(SequoiadbConstants.FIELD_NAME_ARGS, options);
+            }
+
+            newObj.Add(SequoiadbConstants.FIELD_NAME_ALTER, subObj);
+
+            Alter(newObj);
         }
 
         /** \fn void DropIdIndex()
@@ -1815,165 +1598,15 @@ namespace SequoiaDB
          */
         public void DropIdIndex()
         {
-            _AlterInternal(SequoiadbConstants.SDB_ALTER_DROP_ID_INDEX, null, true);
-        }
+            BsonDocument newObj = new BsonDocument();
+            BsonDocument subObj = new BsonDocument();
 
-        /** \fn void EnableSharding(BsonDocument options)
-         * \brief Alter the attributes of current collection to enable sharding
-         * \param options The options for altering current collection:
-         *
-         *     ShardingKey  : Assign the sharding key
-         *     ShardingType : Assign the sharding type
-         *     Partition    : When the ShardingType is "hash", need to assign Partition, it's the bucket number for hash, the range is [2^3,2^20]
-         *     EnsureShardingIndex : Assign to true to build sharding index
-         * \exception SequoiaDB.BaseException
-         * \exception System.Exception
-         */
-        public void EnableSharding(BsonDocument options)
-        {
-            _AlterInternal(SequoiadbConstants.SDB_ALTER_ENABLE_SHARDING, options, false);
-        }
+            subObj.Add(SequoiadbConstants.FIELD_NAME, SequoiadbConstants.SDB_ALTER_DROP_ID_INDEX);
+            subObj.Add(SequoiadbConstants.FIELD_NAME_ARGS, BsonNull.Value);
 
-        /** \fn void DisableSharding()
-         * \brief Alter the attributes of current collection to disable sharding
-         * \exception SequoiaDB.BaseException
-         * \exception System.Exception
-         */
-        public void DisableSharding()
-        {
-            _AlterInternal(SequoiadbConstants.SDB_ALTER_DISABLE_SHARDING, null, true);
-        }
+            newObj.Add(SequoiadbConstants.FIELD_NAME_ALTER, subObj);
 
-        /** \fn void EnableCompression(BsonDocument options)
-         * \brief Alter the attributes of current collection to enable compression
-         * \param options The options for altering current collection:
-         *
-         *     CompressionType : The compression type of data, could be "snappy" or "lzw"
-         * \exception SequoiaDB.BaseException
-         * \exception System.Exception
-         */
-        public void EnableCompression(BsonDocument options)
-        {
-            _AlterInternal(SequoiadbConstants.SDB_ALTER_ENABLE_COMPRESSION, options, true);
-        }
-
-        /** \fn void DisableCompression()
-         * \brief Alter the attributes of current collection to enable compression
-         * \exception SequoiaDB.BaseException
-         * \exception System.Exception
-         */
-        public void DisableCompression()
-        {
-            _AlterInternal(SequoiadbConstants.SDB_ALTER_DISABLE_COMPRESSION, null, true);
-        }
-
-        /** \fn void SetAttributes(BsonDocument options)
-         * \brief Alter the attributes of current collection to set attributes
-         * \param options The options for altering current collection:
-         *
-         *     ReplSize     : Assign how many replica nodes need to be synchronized when a write request(insert, update, etc) is executed
-         *     ShardingKey  : Assign the sharding key
-         *     ShardingType : Assign the sharding type
-         *     Partition    : When the ShardingType is "hash", need to assign Partition, it's the bucket number for hash, the range is [2^3,2^20]
-         *     CompressionType : The compression type of data, could be "snappy" or "lzw"
-         *     EnsureShardingIndex : Assign to true to build sharding index
-         *     StrictDataMode : Using strict date mode in numeric operations or not
-         *                    e.g. {RepliSize:0, ShardingKey:{a:1}, ShardingType:"hash", Partition:1024}
-         *     AutoIncrement : Assign attributes of an autoincrement field or batch autoincrement fields.
-         *                     e.g. {AutoIncrement:{Field:"a",MaxValue:2000}}
-         *                          {AutoIncrement:[{Field:"a",MaxValue:2000},{Field:"a",MaxValue:4000}]}
-         * \note Can't alter attributes about split in partition collection; After altering a collection to
-         *       be a partition collection, need to split this collection manually
-         * \exception SequoiaDB.BaseException
-         * \exception System.Exception
-         */
-        public void SetAttributes(BsonDocument options)
-        {
-            _AlterInternal(SequoiadbConstants.SDB_ALTER_SET_ATTRIBUTES, options, false);
-        }
-
-        /** \fn void CreateAutoIncrement(BsonDocument options)
-         * \brief Create autoincrement field on collection.
-         * \param options Options for creating autoincrement, can not be null or empty. e.g.{ Field: "a", MaxValue:2000 }
-         *          
-         *      Field          : The name of autoincrement field.
-         *      StartValue     : The start value of autoincrement field.
-         *      MinValue       : The minimum value of autoincrement field.
-         *      MaxValue       : The maxmun value of autoincrement field.
-         *      Increment      : The increment value of autoincrement field.
-         *      CacheSize      : The cache size of autoincrement field.
-         *      AcquireSize    : The acquire size of autoincrement field.
-         *      Cycled         : The cycled flag of autoincrement field.
-         *      Generated      : The generated mode of autoincrement field.
-         * \return void
-         * \exception SequoiaDB.BaseException
-         * \exception System.Exception
-         */
-        public void CreateAutoIncrement(BsonDocument options)
-        {
-            if (options == null || options.ElementCount == 0)
-            {
-                throw new BaseException("SDB_INVALIDARG");
-            }
-            List<BsonDocument> list = new List<BsonDocument>();
-            list.Add(options);
-            CreateAutoIncrement(list);
-        }
-
-        /** \fn void CreateAutoIncrement(List<BsonDocument> optionsList)
-         * \brief Create autoincrement field on collection.
-         * \param optionsList Options for creating autoincrement, can not be null or empty.
-         * \return void
-         * \exception SequoiaDB.BaseException
-         * \exception System.Exception
-         */
-        public void CreateAutoIncrement(List<BsonDocument> optionsList)
-        {
-            if (optionsList == null || optionsList.Count == 0)
-            {
-                throw new BaseException("SDB_INVALIDARG");
-            }
-            BsonDocument obj = new BsonDocument();
-            BsonArray arr = new BsonArray(optionsList);
-            obj.Add(SequoiadbConstants.FIELD_NAME_AUTOINCREMENT, arr);
-            _AlterInternal(SequoiadbConstants.SDB_ALTER_CL_CRT_AUTOINC_FLD, obj, false);
-        }
-
-        /** \fn void DropAutoIncrement(String fieldName)
-         * \brief Drop autoincrement field on collection.
-         * \param fieldName the field of autoincrement to be drop, can not be null or empty.
-         * \return void
-         * \exception SequoiaDB.BaseException
-         * \exception System.Exception
-         */
-        public void DropAutoIncrement(String fieldName)
-        {
-            if (fieldName == null || fieldName.Length == 0)
-            {
-                throw new BaseException("SDB_INVALIDARG");
-            }
-            BsonDocument obj = new BsonDocument();
-            obj.Add(SequoiadbConstants.FIELD_NAME_AUTOINC_FIELD, fieldName);
-            _AlterInternal(SequoiadbConstants.SDB_ALTER_CL_DROP_AUTOINC_FLD, obj, false);
-        }
-
-        /** \fn void DropAutoIncrement(List<string> fieldNames)
-         * \brief Drop autoincrement fields on collection.
-         * \param fieldNames the fields of autoincrement to be drop, can not be null or empty.
-         * \return void
-         * \exception SequoiaDB.BaseException
-         * \exception System.Exception
-         */
-        public void DropAutoIncrement(List<string> fieldNames)
-        {
-            if (fieldNames == null || fieldNames.Count == 0)
-            {
-                throw new BaseException("SDB_INVALIDARG");
-            }
-            BsonDocument obj = new BsonDocument();
-            BsonArray arr = new BsonArray(fieldNames);
-            obj.Add(SequoiadbConstants.FIELD_NAME_AUTOINC_FIELD, arr);
-            _AlterInternal(SequoiadbConstants.SDB_ALTER_CL_DROP_AUTOINC_FLD, obj, false);
+            Alter(newObj);
         }
 
         private BsonDocument _TryGenOID(BsonDocument obj, bool ensureOID)
@@ -2027,7 +1660,7 @@ namespace SequoiaDB
             int errorCode = rtnSDBMessage.Flags;
             if (errorCode != 0)
             {
-                throw new BaseException(errorCode, rtnSDBMessage.ErrorObject);
+                throw new BaseException(errorCode);
             }
             // upsert cache
             sdb.UpsertCache(collectionFullName);
@@ -2055,7 +1688,7 @@ namespace SequoiaDB
 
             int flags = rtn.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
             // upsert cache
             sdb.UpsertCache(collectionFullName);
         }
@@ -2144,7 +1777,7 @@ namespace SequoiaDB
                         hasMore = false;
                     else
                     {
-                        throw new BaseException(flags, rtnSDBMessage.ErrorObject);
+                        throw new BaseException(flags);
                     }
                 else
                 {

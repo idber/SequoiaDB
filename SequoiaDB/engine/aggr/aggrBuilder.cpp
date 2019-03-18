@@ -120,19 +120,16 @@ namespace engine
                "malloc failed" );
       hasNew = TRUE;
 
-      // 1.parse the input objs and build the opti tree
       rc = buildTree( objs, objNum, pOptiTree, pContainer->ptrTable(),
                       pContainer->paramTable(), pCLName );
       PD_RC_CHECK( rc, PDERROR,
                   "failed to build the opti tree(rc=%d)",
                   rc );
 
-      // 2.extend
       rc = pOptiTree->extend( pExtend );
       PD_RC_CHECK( rc, PDERROR,
                   "extend failed(rc=%d)", rc );
 
-      // 3.optimize
       {
          qgmOptTree tree( pExtend );
          optQgmOptimizer optimizer;
@@ -143,7 +140,6 @@ namespace engine
          pExtend = tree.getRoot();
       }
 
-      // 4.build physical plan
       {
          qgmBuilder builder( pContainer->ptrTable(),
                              pContainer->paramTable() );
@@ -155,11 +151,9 @@ namespace engine
                      "invalid container type!" );
       }
 
-      // 5.execute
       rc = pContainer->execute( cb );
       PD_RC_CHECK( rc, PDERROR, "execute failed(rc=%d)", rc );
 
-      // 6. create context
       SDB_ASSERT( QGM_PLAN_TYPE_RETURN == pContainer->type(),
                   "invalid container type!" );
       rc = createContext( pContainer, cb, contextID );
@@ -200,7 +194,6 @@ namespace engine
       {
          try
          {
-            // parse an obj, i.e:{$group:{_id: groupby, total:{$sum: "$num"}}}
             BSONObj paraObj ( (const CHAR*)pDataPos );
             PD_CHECK( paraObj.nFields() == 1, SDB_INVALIDARG,
                      error, PDERROR,
@@ -355,7 +348,6 @@ namespace engine
          goto error ;
       }
 
-      /// dump data
       {
          rtnDataSet ds( aggrContextID, cb ) ;
          while( TRUE )
@@ -470,7 +462,6 @@ namespace engine
          {
             BSONElement ele = iter.next() ;
 
-            /// $and:[{a:{$eq:1}},{global:{$et:1}}]
             if ( Array == ele.type() &&
                  0 == ossStrcmp( ele.fieldName(), "$and" ) )
             {

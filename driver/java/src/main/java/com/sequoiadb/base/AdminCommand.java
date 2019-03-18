@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 SequoiaDB Inc.
+ * Copyright 2017 SequoiaDB Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,13 +28,10 @@ final class AdminCommand {
     final static String UNLOAD_CS = PREFIX + "unload collectionspace";
     final static String RENAME_CS = PREFIX + "rename collectionspace";
     final static String TEST_CS = PREFIX + "test collectionspace";
-    final static String ALTER_CS = PREFIX + "alter collectionspace";
 
     final static String TEST_CL = PREFIX + "test collection";
     final static String CREATE_CL = PREFIX + "create collection";
     final static String DROP_CL = PREFIX + "drop collection";
-    final static String RENAME_CL = PREFIX + "rename collection";
-    
 
     final static String GET_INDEXES = PREFIX + "get indexes";
     final static String CREATE_INDEX = PREFIX + "create index";
@@ -56,8 +53,6 @@ final class AdminCommand {
     final static String GET_SESSION_ATTRIBUTE = PREFIX + "get session attribute";
     final static String SYNC_DB = PREFIX + "sync db";
     final static String EXPORT_CONFIG = PREFIX + "export configuration";
-    final static String UPDATE_CONFIG = PREFIX + "update config";
-    final static String DELETE_CONFIG = PREFIX + "delete config";
     final static String ANALYZE = PREFIX + "analyze";
 
     final static String LIST_CONTEXTS = PREFIX + "list contexts";
@@ -73,9 +68,6 @@ final class AdminCommand {
     final static String LIST_TASKS = PREFIX + "list tasks";
     final static String LIST_TRANSACTIONS = PREFIX + "list transactions";
     final static String LIST_TRANSACTIONS_CURRENT = PREFIX + "list transactions current";
-    final static String LIST_SVCTASKS = PREFIX + "list service tasks";
-    final static String LIST_SEQUENCES = PREFIX + "list sequences";
-    final static String LIST_USERS = PREFIX + "list users";
     final static String LIST_CL_IN_DOMAIN = PREFIX + "list collections in domain";
     final static String LIST_CS_IN_DOMAIN = PREFIX + "list collectionspaces in domain";
 
@@ -92,8 +84,6 @@ final class AdminCommand {
     final static String SNAP_TRANSACTIONS_CURRENT = PREFIX + "snapshot transactions current";
     final static String SNAP_ACCESSPLANS = PREFIX + "snapshot accessplans";
     final static String SNAP_HEALTH = PREFIX + "snapshot health";
-    final static String SNAP_CONFIGS = PREFIX + "snapshot configs";
-    final static String SNAP_SEQUENCES = PREFIX + "snapshot sequences";
 
     final static String RESET_SNAPSHOT = PREFIX + "snapshot reset";
 
@@ -122,6 +112,4 @@ final class AdminCommand {
     final static String SHUTDOWN_NODE = PREFIX + "shutdown node";
     final static String CREATE_NODE = PREFIX + "create node";
     final static String REMOVE_NODE = PREFIX + "remove node";
-
-    final static String INVALIDATE_CACHE = PREFIX + "invalidate cache";
 }

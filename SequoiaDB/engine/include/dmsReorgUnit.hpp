@@ -107,7 +107,6 @@ namespace engine
                            _pmdEDUCB *cb,
                            dmsCompressorEntry *compEntry ) ;
 
-      // based on pagesize
       void  beginExport() ;
       INT32 getNextExtentSize ( SINT32 &size ) ;
       INT32 exportExtent( CHAR *pBuffer ) ;

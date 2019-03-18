@@ -305,7 +305,6 @@ namespace engine
       ossTimestamp begin ;
       ossTimestamp end ;
 
-      // Check writable before su lock
       rc = dmsCB->writable( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
       writable = TRUE ;

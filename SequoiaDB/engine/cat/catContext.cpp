@@ -224,7 +224,6 @@ namespace engine
 
       if ( _status == CAT_CONTEXT_DATA_DONE )
       {
-         // End of execution
          rc = SDB_DMS_EOC ;
          _isOpened = FALSE ;
       }
@@ -310,7 +309,6 @@ namespace engine
                       "failed to pre-execute catalog changes, rc: %d",
                       contextID(), rc ) ;
 
-         // Only need one pre-execute
          _needPreExecute = FALSE ;
       }
       catch ( std::exception &e )
@@ -377,10 +375,8 @@ namespace engine
    done :
       if ( SDB_OK == rc )
       {
-         // Update status
          _setStatus( CAT_CONTEXT_CAT_DONE ) ;
 
-         // Continue to commit if needed
          if ( _commitAfterExecute )
          {
             rc = _commit( cb ) ;
@@ -420,7 +416,6 @@ namespace engine
 
       if ( cb->isForced() )
       {
-         // The database is closing, do not rollback
          goto done ;
       }
 
@@ -531,7 +526,6 @@ namespace engine
       return rc ;
 
    error :
-      // No more rollback
       goto done ;
    }
 

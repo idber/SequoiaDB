@@ -59,14 +59,12 @@ using std::string ;
 
 namespace seadapter
 {
-   // Client class for ElasticSearch.
    class _utilESClt : public SDBObject
    {
       public:
          _utilESClt();
          ~_utilESClt();
 
-         // Init connection with specified uri.
          INT32 init( const string &uri, BOOLEAN readOnly = FALSE ) ;
          BOOLEAN isActive() ;
          INT32 active() ;
@@ -78,22 +76,16 @@ namespace seadapter
                               const CHAR *id, const CHAR *jsonData ) ;
          INT32 updateDocument( const CHAR *index, const CHAR *type,
                                const CHAR *id, const CHAR *newData ) ;
-         // INT32 upsertDocument( const CHAR *index, const CHAR *type,
-         //                       const CHAR *id, const CHAR *newData ) ;
          INT32 deleteDocument( const CHAR *index, const CHAR *type,
                                const CHAR *id ) ;
 
-         // Request the document by index/type/id. At most one document should be
-         // returned as id dose not duplicate.
          INT32 getDocument( const CHAR *index, const CHAR *type, const CHAR *id,
                             BSONObj &result, BOOLEAN withMeta = TRUE ) ;
 
-         // Request documents by index, type, and a K/V pair as query condition.
          INT32 getDocument( const CHAR *index, const CHAR *type,
                             const CHAR *key, const CHAR *value,
                             utilCommObjBuff &objBuff, BOOLEAN withMeta = TRUE ) ;
 
-         // Request documents by index, type, and a query string.
          INT32 getDocument( const CHAR *index, const CHAR *type,
                             const CHAR *query, utilCommObjBuff &objBuff,
                             BOOLEAN withMeta = TRUE ) ;
@@ -106,8 +98,6 @@ namespace seadapter
          INT32 deleteAllByType( const CHAR *index, const CHAR *type ) ;
          INT32 getDocCount( const CHAR *index, const CHAR *type,
                             UINT64 &count ) ;
-         // To make all documents searchable now. Normally they are searchable 1s
-         // after insertion.
          INT32 refresh( const CHAR *index ) ;
 
          INT32 initScroll( string& scrollId,
@@ -146,9 +136,6 @@ namespace seadapter
    };
    typedef _utilESClt utilESClt ;
 
-   // Process the return information of http request. If the original return
-   // code is not SDB_OK, return the original return code.
-   // Otherwise, convert the result from json string to BSONObj.
    OSS_INLINE INT32 _utilESClt::_processReply( INT32 returnCode,
                                                const CHAR *reply,
                                                INT32 replyLen,
@@ -159,7 +146,6 @@ namespace seadapter
 
       if ( SDB_OK == returnCode )
       {
-         // Request process successfully. Let's get the result in BSONObj format.
          if ( transform && reply && replyLen > 0 )
          {
             rc = fromjson( reply, resultObj ) ;

@@ -76,9 +76,7 @@ namespace engine
          virtual void   _toString( stringstream &ss ) ;
 
       private:
-         // rest number of records to expect, -1 means select all
          SINT64                     _numToReturn ;
-         // rest number of records need to skip
          SINT64                     _numToSkip ;
 
          rtnFetchBase               *_pFetch ;

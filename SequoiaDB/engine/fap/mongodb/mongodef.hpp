@@ -157,7 +157,6 @@ enum
    OP_CMD_AGGREGATE,
    OP_CMD_AUTH,
 
-   // commands need not process yet
    OP_CMD_GETNONCE,
    OP_CMD_CRTUSER,
    OP_CMD_DELUSER,

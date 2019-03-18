@@ -70,12 +70,8 @@ namespace engine
          BSONObj toBson() ;
          string toString() ;
 
-         // func *p = new ( _mthNodeAllocator *allocator ) func( _mthNodeAllocator *allocator )
-         // use p->release() to release p. and do not use p anymore.
          void* operator new ( size_t size, _mthNodeAllocator *allocator ) ;
-         // do not call delete p directly
          void operator delete ( void *p ) ;
-         // just make the compiler shut up (windows's warning)
          void operator delete ( void *p, _mthNodeAllocator *allocator ) ;
 
 
@@ -535,12 +531,10 @@ namespace engine
 
          OSS_INLINE virtual void setFuzzyOpType ( EN_MATCH_OP_FUNC_TYPE nodeType )
          {
-            // Do nothing
          }
 
         OSS_INLINE virtual void setFuzzyIndex ( INT8 fuzzyIndex )
         {
-           // Do nothing
         }
 
         OSS_INLINE virtual void setParamIndex ( INT8 paramIndex )
@@ -621,7 +615,6 @@ namespace engine
 
          OSS_INLINE BOOLEAN _canSelfParameterize () const
          {
-            // No functions, no $field, no $x, no $return, no $expand
             return ( _funcList.size() == 0 &&
                      !_isCompareField &&
                      !_hasDollarFieldName &&
@@ -651,14 +644,11 @@ namespace engine
          BOOLEAN _doneByPred ;
    } ;
 
-   // Type of fuzzy operators
    #define MTH_FUZZY_TYPE_EXCLUSIVE    ( -1 )
    #define MTH_FUZZY_TYPE_INCLUSIVE    ( -2 )
-   // It is fuzzy now, but the original type is exclusive or inclusive
    #define MTH_FUZZY_TYPE_FUZZY_EXC    ( -3 )
    #define MTH_FUZZY_TYPE_FUZZY_INC    ( -4 )
 
-   // In the parameters, TRUE means inclusive, FALSE means exclusive
    extern BSONObj _mthFuzzyIncOptr ;
    extern BSONObj _mthFuzzyExcOptr ;
 
@@ -755,8 +745,6 @@ namespace engine
                                      const rtnParamList &parameters ) ;
 
       protected :
-         // If < 0, it is type of operator
-         // If >= 0, it is index of parameter
          INT8 _fuzzyOpType ;
    } ;
 
@@ -1231,11 +1219,9 @@ namespace engine
          virtual ~_mthMatchOpNodeRegex() ;
 
       public:
-         //forbiddened
          virtual INT32 init( const CHAR *fieldName,
                              const BSONElement &element ) ;
 
-         //use this to init _mthMatchOpNodeRegex.(not graceful here)
          INT32 init( const CHAR *fieldName, const CHAR *regex,
                      const CHAR *options ) ;
 

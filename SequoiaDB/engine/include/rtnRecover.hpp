@@ -117,7 +117,6 @@ namespace engine
    } ;
    typedef _rtnRUInfo rtnRUInfo ;
 
-   // Base class of collection rebuilder.
    class _rtnCLRebuilderBase : public SDBObject
    {
       public:
@@ -147,7 +146,6 @@ namespace engine
          string               _clName ;
          string               _clFullName ;
 
-         /// stat info
          UINT64               _totalRecord ;
          UINT64               _totalLob ;
          UINT32               _indexNum ;

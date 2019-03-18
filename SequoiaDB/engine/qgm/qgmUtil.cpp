@@ -123,7 +123,6 @@ namespace engine
       {
          tmp = str + read ;
 
-         /// ignore all space
          if ( ' ' == *tmp || '\t' == *tmp )
          {
             ++read ;
@@ -399,7 +398,6 @@ namespace engine
       }
       else
       {
-         /// do noting.
       }
 
       return t ;
@@ -1022,7 +1020,6 @@ namespace engine
          goto done ;
       }
 
-      // treat it as string flag
       if ( FLG_SQL_UPDATE_KEEP_SK_SIZE == f.size() &&
            0 == ossStrncmp( f.begin(), FLG_SQL_UPDATE_KEEP_SK, f.size() ) )
       {
@@ -1030,7 +1027,6 @@ namespace engine
          goto done ;
       }
 
-      // treat it as number flag
       strFlag = f.toString().c_str() ;
       rc = utilStr2Num( strFlag, flag );
       if ( rc )
@@ -1140,7 +1136,6 @@ namespace engine
             r = builder.appendAsNumber( fieldName, value ) ;
             if ( !r )
             {
-               /// try decimal
                r = builder.appendDecimal( fieldName, value ) ;
             }
 

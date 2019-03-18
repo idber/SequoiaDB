@@ -58,7 +58,6 @@ namespace seadapter
                           UINT32 sizeLimit = UTIL_DFT_OBJBUFF_MAX_SIZE ) ;
          ~_utilCommObjBuff() ;
 
-         // If extentSize is 0, the default strategy is to double the space.
          INT32 init( UINT32 size = UTIL_OBJBUFF_DFT_SIZE,
                      UINT32 extendSize = 0 ) ;
          BOOLEAN valid() const ;
@@ -75,7 +74,6 @@ namespace seadapter
          BOOLEAN eof() const { return _readPos >= _writePos ; }
 
 #ifdef _DEBUG
-         // Print all the objects in the buffer to the screen.
          void viewAll() ;
 #endif /* _DEBUG */
       private:

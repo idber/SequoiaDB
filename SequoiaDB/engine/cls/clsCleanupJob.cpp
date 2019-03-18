@@ -149,7 +149,6 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCLNJOB_DOIT, "_clsCleanupJob::doit" )
    INT32 _clsCleanupJob::doit ()
    {
-      // need to update catalog
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSCLNJOB_DOIT );
       clsTaskMgr *pTaskMgr = pmdGetKRCB()->getClsCB()->getTaskMgr() ;
@@ -182,7 +181,6 @@ namespace engine
          catSet = catAgent->collectionSet( _clFullName.c_str() ) ;
          if ( catSet )
          {
-            // w = catSet->getW () ;
             dropCollection = ( 0 == catSet->groupCount() ) ? TRUE : FALSE ;
          }
          else
@@ -193,13 +191,11 @@ namespace engine
          break ;
       }
 
-      // drop collection
       if ( dropCollection )
       {
          pTaskMgr->lockReg( SHARED ) ;
          if ( 0 == pTaskMgr->getRegCount( _clFullName, TRUE ) )
          {
-            // delete the collection
             rc = rtnDropCollectionCommand( _clFullName.c_str(), eduCB(),
                                            _dmsCB, _dpsCB ) ;
             PD_LOG ( PDEVENT, "Job[%s] drop the collection[%s], rc:%d", name(),
@@ -210,7 +206,6 @@ namespace engine
             }
             else if ( SDB_OK == rc || SDB_DMS_NOTEXIST == rc )
             {
-               // drop empty collectionspace, ignore errors
                _dmsCB->dropEmptyCollectionSpace(
                         dmsGetCSNameFromFullName( _clFullName ).c_str(),
                         eduCB(), _dpsCB ) ;
@@ -332,7 +327,6 @@ retry:
 
       if ( !_isHashSharding )
       {
-         /// do not support non-hash sharding.
          goto done ;
       }
       else if ( CLS_CLEANUP_BY_SHARDINGINDEX == _cleanupType() )
@@ -417,7 +411,6 @@ retry:
 
       rtnContextBuf buffObj ;
 
-      // TABSCAN, and delete not self record
       rc = rtnQuery( fullName, selector, matcher, orderBy, hint,
                      0, eduCB(), 0, -1, _dmsCB, rtnCB, contextID ) ;
       if ( SDB_DMS_EOC == rc ||
@@ -457,7 +450,6 @@ retry:
             goto error ;
          }
 
-         //delete records
          if ( SDB_DMS_NOTEXIST == _filterDel( buffObj.data(), buffObj.size(),
                                               cleanType, groupID ) )
          {
@@ -465,7 +457,6 @@ retry:
             pTaskMgr->lockReg( SHARED ) ;
             if ( 0 == pTaskMgr->getRegCount( _clFullName, TRUE ) )
             {
-               // delete the collection
                rc = rtnDropCollectionCommand( fullName, eduCB(), _dmsCB,
                                               _dpsCB ) ;
                PD_LOG ( PDEVENT, "Job[%s] drop the collection[%s], rc:%d",
@@ -476,7 +467,6 @@ retry:
                }
                else if ( SDB_OK == rc || SDB_DMS_NOTEXIST == rc )
                {
-                  // drop empty collectionspace, ignore errors
                   _dmsCB->dropEmptyCollectionSpace(
                            dmsGetCSNameFromFullName( _clFullName ).c_str(),
                            eduCB(), _dpsCB ) ;
@@ -545,7 +535,6 @@ retry:
                if ( !catSet->isObjInGroup( recordObj, groupID) )
                {
                   needDel = TRUE ;
-                  // w = catSet->getW() ;
                }
             }
             else if ( catSet && CLS_CLEANUP_BY_RANGE == cleanType )
@@ -569,7 +558,6 @@ retry:
                       !catSet->isKeyInGroup( BSON(""<<hashValue), groupID ) )
                   {
                      needDel = TRUE ;
-                     // w = catSet->getW() ;
                   }
                }
                else
@@ -582,14 +570,12 @@ retry:
                        !catSet->isKeyInGroup( keyObj, groupID ) )
                   {
                      needDel = TRUE ;
-                     // w = catSet->getW() ;
                   }
                }
             }
 
             catAgent->release_r() ;
 
-            // not found collection catalog
             if ( !catSet )
             {
                while ( TRUE )
@@ -618,7 +604,6 @@ retry:
                break ;
             }
 
-            // delete record
             if ( needDel )
             {
                BSONElement idEle = recordObj.getField( DMS_ID_KEY_NAME ) ;

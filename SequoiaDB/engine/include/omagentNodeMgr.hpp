@@ -195,7 +195,6 @@ namespace engine
          */
          void     watchManualNodes() ;
 
-         // remote process functions
          INT32    addANode( const CHAR *arg1, const CHAR *arg2,
                             string *omsvc = NULL ) ;
          INT32    rmANode( const CHAR *arg1, const CHAR *arg2,

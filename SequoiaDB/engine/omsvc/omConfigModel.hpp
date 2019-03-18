@@ -120,7 +120,6 @@ namespace engine
    class OmNodes: public SDBObject
    {
    public:
-      // manage node memory if manageNode is true
       OmNodes( bool manageNode = false ) ;
       virtual ~OmNodes() ;
 
@@ -132,12 +131,9 @@ namespace engine
    public:
       INT32    nodeNum() const ;
 
-      // get nodes from the container all the nodes
-      // for which Predicate pred returns true
       template<class Predicate>
       INT32    getNodes( Predicate pred, OmNodes& nodes ) const ;
 
-      // count all the nodes for which Predicate pred returns true
       template<class Predicate>
       INT32     count( Predicate pred ) const ;
 
@@ -219,7 +215,6 @@ namespace engine
       INT32             addDisk( const simpleDiskInfo& disk ) ;
       const simpleDiskInfo*   getDisk( const string path ) ;
 
-      // count all the nodes for which Predicate pred returns true
       template<class Predicate>
       INT32 count( Predicate pred ) const
       {
@@ -282,7 +277,6 @@ namespace engine
       INT32                   nodeNum() const ;
       INT32                   addNode( OmNode* node ) ;
 
-      // count all the nodes for which Predicate pred returns true
       template<class Predicate>
       INT32 count( Predicate pred ) const
       {
@@ -387,7 +381,6 @@ namespace engine
       return host ;
    }
 
-   // =============== common predicate for getNodes()/count() ===============
 
    class byDisk
    {

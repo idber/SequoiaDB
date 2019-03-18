@@ -1,5 +1,5 @@
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -21,24 +21,12 @@
 
 PHP_METHOD( SequoiaCS, __construct ) ;
 
-//cs
 PHP_METHOD( SequoiaCS, drop ) ;
 PHP_METHOD( SequoiaCS, getName ) ;
 
-//cl
-//e.g. Rename selectCollection
 PHP_METHOD( SequoiaCS, selectCL ) ;
 PHP_METHOD( SequoiaCS, createCL ) ;
 PHP_METHOD( SequoiaCS, getCL ) ;
-//e.g. Rename dropCollection
 PHP_METHOD( SequoiaCS, dropCL ) ;
-PHP_METHOD( SequoiaCS, renameCL ) ;
-PHP_METHOD( SequoiaCS, alter ) ;
-PHP_METHOD( SequoiaCS, setDomain ) ;
-PHP_METHOD( SequoiaCS, removeDomain ) ;
-PHP_METHOD( SequoiaCS, enableCapped ) ;
-PHP_METHOD( SequoiaCS, disableCapped ) ;
-PHP_METHOD( SequoiaCS, setAttributes ) ;
-PHP_METHOD( SequoiaCS, setAttributes ) ;
 
 #endif

@@ -110,9 +110,6 @@ public abstract class AbstractMongoQuery implements RepositoryQuery {
 
 	private Query applyQueryMetaAttributesWhenPresent(Query query) {
 
-//		if (method.hasQueryMetaAttributes()) {
-//			query.setMeta(method.getQueryMetaAttributes());
-//		}
 		return query;
 	}
 
@@ -219,7 +216,6 @@ public abstract class AbstractMongoQuery implements RepositoryQuery {
 			MongoEntityMetadata<?> metadata = method.getEntityInformation();
 			int pageSize = pageable.getPageSize();
 
-			// Apply Pageable but tweak limit to peek into next page
 			Query modifiedQuery = query.with(pageable).limit(pageSize + 1);
 
 			List result = operations.find(modifiedQuery, metadata.getJavaType(), metadata.getCollectionName());
@@ -270,10 +266,8 @@ public abstract class AbstractMongoQuery implements RepositoryQuery {
 				return new PageImpl<Object>(Collections.emptyList(), pageable, count);
 			}
 
-			// Apply raw pagination
 			query = query.with(pageable);
 
-			// Adjust limit if page would exceed the overall limit
 			if (overallLimit != 0 && pageable.getOffset() + pageable.getPageSize() > overallLimit) {
 				query.limit(overallLimit - pageable.getOffset());
 			}

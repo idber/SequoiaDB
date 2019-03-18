@@ -1,17 +1,3 @@
-/* Copyright (c) 2018, SequoiaDB and/or its affiliates. All rights reserved.
-
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; version 2 of the License.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
 
 #ifndef MYSQL_SERVER
    #define MYSQL_SERVER
@@ -193,8 +179,7 @@ void sdb_cond_ctx::push( Item *cond_item )
                 && ( Item::FUNC_ITEM != cond_item->type()
                      || cond_item->const_item() )))*/
       if ( NULL == cond_item
-           || ( Item::FUNC_ITEM != cond_item->type()
-                && Item::COND_ITEM != cond_item->type()) )
+           || Item::FUNC_ITEM != cond_item->type() )
       {
          rc = cur_item->push( cond_item ) ;
          if ( 0 != rc )
@@ -234,15 +219,6 @@ void sdb_cond_ctx::push( Item *cond_item )
       item_list.push_front( cur_item ) ; // netsted func
    }
    cur_item = item_tmp ;
-   if ( cur_item->finished() )
-   {
-      //func has no parameter
-      pop() ;
-      if ( !keep_on() )
-      {
-         goto error ;
-      }
-   }
 
 done:
    return ;
@@ -267,7 +243,6 @@ sdb_item *sdb_cond_ctx::create_sdb_item( Item_func *cond_item )
             break ;
          }
       case Item_func::EQ_FUNC:
-      case Item_func::EQUAL_FUNC:
          {
             item = new sdb_func_eq() ;
             break ;

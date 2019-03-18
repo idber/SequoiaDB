@@ -175,9 +175,7 @@ public class SequoiadbTemplate implements SequoiadbOperations, ApplicationContex
 		this.queryMapper = new QueryMapper(this.sequoiadbConverter);
 		this.updateMapper = new UpdateMapper(this.sequoiadbConverter);
 
-		// We always have a mapping context in the converter, whether it's a simple one or not
 		mappingContext = this.sequoiadbConverter.getMappingContext();
-		// We create indexes based on mapping events
 		if (null != mappingContext && mappingContext instanceof SequoiadbMappingContext) {
 			indexCreator = new SequoiadbPersistentEntityIndexCreator((SequoiadbMappingContext) mappingContext, sequoiadbFactory);
 			eventPublisher = new SequoiadbMappingEventPublisher(indexCreator);
@@ -294,10 +292,6 @@ public class SequoiadbTemplate implements SequoiadbOperations, ApplicationContex
 	protected void logCommandExecutionError(final BSONObject command, CommandResult result) {
 		String error = result.getErrorMessage();
 		if (error != null) {
-			// TODO: DATADOC-204 allow configuration of logging level / throw
-			// throw new
-			// InvalidDataAccessApiUsageException("Command execution of " +
-			// command.toString() + " failed: " + error);
 			LOGGER.warn("Command execution of " + command.toString() + " failed: " + error);
 		}
 	}
@@ -444,7 +438,6 @@ public class SequoiadbTemplate implements SequoiadbOperations, ApplicationContex
 		return new DefaultIndexOperations(this, determineCollectionName(entityClass));
 	}
 
-	// Find methods that take a Query to express the query and that return a single object.
 
 	public <T> T findOne(Query query, Class<T> entityClass) {
 		return findOne(query, entityClass, determineCollectionName(entityClass));
@@ -478,7 +471,6 @@ public class SequoiadbTemplate implements SequoiadbOperations, ApplicationContex
 		return execute(collectionName, new FindCallback(mappedQuery)).hasNext();
 	}
 
-	// Find methods that take a Query to express the query and that return a List of objects.
 
 	public <T> List<T> find(Query query, Class<T> entityClass) {
 		return find(query, entityClass, determineCollectionName(entityClass));
@@ -532,8 +524,6 @@ public class SequoiadbTemplate implements SequoiadbOperations, ApplicationContex
 				getMappedSortObject(query, entityClass), entityClass, update, options);
 	}
 
-	// Find methods that take a Query to express the query and that return a single object that is also removed from the
-	// collection in the database.
 
 	public <T> T findAndRemove(Query query, Class<T> entityClass) {
 		return findAndRemove(query, entityClass, determineCollectionName(entityClass));
@@ -741,7 +731,6 @@ public class SequoiadbTemplate implements SequoiadbOperations, ApplicationContex
 
 		SequoiadbPersistentEntity<?> sequoiadbPersistentEntity = getPersistentEntity(objectToSave.getClass());
 
-		// No optimistic locking -> simple save
 		if (sequoiadbPersistentEntity == null || !sequoiadbPersistentEntity.hasVersionProperty()) {
 			doSave(collectionName, objectToSave, this.sequoiadbConverter);
 			return;
@@ -758,18 +747,15 @@ public class SequoiadbTemplate implements SequoiadbOperations, ApplicationContex
 
 		Number version = beanWrapper.getProperty(versionProperty, Number.class);
 
-		// Fresh instance -> initialize version property
 		if (version == null) {
 			doInsert(collectionName, objectToSave, this.sequoiadbConverter);
 		} else {
 
 			assertUpdateableIdIfNotSet(objectToSave);
 
-			// Create query for entity with the id and old version
 			Object id = beanWrapper.getProperty(idProperty);
 			Query query = new Query(Criteria.where(idProperty.getName()).is(id).and(versionProperty.getName()).is(version));
 
-			// Bump version number
 			Number number = beanWrapper.getProperty(versionProperty, Number.class);
 			beanWrapper.setProperty(versionProperty, number.longValue() + 1);
 
@@ -851,7 +837,6 @@ public class SequoiadbTemplate implements SequoiadbOperations, ApplicationContex
 			if (id instanceof ObjectId) {
 				ids.add((ObjectId) id);
 			} else {
-				// no id was generated
 				ids.add(null);
 			}
 		}
@@ -938,7 +923,6 @@ public class SequoiadbTemplate implements SequoiadbOperations, ApplicationContex
 						: collection.update(queryObj, updateObj, upsert, multi, writeConcernToUse);
 
 				if (entity != null && entity.hasVersionProperty() && !multi) {
-//					if (writeResult.getN() == 0 && dbObjectContainsVersionProperty(queryObj, entity)) {
 					if (writeResult.getN() < 0 && dbObjectContainsVersionProperty(queryObj, entity)) {
 						throw new OptimisticLockingFailureException("Optimistic lock exception on saving entity: "
 								+ updateObj.toMap().toString() + " to collection " + collectionName);
@@ -1152,7 +1136,6 @@ public class SequoiadbTemplate implements SequoiadbOperations, ApplicationContex
 
 	public <T> MapReduceResults<T> mapReduce(Query query, String inputCollectionName, String mapFunction,
 			String reduceFunction, MapReduceOptions mapReduceOptions, Class<T> entityClass) {
-		// TODO: let's support it
 		throw new UnsupportedOperationException("not supported!");
 	}
 
@@ -1369,7 +1352,6 @@ public class SequoiadbTemplate implements SequoiadbOperations, ApplicationContex
 		return execute(new DbCallback<DBCollection>() {
 			public DBCollection doInDB(DB db) throws BaseException, DataAccessException {
 				DBCollection coll = db.createCollection(collectionName, collectionOptions);
-				// TODO: Emit a collection created event
 				if (LOGGER.isDebugEnabled()) {
 					LOGGER.debug("Created collection [{}]", coll.getFullName());
 				}
@@ -1789,7 +1771,6 @@ public class SequoiadbTemplate implements SequoiadbOperations, ApplicationContex
 		return queryMapper.getMappedSort(query.getSortObject(), mappingContext.getPersistentEntity(type));
 	}
 
-	// Callback implementations
 
 	/**
 	 * Simple {@link CollectionCallback} that takes a query {@link BSONObject} plus an optional fields specification
@@ -2013,42 +1994,6 @@ public class SequoiadbTemplate implements SequoiadbOperations, ApplicationContex
 		public DBCursor prepare(DBCursor cursor) {
 
 			return cursor;
-//			if (query == null) {
-//				return cursor;
-//			}
-//
-//			if (query.getSkip() <= 0 && query.getLimit() <= 0 && query.getSortObject() == null
-//					&& !StringUtils.hasText(query.getHint()) && !query.getMeta().hasValues()) {
-//				return cursor;
-//			}
-//
-//			DBCursor cursorToUse = cursor.copy();
-//
-//			try {
-//				if (query.getSkip() > 0) {
-//					cursorToUse = cursorToUse.skip(query.getSkip());
-//				}
-//				if (query.getLimit() > 0) {
-//					cursorToUse = cursorToUse.limit(query.getLimit());
-//				}
-//				if (query.getSortObject() != null) {
-//					BSONObject sortDbo = type != null ? getMappedSortObject(query, type) : query.getSortObject();
-//					cursorToUse = cursorToUse.sort(sortDbo);
-//				}
-//				if (StringUtils.hasText(query.getHint())) {
-//					cursorToUse = cursorToUse.hint(query.getHint());
-//				}
-//				if (query.getMeta().hasValues()) {
-//					for (Entry<String, Object> entry : query.getMeta().values()) {
-//						cursorToUse = cursorToUse.addSpecial(entry.getKey(), entry.getValue());
-//					}
-//				}
-//
-//			} catch (RuntimeException e) {
-//				throw potentiallyConvertRuntimeException(e);
-//			}
-//
-//			return cursorToUse;
 		}
 	}
 

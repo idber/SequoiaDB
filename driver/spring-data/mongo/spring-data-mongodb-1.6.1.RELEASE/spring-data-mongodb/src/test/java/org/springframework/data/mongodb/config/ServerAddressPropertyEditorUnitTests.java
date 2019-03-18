@@ -208,7 +208,6 @@ public class ServerAddressPropertyEditorUnitTests {
 				InetAddress.getByName(hostname);
 				Assert.fail("Supposedly unresolveable hostname '" + hostname + "' can be resolved.");
 			} catch (UnknownHostException expected) {
-				// ok
 			}
 		}
 	}

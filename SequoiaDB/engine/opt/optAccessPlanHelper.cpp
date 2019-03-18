@@ -80,7 +80,6 @@ namespace engine
      _estCPUCost( OPT_MTH_OPTR_DEFAULT_SELECTIVITY ),
      _keepSearchPaths( keepSearchPaths )
    {
-      // Adjust with cache level
       setMthEnableParameterized( mthConfig._enableParameterized &&
                                  ( cacheLevel >= OPT_PLAN_PARAMETERIZED ) ) ;
       setMthEnableFuzzyOptr( mthConfig._enableFuzzyOptr &&
@@ -174,10 +173,8 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__OPTAPHELP_GENSIMMTH ) ;
 
-      // No need to be copied
       _query = query ;
 
-      // Normalize the query with simple parser
       rc = _normalizer.normalize( query, normalBuilder, parameters ) ;
       invalidMatcher = _normalizer.isInvalidMatcher() ;
       PD_RC_CHECK( rc, invalidMatcher ? PDERROR : PDDEBUG,

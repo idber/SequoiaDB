@@ -37,8 +37,6 @@ BOOLEAN global_init_flag   = FALSE ;
 BOOLEAN case_init_flag     = FALSE ;
 
 
-//const CHAR *pHostName      = "192.168.20.42" ;
-//const CHAR *pSvcName       = "11810" ;
 const CHAR *pHostName      = HOST ;
 const CHAR *pSvcName       = SERVER ;
 const CHAR *pUser          = USER ;
@@ -218,7 +216,6 @@ void* func_delete( void* arg )
       goto error ;
    }
 
-   // get begin time
    if ( 0 != gettimeofday( &tv_start, NULL ) )
    {
       printf( "Error: %s:%d, failed to get begin time", __FUNC__, __LINE__ ) ;
@@ -229,7 +226,6 @@ void* func_delete( void* arg )
    while( TRUE )
    {
       sleep( DELETE_WAIT ) ;
-      // check timeout
       if ( 0 != gettimeofday( &tv_end, NULL ) )
       {
          printf( "Error: %s:%d, failed to get end time", __FUNC__, __LINE__ ) ;
@@ -243,7 +239,6 @@ void* func_delete( void* arg )
          rc = SDB_TIMEOUT ;
          goto error ;
       }
-      // begin
       rc = sdbGetCount( cl, NULL, &count ) ;
       if ( SDB_OK != rc )
       {
@@ -326,7 +321,6 @@ void* func_update( void* arg )
       goto error ;
    }
    
-   // get begin time
    if ( 0 != gettimeofday( &tv_start, NULL ) )
    {
       printf( "Error: %s:%d, failed to get begin time", __FUNC__, __LINE__ ) ;
@@ -350,7 +344,6 @@ void* func_update( void* arg )
          rc = SDB_TIMEOUT ;
          goto error ;
       }
-      // begin
       rc = sdbGetCount( cl, &matcher, &count ) ;
       if ( SDB_OK != rc )
       {
@@ -416,7 +409,6 @@ void* func_query( void* arg )
       goto error ;
    }
 
-   // get begin time
    if ( 0 != gettimeofday( &tv_start, NULL ) )
    {
       printf( "Error: %s:%d, failed to get begin time", __FUNC__, __LINE__ ) ;
@@ -440,7 +432,6 @@ void* func_query( void* arg )
          rc = SDB_TIMEOUT ;
          goto error ;
       }      
-      // begin
       rc = sdbQuery( cl, NULL, NULL, NULL, NULL, 0, -1, &cursor ) ; 
       if ( SDB_OK != rc )
       {
@@ -484,22 +475,17 @@ class mutexTest : public testing::Test
       mutexTest() {}
 
    public:
-      // run before all the testcase
       static void SetUpTestCase() ;
 
-      // run before all the testcase
       static void TearDownTestCase() ;
 
-      // run before every testcase
       virtual void SetUp() ;
 
-      // run before every testcase
       virtual void TearDown() ;
 } ;
 
 void mutexTest::SetUpTestCase()
 {
-   /// build some connections
    
    INT32 rc = SDB_OK ;
    INT32 i = 0 ;
@@ -552,7 +538,6 @@ void mutexTest::SetUpTestCase()
 
 void mutexTest::TearDownTestCase()
 {
-   /// disconnect connections and distroy connection handles
 
    for ( INT32 i = 0; i < CONN_NUM; i++ )
    {
@@ -563,7 +548,6 @@ void mutexTest::TearDownTestCase()
 
 void mutexTest::SetUp()
 {
-   /// drop all the cs in database then create some
    
    INT32 rc = SDB_OK ;
    INT32 i = 0 ;
@@ -578,7 +562,6 @@ void mutexTest::SetUp()
       goto done ;
    }
 
-   // drop and create cs
    for ( i = 0; i < CS_NUM && it != cs_name_vec.end(); i++, it++ )
    {
       rc = sdbDropCollectionSpace( db_arr[0], (*it).c_str() ) ;
@@ -598,7 +581,6 @@ void mutexTest::SetUp()
       }
    } 
 
-   // create cl
    for ( i = 0; i < CL_NUM && it2 != cl_full_name_vec.end(); i++, it2++ )
    {
       sdbCollectionHandle cl = 0 ;
@@ -622,7 +604,6 @@ error:
 
 void mutexTest::TearDown()
 {
-   /// drop all the cs
 
    INT32 rc = SDB_OK ;
    INT32 i = 0 ;
@@ -641,7 +622,6 @@ void mutexTest::TearDown()
                   __FUNC__, __LINE__, (*it).c_str(), rc ) ;
       }
    }
-   // release handle 
    for ( i = 0, it = cs_name_vec.begin(); i < CS_NUM && it != cs_name_vec.end(); i++, it++ )
    {
       sdbReleaseCS( cs_arr[i] ) ;
@@ -680,7 +660,6 @@ TEST_F( mutexTest, multi_threading )
       ASSERT_EQ( 0, 1 ) << "Failed to init to run test case" ;
    }
 
-   /// check
    if ( INSERT_THREAD_NUM > CONN_FOR_INSERT || 
         DELETE_THREAD_NUM > CONN_FOR_DELETE ||
         UPDATE_THREAD_NUM > CONN_FOR_UPDATE ||
@@ -690,7 +669,6 @@ TEST_F( mutexTest, multi_threading )
          "less then the amount of connection handle" ;
    }
 
-   // get collecton handles
    rc = _getCLHandles( INSERT_THREAD_NUM, h_insert ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = _getCLHandles( DELETE_THREAD_NUM, h_delete ) ;
@@ -700,7 +678,6 @@ TEST_F( mutexTest, multi_threading )
    rc = _getCLHandles( QUERY_THREAD_NUM, h_query ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // insert thread
    for ( i = 0; i < INSERT_THREAD_NUM; i++ )
    {
       s_insert[i].conn_id = i ;
@@ -711,7 +688,6 @@ TEST_F( mutexTest, multi_threading )
       ASSERT_EQ( SDB_OK, rc ) << "Failed to create insert thread" ;
    }
    
-   // delete thread
    for ( i = 0; i < DELETE_THREAD_NUM; i++ )
    {
       s_delete[i].conn_id = i ;
@@ -723,7 +699,6 @@ TEST_F( mutexTest, multi_threading )
       ASSERT_EQ( SDB_OK, rc ) << "Failed to create delete thread" ;
    }
 
-   // update thread
    for ( i = 0; i < UPDATE_THREAD_NUM; i++ )
    {
       s_update[i].conn_id = i ;
@@ -735,7 +710,6 @@ TEST_F( mutexTest, multi_threading )
       ASSERT_EQ( SDB_OK, rc ) << "Failed to create update thread" ;
    }
 
-   // query thread
    for ( i = 0; i < QUERY_THREAD_NUM; i++ )
    {
       s_query[i].conn_id = i ;
@@ -771,7 +745,6 @@ TEST_F( mutexTest, multi_threading )
       ASSERT_EQ( SDB_OK, rc ) << "Failed to join query thread" ;
    }
 
-   /// check option result. expect all the collection
    for ( i = 0; i < INSERT_THREAD_NUM; i++ )
    {
       if ( SDB_OK  != s_insert[i].ret )
@@ -818,7 +791,6 @@ TEST_F( mutexTest, multi_threading )
 
    ASSERT_EQ( TRUE, run_status_flag ) << "Thread return error" ;
 
-   // check record in database
    if ( FALSE == _checkRecordNumAndReleaseHandle( h_insert, INSERT_THREAD_NUM ) )
    {
       run_status_flag = FALSE ;

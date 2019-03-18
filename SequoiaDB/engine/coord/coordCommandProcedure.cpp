@@ -178,8 +178,6 @@ namespace engine
       *buf = rtnContextBuf( runInfo ) ;
 
    done:
-      /// when -1 != contextID, session will be freed
-      /// in context destructor.
       if ( -1 == contextID )
       {
          SAFE_OSS_DELETE( session ) ;

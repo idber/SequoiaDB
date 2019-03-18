@@ -47,8 +47,6 @@ namespace engine
 
    }
 
-   // this updateRoute only change the old routeID to new one. It does NOT
-   // change the hostname and servicename, so we do not need to restart services
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETRTAG_UPRT, "_netRouteAgent::updateRoute" )
    INT32 _netRouteAgent::updateRoute ( const _MsgRouteID &oldID,
                                        const _MsgRouteID &newID )
@@ -60,7 +58,6 @@ namespace engine
       {
          goto error ;
       }
-      /// close the old connections
       _frame.close( oldID ) ;
 
    done :
@@ -84,7 +81,6 @@ namespace engine
          goto error ;
       }
 
-      // new node don't close the exist connect
       if ( FALSE == newAdd )
       {
          _frame.close( id ) ;
@@ -110,7 +106,6 @@ namespace engine
          goto error ;
       }
 
-      // new node don't close the existed connect
       if ( FALSE == newAdd )
       {
          _frame.close( id ) ;

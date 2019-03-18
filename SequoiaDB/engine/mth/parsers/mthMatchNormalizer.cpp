@@ -175,7 +175,6 @@ namespace engine
    {
       _fieldName = fieldName ;
       _opCode = EN_MATCH_OPERATOR_REGEX ;
-      // Reuse _opName as regex string
       _opName = regex ;
       _options = options ;
       _opWeight = MTH_WEIGHT_REGEX ;
@@ -187,10 +186,6 @@ namespace engine
 
    bool _mthMatchOpItem::operator< ( const _mthMatchOpItem &item ) const
    {
-      // Compare order:
-      // 1. weight of operator
-      // 2. name of field
-      // 3. code of operator
       if ( _opWeight < item._opWeight )
       {
          return TRUE ;
@@ -217,10 +212,6 @@ namespace engine
 
    INT32 _mthMatchOpItem::comparator ( const _mthMatchOpItem &item ) const
    {
-      // Compare order:
-      // 1. weight of operator
-      // 2. name of field
-      // 3. code of operator
       if ( _opWeight < item._opWeight )
       {
          return -1 ;
@@ -273,7 +264,6 @@ namespace engine
 
       if ( EN_MATCH_OPERATOR_REGEX == _opCode )
       {
-         // Process $regex
          subBuilder.append( MTH_OPERATOR_STR_REGEX, _opName ) ;
          subBuilder.append( MTH_OPERATOR_STR_OPTIONS, _options ) ;
       }
@@ -295,12 +285,6 @@ namespace engine
             opName = _getFuzzyOpStr() ;
          }
 
-         // Generate $param field { $param : x, $ctype : y }
-         // 1. If it is not mix-compare mode, we need $ctype ( canonical type )
-         //    in the normalized query, since the mix or max keys in predicates
-         //    generated with different data type will be different
-         // 2. If it is mix-compare mode, the $type could be ignore, since the
-         //    mix or max keys are the same with different data type
          BSONObjBuilder paramBuilder( subBuilder.subobjStart( opName ) ) ;
          if ( -1 == _fuzzyIndex )
          {
@@ -308,8 +292,6 @@ namespace engine
          }
          else
          {
-            // Generate $param field with fuzzy operator
-            // $param : [ paramIndex, fuzzyIndex ]
             BSONArrayBuilder paramArrBuilder(
                   paramBuilder.subarrayStart( FIELD_NAME_PARAM ) ) ;
             paramArrBuilder.append( (INT32)_paramIndex ) ;
@@ -366,11 +348,6 @@ namespace engine
 
    BOOLEAN _mthMatchOpItem::_canParameterize () const
    {
-      // Operators with below cases could be parameterized
-      // 1. have no functions
-      // 2. have no ".$" matches in field name
-      // 3. $et, $gt, $gte, $lt, $lte
-      // 4. simple data types
       if ( _funcList.empty() &&
            NULL == ossStrstr( _fieldName, ".$" ) )
       {
@@ -622,7 +599,6 @@ namespace engine
             }
             case Array :
             {
-               // Parse $and:[] only
                if ( fieldName[0] == MTH_OPERATOR_EYECATCHER &&
                     fieldName[1] == 'a' && fieldName[2] == 'n' &&
                     fieldName[3] == 'd' && fieldName[4] == '\0' )
@@ -650,7 +626,6 @@ namespace engine
                if ( Object == element.type() ||
                     Array == element.type() )
                {
-                  // Too complex for normalizer to parse embedded objects
                   rc = SDB_INVALIDARG ;
                   goto error ;
                }
@@ -705,7 +680,6 @@ namespace engine
                }
                default :
                {
-                  // Only object is allowed inside $and
                   _invalidMatcher = TRUE ;
                   rc = SDB_INVALIDARG ;
                   PD_LOG( PDERROR, "Item [%s] in $and must be an object",
@@ -744,7 +718,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      // FieldName can't start with '$'
       PD_CHECK( MTH_OPERATOR_EYECATCHER != fieldName[0],
                 SDB_INVALIDARG, invalidate, PDERROR,
                 "Operator can not in the head of element "
@@ -802,7 +775,6 @@ namespace engine
                        subElement.type() != Array &&
                        subElement.type() != Object )
                   {
-                     // Special case for $mod:x, which is a function
                      _mthMatchFuncItem item( subFieldName, EN_MATCH_FUNC_MOD,
                                              subElement ) ;
                      funcList.push_back( item ) ;
@@ -815,7 +787,6 @@ namespace engine
                      regex = subElement.valuestr() ;
                      if ( options != NULL )
                      {
-                        // { ..., $options: 'xx', $regex : 'xx', ... }
                         rc = _addRegexItem( fieldName, regex, options, funcList ) ;
                         funcList.clear() ;
                         regex = NULL ;
@@ -834,7 +805,6 @@ namespace engine
                      options = subElement.valuestr() ;
                      if ( regex != NULL )
                      {
-                        // { ..., $regex: 'xx', $options : 'xx', ... }
                         rc = _addRegexItem( fieldName, regex, options, funcList ) ;
                         funcList.clear() ;
                         regex = NULL ;
@@ -849,7 +819,6 @@ namespace engine
                   {
                      if ( regex != NULL )
                      {
-                        // { ..., $regex : 'xx', ... }
                         SDB_ASSERT( options == NULL, "options should be NULL" ) ;
                         rc = _addRegexItem( fieldName, regex, "", funcList ) ;
                         funcList.clear() ;
@@ -869,7 +838,6 @@ namespace engine
                      if ( Object == subElement.type() ||
                           Array == subElement.type() )
                      {
-                        // Too complex for normalizer to parse embedded objects
                         rc = SDB_INVALIDARG ;
                         goto error ;
                      }
@@ -901,7 +869,6 @@ namespace engine
             PD_CHECK( funcList.empty(), SDB_INVALIDARG, invalidate, PDERROR,
                       "Failed to parse query: %s",
                       element.toString( FALSE, TRUE ).c_str() ) ;
-            // Too complex for normalizer to parse embedded objects
             rc = SDB_INVALIDARG ;
             goto error ;
          }

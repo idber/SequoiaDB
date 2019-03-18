@@ -73,7 +73,6 @@ namespace engine
       _timeout() += millisec ;
 
       const static UINT32 maxSliceTime = 30 * OSS_ONE_SEC ;
-      /// silence time must be higher than brk time.
       if ( pmdGetOptionCB()->sharingBreakTime() + 1000 <= _timeout() ||
            maxSliceTime <= _timeout() )
       {

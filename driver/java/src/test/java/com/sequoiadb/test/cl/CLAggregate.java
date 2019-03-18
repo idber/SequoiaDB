@@ -25,16 +25,13 @@ public class CLAggregate {
 
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } else
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
 
-        // cl
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
@@ -66,7 +63,6 @@ public class CLAggregate {
         record[1] = "{cust_id:\"A123\",amount:250,status:\"A\"}";
         record[2] = "{cust_id:\"B212\",amount:200,status:\"A\"}";
         record[3] = "{cust_id:\"A123\",amount:300,status:\"D\"}";
-        // insert record into database
         for (int i = 0; i < record.length; i++) {
             BSONObject obj = new BasicBSONObject();
             obj = (BSONObject) JSON.parse(record[i]);

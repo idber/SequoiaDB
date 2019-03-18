@@ -44,8 +44,6 @@ namespace engine
 {
 #define DMS_INVALID_REC_LOGICALID         -1
 
-// Default size threshold of capped collection is 30GB.
-// Default record number threshold is set to 0, which means no limit on that.
 #define DMS_DFT_CAPPEDCL_SIZE             (30 * 1024 * 1024 * 1024LL)
 #define DMS_DFT_CAPPEDCL_RECNUM           0
 
@@ -101,8 +99,6 @@ namespace engine
    } ;
    typedef _dmsCappedCLOptions dmsCappedCLOptions ;
 
-   // Information of the working extent. Working extent is the one which is
-   // used for insertion currently.
    struct _dmsExtentInfo
    {
       dmsExtentID    _id ;
@@ -112,8 +108,6 @@ namespace engine
       dmsOffset      _firstRecordOffset ;
       dmsOffset      _lastRecordOffset ;
       UINT32         _writePos ; // Currently write position in the working
-                                 // extent data area( the extent header
-                                 // excluded). Always 4 byte aligned.
       UINT32         _recNo ;
       _dmsExtentInfo()
       {
@@ -154,7 +148,6 @@ namespace engine
          _recNo++ ;
       }
 
-      // Should only be done after attach to a new empty extent.
       void seek( dmsOffset offset )
       {
          SDB_ASSERT( offset >= (INT32)DMS_EXTENT_METADATA_SZ,
@@ -163,7 +156,6 @@ namespace engine
          _freeSpace = DMS_CAP_EXTENT_SZ - offset ;
       }
 
-      // For debug purpose.
       string toString() const
       {
          ostringstream ss ;
@@ -364,8 +356,6 @@ namespace engine
 
    private:
       dmsCappedCLOptions *_options[ DMS_MME_SLOTS ] ;
-      // The information of the working extents of each collection.
-      // Working extent is the one which we are using for inserting record now.
       dmsExtentInfo _workExtInfo[ DMS_MME_SLOTS ] ;
       SIZE_REQ_MAP  _sizeReqMap ;
    } ;
@@ -529,18 +519,15 @@ namespace engine
          }
          else if ( extLID == extent->_logicID )
          {
-            // Found the target extent.
             break ;
          }
          else if ( extentID == extentInfo->getID() )
          {
-            // If hit the working extent, and still not found, stop.
             extentID = DMS_INVALID_EXTENT ;
             break ;
          }
          else
          {
-            // Recycle the current extent.
             extentID = extent->_nextExtent;
          }
       }

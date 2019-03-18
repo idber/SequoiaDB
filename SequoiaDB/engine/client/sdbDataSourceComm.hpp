@@ -90,25 +90,18 @@ namespace sdbclient
          _useSSL(FALSE) {}
 
    private:
-      // user info
       string               _userName ;
       string               _passwd ;
-      // connection number info
       INT32                _initConnCount ;
       INT32                _deltaIncCount ;
       INT32                _maxIdleCount ;
       INT32                _maxCount ;
-      // check idle connection interval
       INT32                _checkInterval ;
       INT32                _keepAliveTimeout ;
-      // sync coord interval
       INT32                _syncCoordInterval ;
-      // whether check validation when a connection out
       BOOLEAN              _validateConnection ;
-      // strategy to create connections
       DATASOURCE_STRATEGY  _connectStrategy ;
 
-      // if configure is valid
       BOOLEAN              _useSSL ;
 
    public:

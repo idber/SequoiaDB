@@ -133,17 +133,10 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Append obj[%s] failed, rc: %d",
                       obj.toString().c_str(), rc ) ;
 
-         // increase counter
          DMS_MON_OP_COUNT_INC( pMonAppCB, MON_SELECT, 1 ) ;
 
-         // make sure we still have room to read another
-         // record_max_sz (i.e. 16MB). if we have less than 16MB
-         // to 256MB, we can't safely assume the next record we
-         // read will not overflow the buffer, so let's just break
-         // before reading the next record
          if ( buffEndOffset() + DMS_RECORD_MAX_SZ > RTN_RESULTBUFFER_SIZE_MAX )
          {
-            // let's break if there's no room for another max record
             break ;
          }
       }
@@ -175,7 +168,6 @@ namespace engine
 
    _rtnContextQgmSort::~_rtnContextQgmSort()
    {
-     /// qgmPlan should be released by plan tree.
       _qp = NULL ;
    }
 

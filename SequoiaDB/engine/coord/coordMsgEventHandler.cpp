@@ -74,7 +74,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      // sys info request
       if ( (UINT32)MSG_SYSTEM_INFO_LEN == (UINT32)header->messageLength )
       {
          MsgSysInfoReply reply ;
@@ -98,12 +97,10 @@ namespace engine
          }
       }
 
-      // main cb msg
       if ( 0 == header->TID || ! IS_REPLY_TYPE( header->opCode ) )
       {
          rc = _postMsg( handle, header, msg ) ;
       }
-      // session msg
       else
       {
          SDB_ASSERT( _pRSManager, "Remote Session Manager can't be NULL" ) ;
@@ -181,7 +178,6 @@ namespace engine
          goto error ;
       }
 
-      // copy msg
       if ( NULL == msg )
       {
          ossMemcpy( (void *)pNewMsg, header, header->messageLength ) ;
@@ -192,7 +188,6 @@ namespace engine
       }
       pNewMsg[ header->messageLength ] = 0 ;
 
-      // push event
       _pMainCB->postEvent( pmdEDUEvent( PMD_EDU_EVENT_MSG,
                                         PMD_EDU_MEM_ALLOC,
                                         pNewMsg,

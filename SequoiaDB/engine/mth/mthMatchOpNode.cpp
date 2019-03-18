@@ -48,7 +48,6 @@ using namespace bson ;
 
 namespace engine
 {
-   //************************_mthMatchFunc********************************
    _mthMatchFunc::_mthMatchFunc( _mthNodeAllocator *allocator )
    {
       _funcEle   = BSONObj().firstElement() ;
@@ -122,7 +121,6 @@ namespace engine
    {
       if ( NULL != allocator && allocator->isAllocatedByme( p ) )
       {
-         // do nothing here
       }
       else
       {
@@ -154,7 +152,6 @@ namespace engine
       return in.copyTo( out ) ;
    }
 
-   //************************_mthMatchFuncABS********************************
    _mthMatchFuncABS::_mthMatchFuncABS( _mthNodeAllocator *allocator )
                     :_mthMatchFunc( allocator )
    {
@@ -220,7 +217,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   //************************_mthMatchFuncCEILING********************************
    _mthMatchFuncCEILING::_mthMatchFuncCEILING( _mthNodeAllocator *allocator )
                         :_mthMatchFuncABS( allocator )
    {
@@ -269,7 +265,6 @@ namespace engine
       return MTH_FUNCTION_STR_CEILING ;
    }
 
-   //************************_mthMatchFuncFLOOR********************************
    _mthMatchFuncFLOOR::_mthMatchFuncFLOOR( _mthNodeAllocator *allocator )
                       :_mthMatchFuncABS( allocator )
    {
@@ -318,7 +313,6 @@ namespace engine
       return MTH_FUNCTION_STR_FLOOR ;
    }
 
-   //************************_mthMatchFuncLOWER********************************
    _mthMatchFuncLOWER::_mthMatchFuncLOWER( _mthNodeAllocator *allocator )
                       :_mthMatchFuncABS( allocator )
    {
@@ -367,7 +361,6 @@ namespace engine
       return MTH_FUNCTION_STR_LOWER ;
    }
 
-   //************************_mthMatchFuncUPPER********************************
    _mthMatchFuncUPPER::_mthMatchFuncUPPER( _mthNodeAllocator *allocator )
                       :_mthMatchFuncABS( allocator )
    {
@@ -416,7 +409,6 @@ namespace engine
       return MTH_FUNCTION_STR_UPPER ;
    }
 
-   //************************_mthMatchFuncLTRIM********************************
    _mthMatchFuncLTRIM::_mthMatchFuncLTRIM( _mthNodeAllocator *allocator )
                       :_mthMatchFuncABS( allocator )
    {
@@ -465,7 +457,6 @@ namespace engine
       return MTH_FUNCTION_STR_LTRIM ;
    }
 
-   //************************_mthMatchFuncRTRIM********************************
    _mthMatchFuncRTRIM::_mthMatchFuncRTRIM( _mthNodeAllocator *allocator )
                       :_mthMatchFuncABS( allocator )
    {
@@ -514,7 +505,6 @@ namespace engine
       return MTH_FUNCTION_STR_RTRIM ;
    }
 
-   //************************_mthMatchFuncTRIM********************************
    _mthMatchFuncTRIM::_mthMatchFuncTRIM( _mthNodeAllocator *allocator )
                      :_mthMatchFuncABS( allocator )
    {
@@ -563,7 +553,6 @@ namespace engine
       return MTH_FUNCTION_STR_TRIM ;
    }
 
-   //************************_mthMatchFuncSTRLEN********************************
    _mthMatchFuncSTRLEN::_mthMatchFuncSTRLEN( _mthNodeAllocator *allocator )
                        :_mthMatchFuncABS( allocator )
    {
@@ -612,7 +601,6 @@ namespace engine
       return MTH_FUNCTION_STR_STRLEN ;
    }
 
-   //************************_mthMatchFuncSUBSTR********************************
    _mthMatchFuncSUBSTR::_mthMatchFuncSUBSTR( _mthNodeAllocator *allocator )
                        :_mthMatchFunc( allocator )
    {
@@ -749,7 +737,6 @@ namespace engine
       goto done ;
    }
 
-   //************************_mthMatchFuncMOD********************************
    _mthMatchFuncMOD::_mthMatchFuncMOD( _mthNodeAllocator *allocator )
                     :_mthMatchFunc( allocator )
    {
@@ -821,7 +808,6 @@ namespace engine
       goto done ;
    }
 
-   //************************_mthMatchFuncADD********************************
    _mthMatchFuncADD::_mthMatchFuncADD( _mthNodeAllocator *allocator )
                     :_mthMatchFunc( allocator )
    {
@@ -894,7 +880,6 @@ namespace engine
       goto done ;
    }
 
-   //************************_mthMatchFuncSUBTRACT********************************
    _mthMatchFuncSUBTRACT::_mthMatchFuncSUBTRACT( _mthNodeAllocator *allocator )
                          :_mthMatchFunc( allocator )
    {
@@ -967,7 +952,6 @@ namespace engine
       goto done ;
    }
 
-   //************************_mthMatchFuncMULTIPLY********************************
    _mthMatchFuncMULTIPLY::_mthMatchFuncMULTIPLY( _mthNodeAllocator *allocator )
                          :_mthMatchFunc( allocator )
    {
@@ -1040,7 +1024,6 @@ namespace engine
       goto done ;
    }
 
-   //************************_mthMatchFuncDIVIDE********************************
    _mthMatchFuncDIVIDE::_mthMatchFuncDIVIDE( _mthNodeAllocator *allocator )
                        :_mthMatchFunc( allocator )
    {
@@ -1121,7 +1104,6 @@ namespace engine
       goto done ;
    }
 
-   //************************_mthMatchFuncCAST********************************
    _mthMatchFuncCAST::_mthMatchFuncCAST( _mthNodeAllocator *allocator )
                      :_mthMatchFunc( allocator ), _castType( EOO )
    {
@@ -1252,7 +1234,6 @@ namespace engine
       goto done ;
    }
 
-   //************************_mthMatchFuncSLICE********************************
    _mthMatchFuncSLICE::_mthMatchFuncSLICE( _mthNodeAllocator *allocator )
                       :_mthMatchFunc( allocator )
    {
@@ -1429,7 +1410,6 @@ namespace engine
       goto done ;
    }
 
-   //**********************_mthMatchFuncSIZE******************************
    _mthMatchFuncSIZE::_mthMatchFuncSIZE( _mthNodeAllocator *allocator )
                      :_mthMatchFunc( allocator )
    {
@@ -1494,7 +1474,6 @@ namespace engine
    }
 
 
-   //**********************_mthMatchFuncTYPE******************************
       _mthMatchFuncTYPE::_mthMatchFuncTYPE( _mthNodeAllocator *allocator )
                         :_mthMatchFunc( allocator ), _resultType( -1 )
       {
@@ -1565,7 +1544,6 @@ namespace engine
          return SDB_OK ;
       }
 
-   //************************_mthMatchFuncRETURNMATCH********************************
    _mthMatchFuncRETURNMATCH::_mthMatchFuncRETURNMATCH( _mthNodeAllocator *allocator )
                             :_mthMatchFunc( allocator )
    {
@@ -1681,7 +1659,6 @@ namespace engine
       goto done ;
    }
 
-   //************************_mthMatchFuncEXPAND********************************
    _mthMatchFuncEXPAND::_mthMatchFuncEXPAND( _mthNodeAllocator *allocator )
                        :_mthMatchFunc( allocator )
    {
@@ -1753,7 +1730,6 @@ namespace engine
       goto done ;
    }
 
-   //************************_mthMatchOpNode********************************
    _mthMatchOpNode::_mthMatchOpNode( _mthNodeAllocator *allocator,
                                      const mthNodeConfig *config )
                    :_mthMatchNode( allocator, config )
@@ -1888,7 +1864,6 @@ namespace engine
       if ( _addedToPred )
       {
          _evalEstimation( NULL, selectivity, cpuCost ) ;
-         // Already in the predicates, no need to be calculated
          selectivity = 1.0 ;
       }
       else
@@ -1901,7 +1876,6 @@ namespace engine
                                            double &selectivity,
                                            UINT32 &cpuCost )
    {
-      // Simply estimate
       selectivity = OPT_MTH_OPTR_DEFAULT_SELECTIVITY ;
       cpuCost = OPT_MTH_OPTR_BASE_CPU_COST ;
    }
@@ -1918,7 +1892,6 @@ namespace engine
 
       if ( _isCompareField || _funcList.size() > 0 )
       {
-         // $field or functions do not have predicate
          goto done ;
       }
 
@@ -1954,7 +1927,6 @@ namespace engine
             }
             else
             {
-               /// do nothing
             }
 
             ++p ;
@@ -2001,7 +1973,6 @@ namespace engine
    INT32 _mthMatchOpNode::extraEqualityMatches( BSONObjBuilder &builder,
                                                 const rtnParamList *parameters )
    {
-      //only $all and $et have EqualityMatches
       return SDB_OK ;
    }
 
@@ -2070,11 +2041,9 @@ namespace engine
             BSONElement e = i.next() ;
             if ( NULL != childName )
             {
-               //a.$0.xxx
                if ( MTH_OPERATOR_EYECATCHER == *( childName + 1 ) &&
                     Array == e.type() )
                {
-                  // a.$0.$1, now childName is .$1
                   rc = _dollarMatches( childName + 1, e, context, result,
                                        gotUndefined ) ;
                   if ( SDB_OK != rc )
@@ -2086,7 +2055,6 @@ namespace engine
                }
                else if ( Object == e.type() )
                {
-                  // a.$0.b, now childName is .b
                   rc = _execute( childName + 1, e.embeddedObject(), FALSE,
                                  context, result, gotUndefined ) ;
                   if ( SDB_OK != rc )
@@ -2165,7 +2133,6 @@ namespace engine
 
          resultEle = resultObj.firstElement() ;
 
-         // Expect the same canonical type of inputs
          mixCmp = FALSE ;
       }
 
@@ -2263,18 +2230,15 @@ namespace engine
       {
          if ( _doneByPred )
          {
-            // Already calculated by predicates against index
             result = TRUE ;
             goto done ;
          }
          else if ( context.paramDoneByPred( _paramIndex ) )
          {
-            // Already calculated by predicates against index
             result = TRUE ;
             _doneByPred = TRUE ;
             goto done ;
          }
-         // Bind parameter
          toMatchEle = context.getParameter( _paramIndex ) ;
       }
       else
@@ -2290,12 +2254,10 @@ namespace engine
       p = ossStrchr ( pTmpFieldName, MTH_FIELDNAME_SEP ) ;
       if ( p )
       {
-         //xxx.xxx.xxx
          *p = '\0' ;
          BSONElement ele = obj.getField( pTmpFieldName ) ;
          if ( ele.type() == Object || ele.type() == Array )
          {
-            //xxx.$1.xxx
             if ( MTH_OPERATOR_EYECATCHER == *(p + 1) )
             {
                rc = _dollarMatches( p + 1, ele, context, result,
@@ -2304,11 +2266,7 @@ namespace engine
             }
             else
             {
-               // xxx.xxx.xxx
                BSONObj subObj = ele.embeddedObject () ;
-               // obj : { "a" : [ { "b" : 1 }, { "c" : 2 } ] }
-               // ele.type() == Array:
-               //   subObj: { 0 : { "b" : 1 }, 1 : { "c" : 2 } }
                rc = _execute( p + 1, subObj, ( ele.type() == Array ), context,
                               result, gotUndefined ) ;
                PD_RC_CHECK( rc, PDERROR, "failed to match child field:rc=%d",
@@ -2321,7 +2279,6 @@ namespace engine
 
       if ( isArrayObj )
       {
-         // obj: { 0 : { "b" : 1 }, 1 : { "c" : 2 } }
          BSONObjIterator it ( obj ) ;
          BOOLEAN tmpUndefined = TRUE ;
          result = FALSE ;
@@ -2332,7 +2289,6 @@ namespace engine
             if ( ossStrcmp( z.fieldName(), pTmpFieldName ) == 0 )
             {
                subUndefined = FALSE ;
-               // Inside an array, mix-compare mode should be disabled
                rc = _doFuncMatch( z, toMatchEle, context, FALSE, result ) ;
                PD_RC_CHECK( rc, PDERROR, "_doFuncMatch failed:rc=%d", rc ) ;
 
@@ -2345,7 +2301,6 @@ namespace engine
             if ( z.type() == Object )
             {
                BSONObj subObj = z.embeddedObject() ;
-               //pass the input pFieldName, not pTmpFieldName
                rc = _execute( pFieldName, subObj, FALSE, context, result,
                               subUndefined ) ;
                PD_RC_CHECK( rc, PDERROR, "_execute failed:rc=%d", rc ) ;
@@ -2357,8 +2312,6 @@ namespace engine
             }
             tmpUndefined = tmpUndefined && subUndefined ;
          }
-         // Report undefined only when all sub-elements got undefined
-         // Note: empty array in this case is undefined
          gotUndefined = tmpUndefined ;
 
          if ( gotUndefined && _flagAcceptUndefined() )
@@ -2401,7 +2354,6 @@ namespace engine
 
          recordEle = funcResultObj.firstElement() ;
 
-         // Expect the same canonical type of inputs
          mixCmp = FALSE ;
       }
 
@@ -2421,19 +2373,16 @@ namespace engine
            EN_MATCH_OPERATOR_NIN == getType() ||
            EN_MATCH_OPERATOR_ALL == getType() )
       {
-         // no need to check if left is array
          goto done ;
       }
 
       if ( !result )
       {
-         //if no match. try iterator and check the array items
          if ( Array == recordEle.type() )
          {
             BSONObj eEmbObj = recordEle.embeddedObject() ;
             BSONObjIterator iter( eEmbObj ) ;
             INT32 index = 0 ;
-            // If parameter is a array, we only match array elements inside
             BOOLEAN innerMixCmp = toMatchEle.type() == Array ? FALSE : mixCmp ;
             while ( iter.more() )
             {
@@ -2564,7 +2513,6 @@ namespace engine
       goto done ;
    }
 
-   // functions will be removed from funcList
    INT32 _mthMatchOpNode::addFuncList( MTH_FUNC_LIST &funcList )
    {
       INT32 rc = SDB_OK ;
@@ -2705,7 +2653,6 @@ namespace engine
 
       if ( parameters.isEmpty() )
       {
-         // Generate $param fields { $param : x, $ctype : y }
          BSONObjBuilder paramBuilder( builder.subobjStart( getOperatorStr() ) ) ;
          if ( -1 == _getFuzzyIndex() )
          {
@@ -2713,8 +2660,6 @@ namespace engine
          }
          else
          {
-            // Generate $param field with fuzzy operator
-            // $param : [ paramIndex, fuzzyIndex ]
             BSONArrayBuilder paramArrBuilder(
                   paramBuilder.subarrayStart( FIELD_NAME_PARAM ) ) ;
             paramArrBuilder.append( (INT32)_paramIndex ) ;
@@ -2730,7 +2675,6 @@ namespace engine
       }
       else
       {
-         // Bind the parameters into output BSON
          builder.appendAs( parameters.getParam( _paramIndex ),
                            getOperatorStr() ) ;
       }
@@ -2756,7 +2700,6 @@ namespace engine
                   mthEnabledMixCmp(), addToParam, paramIndex, -1 ) ;
    }
 
-   //*******************_mthMatchFuzzyOpNode  ******************
    static BSONObj _mthFuzzyOptrObj ( BOOLEAN inclusive )
    {
       BSONObjBuilder b ;
@@ -2771,7 +2714,6 @@ namespace engine
                                                 const mthNodeConfig *config )
    : _mthMatchOpNode( allocator, config )
    {
-      // Exclusive is the default value
       _fuzzyOpType = MTH_FUZZY_TYPE_EXCLUSIVE ;
    }
 
@@ -2786,7 +2728,6 @@ namespace engine
       {
          if ( _toMatch.type() == Array )
          {
-            // Should not generate rtnPredicate for array
             return FALSE ;
          }
          else
@@ -2803,8 +2744,6 @@ namespace engine
 
       if ( mthEnabledFuzzyOptr() )
       {
-         // Fuzzy operator is enabled, check the operator whether it could
-         // be fuzzy operator
          if ( EN_MATCH_OPERATOR_LTE == nodeType ||
               EN_MATCH_OPERATOR_GTE == nodeType )
          {
@@ -2818,8 +2757,6 @@ namespace engine
       }
       else
       {
-         // Fuzzy operator is not enabled, use normal inclusive or exclusive
-         // type
          if ( EN_MATCH_OPERATOR_LTE == nodeType ||
               EN_MATCH_OPERATOR_GTE == nodeType )
          {
@@ -2834,7 +2771,6 @@ namespace engine
       if ( MTH_FUZZY_TYPE_FUZZY_EXC == fuzzyType ||
            MTH_FUZZY_TYPE_FUZZY_INC == fuzzyType )
       {
-         // Could use fuzzy operator only when it could be parameterized
          if ( _canSelfParameterize() )
          {
             _fuzzyOpType = fuzzyType ;
@@ -2968,7 +2904,6 @@ namespace engine
                   mthEnabledMixCmp(), addToParam, paramIndex, fuzzyOpType ) ;
    }
 
-   //*******************_mthMatchOpNodeET***********************
    _mthMatchOpNodeET::_mthMatchOpNodeET( _mthNodeAllocator *allocator,
                                          const mthNodeConfig *config )
                      :_mthMatchOpNode( allocator, config )
@@ -3025,7 +2960,6 @@ namespace engine
          return SDB_OK ;
       }
 
-      // Bind parameters
       if ( -1 != _paramIndex && NULL != parameters )
       {
          ele = parameters->getParam( _paramIndex ) ;
@@ -3049,7 +2983,6 @@ namespace engine
                                          _mthMatchTreeContext &context,
                                          BOOLEAN &result )
    {
-      // No need to check mix-compare mode
       if ( left.canonicalType() == right.canonicalType() )
       {
          if ( 0 == compareElementValues( left, right ) )
@@ -3089,7 +3022,6 @@ namespace engine
       }
    }
 
-   //**************_mthMatchOpNodeNE********************************
    _mthMatchOpNodeNE::_mthMatchOpNodeNE( _mthNodeAllocator *allocator,
                                          const mthNodeConfig *config )
                      :_mthMatchOpNodeET( allocator, config )
@@ -3123,9 +3055,6 @@ namespace engine
 
    BOOLEAN _mthMatchOpNodeNE::isTotalConverted()
    {
-      // We need further matching to exclusive multiple-element array
-      // with given value after index-scan
-      // e.g. $ne:3, we don't want [3,5] to be returned
       return FALSE ;
    }
 
@@ -3159,7 +3088,6 @@ namespace engine
 
       if ( gotUndefined )
       {
-         // Exclude undefined
          result = FALSE ;
       }
       else
@@ -3201,7 +3129,6 @@ namespace engine
       selectivity = 1.0 - selectivity ;
    }
 
-   //**************_mthMatchOpNodeLT********************************
    _mthMatchOpNodeLT::_mthMatchOpNodeLT( _mthNodeAllocator *allocator,
                                          const mthNodeConfig *config )
                      :_mthMatchFuzzyOpNode( allocator, config )
@@ -3219,22 +3146,17 @@ namespace engine
                                              _mthMatchTreeContext &context,
                                              BOOLEAN &result )
    {
-      // Special cases for minKey and maxKey
       if ( right.canonicalType() == MinKey )
       {
-         // $lte:$minKey returns only $minKey
          result = ( left.canonicalType() == MinKey ) ;
          return SDB_OK ;
       }
       else if ( right.canonicalType() == MaxKey )
       {
-         // $lte:$maxKey returns everything
          result = TRUE ;
          return SDB_OK ;
       }
 
-      // If in mix-compare mode, left and right could have different canonical
-      // types, otherwise, they should have the same canonical types
       if ( left.canonicalType() == right.canonicalType() )
       {
          if ( compareElementValues ( left, right ) <= 0 )
@@ -3247,7 +3169,6 @@ namespace engine
       {
          if ( left.type() == Array && right.type() != Array )
          {
-            // Let the caller split array
             result = FALSE ;
             return SDB_OK ;
          }
@@ -3268,22 +3189,17 @@ namespace engine
                                              _mthMatchTreeContext &context,
                                              BOOLEAN &result )
    {
-      // Special cases for minKey and maxKey
       if ( right.canonicalType() == MinKey )
       {
-         // $lt:$minKey returns nothing
          result = FALSE ;
          return SDB_OK ;
       }
       else if ( right.canonicalType() == MaxKey )
       {
-         // $lt:$maxKey returns everything except for $maxKey
          result = ( left.canonicalType() != MaxKey ) ;
          return SDB_OK ;
       }
 
-      // If in mix-compare mode, left and right could have different canonical
-      // types, otherwise, they should have the same canonical types
       if ( left.canonicalType() == right.canonicalType() )
       {
          if ( compareElementValues ( left, right ) < 0 )
@@ -3296,7 +3212,6 @@ namespace engine
       {
          if ( left.type() == Array && right.type() != Array )
          {
-            // Let the caller split array
             result = FALSE ;
             return SDB_OK ;
          }
@@ -3338,7 +3253,6 @@ namespace engine
       }
    }
 
-   //**************_mthMatchOpNodeGT*****************************
    _mthMatchOpNodeGT::_mthMatchOpNodeGT( _mthNodeAllocator *allocator,
                                          const mthNodeConfig *config )
                      :_mthMatchFuzzyOpNode( allocator, config )
@@ -3356,22 +3270,17 @@ namespace engine
                                              _mthMatchTreeContext &context,
                                              BOOLEAN &result )
    {
-      // Special cases for minKey and maxKey
       if ( right.canonicalType() == MinKey )
       {
-         // $gte:$minKey returns everything
          result = TRUE ;
          return SDB_OK ;
       }
       else if ( right.canonicalType() == MaxKey )
       {
-         // $gte:$maxKey returns $maxKey
          result = ( left.canonicalType() == MaxKey ) ;
          return SDB_OK ;
       }
 
-      // If in mix-compare mode, left and right could have different canonical
-      // types, otherwise, they should have the same canonical types
       if ( left.canonicalType() == right.canonicalType() )
       {
          if ( compareElementValues ( left, right ) >= 0 )
@@ -3384,7 +3293,6 @@ namespace engine
       {
          if ( left.type() == Array && right.type() != Array )
          {
-            // Let the caller split array
             result = FALSE ;
             return SDB_OK ;
          }
@@ -3405,22 +3313,17 @@ namespace engine
                                              _mthMatchTreeContext &context,
                                              BOOLEAN &result )
    {
-      // Special cases for minKey and maxKey
       if ( right.canonicalType() == MinKey )
       {
-         // $gt:$minKey returns everything except for $minKey
          result = ( left.canonicalType() != MinKey ) ;
          return SDB_OK ;
       }
       else if ( right.canonicalType() == MaxKey )
       {
-         // $gt:$maxKey returns nothing
          result = FALSE ;
          return SDB_OK ;
       }
 
-      // If in mix-compare mode, left and right could have different canonical
-      // types, otherwise, they should have the same canonical types
       if ( left.canonicalType() == right.canonicalType() )
       {
          if ( compareElementValues ( left, right ) > 0 )
@@ -3433,7 +3336,6 @@ namespace engine
       {
          if ( left.type() == Array && right.type() != Array )
          {
-            // Let the caller split array
             result = FALSE ;
             return SDB_OK ;
          }
@@ -3475,7 +3377,6 @@ namespace engine
       }
    }
 
-   //**************_mthMatchOpNodeIN*****************************
    _mthMatchOpNodeIN::_mthMatchOpNodeIN( _mthNodeAllocator *allocator,
                                          const mthNodeConfig *config )
                      :_mthMatchOpNode( allocator, config )
@@ -3493,7 +3394,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       if ( element.type() != Array )
       {
-         //element's type must be array
          rc = SDB_INVALIDARG ;
          PD_LOG( PDERROR, "element is not Array:element=%s,rc=%d",
                  element.toString().c_str(), rc ) ;
@@ -3540,7 +3440,6 @@ namespace engine
                }
                else
                {
-                  // {$regex:'xxx'} or {$options:'xxx',$regex:'xxx'}
                   rc = regexNode->init(
                         fieldName,
                         subEle.embeddedObject()["$regex"].valuestrsafe(),
@@ -3733,7 +3632,6 @@ namespace engine
       }
    }
 
-   //**************_mthMatchOpNodeNIN*****************************
    _mthMatchOpNodeNIN::_mthMatchOpNodeNIN( _mthNodeAllocator *allocator,
                                            const mthNodeConfig *config )
                       :_mthMatchOpNodeIN( allocator, config )
@@ -3808,7 +3706,6 @@ namespace engine
 
             if ( isFound )
             {
-               // if we can find one. the total result is false
                tmpResult = !isFound ;
                if ( !_hasReturnMatch )
                {
@@ -3846,7 +3743,6 @@ namespace engine
       }
    }
 
-   //**************_mthMatchOpNodeALL*****************************
    _mthMatchOpNodeALL::_mthMatchOpNodeALL( _mthNodeAllocator *allocator,
                                            const mthNodeConfig *config )
                       :_mthMatchOpNodeIN( allocator, config )
@@ -3893,7 +3789,6 @@ namespace engine
          return SDB_OK ;
       }
 
-      // Bind parameters
       if ( -1 != _paramIndex && NULL != parameters )
       {
          ele = parameters->getParam( _paramIndex ) ;
@@ -3918,7 +3813,6 @@ namespace engine
       iterSet = _valueSet.begin() ;
       while ( iterSet != _valueSet.end() )
       {
-         // all values in _valueSet must equals left
          if ( ele.woCompare( *iterSet, FALSE ) != 0 )
          {
             return FALSE ;
@@ -3929,7 +3823,6 @@ namespace engine
 
       for ( i = 0 ; i < _regexVector.size() ; i++ )
       {
-         // all regexs in _regexVector must equals left
          if ( !_regexVector[i]->matches( ele ) )
          {
             return FALSE ;
@@ -3963,7 +3856,6 @@ namespace engine
       while ( iterSet != _valueSet.end() )
       {
          BOOLEAN tmpResult = FALSE ;
-         // all values in _valueSet must exist in array left
          INT32 index = 0 ;
          BSONObj tmpObj = left.embeddedObject() ;
          BSONObjIterator iter( tmpObj ) ;
@@ -3994,7 +3886,6 @@ namespace engine
 
       for ( i = 0 ; i < _regexVector.size() ; i++ )
       {
-         // all regexs in _regexVector must exist in leftValueSet
          BOOLEAN tmpResult = FALSE ;
 
          INT32 index = 0 ;
@@ -4061,7 +3952,6 @@ namespace engine
       iterSet = _valueSet.begin() ;
       while ( iterSet != _valueSet.end() )
       {
-         // all values in _valueSet must exist in lefValueSet
          INT32 count = leftValueSet.count( *iterSet ) ;
          if ( count == 0 )
          {
@@ -4073,7 +3963,6 @@ namespace engine
 
       for ( i = 0 ; i < _regexVector.size() ; i++ )
       {
-         // all regexs in _regexVector must exist in leftValueSet
          BOOLEAN isMatch = FALSE ;
          iterSet = leftValueSet.begin() ;
          while ( iterSet != leftValueSet.end() )
@@ -4102,14 +3991,12 @@ namespace engine
                                           _mthMatchTreeContext &context,
                                           BOOLEAN &result )
    {
-      // all _toMatch elements must exist in left ;
       INT32 rc = SDB_OK ;
 
       if ( Array != left.type() && Object != left.type() )
       {
          if ( _valueSet.size() == 0 && _regexVector.size() == 0 )
          {
-            // {a:1} do not match {a:{$all:[]}}, while {a:[1]} do
             result = FALSE ;
             goto done ;
          }
@@ -4144,7 +4031,6 @@ namespace engine
       }
    }
 
-   //**************_mthMatchOpNodeEXISTS*****************************
    _mthMatchOpNodeEXISTS::_mthMatchOpNodeEXISTS( _mthNodeAllocator *allocator,
                                                  const mthNodeConfig *config )
                          :_mthMatchOpNode( allocator, config )
@@ -4191,7 +4077,6 @@ namespace engine
       {
          if ( _toMatch.trueValue() )
          {
-            //expect exists
             result = FALSE ;
             return SDB_OK ;
          }
@@ -4224,7 +4109,6 @@ namespace engine
       }
    }
 
-   //**************_mthMatchOpNodeMOD*****************************
    _mthMatchOpNodeMOD::_mthMatchOpNodeMOD( _mthNodeAllocator *allocator,
                                            const mthNodeConfig *config )
                       :_mthMatchOpNode( allocator, config )
@@ -4389,7 +4273,6 @@ namespace engine
       }
    }
 
-   //**************_mthMatchOpNodeTYPE*****************************
    _mthMatchOpNodeTYPE::_mthMatchOpNodeTYPE( _mthNodeAllocator *allocator,
                                              const mthNodeConfig *config )
                        :_mthMatchOpNode( allocator, config )
@@ -4455,7 +4338,6 @@ namespace engine
       }
    }
 
-   //**************_mthMatchOpNodeISNULL*****************************
    _mthMatchOpNodeISNULL::_mthMatchOpNodeISNULL( _mthNodeAllocator *allocator,
                                                  const mthNodeConfig *config )
                          :_mthMatchOpNode( allocator, config )
@@ -4536,7 +4418,6 @@ namespace engine
       }
    }
 
-   //**************_mthMatchOpNodeEXPAND*****************************
    _mthMatchOpNodeEXPAND::_mthMatchOpNodeEXPAND( _mthNodeAllocator *allocator,
                                                  const mthNodeConfig *config )
                          :_mthMatchOpNode( allocator, config )
@@ -4576,7 +4457,6 @@ namespace engine
    INT32 _mthMatchOpNodeEXPAND::calcPredicate( rtnPredicateSet &predicateSet,
                                                const rtnParamList * paramList )
    {
-      // $expand has no predicate
       return SDB_OK ;
    }
 
@@ -4602,7 +4482,6 @@ namespace engine
       }
    }
 
-   //**************_mthMatchOpNodeELEMMATCH*****************************
    _mthMatchOpNodeELEMMATCH::_mthMatchOpNodeELEMMATCH(
                                               _mthNodeAllocator *allocator,
                                               const mthNodeConfig *config )
@@ -4621,7 +4500,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      //BSONElement m = e ;
       if ( element.type() != Object )
       {
          rc = SDB_INVALIDARG ;
@@ -4704,12 +4582,6 @@ namespace engine
                                                 _mthMatchTreeContext &context,
                                                 BOOLEAN &result )
    {
-      // for eleMatch, such like {a:{$eleMatch:{b:1}}}, this will
-      // match {a:{b:1}}
-      // or {a:{$eleMatch:{$and:[{b:1},{c:1}]}}}
-      // this will match {a:{b:1,c:1}}
-      // we do not support {a:{$eleMatch:{$lt:1}}} at the moment. The
-      // object in eleMatch must be a full matching condition
       INT32 rc = SDB_OK ;
       _mthMatchTreeContext subContext ;
 
@@ -4724,7 +4596,6 @@ namespace engine
          subContext.enableDollarList() ;
       }
 
-      // It might have a different mix-cmp mode
       if ( mixCmp != mthEnabledMixCmp() )
       {
          _subTree->setMthEnableMixCmp( mixCmp ) ;
@@ -4739,7 +4610,6 @@ namespace engine
             BSONElement innerEle = iter.next() ;
             if ( innerEle.type() == Object || innerEle.type() == Array )
             {
-               //do not clear dollarlist flag
                subContext.clearRecordInfo() ;
                rc = _subTree->matches( innerEle.embeddedObject(), result,
                                        &subContext ) ;
@@ -4765,7 +4635,6 @@ namespace engine
       }
       else
       {
-         //Object
          rc = _subTree->matches( left.embeddedObject(), result, &subContext ) ;
          PD_RC_CHECK( rc, PDERROR, "matches subtree failed:rc=%d", rc ) ;
          context.appendDollarList( subContext._dollarList ) ;
@@ -4803,7 +4672,6 @@ namespace engine
 
       if ( _subTree )
       {
-         // The fields in _subTree is not the root level
          _subTree->evalEstimation( NULL, tempSelectivity, tempCPUCost ) ;
       }
 
@@ -4811,7 +4679,6 @@ namespace engine
       cpuCost = OPT_MTH_OPTR_BASE_CPU_COST + tempCPUCost ;
    }
 
-   //**************_mthMatchOpNodeRegex*****************************
    _mthMatchOpNodeRegex::_mthMatchOpNodeRegex( _mthNodeAllocator *allocator,
                                                const mthNodeConfig *config )
                         :_mthMatchOpNode( allocator, config )
@@ -4856,7 +4723,6 @@ namespace engine
 
       if( regex )
       {
-         //check if the regex contains metacharacters
          while( *regex )
          {
             CHAR c = *( regex++ ) ;
@@ -4904,7 +4770,6 @@ namespace engine
       return reOptions ;
    }
 
-   //use this to init _mthMatchOpNodeRegex.(not graceful here)
    INT32 _mthMatchOpNodeRegex::init( const CHAR *fieldName, const CHAR *regex,
                                      const CHAR *options )
    {

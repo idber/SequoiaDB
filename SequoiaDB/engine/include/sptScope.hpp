@@ -94,7 +94,6 @@ namespace engine
       const CHAR* getLastErrMsg() const ;
       bson::BSONObj getLastErrObj() const ;
 
-      // be used to implement import function
       void pushJSFileNameToStack( const string &filename ) ;
       void popJSFileNameFromStack() ;
       INT32 getStackSize() ;

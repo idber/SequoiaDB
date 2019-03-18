@@ -24,10 +24,7 @@ public abstract class SingleCSCLTestCase extends SingleCSTestCase {
         }
 
         BSONObject options = new BasicBSONObject();
-        String groupName = TestConfig.getDataGroupName();
-        if (groupName != null) {
-            options.put("Group", groupName);
-        }
+        options.put("Group", TestConfig.getSingleGroup());
         cl = cs.createCollection(clName, options);
     }
 

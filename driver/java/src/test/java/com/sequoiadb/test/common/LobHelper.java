@@ -15,20 +15,16 @@ public class LobHelper {
         DigestInputStream digestInputStream = null;
 
         try {
-            // 获取md5转换器
             MessageDigest messageDigest = MessageDigest.getInstance("MD5");
 
-            // 使用DigestInputStream
             fileInputStream = new FileInputStream(inputFile);
             digestInputStream = new DigestInputStream(fileInputStream, messageDigest);
 
-            // read 的过程需要进行md5处理，直到读完文件
             byte[] tmpBuffer = new byte[bufferSize];
             while (digestInputStream.read(tmpBuffer) > 0) {
                 ; // do nothing
             }
 
-            // 拿到结果， 也是字节数组，包含16个元素
             byte[] resultByteArray = messageDigest.digest();
             return byteArrayToHex(resultByteArray);
         } catch (NoSuchAlgorithmException e) {
@@ -75,14 +71,12 @@ public class LobHelper {
                 fileFullPath += "/" + fileName;
             }
         }
-        // remove the exist file
         File file = new File(fileFullPath);
         if (file.exists()) {
             if (!file.delete()) {
                 Assert.fail();
             }
         }
-        // create file
         FileOutputStream fos = null;
         try {
             try {
@@ -94,7 +88,6 @@ public class LobHelper {
             int leftNum = fileSize;
             byte[] bytes = null;
             while (leftNum > 0) {
-                // gen data
                 if (leftNum > MAX_NUM) {
                     if (bytes == null) {
                         bytes = new byte[MAX_NUM];
@@ -108,7 +101,6 @@ public class LobHelper {
                         bytes[i] = 'a';
                     }
                 }
-                // write to file
                 try {
                     fos.write(bytes);
                 } catch (IOException e) {

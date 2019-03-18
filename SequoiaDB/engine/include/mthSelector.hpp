@@ -87,7 +87,6 @@ namespace engine
       mthSColumnMatrix _matrix ;
       BOOLEAN _init ;
 
-      ///csv
       BOOLEAN _stringOutput ;
       BOOLEAN _strictDataMode ;
       INT32 _stringOutputBufferSize ;

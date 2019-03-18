@@ -62,7 +62,6 @@ namespace engine
       typedef utilConcurrentMap< Key, T, BUCKET_NUM, Hash > cmap_type ;
 
    private:
-      // disallow copy and assign
       utilConcurrentMap( const utilConcurrentMap& ) ;
       void operator=( const utilConcurrentMap& ) ;
 
@@ -84,7 +83,6 @@ namespace engine
       {
          friend class utilConcurrentMap< Key, T, BUCKET_NUM, Hash > ;
       private:
-         // disallow copy and assign
          Bucket( const Bucket& ) ;
          void operator=( const Bucket& ) ;
 
@@ -282,7 +280,6 @@ namespace engine
                return true ;
             }
 
-            // out of range index is end iterator
             if ( ( _index < 0 || _index >= BUCKET_NUM ) &&
                  ( rhs._index < 0 || rhs._index >= BUCKET_NUM ) )
             {
@@ -388,7 +385,6 @@ namespace engine
       Hash     _hasher ;
    } ;
 
-   // shared lock
    #define FOR_EACH_CMAP_BUCKET_S( _MAP_TYPE, _map ) \
       for ( _MAP_TYPE::bucket_iterator bucketIt = (_map).begin() ; \
             bucketIt != (_map).end() ; \
@@ -397,7 +393,6 @@ namespace engine
          _MAP_TYPE::Bucket& bucket = *bucketIt ; \
          BUCKET_SLOCK( bucket ) ;
 
-   // exclusive lock
    #define FOR_EACH_CMAP_BUCKET_X( _MAP_TYPE, _map ) \
       for ( _MAP_TYPE::bucket_iterator bucketIt = (_map).begin() ; \
             bucketIt != (_map).end() ; \
@@ -406,7 +401,6 @@ namespace engine
          _MAP_TYPE::Bucket& bucket = *bucketIt ; \
          BUCKET_XLOCK( bucket ) ;
 
-   // not lock
    #define FOR_EACH_CMAP_BUCKET( _MAP_TYPE, _map ) \
       for ( _MAP_TYPE::bucket_iterator bucketIt = (_map).begin() ; \
             bucketIt != (_map).end() ; \
@@ -416,7 +410,6 @@ namespace engine
 
    #define FOR_EACH_CMAP_BUCKET_END }
 
-   // shared lock
    #define FOR_EACH_CMAP_ELEMENT_S( _MAP_TYPE, _map ) \
       for ( _MAP_TYPE::bucket_iterator bucketIt = (_map).begin() ; \
             bucketIt != (_map).end() ; \
@@ -430,7 +423,6 @@ namespace engine
                it++ ) \
          {
 
-   // exclusive lock
    #define FOR_EACH_CMAP_ELEMENT_X( _MAP_TYPE, _map ) \
       for ( _MAP_TYPE::bucket_iterator bucketIt = (_map).begin() ; \
             bucketIt != (_map).end() ; \
@@ -444,7 +436,6 @@ namespace engine
                it++ ) \
          {
 
-   // not lock
    #define FOR_EACH_CMAP_ELEMENT( _MAP_TYPE, _map ) \
       for ( _MAP_TYPE::bucket_iterator bucketIt = (_map).begin() ; \
             bucketIt != (_map).end() ; \

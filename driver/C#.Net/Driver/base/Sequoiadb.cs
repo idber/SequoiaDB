@@ -1,20 +1,4 @@
-﻿/*
- * Copyright 2018 SequoiaDB Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
-*/
-
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 using System;
@@ -110,7 +94,7 @@ namespace SequoiaDB
                     nameCache.Remove(name);
                     return false;
                 }
-                if ((DateTime.Now - value).TotalMilliseconds >= cacheInterval)
+                if ((DateTime.Now - value).TotalMilliseconds > cacheInterval)
                 {
                     nameCache.Remove(name);
                     return false;
@@ -171,10 +155,6 @@ namespace SequoiaDB
          */
         public Sequoiadb(string connString)
         {
-            if (connString == null || connString.Length == 0) 
-            {
-                throw new BaseException("SDB_INVALIDARG");
-            }
             serverAddress = new ServerAddress(connString);
         }
 
@@ -184,10 +164,8 @@ namespace SequoiaDB
          */
         public Sequoiadb(List<string> connStrings)
         {
-            if (connStrings == null || connStrings.Count == 0)
-            {
+            if (connStrings.Count == 0)
                 throw new BaseException("SDB_INVALIDARG");
-            }
             serverAddresses = new ServerAddress[connStrings.Count];
             for (int i = 0; i < connStrings.Count; i++)
             {
@@ -209,10 +187,6 @@ namespace SequoiaDB
          */
         public Sequoiadb(string host, int port)
         {
-            if (host == null || host.Length == 0 || port <= 0 || port > 65535)
-            {
-                throw new BaseException("SDB_INVALIDARG");
-            }
             serverAddress = new ServerAddress(host, port);
         }
 
@@ -381,7 +355,7 @@ namespace SequoiaDB
                 flags = rtnSDBMessage.Flags;
                 if (flags != 0)
                 {
-                    throw new BaseException(flags, rtnSDBMessage.ErrorObject);
+                    throw new BaseException(flags);
                 }
             }
             catch (System.Exception)
@@ -417,7 +391,7 @@ namespace SequoiaDB
             rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtnSDBMessage.ErrorObject);
+                throw new BaseException(flags);
         }
 
         /** \fn void RemoveUser(string username, string password)
@@ -446,7 +420,7 @@ namespace SequoiaDB
             rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtnSDBMessage.ErrorObject);
+                throw new BaseException(flags);
         }
 
         /** \fn void TransactionBegin()
@@ -466,7 +440,7 @@ namespace SequoiaDB
             rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtnSDBMessage.ErrorObject);
+                throw new BaseException(flags);
         }
 
         /** \fn void TransactionCommit()
@@ -486,7 +460,7 @@ namespace SequoiaDB
             rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtnSDBMessage.ErrorObject);
+                throw new BaseException(flags);
         }
 
         /** \fn void TransactionRollback()
@@ -506,7 +480,7 @@ namespace SequoiaDB
             rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtnSDBMessage.ErrorObject);
+                throw new BaseException(flags);
         }
 
         /** \fn void ChangeConnectionOptions(ConfigOptions opts)
@@ -562,7 +536,7 @@ namespace SequoiaDB
          */
         public CollectionSpace CreateCollectionSpace(string csName, int pageSize)
         {
-            if (csName == null || csName.Length == 0 ||
+            if (csName == null ||
                 pageSize != SDBConst.SDB_PAGESIZE_4K &&
                 pageSize != SDBConst.SDB_PAGESIZE_8K &&
                 pageSize != SDBConst.SDB_PAGESIZE_16K &&
@@ -591,7 +565,7 @@ namespace SequoiaDB
          */
         public CollectionSpace CreateCollectionSpace(string csName, BsonDocument options)
         {
-            if (csName == null || csName.Length == 0)
+            if (csName == null )
             {
                 throw new BaseException("SDB_INVALIDARG");
             }
@@ -599,7 +573,7 @@ namespace SequoiaDB
             SDBMessage rtn = CreateCS(csName, options);
             int flags = rtn.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
             UpsertCache(csName);
             return new CollectionSpace(this, csName);
         }
@@ -612,14 +586,10 @@ namespace SequoiaDB
          */
         public void DropCollectionSpace(string csName) 
         {
-            if (csName == null || csName.Length == 0) 
-            {
-                throw new BaseException("SDB_INVALIDARG");
-            }
             SDBMessage rtn = AdminCommand(SequoiadbConstants.DROP_CMD, SequoiadbConstants.COLSPACE, csName);
             int flags = rtn.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
             RemoveCache(csName);
         }
 
@@ -633,29 +603,16 @@ namespace SequoiaDB
          */
         public CollectionSpace GetCollecitonSpace(string csName) 
         {
-            if (csName == null || csName.Length == 0)
-            {
-                throw new BaseException("SDB_INVALIDARG");
-            }
             // create cs from cache
             if (FetchCache(csName))
-            {
                 return new CollectionSpace(this, csName);
-            }
-            // get cs
-            string command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.TEST_CMD + " "
-                             + SequoiadbConstants.COLSPACE;
-            BsonDocument condition = new BsonDocument();
-            BsonDocument dummyObj = new BsonDocument();
-            condition.Add(SequoiadbConstants.FIELD_NAME, csName);
-            SDBMessage rtn = AdminCommand(command, condition, dummyObj, dummyObj, dummyObj);
-            int flags = rtn.Flags;
-            if (flags != 0)
-            {
-                throw new BaseException(flags, rtn.ErrorObject);
-            }
-            UpsertCache(csName);
-            return new CollectionSpace(this, csName);
+            // create cs from database
+            // we don't need to update or remove cache here,
+            // for "isCollectionSpaceExist" has do that
+            if (IsCollectionSpaceExist(csName))
+                return new CollectionSpace(this, csName);
+            else
+                throw new BaseException("SDB_DMS_CS_NOTEXIST") ;
         }
 
         /** \fn bool IsCollectionSpaceExist(string csName)
@@ -667,10 +624,6 @@ namespace SequoiaDB
          */
         public bool IsCollectionSpaceExist(string csName)
         {
-            if (csName == null || csName.Length == 0)
-            {
-                throw new BaseException("SDB_INVALIDARG");
-            }
             string command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.TEST_CMD + " "
                              + SequoiadbConstants.COLSPACE;
             BsonDocument condition = new BsonDocument();
@@ -689,7 +642,7 @@ namespace SequoiaDB
                 return false;
             }
             else
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
         }
         /** \fn DBCursor ListCollectionSpaces()
          *  \brief List all the collecion space
@@ -722,10 +675,6 @@ namespace SequoiaDB
          */
         public DBCursor Exec(string sql)
         {
-            if (sql == null || sql.Length == 0)
-            {
-                throw new BaseException("SDB_INVALIDARG");
-            }
             SDBMessage sdbMessage = new SDBMessage();
             sdbMessage.OperationCode = Operation.OP_SQL;
             sdbMessage.RequestID = 0;
@@ -742,7 +691,7 @@ namespace SequoiaDB
                     return null;
                 else
                 {
-                    throw new BaseException(flags, rtnSDBMessage.ErrorObject);
+                    throw new BaseException(flags);
                 }
             }
             if (  null == rtnSDBMessage.ContextIDList ||
@@ -760,10 +709,6 @@ namespace SequoiaDB
          */
         public void ExecUpdate(string sql)
         {
-            if (sql == null || sql.Length == 0)
-            {
-                throw new BaseException("SDB_INVALIDARG");
-            }
             SDBMessage sdbMessage = new SDBMessage();
             sdbMessage.OperationCode = Operation.OP_SQL;
             sdbMessage.RequestID = 0;
@@ -775,7 +720,7 @@ namespace SequoiaDB
             rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtnSDBMessage.ErrorObject);
+                throw new BaseException(flags);
         }
 
         /** \fn DBCursor GetSnapshot(int snapType, BsonDocument matcher, BsonDocument selector,
@@ -796,9 +741,6 @@ namespace SequoiaDB
          *      SDBConst.SDB_SNAP_TRANSACTIONS_CURRENT
          *      SDBConst.SDB_SNAP_ACCESSPLANS
          *      SDBConst.SDB_SNAP_HEALTH
-         *      SDBConst.SDB_SNAP_CONFIGS
-         *      SDBConst.SDB_SNAP_SVCTASKS
-         *      SDBConst.SDB_SNAP_SEQUENCES
          *      
          *  \param matcher The matching condition or null
          *  \param selector The selective rule or null
@@ -808,89 +750,7 @@ namespace SequoiaDB
          *  \exception System.Exception
          */
         public DBCursor GetSnapshot(int snapType, BsonDocument matcher, BsonDocument selector,
-                                    BsonDocument orderBy)
-        {
-            return GetSnapshot(snapType, matcher, selector, orderBy, null, 0, -1);
-        }
-
-        /** \fn DBCursor GetSnapshot(int snapType, BsonDocument matcher, BsonDocument selector,
-                                     BsonDocument orderBy, BsonDocument hint)
-         *  \brief Get the snapshots of specified type
-         *  \param snapType The specified type as below:
-         *  
-         *      SDBConst.SDB_SNAP_CONTEXTS
-         *      SDBConst.SDB_SNAP_CONTEXTS_CURRENT
-         *      SDBConst.SDB_SNAP_SESSIONS
-         *      SDBConst.SDB_SNAP_SESSIONS_CURRENT
-         *      SDBConst.SDB_SNAP_COLLECTIONS
-         *      SDBConst.SDB_SNAP_COLLECTIONSPACES
-         *      SDBConst.SDB_SNAP_DATABASE
-         *      SDBConst.SDB_SNAP_SYSTEM
-         *      SDBConst.SDB_SNAP_CATALOG
-         *      SDBConst.SDB_SNAP_TRANSACTIONS
-         *      SDBConst.SDB_SNAP_TRANSACTIONS_CURRENT
-         *      SDBConst.SDB_SNAP_ACCESSPLANS
-         *      SDBConst.SDB_SNAP_HEALTH
-         *      SDBConst.SDB_SNAP_CONFIGS
-         *      SDBConst.SDB_SNAP_SVCTASKS
-         *      SDBConst.SDB_SNAP_SEQUENCES
-         *      
-         *  \param matcher The matching condition or null
-         *  \param selector The selective rule or null
-         *  \param orderBy The ordered rule or null
-         *  \param hint The options provided for specific snapshot type or null,
-                      Format:{ '$Options': { \<options\> } }
-         *  \return A DBCursor of all the fitted objects or null
-         *  \exception SequoiaDB.BaseException
-         *  \exception System.Exception
-         */
-        public DBCursor GetSnapshot(int snapType, BsonDocument matcher, BsonDocument selector,
-                                    BsonDocument orderBy, BsonDocument hint)
-        {
-            return GetSnapshot(snapType, matcher, selector, orderBy, hint, 0, -1);
-        }
-
-        /** \fn DBCursor GetSnapshot(int snapType, BsonDocument matcher, BsonDocument selector,
-                                     BsonDocument orderBy, BsonDocument hint,
-                                     long skipRows, long returnRows)
-         *  \brief Get the snapshots of specified type
-         *  \param snapType The specified type as below:
-         *  
-         *      SDBConst.SDB_SNAP_CONTEXTS
-         *      SDBConst.SDB_SNAP_CONTEXTS_CURRENT
-         *      SDBConst.SDB_SNAP_SESSIONS
-         *      SDBConst.SDB_SNAP_SESSIONS_CURRENT
-         *      SDBConst.SDB_SNAP_COLLECTIONS
-         *      SDBConst.SDB_SNAP_COLLECTIONSPACES
-         *      SDBConst.SDB_SNAP_DATABASE
-         *      SDBConst.SDB_SNAP_SYSTEM
-         *      SDBConst.SDB_SNAP_CATALOG
-         *      SDBConst.SDB_SNAP_TRANSACTIONS
-         *      SDBConst.SDB_SNAP_TRANSACTIONS_CURRENT
-         *      SDBConst.SDB_SNAP_ACCESSPLANS
-         *      SDBConst.SDB_SNAP_HEALTH
-         *      SDBConst.SDB_SNAP_CONFIGS
-         *      SDBConst.SDB_SNAP_SVCTASKS
-         *      SDBConst.SDB_SNAP_SEQUENCES
-         *      
-         *  \param matcher The matching condition or null
-         *  \param selector The selective rule or null
-         *  \param orderBy The ordered rule or null
-         *  \param hint The options provided for specific snapshot type or null,
-                      Format:{ '$Options': { \<options\> } }
-         *  \param skipRows
-         *            Skip the first numToSkip documents, never skip if this parameter is 0
-         *  \param returnRows
-         *            Return the specified amount of documents,
-         *            when returnRows is 0, return nothing,
-         *            when returnRows is -1, return all the documents
-         *  \return A DBCursor of all the fitted objects or null
-         *  \exception SequoiaDB.BaseException
-         *  \exception System.Exception
-         */
-        public DBCursor GetSnapshot(int snapType, BsonDocument matcher, BsonDocument selector,
-                                    BsonDocument orderBy, BsonDocument hint,
-                                    long skipRows, long returnRows)
+                                          BsonDocument orderBy)
         {
             string command = null;
             switch (snapType)
@@ -946,15 +806,7 @@ namespace SequoiaDB
                 case SDBConst.SDB_SNAP_HEALTH:
                     command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.SNAP_CMD + " " +
                            SequoiadbConstants.HEALTH;
-                    break;
-                case SDBConst.SDB_SNAP_CONFIGS:
-                    command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.SNAP_CMD + " " +
-                           SequoiadbConstants.CONFIGS;
-                    break;
-                case SDBConst.SDB_SNAP_SEQUENCES:
-                    command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.SNAP_CMD + " " +
-                           SequoiadbConstants.SEQUENCES;
-                    break;
+                    break;  
                 default:
                     throw new BaseException("SDB_INVALIDARG");
             }
@@ -966,13 +818,7 @@ namespace SequoiaDB
                 selector = dummyObj;
             if (orderBy == null)
                 orderBy = dummyObj;
-
-            if (returnRows < 0)
-            {
-                returnRows = -1;
-            }
-
-            SDBMessage rtn = AdminCommand(command, matcher, selector, orderBy, hint, skipRows, returnRows, 0);
+            SDBMessage rtn = AdminCommand(command, matcher, selector, orderBy, dummyObj);
 
             int flags = rtn.Flags;
             if (flags != 0)
@@ -980,15 +826,13 @@ namespace SequoiaDB
                     return null;
                 else
                 {
-                    throw new BaseException(flags, rtn.ErrorObject);
+                    throw new BaseException(flags);
                 }
 
             return new DBCursor(rtn, this);
         }
 
-        /** \fn DBCursor GetList(int listType, BsonDocument matcher, BsonDocument selector,
-                                 BsonDocument orderBy, BsonDocument hint, 
-                                 long skipRows, long returnRows)
+        /** \fn DBCursor GetList(int listType)
          *  \brief Get the informations of specified type
          *  \param listType The specified type as below:
          *  
@@ -1005,23 +849,45 @@ namespace SequoiaDB
          *      SDBConst.SDB_LIST_TASKS
          *      SDBConst.SDB_LIST_TRANSACTIONS
          *      SDBConst.SDB_LIST_TRANSACTIONS_CURRENT
-         *      SDBConst.SDB_LIST_SVCTASKS
-         *      SDBConst.SDB_LIST_SEQUENCES
-         *      SDBConst.SDB_LIST_USERS
+         *      
+         *  \return A DBCursor of all the fitted objects or null
+         *  \exception SequoiaDB.BaseException
+         *  \exception System.Exception
+         */
+        public DBCursor GetList(int listType)
+        {
+            BsonDocument dummyObj = new BsonDocument();
+            return GetList(listType, dummyObj, dummyObj, dummyObj);
+        }
+
+        /** \fn DBCursor GetList(int listType, BsonDocument matcher, BsonDocument selector,
+                                          BsonDocument orderBy)
+         *  \brief Get the informations of specified type
+         *  \param listType The specified type as below:
+         *  
+         *      SDBConst.SDB_LIST_CONTEXTS
+         *      SDBConst.SDB_LIST_CONTEXTS_CURRENT
+         *      SDBConst.SDB_LIST_SESSIONS
+         *      SDBConst.SDB_LIST_SESSIONS_CURRENT
+         *      SDBConst.SDB_LIST_COLLECTIONS
+         *      SDBConst.SDB_LIST_COLLECTIONSPACES
+         *      SDBConst.SDB_LIST_STORAGEUNITS
+         *      SDBConst.SDB_LIST_GROUPS
+         *      SDBConst.SDB_LIST_STOREPROCEDURES
+         *      SDBConst.SDB_LIST_DOMAINS
+         *      SDBConst.SDB_LIST_TASKS
+         *      SDBConst.SDB_LIST_TRANSACTIONS
+         *      SDBConst.SDB_LIST_TRANSACTIONS_CURRENT
          *      
          *  \param matcher The matching condition or null
          *  \param selector The selective rule or null
          *  \param orderBy The ordered rule or null
-         *  \param hint The options provided for specific list type. Reserved.
-         *  \param skipRows Skip the first skipRows documents.
-         *  \param returnRows Only return returnRows documents. -1 means return all matched results.
          *  \return A DBCursor of all the fitted objects or null
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
          */
         public DBCursor GetList(int listType, BsonDocument matcher, BsonDocument selector,
-                                BsonDocument orderBy, BsonDocument hint,
-                                long skipRows, long returnRows)
+                                BsonDocument orderBy)
         {
             string command = null;
             switch (listType)
@@ -1078,18 +944,6 @@ namespace SequoiaDB
                     command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.LIST_CMD + " " +
                            SequoiadbConstants.TRANSACTIONS_CURRENT;
                     break;
-                case SDBConst.SDB_LIST_SVCTASKS:
-                    command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.LIST_CMD + " " +
-                           SequoiadbConstants.SVCTASKS;
-                    break;
-                case SDBConst.SDB_LIST_SEQUENCES:
-                    command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.LIST_CMD + " " +
-                           SequoiadbConstants.SEQUENCES;
-                    break;
-                case SDBConst.SDB_LIST_USERS:
-                    command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.LIST_CMD + " " +
-                           SequoiadbConstants.USERS;
-                    break;
                 case SDBConst.SDB_LIST_CL_IN_DOMAIN:
                     command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.LIST_CMD + " " +
                            SequoiadbConstants.CL_IN_DOMAIN;
@@ -1109,83 +963,18 @@ namespace SequoiaDB
                 selector = dummyObj;
             if (orderBy == null)
                 orderBy = dummyObj;
-            if (hint == null)
-                hint = dummyObj;
-            SDBMessage rtn = AdminCommand(command, matcher, selector, orderBy, hint, skipRows, returnRows);
+            SDBMessage rtn = AdminCommand(command, matcher, selector, orderBy, dummyObj);
 
             int flags = rtn.Flags;
-            if (flags != 0 && flags != SequoiadbConstants.SDB_DMS_EOC)
-            {
-                throw new BaseException(flags, rtn.ErrorObject);
-            }
+            if (flags != 0)
+                if (flags == SequoiadbConstants.SDB_DMS_EOC)
+                    return null;
+                else
+                {
+                    throw new BaseException(flags);
+                }
 
             return new DBCursor(rtn, this);
-        }
-
-        /** \fn DBCursor GetList(int listType, BsonDocument matcher, BsonDocument selector,
-                                          BsonDocument orderBy)
-         *  \brief Get the informations of specified type
-         *  \param listType The specified type as below:
-         *  
-         *      SDBConst.SDB_LIST_CONTEXTS
-         *      SDBConst.SDB_LIST_CONTEXTS_CURRENT
-         *      SDBConst.SDB_LIST_SESSIONS
-         *      SDBConst.SDB_LIST_SESSIONS_CURRENT
-         *      SDBConst.SDB_LIST_COLLECTIONS
-         *      SDBConst.SDB_LIST_COLLECTIONSPACES
-         *      SDBConst.SDB_LIST_STORAGEUNITS
-         *      SDBConst.SDB_LIST_GROUPS
-         *      SDBConst.SDB_LIST_STOREPROCEDURES
-         *      SDBConst.SDB_LIST_DOMAINS
-         *      SDBConst.SDB_LIST_TASKS
-         *      SDBConst.SDB_LIST_TRANSACTIONS
-         *      SDBConst.SDB_LIST_TRANSACTIONS_CURRENT
-         *      SDBConst.SDB_LIST_SVCTASKS
-         *      SDBConst.SDB_LIST_SEQUENCES
-         *      SDBConst.SDB_LIST_USERS
-         *      
-         *  \param matcher The matching condition or null
-         *  \param selector The selective rule or null
-         *  \param orderBy The ordered rule or null
-         *  \return A DBCursor of all the fitted objects or null
-         *  \exception SequoiaDB.BaseException
-         *  \exception System.Exception
-         */
-        public DBCursor GetList(int listType, BsonDocument matcher, BsonDocument selector,
-                                BsonDocument orderBy) 
-        {
-            return GetList(listType, matcher, selector, orderBy, null, 0, -1);
-        }
-
-        /** \fn DBCursor GetList(int listType)
-         *  \brief Get the informations of specified type
-         *  \param listType The specified type as below:
-         *  
-         *      SDBConst.SDB_LIST_CONTEXTS
-         *      SDBConst.SDB_LIST_CONTEXTS_CURRENT
-         *      SDBConst.SDB_LIST_SESSIONS
-         *      SDBConst.SDB_LIST_SESSIONS_CURRENT
-         *      SDBConst.SDB_LIST_COLLECTIONS
-         *      SDBConst.SDB_LIST_COLLECTIONSPACES
-         *      SDBConst.SDB_LIST_STORAGEUNITS
-         *      SDBConst.SDB_LIST_GROUPS
-         *      SDBConst.SDB_LIST_STOREPROCEDURES
-         *      SDBConst.SDB_LIST_DOMAINS
-         *      SDBConst.SDB_LIST_TASKS
-         *      SDBConst.SDB_LIST_TRANSACTIONS
-         *      SDBConst.SDB_LIST_TRANSACTIONS_CURRENT
-         *      SDBConst.SDB_LIST_SVCTASKS
-         *      SDBConst.SDB_LIST_SEQUENCES
-         *      SDBConst.SDB_LIST_USERS
-         *      
-         *  \return A DBCursor of all the fitted objects or null
-         *  \exception SequoiaDB.BaseException
-         *  \exception System.Exception
-         */
-        public DBCursor GetList(int listType)
-        {
-            BsonDocument dummyObj = new BsonDocument();
-            return GetList(listType, dummyObj, dummyObj, dummyObj);
         }
 
         /** \fn void ResetSnapshot(BsonDocument options)
@@ -1221,7 +1010,7 @@ namespace SequoiaDB
             SDBMessage rtn = AdminCommand(command, options, dummyObj, dummyObj, dummyObj);
             int flags = rtn.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
         }
 
         /** \fn void BackupOffline(BsonDocument options)
@@ -1270,7 +1059,7 @@ namespace SequoiaDB
             int flags = rtn.Flags;
             if (flags != 0)
             {
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
             }
         }
 
@@ -1312,7 +1101,7 @@ namespace SequoiaDB
                 if(flags == SequoiadbConstants.SDB_DMS_EOC)
                     return null;
                 else
-                    throw new BaseException(flags, rtn.ErrorObject);
+                    throw new BaseException(flags);
             }
             cursor = new DBCursor(rtn, this);
             return cursor;
@@ -1348,7 +1137,7 @@ namespace SequoiaDB
             int flags = rtn.Flags;
             if (flags != 0)
             {
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
             }
         }
 
@@ -1375,7 +1164,7 @@ namespace SequoiaDB
             int flags = rtn.Flags;
             if (flags != 0)
             {
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
             }
             // return the result by cursor
             DBCursor cursor = null;
@@ -1410,7 +1199,7 @@ namespace SequoiaDB
             int flags = rtn.Flags;
             if (flags != 0)
             {
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
             }
         }
 
@@ -1439,7 +1228,7 @@ namespace SequoiaDB
             int flags = rtn.Flags;
             if (flags != 0)
             {
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
             }
         }
 
@@ -1530,7 +1319,7 @@ namespace SequoiaDB
             // check return flag
             int flags = rtn.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
         }
 
         /** \fn BsonDocument GetSessionAttr()
@@ -1554,7 +1343,7 @@ namespace SequoiaDB
             // check return flag
             int flags = rtn.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
             DBCursor cursor = new DBCursor(rtn, this);
             result = cursor.Next();
             if (result == null)
@@ -1588,7 +1377,7 @@ namespace SequoiaDB
         /** \fn bool IsDomainExist(string dmName)
          *  \brief Verify the existence of domain in current database
          *  \param dmName The domain name
-         *  \return True if existed or False if not existed
+         *  \return True if collection existed or False if not existed
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
          */
@@ -1609,46 +1398,6 @@ namespace SequoiaDB
             {
                 return false;
             }
-        }
-
-        /** \fn bool IsReplicaGroupExist(string groupName)
-         *  \brief Verify the group in current database or not.
-         *  \param groupName The name of the group
-         *  \return True if existed or False if not existed
-         */
-        public bool IsReplicaGroupExist(string groupName)
-        {
-            if (null == groupName || groupName.Equals(""))
-            {
-                return false;
-            }
-            try
-            {
-                GetReplicaGroup(groupName);
-            }
-            catch (BaseException e)
-            {
-                return false;
-            }
-            return true;
-        }
-
-        /** \fn bool IsReplicaGroupExist(int groupId)
-         *  \brief Verify the group in current database or not.
-         *  \param groupId The id of the group
-         *  \return True if existed or False if not existed
-         */
-        public bool IsReplicaGroupExist(int groupId)
-        {
-            try
-            {
-                GetReplicaGroup(groupId);
-            }
-            catch (BaseException e)
-            {
-                return false;
-            }
-            return true;
         }
 
         /** \fn Domain CreateDomain(string domainName, BsonDocument options)
@@ -1693,7 +1442,7 @@ namespace SequoiaDB
             int flags = rtn.Flags;
             if (flags != 0)
             {
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
             }
             return new Domain(this, domainName);
         }
@@ -1723,7 +1472,7 @@ namespace SequoiaDB
             int flags = rtn.Flags;
             if (flags != 0)
             {
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
             }
         }
 
@@ -1788,10 +1537,6 @@ namespace SequoiaDB
          */
         public ReplicaGroup GetReplicaGroup(string groupName)
         {
-            if (groupName == null || groupName.Length == 0)
-            {
-                throw new BaseException("SDB_INVALIDARG");
-            }
             BsonDocument matcher = new BsonDocument();
             BsonDocument dummyobj = new BsonDocument();
             matcher.Add(SequoiadbConstants.FIELD_GROUPNAME, groupName);
@@ -1878,10 +1623,8 @@ namespace SequoiaDB
          */
         public ReplicaGroup CreateReplicaGroup(string groupName)
         {
-            if (groupName == null || groupName.Length == 0)
-            {
+            if (groupName == null)
                 throw new BaseException("SDB_INVALIDARG");
-            }
             string command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.CREATE_CMD + " "
                              + SequoiadbConstants.GROUP;
             BsonDocument condition = new BsonDocument();
@@ -1891,7 +1634,7 @@ namespace SequoiaDB
             SDBMessage rtn = AdminCommand(command, condition, dummyObj, dummyObj, dummyObj);
             int flags = rtn.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
             else
                 return GetReplicaGroup(groupName);
         }
@@ -1905,10 +1648,8 @@ namespace SequoiaDB
          */
         public void RemoveReplicaGroup(string groupName)
         {
-            if (groupName == null || groupName.Length == 0)
-            {
+            if (groupName == null)
                 throw new BaseException("SDB_INVALIDARG");
-            }
             string command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.REMOVE_CMD + " "
                              + SequoiadbConstants.GROUP;
             BsonDocument condition = new BsonDocument();
@@ -1918,7 +1659,7 @@ namespace SequoiaDB
             SDBMessage rtn = AdminCommand(command, condition, dummyObj, dummyObj, dummyObj);
             int flags = rtn.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
         }
         /** \fn void CreateReplicaCataGroup(string hostName, int port, string dbpath,
                                             BsonDocument configure) 
@@ -1933,11 +1674,8 @@ namespace SequoiaDB
         public void CreateReplicaCataGroup(string hostName, int port, string dbpath,
                                             BsonDocument configure)
         {
-            if (hostName == null || hostName.Length == 0 || port <= 0 || port > 65536 ||
-                dbpath == null || dbpath.Length == 0)
-            {
+            if (hostName == null || port == 0 || dbpath == null)
                 throw new BaseException("SDB_INVALIDARG");
-            }
             string command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.CREATE_CMD + " "
                              + SequoiadbConstants.CATALOG + " " + SequoiadbConstants.GROUP;
             BsonDocument condition = new BsonDocument();
@@ -1963,7 +1701,7 @@ namespace SequoiaDB
             SDBMessage rtn = AdminCommand(command, condition, dummyObj, dummyObj, dummyObj);
             int flags = rtn.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtn.ErrorObject);    
+                throw new BaseException(flags);    
         }
 
         /** \fn ReplicaGroup ActivateReplicaGroup(string groupName)
@@ -2054,7 +1792,7 @@ namespace SequoiaDB
             int flags = rtn.Flags;
             if (flags != 0)
             {
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
             }
         }
 
@@ -2105,7 +1843,7 @@ namespace SequoiaDB
             int flags = rtn.Flags;
             if (flags != 0)
             {
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
             }
         }
 
@@ -2120,143 +1858,8 @@ namespace SequoiaDB
             Analyze(new BsonDocument());
         }
 
-        /** \fn DBCursor UpdateConfig(BsonDocument configs, BsonDocument options)
-         *  \brief Force the node to update configs online
-         *  \param configs the specific configuration parameters to update 
-         *  \param options The control options:(Only take effect in coordinate nodes)
-                GroupID:INT32,
-                GroupName:String,
-                NodeID:INT32,
-                HostName:String,
-                svcname:String,
-                ...
-         *  \return void
-         *  \exception SequoiaDB.BaseException
-         *  \exception System.Exception
-         */
-        public void UpdateConfig(BsonDocument configs, BsonDocument options)
-        {
-            // build cmd
-            string command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.CMD_NAME_UPDATE_CONFIG;
-
-            // build object
-            BsonDocument newObj = new BsonDocument();
-            newObj.Merge(options);
-            newObj.Add(SequoiadbConstants.FIELD_NAME_CONFIGS, configs);
-
-            SDBMessage rtn = AdminCommand(command, newObj, null, null, null);
-            int flags = rtn.Flags;
-            if (flags != 0)
-            {
-                throw new BaseException(flags, rtn.ErrorObject);
-            }
-        }
-
-        /** \fn DBCursor DeleteConfig(BsonDocument configs, BsonDocument options)
-         *  \brief Force the node to update configs online
-         *  \param configs the specific configuration parameters to update 
-         *  \param options The control options:(Only take effect in coordinate nodes)
-                GroupID:INT32,
-                GroupName:String,
-                NodeID:INT32,
-                HostName:String,
-                svcname:String,
-                ...
-         *  \return void
-         *  \exception SequoiaDB.BaseException
-         *  \exception System.Exception
-         */
-        public void DeleteConfig(BsonDocument configs, BsonDocument options)
-        {
-            // build cmd
-            string command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.CMD_NAME_DELETE_CONFIG;
-
-            // build object
-            BsonDocument newObj = new BsonDocument();
-            newObj.Merge(options);
-            newObj.Add(SequoiadbConstants.FIELD_NAME_CONFIGS, configs);
-
-            SDBMessage rtn = AdminCommand(command, newObj, null, null, null);
-            int flags = rtn.Flags;
-            if (flags != 0)
-            {
-                throw new BaseException(flags, rtn.ErrorObject);
-            }
-        }
-
-        /** \fn void InvalidateCache(BsonDocument options)
-         *  \brief Clear the cache of the nodes (data/coord node).
-         *  \param options The control options:(Only take effect in coordinate nodes)
-        
-                Global(Bool): execute this command in global or not. While 'options' is null, it's equals to {Glocal: true}.
-                GroupID(INT32 or INT32 Array): specified one or several groups by their group IDs. e.g. {GroupID:[1001, 1002]}.
-                GroupName(String or String Array): specified one or several groups by their group names. e.g. {GroupID:"group1"}.
-                ...
-
-         *  \note About the parameter 'options', please reference to the official website(www.sequoiadb.com) and then search "命令位置参数" for more details.
-         *  \return void
-         *  \exception SequoiaDB.BaseException
-         *  \exception System.Exception
-         */
-        public void InvalidateCache(BsonDocument options)
-        {
-            string command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.CMD_NAME_INVALIDATE_CACHE;
-            SDBMessage rtn = AdminCommand(command, options, null, null, null);
-            int flags = rtn.Flags;
-            if (flags != 0)
-            {
-                throw new BaseException(flags, rtn.ErrorObject);
-            }
-        }
-
-        /** \fn void RenameCollectionSpace(String oldName, String newName)
-         *  \brief Rename the collection space.
-         *  \param oldName The original name of current collection space.
-         *  \param newName The new name of current collection space.
-         *  \return void
-         *  \exception SequoiaDB.BaseException
-         *  \exception System.Exception
-         */
-        public void RenameCollectionSpace(String oldName, String newName)
-        {
-            RenameCollectionSpace(oldName, newName, null);
-        }
-
-        private void RenameCollectionSpace(String oldName, String newName, BsonDocument options)
-        {
-            if (oldName == null || oldName.Length == 0)
-            {
-                throw new BaseException("SDB_INVALIDARG");
-            }
-            if (newName == null || newName.Length == 0)
-            {
-                throw new BaseException("SDB_INVALIDARG");
-            }
-
-            // build cmd
-            string command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.CMD_NAME_RENAME_COLLECTIONSPACE;
-
-            // build object
-            BsonDocument obj = new BsonDocument();
-            obj.Merge(options);
-            obj.Add(SequoiadbConstants.FIELD_NAME_OLDNAME, oldName);
-            obj.Add(SequoiadbConstants.FIELD_NAME_NEWNAME, newName);
-
-            SDBMessage rtn = AdminCommand(command, obj, null, null, null);
-            int flags = rtn.Flags;
-            if (flags != 0)
-            {
-                throw new BaseException(flags, rtn.ErrorObject);
-            }
-            RemoveCache(oldName);
-        }
-
         private SDBMessage CreateCS(string csName, BsonDocument options)
         {
-            if (csName == null || csName.Length == 0)
-            {
-                throw new BaseException("SDB_INVALIDARG");
-            }
             string commandString = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.CREATE_CMD + " " + SequoiadbConstants.COLSPACE;
             BsonDocument cObj = new BsonDocument();
             BsonDocument dummyObj = new BsonDocument();
@@ -2323,8 +1926,7 @@ namespace SequoiaDB
         }
 
         private SDBMessage AdminCommand(string command, BsonDocument matcher, BsonDocument selector,
-                                        BsonDocument orderBy, BsonDocument hint, 
-                                        long skipRows, long returnRows)
+                                        BsonDocument orderBy, BsonDocument hint)
         {
             BsonDocument dummyObj = new BsonDocument();
             SDBMessage sdbMessage = new SDBMessage();
@@ -2336,8 +1938,8 @@ namespace SequoiaDB
             sdbMessage.Flags = 0;
             sdbMessage.NodeID = SequoiadbConstants.ZERO_NODEID;
             sdbMessage.RequestID = 0;
-            sdbMessage.SkipRowsCount = skipRows;
-            sdbMessage.ReturnRowsCount = returnRows;
+            sdbMessage.SkipRowsCount = 0;
+            sdbMessage.ReturnRowsCount = -1;
             // matcher
             if (null == matcher)
             {
@@ -2376,73 +1978,8 @@ namespace SequoiaDB
             }
 
             byte[] request = SDBMessageHelper.BuildQueryRequest(sdbMessage, isBigEndian);
-            if (connection == null)
+            if(connection == null)
                 throw new BaseException("SDB_NOT_CONNECTED");
-            connection.SendMessage(request);
-            SDBMessage rtnSDBMessage = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
-            rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
-            return rtnSDBMessage;
-        }
-
-        private SDBMessage AdminCommand(string command, BsonDocument matcher, BsonDocument selector,
-                                        BsonDocument orderBy, BsonDocument hint)
-        {
-            return AdminCommand(command, matcher, selector, orderBy, hint, 0, -1);
-        }
-
-        private SDBMessage AdminCommand(string command, BsonDocument query, BsonDocument selector, BsonDocument orderBy,
-                                        BsonDocument hint, long skipRows, long returnRows, int flag)
-        {
-            BsonDocument dummyObj = new BsonDocument();
-            SDBMessage sdbMessage = new SDBMessage();
-            sdbMessage.OperationCode = Operation.OP_QUERY;
-            sdbMessage.CollectionFullName = command;
-            sdbMessage.Version = SequoiadbConstants.DEFAULT_VERSION;
-            sdbMessage.W = SequoiadbConstants.DEFAULT_W;
-            sdbMessage.Padding = 0;
-            sdbMessage.Flags = flag;
-            sdbMessage.NodeID = SequoiadbConstants.ZERO_NODEID;
-            sdbMessage.RequestID = 0;
-            sdbMessage.SkipRowsCount = skipRows;
-            sdbMessage.ReturnRowsCount = returnRows;
-            // matcher
-            if (query == null)
-            {
-                sdbMessage.Matcher = dummyObj;
-            }
-            else
-            {
-                sdbMessage.Matcher = query;
-            }
-            // selector
-            if (selector == null)
-            {
-                sdbMessage.Selector = dummyObj;
-            }
-            else
-            {
-                sdbMessage.Selector = selector;
-            }
-            // orderBy
-            if (orderBy == null)
-            {
-                sdbMessage.OrderBy = dummyObj;
-            }
-            else
-            {
-                sdbMessage.OrderBy = orderBy;
-            }
-            // hint
-            if (hint == null)
-            {
-                sdbMessage.Hint = dummyObj;
-            }
-            else
-            {
-                sdbMessage.Hint = hint;
-            }
-
-            byte[] request = SDBMessageHelper.BuildQueryRequest(sdbMessage, isBigEndian);
             connection.SendMessage(request);
             SDBMessage rtnSDBMessage = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
             rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
@@ -2475,7 +2012,7 @@ namespace SequoiaDB
                         hasMore = false;
                     else
                     {
-                        throw new BaseException(flags, rtnSDBMessage.ErrorObject);
+                        throw new BaseException(flags);
                     }
                 }
                 else
@@ -2512,7 +2049,7 @@ namespace SequoiaDB
             rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtnSDBMessage.ErrorObject);
+                throw new BaseException(flags);
         }
    }
 }

@@ -91,31 +91,24 @@ namespace engine
       MB FLAG(_flag) values :
    */
    #define DMS_MB_BASE_MASK                        0x000F
-   // BASE MASK 0~3 bit
    #define DMS_MB_FLAG_FREE                        0x0000
    #define DMS_MB_FLAG_USED                        0x0001
    #define DMS_MB_FLAG_DROPED                      0x0002
 
    #define DMS_MB_OPR_TYPE_MASK                    0x00F0
-   // OPR MASK 4~7 bit
    #define DMS_MB_FLAG_OFFLINE_REORG               0x0010
    #define DMS_MB_FLAG_ONLINE_REORG                0x0020
    #define DMS_MB_FLAG_LOAD                        0x0040
 
    #define DMS_MB_OPR_PHASE_MASK                   0x0F00
-   // OPR PHASE 8~11 bit
 
-   // {{ DMS_MB_FLAG_OFFLINE_REORG OPR BEGIN
    #define DMS_MB_FLAG_OFFLINE_REORG_SHADOW_COPY   0x0100
    #define DMS_MB_FLAG_OFFLINE_REORG_TRUNCATE      0x0200
    #define DMS_MB_FLAG_OFFLINE_REORG_COPY_BACK     0x0400
    #define DMS_MB_FLAG_OFFLINE_REORG_REBUILD       0x0800
-   // DMS_MB_FLAG_OFFLINE_REORG OPR END }}
 
-   // {{ DMS_MB_FLAG_LOAD OPR BEGIN
    #define DMS_MB_FLAG_LOAD_LOAD                   0x0100
    #define DMS_MB_FLAG_LOAD_BUILD                  0x0200
-   // DMS_MB_FLAG_LOAD OPR END }}
 
    #define DMS_MB_BASE_FLAG(x)                     ((x)&DMS_MB_BASE_MASK)
    #define DMS_MB_OPR_FLAG(x)                      ((x)&DMS_MB_OPR_TYPE_MASK)
@@ -201,9 +194,6 @@ namespace engine
    */
    struct _dmsMetadataBlock
    {
-      // every records < 32 bytes go to slot 0
-      // every records >=32 and < 64 go to slot 1...
-      // every records
       enum deleteListType
       {
          _32 = 0,
@@ -243,17 +233,13 @@ namespace engine
       dmsExtentID    _loadFirstExtentID ;
       dmsExtentID    _loadLastExtentID ;
       dmsExtentID    _mbExExtentID ;
-      // for stat
       UINT64         _totalRecords ;
       UINT32         _totalDataPages ;
       UINT32         _totalIndexPages ;
       UINT64         _totalDataFreeSpace ;
       UINT64         _totalIndexFreeSpace ;
       UINT32         _totalLobPages ;
-      // end
 
-      // This extent is used to store dictionary of the collection. If the
-      // dictionary has not been created, the value should be DMS_INVALID_EXTENT.
       dmsExtentID    _dictExtentID ;
       dmsExtentID    _newDictExtentID ;
       SINT32         _dictStatPageID ;
@@ -261,14 +247,11 @@ namespace engine
       UINT8          _compressorType ;
       UINT8          _lastCompressRatio ;
       UINT8          _pad1[ 1 ] ;   // reserved
-      // for stat
       UINT64         _totalLobs ;
       UINT64         _totalOrgDataLen ;
       UINT64         _totalDataLen ;
       CHAR           _pad2[ 16 ] ;  // reserved
-      // end stat
 
-      // for persistence
       UINT32         _commitFlag ;
       UINT64         _commitLSN ;
       UINT64         _commitTime ;
@@ -278,11 +261,7 @@ namespace engine
       UINT32         _lobCommitFlag ;
       UINT64         _lobCommitLSN ;
       UINT64         _lobCommitTime ;
-      // end persistence
 
-      // Extend option extent id for collection.
-      // If one storage type has its own special options, allocate one seperate
-      // page to store them, instead of putting them in this common structure.
       dmsExtentID    _mbOptExtentID ;
       CHAR           _pad [ 284 ] ;
 
@@ -354,13 +333,11 @@ namespace engine
 
          _mbOptExtentID          = DMS_INVALID_EXTENT ;
 
-         /// set compressor type
          if ( OSS_BIT_TEST( attr, DMS_MB_ATTR_COMPRESSED ) )
          {
             _compressorType      = compressType ;
          }
 
-         // pad
          ossMemset( _pad1, 0, sizeof( _pad1 ) ) ;
          ossMemset( _pad2, 0, sizeof( _pad2 ) ) ;
          ossMemset( _pad, 0, sizeof( _pad ) ) ;
@@ -639,12 +616,10 @@ namespace engine
       {
          return SDB_OK ;
       }
-      // already lock(type not same), need to unlock
       if ( -1 != _mbLockType && SDB_OK != ( rc = pause() ) )
       {
          return rc ;
       }
-      // check before lock
       if ( !DMS_IS_MB_INUSE(_mb->_flag) )
       {
          return SDB_DMS_NOTEXIST ;
@@ -662,7 +637,6 @@ namespace engine
          }
       }
       ossLatch( _latch, (OSS_LATCH_MODE)lockType ) ;
-      // check after lock
       if ( !DMS_IS_MB_INUSE(_mb->_flag) )
       {
          ossUnlatch( _latch, (OSS_LATCH_MODE)lockType ) ;
@@ -773,15 +747,6 @@ namespace engine
    #define DMS_MME_OFFSET                 ( DMS_SME_OFFSET + DMS_SME_SZ )
    #define DMS_DATASU_EYECATCHER          "SDBDATA"
 
-   // History of data version change:
-   // Version  Update in which version    Reason
-   //    1             --                 The Initial version.
-   //    2             2.0                Support for lzw compression. New
-   //                                     dictionary extent information added
-   //                                     in MB.
-   //    3             2.9                Support for capped collection. A new
-   //                                     page for extend option is used, id
-   //                                     stored in MB.
    #define DMS_DATASU_CUR_VERSION         3
    #define DMS_DATACAPSU_EYECATCHER       "SDBDCAP"
    #define DMS_COMPRESSION_ENABLE_VER     2
@@ -857,8 +822,6 @@ namespace engine
          OSS_INLINE dmsRecordRW record2RW( const dmsRecordID &record,
                                            UINT16 collectionID ) ;
 
-         // update extent logical id and expanded meta
-         // must hold mb exclusive lock
          INT32         addExtent2Meta( dmsExtentID extID, dmsExtent *extent,
                                        dmsMBContext *context ) ;
          INT32         removeExtentFromMeta( dmsMBContext *context,
@@ -882,12 +845,10 @@ namespace engine
             return _pExtDataHandler ;
          }
 
-         /// flush mme
          INT32          flushMME( BOOLEAN sync = FALSE ) ;
 
       public:
 
-         // create a new collection for given name, returns collectionID
          INT32 addCollection ( const CHAR *pName,
                                UINT16 *collectionID,
                                UINT32 attributes = 0,
@@ -930,16 +891,12 @@ namespace engine
                               BOOLEAN canUnLock = TRUE,
                               INT64 position = -1 ) ;
 
-         // if deletedDataPtr = 0, will get from recordID
-         // must hold mb exclusive lock
          INT32 deleteRecord ( dmsMBContext *context,
                               const dmsRecordID &recordID,
                               ossValuePtr deletedDataPtr,
                               _pmdEDUCB * cb,
                               SDB_DPSCB *dpscb ) ;
 
-         // if updatedDataPtr = 0, will get from recordID
-         // must hold mb exclusive lock
          INT32 updateRecord ( dmsMBContext *context,
                               const dmsRecordID &recordID,
                               ossValuePtr updatedDataPtr,
@@ -954,8 +911,6 @@ namespace engine
                                   SDB_DPSCB *dpscb,
                                   INT8 direction = 1 ) ;
 
-         // the dataRecord is not owned
-         // Caller must hold mb exclusive/shared lock
          INT32 fetch ( dmsMBContext *context,
                        const dmsRecordID &recordID,
                        BSONObj &dataRecord,
@@ -1049,9 +1004,6 @@ namespace engine
                                             _pmdEDUCB *cb,
                                             BOOLEAN decCount = TRUE ) = 0 ;
 
-         // Calculate the final size needed by the record. Records of different
-         // type may have different strategy, such as reservation for update,
-         // space for meta data, etc.
          virtual void _finalRecordSize( UINT32 &size,
                                         const dmsRecordData &recordData ) = 0 ;
 
@@ -1096,10 +1048,6 @@ namespace engine
          void _setCompressor( dmsMBContext *context ) ;
          void _rmCompressor( _dmsMBContext *context ) ;
 
-         // This function allocates a new extent. When the extent is allocated,
-         // different storage types( sub classes of this base class ) may have
-         // different further in-extent initialize operations. The parameter
-         // 'deepInit' specifies if those operations should happen.
          INT32 _allocateExtent ( dmsMBContext *context,
                                  UINT16 numPages,
                                  BOOLEAN deepInit = TRUE,
@@ -1142,13 +1090,9 @@ namespace engine
 
          OSS_INLINE UINT32  _getFactor () const ;
 
-      //private:
       protected:
          dmsMetadataManagementExtent         *_dmsMME ;     // 4MB
 
-         // latch for each MB. For normal record SIUD, shared latches are
-         // requested exclusive latch on mblock is only when changing
-         // metadata (say add an extent into the MB, or create/drop the MB)
          ossSpinSLatch                       _mblock [ DMS_MME_SLOTS ] ;
          dmsMBStatInfo                       _mbStatInfo [ DMS_MME_SLOTS ] ;
          ossSpinSLatch                       _metadataLatch ;
@@ -1253,7 +1197,6 @@ namespace engine
       if ( _dmsHeader && _dmsHeader->_createLobs != createLobs )
       {
          _dmsHeader->_createLobs = createLobs ;
-         /// flush to file
          flushHeader( isSyncDeep() ) ;
       }
    }
@@ -1268,7 +1211,6 @@ namespace engine
          return SDB_INVALIDARG ;
       }
 
-      // metadata shared lock
       if ( (UINT32)DMS_INVALID_CLID == clLID ||
            (UINT32)DMS_INVALID_CLID == startLID )
       {
@@ -1284,7 +1226,6 @@ namespace engine
          _metadataLatch.release_shared() ;
       }
 
-      // context lock
       _latchContext.get() ;
       if ( _vecContext.size () > 0 )
       {
@@ -1326,7 +1267,6 @@ namespace engine
       UINT32 clLID = DMS_INVALID_CLID ;
       UINT32 startLID = DMS_INVALID_CLID ;
 
-      // metadata shared lock
       _metadataLatch.get_shared() ;
       mbID = _collectionNameLookup( pName ) ;
       if ( DMS_INVALID_MBID != mbID )

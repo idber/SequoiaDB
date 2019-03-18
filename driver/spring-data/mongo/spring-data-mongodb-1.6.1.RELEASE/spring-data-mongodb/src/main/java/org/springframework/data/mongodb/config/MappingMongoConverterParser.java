@@ -100,13 +100,11 @@ public class MappingMongoConverterParser implements BeanDefinitionParser {
 
 		createIsNewStrategyFactoryBeanDefinition(ctxRef, parserContext, element);
 
-		// Need a reference to a Mongo instance
 		String dbFactoryRef = element.getAttribute("db-factory-ref");
 		if (!StringUtils.hasText(dbFactoryRef)) {
 			dbFactoryRef = DB_FACTORY_BEAN_NAME;
 		}
 
-		// Converter
 		BeanDefinitionBuilder converterBuilder = BeanDefinitionBuilder.genericBeanDefinition(MappingMongoConverter.class);
 		converterBuilder.addConstructorArgReference(dbFactoryRef);
 		converterBuilder.addConstructorArgReference(ctxRef);
@@ -267,7 +265,6 @@ public class MappingMongoConverterParser implements BeanDefinitionParser {
 				}
 			}
 
-			// Scan for Converter and GenericConverter beans in the given base-package
 			String packageToScan = customerConvertersElement.getAttribute(BASE_PACKAGE);
 			if (StringUtils.hasText(packageToScan)) {
 				ClassPathScanningCandidateComponentProvider provider = new ClassPathScanningCandidateComponentProvider(true);

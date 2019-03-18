@@ -64,7 +64,6 @@ public class MongoRepositoryExtension extends CdiRepositoryExtensionSupport {
 							bean.getQualifiers()));
 				}
 
-				// Store the EntityManager bean using its qualifiers.
 				mongoOperations.put(new HashSet<Annotation>(bean.getQualifiers()), (Bean<MongoOperations>) bean);
 			}
 		}
@@ -77,14 +76,12 @@ public class MongoRepositoryExtension extends CdiRepositoryExtensionSupport {
 			Class<?> repositoryType = entry.getKey();
 			Set<Annotation> qualifiers = entry.getValue();
 
-			// Create the bean representing the repository.
 			CdiRepositoryBean<?> repositoryBean = createRepositoryBean(repositoryType, qualifiers, beanManager);
 
 			if (LOG.isInfoEnabled()) {
 				LOG.info(String.format("Registering bean for %s with qualifiers %s.", repositoryType.getName(), qualifiers));
 			}
 
-			// Register the bean to the container.
 			registerBean(repositoryBean);
 			afterBeanDiscovery.addBean(repositoryBean);
 		}
@@ -102,7 +99,6 @@ public class MongoRepositoryExtension extends CdiRepositoryExtensionSupport {
 	private <T> CdiRepositoryBean<T> createRepositoryBean(Class<T> repositoryType, Set<Annotation> qualifiers,
 			BeanManager beanManager) {
 
-		// Determine the MongoOperations bean which matches the qualifiers of the repository.
 		Bean<MongoOperations> mongoOperations = this.mongoOperations.get(qualifiers);
 
 		if (mongoOperations == null) {
@@ -110,7 +106,6 @@ public class MongoRepositoryExtension extends CdiRepositoryExtensionSupport {
 					MongoOperations.class.getName(), qualifiers));
 		}
 
-		// Construct and return the repository bean.
 		return new MongoRepositoryBean<T>(mongoOperations, qualifiers, repositoryType, beanManager,
 				getCustomImplementationDetector());
 	}

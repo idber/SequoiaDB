@@ -45,7 +45,7 @@ class Errcode(object):
         return self.__desc
 
     def __eq__(self, other):
-        """Errcode can equals to Errcode and int.
+        """Errcode can euqlas to Errcode and int.
         """
         if isinstance(other, Errcode):
             return self.code == other.code
@@ -55,7 +55,7 @@ class Errcode(object):
             return False
 
     def __ne__(self, other):
-        """Errcode can not equals to Errcode and int.
+        """Errcode can not euqlas to Errcode and int.
         """
         return not self.__eq__(other)
 

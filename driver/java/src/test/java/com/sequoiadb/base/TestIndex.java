@@ -18,7 +18,6 @@ public class TestIndex extends SingleCSCLTestCase {
     public void testIndex() {
         DBCursor cursor;
 
-        // only $id at first
         cursor = cl.getIndexes();
         assertTrue(cursor.hasNext());
         BSONObject obj = cursor.getNext();
@@ -30,16 +29,13 @@ public class TestIndex extends SingleCSCLTestCase {
         assertFalse(cursor.hasNext());
         cursor.close();
 
-        // drop id index
         cl.dropIdIndex();
         cursor = cl.getIndexes();
         assertFalse(cursor.hasNext());
         cursor.close();
 
-        // create id index
         cl.createIdIndex(null);
 
-        // create an normal index
         String name = "a_idx";
         cl.createIndex(name, "{a:1}", false, false);
 
@@ -56,7 +52,6 @@ public class TestIndex extends SingleCSCLTestCase {
 
         cl.dropIndex(name);
 
-        // only $id at last
         cursor = cl.getIndexes();
         assertTrue(cursor.hasNext());
         obj = cursor.getNext();

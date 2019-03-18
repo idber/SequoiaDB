@@ -1,5 +1,5 @@
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -42,17 +42,8 @@ PHP_METHOD( SequoiaDecimal, __construct )
    }
    if( pPrecision && pScale )
    {
-      rc = php_zval2Int( pPrecision, &precision TSRMLS_CC ) ;
-      if( rc )
-      {
-         goto error ;
-      }
-
-      rc = php_zval2Int( pScale, &scale TSRMLS_CC ) ;
-      if( rc )
-      {
-         goto error ;
-      }
+      php_zval2Int( pPrecision, &precision TSRMLS_CC ) ;
+      php_zval2Int( pScale, &scale TSRMLS_CC ) ;
    }
    if( precision == -1 && scale == -1 )
    {

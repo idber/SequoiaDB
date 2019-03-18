@@ -99,7 +99,6 @@ namespace engine
       const CHAR *fieldName = e.fieldName() ;
       action.clear() ;
 
-      /// ignore non-dollar field
       if ( '$' != *fieldName )
       {
          goto done ;
@@ -182,78 +181,53 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__MTHSACTIONPARSER__REGISTERPARSERS ) ;
 
-      /// parsers will not be deleted until program is quit -- yunwu.
 
-      /// add all parsers for actions
       parser *p = NULL ;
 
-      /// $include
       MTH_ADD_PARSER( _mthIncludeParser ) ;
 
-      /// $default
       MTH_ADD_PARSER( _mthDefaultParser ) ;
 
-      /// $slice
       MTH_ADD_PARSER( _mthSliceParser ) ;
 
-      /// $elemMatch
       MTH_ADD_PARSER( _mthElemMatchParser ) ;
 
-      /// $elemMatchOne
       MTH_ADD_PARSER( _mthElemMatchOneParser ) ;
 
-      /// $abs
       MTH_ADD_PARSER( _mthAbsParser ) ;
 
-      /// $ceiling
       MTH_ADD_PARSER( _mthCeilingParser ) ;
 
-      /// $floor
       MTH_ADD_PARSER( _mthFloorParser ) ;
 
-      /// $mod
       MTH_ADD_PARSER( _mthModParser ) ;
 
-      /// $substr
       MTH_ADD_PARSER( _mthSubStrParser ) ;
 
-      /// $strlen
       MTH_ADD_PARSER( _mthStrLenParser ) ;
 
-      /// $lower
       MTH_ADD_PARSER( _mthLowerParser ) ;
 
-      /// $upper
       MTH_ADD_PARSER( _mthUpperParser ) ;
 
-      /// $trim
       MTH_ADD_PARSER( _mthTrimParser ) ;
 
-      /// $ltrim
       MTH_ADD_PARSER( _mthLTrimParser ) ;
 
-      /// $rtrim
       MTH_ADD_PARSER( _mthRTrimParser ) ;
 
-      /// $cast
       MTH_ADD_PARSER( _mthCastParser ) ;
 
-      /// $add
       MTH_ADD_PARSER( _mthAddParser ) ;
 
-      /// $subtract
       MTH_ADD_PARSER( _mthSubtractParser ) ;
 
-      /// $multiply
       MTH_ADD_PARSER( _mthMultiplyParser ) ;
 
-      /// $divide
       MTH_ADD_PARSER( _mthDivideParser ) ;
 
-      /// $type
       MTH_ADD_PARSER( _mthTypeParser ) ;
 
-      /// $size
       MTH_ADD_PARSER( _mthSizeParser ) ;
    done:
       PD_TRACE_EXITRC( SDB__MTHSACTIONPARSER__REGISTERPARSERS, rc ) ;

@@ -57,7 +57,6 @@
 
 namespace engine
 {
-   ///_rtnInternalSorting
    _rtnInternalSorting::_rtnInternalSorting( const BSONObj &orderby,
                                              CHAR *buf, UINT64 size,
                                              INT64 limit )
@@ -75,8 +74,6 @@ namespace engine
 
    _rtnInternalSorting::~_rtnInternalSorting()
    {
-      /// _begin is not allcated here.
-      /// it will be freed in rtnSorting.
    }
 
    INT32 _rtnInternalSorting::push( const BSONObj& keyObj, const CHAR* obj,
@@ -104,7 +101,6 @@ namespace engine
        *  | |_rtnSortTuple *| _rtnSortTuple *| ...| _rtnSortTuple | keyObj | obj |  ... | _rtnSortTuple | keyOj| obj |
        */
 
-      /// set data.
       _tailOffset -= ( objLen + keyLen + sizeof(_rtnSortTuple) );
       tuple = ( _rtnSortTuple * )( _begin + _tailOffset ) ;
 
@@ -120,7 +116,6 @@ namespace engine
          ixmMakeHashValue( *arrEle, tuple->hashValue() ) ;
       }
 
-      /// set sort header.
       *(( _rtnSortTuple ** )( _begin + _headOffset )) = tuple ;
       _headOffset += sizeof( _rtnSortTuple * ) ;
 
@@ -176,7 +171,6 @@ namespace engine
       }
 
 /*
-      /// create random number.
       for ( UINT32 i = 0; i < RTN_SORT_RANDOM_NUM; i++ )
       {
          _rands.push_back( ossRand() ) ;
@@ -213,8 +207,6 @@ namespace engine
       _rtnSortTuple **mid = left + (( right - left ) >> 1 ) ;
       _rtnSortTuple **randPtr = NULL ;
 
-      /// woCompare 's cost may be expensive. think about use it
-      /// only when range is large.
       try
       {
          if ( 0 < (*left)->compare( *mid, _order ) )
@@ -261,7 +253,6 @@ namespace engine
             }
             else
             {
-               /// do nothing.
             }
          }
          catch ( std::exception &e )
@@ -341,8 +332,6 @@ namespace engine
          RTN_SORT_SWAP( pivot, j ) ;
       }
 
-      /// the right maybe the pivot( near to left), so we change the right
-      /// to rand pos
       if ( j + 1 < right )
       {
          randPtr = j + 1 + ossRand() % ( right - j - 1 ) ;
@@ -352,8 +341,6 @@ namespace engine
       leftAxis = j ;
       rightAxis = j ;
 
-      /// collect all the obj which is the same to pivot.
-      /// it can reduce the number of recursive.
       if ( RTN_SORT_SAME_SWAP_THRESHOLD < ( sameNum / (right - left + 1) ))
       {
          rc = _swapLeftSameKey( left, j, leftAxis ) ;
@@ -462,7 +449,6 @@ namespace engine
       _rtnSortTuple **rightAxis = NULL ;
       ++_recursion ;
 
-      /// can stop when recuresive call this func.
       if ( cb->isInterrupted() )
       {
          rc = SDB_APP_INTERRUPT ;
@@ -500,7 +486,6 @@ namespace engine
          }
       }
 
-      /// if left is more than limit, don't to sort the right
       if ( _limit > 0 && rightAxis - left + 1 >= _limit )
       {
          goto done ;

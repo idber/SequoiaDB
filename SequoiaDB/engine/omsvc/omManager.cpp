@@ -105,10 +105,8 @@ namespace engine
    {
       INT32 rc           = SDB_OK ;
 
-      //set bson to string for js format
       BSONObj::setJSCompatibility( TRUE ) ;
 
-      // create collection space and collection
       _pKrcb  = pmdGetKRCB() ;
       _pDmsCB = _pKrcb->getDMSCB() ;
       _pRtnCB = _pKrcb->getRTNCB() ;
@@ -117,10 +115,8 @@ namespace engine
 
       _pmdOptionsMgr *pOptMgr = _pKrcb->getOptionCB() ;
 
-      // get options
       _wwwRootPath = pmdGetOptionCB()->getWWWPath() ;
 
-      // set remote session manager to pmdController
       sdbGetPMDController()->setRSManager( &_rsManager ) ;
 
       rc = _rsManager.init( getRouteAgent() ) ;
@@ -286,7 +282,6 @@ namespace engine
 
    void _omManager::onRegistered( const MsgRouteID &nodeID )
    {
-      //do nothing here
    }
 
    void _omManager::onPrimaryChange( BOOLEAN primary,
@@ -343,7 +338,6 @@ namespace engine
       omDatabaseTool dbTool( cb ) ;
       omAuthTool authTool( cb, pAuthCB ) ;
 
-      // SYSDEPLOY.SYSCLUSTER
       rc = dbTool.createCollection( OM_CS_DEPLOY_CL_CLUSTER ) ;
       if ( rc )
       {
@@ -357,7 +351,6 @@ namespace engine
          goto error ;
       }
 
-      // SYSDEPLOY.SYSHOST
       rc = dbTool.createCollection( OM_CS_DEPLOY_CL_HOST ) ;
       if ( rc )
       {
@@ -378,7 +371,6 @@ namespace engine
          goto error ;
       }
 
-      // SYSDEPLOY.SYSBUSINESS
       rc = dbTool.createCollection( OM_CS_DEPLOY_CL_BUSINESS ) ;
       if ( rc )
       {
@@ -391,14 +383,12 @@ namespace engine
          goto error ;
       }
 
-      // SYSDEPLOY.SYSCONFIGURE
       rc = dbTool.createCollection( OM_CS_DEPLOY_CL_CONFIGURE ) ;
       if ( rc )
       {
          goto error ;
       }
 
-      // SYSDEPLOY.SYSTASKINFO
       rc = dbTool.createCollection( OM_CS_DEPLOY_CL_TASKINFO ) ;
       if ( rc )
       {
@@ -412,7 +402,6 @@ namespace engine
          goto error ;
       }
 
-      // SYSDEPLOY.SYSBUSINESSAUTH
       rc = dbTool.createCollection( OM_CS_DEPLOY_CL_BUSINESS_AUTH ) ;
       if ( rc )
       {
@@ -426,7 +415,6 @@ namespace engine
          goto error ;
       }
 
-      // SYSDEPLOY.SYSRELATIONSHIP
       rc = dbTool.createCollection( OM_CS_DEPLOY_CL_RELATIONSHIP ) ;
       if ( rc )
       {
@@ -440,7 +428,6 @@ namespace engine
          goto error ;
       }
 
-      // SYSDEPLOY.SYSPLUGINS
       rc = dbTool.createCollection( OM_CS_DEPLOY_CL_PLUGINS ) ;
       if ( rc )
       {
@@ -910,7 +897,6 @@ namespace engine
       {
          string clusterName = *iter ;
 
-         //HostFile
          rc = _appendClusterGrant( clusterName,
                                    OM_CLUSTER_FIELD_HOSTFILE, TRUE ) ;
          if ( rc )
@@ -920,7 +906,6 @@ namespace engine
             goto error ;
          }
 
-         //RootUser
          rc = _appendClusterGrant( clusterName,
                                    OM_CLUSTER_FIELD_ROOTUSER, TRUE ) ;
          if ( rc )
@@ -1071,7 +1056,6 @@ namespace engine
    INT32 _omManager::_updateTable()
    {
       INT32 rc = SDB_OK ;
-      //OM_CS_DEPLOY_CL_CONFIGURE
       rc = _updateConfTable() ;
       PD_RC_CHECK( rc, PDERROR, "update table failed:table=%s,rc=%d", 
                    OM_CS_DEPLOY_CL_CONFIGURE, rc ) ;
@@ -1137,20 +1121,16 @@ namespace engine
       pmdEDUMgr *pEDUMgr = pmdGetKRCB()->getEDUMgr() ;
       EDUID eduID = PMD_INVALID_EDUID ;
 
-      // start om manager edu
       rc = pEDUMgr->startEDU( EDU_TYPE_OMMGR, (_pmdObjBase*)this, &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start OM Manager edu, rc: %d", rc ) ;
-      // wait attach
       rc = _attachEvent.wait( OM_WAIT_CB_ATTACH_TIMEOUT ) ;
       PD_RC_CHECK( rc, PDERROR, "Wait OM Manager edu attach failed, rc: %d",
                    rc ) ;
 
-      // start om net
       rc = pEDUMgr->startEDU( EDU_TYPE_OMNET, (netRouteAgent*)&_netAgent,
                               &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start om net, rc: %d", rc ) ;
 
-      // start update plugin user timer (24 hour)
       _updateTimestamp = (INT64)time( NULL ) ;
       _updatePluinUsrTimer = setTimer(
                               OM_UPDATE_PLUGIN_PASSWD_TIMEOUT * OSS_ONE_SEC ) ;
@@ -1164,7 +1144,6 @@ namespace engine
    INT32 _omManager::deactive ()
    {
       _netAgent.closeListen() ;
-      // stop io
       _netAgent.stop() ;
 
       return SDB_OK ;
@@ -1782,7 +1761,6 @@ namespace engine
       SINT64 numToReturn        = -1 ;
       vector < BSONObj > result ;
       BSONObj response ;
-      // extract command
       rc = msgExtractQuery ( (CHAR *)pMsg, &flags, &pCollectionName,
                              &numToSkip, &numToReturn, &pQuery,
                              &pFieldSelector, &pOrderByBuffer, &pHintBuffer ) ;
@@ -1831,7 +1809,6 @@ namespace engine
 
       if ( SDB_OK == rc )
       {
-         //_sendRes2Agent( handle, pMsg, rc, result[0] ) ;
          _sendResVector2Agent( handle, pMsg, rc, result ) ;
       }
       else

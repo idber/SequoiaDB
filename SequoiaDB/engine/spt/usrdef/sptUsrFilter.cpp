@@ -141,19 +141,16 @@ namespace engine
       {
          BOOLEAN subMatch = FALSE ;
          BSONElement e = itFilter.next() ;
-         // $and
          if ( 0 == ossStrcmp( e.fieldName(), "$and" ) &&
               Array == e.type() )
          {
             subMatch = _match( obj, e.embeddedObject(), SPT_FILTER_MATCH_AND ) ;
          }
-         // $or
          else if ( 0 == ossStrcmp( e.fieldName(), "$or" ) &&
                    Array == e.type() )
          {
             subMatch = _match( obj, e.embeddedObject(), SPT_FILTER_MATCH_OR ) ;
          }
-         // $not
          else if ( 0 == ossStrcmp( e.fieldName(), "$not" ) &&
                    Array == e.type() )
          {

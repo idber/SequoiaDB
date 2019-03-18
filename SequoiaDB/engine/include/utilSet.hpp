@@ -83,12 +83,10 @@ namespace engine
             {
                if ( _pData && rhs._pData )
                {
-                  /// left, right is end
                   BOOLEAN leftEnd = _pData >= _pSrc + *_pEleSize ?
                                     TRUE : FALSE ;
                   BOOLEAN rightEnd = rhs._pData > rhs._pSrc + *(rhs._pEleSize) ?
                                      TRUE : FALSE ;
-                  /// both end,equal
                   if ( leftEnd && rightEnd &&
                        _pSrc == rhs._pSrc &&
                        _pEleSize == rhs._pEleSize )
@@ -375,7 +373,6 @@ namespace engine
                }
                else if ( _staticBuf[ pos - 1 ] < val )
                {
-                  /// find the position
                   _staticBuf[ pos ] = val ;
                   ++_eleSize ;
                   return pair<iterator, BOOLEAN>( iterator( &_staticBuf[ pos ],
@@ -385,7 +382,6 @@ namespace engine
                }
                else
                {
-                  /// restore
                   while( pos < _eleSize )
                   {
                      _staticBuf[ pos ] = _staticBuf[ pos + 1 ] ;
@@ -396,7 +392,6 @@ namespace engine
                   return pair<iterator, BOOLEAN>( end(), FALSE ) ;
                }
             }
-            /// insert to the begin
             _staticBuf[ 0 ] = val ;
             ++_eleSize ;
             return pair<iterator, BOOLEAN>( begin(), TRUE ) ;
@@ -407,11 +402,8 @@ namespace engine
       {
          UINT32 rSize = rhs.size() ;
 
-         /// clear self
          clear( TRUE ) ;
-         /// alloc space
          _ensureSpace( rSize ) ;
-         /// copy all elements
          iterator it = rhs.begin() ;
          while( it != rhs.end() )
          {
@@ -521,14 +513,12 @@ namespace engine
             }
             if ( _pSet->size() <= threshold )
             {
-               /// copy data to stack
                _eleSize = 0 ;
                typename set<T>::iterator it = _pSet->begin() ;
                for ( ; it != _pSet->end() ; ++it )
                {
                   _staticBuf[ _eleSize++ ] = *it ;
                }
-               /// release the deque
                delete _pSet ;
                _pSet = NULL ;
             }
@@ -572,7 +562,6 @@ namespace engine
                rc = SDB_OOM ;
                goto error ;
             }
-            /// copy stack data to deque
             for ( UINT32 i = 0 ; i < _eleSize ; ++i )
             {
                _pSet->insert( _staticBuf[ i ] ) ;

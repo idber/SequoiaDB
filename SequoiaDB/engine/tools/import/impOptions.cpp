@@ -204,7 +204,6 @@ namespace import
             str++;
             len--;
 
-            // escape ascii char
             if (isdigit(nextCh))
             {
                INT64 c = 0;
@@ -212,7 +211,6 @@ namespace import
                while (len > 0 && isdigit(*str))
                {
                   c = c * 10 + (*str - '0');
-                  // the max ascii is 127
                   if (c < 0 || c > 127)
                   {
                      rc = SDB_INVALIDARG;
@@ -289,7 +287,6 @@ namespace import
       {
          switch(*fmt)
          {
-         // year: YYYY
          case 'Y':
             if (hasYear)
             {
@@ -309,7 +306,6 @@ namespace import
             fmt += 4;
             len -= 4;
             break;
-         // month: MM
          case 'M':
             if (hasMonth)
             {
@@ -327,7 +323,6 @@ namespace import
             fmt += 2;
             len -= 2;
             break;
-         // day: DD
          case 'D':
             if (hasDay)
             {
@@ -345,7 +340,6 @@ namespace import
             fmt += 2;
             len -= 2;
             break;
-         // hour: HH
          case 'H':
             if (hasHour)
             {
@@ -363,7 +357,6 @@ namespace import
             fmt += 2;
             len -= 2;
             break;
-         // minute: mm
          case 'm':
             if (hasMinute)
             {
@@ -381,7 +374,6 @@ namespace import
             fmt += 2;
             len -= 2;
             break;
-         // second: ss
          case 's':
             if (hasSecond)
             {
@@ -399,7 +391,6 @@ namespace import
             fmt += 2;
             len -= 2;
             break;
-         // millisecond: SSS
          case 'S':
             if (hasMillisecond || hasMicrosecond)
             {
@@ -418,7 +409,6 @@ namespace import
             fmt += 3;
             len -= 3;
             break;
-         // microsecond: ffffff
          case 'f':
             if (hasMillisecond || hasMicrosecond)
             {
@@ -440,7 +430,6 @@ namespace import
             fmt += 6;
             len -= 6;
             break;
-         // any charcater: *
          case '*':
          default:
             fmt++;
@@ -603,11 +592,8 @@ namespace import
          _svcname = get<string>(IMP_OPTION_SVCNAME);
       }
 
-      // add hostname & svcname to hostsString,
-      // so we can process them in one time
       if (has(IMP_OPTION_HOSTNAME) || has(IMP_OPTION_SVCNAME))
       {
-         // it's ok if there are duplicate hostsString, it'll be processed.
          if (has(IMP_OPTION_HOSTS))
          {
             _hostsString += "," + _hostname + ":" + _svcname;

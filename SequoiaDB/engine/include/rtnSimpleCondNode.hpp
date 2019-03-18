@@ -65,8 +65,6 @@ namespace engine
    } ;
 
    #define RTN_CONDNODE_ALLOCATOR_SIZE      2048
-   // Allocator for the tree to allocate nodes. If not enough, allocate from
-   // heap.
    typedef _utilAllocator<RTN_CONDNODE_ALLOCATOR_SIZE> rtnCondNodeAllocator ;
    typedef vector<_rtnCondNode *> UTIL_CONDNODE_VEC ;
 
@@ -79,9 +77,7 @@ namespace engine
 
       public:
          void* operator new( size_t size, rtnCondNodeAllocator *allocator ) ;
-         // Invoked by release. Do NOT call directly.
          void operator delete( void *p ) ;
-         // Just avoid warning when compiling on windows.
          void operator delete( void *p, rtnCondNodeAllocator *allocator ) ;
 
          virtual void init( const CHAR *fieldName ) ;
@@ -126,8 +122,6 @@ namespace engine
    } ;
    typedef _rtnCondNodeItr rtnCondNodeItr ;
 
-   // Normal nodes includes all the nodes except logical( and, or, not) nodes
-   // and text condition node.
    class _rtnCondNormalNode : public rtnCondNode
    {
       public:

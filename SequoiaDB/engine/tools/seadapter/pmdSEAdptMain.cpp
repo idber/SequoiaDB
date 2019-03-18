@@ -77,7 +77,6 @@ namespace seadapter
 
    INT32 buildDialogPath( CHAR *dialogPath, UINT32 bufSize )
    {
-      // Create the log file directory.
       INT32 rc = SDB_OK ;
       CHAR currentPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 
@@ -96,7 +95,6 @@ namespace seadapter
 
       ossChDir( currentPath ) ;
 
-      // conf/log
       rc = utilBuildFullPath( currentPath, SDBCM_LOG_PATH,
                               OSS_MAX_PATHSIZE, dialogPath ) ;
       if ( rc )
@@ -105,7 +103,6 @@ namespace seadapter
          goto error ;
       }
 
-      // conf/log/seadapterlog
       rc = utilCatPath( dialogPath, OSS_MAX_PATHSIZE, SDB_SEADPT_LOG_DIR ) ;
       if ( rc )
       {
@@ -113,7 +110,6 @@ namespace seadapter
          goto error ;
       }
 
-      // conf/log/seadapterlog/SERVICE
       rc = utilCatPath( dialogPath, OSS_MAX_PATHSIZE,
                         sdbGetSeAdptOptions()->getDbService() ) ;
       if ( rc )
@@ -148,7 +144,6 @@ namespace seadapter
       iPmdProc::stop( 0 ) ;
    }
 
-   // Wait time for all daemon threads start, based on millisecond
    #define PMD_START_WAIT_TIME      ( 60000 )
 
    INT32 pmdThreadMainEntry( INT32 argc, CHAR** argv )
@@ -181,7 +176,6 @@ namespace seadapter
          goto error ;
       }
 
-      // conf/log/seadapterlog/SERVICE/sdbseadapter.log
       rc = utilCatPath( dialogPath, OSS_MAX_PATHSIZE,
                         SDB_SEADPT_LOG_FILE_NAME ) ;
       if ( rc )
@@ -198,7 +192,6 @@ namespace seadapter
       PD_LOG( ( getPDLevel() > PDEVENT ? PDEVENT: getPDLevel() ),
               "Start sdbseadapter[%s]...", verText ) ;
 
-      // Print all configurations in log file.
       {
          string configs ;
          sdbGetSeAdptOptions()->toString( configs ) ;
@@ -214,7 +207,6 @@ namespace seadapter
       rc = krcb->init() ;
       PD_RC_CHECK( rc, PDERROR, "Initialize krcb failed[ %d ]", rc ) ;
 
-      // wait until all daemon threads start
       while ( PMD_IS_DB_UP() && startTimerCount < PMD_START_WAIT_TIME &&
               !krcb->isBusinessOK() )
       {
@@ -235,7 +227,6 @@ namespace seadapter
 
 #if defined (_LINUX)
       {
-         // Rename the process, adding the service name and role.
          CHAR pmdProcessName[OSS_RENAME_PROCESS_BUFFER_LEN + 1] = {0} ;
          ossSnprintf( pmdProcessName, OSS_RENAME_PROCESS_BUFFER_LEN,
                       "%s(%s) %s", SDB_SEADPT_PROCESS_NAME,

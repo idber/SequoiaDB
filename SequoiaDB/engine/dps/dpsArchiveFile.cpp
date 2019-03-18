@@ -143,7 +143,6 @@ namespace engine
          }
       }
 
-      // skip file header
       rc = _file.seek( DPS_LOG_HEAD_LEN ) ;
       if ( SDB_OK != rc )
       {
@@ -356,7 +355,6 @@ namespace engine
 
       SDB_ASSERT( NULL != _logHeader, "_logHeader can't be NULL" ) ;
 
-      // remember current position
       rc = _file.position( offset ) ;
       if ( SDB_OK != rc )
       {
@@ -365,7 +363,6 @@ namespace engine
          goto error ;
       }
 
-      // move to file header
       rc = _file.seek( 0 ) ;
       if ( SDB_OK != rc )
       {
@@ -384,7 +381,6 @@ namespace engine
       SDB_ASSERT( readSize == DPS_LOG_HEAD_LEN,
                   "readSize != DPS_LOG_HEAD_LEN" ) ;
 
-      // go back to previous position
       rc = _file.seek( offset ) ;
       if ( SDB_OK != rc )
       {
@@ -407,7 +403,6 @@ namespace engine
       SDB_ASSERT( NULL != _logHeader, "_logHeader can't be NULL" ) ;
       SDB_ASSERT( !_readOnly, "can't finish readonly file header" ) ;
 
-      // remember current position
       rc = _file.position( offset ) ;
       if ( SDB_OK != rc )
       {
@@ -416,7 +411,6 @@ namespace engine
          goto error ;
       }
 
-      // move to file header
       rc = _file.seek( 0 ) ;
       if ( SDB_OK != rc )
       {
@@ -433,7 +427,6 @@ namespace engine
          goto error ;
       }
 
-      // go back to previous position
       rc = _file.seek( offset ) ;
       if ( SDB_OK != rc )
       {

@@ -1,6 +1,6 @@
 <?php
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ class SecureSdb: public SequoiaDB
     * Example: 1. Connect to the database with ssl.
     * @code
     * $db = new SecureSdb( "192.168.1.10:11810" ) ;
-    * $err = $db -> getLastErrorMsg() ;
+    * $err = $db -> getError() ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to connect database with ssl, error code: ".$err['errno'] ;
     *    return ;

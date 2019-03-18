@@ -47,7 +47,6 @@ namespace engine
       ~_rtnLobMetaCache() ;
 
    private:
-      // disallow copy and assign
       _rtnLobMetaCache( const _rtnLobMetaCache& ) ;
       void operator=( const _rtnLobMetaCache& ) ;
 

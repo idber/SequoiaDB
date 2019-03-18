@@ -38,7 +38,6 @@ namespace engine
    class _rtnIxmKeySorter: public dmsIxmKeySorter
    {
    private:
-      // disallow copy and assign
       _rtnIxmKeySorter( const _rtnIxmKeySorter& ) ;
       void operator=( const _rtnIxmKeySorter& ) ;
 
@@ -72,7 +71,6 @@ namespace engine
       void releaseSorter( _dmsIxmKeySorter* sorter ) ;
 
    private:
-      // disallow copy and assign
       _rtnIxmKeySorterCreator( const _rtnIxmKeySorterCreator& ) ;
       void operator=( const _rtnIxmKeySorterCreator& ) ;
    } ;

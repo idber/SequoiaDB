@@ -20,13 +20,11 @@ public class ShardTest {
 
     private static Sequoiadb sdb;
     private static ReplicaGroup rg = null;
-    //	private static Node node = null;
     private static DBCursor cursor;
     private static final int PORT = 54300;
 
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
     }
 
@@ -37,7 +35,6 @@ public class ShardTest {
 
     @Before
     public void setUp() throws Exception {
-        // shard
         rg = sdb.getReplicaGroup(Constants.GROUPNAME);
     }
 
@@ -48,49 +45,38 @@ public class ShardTest {
     @Ignore
     @Test
     public void traverseClassShard() {
-        // isCatalog
         boolean cata = rg.isCatalog();
         assertFalse(cata);
-        // getSequoiadb
         Sequoiadb s = rg.getSequoiadb();
         assertTrue(s.equals(sdb));
-        // getId
         int id = 0;
         id = rg.getId();
         assertTrue(id != 0);
-        // getShardName
         String name = "";
         name = rg.getGroupName();
         assertTrue(name.equals(Constants.GROUPNAME));
-        // getNodeNum
         int num = 0;
         num = rg.getNodeNum(NodeStatus.SDB_NODE_ALL);
         assertTrue(num != 0);
-        // getDetail
         BSONObject detail = null;
         detail = rg.getDetail();
         assertTrue(detail != null);
-        // getMaster
         Node master = null;
         master = rg.getMaster();
         assertTrue(master != null);
-        // getSlave
         Node slave = null;
         slave = rg.getSlave();
         assertTrue(slave != null);
-        // getNode
         Node node1 = null;
         node1 = rg.getNode(master.getNodeName());
         assertTrue(node1 != null);
         Node node2 = null;
         node2 = rg.getNode(slave.getHostName(), slave.getPort());
         assertTrue(node2 != null);
-        // createNode
         Map<String, String> conf = new HashMap<String, String>();
         conf.put("logfilesz", "32");
         Node node = rg.createNode(Constants.HOST, PORT, Constants.DATAPATH4, conf);
         assertTrue(node != null);
-        // start
         node.start();
         try {
             Thread.currentThread().sleep(15000);
@@ -99,7 +85,6 @@ public class ShardTest {
         Sequoiadb ddb = null;
         ddb = new Sequoiadb(Constants.HOST, PORT, "", "");
         assertTrue(ddb != null);
-        // stop
         node.stop();
         try {
             Thread.currentThread().sleep(3000);
@@ -112,7 +97,6 @@ public class ShardTest {
             assertTrue(e.getErrorType().equals("SDB_NETWORK"));
         }
         assertTrue(ddb == null);
-        // removeNode
         rg.removeNode(Constants.HOST, PORT, null);
         node = null;
         node = rg.getNode(Constants.HOST, PORT);

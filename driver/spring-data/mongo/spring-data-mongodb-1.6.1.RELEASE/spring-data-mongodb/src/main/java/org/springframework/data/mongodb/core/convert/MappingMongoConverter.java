@@ -218,7 +218,6 @@ public class MappingMongoConverter extends AbstractMongoConverter implements App
 			throw new MappingException(String.format(INCOMPATIBLE_TYPES, dbo, BasicDBList.class, typeToUse.getType(), path));
 		}
 
-		// Retrieve persistent entity info
 		MongoPersistentEntity<S> persistentEntity = (MongoPersistentEntity<S>) mappingContext
 				.getPersistentEntity(typeToUse);
 		if (persistentEntity == null) {
@@ -250,7 +249,6 @@ public class MappingMongoConverter extends AbstractMongoConverter implements App
 		final MongoPersistentProperty idProperty = entity.getIdProperty();
 		final S result = wrapper.getBean();
 
-		// make sure id property is set before all other properties
 		Object idValue = null;
 
 		if (idProperty != null) {
@@ -260,11 +258,9 @@ public class MappingMongoConverter extends AbstractMongoConverter implements App
 
 		final ObjectPath currentPath = path.push(result, entity, idValue);
 
-		// Set properties not already set in the constructor
 		entity.doWithProperties(new PropertyHandler<MongoPersistentProperty>() {
 			public void doWithPersistentProperty(MongoPersistentProperty prop) {
 
-				// we skip the id property since it was already set
 				if (idProperty != null && idProperty.equals(prop)) {
 					return;
 				}
@@ -277,7 +273,6 @@ public class MappingMongoConverter extends AbstractMongoConverter implements App
 			}
 		});
 
-		// Handle associations
 		entity.doWithAssociations(new AssociationHandler<MongoPersistentProperty>() {
 			public void doWithAssociation(Association<MongoPersistentProperty> association) {
 
@@ -315,7 +310,6 @@ public class MappingMongoConverter extends AbstractMongoConverter implements App
 			Assert.isTrue(annotation != null, "The referenced property has to be mapped with @DBRef!");
 		}
 
-		// @see DATAMONGO-913
 		if (object instanceof LazyLoadingProxy) {
 			return ((LazyLoadingProxy) object).toDBRef();
 		}
@@ -406,7 +400,6 @@ public class MappingMongoConverter extends AbstractMongoConverter implements App
 			} catch (ConversionException ignored) {}
 		}
 
-		// Write the properties
 		entity.doWithProperties(new PropertyHandler<MongoPersistentProperty>() {
 			public void doWithPersistentProperty(MongoPersistentProperty prop) {
 
@@ -490,7 +483,6 @@ public class MappingMongoConverter extends AbstractMongoConverter implements App
 			obj = ((LazyLoadingProxy) obj).getTarget();
 		}
 
-		// Lookup potential custom target type
 		Class<?> basicTargetType = conversions.getCustomWriteTarget(obj.getClass(), null);
 
 		if (basicTargetType != null) {
@@ -639,8 +631,6 @@ public class MappingMongoConverter extends AbstractMongoConverter implements App
 			Object key = entry.getKey();
 			Object val = entry.getValue();
 			if (conversions.isSimpleType(key.getClass())) {
-				// Don't use conversion service here as removal of ObjectToString converter results in some primitive types not
-				// being convertable
 				String simpleKey = potentiallyEscapeMapKey(key.toString());
 				if (val == null || conversions.isSimpleType(val.getClass())) {
 					writeSimpleInternal(val, dbo, simpleKey);
@@ -938,7 +928,6 @@ public class MappingMongoConverter extends AbstractMongoConverter implements App
 		}
 
 		if (conversions.isSimpleType(obj.getClass())) {
-			// Doesn't need conversion
 			return getPotentiallyConvertedSimpleWrite(obj);
 		}
 
@@ -1124,12 +1113,10 @@ public class MappingMongoConverter extends AbstractMongoConverter implements App
 		} else if (value instanceof BasicDBList) {
 			return (T) readCollectionOrArray(type, (BasicDBList) value, path);
 		} else if (value instanceof BasicBSONList) {
-			// add for handling BasicBSONList
 			return (T) readCollectionOrArray(type, Helper.BasicBSONListToBasicDBList((BasicBSONList) value), path);
 		} else if (value instanceof DBObject) {
 			return (T) read(type, (DBObject) value, path);
 		} else if (value instanceof BasicBSONObject) {
-			// add for handling BasicBSONObject
 			return (T) read(type, Helper.BasicBSONObjectToBasicDBObject((BasicBSONObject)value), path);
 		} else {
 			return (T) getPotentiallyConvertedSimpleRead(value, rawType);

@@ -25,7 +25,6 @@ TEST( lob, not_connect )
    ASSERT_EQ( SDB_NOT_CONNECTED, rc ) ;
 }
 
-// run all or most APIs in lob
 TEST( lob, global )
 {
    sdb db ;
@@ -33,7 +32,6 @@ TEST( lob, global )
    sdbCollection cl ;
    sdbCursor cur ;
    sdbLob lob ;
-   // initialize local variables
    const CHAR *pHostName                    = HOST ;
    const CHAR *pPort                        = SERVER ;
    const CHAR *pUsr                         = USER ;
@@ -46,64 +44,50 @@ TEST( lob, global )
    CHAR readBuf[bufSize] = { 0 } ;
    BOOLEAN flag = FALSE ;
 
-   // initialize the work environment
    rc = initEnv() ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // connect to database
    rc = db.connect( pHostName, pPort, pUsr, pPasswd ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cs
    rc = getCollectionSpace( db, COLLECTION_SPACE_NAME, cs );
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cl
    rc = getCollection( cs, COLLECTION_NAME, cl ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   /// case 1: create a new lob
-   // createLob
    rc = cl.createLob( lob ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // isClosed
    flag = FALSE ;
    rc = lob.isClosed( flag ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    ASSERT_EQ( FALSE, flag ) ;
-   // get oid
    bson::OID oid ;
    rc = lob.getOid( oid ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    cout << "Auto build lob's oid is: " << oid.str().c_str() << endl ;
-   // write
    memset( buf, 'a', bufSize ) ;
    rc = lob.write( buf, bufSize ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // close
    rc = lob.close() ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // isClosed
    flag = FALSE ;
    rc = lob.isClosed( flag ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    ASSERT_EQ( TRUE, flag ) ;
    
-   /// case 2: open an exsiting lob
    sdbLob lob2 ;
    rc = cl.openLob( lob2, oid ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // isClosed
    flag = FALSE ;
    rc = lob2.isClosed( flag ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    ASSERT_EQ( FALSE, flag ) ;
-   // get oid
    bson::OID oid2 ;
    rc = lob2.getOid( oid2 ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
@@ -113,21 +97,18 @@ TEST( lob, global )
    ASSERT_EQ( 0, strncmp( (char *)oid.str().c_str(),
                               (char *)oid2.str().c_str(),
                               strlen( oid.str().c_str() ) ) ) ;
-   // get lob's size
    SINT64 size = 0 ;
    rc = lob2.getSize( &size ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    cout << "lob's size is: " << size << endl ;
    ASSERT_EQ( bufSize, size ) ;   
-   // get lob's create time
    UINT64 time = 0 ;
    rc = lob2.getCreateTime( &time ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    cout << "lob's create time is: " << time << endl ;
    ASSERT_TRUE ( time > 0 ) ;
-   // read
    UINT32 readNum = bufSize / 4 ;
    UINT32 retNum = 0 ;
    rc = lob2.read( readNum, readBuf, &retNum ) ;
@@ -136,12 +117,10 @@ TEST( lob, global )
    printf( "going to read [%d] bytes from lob, actually read [%d] bytes\n",
            readNum, retNum ) ;
    ASSERT_EQ( readNum, retNum ) ;
-   // seek
    SINT64 offset = bufSize / 2 ;
    rc = lob2.seek( offset, SDB_LOB_SEEK_CUR ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // read
    readNum = bufSize ;
    retNum = 0 ;
    rc = lob2.read( readNum, readBuf, &retNum ) ;
@@ -150,25 +129,20 @@ TEST( lob, global )
    printf( "going to read [%d] bytes from lob, actually read [%d] bytes\n",
            readNum, retNum ) ;
    ASSERT_EQ( (bufSize / 4), retNum ) ;
-   // close 
    rc = lob2.close() ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // isClosed
    flag = FALSE ;
    rc = lob2.isClosed( flag ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    ASSERT_EQ( TRUE, flag ) ;
    
-   /// case 3: create a lob with specified oid
    sdbLob lob3 ;
    bson::OID oid3 = bson::OID::gen() ;
-   // createLob
    rc = cl.createLob( lob3, &oid3 ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // getOid
    bson::OID oid4 ;
    rc = lob3.getOid( oid4 ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
@@ -178,18 +152,14 @@ TEST( lob, global )
    ASSERT_EQ( 0, strncmp( (char *)oid3.str().c_str(),
                               (char *)oid4.str().c_str(),
                               strlen( oid3.str().c_str() ) ) ) ;
-   // write
    memset( buf, 'a', bufSize ) ;
    rc = lob3.write( buf, bufSize ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // close
    rc = lob3.close() ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   /// case 4: test api in cl
-   // listLobs
    rc = cl.listLobs( cur ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
@@ -216,11 +186,9 @@ TEST( lob, global )
       ASSERT_EQ ( bufSize, lobSize ) ;
    }
    ASSERT_EQ( 2, i ) ;
-   // removeLobs
    rc = cl.removeLob( oid3 ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // listLobs
    rc = cl.listLobs( cur ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
@@ -232,7 +200,6 @@ TEST( lob, global )
    cout << "i is: " << i << endl ;
    ASSERT_EQ( 1, i ) ;
 
-   // disconnect the connection
    db.disconnect() ;
 
 }
@@ -246,7 +213,6 @@ TEST( lob, lob_connection_was_destruct )
    sdbCollectionSpace cs ;
    sdbCollection cl ;
    sdbCursor cur ;
-   // initialize local variables
    const CHAR *pHostName                    = HOST ;
    const CHAR *pPort                        = SERVER ;
    const CHAR *pUsr                         = USER ;
@@ -259,26 +225,19 @@ TEST( lob, lob_connection_was_destruct )
    CHAR readBuf[bufSize] = { 0 } ;
    BOOLEAN flag = FALSE ;
 
-   // initialize the work environment
    rc = initEnv() ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // connect to database
    rc = db.connect( pHostName, pPort, pUsr, pPasswd ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cs
    rc = getCollectionSpace( db, COLLECTION_SPACE_NAME, cs );
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cl
    rc = getCollection( cs, COLLECTION_NAME, cl ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   /// case 1: create a new lob
 
-   // createLob
    rc = cl.createLob( lob ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get oid
    bson::OID oid ;
    rc = lob.getOid( oid ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
@@ -287,7 +246,6 @@ TEST( lob, lob_connection_was_destruct )
    db.disconnect() ;
    }
    sleep( 5 ) ;
-   // close
    rc = lob.close() ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_NOT_CONNECTED, rc ) ;   
@@ -300,7 +258,6 @@ TEST( lob, lobWriteZeroSizeAndRead )
    sdbCollection cl ;
    sdbCursor cur ;
    sdbLob lob ;
-   // initialize local variables
    const CHAR *pHostName                    = HOST ;
    const CHAR *pPort                        = SERVER ;
    const CHAR *pUsr                         = USER ;
@@ -313,52 +270,37 @@ TEST( lob, lobWriteZeroSizeAndRead )
    CHAR readBuf[bufSize] = { 0 } ;
    BOOLEAN flag = FALSE ;
 
-   // initialize the work environment
    rc = initEnv() ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // connect to database
    rc = db.connect( pHostName, pPort, pUsr, pPasswd ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cs
    rc = getCollectionSpace( db, COLLECTION_SPACE_NAME, cs );
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cl
    rc = getCollection( cs, COLLECTION_NAME, cl ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   /// case 1: create a new lob
 
-   // createLob
    rc = cl.createLob( lob ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-// kill context
-   rc = db.closeAllCursors() ;
-   CHECK_MSG("%s%d\n","rc = ",rc) ;
-   ASSERT_EQ( SDB_OK, rc ) ;
-   // write
    memset( buf, 'a', bufSize ) ;
    rc = lob.write( buf, 0 ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // get oid
    bson::OID oid ;
    rc = lob.getOid( oid ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // close
    rc = lob.close() ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( rc, SDB_OK ) ;
 
-   // open lob
    sdbLob lob2 ;
    rc = cl.openLob( lob2, oid ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // read
    UINT32 readNum = 0 ;
    UINT32 retNum = 0 ;
    rc = lob2.read( readNum, readBuf, &retNum ) ;
@@ -377,7 +319,6 @@ TEST( lob, lob_write_not_close )
    sdbCursor cur ;
    bson::OID oid ;
 
-   // initialize local variables
    const CHAR *pHostName                    = HOST ;
    const CHAR *pPort                        = SERVER ;
    const CHAR *pUsr                         = USER ;
@@ -390,39 +331,29 @@ TEST( lob, lob_write_not_close )
    CHAR readBuf[bufSize] = { 0 } ;
    BOOLEAN flag = FALSE ;
 
-   // initialize the work environment
    rc = initEnv() ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // connect to database
    rc = db.connect( pHostName, pPort, pUsr, pPasswd ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cs
    rc = getCollectionSpace( db, COLLECTION_SPACE_NAME, cs );
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cl
    rc = getCollection( cs, COLLECTION_NAME, cl ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   /// case 1: create lob write, but not close
-   // createLob
    {
    sdbLob lob ;
    rc = cl.createLob( lob ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get oid
    rc = lob.getOid( oid ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    cout << "Auto build lob's oid is: " << oid.str().c_str() << endl ;
-   // write
    memset( buf, 'a', bufSize ) ;
    rc = lob.write( buf, bufSize ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    }
-   // check
-   // listLobs
    rc = cl.listLobs( cur ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
@@ -446,13 +377,11 @@ TEST( lob, lob_write_not_close )
       ASSERT_EQ ( TRUE, flag ) ;
    }
 
-   /// case 2: open an exsiting lob, then no close
    {
    sdbLob lob2 ;
    rc = cl.openLob( lob2, oid ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // read
    UINT32 readNum = bufSize / 4 ;
    UINT32 retNum = 0 ;
    rc = lob2.read( readNum, readBuf, &retNum ) ;
@@ -461,7 +390,6 @@ TEST( lob, lob_write_not_close )
    printf( "going to read [%d] bytes from lob, actually read [%d] bytes\n",
            readNum, retNum ) ;
    ASSERT_EQ( readNum, retNum ) ;
-   // check before object out of bound
    rc = cl.listLobs( cur ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
@@ -485,8 +413,6 @@ TEST( lob, lob_write_not_close )
       ASSERT_EQ ( TRUE, flag ) ;
    }
    }
-   // check after object out of bound
-   // listLobs
    rc = cl.listLobs( cur ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
@@ -509,7 +435,6 @@ TEST( lob, lob_write_not_close )
       ASSERT_EQ ( TRUE, flag ) ;
    }
 
-   // disconnect the connection
    db.disconnect() ;
 }
 
@@ -521,7 +446,6 @@ TEST( lob, lob_write_getSize_getCreateTime_then_close )
    sdbCursor cur ;
    bson::OID oid ;
 
-   // initialize local variables
    const CHAR *pHostName                    = HOST ;
    const CHAR *pPort                        = SERVER ;
    const CHAR *pUsr                         = USER ;
@@ -536,75 +460,55 @@ TEST( lob, lob_write_getSize_getCreateTime_then_close )
    INT32 writeNum    = 0 ;
    INT32 lobSize     = 0 ;
    INT32 lobSize2    = 0 ;
-   UINT64 createTime  = 0 ;
-   UINT64 createTime2 = 0 ;
+   INT32 createTime  = 0 ;
+   INT32 createTime2 = 0 ;
 
-   // initialize the work environment
    rc = initEnv() ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // connect to database
    rc = db.connect( pHostName, pPort, pUsr, pPasswd ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cs
    rc = getCollectionSpace( db, COLLECTION_SPACE_NAME, cs );
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cl
    rc = getCollection( cs, COLLECTION_NAME, cl ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   /// case 1: create lob write, then get it's size and create time
    sdbLob lob ;
-   // get size
    lobSize = lob.getSize();
    ASSERT_EQ(-1, lobSize);
-   // get create time
    createTime = lob.getCreateTime();
    ASSERT_EQ(-1, createTime);
-   // createLob
    rc = cl.createLob( lob ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get oid
    rc = lob.getOid( oid ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    cout << "Auto build lob's oid is: " << oid.str().c_str() << endl ;
-   // get size
    lobSize = lob.getSize();
    ASSERT_EQ(0, lobSize);
-   // get create time
    createTime = lob.getCreateTime();
-   //ASSERT_EQ(0, createTime);
-   // write
+   ASSERT_EQ(0, createTime);
    memset( buf, 'a', bufSize ) ;
    rc = lob.write( buf, bufSize ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    writeNum += bufSize ;
-   // get size
    lobSize = lob.getSize();
    ASSERT_EQ(lobSize, bufSize);
-   // write
    rc = lob.write( buf, bufSize ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    writeNum += bufSize ;
-   // get size
    lobSize = lob.getSize();
    ASSERT_EQ(lobSize, writeNum);
-   // get create time
    createTime = lob.getCreateTime();
-   //ASSERT_EQ(0, createTime);
-   // close
+   ASSERT_EQ(0, createTime);
    rc = lob.close();
    ASSERT_EQ(SDB_OK, rc);
-   // get size
    lobSize = lob.getSize();
    ASSERT_EQ(writeNum, lobSize);
-   // get create time
    createTime2 = lob.getCreateTime();
    ASSERT_EQ(createTime, createTime2);
 
-   // disconnect the connection
    db.disconnect() ;
 }
 
@@ -615,7 +519,6 @@ TEST( lob, lobWithReturnData )
    sdbCollection cl ;
    sdbCursor cur ;
    sdbLob lob ;
-   // initialize local variables
    const CHAR *pHostName                    = HOST ;
    const CHAR *pPort                        = SERVER ;
    const CHAR *pUsr                         = USER ;
@@ -629,51 +532,39 @@ TEST( lob, lobWithReturnData )
    BOOLEAN flag = FALSE ;
    CHAR c = 'a' ;
 
-   // initialize the work environment
    rc = initEnv() ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // connect to database
    rc = db.connect( pHostName, pPort, pUsr, pPasswd ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cs
    rc = getCollectionSpace( db, COLLECTION_SPACE_NAME, cs );
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cl
    rc = getCollection( cs, COLLECTION_NAME, cl ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   /// case 1: create a new lob
 
-   // createLob
    rc = cl.createLob( lob ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // write
    memset( buf, c, BUFSIZE1 ) ;
    rc = lob.write( buf, BUFSIZE1 ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // write
    rc = lob.write( buf, BUFSIZE1 ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get oid
    bson::OID oid ;
    rc = lob.getOid( oid ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // close
    rc = lob.close() ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( rc, SDB_OK ) ;
 
-   // open lob
    sdbLob lob2 ;
    rc = cl.openLob( lob2, oid ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // read
    UINT32 readNum = 1000 ;
    UINT32 retNum = 0 ;
    rc = lob2.read( readNum, readBuf, &retNum ) ;
@@ -684,7 +575,6 @@ TEST( lob, lobWithReturnData )
    {
       ASSERT_EQ( c, readBuf[i] ) ;
    }
-   // read
    readNum = BUFSIZE2 ;
    rc = lob2.read( readNum, readBuf, &retNum ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
@@ -694,11 +584,9 @@ TEST( lob, lobWithReturnData )
    {
       ASSERT_EQ( c, readBuf[i] ) ;
    }
-   // close lob
-   rc = lob2.close() ;
+   rc = lob.close() ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( rc, SDB_OK ) ;
-   // remove lob
    rc = cl.removeLob( oid ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
@@ -706,7 +594,6 @@ TEST( lob, lobWithReturnData )
    db.disconnect() ;
 }
 
-// Nest function for Create Data
 static INT32 putData( UINT32 putSize, CHAR *buffer )
 {
    CHAR buf[27] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
@@ -777,7 +664,6 @@ void genLobData( CHAR *lobWriteBuf, UINT64 size )
       exit(1) ;
    }
    UINT64 bodySize = size-(strlen(head)+strlen(tail)) ;
-   //printf( "Begin == %s\n", lobWriteBuf ) ;
    memset( lobWriteBuf, 0, size ) ;
    for( i = 0 ; i <= bodySize/allocSize ; ++i )
    {
@@ -817,7 +703,6 @@ TEST( lob, lobWriteZeroSize )
    sdbCursor cur ;
    sdbLob lob, lob1 ;
 
-   // connect sdb and create collection
    rc = db.connect( pHostName, pPort, pUsr, pPasswd ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = db.dropCollectionSpace( csName ) ;
@@ -847,14 +732,12 @@ TEST( lob, lobWriteZeroSize )
    buffer = "" ;
    rc = lob.write( buffer, 0 ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get lob
    bson::OID oid ;
    rc = lob.getOid( oid ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = lob.close() ;
    ASSERT_EQ( SDB_OK, rc ) ;
    len = 0 ;
-   // new lob
    rc = cl.openLob( lob1, oid ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = lob1.read( len, buffer, &readLen ) ;
@@ -862,7 +745,6 @@ TEST( lob, lobWriteZeroSize )
    ASSERT_EQ( SDB_OK, readLen ) ;   // readLen need equal 0
    rc = lob1.close() ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // drop collection
    rc = cs.dropCollection( clName ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    cout << "success to test write lob, which lob buffer equal ''" << endl ;
@@ -895,7 +777,6 @@ TEST( lob, lobApiBasicOperation )
    sdbLob lob, lob1 ;
    bson::OID oids[putNum] ;
 
-   // connect sdb and create collection
    rc = db.connect( pHostName, pPort, pUsr, pPasswd ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = db.dropCollectionSpace( csName ) ;
@@ -910,7 +791,6 @@ TEST( lob, lobApiBasicOperation )
       ASSERT_TRUE( false ) ;
    }
    genLobData( lobBuffer, lobSize ) ;
-   // write lob
    for( INT32 i = 0 ; i < putNum ; ++ i )
    {
       rc = cl.createLob( lob ) ;
@@ -926,7 +806,6 @@ TEST( lob, lobApiBasicOperation )
    }
    cout << "success to write lob" << endl ;
    UINT32 readLen = 0 ;
-   // read lob
    for( INT32 i = 0 ; i < putNum ; ++ i )
    {
       memset( lobBuffer, 0, lobSize ) ;
@@ -941,7 +820,6 @@ TEST( lob, lobApiBasicOperation )
    }
    cout << "success to read lob" << endl ;
    readLen = 0 ;
-   // seek read
    for( INT32 i = 0 ; i < putNum ; ++ i )
    {
       memset( lobBuffer, 0, lobSize ) ;
@@ -957,7 +835,6 @@ TEST( lob, lobApiBasicOperation )
       ASSERT_EQ( readLen, (lobSize-seekSz) ) ;
    }
    cout << "success to seek read lob" << endl ;
-   // get create time
    for( INT32 i = 0 ; i < putNum ; ++ i )
    {
       bson::OID oid ;
@@ -1024,7 +901,6 @@ TEST( lob, NotExistLob )
    bson::OID oids[putNum] ;
 
 
-   // connect sdb and create collection
    rc = db.connect( pHostName, pPort, pUsr, pPasswd ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = db.dropCollectionSpace( csName ) ;
@@ -1047,11 +923,8 @@ TEST( lob, NotExistLob )
    rc = lob.close() ;
    ASSERT_EQ( SDB_OK, rc ) ;
    cout << "success to write lob" << endl ;
-   // Drop CL
    rc = cs.dropCollection( clName ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // Create CL beginning but not create lob
-   //BSONObj obj = BSON( "ReplSize" << 0 ) ;   //replsize = 0
    rc = cs.createCollection( clName, obj, cl ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    bson::OID oid ;
@@ -1083,7 +956,6 @@ TEST( lob, use_lob_after_close_contexts )
    sdbCollection cl ;
    sdbCursor cur ;
    sdbLob lob ;
-   // initialize local variables
    const CHAR *pHostName    = HOST ;
    const CHAR *pPort        = SERVER ;
    const CHAR *pUsr         = USER ;
@@ -1103,52 +975,40 @@ TEST( lob, use_lob_after_close_contexts )
    CHAR readBuff[readBuffSize]   = { 0 };
    UINT32 readNum                = 0 ;
 
-   // initialize the work environment
    rc = initEnv() ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // connect to database
    rc = db.connect( pHostName, pPort, pUsr, pPasswd ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cs
    rc = getCollectionSpace( db, COLLECTION_SPACE_NAME, cs );
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cl
    rc = getCollection( cs, COLLECTION_NAME, cl ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   /// case 1: create a new lob then close the context
-   // createLob
    rc = cl.createLob( lob ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // get oid/create time/size
    oid = lob.getOid() ;
    createTime = lob.getCreateTime() ;
    lobSize = lob.getSize() ;
 
-   // write lob
    rc = lob.write( buf, 10 ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    lobSize += 10 ;
 
-   // kill all the context
-   //rc = db.closeAllCursors() ;
+   rc = db.closeAllCursors() ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // write lob
    rc = lob.write( buf, 10 ) ;
    ASSERT_EQ( SDB_DMS_CONTEXT_IS_CLOSE, rc ) ;
 
    rc = lob.close() ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // isClosed
    BOOLEAN flag = FALSE ;
    rc = lob.isClosed( flag ) ;
    CHECK_MSG("%s%d\n","rc = ",rc) ;
    ASSERT_EQ( TRUE, flag ) ;
 
-   // get oid/create time/lob size
    oid2 = lob.getOid() ;
    createTime2 = lob.getCreateTime() ;
    lobSize2 = lob.getSize() ;
@@ -1158,9 +1018,6 @@ TEST( lob, use_lob_after_close_contexts )
    ASSERT_EQ(lobSize, lobSize2) ;
 
 
-   // case2: open an exist lob, and read something,
-   // then kill the contexd
-   // createLob
    rc = cl.createLob( lob ) ;
    CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
@@ -1170,32 +1027,25 @@ TEST( lob, use_lob_after_close_contexts )
    ASSERT_EQ( SDB_OK, rc ) ;
    oid = lob.getOid() ;
 
-   // read lob
    rc = cl.openLob( lob, oid ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get oid/create time/lob size
    createTime = lob.getCreateTime() ;
    lobSize = lob.getSize() ;
    rc = lob.read( readBuffSize, readBuff, &readNum ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // kill contexts
    rc = db.closeAllCursors() ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // check is closed or not
    flag = FALSE ;
    rc = lob.isClosed( flag ) ;
    ASSERT_EQ( TRUE, flag ) ;
-   // read lob again
    rc = lob.seek( 10, SDB_LOB_SEEK_CUR ) ;
    ASSERT_EQ( SDB_DMS_CONTEXT_IS_CLOSE, rc ) ;
    rc = lob.read( readBuffSize, readBuff, &readNum ) ;
    ASSERT_EQ( SDB_DMS_CONTEXT_IS_CLOSE, rc ) ;
 
-   // close lob
    rc = lob.close() ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   //get oid/create time/lob size
    oid2 = lob.getOid() ;
    createTime2 = lob.getCreateTime() ;
    lobSize2 = lob.getSize() ;

@@ -25,7 +25,6 @@ public class CLSaveWithListArg {
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
     }
 
@@ -39,14 +38,12 @@ public class CLSaveWithListArg {
      */
     @Before
     public void setUp() throws Exception {
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } else
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
 
-        // cl
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
@@ -132,7 +129,6 @@ public class CLSaveWithListArg {
             users.put("c", c);
             basicObj.setUserMap(users);
 
-            // add to list
             list.add(basicObj);
         }
         cl.save(list);
@@ -198,9 +194,7 @@ public class CLSaveWithListArg {
             basicObj.setUserMap(users);
             list.add(basicObj);
         }
-        // save one record first
         cl.save(list);
-        // prepare to save another one
         List<HaveMapPropClass> list1 = new ArrayList<HaveMapPropClass>();
         for (int num = min; num < max; num++) {
             HaveMapPropClass basicObj = new HaveMapPropClass();
@@ -255,13 +249,6 @@ public class CLSaveWithListArg {
             SDBTestHelper.println("obj=" + bsonObj.toString());
             asBasicObj = bsonObj.as(HaveMapPropClass.class);
             Map<String, User> users1 = asBasicObj.getUserMap();
-//			Set<Entry<String, User>> set = users1.entrySet();
-//			for( Iterator<Entry<String, User>> iter = set.iterator(); 
-//			        iter.hasNext();) {
-//			    Entry<String, User> entry = iter.next();
-//			    SDBTestHelper.println("\tkey=" + entry.getKey() + ", value="
-//			            + entry.getValue());
-//			}
 
             SDBTestHelper.println("list1.get(1).getUserMap():\t"
                 + list1.get(1).getUserMap().toString());
@@ -325,9 +312,7 @@ public class CLSaveWithListArg {
             basicObj.setUserMap(users);
             list.add(basicObj);
         }
-        // save one record first
         cl.save(list);
-        // prepare to save another one
         List<HaveMapPropClass> list1 = new ArrayList<HaveMapPropClass>();
         for (int num = min; num < max; num++) {
             HaveMapPropClass basicObj = new HaveMapPropClass();
@@ -368,7 +353,6 @@ public class CLSaveWithListArg {
             basicObj.setUserMap(users);
             list1.add(basicObj);
         }
-        //String[] mainKeys = {"mapProp","notExistMainKey"};
         String[] mainKeys = {"notExistMainKey1", "notExistMainKey2"};
         cl.setMainKeys(mainKeys);
         cl.save(list1);
@@ -379,7 +363,6 @@ public class CLSaveWithListArg {
         while (cursor != null && cursor.hasNext()) {
             count++;
             bsonObj = cursor.getNext();
-//			System.out.println("bsonObj is :" + bsonObj.toString());
         }
         assertEquals((max - min) * 2, count);
     }

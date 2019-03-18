@@ -109,7 +109,6 @@ namespace engine
       }
       catch ( std::exception &e )
       {
-         // if exception happen, let's just continue
          PD_LOG ( PDWARNING, "Failed to initialize hint: %s",
                   e.what() ) ;
       }
@@ -314,7 +313,6 @@ namespace engine
                              << obj.getStringField(SDB_AUTH_USER) ) ;
       rtnContextBuf buffObj ;
 
-      // firstly, we check the user is exist or not
       rc = rtnQuery( AUTH_USR_COLLECTION, selector, newObj, order, hint,
                      0, cb, 0, -1, dmsCB, rtnCB, contextID ) ;
       if ( SDB_OK != rc )
@@ -353,15 +351,12 @@ namespace engine
       }
          
       {
-         // then, we check user name and password is correct or not
          rc = authenticate( obj, cb, FALSE ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
          }
 
-         // at last, we confirm eht user and password is correct
-         // now we remove the record from system collection
          hint = BSON( "" << AUTH_USR_INDEX_NAME ) ;
          rc = rtnDelete( AUTH_USR_COLLECTION,
                          obj, hint,
@@ -398,7 +393,6 @@ namespace engine
          goto error ;
       }
 
-      // create index
       {
          BSONObjBuilder builder ;
          builder.append( IXM_FIELD_NAME_KEY, BSON( SDB_AUTH_USER << 1) ) ;
@@ -502,7 +496,6 @@ namespace engine
       }
       else
       {
-         /// do nothing
       }
 
    done:

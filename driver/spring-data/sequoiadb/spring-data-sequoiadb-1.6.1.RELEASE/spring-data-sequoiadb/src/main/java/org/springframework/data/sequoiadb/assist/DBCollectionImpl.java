@@ -24,10 +24,6 @@ public class DBCollectionImpl extends DBCollection {
         super(db.getSdb().getConnectionManager(), db, name);
     }
 
-    // TODO: remove it
-//    <T> T execute(CLCallback<T> callback) {
-//        return _cm.execute(_csName, _clName, callback);
-//    }
 
     @Override
     QueryResultIterator find(BSONObject ref, BSONObject fields, int numToSkip, int batchSize, int limit, int options,
@@ -148,9 +144,7 @@ public class DBCollectionImpl extends DBCollection {
     }
 
     public void createIndex(final BSONObject keys, final BSONObject options, DBEncoder encoder) {
-        // get index name
         final String indexName = genIndexName(keys);
-        // get index options
         BSONObject myOptions = options != null ? options : new BasicBSONObject();
         final boolean isUnique =
                 myOptions.containsField(IDX_OPTS_UNIQUE) ? (Boolean)(myOptions.get(IDX_OPTS_UNIQUE)) :
@@ -160,7 +154,6 @@ public class DBCollectionImpl extends DBCollection {
         final int sortBufferSize =
                 myOptions.containsField(IDX_OPTS_SORTBUFFERSIZE) ? (Integer) (myOptions.get(IDX_OPTS_SORTBUFFERSIZE)) :
                         IDX_DEFAULT_SORTBUFFERSIZE;
-        // create index
         execute(new CLCallback<Void>() {
             @Override
             public Void doInCL(com.sequoiadb.base.DBCollection cl) throws BaseException {

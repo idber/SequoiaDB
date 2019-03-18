@@ -50,104 +50,73 @@ namespace engine
    #define OPT_PLAN_DEF_CACHE_BUCKETS        ( 500 )
    #define OPT_PLAN_MAX_CACHE_BUCKETS        ( 4096 )
 
-   // When index scan is best enough, its cost is smaller than 1/10 of table
-   // scan
    #define OPT_IDX_PREFERRED_RATE            ( 10 )
 
-   // Maximum number of candidate plans
    #define OPT_MAX_CANDIDATE_COUNT           ( 5 )
 
-   // Rate to convert IO cost to final cost
    #define OPT_IO_CPU_RATE                   ( 2000 )
 
-   // CPU cost to extract a record from data page
    #define OPT_RECORD_CPU_COST               ( 4 )
 
-   // CPU cost to extract a index item from index page
    #define OPT_IDX_CPU_COST                  ( 2 )
 
-   // Base CPU cost to process a operator
    #define OPT_OPTR_BASE_CPU_COST            ( 1 )
 
-   // IO Cost to sequential scan a 4k-size page
    #define OPT_SEQ_SCAN_IO_COST              ( 1 )
 
-   // IO Cost to randomly scan a 4k-size page
    #define OPT_RANDOM_SCAN_IO_COST           ( 10 )
 
    #define OPT_DEF_COST_THRESHOLD            ( OPT_RANDOM_SCAN_IO_COST * 2 )
 
-   // IO COST to sequential write a 4k-size page
    #define OPT_SEQ_WRITE_IO_COST             ( 2 )
 
-   // Rate to convert cost to ms
    #define OPT_COST_TO_MS                    ( 0.0005 )
 
-   // Rate to convert cost to sec
    #define OPT_COST_TO_SEC                   ( OPT_COST_TO_MS * 0.001 )
 
-   // Default start cost of table scan
    #define OPT_TBSCAN_DEFAULT_START_COST     ( 0 )
 
-   // Default start cost of indes scan
    #define OPT_IXSCAN_DEFAULT_START_COST     ( 0 )
 
-   // Threshold selectivity of candidate index scan plans
    #define OPT_PRED_THRESHOLD_SELECTIVITY    ( 0.1 )
 
-   // Default selectivity
    #define OPT_DEF_SELECTIVITY               ( 0.3333333333333333 )
 
-   // Default selectivity of matcher
    #define OPT_MTH_DEFAULT_SELECTIVITY       ( 1.0 )
 
-   // Default selectivity of operators in matcher
    #define OPT_MTH_OPTR_DEFAULT_SELECTIVITY  ( OPT_DEF_SELECTIVITY )
 
-   // Default CPU cost of matcher
    #define OPT_MTH_DEFAULT_CPU_COST          ( 0 )
 
-   // Base CPU cost to process a operator in matcher
    #define OPT_MTH_OPTR_BASE_CPU_COST        ( OPT_OPTR_BASE_CPU_COST )
 
-   // CPU cost to process $regex in matcher
    #define OPT_MTH_REGEX_CPU_COST            ( OPT_MTH_OPTR_BASE_CPU_COST * 10 )
 
-   // CPU cost to process a function in matcher
    #define OPT_MTH_FUNC_DEF_CPU_COST         ( OPT_MTH_OPTR_BASE_CPU_COST * 2 )
 
-   // Default selectivity of a predicate
    #define OPT_PRED_DEFAULT_SELECTIVITY      ( 1.0 )
 
-   // Default CPU cost of predicate
    #define OPT_PRED_DEFAULT_CPU_COST         ( 0 )
 
-   // Default selectivity of a valid predicate
    #define OPT_PRED_DEF_SELECTIVITY          ( OPT_DEF_SELECTIVITY )
 
-   // Default selectivity of a range predicate
    #define OPT_PRED_RANGE_DEF_SELECTIVITY    ( 0.05 )
 
-   // Default selectivity of a $et predicate
    #define OPT_PRED_EQ_DEF_SELECTIVITY       ( 0.005 )
 
    #define OPT_ROUND( x, min, max )          ( OSS_MIN( OSS_MAX( ( x ), ( min ) ), ( max ) ) )
 
-   // Selectivity should between 0.0 and 1.0
    #define OPT_ROUND_SELECTIVITY( x )        OPT_ROUND( x, 0.0, 1.0 )
 
-   // Numbers ( number of records, pages ) should be larger than 1
    #define OPT_ROUND_NUM( x )              ( OSS_MAX( 1, ( x ) ) )
    #define OPT_ROUND_NUM_DEF( x, def )     ( OSS_MAX( ( def ) , ( x ) ) )
 
    #define OPT_LOG2( x )                     ( log( x ) / 0.693147180559945 )
 
-   // Compare BSON numbers between -99999999.9 and 99999999.9
    #define OPT_BSON_NUM_MAX                  ( 99999999.9 )
    #define OPT_BSON_NUM_MIN                  ( -99999999.9 )
    #define OPT_ROUND_BSON_NUM( x )           OPT_ROUND( x, OPT_BSON_NUM_MIN, OPT_BSON_NUM_MAX )
 
-   // Compare first 20 characters in BSON strings between ' ' to 127
    #define OPT_BSON_STR_MIN_LEN              ( 20 )
    #define OPT_BSON_STR_MIN                  ( (UINT8)' ' )
    #define OPT_BSON_STR_MAX                  ( 127 )
@@ -185,16 +154,11 @@ namespace engine
       Explain field names
     */
 
-   // Explain for cache status
    #define OPT_FIELD_CACHE_STATUS         "CacheStatus"
-   // Not cached
    #define OPT_VALUE_CACHE_STATUS_NOCACHE    "NoCache"
-   // New created into cache
    #define OPT_VALUE_CACHE_STATUS_NEWCACHE   "NewCache"
-   // Hit cache
    #define OPT_VALUE_CACHE_STATUS_HITCACHE   "HitCache"
 
-   // Explain for cache level ( --plancachelevel )
    #define OPT_FIELD_CACHE_LEVEL          "CacheLevel"
    #define OPT_VALUE_CACHE_NOCACHE         "OPT_PLAN_NOCACHE"
    #define OPT_VALUE_CACHE_ORIGINAL        "OPT_PLAN_ORIGINAL"
@@ -224,7 +188,6 @@ namespace engine
    #define OPT_FIELD_DATA_READ            FIELD_NAME_DATAREAD
    #define OPT_FIELD_INDEX_READ           FIELD_NAME_INDEXREAD
 
-   // Explain for query activity
    #define OPT_FIELD_MAX_QUERY            "MaxTimeSpentQuery"
    #define OPT_FIELD_MIN_QUERY            "MinTimeSpentQuery"
    #define OPT_FIELD_CONTEXT_ID           FIELD_NAME_CONTEXTID
@@ -238,7 +201,6 @@ namespace engine
    #define OPT_FIELD_QUERY_START_TIME     FIELD_NAME_STARTTIMESTAMP
    #define OPT_FIELD_HIT_END              "HitEnd"
 
-   // Explain details
    #define OPT_FIELD_ROLE                 FIELD_NAME_ROLE
    #define OPT_FIELD_NODE_NAME            FIELD_NAME_NODE_NAME
    #define OPT_FIELD_GROUP_NAME           FIELD_NAME_GROUPNAME
@@ -329,7 +291,6 @@ namespace engine
    #define OPT_FIELD_SUMMARY_NAME         FIELD_NAME_NAME
    #define OPT_FIELD_SUMMARY_EST_COST     "Est" OPT_FIELD_TOTAL_COST
 
-   // Mask for explain info
    #define OPT_EXPINFO_MASK_RETURN_NUM    ( 0x0001 )
    #define OPT_EXPINFO_MASK_ELAPSED_TIME  ( 0x0002 )
    #define OPT_EXPINFO_MASK_INDEX_READ    ( 0x0004 )

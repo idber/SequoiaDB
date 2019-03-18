@@ -127,7 +127,6 @@ namespace engine
       PD_TRACE_ENTRY( SDB__RTNEXTDROPOPRCTX_DONE ) ;
       if ( _removeFiles )
       {
-         // For drop operation, the processors need to be removed.
          for ( EDP_VEC_ITR itr = _processors.begin(); itr != _processors.end();)
          {
             rc = (*itr)->doDropP2( cb, dpscb ) ;
@@ -503,19 +502,6 @@ namespace engine
       SDB_DB_STATUS dbStatus = pmdGetKRCB()->getDBStatus() ;
       rtnExtDataProcessor *processor = NULL ;
 
-      // Index will be rebuilt in the following cases:
-      // 1. One new index is created.
-      // 2. In case of full sync.
-      // 3. Rebuilding after crash.
-      // If rebuild index is called when db is in normal status, it means one
-      // new index is being created. In that case, processor and new capped
-      // collection should be created.
-      // In case of full sync, leave all the capped collections to sync by
-      // themselves, because we want them to be exactly the same with the ones
-      // on primary node. The processors will be deleted if the index is
-      // dropped. So we need to add them again here.
-      // In any other cases( rebuilding, for example ), the processors are added
-      // during opening of storage. So no need to add.
       BOOLEAN create = ( SDB_DB_NORMAL == dbStatus
                          || SDB_DB_FULLSYNC == dbStatus ) ? TRUE : FALSE ;
 
@@ -581,8 +567,6 @@ namespace engine
          newContext = TRUE ;
       }
 
-      // At this point, we are still under the protection of the mb lock. So no
-      // need to take lock here.
       rc = _edpMgr->getProcessor( csName, clName, idxName, &processor ) ;
       PD_RC_CHECK( rc, PDERROR, "Get external processor failed[ %d ]", rc ) ;
       SDB_ASSERT( processor, "Processor is NULL" ) ;
@@ -644,8 +628,6 @@ namespace engine
          newContext = TRUE ;
       }
 
-      // At this point, we are still under the protection of the mb lock. So no
-      // need to take lock here.
       rc = _edpMgr->getProcessor( csName, clName,
                                   idxName, &processor ) ;
       PD_RC_CHECK( rc, PDERROR, "Get external processor failed[ %d ]", rc ) ;
@@ -770,7 +752,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Drop phase 1 failed[ %d ]", rc ) ;
          processorP1.push_back( *itr ) ;
       }
-      //context->setCLLIDs( oldCLLogicalID, newCLLogicalID ) ;
       context->appendProcessors( processors ) ;
 
    done:

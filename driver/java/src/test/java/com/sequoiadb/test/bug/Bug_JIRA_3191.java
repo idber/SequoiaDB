@@ -29,22 +29,18 @@ public class Bug_JIRA_3191 {
         ConfigOptions configOptions = new ConfigOptions();
         configOptions.setSocketTimeout(5000);
         DatasourceOptions datasourceOptions = new DatasourceOptions();
-//        datasourceOptions.setMaxCount(1);
         ds = new SequoiadbDatasource(Arrays.asList(Constants.COOR_NODE_CONN), "", "",
                 configOptions, datasourceOptions);
-        // sdb
         try {
             sdb = ds.getConnection();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } else
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        // cl
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);

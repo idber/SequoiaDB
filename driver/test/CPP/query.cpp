@@ -44,7 +44,6 @@ TEST( colleciton, sdbCppQueryOne )
       BSONObj obj = BSON ( "firstName" << "John" <<
                            "lastName" << "Smith" << "age" << i ) ;
       BSONObj cond = BSON( "age" << BSON ( "$lt" << 20) ) ;
-      //cout << obj.toString() << endl ;
       rc = cl.insert( obj ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
    }
@@ -108,6 +107,5 @@ TEST( colleciton, sdbCppQueryOne )
    }
    cout << "specify same field in record, count : " << count << endl ;
    ASSERT_EQ( 1, count ) ;
-   // disconnect the connection
    db.disconnect() ;
 }

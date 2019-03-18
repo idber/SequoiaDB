@@ -53,7 +53,6 @@ public class MongoAdminIntegrationTests {
 
 	@Test
 	public void serverStats() {
-		// CommandResult result = testAdminDb.getStats();
 		CommandResult result = mongo.getDB("admin").command("serverStatus");
 		logger.info("stats = " + result);
 	}

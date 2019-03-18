@@ -102,7 +102,6 @@ namespace engine
       }
 
    done :
-      // fill default-reply(delete success)
       contextID = -1 ;
 
       PD_TRACE_EXITRC ( COORD_SETSESSIONATTR_EXE, rc ) ;
@@ -150,7 +149,6 @@ namespace engine
       ( *buf ) = rtnContextBuf( pPropSite->toBSON() ) ;
 
    done :
-      // fill default-reply(delete success)
       contextID = -1 ;
 
       PD_TRACE_EXITRC ( COORD_GETSESSIONATTR_EXE, rc ) ;

@@ -58,8 +58,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       rtnContextTS *pContext = NULL ;
 
-      // 1. Allocate a context, and pass the options to it. Inside that context,
-      // do the logic of communicate with search engine adapter.
       rc = rtnCB->contextNew( RTN_CONTEXT_TS, (rtnContext **)&pContext,
                               contextID, eduCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Create text search context failed[ %d ]",
@@ -82,7 +80,6 @@ namespace engine
    done:
       return rc ;
    error:
-      // In case of error, delete the context, if it has been allocated.
       if ( pContext )
       {
          rtnCB->contextDelete( contextID, eduCB ) ;

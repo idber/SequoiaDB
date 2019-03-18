@@ -63,8 +63,6 @@ namespace engine
       virtual INT32 dumpExtOptions( dmsMBContext *context,
                                     BSONObj &extOptions ) ;
 
-      // the dataRecord is not owned
-      // Caller must hold mb exclusive/shared lock
       INT32 fetch ( dmsMBContext *context,
                     const dmsRecordID &recordID,
                     BSONObj &dataRecord,
@@ -122,7 +120,6 @@ namespace engine
       virtual INT32 _operationPermChk( DMS_ACCESS_TYPE accessType ) ;
 
    private:
-      //   must be hold the mb EXCLUSIVE lock in this functions :
 
       /*
          When recordSize == 0, will not change the delete record size
@@ -161,14 +158,12 @@ namespace engine
                                   _pmdEDUCB *cb,
                                   BOOLEAN isInsert = TRUE ) ;
 
-      // must hold mb exclusive lock
       INT32 _extentRemoveRecord ( dmsMBContext *context,
                                   dmsExtRW &extRW,
                                   dmsRecordRW &recordRW,
                                   _pmdEDUCB *cb,
                                   BOOLEAN decCount = TRUE ) ;
 
-      // must hold mb exclusive lock
       INT32 _extentUpdatedRecord ( dmsMBContext *context,
                                    dmsExtRW &extRW,
                                    dmsRecordRW &recordRW,

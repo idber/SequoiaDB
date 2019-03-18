@@ -81,8 +81,6 @@ namespace engine
       string toString() const ;
 
    protected:
-      /// compareLU <= 0, compare lowbound and stop key
-      /// compareLR >=0, compare upbound and start key
       INT32 _matches( bson::BSONObjIterator itrSK,
                       bson::BSONObjIterator itrLB,
                       bson::BSONObjIterator itrUB,
@@ -91,7 +89,6 @@ namespace engine
                       INT32 compareLU ) ;
 
    private:
-      // forbid copy constructor
       clsCatalogPredicateTree( clsCatalogPredicateTree &right ){}
    private:
       VEC_CLSCATAPREDICATESET       _children ;

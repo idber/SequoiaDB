@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 SequoiaDB Inc.
+ * Copyright 2017 SequoiaDB Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,7 +41,6 @@ public class TCPConnection implements IConnection {
     private Socket socket;
     private InputStream input;
     private OutputStream output;
-    private String remoteAddressInfo;
 
     public TCPConnection(InetSocketAddress address, ConfigOptions options) {
         if (address == null) {
@@ -52,7 +51,6 @@ public class TCPConnection implements IConnection {
         }
         this.address = address;
         this.options = options;
-        this.remoteAddressInfo = "remote address[" + address.toString() + "]";
     }
 
     private static class SSLContextHelper {
@@ -60,9 +58,7 @@ public class TCPConnection implements IConnection {
 
         static SSLContext getSSLContext() throws BaseException {
             if (sslContext == null) {
-                // init SSLContext with a TrustManager which doesn't check certificate
                 synchronized (SSLContextHelper.class) {
-                    // double check
                     if (sslContext == null) {
                         try {
                             X509TrustManager tm = new X509TrustManager() {
@@ -128,8 +124,6 @@ public class TCPConnection implements IConnection {
                 close();
             }
 
-            // when we come here, it means network error, let's try until
-            // maxAutoConnectRetryTime run out
             long executedTime = System.currentTimeMillis() - start;
             if (executedTime >= maxAutoConnectRetryTime) {
                 throw lastError;
@@ -152,7 +146,6 @@ public class TCPConnection implements IConnection {
             try {
                 socket.close();
             } catch (Exception e) {
-                // ignore
             } finally {
                 socket = null;
             }
@@ -168,22 +161,6 @@ public class TCPConnection implements IConnection {
     }
 
     @Override
-    public String getRemoteAddress() {
-        if (socket == null) {
-            return null;
-        }
-        return socket.getRemoteSocketAddress().toString();
-    }
-
-    @Override
-    public String getLocalAddress() {
-        if (socket == null) {
-            return null;
-        }
-        return socket.getLocalSocketAddress().toString();
-    }
-
-    @Override
     public byte[] receive(int length) throws BaseException {
         byte[] buf = new byte[length];
         receive(buf, 0, length);
@@ -193,7 +170,7 @@ public class TCPConnection implements IConnection {
     @Override
     public void receive(byte[] buf, int off, int length) throws BaseException {
         if (this.isClosed()) {
-            throw new BaseException(SDBError.SDB_NOT_CONNECTED, remoteAddressInfo);
+            throw new BaseException(SDBError.SDB_NOT_CONNECTED);
         }
         int size = 0;
         try {
@@ -206,25 +183,24 @@ public class TCPConnection implements IConnection {
             }
         } catch (IOException e) {
             close();
-            throw new BaseException(SDBError.SDB_NETWORK, remoteAddressInfo, e);
+            throw new BaseException(SDBError.SDB_NETWORK, e);
         }
         if (size != length) {
             close();
             throw new BaseException(SDBError.SDB_NETWORK,
-                    String.format("%s, required %d bytes, but only read %s bytes",
-                            remoteAddressInfo, length, size));
+                    String.format("Required %d bytes, but only read %s bytes", length, size));
         }
     }
 
     @Override
     public void send(ByteBuffer buffer) throws BaseException {
         if (buffer == null) {
-            throw new BaseException(SDBError.SDB_SYS, remoteAddressInfo + ", byteBuffer is null");
+            throw new BaseException(SDBError.SDB_SYS, "ByteBuffer is null");
         }
         if (buffer.hasArray()) {
             send(buffer.array());
         } else {
-            throw new BaseException(SDBError.SDB_SYS, remoteAddressInfo + ", byteBuffer has no array");
+            throw new BaseException(SDBError.SDB_SYS, "ByteBuffer has no array");
         }
     }
 
@@ -236,13 +212,13 @@ public class TCPConnection implements IConnection {
     @Override
     public void send(byte[] msg, int off, int length) throws BaseException {
         if (this.isClosed()) {
-            throw new BaseException(SDBError.SDB_NOT_CONNECTED, remoteAddressInfo);
+            throw new BaseException(SDBError.SDB_NOT_CONNECTED);
         }
         try {
             output.write(msg, off, length);
         } catch (IOException e) {
             close();
-            throw new BaseException(SDBError.SDB_NETWORK, remoteAddressInfo, e);
+            throw new BaseException(SDBError.SDB_NETWORK, e);
         }
     }
 }

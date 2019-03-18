@@ -82,7 +82,6 @@ namespace engine
       BSONArrayBuilder subServiceBuild( bsonBuilder.subarrayStart(
          CAT_SERVICE_FIELD_NAME ) ) ;
 
-      /// local
       BSONObjBuilder subLocalBuild( subServiceBuild.subobjStart() ) ;
       subLocalBuild.append ( CAT_SERVICE_TYPE_FIELD_NAME ,
                             (INT32)MSG_ROUTE_LOCAL_SERVICE ) ;
@@ -90,7 +89,6 @@ namespace engine
                             pKRCB->getSvcname() ) ;
       subLocalBuild.done() ;
 
-      /// repl
       BSONObjBuilder subReplBuild( subServiceBuild.subobjStart() ) ;
       subReplBuild.append ( CAT_SERVICE_TYPE_FIELD_NAME ,
                             (INT32)MSG_ROUTE_REPL_SERVICE ) ;
@@ -98,7 +96,6 @@ namespace engine
                             pKRCB->getOptionCB()->replService() ) ;
       subReplBuild.done() ;
 
-      /// shard
       BSONObjBuilder subShdBuild( subServiceBuild.subobjStart() ) ;
       subShdBuild.append ( CAT_SERVICE_TYPE_FIELD_NAME ,
                            (INT32)MSG_ROUTE_SHARD_SERVCIE) ;
@@ -106,7 +103,6 @@ namespace engine
                            pKRCB->getOptionCB()->shardService() ) ;
       subShdBuild.done() ;
 
-      /// cata
       BSONObjBuilder subCataBuild( subServiceBuild.subobjStart() ) ;
       subCataBuild.append ( CAT_SERVICE_TYPE_FIELD_NAME ,
                             (INT32)MSG_ROUTE_CAT_SERVICE ) ;
@@ -116,7 +112,6 @@ namespace engine
 
       subServiceBuild.done() ;
 
-      // append IP address
       ossIPInfo ipInfo ;
       if ( ipInfo.getIPNum() > 0 )
       {
@@ -126,7 +121,6 @@ namespace engine
          ossIP* ip = ipInfo.getIPs() ;
          for ( INT32 i = ipInfo.getIPNum(); i > 0; i-- )
          {
-            // skip loopback IP
             if (0 != ossStrncmp( ip->ipAddr, OSS_LOOPBACK_IP,
                                  ossStrlen(OSS_LOOPBACK_IP)) )
             {
@@ -135,7 +129,6 @@ namespace engine
             ip++ ;
          }
 
-         // support 'localhost' and '127.0.0.1' for node's hostname
          subIPBuild.append( OSS_LOOPBACK_IP ) ;
          subIPBuild.append( OSS_LOCALHOST ) ;
          subIPBuild.done() ;

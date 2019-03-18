@@ -1,20 +1,4 @@
-﻿/*
- * Copyright 2018 SequoiaDB Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
-*/
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections;
 using System.IO;
@@ -863,25 +847,25 @@ namespace SequoiaDB
             // return record rows
             sdbMessage.ReturnRowsCount = byteBuffer.PopInt();
 
+            // get meta info message from ByteBuffer
+            int metaObjStartPos = byteBuffer.Position();
+            byteBuffer.Mark();
+            int metaObjLen = byteBuffer.PopInt();
+            byteBuffer.Reset();
+            if (byteBuffer.IsBigEndian)
+            {
+                BsonEndianConvert(byteBuffer.ByteArray(),
+                    byteBuffer.Position(), metaObjLen, false);
+            }
+            // TODO: check this
+            BsonDocument metaInfoObj = BsonDocument.ReadFrom(byteBuffer.ByteArray(), byteBuffer.Position(), metaObjLen);
+            List<BsonDocument> objList = new List<BsonDocument>();
+            objList.Add(metaInfoObj);
+            sdbMessage.ObjectList = objList;
+
             // get return data from byteBuffer
             if (sdbMessage.Flags == 0)
             {
-                // get meta info message from ByteBuffer
-                int metaObjStartPos = byteBuffer.Position();
-                byteBuffer.Mark();
-                int metaObjLen = byteBuffer.PopInt();
-                byteBuffer.Reset();
-                if (byteBuffer.IsBigEndian)
-                {
-                    BsonEndianConvert(byteBuffer.ByteArray(),
-                        byteBuffer.Position(), metaObjLen, false);
-                }
-                // TODO: check this
-                BsonDocument metaInfoObj = BsonDocument.ReadFrom(byteBuffer.ByteArray(), byteBuffer.Position(), metaObjLen);
-                List<BsonDocument> objList = new List<BsonDocument>();
-                objList.Add(metaInfoObj);
-                sdbMessage.ObjectList = objList;
-
                 int tupleInfoStartPos = metaObjStartPos +
                     Helper.RoundToMultipleXLength(metaObjLen, 4);
                 // check whether there is any data behind meta info object or not
@@ -895,15 +879,6 @@ namespace SequoiaDB
                     // lob data
                     // to avoid copy, we save byteBuffer directly
                     sdbMessage.LobCachedDataBuf = byteBuffer;
-                }
-            }
-            else
-            {
-                sdbMessage.ObjectList = null;
-                List<BsonDocument> objList = ExtractBSONObjectList(byteBuffer);
-                if (objList != null && objList.Count > 0)
-                {
-                    sdbMessage.ErrorObject = objList[0];
                 }
             }
 
@@ -966,15 +941,6 @@ namespace SequoiaDB
                 sdbMessage.LobOffset = byteBuffer.PopLong();
                 // to avoid copy, we save byteBuffer directly 
                 sdbMessage.LobCachedDataBuf = byteBuffer;
-            }
-            else
-            {
-                sdbMessage.ObjectList = null;
-                List<BsonDocument> objList = ExtractBSONObjectList(byteBuffer);
-                if (objList != null && objList.Count > 0)
-                {
-                    sdbMessage.ErrorObject = objList[0];
-                }
             }
 
             return sdbMessage;
@@ -1126,25 +1092,10 @@ namespace SequoiaDB
             int numReturned = Helper.ByteToInt(returnRows, isBigEndian);
             sdbMessage.NumReturned = numReturned;
 
-            if (sdbMessage.Flags == 0)
+            if (numReturned > 0)
             {
-                if (numReturned > 0)
-                {
-                    List<BsonDocument> objList = ExtractBsonObject(remaining, isBigEndian);
-                    sdbMessage.ObjectList = objList;
-                }
-            }
-            else 
-            {
-                sdbMessage.ObjectList = null;
-                if (remaining != null && remaining.Length > 0) 
-                {
-                    List<BsonDocument> objList = ExtractBsonObject(remaining, isBigEndian);
-                    if (objList != null && objList.Count > 0)
-                    {
-                        sdbMessage.ErrorObject = objList[0];
-                    }
-                }
+                List<BsonDocument> objList = ExtractBsonObject(remaining, isBigEndian);
+                sdbMessage.ObjectList = objList;
             }
 
             return sdbMessage;
@@ -1191,129 +1142,121 @@ namespace SequoiaDB
             int numReturned = byteBuffer.PopInt();
             sdbMessage.NumReturned = numReturned;
 
-            if (sdbMessage.Flags == 0)
+            if (numReturned > 0)
             {
-                if (numReturned > 0)
-                {
-                    List<BsonDocument> objList = ExtractBSONObjectList(byteBuffer);
-                    sdbMessage.ObjectList = objList;
-                }
+                List<BsonDocument> objList = ExtractBSONObjectList(byteBuffer);
+                sdbMessage.ObjectList = objList;
             }
             else
             {
                 sdbMessage.ObjectList = null;
-                List<BsonDocument> objList = ExtractBSONObjectList(byteBuffer);
-                if (objList != null && objList.Count > 0) 
-                {
-                    sdbMessage.ErrorObject = objList[0];
-                }
             }
 
             return sdbMessage;
         }
 
-        //internal static SDBMessage MsgExtractReadLobReply(byte[] inBytes, bool isBigEndian)
-        //{
-        //    /*
-        //        // read res msg is |MsgOpReply|_MsgLobTuple|data|
-        //        struct _MsgOpReply
-        //        {
-        //           // 0-27 bytes
-        //           MsgHeader header ;     // message header
-        //           // 28-31 bytes
-        //           SINT64    contextID ;   // context id if client need to get more
-        //           // 32-35 bytes
-        //           SINT32    flags ;      // reply flags
-        //           // 36-39 bytes
-        //           SINT32    startFrom ;  // where in the context "this" reply is starting
-        //           // 40-43 bytes
-        //           SINT32    numReturned ;// number of recourds returned in the reply
-        //        } ;
-        //        union _MsgLobTuple
-        //        {
-        //           struct
-        //           {
-        //              UINT32 len ;
-        //              UINT32 sequence ;
-        //              SINT64 offset ;
-        //           } columns ;
+        internal static SDBMessage MsgExtractReadLobReply(byte[] inBytes, bool isBigEndian)
+        {
+            /*
+                // read res msg is |MsgOpReply|_MsgLobTuple|data|
+                struct _MsgOpReply
+                {
+                   // 0-27 bytes
+                   MsgHeader header ;     // message header
+                   // 28-31 bytes
+                   SINT64    contextID ;   // context id if client need to get more
+                   // 32-35 bytes
+                   SINT32    flags ;      // reply flags
+                   // 36-39 bytes
+                   SINT32    startFrom ;  // where in the context "this" reply is starting
+                   // 40-43 bytes
+                   SINT32    numReturned ;// number of recourds returned in the reply
+                } ;
+                union _MsgLobTuple
+                {
+                   struct
+                   {
+                      UINT32 len ;
+                      UINT32 sequence ;
+                      SINT64 offset ;
+                   } columns ;
 
-        //           CHAR data[16] ;
-        //        } ;
-        //     */
-        //    if (logger.IsDebugEnabled)
-        //    {
-        //        StringWriter buff = new StringWriter();
-        //        foreach (byte by in inBytes)
-        //        {
-        //            buff.Write(string.Format("{0:X}", by));
-        //        }
-        //        logger.Debug("Hex String for read lob got from server, to be extracted==>" + buff.ToString() + "<==");
-        //    }
+                   CHAR data[16] ;
+                } ;
+             */
+            if (logger.IsDebugEnabled)
+            {
+                StringWriter buff = new StringWriter();
+                foreach (byte by in inBytes)
+                {
+                    buff.Write(string.Format("{0:X}", by));
+                }
+                logger.Debug("Hex String for read lob got from server, to be extracted==>" + buff.ToString() + "<==");
+            }
 
-        //    List<byte[]> tmp = Helper.SplitByteArray(inBytes, MESSAGE_HEADER_LENGTH);
-        //    byte[] header = tmp[0];
-        //    byte[] remaining = tmp[1];
+            List<byte[]> tmp = Helper.SplitByteArray(inBytes, MESSAGE_HEADER_LENGTH);
+            byte[] header = tmp[0];
+            byte[] remaining = tmp[1];
 
-        //    if (header.Length != MESSAGE_HEADER_LENGTH || remaining == null)
-        //        throw new BaseException("SDB_INVALIDSIZE");
+            if (header.Length != MESSAGE_HEADER_LENGTH || remaining == null)
+                throw new BaseException("SDB_INVALIDSIZE");
 
-        //    SDBMessage sdbMessage = new SDBMessage();
-        //    /// extract info from _MsgOpReply
-        //    // MsgHeader
-        //    ExtractHeader(sdbMessage, header, isBigEndian);
-        //    // contextID
-        //    tmp = Helper.SplitByteArray(remaining, 8);
-        //    byte[] contextID = tmp[0];
-        //    remaining = tmp[1];
+            SDBMessage sdbMessage = new SDBMessage();
+            /// extract info from _MsgOpReply
+            // MsgHeader
+            ExtractHeader(sdbMessage, header, isBigEndian);
+            // contextID
+            tmp = Helper.SplitByteArray(remaining, 8);
+            byte[] contextID = tmp[0];
+            remaining = tmp[1];
 
-        //    List<long> contextIDList = new List<long>();
-        //    contextIDList.Add(Helper.ByteToLong(contextID, isBigEndian));
-        //    sdbMessage.ContextIDList = contextIDList;
-        //    // flags
-        //    tmp = Helper.SplitByteArray(remaining, 4);
-        //    byte[] flags = tmp[0];
-        //    remaining = tmp[1];
-        //    sdbMessage.Flags = Helper.ByteToInt(flags, isBigEndian);
-        //    // startFrom
-        //    tmp = Helper.SplitByteArray(remaining, 4);
-        //    byte[] startFrom = tmp[0];
-        //    remaining = tmp[1];
-        //    sdbMessage.StartFrom = Helper.ByteToInt(startFrom, isBigEndian);
-        //    // numReturned
-        //    tmp = Helper.SplitByteArray(remaining, 4);
-        //    byte[] returnRows = tmp[0];
-        //    remaining = tmp[1];
-        //    int numReturned = Helper.ByteToInt(returnRows, isBigEndian);
-        //    sdbMessage.NumReturned = numReturned;
-        //    sdbMessage.ObjectList = null;
-        //    /// extract info from _MsgLobTuple
-        //    // if nothing wrong, we are going to extract MsgLobTuple
-        //    if (0 == sdbMessage.Flags)
-        //    { 
-        //        // lob len
-        //        tmp = Helper.SplitByteArray(remaining, 4);
-        //        byte[] lobLen = tmp[0];
-        //        remaining = tmp[1];
-        //        sdbMessage.LobLen = (uint)Helper.ByteToInt(lobLen, isBigEndian);
-        //        // lob sequence
-        //        tmp = Helper.SplitByteArray(remaining, 4);
-        //        byte[] lobSequence = tmp[0];
-        //        remaining = tmp[1];
-        //        sdbMessage.LobSequence = (uint)Helper.ByteToInt(lobSequence, isBigEndian);
-        //        // lob offset
-        //        tmp = Helper.SplitByteArray(remaining, 8);
-        //        byte[] lobOffset = tmp[0];
-        //        remaining = tmp[1];
-        //        sdbMessage.LobOffset = (uint)Helper.ByteToLong(lobOffset, isBigEndian);
-        //        // set lob buff
-        //        byte[] buff = new byte[sdbMessage.LobLen];
-        //        Array.Copy(remaining, buff, remaining.Length);
-        //        sdbMessage.LobBuff = buff;
-        //    }
+            List<long> contextIDList = new List<long>();
+            contextIDList.Add(Helper.ByteToLong(contextID, isBigEndian));
+            sdbMessage.ContextIDList = contextIDList;
+            // flags
+            tmp = Helper.SplitByteArray(remaining, 4);
+            byte[] flags = tmp[0];
+            remaining = tmp[1];
+            sdbMessage.Flags = Helper.ByteToInt(flags, isBigEndian);
+            // startFrom
+            tmp = Helper.SplitByteArray(remaining, 4);
+            byte[] startFrom = tmp[0];
+            remaining = tmp[1];
+            sdbMessage.StartFrom = Helper.ByteToInt(startFrom, isBigEndian);
+            // numReturned
+            tmp = Helper.SplitByteArray(remaining, 4);
+            byte[] returnRows = tmp[0];
+            remaining = tmp[1];
+            int numReturned = Helper.ByteToInt(returnRows, isBigEndian);
+            sdbMessage.NumReturned = numReturned;
+            sdbMessage.ObjectList = null;
+            /// extract info from _MsgLobTuple
+            // if nothing wrong, we are going to extract MsgLobTuple
+            if (0 == sdbMessage.Flags)
+            { 
+                // lob len
+                tmp = Helper.SplitByteArray(remaining, 4);
+                byte[] lobLen = tmp[0];
+                remaining = tmp[1];
+                sdbMessage.LobLen = (uint)Helper.ByteToInt(lobLen, isBigEndian);
+                // lob sequence
+                tmp = Helper.SplitByteArray(remaining, 4);
+                byte[] lobSequence = tmp[0];
+                remaining = tmp[1];
+                sdbMessage.LobSequence = (uint)Helper.ByteToInt(lobSequence, isBigEndian);
+                // lob offset
+                tmp = Helper.SplitByteArray(remaining, 8);
+                byte[] lobOffset = tmp[0];
+                remaining = tmp[1];
+                sdbMessage.LobOffset = (uint)Helper.ByteToLong(lobOffset, isBigEndian);
+                // set lob buff
+                byte[] buff = new byte[sdbMessage.LobLen];
+                Array.Copy(remaining, buff, remaining.Length);
+                sdbMessage.LobBuff = buff;
+            }
             
-        //    return sdbMessage;
-        //}
+            return sdbMessage;
+        }
 
         internal static byte[] BuildSysInfoRequest()
         {

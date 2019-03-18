@@ -53,7 +53,6 @@ using namespace bson ;
 
 namespace engine
 {
-   // Fields to create indexes of SYSSTAT collections
    #define DMS_STAT_COLLECTION_SPACE           "CollectionSpace"
    #define DMS_STAT_COLLECTION                 "Collection"
 
@@ -68,10 +67,8 @@ namespace engine
    #define DMS_STAT_DEF_TOTAL_RECORDS          ( 10 )
    #define DMS_STAT_DEF_DATA_SIZE              ( 400 )
 
-   // Default selectivity of a range predicate
    #define DMS_STAT_PRED_RANGE_DEF_SELECTIVITY ( 0.05 )
 
-   // Default selectivity of a $et predicate
    #define DMS_STAT_PRED_EQ_DEF_SELECTIVITY    ( 0.005 )
 
    #define DMS_STAT_ROUND( x, min, max ) \
@@ -123,27 +120,16 @@ namespace engine
       protected :
          OSS_INLINE INT32 _equalButLeftMore ( INT32 incFlag )
          {
-            // The compared elements are equal, but left has more elements,
-            // normally it is left > right
-            // But if incFlag is -1 which means a virtual $minKey is appended
-            // left, so right > left
             return incFlag < 0 ? -1 : 1 ;
          }
 
          OSS_INLINE INT32 _equalButRightMore ( INT32 incFlag )
          {
-            // The compared elements are equal, but right has more elements,
-            // normally it is left < right
-            // But if incFlag is 1 which means a virtual $maxKey is appended to
-            // left, so left > right
             return incFlag > 0 ? 1 : -1 ;
          }
 
          OSS_INLINE INT32 _equalDefault ( INT32 incFlag )
          {
-            // The compared elements are equal
-            // If $maxKey is appended to left, left > right
-            // If $minKey is appended to left, left < right
             return incFlag > 0 ? 1 : ( incFlag < 0 ? -1 : 0 ) ;
          }
 
@@ -287,7 +273,6 @@ namespace engine
       public :
          _dmsStatUnit () ;
 
-         // For statistics cache, mbID is ID of unit
          _dmsStatUnit ( UINT32 suLID, UINT16 mbID, UINT32 clLID,
                         UINT64 createTime ) ;
 
@@ -303,13 +288,11 @@ namespace engine
 
          OSS_INLINE UINT16 getMBID () const
          {
-            // For statistics cache, mbID is ID of unit
             return getUnitID() ;
          }
 
          OSS_INLINE void setMBID( UINT16 mbID )
          {
-            // For statistics cache, mbID is ID of unit
             _setUnitID( mbID ) ;
          }
 
@@ -367,10 +350,8 @@ namespace engine
          virtual void _toBSON ( BSONObjBuilder &builder ) const = 0 ;
 
       protected :
-         // Number of records in the sample
          UINT64   _sampleRecords ;
 
-         // Number of records in the collection when collecting this statistics
          UINT64   _totalRecords ;
 
          UINT32   _suLogicalID ;
@@ -577,25 +558,18 @@ namespace engine
 
          dmsExtentID       _indexLogicalID ;
 
-         // Definition of the index
          BSONObj           _keyPattern ;
 
-         // First field in the index
          const CHAR *      _pFirstField ;
 
-         // Number of keys in the index
          UINT32            _numKeys ;
 
-         // Number of index pages
          UINT32            _indexPages ;
 
-         // Number of index levels
          UINT32            _indexLevels ;
 
-         // Is a unique index
          BOOLEAN           _isUnique ;
 
-         // Number of distinct values in the index
          UINT64            _distinctValues ;
 
          UINT16            _nullFrac ;
@@ -749,10 +723,8 @@ namespace engine
          void _findNewFieldStat ( dmsIndexStat *pDeletingStat ) ;
 
       protected :
-         // Name of collection space
          CHAR     _pCSName [ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] ;
 
-         // Name of collection ( short name )
          CHAR     _pCLName [ DMS_COLLECTION_NAME_SZ + 1 ] ;
 
          UINT32            _totalDataPages ;

@@ -77,7 +77,6 @@ namespace engine
          goto error ;
       }
 
-      /// strict for String
       if ( strict )
       {
          if ( !JSVAL_IS_STRING( *val ) )
@@ -88,12 +87,10 @@ namespace engine
          }
          jsStr = JSVAL_TO_STRING( *val ) ;
       }
-      /// transfer other to string
       else
       {
          jsStr = JS_ValueToString( _context, *val ) ;
       }
-      /// Check the result
       if ( NULL == jsStr )
       {
          PD_LOG( PDERROR, "failed to convert jsval to jsstr" ) ;

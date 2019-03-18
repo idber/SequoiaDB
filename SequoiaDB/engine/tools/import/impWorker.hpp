@@ -47,7 +47,6 @@ namespace import
    class WorkerArgs: public SDBObject
    {
    private:
-      // disallow copy and assign
       WorkerArgs(const WorkerArgs&);
       void operator=(const WorkerArgs&);
    protected:

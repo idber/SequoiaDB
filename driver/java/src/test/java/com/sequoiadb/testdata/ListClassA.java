@@ -106,21 +106,6 @@ public class ListClassA {
             return false;
         }
 
-//		if (this.listListFloat == null && other.listListFloat != null) {
-//			return false;
-//		} else if (this.listListFloat.size() != other.listListFloat.size()) {
-//			return false;
-//		} else {
-//			for (int i = 0; i < this.listListFloat.size(); i++)
-//			{
-//				List<Float> thisListEle = this.listListFloat.get(i);
-//				List<Float> otherListEle = other.listListFloat.get(i);
-//				if (!thisListEle.equals(otherListEle))
-//				{
-//					return false;
-//				}
-//			}
-//		}
 
 
         return true;

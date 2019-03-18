@@ -56,8 +56,6 @@ namespace seadapter
       _srcDataLen = 0 ;
       _ownData = FALSE ;
 
-      // The index and type name can be empty, when specifying index and type
-      // names together with _bulk.
       if ( index )
       {
          _index = std::string( index ) ;
@@ -106,8 +104,6 @@ namespace seadapter
          goto error ;
       }
 
-      // If source data has been set before, reset and release memory if
-      // necessary.
       if ( _sourceData )
       {
          if ( _ownData )
@@ -184,10 +180,6 @@ namespace seadapter
       goto done ;
    }
 
-   // The format of the action and metadata is as follows:
-   // { action : { metadata }}\n
-   // metadata can be empty, or it may contain index, type, _id of the
-   // document. That's optional, depending on the url string of _bulk.
    INT32 _utilESBulkActionBase::_outputActionAndMeta( CHAR *buffer,
                                                       INT32 size,
                                                       INT32 &length,
@@ -288,7 +280,6 @@ namespace seadapter
    {
       INT32 rc = SDB_OK ;
 
-      // One byte for the extra '\n' at the end of the line.
       if ( size < _srcDataLen + 1 )
       {
          rc = SDB_INVALIDARG ;
@@ -334,7 +325,6 @@ namespace seadapter
    {
       INT32 rc = SDB_OK ;
 
-      // One byte for the extra '\n' at the end of the line.
       if ( size < _srcDataLen + 1 )
       {
          rc = SDB_INVALIDARG ;
@@ -383,10 +373,7 @@ namespace seadapter
       const CHAR *upsertStr = ",\"doc_as_upsert\":true" ;
       UINT32 upsertLen = ossStrlen( upsertStr ) ;
 
-      // The source data of update is in the following format:
-      //    {"doc":{field1:val1, field2:val2,...,fieldn:valn}}\n
 
-      // One byte for the extra '\n' at the end of the line.
       if ( size < (INT32)( _srcDataLen + BULK_UPDATE_PREFIX_LEN + upsertLen +
                            BULK_UPDATE_SUFFIX_LEN + 1 ) )
       {
@@ -442,7 +429,6 @@ namespace seadapter
    {
       INT32 rc = SDB_OK ;
 
-      // One byte for the extra '\n' at the end of the line.
       if ( size < _srcDataLen + 1 )
       {
          rc = SDB_INVALIDARG ;

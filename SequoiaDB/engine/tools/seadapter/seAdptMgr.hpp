@@ -101,8 +101,6 @@ namespace seadapter
          return 0 ;
       }
 
-      // Called by the thread of EDU_TYPE_SE_SERVICE, when a new connection
-      // comes.
       virtual pmdAsyncSession* _createSession( SDB_SESSION_TYPE sessionType,
                                                INT32 startType,
                                                UINT64 sessionID,
@@ -111,7 +109,6 @@ namespace seadapter
    typedef _seSvcSessionMgr seSvcSessionMgr ;
 
    typedef pair<const UINT64, seIndexMeta>      TASK_SESSION_ITEM ;
-   // Manager of seAdptIndexSession.
    class _seIndexSessionMgr : public pmdAsycSessionMgr
    {
       typedef map<UINT64, seIndexMeta>          TASK_SESSION_MAP ;
@@ -258,11 +255,6 @@ namespace seadapter
       MsgRouteID              _dataNodeID ;
       MsgRouteID              _cataNodeID ;
       BOOLEAN                 _peerPrimary ;    // If the connected data node is
-                                                // primary. If not, no document
-                                                // index should be done. The
-                                                // role of the node may change,
-                                                // so need to update this member
-                                                // accorrdingly.
       CHAR                    _peerGroupName[ OSS_MAX_GROUPNAME_SIZE + 1 ] ;
 
       utilESCltMgr            _seCltMgr ;

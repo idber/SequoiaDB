@@ -1,6 +1,5 @@
 package org.springframework.data.sequoiadb.assist;
 
-// WriteResult.java
 
 
 import com.sequoiadb.exception.SDBError;
@@ -19,8 +18,6 @@ public class WriteResult {
     private String _detail;
     private ServerAddress _address;
 
-    // TODO: remove it
-//    WriteResult () {}
 
     WriteResult (ServerAddress address) {
         this._errCode = 0;

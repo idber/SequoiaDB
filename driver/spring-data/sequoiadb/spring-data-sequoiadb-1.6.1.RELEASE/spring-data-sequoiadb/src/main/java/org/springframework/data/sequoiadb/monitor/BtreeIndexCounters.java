@@ -68,7 +68,6 @@ public class BtreeIndexCounters extends AbstractMonitor {
 			}
 		}
 		BSONObject btree = (BSONObject) indexCounters.get("btree");
-		// Class c = btree.get(key).getClass();
 		return (Integer) btree.get(key);
 	}
 

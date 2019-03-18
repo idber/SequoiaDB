@@ -258,7 +258,6 @@ namespace engine
       pageNum =  header->_pageNum;
 
 
-      // check
       if ( header->_secretValue != secretValue )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
@@ -381,7 +380,6 @@ namespace engine
          ++localErr ;
       }
 
-      // check
       if ( header->_secretValue  != secretValue )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
@@ -495,7 +493,6 @@ namespace engine
          else if ( i >= pageNum &&
                    DMS_SME_ALLOCATED == pSME->getBitMask(i) )
          {
-            // error
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  "Error: allocated page (%d) over page number "
                                  "(%d) "OSS_NEWLINE,
@@ -592,13 +589,11 @@ namespace engine
          goto exit ;
       }
 
-      // if we want to find a specific collection
       if ( pCollectionName )
       {
          if ( ossStrncmp ( mb->_collectionName, pCollectionName,
                            DMS_COLLECTION_NAME_SZ ) != 0 )
          {
-            // if it doesn't match our expectation
             goto exit ;
          }
       }
@@ -771,8 +766,6 @@ namespace engine
                   ++localErr ;
                }
             }
-            /// don't to check this, because the maxPages is data file's,
-            /// but is not index files's
             /*
             for ( UINT16 i = 0 ; i < DMS_COLLECTION_MAX_INDEX ; i++ )
             {
@@ -971,10 +964,8 @@ namespace engine
       }
       else
       {
-         // for normal and ovfto types, let's inspect data
          try
          {
-            /// first to inc error
             ++err ;
 
             ossValuePtr recordPtr = 0 ;
@@ -987,7 +978,6 @@ namespace engine
                                     "Error: Detected invalid record (0x%08x)"
                                     OSS_NEWLINE, nextRecord ) ;
             }
-            /// dec error
             else
             {
                --err ;
@@ -1021,7 +1011,6 @@ namespace engine
 
       try
       {
-         /// first to inc error
          ++err ;
 
          ossValuePtr recordPtr = 0 ;
@@ -1034,7 +1023,6 @@ namespace engine
                                  "Error: Detected invalid record (0x%08x)"
                                  OSS_NEWLINE, currentOffset ) ;
          }
-         /// dec error
          else
          {
             --err ;
@@ -1485,7 +1473,6 @@ namespace engine
          goto exit ;
       }
 
-      // get all child extents
       for ( INT32 i = 0; i < extentHead->_totalKeyNodeNum; ++i )
       {
          UINT32 keyOffset = sizeof(ixmExtentHead) +
@@ -1521,7 +1508,6 @@ namespace engine
          ++localErr ;
          goto exit ;
       }
-      // inspect all index keys
       for ( INT32 i = 0 ; i < extentHead->_totalKeyNodeNum ; ++i )
       {
          UINT32 keyOffset = sizeof(ixmExtentHead) +
@@ -1572,14 +1558,12 @@ namespace engine
 
       len += inspectExtentHeader ( inBuf, inSize, outBuf + len,
                                    outSize - len, collectionID, localErr ) ;
-      // make sure the extent is valid and in use
       if ( DMS_EXTENT_FLAG_FREED == extent->_flag )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: Extent is not in use"OSS_NEWLINE ) ;
          ++localErr ;
       }
-      // start inspect all records
       dmsOffset nextRecord = extent->_firstRecordOffset ;
       while ( DMS_INVALID_OFFSET != nextRecord && len < outSize )
       {
@@ -1625,14 +1609,12 @@ namespace engine
 
       len += inspectExtentHeader ( inBuf, inSize, outBuf + len,
                                    outSize - len, collectionID, localErr ) ;
-      // make sure the extent is valid and in use
       if ( DMS_EXTENT_FLAG_FREED == extent->_flag )
       {
          len += ossSnprintf ( outBuf + len, outSize - len,
                               "Error: Extent is not in use"OSS_NEWLINE ) ;
          ++localErr ;
       }
-      // start inspect all records
       dmsOffset nextRecord = extent->_firstRecordOffset ;
       dmsOffset lastRecord = extent->_lastRecordOffset ;
       while ( DMS_INVALID_OFFSET != nextRecord && len < outSize )
@@ -1652,12 +1634,8 @@ namespace engine
          record = (dmsCappedRecord*)( ((CHAR*)inBuf) + nextRecord ) ;
          logicalID = record->getLogicalID() ;
 
-         // If we have gone beyond the last record offset, we see it as the end.
-         // In that case, no error will be reported.
          if ( logicalID < 0 )
          {
-            // If we are still before the last record offset, print the current
-            // record, but stop going to the next one.
             if ( nextRecord <= lastRecord )
             {
                len += ossSnprintf( outBuf + len, outSize - len,
@@ -1673,8 +1651,6 @@ namespace engine
          }
          else
          {
-            // Check if the logical id in the record header matches the position
-            // (extent and offset). If not, print the current record, and stop.
             myOffset = logicalID % DMS_CAP_EXTENT_BODY_SZ +
                        DMS_EXTENT_METADATA_SZ ;
             if ( myOffset != nextRecord )
@@ -1736,7 +1712,6 @@ namespace engine
                    "Error: Invalid dmsLobDataMapBlk status : %c( UNKOWN STATUS )"OSS_NEWLINE, blk->_status) ;
             ++err ;
        }
-       ///TODO:: add bucket list loop inspect.
       return len ;
    }
 

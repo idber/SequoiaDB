@@ -463,7 +463,6 @@ namespace engine
          INT32 roleDiskNum2 = _host.count( byDiskAndSdbRole( disk2->diskName, _role ) ) ;
          if ( roleDiskNum1 != roleDiskNum2 )
          {
-            //role count less, the better
             if ( roleDiskNum1 < roleDiskNum2 )
             {
                return 1 ;
@@ -478,7 +477,6 @@ namespace engine
          INT32 diskNum2 = _host.count( byDisk( disk2->diskName ) ) ;
          if ( diskNum1 != diskNum2 )
          {
-            //total count less, the better
             if ( diskNum1 < diskNum2 )
             {
                return 1 ;
@@ -551,7 +549,6 @@ namespace engine
             builder.append( OM_CONF_DETAIL_SVCNAME, node->getServiceName() ) ;
             builder.append( OM_CONF_DETAIL_ROLE, node->getRole() ) ;
 
-            // append public properties
             for ( OmConfProperties::ConstIterator it = _properties.begin() ;
                   it != _properties.end() ; it++ )
             {
@@ -916,7 +913,6 @@ namespace engine
          }
       }
 
-      // check whole business nodes
       {
          const OmNodes& nodes = _business->getNodes() ;
 
@@ -1425,7 +1421,6 @@ namespace engine
          for( OmNodes::ConstIterator it = nodes.begin(); it != nodes.end();
               ++it )
          {
-            //skip the existing node
             if( i < nodeNum )
             {
                ++i ;
@@ -1439,7 +1434,6 @@ namespace engine
             builder.append( OM_CONF_DETAIL_SVCNAME, node->getServiceName() ) ;
             builder.append( OM_CONF_DETAIL_ROLE, node->getRole() ) ;
 
-            // append public properties
             for ( OmConfProperties::ConstIterator it = _properties.begin() ;
                   it != _properties.end() ; it++ )
             {

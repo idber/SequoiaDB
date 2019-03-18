@@ -215,17 +215,6 @@ public class UpdateMapperUnitTests {
 	@Test
 	public void updateMapperShouldConvertPushCorrectlyWhenCalledWithEachUsingSimpleTypes() {
 
-//		Update update = new Update().push("values").each("spring", "data", "mongodb");
-//		DBObject mappedObject = mapper.getMappedObject(update.getUpdateObject(), context.getPersistentEntity(Model.class));
-//
-//		DBObject push = getAsDBObject(mappedObject, "$push");
-//		DBObject values = getAsDBObject(push, "values");
-//		BasicDBList each = getAsDBList(values, "$each");
-//
-//		assertThat(push.get("_class"), nullValue());
-//		assertThat(values.get("_class"), nullValue());
-//
-//		assertThat(each.toMap(), (Matcher) allOf(hasValue("spring"), hasValue("data"), hasValue("mongodb")));
 	}
 
 	/**
@@ -234,14 +223,6 @@ public class UpdateMapperUnitTests {
 	@Test
 	public void updateMapperShouldConvertPushWhithoutAddingClassInformationWhenUsedWithEvery() {
 
-//		Update update = new Update().push("values").each("spring", "data", "mongodb");
-//
-//		DBObject mappedObject = mapper.getMappedObject(update.getUpdateObject(), context.getPersistentEntity(Model.class));
-//		DBObject push = getAsDBObject(mappedObject, "$push");
-//		DBObject values = getAsDBObject(push, "values");
-//
-//		assertThat(push.get("_class"), nullValue());
-//		assertThat(values.get("_class"), nullValue());
 	}
 
 	/**
@@ -251,16 +232,6 @@ public class UpdateMapperUnitTests {
 	@Test
 	public void updateMapperShouldConvertPushCorrectlyWhenCalledWithEachUsingCustomTypes() {
 
-//		Update update = new Update().push("models").each(new ListModel("spring", "data", "mongodb"));
-//		DBObject mappedObject = mapper.getMappedObject(update.getUpdateObject(),
-//				context.getPersistentEntity(ModelWrapper.class));
-//
-//		DBObject push = getAsDBObject(mappedObject, "$push");
-//		DBObject model = getAsDBObject(push, "models");
-//		BasicDBList each = getAsDBList(model, "$each");
-//		BasicDBList values = getAsDBList((DBObject) each.get(0), "values");
-//
-//		assertThat(values.toMap(), (Matcher) allOf(hasValue("spring"), hasValue("data"), hasValue("mongodb")));
 	}
 
 	/**
@@ -269,15 +240,6 @@ public class UpdateMapperUnitTests {
 	@Test
 	public void updateMapperShouldRetainClassInformationForPushCorrectlyWhenCalledWithEachUsingCustomTypes() {
 
-//		Update update = new Update().push("models").each(new ListModel("spring", "data", "mongodb"));
-//		DBObject mappedObject = mapper.getMappedObject(update.getUpdateObject(),
-//				context.getPersistentEntity(ModelWrapper.class));
-//
-//		DBObject push = getAsDBObject(mappedObject, "$push");
-//		DBObject model = getAsDBObject(push, "models");
-//		BasicDBList each = getAsDBList(model, "$each");
-//
-//		assertThat(((DBObject) each.get(0)).get("_class").toString(), equalTo(ListModel.class.getName()));
 	}
 
 	/**
@@ -286,12 +248,6 @@ public class UpdateMapperUnitTests {
 	@Test
 	public void testUpdateShouldAllowMultiplePushEachForDifferentFields() {
 
-//		Update update = new Update().push("category").each("spring", "data").push("type").each("mongodb");
-//		DBObject mappedObject = mapper.getMappedObject(update.getUpdateObject(), context.getPersistentEntity(Object.class));
-//		//System.out.println("mappedObject is: " + mappedObject.toString());
-//		DBObject push = getAsDBObject(mappedObject, "$push");
-//		assertThat(getAsDBObject(push, "category").containsField("$each"), is(true));
-//		assertThat(getAsDBObject(push, "type").containsField("$each"), is(true));
 	}
 
 	/**
@@ -424,16 +380,6 @@ public class UpdateMapperUnitTests {
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Test // not support $each in sdb
 	public void testUpdateShouldApply$addToSetCorrectlyWhenUsedWith$each() {
-//
-//		Update update = new Update().addToSet("values").each("spring", "data", "mongodb");
-//		DBObject mappedObject = mapper.getMappedObject(update.getUpdateObject(),
-//				context.getPersistentEntity(ListModel.class));
-//
-//		DBObject addToSet = getAsDBObject(mappedObject, "$addToSet");
-//		DBObject values = getAsDBObject(addToSet, "values");
-//		BasicDBList each = getAsDBList(values, "$each");
-//
-//		assertThat(each.toMap(), (Matcher) allOf(hasValue("spring"), hasValue("data"), hasValue("mongodb")));
 	}
 
 	/**
@@ -442,19 +388,6 @@ public class UpdateMapperUnitTests {
 	@Test // not support $each in sdb
 	public void testUpdateShouldRetainClassTypeInformationWhenUsing$addToSetWith$eachForCustomTypes() {
 
-//		Update update = new Update().addToSet("models").each(new ModelImpl(2014), new ModelImpl(1), new ModelImpl(28));
-//		DBObject mappedObject = mapper.getMappedObject(update.getUpdateObject(),
-//				context.getPersistentEntity(ModelWrapper.class));
-//
-//		DBObject addToSet = getAsDBObject(mappedObject, "$addToSet");
-//
-//		DBObject values = getAsDBObject(addToSet, "models");
-//		BasicDBList each = getAsDBList(values, "$each");
-//
-//		for (Object updateValue : each) {
-//			assertThat(((DBObject) updateValue).get("_class").toString(),
-//					equalTo("org.springframework.data.mongodb.core.convert.UpdateMapperUnitTests$ModelImpl"));
-//		}
 
 	}
 

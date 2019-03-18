@@ -44,16 +44,12 @@
 namespace engine
 {
 
-   // UINT8 as one unit in bitmap
    #define UTIL_BITMAP_UNIT_SIZE       ( 8 )
 
-   // Modulo to index the unit in bitmap
    #define UTIL_BITMAP_UNIT_MODULO     ( 7 )
 
-   // log2(unit size) in a bitmap unit
    #define UTIL_BITMAP_UNIT_LOG2SIZE   ( 3 )
 
-   // Search table for each bit in a bitmap unit
    static UINT8 _utilBitmapIndex[ UTIL_BITMAP_UNIT_SIZE ] =
    {
        0x01,
@@ -169,13 +165,11 @@ namespace engine
       protected :
          OSS_INLINE UINT32 _calcUnitIndex ( UINT32 index ) const
          {
-            // Find the index to the unit in bitmap
             return index >> UTIL_BITMAP_UNIT_LOG2SIZE ;
          }
 
          OSS_INLINE UINT8 _calcBitIndex ( UINT32 index ) const
          {
-            // Find the index to the bit in one unit
             return index & UTIL_BITMAP_UNIT_MODULO ;
          }
 

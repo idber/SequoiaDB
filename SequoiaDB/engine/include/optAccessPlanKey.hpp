@@ -184,10 +184,6 @@ namespace engine
 
          OSS_INLINE BOOLEAN isSortedIdxRequired () const
          {
-            // In below cases, we must use an index which matches order-by
-            // 1. order-by is not empty
-            // 2. flags is set with FLG_QUERY_MODIFY or
-            //    FLG_QUERY_FORCE_IDX_BY_SORT
             return ( !isOrderByEmpty() &&
                      testFlag( FLG_QUERY_MODIFY |
                                FLG_QUERY_FORCE_IDX_BY_SORT ) ) ;
@@ -201,7 +197,6 @@ namespace engine
 
             if ( _cacheLevel > OPT_PLAN_NOCACHE )
             {
-               // Key code is not needed for no-cache mode
                _generateKeyCodeInternal() ;
             }
 

@@ -112,7 +112,6 @@ namespace engine
 
       DPS_LSN_OFFSET getSyncCtrlArbitLSN() ;
 
-      /// offset is current offset.
       BOOLEAN atLeastOne( const DPS_LSN_OFFSET &offset ) ;
 
    private:
@@ -131,8 +130,6 @@ namespace engine
                            _clsSyncStatus *left ) ;
 
    private:
-      /// sub between <0, CLS_REPLSET_MAX_NODE_SIZE - 2>.
-      /// means ( w = 2 ) to ( w = CLS_REPLSET_MAX_NODE_SIZE ).
       _clsSyncMinHeap _syncList[CLS_REPLSET_MAX_NODE_SIZE - 1] ;
       DPS_LSN_OFFSET  _checkList[CLS_REPLSET_MAX_NODE_SIZE -1] ;
       _ossSpinXLatch _mtxs[CLS_REPLSET_MAX_NODE_SIZE - 1] ;
@@ -142,7 +139,6 @@ namespace engine
       _clsGroupInfo *_info ;
       MsgRouteID _syncSrc ;
 
-      /// valid _notifyList size
       UINT32 _validSync ;
       UINT32 _timeout ;
       UINT32 _aliveCount ;

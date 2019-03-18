@@ -93,7 +93,6 @@ class ExposedFieldsAggregationOperationContext implements AggregationOperationCo
 		if (exposedField != null) {
 
 			if (field != null) {
-				// we return a FieldReference to the given field directly to make sure that we reference the proper alias here.
 				return new FieldReference(new ExposedField(field, exposedField.isSynthetic()));
 			}
 
@@ -102,12 +101,10 @@ class ExposedFieldsAggregationOperationContext implements AggregationOperationCo
 
 		if (name.contains(".")) {
 
-			// for nested field references we only check that the root field exists.
 			ExposedField rootField = exposedFields.getField(name.split("\\.")[0]);
 
 			if (rootField != null) {
 
-				// We have to synthetic to true, in order to render the field-name as is.
 				return new FieldReference(new ExposedField(name, true));
 			}
 		}

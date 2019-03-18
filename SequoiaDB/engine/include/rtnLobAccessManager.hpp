@@ -53,7 +53,6 @@ namespace engine
       ~_rtnLobAccessInfo() ;
 
    private:
-      // disallow copy and assign
       _rtnLobAccessInfo( const _rtnLobAccessInfo& ) ;
       void operator=( const _rtnLobAccessInfo& ) ;
 

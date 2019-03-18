@@ -184,7 +184,6 @@ namespace engine
          BOOLEAN                 _isLoad ;
 
          PMD_CFG_DATA_TYPE       _dataType ;
-         //
          BSONObj                 _dataObj ;
          BSONObjBuilder          _dataBuilder ;
          po::variables_map       *_pVMFile ;
@@ -569,13 +568,6 @@ namespace engine
 
          std::string getOmAddr() const ;
 
-#ifdef SDB_ENTERPRISE
-
-#ifdef SDB_SSL
-         OSS_INLINE BOOLEAN useSSL() const { return _useSSL ; }
-#endif
-
-#endif /* SDB_ENTERPRISE */
       protected: // rdx members
          CHAR        _krcbDbPath[ OSS_MAX_PATHSIZE + 1 ] ;
          CHAR        _krcbIndexPath[ OSS_MAX_PATHSIZE + 1 ] ;
@@ -658,13 +650,6 @@ namespace engine
          UINT32      _instanceID ;
          UINT32      _maxconn;
 
-#ifdef SDB_ENTERPRISE
-
-#ifdef SDB_SSL
-         BOOLEAN     _useSSL;
-#endif
-
-#endif /* SDB_ENTERPRISE */
       private: // other configs
          CHAR        _krcbConfPath[ OSS_MAX_PATHSIZE + 1 ] ;
          CHAR        _krcbConfFile[ OSS_MAX_PATHSIZE + 1 ] ;

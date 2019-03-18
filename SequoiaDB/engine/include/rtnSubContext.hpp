@@ -93,7 +93,6 @@ namespace engine
       virtual INT32        truncate ( INT32 num ) = 0 ;
       virtual INT32        getOrderKey( _rtnOrderKey& orderKey ) = 0 ;
 
-      // For context data processor
       virtual INT64        getDataID () const = 0 ;
       INT64                getProcessType () const { return _startFrom ; }
 

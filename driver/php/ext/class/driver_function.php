@@ -1,6 +1,6 @@
 <?php
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@
  * }
  * $cs = $db -> selectCS( 'foo' ) ;
  * if( empty( $cs ) ) {
- *    $err = $db -> getLastErrorMsg() ;
+ *    $err = $db -> getError() ;
  *    echo "Failed to call selectCS, error code: ".$err['errno'] ;
  *    return ;
  * }

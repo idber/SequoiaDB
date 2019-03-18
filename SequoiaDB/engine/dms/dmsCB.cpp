@@ -94,7 +94,6 @@ namespace engine
       {
          _cscbVec.push_back ( NULL ) ;
          _delCscbVec.push_back ( NULL ) ;
-         // free in desctructor
          _latchVec.push_back ( new(std::nothrow) ossRWMutex() ) ;
          _freeList.push_back ( i ) ;
       }
@@ -120,7 +119,6 @@ namespace engine
          goto done ;
       }
 
-      // 1. load all
       if ( SDB_ROLE_COORD != pmdGetDBRole() )
       {
          rc = rtnLoadCollectionSpaces ( pmdGetOptionCB()->getDbPath(),
@@ -132,11 +130,9 @@ namespace engine
                       rc ) ;
       }
 
-      // 2. init temp cs mgr
       rc = _tempSUMgr.init() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to init temp cb, rc: %d", rc ) ;
 
-      // 3. init stat cs cb
       if ( SDB_ROLE_DATA == pmdGetDBRole() ||
            SDB_ROLE_STANDALONE == pmdGetDBRole() )
       {
@@ -212,7 +208,6 @@ namespace engine
             su->setSyncConfig( syncInterval, syncRecordNum, syncDirtyRatio ) ;
             su->setSyncDeep( syncDeep ) ;
 
-            /// update cache info
             dmsStorageInfo *pInfo = su->storageInfo() ;
             utilCacheUnit *pCache = su->cacheUnit() ;
 
@@ -318,7 +313,6 @@ namespace engine
       }
       else
       {
-         /// This is impossible in this case
          SDB_ASSERT( FALSE, "This is impossible in this case" ) ;
          rc = SDB_DMS_CS_NOTEXIST ;
          goto error ;
@@ -409,7 +403,6 @@ namespace engine
 
       if ( NULL != dpsCB )
       {
-         // reserved log-size
          rc = dpsCSDel2Record( pName, record ) ;
          if ( SDB_OK != rc )
          {
@@ -428,8 +421,6 @@ namespace engine
       }
 
    retry :
-      // now let's lock the collectionspace, if we can't lock it, let's return
-      // false. we shouldn't wait forever
       if ( SDB_OK != _latchVec[suID]->lock_w( OSS_ONE_SEC ) )
       {
          rc = SDB_LOCK_FAILED ;
@@ -444,8 +435,6 @@ namespace engine
       isLocked = TRUE ;
       _latchVec[suID]->release_w () ;
 
-      // there is a small timing hole before getting the latch, so we have
-      // to get current suID again to verify
       {
          dmsStorageUnitID suTmpID = DMS_INVALID_SUID ;
          SDB_DMS_CSCB *tmpCSCB = NULL ;
@@ -462,7 +451,6 @@ namespace engine
       }
 
       SDB_ASSERT ( pCSCB->_su, "su can't be null" ) ;
-      // if only for empty
       if ( onlyEmpty && 0 != pCSCB->_su->data()->getCollectionNum() )
       {
          rc = SDB_DMS_CS_NOT_EMPTY ;
@@ -485,7 +473,6 @@ namespace engine
       _cscbNameMap.erase( pName ) ;
       _freeList.push_back ( suID ) ;
 
-      // log here
       if ( dpsCB )
       {
          info.setInfoEx( csLID, ~0, DMS_INVALID_EXTENT, cb ) ;
@@ -550,7 +537,6 @@ namespace engine
 
       if ( NULL != dpsCB )
       {
-         // reserved log-size
          rc = dpsCSRename2Record( pName, pNewName, record ) ;
          if ( SDB_OK != rc )
          {
@@ -569,8 +555,6 @@ namespace engine
       }
 
    retry :
-      // now let's lock the collectionspace, if we can't lock it, let's return
-      // false. we shouldn't wait forever
       if ( SDB_OK != _latchVec[suID]->lock_w( OSS_ONE_SEC ) )
       {
          rc = SDB_LOCK_FAILED ;
@@ -586,8 +570,6 @@ namespace engine
       }
       isLocked = TRUE ;
 
-      // there is a small timing hole before getting the latch, so we have
-      // to get current suID again to verify
       {
          dmsStorageUnitID suTmpID = DMS_INVALID_SUID ;
          SDB_DMS_CSCB *tmpCSCB = NULL ;
@@ -602,7 +584,6 @@ namespace engine
             goto error ;
          }
 
-         /// check the new collectionspace
          rc = _CSCBNameLookup( pNewName, &tmpCSCB, NULL, TRUE ) ;
          if ( SDB_DMS_CS_NOTEXIST == rc )
          {
@@ -630,16 +611,11 @@ namespace engine
          goto error ;
       }
 
-      /// 1.make sure erase must before reset the name,
-      /// because map'key is CBCB's name
       _cscbNameMap.erase( pName ) ;
-      /// 2. then rename the CSCB's name
       ossStrncpy( pCSCB->_name, pNewName, DMS_COLLECTION_SPACE_NAME_SZ ) ;
       pCSCB->_name[ DMS_COLLECTION_SPACE_NAME_SZ ] = 0 ;
-      /// 3. insert new name to map
       _cscbNameMap[ pCSCB->_name ] = suID ;
 
-      // log here
       if ( dpsCB )
       {
          info.setInfoEx( csLID, ~0, DMS_INVALID_EXTENT, cb ) ;
@@ -655,7 +631,6 @@ namespace engine
          dpsCB->writeData( info ) ;
       }
 
-      // Release the mutex first, since event handler needs the mutex
       if ( isLocked )
       {
          _mutex.release () ;
@@ -704,8 +679,6 @@ namespace engine
       }
 
    retry :
-      // now let's lock the collectionspace, if we can't lock it, let's return
-      // false. we shouldn't wait forever
       if ( SDB_OK != _latchVec[suID]->lock_w( OSS_ONE_SEC ) )
       {
          rc = SDB_LOCK_FAILED ;
@@ -721,8 +694,6 @@ namespace engine
       metaLock = TRUE ;
       _latchVec[suID]->release_w () ;
 
-      // there is a small timing hole before getting the latch, so we have
-      // to get current suID again to verify
       {
          dmsStorageUnitID suTmpID = DMS_INVALID_SUID ;
          SDB_DMS_CSCB *tmpCSCB = NULL ;
@@ -814,7 +785,6 @@ namespace engine
 
       if ( NULL != dpsCB )
       {
-         // reserved log-size
          rc = dpsCSDel2Record( pName, record ) ;
          if ( SDB_OK != rc )
          {
@@ -865,7 +835,6 @@ namespace engine
       _cscbNameMap.erase( pName ) ;
       _freeList.push_back ( suID ) ;
 
-      // log here
       if ( dpsCB )
       {
          info.setInfoEx( csLID, ~0, DMS_INVALID_EXTENT, cb ) ;
@@ -943,7 +912,6 @@ namespace engine
          _stateMtx.get () ;
          ++_writeCounter ;
          _stateMtx.release() ;
-         // already writable
          goto done ;
       }
 
@@ -1121,8 +1089,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__SDB_DMSCB_REGFULLSYNC );
 
    retry:
-      /// Full-sync can't blockWrite, because create/drop index when
-      /// full-sync need to writable
       _stateMtx.get() ;
 
       if ( DMS_STATE_NORMAL != _dmsCBState )
@@ -1351,7 +1317,6 @@ namespace engine
 
       if ( NULL != dpsCB )
       {
-         // reserved log-size
          rc = dpsCSCrt2Record( pName, pageSize, lobPageSz, type, record ) ;
          if ( SDB_OK != rc )
          {
@@ -1384,7 +1349,6 @@ namespace engine
       }
 
       rc = _CSCBNameInsert ( pName, topSequence, su, suID ) ;
-      // write dps
       if ( SDB_OK == rc && dpsCB )
       {
          UINT32 suLID = su->LogicalCSID() ;
@@ -1568,7 +1532,6 @@ namespace engine
       aquireCSMutex( pName ) ;
       aquired = TRUE ;
 
-      /// check the new collection space
       _mutex.get_shared() ;
       rc = _CSCBNameLookup( pNewName, &pCSCB, NULL, TRUE ) ;
       _mutex.release_shared() ;
@@ -1730,7 +1693,6 @@ namespace engine
       }
 
       pCSCB->_su->getEventHolder()->onDropCS( DMS_EVENT_MASK_ALL, cb, dpsCB ) ;
-      // if remove file failed, we can do nothing
       rc = pCSCB->_su->remove() ;
 
       SDB_OSS_DEL pCSCB ;
@@ -1869,7 +1831,6 @@ namespace engine
          {
             continue ;
          }
-         // do not dump temp cs
          else if ( dmsIsSysCSName(cscb->_name) &&
                    0 == ossStrcmp(cscb->_name, SDB_DMSTEMP_NAME ) )
          {
@@ -1963,7 +1924,6 @@ namespace engine
          {
             continue ;
          }
-         /// push back
          vecCS.push_back( monCSName( cscb->_name ) ) ;
       }
    }
@@ -2022,7 +1982,6 @@ namespace engine
 
       if ( OSS_BIT_TEST( mask, DMS_EVENT_MASK_PLAN ) )
       {
-         // Make sure main-collection plans are invalidated
          sdbGetRTNCB()->getAPM()->invalidateAllPlans() ;
       }
 
@@ -2085,9 +2044,6 @@ namespace engine
          BOOLEAN result = _dictWaitQue.try_pop( job ) ;
          if ( result )
          {
-            // Before the dictionary condition is satisfied, wait for 5 seconds
-            // between each try to dispath the same job. Otherwise, push it
-            // back to the queue.
             if ( pmdGetTickSpanTime( job._createTime ) > OSS_ONE_SEC * 5 )
             {
                foundJob = TRUE ;

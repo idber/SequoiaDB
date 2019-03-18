@@ -129,7 +129,6 @@ public class MongoURI {
         throw new UnsupportedOperationException("not supported!");
     }
 
-    // ---------------------------------
 
     /**
      * Gets the username
@@ -240,7 +239,6 @@ public class MongoURI {
         return connectDB( mongo ).getCollection( getCollection() );
     }
 
-    // ---------------------------------
 
     @Override
     public String toString() {

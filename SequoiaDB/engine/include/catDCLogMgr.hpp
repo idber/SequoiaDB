@@ -170,7 +170,6 @@ namespace engine
          UINT32 _decFileID( UINT32 fileID ) ;
          void   _setVersion( DPS_LSN_VER version ) ;
 
-         // caller must hold the _latch
          INT32  _writeData( BSONObj &obj, const DPS_LSN &lsn ) ;
          INT32  _readData( const BSONObj &match,
                            catDCLogItem *pLog,

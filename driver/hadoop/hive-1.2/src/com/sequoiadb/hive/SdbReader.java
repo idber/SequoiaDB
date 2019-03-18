@@ -38,15 +38,11 @@ public class SdbReader implements
 	private Sequoiadb sdb = null;
 	private DBCursor cursor = null;
 
-	// The record count of return
 	private long returnRecordCount = 0;
-	// The record count of collection
 	private long recordCount = 0;
 	
 	private long t_recordCount = 1 ;
 
-	// The block queue
-//	BlockingQueue<SequoiaDBRecord> queue = new ArrayBlockingQueue<SequoiaDBRecord>(1024);
 
 	List<Integer> readColIDs;
 	private String[] columnsMap;
@@ -91,7 +87,6 @@ public class SdbReader implements
 		}
 		this.readColIDs = readColIDs;
 		this.columnsMap = columns;
-		// LOG.info("columns is " + columns.toString());
 		this.sdbSplit = (SdbSplit) split;
 		if (sdbSplit.getSdbHost() == null && sdbSplit.getSdbPort() == -1) {
 			throw new IllegalArgumentException(
@@ -120,31 +115,18 @@ public class SdbReader implements
 				query = parserFilterExprToBSON(filterExpr, 0);
 
 			} catch (Exception e) {
-				// If have any exception, query all record without condition.
 				query = null;
 			}
 		}
 		LOG.info("query:" + query);
 
-		// BSONObject selector = null;
 		BasicBSONObject selector = new BasicBSONObject();
 		for (String column : parserReadColumns(columnsMap, readColIDs)) {
 			selector.put(column.toLowerCase(), null);
 		}
 		LOG.info("selector:" + selector);
 
-//		selectorColIDs = new int[selector.size()];
 
-//		int index = 0;
-//		for (Entry<String, Object> entry : selector.entrySet()) {
-//			for (int i = 0; i < this.columnsMap.length; i++) {
-//				if (columnsMap[i].equalsIgnoreCase(entry.getKey())) {
-//					LOG.debug("selectorColIDs[" + index + "] = " + i);
-//					this.selectorColIDs[index++] = i;
-//					break;
-//				}
-//			}
-//		}
 
 		BSONObject orderBy = null;
 
@@ -157,7 +139,6 @@ public class SdbReader implements
 			List<Integer> readColIDs) {
 
 		String[] readColumns = null;
-		// Get read columns list.
 		boolean addAll = (readColIDs.size() == 0);
 		if (addAll) {
 			readColumns = columnsMap;
@@ -280,7 +261,6 @@ public class SdbReader implements
 	public static String likePatternToRegExp(String likePattern) {
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < likePattern.length(); i++) {
-			// Make a special case for "\\_" and "\\%"
 			char n = likePattern.charAt(i);
 			if (n == '\\'
 					&& i + 1 < likePattern.length()
@@ -386,7 +366,6 @@ public class SdbReader implements
 
 	@Override
 	public long getPos() throws IOException {
-		// TODO Auto-generated method stub
 		return 0;
 	}
 }

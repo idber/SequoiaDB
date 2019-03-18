@@ -148,27 +148,20 @@ namespace engine
       {
          RTN_PARAM_PREDICATE_LIST *paramPredList = getParamPredList() ;
 
-         // Create predicate list
          if ( _parameters.isEmpty() || NULL == paramPredList )
          {
             UINT32 addedLevel = 0 ;
-            // Not parameterized, initialize with predicate set
             rc = _predList.initialize( predicateSet, keyPattern, direction,
                                        addedLevel ) ;
             normalizer.setDoneByPred( keyPattern, addedLevel ) ;
          }
          else if ( paramPredList->empty() )
          {
-            // parameterized predicate list is empty, initialize predicate list
-            // with predicate set, and generate parameterized predicate list
-            // for the next query
             rc = _predList.initialize( predicateSet, keyPattern, direction,
                                        _parameters, (*paramPredList) ) ;
          }
          else
          {
-            // parameterized predicate list is initialized, initialize
-            // predicate list with parameterized predicate list
             rc = _predList.initialize( (*paramPredList), keyPattern, direction,
                                        _parameters ) ;
          }

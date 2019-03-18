@@ -69,7 +69,6 @@ namespace engine
       {
          rc = _executeOnCoord( eduCB ) ;
       }
-      /// not coord or rc is SDB_COORD_UNKNOWN_OP_REQ
       if ( SDB_COORD_UNKNOWN_OP_REQ == rc ||
            SDB_ROLE_COORD != _dbRole )
       {

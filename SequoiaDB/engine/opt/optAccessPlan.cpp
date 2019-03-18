@@ -84,9 +84,6 @@ namespace engine
 
    void _optAccessPlan::release ()
    {
-      // If the plan is cached, decrease the reference count
-      // If the plan is not cached, delete it when reference count is 1,
-      // means it is the last reference
       if ( isCached() )
       {
          decRefCount() ;
@@ -127,7 +124,6 @@ namespace engine
       builder.append( OPT_FIELD_CACHE_LEVEL,
                       optAccessPlanKey::getCacheLevelName( getCacheLevel() ) ) ;
 
-      // Selector, skip and limit are not used in cached
       builder.append( OPT_FIELD_QUERY,
                       _key.getNormalizedQuery().isEmpty() ?
                       _key.getQuery() :
@@ -167,7 +163,6 @@ namespace engine
          case OPT_PLAN_NOCACHE :
          case OPT_PLAN_ORIGINAL :
          {
-            // Load pattern directly
             rc = getMatchTree()->loadPattern( _key.getQuery(), FALSE ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to load query, rc: %d", rc ) ;
 
@@ -181,7 +176,6 @@ namespace engine
          case OPT_PLAN_PARAMETERIZED :
          case OPT_PLAN_FUZZYOPTR :
          {
-            // Load pattern from normalizer
             rc = getMatchTree()->loadPattern( planHelper.getQuery(),
                                               planHelper.getNormalizer() ) ;
             PD_RC_CHECK ( rc, PDERROR, "Failed to load query, rc: %d", rc ) ;
@@ -286,7 +280,6 @@ namespace engine
 
       dmsExtentID indexCBExtent = DMS_INVALID_EXTENT ;
 
-      // Search by index name
       rc = su->index()->getIndexCBExtent( mbContext, pIndexName,
                                           indexCBExtent ) ;
       PD_RC_CHECK( rc, PDWARNING, "Failed to get index extent ID from "
@@ -326,7 +319,6 @@ namespace engine
 
       dmsExtentID indexCBExtent = DMS_INVALID_EXTENT ;
 
-      // Search by OID
       rc = su->index()->getIndexCBExtent( mbContext, indexOID, indexCBExtent ) ;
       PD_RC_CHECK( rc, PDWARNING, "Failed to get index extent ID from "
                    "collection [%s], index [%s], rc: %d", _key.getCLFullName(),
@@ -372,8 +364,6 @@ namespace engine
                 SDB_IXM_UNEXPECTED_STATUS, error, PDDEBUG,
                 "Index is not normal status, skip" ) ;
 
-      // Text index can not be used in query without text query condition.
-      // So return an error to let this index to be skipped.
       if ( IXM_EXTENT_HAS_TYPE( IXM_EXTENT_TYPE_TEXT, indexCB.getIndexType() ) )
       {
          rc = SDB_IXM_UNEXPECTED_STATUS ;
@@ -469,8 +459,6 @@ namespace engine
 
       rc = SDB_RTN_INVALID_HINT ;
 
-      // user can define more than one index name/oid in hint, it will pickup
-      // the first valid one
       while ( iter.more() )
       {
          BSONElement hint = iter.next() ;
@@ -517,7 +505,6 @@ namespace engine
                }
                else if ( bestPath.isEmpty() )
                {
-                  // First { "" : "" } goto auto hint
                   _autoHint = TRUE ;
                   rc = SDB_RTN_INVALID_HINT ;
                   goto error ;
@@ -572,7 +559,6 @@ namespace engine
 
                validHints ++ ;
 
-               // if we use null in the hint, we use tbscan
                rc = _estimateTbScanPlan( &collectionStat, planHelper,
                                          sortBufferSize, estCacheSize,
                                          tbScanPath ) ;
@@ -612,7 +598,6 @@ namespace engine
 
       if ( sortedIdxRequired && validHints > 0 )
       {
-         // Report the sort required earlier
          PD_CHECK ( DMS_INVALID_EXTENT != bestPath.getIndexExtID(),
                     SDB_RTN_QUERYMODIFY_SORT_NO_IDX, error, PDWARNING,
                     "when query and modify, sorting must use index" ) ;
@@ -663,7 +648,6 @@ namespace engine
 
       if ( _key.isSortedIdxRequired() )
       {
-         // Have order-by and with query flags to required sorted index
          priority = OPT_PLAN_SORTED_IDX_REQUIRED ;
       }
       else if ( _autoHint &&
@@ -671,10 +655,8 @@ namespace engine
                 ( !planHelper.isPredicateSetEmpty() ||
                   !_key.isOrderByEmpty() ) )
       {
-         // Have hints, predicates or order-by, which could prefer index-scan
          if ( _key.testFlag( FLG_QUERY_FORCE_HINT ) )
          {
-            // Must use index
             if ( !_key.isOrderByEmpty() )
             {
                priority = OPT_PLAN_SORTED_IDX_REQUIRED ;
@@ -686,7 +668,6 @@ namespace engine
          }
          else
          {
-            // Index preferred
             priority = OPT_PLAN_IDX_PREFERRED ;
          }
       }
@@ -694,7 +675,6 @@ namespace engine
       if ( priority == OPT_PLAN_IDX_PREFERRED ||
            priority == OPT_PLAN_DEFAULT_PRIORITY )
       {
-         // Estimate table scan
          rc = _estimateTbScanPlan( &collectionStat, planHelper,
                                    sortBufferSize, estCacheSize, tbScanPath ) ;
          PD_RC_CHECK( rc, PDWARNING, "Failed to estimate table scan for "
@@ -704,7 +684,6 @@ namespace engine
       if ( !planHelper.isPredicateSetEmpty() ||
            !_key.isOrderByEmpty() )
       {
-         // We had found a best index earlier, check it first
          if ( collectionStat.getBestIndexName() )
          {
             const CHAR *pIndexName = collectionStat.getBestIndexName() ;
@@ -740,7 +719,6 @@ namespace engine
             }
          }
 
-         // Go through indexes to find candidate plans
          for ( INT32 idx = 0 ; idx < DMS_COLLECTION_MAX_INDEX ; idx ++ )
          {
             dmsExtentID indexCBExtent = DMS_INVALID_EXTENT ;
@@ -755,7 +733,6 @@ namespace engine
             }
             if ( SDB_OK != rc )
             {
-               // Continue to evaluate the rest of indexes
                PD_LOG( PDWARNING, "Failed to get index extent ID from "
                        "collection [%s], index [%d], rc: %d",
                        _key.getCLFullName(), idx, rc ) ;
@@ -763,7 +740,6 @@ namespace engine
             }
             if ( bestIdxExtID == indexCBExtent )
             {
-               // Already evaluated
                continue ;
             }
 
@@ -772,7 +748,6 @@ namespace engine
                                       estCacheSize, ixScanPath ) ;
             if ( SDB_OK != rc )
             {
-               // Continue to evaluate the rest of indexes
                PD_LOG( PDWARNING, "Failed to estimate index scan for "
                        "collection [%s], index [%d], rc: %d",
                        _key.getCLFullName(), idx, rc ) ;
@@ -791,8 +766,6 @@ namespace engine
                bestPath.setPath( ixScanPath, TRUE ) ;
                candidateCount ++ ;
 
-               // Needn't to evaluate all indexes in below cases:
-               // 1. got enough candidate plans
                if ( candidateCount >= OPT_MAX_CANDIDATE_COUNT )
                {
                   break ;
@@ -801,7 +774,6 @@ namespace engine
          }
       }
 
-      // Check if sortedIdx is required
       if ( OPT_PLAN_SORTED_IDX_REQUIRED == priority )
       {
          PD_CHECK( DMS_INVALID_EXTENT != bestPath.getIndexExtID(),
@@ -822,8 +794,6 @@ namespace engine
          _addSearchPath( tbScanPath, planHelper ) ;
       }
 
-      // Check the cost of tbScanPath after ixScanPath, so the ixScanPath
-      // have higher priority when they have the same costs
       if ( ( ( OPT_PLAN_IDX_PREFERRED == priority &&
                DMS_INVALID_EXTENT == bestPath.getIndexExtID() ) ||
              OPT_PLAN_DEFAULT_PRIORITY == priority ) &&
@@ -878,7 +848,6 @@ namespace engine
       dmsExtentID idxExtID = path.getIndexExtID() ;
       optScanPath emptyPath( &_planAllocator ) ;
 
-      // Clear earlier settings
       _matchRuntime->clearPredList() ;
       _scanPath.setPath( emptyPath, TRUE ) ;
 
@@ -890,12 +859,10 @@ namespace engine
 
       if ( DMS_INVALID_EXTENT != idxExtID )
       {
-         // Check the index
          ixmIndexCB indexCB ( idxExtID, su->index(), NULL ) ;
          PD_CHECK( indexCB.isInitialized(), SDB_DMS_INIT_INDEX, error, PDWARNING,
                    "Failed to use index at extent %d", idxExtID ) ;
 
-         // Create predicate list
          rc = _matchRuntime->generatePredList( planHelper.getPredicateSet(),
                                                indexCB.keyPattern(),
                                                path.getDirection(),
@@ -903,9 +870,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to generate predicate list, rc: %d",
                       rc ) ;
 
-         // Note: below processing should not be failed
 
-         // Set if we need further match
          if ( !getMatchTree()->isMatchesAll() && path.isMatchAll() )
          {
             getMatchTree()->setMatchesAll( TRUE ) ;
@@ -933,7 +898,6 @@ namespace engine
       UINT16 mbID = _key.getCLMBID() ;
       BOOLEAN needCacheStat = FALSE, needCachedPlan = FALSE ;
 
-      // Check if statistics need to be loaded
       statCache = su->getStatCache() ;
       if ( NULL != statCache &&
            UTIL_SU_CACHE_UNIT_STATUS_EMPTY == statCache->getStatus( mbID ) )
@@ -941,7 +905,6 @@ namespace engine
          needCacheStat = TRUE ;
       }
 
-      // Check if cached plan status need to be added
       _cachedPlanMgr = su->getCachedPlanMgr() ;
       if ( NULL != _cachedPlanMgr &&
            UTIL_SU_CACHE_UNIT_STATUS_EMPTY == _cachedPlanMgr->getStatus( mbID ) )
@@ -953,10 +916,8 @@ namespace engine
       {
          if ( SDB_OK == mbContext->mbLock( EXCLUSIVE ) )
          {
-            // NOTE: should not goto error
             if ( needCacheStat )
             {
-               // Reload statistics
                pmdEDUCB *cb = pmdGetThreadEDUCB() ;
                _SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
                rtnReloadCLStats ( su, mbContext, cb, dmsCB ) ;
@@ -964,7 +925,6 @@ namespace engine
 
             if ( needCachedPlan )
             {
-               // Create cached plan status
                _cachedPlanMgr->createCLCachedPlanUnit( mbID ) ;
             }
          }
@@ -998,15 +958,12 @@ namespace engine
 
       BOOLEAN mbLocked = FALSE ;
 
-      // Check order-by
       rc = _checkOrderBy() ;
       PD_RC_CHECK( rc, PDERROR, "failed to check orderby", rc ) ;
 
-      // Prepare the match runtime for optimize
       rc = _prepareMatchTree( planHelper ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to load query, rc: %d", rc ) ;
 
-      // Lock the mbContext, then we could access the statistics informations
       if ( !mbContext->isMBLock() )
       {
          rc = mbContext->mbLock( SHARED ) ;
@@ -1015,7 +972,6 @@ namespace engine
          mbLocked = TRUE ;
       }
 
-      // Prepare statistics and plan caches, etc
       rc = _prepareSUCaches( su, mbContext ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to prepare for optimize, rc: %d", rc ) ;
 
@@ -1026,22 +982,17 @@ namespace engine
                       "rc: %d", rc ) ;
       }
 
-      // Check hints
       if ( _key.isHintEmpty() )
       {
-         // No hints, evaluate the plans directly
          _isAutoPlan = TRUE ;
          rc = _estimatePlans( su, mbContext, planHelper, statCache ) ;
       }
       else
       {
-         // Evaluate hints first
          rc = _estimateHintPlans( su, mbContext, planHelper, statCache ) ;
          if ( SDB_OK != rc &&
               SDB_RTN_QUERYMODIFY_SORT_NO_IDX != rc )
          {
-            // Hint failed, could evaluate with all candidate plans again
-            // Without sorted index should be reported
             _isAutoPlan = TRUE ;
             rc = _estimatePlans( su, mbContext, planHelper, statCache ) ;
          }
@@ -1049,11 +1000,9 @@ namespace engine
 
       PD_RC_CHECK( rc, PDERROR, "Failed to create candidate plans, rc: %d", rc ) ;
 
-      // Done evaluation, mark the plan valid
       _isInitialized = TRUE ;
       _key.setValid( TRUE ) ;
 
-      // Clear hint failing marks
       if ( _autoHint && _hintFailed && IXSCAN == getScanType() )
       {
          _hintFailed = FALSE ;
@@ -1293,15 +1242,11 @@ namespace engine
       UINT32 paramIndex = _paramValidCount.inc() ;
       if ( paramIndex < OPT_PARAM_VALID_PLAN_NUM )
       {
-         // Save the specified plan for validation
          _records[ paramIndex ]._parameters = parameters.copy() ;
          _records[ paramIndex ]._score = score ;
 
          if ( paramIndex == OPT_PARAM_VALID_PLAN_NUM - 1 )
          {
-            // The parameterized plan could be validated, so calculate the
-            // score which is the standard difference of each specified plan
-            // to validate the parameterized plan
             double avgScores = 0.0 ;
             double diffScores = 0.0 ;
             for ( UINT32 i = 0 ; i < OPT_PARAM_VALID_PLAN_NUM ; i++ )
@@ -1334,8 +1279,6 @@ namespace engine
 
       builder.appendBool( OPT_FIELD_PARAM_PLAN_VALID, isParamValid() ) ;
 
-      // Output the validate parameters when the parameterized plan is
-      // invalidate
       if ( !isParamValid() )
       {
          UINT32 paramValidNum = _paramValidCount.peek() ;
@@ -1384,7 +1327,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__OPTMAINACPLAN_PREPAREBINDSUB ) ;
 
-      // Prepare the match runtime for optimize
       rc = _prepareMatchTree( planHelper ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to load query, rc: %d", rc ) ;
 
@@ -1422,7 +1364,6 @@ namespace engine
       rc = bindMatchRuntime( planHelper, subPlan ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to bind match runtime, rc: %d", rc ) ;
 
-      // Bind finished, set the plan validated
       _isInitialized = TRUE ;
       _key.setValid( TRUE ) ;
 
@@ -1660,7 +1601,6 @@ namespace engine
       rc = bindMatchRuntime( _matchRuntime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to bind match runtime, rc: %d", rc ) ;
 
-      // Only need to bind predicates for index-scan plan
       if ( IXSCAN == subPlan->getScanType() &&
            NULL == _matchRuntime->getPredList() )
       {
@@ -1698,7 +1638,6 @@ namespace engine
       UINT32 paramIndex = _mainCLValidCount.inc() ;
       if ( paramIndex < OPT_MAINCL_VALID_PLAN_NUM )
       {
-         // Save the specified plan for validation
          ossStrncpy( _records[ paramIndex ]._subCLName, pSubCLName,
                      DMS_COLLECTION_FULL_NAME_SZ ) ;
          _records[ paramIndex ]._subCLName[ DMS_COLLECTION_FULL_NAME_SZ ] = '\0' ;
@@ -1707,9 +1646,6 @@ namespace engine
 
          if ( paramIndex == OPT_MAINCL_VALID_PLAN_NUM - 1 )
          {
-            // The parameterized plan could be validated, so calculate the
-            // score which is the standard difference of each specified plan
-            // to validate the parameterized plan
             double avgScores = 0.0 ;
             double diffScores = 0.0 ;
             for ( UINT32 i = 0 ; i < OPT_MAINCL_VALID_PLAN_NUM ; i++ )

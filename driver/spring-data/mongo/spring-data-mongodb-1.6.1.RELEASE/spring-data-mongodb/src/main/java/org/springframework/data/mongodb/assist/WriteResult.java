@@ -1,6 +1,5 @@
 package org.springframework.data.mongodb.assist;
 
-// WriteResult.java
 
 
 import com.sequoiadb.exception.BaseException;
@@ -21,8 +20,6 @@ public class WriteResult {
     private String _detail;
     private ServerAddress _address;
 
-    // TODO: remove it
-//    WriteResult () {}
 
     WriteResult (ServerAddress address) {
         this._errCode = 0;

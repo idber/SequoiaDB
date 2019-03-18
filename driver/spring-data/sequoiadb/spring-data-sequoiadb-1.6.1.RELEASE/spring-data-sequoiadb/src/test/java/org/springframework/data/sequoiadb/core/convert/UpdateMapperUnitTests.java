@@ -214,17 +214,6 @@ public class UpdateMapperUnitTests {
 	@Test
 	public void updateMapperShouldConvertPushCorrectlyWhenCalledWithEachUsingSimpleTypes() {
 
-//		Update update = new Update().push("values").each("spring", "data", "sequoiadb");
-//		BSONObject mappedObject = mapper.getMappedObject(update.getUpdateObject(), context.getPersistentEntity(Model.class));
-//
-//		BSONObject push = getAsDBObject(mappedObject, "$push");
-//		BSONObject values = getAsDBObject(push, "values");
-//		BasicBSONList each = getAsDBList(values, "$each");
-//
-//		assertThat(push.get("_class"), nullValue());
-//		assertThat(values.get("_class"), nullValue());
-//
-//		assertThat(each.toMap(), (Matcher) allOf(hasValue("spring"), hasValue("data"), hasValue("sequoiadb")));
 	}
 
 	/**
@@ -233,14 +222,6 @@ public class UpdateMapperUnitTests {
 	@Test
 	public void updateMapperShouldConvertPushWhithoutAddingClassInformationWhenUsedWithEvery() {
 
-//		Update update = new Update().push("values").each("spring", "data", "sequoiadb");
-//
-//		BSONObject mappedObject = mapper.getMappedObject(update.getUpdateObject(), context.getPersistentEntity(Model.class));
-//		BSONObject push = getAsDBObject(mappedObject, "$push");
-//		BSONObject values = getAsDBObject(push, "values");
-//
-//		assertThat(push.get("_class"), nullValue());
-//		assertThat(values.get("_class"), nullValue());
 	}
 
 	/**
@@ -250,16 +231,6 @@ public class UpdateMapperUnitTests {
 	@Test
 	public void updateMapperShouldConvertPushCorrectlyWhenCalledWithEachUsingCustomTypes() {
 
-//		Update update = new Update().push("models").each(new ListModel("spring", "data", "sequoiadb"));
-//		BSONObject mappedObject = mapper.getMappedObject(update.getUpdateObject(),
-//				context.getPersistentEntity(ModelWrapper.class));
-//
-//		BSONObject push = getAsDBObject(mappedObject, "$push");
-//		BSONObject model = getAsDBObject(push, "models");
-//		BasicBSONList each = getAsDBList(model, "$each");
-//		BasicBSONList values = getAsDBList((BSONObject) each.get(0), "values");
-//
-//		assertThat(values.toMap(), (Matcher) allOf(hasValue("spring"), hasValue("data"), hasValue("sequoiadb")));
 	}
 
 	/**
@@ -268,15 +239,6 @@ public class UpdateMapperUnitTests {
 	@Test
 	public void updateMapperShouldRetainClassInformationForPushCorrectlyWhenCalledWithEachUsingCustomTypes() {
 
-//		Update update = new Update().push("models").each(new ListModel("spring", "data", "sequoiadb"));
-//		BSONObject mappedObject = mapper.getMappedObject(update.getUpdateObject(),
-//				context.getPersistentEntity(ModelWrapper.class));
-//
-//		BSONObject push = getAsDBObject(mappedObject, "$push");
-//		BSONObject model = getAsDBObject(push, "models");
-//		BasicBSONList each = getAsDBList(model, "$each");
-//
-//		assertThat(((BSONObject) each.get(0)).get("_class").toString(), equalTo(ListModel.class.getName()));
 	}
 
 	/**
@@ -285,12 +247,6 @@ public class UpdateMapperUnitTests {
 	@Test
 	public void testUpdateShouldAllowMultiplePushEachForDifferentFields() {
 
-//		Update update = new Update().push("category").each("spring", "data").push("type").each("sequoiadb");
-//		BSONObject mappedObject = mapper.getMappedObject(update.getUpdateObject(), context.getPersistentEntity(Object.class));
-//		//System.out.println("mappedObject is: " + mappedObject.toString());
-//		BSONObject push = getAsDBObject(mappedObject, "$push");
-//		assertThat(getAsDBObject(push, "category").containsField("$each"), is(true));
-//		assertThat(getAsDBObject(push, "type").containsField("$each"), is(true));
 	}
 
 	/**
@@ -423,16 +379,6 @@ public class UpdateMapperUnitTests {
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Test // not support $each in sdb
 	public void testUpdateShouldApply$addToSetCorrectlyWhenUsedWith$each() {
-//
-//		Update update = new Update().addToSet("values").each("spring", "data", "sequoiadb");
-//		BSONObject mappedObject = mapper.getMappedObject(update.getUpdateObject(),
-//				context.getPersistentEntity(ListModel.class));
-//
-//		BSONObject addToSet = getAsDBObject(mappedObject, "$addToSet");
-//		BSONObject values = getAsDBObject(addToSet, "values");
-//		BasicBSONList each = getAsDBList(values, "$each");
-//
-//		assertThat(each.toMap(), (Matcher) allOf(hasValue("spring"), hasValue("data"), hasValue("sequoiadb")));
 	}
 
 	/**
@@ -441,19 +387,6 @@ public class UpdateMapperUnitTests {
 	@Test // not support $each in sdb
 	public void testUpdateShouldRetainClassTypeInformationWhenUsing$addToSetWith$eachForCustomTypes() {
 
-//		Update update = new Update().addToSet("models").each(new ModelImpl(2014), new ModelImpl(1), new ModelImpl(28));
-//		BSONObject mappedObject = mapper.getMappedObject(update.getUpdateObject(),
-//				context.getPersistentEntity(ModelWrapper.class));
-//
-//		BSONObject addToSet = getAsDBObject(mappedObject, "$addToSet");
-//
-//		BSONObject values = getAsDBObject(addToSet, "models");
-//		BasicBSONList each = getAsDBList(values, "$each");
-//
-//		for (Object updateValue : each) {
-//			assertThat(((BSONObject) updateValue).get("_class").toString(),
-//					equalTo("org.springframework.data.sequoiadb.core.convert.UpdateMapperUnitTests$ModelImpl"));
-//		}
 
 	}
 

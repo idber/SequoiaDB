@@ -51,8 +51,6 @@ namespace engine
    } ;
    typedef enum _rtnQueryType rtnQueryType ;
 
-   // Factory to produce operators such as rtnTSQueryOperator.
-   // It will analyze the message, and decide which kind of operator to produce.
    class _rtnOperatorFactory : public SDBObject
    {
       public:

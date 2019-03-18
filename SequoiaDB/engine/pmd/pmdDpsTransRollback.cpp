@@ -66,7 +66,6 @@ namespace engine
       return rc ;
    }
 
-   /// Register
    PMD_DEFINE_ENTRYPOINT( EDU_TYPE_DPSROLLBACK, TRUE,
                           pmdDpsTransRollbackEntryPoint,
                           "DpsRollback" ) ;

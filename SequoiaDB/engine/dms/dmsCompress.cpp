@@ -129,7 +129,6 @@ namespace engine
          goto error ;
       }
 
-      // assign the output buffer pointer
       if ( ppData )
       {
          *ppData = pBuff ;
@@ -159,10 +158,8 @@ namespace engine
 
       SDB_ASSERT( compressorEntry, "Compressor entry can't be NULL" ) ;
 
-      // if we want to append OID, then
       if ( oidLen && pOIDPtr )
       {
-         // get the requested size by adding object size and oid size
          UINT32 requestedSize = obj.objsize() + oidLen ;
          rc = cb->allocBuff( requestedSize, &pObjData, NULL ) ;
          if ( rc )
@@ -172,7 +169,6 @@ namespace engine
             goto error ;
          }
 
-         /// copy to new data
          *(UINT32*)pObjData = oidLen + obj.objsize() ;
          ossMemcpy( pObjData + sizeof(UINT32), pOIDPtr, oidLen ) ;
          ossMemcpy( pObjData + sizeof(UINT32) + oidLen,
@@ -222,10 +218,6 @@ namespace engine
 
       _utilCompressor *compressor = compressorEntry->getCompressor() ;
       SDB_ASSERT( compressor, "Compressor pointer can't be NULL" ) ;
-      /// To compitable with the bug:'When not use compress, the compressor
-      /// be set to snappy, so the data maybe compressed with snappy. But,
-      /// restart the node, the compressor be set to null, so can't
-      /// uncompressed'.
       if ( !compressor )
       {
          compressor = getCompressorByType( UTIL_COMPRESSOR_SNAPPY ) ;
@@ -258,7 +250,6 @@ namespace engine
                                    compressorEntry->getDictionary() ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to decompress data, rc: %d", rc ) ;
 
-      // assign return value
       if ( ppData )
       {
          *ppData = pBuff ;

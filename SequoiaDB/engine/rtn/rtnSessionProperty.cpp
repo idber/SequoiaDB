@@ -349,7 +349,6 @@ namespace engine
       ossStrncpy( instanceCopyStr, instanceStr, PMD_MAX_LONG_STR_LEN ) ;
       instanceCopyStr[ PMD_MAX_LONG_STR_LEN ] = '\0' ;
 
-      // Split the preferred instance string by ','
       curInstanceStr = ossStrtok( instanceCopyStr, ",", &lastParsed ) ;
       while ( NULL != curInstanceStr && '\0' != curInstanceStr )
       {
@@ -496,7 +495,6 @@ namespace engine
       }
       else
       {
-         // Invalid options, use the default one
          builder.append( FIELD_NAME_PREFERED_INSTANCE,
                          PREFER_INSTANCE_MASTER_STR ) ;
          builder.append( FIELD_NAME_PREFERED_INSTANCE_MODE,
@@ -648,7 +646,6 @@ namespace engine
 
          if ( 0 == ossStrcmp( field.fieldName(), FIELD_NAME_PREFERED_INSTANCE ) )
          {
-            /// PreferedInstance
             INT32 replType = PREFER_REPL_ANYONE ;
 
             PD_CHECK( field.type() == NumberInt, SDB_INVALIDARG, error,
@@ -671,7 +668,6 @@ namespace engine
          }
          else if ( 0 == ossStrcmp( field.fieldName(), FIELD_NAME_TIMEOUT ) )
          {
-            /// Timeout
             PD_CHECK( field.isNumber(), SDB_INVALIDARG, error,
                       PDERROR, "Field[%s] is not number",
                       FIELD_NAME_TIMEOUT ) ;
@@ -727,7 +723,6 @@ namespace engine
 
          if ( 0 == ossStrcmp( field.fieldName(), FIELD_NAME_PREFERED_INSTANCE_V1 ) )
          {
-            /// PreferedInstance
             rc = instanceOption.parsePreferredInstance( field ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to parse preferred instance, "
                          " rc: %d", rc ) ;
@@ -739,7 +734,6 @@ namespace engine
          else if ( 0 == ossStrcmp( field.fieldName(),
                                    FIELD_NAME_PREFERED_INSTANCE_MODE ) )
          {
-            /// PreferedInstanceMode
             PD_CHECK( String == field.type(), SDB_INVALIDARG, error,
                       PDERROR, "Field[%s] is not string",
                       FIELD_NAME_PREFERED_INSTANCE_MODE ) ;
@@ -752,7 +746,6 @@ namespace engine
          }
          else if ( 0 == ossStrcmp( field.fieldName(), FIELD_NAME_TIMEOUT ) )
          {
-            /// Timeout
             PD_CHECK( field.isNumber(), SDB_INVALIDARG, error,
                       PDERROR, "Field[%s] is not number",
                       FIELD_NAME_TIMEOUT ) ;
@@ -762,7 +755,6 @@ namespace engine
          }
          else if ( 0 == ossStrcmp( field.fieldName(), FIELD_NAME_PREFERED_INSTANCE ) )
          {
-            /// do nothing
          }
          else
          {

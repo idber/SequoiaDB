@@ -67,13 +67,9 @@ namespace sdbclient
       sdbDataSourceStrategy& operator=( const sdbDataSourceStrategy &strategy ) ;
       
    protected:
-      // abnormal address list
       vector<string> _abnormalCoordList ;
-      // normal address list
       vector<string> _normalCoordList ;
-      // lock for addr lists
       ossSpinXLatch _coordMutex ;
-      // abnormal coordlist pos ;
       INT32 _abPos ;
 
    public:
@@ -97,19 +93,15 @@ namespace sdbclient
 
       virtual INT32 getNextAbnormalCoord( string& nCoord ) ;
 
-      // move coord from normal list to abnormal list
       virtual void mvCoordToAbnormal( const string &coord ) ;
 
-      // move coord from abnormal list to normal list
       virtual void mvCoordToNormal( const string &coord ) ;
 
-      // sync strategy
       virtual void sync( sdb *conn, SYNC_CHOICE choice ) {}
 
       virtual void syncAddNewConn( sdb *conn, const string &coord ) {}
 
    protected:
-      // convert hostname to ip
       BOOLEAN _converToIP( const string &oldcoord, string& newcoord ) ;
    private:
       BOOLEAN _isLocalIP(const string &ipstr) ;
@@ -174,14 +166,11 @@ namespace sdbclient
 
       virtual INT32 getNextCoord( string& nCoord ) ;
 
-      // move coord from normal list to abnormal list
       virtual void mvCoordToAbnormal( const string &coord ) ;
 
-      // move coord from abnormal list to normal list
       virtual void mvCoordToNormal( const string &coord ) ;
 
    private:
-      // check coord is local coord or not
       BOOLEAN _isLocalCoord( const string &coord ) ;
 
    private:
@@ -211,8 +200,6 @@ namespace sdbclient
    {
       bool operator()( const coordInfo *left, const coordInfo *right )
       {
-         // normal before, abnormal after,
-         // light load before, weight load after
          if ( left->bAvailable != right->bAvailable )
             return left->bAvailable > right->bAvailable ;
          if ( left->totalNum != right->totalNum )
@@ -254,13 +241,10 @@ namespace sdbclient
 
       virtual INT32 getNextAbnormalCoord( string& nCoord ) ;
 
-      // move coord from normal list to abnormal list
       virtual void mvCoordToAbnormal( const string &coord ) ;
 
-      // move coord from abnormal list to normal list
       virtual void mvCoordToNormal( const string &coord ) ;
 
-      // sync strategy
       virtual void sync( sdb *conn, SYNC_CHOICE choice ) ;
 
       virtual void syncAddNewConn( sdb *conn, const string &coord ) ;
@@ -269,8 +253,6 @@ namespace sdbclient
       set<coordInfo*, coordInfoCmp>::const_iterator 
          _findCoord( const string &coord ) const  ;
 
-      // flag: TRUE get normal coord number
-      // FALSE get abnormal coord number
       INT32 _getCoordNum( BOOLEAN flag ) ;
 
       void _syncDelIdleConn( sdb *conn ) ;

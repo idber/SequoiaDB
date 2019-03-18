@@ -57,16 +57,12 @@ namespace engine
    class _dmsTempSUMgr : public _dmsSysSUMgr
    {
    private :
-      // fifo queue, reserve operation always reserve the first one
       queue<UINT16>        _freeCollections ;
-      // a reserved temp table will be stored in this map, with their EDU ID
       map<UINT16, UINT64>  _occupiedCollections ;
 
    public :
       _dmsTempSUMgr ( _SDB_DMSCB *dmsCB ) ;
 
-      // this function verify whether SYSTEMP collection space exist. If it
-      // is not exist then create one. And then reset all temp collections
       INT32 init() ;
 
       INT32 release ( _dmsMBContext *&context ) ;

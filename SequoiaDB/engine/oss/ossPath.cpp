@@ -104,7 +104,6 @@ static INT32 _ossEnumFiles( const string &dirPath,
                PD_LOG( PDWARNING, "File or dir[%s] occur exception: %s",
                        dir_iter->path().string().c_str(),
                        e.what() ) ;
-               /// skip the file or dir
             }
          }
       }
@@ -246,7 +245,6 @@ static INT32 _ossEnumSubDirs( const string &dirPath,
             {
                PD_LOG( PDWARNING, "File or dir[%s] occur exception: %s",
                        dir_iter->path().string().c_str(), e.what() ) ;
-               /// skip the file or dir
             }
          }
       }

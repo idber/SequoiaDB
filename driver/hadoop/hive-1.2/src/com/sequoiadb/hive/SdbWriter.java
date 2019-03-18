@@ -64,7 +64,6 @@ public class SdbWriter implements RecordWriter {
 	public void close(boolean abort) throws IOException {
 
 		LOG.debug("Enter SdbWriter close");
-		// flush buffer.
 		if (objectBuffer.size() > 0) {
 			collection.bulkInsert(objectBuffer,
 					DBCollection.FLG_INSERT_CONTONDUP);

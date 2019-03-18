@@ -43,7 +43,6 @@
 
 namespace engine
 {
-   // Remote session handler. Used by _rtnContextTS.
    class _rtnRSHandler : public IRemoteSessionHandler
    {
       public:
@@ -84,8 +83,6 @@ namespace engine
    } ;
    typedef _rtnMsgHandler rtnMsgHandler ;
 
-   // A messenger for communication with remote target, the search engine
-   // adapter, for example.
    class _rtnRemoteMessenger : public SDBObject
    {
    public:

@@ -39,7 +39,6 @@
 
 namespace sdbclient
 {
-   //set user info
    void sdbDataSourceConf::setUserInfo( 
       const std::string &username,
       const std::string &passwd )
@@ -48,7 +47,6 @@ namespace sdbclient
       _passwd = passwd ;
    }
 
-   // set connection number info
    void sdbDataSourceConf::setConnCntInfo( 
       INT32 initCnt,
       INT32 deltaIncCnt,
@@ -61,7 +59,6 @@ namespace sdbclient
       _maxCount = maxCnt ;
    }
 
-   // set idle connection interval
    void sdbDataSourceConf::setCheckIntervalInfo( 
       INT32 interval, 
       INT32 aliveTime /*= 0*/ )
@@ -74,7 +71,6 @@ namespace sdbclient
    {
       BOOLEAN ret = TRUE ;
       
-      // check count info
       if ( (0 >= _maxCount) || (0 >= _maxIdleCount) || 
          (0 >= _deltaIncCount) || (0 > _initConnCount) )
       {
@@ -97,10 +93,8 @@ namespace sdbclient
       {
          _initConnCount = _maxIdleCount ;    // TODO: why ?м╛ио
       }
-      // check idle connection interval
       if ( (0 != _keepAliveTimeout) && (_keepAliveTimeout < _checkInterval) )
          goto error ;
-      // check connection strategy
       if ( (_connectStrategy < DS_STY_SERIAL) ||
          (_connectStrategy > DS_STY_BALANCE) )
       {

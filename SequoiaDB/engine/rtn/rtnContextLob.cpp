@@ -376,7 +376,6 @@ namespace engine
                                          rtnContextBuf &buffObj,
                                          _pmdEDUCB *cb )
    {
-      /// not used for call
       return SDB_SYS ;
    }
 

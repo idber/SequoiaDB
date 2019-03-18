@@ -1,5 +1,5 @@
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -22,10 +22,6 @@
 PHP_METHOD( SequoiaDomain, __construct ) ;
 
 PHP_METHOD( SequoiaDomain, alter ) ;
-PHP_METHOD( SequoiaDomain, addGroups ) ;
-PHP_METHOD( SequoiaDomain, setGroups ) ;
-PHP_METHOD( SequoiaDomain, removeGroups ) ;
-PHP_METHOD( SequoiaDomain, setAttributes ) ;
 PHP_METHOD( SequoiaDomain, listCS ) ;
 PHP_METHOD( SequoiaDomain, listCL ) ;
 PHP_METHOD( SequoiaDomain, listGroup ) ;

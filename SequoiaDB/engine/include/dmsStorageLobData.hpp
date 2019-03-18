@@ -62,7 +62,6 @@ namespace engine
 
       void     enableSparse( BOOLEAN sparse ) ;
 
-   /// Base class functions
    public:
       virtual const CHAR*     getFileName() const ;
 

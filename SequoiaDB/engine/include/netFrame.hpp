@@ -112,7 +112,6 @@ namespace engine
       friend class _netEventHandler ;
 
       public:
-         /// handler will not be freed by frame
          _netFrame( _netMsgHandler *handler, _netRoute *pRoute ) ;
 
          ~_netFrame() ;
@@ -143,7 +142,6 @@ namespace engine
          UINT32   getEvSuitSize() ;
 
       public:
-         // return 0 if error happened
          static UINT32 getCurrentLocalAddress() ;
          static UINT32 getLocalAddress() ;
 
@@ -160,10 +158,6 @@ namespace engine
          INT32    listen( const CHAR *hostName,
                           const CHAR *serviceName ) ;
 
-         /// if call this func with same params for twice,
-         /// will create two connections.
-         /// the connection will be maintained until the
-         /// disconnect happens.
          INT32 syncConnect( const CHAR *hostName,
                             const CHAR *serviceName,
                             const _MsgRouteID &id ) ;
@@ -201,7 +195,6 @@ namespace engine
                           MsgHeader *header,
                           const netIOVec &iov ) ;
 
-         /// frame will not release handler for ever
          INT32 addTimer( UINT32 millsec, _netTimeoutHandler *handler,
                          UINT32 &timerid );
 
@@ -274,7 +267,6 @@ namespace engine
 
          netInnerTimeHandle               _innerTimeHandle ;
 
-         /// communicate shedule config info
          UINT32                           _maxSockPerNode ;    /// 0 for unlimited
          UINT32                           _maxSockPerThread ;  /// 0 for unlimited
          UINT32                           _maxThreadNum ;      /// 0 for unlimited

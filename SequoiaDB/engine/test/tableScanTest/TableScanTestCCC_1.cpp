@@ -5,7 +5,6 @@
 #include "pmd.hpp"
 
 
-//#include "common.hpp"
 #include <pthread.h>
 #include <stdlib.h>
 #include <boost/thread.hpp>
@@ -26,7 +25,6 @@ static const CHAR *pPort = "11810" ;
 static const CHAR *pUsr = "sdbadmin" ;
 static const CHAR *pPasswd = "sdbadmin" ;
 
-//static const CHAR *
 
 
 void queryThread( const CHAR *pClName, const CHAR *pFiledName, 
@@ -41,7 +39,6 @@ INT32 main( INT32 argc, CHAR **argv )
    INT32 fieldValInt ;
    INT32 fieldVal ;
    std::string opStr = "$";
-   //const CHAR *op[] = {"$et", "$gt", "$lt", }; 
    if( argc != 8 )
    {
       cout << "Format Wrong ! ./ts.out threadNum1 fieldName2 fieldValInt3 "
@@ -82,7 +79,6 @@ void queryThread( const CHAR *pClName, const CHAR *pFiledName,
 {
    INT32 rc = SDB_OK ;
    sdb db ;
-   //sdbCollectionSpace cs ;
    sdbCollection cl ;
    
    BSONObj cond = BSON( pFiledName << BSON( pOp << valInt ) ) ;
@@ -97,7 +93,6 @@ void queryThread( const CHAR *pClName, const CHAR *pFiledName,
    rc = db.connect(pLocalhost, pPort, pUsr, pPasswd);
    if(SDB_OK != rc)
    {
-      //cout << "sdb connect failed, tid=" << tid << endl ;
       PD_LOG( PDINFO, "sdb connect failed, tid=%lld", tid ) ;
       goto done ;
    }
@@ -106,7 +101,6 @@ void queryThread( const CHAR *pClName, const CHAR *pFiledName,
    rc = db.getCollection( pClName, cl ) ;
    if(SDB_OK != rc)
    {
-      //cout << "sdb getCollection " << pClName << " failed, tid=" << tid << endl ;
       PD_LOG( PDINFO, "sdb getCollection failed, tid=%lld", tid ) ;
       goto done ;
    }
@@ -122,7 +116,6 @@ void queryThread( const CHAR *pClName, const CHAR *pFiledName,
       rc = cl.query( cursor, cond, defaultObj, defaultObj, defaultObj, 0, -1, FLG_QUERY_PARALLED);
       if(SDB_OK != rc)
       {
-         //cout << qCount << " query failed, tid=" << tid << endl;
          PD_LOG( PDINFO, "qCount:%lld, query failed, tid=%lld", qCount, tid ) ;
       }
       else

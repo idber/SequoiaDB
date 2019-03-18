@@ -51,7 +51,6 @@ public class MethodReferenceNode extends ExpressionNode {
 		map.put("hour", "$hour"); // Converts a date into a number between 0 and 23.
 		map.put("minute", "$minute"); // Converts a date into a number between 0 and 59.
 		map.put("second", "$second"); // Converts a date into a number between 0 and 59. May be 60 to account for leap
-		// seconds.
 		map.put("millisecond", "$millisecond"); // Returns the millisecond portion of a date as an integer between 0 and
 
 		FUNCTIONS = Collections.unmodifiableMap(map);

@@ -266,7 +266,6 @@ namespace engine
       BSONObj confObj ;
       string str ;
 
-      // get hostname
       if ( FALSE == valueObj.hasField( "hostname" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -287,7 +286,6 @@ namespace engine
          goto error ;
       }
 
-      // get svcname
       if ( FALSE == valueObj.hasField( "svcname" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -308,7 +306,6 @@ namespace engine
          goto error ;
       }
 
-      // get isReplace
       if ( optionObj.hasField( "isReplace" ) )
       {
          if ( Bool != optionObj.getField( "isReplace" ).type() )
@@ -320,7 +317,6 @@ namespace engine
          isReplace = optionObj.getBoolField( "isReplace" ) ;
       }
 
-      // get confFile
       if ( matchObj.hasField( "confFile" ) )
       {
          if ( String != matchObj.getField( "confFile" ).type() )
@@ -361,7 +357,6 @@ namespace engine
          {
             if ( 0 == ossStrcmp( e.valuestr(), svcname.c_str() ) )
             {
-               // same with hostname, not change
                goto done ;
             }
             else if ( !isReplace )
@@ -376,7 +371,6 @@ namespace engine
          else if ( e1.type() == String &&
                    0 == ossStrcmp( e1.valuestr(), svcname.c_str() ) )
          {
-            // same with default, not change
             goto done ;
          }
       }
@@ -461,7 +455,6 @@ namespace engine
          BSONElement e = confObj.getField( hostname ) ;
          if ( e.eoo() )
          {
-            // not exist, don't delete
             goto done ;
          }
       }
@@ -504,7 +497,6 @@ namespace engine
          }
       }
 
-      // exePath + ../conf/sdbcm.conf
       rc = ossGetEWD( confPath, OSS_MAX_PATHSIZE ) ;
       if ( SDB_OK != rc )
       {

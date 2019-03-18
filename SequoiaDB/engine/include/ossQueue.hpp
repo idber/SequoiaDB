@@ -99,7 +99,6 @@ public :
       boost::chrono::milliseconds timeout
          = boost::chrono::milliseconds(millsec) ;
       boost::mutex::scoped_lock lock ( _mutex ) ;
-      // if timed_wait return false, that means we failed by timeout
       while ( _queue.empty () )
          if ( boost::cv_status::timeout == _cond.wait_for( lock, timeout ) )
             return FALSE ;
@@ -108,6 +107,5 @@ public :
       return TRUE ;
    }
 } ;
-//typedef class ossQueue ossQueue ;
 
 #endif

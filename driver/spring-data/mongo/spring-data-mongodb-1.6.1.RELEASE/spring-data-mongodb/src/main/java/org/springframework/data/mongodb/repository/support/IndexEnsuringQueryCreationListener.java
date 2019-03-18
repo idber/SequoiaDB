@@ -77,7 +77,6 @@ class IndexEnsuringQueryCreationListener implements QueryCreationListener<PartTr
 			index.on(property, order);
 		}
 
-		// Add fixed sorting criteria to index
 		if (sort != null) {
 			for (Sort.Order order : sort) {
 				index.on(order.getProperty(), order.getDirection());

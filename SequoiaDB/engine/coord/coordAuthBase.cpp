@@ -130,7 +130,6 @@ namespace engine
          goto error ;
       }
 
-      /// wait reply
       rc = pRemote->waitReply1( TRUE ) ;
       if ( rc )
       {

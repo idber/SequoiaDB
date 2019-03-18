@@ -50,8 +50,6 @@
 #include "sdbInterface.hpp"
 #include "mongoReplyHelper.hpp"
 
-/////////////////////////////////////////////////////////////////
-// implement for mongo processor
 _mongoSession::_mongoSession( SOCKET fd, engine::IResource *resource )
    : engine::pmdSession( fd ), _masterRead( FALSE ),
      _authed( FALSE ), _resource( resource )
@@ -65,7 +63,6 @@ _mongoSession::~_mongoSession()
 
 void _mongoSession::_resetBuffers()
 {
-   // release buff context
    if ( 0 != _contextBuff.size() )
    {
       _contextBuff.release() ;
@@ -97,7 +94,6 @@ INT32 _mongoSession::run()
    INT32 rc                     = SDB_OK ;
    BOOLEAN bigEndian            = FALSE ;
    UINT32 msgSize               = 0 ;
-   // reservedFlag should not included in msg header len
    UINT32  headerLen            = sizeof( mongoMsgHeader ) - sizeof( INT32 ) ;
    INT32 bodyLen                = 0 ;
    engine::pmdEDUMgr *pmdEDUMgr = NULL ;
@@ -116,12 +112,10 @@ INT32 _mongoSession::run()
    bigEndian = checkBigEndian() ;
    while ( !_pEDUCB->isDisconnected() && !_socket.isClosed() )
    {
-      // clear interrupt flag
       _pEDUCB->resetInterrupt() ;
       _pEDUCB->resetInfo( engine::EDU_INFO_ERROR ) ;
       _pEDUCB->resetLsn() ;
 
-      // recv msg
       rc = recvData( (CHAR*)&msgSize, sizeof(UINT32) ) ;
       if ( rc )
       {
@@ -133,12 +127,8 @@ INT32 _mongoSession::run()
          break ;
       }
 
-      // if big endian, need to convert len to little endian
       if ( bigEndian )
       {
-         // build an incompatible msg
-         // UINT32 tmp = msgSize ;
-         // ossEndianConvert4( tmp, msgSize) ;
       }
 
       if ( msgSize < headerLen || msgSize > SDB_MAX_MSG_LENGTH )
@@ -150,7 +140,6 @@ INT32 _mongoSession::run()
          rc = SDB_INVALIDARG ;
          break ;
       }
-      // other msg
       else
       {
          pBuff = getBuff( msgSize + 1 ) ;
@@ -160,7 +149,6 @@ INT32 _mongoSession::run()
             break ;
          }
          *(UINT32*)pBuff = msgSize ;
-         // recv the rest msg
          rc = recvData( pBuff + sizeof(UINT32), msgSize - sizeof(UINT32) ) ;
          if ( rc )
          {
@@ -173,9 +161,7 @@ INT32 _mongoSession::run()
          }
          pBuff[ msgSize ] = 0 ;
          {
-            // make sure buffers are empty for coming msg
             _resetBuffers() ;
-            // convert msg first
             _converter.loadFrom( pBuff, msgSize ) ;
             rc = _converter.convert( _inBuffer ) ;
             if ( SDB_OK != rc && SDB_OPTION_NOT_SUPPORT != rc)
@@ -185,7 +171,6 @@ INT32 _mongoSession::run()
 
             _pEDUCB->incEventCount() ;
             mondbcb->addReceiveNum() ;
-            // activate edu
             if ( SDB_OK != ( rc = pmdEDUMgr->activateEDU( _pEDUCB ) ) )
             {
                PD_LOG( PDERROR, "Session[%s] activate edu failed, rc: %d",
@@ -193,7 +178,6 @@ INT32 _mongoSession::run()
                goto error ;
             }
 
-            // handle commands before dispatched
             if ( _preProcessMsg( _converter.getParser(),
                                  _resource, _contextBuff ) )
             {
@@ -203,7 +187,6 @@ INT32 _mongoSession::run()
             pInMsg = _inBuffer.data() ;
             while ( NULL != pInMsg )
             {
-               // process msg
                rc = _processMsg( pInMsg ) ;
                if ( SDB_OK == rc )
                {
@@ -217,8 +200,6 @@ INT32 _mongoSession::run()
                }
                else
                {
-                  // when rc == SDB_OK && _inBuffer is not empty, shoul retry
-                  // to process msg
                   if ( !_inBuffer.empty() )
                   {
                      _contextBuff.release() ;
@@ -226,7 +207,6 @@ INT32 _mongoSession::run()
                   }
                   else
                   {
-                     // should exit while loop
                      pInMsg = NULL ;
                   }
                }
@@ -235,7 +215,6 @@ INT32 _mongoSession::run()
             _handleResponse( _converter.getOpType(), _contextBuff ) ;
             pBody = _contextBuff.data() ;
             bodyLen = _contextBuff.size() ;
-            // send response
             INT32 rcTmp = _reply( &_replyHeader, pBody, bodyLen ) ;
             if ( rcTmp )
             {
@@ -247,7 +226,6 @@ INT32 _mongoSession::run()
             bodyLen = 0 ;
             _contextBuff.release() ;
 
-            // wait edu
             if ( SDB_OK != ( rc = pmdEDUMgr->waitEDU( _pEDUCB ) ) )
             {
                PD_LOG( PDERROR, "Session[%s] wait edu failed, rc: %d",
@@ -288,11 +266,9 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg )
       if ( SDB_OK != rc )
       {
          tmp = _errorInfo.getIntField( OP_ERRNOFIELD ) ;
-         // build error msg
          bob.append( "ok", FALSE ) ;
          if ( SDB_IXM_DUP_KEY == tmp )
          {
-            // for assert in testcase of c driver for mongodb
             tmp = 11000 ;
          }
          bob.append( "code",  tmp ) ;
@@ -306,8 +282,6 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg )
       _replyHeader.flags = rc ;
    }
 
-   // when msg is with $cmd, need to reply
-   // so value of bodyLen cannot be 0
    if ( packet.with( OPTION_CMD ) )
    {
       if ( 0 == bodyLen )
@@ -315,7 +289,6 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg )
          tmp = _errorInfo.getIntField( OP_ERRNOFIELD ) ;
          if ( SDB_OK != rc )
          {
-            // build error msg
             bob.append( "ok", FALSE ) ;
             bob.append( "code",  tmp ) ;
             bob.append( "errmsg", _errorInfo.getStringField( OP_ERRDESP_FIELD) ) ;
@@ -342,7 +315,6 @@ error:
 
 INT32 _mongoSession::_onMsgBegin( MsgHeader *msg )
 {
-   // set reply header ( except flags, length )
    _replyHeader.contextID          = -1 ;
    _replyHeader.numReturned        = 0 ;
    _replyHeader.startFrom          = 0 ;
@@ -351,7 +323,6 @@ INT32 _mongoSession::_onMsgBegin( MsgHeader *msg )
    _replyHeader.header.TID         = msg->TID ;
    _replyHeader.header.routeID     = engine::pmdGetNodeID() ;
 
-   // start operator
    MON_START_OP( _pEDUCB->getMonAppCB() ) ;
 
    return SDB_OK ;
@@ -359,8 +330,6 @@ INT32 _mongoSession::_onMsgBegin( MsgHeader *msg )
 
 INT32 _mongoSession::_onMsgEnd( INT32 result, MsgHeader *msg )
 {
-   // release buff context
-   //_contextBuff.release() ;
 
    if ( result && SDB_DMS_EOC != result )
    {
@@ -370,7 +339,6 @@ INT32 _mongoSession::_onMsgEnd( INT32 result, MsgHeader *msg )
               msg->requestID, result ) ;
    }
 
-   // end operator
    MON_END_OP( _pEDUCB->getMonAppCB() ) ;
 
    return SDB_OK ;
@@ -393,26 +361,18 @@ INT32 _mongoSession::_reply( MsgOpReply *replyHeader,
         dbUpdate == packet.opCode ||
         dbDelete == packet.opCode )
    {
-      // should not send any msg
       goto done;
    }
-   // id
    reply.header.requestId = 0 ;//replyHeader->header.requestID ;
-   // responseTo, cast UINT64 to INT32
    reply.header.responseTo = packet.requestId ;
-   // opCode
    reply.header.opCode = dbReply ;
-   // _flags
    reply.header.flags = 0 ;
-   // _version
    reply.header.version = 0 ;
-   // reservedFlag
    reply.header.reservedFlags = 0 ;
    if ( SDB_AUTH_AUTHORITY_FORBIDDEN == replyHeader->flags )
    {
       reply.header.reservedFlags |= 2 ;
    }
-   // startingFrom
    if ( -1 != replyHeader->contextID )
    {
       _cursorStartFrom.cursorId = reply.cursorId ;
@@ -430,11 +390,9 @@ INT32 _mongoSession::_reply( MsgOpReply *replyHeader,
       {
          reply.startingFrom = 0;
       }
-      // reset cursorStartFrom
       _cursorStartFrom.cursorId = 0 ;
       _cursorStartFrom.startFrom = 0 ;
    }
-   //cursorID
    if ( SDB_OK != replyHeader->flags )
    {
       reply.cursorId = 0 ;
@@ -444,7 +402,6 @@ INT32 _mongoSession::_reply( MsgOpReply *replyHeader,
       reply.cursorId = replyHeader->contextID + 1 ;
    }
 
-   // nReturn
    if ( packet.with( OPTION_CMD ) &&
         OP_GETMORE != _converter.getOpType() )
    {
@@ -473,7 +430,6 @@ INT32 _mongoSession::_reply( MsgOpReply *replyHeader,
              ( SDB_OK == _replyHeader.flags &&
                OP_QUERY != _converter.getOpType() ) )
          {
-            // error or command
             bsonBody.init( pBody ) ;
             if ( !bsonBody.hasField( "ok" ) )
             {
@@ -483,8 +439,6 @@ INT32 _mongoSession::_reply( MsgOpReply *replyHeader,
                bob.appendElements( bsonBody ) ;
                objToSend = bob.obj() ;
                _outBuffer.write( objToSend ) ;
-               //pBody = objToSend.objdata() ;
-               //reply.header.len = sizeof( mongoMsgReply ) + objToSend.objsize() ;
             }
             else
             {
@@ -550,22 +504,18 @@ BOOLEAN _mongoSession::_preProcessMsg( msgParser &parser,
    if ( OP_CMD_ISMASTER == parser.currentOption() )
    {
       handled = TRUE ;
-      // build ismaster msg
       fap::mongo::buildIsMasterReplyMsg( resource, buff ) ;
    }
    else if ( OP_CMD_GETNONCE == parser.currentOption() )
    {
       handled = TRUE ;
-      // build getnonce msg
       bson::BSONObj obj ;
       obj.init( _inBuffer.data() ) ;
       buff = engine::rtnContextBuf( obj ) ;
-      //fap::mongo::buildGetNonceReplyMsg( buff ) ;
    }
    else if ( OP_CMD_GETLASTERROR == parser.currentOption() )
    {
       handled = TRUE ;
-      // build getlasterror msg
       fap::mongo::buildGetLastErrorReplyMsg( _errorInfo, buff ) ;
    }
    else if ( OP_CMD_NOT_SUPPORTED == parser.currentOption() )
@@ -582,7 +532,6 @@ BOOLEAN _mongoSession::_preProcessMsg( msgParser &parser,
 
    if ( handled )
    {
-      // make _relpyHeader
       _replyHeader.contextID            = -1 ;
       _replyHeader.numReturned          = 1 ;
       _replyHeader.startFrom            = 0 ;
@@ -711,7 +660,6 @@ INT32 _mongoSession::_setSeesionAttr()
    msgSetAttr.write( emptyObj, TRUE ) ;
    msgSetAttr.doneLen() ;
 
-   // activate edu
    if ( SDB_OK != ( rc = pmdEDUMgr->activateEDU( _pEDUCB ) ) )
    {
       PD_LOG( PDERROR, "Session[%s] activate edu failed, rc: %d",
@@ -726,7 +674,6 @@ INT32 _mongoSession::_setSeesionAttr()
    }
    _masterRead = TRUE ;
 
-   // wait edu
    if ( SDB_OK != ( rc = pmdEDUMgr->waitEDU( _pEDUCB ) ) )
    {
       PD_LOG( PDERROR, "Session[%s] wait edu failed, rc: %d",

@@ -79,17 +79,12 @@ namespace engine
 
    enum OPT_PLAN_PATH_PRIORITY
    {
-      // Must use index
       OPT_PLAN_IDX_REQUIRED,
 
-      // Must use sorted index
       OPT_PLAN_SORTED_IDX_REQUIRED,
 
-      // Index scan is preferred when matched fields or matched orders
-      // otherwise, goto table scan
       OPT_PLAN_IDX_PREFERRED,
 
-      // Default
       OPT_PLAN_DEFAULT_PRIORITY
    } ;
 
@@ -99,10 +94,8 @@ namespace engine
    class _pmdEDUCB ;
    typedef class _pmdEDUCB pmdEDUCB ;
 
-   // Allocator of
    typedef _utilAllocator< OPT_NODE_ALLOCATOR_SIZE > optPlanAllocator ;
 
-   // Store explain results of sub-contexts
    typedef _utilList< BSONObj > optExplainResultList ;
 
    typedef struct _optChildNodeSummary
@@ -153,11 +146,8 @@ namespace engine
          void * operator new ( size_t size, optPlanAllocator *pAllocator,
                                std::nothrow_t ) ;
 
-         // NOTE: Delete operators should not be called
          void operator delete ( void *p ) ;
 
-         // Overload delete operator to keep compiler quiet
-         // NOTE: Delete operators should not be called
          void operator delete ( void *p, optPlanAllocator *pAllocator,
                                 std::nothrow_t ) ;
 
@@ -357,28 +347,21 @@ namespace engine
       protected :
          optPlanNodeList   _childNodes ;
 
-         // Start cost of this node
          UINT64            _estStartCost ;
 
-         // Run cost of this node
          UINT64            _estRunCost ;
 
-         // Total cost of this node
          UINT64            _estTotalCost ;
 
-         // Number of records will be output
          UINT64            _outputRecords ;
 
-         // Average size of output records
          UINT32            _outputRecordSize ;
 
-         // Average number of fields in output records
          UINT32            _outputNumFields ;
 
          UINT64            _estIOCost ;
          UINT64            _estCPUCost ;
 
-         // If output is sorted by required
          BOOLEAN           _sorted ;
 
          rtnReturnOptions  _returnOptions ;
@@ -460,7 +443,6 @@ namespace engine
             return _isCandidate ;
          }
 
-         // virtual functions for index scan
          OSS_INLINE virtual INT32 getDirection () const
          {
             return 1 ;
@@ -508,7 +490,6 @@ namespace engine
 
          OSS_INLINE virtual void setIXBound ( const BSONObj & ixBound )
          {
-            // Do nothing
          }
 
          OSS_INLINE virtual double getScanSelectivity () const
@@ -594,40 +575,28 @@ namespace engine
       protected :
          const CHAR *      _pCollection ;
 
-         // Page size
          UINT32            _pageSize ;
 
-         // Estimate cache size ( from --optestcachesize )
          INT32             _estCacheSize ;
 
-         // Selectivity of matcher
          double            _mthSelectivity ;
 
-         // CPU cost of matcher
          UINT32            _mthCPUCost ;
 
-         // Need evaluate matchers after scan
          BOOLEAN           _needMatch ;
 
-         // Number of records in the collection
          UINT64            _inputRecords ;
 
-         // Number of pages in the collection
          UINT32            _inputPages ;
 
-         // Average number of fields in records
          UINT32            _inputNumFields ;
 
-         // Average size of records
          UINT32            _inputRecordSize ;
 
-         // Number of records will be scan
          UINT64            _readRecords ;
 
-         // Number of pages will be read
          UINT32            _readPages ;
 
-         // If the estimation is based on statistics
          BOOLEAN           _clFromStat ;
          UINT64            _clStatTime ;
 
@@ -852,49 +821,32 @@ namespace engine
       protected :
          CHAR              _pIndexName [ IXM_INDEX_NAME_SIZE + 1 ] ;
 
-         // Scan direction of index
          INT32             _direction ;
 
-         // Operators in matchers are covered by predicates
          BOOLEAN           _matchAll ;
 
-         // Number of matched fields in index
          UINT32            _matchedFields ;
 
-         // Number of matched order by fields in index
          UINT32            _matchedOrders ;
 
-         // Information of index
          dmsExtentID       _indexExtID ;
          dmsExtentID       _indexLID ;
          BSONObj           _keyPattern ;
 
-         // The range to scan the index: from the start key to the stop key
-         // of each key-pairs in the predicates
          double            _scanSelectivity ;
 
-         // The selectivity of output from index with each start and stop
-         // key-pairs in predicates
          double            _predSelectivity ;
 
-         // CPU cost to evaluate predicates
          UINT32            _predCPUCost ;
 
-         // Number of index pages
          UINT32            _indexPages ;
 
-         // Number of index levels
          UINT32            _indexLevels ;
 
-         // Number of records could be read in index
-         // ( based on _scanSelectivity, skip and limit )
          UINT64            _idxReadRecords ;
 
-         // Number of pages could be read in index
-         // ( based on _scanSelectivity, skip and limit )
          UINT32            _idxReadPages ;
 
-         // If the estimation is based on statistics
          BOOLEAN           _ixFromStat ;
          UINT64            _ixStatTime ;
 

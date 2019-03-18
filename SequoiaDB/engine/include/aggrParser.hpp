@@ -58,7 +58,6 @@ namespace engine
    {
    public:
       virtual ~aggrParser(){}
-      // change to plan to parent node
       virtual INT32 parse( const BSONElement &elem,
                            _qgmOptiTreeNode *&root,
                            _qgmPtrTable * pPtrTable,

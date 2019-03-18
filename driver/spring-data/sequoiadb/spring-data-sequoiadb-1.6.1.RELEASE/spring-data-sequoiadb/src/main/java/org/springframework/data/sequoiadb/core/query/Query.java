@@ -244,7 +244,6 @@ public class Query {
 	/**
 	 * @return the restrictedTypes
 	 */
-	// TODO: useless
 	public Set<Class<?>> getRestrictedTypes() {
 		return restrictedTypes == null ? Collections.<Class<?>> emptySet() : restrictedTypes;
 	}
@@ -256,7 +255,6 @@ public class Query {
 	 * @param additionalTypes may not be {@literal null}
 	 * @return
 	 */
-	// TODO: useless
 	public Query restrict(Class<?> type, Class<?>... additionalTypes) {
 
 		Assert.notNull(type, "Type must not be null!");
@@ -357,83 +355,12 @@ public class Query {
 		return this.queryFlags;
 	}
 
-//	/**
-//	 * @param maxTimeMsec
-//	 * @return
-//	 * @see Meta#setMaxTimeMsec(long)
-//	 * @since 1.6
-//	 */
-//	public Query maxTimeMsec(long maxTimeMsec) {
-//
-//		meta.setMaxTimeMsec(maxTimeMsec);
-//		return this;
-//	}
 
-//	/**
-//	 * @param timeout
-//	 * @param timeUnit
-//	 * @return
-//	 * @see Meta#setMaxTime(long, TimeUnit)
-//	 * @since 1.6
-//	 */
-//	public Query maxTime(long timeout, TimeUnit timeUnit) {
-//
-//		meta.setMaxTime(timeout, timeUnit);
-//		return this;
-//	}
 
-//	/**
-//	 * @param maxScan
-//	 * @return
-//	 * @see Meta#setMaxScan(long)
-//	 * @since 1.6
-//	 */
-//	public Query maxScan(long maxScan) {
-//
-//		meta.setMaxScan(maxScan);
-//		return this;
-//	}
 
-//	/**
-//	 * @param comment
-//	 * @return
-//	 * @see Meta#setComment(String)
-//	 * @since 1.6
-//	 */
-//	public Query comment(String comment) {
-//
-//		meta.setComment(comment);
-//		return this;
-//	}
 
-//	/**
-//	 * @return
-//	 * @see Meta#setSnapshot(boolean)
-//	 * @since 1.6
-//	 */
-//	public Query useSnapshot() {
-//
-//		meta.setSnapshot(true);
-//		return this;
-//	}
 
-//	/**
-//	 * @return never {@literal null}.
-//	 * @since 1.6
-//	 */
-//	public Meta getMeta() {
-//		return meta;
-//	}
 
-//	/**
-//	 * @param meta must not be {@literal null}.
-//	 * @since 1.6
-//	 */
-//	public void setMeta(Meta meta) {
-//
-//		Assert.notNull(meta, "Query meta might be empty but must not be null.");
-//		this.meta = meta;
-//	}
 
 	protected List<CriteriaDefinition> getCriteria() {
 		return new ArrayList<CriteriaDefinition>(this.criteria.values());

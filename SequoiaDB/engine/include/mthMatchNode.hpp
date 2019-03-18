@@ -61,7 +61,6 @@ namespace engine
       EN_MATCH_OPERATOR_LOGIC_OR,
       EN_MATCH_OPERATOR_LOGIC_NOT,
 
-      //logic end
       EN_MATCH_OPERATOR_LOGIC_END      = 10,
 
       EN_MATCH_OPERATOR_ET             = 11,
@@ -71,7 +70,6 @@ namespace engine
       EN_MATCH_OPERATOR_GT             = 15,
       EN_MATCH_OPERATOR_IN             = 16,
       EN_MATCH_OPERATOR_NE             = 17,
-      //EN_MATCH_OPERATOR_SIZE           = 18,   //deleted
       EN_MATCH_OPERATOR_ALL            = 19,
       EN_MATCH_OPERATOR_NIN            = 20,
       EN_MATCH_OPERATOR_EXISTS         = 21,
@@ -134,7 +132,6 @@ namespace engine
    #define MTH_OPERATOR_STR_REGEX               "$regex"
    #define MTH_OPERATOR_STR_OPTIONS             "$options"
 
-   //only impact array
    #define MTH_ATTR_STR_EXPAND                  "$expand"
    #define MTH_ATTR_STR_RETURNMATCH             "$returnMatch"
 
@@ -265,7 +262,6 @@ namespace engine
          void clear() ;
          void clearRecordInfo() ;
 
-         //****array attribute relate*******
          INT32 getDollarResult( INT32 index, INT32 &value ) ;
 
          INT32 setFieldName( const CHAR *name ) ;
@@ -320,18 +316,14 @@ namespace engine
          BOOLEAN _hasReturnMatch ;
          _mthMatchFieldName<> _fieldName ;
 
-         // if returnMatch executed or not, if not we should execute it
          BOOLEAN _isReturnMatchExecuted ;
 
-         // if we should use _elements as result or not
          BOOLEAN _isUseElement ;
 
-         // record the array's index
          _utilArray< INT32 > _elements ;
          /* array attribute relate */
 
       protected :
-         // parameters
          rtnParamList *_parameters ;
    } ;
 
@@ -359,10 +351,8 @@ namespace engine
          UINT32 _index ;
    } ;
 
-   // Allocator for _mthMatchNode
    typedef _utilAllocator<MTH_ALLOCATOR_SIZE> _mthNodeAllocator ;
 
-   // Configure arguments for _mthMatchNode
    typedef struct _mthNodeConfig
    {
       _mthNodeConfig ()
@@ -380,7 +370,6 @@ namespace engine
    const mthNodeConfig *mthGetDefaultNodeConfigPtr () ;
    const mthNodeConfig &mthGetDefaultNodEConfig () ;
 
-   // Wrapper for mthNodeConfig
    class _mthMatchConfig
    {
       public :
@@ -483,12 +472,8 @@ namespace engine
          virtual ~_mthMatchNode() ;
 
       public:
-         // node *p = new ( _mthNodeAllocator *allocator ) node( _mthNodeAllocator *allocator )
-         // use p->release() to release p. and do not use p anymore.
          void* operator new ( size_t size, _mthNodeAllocator *allocator ) ;
-         // do not call delete p directly
          void operator delete ( void *p ) ;
-         // just make the compiler shut up (windows's warning)
          void operator delete ( void *p, _mthNodeAllocator *allocator ) ;
 
          virtual void release() = 0 ;
@@ -497,7 +482,6 @@ namespace engine
          virtual INT32 init( const CHAR *fieldName,
                              const BSONElement &element ) ;
 
-         //just clear parameter itself
          virtual void clear() ;
 
          virtual INT32 getType() = 0 ;
@@ -553,7 +537,6 @@ namespace engine
          _mthMatchFieldName<> _fieldName ;
          MATCHNODE_VECTOR _children ;
 
-         //under two logicNot will revert to false
          BOOLEAN _isUnderLogicNot ;
    } ;
 

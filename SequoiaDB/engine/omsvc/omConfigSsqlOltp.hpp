@@ -67,10 +67,6 @@ namespace engine
       virtual ~OmSsqlOltpConfTemplate() ;
 
    private:
-      //INT32 _init() ;
-      //void _reset() ;
-      //bool _isAllProperySet() ;
-      //INT32 _setPropery( const string& name, const string& value ) ;
    } ;
 
    class OmSsqlOltpConfProperties : public OmConfProperties

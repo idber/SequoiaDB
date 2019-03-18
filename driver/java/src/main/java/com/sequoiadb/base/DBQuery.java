@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 SequoiaDB Inc.
+ * Copyright 2017 SequoiaDB Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,13 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+*/
 
 package com.sequoiadb.base;
 
 import org.bson.BSONObject;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * Query expression of SequoiaDB.
@@ -48,7 +50,7 @@ public class DBQuery {
     public static final int FLG_QUERY_FORCE_HINT = 0x00000080;
 
     /**
-     * Enable parallel sub query, each sub query will finish scanning different part of the data.
+     * Enable parallel sub query, each sub query will finish scanning diffent part of the data.
      */
     public static final int FLG_QUERY_PARALLED = 0x00000100;
 
@@ -78,21 +80,9 @@ public class DBQuery {
      */
     public static final int FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE = 0x00008000;
 
-    /**
-     * When the transaction is turned on and the transaction isolation level is "RC", the transaction lock will be
-     * released after the record is read by default. However, when setting this flag, the transaction lock will not
-     * released until the transaction is committed or rollback. When the transaction is turned off or
-     * the transaction isolation level is "RU", the flag does not work.
-     */
-    public static final int FLG_QUERY_FOR_UPDATE = 0x00010000;
-
-    // [ [ oldFlag, newFlag ], ... ]
-    private final static int[][] flagsMap = new int[0][2];
+    final static Map<Integer, Integer> flagsMap = new HashMap<Integer, Integer>();
 
     static {
-        // add mapping flags as below, if necessary:
-        //flagsMap[0][0] = FLG_QUERY_STRINGOUT;
-        //flagsMap[0][1] = NEW_FLG_QUERY_STRINGOUT;
     }
 
     public DBQuery() {
@@ -231,60 +221,24 @@ public class DBQuery {
      * @param flag The query flag as below:
      *             DBQuery.FLG_QUERY_STRINGOUT
      *             DBQuery.FLG_QUERY_FORCE_HINT
-     *             DBQuery.FLG_QUERY_PARALLED
+     *             DBQuery.LG_QUERY_PARALLED
      *             DBQuery.FLG_QUERY_WITH_RETURNDATA
-     *             DBQuery.FLG_QUERY_FOR_UPDATE
      */
     public void setFlag(int flag) {
         this.flag = flag;
     }
 
     static int regulateFlags(final int flags) {
-        if (flagsMap.length > 0) {
-            int newFlags = flags;
-            for (int[] flagMap : flagsMap) {
-                if (flagMap[0] != flagMap[1] && (flags & flagMap[0]) != 0) {
-                    newFlags &= ~flagMap[0];
-                    newFlags |= flagMap[1];
-                }
-            }
-            return newFlags;
-        } else {
-            return flags;
-        }
-    }
-
-    static int eraseFlags(final int flags, List<Integer> erasedFlags) {
-        if (erasedFlags == null || erasedFlags.size() == 0) {
-            return flags;
-        }
-        int newFlags = flags;
-        for (int flag : erasedFlags) {
-            if ((newFlags & flag) != 0) {
-                newFlags &= ~flag;
+        int erasedFlags = flags;
+        int mergedFlags = 0;
+        Iterator<Map.Entry<Integer, Integer>> entries = flagsMap.entrySet().iterator();
+        while (entries.hasNext()) {
+            Map.Entry<Integer, Integer> entry = entries.next();
+            if (((erasedFlags & entry.getKey()) != 0) && (entry.getKey() != entry.getValue())) {
+                erasedFlags &= ~entry.getKey();
+                mergedFlags |= entry.getValue();
             }
         }
-        return newFlags;
-    }
-
-    static int eraseSingleFlag(final int flags, int erasedFlag) {
-        int newFlags = flags;
-        if ((newFlags & erasedFlag) != 0) {
-            newFlags &= ~erasedFlag;
-        }
-        return newFlags;
-    }
-
-    static int filterFlags(final int flags, List<Integer> reservedFlags) {
-        if (reservedFlags == null || reservedFlags.size() == 0) {
-            return flags;
-        }
-        int newFlags = 0;
-        for (int flag : reservedFlags) {
-            if ((flag & flags) != 0) {
-                newFlags |= flag;
-            }
-        }
-        return newFlags;
+        return erasedFlags | mergedFlags;
     }
 }

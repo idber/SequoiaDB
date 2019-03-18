@@ -43,7 +43,6 @@ using namespace bson ;
 namespace engine
 {
 
-   // compare to sort operators
    BOOLEAN mthCompareNode( _mthMatchNode * left, _mthMatchNode * right )
    {
       if ( left->getWeight() < right->getWeight() )
@@ -207,7 +206,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "append value failed:value=%s,rc=%d",
                       start, rc ) ;
 
-         // abc.$10.def    p->.$
          rc = ossStrToInt ( p + 2, &dollarIndex ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to parse number:p=%s,rc=%d",
                       p, rc ) ;
@@ -215,7 +213,6 @@ namespace engine
          rc = getDollarResult( dollarIndex, realValue ) ;
          PD_RC_CHECK( rc, PDERROR, "getDollarResult failed:rc=%d", rc ) ;
 
-         // "."
          rc = result.append( p, 1 ) ;
          PD_RC_CHECK( rc, PDERROR, "append value failed:value=%s,rc=%d",
                       p, rc ) ;
@@ -391,7 +388,6 @@ namespace engine
       {
          for ( ; i < _dollarList.size() ; i++ )
          {
-            //(temp>>32)&0xFFFFFFFF) // num = (temp&0xFFFFFFFF) ;
             INT32 dollarNum = ( _dollarList[i] >> 32 ) & 0xFFFFFFFF ;
             INT32 objIndex  = _dollarList[i] & 0xFFFFFFFF ;
 
@@ -438,7 +434,6 @@ namespace engine
       return FALSE ;
    }
 
-   //********************** _mthMatchNodeIterator ***************************
    _mthMatchNodeIterator::_mthMatchNodeIterator( _mthMatchNode *node )
    {
       _node  = node ;
@@ -476,7 +471,6 @@ namespace engine
       return NULL ;
    }
 
-   //********************** _mthNodeConfig **************************
    const mthNodeConfig *mthGetDefaultNodeConfigPtr ()
    {
       static mthNodeConfig defaultConfig ;
@@ -489,7 +483,6 @@ namespace engine
       return (*mthGetDefaultNodeConfigPtr()) ;
    }
 
-   //********************** _mthMatchConfig *************************
    _mthMatchConfig::_mthMatchConfig ()
    {
       _matchConfig = mthGetDefaultNodeConfigPtr() ;
@@ -528,7 +521,6 @@ namespace engine
    {
    }
 
-   //********************** _mthMatchNode ***************************
    _mthMatchNode::_mthMatchNode( _mthNodeAllocator *allocator,
                                  const mthNodeConfig *config )
                  :_mthMatchConfig( config ), _allocator( allocator ),
@@ -572,7 +564,6 @@ namespace engine
    {
       if ( NULL != allocator && allocator->isAllocatedByme( p ) )
       {
-         // do nothing here
       }
       else
       {
@@ -610,7 +601,6 @@ namespace engine
       goto done ;
    }
 
-   //just clear parameter itself
    void _mthMatchNode::clear()
    {
       _parent          = NULL ;
@@ -698,7 +688,6 @@ namespace engine
       {
          std::sort( _children.begin(), _children.end(), mthCompareNode ) ;
 
-         // rewrite _idx_in_parent
          for ( ; i < _children.size() ; i++ )
          {
             _mthMatchNode *child = _children[ i ] ;
@@ -709,7 +698,6 @@ namespace engine
 
    BOOLEAN _mthMatchNode::hasDollarFieldName()
    {
-      //default is false
       return FALSE ;
    }
 

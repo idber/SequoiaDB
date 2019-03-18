@@ -41,7 +41,6 @@ int getEnBase64Size ( int size )
    return len ;
 }
 
-//return string length + 1
 int getDeBase64Size ( const char *s )
 {
 

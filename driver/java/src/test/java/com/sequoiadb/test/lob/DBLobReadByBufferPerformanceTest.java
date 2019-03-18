@@ -35,8 +35,6 @@ public class DBLobReadByBufferPerformanceTest {
             inputFileName = "E:\\tmp\\sequoiadb-2.6-linux_x86_64-enterprise-installer.run";
             outputFileName = "E:\\tmp\\output\\sequoiadb-2.6-linux_x86_64-enterprise-installer.run";
         } else {
-            //inputFileName = "/opt/driver/java/sequoiadb-2.8.1-linux_x86_64-enterprise-installer.run";
-            //outputFileName = "/opt/driver/java/sequoiadb-2.8.1-linux_x86_64-enterprise-installer.run_out";
             inputFileName = "/opt/driver/java/14m.txt";
             outputFileName = "/opt/driver/java/14m.txt_out";
         }
@@ -49,16 +47,13 @@ public class DBLobReadByBufferPerformanceTest {
 
     @Before
     public void setUp() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "admin", "admin");
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } else {
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         }
-        // cl
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 1);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
@@ -109,7 +104,6 @@ public class DBLobReadByBufferPerformanceTest {
             long endTime = 0;
             long interval = 0;
 
-            // get db/cl
             Sequoiadb db = null;
             DBCollection coll = null;
             try {
@@ -123,7 +117,6 @@ public class DBLobReadByBufferPerformanceTest {
                 Assert.fail();
             }
 
-            // read lob
             DBLob lob = null;
             int retryTimes = 3;
             ArrayList<Long> readTimeList = new ArrayList<Long>();
@@ -132,7 +125,6 @@ public class DBLobReadByBufferPerformanceTest {
                 try {
                     lob = coll.openLob(id);
                     String fileName = outputFileName + sequence;
-                    // remove the existed file
                     try {
                         File file = new File(fileName);
                         if (file.exists()) {
@@ -143,7 +135,6 @@ public class DBLobReadByBufferPerformanceTest {
                     } catch (Exception e) {
                         Assert.fail();
                     }
-                    // read data
                     try {
                         fileOutputStream = new FileOutputStream(fileName);
                     } catch (FileNotFoundException e) {
@@ -165,7 +156,6 @@ public class DBLobReadByBufferPerformanceTest {
                     if (retryTimes == 1 || i != 1) {
                         readTimeList.add(interval);
                     }
-//			        System.out.println(String.format("Read lob takes: %dms", interval));
                 } finally {
                     if (lob != null) {
                         lob.close();
@@ -195,7 +185,6 @@ public class DBLobReadByBufferPerformanceTest {
      * java驱动lob写性能与v2.6的差距
      * */
     @Test
-    //@Ignore
     @Ignore
     public void testReadPerformanceBetween2version() throws BaseException {
         Thread[] threads = new Thread[threadNum];
@@ -203,7 +192,6 @@ public class DBLobReadByBufferPerformanceTest {
         long total = 0;
         long avg = 0;
 
-        // prepare lob
         FileInputStream fileInputStream = null;
         DBLob lob = null;
         ObjectId id = null;
@@ -249,7 +237,6 @@ public class DBLobReadByBufferPerformanceTest {
             e.printStackTrace();
         }
 
-        // start threads
         for (int i = 0; i < threads.length; i++) {
             threads[i] = new Thread(
                 new ReadLobByBufferTask(

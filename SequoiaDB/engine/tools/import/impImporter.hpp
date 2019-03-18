@@ -77,7 +77,6 @@ namespace import
       ossAtomicSigned32 _livingNum;
       LogFile           _logFile;
 
-      // statistics
       ossAtomicSigned64 _importedNum;
       ossAtomicSigned64 _failedNum;
 
