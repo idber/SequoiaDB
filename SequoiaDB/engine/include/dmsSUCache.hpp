@@ -56,7 +56,6 @@ namespace engine
    /*
       _dmsStatCache define
     */
-   /// _dmsStatCache stores statistics of collections and indexes
    class _dmsStatCache : public dmsSUCache
    {
       public :
@@ -69,7 +68,6 @@ namespace engine
    /*
       _dmsCachedPlanMgr define
     */
-   /// _dmsCachedPlanMgr stores bitmap indexes of cached plans of collections
    class _dmsCachedPlanMgr : public dmsSUCache
    {
       public :

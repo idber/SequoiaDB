@@ -105,7 +105,6 @@ void _mongoAccess::_release()
 
    if ( NULL != _resource )
    {
-      // should not delete here, just make it point to nullptr
       _resource = NULL ;
    }
 }

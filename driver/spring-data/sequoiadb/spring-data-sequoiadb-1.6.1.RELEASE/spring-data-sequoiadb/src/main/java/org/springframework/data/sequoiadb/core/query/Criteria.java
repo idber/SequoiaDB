@@ -516,8 +516,6 @@ public class Criteria implements CriteriaDefinition {
 		return this;
 	}
 
-//	 //TODO: not add $ operation yet
-//	public void $Operation() {}
 
 	/**
 	 * Creates a criterion using the {@literal $abs} operator.
@@ -727,12 +725,10 @@ public class Criteria implements CriteriaDefinition {
 
 
 	private Criteria not(Object value) {
-//		criteria.put("$not", value);
 		return this;
 	}
 
     private boolean lastOperatorWasNot() {
-//		return this.criteria.size() > 0 && "$not".equals(this.criteria.keySet().toArray()[this.criteria.size() - 1]);
         return false;
     }
 

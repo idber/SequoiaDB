@@ -1,21 +1,4 @@
-﻿/*
- * Copyright 2018 SequoiaDB Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
-*/
-
-using System.Collections.Generic;
-using System;
+﻿using System.Collections.Generic;
 using SequoiaDB.Bson;
 
 /** \namespace SequoiaDB
@@ -67,25 +50,15 @@ namespace SequoiaDB
          */
         public DBCollection GetCollection(string collectionName)
         {
-            if (collectionName == null || collectionName.Length == 0)
-            {
-                throw new BaseException("SDB_INVALIDARG");
-            }
-            string command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.TEST_CMD + " "
-                             + SequoiadbConstants.COLLECTION;
-            BsonDocument condition = new BsonDocument();
-            BsonDocument dummyObj = new BsonDocument();
+            // get cl from cache
             string fullName = this.Name + "." + collectionName;
-            condition.Add(SequoiadbConstants.FIELD_NAME, fullName);
-            SDBMessage rtn = AdminCommand(command, condition, dummyObj, dummyObj, dummyObj);
-            int flags = rtn.Flags;
-            if (flags != 0)
-            {
-                throw new BaseException(flags, rtn.ErrorObject);
-            }
-
-            sdb.UpsertCache(fullName);
-            return new DBCollection(this, collectionName);
+            if (sdb.FetchCache(fullName))
+                return new DBCollection(this, collectionName);
+            // get cl from database
+            if (IsCollectionExist(collectionName))
+                return new DBCollection(this, collectionName);
+            else
+                throw new BaseException("SDB_DMS_NOTEXIST");
         }
 
         /** \fn bool IsCollectionExist(string colName)
@@ -97,10 +70,6 @@ namespace SequoiaDB
          */
         public bool IsCollectionExist(string colName)
         {
-            if (colName == null || colName.Length == 0)
-            {
-                throw new BaseException("SDB_INVALIDARG");
-            }
             string command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.TEST_CMD + " "
                              + SequoiadbConstants.COLLECTION;
             BsonDocument condition = new BsonDocument();
@@ -120,9 +89,7 @@ namespace SequoiaDB
                 return false;
             }
             else
-            {
-                throw new BaseException(flags, rtn.ErrorObject);
-            }
+                throw new BaseException(flags);
         }
 
         /** \fn DBCollection CreateCollection(string collectionName)
@@ -166,7 +133,7 @@ namespace SequoiaDB
             SDBMessage rtn = AdminCommand(command, cObj, dummyObj, dummyObj, dummyObj);
             int flags = rtn.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
             sdb.UpsertCache(fullName);
             return new DBCollection(this, collectionName);
         }
@@ -184,7 +151,7 @@ namespace SequoiaDB
                 fullName);
             int flags = rtn.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
             sdb.RemoveCache(fullName);
         }
 
@@ -276,192 +243,5 @@ namespace SequoiaDB
             rtnMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnMessage);
             return rtnMessage;
         }
-
-
-       /** \fn void Alter ( BsonDocument options )
-        *  \brief Alter collection space.
-        *  \param [in] options The options of collection space to be changed, e.g. { "PageSize": 4096, "Domain": "mydomain" }.
-        *
-        *          PageSize     : The page size of the collection space
-        *          LobPageSize  : The page size of LOB objects in the collection space
-        *          Domain       : The domain which the collection space belongs to
-        *  \exception SequoiaDB.BaseException
-        *  \exception System.Exception
-        */
-       public void Alter(BsonDocument options)
-       {
-           // check argument
-           if (null == options)
-           {
-               throw new BaseException("SDB_INVALIDARG");
-           }
-           // build a bson to send
-           BsonElement elem;
-           bool flag = false;
-           BsonDocument newObj = new BsonDocument();
-           flag = options.TryGetElement(SequoiadbConstants.FIELD_NAME_ALTER, out elem);
-           if (false == flag)
-           {
-               newObj.Add(SequoiadbConstants.FIELD_NAME, name);
-               newObj.Add(SequoiadbConstants.FIELD_OPTIONS, options);
-           }
-           else
-           {
-               newObj.Add(SequoiadbConstants.FIELD_NAME_ALTER_TYPE, SequoiadbConstants.SDB_ALTER_CS);
-               newObj.Add(SequoiadbConstants.FIELD_NAME_VERSION, SequoiadbConstants.SDB_ALTER_VERSION);
-               newObj.Add(SequoiadbConstants.FIELD_NAME, name);
-
-               // append alters
-               if (elem.Value.IsBsonDocument || elem.Value.IsBsonArray)
-               {
-                   newObj.Add(elem);
-               }
-               else
-               {
-                   throw new BaseException("SDB_INVALIDARG");
-               }
-
-               // append options
-               flag = false;
-               flag = options.TryGetElement(SequoiadbConstants.FIELD_OPTIONS, out elem);
-               if (true == flag)
-               {
-                   if (elem.Value.IsBsonDocument)
-                   {
-                       newObj.Add(elem);
-                   }
-                   else
-                   {
-                       throw new BaseException("SDB_INVALIDARG");
-                   }
-               }
-           }
-
-           // cmd
-           string command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.ALTER_CS;
-           // run command
-           BsonDocument dummyObj = new BsonDocument();
-           SDBMessage rtn = AdminCommand(command, newObj, dummyObj, dummyObj, dummyObj);
-           int flags = rtn.Flags;
-           if (flags != 0)
-           {
-               throw new BaseException(flags, rtn.ErrorObject);
-           }
-       }
-
-       private void _AlterInternal(string taskName, BsonDocument arguments, Boolean allowNullArgs)
-       {
-           if (null == arguments && !allowNullArgs)
-           {
-               throw new BaseException("SDB_INVALIDARG");
-           }
-           BsonDocument alterObj = new BsonDocument();
-           BsonDocument tmpObj = new BsonDocument();
-           tmpObj.Add(SequoiadbConstants.FIELD_NAME, taskName);
-           tmpObj.Add(SequoiadbConstants.FIELD_NAME_ARGS, arguments);
-           alterObj.Add(SequoiadbConstants.FIELD_NAME_ALTER, tmpObj);
-           Alter(alterObj);
-       }
-
-       /** \fn void SetDomain ( BsonDocument options )
-        *  \brief Alter collection space to set domain
-        *  \param [in] options The options of collection space to be changed.
-        *          Domain       : The domain which the collection space belongs to
-        *  \exception SequoiaDB.BaseException
-        *  \exception System.Exception
-        */
-       public void SetDomain(BsonDocument options)
-       {
-           _AlterInternal(SequoiadbConstants.SDB_ALTER_SET_DOMAIN, options, false);
-       }
-
-       /** \fn void RemoveDomain()
-        *  \brief Alter collection space to remove domain
-        *  \exception SequoiaDB.BaseException
-        *  \exception System.Exception
-        */
-       public void RemoveDomain()
-       {
-           _AlterInternal(SequoiadbConstants.SDB_ALTER_REMOVE_DOMAIN, null, true);
-       }
-
-       /** \fn void EnableCapped()
-        *  \brief Alter collection space to enable capped
-        *  \exception SequoiaDB.BaseException
-        *  \exception System.Exception
-        */
-       public void EnableCapped()
-       {
-           _AlterInternal(SequoiadbConstants.SDB_ALTER_ENABLE_CAPPED, null, true);
-       }
-
-       /** \fn void DisableCapped()
-        *  \brief Alter collection space to disable capped
-        *  \exception SequoiaDB.BaseException
-        *  \exception System.Exception
-        */
-       public void DisableCapped()
-       {
-           _AlterInternal(SequoiadbConstants.SDB_ALTER_DISABLE_CAPPED, null, true);
-       }
-
-       /** \fn void SetAttributes( BsonDocument options )
-        *  \brief Alter collection space.
-        *  \param [in] options The options of collection space to be changed, e.g. { "PageSize": 4096, "Domain": "mydomain" }.
-        *
-        *          PageSize     : The page size of the collection space
-        *          LobPageSize  : The page size of LOB objects in the collection space
-        *          Domain       : The domain which the collection space belongs to
-        *  \exception SequoiaDB.BaseException
-        *  \exception System.Exception
-        */
-       public void SetAttributes(BsonDocument options)
-       {
-           _AlterInternal(SequoiadbConstants.SDB_ALTER_SET_ATTRIBUTES, options, false);
-       }
-
-       /** \fn void RenameCollection(String oldName, String newName)
-        *  \brief Rename the collection.
-        *  \param oldName The original name of current collection.
-        *  \param newName The new name of current collection.
-        *  \return void
-        *  \exception SequoiaDB.BaseException
-        *  \exception System.Exception
-        */
-       public void RenameCollection(String oldName, String newName)
-       {
-           RenameCollection(oldName, newName, null);
-       }
-
-       private void RenameCollection(String oldName, String newName, BsonDocument options)
-       {
-           if (oldName == null || oldName.Length == 0)
-           {
-               throw new BaseException("SDB_INVALIDARG");
-           }
-           if (newName == null || newName.Length == 0)
-           {
-               throw new BaseException("SDB_INVALIDARG");
-           }
-
-           // build cmd
-           string command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.CMD_NAME_RENAME_COLLECTION;
-
-           // build object
-           BsonDocument obj = new BsonDocument();
-           obj.Merge(options);
-           obj.Add(SequoiadbConstants.FIELD_NAME_CELLECTIONSPACE, name);
-           obj.Add(SequoiadbConstants.FIELD_NAME_OLDNAME, oldName);
-           obj.Add(SequoiadbConstants.FIELD_NAME_NEWNAME, newName);
-
-           SDBMessage rtn = AdminCommand(command, obj, null, null, null);
-           int flags = rtn.Flags;
-           if (flags != 0)
-           {
-               throw new BaseException(flags, rtn.ErrorObject);
-           }
-           string fullName = this.Name + "." + oldName;
-           sdb.RemoveCache(fullName);
-       }
    }
 }

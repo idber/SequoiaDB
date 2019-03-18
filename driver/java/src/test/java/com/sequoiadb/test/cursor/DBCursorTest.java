@@ -23,16 +23,13 @@ public class DBCursorTest {
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, null, null);
 
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } else
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        // cl
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
@@ -105,7 +102,6 @@ public class DBCursorTest {
             assertFalse(cursor.hasNext());
         }
     */
-    // create name list
     private static List<BSONObject> createNameList(int listSize) {
         List<BSONObject> list = null;
         if (listSize <= 0) {

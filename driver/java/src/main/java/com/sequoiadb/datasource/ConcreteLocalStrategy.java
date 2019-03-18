@@ -1,19 +1,3 @@
-/*
- * Copyright 2018 SequoiaDB Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.sequoiadb.datasource;
 
 import com.sequoiadb.exception.BaseException;
@@ -26,66 +10,68 @@ import java.util.*;
 
 class ConcreteLocalStrategy extends AbstractStrategy {
     private Random _rand = new Random(47);
-    private List<String> _localAddrs = new ArrayList<String>();
-    private List<String> _localIPs = new ArrayList<String>();
+    private List<String> _localCoordAddrs = new ArrayList<String>();
+    private Set<String> _localNetCardIPs = new HashSet<String>();
 
     @Override
-    public void init(List<String> addressList, List<Pair> _idleConnPairs, List<Pair> _usedConnPairs) {
-        super.init(addressList, _idleConnPairs, _usedConnPairs);
-        _localIPs = getNetCardIPs();
-        _localAddrs = getLocalCoordIPs(_addrs, _localIPs);
+    public void init(Set<String> addresses, List<Pair> _idleConnPairs, List<Pair> _usedConnPairs) {
+        super.init(addresses, _idleConnPairs, _usedConnPairs);
+        _localNetCardIPs = getNetCardIPs();
+        Set<String> addrsList2Set = new HashSet<String>();
+        addrsList2Set.addAll(_addrs);
+        _localCoordAddrs.addAll(getLocalCoordIPs(addrsList2Set, _localNetCardIPs));
     }
 
     @Override
     public String getAddress() {
         String addr = null;
-        _addrLock.lock();
+        _lockForAddr.lock();
         try {
-            if (_localAddrs.size() > 0) {
-                addr = _localAddrs.get(_rand.nextInt(_localAddrs.size()));
+            if (_localCoordAddrs.size() >= 1) {
+                addr = _localCoordAddrs.get(_rand.nextInt(_localCoordAddrs.size()));
             } else {
-                if (_addrs.size() > 0) {
+                if (_addrs.size() >= 1) {
                     addr = _addrs.get(_rand.nextInt(_addrs.size()));
                 }
             }
         } finally {
-            _addrLock.unlock();
+            _lockForAddr.unlock();
         }
         return addr;
     }
 
     public void addAddress(String addr) {
         super.addAddress(addr);
-        _addrLock.lock();
+        _lockForAddr.lock();
         try {
-            if (isLocalAddress(addr, _localIPs)) {
-                _localAddrs.add(addr);
+            if (isLocalAddress(addr, _localNetCardIPs)) {
+                _localCoordAddrs.add(addr);
             }
         } finally {
-            _addrLock.unlock();
+            _lockForAddr.unlock();
         }
     }
 
     public List<ConnItem> removeAddress(String addr) {
         List<ConnItem> list = super.removeAddress(addr);
-        _addrLock.lock();
+        _lockForAddr.lock();
         try {
-            if (isLocalAddress(addr, _localIPs)) {
-                _localAddrs.remove(addr);
+            if (isLocalAddress(addr, _localNetCardIPs)) {
+                _localCoordAddrs.remove(addr);
             }
         } finally {
-            _addrLock.unlock();
+            _lockForAddr.unlock();
         }
         return list;
     }
 
-    static List<String> getNetCardIPs() {
-        List<String> localIPs = new ArrayList<String>();
-        localIPs.add("127.0.0.1");
+    static Set<String> getNetCardIPs() {
+        Set<String> localNetCardIPs = new HashSet<String>();
+        localNetCardIPs.add("127.0.0.1");
         try {
             Enumeration<NetworkInterface> netcards = NetworkInterface.getNetworkInterfaces();
             if (null == netcards) {
-                return localIPs;
+                return localNetCardIPs;
             }
             for (NetworkInterface netcard : Collections.list(netcards)) {
                 if (null != netcard.getHardwareAddress()) {
@@ -93,7 +79,10 @@ class ConcreteLocalStrategy extends AbstractStrategy {
                     for (InterfaceAddress interfaceAddress : list) {
                         String addr = interfaceAddress.getAddress().toString();
                         if (addr.indexOf("/") >= 0) {// TODO: check in linux
-                            localIPs.add(addr.split("/")[1]);
+                            String ip = addr.split("/")[1];
+                            if (!localNetCardIPs.contains(ip)) {
+                                localNetCardIPs.add(ip);
+                            }
                         }
                     }
                 }
@@ -101,19 +90,19 @@ class ConcreteLocalStrategy extends AbstractStrategy {
         } catch (SocketException e) {
             throw new BaseException(SDBError.SDB_SYS, "failed to get local ip address");
         }
-        return localIPs;
+        return localNetCardIPs;
     }
 
-    static List<String> getLocalCoordIPs(List<String> urls, List<String> localIPs) {
-        List<String> localAddrs = new ArrayList<String>();
-        if (localIPs.size() > 0) {
+    static Set<String> getLocalCoordIPs(Set<String> urls, Set<String> localNetCardIPs) {
+        Set<String> localCoordAddrs = new HashSet<String>();
+        if (localNetCardIPs.size() > 0) {
             for (String url : urls) {
                 String ip = url.split(":")[0].trim();
-                if (localIPs.contains(ip))
-                    localAddrs.add(url);
+                if (localNetCardIPs.contains(ip))
+                    localCoordAddrs.add(url);
             }
         }
-        return localAddrs;
+        return localCoordAddrs;
     }
 
     /**
@@ -121,8 +110,9 @@ class ConcreteLocalStrategy extends AbstractStrategy {
      * @fn boolean isLocalAddress(String url)
      * @bref Judge a coord address is in local or not
      */
-    static boolean isLocalAddress(String url, List<String> localIPs) {
+    static boolean isLocalAddress(String url, Set<String> localIPs) {
         return localIPs.contains(url.split(":")[0].trim());
     }
+
 
 }

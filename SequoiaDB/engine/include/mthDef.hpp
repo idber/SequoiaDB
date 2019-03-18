@@ -74,7 +74,6 @@ namespace engine
    #define MTH_S_ATTR_DEFAULT_BIT        4
    #define MTH_S_ATTR_PROJECTION_BIT     8
 
-   /// attribute value
    #define MTH_S_ATTR_NONE               0
    #define MTH_S_ATTR_EXCLUDE            ( MTH_S_ATTR_VALID_BIT )
    #define MTH_S_ATTR_INCLUDE            ( MTH_S_ATTR_VALID_BIT | MTH_S_ATTR_INCLUDE_BIT )

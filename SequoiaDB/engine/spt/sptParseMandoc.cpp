@@ -6,7 +6,6 @@ SDB_EXTERN_C_START
 #include "parseMandoc.h"
 SDB_EXTERN_C_END
 
-// class parseMandoc
 _sptParseMandoc& _sptParseMandoc::getInstance()
 {
    static _sptParseMandoc _instance ;

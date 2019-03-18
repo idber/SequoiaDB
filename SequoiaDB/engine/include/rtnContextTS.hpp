@@ -43,7 +43,6 @@
 
 namespace engine
 {
-   // Context for text search data.
    class _rtnContextTS : public rtnContextMain
    {
       DECLARE_RTN_CTX_AUTO_REGISTER()
@@ -85,7 +84,6 @@ namespace engine
          pmdRemoteSessionSite *_remoteSessionSite ;
          pmdRemoteSession     *_remoteSession ;
          SINT64               _subCtxID ;    // Context to fetch data from local
-                                             // after get new query from ES.
          UINT64               _remoteSessionID ;
          rtnSubCLContext      *_subContext ;
    } ;

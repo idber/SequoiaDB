@@ -51,8 +51,6 @@ gtest_dir = join(engine_dir,'gtest')
 ncursesinclude_dir = join(engine_dir, 'ncurses/include')
 driver_dir = join(db_dir,'driver')
 java_dir = join(root_dir,'java')
-fuse_dir = join(thirdparty_dir, 'fuse')
-fuse_lib_dir = join(fuse_dir, 'lib')
 # --- options ----
 
 options = {}
@@ -481,7 +479,7 @@ elif guess_os == "win32":
         hdfsJniMdPath = join(java_dir,"jdk_win64/include/win32")
 
 env.Append(
-CPPPATH=[join(engine_dir,'include'),join(engine_dir,'client'),join(ssl_dir,'include'),join(lz4_dir,'include'),join(zlib_dir,'./'),join(snappy_dir,'include'),join(gtest_dir,'include'), pcre_dir, boost_dir, ssh2_dir, hdfsJniPath, hdfsJniMdPath] )
+CPPPATH=[join(engine_dir,'include'),join(engine_dir,'client'),join(ssl_dir,'include'),join(lz4_dir,'include'),join(zlib_dir,'./'),join(snappy_dir,'include'),join(gtest_dir,'include'),pcre_dir, boost_dir, ssh2_dir, hdfsJniPath, hdfsJniMdPath] )
 
 env.Append( CPPDEFINES=["__STDC_LIMIT_MACROS", "HAVE_CONFIG_H", "BOOST_THREAD_HAS_CONDATTR_SET_CLOCK_MONOTONIC"] )
 env.Append( CPPDEFINES=[ "SDB_DLL_BUILD" ] )
@@ -499,7 +497,7 @@ if guess_os == "linux":
     env.Append( CPPDEFINES=[ "_GNU_SOURCE" ] )
     # 64 bit linux
     if guess_arch == "ia64":
-        linux64 = True        
+        linux64 = True
         nixLibPrefix = "lib64"
         boost_lib_dir = join(boost_lib_dir,'linux64')
         env.Append( EXTRALIBPATH="/lib64" )
@@ -525,8 +523,6 @@ if guess_os == "linux":
         zlib_lib_dir_platform = join(zlib_lib_dir, 'linux64')
         lz4_lib_dir_platform = join(lz4_lib_dir, 'linux64')
         snappy_lib_dir_platform = join(snappy_lib_dir, 'linux64')
-        fuse_lib = join(fuse_lib_dir, 'libfuse.a')        	        
-        Export("fuse_lib")
     # in case for 32 bit linux or compiling 32 bit in 64 env
     elif guess_arch == "ia32":
         linux64 = False
@@ -741,8 +737,6 @@ elif guess_os == "win32":
     # UNICODE
     env.Append( CPPDEFINES=[ "_UNICODE" ] )
     env.Append( CPPDEFINES=[ "UNICODE" ] )
-    # warning macro
-    env.Append( CPPDEFINES=[ "_SCL_SECURE_NO_WARNINGS" ] )
     # find windows SDK
     winSDKHome = findVersion( [ "C:/Program Files/Microsoft SDKs/Windows/", "C:/Program Files (x86)/Microsoft SDKs/Windows/" ] ,
                               [ "v7.1", "v7.0A", "v7.0", "v6.1", "v6.0a", "v6.0" ] )
@@ -750,11 +744,9 @@ elif guess_os == "win32":
 
     env.Append( EXTRACPPPATH=[ winSDKHome + "/Include" ] )
 
-    env.Append( EXTRACPPPATH=[ "C:/Program Files (x86)/Microsoft Visual Studio 10.0/VC/include" ] )
-
     env.Append( CPPFLAGS=" /EHsc /W3 " )
-    # disable warning
-    env.Append( CPPFLAGS=" /wd4355 /wd4800 /wd4267 /wd4244 /wd4200 /wd4251 /wd4275 /wd4273 " )
+
+    env.Append( CPPFLAGS=" /wd4355 /wd4800 /wd4267 /wd4244 /wd4200 " )
 
     env.Append( CPPDEFINES=["_CONSOLE","_CRT_SECURE_NO_WARNINGS","PSAPI_VERSION=1","_CRT_RAND_S" ] )
 
@@ -775,7 +767,6 @@ elif guess_os == "win32":
 
     if guess_arch == "ia64":
         env.Append( EXTRALIBPATH=[ winSDKHome + "/Lib/x64" ] )
-        env.Append( EXTRALIBPATH=[ "C:/Program Files (x86)/Microsoft Visual Studio 10.0/VC/lib/amd64" ] )
     else:
         env.Append( EXTRALIBPATH=[ winSDKHome + "/Lib" ] )
 
@@ -1002,14 +993,6 @@ if cov:
    fapEnv.Append( CPPFLAGS=" -fprofile-arcs -ftest-coverage " )
    fapEnv.Append( LINKFLAGS=" -fprofile-arcs " )
    
-   
-if linux64:
-    toolEnv.Append( LIBS=['fuse'] )
-    toolEnv.Append( CPPDEFINES="_FILE_OFFSET_BITS=64" )        
-    toolEnv.Append( CPPPATH = join(fuse_dir, "include") )
-    toolEnv.Append( EXTRALIBPATH=[fuse_lib_dir] )   
-    toolEnv.Append( LIBPATH=['$EXTRALIBPATH'] )  
-
 # The following symbols are exported for use in subordinate SConscript files.
 # Ideally, the SConscript files would be purely declarative.  They would only
 # import build environment objects, and would contain few or no conditional
@@ -1028,7 +1011,7 @@ Export("clientCppEnv")
 Export("clientCEnv")
 Export("installSetup getSysInfo")
 Export("usesm")
-Export("windows linux nix aix linux64")
+Export("windows linux nix aix")
 if usesm:
    Export("smlib_file")
 Export("ssllib_file")
@@ -1046,6 +1029,7 @@ Export("hasSSL")
 Export("release")
 Export("debugBuild")
 Export("cov")
+
 # Generating Versioning information
 # In order to change the file location, we have to modify both win32 and linux
 # ossVer_Autogen.h is NOT in SVN, we have to generate this file by scons before
@@ -1058,11 +1042,11 @@ Export("cov")
 if not os.path.isfile ( "gitbuild" ):
    if guess_os == "win32":
       # In windows platform, we take advantage of SubWCRev
-      os.system ("SubWCRev . misc/autogen/ver_conf.h.in misc/autogen/ver_conf.h")
+      os.system ("SubWCRev . misc/autogen/ossVer.tmp SequoiaDB/engine/include/ossVer_Autogen.h")
    else:
       # In NIX platform, we use svn and sed to send to ossVer_Autogen.h
-      svnVer = os.popen( "svn info | grep Revision | awk '{print $2}'" ).read().replace("\n","")
-      os.system( "sed 's/\$WCREV\$/" + svnVer + "/g' misc/autogen/ver_conf.h.in > misc/autogen/ver_conf.h" )
+      os.system("sed \"s/WCREV/$(svn info | grep Revision | awk '{print $2}')/g\" misc/autogen/ossVer.tmp > oss.tmp")
+      os.system("sed 's/\$//g' oss.tmp > SequoiaDB/engine/include/ossVer_Autogen.h")
 
 if not has_option("noautogen"):
    language = get_option ( "language" )
@@ -1096,6 +1080,12 @@ if hasDoxygen:
 
 if hasEngine:
    env.SConscript( 'SequoiaDB/SConscript', variant_dir=variantDir, duplicate=False )
+
+# Convert javascript files to a cpp file
+print 'Convert js files to cpp'
+sys.path.append(join(root_dir, 'misc'))
+import jsToCpp
+jsToCpp.jsToCpp(engine_dir)
 
 if hasClient:
    if not xlc: # xlc doesn't support #pragma once, so there are compiling errors

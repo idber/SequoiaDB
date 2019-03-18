@@ -13,13 +13,6 @@ import org.junit.*;
 
 import static org.junit.Assert.assertEquals;
 
-//import static org.junit.Assert.assertTrue;
-//import java.util.ArrayList;
-//import java.util.List;
-//import java.util.Random;
-//import com.sequoiadb.base.DBQuery;
-//import com.sequoiadb.exception.BaseException;
-//import com.sequoiadb.testdata.SDBTestHelper;
 
 public class CLSelectQuery {
     private static Sequoiadb sdb;
@@ -38,19 +31,15 @@ public class CLSelectQuery {
 
     @Before
     public void setUp() throws Exception {
-        // sdb connection
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
-        // collection space
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } else
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        // collection
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
-        // insert
         BSONObject obj = new BasicBSONObject();
         obj.put("��Ʒ���", 1000001);
         BSONObject arr = new BasicBSONList();
@@ -118,7 +107,6 @@ public class CLSelectQuery {
             byte[] bytes = cursor.getNextRaw();
             obj = SDBTestHelper.byteArrayToBSONObject(bytes);
             System.out.println(obj.toString());
-            //cursor.getNext();
             i++;
         }
         assertEquals(1, i);
@@ -143,7 +131,6 @@ public class CLSelectQuery {
             byte[] bytes = cursor.getNextRaw();
             obj = SDBTestHelper.byteArrayToBSONObject(bytes);
             System.out.println(obj.toString());
-            //cursor.getNext();
             i++;
         }
         assertEquals(1, i);
@@ -168,7 +155,6 @@ public class CLSelectQuery {
             byte[] bytes = cursor.getNextRaw();
             obj = SDBTestHelper.byteArrayToBSONObject(bytes);
             System.out.println(obj.toString());
-            //cursor.getNext();
             i++;
         }
         assertEquals(1, i);
@@ -217,7 +203,6 @@ public class CLSelectQuery {
             byte[] bytes = cursor.getNextRaw();
             obj = SDBTestHelper.byteArrayToBSONObject(bytes);
             System.out.println(obj.toString());
-            //System.out.println(obj.get("��ɫ").toString());
             i++;
         }
         assertEquals(1, i);
@@ -240,7 +225,6 @@ public class CLSelectQuery {
             byte[] bytes = cursor.getNextRaw();
             obj = SDBTestHelper.byteArrayToBSONObject(bytes);
             System.out.println(obj.toString());
-            //System.out.println(obj.get("��ɫ").toString());
             i++;
         }
         assertEquals(1, i);

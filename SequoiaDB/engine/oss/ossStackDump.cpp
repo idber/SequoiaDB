@@ -54,7 +54,6 @@
 #include <sys/time.h>
 #include <boost/thread/thread.hpp>
 
-// Restore default signal handler, and setup for generation of a core file.
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSRSTSYSSIG, "ossRestoreSystemSignal" )
 void ossRestoreSystemSignal( const INT32 sigNum,
                              const BOOLEAN isCoreNeeded,
@@ -63,7 +62,6 @@ void ossRestoreSystemSignal( const INT32 sigNum,
    PD_TRACE_ENTRY ( SDB_OSSRSTSYSSIG );
    struct sigaction action ;
    struct rlimit rlim = { 0 } ;
-   //rlim_t previous_rlim_max = 0 ;
 
    if ( ! isCoreNeeded )
    {
@@ -73,18 +71,14 @@ void ossRestoreSystemSignal( const INT32 sigNum,
    }
    else if ( 0 == getrlimit( RLIMIT_CORE, &rlim ) )
    {
-      //previous_rlim_max = rlim.rlim_max ;
 
-      // full core dump
       rlim.rlim_max = RLIM_INFINITY ;
       rlim.rlim_cur = rlim.rlim_max ;
       setrlimit( RLIMIT_CORE, &rlim ) ;
    }
 
-   // Set the core dump file here.
    prctl(PR_SET_DUMPABLE, 1, 0, 0, 0 ) ;
 
-   // need to change to current working/dump directory
    if ( NULL != dumpDir )
    {
       chdir( dumpDir ) ;
@@ -108,7 +102,6 @@ void ossRestoreSystemSignal( const INT32 sigNum,
 
    sigaction(sigNum, &action, NULL) ;
 
-   // SIGABRT will not be re-sent when return, so manually re-raise.
    if ( SIGABRT == sigNum )
    {
       raise( SIGABRT ) ;
@@ -119,8 +112,6 @@ void ossRestoreSystemSignal( const INT32 sigNum,
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSSIGHNDABT, "ossSignalHandlerAbort" )
 void ossSignalHandlerAbort( OSS_HANDPARMS, const CHAR *dumpDir )
 {
-   // DO NOT GENERATE CORE FILE AND RESTORE SYSTEM SIGNAL IF IT'S STACK DUMP
-   // SIGNAL
    PD_TRACE_ENTRY ( SDB_OSSSIGHNDABT );
    if ( signum != OSS_STACK_DUMP_SIGNAL &&
         signum != OSS_STACK_DUMP_SIGNAL_INTERNAL )
@@ -155,23 +146,18 @@ void ossFuncAddrToName( void * address,
          rc = dladdr( address, &dlip ) ;
          if ( rc )
          {
-            // dli_sname contains the name of nearest symbol
-            // with address lower than the input address
             symbol = dlip.dli_sname ;
             if ( NULL == symbol )
             {
                symbol = emptyStr ;
             }
 
-            // dli_fname is the pathname of shared object
-            // that contains the input address
             object = dlip.dli_fname ;
             if ( NULL == object )
             {
                object = emptyStr ;
             }
 
-            // dli_saddr is the exact address of symbol named in dli_sname
             if ( dlip.dli_saddr )
             {
                instruction_offset = (uintptr_t)address -
@@ -184,11 +170,6 @@ void ossFuncAddrToName( void * address,
             }
             else
             {
-               // dladdr() could not find the symbol address, so as the symbol
-               // name. Print the address and the address( dli_fbase ) that
-               // object was loaded. If the dli_fbase is not zero, we may
-               // use ( address - dli_fbase ) along with nm command to figure
-               // out the symbol and the line of code manually.
                trapFile->fWrite( "address: 0x"OSS_PRIXPTR
                                  " ; dli_fbase: 0x"OSS_PRIXPTR
                                  " ; offset: 0x"OSS_PRIXPTR
@@ -201,7 +182,6 @@ void ossFuncAddrToName( void * address,
          }
          else
          {
-            // dladdr returns error
             trapFile->fWrite( "address: 0x"OSS_PRIXPTR OSS_NEWLINE, address ) ;
          }
       }
@@ -218,7 +198,6 @@ void ossDumpSystemTime( ossPrimitiveFileOp * trapFile )
    struct timezone tz ;
    time_t tt ;
 
-   // Avoid catching signal to cause deadlock
    ossSignalShield sigShield ;
    sigShield.doNothing() ;
 
@@ -534,20 +513,14 @@ void ossDumpStackTrace( OSS_HANDPARMS, ossPrimitiveFileOp * trapFile )
 
    if ( ( NULL != trapFile ) && trapFile->isValid() )
    {
-      // Dump date
       ossDumpSystemTime ( trapFile ) ;
-      // Dump database release
       ossDumpDatabaseInfo ( trapFile ) ;
-      // Dump system info
       ossDumpSystemInfo( trapFile ) ;
 
-      // Dump signal info
       ossDumpSigInfo( sigcode, trapFile  ) ;
 
-      // Dump register info
       ossDumpRegistersInfo( ( ossSignalContext )scp, trapFile ) ;
 
-      // Dump the instructions at the point of failure.
       trapFile->Write( OSS_NEWLINE "Point of failure:"OSS_NEWLINE ) ;
       if ( NULL == sigcode )
       {
@@ -559,7 +532,6 @@ void ossDumpStackTrace( OSS_HANDPARMS, ossPrimitiveFileOp * trapFile )
       {
          if ( sigcode->si_addr != rip )
          {
-            // point of failure disassembly info
             trapFile->fWrite( "0x"OSS_PRIXPTR " ", (UINT32_64)rip ) ;
             ossFuncAddrToName( (void *)rip, trapFile ) ;
             trapFile->fWrite( OSS_NEWLINE"0x"OSS_PRIXPTR " : %s",
@@ -569,8 +541,6 @@ void ossDumpStackTrace( OSS_HANDPARMS, ossPrimitiveFileOp * trapFile )
                               ossMachineCode( *((UINT32*)( rip+4 )),
                                               mCode ) ) ;
 
-            // Dump stack frames from the point of failure to the bottom of
-            // the stack ( actually OSS_MAX_BACKTRACE_FRAMES_SUPPORTED maximum )
             trapFile->Write(
                OSS_NEWLINE"StackTrace:"OSS_NEWLINE
                "-----Address----- ----Function name + Offset---"OSS_NEWLINE);
@@ -583,15 +553,9 @@ void ossDumpStackTrace( OSS_HANDPARMS, ossPrimitiveFileOp * trapFile )
          }
          else
          {
-            // the signal address ( where falut occurred ) is equal to
-            // return address ( rip ) may imply the signal is caused
-            // by a call through a bad function pointer, or corrupted
-            // return address on the stack.
 
-            // attempt to use rsp here.
             if ( dladdr( (void *)rsp, &dlip ) )
             {
-               // point of failure disassembly info
                trapFile->fWrite( OSS_NEWLINE"0x"OSS_PRIXPTR " : %s",
                                  rsp,
                                  ossMachineCode( *((UINT32*)rsp),
@@ -614,8 +578,6 @@ void ossDumpStackTrace( OSS_HANDPARMS, ossPrimitiveFileOp * trapFile )
                                 "Unable to provide stack trace info due to "
                                 "above reason"OSS_NEWLINE ) ;
             }
-            // another thought could be dump raw stack info for
-            // advanced users reference.
          }
       }
    }
@@ -667,16 +629,12 @@ void ossDumpStackTrace( OSS_HANDPARMS, ossPrimitiveFileOp * trapFile )
 
    if ( ( NULL != trapFile ) && trapFile->isValid() )
    {
-      // Dump system info
       ossDumpSystemInfo( trapFile ) ;
 
-      // Dump signal info
       ossDumpSigInfo( sigcode, trapFile  ) ;
 
-      // Dump register info
       ossDumpRegistersInfo( ( ossSignalContext )scp, trapFile ) ;
 
-      // Dump the instructions where trap occurred
       trapFile->Write( OSS_NEWLINE"Point of failure:"OSS_NEWLINE ) ;
       if ( 0 == sigcode )
       {
@@ -695,8 +653,6 @@ void ossDumpStackTrace( OSS_HANDPARMS, ossPrimitiveFileOp * trapFile )
                               ossMachineCode( *eip, mCode ) ) ;
             trapFile->fWrite( "%s"OSS_NEWLINE, ossMachineCode( *(eip+1 ), mCode ) ) ;
 
-            // Dump stack frames from the point of failure to the bottom of
-            // the stack ( actually OSS_MAX_BACKTRACE_FRAMES_SUPPORTED maximum )
             trapFile->Write(
                OSS_NEWLINE"StackTrace:"OSS_NEWLINE
                "-----Address----- ----Function name + Offset---"OSS_NEWLINE) ;
@@ -853,20 +809,14 @@ void ossDumpStackTrace( OSS_HANDPARMS, ossPrimitiveFileOp * trapFile )
 
    if ( ( NULL != trapFile ) && trapFile->isValid() )
    {
-      // Dump date
       ossDumpSystemTime ( trapFile ) ;
-      // Dump database release
       ossDumpDatabaseInfo ( trapFile ) ;
-      // Dump system info
       ossDumpSystemInfo( trapFile ) ;
 
-      // Dump signal info
       ossDumpSigInfo( sigcode, trapFile  ) ;
 
-      // Dump register info
       ossDumpRegistersInfo( ( ossSignalContext )scp, trapFile ) ;
 
-      // Dump the instructions at the point of failure.
       trapFile->Write( OSS_NEWLINE "Point of failure:"OSS_NEWLINE ) ;
       if ( NULL == sigcode )
       {
@@ -878,7 +828,6 @@ void ossDumpStackTrace( OSS_HANDPARMS, ossPrimitiveFileOp * trapFile )
       {
          if ( sigcode->si_addr != rip )
          {
-            // point of failure disassembly info
             trapFile->fWrite( "0x"OSS_PRIXPTR " ", (UINT32_64)rip ) ;
             ossFuncAddrToName( (void *)rip, trapFile ) ;
             trapFile->fWrite( OSS_NEWLINE"0x"OSS_PRIXPTR " : %s",
@@ -888,8 +837,6 @@ void ossDumpStackTrace( OSS_HANDPARMS, ossPrimitiveFileOp * trapFile )
                               ossMachineCode( *((UINT32*)( rip+4 )),
                                               mCode ) ) ;
 
-            // Dump stack frames from the point of failure to the bottom of
-            // the stack ( actually OSS_MAX_BACKTRACE_FRAMES_SUPPORTED maximum )
             trapFile->Write(
                OSS_NEWLINE"StackTrace:"OSS_NEWLINE
                "-----Address----- ----Function name + Offset---"OSS_NEWLINE);
@@ -902,15 +849,9 @@ void ossDumpStackTrace( OSS_HANDPARMS, ossPrimitiveFileOp * trapFile )
          }
          else
          {
-            // the signal address ( where falut occurred ) is equal to
-            // return address ( rip ) may imply the signal is caused
-            // by a call through a bad function pointer, or corrupted
-            // return address on the stack.
 
-            // attempt to use rsp here.
             if ( dladdr( (void *)rsp, &dlip ) )
             {
-               // point of failure disassembly info
                trapFile->fWrite( OSS_NEWLINE"0x"OSS_PRIXPTR " : %s",
                                  rsp,
                                  ossMachineCode( *((UINT32*)rsp),
@@ -933,8 +874,6 @@ void ossDumpStackTrace( OSS_HANDPARMS, ossPrimitiveFileOp * trapFile )
                                 "Unable to provide stack trace info due to "
                                 "above reason"OSS_NEWLINE ) ;
             }
-            // another thought could be dump raw stack info for
-            // advanced users reference.
          }
       }
    }
@@ -957,12 +896,6 @@ void ossDumpStackTrace( OSS_HANDPARMS, ossPrimitiveFileOp * trapFile )
    #define OSS_THIS_IMAGE_MACHINE_TYPE IMAGE_FILE_MACHINE_I386
 #endif
 
-// DbgHelp functions, such as SymInitialize, are single threaded.
-// Therefore, calls from more than one thread to this function will likely
-// result in unexpected behavior or memory corruption. To avoid this,
-// call SymInitialize only when your process starts and SymCleanup only
-// when your process ends. It is not necessary for each thread in the process
-// to call these functions.
 enum SYS_MUTEX_TYPE
 {
    _SymInitialize = 0,
@@ -979,7 +912,6 @@ HANDLE ossGetSysMutexHandle( SYS_MUTEX_TYPE type )
    static BOOLEAN s_init = FALSE ;
    static ossSpinXLatch s_latch ;
 
-   // init sys mutex
    if ( FALSE == s_init )
    {
       s_latch.get() ;
@@ -1005,7 +937,6 @@ HANDLE ossGetSysMutexHandle( SYS_MUTEX_TYPE type )
       }
       s_latch.release() ;
    }
-   // get handle
    if ( type >= _SymInitialize && type < _NumOfFunctions )
    {
       return s_sysMutexes[ (INT32)type ] ;
@@ -1081,14 +1012,6 @@ UINT32 ossWalkStackEx( LPEXCEPTION_POINTERS lpEP,
       }
       else
       {
-         // At windows platform( 32bit ), exceptions are handled in a separate
-         // context with a smaller stack. The real context and exception record
-         // of the failure are passed to the exception handler as an input
-         // parameter. Microsoft switched the context of the thread
-         // and stored the exception context pointer inside the exception
-         // pointer (the param that was passed to our exception handler ).
-         // So, we can get the call chain for the exception by access
-         // the exception context pointer and walk through the context record.
       #ifndef _WIN64
          stackFrame.AddrPC.Offset    = lpEP->ContextRecord->Eip ;
          stackFrame.AddrPC.Mode      = AddrModeFlat ;

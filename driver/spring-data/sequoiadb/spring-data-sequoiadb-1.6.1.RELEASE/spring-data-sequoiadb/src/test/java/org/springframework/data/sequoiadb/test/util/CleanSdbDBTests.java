@@ -43,15 +43,12 @@ public class CleanSdbDBTests {
 
 	private CleanSequoiadb cleaner;
 
-	// JUnit internals
 	private @Mock Statement baseStatementMock;
 	private @Mock Description descriptionMock;
 
-	// SdbClient in use
 	private @Mock
     SdbClient sdbClientMock;
 
-	// Some Mock DBs
 	private @Mock DB db1mock, db2mock;
 	private @Mock DBCollection db1collection1mock, db1collection2mock, db2collection1mock;
 
@@ -59,16 +56,13 @@ public class CleanSdbDBTests {
 	@Before
 	public void setUp() {
 
-		// DB setup
 		when(sdbClientMock.getDatabaseNames()).thenReturn(Arrays.asList("admin", "db1", "db2"));
 		when(sdbClientMock.getDB(eq("db1"))).thenReturn(db1mock);
 		when(sdbClientMock.getDB(eq("db2"))).thenReturn(db2mock);
 
-		// collections have to exist
 		when(db1mock.collectionExists(anyString())).thenReturn(true);
 		when(db2mock.collectionExists(anyString())).thenReturn(true);
 
-		// init collection names per database
 		when(db1mock.getCollectionNames()).thenReturn(new HashSet<String>() {
 			{
 				add("db1collection1");
@@ -77,7 +71,6 @@ public class CleanSdbDBTests {
 		});
 		when(db2mock.getCollectionNames()).thenReturn(Collections.singleton("db2collection1"));
 
-		// return collections according to names
 		when(db1mock.getCollectionFromString(eq("db1collection1"))).thenReturn(db1collection1mock);
 		when(db1mock.getCollectionFromString(eq("db1collection2"))).thenReturn(db1collection2mock);
 		when(db2mock.getCollectionFromString(eq("db2collection1"))).thenReturn(db2collection1mock);

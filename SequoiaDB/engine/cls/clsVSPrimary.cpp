@@ -59,7 +59,6 @@ namespace engine
    INT32 _clsVSPrimary::handleInput( const MsgHeader *header,
                                      INT32 &next )
    {
-      /// primary do not accept any request
       next = id() ;
       return SDB_OK ;
    }
@@ -95,7 +94,6 @@ namespace engine
    {
       _MsgCatPrimaryChange msg ;
 
-      // primary change before
       sdbGetClsCB()->ntyPrimaryChange( FALSE, SDB_EVT_OCCUR_BEFORE ) ;
 
       _info()->mtx.lock_w() ;
@@ -108,7 +106,6 @@ namespace engine
       msg.oldPrimary = _info()->local ;
       _info()->mtx.release_w() ;
 
-      // primary change after
       sdbGetClsCB()->ntyPrimaryChange( FALSE, SDB_EVT_OCCUR_AFTER ) ;
 
       sdbGetReplCB()->callCatalog( (MsgHeader *)&msg ) ;
@@ -122,7 +119,6 @@ namespace engine
       next = id() ;
       _MsgCatPrimaryChange msg ;
 
-      // before primary
       sdbGetClsCB()->ntyPrimaryChange( TRUE, SDB_EVT_OCCUR_BEFORE ) ;
 
       _info()->mtx.lock_w() ;
@@ -136,7 +132,6 @@ namespace engine
 
       PD_LOG ( PDEVENT, "Change to Primary" ) ;
 
-      // after primary
       sdbGetClsCB()->ntyPrimaryChange( TRUE, SDB_EVT_OCCUR_AFTER ) ;
 
       sdbGetReplCB()->callCatalog( (MsgHeader *)&msg,

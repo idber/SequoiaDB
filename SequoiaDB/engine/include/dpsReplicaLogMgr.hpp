@@ -55,10 +55,7 @@ using namespace std ;
 namespace engine
 {
 
-   // we ALWAYS search for MEM first, because we may have LSN stay in buffer
-   // but not on disk
    #define  DPS_SEARCH_MEM       0x01
-   // indicating also search in file
    #define  DPS_SEARCH_FILE      0x10
    #define  DPS_SEARCH_ALL       (DPS_SEARCH_MEM|DPS_SEARCH_FILE)
 
@@ -185,9 +182,7 @@ namespace engine
 
       INT32 merge( _dpsMergeBlock &block ) ;
 
-      // first step: allocate pages and product lsn
       INT32 preparePages ( dpsMergeInfo &info ) ;
-      // secondary step: write data to pages
       void  writeData ( dpsMergeInfo &info ) ;
 
       INT32 search( const DPS_LSN &minLsn, _dpsMessageBlock *mb,
@@ -197,13 +192,10 @@ namespace engine
       INT32 tearDown();
       INT32 flushAll() ;
 
-      /// committedLsn should be allocated by user
       INT32 commit( BOOLEAN deeply, DPS_LSN *committedLsn ) ;
 
       INT32 checkSyncControl( UINT32 reqLen, _pmdEDUCB *cb ) ;
 
-      /// any other interfaces should not be called
-      /// when this interface is beging called.
       INT32 move( const DPS_LSN_OFFSET &offset,
                   const DPS_LSN_VER &version ) ;
 
@@ -251,7 +243,6 @@ namespace engine
 
       DPS_LSN_OFFSET calcFirstPhysicalLSNOfFile( UINT32 logicalFileId )
       {
-         // file id start from 0
          return ((UINT64)logicalFileId) * getLogFileSz () ;
       }
 

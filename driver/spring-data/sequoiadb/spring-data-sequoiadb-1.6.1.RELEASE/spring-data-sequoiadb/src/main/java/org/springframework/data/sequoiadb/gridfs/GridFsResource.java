@@ -37,7 +37,6 @@ public class GridFsResource extends InputStreamResource {
 	 * @param file must not be {@literal null}.
 	 */
 	public GridFsResource(GridFSDBFile file) {
-//		super(file.getInputStream());
 		super(null);
 		this.file = file;
 		throw new UnsupportedOperationException("not supported!");

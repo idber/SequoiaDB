@@ -64,14 +64,12 @@ namespace engine
                                 const MsgHeader *pReply,
                                 BOOLEAN isPending )
    {
-      // do nothing
    }
 
    INT32 _rtnRSHandler::onSendConnect( _pmdSubSession *pSub,
                                        const MsgHeader *pReq,
                                        BOOLEAN isFirst )
    {
-      // No process such as authority needs to be don. So, do nothing.
       return SDB_OK ;
    }
 
@@ -248,7 +246,6 @@ namespace engine
       pmdRemoteSessionSite* site = NULL ;
       pmdRemoteSession* session = NULL ;
 
-      // Register the current edu in remote session manager.
       site = _rsMgr.registerEDU( cb ) ;
       session = site->addSession( -1, &_rsHandler ) ;
       if ( !session )
@@ -352,7 +349,6 @@ namespace engine
          goto error ;
       }
 
-      // If it's the last session in the session site, unregister.
       if ( 1 == site->sessionCount() )
       {
          _rsMgr.unregEUD( cb ) ;

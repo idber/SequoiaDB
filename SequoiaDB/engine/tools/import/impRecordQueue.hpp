@@ -140,7 +140,6 @@ namespace import
          _bsonSize += bson_size(obj) + sizeof(bson);
       }
 
-      // return the bson* in position id
       inline bson* get(INT32 id)
       {
          SDB_ASSERT(NULL != _array, "already inited");
@@ -149,7 +148,6 @@ namespace import
          return _array[id];
       }
 
-      // return the bson* in position id and erase it
       inline bson* pop(INT32 id)
       {
          SDB_ASSERT(NULL != _array, "already inited");

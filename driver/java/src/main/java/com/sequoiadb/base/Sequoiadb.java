@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 SequoiaDB Inc.
+ * Copyright 2017 SequoiaDB Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,7 +52,6 @@ public class Sequoiadb implements Closeable {
     private long requestId;
     private long lastUseTime;
 
-    // cache cs/cl name
     private Map<String, Long> nameCache = new HashMap<String, Long>();
     private static boolean enableCache = true;
     private static long cacheInterval = 300 * 1000;
@@ -99,9 +98,6 @@ public class Sequoiadb implements Closeable {
     public final static int SDB_LIST_TASKS = 10;
     public final static int SDB_LIST_TRANSACTIONS = 11;
     public final static int SDB_LIST_TRANSACTIONS_CURRENT = 12;
-    public final static int SDB_LIST_SVCTASKS = 14;
-    public final static int SDB_LIST_SEQUENCES = 15;
-    public final static int SDB_LIST_USERS = 16;
     public final static int SDB_LIST_CL_IN_DOMAIN = 129;
     public final static int SDB_LIST_CS_IN_DOMAIN = 130;
 
@@ -118,10 +114,6 @@ public class Sequoiadb implements Closeable {
     public final static int SDB_SNAP_TRANSACTIONS_CURRENT = 10;
     public final static int SDB_SNAP_ACCESSPLANS = 11;
     public final static int SDB_SNAP_HEALTH = 12;
-    public final static int SDB_SNAP_CONFIGS = 13;
-    public final static int SDB_SNAP_SVCTASKS = 14;
-    public final static int SDB_SNAP_SEQUENCES = 15;
-
 
     public final static int FMP_FUNC_TYPE_INVALID = -1;
     public final static int FMP_FUNC_TYPE_JS = 0;
@@ -138,8 +130,6 @@ public class Sequoiadb implements Closeable {
             nameCache.put(name, current);
             String[] arr = name.split("\\.");
             if (arr.length > 1) {
-                // extract cs name from cl full name and that
-                // upsert cs name
                 nameCache.put(arr[0], current);
             }
         }
@@ -150,14 +140,7 @@ public class Sequoiadb implements Closeable {
             return;
         String[] arr = name.split("\\.");
         if (arr.length == 1) {
-            // when we come here, "name" is a cs name, so
-            // we are going to remove the cache of the cs
-            // and the cache of the cls
 
-            // remove cs cache
-            // name may be "foo.", it's a invalid name,
-            // we don't want to remove anything,
-            // so we use "name" but not "arr[0]" here
             nameCache.remove(name);
             Set<String> keySet = nameCache.keySet();
             List<String> list = new ArrayList<String>();
@@ -171,7 +154,6 @@ public class Sequoiadb implements Closeable {
                     nameCache.remove(str);
             }
         } else {
-            // we are going to remove the cache of the cl
             nameCache.remove(name);
         }
     }
@@ -180,7 +162,7 @@ public class Sequoiadb implements Closeable {
         if (enableCache) {
             if (nameCache.containsKey(name)) {
                 long lastUpdatedTime = nameCache.get(name);
-                if ((System.currentTimeMillis() - lastUpdatedTime) >= cacheInterval) {
+                if ((System.currentTimeMillis() - lastUpdatedTime) > cacheInterval) {
                     nameCache.remove(name);
                     return false;
                 } else {
@@ -223,44 +205,10 @@ public class Sequoiadb implements Closeable {
     }
 
     /**
-     * @return IP address of SequoiaDB server.
-     */
-    public String getIP() {
-        return socketAddress.getAddress().getHostAddress();
-    }
-
-    /**
      * @return Service port of SequoiaDB server.
      */
     public int getPort() {
         return socketAddress.getPort();
-    }
-
-    /**
-     * @return the node name of current coord node in format of "ip:port".
-     */
-    public String getNodeName() {
-        return getIP() + ":" + getPort();
-    }
-
-    /**
-     * @return the socket address of remote host.
-     */
-    public String getRemoteAddress() {
-        if (connection == null) {
-            return null;
-        }
-        return connection.getRemoteAddress();
-    }
-
-    /**
-     * @return the socket address of localhost.
-     */
-    public String getLocalAddress() {
-        if (connection == null) {
-            return null;
-        }
-        return connection.getLocalAddress();
     }
 
     @Override
@@ -448,13 +396,14 @@ public class Sequoiadb implements Closeable {
             options = new ConfigOptions();
         }
 
-        socketAddress = new InetSocketAddress(host, port);
+        InetSocketAddress socketAddress = new InetSocketAddress(host, port);
         connection = new TCPConnection(socketAddress, options);
         connection.connect();
 
         byteOrder = getSysInfo();
         authenticate(username, password);
 
+        this.socketAddress = socketAddress;
         this.userName = username;
         this.password = password;
     }
@@ -544,7 +493,6 @@ public class Sequoiadb implements Closeable {
      * @since 2.2
      */
     public void releaseResource() throws BaseException {
-        // let the receive buffer shrink to default value
         closeAllCursors();
         attributeCache = null;
     }
@@ -569,8 +517,6 @@ public class Sequoiadb implements Closeable {
      * @throws BaseException If error happens.
      */
     public boolean isValid() throws BaseException {
-        // client not connect to database or client
-        // disconnect from database
         if (isClosed()) {
             return false;
         }
@@ -652,6 +598,9 @@ public class Sequoiadb implements Closeable {
         if (csName == null || csName.length() == 0) {
             throw new BaseException(SDBError.SDB_INVALIDARG, csName);
         }
+        if (isCollectionSpaceExist(csName)) {
+            throw new BaseException(SDBError.SDB_DMS_CS_EXIST, csName);
+        }
 
         BSONObject obj = new BasicBSONObject();
         obj.put(SdbConstants.FIELD_NAME_NAME, csName);
@@ -673,8 +622,8 @@ public class Sequoiadb implements Closeable {
      * @throws BaseException If error happens.
      */
     public void dropCollectionSpace(String csName) throws BaseException {
-        if (csName == null || csName.isEmpty()) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "cs name can not be null or empty");
+        if (!isCollectionSpaceExist(csName)) {
+            throw new BaseException(SDBError.SDB_DMS_CS_NOTEXIST, csName);
         }
 
         BSONObject options = new BasicBSONObject();
@@ -703,6 +652,9 @@ public class Sequoiadb implements Closeable {
     public void loadCollectionSpace(String csName, BSONObject options) throws BaseException {
         if (csName == null || csName.length() == 0) {
             throw new BaseException(SDBError.SDB_INVALIDARG, csName);
+        }
+        if (isCollectionSpaceExist(csName)) {
+            throw new BaseException(SDBError.SDB_DMS_CS_EXIST, csName);
         }
 
         BSONObject newOptions = new BasicBSONObject();
@@ -735,6 +687,9 @@ public class Sequoiadb implements Closeable {
         if (csName == null || csName.length() == 0) {
             throw new BaseException(SDBError.SDB_INVALIDARG, csName);
         }
+        if (!isCollectionSpaceExist(csName)) {
+            throw new BaseException(SDBError.SDB_DMS_CS_NOTEXIST, csName);
+        }
 
         BSONObject newOptions = new BasicBSONObject();
         newOptions.put(SdbConstants.FIELD_NAME_NAME, csName);
@@ -756,10 +711,13 @@ public class Sequoiadb implements Closeable {
      */
     public void renameCollectionSpace(String oldName, String newName) throws BaseException {
         if (oldName == null || oldName.length() == 0) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "The old name of collection space is null or empty");
+            throw new BaseException(SDBError.SDB_INVALIDARG, oldName);
         }
         if (newName == null || newName.length() == 0) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "The new name of collection space is null or empty");
+            throw new BaseException(SDBError.SDB_INVALIDARG, newName);
+        }
+        if (!isCollectionSpaceExist(oldName)) {
+            throw new BaseException(SDBError.SDB_DMS_CS_NOTEXIST, oldName);
         }
 
         BSONObject matcher = new BasicBSONObject();
@@ -881,23 +839,16 @@ public class Sequoiadb implements Closeable {
      * @return the object of the specified collection space, or an exception when the collection space does not exist.
      * @throws BaseException If error happens.
      */
-    public CollectionSpace getCollectionSpace(String csName) throws BaseException {
-        if (csName == null || csName.isEmpty()) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "cs name can not be null or empty");
-        }
-        // get cs object from cache
+    public CollectionSpace getCollectionSpace(String csName)
+            throws BaseException {
         if (fetchCache(csName)) {
             return new CollectionSpace(this, csName);
         }
-
-        BSONObject options = new BasicBSONObject();
-        options.put(SdbConstants.FIELD_NAME_NAME, csName);
-
-        AdminRequest request = new AdminRequest(AdminCommand.TEST_CS, options);
-        SdbReply response = requestAndResponse(request);
-        throwIfError(response, csName);
-        upsertCache(csName);
-        return new CollectionSpace(this, csName);
+        if (isCollectionSpaceExist(csName)) {
+            return new CollectionSpace(this, csName);
+        } else {
+            throw new BaseException(SDBError.SDB_DMS_CS_NOTEXIST, csName);
+        }
     }
 
     /**
@@ -908,10 +859,6 @@ public class Sequoiadb implements Closeable {
      * @throws BaseException If error happens.
      */
     public boolean isCollectionSpaceExist(String csName) throws BaseException {
-        if (csName == null || csName.isEmpty()) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "cs name can not be null or empty");
-        }
-
         BSONObject options = new BasicBSONObject();
         options.put(SdbConstants.FIELD_NAME_NAME, csName);
 
@@ -1085,66 +1032,30 @@ public class Sequoiadb implements Closeable {
      *                 <dt>Sequoiadb.SDB_LIST_TASKS                : Get all the running split tasks ( only applicable in sharding env )
      *                 <dt>Sequoiadb.SDB_LIST_TRANSACTIONS         : Get all the transactions information.
      *                 <dt>Sequoiadb.SDB_LIST_TRANSACTIONS_CURRENT : Get the transactions information of current session.
-     *                 <dt>Sequoiadb.SDB_LIST_SVCTASKS             : Get all the schedule task information
-     *                 <dt>Sequoiadb.SDB_LIST_SEQUENCES            : Get the information of sequences
-     *                 <dt>Sequoiadb.SDB_LIST_USERS                : Get all the user information.
      *                 </dl>
      * @param query    The matching rule, match all the documents if null.
      * @param selector The selective rule, return the whole document if null.
      * @param orderBy  The ordered rule, never sort if null.
-     * @param hint The options provided for specific list type. Reserved.
-     * @param skipRows Skip the first skipRows documents.
-     * @param returnRows Only return returnRows documents. -1 means return all matched results.
-     * @return The target information by cursor.
-     * @throws BaseException If error happens.
-     */
-    public DBCursor getList(int listType, BSONObject query, BSONObject selector, BSONObject orderBy, BSONObject hint,
-                            long skipRows, long returnRows) throws BaseException {
-        String command = getListCommand(listType);
-        AdminRequest request = new AdminRequest(command, query, selector, orderBy, hint, skipRows, returnRows);
-        SdbReply response = requestAndResponse(request);
-
-        int flags = response.getFlag();
-        if (flags != 0 && flags != SDBError.SDB_DMS_EOC.getErrorCode()) {
-            String msg = "query = " + query +
-                    ", selector = " + selector +
-                    ", orderBy = " + orderBy;
-            throwIfError(response, msg);
-        }
-
-        return new DBCursor(response, this);
-    }
-
-    /**
-     * Get the information of specified type.
-     *
-     * @param listType The list type as below:
-     *                 <dl>
-     *                 <dt>Sequoiadb.SDB_LIST_CONTEXTS             : Get all contexts list
-     *                 <dt>Sequoiadb.SDB_LIST_CONTEXTS_CURRENT     : Get contexts list for the current session
-     *                 <dt>Sequoiadb.SDB_LIST_SESSIONS             : Get all sessions list
-     *                 <dt>Sequoiadb.SDB_LIST_SESSIONS_CURRENT     : Get the current session
-     *                 <dt>Sequoiadb.SDB_LIST_COLLECTIONS          : Get all collections list
-     *                 <dt>Sequoiadb.SDB_LIST_COLLECTIONSPACES     : Get all collection spaces list
-     *                 <dt>Sequoiadb.SDB_LIST_STORAGEUNITS         : Get storage units list
-     *                 <dt>Sequoiadb.SDB_LIST_GROUPS               : Get replica group list ( only applicable in sharding env )
-     *                 <dt>Sequoiadb.SDB_LIST_STOREPROCEDURES      : Get stored procedure list ( only applicable in sharding env )
-     *                 <dt>Sequoiadb.SDB_LIST_DOMAINS              : Get all the domains list ( only applicable in sharding env )
-     *                 <dt>Sequoiadb.SDB_LIST_TASKS                : Get all the running split tasks ( only applicable in sharding env )
-     *                 <dt>Sequoiadb.SDB_LIST_TRANSACTIONS         : Get all the transactions information.
-     *                 <dt>Sequoiadb.SDB_LIST_TRANSACTIONS_CURRENT : Get the transactions information of current session.
-     *                 <dt>Sequoiadb.SDB_LIST_SVCTASKS             : Get all the schedule task information
-     *                 <dt>Sequoiadb.SDB_LIST_SEQUENCES            : Get the information of sequences
-     *                 <dt>Sequoiadb.SDB_LIST_USERS                : Get all the user information.
-     *                 </dl>
-     * @param query    The matching rule, match all the documents if null.
-     * @param selector The selective rule, return the whole document if null.
-     * @param orderBy  The ordered rule, never sort if null.
-     * @return The target information by cursor.
      * @throws BaseException If error happens.
      */
     public DBCursor getList(int listType, BSONObject query, BSONObject selector, BSONObject orderBy) throws BaseException {
-        return getList(listType, query, selector, orderBy, null, 0, -1);
+        String command = getListCommand(listType);
+        AdminRequest request = new AdminRequest(command, query, selector, orderBy, null);
+        SdbReply response = requestAndResponse(request);
+
+        int flags = response.getFlag();
+        if (flags != 0) {
+            if (flags == SDBError.SDB_DMS_EOC.getErrorCode()) {
+                return null;
+            } else {
+                String msg = "query = " + query +
+                        ", selector = " + selector +
+                        ", orderBy = " + orderBy;
+                throwIfError(response, msg);
+            }
+        }
+
+        return new DBCursor(response, this);
     }
 
     /**
@@ -1163,61 +1074,12 @@ public class Sequoiadb implements Closeable {
     }
 
     /**
-     * Force the node to update configs online.
-     *
-     * @param configs The specific configuration parameters to update
-     * @param options Options The control options:(Only take effect in coordinate nodes)
-     *                GroupID:INT32,
-     *                GroupName:String,
-     *                NodeID:INT32,
-     *                HostName:String,
-     *                svcname:String,
-     *                ...
-     * @throws BaseException If error happens.
-     */
-    public void updateConfig(BSONObject configs, BSONObject options) throws BaseException {
-        BSONObject newObj = new BasicBSONObject();
-        newObj.putAll(options);
-        newObj.put("Configs", configs);
-
-        AdminRequest request = new AdminRequest(AdminCommand.UPDATE_CONFIG, newObj);
-        SdbReply response = requestAndResponse(request);
-        throwIfError(response);
-    }
-
-    /**
-     * Force the node to delete configs online.
-     *
-     * @param configs The specific configuration parameters to delete
-     * @param options Options The control options:(Only take effect in coordinate nodes)
-     *                GroupID:INT32,
-     *                GroupName:String,
-     *                NodeID:INT32,
-     *                HostName:String,
-     *                svcname:String,
-     *                ...
-     * @throws BaseException If error happens.
-     */
-    public void deleteConfig(BSONObject configs, BSONObject options) throws BaseException {
-        BSONObject newObj = new BasicBSONObject();
-        newObj.putAll(options);
-        newObj.put("Configs", configs);
-
-        AdminRequest request = new AdminRequest(AdminCommand.DELETE_CONFIG, newObj);
-        SdbReply response = requestAndResponse(request);
-        throwIfError(response);
-    }
-
-    /**
      * Execute sql in database.
      *
      * @param sql the SQL command.
      * @throws BaseException If error happens.
      */
     public void execUpdate(String sql) throws BaseException {
-        if (sql == null || sql.isEmpty()) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "sql can not be null or empty");
-        }
         SQLRequest request = new SQLRequest(sql);
         SdbReply response = requestAndResponse(request);
         throwIfError(response, sql);
@@ -1231,9 +1093,6 @@ public class Sequoiadb implements Closeable {
      * @throws BaseException If error happens.
      */
     public DBCursor exec(String sql) throws BaseException {
-        if (sql == null || sql.isEmpty()) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "sql can not be null or empty");
-        }
         SQLRequest request = new SQLRequest(sql);
         SdbReply response = requestAndResponse(request);
 
@@ -1267,9 +1126,6 @@ public class Sequoiadb implements Closeable {
      *                 <dt>Sequoiadb.SDB_SNAP_TRANSACTIONS_CURRENT : Get the snapshot of current transactions
      *                 <dt>Sequoiadb.SDB_SNAP_ACCESSPLANS          : Get the snapshot of cached access plans
      *                 <dt>Sequoiadb.SDB_SNAP_HEALTH               : Get the snapshot of node health detection
-     *                 <dt>Sequoiadb.SDB_SNAP_CONFIGS              : Get the snapshot of node configurations
-     *                 <dt>Sequoiadb.SDB_SNAP_SVCTASKS             : Get all the information of schedule task
-     *                 <ds>Sequoiadb.SDB_SNAP_SEQUENCES            : Get the snapshot of the sequence
      *                 </dl>
      * @param matcher  the matching rule, match all the documents if null
      * @param selector the selective rule, return the whole document if null
@@ -1313,9 +1169,6 @@ public class Sequoiadb implements Closeable {
      *                 <dt>Sequoiadb.SDB_SNAP_TRANSACTIONS_CURRENT : Get snapshot of all the transactions
      *                 <dt>SequoiaDB.SDB_SNAP_ACCESSPLANS          : Get the snapshot of cached access plans
      *                 <dt>Sequoiadb.SDB_SNAP_HEALTH               : Get the snapshot of node health detection
-     *                 <dt>Sequoiadb.SDB_SNAP_CONFIGS              : Get the snapshot of node configurations
-     *                 <dt>Sequoiadb.SDB_SNAP_SVCTASKS             : Get all the information of schedule task
-     *                 <ds>Sequoiadb.SDB_SNAP_SEQUENCES            : Get the snapshot of the sequence
      *                 </dl>
      * @param matcher  the matching rule, match all the documents if null
      * @param selector the selective rule, return the whole document if null
@@ -1325,49 +1178,9 @@ public class Sequoiadb implements Closeable {
      */
     public DBCursor getSnapshot(int snapType, BSONObject matcher,
                                 BSONObject selector, BSONObject orderBy) throws BaseException {
-        return getSnapshot(snapType, matcher, selector, orderBy, null, 0, -1);
-    }
-
-    /**
-     * Get snapshot of the database.
-     *
-     * @param snapType The snapshot types are as below:
-     *                 <dl>
-     *                 <dt>Sequoiadb.SDB_SNAP_CONTEXTS             : Get all contexts' snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_CONTEXTS_CURRENT     : Get the current context's snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_SESSIONS             : Get all sessions' snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_SESSIONS_CURRENT     : Get the current session's snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_COLLECTIONS          : Get the collections' snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_COLLECTIONSPACES     : Get the collection spaces' snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_DATABASE             : Get database's snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_SYSTEM               : Get system's snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_CATALOG              : Get catalog's snapshot
-     *                 <dt>Sequoiadb.SDB_SNAP_TRANSACTIONS         : Get snapshot of transactions in current session
-     *                 <dt>Sequoiadb.SDB_SNAP_TRANSACTIONS_CURRENT : Get snapshot of all the transactions
-     *                 <dt>SequoiaDB.SDB_SNAP_ACCESSPLANS          : Get the snapshot of cached access plans
-     *                 <dt>Sequoiadb.SDB_SNAP_HEALTH               : Get the snapshot of node health detection
-     *                 <dt>Sequoiadb.SDB_SNAP_CONFIGS              : Get the snapshot of node configurations
-     *                 <dt>Sequoiadb.SDB_SNAP_SVCTASKS             : Get all the information of schedule task
-     *                 <ds>Sequoiadb.SDB_SNAP_SEQUENCES            : Get the snapshot of the sequence
-     *                 </dl>
-     * @param matcher  the matching rule, match all the documents if null
-     * @param selector the selective rule, return the whole document if null
-     * @param orderBy  the ordered rule, never sort if null
-	 * @param hint     the hint rule, the options provided for specific snapshot type
-	                   format:{ '$Options': { <options> } }
-	 * @param skipRows   skip the first numToSkip documents, never skip if this parameter is 0
-     * @param returnRows return the specified amount of documents,
-     *                   when returnRows is 0, return nothing,
-     *                   when returnRows is -1, return all the documents.
-     * @return the DBCursor instance of the result
-     * @throws BaseException If error happens.
-     */
-    public DBCursor getSnapshot(int snapType, BSONObject matcher,
-                                BSONObject selector, BSONObject orderBy,
-                                BSONObject hint, long skipRows, long returnRows) throws BaseException {
         String command = getSnapshotCommand(snapType);
 
-        QueryRequest request = new QueryRequest(command, matcher, selector, orderBy, hint, skipRows, returnRows, 0);
+        AdminRequest request = new AdminRequest(command, matcher, selector, orderBy, null);
         SdbReply response = requestAndResponse(request);
 
         int flag = response.getFlag();
@@ -1377,10 +1190,7 @@ public class Sequoiadb implements Closeable {
             } else {
                 String msg = "matcher = " + matcher +
                         ", selector = " + selector +
-                        ", orderBy = " + orderBy +
-                        ", hint = " + hint +
-                        ", skipRows = " + skipRows +
-                        ", returnRows = " + returnRows;
+                        ", orderBy = " + orderBy;
                 throwIfError(response, msg);
             }
         }
@@ -1416,10 +1226,6 @@ public class Sequoiadb implements Closeable {
                 return AdminCommand.SNAP_ACCESSPLANS;
             case SDB_SNAP_HEALTH:
                 return AdminCommand.SNAP_HEALTH;
-            case SDB_SNAP_CONFIGS:
-                return AdminCommand.SNAP_CONFIGS;
-            case SDB_SNAP_SEQUENCES:
-                return AdminCommand.SNAP_SEQUENCES;
             default:
                 throw new BaseException(SDBError.SDB_INVALIDARG, String.format("Invalid snapshot type: %d", snapType));
         }
@@ -1535,20 +1341,17 @@ public class Sequoiadb implements Closeable {
         SdbReply response = requestAndResponse(request);
 
         int flag = response.getFlag();
-        // if something wrong with the eval operation, not throws exception here
         if (flag != 0) {
             if (response.getErrorObj() != null) {
                 evalResult.errmsg = response.getErrorObj();
             }
             return evalResult;
         } else {
-            // get the return type of eval result
             if (response.getReturnedNum() > 0) {
                 BSONObject obj = response.getResultSet().getNext();
                 int typeValue = (Integer) obj.get(SdbConstants.FIELD_NAME_RETYE);
                 evalResult.returnType = Sequoiadb.SptReturnType.getTypeByValue(typeValue);
             }
-            // set the return cursor
             evalResult.cursor = new DBCursor(response, this);
             return evalResult;
         }
@@ -1680,7 +1483,6 @@ public class Sequoiadb implements Closeable {
             throw new BaseException(SDBError.SDB_INVALIDARG, "taskIDs is empty or null");
         }
 
-        // append argument:{ "TaskID": { "$in": [ 1, 2, 3 ] } }
         BSONObject newObj = new BasicBSONObject();
         BSONObject subObj = new BasicBSONObject();
         BSONObject list = new BasicBSONList();
@@ -1766,7 +1568,6 @@ public class Sequoiadb implements Closeable {
         newObj.putAll(options);
 
         if (options.containsField(SdbConstants.FIELD_NAME_PREFERED_INSTANCE)) {
-            // Add old version of preferred instance
             Object value = options.get(SdbConstants.FIELD_NAME_PREFERED_INSTANCE);
             if (value instanceof String) {
                 int v = PreferInstance.MASTER;
@@ -1783,7 +1584,6 @@ public class Sequoiadb implements Closeable {
             } else if (value instanceof Integer) {
                 newObj.put(SdbConstants.FIELD_NAME_PREFERED_INSTANCE, value);
             }
-            // Add new version of preferred instance
             newObj.put(SdbConstants.FIELD_NAME_PREFERED_INSTANCE_V1, value);
         }
 
@@ -1840,7 +1640,7 @@ public class Sequoiadb implements Closeable {
     /**
      * List all the replica group.
      *
-     * @return information of all replica groups.
+     * @return cursor of all collection space names
      * @throws BaseException If error happens.
      */
     public DBCursor listReplicaGroups() throws BaseException {
@@ -1869,9 +1669,8 @@ public class Sequoiadb implements Closeable {
             else
                 return false;
         } finally {
-            if (cursor != null) {
+            if (cursor != null)
                 cursor.close();
-            }
         }
     }
 
@@ -1893,9 +1692,11 @@ public class Sequoiadb implements Closeable {
      * @throws BaseException If error happens.
      */
     public Domain createDomain(String domainName, BSONObject options) throws BaseException {
-        if (domainName == null || domainName.equals("")) {
+        if (null == domainName || domainName.equals("")) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "domain name is empty or null");
         }
+        if (isDomainExist(domainName))
+            throw new BaseException(SDBError.SDB_CAT_DOMAIN_EXIST, domainName);
 
         BSONObject newObj = new BasicBSONObject();
         newObj.put(SdbConstants.FIELD_NAME_NAME, domainName);
@@ -2171,38 +1972,6 @@ public class Sequoiadb implements Closeable {
         createReplicaCataGroup(hostName, port, dbPath, obj);
     }
 
-    /**
-     * Send message to server.
-     *
-     * @param message The message to send to server.
-     */
-    public void msg(String message) {
-        MessageRequest request = new MessageRequest(message);
-        SdbReply response = requestAndResponse(request);
-        throwIfError(response);
-    }
-
-    /**
-     * Clear the cache of the nodes (data/coord node).
-     * @param options The control options:(Only take effect in coordinate nodes).
-     *                About the parameter 'options', please reference to the official
-     *                website(www.sequoiadb.com) and then search "命令位置参数"
-     *                for more details. Some of its optional parameters are as bellow:
-     *
-     *                <ul>
-     *                <li>Global(Bool)                      : execute this command in global or not. While 'options' is null, it's equals to {Glocal: true}.
-     *                <li>GroupID(INT32 or INT32 Array)     : specified one or several groups by their group IDs. e.g. {GroupID:[1001, 1002]}.
-     *                <li>GroupName(String or String Array) : specified one or several groups by their group names. e.g. {GroupID:"group1"}.
-     *                <li>...
-     *                </ul>
-     * @return void
-     */
-    public void invalidateCache(BSONObject options) {
-        AdminRequest request = new AdminRequest(AdminCommand.INVALIDATE_CACHE, options);
-        SdbReply response = requestAndResponse(request);
-        throwIfError(response);
-    }
-
     private String getListCommand(int listType) {
         switch (listType) {
             case SDB_LIST_CONTEXTS:
@@ -2231,12 +2000,6 @@ public class Sequoiadb implements Closeable {
                 return AdminCommand.LIST_TRANSACTIONS;
             case SDB_LIST_TRANSACTIONS_CURRENT:
                 return AdminCommand.LIST_TRANSACTIONS_CURRENT;
-            case SDB_LIST_SVCTASKS:
-                return AdminCommand.LIST_SVCTASKS;
-            case SDB_LIST_SEQUENCES:
-                return AdminCommand.LIST_SEQUENCES;
-            case SDB_LIST_USERS:
-                return AdminCommand.LIST_USERS;
             case SDB_LIST_CL_IN_DOMAIN:
                 return AdminCommand.LIST_CL_IN_DOMAIN;
             case SDB_LIST_CS_IN_DOMAIN:
@@ -2258,17 +2021,15 @@ public class Sequoiadb implements Closeable {
         BSONObject condition = new BasicBSONObject();
         condition.put(SdbConstants.FIELD_NAME_GROUPNAME, name);
 
-        BSONObject result;
         DBCursor cursor = getList(Sequoiadb.SDB_LIST_GROUPS, condition, null, null);
+        if (cursor == null || !cursor.hasNext()) {
+            return null;
+        }
+        BSONObject result;
         try {
-            if (cursor == null || !cursor.hasNext()) {
-                return null;
-            }
             result = cursor.getNext();
         } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
+            cursor.close();
         }
         return result;
     }
@@ -2277,17 +2038,15 @@ public class Sequoiadb implements Closeable {
         BSONObject condition = new BasicBSONObject();
         condition.put(SdbConstants.FIELD_NAME_GROUPID, id);
 
-        BSONObject result;
         DBCursor cursor = getList(Sequoiadb.SDB_LIST_GROUPS, condition, null, null);
+        if (cursor == null || !cursor.hasNext()) {
+            return null;
+        }
+        BSONObject result;
         try {
-            if (cursor == null || !cursor.hasNext()) {
-                return null;
-            }
             result = cursor.getNext();
         } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
+            cursor.close();
         }
         return result;
     }
@@ -2301,18 +2060,12 @@ public class Sequoiadb implements Closeable {
     }
 
     private ByteBuffer receiveSdbResponse() {
-        byte[] bytes;
-        try {
-            byte[] lengthBytes = connection.receive(4);
-            int length = ByteBuffer.wrap(lengthBytes).order(byteOrder).getInt();
+        byte[] lengthBytes = connection.receive(4);
+        int length = ByteBuffer.wrap(lengthBytes).order(byteOrder).getInt();
 
-            bytes = new byte[length];
-            System.arraycopy(lengthBytes, 0, bytes, 0, lengthBytes.length);
-            connection.receive(bytes, 4, length - 4);
-        } catch (Exception e) {
-            connection.close();
-            throw new BaseException(SDBError.SDB_NETWORK, "Failed to receive message.", e);
-        }
+        byte[] bytes = new byte[length];
+        System.arraycopy(lengthBytes, 0, bytes, 0, lengthBytes.length);
+        connection.receive(bytes, 4, length - 4);
         ByteBuffer buffer = ByteBuffer.wrap(bytes).order(byteOrder);
         return buffer;
     }
@@ -2395,30 +2148,26 @@ public class Sequoiadb implements Closeable {
         return detail;
     }
 
-    // errorMsg Object to avoid unnecessary toString() invoke when no error happened
     void throwIfError(CommonResponse response, Object errorMsg) throws BaseException {
         if (response.getFlag() != 0) {
-            String remoteAddress = "remote address[" + getNodeName() + "]";
             BSONObject errorObj = response.getErrorObj();
             String detail = getErrorDetail(errorObj, errorMsg);
             if (detail != null && !detail.isEmpty()) {
-                throw new BaseException(response.getFlag(), remoteAddress + ", " + detail, errorObj);
+                throw new BaseException(response.getFlag(), detail);
             } else {
-                throw new BaseException(response.getFlag(), remoteAddress, errorObj);
+                throw new BaseException(response.getFlag());
             }
         }
     }
 
-    // dependent implementation but not invoke throwIfError(r,o) to avoid duplicate stack trace
     void throwIfError(CommonResponse response) throws BaseException {
         if (response.getFlag() != 0) {
-            String remoteAddress = "remote address[" + getNodeName() + "]";
             BSONObject errorObj = response.getErrorObj();
             String detail = getErrorDetail(errorObj, null);
             if (detail != null && !detail.isEmpty()) {
-                throw new BaseException(response.getFlag(), remoteAddress + ", " + detail, errorObj);
+                throw new BaseException(response.getFlag(), detail);
             } else {
-                throw new BaseException(response.getFlag(), remoteAddress, errorObj);
+                throw new BaseException(response.getFlag());
             }
         }
     }

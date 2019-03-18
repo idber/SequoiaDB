@@ -125,7 +125,7 @@ namespace seadapter
       INT32 rc = SDB_OK ;
       CHAR *writePos = NULL ;
 
-      if ( _init )
+      if ( !_init )
       {
          rc =  SDB_SYS ;
          PD_LOG( PDERROR, "Object buffer is not initialized" ) ;
@@ -134,8 +134,6 @@ namespace seadapter
 
       try
       {
-         // The object may be very bit, in which case we may extend the buffer
-         // multiple times.
          while ( !_enough( ossAlign4( (UINT32)obj.objsize() ) ) )
          {
             if ( _buffSize >= _sizeLimit )
@@ -173,7 +171,7 @@ namespace seadapter
       INT32 rc = SDB_OK ;
       CHAR *writePos = NULL ;
 
-      if ( _init )
+      if ( !_init )
       {
          rc =  SDB_SYS ;
          PD_LOG( PDERROR, "Object buffer is not initialized" ) ;
@@ -182,8 +180,6 @@ namespace seadapter
 
       try
       {
-         // The object may be very big, in which case we may extend the buffer
-         // multiple times.
          while ( !_enough( ossAlign4( (UINT32)obj->objsize() ) ) )
          {
             if ( _buffSize >= _sizeLimit )

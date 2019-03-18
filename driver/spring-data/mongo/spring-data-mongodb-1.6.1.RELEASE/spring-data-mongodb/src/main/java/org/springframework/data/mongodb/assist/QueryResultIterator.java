@@ -30,7 +30,6 @@ class QueryResultIterator implements Cursor {
         try {
             close();
         } catch (Exception e){
-            // do nothing
         }
     }
 

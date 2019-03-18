@@ -91,7 +91,6 @@ namespace engine
       }
 #endif
 
-      // binary search
       while ( lower <= upper )
       {
          INT32 middle = ( lower + upper ) / 2 ;
@@ -118,7 +117,6 @@ namespace engine
       return index ;
    }
 
-   // find the nearest least p.first where piece >= p.first
    INT32 _rtnLobPiecesInfo::_findNearestLeast( UINT32 piece ) const
    {
       INT32 middle = LOB_PIECES_INVALID_INDEX ;
@@ -138,7 +136,6 @@ namespace engine
       }
 #endif
 
-      // binary search
       while ( lower <= upper )
       {
          middle = ( lower + upper ) / 2 ;
@@ -163,7 +160,6 @@ namespace engine
 
       SDB_ASSERT( middle >= 0 && middle <= (INT32)_sections.size() - 1, "invalid index" ) ;
 
-      // move to the least section
       {
          const _rtnLobPieces& p = _sections[ middle ] ;
          if ( piece > p.first )
@@ -236,7 +232,6 @@ namespace engine
             SDB_ASSERT( piece >= p.first, "incorrect index" ) ;
             if ( p.contains( piece ) ) // inside
             {
-               // nothing to do
             }
             else if ( p.last + 1 == piece ) // close to the right border
             {
@@ -246,8 +241,6 @@ namespace engine
                   _rtnLobPieces& next = _sections[ index + 1 ] ;
                   if ( piece + 1 == next.first )
                   {
-                     // beside the left border of next section
-                     // merge 2 sections
                      p.last = next.last ;
                      _sections.erase( _sections.begin() + index + 1 ) ;
                   }
@@ -338,7 +331,6 @@ namespace engine
          index = _findPiece( piece ) ;
          if ( LOB_PIECES_INVALID_INDEX == index )
          {
-            // no this piece
             goto done ;
          }
          else
@@ -361,7 +353,6 @@ namespace engine
             }
             else // inside
             {
-               // split into 2 pieces
                _sections.insert( _sections.begin() + index + 1, _rtnLobPieces( piece + 1, p.last ) ) ;
                p.last = piece - 1 ;
             }

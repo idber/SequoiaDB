@@ -183,7 +183,6 @@ namespace engine
          PD_LOG( PDERROR, "failed to exec internal sort:%d", rc ) ;
          goto error ;
       }
-      /// sorting can be done in mem.
       if ( _blks.empty() )
       {
          _step = RTN_SORT_STEP_FETCH_FROM_INTER ;

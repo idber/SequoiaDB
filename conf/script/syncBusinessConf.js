@@ -1,6 +1,6 @@
 /*******************************************************************************
 
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -126,21 +126,6 @@ function _getNodeList( db )
    return nodeList ;
 }
 
-function _updateConfig( hostName, svcname, agentService, config )
-{
-   var agentPort ;
-   if( typeof( agentService ) == 'string' && agentService.length > 0 )
-   {
-      agentPort = agentService ;
-   }
-   else
-   {
-      agentPort = Oma.getAOmaSvcName( hostName ) ;
-   }
-   var oma = new Oma( hostName, agentPort ) ;
-   oma.setNodeConfigs( svcname, config ) ;
-}
-
 function _getConfig( hostName, svcname, agentService )
 {
    var agentPort ;
@@ -165,14 +150,34 @@ function _getNodeConfig( hostRemoval, hostList, hostName, svcname, groupName )
    var config = {} ;
    var clusterName  = BUS_JSON[FIELD_CLUSTER_NAME] ;
    var businessName = BUS_JSON[FIELD_BUSINESS_NAME] ;
-   var omaddr = BUS_JSON[FIELD_OM_ADDR] ;
    var deployMod ;
    var index ;
 
    try
    {
       index = hostRemoval[hostName] ;
+
       config = _getConfig( hostName, svcname ) ;
+      if( config[FIELD_ROLE] == FIELD_COORD ||
+          config[FIELD_ROLE] == FIELD_CATALOG )
+      {
+         config[FIELD_DATAGROUPNAME] = "" ;
+         deployMod = OMA_DEPLOY_CLUSTER ;
+      }
+      else if( config[FIELD_ROLE] == FIELD_DATA )
+      {
+         config[FIELD_DATAGROUPNAME] = groupName ;
+         deployMod = OMA_DEPLOY_CLUSTER ;
+      }
+      else if( config[FIELD_ROLE] == OMA_DEPLOY_STANDALONE )
+      {
+         config[FIELD_DATAGROUPNAME] = "" ;
+         deployMod = OMA_DEPLOY_STANDALONE ;
+      }
+      else
+      {
+         return ;
+      }
    }
    catch( e )
    {
@@ -188,33 +193,6 @@ function _getNodeConfig( hostRemoval, hostList, hostName, svcname, groupName )
                                             hostName, svcname ) ) ;
       }
       PD_LOGGER.log( PDERROR, error ) ;
-   }
-
-   config[FIELD_CLUSTER_NAME2] = clusterName ;
-   config[FIELD_BUSINESS_NAME2] = businessName ;
-   config[FIELD_OM_ADDR] = omaddr ;
-
-   _updateConfig( hostName, svcname, null, config ) ;
-
-   if( config[FIELD_ROLE] == FIELD_COORD ||
-       config[FIELD_ROLE] == FIELD_CATALOG )
-   {
-      config[FIELD_DATAGROUPNAME] = "" ;
-      deployMod = OMA_DEPLOY_CLUSTER ;
-   }
-   else if( config[FIELD_ROLE] == FIELD_DATA )
-   {
-      config[FIELD_DATAGROUPNAME] = groupName ;
-      deployMod = OMA_DEPLOY_CLUSTER ;
-   }
-   else if( config[FIELD_ROLE] == OMA_DEPLOY_STANDALONE )
-   {
-      config[FIELD_DATAGROUPNAME] = "" ;
-      deployMod = OMA_DEPLOY_STANDALONE ;
-   }
-   else
-   {
-      return ;
    }
 
    if( isNaN( index ) == true )

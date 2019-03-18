@@ -111,7 +111,6 @@ public class SpelExpressionTransformerUnitTests {
 	@Ignore
 	public void shouldRenderNestedIndexedFieldReference() {
 
-		// TODO add support for rendering nested indexed field references
 		assertThat(transform("foo[3].bar"), is("$foo[3].bar"));
 	}
 

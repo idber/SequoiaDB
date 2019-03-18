@@ -70,7 +70,6 @@ namespace import
       BOOLEAN  _enableTransaction;
       BOOLEAN  _allowKeyDuplication;
 
-      // db handle
       sdbConnectionHandle  _connection;
       sdbCSHandle          _collectionSpace;
       sdbCollectionHandle  _collection;

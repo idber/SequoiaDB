@@ -119,8 +119,6 @@ namespace import
 
             if (SDB_RTN_COORD_ONLY == rc)
             {
-               // may be standalone node or data node in replica,
-               // so we just set _hostname to it
                PD_LOG(PDWARNING, "%s:%s is not coordinator",
                       host.hostname.c_str(), host.svcname.c_str());
                rc = SDB_OK;
@@ -168,7 +166,6 @@ namespace import
          cataCount++;
       }
 
-      // no catalog info
       if (0 == cataCount)
       {
          _inited = TRUE;

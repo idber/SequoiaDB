@@ -69,7 +69,6 @@ namespace engine
             return FALSE ;
          }
 
-         /// Control flags
          OSS_INLINE virtual BOOLEAN _needReturnDataInRun () const
          {
             return FALSE ;
@@ -107,7 +106,6 @@ namespace engine
          virtual INT32 _buildExplain ( rtnContext * explainContext,
                                        BOOLEAN & hasMore ) = 0 ;
 
-         /// Helper functions
          INT32 _extractExplainOptions ( const BSONObj & hint,
                                         BSONObj & explainOptions,
                                         BSONObj & realHint ) ;
@@ -139,10 +137,8 @@ namespace engine
                                         BOOLEAN needDetail ) const ;
 
       protected :
-         /// Query options
          rtnQueryOptions _queryOptions ;
 
-         /// Explain options
          UINT16 _explainMask ;
          BOOLEAN _needDetail ;
          BOOLEAN _needEstimate ;
@@ -152,13 +148,11 @@ namespace engine
          BOOLEAN _needExpand ;
          BOOLEAN _needFlatten ;
 
-         /// Explain status
          BOOLEAN _explainStarted ;
          BOOLEAN _explainRunned ;
          BOOLEAN _explainPrepared ;
          BOOLEAN _explained ;
 
-         /// Explain path
          optPlanAllocator     _planAllocator ;
          optExplainPath *     _explainPath ;
    } ;
@@ -200,7 +194,6 @@ namespace engine
       virtual BOOLEAN   _canPrefetch () const { return FALSE ; }
       virtual void      _toString ( stringstream & ss ) ;
 
-      /// rtnExplainBase functions
       OSS_INLINE BOOLEAN _needReturnDataInRun () const
       {
          return !_fromLocal ;
@@ -271,7 +264,6 @@ namespace engine
          INT32 checkSubContext ( INT64 dataID ) ;
 
       protected :
-         // Sub-contexts are processed in parallel or not
          virtual BOOLEAN _needParallelProcess () const = 0 ;
 
          INT32 _registerExplainProcessor ( rtnContext * context ) ;

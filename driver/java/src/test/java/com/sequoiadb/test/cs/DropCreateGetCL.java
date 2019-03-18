@@ -46,33 +46,24 @@ public class DropCreateGetCL {
 
     @Test
     public void creategetCL() {
-        //create cl "testcl"
         cl = cs.createCollection(Constants.TEST_CL_NAME_1);
         assertTrue(cs.isCollectionExist(Constants.TEST_CL_NAME_1));
     }
 
     @Test
     public void testGetCL() {
-        //create cl "testcl"
         cl = cs.createCollection(Constants.TEST_CL_NAME_1);
         assertTrue(cs.isCollectionExist(Constants.TEST_CL_NAME_1));
-        // TODO:
-        //get cl "testcl"
         cl = cs.getCollection(Constants.TEST_CL_NAME_1);
         assertNotNull(cl);
-        // check
         String cName = cl.getName();
         assertEquals(Constants.TEST_CL_NAME_1, cName);
     }
 
-    //	@Test(expected = BaseException.class)
     @Test
     public void testCreateSameCL() {
-        //create cl "testcl"
         cl = cs.createCollection(Constants.TEST_CL_NAME_1);
         assertTrue(cs.isCollectionExist(Constants.TEST_CL_NAME_1));
-        // TODO:
-        //create cl "testcl" again
         try {
             cl2 = cs.createCollection(Constants.TEST_CL_NAME_1);
         } catch (BaseException e) {
@@ -91,13 +82,10 @@ public class DropCreateGetCL {
 
     @Test
     public void testListCL() {
-        //create cl "testcl"
         cl = cs.createCollection(Constants.TEST_CL_NAME_1);
         assertTrue(cs.isCollectionExist(Constants.TEST_CL_NAME_1));
-        //list collections
         List<String> listCL = new ArrayList<String>();
         listCL.addAll(cs.getCollectionNames());
-        // check
         assertEquals(listCL.size(), 1);
         String cName = listCL.get(0);
         assertEquals(Constants.TEST_CL_FULL_NAME1, cName);
@@ -106,7 +94,6 @@ public class DropCreateGetCL {
 
     @Test
     public void testCreate_127_CL() {
-        //create 127B cl
         String cl_127 = "";
         for (int i = 0; i < 127; i++) {
             cl_127 += "a";
@@ -115,13 +102,10 @@ public class DropCreateGetCL {
             cs.dropCollection(cl_127);
         cs.createCollection(cl_127);
         assertTrue(cs.isCollectionExist(cl_127));
-        //cs.dropCollection(cl_127);
-        //assertFalse(cs.isCollectionExist(cl_127));
     }
 
     @Test(expected = BaseException.class)
     public void testCreate_128_CL() {
-        //create 128 cl
         String cl_128 = "";
         for (int i = 0; i < 128; i++) {
             cl_128 += "a";
@@ -132,7 +116,6 @@ public class DropCreateGetCL {
 
     @Test(expected = BaseException.class)
     public void testCreateIllegalCL() {
-        //create illegal cl name
         String arr[] = {".", "SYS", "$"};
         String name = "bar";
         for (int i = 0; i < arr.length; i++) {
@@ -140,7 +123,6 @@ public class DropCreateGetCL {
             cs.createCollection(cl_name);
             assertFalse(cs.isCollectionExist(cl_name));
         }
-        //create cl ""
         cs.createCollection("");
         assertFalse(cs.isCollectionExist(""));
     }

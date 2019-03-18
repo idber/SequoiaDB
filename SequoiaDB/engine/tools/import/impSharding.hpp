@@ -81,7 +81,6 @@ namespace import
 
       LogFile           _logFile;
 
-      // statistics
       INT64             _shardingNum;
       INT64             _failedNum;
 

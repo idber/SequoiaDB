@@ -334,7 +334,6 @@ namespace engine
 
       virtual INT32 _executeInternal ( _pmdEDUCB *cb, INT16 w ) ;
 
-      /// no rollback
       virtual INT32 _rollbackInternal ( _pmdEDUCB *cb, INT16 w )
       { return SDB_OK ; }
 

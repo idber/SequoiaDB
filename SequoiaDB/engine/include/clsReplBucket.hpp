@@ -235,13 +235,11 @@ namespace engine
          ossAtomic32                      _curAgentNum ;
          ossAtomic32                      _idleAgentNum ;
 
-         // complete map
          map< DPS_LSN_OFFSET, clsCompleteInfo >    _completeMap ;
          DPS_LSN                                   _expectLSN ;
          DPS_LSN_OFFSET                            _maxSubmitOffset ;
          ossSpinXLatch                             _bucketLatch ;
 
-         // result info for error
          INT32                            _submitRC ;
 
    } ;

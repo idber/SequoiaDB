@@ -73,7 +73,6 @@ public class SequoiadbFactoryParser extends AbstractBeanDefinitionParser {
 
 		BeanDefinition userCredentials = getUserCredentialsBeanDefinition(element, parserContext);
 
-		// Common setup
 		BeanDefinitionBuilder dbFactoryBuilder = BeanDefinitionBuilder.genericBeanDefinition(SimpleSequoiadbFactory.class);
 		setPropertyValue(dbFactoryBuilder, element, "write-concern", "writeConcern");
 
@@ -86,7 +85,6 @@ public class SequoiadbFactoryParser extends AbstractBeanDefinitionParser {
 			return getSourceBeanDefinition(dbFactoryBuilder, parserContext, element);
 		}
 
-		// Defaulting
 		if (StringUtils.hasText(sequoiadbRef)) {
 			dbFactoryBuilder.addConstructorArgReference(sequoiadbRef);
 		} else {

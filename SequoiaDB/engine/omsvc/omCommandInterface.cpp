@@ -699,7 +699,6 @@ namespace engine
       goto done ;
    }
 
-   // if error happened when quering table, TRUE will be returned
    BOOLEAN omRestCommandBase::_isHostExistInTask( const string &hostName )
    {
       BSONObjBuilder bsonBuilder ;
@@ -712,8 +711,6 @@ namespace engine
       INT32 rc         = SDB_OK ;
       rtnContextBuf buffObj ;
 
-      // ResultInfo.$elemMatch.HostName == hostName 
-      // && Status not in( OM_TASK_STATUS_FINISH, OM_TASK_STATUS_CANCEL )
       BSONObj hostNameObj = BSON( OM_HOST_FIELD_NAME << hostName ) ;
       BSONObj elemMatch   = BSON( "$elemMatch" << hostNameObj ) ;
 
@@ -742,7 +739,6 @@ namespace engine
             goto done ;
          }
 
-         // notice: if rc != SDB_OK, contextID is deleted in rtnGetMore
          isExist = FALSE ;
          goto done ;
       }
@@ -772,7 +768,6 @@ namespace engine
       string businessKey ;
       rtnContextBuf buffObj ;
 
-      //Status not in( OM_TASK_STATUS_FINISH, OM_TASK_STATUS_CANCEL )
       BSONArrayBuilder arrBuilder ;
       arrBuilder.append( OM_TASK_STATUS_FINISH ) ;
       arrBuilder.append( OM_TASK_STATUS_CANCEL ) ;
@@ -799,7 +794,6 @@ namespace engine
             goto done ;
          }
 
-         // notice: if rc != SDB_OK, contextID is deleted in rtnGetMore
          isExist = FALSE ;
          goto done ;
       }

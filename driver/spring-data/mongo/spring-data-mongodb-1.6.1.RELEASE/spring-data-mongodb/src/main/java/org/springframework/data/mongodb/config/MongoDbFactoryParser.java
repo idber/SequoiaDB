@@ -74,7 +74,6 @@ public class MongoDbFactoryParser extends AbstractBeanDefinitionParser {
 
 		BeanDefinition userCredentials = getUserCredentialsBeanDefinition(element, parserContext);
 
-		// Common setup
 		BeanDefinitionBuilder dbFactoryBuilder = BeanDefinitionBuilder.genericBeanDefinition(SimpleMongoDbFactory.class);
 		setPropertyValue(dbFactoryBuilder, element, "write-concern", "writeConcern");
 
@@ -87,7 +86,6 @@ public class MongoDbFactoryParser extends AbstractBeanDefinitionParser {
 			return getSourceBeanDefinition(dbFactoryBuilder, parserContext, element);
 		}
 
-		// Defaulting
 		if (StringUtils.hasText(mongoRef)) {
 			dbFactoryBuilder.addConstructorArgReference(mongoRef);
 		} else {

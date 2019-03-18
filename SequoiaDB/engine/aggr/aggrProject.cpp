@@ -64,7 +64,6 @@ namespace engine
                 "Failed to parse the parameter[%s], need be object",
                 elem.toString( TRUE, TRUE ).c_str() ) ;
 
-      // 1.parse the fields
       try
       {
          obj = elem.embeddedObject() ;
@@ -84,7 +83,6 @@ namespace engine
                          beField.toString( TRUE, TRUE ).c_str(), rc ) ;
          }
 
-         /// when empty, add (*)
          if ( pSelect->_selector.empty() )
          {
             qgmOpField selectAll;
@@ -99,7 +97,6 @@ namespace engine
                    e.what() ) ;
       }
 
-      // 2.build the node
       pSelect->_limit = -1 ;
       pSelect->_skip = 0 ;
       pSelect->_type = QGM_OPTI_TYPE_SELECT ;
@@ -274,7 +271,6 @@ namespace engine
                    "Param[%s] can't be empty",
                    Obj.toString( TRUE, TRUE ).c_str() ) ;
 
-         /// end function
          ss << ')' ;
          strFunc = ss.str() ;
 

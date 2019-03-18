@@ -75,13 +75,11 @@ namespace engine
 
    INT32 _dmsCachedPlanMgr::createCLCachedPlanUnit ( UINT16 mbID )
    {
-      // Create new cached plan status for this collection
       dmsCLCachedPlanUnit *pCachedPlanUnit =
             SDB_OSS_NEW dmsCLCachedPlanUnit( mbID, 0 ) ;
       if ( NULL != pCachedPlanUnit &&
            !addCacheUnit( pCachedPlanUnit, TRUE, FALSE ) )
       {
-         // Failed to add unit, the unit should be deleted
          SAFE_OSS_DELETE( pCachedPlanUnit ) ;
       }
       return SDB_OK ;

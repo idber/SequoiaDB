@@ -45,7 +45,6 @@
 
 namespace engine
 {
-   // Base class for rtn Operators.
    class _rtnOperator : public SDBObject
    {
       public:

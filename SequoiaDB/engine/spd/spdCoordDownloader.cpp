@@ -138,7 +138,6 @@ namespace engine
       {
          _contextID = -1 ;
          goto error ;
-         /// context was freed in getmore.
       }
       else
       {

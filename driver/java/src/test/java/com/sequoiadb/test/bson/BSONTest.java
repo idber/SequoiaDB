@@ -8,12 +8,13 @@ import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.test.common.Constants;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.bson.types.BSONDecimal;
 import org.bson.types.BSONTimestamp;
 import org.junit.*;
 
 import java.sql.Timestamp;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.*;
 import static org.junit.Assert.assertThat;
@@ -30,7 +31,6 @@ public class BSONTest {
 
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
     }
 
@@ -41,12 +41,10 @@ public class BSONTest {
 
     @Before
     public void setUp() throws Exception {
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
         }
         cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        // cl
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
@@ -59,7 +57,6 @@ public class BSONTest {
 
     @Test
     public void BSONTimestampConstructorTest() {
-        // case 1: 2017/01/01
         BSONObject obj = new BasicBSONObject();
         BSONTimestamp ts = new BSONTimestamp(1483200000, 0);
         obj.put("ts", ts);
@@ -67,7 +64,6 @@ public class BSONTest {
         assertEquals(expect, obj.toString());
         System.out.println("ts is: " + obj.toString());
 
-        // case 2: 2017/01/01 10:25:59
         Date date = new Date(2017 - 1900, 0, 1, 10, 25,59);
         ts = new BSONTimestamp(date);
         obj = new BasicBSONObject();
@@ -76,7 +72,6 @@ public class BSONTest {
         assertEquals(expect, obj.toString());
         System.out.println("ts is: " + obj.toString());
 
-        // case 3: 2017/01/01 10:25:59:123456
         Timestamp timestamp = new Timestamp(2017 - 1900, 0, 1,
                 10, 25,59, 123456000);
         ts = new BSONTimestamp(timestamp);
@@ -96,7 +91,6 @@ public class BSONTest {
         }
         assertEquals(obj, record);
 
-        // case 4: 2017/01/01 10:25:59:123456
         obj = new BasicBSONObject();
         obj.put("ts", timestamp);
         expect = "{ \"ts\" : { \"$ts\" : 1483237559 , \"$inc\" : 123456 } }";
@@ -152,26 +146,6 @@ public class BSONTest {
         map.put(obj3, obj3);
         map.put(obj4, obj4);
         assertEquals(3, map.size());
-    }
-
-    @Test
-    public void BSONDecimalINFTest() {
-        BSONObject obj = new BasicBSONObject().
-                append("MAX", new BSONDecimal("INF")).
-                append("max", new BSONDecimal("inf")).
-                append("MIN", new BSONDecimal("-INF")).
-                append("min", new BSONDecimal("-inf"));
-        cl.insert(obj);
-    }
-
-    @Test
-    public void BSONArrayTest() {
-        List list = new ArrayList();
-        list.add("1");
-        list.add("2");
-        BSONObject obj = new BasicBSONObject();
-        obj.put("arr", list);
-        cl.insert(obj);
     }
 
 }

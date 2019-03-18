@@ -86,7 +86,6 @@ namespace engine
       INT32 rcTmp = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_OPERATORDEL_EXE ) ;
 
-      // process define
       coordSendOptions sendOpt( TRUE ) ;
       coordSendMsgIn inMsg( pMsg ) ;
       coordProcessResult result ;
@@ -98,7 +97,6 @@ namespace engine
 
       BSONObj boDeletor ;
 
-      // fill default-reply(delete success)
       MsgOpDelete *pDelMsg             = (MsgOpDelete *)pMsg ;
       INT32 oldFlag                    = pDelMsg->flags ;
       pDelMsg->flags                  |= FLG_DELETE_RETURNNUM ;
@@ -128,7 +126,6 @@ namespace engine
                       e.what() ) ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "Collection:%s, Deletor:%s, Hint:%s, "
                           "Flag:0x%08x(%u)",
@@ -175,7 +172,6 @@ namespace engine
       }
       if ( pCollectionName )
       {
-         /// AUDIT
          PD_AUDIT_OP( AUDIT_DML, MSG_BS_DELETE_REQ, AUDIT_OBJ_CL,
                       pCollectionName, rc,
                       "DeletedNum:%u, Deletor:%s, Hint:%s, Flag:0x%08x(%u)",
@@ -249,16 +245,13 @@ namespace engine
             netIOVec &iovec = inMsg._datas[ it->first ] ;
             netIOV ioItem ;
 
-            // 1. first vec
             ioItem.iovBase = (const CHAR*)inMsg.msg() + sizeof( MsgHeader ) ;
             ioItem.iovLen = ossRoundUpToMultipleX ( offsetof(MsgOpDelete, name) +
                                                     pDelMsg->nameLength + 1, 4 ) -
                             sizeof( MsgHeader ) ;
             iovec.push_back( ioItem ) ;
 
-            // 2. new deletor vec
             boNew = _buildNewDeletor( boDeletor, subCLLst ) ;
-            // 2.1 add to buff
             UINT32 roundLen = ossRoundUpToMultipleX( boNew.objsize(), 4 ) ;
             if ( buffPos + roundLen > buffLen )
             {
@@ -276,7 +269,6 @@ namespace engine
             buffPos += roundLen ;
             iovec.push_back( ioItem ) ;
 
-            // 3. hinter vec
             ioItem.iovBase = boHint.objdata() ;
             ioItem.iovLen = boHint.objsize() ;
             iovec.push_back( ioItem ) ;         

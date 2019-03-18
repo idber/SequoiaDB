@@ -110,7 +110,6 @@ namespace engine
       {
          goto error ;
       }
-      // _checkAndStartJob( TRUE ) ;
 
    done:
       return rc ;
@@ -176,9 +175,7 @@ namespace engine
       {
          _unitList.push_back( pUnit ) ;
       }
-      /// release the page cleaner
       pUnit->unlockPageCleaner() ;
-      /// inc idla agent
       ++_idleAgent ;
 
       PD_TRACE_EXIT( SDB__PMDBUFFPOOL_PUSHUNIT ) ;
@@ -207,9 +204,7 @@ namespace engine
          if ( pUnit->canSync( force ) || pUnit->canRecycle( force ) )
          {
             _unitList.erase( it ) ;
-            /// lock the unit
             pUnit->lockPageCleaner() ;
-            /// dec idle agent
             --_idleAgent ;
             break ; 
          }
@@ -269,10 +264,8 @@ namespace engine
 
       if ( readyNum > 0 )
       {
-         /// wake up the agent
          _wakeUpEvent.signalAll() ;
 
-         /// start agent
          while ( _curAgent < PMD_MIN_CACHE_JOB ||
                  ( readyNum / 4 > _idleAgent &&
                    _curAgent < _maxCacheJob ) )
@@ -360,7 +353,6 @@ namespace engine
          {
             pEDUMgr->waitEDU( eduCB() ) ;
 
-            /// sync unit
             pUnit = _pBuffPool->dispatchUnit() ;
             if ( pUnit )
             {
@@ -371,7 +363,6 @@ namespace engine
                {
                   pUnit->dumpStatInfo() ;
                }
-               /// push back
                _pBuffPool->pushBackUnit( pUnit ) ;
             }
             else
@@ -389,7 +380,6 @@ namespace engine
 
                if ( timeout >= (UINT32)_timeout )
                {
-                  /// over _timeout millsecs, donothing, qiut the job
                   break ;
                }
             }
@@ -446,7 +436,6 @@ namespace engine
          goto error ;
       }
       rc = rtnGetJobMgr()->startJob( pJob, RTN_JOB_MUTEX_NONE, pEDUID  ) ;
-      /// neither failed or succeed, the pJob will release in job manager
 
    done:
       PD_TRACE_EXITRC( SDB__PMD_STARTCACHEJOB, rc ) ;

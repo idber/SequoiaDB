@@ -62,7 +62,6 @@ namespace engine
 
    _dmsLobDirectBuffer::~_dmsLobDirectBuffer()
    {
-      /// _buf is allocated by educb, freed by educb
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMS_LOBDIRECTBUF_PREPARE, "_dmsLobDirectBuffer::prepare" )

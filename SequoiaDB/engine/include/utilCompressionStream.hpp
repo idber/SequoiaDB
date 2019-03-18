@@ -47,7 +47,6 @@ namespace engine
    class utilCompressionInStream: public utilInStream
    {
    private:
-      // disallow copy and assign
       utilCompressionInStream( const utilCompressionInStream& ) ;
       void operator=( const utilCompressionInStream& ) ;
 
@@ -68,7 +67,6 @@ namespace engine
    class utilCompressionOutStream: public utilOutStream
    {
    private:
-      // disallow copy and assign
       utilCompressionOutStream( const utilCompressionOutStream& ) ;
       void operator=( const utilCompressionOutStream& ) ;
 
@@ -83,7 +81,6 @@ namespace engine
                           UTIL_COMPRESSION_LEVEL level = UTIL_COMP_BALANCE,
                           INT32 bufSize = UTIL_STREAM_DEFAULT_BUFFER_SIZE ) = 0 ;
 
-      // finish compression but don't close downstream
       virtual INT32 finish() = 0 ;
 
    protected:

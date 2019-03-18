@@ -103,11 +103,9 @@ namespace engine
 
       ossStrncpy( _name, pCollectionName, DMS_COLLECTION_SPACE_NAME_SZ ) ;
 
-      /// test collection space exist
       rc = rtnTestCollectionSpaceCommand( pCollectionName, _pDmsCB ) ;
       if ( SDB_DMS_CS_NOTEXIST == rc )
       {
-         /// ignore collection space not exist
          PD_LOG( PDINFO, "Ignored error[%d] when drop collection space[%s]",
                  rc, pCollectionName ) ;
          rc = SDB_OK ;
@@ -117,7 +115,6 @@ namespace engine
 
       if ( NULL != getDPSCB() )
       {
-         // reserved log-size
          UINT32 logRecSize = 0;
          rc = dpsCSDel2Record( pCollectionName, record ) ;
          PD_RC_CHECK( rc, PDERROR,
@@ -201,19 +198,15 @@ namespace engine
       }
       pClsCB->invalidateCata( _name ) ;
 
-      // Clear main collection plans
       mainIter = mainCLs.begin() ;
       while ( mainIter != mainCLs.end() )
       {
          const CHAR * mainCLName = ( *mainIter ).c_str() ;
-         // Clear plan cache in self
          pRtnCB->getAPM()->invalidateCLPlans( mainCLName ) ;
-         // Clear plan cache in secondary nodes
          pClsCB->invalidatePlan( mainCLName ) ;
          ++ mainIter ;
       }
 
-      /// already drop phrase1
       if ( DELCSPHASE_1 == _status )
       {
          rc = rtnDropCollectionSpaceP2( _name, cb, _pDmsCB, getDPSCB() ) ;
@@ -223,11 +216,9 @@ namespace engine
          _clean( cb ) ;
       }
 
-      /// close context
       _isOpened = FALSE ;
       rc = SDB_DMS_EOC ;
 
-      /// wait all collection space's task finished
       cb->writingDB( FALSE ) ;
       while( pTaskMgr->taskCountByCS( _name ) > 0 )
       {
@@ -343,7 +334,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name"
                    "(collection:%s, rc: %d)", _collectionName, rc ) ;
 
-      // lock collection
       if ( getDPSCB() && _pTransCB->isTransOn() )
       {
          rc = _su->data()->getMBContext( &_mbContext, _clShortName,
@@ -391,7 +381,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      /// set w info
       _w = w ;
 
       SDB_ASSERT( pCollectionName, "pCollectionName can't be null!" );
@@ -436,7 +425,6 @@ namespace engine
       _pCatAgent->release_w () ;
       pClsCB->invalidateCata( _collectionName ) ;
 
-      // Clear catalog info and cached plans of main-collection if needed
       if ( '\0' != mainCL[ 0 ] )
       {
          _pCatAgent->lock_w() ;
@@ -447,12 +435,10 @@ namespace engine
                                           DPS_LOG_INVALIDCATA_TYPE_PLAN ) ;
       }
 
-      // drop collection
       rc = _su->data()->dropCollection ( _clShortName, cb, getDPSCB(),
                                          TRUE, _mbContext ) ;
       if ( rc )
       {
-         // Ignore SDB_DMS_NOTEXIST, which means the CL mignt be deleted already
          if ( SDB_DMS_NOTEXIST == rc )
          {
             PD_LOG ( PDWARNING, "Collection %s doesn't exist, ignored in drop "
@@ -473,7 +459,6 @@ namespace engine
       _isOpened = FALSE ;
       rc = SDB_DMS_EOC ;
 
-      /// wait all collection's task finished
       cb->writingDB( FALSE ) ;
 
       {
@@ -483,7 +468,6 @@ namespace engine
             pTaskMgr->waitTaskEvent() ;
             waitCnt ++ ;
 
-            // Log the task list after waiting over 10 minutes
             if ( waitCnt > 600 )
             {
                PD_LOG( PDDEBUG, "DropCL [%s] is waiting for split tasks:\n%s",
@@ -521,7 +505,6 @@ namespace engine
       {
          _su->data()->releaseMBContext( _mbContext ) ;
       }
-      // unlock su
       if ( _pDmsCB && _su )
       {
          string csname = _su->CSName() ;
@@ -530,7 +513,6 @@ namespace engine
 
          if ( _hasDropped )
          {
-            // ignore errors
             _pDmsCB->dropEmptyCollectionSpace( csname.c_str(),
                                                cb, getDPSCB() ) ;
          }
@@ -605,7 +587,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Invalid collection name[%s])",
                    pCollectionName ) ;
 
-      /// open sub collection context
       iter = subCLList.begin() ;
       while( iter != subCLList.end() )
       {
@@ -657,7 +638,6 @@ namespace engine
          goto error ;
       }
 
-      /// get last catalog info
       _pCatAgent->lock_r() ;
       pCataSet = _pCatAgent->collectionSet( _name ) ;
       if ( pCataSet )
@@ -672,7 +652,6 @@ namespace engine
          goto error ;
       }
 
-      /// drop sub collections
       iterCtx = _subContextList.begin() ;
       while( iterCtx != _subContextList.end() )
       {
@@ -686,15 +665,12 @@ namespace engine
          iterCtx = _subContextList.erase( iterCtx ) ;
       }
 
-      /// clear main collection's catalog info
       _pCatAgent->lock_w () ;
       _pCatAgent->clear ( _name ) ;
       _pCatAgent->release_w () ;
 
-      // Clear cached main-collection plans
       _pRtncb->getAPM()->invalidateCLPlans( _name ) ;
 
-      // Tell secondary nodes to clear catalog and plan caches
       sdbGetClsCB()->invalidateCache( _name,
                                       DPS_LOG_INVALIDCATA_TYPE_CATA |
                                       DPS_LOG_INVALIDCATA_TYPE_PLAN ) ;

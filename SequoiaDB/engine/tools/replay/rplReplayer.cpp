@@ -174,7 +174,6 @@ namespace replay
             << ossGetCurrentProcessID();
          _tmpFile = ss.str();
 
-         // test
          ossFile file;
          rc = file.open(_tmpFile,
                         OSS_CREATEONLY | OSS_READWRITE,
@@ -473,7 +472,6 @@ namespace replay
 
          if (!_options->dump())
          {
-            // no need to dump log
             goto done;
          }
       }
@@ -529,7 +527,6 @@ namespace replay
       PD_LOG(PDEVENT, "Replay archive log file[%s] successfully",
              file.c_str());
 
-      // only delete full file
       if (_options->remove())
       {
          fs::path dir( file );
@@ -606,7 +603,6 @@ namespace replay
 
          if (!_options->dump())
          {
-            // no need to dump log
             goto done;
          }
       }
@@ -1237,7 +1233,6 @@ namespace replay
 
                if (_monitor.getLastMovedFileTime() != movedTime)
                {
-                  // move operation detected
                   PD_LOG(PDEVENT, "Detect move operation");
 
                   rc = _move(lastFileId);
@@ -1309,7 +1304,6 @@ namespace replay
          goto error;
       }
 
-      // no archive log
       if (DPS_INVALID_LOG_FILE_ID == minFileId)
       {
          goto done;
@@ -1552,7 +1546,6 @@ namespace replay
 
             if (movedTime2 != movedTime)
             {
-               // move operation detected
                PD_LOG(PDEVENT, "Detect move operation");
 
                rc = _move(i);
@@ -1565,7 +1558,6 @@ namespace replay
 
                _monitor.setLastMovedFileTime(movedTime2);
 
-               // move happened, need to re-scan dir
                goto done;
             }
          }
@@ -1734,7 +1726,6 @@ namespace replay
          goto error ;
       }
 
-      // no archive log
       if (DPS_INVALID_LOG_FILE_ID == minFileId)
       {
          goto done;
@@ -1875,8 +1866,6 @@ namespace replay
             goto error;
          }
 
-         // current file is completely replayed
-         // fileId starts from 0
          if (_monitor.getNextLSN() > (UINT64)fileInfo.fileSize * (fileInfo.fileId + 1))
          {
             _monitor.setNextFileId(fileId + 1);
@@ -2060,7 +2049,6 @@ namespace replay
 
             if (!_options->dump())
             {
-               // no need to dump log
                continue;
             }
          }

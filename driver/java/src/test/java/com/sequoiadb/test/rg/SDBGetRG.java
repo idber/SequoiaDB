@@ -10,7 +10,6 @@ import org.bson.BSONObject;
 import org.bson.types.BasicBSONList;
 import org.junit.*;
 
-import java.util.Collection;
 import java.util.Random;
 
 import static org.junit.Assert.assertEquals;
@@ -28,7 +27,6 @@ public class SDBGetRG {
 
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
-        // sdb
         isCluster = Constants.isCluster();
         if (!isCluster)
             return;
@@ -83,18 +81,13 @@ public class SDBGetRG {
         if (!isCluster) {
             return;
         }
-        // case 1: normal case
         groupName = "SYSCatalogGroup";
         rg = sdb.getReplicaGroup(groupName);
         Node master = rg.getMaster();
-//        System.out.println(String.format("group is: %s, master is: %s", groupName, master.getNodeName()));
         String hostName = master.getHostName();
         int hostPort = master.getPort();
         Node node1 = rg.getNode(hostName, hostPort);
-//        System.out.println(String.format("group is: %s, node1 is: %s", groupName, node1.getNodeName()));
         Node node2 = rg.getNode(hostName + ":" + hostPort);
-//        System.out.println(String.format("group is: %s, node2 is: %s", groupName, node2.getNodeName()));
-        // case 2: get a node which is not exist
         Node node3 = null;
         try {
             node3 = rg.getNode("ubuntu", 30000);
@@ -108,7 +101,6 @@ public class SDBGetRG {
         } catch (BaseException e) {
             Assert.assertEquals(SDBError.SDB_CLS_NODE_NOT_EXIST.getErrorCode(), e.getErrorCode());
         }
-        // case 3: get a node from empty group
         groupName = "groupNoteExist";
         rg = sdb.createReplicaGroup(groupName);
         try {
@@ -170,7 +162,6 @@ public class SDBGetRG {
         if (!isCluster)
             return;
         try {
-            // no replica group can name start wtih "SYS"
             groupName = "SYSCatalogGroupForTest";
             rg = sdb.createReplicaGroup(groupName);
         } catch (BaseException e) {
@@ -188,7 +179,6 @@ public class SDBGetRG {
         if (groupInfoObj == null) {
             throw new BaseException(SDBError.SDB_CLS_GRP_NOT_EXIST);
         }
-        // check the nodes in current group
         Object nodesInfoArr = groupInfoObj.get("Group");
         if (nodesInfoArr == null || !(nodesInfoArr instanceof BasicBSONList)) {
             throw new BaseException(SDBError.SDB_SYS,
@@ -199,7 +189,6 @@ public class SDBGetRG {
         if (nodesInfoList.isEmpty()) {
             throw new BaseException(SDBError.SDB_CLS_EMPTY_GROUP);
         }
-        // check whether there has primary or not
         Object primaryNodeId = groupInfoObj.get("PrimaryNode");
         boolean hasPrimary = true;
         if (primaryNodeId == null) {
@@ -209,8 +198,6 @@ public class SDBGetRG {
         } else if (primaryNodeId.equals(Integer.valueOf(-1))){
             hasPrimary = false;
         }
-        // try to mark the position of primary node in the nodes list,
-        // the value of position is [1, 7]
         for (int i = 0; i < nodesInfoList.size(); i++) {
             BSONObject nodeInfo = (BSONObject) nodesInfoList.get(i);
             Object nodeIdValue = nodeInfo.get("NodeID");
@@ -239,7 +226,6 @@ public class SDBGetRG {
         Node master = null;
         Node slave = null;
 
-        // case 1
         master = rg.getMaster();
         slave = rg.getSlave();
         System.out.println(String.format("case1: group is: %s, master is: %s, slave is: %s", groupName,
@@ -251,7 +237,6 @@ public class SDBGetRG {
             assertNotEquals(master.getNodeName(), slave.getNodeName());
         }
 
-        // case 2
         slave = rg.getSlave(1,2,3,4,5,6,7);
         System.out.println(String.format("case2: group is: %s, master is: %s, slave is: %s", groupName,
                 master == null ? null : master.getNodeName(),
@@ -262,7 +247,6 @@ public class SDBGetRG {
             assertNotEquals(master.getNodeName(), slave.getNodeName());
         }
 
-        // case 3
         Random random = new Random();
         int pos1 = random.nextInt(7) + 1;
         int pos2 = 0;
@@ -272,7 +256,6 @@ public class SDBGetRG {
                 break;
             }
         }
-        //pos1 = 4;pos2=7;
         slave = rg.getSlave(pos1, pos2);
         System.out.println(String.format("case3: group is: %s, master is: %s, slave is: %s", groupName,
                 master == null ? null : master.getNodeName(),
@@ -288,13 +271,7 @@ public class SDBGetRG {
             }
         }
 
-        // case 4
-        int[] nullArray = null;
-        slave= rg.getSlave(nullArray);
-        int[] emptyArray = new int[0];
-        slave= rg.getSlave(emptyArray);
-        Collection<Integer> nullPoint = null;
-        slave= rg.getSlave(nullPoint);
+        slave= rg.getSlave(null);
         System.out.println(String.format("case4: group is: %s, master is: %s, slave is: %s", groupName,
                 master == null ? null : master.getNodeName(),
                 slave == null ? null : slave.getNodeName()));
@@ -321,8 +298,6 @@ public class SDBGetRG {
         Node master = null;
         Node slave = null;
 
-        // case 1
-        //master = rg.getMaster();
         slave = rg.getSlave();
         System.out.println(String.format("case1: group is: %s, master is: %s, slave is: %s", groupName,
                 master == null ? null : master.getNodeName(),

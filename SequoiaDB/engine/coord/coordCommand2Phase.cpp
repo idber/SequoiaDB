@@ -102,12 +102,10 @@ namespace engine
       PD_CHECK( pArguments, SDB_SYS, error, PDERROR, "Get arguments failed" ) ;
 
       pArguments->_pBuf = buf ;
-      // Extract message
       rc = _extractMsg ( pMsg, pArguments ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to extract message for command[%s], "
                    "rc: %d", getName(), rc ) ;
 
-      // Parse and check message
       rc = _parseMsg ( pMsg, pArguments ) ;
       if ( SDB_FIELD_NOT_EXIST == rc )
       {
@@ -123,14 +121,12 @@ namespace engine
        * 3. Generate P1 message to Data Groups
        * 4. Execute P1 on Data Groups
        ************************************************************************/
-      // Generate P1 message to Catalog
       rc = _generateCataMsg( pMsg, cb, pArguments,
                              &pCataMsgBuf, &cataMsgSize ) ;
       PD_RC_CHECK( rc, PDERROR, "Generate message to catalog failed for "
                    "command[%s, targe:%s], rc: %d",
                    getName(), pArguments->_targetName.c_str(), rc ) ;
 
-      // Execute P1 on Catalog
       rc = _doOnCataGroup( (MsgHeader*)pCataMsgBuf, cb, &pCoordCtxForCata,
                            pArguments,
                            _flagGetGrpLstFromCata() ? &groupLst : NULL,
@@ -153,14 +149,12 @@ namespace engine
               "get %u target groups back", getName(),
               pArguments->_targetName.c_str(), groupLst.size() ) ;
 
-      // Generate P1 message to Data Groups
       rc = _generateDataMsg( pMsg, cb, pArguments, cataObjs,
                              &pDataMsgBuf, &dataMsgSize ) ;
       PD_RC_CHECK( rc, PDERROR, "Generate message to data failed for "
                    "command[%s, target:%s], rc: %d", getName(),
                    pArguments->_targetName.c_str(), rc ) ;
 
-      // Execute P1 on Data Groups
       rc = _doOnDataGroup( (MsgHeader*)pDataMsgBuf, cb, &pCoordCtxForData,
                            pArguments, groupLst, cataObjs, sucGroupLst ) ;
       PD_RC_CHECK( rc, PDERROR, "Do phase 1 on data failed for command[%s, "
@@ -177,7 +171,6 @@ namespace engine
        * 1. Execute P2 on Catalog
        * 2. Execute P2 on Data Groups
        ************************************************************************/
-      // Execute P2 on Catalog
       rc = _doOnCataGroupP2( (MsgHeader*)pCataMsgBuf, cb, &pCoordCtxForCata,
                              pArguments, groupLst ) ;
       PD_RC_CHECK( rc, PDERROR, "Do phase 2 on catalog failed for "
@@ -187,7 +180,6 @@ namespace engine
       PD_LOG( PDINFO, "Do phase 2 on catalog done for command[%s, targe:%s]",
               getName(), pArguments->_targetName.c_str() ) ;
 
-      // Execute P2 on Data Groups
       rc = _doOnDataGroupP2( (MsgHeader*)pDataMsgBuf, cb, &pCoordCtxForData,
                              pArguments, groupLst, cataObjs ) ;
       PD_RC_CHECK( rc, PDERROR, "Do phase 2 on data failed for command[%s, "
@@ -203,7 +195,6 @@ namespace engine
        * 2. Update local catalog cache if needed
        ************************************************************************/
    commit :
-      // Commit on Catalog
       rc = _doCommit( pMsg, cb, &pCoordCtxForCata, pArguments );
       PD_RC_CHECK( rc, PDERROR, "Do commit phase on catalog failed for "
                    "command[%s, targe:%s], rc: %d", getName(),
@@ -212,7 +203,6 @@ namespace engine
       PD_LOG( PDINFO, "Do commit phase on catalog done for command[%s, "
               "targe:%s]", getName(), pArguments->_targetName.c_str() ) ;
 
-      // Update local catalog info caches if needed
       rc = _doComplete( pMsg, cb, pArguments ) ;
       PD_RC_CHECK( rc, PDERROR, "Do complete phase failed for "
                    "command[%s, targe:%s], rc: %d", getName(),
@@ -227,10 +217,8 @@ namespace engine
        * 1. Audit the command Audit the command
        * 2. Delete contexts and free buffers
        ************************************************************************/
-      // Audit command
       _doAudit( pArguments, rc ) ;
 
-      // Clear allocated context and buffers
       if ( pCoordCtxForCata )
       {
          pRtncb->contextDelete ( pCoordCtxForCata->contextID(), cb ) ;
@@ -265,21 +253,16 @@ namespace engine
        * 2. Execute rollback on succeed Data Groups
        * Note: updates to Catalog will be rollback by kill context
        ************************************************************************/
-      // The command could be rollbacked in two conditions:
-      // 1. There are succeed Data Groups
-      // 2. There are Catalog context to rollback catalog
       if ( !sucGroupLst.empty () && pCoordCtxForCata )
       {
          INT32 tmprc = SDB_OK ;
 
-         // Rollback Catalog first if needed
          if ( _flagRollbackCataBeforeData() && pCoordCtxForCata )
          {
             pRtncb->contextDelete ( pCoordCtxForCata->contextID(), cb ) ;
             pCoordCtxForCata = NULL ;
          }
 
-         // Generate rollback message to succeed Data Groups
          tmprc = _generateRollbackDataMsg( pMsg, cb, pArguments,
                                            &pRollbackMsgBuf,
                                            &rollbackMsgSize ) ;
@@ -379,7 +362,6 @@ namespace engine
       rtnContextCoord *pContext = NULL ;
       rtnContextBuf buffObj ;
 
-      // Send request to catalog, and get the control of CoordContext
       rc = executeOnCataGroup( pMsg, cb, TRUE, NULL, &pContext,
                                pArgs->_pBuf ) ;
       if ( rc )
@@ -389,7 +371,6 @@ namespace engine
          goto error ;
       }
 
-      /// get cached data
       while( pContext && pContext->getCachedRecordNum() > 0 )
       {
          rc = pContext->getMore( 1, buffObj, cb ) ;
@@ -454,7 +435,6 @@ namespace engine
                                              const CoordGroupList &pGroupLst )
    {
 
-      /// Do nothing
       return SDB_OK ;
    }
 
@@ -465,7 +445,6 @@ namespace engine
                                              const CoordGroupList &groupLst,
                                              const vector<BSONObj> &cataObjs )
    {
-      /// Do nothing
       return SDB_OK ;
    }
 
@@ -474,7 +453,6 @@ namespace engine
                                                  coordCMDArguments *pArgs,
                                                  const CoordGroupList &groupLst )
    {
-      /// Do nothing
       return SDB_OK ;
    }
 

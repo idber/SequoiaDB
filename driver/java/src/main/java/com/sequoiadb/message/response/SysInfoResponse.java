@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 SequoiaDB Inc.
+ * Copyright 2017 SequoiaDB Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,7 +52,6 @@ public class SysInfoResponse extends SysInfoHeader implements Response {
 
     @Override
     public void decode(ByteBuffer in) {
-        // Java platform is BIG_ENDIAN
         in.order(ByteOrder.BIG_ENDIAN);
         specialSysInfoLen = in.getInt();
         eyeCatcher = in.getInt();

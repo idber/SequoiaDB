@@ -50,11 +50,8 @@ namespace engine
    /*
       SPT_PROP_ATTR define
    */
-   /// visible to enumerate. for...in, for...each, JS_Enumerate
    #define SPT_PROP_ENUMERATE                JSPROP_ENUMERATE
-   /// can't be set
    #define SPT_PROP_READONLY                 JSPROP_READONLY
-   /// can't be deleted
    #define SPT_PROP_PERMANENT                JSPROP_PERMANENT
 
    #define SPT_PROP_DEFAULT                  (SPT_PROP_ENUMERATE|SPT_PROP_READONLY|SPT_PROP_PERMANENT)

@@ -225,7 +225,6 @@ static void _initOid( void )
     unsigned long long n = 0 ;
     unsigned short pid = 0 ;
     srand ( (unsigned int)time(NULL) ) ;
-    // generate a system id
 #if defined (_WIN32)
     {
        unsigned int a=0, b=0 ;
@@ -238,7 +237,6 @@ static void _initOid( void )
     pid = (unsigned short) getpid () ;
     n = (((unsigned long long)random())<<32) | random() ;
 #endif
-    // fold in pid to bson_ourMachineAndPid
     memcpy ( &bson_ourMachineAndPid, &n, sizeof(struct bson_machine_pid) ) ;
     bson_ourMachineAndPid._pid = pid ;
 }
@@ -247,7 +245,6 @@ SDB_EXPORT void bson_oid_gen( bson_oid_t *oid ) {
     static int incr = 0;
     int i;
     int t = time( NULL );
-    // initialize system machine and pid for first time entry
     static ossOnce initOnce = OSS_ONCE_INIT ;
     ossOnceRun( &initOnce, _initOid );
     if( oid_inc_func )
@@ -259,7 +256,6 @@ SDB_EXPORT void bson_oid_gen( bson_oid_t *oid ) {
     else
         i = __sync_fetch_and_add(&incr, 1);
 #endif
-        //i = incr++;
     memset ( oid, 0, sizeof(bson_oid_t) ) ;
     {
        unsigned char *source = (unsigned char *)&t ;
@@ -277,9 +273,6 @@ SDB_EXPORT void bson_oid_gen( bson_oid_t *oid ) {
 #endif
        memcpy ( &oid->ints[1], &bson_ourMachineAndPid,
                 sizeof(bson_ourMachineAndPid) ) ;
-       //memcpy ( ((unsigned char*)&oid->ints[1]) + sizeof(bson_ourMachineAndPid),
-       //         &i, 3 ) ;
-       // apply i to last 3 bytes
        source = (unsigned char *)&i ;
        dest = (unsigned char*)&oid->ints[2] ;
 #if defined (SDB_BIG_ENDIAN)
@@ -337,7 +330,6 @@ static int strlen_a ( const char *data )
    }
    while ( data && *data )
    {
-      //the JSON standard does not need to be escaped single quotation marks
       if ( data[0] == '\"' ||
            data[0] == '\\' ||
            data[0] == '\b' ||
@@ -522,7 +514,6 @@ SDB_EXPORT int bson_sprint_iterator ( char **pbuf, int *left, bson_iterator *i,
          LocalTime ( &timer, &psr ) ;
          if ( (psr.tm_year + 1900) >= 0 && (psr.tm_year + 1900) <= 9999 )
          {
-            // [ 0000-01-01, 9999-12-31 ]
             sprintf ( temp, "{ \"$date\": \"%04d-%02d-%02d\" }", psr.tm_year + 1900, psr.tm_mon + 1, psr.tm_mday ) ;
          }
          else
@@ -543,8 +534,6 @@ SDB_EXPORT int bson_sprint_iterator ( char **pbuf, int *left, bson_iterator *i,
          sprintf ( temp, "\", \"$type\": \"%u\" }", (unsigned char)bson_iterator_bin_type ( i ) ) ;
          bson_sprint_raw_concat ( pbuf, left, "{ \"$binary\": \"", 0 ) ;
          CHECK_LEFT ( left )
-         //bson_sprint_hex_concat ( pbuf, left, bson_iterator_bin_data ( i ),
-         //                         bson_iterator_bin_len ( i ) ) ;
          bin_size = bson_iterator_bin_len ( i ) ;
          if( bin_size > 0 )
          {
@@ -891,9 +880,6 @@ SDB_EXPORT int bson_sprint_length_iterator ( bson_iterator *i )
       }
       else
       {
-         // show as{ "a": { "$numberLong": "-9223372036854775808" } }
-         // so, we need at least 42 bytes
-         // for { "$numberLong": "-9223372036854775808" }
          total += 64 ;
       }
       break ;
@@ -956,7 +942,6 @@ SDB_EXPORT int bson_sprint_length_raw ( const char *data, int isobj ) {
         key = bson_iterator_key( &i );
         if ( isobj )
         {
-            // "<key>"<SPC>:<SPC>
             total += 5 + strlen( key );
         }
         k = bson_sprint_length_iterator ( &i ) ;
@@ -971,7 +956,6 @@ SDB_EXPORT int bson_sprint_length_raw ( const char *data, int isobj ) {
 
 SDB_EXPORT int bson_sprint_length( const bson *b ) {
     if ( ! b ) return 0 ;
-    // additional '\0' is in bson_sprint_length_raw
     return bson_sprint_length_raw( b->data, 1 ) ;
 }
 
@@ -1329,7 +1313,6 @@ SDB_EXPORT double bson_iterator_double( const bson_iterator *i ) {
 SDB_EXPORT int bson_iterator_decimal_weight( const bson_iterator *i,
                                              int *weight )
 {
-   //define in common_decimal.h __decimal
    const char *value = NULL ;
    short tmpWeight   = 0 ;
    if ( bson_iterator_type( i ) != BSON_DECIMAL )
@@ -1352,7 +1335,6 @@ SDB_EXPORT int bson_iterator_decimal_weight( const bson_iterator *i,
 SDB_EXPORT int bson_iterator_decimal_size( const bson_iterator *i,
                                            int *size )
 {
-   //define in common_decimal.h __decimal
    const char *value = NULL ;
    if ( bson_iterator_type( i ) != BSON_DECIMAL )
    {
@@ -1368,7 +1350,6 @@ SDB_EXPORT int bson_iterator_decimal_size( const bson_iterator *i,
 SDB_EXPORT int bson_iterator_decimal_typemod( const bson_iterator *i,
                                               int *typemod )
 {
-   //define in common_decimal.h __decimal
    const char *value = NULL ;
    if ( bson_iterator_type( i ) != BSON_DECIMAL )
    {
@@ -1387,7 +1368,6 @@ SDB_EXPORT int bson_iterator_decimal_typemod( const bson_iterator *i,
 SDB_EXPORT int bson_iterator_decimal_scale( const bson_iterator *i,
                                             int *sign, int *scale )
 {
-   //define in common_decimal.h __decimal
    const char *value = NULL ;
    short tmpScale    = 0 ;
    if ( bson_iterator_type( i ) != BSON_DECIMAL )
@@ -1759,11 +1739,9 @@ static int bson_append_estart( bson *b, int type, const char *name, const int da
         bson_builder_error( b );
         return BSON_ERROR;
     }
-    // check nested array's field
     if ( _bson_is_nested_array( b ) ) {
        char c = '0' ;
        if ( len == 2 ) {
-          // check whether the field name is "x" (x is 0/1/2/3/...) or not
           c = (char)(name[0]) ;
           if ( c < '0' || c > '9' ) {
              bson_builder_error( b );
@@ -1784,7 +1762,6 @@ static int bson_append_estart( bson *b, int type, const char *name, const int da
              }
           }
        } else {
-          // name is "", return error
           bson_builder_error( b );
           return BSON_ERROR ;
        }
@@ -1816,7 +1793,6 @@ SDB_EXPORT int bson_append_long( bson *b, const char *name, const int64_t i ) {
 SDB_EXPORT int bson_append_decimal( bson *b, const char *name,
                                     const bson_decimal *decimal )
 {
-   //define in common_decimal.h __decimal
    int i = 0 ;
    int size = DECIMAL_HEADER_SIZE + decimal->ndigits * sizeof( short ) ;
    int typemod  = decimal->typemod ;
@@ -1933,7 +1909,6 @@ int bson_append_string_base( bson *b, const char *name,
     return BSON_OK;
 }
 
-// for sdbimprt only
 int bson_append_string_not_utf8( bson *b, const char *name, const char *value, int len ) {
 
     int sl = len + 1;
@@ -1941,19 +1916,16 @@ int bson_append_string_not_utf8( bson *b, const char *name, const char *value, i
     if ( bson_check_string( b, ( const char * )value, sl - 1 ) == BSON_ERROR ) {
         int i;
 
-        // allow not-utf8 string
         if ( !( b->err & BSON_NOT_UTF8 ) ) {
             return BSON_ERROR;
         }
 
-        // disallow '\0' in string
         for ( i = 0; i < len; i++ ) {
             if ( '\0' == value[i] ) {
                 return BSON_ERROR;
             }
         }
 
-        // erase BSON_NOT_UTF8
         b->err &= ~BSON_NOT_UTF8;
     }
 
@@ -2134,7 +2106,6 @@ SDB_EXPORT int bson_append_time_t( bson *b, const char *name, time_t secs ) {
 
 SDB_EXPORT int bson_append_start_object( bson *b, const char *name ) {
     if ( bson_append_estart( b, BSON_OBJECT, name, 5 ) == BSON_ERROR ) return BSON_ERROR;
-    // make sure the bson doesn't have too many embedded layers
     if ( b->stackPos >= BSON_MAX_STACK_SIZE-1 ) return BSON_ERROR ;
     b->stack[ b->stackPos ] = b->cur - b->data;
     b->stackType[ b->stackPos ] = (char)BSON_OBJECT ;
@@ -2145,7 +2116,6 @@ SDB_EXPORT int bson_append_start_object( bson *b, const char *name ) {
 
 SDB_EXPORT int bson_append_start_array( bson *b, const char *name ) {
     if ( bson_append_estart( b, BSON_ARRAY, name, 5 ) == BSON_ERROR ) return BSON_ERROR;
-    // make sure the bson doesn't have too many embedded layers
     if ( b->stackPos >= BSON_MAX_STACK_SIZE-1 ) return BSON_ERROR ;
     b->stack[ b->stackPos ] = b->cur - b->data;
     b->stackType[ b->stackPos ] = (char)BSON_ARRAY ;
@@ -2326,9 +2296,6 @@ void LocalTime ( time_t *Time, struct tm *TM )
 #if defined (__linux__ ) || defined (_AIX)
    localtime_r( Time, TM ) ;
 #elif defined (_WIN32)
-   // The Time represents the seconds elapsed since midnight (00:00:00),
-   // January 1, 1970, UTC. This value is usually obtained from the time
-   // function.
    localtime_s( TM, Time ) ;
 #endif
 }

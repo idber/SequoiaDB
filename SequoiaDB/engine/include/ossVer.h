@@ -73,20 +73,10 @@
 */
 #define SDB_ENGINE_FIXVERSION_1        1
 
-//#define SDB_ENGINE_FIXVERSION_CURRENT  SDB_ENGINE_FIXVERSION_1
 
 /*
       Build time
 */
-#ifdef SDB_ENTERPRISE
-
-   #ifdef _DEBUG
-      #define SDB_ENGINE_BUILD_TIME    SDB_ENGINE_BUILD_CURRENT"(Enterprise-Debug)"
-   #else
-      #define SDB_ENGINE_BUILD_TIME    SDB_ENGINE_BUILD_CURRENT"(Enterprise)"
-   #endif // _DEBUG
-
-#else
 
    #ifdef _DEBUG
       #define SDB_ENGINE_BUILD_TIME    SDB_ENGINE_BUILD_CURRENT"(Debug)"
@@ -94,7 +84,6 @@
       #define SDB_ENGINE_BUILD_TIME    SDB_ENGINE_BUILD_CURRENT
    #endif // _DEBUG
 
-#endif // SDB_ENTERPRISE
 
 /*
  *    Get the version, subversion and release version.

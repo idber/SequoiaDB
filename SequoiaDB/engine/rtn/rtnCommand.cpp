@@ -51,7 +51,6 @@
 #include "msgMessageFormat.hpp"
 
 #if defined (_DEBUG)
-// for qgmDebugQuery function
 #endif
 
 using namespace bson ;
@@ -59,10 +58,7 @@ using namespace std ;
 
 #define MAX_CL_SIZE_ALIGN_SIZE            ( 32 * 1024 * 1024 )
 
-// Unit is MB. This is the upper limit. It should be smaller than the maximum
-// size of the storage unit.
 #define MAX_CAP_CL_SIZE                   ( OSS_SINT64_MAX >> 20 )
-// Default size of capped collection for text index. The unit is MB. So its 30G.
 #define TEXT_INDEX_DATA_BUFF_DEFAULT_SIZE  ( 30 * 1024 )
 
 namespace engine
@@ -225,7 +221,6 @@ namespace engine
       }
       else
       {
-         //split next node first
          newCmdInfo = SDB_OSS_NEW _cmdBuilderInfo ;
          newCmdInfo->cmdName = pCmdInfo->cmdName.substr( sameNum ) ;
          newCmdInfo->createFunc = pCmdInfo->createFunc ;
@@ -235,7 +230,6 @@ namespace engine
 
          pCmdInfo->next = newCmdInfo ;
 
-         //change cur node
          pCmdInfo->cmdName = pCmdInfo->cmdName.substr ( 0, sameNum ) ;
          pCmdInfo->nameSize = sameNum ;
 
@@ -358,7 +352,6 @@ namespace engine
    {
    }
 
-   //Command list:
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnCreateGroup)
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnRemoveGroup)
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnCreateNode)
@@ -549,7 +542,6 @@ namespace engine
                   "creation, rc = %d", FIELD_NAME_NAME, rc ) ;
          goto error ;
       }
-      // ensure sharding key
       rc = rtnGetBooleanElement( matcher, FIELD_NAME_ENSURE_SHDINDEX,
                                  enSureIndex ) ;
       if ( SDB_FIELD_NOT_EXIST == rc )
@@ -559,7 +551,6 @@ namespace engine
       }
       PD_RC_CHECK( rc, PDERROR, "Field[%s] value is error in obj[%s]",
                    FIELD_NAME_ENSURE_SHDINDEX, matcher.toString().c_str() ) ;
-      // if we want to create sharding key index, let's do it
       if ( enSureIndex )
       {
          rc = rtnGetObjElement ( matcher, FIELD_NAME_SHARDINGKEY,
@@ -572,7 +563,6 @@ namespace engine
                       FIELD_NAME_SHARDINGKEY,
                       matcher.toString().c_str() ) ;
       }
-      // check the attribute, we don't care the return code
       rtnGetBooleanElement ( matcher, FIELD_NAME_COMPRESSED,
                              isCompressed ) ;
       if ( isCompressed )
@@ -580,7 +570,6 @@ namespace engine
          _attributes |= DMS_MB_ATTR_COMPRESSED ;
       }
 
-      // check strictDataMode
       rtnGetBooleanElement ( matcher, FIELD_NAME_STRICTDATAMODE,
                              strictDataMode ) ;
       if ( strictDataMode )
@@ -588,8 +577,6 @@ namespace engine
          _attributes |= DMS_MB_ATTR_STRICTDATAMODE ;
       }
 
-      // Check if the compression type is specified. If yes, set the attribute.
-      // Compression type can only be specified when Compressed is true.
       rc = rtnGetStringElement( matcher, FIELD_NAME_COMPRESSIONTYPE,
                                 &compressionType ) ;
       if ( SDB_FIELD_NOT_EXIST == rc )
@@ -634,7 +621,6 @@ namespace engine
          }
       }
 
-      /// auto index id
       rc = rtnGetBooleanElement( matcher, FIELD_NAME_AUTO_INDEX_ID,
                                  autoIndexId ) ;
       if ( SDB_OK == rc && !autoIndexId )
@@ -695,7 +681,6 @@ namespace engine
                                           MAX_CL_SIZE_ALIGN_SIZE ) ;
          builder.append( FIELD_NAME_SIZE, maxSize ) ;
 
-         // Max/OverWrite is optional.
          rc = rtnGetNumberLongElement( matcher, FIELD_NAME_MAX, maxRecNum ) ;
          if ( SDB_OK != rc && SDB_FIELD_NOT_EXIST != rc )
          {
@@ -757,7 +742,6 @@ namespace engine
       {
          CHAR szTmp[ 50 ] = { 0 } ;
          mbAttr2String( _attributes, szTmp, sizeof(szTmp) - 1 ) ;
-         /// AUDIT
          PD_AUDIT_COMMAND( AUDIT_DDL, name(), AUDIT_OBJ_CL,
                            _collectionName, rc,
                            "ShardingKey:%s, Attribute:0x%08x(%s), "
@@ -782,11 +766,6 @@ namespace engine
       goto done ;
    }
 
-   // Clean when error happened.
-   // The main job here is to remove the collection space if this is the only
-   // collection in the collection space.
-   // Attention: This should only be done on data node in a cluster when the
-   // command is from shard plane.
    PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCREATECL__CLEAN, "_rtnCreateCollection::_clean" )
    void _rtnCreateCollection::_clean( pmdEDUCB *cb, SDB_DMSCB *dmsCB,
                                       SDB_DPSCB *dpsCB )
@@ -800,7 +779,6 @@ namespace engine
          rc = dmsCB->dropEmptyCollectionSpace( csName.c_str(), cb, dpsCB ) ;
          if ( rc && SDB_DMS_CS_NOT_EMPTY != rc )
          {
-            // Just logging the error, but can do nothing about it.
             PD_LOG( PDERROR, "Drop new created collection space[%s] failed, "
                     "rc: %d", csName.c_str(), rc ) ;
          }
@@ -887,7 +865,6 @@ namespace engine
 
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
-         /// AUDIT
          PD_AUDIT_COMMAND( AUDIT_DDL, name(), AUDIT_OBJ_CS,
                            _spaceName, rc,
                            "PageSize:%u, LobPageSize:%u",
@@ -986,8 +963,6 @@ namespace engine
       }
       else
       {
-         // For text index, the "sort buffer size" is actually used as the 'Size'
-         // option for the corresponding capped collection.
          if ( _textIdx )
          {
             _sortBufferSize = TEXT_INDEX_DATA_BUFF_DEFAULT_SIZE ;
@@ -1010,7 +985,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__RTNCREATEINDEX_DOIT ) ;
       BOOLEAN isSys = FALSE ;
 
-      // Currently only support text index in cluster.
       if ( _textIdx && ( CMD_SPACE_SERVICE_SHARD != getFromService() ) )
       {
          PD_LOG( PDERROR, "Text index is only supported in cluster" ) ;
@@ -1028,7 +1002,6 @@ namespace engine
 
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
-         /// AUDIT
          PD_AUDIT_COMMAND( AUDIT_DDL, name(), AUDIT_OBJ_CL,
                            _collectionName, rc,
                            "IndexDef:%s, SortBuffSize:%d",
@@ -1042,7 +1015,6 @@ namespace engine
       goto done ;
    }
 
-   // Check if there is mixed use of normal index and text index.
    PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCREATEINDEX__VALIDATEDEF, "_rtnCreateIndex::_validateDef" )
    INT32 _rtnCreateIndex::_validateDef( const BSONObj &index )
    {
@@ -1157,7 +1129,6 @@ namespace engine
       else
       {
          rc = rtnDropCollectionCommand ( _collectionName, cb, dmsCB, dpsCB ) ;
-         /// AUDIT
          PD_AUDIT_COMMAND( AUDIT_DDL, name(), AUDIT_OBJ_CL,
                            _collectionName, rc, "" ) ;
       }
@@ -1242,7 +1213,6 @@ namespace engine
       else
       {
          rc = rtnDropCollectionSpaceCommand ( _spaceName, cb, dmsCB, dpsCB ) ;
-         /// AUDIT
          PD_AUDIT_COMMAND( AUDIT_DDL, name(), AUDIT_OBJ_CS,
                            _spaceName, rc, "" ) ;
       }
@@ -1338,7 +1308,6 @@ namespace engine
                                  dpsCB, isSys ) ;
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
-         /// AUDIT
          PD_AUDIT_COMMAND( AUDIT_DDL, name(), AUDIT_OBJ_CL,
                            _collectionName, rc, "IndexDef:%s",
                            _index.toString().c_str() ) ;
@@ -1511,7 +1480,6 @@ namespace engine
 
       if ( !_hintExist )
       {
-         /// compatiable with old version. Old version use selector for hint
          _options.setHint( _options.getSelector() ) ;
       }
 
@@ -1523,7 +1491,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to open context[%lld], rc: %d",
                    *pContextID, rc ) ;
 
-      // sample timetamp
       if ( cb->getMonConfigCB()->timestampON )
       {
          context->getMonCB()->recordStartTimestamp() ;
@@ -1662,7 +1629,6 @@ namespace engine
                                           cb, dpsCB ) ;
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
-         /// AUDIT
          PD_AUDIT_COMMAND( AUDIT_DDL, name(), AUDIT_OBJ_CL,
                            _oldCollectionName, rc,
                            "NewCollectionName:%s",
@@ -1768,8 +1734,6 @@ namespace engine
       }
       dmsLock = TRUE ;
 
-      // let's find out whether the collection space is held by this
-      // EDU. If so we have to get rid of those contexts
       if ( NULL != cb )
       {
          rtnDelContextForCollectionSpace( _oldName, cb ) ;
@@ -1784,7 +1748,6 @@ namespace engine
       }
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
-         /// AUDIT
          PD_AUDIT_COMMAND( AUDIT_DDL, name(), AUDIT_OBJ_CS,
                            _oldName, rc,
                            "NewCollectionSpaceName:%s",
@@ -1873,7 +1836,6 @@ namespace engine
 
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
-         /// AUDIT
          PD_AUDIT_COMMAND( AUDIT_DDL, name(), AUDIT_OBJ_CL,
                            _collectionName, rc, "" ) ;
       }
@@ -1975,7 +1937,6 @@ namespace engine
       PD_LOG( PDEVENT, "Shut down sevice" ) ;
       PMD_SHUTDOWN_DB( SDB_OK ) ;
 
-      /// AUDIT
       PD_AUDIT_COMMAND( AUDIT_SYSTEM, name(), AUDIT_OBJ_NODE,
                         "", SDB_OK, "" ) ;
 
@@ -2200,7 +2161,6 @@ namespace engine
                  cfgObj.toString().c_str(), rc ) ;
          goto error ;
       }
-      /// dump memory config
       optCB->toBSON( cfgObj ) ;
 
       PD_LOG( PDEVENT, "Reload config succeed. All configs: %s",
@@ -2247,14 +2207,12 @@ namespace engine
          UINT32 one = 1 ;
          BSONElement eleComp = arg.getField( FIELD_NAME_COMPONENTS );
          BSONElement eleBreakPoint = arg.getField(FIELD_NAME_BREAKPOINTS);
-         //BSONElement elestrTids    = arg.getField(FIELD_NAME_MONITORTHREADS);
          if ( eleComp.type() == Array )
          {
             _mask = 0 ;
             BSONObjIterator it ( eleComp.embeddedObject() ) ;
             if ( !it.more () )
             {
-               // if there's no element, that means we need mask everything
                for( INT32 i = 0; i < _pdTraceComponentNum; ++i )
                {
                   _mask |= one << i ;
@@ -2295,8 +2253,6 @@ namespace engine
                      if( 0 == ossStrcmp( funcName, eleStr ) )
                      {
                         _funcCode.push_back ( i ) ;
-                        // do NOT break since we may have functions with
-                        // duplicate names
                      } // if( 0 == ossStrcmp( funcName, eleStr ) )
                   } // for( UINT64 i = 0; i < pdGetTraceFunctionListNum(); i++ )
                } // if( ele.type() == String )
@@ -2386,10 +2342,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__RTNTRACERESUME_DOIT ) ;
       pdTraceCB *pdTraceCB = sdbGetPDTraceCB() ;
       pdTraceCB->removeAllBreakPoint () ;
-      // sleep for a second so that break point removal information is broadcast
-      // to all CPUs
-      // Note this is not performance sensitive code, so it's safe to sleep for
-      // 1 second
       ossSleepsecs(1) ;
       pdTraceCB->resumePausedEDUs () ;
       PD_TRACE_EXITRC ( SDB__RTNTRACERESUME_DOIT, rc ) ;
@@ -2482,7 +2434,6 @@ namespace engine
          }
 
 
-         //create dir
          ossStrncpy( path, filePath, OSS_MAX_PATHSIZE ) ;
          ptr = ossStrrchr( path, OSS_FILE_SEP_CHAR ) ;
          if ( ptr != &path[0] )
@@ -2495,7 +2446,6 @@ namespace engine
          }
 
 
-         /// open file
 
          rc = ossOpen( filePath, OSS_REPLACE|OSS_READWRITE,
                        OSS_DEFAULTFILE, outFile ) ;
@@ -2573,7 +2523,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__RTNTRACESTATUS_DOIT ) ;
       rtnContextDump *context = NULL ;
       *pContextID = -1 ;
-      // create cursors
       rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, (rtnContext**)&context,
                                *pContextID, cb ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to create new context, rc = %d", rc ) ;
@@ -2675,7 +2624,6 @@ namespace engine
       try
       {
          BSONObj obj( pMatcherBuff ) ;
-         //file name
          tempEle = obj.getField ( FIELD_NAME_FILENAME ) ;
          if ( tempEle.eoo() )
          {
@@ -2692,7 +2640,6 @@ namespace engine
          tempValue = tempEle.valuestr() ;
          ossStrncpy ( _fileName, tempValue, tempEle.valuestrsize() ) ;
 
-         //cs name
          tempEle = obj.getField ( FIELD_NAME_COLLECTIONSPACE ) ;
          if ( tempEle.eoo() )
          {
@@ -2709,7 +2656,6 @@ namespace engine
          tempValue = tempEle.valuestr() ;
          ossStrncpy ( _csName, tempValue, tempEle.valuestrsize() ) ;
 
-         //cl name
          tempEle = obj.getField ( FIELD_NAME_COLLECTION ) ;
          if ( tempEle.eoo() )
          {
@@ -2726,7 +2672,6 @@ namespace engine
          tempValue = tempEle.valuestr() ;
          ossStrncpy ( _clName, tempValue, tempEle.valuestrsize() ) ;
 
-         //fields
          tempEle = obj.getField ( FIELD_NAME_FIELDS ) ;
          if ( !tempEle.eoo() )
          {
@@ -2751,7 +2696,6 @@ namespace engine
                          tempValue, fieldsSize ) ;
          }
 
-         //character
          tempEle = obj.getField ( FIELD_NAME_CHARACTER ) ;
          if ( !tempEle.eoo() )
          {
@@ -2777,7 +2721,6 @@ namespace engine
             }
          }
 
-         // asynchronous
          tempEle = obj.getField ( FIELD_NAME_ASYNCHRONOUS ) ;
          if ( !tempEle.eoo() )
          {
@@ -2790,7 +2733,6 @@ namespace engine
             isAsynchronous = tempEle.boolean() ;
          }
 
-         // headerline
          tempEle = obj.getField ( FIELD_NAME_HEADERLINE ) ;
          if ( !tempEle.eoo() )
          {
@@ -2803,7 +2745,6 @@ namespace engine
             headerline = tempEle.boolean() ;
          }
 
-         // thread number
          tempEle = obj.getField ( FIELD_NAME_THREADNUM ) ;
          if ( !tempEle.eoo() )
          {
@@ -2816,7 +2757,6 @@ namespace engine
             threadNum = (UINT32)tempEle.Int() ;
          }
 
-         // bucket number
          tempEle = obj.getField ( FIELD_NAME_BUCKETNUM ) ;
          if ( !tempEle.eoo() )
          {
@@ -2829,7 +2769,6 @@ namespace engine
             bucketNum = (UINT32)tempEle.Int() ;
          }
 
-         // buffer size
          tempEle = obj.getField ( FIELD_NAME_PARSEBUFFERSIZE ) ;
          if ( !tempEle.eoo() )
          {
@@ -2842,7 +2781,6 @@ namespace engine
             bufferSize = (UINT32)tempEle.Int() ;
          }
 
-         // type
          tempEle = obj.getField ( FIELD_NAME_LTYPE ) ;
          if ( tempEle.eoo() )
          {
@@ -2948,10 +2886,6 @@ namespace engine
          else if ( e.isNumber() )
          {
             INT32 type = e.numberInt() ;
-            /// 0: ignore none
-            /// 1: ignore hide default
-            /// 2: ignore default
-            /// 3: ignore unfield
             switch( type )
             {
                case 0 :
@@ -3575,7 +3509,6 @@ namespace engine
 
          if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
          {
-            /// AUDIT
             PD_AUDIT_COMMAND( AUDIT_DDL, name(), AUDIT_OBJ_CL,
                               _runner.getJob().getName(), rc,
                               "Option:%s",
@@ -3624,8 +3557,6 @@ namespace engine
       options = _alterObj.getField( FIELD_NAME_OPTIONS ).embeddedObject() ;
       shardingKey = options.getField( FIELD_NAME_SHARDINGKEY ) ;
 
-      /// should get catalog info to do some more judgements.
-      /// coord send the message with the newest catalog version
       if ( Object != shardingKey.type() )
       {
          PD_LOG( PDDEBUG, "no sharding key in the alter object, do noting." ) ;
@@ -3649,7 +3580,6 @@ namespace engine
                                   cb, dmsCB, dpsCB, TRUE ) ;
       if ( SDB_IXM_REDEF == rc || SDB_IXM_EXIST_COVERD_ONE == rc )
       {
-         /// sharding key index already exists.
          rc = SDB_OK ;
          goto done ;
       }
@@ -3897,7 +3827,6 @@ namespace engine
          BSONObj matcher( pMatcherBuff ) ;
          BSONElement e ;
 
-         // Check collection space name
          e = matcher.getField( FIELD_NAME_COLLECTIONSPACE ) ;
          if ( String == e.type() )
          {
@@ -3911,7 +3840,6 @@ namespace engine
             goto error ;
          }
 
-         // Check collection name
          e = matcher.getField( FIELD_NAME_COLLECTION ) ;
          if ( String == e.type() )
          {
@@ -3925,7 +3853,6 @@ namespace engine
             goto error ;
          }
 
-         // Check index name
          e = matcher.getField( FIELD_NAME_INDEX ) ;
          if ( String == e.type() )
          {
@@ -3939,7 +3866,6 @@ namespace engine
             goto error ;
          }
 
-         // Check mode
          e = matcher.getField( FIELD_NAME_ANALYZE_MODE ) ;
          if ( NumberInt == e.type() )
          {
@@ -3950,7 +3876,6 @@ namespace engine
                  SDB_ANALYZE_MODE_RELOAD == _param._mode ||
                  SDB_ANALYZE_MODE_CLEAR == _param._mode )
             {
-               /// do nothing
             }
             else
             {
@@ -3968,7 +3893,6 @@ namespace engine
             goto error ;
          }
 
-         // Check sample number
          e = matcher.getField( FIELD_NAME_ANALYZE_NUM ) ;
          if ( NumberInt == e.type() )
          {
@@ -3985,7 +3909,6 @@ namespace engine
             sampleByNum = TRUE ;
          }
 
-         // Check sample percent
          e = matcher.getField( FIELD_NAME_ANALYZE_PERCENT ) ;
          if ( NumberInt == e.type() )
          {
@@ -4009,7 +3932,6 @@ namespace engine
          goto error ;
       }
 
-      // Check conflicts
       if ( NULL != _csname )
       {
          if ( NULL != _clname )
@@ -4079,9 +4001,6 @@ namespace engine
       if ( ( SDB_DMS_CS_NOTEXIST == rc && NULL == _csname && NULL == _clname ) ||
            ( SDB_DMS_NOTEXIST == rc && NULL == _clname ) )
       {
-         // The error should be found earlier in clsShardSesssion
-         // If report here, means the collection or collection space had been
-         // dropped, ignore the error to avoid clsShardSession to retry
          rc = SDB_OK ;
       }
 

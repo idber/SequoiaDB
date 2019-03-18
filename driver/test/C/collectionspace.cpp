@@ -11,7 +11,6 @@ TEST(collectonspace,sdbCreateCollection)
    INT32 rc                       = SDB_OK ;
    rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = getCollectionSpace ( connection,
@@ -39,22 +38,18 @@ TEST(collectonspace,sdbCreateCollection1_without_options)
    bson option ;
    rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = getCollectionSpace ( connection,
                              COLLECTION_SPACE_NAME,
                              &collectionspace ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // drop the exist cl first
    rc = sdbDropCollection ( collectionspace, COLLECTION_NAME ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // build option
    bson_init( &option );
    bson_append_int( &option, "ReplSize", 0 );
    bson_finish( &option ) ;
-   // create cl
    rc = sdbCreateCollection1 ( collectionspace,
                                COLLECTION_NAME,
                                &option,
@@ -79,18 +74,15 @@ TEST(collectonspace,sdbCreateCollection1_with_options)
    bson options ;
    rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = getCollectionSpace ( connection,
                              COLLECTION_SPACE_NAME,
                              &collectionspace ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // drop the exist cl first
    rc = sdbDropCollection ( collectionspace, COLLECTION_NAME ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // option is {ShardingKey:{age:1,name:-1}},{ReplSize:2},{Compressed:true}
    bson_init ( &options ) ;
    bson_append_start_object ( &options, "ShardingKey" ) ;
    bson_append_int ( &options, "age", 1 ) ;
@@ -100,7 +92,6 @@ TEST(collectonspace,sdbCreateCollection1_with_options)
    bson_append_bool ( &options, "Compressed", true ) ;
    bson_finish ( &options ) ;
    bson_print ( &options ) ;
-   // get cl with sharding info
    rc = sdbCreateCollection1 ( collectionspace,
                                COLLECTION_NAME,
                                &options,
@@ -121,18 +112,14 @@ TEST(collectonspace,sdbDropCollection)
    INT32 rc                       = SDB_OK ;
    rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cs
    rc = getCollectionSpace ( connection,
                              COLLECTION_SPACE_NAME,
                              &collectionspace ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // create cl
    rc = sdbCreateCollection ( collectionspace, COLLECTION_NAME,
                               &collection ) ;
-   // drop cl
    rc = sdbDropCollection ( collectionspace, COLLECTION_NAME ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
@@ -149,15 +136,12 @@ TEST(collectonspace,sdbGetCollection1)
    INT32 rc                       = SDB_OK ;
    rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cs
    rc = getCollectionSpace ( connection,
                              COLLECTION_SPACE_NAME,
                              &collectionspace ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cl handle
    rc = sdbGetCollection1 ( collectionspace, COLLECTION_NAME, &collection ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
@@ -173,18 +157,14 @@ TEST(collectonspace,sdbGetCSName)
    sdbCSHandle collectionspace    = 0 ;
    INT32 rc                       = SDB_OK ;
    CHAR pCSName[ NAME_LEN + 1 ]   = { 0 } ;
-   // memset ( pCSName, 0, sizeof(char)*128 ) ;
    rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cs
    rc = getCollectionSpace ( connection,
                              COLLECTION_SPACE_NAME,
                              &collectionspace ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cs name
    rc = sdbGetCSName ( collectionspace, pCSName, NAME_LEN ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    printf("CS name is :%s\n",pCSName ) ;

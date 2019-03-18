@@ -150,7 +150,6 @@ namespace seadapter
             }
          }
 
-         // Maybe data, maybe the error message.
          if ( objBuff.getObjNum() > 0 )
          {
             msgBody = objBuff.data() ;
@@ -174,9 +173,6 @@ namespace seadapter
       goto done ;
    }
 
-   // Handle query message from data node.
-   // It will analyze the original query, fetch the neccessary data, and rewrite
-   // the items, then return the new message.
    INT32 _seAdptAgentSession::_onQueryReq( MsgHeader *msg,
                                            utilCommObjBuff &objBuff,
                                            pmdEDUCB *eduCB )
@@ -212,7 +208,6 @@ namespace seadapter
          IDX_META_VEC idxMetas ;
          const CHAR *hintIdxName = NULL ;
 
-         // If hint is used, get the index name from it.
          if ( !hint.isEmpty() )
          {
             hintIdxName = hint.getStringField( "" );
@@ -234,7 +229,6 @@ namespace seadapter
             }
          }
 
-         // Free the original context.
          if ( _context )
          {
             SDB_OSS_DEL _context ;
@@ -253,9 +247,6 @@ namespace seadapter
          }
 
 
-         // If there is only one index, use it for the search.
-         // If there are more than one index, name of the index to be used
-         // should be specified in the hint. Otherwise, error will be returned.
          if ( 0 == idxMetas.size() )
          {
             rc = SDB_INVALIDARG ;
@@ -360,7 +351,6 @@ namespace seadapter
       goto done ;
    }
 
-   // Generate another new message.
    INT32 _seAdptAgentSession::_onGetmoreReq( MsgHeader *msg,
                                              utilCommObjBuff &objBuff,
                                              pmdEDUCB *eduCB )
@@ -383,7 +373,6 @@ namespace seadapter
       goto done ;
    }
 
-   // Send reply message. It contains a header, and an optinal body.
    INT32 _seAdptAgentSession::_reply( MsgOpReply *header, const CHAR *buff,
                                       UINT32 size )
    {

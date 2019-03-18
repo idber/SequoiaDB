@@ -116,7 +116,6 @@ namespace engine
                                  _dpsLogWrapper *dpsCB ) ;
 
       public :
-         // For _IDmsEventHandler
          virtual INT32 onUnloadCS ( IDmsEventHolder *pEventHolder,
                                     IDmsSUCacheHolder *pCacheHolder,
                                     pmdEDUCB *cb,

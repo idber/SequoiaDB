@@ -48,8 +48,6 @@ namespace fap
          bson::BSONObjBuilder bob ;
          bob.append( "ismaster", TRUE ) ;
          bob.append("msg", "isdbgrid");
-         // build
-         // config at last
          bob.append( "maxBsonObjectSize", 16*1024*1024 ) ;
          bob.append( "maxMessageSizeBytes", SDB_MAX_MSG_LENGTH ) ;
          bob.append( "maxWriteBatchSize", 1000 ) ;

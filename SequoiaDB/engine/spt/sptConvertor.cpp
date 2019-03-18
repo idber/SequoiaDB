@@ -62,7 +62,6 @@
 #define SPT_AGGREGATE_MATCHER "$match"
 
 /*
-// check date type bounds
 #define SDB_DATE_TYPE_CHECK_BOUND(tm)                 \
    do {                                               \
       if( (INT64)tm/1000 < TIME_STAMP_DATE_MIN ||     \
@@ -72,7 +71,6 @@
       }                                               \
    } while( 0 )
 */
-// check timestamp type bounds
 #define SDB_TIMESTAMP_TYPE_CHECK_BOUND(tm)            \
    do {                                               \
       if ( !ossIsTimestampValid( ( INT64 )tm ) ) {   \
@@ -99,7 +97,6 @@ INT32 sptConvertor::toBson( JSObject *obj , bson **bs )
 
    _hasSetErrMsg = FALSE ;
 
-   /// can not use SDB_OSS_MALLOC
    *bs = bson_create() ;
    if ( NULL == *bs )
    {
@@ -351,7 +348,6 @@ INT32 sptConvertor::_addBinData( JSObject *obj,
          SDB_OSS_FREE( decode ) ;
          goto error ;
       }
-      /// we can not push '\0' to bson
       bson_append_binary( bs, key, binType,
                           decode, decodeSize - 1 ) ;
    }
@@ -400,9 +396,7 @@ INT32 sptConvertor::_addTimestamp( JSObject *obj,
       goto error ;
    }
 
-   // check bounds
    SDB_TIMESTAMP_TYPE_CHECK_BOUND( tm ) ;
-   // append to bson
    btm.t = tm;
    btm.i = usec ;
    bson_append_timestamp( bs, key, &btm ) ;
@@ -598,7 +592,6 @@ INT32 sptConvertor::_addSdbDate( JSObject *obj,
       goto error ;
    }
 
-   // append to bson
    datet = tm ;
    bson_append_date( bs, key, datet ) ;
 done:
@@ -663,7 +656,6 @@ error:
 INT32 sptConvertor::_getDecimalPrecision( const CHAR *precisionStr,
                                           INT32 *precision, INT32 *scale )
 {
-   //precisionStr:10,6
    BOOLEAN isFirst = TRUE ;
    INT32 rc        = SDB_OK ;
    const CHAR *p   = precisionStr ;
@@ -716,7 +708,6 @@ INT32 sptConvertor::_addSpecialObj( JSObject *obj,
                                     const CHAR *key,
                                     bson *bs )
 {
-   //BOOLEAN ret = TRUE ;
    INT32 rc = SDB_OK ;
    JSIdArray *properties = JS_Enumerate( _cx, obj ) ;
    if ( NULL == properties || 0 == properties->length )
@@ -726,7 +717,6 @@ INT32 sptConvertor::_addSpecialObj( JSObject *obj,
    }
 
    {
-   /// get the first ele
    jsid id = properties->vector[0] ;
    jsval fieldName ;
    std::string name ;
@@ -751,7 +741,6 @@ INT32 sptConvertor::_addSpecialObj( JSObject *obj,
       goto error ;
    }
 
-   /// start with '$'
    if ( SPT_CONVERTOR_SPE_OBJSTART != name.at(0) )
    {
       rc = SDB_SPT_NOT_SPECIAL_JSON ;
@@ -846,9 +835,7 @@ INT32 sptConvertor::_addSpecialObj( JSObject *obj,
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // check bounds
       SDB_TIMESTAMP_TYPE_CHECK_BOUND( tm ) ;
-      // append timestamp
       btm.t = tm;
       btm.i = usec ;
       bson_append_timestamp( bs, key, &btm ) ;
@@ -891,9 +878,6 @@ INT32 sptConvertor::_addSpecialObj( JSObject *obj,
       bson_date_t datet ;
       if ( TRUE == _getProperty( obj, name.c_str(), JSTYPE_STRING, value ) )
       {
-         // the format is {$date:"2000-01-01"} or
-         // {$date:"2000-01-01T(t)01:30:24:999999Z(z)"} or
-         // {$date:"2000-01-01T(t)01:30:24:000000+0800"}
          rc = _toString( value, strValue ) ;
          if ( SDB_OK != rc )
          {
@@ -904,7 +888,6 @@ INT32 sptConvertor::_addSpecialObj( JSObject *obj,
          rc = engine::utilStr2Date( strValue.c_str(), tm ) ;
          if ( SDB_OK != rc )
          {
-            // maybe the format is {$date:"253402185600000"}
             try
             {
                tm = boost::lexical_cast<UINT64>( strValue.c_str() ) ;
@@ -919,7 +902,6 @@ INT32 sptConvertor::_addSpecialObj( JSObject *obj,
       }
       else if ( TRUE == _getProperty( obj, name.c_str(), JSTYPE_OBJECT, value ) )
       {
-         // the format is {$date:{$numberLong:"946656000000"}}
          JSObject *tmpObj = JSVAL_TO_OBJECT( value ) ;
          jsval tmpValue ;
          if ( NULL == tmpObj )
@@ -952,7 +934,6 @@ INT32 sptConvertor::_addSpecialObj( JSObject *obj,
          else if ( TRUE == _getProperty( tmpObj, "$numberLong",
                                          JSTYPE_NUMBER, tmpValue ) )
          {
-            // the format is {$date:{$numberLong:946656000000}}
             FLOAT64 fv = 0 ;
             rc = _toDouble( tmpValue, fv ) ;
             if ( SDB_OK != rc )
@@ -981,7 +962,6 @@ INT32 sptConvertor::_addSpecialObj( JSObject *obj,
       }
       else if ( TRUE == _getProperty( obj, name.c_str(), JSTYPE_NUMBER, value ) )
       {
-         // the format is {$date:946656000000}
          FLOAT64 fv = 0 ;
          rc = _toDouble( value, fv ) ;
          if ( SDB_OK != rc )
@@ -998,7 +978,6 @@ INT32 sptConvertor::_addSpecialObj( JSObject *obj,
          goto error ;
       }
 
-      // append date
       datet = tm ;
       rc = bson_append_date( bs, key, datet ) ;
       if ( SDB_OK !=rc )
@@ -1193,7 +1172,6 @@ INT32 sptConvertor::_addSpecialObj( JSObject *obj,
             goto error ;
          }
 
-         /// we can not push '\0' to bson
          bson_append_binary( bs, key, binType,
                              decode, decodeSize - 1 ) ;
          SDB_OSS_FREE( decode ) ;
@@ -1237,7 +1215,6 @@ INT32 sptConvertor::_addSpecialObj( JSObject *obj,
 
       if ( 2 == properties->length )
       {
-         // 2 == properties->length
          jsid optionid = properties->vector[1] ;
 
          if ( !JS_IdToValue( _cx, optionid, &optionValName ))
@@ -1291,7 +1268,6 @@ INT32 sptConvertor::_addSpecialObj( JSObject *obj,
       }
       else
       {
-         // 1 == properties->length
          rc = bson_append_decimal3( bs, key, strDecimal.c_str() ) ;
       }
 
@@ -1312,12 +1288,10 @@ INT32 sptConvertor::_addSpecialObj( JSObject *obj,
 done:
    if ( properties )
    {
-      /// free
       JS_DestroyIdArray( _cx, properties ) ;
    }
    return rc ;
 error:
-   //ret = FALSE ;
    goto done ;
 }
 
@@ -1425,7 +1399,6 @@ INT32 sptConvertor::_appendToBson( const std::string &name,
                      goto error ;
                   }
 
-                  // $match could use match mode to ignore some errors
                   if ( SPT_CONVERT_AGGREGATE == _mode &&
                        0 == name.compare( SPT_AGGREGATE_MATCHER ) &&
                        !_inMatcher )
@@ -1464,7 +1437,6 @@ INT32 sptConvertor::_appendToBson( const std::string &name,
                }
                else
                {
-                  /// do nothing.
                }
             }
          }
@@ -1521,7 +1493,6 @@ INT32 sptConvertor::toString( JSContext *cx,
                               std::string &str )
 {
    INT32 rc = SDB_OK ;
-   //CHAR *utf8 = NULL ;
    SDB_ASSERT( NULL != cx, "impossible" ) ;
    size_t len = 0 ;
    JSString *jsStr = JS_ValueToString( cx, val ) ;
@@ -1561,10 +1532,6 @@ INT32 sptConvertor::toString( JSContext *cx,
       }
    }
 done:
-//   if ( NULL != utf8 )
-//   {
-//      SDB_OSS_FREE( utf8 ) ;
-//   }
    return rc ;
 }
 

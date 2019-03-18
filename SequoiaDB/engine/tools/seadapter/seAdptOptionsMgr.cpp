@@ -102,8 +102,6 @@ namespace seadapter
          goto done ;
       }
 
-      // Get the configuration file path. If not privided, search in the current
-      // path.
       if ( vmFromCmd.count( PMD_OPTION_CONFPATH ) )
       {
          CHAR *cfgPath =
@@ -144,14 +142,12 @@ namespace seadapter
       {
          if ( vmFromCmd.count( PMD_OPTION_CONFPATH ) )
          {
-            // Read the configuration file specified by command failed.
             std::cerr << "ERROR: Read configuration file[ " << _cfgFileName
                       << "] failed[ " << rc << " ]" << std::endl ;
             goto error ;
          }
          else
          {
-            // Read the default configuration file failed.
             std::cerr << "ERROR: Read default configuration file[ "
                << _cfgFileName << " ] failed[ " << rc << " ]" << std::endl ;
             goto error ;

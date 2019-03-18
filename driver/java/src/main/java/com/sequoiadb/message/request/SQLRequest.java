@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 SequoiaDB Inc.
+ * Copyright 2017 SequoiaDB Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,23 +24,22 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 
 public class SQLRequest extends SdbRequest {
-    private byte[] sqlBytes;
+    private String sql;
 
     public SQLRequest(String sql) {
         opCode = MsgOpCode.SQL_REQ;
 
-        try {
-            this.sqlBytes = sql.getBytes("UTF-8");
-        } catch (Exception e) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, e);
-        }
-
-        length += sqlBytes.length + 1;
+        this.sql = sql;
+        length += sql.length() + 1;
     }
 
     @Override
     protected void encodeBody(ByteBuffer out) {
-        out.put(sqlBytes);
-        out.put((byte) 0);
+        try {
+            out.put(sql.getBytes("UTF-8"));
+            out.put((byte) 0);
+        } catch (UnsupportedEncodingException e) {
+            throw new BaseException(SDBError.SDB_INVALIDARG, e);
+        }
     }
 }

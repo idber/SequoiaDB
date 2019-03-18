@@ -25,7 +25,6 @@ public class SdbConnect {
 
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
     }
 
@@ -36,13 +35,11 @@ public class SdbConnect {
 
     @Before
     public void setUp() throws Exception {
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } else
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        // cl
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
@@ -77,17 +74,14 @@ public class SdbConnect {
             ConfigOptions options = new ConfigOptions();
             options.setMaxAutoConnectRetryTime(0);
             options.setConnectTimeout(10000);
-            // connect
             long begin = 0;
             long end = 0;
             begin = System.currentTimeMillis();
             Sequoiadb sdb1 = new Sequoiadb(list, "", "", options);
             end = System.currentTimeMillis();
             System.out.println("Takes " + (end - begin));
-            // set option and change the connect
             options.setConnectTimeout(15000);
             sdb1.changeConnectionOptions(options);
-            // check
             DBCursor cursor = sdb1.getList(4, null, null, null);
             assertTrue(cursor != null);
             sdb1.disconnect();

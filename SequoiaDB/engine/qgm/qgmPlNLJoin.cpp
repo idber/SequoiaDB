@@ -170,7 +170,6 @@ namespace engine
                _innerF->obj = BSONObj() ;
                continue ;
             }
-            /// we already set right join to left join befroe.
             else
             {
                if ( _notMatched )

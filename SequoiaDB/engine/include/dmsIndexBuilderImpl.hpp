@@ -82,11 +82,6 @@ namespace engine
    } ;
    typedef class _dmsIndexSortingBuilder dmsIndexSortingBuilder ;
 
-   // Extended index builder, currently for text indices.
-   // The rebuild of text index is very different from normal indices.
-   // The main task is to create the corresponding capped cs and cl. No scanning
-   // of the original collection is needed. After creating the capped
-   // collection, the operation records can be inserted into it.
    class _dmsIndexExtBuilder : public _dmsIndexBuilder
    {
    public:

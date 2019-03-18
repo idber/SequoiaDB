@@ -57,7 +57,6 @@ namespace engine
          goto error ;
       }
 
-      // just sit here do nothing at the moment
       while ( !cb->isDisconnected() )
       {
          if ( !pNtyQue->timed_wait_and_pop( lsnInfo, OSS_ONE_SEC ) )
@@ -75,7 +74,6 @@ namespace engine
       goto done ;
    }
 
-   /// Register
    PMD_DEFINE_ENTRYPOINT( EDU_TYPE_CLSLOGNTY, TRUE,
                           pmdClsNtyEntryPoint,
                           "ClusterLogNotify" ) ;
@@ -97,9 +95,7 @@ namespace engine
          {
             pmdEduEventRelase( data, cb ) ;
          }
-         /// set the edu to active
          pEduMgr->activateEDU( cb ) ;
-         /// monitor
          rc = v.run() ;
          if ( SDB_OK != rc )
          {
@@ -120,7 +116,6 @@ namespace engine
       goto done ;
    }
 
-   /// Register
    PMD_DEFINE_ENTRYPOINT( EDU_TYPE_DBMONITOR, TRUE,
                           pmdDBMonitorEntryPoint,
                           "DBMonitor" ) ;

@@ -948,7 +948,6 @@ namespace engine
 
       if( _operationType == OM_FIELD_OPERATION_DEPLOY )
       {
-         //delete in ~Omcluster
          business = SDB_OSS_NEW OmBusiness( _businessInfo ) ;
          if ( NULL == business )
          {

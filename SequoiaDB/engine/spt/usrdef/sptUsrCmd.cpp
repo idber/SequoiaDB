@@ -217,7 +217,6 @@ namespace engine
       }
       rc = SDB_OK ;
 
-      // useShell, default : 1
       rc = arg.getNative( 3, (void*)&useShell, SPT_NATIVE_INT32 ) ;
       if ( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
       {
@@ -269,7 +268,6 @@ namespace engine
          goto error ;
       }
 
-      // useShell, default : 1
       rc = arg.getNative( 2, (void*)&useShell, SPT_NATIVE_INT32 ) ;
       if ( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
       {
@@ -279,7 +277,6 @@ namespace engine
       }
       rc = SDB_OK ;
 
-      // timeout, default : 100
       rc = arg.getNative( 3, (void*)&timeout, SPT_NATIVE_INT32 ) ;
       if ( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
       {

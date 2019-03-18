@@ -310,7 +310,6 @@ public class SequoiadbTemplateUnitTests extends SequoiadbOperationsUnitTests {
 	 * @see DATA_JIRA-566
 	 */
 	@Test
-	// we get the null point exception for using mock but not real collection
 	public void findAllAndRemoveShouldRemoveDocumentsReturedByFindQuery() {
 
 		Mockito.when(cursor.hasNext()).thenReturn(true).thenReturn(true).thenReturn(false);
@@ -348,7 +347,6 @@ public class SequoiadbTemplateUnitTests extends SequoiadbOperationsUnitTests {
 
 			@Override
 			public void processDocument(BSONObject dbObject) throws BaseException, DataAccessException {
-				// nothing to do - just a test
 			}
 		});
 

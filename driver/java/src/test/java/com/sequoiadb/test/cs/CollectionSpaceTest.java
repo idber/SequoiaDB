@@ -92,15 +92,4 @@ public class CollectionSpaceTest {
         assertFalse(sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1));
     }
 
-    @Test
-    public void testAlter () throws Exception {
-        CollectionSpace alterCS = sdb.createCollectionSpace("TestAlterCS");
-
-        BSONObject options = new BasicBSONObject();
-        options.put("PageSize", 8192);
-        alterCS.setAttributes(options);
-
-        sdb.dropCollectionSpace("TestAlterCS");
-    }
-
 }

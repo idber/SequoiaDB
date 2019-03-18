@@ -55,7 +55,6 @@ namespace engine
 
       if ( 0 == fileSize )
       {
-         // no data in file
          goto done ;
       }
 

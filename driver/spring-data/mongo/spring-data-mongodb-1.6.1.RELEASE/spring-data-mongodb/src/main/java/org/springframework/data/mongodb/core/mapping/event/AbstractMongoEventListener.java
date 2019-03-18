@@ -78,7 +78,6 @@ public abstract class AbstractMongoEventListener<E> implements ApplicationListen
 		@SuppressWarnings("unchecked")
 		E source = (E) event.getSource();
 
-		// Check for matching domain type and invoke callbacks
 		if (source != null && !domainClass.isAssignableFrom(source.getClass())) {
 			return;
 		}

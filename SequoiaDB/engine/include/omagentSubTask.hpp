@@ -79,14 +79,10 @@ namespace engine
 */
 
       private:
-//         string          _taskName ;
-//         OMA_TASK_TYPE   _taskType ;
 
          _omaAddHostTask    *_pTask ;
          
-//         ossSpinSLatch   _taskLatch ;
 
-//         CHAR            _detail[OMA_BUFF_SIZE + 1] ; 
    } ;
    typedef _omaAddHostSubTask omaAddHostSubTask ;
 

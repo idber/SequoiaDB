@@ -65,7 +65,6 @@ namespace engine
 
    BOOLEAN _coordShardKicker::_isUpdateReplace( const BSONObj &updator )
    {
-      //INT32 rc = SDB_OK ;
       BSONObjIterator iter( updator ) ;
       while ( iter.more() )
       {
@@ -97,7 +96,6 @@ namespace engine
       return count ;
    }
 
-   /// kick sharding key of a cl
    INT32 _coordShardKicker::_kickShardingKey( const CoordCataInfoPtr &cataInfo,
                                               const BSONObj &updator,
                                               BSONObj &newUpdator,
@@ -108,7 +106,6 @@ namespace engine
 
       if ( skSiteID > 0 )
       {
-         /// if is the same sharding key
          map< UINT32, BOOLEAN >::iterator it = _skSiteIDs.find( skSiteID );
          if ( it != _skSiteIDs.end() )
          {
@@ -140,7 +137,6 @@ namespace engine
             }
 
             subObj = beTmp.embeddedObject() ;
-            //if replace. leave the keep
             if ( isReplace &&
                  0 == ossStrcmp( beTmp.fieldName(),
                                  CMD_ADMIN_PREFIX FIELD_OP_VALUE_KEEP ) )
@@ -168,10 +164,6 @@ namespace engine
                      ++pField ;
                   }
 
-                  // shardingkey_fieldName == updator_fieldName
-                  /// key: { a:1 }  field : { a:1 } or { "a.b":1 }
-                  /// key: { "a.b":1 } field: { a:1 } or { "a.b":1 } or
-                  ///                         { "a.b.c":1 }
                   if ( *pKey == *pField ||
                        ( '\0' == *pKey && '.' == *pField ) ||
                        ( '.' == *pKey && '\0' == *pField ) )
@@ -195,7 +187,6 @@ namespace engine
 
          if ( isReplace )
          {
-            //generate new $keep by combining boUpdator.$keep & boShardingKey.
             UINT32 count = _addKeys( boShardingKey ) ;
             if ( count > 0 )
             {
@@ -238,7 +229,6 @@ namespace engine
       goto done;
    }
 
-   /// kick sharding key of all cl
    INT32 _coordShardKicker::kickShardingKey( const BSONObj &updator,
                                              BSONObj &newUpdator,
                                              BOOLEAN &isChanged,
@@ -255,7 +245,6 @@ namespace engine
          goto done ;
       }
 
-      /// clear
       _skSiteIDs.clear() ;
       _setKeys.clear() ;
 
@@ -269,16 +258,12 @@ namespace engine
       {
          if ( hasShardingKey && 1 != _cataPtr->getGroupNum() )
          {
-            // num = 0, main cl, not allow sharding key of maincl
-            // num >= 2, cl which has been split, also not allow sharding key
             rc = SDB_UPDATE_SHARD_KEY ;
             PD_LOG( PDERROR, "When the partition cl falls on two or more groups, "
                     "or it is a main cl, the update rule don't allow sharding key. "
                     "rc: %d", rc ) ;
             goto error ;
          }
-         // can't set isChanged to FALSE, in case it is TRUE
-         // when passing to this function.
       }
       else
       {
@@ -289,8 +274,6 @@ namespace engine
       }
 
 
-      /// When is main collection, need to kick all sub-collection's
-      /// sharding key
       if ( _cataPtr->isMainCL() )
       {
          vector< string > subCLLst ;
@@ -331,7 +314,6 @@ namespace engine
       goto done ;
    }
 
-   /// kick sharding key of subcl
    INT32 _coordShardKicker::_kickShardingKey( const string &collectionName,
                                               const BSONObj &updator,
                                               BSONObj &newUpdator,
@@ -348,7 +330,6 @@ namespace engine
                                             cb ) ;
       if ( SDB_CLS_COORD_NODE_CAT_VER_OLD == rc )
       {
-         /// When the main-collection is old, ignored
          rc = SDB_OK ;
          goto done ;
       }
@@ -359,7 +340,6 @@ namespace engine
          goto error ;
       }
 
-      /// when subcl isn't partition cl
       if ( !cataPtr->isSharded() )
       {
          goto done ;
@@ -375,15 +355,12 @@ namespace engine
       {
          if ( 1 != cataPtr->getGroupNum() && hasShardingKey )
          {
-            // num >= 2, cl which has been splited, not allow sharding key
             rc = SDB_UPDATE_SHARD_KEY ;
             PD_LOG( PDERROR, "When the partition cl falls on two or "
                     "more groups, the update rule don't allow sharding"
                     " key. rc: %d", rc ) ;
             goto error ;
          }
-         // can't set isChanged to FALSE, in case it is TRUE
-         // when passing to this function.
       }
       else
       {
@@ -411,7 +388,6 @@ namespace engine
          goto done ;
       }
 
-      /// clear
       _skSiteIDs.clear() ;
       _setKeys.clear() ;
 
@@ -426,8 +402,6 @@ namespace engine
          goto done ;
       }
 
-      /// When is main collection, need to check all sub-collection's
-      /// sharding key
       if ( _cataPtr->isMainCL() )
       {
          vector< string > subCLLst ;
@@ -478,7 +452,6 @@ namespace engine
 
       if ( skSiteID > 0 )
       {
-         /// if is the same sharding key
          if ( _skSiteIDs.count( skSiteID ) > 0 )
          {
             goto done ;
@@ -508,7 +481,6 @@ namespace engine
             }
 
             subObj = beTmp.embeddedObject() ;
-            //if replace. leave the keep
             if ( isReplace &&
                  0 == ossStrcmp( beTmp.fieldName(),
                                  CMD_ADMIN_PREFIX FIELD_OP_VALUE_KEEP ) )
@@ -534,10 +506,6 @@ namespace engine
                      ++pField ;
                   }
 
-                  // shardingkey_fieldName == updator_fieldName
-                  /// key: { a:1 }  field : { a:1 } or { "a.b":1 }
-                  /// key: { "a.b":1 } field: { a:1 } or { "a.b":1 } or
-                  ///                         { "a.b.c":1 }
                   if ( *pKey == *pField ||
                        ( '\0' == *pKey && '.' == *pField ) ||
                        ( '.' == *pKey && '\0' == *pField ) )
@@ -587,7 +555,6 @@ namespace engine
                                             cb ) ;
       if ( SDB_CLS_COORD_NODE_CAT_VER_OLD == rc )
       {
-         /// When the main-collection is old, ignored
          rc = SDB_OK ;
          goto done ;
       }

@@ -45,7 +45,6 @@ namespace engine
 
 namespace import
 {
-   // define CatalogAgent to avoid bson namespace conflict between c and C++ bson API
    class CatalogAgent: public SDBObject
    {
    public:

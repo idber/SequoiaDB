@@ -94,7 +94,6 @@ public class SequoiadbPersistentEntityIndexCreator implements
 
 		PersistentEntity<?, ?> entity = event.getPersistentEntity();
 
-		// Double check type as Spring infrastructure does not consider nested generics
 		if (entity instanceof SequoiadbPersistentEntity) {
 			checkForIndexes(event.getPersistentEntity());
 		}

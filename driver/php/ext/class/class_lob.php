@@ -1,6 +1,6 @@
 <?php
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ class SequoiaLob
     * Example:
     * @code
     * $lobSize = $lobObj -> getSize() ;
-    * $err = $db -> getLastErrorMsg() ;
+    * $err = $db -> getError() ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to get lob size, error code: ".$err['errno'] ;
     *    return ;
@@ -80,7 +80,7 @@ class SequoiaLob
     * Example:
     * @code
     * $times = $lobObj -> getCreateTime() ;
-    * $err = $db -> getLastErrorMsg() ;
+    * $err = $db -> getError() ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to get lob create time, error code: ".$err['errno'] ;
     *    return ;
@@ -100,7 +100,7 @@ class SequoiaLob
     * Example:
     * @code
     * $times = $lobObj -> getModificationTime() ;
-    * $err = $db -> getLastErrorMsg() ;
+    * $err = $db -> getError() ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to get lob modification time, error code: ".$err['errno'] ;
     *    return ;
@@ -143,7 +143,7 @@ class SequoiaLob
     * Example:
     * @code
     * $buffer = $lobObj -> read( 5 ) ;
-    * $err = $db -> getLastErrorMsg() ;
+    * $err = $db -> getError() ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to read lob, error code: ".$err['errno'] ;
     *    return ;
@@ -225,24 +225,4 @@ class SequoiaLob
     * @endcode
    */
    public function lockAndSeek( integer|SequoiaINT64 offset, integer|SequoiaINT64 length ){}
-
-   /**
-    * Check whether current offset has reached to the max size of current lob.
-    *
-    * @return Returns the result.
-    *
-    * @retval boolean isEof
-    *
-    * Example:
-    * @code
-    * $err = $lobObj -> seek( 0, SDB_LOB_END ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to call seek, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * $result = $lobObj -> isEof() ;
-    * var_dump ( $result ) ;
-    * @endcode
-   */
-   public function isEof(){}
 }

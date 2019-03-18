@@ -180,8 +180,6 @@ enum AUDIT_TYPE
    AUDIT_SYSTEM         = 3,     /// System Info
 
    AUDIT_DML            = 8,     /// Insert, Update, Delete operation, but
-                                 /// not include detail records. If you need
-                                 /// to audit detail info, use AUDIT_INSERT...
    AUDIT_DDL            = 9,     /// Create/Drop Collection, and so on
    AUDIT_DCL            = 10,    /// Create User, Drop User and so on
    AUDIT_DQL            = 11,    /// Query, Explain

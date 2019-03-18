@@ -45,7 +45,6 @@ namespace engine
 
    INT32 _bpsCB::init ()
    {
-      // 1. init param
       if ( pmdGetKRCB()->isRestore() )
       {
          _numPreLoad = 0 ;
@@ -74,7 +73,6 @@ namespace engine
          }
       }
 
-      // start data prefetch edu
       while ( curPrefAgentNum < _maxPrefPool &&
               curPrefAgentNum < pmdGetKRCB()->getOptionCB()->maxSubQuery() )
       {
@@ -126,7 +124,6 @@ namespace engine
       pmdKRCB *krcb = pmdGetKRCB () ;
       pmdEDUMgr *eduMgr = krcb->getEDUMgr () ;
 
-      // create a new pre-load request
       bpsPreLoadReq *request = SDB_OSS_NEW bpsPreLoadReq ( DMS_INVALID_CS,
                                                      ~0, DMS_INVALID_EXTENT ) ;
       if ( !request )
@@ -150,7 +147,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       _bpsPreLoadReq *req = NULL ;
 
-      // get an empty request token
       if ( !_dropBackQueue.try_pop ( req ) || !req )
       {
          rc = SDB_BUSY_PREFETCHER ;
@@ -184,7 +180,6 @@ namespace engine
          }
       }
 
-      // push to queque
       _dataPrefetchQueue.push( request ) ;
 
       return SDB_OK ;

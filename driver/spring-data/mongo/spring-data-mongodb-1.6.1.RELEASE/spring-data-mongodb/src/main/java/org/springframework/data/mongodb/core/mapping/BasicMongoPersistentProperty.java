@@ -99,7 +99,6 @@ public class BasicMongoPersistentProperty extends AnnotationBasedPersistentPrope
 			return true;
 		}
 
-		// We need to support a wider range of ID types than just the ones that can be converted to an ObjectId
 		return SUPPORTED_ID_PROPERTY_NAMES.contains(getName());
 	}
 

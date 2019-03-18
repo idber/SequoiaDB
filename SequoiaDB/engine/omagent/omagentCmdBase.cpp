@@ -129,7 +129,6 @@ namespace engine
 
       for ( ; it != _jsFiles.end(); it++ )
       {
-         /// caller need to deal with error, when js file had been add
          if ( it->first == name )
          {
             rc = SDB_INVALIDARG ;
@@ -200,7 +199,6 @@ namespace engine
 
    INT32 _omaCommand::prime()
    {
-      // add some common files
       addJsFile ( FILE_DEFINE ) ;
       addJsFile ( FILE_COMMON ) ;
       addJsFile ( FILE_LOG ) ;
@@ -231,7 +229,6 @@ namespace engine
                       "excute, rc = %d", rc ) ;
          goto error ;
       }
-      // 1. get scope
       _scope = sdbGetOMAgentMgr()->getScope() ;
       if ( !_scope )
       {
@@ -239,15 +236,11 @@ namespace engine
          PD_LOG_MSG ( PDERROR, "Failed to get scope, rc = %d", rc ) ;
          goto error ;
       }
-      // 2. execute js
       rc = _scope->eval( _content.c_str(), _content.size(), "", 1,
                          SPT_EVAL_FLAG_NONE | SPT_EVAL_FLAG_IGNORE_ERR_PREFIX,
                          &pRval ) ;
       if ( rc )
       {
-         // we come here for one of the follow reasons:
-         // a. we throw exception out from js file
-         // b. eval fail for js syntax error
          errmsg = _scope->getLastErrMsg() ;
          rc = _scope->getLastError() ;
          PD_LOG_MSG ( PDERROR, "%s", errmsg.c_str() ) ;
@@ -258,7 +251,6 @@ namespace engine
          goto error ;
       }
       rval = pRval->toBSON() ;
-      // 3. adapt the result
       rc = final ( rval, retObj ) ;
       if ( rc )
       {

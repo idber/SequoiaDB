@@ -461,7 +461,6 @@ namespace engine
          virtual INT32   doCommand() ;
 
       protected:
-                         // overwrite
          INT32           _getRestHostList( string &clusterName,
                                            list<BSONObj> &hostInfo ) ;
 

@@ -64,7 +64,6 @@ public class SequoiadbRepositoryExtension extends CdiRepositoryExtensionSupport 
 							bean.getQualifiers()));
 				}
 
-				// Store the EntityManager bean using its qualifiers.
 				sequoiadbOperations.put(new HashSet<Annotation>(bean.getQualifiers()), (Bean<SequoiadbOperations>) bean);
 			}
 		}
@@ -77,14 +76,12 @@ public class SequoiadbRepositoryExtension extends CdiRepositoryExtensionSupport 
 			Class<?> repositoryType = entry.getKey();
 			Set<Annotation> qualifiers = entry.getValue();
 
-			// Create the bean representing the repository.
 			CdiRepositoryBean<?> repositoryBean = createRepositoryBean(repositoryType, qualifiers, beanManager);
 
 			if (LOG.isInfoEnabled()) {
 				LOG.info(String.format("Registering bean for %s with qualifiers %s.", repositoryType.getName(), qualifiers));
 			}
 
-			// Register the bean to the container.
 			registerBean(repositoryBean);
 			afterBeanDiscovery.addBean(repositoryBean);
 		}
@@ -102,7 +99,6 @@ public class SequoiadbRepositoryExtension extends CdiRepositoryExtensionSupport 
 	private <T> CdiRepositoryBean<T> createRepositoryBean(Class<T> repositoryType, Set<Annotation> qualifiers,
 			BeanManager beanManager) {
 
-		// Determine the SequoiadbOperations bean which matches the qualifiers of the repository.
 		Bean<SequoiadbOperations> sequoiadbOperations = this.sequoiadbOperations.get(qualifiers);
 
 		if (sequoiadbOperations == null) {
@@ -110,7 +106,6 @@ public class SequoiadbRepositoryExtension extends CdiRepositoryExtensionSupport 
 					SequoiadbOperations.class.getName(), qualifiers));
 		}
 
-		// Construct and return the repository bean.
 		return new SequoiadbRepositoryBean<T>(sequoiadbOperations, qualifiers, repositoryType, beanManager,
 				getCustomImplementationDetector());
 	}

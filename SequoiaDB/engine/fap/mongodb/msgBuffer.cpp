@@ -74,7 +74,6 @@ INT32 _msgBuffer::realloc( const UINT32 size )
 
    if ( size <= _capacity )
    {
-      // do nothing
       goto done ;
    }
 
@@ -110,7 +109,6 @@ INT32 _msgBuffer::write( const CHAR *in, const UINT32 inLen,
 
    if( inLen > _capacity - _size )
    {
-      // digit size of memory needed
       num = ( inLen + _size ) / MEMERY_BLOCK_SIZE + 1 ;
       size = num * MEMERY_BLOCK_SIZE ;
 
@@ -145,7 +143,6 @@ INT32 _msgBuffer::write( const bson::BSONObj &obj, BOOLEAN align, INT32 bytes )
    UINT32 objsize = obj.objsize() ;
    if( objsize > _capacity - _size )
    {
-      // digit size of memory needed
       num = ( objsize + _size ) / MEMERY_BLOCK_SIZE + 1 ;
       size = num * MEMERY_BLOCK_SIZE ;
 
@@ -190,18 +187,4 @@ error:
    goto done ;
 }
 
-// int main( int argc, char** argv)
-// {
-//    std::string str = "abcdef" ;
-//    msgBuffer buffer ;
-//    for ( int i = 0; i < 10; ++i)
-//    {
-//       str += "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" ;
-//       buffer.write( str.c_str(), str.length() ) ;
-//    }
-// 
-//    std::cout << buffer.data() << std::endl ;
-// 
-//    return 0 ;
-// }
 

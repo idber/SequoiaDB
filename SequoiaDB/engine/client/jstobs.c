@@ -115,13 +115,11 @@ SDB_EXPORT  void JsonSetPrintfLog( void (*pFun)( const CHAR *pFunc,
    cJsonSetPrintfLog( pFun ) ;
 }
 
-//Compatible with the old version, the new code is not recommended use.
 SDB_EXPORT BOOLEAN jsonToBson ( bson *bs, const CHAR *json_str )
 {
    return json2bson2( json_str, bs ) ;
 }
 
-//Compatible with the old version, the new code is not recommended use.
 SDB_EXPORT BOOLEAN jsonToBson2 ( bson *bs,
                                  const CHAR *json_str,
                                  BOOLEAN isMongo,
@@ -243,7 +241,6 @@ BOOLEAN bsonToJson ( CHAR *buffer, INT32 bufsize, const bson *b,
     INT32 leftsize = bufsize ;
     if ( bufsize <= 0 || !buffer || !b )
        return FALSE ;
-    //memset ( pbuf, 0, bufsize ) ;
     result = bsonConvertJson ( &pbuf, &leftsize, b->data, 1,
                                toCSV, skipUndefined, FALSE ) ;
     if ( !result || !leftsize )
@@ -269,7 +266,6 @@ BOOLEAN bsonToJson2 ( CHAR *buffer, INT32 bufsize, const bson *b,
     INT32 leftsize = bufsize ;
     if ( bufsize <= 0 || !buffer || !b )
        return FALSE ;
-    //memset ( pbuf, 0, bufsize ) ;
     result = bsonConvertJson ( &pbuf, &leftsize, b->data, 1,
                                FALSE, TRUE, isStrict ) ;
     if ( !result || !leftsize )
@@ -361,7 +357,6 @@ static BOOLEAN date2Time( const CHAR *pDate,
       /* sanity check for years */
       if( valType == CJSON_TIMESTAMP )
       {
-         //[ 1901, 2038 ]
          if( year > INT32_LAST_YEAR )
          {
             JSON_PRINTF_LOG( "Timestamp year not greater than %d",
@@ -375,7 +370,6 @@ static BOOLEAN date2Time( const CHAR *pDate,
             goto error ;
          }
 
-         //[1,12]
          if( month > RELATIVE_MON )
          {
             JSON_PRINTF_LOG( "Timestamp month not greater than %d",
@@ -388,7 +382,6 @@ static BOOLEAN date2Time( const CHAR *pDate,
             goto error ;
          }
 
-         //[1,31]
          if( day > RELATIVE_DAY )
          {
             JSON_PRINTF_LOG( "Timestamp day not greater than %d",
@@ -401,7 +394,6 @@ static BOOLEAN date2Time( const CHAR *pDate,
             goto error ;
          }
 
-         //[0,23]
          if( hour >= RELATIVE_HOUR )
          {
             JSON_PRINTF_LOG( "Timestamp hours not greater than %d",
@@ -414,7 +406,6 @@ static BOOLEAN date2Time( const CHAR *pDate,
             goto error ;
          }
 
-         //[0,59]
          if( minute >= RELATIVE_MIN_SEC )
          {
             JSON_PRINTF_LOG( "Timestamp minutes not greater than %d",
@@ -427,7 +418,6 @@ static BOOLEAN date2Time( const CHAR *pDate,
             goto error ;
          }
 
-         //[0,59]
          if( second >= RELATIVE_MIN_SEC )
          {
             JSON_PRINTF_LOG( "Timestamp seconds not greater than %d",
@@ -442,7 +432,6 @@ static BOOLEAN date2Time( const CHAR *pDate,
       }
       else if( valType == CJSON_DATE )
       {
-         //[0000,9999]
          if( year > INT64_LAST_YEAR )
          {
             JSON_PRINTF_LOG( "Date year not greater than %d",
@@ -455,7 +444,6 @@ static BOOLEAN date2Time( const CHAR *pDate,
             goto error ;
          }
 
-         //[1,12]
          if( month > RELATIVE_MON )
          {
             JSON_PRINTF_LOG( "Date month not greater than %d",
@@ -468,7 +456,6 @@ static BOOLEAN date2Time( const CHAR *pDate,
             goto error ;
          }
 
-         //[1,31]
          if( day > RELATIVE_DAY )
          {
             JSON_PRINTF_LOG( "Date day not greater than %d",
@@ -1364,7 +1351,6 @@ static void bsonConvertJsonRawConcat( CHAR **pbuf,
       {
          switch ( *data )
          {
-         //the JSON standard does not need to be escaped single quotation marks
          /*case '\'':
          {
            pTempBuf[i] = '\\' ;
@@ -1687,7 +1673,6 @@ static BOOLEAN bsonConvertJson ( CHAR **pbuf,
           * string */
          if ( toCSV )
          {
-            // we don't support BIN DATA in csv output
             break ;
          }
          bin_type = bson_iterator_bin_type( &i ) ;
@@ -1821,7 +1806,6 @@ static BOOLEAN bsonConvertJson ( CHAR **pbuf,
           * options string. */
          if ( toCSV )
          {
-            // we don't support CSV for regex
             break ;
          }
          bsonConvertJsonRawConcat ( pbuf, left, "{ \"$regex\": \"", FALSE ) ;
@@ -1906,7 +1890,6 @@ static BOOLEAN bsonConvertJson ( CHAR **pbuf,
          CHAR *value   = NULL ;
          int size      = 0 ;
 
-         // get decimal
          bson_iterator_decimal( &i, &decimal ) ;
 
          decimal_to_jsonstr_len( decimal.sign, decimal.weight, decimal.dscale,
@@ -2041,7 +2024,6 @@ static INT32 strlen_a( const CHAR *data )
    }
    while ( data && *data )
    {
-      //the JSON standard does not need to be escaped single quotation marks
       if ( data[0] == '\"' ||
            data[0] == '\\' ||
            data[0] == '\b' ||
@@ -2071,9 +2053,6 @@ static void local_time( time_t *Time, struct tm *TM )
 #if defined (__linux__ ) || defined (_AIX)
    localtime_r( Time, TM ) ;
 #elif defined (_WIN32)
-   // The Time represents the seconds elapsed since midnight (00:00:00),
-   // January 1, 1970, UTC. This value is usually obtained from the time
-   // function.
    localtime_s( TM, Time ) ;
 #else
 #error "unimplemented local_time()"

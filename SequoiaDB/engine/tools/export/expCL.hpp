@@ -80,9 +80,6 @@ namespace exprt
          return name ;
       }
 
-      // format of rawStr should be :
-      // "<csName>.<clName> <field-list>"
-      // "<csName>.<clName>" must be specified while "<field-list>" may not be
       INT32 parseCLFields( const string &rawStr ) ;
 
       expCL &swap( expCL &other )
@@ -124,7 +121,6 @@ namespace exprt
                              const set<expCL> &includeCollection,
                              const set<string> &excludeCS,
                              const set<expCL> &excludeCollection ) ;
-      // should be call after parsing
       INT32 _parsePost() ;
    private :
       expOptions     &_options ;

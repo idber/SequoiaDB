@@ -71,7 +71,6 @@ namespace engine
 
       _localPort           = 0 ;
 
-      // defaut service name
       ossSnprintf( _dftSvcName, OSS_MAX_SERVICENAME, "%u",
                    SDBCM_DFT_PORT ) ;
       ossStrcpy( _cmServiceName, _dftSvcName ) ;
@@ -142,7 +141,6 @@ namespace engine
          goto error ;
       }
 
-      // build 'conf/local' file path
       rc = utilBuildFullPath( pRootPath, SDBCM_LOCAL_PATH, OSS_MAX_PATHSIZE,
                               _localCfgPath ) ;
       if ( rc )
@@ -151,7 +149,6 @@ namespace engine
          goto error ;
       }
 
-      // build 'conf/script' path
       rc = utilBuildFullPath( pRootPath, SDBOMA_SCRIPT_PATH, OSS_MAX_PATHSIZE,
                               _scriptPath ) ;
       if ( rc )
@@ -160,7 +157,6 @@ namespace engine
          goto error ;
       }
 
-      // build sdbstart program file path
       rc = utilBuildFullPath ( pRootPath, SDBSTARTPROG, OSS_MAX_PATHSIZE,
                                _startProcFile ) ;
       if ( rc )
@@ -169,7 +165,6 @@ namespace engine
          goto error ;
       }
 
-      // build sdbstop program file path
       rc = utilBuildFullPath ( pRootPath, SDBSTOPPROG, OSS_MAX_PATHSIZE,
                                _stopProcFile ) ;
       if ( rc )
@@ -178,7 +173,6 @@ namespace engine
          goto error ;
       }
 
-      // build sdbcm config file path
       rc = utilBuildFullPath( pRootPath, SDBCM_CONF_PATH_FILE,
                               OSS_MAX_PATHSIZE, _cfgFileName ) ;
       if ( rc )
@@ -187,13 +181,11 @@ namespace engine
          goto error ;
       }
 
-      // read config from file
       rc = utilReadConfigureFile( _cfgFileName, desc, vm ) ;
       if ( rc )
       {
          if ( SDB_FNE == rc )
          {
-            // file or dir not exist
             PD_LOG( PDWARNING, "Config[%s] not exist, use default config",
                     _cfgFileName ) ;
             rc = postLoaded( PMD_CFG_STEP_INIT ) ;
@@ -244,37 +236,27 @@ namespace engine
       resetResult () ;
 
 
-      // --defaultPort
       rdxString( pEX, SDBCM_CONF_DFTPORT , _dftSvcName,
                  sizeof( _dftSvcName ), FALSE, FALSE,
                  _dftSvcName ) ;
-      // --$hostname$_Port
       rdxString( pEX, _hostKey.c_str(), _cmServiceName,
                  sizeof( _cmServiceName ), FALSE, FALSE,
                  _dftSvcName ) ;
-      // --RestartCount
       rdxInt( pEX, SDBCM_RESTART_COUNT, _restartCount, FALSE, TRUE,
               _restartCount ) ;
-      // --RestartInterval
       rdxInt( pEX, SDBCM_RESTART_INTERVAL, _restartInterval, FALSE, TRUE,
               _restartInterval ) ;
-      // --AutoStart
       rdxBooleanS( pEX, SDBCM_AUTO_START, _autoStart, FALSE, TRUE,
                    _autoStart ) ;
-      // --DiagLevel
       rdxInt( pEX, SDBCM_DIALOG_LEVEL, _diagLevel, FALSE, TRUE,
               _diagLevel ) ;
-      // --OMAddress
       rdxString( pEX, SDBCM_CONF_OMADDR, _omAddress, sizeof( _omAddress ),
                  FALSE, FALSE, "", FALSE ) ;
-      // --IsGeneral
       rdxBooleanS( pEX, SDBCM_CONF_ISGENERAL, _isGeneralAgent, FALSE,
                    FALSE, FALSE, FALSE ) ;
-      // --EnableWatch
       rdxBooleanS( pEX, SDBCM_ENABLE_WATCH, _enableWatch, FALSE, TRUE,
                    _enableWatch ) ;
 
-      //  end map configs }}
 
       return getResult () ;
    }
@@ -283,7 +265,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      // make sure directory exist
       rc = ossMkdir( getLocalCfgPath() ) ;
       if ( rc && SDB_FE != rc )
       {
@@ -293,7 +274,6 @@ namespace engine
       }
       rc = SDB_OK ;
 
-      // parse om address line
       if ( 0 != _omAddress[ 0 ] && 0 == _vecOMAddr.size() )
       {
          rc = parseAddressLine( _omAddress, _vecOMAddr ) ;
@@ -321,13 +301,11 @@ namespace engine
       string omAddrLine = makeAddressLine( _vecOMAddr ) ;
       ossStrncpy( _omAddress, omAddrLine.c_str(), OSS_MAX_PATHSIZE ) ;
       _omAddress[ OSS_MAX_PATHSIZE ] = 0 ;
-      /// make omaddress to field
       if ( 0 != _omAddress[ 0 ] )
       {
          _addToFieldMap( SDBCM_CONF_OMADDR, _omAddress, TRUE, TRUE ) ;
       }
 
-      // make IsGeneralAgent to field
       if ( TRUE == _isGeneralAgent )
       {
          _addToFieldMap( SDBCM_CONF_ISGENERAL,
@@ -556,10 +534,8 @@ namespace engine
       const CHAR *cmService = _options.getCMServiceName() ;
       MsgRouteID nodeID ;
 
-      /// register config handle to omagentOptions
       _options.setConfigHandler( pmdGetKRCB() ) ;
 
-      // init om addr
       _initOMAddr( _vecOmNode ) ;
       if ( _vecOmNode.size() > 0 )
       {
@@ -570,7 +546,6 @@ namespace engine
          _primaryPos = -1 ;
       }
 
-      // if is gerenal agent, need to restore
       if ( _options.isGeneralAgent() )
       {
          BSONObj noFinish ;
@@ -578,7 +553,6 @@ namespace engine
          BSONArrayBuilder arrayBuilder ;
          BSONObj check ;
          pmdGetKRCB()->setBusinessOK( FALSE ) ;
-         // {"Status":{$ne:4}}
 
          noFinish = BSON( "$ne" << OMA_TASK_STATUS_FINISH ) ;
          noCancel = BSON( "$ne" << OMA_TASK_STATUS_CANCEL ) ;
@@ -590,7 +564,6 @@ namespace engine
          startTaskCheck( check ) ;
       }
 
-      // 1. create listen
       nodeID.columns.groupID = OMAGENT_GROUPID ;
       nodeID.columns.nodeID = 1 ;
       nodeID.columns.serviceID = MSG_ROUTE_LOCAL_SERVICE ;
@@ -605,7 +578,6 @@ namespace engine
       PD_LOG ( PDEVENT, "Create listen[ServiceName:%s] succeed",
                cmService ) ;
 
-      // 2. init session manager
       rc = _sessionMgr.init( &_netAgent, &_timerHandler, OSS_ONE_SEC ) ;
       if ( rc )
       {
@@ -613,7 +585,6 @@ namespace engine
          goto error ;
       }
 
-      // 3. init node manager
       rc = _nodeMgr.init() ;
       if ( rc )
       {
@@ -621,7 +592,6 @@ namespace engine
          goto error ;
       }
 
-      // 4. init scopt container
       rc = _sptScopePool.init() ;
       if ( rc )
       {
@@ -644,7 +614,6 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       vector< _pmdAddrPair > omAddrs = _options.omAddrs() ;
-      // init om addr
       for ( UINT32 i = 0 ; i < omAddrs.size() ; ++i )
       {
          if ( 0 == omAddrs[i]._host[ 0 ] )
@@ -681,7 +650,6 @@ namespace engine
       pmdEDUMgr *pEDUMgr = pmdGetKRCB()->getEDUMgr() ;
       EDUID eduID = PMD_INVALID_EDUID ;
 
-      // set primary
       pmdSetPrimary( TRUE ) ;
 
       if ( _options.isStandAlone() )
@@ -692,24 +660,19 @@ namespace engine
          pmdSetNodeID( id ) ;
       }
 
-      // active node manager
       rc = _nodeMgr.active() ;
       PD_RC_CHECK( rc, PDERROR, "Active node manager failed, rc: %d", rc ) ;
 
-      // 1. start om manager edu
       rc = pEDUMgr->startEDU( EDU_TYPE_OMMGR, (_pmdObjBase*)this, &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start OM Manager edu, rc: %d", rc ) ;
-      // wait attach
       rc = _attachEvent.wait( OMAGENT_WAIT_CB_ATTACH_TIMEOUT ) ;
       PD_RC_CHECK( rc, PDERROR, "Wait OM Manager edu attach failed, rc: %d",
                    rc ) ;
 
-      // 2. start om net edu
       rc = pEDUMgr->startEDU( EDU_TYPE_OMNET, (netRouteAgent*)&_netAgent,
                               &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start om net, rc: %d", rc ) ;
 
-      // 3. register timer
       rc = _netAgent.addTimer( OSS_ONE_SEC, &_timerHandler, _oneSecTimer ) ;
       if ( rc )
       {
@@ -751,7 +714,6 @@ namespace engine
    INT32 _omAgentMgr::_runStartPluginTask()
    {
       INT32 rc = SDB_OK ;
-      // new job
       EDUID eduID = PMD_INVALID_EDUID ;
       _omagentJob *pJob = NULL ;
       _omaTask *pTask = NULL ;
@@ -778,7 +740,6 @@ namespace engine
             goto error ;
          }
 
-         // start job
          rc = rtnGetJobMgr()->startJob( pJob, RTN_JOB_MUTEX_NONE, &eduID,
                                         FALSE ) ;
          if ( rc )
@@ -801,20 +762,16 @@ namespace engine
    {
       iPmdProc::stop( 0 ) ;
 
-      // 1. kill timer
       if ( NET_INVALID_TIMER_ID != _oneSecTimer )
       {
          _netAgent.removeTimer( _oneSecTimer ) ;
          _oneSecTimer = NET_INVALID_TIMER_ID ;
       }
 
-      // 2. stop listen
       _netAgent.closeListen() ;
 
-      // 3. stop io
       _netAgent.stop() ;
 
-      // 4. set force
       _sessionMgr.setForced() ;
 
       _runStopPluginTask() ;
@@ -825,7 +782,6 @@ namespace engine
    INT32 _omAgentMgr::_runStopPluginTask()
    {
       INT32 rc = SDB_OK ;
-      // new job
       EDUID eduID = PMD_INVALID_EDUID ;
       _omagentJob *pJob = NULL ;
       _omaTask *pTask = NULL ;
@@ -852,7 +808,6 @@ namespace engine
             goto error ;
          }
 
-         // start job
          rc = rtnGetJobMgr()->startJob( pJob, RTN_JOB_MUTEX_NONE, &eduID,
                                         FALSE ) ;
          if ( rc )
@@ -873,7 +828,6 @@ namespace engine
 
    INT32 _omAgentMgr::fini()
    {
-      /// release mapScopes
       SDB_ASSERT( 0 == _mapScopes.size(), "Session scopes must be zero" ) ;
       MAP_SCOPE::iterator it = _mapScopes.begin() ;
       while( it != _mapScopes.end() )
@@ -892,7 +846,6 @@ namespace engine
 
    void _omAgentMgr::attachCB( _pmdEDUCB * cb )
    {
-      /// register edu exit hook func
       pmdSetEDUHook( (PMD_ON_EDU_EXIT_FUNC)sdbHookFuncOnThreadExit ) ;
       _msgHandler.attach( cb ) ;
       _timerHandler.attach( cb ) ;
@@ -945,7 +898,6 @@ namespace engine
       it = _vecOmNode.begin() ;
       while ( it != _vecOmNode.end() )
       {
-         // if not found, need to delete
          bFound = FALSE ;
          for ( UINT32 i = 0 ; i < vecNodes.size() ; ++i )
          {
@@ -972,7 +924,6 @@ namespace engine
          _primaryPos = -1 ;
       }
 
-      // effect pd level
       setPDLevel( getOptions()->getDiagLevel() ) ;
    }
 
@@ -983,7 +934,6 @@ namespace engine
       MAPTASKQUERY::iterator it = _mapTaskQuery.begin () ;
       while ( it != _mapTaskQuery.end() )
       {
-         // send query msg to catalog
          rc = _sendQueryTaskReq ( it->first, OM_CS_DEPLOY_CL_TASKINFO,
                                   &(it->second) ) ;
          if ( SDB_OK != rc )
@@ -1014,7 +964,6 @@ namespace engine
       msg->TID = 0 ;
       msg->routeID.value = 0 ;
 
-      // send msg
       rc = sendToOM( msg ) ;
       PD_LOG ( PDDEBUG, "Send query[%s] to om[rc:%d]",
                match->toString().c_str(), rc ) ;
@@ -1034,13 +983,10 @@ namespace engine
    {
       if ( _oneSecTimer == timerID )
       {
-         //Check _deqShdDeletingSessions
          _sessionMgr.onTimer( interval ) ;
 
-         //prepare task
          _prepareTask() ;
 
-         // check standalone mode, the process whether to quit
          if ( _options.isStandAlone() && _options.getAliveTimeout() > 0 &&
               _sessionNum == 0 )
          {
@@ -1073,7 +1019,6 @@ namespace engine
          _prepareTask() ;
 
          {
-            // remove it. we do not need a loop timer.
             ossScopedLock lock( &_immediatelyTimerLatch, EXCLUSIVE ) ;
             _netAgent.removeTimer( _immediatelyTimer ) ;
             _immediatelyTimer = NET_INVALID_TIMER_ID ;
@@ -1119,7 +1064,6 @@ namespace engine
       sptScope *pScope = NULL ;
       ossScopedLock lock( &_scopeLatch ) ;
 
-      /// find from mapScopes, if not found, need to alloc new scope
       MAP_SCOPE::iterator it = _mapScopes.find( cb->getTID() ) ;
       if ( it != _mapScopes.end() )
       {
@@ -1166,7 +1110,6 @@ namespace engine
          goto error ;
       }
 
-      // primary node exist
       if ( tmpPrimary >= 0 && (UINT32)tmpPrimary < _vecOmNode.size() )
       {
          rc = _netAgent.syncSend ( _vecOmNode[tmpPrimary],
@@ -1178,7 +1121,6 @@ namespace engine
                      _vecOmNode[tmpPrimary].columns.nodeID,
                      rc ) ;
             _primaryPos = -1 ;
-            //will send to all om node
          }
          else
          {
@@ -1190,7 +1132,6 @@ namespace engine
          }
       }
 
-      //send to all om node
       {
          UINT32 index = 0 ;
          INT32 rc1 = SDB_OK ;
@@ -1244,7 +1185,6 @@ namespace engine
 
       {
          ossScopedLock lock( &_immediatelyTimerLatch, EXCLUSIVE ) ;
-         // add a immediatelyTimer
          if ( _immediatelyTimer == NET_INVALID_TIMER_ID )
          {
             rc = _netAgent.addTimer( OMAGENT_IMMEDIATELY_TIMEOUT,
@@ -1253,8 +1193,6 @@ namespace engine
             {
                PD_LOG( PDERROR, "start check task immediately failed:rc=%d",
                        rc ) ;
-               //just log a message here, do not return rc.
-               //because we have the one_second_timer to active this task too.
             }
 
             PD_LOG( PDDEBUG, "add immediately timer:timer=%d",
@@ -1278,17 +1216,14 @@ namespace engine
       INT32 numReturned = 0 ;
       vector<BSONObj> objList ;
 
-      // need to clear the query task
       if ( SDB_DMS_EOC == res->flags ||
            SDB_OM_TASK_NOT_EXIST == res->flags )
       {
          _mgrLatch.get() ;
          _mapTaskQuery.erase ( msg->requestID ) ;
-         // try to set business to be ok
          if ( _mapTaskInfo.size() == 0 && !pmdGetKRCB()->isBusinessOK() )
          {
             PD_LOG( PDEVENT, "No task need to restore" ) ;
-            // restore ok
             pmdGetKRCB()->setBusinessOK( TRUE ) ;
          }
          _mgrLatch.release() ;
@@ -1310,7 +1245,6 @@ namespace engine
                      "rc = %d", rc ) ;
             goto error ;
          }
-         // find the task query map, and remove it
          {
             ossScopedLock lock ( &_mgrLatch, EXCLUSIVE ) ;
             MAPTASKQUERY::iterator it = _mapTaskQuery.find ( msg->requestID ) ;
@@ -1321,14 +1255,12 @@ namespace engine
                rc = SDB_INVALIDARG ;
                goto error ;
             }
-            //remove the query task
             _mapTaskQuery.erase ( it ) ;
          }
 
          PD_LOG ( PDINFO, "The query[%lld] task has %d jobs", msg->requestID,
                   numReturned ) ;
 
-         // add task inner session
          {
             UINT32 index = 0 ;
             UINT64 taskID = 0 ;
@@ -1376,7 +1308,6 @@ namespace engine
                "flag: %d] about update progress from omsvc",
                msg->requestID, res->flags ) ;
 
-      // check return requestID
       {
          ossScopedLock lock( &_mgrLatch, EXCLUSIVE ) ;
          MAP_TASKEVENT::iterator it = _mapTaskEvent.find( msg->requestID ) ;
@@ -1389,7 +1320,6 @@ namespace engine
          }
          else
          {
-            // notify task go on running
             it->second->signal( res->flags ) ;
          }
       }
@@ -1443,7 +1373,6 @@ namespace engine
 
       if ( _mapTaskInfo.size() == 0 && !pmdGetKRCB()->isBusinessOK() )
       {
-         // restore ok
          pmdGetKRCB()->setBusinessOK( TRUE ) ;
       }
    }
@@ -1489,7 +1418,6 @@ namespace engine
       msg->TID = 0 ;
       msg->routeID.value = 0 ;
 
-      // send msg
       rc = sendToOM( msg ) ;
       PD_LOG ( PDDEBUG, "Send update task progress[%lld][%s] to om[rc:%d]",
                requestID, obj->toString().c_str(), rc ) ;
@@ -1514,12 +1442,10 @@ namespace engine
       const CHAR *pBusinessType = NULL ;
       const CHAR *pDeployMode = NULL ;
 
-      // get task type
       rc = omaGetIntElement( obj, OMA_FIELD_TASKTYPE, num ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_TASKTYPE, rc ) ;
       taskType = (OMA_TASK_TYPE)num ;
-      // check
       if ( taskType <= OMA_TASK_TYPE_BEGIN || taskType >= OMA_TASK_TYPE_END )
       {
          rc = SDB_INVALIDARG ;
@@ -1528,7 +1454,6 @@ namespace engine
          goto error ;
       }
 
-      // get task sub type
       if ( OMA_TASK_ADD_BUS == taskType || OMA_TASK_REMOVE_BUS == taskType ||
            OMA_TASK_EXTEND_BUZ == taskType )
       {
@@ -1537,14 +1462,12 @@ namespace engine
                    "Get field[%s] failed, rc: %d",
                    OMA_FIELD_INFO, rc ) ;
 
-         // businessType
          rc = omaGetStringElement( infoObj, OMA_FIELD_BUSINESSTYPE,
                                    &pBusinessType) ;
          PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                    "Get field[%s] failed, rc: %d",
                    OMA_FIELD_BUSINESSTYPE, rc ) ;
 
-         // deploy mode
          rc = omaGetStringElement( infoObj, OMA_FIELD_DEPLOYMOD,
                                    &pDeployMode ) ;
          PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
@@ -1649,14 +1572,12 @@ namespace engine
       BSONObj data ;
       omaTaskPtr taskPtr ;
 
-      // get task type
       rc = _getTaskType( obj, &taskType ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to get task type, rc = %d", rc ) ;
          goto error ;
       }
-      // get task id
       ele = obj.getField( OM_TASKINFO_FIELD_TASKID ) ;
       if ( !ele.isNumber() )
       {
@@ -1666,7 +1587,6 @@ namespace engine
          goto error ;
       }
       taskID = (INT64)ele.numberLong() ;
-      // run task as a background job
       rc = startOmagentJob( taskType, taskID, obj, taskPtr, NULL ) ;
       if ( rc )
       {

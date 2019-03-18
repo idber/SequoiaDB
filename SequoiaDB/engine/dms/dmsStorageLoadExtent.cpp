@@ -150,7 +150,6 @@ namespace engine
          recordData.setData( record.objdata(), record.objsize(),
                              FALSE, TRUE ) ;
          /* (0) */
-         // verify whether the record got "_id" inside
          BSONElement ele = record.getField ( DMS_ID_KEY_NAME ) ;
          const CHAR *pCheckErr = "" ;
          if ( !dmsIsRecordIDValid( ele, TRUE, &pCheckErr ) )
@@ -161,8 +160,6 @@ namespace engine
             goto error ;
          }
 
-         // if the record is not for temp, and
-         // "_id" doesn't exist, let's create the object
          if ( ele.eoo() )
          {
             oid._oid.init() ;
@@ -174,7 +171,6 @@ namespace engine
                        oidEle.size() + record.objsize(), rc ) ;
                goto error ;
             }
-            /// copy to new data
             *(UINT32*)pNewRecordData = oidEle.size() + record.objsize() ;
             ossMemcpy( pNewRecordData + sizeof(UINT32), oidEle.rawdata(),
                        oidEle.size() ) ;
@@ -188,7 +184,6 @@ namespace engine
          }
          dmsrecordSize = recordData.len() ;
 
-         // check
          if ( recordData.len() + DMS_RECORD_METADATA_SZ >
               DMS_RECORD_USER_MAX_SZ )
          {
@@ -205,20 +200,16 @@ namespace engine
                               recordData.data(), recordData.len(),
                               &compressedData, &compressedDataSize,
                               compressRatio ) ;
-            // Compression is valid and ratio is less the threshold
             if ( SDB_OK == rc &&
                  compressedDataSize + sizeof(UINT32) < recordData.orgLen() &&
                  compressRatio < DMS_COMPRESS_RATIO_THRESHOLD )
             {
-               // 4 bytes len + compressed record
                dmsrecordSize = compressedDataSize + sizeof(UINT32) ;
-               // set the compression data
                recordData.setData( compressedData, compressedDataSize,
                                    TRUE, FALSE ) ;
             }
             else if ( rc )
             {
-               // In any case of error, leave it, and use the original data.
                if ( SDB_UTIL_COMPRESS_ABORT == rc )
                {
                   PD_LOG( PDINFO, "Record compression aborted. "
@@ -238,10 +229,8 @@ namespace engine
           */
          compGuard.release() ;
 
-         // add record metadata and oid
          dmsrecordSize *= DMS_RECORD_OVERFLOW_RATIO ;
          dmsrecordSize += DMS_RECORD_METADATA_SZ ;
-         // record is ALWAYS 4 bytes aligned
          dmsrecordSize = OSS_MIN( DMS_RECORD_MAX_SZ,
                                   ossAlignX ( dmsrecordSize, 4 ) ) ;
 
@@ -266,7 +255,6 @@ namespace engine
 
          if ( dmsrecordSize > (UINT32)_currentExtent->_freeSpace || isLast )
          {
-            // lock
             rc = mbContext->mbLock( EXCLUSIVE ) ;
             if ( rc )
             {
@@ -282,7 +270,6 @@ namespace engine
             rc = _su->loadExtentA( mbContext, _pCurrentExtent,
                                    _currentExtentSize / _pageSize,
                                    TRUE ) ;
-            // unlock
             mbContext->mbUnlock() ;
 
             if ( rc )
@@ -315,7 +302,6 @@ namespace engine
             dmsrecordSize = _currentExtent->_freeSpace ;
          }
 
-         // set record header
          pRecord->setNormal() ;
          pRecord->setMyOffset( recordOffset ) ;
          pRecord->setSize( dmsrecordSize ) ;
@@ -323,13 +309,11 @@ namespace engine
          pRecord->setNextOffset( DMS_INVALID_OFFSET ) ;
          pRecord->setPrevOffset( DMS_INVALID_OFFSET ) ;
 
-         // set extent header
          if ( isAsynchr )
          {
             _currentExtent->_recCount++ ;
          }
          _currentExtent->_freeSpace -= dmsrecordSize ;
-         // set previous record next pointer
          offset = _currentExtent->_lastRecordOffset ;
          if ( DMS_INVALID_OFFSET != offset )
          {
@@ -339,7 +323,6 @@ namespace engine
          }
          _currentExtent->_lastRecordOffset = recordOffset ;
 
-         // then check extent header for first record
          offset = _currentExtent->_firstRecordOffset ;
          if ( DMS_INVALID_OFFSET == offset )
          {
@@ -476,16 +459,11 @@ namespace engine
 
             try
             {
-               // get the BSON object
                BSONObj obj ( recordData.data() ) ;
-               // when we get here, that means we have a new record
-               // to add to index
                DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
 
-               // attempt to insert into the index
                rc = _su->index()->indexesInsert( mbContext, tempExtentID, obj,
                                                  recordID, cb ) ;
-               // if any error happen
                if ( rc )
                {
                   if ( SDB_IXM_DUP_KEY != rc )
@@ -530,7 +508,6 @@ namespace engine
                goto rollback ;
             }
 
-            // extent point to cur record
             if ( DMS_INVALID_OFFSET == extAddr->_firstRecordOffset )
             {
                extAddr->_firstRecordOffset = recordID._offset ;
@@ -538,7 +515,6 @@ namespace engine
             extAddr->_lastRecordOffset = recordID._offset ;
          } //while ( DMS_INVALID_OFFSET != recordOffset )
 
-         // unlock
          mbContext->mbUnlock() ;
       } // while
 
@@ -548,7 +524,6 @@ namespace engine
    error:
       goto done ;
    rollback:
-      // save the extent other record to del list
       recordOffset = recordID._offset ;
       const dmsRecord *pReadRecord = NULL ;
       while ( DMS_INVALID_OFFSET != recordOffset )

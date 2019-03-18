@@ -69,8 +69,6 @@ namespace engine
          shardCB* pShdMgr = sdbGetShardCB() ;
          pmdEDUEvent event ;
 
-         // If checkInterval is 0 (disable checking), sleep for one hour and
-         // check again whether there is a change
          UINT32 secInterval = checkInterval > 0 ?
                               checkInterval * STORAGE_CHECK_UNIT_INTERVAL :
                               STORAGE_CHECK_UNIT_INTERVAL ;
@@ -85,17 +83,14 @@ namespace engine
          cb->waitEvent( event, secInterval ) ;
          pEduMgr->activateEDU( cb ) ;
 
-         // Check stop signal first
          if ( PMD_IS_DB_DOWN() ||
               cb->isForced() )
          {
             break ;
          }
 
-         // Get interval(hour) in runtime
          checkInterval = pmdGetKRCB()->getOptionCB()->getDmsChkInterval() ;
 
-         // Only check for primary node when checking enabled (interval > 0)
          if ( !krcb->isPrimary() ||
               !pShdMgr ||
               checkInterval == 0 )
@@ -133,14 +128,12 @@ namespace engine
                     "clsStorageCheckJob: checking space [%s]",
                     cs._name ) ;
 
-            // Check stop signal
             if ( PMD_IS_DB_DOWN() ||
                  cb->isForced() )
             {
                break ;
             }
 
-            // Lock space first
             rc = pDmsCB->nameToSUAndLock( cs._name, suID, &su, SHARED ) ;
 
             if ( SDB_OK != rc )
@@ -177,7 +170,6 @@ namespace engine
 
             do
             {
-               // Create a DelCS context to drop the collection space
                rc = pRtnCB->contextNew( RTN_CONTEXT_DELCS,
                                         (rtnContext **)&pDelContext,
                                         contextID, cb ) ;
@@ -190,7 +182,6 @@ namespace engine
                   break ;
                }
 
-               // Open the context, execute phase 1
                rc = pDelContext->open( cs._name, cb ) ;
                if ( SDB_OK != rc )
                {
@@ -201,8 +192,6 @@ namespace engine
                   break ;
                }
 
-               // Now, check the catalog again, if someone re-create the
-               // collection space, kill the context
                rc = pShdMgr->rGetCSInfo( cs._name, pageSize,
                                          lobPageSize, type ) ;
                if ( SDB_DMS_CS_NOTEXIST != rc )
@@ -215,7 +204,6 @@ namespace engine
                   break ;
                }
 
-               // Continue to process the phase 2 of context
                rc = pDelContext->getMore( -1, buffObj, cb ) ;
                if ( SDB_DMS_EOC == rc )
                {
@@ -226,7 +214,6 @@ namespace engine
                }
                else if ( SDB_OK != rc )
                {
-                  // context deleted inside rtnGetMore
                   PD_LOG( PDWARNING,
                           "clsStorageCheckJob: "
                           "failed to execute DelCS context [%s], rc: %d",
@@ -234,7 +221,6 @@ namespace engine
                }
             } while ( FALSE ) ;
 
-            // At last, delete the context
             if ( -1 != contextID )
             {
                pRtnCB->contextDelete( contextID, cb ) ;

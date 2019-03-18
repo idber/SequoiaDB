@@ -55,9 +55,6 @@ namespace engine
 
    _omagentJob::~_omagentJob()
    {
-      // free pTask malloc int getTaskByType()
-      //free _taskPtr
-      //SAFE_OSS_FREE( _taskPtr ) ;
    }
 
    RTN_JOB_TYPE _omagentJob::type () const
@@ -80,7 +77,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       _omaTask *pTask = _taskPtr.get() ;
 
-      /// register edu exit hook func
       pmdSetEDUHook( (PMD_ON_EDU_EXIT_FUNC)sdbHookFuncOnThreadExit ) ;
 
       if ( NULL == pTask )
@@ -113,7 +109,6 @@ namespace engine
 
 
 
-   // start job
 
    INT32 startOmagentJob ( OMA_TASK_TYPE taskType, INT64 taskID,
                            const BSONObj &info, omaTaskPtr &taskPtr, void *ptr )
@@ -124,7 +119,6 @@ namespace engine
       _omagentJob *pJob      = NULL ;
       _omaTask *pTask        = NULL ;
 
-      // get task
       pTask = getTaskByType( taskType, taskID ) ;
       if ( NULL == pTask )
       {
@@ -134,7 +128,6 @@ namespace engine
       }
 
       {
-         // new job
          omaTaskPtr myTaskPtr( pTask ) ;
          pJob = SDB_OSS_NEW _omagentJob( myTaskPtr, info, ptr ) ;
          if ( !pJob )
@@ -145,7 +138,6 @@ namespace engine
             goto error ;
          }
 
-         // start job
          rc = rtnGetJobMgr()->startJob( pJob, RTN_JOB_MUTEX_NONE, &eduID,
                                         returnResult ) ;
          if ( rc )
@@ -199,38 +191,30 @@ namespace engine
       
       switch ( taskType )
       {
-         // pTask will be free in _omagentJob::~_omagentJob()
-         // when job is destroy
-         // add host
          case OMA_TASK_ADD_HOST :
             pTask = SDB_OSS_NEW _omaAddHostTask( taskID ) ;
             break ;
          case OMA_TASK_ADD_HOST_SUB :
             pTask = SDB_OSS_NEW _omaAddHostSubTask( taskID ) ;
             break ;
-         // remove host
          case OMA_TASK_REMOVE_HOST :
             pTask = SDB_OSS_NEW _omaRemoveHostTask( taskID ) ;
             break ;
-         // install db business
          case OMA_TASK_INSTALL_DB :
             pTask = SDB_OSS_NEW _omaInstDBBusTask( taskID ) ;
             break ;
          case OMA_TASK_INSTALL_DB_SUB :
             pTask = SDB_OSS_NEW _omaInstDBBusSubTask( taskID ) ;
             break ;
-         // remove db business
          case OMA_TASK_REMOVE_DB :
             pTask = SDB_OSS_NEW _omaRemoveDBBusTask( taskID ) ;
             break ;
-         // add znode business
          case OMA_TASK_INSTALL_ZN :
             pTask = SDB_OSS_NEW _omaInstZNBusTask( taskID ) ;
             break ;
          case OMA_TASK_INSTALL_ZN_SUB :
             pTask = SDB_OSS_NEW _omaInstZNBusSubTask( taskID ) ;
             break ;
-         // remove znode business
          case OMA_TASK_REMOVE_ZN :
             pTask = SDB_OSS_NEW _omaRemoveZNBusTask( taskID ) ;
             break ;
@@ -243,7 +227,6 @@ namespace engine
          case OMA_TASK_INSTALL_SSQL_OLAP_SUB :
             pTask = SDB_OSS_NEW _omaInstallSsqlOlapBusSubTask( taskID ) ;
             break ;
-         // ssql exec
          case OMA_TASK_SSQL_EXEC :
             pTask = SDB_OSS_NEW _omaSsqlExecTask( taskID ) ;
             break ;

@@ -260,12 +260,10 @@ namespace engine
             {
                if ( _cmdType != CMD_UNKNOW )
                {
-                  // it is command, do not inc readTimeSpent
                   break ;
                }
             }
          case MSG_BS_GETMORE_REQ :
-         /// LOB
          case MSG_BS_LOB_READ_REQ :
             {
                _readTimeSpent += delta ;
@@ -274,7 +272,6 @@ namespace engine
          case MSG_BS_INSERT_REQ :
          case MSG_BS_UPDATE_REQ :
          case MSG_BS_DELETE_REQ :
-         /// LOB
          case MSG_BS_LOB_WRITE_REQ :
          case MSG_BS_LOB_REMOVE_REQ :
          case MSG_BS_LOB_UPDATE_REQ :
@@ -294,7 +291,6 @@ namespace engine
       UINT32 curLen = ossStrlen( _lastOpDetail ) ;
       if ( curLen >= sizeof( _lastOpDetail ) - 3 )
       {
-         // buffer is full, couldn't save more info
          goto done ;
       }
       else if ( curLen > 0 )

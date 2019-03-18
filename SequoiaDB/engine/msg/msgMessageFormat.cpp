@@ -159,17 +159,14 @@ typedef struct _msgMsgFuncItem
 msgMsgFuncItem* msgGetExpand2StringFunc( const MsgHeader *pMsg )
 {
    static msgMsgFuncItem s_Entry[] = {
-      /// Begin to map expand msg to string functions
       MSG_MAP_2_STRING_FUNC( MSG_COM_SESSION_INIT_REQ,
                              msgExpandComSessionInit2String ),
       MSG_MAP_2_STRING_FUNC( MSG_BS_QUERY_REQ,
                              msgExpandBSQuery2String ),
-      /// End map
       { MSG_NULL, NULL }
    } ;
    static UINT32 s_EntrySize = sizeof( s_Entry ) / sizeof( msgMsgFuncItem ) ;
 
-   /// find the function
    for ( UINT32 i = 0 ; i < s_EntrySize ; ++i )
    {
       if ( s_Entry[ i ]._opCode == pMsg->opCode )
@@ -187,7 +184,6 @@ string msg2String( const MsgHeader *pMsg,
    stringstream ss ;
    msgMsgFuncItem *pItem = msgGetExpand2StringFunc( pMsg ) ;
 
-   /// First format header to string
    if ( MSG_HEADER_MASK_LEN & headMask )
    {
       ss << "Length: " << pMsg->messageLength << ", " ;
@@ -219,13 +215,11 @@ string msg2String( const MsgHeader *pMsg,
       ss << "RequestID: " << pMsg->requestID << ", " ;
    }
 
-   /// sencond format expand msg to string
    if ( pItem && pItem->_pFunc && 0 != expandMask )
    {
       pItem->_pFunc( ss, pMsg, expandMask ) ;
    }
 
-   /// adjust
    string str = ss.str() ;
    utilStrRtrim( str ) ;
    UINT32 len = str.length() ;
@@ -236,7 +230,6 @@ string msg2String( const MsgHeader *pMsg,
    return str ;
 }
 
-/// define the expand msg to string functions
 void msgExpandComSessionInit2String( stringstream &ss,
                                      const MsgHeader *pMsg,
                                      UINT32 expandMask )

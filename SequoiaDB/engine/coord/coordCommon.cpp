@@ -48,19 +48,16 @@ namespace engine
    INT32 coordParseBoolean( BSONElement &e, BOOLEAN &value, UINT32 mask )
    {
       INT32 rc = SDB_INVALIDARG ;
-      /// a:true
       if ( e.isBoolean() && ( mask & COORD_PARSE_MASK_ET_DFT ) )
       {
          value = e.boolean() ? TRUE : FALSE ;
          rc = SDB_OK ;
       }
-      /// a:1
       else if ( e.isNumber() && ( mask & COORD_PARSE_MASK_ET_DFT ) )
       {
          value = 0 != e.numberInt() ? TRUE : FALSE ;
          rc = SDB_OK ;
       }
-      /// a:{$et:true} or a:{$et:1}
       else if ( Object == e.type() && ( mask & COORD_PARSE_MASK_ET_OPR ) )
       {
          BSONObj obj = e.embeddedObject() ;
@@ -78,13 +75,11 @@ namespace engine
    INT32 coordParseInt( BSONElement &e, INT32 &value, UINT32 mask )
    {
       INT32 rc = SDB_INVALIDARG ;
-      /// a:1
       if ( e.isNumber() && ( mask & COORD_PARSE_MASK_ET_DFT ) )
       {
          value = e.numberInt() ;
          rc = SDB_OK ;
       }
-      /// a:{$et:1}
       else if ( Object == e.type() && ( mask & COORD_PARSE_MASK_ET_OPR ) )
       {
          BSONObj obj = e.embeddedObject() ;
@@ -104,7 +99,6 @@ namespace engine
       INT32 rc = SDB_INVALIDARG ;
       INT32 value = 0 ;
 
-      /// a:1 or a:{$et:1}
       if ( ( !e.isABSONObj() ||
              0 == ossStrcmp( e.embeddedObject().firstElement().fieldName(),
                              "$et") ) &&
@@ -116,7 +110,6 @@ namespace engine
             vecValue.push_back( value ) ;
          }
       }
-      /// a:[1,2,3]
       else if ( Array == e.type() && ( mask & COORD_PARSE_MASK_IN_DFT ) )
       {
          BSONObjIterator it( e.embeddedObject() ) ;
@@ -132,7 +125,6 @@ namespace engine
             vecValue.push_back( value ) ;
          }
       }
-      /// a:{$in:[1,2,3]}
       else if ( Object == e.type() &&
                 0 == ossStrcmp( e.embeddedObject().firstElement().fieldName(),
                                 "$in") &&
@@ -153,13 +145,11 @@ namespace engine
                            UINT32 mask )
    {
       INT32 rc = SDB_INVALIDARG ;
-      /// a:"xxx"
       if ( String == e.type() && ( mask & COORD_PARSE_MASK_ET_DFT ) )
       {
          value = e.valuestr() ;
          rc = SDB_OK ;
       }
-      /// a:{$et:"xxx"}
       else if ( Object == e.type() && ( mask & COORD_PARSE_MASK_ET_OPR ) )
       {
          BSONObj obj = e.embeddedObject() ;
@@ -181,7 +171,6 @@ namespace engine
       INT32 rc = SDB_INVALIDARG ;
       const CHAR *value = NULL ;
 
-      /// a:"xxx" or a:{$et:"xxx"}
       if ( ( !e.isABSONObj() ||
              0 == ossStrcmp( e.embeddedObject().firstElement().fieldName(),
                              "$et") ) &&
@@ -193,7 +182,6 @@ namespace engine
             vecValue.push_back( value ) ;
          }
       }
-      /// a:["xxx", "yyy", "zzz"]
       else if ( Array == e.type() && ( mask & COORD_PARSE_MASK_IN_DFT ) )
       {
          BSONObjIterator it( e.embeddedObject() ) ;
@@ -209,7 +197,6 @@ namespace engine
             vecValue.push_back( value ) ;
          }
       }
-      /// a:{$in:["xxx", "yyy", "zzz"]}
       else if ( Object == e.type() &&
                 0 == ossStrcmp( e.embeddedObject().firstElement().fieldName(),
                                 "$in") &&
@@ -235,7 +222,6 @@ namespace engine
       try
       {
          BSONElement eName, eVersion ;
-         // Check types of name and version elements
          eName = obj.getField( CAT_CATALOGNAME_NAME ) ;
          if ( String != eName.type() )
          {
@@ -317,7 +303,6 @@ namespace engine
                SDB_CAT_NO_MATCH_CATALOG == flag ) ;
    }
 
-   // return TRUE if we should delete the node 
    BOOLEAN  coordCheckNodeReplyFlag( INT32 flag )
    {
       switch( flag )
@@ -373,7 +358,6 @@ namespace engine
       {
          BSONElement e = it.next() ;
 
-         /// $and:[{a:1},{b:2}]
          if ( Array == e.type() &&
               0 == ossStrcmp( e.fieldName(), "$and" ) )
          {
@@ -610,7 +594,6 @@ namespace engine
       {
          BSONElement ele = it.next() ;
 
-         // $and:[{GroupID:1000}, {GroupName:"xxx"}]
          if ( Array == ele.type() &&
               0 == ossStrcmp( ele.fieldName(), "$and" ) )
          {
@@ -651,7 +634,6 @@ namespace engine
             }
             sub.done() ;
          } /// end $and
-         // group id
          else if ( 0 == ossStrcasecmp( ele.fieldName(), CAT_GROUPID_NAME ) )
          {
             rc = coordParseInt( ele, vecID, COORD_PARSE_MASK_ALL ) ;
@@ -668,7 +650,6 @@ namespace engine
                rc = SDB_OK ;
             }
          }
-         // group name
          else if ( ( 0 == ossStrcasecmp( ele.fieldName(),
                                          FIELD_NAME_GROUPNAME ) ||
                      0 == ossStrcasecmp( ele.fieldName(),
@@ -729,7 +710,6 @@ namespace engine
       {
          BSONElement ele = itr.next() ;
 
-         // $and:[{NodeID:1001, HostName:"xxxx" }]
          if ( Array == ele.type() &&
               0 == ossStrcmp( ele.fieldName(), "$and" ) )
          {

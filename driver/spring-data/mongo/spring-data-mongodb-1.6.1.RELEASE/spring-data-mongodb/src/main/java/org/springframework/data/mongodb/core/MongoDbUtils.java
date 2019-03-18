@@ -86,12 +86,10 @@ public abstract class MongoDbUtils {
 
 		DbHolder dbHolder = (DbHolder) TransactionSynchronizationManager.getResource(mongo);
 
-		// Do we have a populated holder and TX sync active?
 		if (dbHolder != null && !dbHolder.isEmpty() && TransactionSynchronizationManager.isSynchronizationActive()) {
 
 			DB db = dbHolder.getDB(databaseName);
 
-			// DB found but not yet synchronized
 			if (db != null && !dbHolder.isSynchronizedWithTransaction()) {
 
 				LOGGER.debug("Registering Spring transaction synchronization for existing MongoDB {}.", databaseName);
@@ -105,7 +103,6 @@ public abstract class MongoDbUtils {
 			}
 		}
 
-		// Lookup fresh database instance
 		LOGGER.debug("Getting Mongo Database name=[{}]", databaseName);
 
 		DB db = mongo.getDB(databaseName);
@@ -127,7 +124,6 @@ public abstract class MongoDbUtils {
 			}
 		}
 
-		// TX sync active, bind new database to thread
 		if (TransactionSynchronizationManager.isSynchronizationActive()) {
 
 			LOGGER.debug("Registering Spring transaction synchronization for MongoDB instance {}.", databaseName);
@@ -140,7 +136,6 @@ public abstract class MongoDbUtils {
 				holderToUse.addDB(databaseName, db);
 			}
 
-			// synchronize holder only if not yet synchronized
 			if (!holderToUse.isSynchronizedWithTransaction()) {
 				TransactionSynchronizationManager.registerSynchronization(new MongoSynchronization(holderToUse, mongo));
 				holderToUse.setSynchronizedWithTransaction(true);
@@ -151,7 +146,6 @@ public abstract class MongoDbUtils {
 			}
 		}
 
-		// Check whether we are allowed to return the DB.
 		if (!allowCreate && !isDBTransactional(db, mongo)) {
 			throw new IllegalStateException("No Mongo DB bound to thread, "
 					+ "and configuration does not allow creation of non-transactional one here");

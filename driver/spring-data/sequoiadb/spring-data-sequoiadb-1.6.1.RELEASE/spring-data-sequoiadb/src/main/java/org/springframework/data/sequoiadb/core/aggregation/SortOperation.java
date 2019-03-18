@@ -68,7 +68,6 @@ public class SortOperation implements AggregationOperation {
 
 		for (Order order : sort) {
 
-			// Check reference
 			FieldReference reference = context.getReference(order.getProperty());
 			object.put(reference.getRaw(), order.isAscending() ? 1 : -1);
 		}

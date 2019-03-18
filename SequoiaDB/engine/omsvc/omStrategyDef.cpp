@@ -54,8 +54,6 @@ namespace engine
          ++iter ;
       }
 
-      // userName and ips maybe empty,
-      // we keep the empty field in the record to uniform query interface
       BSONObjBuilder objBuilder ;
       objBuilder.append( OM_REST_FIELD_RULE_ID, _id ) ;
       objBuilder.append( OM_REST_FIELD_TASK_ID, taskID ) ;

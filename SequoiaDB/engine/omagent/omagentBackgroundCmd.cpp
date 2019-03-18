@@ -68,14 +68,12 @@ namespace engine
             goto error ;
          }
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; "
             << "var " << JS_ARG_SYS << " = "
             << sys.toString(FALSE, TRUE).c_str() << " ; " ;
          _jsFileArgs = ss.str() ;
          PD_LOG ( PDDEBUG, "Add host passes argument: %s", _jsFileArgs.c_str() ) ;
-         // add js file
          rc = addJsFile( FILE_ADD_HOST, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
@@ -105,18 +103,9 @@ namespace engine
       BSONObjBuilder bob ;
       BSONObj subObj ;
 
-      // the output bson format
-      // {
-      //  "SdbUser":"sdbadmin",
-      //  "SdbPasswd":"sdbadmin",
-      //  "SdbUserGroup":"sdbadmin_group",
-      //  "InstallPacket":"/home/users/tanzhaobo/sequoiadb/bin/../packet/sequoiadb-1.8-linux_x86_64-installer.run",
-      //  "HostInfo":{"IP":"192.168.20.42","HostName":"susetzb","User":"root","Passwd":"sequoiadb","SshPort":"22","AgentServic":"11790","InstallPath":"/opt/sequoiadb"}
-      // }
 
       try
       {
-         //build subObj
          bob.append( OMA_FIELD_IP, _addHostInfo._item._ip.c_str() ) ;
          bob.append( OMA_FIELD_HOSTNAME, _addHostInfo._item._hostName.c_str() ) ;
          bob.append( OMA_FIELD_USER, _addHostInfo._item._user.c_str() ) ;
@@ -127,7 +116,6 @@ namespace engine
          bob.append( OMA_FIELD_VERSION, _addHostInfo._item._version.c_str() ) ;
          subObj = bob.obj() ;
 
-         // build retObj
          builder.append( OMA_FIELD_SDBUSER,
                          _addHostInfo._common._sdbUser.c_str() ) ;
          builder.append( OMA_FIELD_SDBPASSWD,
@@ -173,13 +161,11 @@ namespace engine
          BSONObj bus( pInstallInfo ) ;
          stringstream ss ;
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; " ;
          _jsFileArgs = ss.str() ;
          PD_LOG ( PDDEBUG, "Check add host information passes argument: %s",
                   _jsFileArgs.c_str() ) ;
-         // add js file
          rc = addJsFile( FIEL_ADD_HOST_CHECK_INFO, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
@@ -229,7 +215,6 @@ namespace engine
             goto error ;
          }
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; "
             << "var " << JS_ARG_SYS << " = "
@@ -237,7 +222,6 @@ namespace engine
          _jsFileArgs = ss.str() ;
          PD_LOG ( PDDEBUG, "Remove host passes argument: %s",
                   _jsFileArgs.c_str() ) ;
-         // add js file
          rc = addJsFile( FILE_REMOVE_HOST, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
@@ -268,7 +252,6 @@ namespace engine
 
       try
       {
-         //build subObj
          bob.append( OMA_FIELD_IP, _removeHostInfo._item._ip.c_str() ) ;
          bob.append( OMA_FIELD_HOSTNAME, _removeHostInfo._item._hostName.c_str() ) ;
          bob.append( OMA_FIELD_USER, _removeHostInfo._item._user.c_str() ) ;
@@ -314,7 +297,6 @@ namespace engine
          stringstream ss ;
          BSONObj bus = BSONObj(pInstallInfo).copy() ;
          BSONObj sys = BSON( OMA_FIELD_TASKID << _taskID ) ;
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; "
             << "var " << JS_ARG_SYS << " = "
@@ -322,7 +304,6 @@ namespace engine
          _jsFileArgs = ss.str() ;
          PD_LOG ( PDDEBUG, "Install temporary coord passes argument: %s",
                   _jsFileArgs.c_str() ) ;
-         // add js file
          rc = addJsFile( FILE_INSTALL_TMP_COORD, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
@@ -390,7 +371,6 @@ namespace engine
          BSONObj bus = BSON( OMA_FIELD_TMPCOORDSVCNAME << _tmpCoordSvcName ) ;
          BSONObj sys = BSON( OMA_FIELD_TASKID << _taskID ) ;
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; "
             << "var " << JS_ARG_SYS << " = "
@@ -398,7 +378,6 @@ namespace engine
          _jsFileArgs = ss.str() ;
          PD_LOG ( PDDEBUG, "Remove temporary coord passes argument: %s",
                   _jsFileArgs.c_str() ) ;
-         // add js file
          rc = addJsFile( FILE_REMOVE_TMP_COORD, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
@@ -485,7 +464,6 @@ namespace engine
                  OMA_FIELD_INSTALLPATH2    << _info._dbPath.c_str() <<
                  OMA_FIELD_INSTALLCONFIG   << _info._conf ) ;
          BSONObj sys = BSON ( OMA_FIELD_TASKID << _taskID ) ;
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; "
             << "var " << JS_ARG_SYS << " = "
@@ -493,7 +471,6 @@ namespace engine
          _jsFileArgs = ss.str() ;
          PD_LOG ( PDDEBUG, "Install standalone passes argument: %s",
                   _jsFileArgs.c_str() ) ;
-         // add js file
          rc = addJsFile( FILE_INSTALL_STANDALONE, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
@@ -562,7 +539,6 @@ namespace engine
          BSONObj sys = BSON (
                  OMA_FIELD_TASKID << _taskID <<
                  OMA_FIELD_TMPCOORDSVCNAME << _tmpCoordSvcName.c_str() ) ;
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; "
             << "var " << JS_ARG_SYS << " = "
@@ -570,7 +546,6 @@ namespace engine
          _jsFileArgs = ss.str() ;
          PD_LOG ( PDDEBUG, "Install catalog passes argument: %s",
                   _jsFileArgs.c_str() ) ;
-         // add js file
          rc = addJsFile( FILE_INSTALL_CATALOG, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
@@ -639,7 +614,6 @@ namespace engine
          BSONObj sys = BSON (
                  OMA_FIELD_TASKID << _taskID <<
                  OMA_FIELD_TMPCOORDSVCNAME << _tmpCoordSvcName.c_str() ) ;
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; "
             << "var " << JS_ARG_SYS << " = "
@@ -647,7 +621,6 @@ namespace engine
          _jsFileArgs = ss.str() ;
          PD_LOG ( PDDEBUG, "Install coord passes argument: %s",
                   _jsFileArgs.c_str() ) ;
-         // add js file
          rc = addJsFile( FILE_INSTALL_COORD, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
@@ -717,7 +690,6 @@ namespace engine
          BSONObj sys = BSON (
                  OMA_FIELD_TASKID << _taskID <<
                  OMA_FIELD_TMPCOORDSVCNAME << _tmpCoordSvcName.c_str() ) ;
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; "
             << "var " << JS_ARG_SYS << " = "
@@ -764,7 +736,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       stringstream ss ;
       
-      // build js file arguments
       ss << "var " << JS_ARG_BUS << " = " 
          << _bus.toString(FALSE, TRUE).c_str() << " ; "
          << "var " << JS_ARG_SYS << " = "
@@ -772,7 +743,6 @@ namespace engine
       _jsFileArgs = ss.str() ;
       PD_LOG ( PDDEBUG, "Rollback standalone passes "
                "argument: %s", _jsFileArgs.c_str() ) ;
-      // add js file
       rc = addJsFile( FILE_ROLLBACK_STANDALONE, _jsFileArgs.c_str() ) ;
       if ( rc )
       {
@@ -812,7 +782,6 @@ namespace engine
                  OMA_FIELD_TASKID << _taskID <<
                  OMA_FIELD_TMPCOORDSVCNAME << _tmpCoordSvcName.c_str() ) ;
 
-         // build js file arguments
          ss << "var " << JS_ARG_SYS << " = "
             << sys.toString(FALSE, TRUE).c_str() << " ; " ;
          _jsFileArgs = ss.str() ;
@@ -863,13 +832,11 @@ namespace engine
          BSONObj sys = BSON (
                  OMA_FIELD_TASKID << _taskID <<
                  OMA_FIELD_TMPCOORDSVCNAME << _tmpCoordSvcName.c_str() ) ;
-         // build js file arguments
          ss << "var " << JS_ARG_SYS << " = "
             << sys.toString(FALSE, TRUE).c_str() << " ; " ;
          _jsFileArgs = ss.str() ;
          PD_LOG ( PDDEBUG, "Rollback coord passes "
                   "argument: %s", _jsFileArgs.c_str() ) ;
-         // add js file
          rc = addJsFile( FILE_ROLLBACK_COORD, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
@@ -917,11 +884,9 @@ namespace engine
          stringstream ss ;
          BSONObj bus ;
          BSONObj sys ;
-         // get installed data nodes info
          _getInstalledDataGroupInfo( bus ) ;
          sys = BSON( OMA_FIELD_TASKID << _taskID <<
                      OMA_FIELD_TMPCOORDSVCNAME << _tmpCoordSvcName.c_str() ) ;
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; "
             << "var " << JS_ARG_SYS << " = "
@@ -983,7 +948,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       stringstream ss ;
       
-      // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << _bus.toString(FALSE, TRUE).c_str() << " ; "
             << "var " << JS_ARG_SYS << " = "
@@ -991,7 +955,6 @@ namespace engine
          _jsFileArgs = ss.str() ;
       PD_LOG ( PDDEBUG, "Remove standalone passes argument: %s",
                _jsFileArgs.c_str() ) ;
-      // add js file
       rc = addJsFile( FILE_REMOVE_STANDALONE, _jsFileArgs.c_str() ) ;
       if ( rc )
       {
@@ -1029,7 +992,6 @@ namespace engine
       BSONObj bus = _info.copy() ;
       BSONObj sys = BSON( OMA_FIELD_TASKID << _taskID <<
                           OMA_FIELD_TMPCOORDSVCNAME << _tmpCoordSvcName.c_str() ) ;
-      // build js file arguments
       ss << "var " << JS_ARG_BUS << " = " 
          << bus.toString(FALSE, TRUE).c_str() << " ; "
          << "var " << JS_ARG_SYS << " = "
@@ -1037,7 +999,6 @@ namespace engine
       _jsFileArgs = ss.str() ;
       PD_LOG ( PDDEBUG, "Remove catalog group passes "
                "argument: %s", _jsFileArgs.c_str() ) ;
-      // add js file
       rc = addJsFile( FILE_REMOVE_CATALOG_RG, _jsFileArgs.c_str() ) ;
       if ( rc )
       {
@@ -1076,7 +1037,6 @@ namespace engine
       BSONObj sys = BSON( OMA_FIELD_TASKID << _taskID <<
                           OMA_FIELD_TMPCOORDSVCNAME << _tmpCoordSvcName.c_str() ) ;
 
-      // build js file arguments
       ss << "var " << JS_ARG_BUS << " = " 
          << bus.toString(FALSE, TRUE).c_str() << " ; "
          << "var " << JS_ARG_SYS << " = "
@@ -1084,7 +1044,6 @@ namespace engine
       _jsFileArgs = ss.str() ;
       PD_LOG ( PDDEBUG, "Remove coord group passes "
                "argument: %s", _jsFileArgs.c_str() ) ;
-      // add js file
       rc = addJsFile( FILE_REMOVE_COORD_RG, _jsFileArgs.c_str() ) ;
       if ( rc )
       {
@@ -1121,7 +1080,6 @@ namespace engine
       BSONObj bus = _info.copy() ;
       BSONObj sys = BSON( OMA_FIELD_TASKID << _taskID <<
                           OMA_FIELD_TMPCOORDSVCNAME << _tmpCoordSvcName.c_str() ) ;
-      // build js file arguments
       ss << "var " << JS_ARG_BUS << " = " 
          << bus.toString(FALSE, TRUE).c_str() << " ; "
          << "var " << JS_ARG_SYS << " = "
@@ -1129,7 +1087,6 @@ namespace engine
       _jsFileArgs = ss.str() ;
       PD_LOG ( PDDEBUG, "Remove data group passes "
                "argument: %s", _jsFileArgs.c_str() ) ;
-      // add js file
       rc = addJsFile( FILE_REMOVE_DATA_RG, _jsFileArgs.c_str() ) ;
       if ( rc )
       {
@@ -1163,7 +1120,6 @@ namespace engine
       stringstream ss ;
       BSONObj bus = _info.copy() ;
       BSONObj sys = BSON( OMA_FIELD_TASKID << _taskID ) ;
-      // build js file arguments
       ss << "var " << JS_ARG_BUS << " = " 
          << bus.toString(FALSE, TRUE).c_str() << " ; "
          << "var " << JS_ARG_SYS << " = "
@@ -1171,7 +1127,6 @@ namespace engine
       _jsFileArgs = ss.str() ;
       PD_LOG ( PDDEBUG, "Init for executing js passes "
                "argument: %s", _jsFileArgs.c_str() ) ;
-      // add js file
       rc = addJsFile( FILE_INIT_ENV, _jsFileArgs.c_str() ) ;
       if ( rc )
       {
@@ -1214,7 +1169,6 @@ namespace engine
             goto error ;
          }
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; "
             << "var " << JS_ARG_SYS << " = "
@@ -1222,7 +1176,6 @@ namespace engine
          _jsFileArgs = ss.str() ;
          PD_LOG ( PDDEBUG, "Installing znode passes argument: %s",
                   _jsFileArgs.c_str() ) ;
-         // add js file
          rc = addJsFile( FILE_INSTALL_ZOOKEEPER, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
@@ -1252,40 +1205,7 @@ namespace engine
       BSONArrayBuilder bab ;
       vector<string>::iterator it = _addZNInfo._common._serverInfo.begin() ;
 
-      // the output bson format for standalone is:
-      // { 
-      //  "DeployMod":"standalone",
-      //  "PacketPath":"/opt/sequoiadb/packet/zookeeper-3.4.6.tar.gz",
-      //  "HostName":"rhel64-test8",
-      //  "User": "root", "Passwd": "sequoiadb",
-      //  "SdbUser": "sdbadmin", "SdbPasswd": "sdbadmin", "SdbUserGroup": "sdbadmin_group",
-      //  "SshPort": "22",
-      //  "zooid": 1,
-      //  "installpath":"/opt/zookeeper",
-      //  "datapath":"/opt/zookeeper/data",
-      //  "clientport":"2181",
-      //  "ticktime":"2000"
-      // } 
 
-      // the output bson format for cluster is:
-      // { 
-      //  "DeployMod":"distribution",
-      //  "PacketPath":"/opt/sequoiadb/packet/zookeeper-3.4.6.tar.gz",
-      //  "HostName":"susetzb",
-      //  "User": "root", "Passwd": "sequoiadb",
-      //  "SdbUser": "sdbadmin", "SdbPasswd": "sdbadmin", "SdbUserGroup": "sdbadmin_group",
-      //  "SshPort": "22",
-      //  "zooid": 1,
-      //  "installpath":"/opt/zookeeper",
-      //  "datapath":"/opt/zookeeper/data",
-      //  "dataport":"2888",
-      //  "electport":"3888",
-      //  "clientport":"2181",
-      //  "synclimit":"5",
-      //  "initlimit":"10",
-      //  "ticktime":"2000",
-      //  "ServerInfo":["server.1=susetzb:2888:3888", "server.2=rhel64-test8:2888:3888", "server.3=rhel64-test9:2888:3888"]
-      // }
 
 
       try
@@ -1316,7 +1236,6 @@ namespace engine
          }
          bob.appendArray( OMA_FIELD_SERVERINFO, bab.arr() ) ;
 
-         // build retObj
          retObj1 = bob.obj() ;
          retObj2 = BSON( OMA_FIELD_TASKID << _addZNInfo._taskID ) ;
       }
@@ -1362,7 +1281,6 @@ namespace engine
             goto error ;
          }
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; "
             << "var " << JS_ARG_SYS << " = "
@@ -1370,7 +1288,6 @@ namespace engine
          _jsFileArgs = ss.str() ;
          PD_LOG ( PDDEBUG, "Removing znode passes argument: %s",
                   _jsFileArgs.c_str() ) ;
-         // add js file
          rc = addJsFile( FILE_REMOVE_ZOOKEEPER, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
@@ -1400,38 +1317,7 @@ namespace engine
       BSONArrayBuilder bab ;
       vector<string>::iterator it ;
 
-      // the output bson format for standalone is:
-      // { 
-      //  "DeployMod":"standalone",
-      //  "HostName":"rhel64-test8",
-      //  "User": "root",
-      //  "Passwd": "sequoiadb",
-      //  "SdbUser": "sdbadmin", "SdbPasswd": "sdbadmin", "SdbUserGroup": "sdbadmin_group",
-      //  "SshPort": "22",
-      //  "zooid": 1,
-      //  "installPath":"/opt/zookeeper",
-      //  "datapath":"/opt/zookeeper/data",
-      //  "clientport":"2181",
-      //  "ticktime":"2000"
-      // }
 
-      // the output bson format for cluster is:
-      // {
-      //  "DeployMod":"distribution",
-      //  "HostName":"susetzb",
-      //  "User": "root", "Passwd": "sequoiadb",
-      //  "SdbUser": "sdbadmin", "SdbPasswd": "sdbadmin", "SdbUserGroup": "sdbadmin_group",
-      //  "SshPort": "22",
-      //  "zooid": 1,
-      //  "installpath":"/opt/zookeeper",
-      //  "datapath":"/opt/zookeeper/data",
-      //  "dataport":"2888",
-      //  "electport":"3888",
-      //  "clientport":"2181",
-      //  "synclimit":"5",
-      //  "initLimit":"10",
-      //  "ticktime":"2000"
-      // }
 
       try
       {
@@ -1453,7 +1339,6 @@ namespace engine
          bob.append( OMA_FIELD_INITLIMIT3, _removeZNInfo._item._initLimit.c_str() ) ;
          bob.append( OMA_FIELD_TICKTIME3, _removeZNInfo._item._tickTime.c_str() ) ;
 
-         // build retObj
          retObj1 = bob.obj() ;
          retObj2 = BSON( OMA_FIELD_TASKID << _removeZNInfo._taskID ) ;
       }
@@ -1499,7 +1384,6 @@ namespace engine
             goto error ;
          }
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; "
             << "var " << JS_ARG_SYS << " = "
@@ -1507,7 +1391,6 @@ namespace engine
          _jsFileArgs = ss.str() ;
          PD_LOG ( PDDEBUG, "Checking znodes pass argument: %s",
                   _jsFileArgs.c_str() ) ;
-         // add js file
          rc = addJsFile( FILE_CHECK_ZOOKEEPER, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
@@ -1539,34 +1422,6 @@ namespace engine
       INT64 taskID     = 0 ;
       vector<CheckZNInfo>::iterator it = _checkZNInfos.begin() ;
 
-      // the output bson format for cluster is:
-      // { 
-      //  "DeployMod":"distribution",
-      //  "ServerInfo":
-      //   [ 
-      //     {
-      //      "HostName":"susetzb",
-      //      "User": "root",
-      //      "Passwd": "sequoiadb",
-      //      "SdbUser": "sdbadmin",
-      //      "SdbPasswd": "sdbadmin",
-      //      "SdbUserGroup": "sdbadmin_group",
-      //      "SshPort": "22",
-      //      "zooid": "1",
-      //      "installPath":"/opt/zookeeper",
-      //      "datapath":"/opt/zookeeper/data",
-      //      "dataport":"2888",
-      //      "electport":"3888",
-      //      "clientport":"2181",
-      //      "synclimit":"5",
-      //      "initLimit":"10",
-      //      "ticktime":"2000",
-      //      "clustername":"cl",
-      //      "businessname":"bus"
-      //     },
-      //     ...
-      //   ]
-      // }
 
       if ( it == _checkZNInfos.end() )
       {
@@ -1611,7 +1466,6 @@ namespace engine
          bob.append( OMA_FIELD_DEPLOYMOD, pStr ) ;
          bob.append( OMA_FIELD_SERVERINFO, bab.arr() ) ;
 
-         // build retObj
          retObj1 = bob.obj() ;
          retObj2 = BSON( OMA_FIELD_TASKID << taskID ) ;
       }
@@ -1657,7 +1511,6 @@ namespace engine
             goto error ;
          }
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; "
             << "var " << JS_ARG_SYS << " = "
@@ -1665,7 +1518,6 @@ namespace engine
          _jsFileArgs = ss.str() ;
          PD_LOG ( PDDEBUG, "Checking znodes' environment pass argument: %s",
                   _jsFileArgs.c_str() ) ;
-         // add js file
          rc = addJsFile( FILE_CHECK_ZOOKEEPER_ENV, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
@@ -1705,7 +1557,6 @@ namespace engine
       {
          stringstream ss ;
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << _config.toString(FALSE, TRUE).c_str() << " ; "
             << "var " << JS_ARG_SYS << " = "
@@ -1714,7 +1565,6 @@ namespace engine
          PD_LOG ( PDDEBUG, "Checking sequoiasql olap passes argument: %s",
                   _jsFileArgs.c_str() ) ;
 
-         // add common file
          rc = addJsFile( FILE_SEQUOIASQL_OLAP_COMMON ) ;
          if ( rc )
          {
@@ -1723,7 +1573,6 @@ namespace engine
             goto error ;
          }
 
-         // add check file
          rc = addJsFile( FILE_SEQUOIASQL_OLAP_CHECK, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
@@ -1764,7 +1613,6 @@ namespace engine
       {
          stringstream ss ;
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << _config.toString(FALSE, TRUE).c_str() << " ; "
             << "var " << JS_ARG_SYS << " = "
@@ -1773,7 +1621,6 @@ namespace engine
          PD_LOG ( PDDEBUG, "Installing sequoiasql olap passes argument: %s",
                   _jsFileArgs.c_str() ) ;
 
-         // add common file
          rc = addJsFile( FILE_SEQUOIASQL_OLAP_COMMON ) ;
          if ( rc )
          {
@@ -1782,7 +1629,6 @@ namespace engine
             goto error ;
          }
 
-         // add config file
          rc = addJsFile( FILE_SEQUOIASQL_OLAP_CONFIG ) ;
          if ( rc )
          {
@@ -1791,7 +1637,6 @@ namespace engine
             goto error ;
          }
 
-         // add install file
          rc = addJsFile( FILE_SEQUOIASQL_OLAP_INSTALL, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
@@ -1832,7 +1677,6 @@ namespace engine
       {
          stringstream ss ;
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << _config.toString(FALSE, TRUE).c_str() << " ; "
             << "var " << JS_ARG_SYS << " = "
@@ -1841,7 +1685,6 @@ namespace engine
          PD_LOG ( PDDEBUG, "Trusting sequoiasql olap passes argument: %s",
                   _jsFileArgs.c_str() ) ;
 
-         // add common file
          rc = addJsFile( FILE_SEQUOIASQL_OLAP_COMMON ) ;
          if ( rc )
          {
@@ -1850,7 +1693,6 @@ namespace engine
             goto error ;
          }
 
-         // add check file
          rc = addJsFile( FILE_SEQUOIASQL_OLAP_TRUST, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
@@ -1891,7 +1733,6 @@ namespace engine
       {
          stringstream ss ;
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << _config.toString(FALSE, TRUE).c_str() << " ; "
             << "var " << JS_ARG_SYS << " = "
@@ -1900,7 +1741,6 @@ namespace engine
          PD_LOG ( PDDEBUG, "Checking HDFS for sequoiasql olap passes argument: %s",
                   _jsFileArgs.c_str() ) ;
 
-         // add common file
          rc = addJsFile( FILE_SEQUOIASQL_OLAP_COMMON ) ;
          if ( rc )
          {
@@ -1909,7 +1749,6 @@ namespace engine
             goto error ;
          }
 
-         // add check file
          rc = addJsFile( FILE_SEQUOIASQL_OLAP_CHECK_HDFS, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
@@ -1950,7 +1789,6 @@ namespace engine
       {
          stringstream ss ;
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << _config.toString(FALSE, TRUE).c_str() << " ; "
             << "var " << JS_ARG_SYS << " = "
@@ -1959,7 +1797,6 @@ namespace engine
          PD_LOG ( PDDEBUG, "Init cluster for sequoiasql olap passes argument: %s",
                   _jsFileArgs.c_str() ) ;
 
-         // add common file
          rc = addJsFile( FILE_SEQUOIASQL_OLAP_COMMON ) ;
          if ( rc )
          {
@@ -1968,7 +1805,6 @@ namespace engine
             goto error ;
          }
 
-         // add init file
          rc = addJsFile( FILE_SEQUOIASQL_OLAP_INIT, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
@@ -2009,7 +1845,6 @@ namespace engine
       {
          stringstream ss ;
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << _config.toString(FALSE, TRUE).c_str() << " ; "
             << "var " << JS_ARG_SYS << " = "
@@ -2018,7 +1853,6 @@ namespace engine
          PD_LOG ( PDDEBUG, "Removing sequoiasql olap passes argument: %s",
                   _jsFileArgs.c_str() ) ;
 
-         // add common file
          rc = addJsFile( FILE_SEQUOIASQL_OLAP_COMMON ) ;
          if ( rc )
          {
@@ -2027,7 +1861,6 @@ namespace engine
             goto error ;
          }
 
-         // add remove file
          rc = addJsFile( FILE_SEQUOIASQL_OLAP_REMOVE, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
@@ -2079,7 +1912,6 @@ namespace engine
                   OMA_FIELD_DBPASSWD << _ssqlInfo._dbPasswd <<
                   OMA_FIELD_SQL << _ssqlInfo._sql << 
                   OMA_FIELD_RESULTFORMAT << _ssqlInfo._resultFormat ) ;
-      // build js file arguments
       ss << "var " << JS_ARG_BUS << " = " 
          << bus.toString(FALSE, TRUE).c_str() << " ; "
          << "var " << JS_ARG_SYS << " = "
@@ -2087,7 +1919,6 @@ namespace engine
       _jsFileArgs = ss.str() ;
 
       PD_LOG ( PDDEBUG, "ssql execute argument: %s", _jsFileArgs.c_str() ) ;
-      // add js file
       rc = addJsFile( FILE_RUN_PSQL, _jsFileArgs.c_str() ) ;
       if ( rc )
       {
@@ -2131,7 +1962,6 @@ namespace engine
                   OMA_FIELD_DBPASSWD << _ssqlInfo._dbPasswd <<
                   OMA_FIELD_SQL << _ssqlInfo._sql << 
                   OMA_FIELD_RESULTFORMAT << _ssqlInfo._resultFormat ) ;
-      // build js file arguments
       ss << "var " << JS_ARG_BUS << " = " 
          << bus.toString(FALSE, TRUE).c_str() << " ; "
          << "var " << JS_ARG_SYS << " = "
@@ -2139,7 +1969,6 @@ namespace engine
       _jsFileArgs = ss.str() ;
 
       PD_LOG ( PDDEBUG, "ssql execute argument: %s", _jsFileArgs.c_str() ) ;
-      // add js file
       rc = addJsFile( FILE_CLEAN_SSQL_EXEC, _jsFileArgs.c_str() ) ;
       if ( rc )
       {
@@ -2183,7 +2012,6 @@ namespace engine
                   OMA_FIELD_DBPASSWD << _ssqlInfo._dbPasswd <<
                   OMA_FIELD_SQL << _ssqlInfo._sql << 
                   OMA_FIELD_RESULTFORMAT << _ssqlInfo._resultFormat ) ;
-      // build js file arguments
       ss << "var " << JS_ARG_BUS << " = " 
          << bus.toString(FALSE, TRUE).c_str() << " ; "
          << "var " << JS_ARG_SYS << " = "
@@ -2191,7 +2019,6 @@ namespace engine
       _jsFileArgs = ss.str() ;
 
       PD_LOG ( PDDEBUG, "ssql execute argument: %s", _jsFileArgs.c_str() ) ;
-      // add js file
       rc = addJsFile( FILE_GET_PSQL, _jsFileArgs.c_str() ) ;
       if ( rc )
       {
@@ -2225,7 +2052,6 @@ namespace engine
       stringstream ss ;
       BSONObj bus( pInstallInfo ) ;
    
-      // build js file arguments
       ss << "var " << JS_ARG_BUS << " = " 
          << bus.toString( FALSE, TRUE ).c_str() << " ; " ;
    
@@ -2233,7 +2059,6 @@ namespace engine
       PD_LOG( PDDEBUG, "Add Business argument: %s",
               _jsFileArgs.c_str() ) ;
    
-      // add js file
       rc = addJsFile( FILE_ADD_BUSINESS, _jsFileArgs.c_str() ) ;
       if ( rc )
       {
@@ -2411,7 +2236,6 @@ namespace engine
       stringstream ss ;
       BSONObj bus( pInstallInfo ) ;
    
-      // build js file arguments
       ss << "var " << JS_ARG_BUS << " = " 
          << bus.toString( FALSE, TRUE ).c_str() << " ; " ;
    
@@ -2419,7 +2243,6 @@ namespace engine
       PD_LOG( PDDEBUG, "Remove Business argument: %s",
               _jsFileArgs.c_str() ) ;
    
-      // add js file
       rc = addJsFile( FILE_REMOVE_BUSINESS, _jsFileArgs.c_str() ) ;
       if ( rc )
       {
@@ -2597,7 +2420,6 @@ namespace engine
       stringstream ss ;
       BSONObj bus( pInstallInfo ) ;
 
-      // build js file arguments
       ss << "var " << JS_ARG_BUS << " = " 
          << bus.toString( FALSE, TRUE ).c_str() << " ; " ;
 
@@ -2605,7 +2427,6 @@ namespace engine
       PD_LOG( PDDEBUG, "Extend SequoiaDB argument: %s",
               _jsFileArgs.c_str() ) ;
 
-      // add js file
       rc = addJsFile( FILE_EXTEND_SEQUOIADB, _jsFileArgs.c_str() ) ;
       if ( rc )
       {
@@ -2788,7 +2609,6 @@ namespace engine
       stringstream ss ;
       BSONObj bus( pInstallInfo ) ;
 
-      // build js file arguments
       ss << "var " << JS_ARG_BUS << " = " 
          << bus.toString( FALSE, TRUE ).c_str() << " ; " ;
 
@@ -2796,7 +2616,6 @@ namespace engine
       PD_LOG( PDDEBUG, "Extend SequoiaDB argument: %s",
               _jsFileArgs.c_str() ) ;
 
-      // add js file
       rc = addJsFile( FILE_SHRINK_BUSINESS, _jsFileArgs.c_str() ) ;
       if ( rc )
       {
@@ -2972,7 +2791,6 @@ namespace engine
       stringstream ss ;
       BSONObj bus( pInstallInfo ) ;
 
-      // build js file arguments
       ss << "var " << JS_ARG_BUS << " = " 
          << bus.toString( FALSE, TRUE ).c_str() << " ; " ;
 
@@ -2980,7 +2798,6 @@ namespace engine
       PD_LOG( PDDEBUG, "Deploy package argument: %s",
               _jsFileArgs.c_str() ) ;
 
-      // add js file
       rc = addJsFile( FILE_DEPLOY_PACKAGE, _jsFileArgs.c_str() ) ;
       if ( rc )
       {
@@ -3151,7 +2968,6 @@ namespace engine
          stringstream ss ;
          BSONObj bus( pInfo ) ;
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; " ;
          _jsFileArgs = ss.str() ;
@@ -3201,7 +3017,6 @@ namespace engine
          stringstream ss ;
          BSONObj bus( pInfo ) ;
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; " ;
          _jsFileArgs = ss.str() ;

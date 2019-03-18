@@ -46,8 +46,6 @@
 #include "../bson/bson.h"
 #include "authCB.hpp"
 #include "utilStr.hpp"
-//#include "ossUtil.h"
-//#include "pd.hpp"
 #include "msg.h"
 #include "omDef.hpp"
 
@@ -90,7 +88,6 @@ namespace engine
          utilStrTrim( *it ) ;
          const char *strSubFlag = ( *it ).c_str() ;
 
-         // treat it as string flag
          if ( 0 == ossStrcmp( strSubFlag,
                               REST_VALUE_FLAG_UPDATE_KEEP_SK ) )
          {
@@ -122,7 +119,6 @@ namespace engine
             continue ;
          }
 
-         // treat it as number
          rc = utilStr2Num( strSubFlag, subFlag );
          if ( rc )
          {
@@ -242,7 +238,6 @@ namespace engine
          _pEDUCB->resetInfo( EDU_INFO_ERROR ) ;
          _pEDUCB->resetLsn() ;
 
-         // sniff wether has data
          rc = sniffData( _pSessionInfo ? OSS_ONE_SEC :
                          PMD_REST_SESSION_SNIFF_TIMEOUT ) ;
          if ( SDB_TIMEOUT == rc )
@@ -265,46 +260,6 @@ namespace engine
             break ;
          }
 
-#ifdef SDB_ENTERPRISE
-
-#ifdef SDB_SSL
-         if ( _isAwaitingHandshake() )
-         {
-            if ( pmdGetOptionCB()->useSSL() )
-            {
-               CHAR buff[ 4 ] = { 0 } ;
-               INT32 recvLen  = 0 ;
-
-               rc = _socket.recv( buff, sizeof( buff ), recvLen,
-                                  PMD_REST_SESSION_SNIFF_TIMEOUT,
-                                  MSG_PEEK, TRUE, TRUE ) ;
-               if ( rc < 0 )
-               {
-                  break;
-               }
-
-               // https handshake
-               // 22 is the SSL handshake message type
-               if ( 22 == buff[0] )
-               {
-                  rc = _socket.doSSLHandshake ( NULL, 0 ) ;
-                  if ( rc )
-                  {
-                     break ;
-                  }
-
-                  _setHandshakeReceived() ;
-
-                  continue;
-               }
-            }
-
-             _setHandshakeReceived() ;
-         }
-#endif
-
-#endif /* SDB_ENTERPRISE */
-         // recv rest header
          rc = pAdptor->recvRequestHeader( this ) ;
          if ( rc )
          {
@@ -320,13 +275,10 @@ namespace engine
             }
             break ;
          }
-         // session is not exist
          if ( !_pSessionInfo )
          {
-            // find session id
             pAdptor->getHttpHeader( this, OM_REST_HEAD_SESSIONID,
                                     &pSessionID ) ;
-            // if 'SessionID' exist, attach the sessionInfo
             if ( pSessionID )
             {
                PD_LOG( PDINFO, "Rest session: %s", pSessionID ) ;
@@ -334,14 +286,12 @@ namespace engine
                                   pSessionID ) ;
             }
 
-            // if session exist, restore
             if ( _pSessionInfo )
             {
                _client.setAuthed( TRUE ) ;
                restoreSession() ;
             }
          }
-         // recv body
          rc = pAdptor->recvRequestBody( this, httpCommon, &pFilePath,
                                         bodySize ) ;
          if ( rc )
@@ -359,17 +309,14 @@ namespace engine
             break ;
          }
 
-         // update active time
          if ( _pSessionInfo )
          {
             _pSessionInfo->active() ;
          }
 
-         // increase process event count
          _pEDUCB->incEventCount() ;
          mondbcb->addReceiveNum() ;
 
-         // activate edu
          if ( SDB_OK != ( rc = pEDUMgr->activateEDU( _pEDUCB ) ) )
          {
             PD_LOG( PDERROR, "Session[%s] activate edu failed, rc: %d",
@@ -377,7 +324,6 @@ namespace engine
             break ;
          }
 
-         // process msg
          rc = _processMsg( httpCommon, pFilePath ) ;
          if ( rc )
          {
@@ -389,7 +335,6 @@ namespace engine
             break ;
          }
 
-         // wait edu
          if ( SDB_OK != ( rc = pEDUMgr->waitEDU( _pEDUCB ) ) )
          {
             PD_LOG( PDERROR, "Session[%s] wait edu failed, rc: %d",
@@ -397,7 +342,6 @@ namespace engine
             break ;
          }
 
-         // release body msg
          if ( pFilePath )
          {
             releaseBuff( pFilePath ) ;
@@ -427,7 +371,6 @@ namespace engine
       rc = _pRestTransfer->trans( pAdaptor, msg ) ;
       if ( SDB_OK != rc )
       {
-         //PD_LOG( PDERROR, "transfer rest message failed:rc=%d", rc ) ;
          goto error ;
       }
 
@@ -504,8 +447,6 @@ namespace engine
       rc = _processBusinessMsg( pAdaptor ) ;
       if ( SDB_UNKNOWN_MESSAGE == rc )
       {
-         // in this case we should send response(SDB_UNKNOWN_MESSAGE) to
-         // the client
          PD_LOG_MSG( PDERROR, "translate message failed:rc=%d", rc ) ;
          _sendOpError2Web( rc, pAdaptor, this, _pEDUCB ) ;
       }
@@ -558,7 +499,6 @@ namespace engine
             _sendOpError2Web( rc, pAdaptor, this, _pEDUCB ) ;
          }
 
-         // if SDB_UNKNOWN_MESSAGE == rc, we should try _processOMRestMsg
          goto error ;
       }
 
@@ -598,8 +538,6 @@ namespace engine
       {
          if ( -1 != contextID && contextBuff.recordNum() > 0 )
          {
-            // -1 != contextID means we have more data to send.
-            // so we should enable chunk mod;
             pAdaptor->setChunkModal( this ) ;
          }
 
@@ -718,7 +656,6 @@ namespace engine
 
    void _pmdRestSession::_onDetach()
    {
-      // save session info
       if ( _pSessionInfo )
       {
          saveSession() ;
@@ -920,7 +857,6 @@ namespace engine
          { CMD_NAME_LIST_TASKS,  &RestToMSGTransfer::_convertListTasks },
          { REST_CMD_NAME_LISTINDEXES,
                                  &RestToMSGTransfer::_convertListIndexes },
-//         { CMD_NAME_LIST_CL_IN_DOMAIN, &RestToMSGTransfer::_convertQuery },
          { CMD_NAME_SNAPSHOT_CONTEXTS,
                                  &RestToMSGTransfer::_convertSnapshotContext },
          { CMD_NAME_SNAPSHOT_CONTEXTS_CURRENT,
@@ -973,8 +909,6 @@ namespace engine
          rc = SDB_UNKNOWN_MESSAGE ;
          if ( !pmdGetKRCB()->isCBValue( SDB_CB_OMSVC ) )
          {
-            // we will have another flow if it's OMSVC. we can't say it's
-            // a error now
             PD_LOG_MSG( PDERROR, "can't resolve field:field=%s",
                         OM_REST_FIELD_COMMAND ) ;
          }
@@ -992,8 +926,6 @@ namespace engine
       {
          if ( !pmdGetKRCB()->isCBValue( SDB_CB_OMSVC ) )
          {
-            // we will have another flow if it's OMSVC. we can't say it's
-            // a error now
             PD_LOG_MSG( PDERROR, "unsupported command:command=%s",
                         pSubCommand ) ;
          }
@@ -1021,7 +953,6 @@ namespace engine
       pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pCollectionSpace ) ;
       if ( NULL == pCollectionSpace )
       {
-         //try another key name
          pAdaptor->getQuery( _restSession, REST_KEY_NAME_COLLECTIONSPACE,
                              &pCollectionSpace ) ;
          if ( NULL == pCollectionSpace )
@@ -1450,7 +1381,6 @@ namespace engine
          BSONObjBuilder modifyBuilder ;
          BSONObj modify ;
 
-         // create $Modify
          if ( isUpdate )
          {
             const CHAR* pUpdate = NULL ;
@@ -1478,12 +1408,10 @@ namespace engine
             pAdaptor->getQuery( _restSession, FIELD_NAME_RETURNNEW, &pReturnNew ) ;
             if ( NULL != pReturnNew )
             {
-               // true
                if ( 0 == ossStrcasecmp(pReturnNew, "true") )
                {
                   returnNew = TRUE ;
                }
-               // false
                else if ( 0 == ossStrcasecmp(pReturnNew, "false") )
                {
                   returnNew = FALSE ;
@@ -1508,7 +1436,6 @@ namespace engine
          }
          modify = modifyBuilder.obj() ;
 
-         // create new hint with $Modify
          if ( !hint.isEmpty() )
          {
             newHintBuilder.appendElements( hint ) ;
@@ -1920,12 +1847,10 @@ namespace engine
 
       BSONObj indexDef ;
 
-      // bson must use the original type of bool
       bool isUnique   = false ;
       bool isEnforced = false ;
       INT32 sortBufferSize = SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE ;
 
-      // collection name
       pAdaptor->getQuery( _restSession, REST_KEY_NAME_COLLECTION,
                           &pCollection ) ;
       if ( NULL == pCollection )
@@ -1936,7 +1861,6 @@ namespace engine
          goto error ;
       }
 
-      // index name
       pAdaptor->getQuery( _restSession, FIELD_NAME_INDEXNAME, &pIndexName ) ;
       if ( NULL == pIndexName )
       {
@@ -1946,7 +1870,6 @@ namespace engine
          goto error ;
       }
 
-      // index define
       pAdaptor->getQuery( _restSession, IXM_FIELD_NAME_INDEX_DEF, &pIndexDef ) ;
       if ( NULL == pIndexDef )
       {
@@ -1964,7 +1887,6 @@ namespace engine
          goto error ;
       }
 
-      // unique
       pAdaptor->getQuery( _restSession, IXM_FIELD_NAME_UNIQUE, &pUnique ) ;
       if ( NULL != pUnique )
       {
@@ -1985,7 +1907,6 @@ namespace engine
          }
       }
 
-      // enforced
       pAdaptor->getQuery( _restSession, IXM_FIELD_NAME_ENFORCED, &pEnforced ) ;
       if ( NULL != pEnforced )
       {
@@ -2006,7 +1927,6 @@ namespace engine
          }
       }
 
-      // SortBufferSize
       pAdaptor->getQuery( _restSession, IXM_FIELD_NAME_SORT_BUFFER_SIZE, &pSortBufferSize ) ;
       if ( NULL != pSortBufferSize )
       {
@@ -2061,7 +1981,6 @@ namespace engine
       const CHAR *pIndexName  = NULL ;
       const CHAR *pCollection = NULL ;
 
-      // collection name
       pAdaptor->getQuery( _restSession, REST_KEY_NAME_COLLECTION,
                           &pCollection ) ;
       if ( NULL == pCollection )
@@ -2072,7 +1991,6 @@ namespace engine
          goto error ;
       }
 
-      // index name
       pAdaptor->getQuery( _restSession, FIELD_NAME_INDEXNAME, &pIndexName ) ;
       if ( NULL == pIndexName )
       {
@@ -2128,7 +2046,6 @@ namespace engine
       BSONObj splitEndQuery ;
       BSONObj query ;
 
-      //1.FIELD_NAME_NAME & FIELD_NAME_SOURCE & FIELD_NAME_TARGET must exist
       pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pCollection ) ;
       if ( NULL == pCollection )
       {
@@ -2159,7 +2076,6 @@ namespace engine
          goto error ;
       }
 
-      //2.FIELD_NAME_SPLITENDQUERY or FIELD_NAME_SPLITPERCENT must exist one
       pAdaptor->getQuery( _restSession, FIELD_NAME_SPLITPERCENT, &pPercent ) ;
       if ( NULL == pPercent )
       {
@@ -2264,7 +2180,6 @@ namespace engine
       const CHAR *pCommand    = CMD_ADMIN_PREFIX CMD_NAME_TRUNCATE ;
       BSONObj query ;
 
-      // collection full name
       pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pCollection ) ;
       if ( NULL == pCollection )
       {
@@ -2319,7 +2234,6 @@ namespace engine
       BSONObj upbound ;
       BSONObj query ;
 
-      // collection name
       pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pCollection ) ;
       if ( NULL == pCollection )
       {
@@ -2334,7 +2248,6 @@ namespace engine
          }
       }
 
-      // subcl name
       pAdaptor->getQuery( _restSession, REST_KEY_NAME_SUBCLNAME, &pSubCLName ) ;
       if ( NULL == pSubCLName )
       {
@@ -2344,7 +2257,6 @@ namespace engine
          goto error ;
       }
 
-      // lowbound
       pAdaptor->getQuery( _restSession, REST_KEY_NAME_LOWBOUND, &pLowbound ) ;
       if ( NULL == pLowbound )
       {
@@ -2362,7 +2274,6 @@ namespace engine
          goto error ;
       }
 
-      // upbound
       pAdaptor->getQuery( _restSession, REST_KEY_NAME_UPBOUND, &pUpbound ) ;
       if ( NULL == pUpbound )
       {
@@ -2423,7 +2334,6 @@ namespace engine
          goto error ;
       }
 
-      // subcl name
       pAdaptor->getQuery( _restSession, REST_KEY_NAME_SUBCLNAME, &pSubCLName ) ;
       if ( NULL == pSubCLName )
       {
@@ -2499,7 +2409,6 @@ namespace engine
       const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_ACTIVE_GROUP ;
       BSONObj query ;
 
-      // Name
       pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pName ) ;
       if ( NULL == pName )
       {
@@ -2549,7 +2458,6 @@ namespace engine
       const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_SHUTDOWN_GROUP ;
       BSONObj query ;
 
-      // Name
       pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pName ) ;
       if ( NULL == pName )
       {
@@ -2600,7 +2508,6 @@ namespace engine
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_STARTUP_NODE ;
       BSONObj query ;
 
-      // HostName
       pAdaptor->getQuery( _restSession, FIELD_NAME_HOST, &pHostName ) ;
       if ( NULL == pHostName )
       {
@@ -2610,7 +2517,6 @@ namespace engine
          goto error ;
       }
 
-      // svcname
       pAdaptor->getQuery( _restSession, OM_CONF_DETAIL_SVCNAME, &pSvcname ) ;
       if ( NULL == pSvcname )
       {
@@ -2662,7 +2568,6 @@ namespace engine
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SHUTDOWN_NODE ;
       BSONObj query ;
 
-      // HostName
       pAdaptor->getQuery( _restSession, FIELD_NAME_HOST, &pHostName ) ;
       if ( NULL == pHostName )
       {
@@ -2672,7 +2577,6 @@ namespace engine
          goto error ;
       }
 
-      // svcname
       pAdaptor->getQuery( _restSession, OM_CONF_DETAIL_SVCNAME, &pSvcname ) ;
       if ( NULL == pSvcname )
       {
@@ -3115,7 +3019,6 @@ namespace engine
       const CHAR *pJsCode  = NULL ;
       BSONObj query ;
 
-      // code
       pAdaptor->getQuery( _restSession, REST_KEY_NAME_CODE,
                           &pJsCode ) ;
       if ( NULL == pJsCode )
@@ -3167,7 +3070,6 @@ namespace engine
       const CHAR *pFuncName = NULL ;
       BSONObj query ;
 
-      // function
       pAdaptor->getQuery( _restSession, REST_KEY_NAME_FUNCTION,
                           &pFuncName ) ;
       if ( NULL == pFuncName )
@@ -3229,9 +3131,7 @@ namespace engine
          PD_LOG( PDERROR, "convert list failed:rc=%d", rc ) ;
          goto error ;
       }
-      //Skip
       pAdaptor->getQuery( _restSession, FIELD_NAME_SKIP, &pSkip ) ;
-      //ReturnNum(Limit)
       pAdaptor->getQuery( _restSession, FIELD_NAME_RETURN_NUM, &pReturnRow ) ;
       if ( NULL == pReturnRow )
       {
@@ -3277,7 +3177,6 @@ namespace engine
       BSONObj query ;
       BSONObj options ;
 
-      // name
       pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pName ) ;
       if( NULL == pName )
       {
@@ -3287,7 +3186,6 @@ namespace engine
          goto error ;
       }
 
-      // options
       pAdaptor->getQuery( _restSession, FIELD_NAME_OPTIONS, &pOptions ) ;
       if ( NULL == pOptions )
       {
@@ -3383,7 +3281,6 @@ namespace engine
       BSONObj query ;
       BSONObj options ;
 
-      // name
       pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pName ) ;
       if ( NULL == pName )
       {
@@ -3393,7 +3290,6 @@ namespace engine
          goto error ;
       }
 
-      //options
       pAdaptor->getQuery( _restSession, FIELD_NAME_OPTIONS, &pOptions ) ;
       if( NULL != pOptions )
       {
@@ -3450,7 +3346,6 @@ namespace engine
       const CHAR *pName     = NULL ;
       BSONObj query ;
 
-      // name
       pAdaptor->getQuery( _restSession, FIELD_NAME_NAME,
                           &pName ) ;
       if ( NULL == pName )
@@ -3667,43 +3562,10 @@ namespace engine
       goto done ;
    }
 
-//   INT32 RestToMSGTransfer::_convertListLobsPieces( restAdaptor *pAdaptor,
-//                                                    MsgHeader **msg )
-//   {
-//      INT32 rc = SDB_OK ;
-//      BSONObj match ;
-//      CHAR *pBuff          = NULL ;
-//      INT32 buffSize       = 0 ;
-//      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_LIST_LOBS ;
-//      const CHAR *clName   = NULL ;
 
-//      pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &clName ) ;
-//      if ( NULL == clName )
-//      {
-//         rc = SDB_INVALIDARG ;
-//         PD_LOG_MSG( PDERROR, "get collection's %s failed",
-//                     FIELD_NAME_NAME ) ;
-//         goto error ;
-//      }
 
-//      match = BSON( FIELD_NAME_COLLECTION << clName
-//                    << FIELD_NAME_LOB_LIST_PIECES_MODE << TRUE ) ;
-//      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &match,
-//                             NULL, NULL, NULL ) ;
-//      if ( SDB_OK != rc )
-//      {
-//         PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
-//                     pCommand, rc ) ;
-//         goto error ;
-//      }
 
-//      *msg = ( MsgHeader * )pBuff ;
 
-//   done:
-//      return rc ;
-//   error:
-//      goto done ;
-//   }
 
    INT32 RestToMSGTransfer::_convertSnapshotContext( restAdaptor *pAdaptor,
                                                      MsgHeader **msg )
@@ -4245,40 +4107,10 @@ namespace engine
       goto done ;
    }
 
-//   INT32 RestToMSGTransfer::_convertSnapshotListLobs( restAdaptor *pAdaptor,
-//                                                     MsgHeader **msg )
-//   {
-//      INT32 rc = SDB_OK ;
-//      BSONObj selector ;
-//      BSONObj order ;
-//      BSONObj match ;
-//      CHAR *pBuff           = NULL ;
-//      INT32 buffSize        = 0 ;
-//      const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_CONTEXTS ;
 
-//      rc = _convertListBase( pAdaptor, match, selector, order ) ;
-//      if ( SDB_OK != rc )
-//      {
-//         PD_LOG( PDERROR, "convert snapshot failed:rc=%d", rc ) ;
-//         goto error ;
-//      }
 
-//      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &match,
-//                             &selector, &order, NULL ) ;
-//      if ( SDB_OK != rc )
-//      {
-//         PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
-//                     pCommand, rc ) ;
-//         goto error ;
-//      }
 
-//      *msg = ( MsgHeader * )pBuff ;
 
-//   done:
-//      return rc ;
-//   error:
-//      goto done ;
-//   }
 
    INT32 RestToMSGTransfer::_convertLogin( restAdaptor *pAdaptor,
                                            MsgHeader **msg )

@@ -1,5 +1,5 @@
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ PHP_METHOD( SequoiaGroup, __construct )
 {
 }
 
-//group
 PHP_METHOD( SequoiaGroup, isCatalog )
 {
    zval *pThisObj = getThis() ;
@@ -159,11 +158,8 @@ error:
    goto done ;
 }
 
-//已废弃
 PHP_METHOD( SequoiaGroup, getNodeNum )
 {
-   RETVAL_LONG( -1 ) ;
-/*
    INT32 rc = SDB_OK ;
    INT32 status     = 0 ;
    INT32 count      = 0 ;
@@ -185,11 +181,13 @@ PHP_METHOD( SequoiaGroup, getNodeNum )
       rc = SDB_INVALIDARG ;
       goto error ;
    }
+   /* 没有实现status
    rc = php_zval2Int( pStatus, &status TSRMLS_CC ) ;
    if( rc )
    {
       goto error ;
    }
+   */
    PHP_READ_VAR( pThisObj, "_SequoiaDB", pSequoiadb ) ;
    PHP_READ_HANDLE( pSequoiadb,
                     connection,
@@ -247,7 +245,6 @@ error:
    RETVAL_LONG( -1 ) ;
    PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
    goto done ;
-*/
 }
 
 PHP_METHOD( SequoiaGroup, getDetail )
@@ -581,7 +578,7 @@ PHP_METHOD( SequoiaGroup, attachNode )
    bson configure ;
    bson_init( &configure ) ;
    PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
-   if( PHP_GET_PARAMETERS( "ssz",
+   if( PHP_GET_PARAMETERS( "ss|z",
                            &pHostName,
                            &hostLen,
                            &pServiceName,
@@ -631,7 +628,7 @@ PHP_METHOD( SequoiaGroup, detachNode )
    bson configure ;
    bson_init( &configure ) ;
    PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
-   if( PHP_GET_PARAMETERS( "ssz",
+   if( PHP_GET_PARAMETERS( "ss|z",
                            &pHostName,
                            &hostLen,
                            &pServiceName,

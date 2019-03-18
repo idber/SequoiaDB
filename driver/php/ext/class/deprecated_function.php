@@ -1,6 +1,6 @@
 <?php
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -72,7 +72,7 @@ class SequoiaDB
     * }
     * $cs = $db -> selectCS( 'foo', 4096 ) ;
     * if( empty( $cs ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call selectCS, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -172,15 +172,6 @@ class SequoiaCL
     * @deprecated This function is deprecated, use the function dropIndex() instead.
    */
    public function deleteIndex(){}
-
-   /**
-    * Get all of or one of the indexes in current collection.
-    *
-    * @see getIndexes() and getIndexInfo().
-    *
-    * @deprecated This function is deprecated, use the function getIndexes() and getIndexInfo() instead.
-   */
-   public function getIndex( string $indexName = "" ){}
 }
 
 /**
@@ -196,19 +187,6 @@ class SequoiaCursor
     * @deprecated This function is deprecated, use the function next() instead.
    */
    public function getNext(){}
-}
-
-/**
- * SequoiaGroup Class. To get this Class object must be call SequoiaDB::getGroup.
- */
-class SequoiaGroup
-{
-   /**
-    * Get the status node number.
-    *
-    * @deprecated This function is deprecated.
-   */
-   public function getNodeNum( integer $status ){}
 }
 
 /**

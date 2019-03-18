@@ -1,5 +1,5 @@
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,14 +16,12 @@
 
 #include "class_cursor.h"
 
-extern INT32 connectionDesc ;
 extern INT32 cursorDesc ;
 
 PHP_METHOD( SequoiaCursor, __construct )
 {
 }
 
-//e.g. Rename getNext
 PHP_METHOD( SequoiaCursor, next )
 {
    INT32 rc = SDB_OK ;

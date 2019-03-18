@@ -53,8 +53,6 @@ namespace engine {
 
 #if defined ( _WINDOWS )
 
-   // both GBK and UTF8 are multi-byte coding schemes,
-   // we can use the function to convert one to another.
    INT32 _sptConvertMultiByte( UINT32 sourceCodePage, 
                                UINT32 targetCodePage,
                                const std::string& sourceStr, 
@@ -66,7 +64,6 @@ namespace engine {
       CHAR *chars = NULL ;
       WCHAR *wchars = NULL ;
 
-      // multi byte(GBK/UTF-8) to wide chars(Unicode)
       requiredSize = MultiByteToWideChar( sourceCodePage, 0, sourceStr.c_str(), 
                                           -1, NULL, 0 ) ;
       wchars = (WCHAR *)SDB_OSS_MALLOC( requiredSize * sizeof(WCHAR) ) ;
@@ -78,7 +75,6 @@ namespace engine {
       ossMemset( wchars, 0, requiredSize * sizeof(WCHAR) ) ;
       MultiByteToWideChar( sourceCodePage, 0, sourceStr.c_str(), 
                            -1, wchars, requiredSize ) ;
-      // wide chars(Unicode) to multi byte(UTF-8/GBK)
       requiredSize = WideCharToMultiByte( targetCodePage, 0, wchars, 
                                           -1, NULL, 0, NULL, NULL) ;
       chars = (CHAR *)SDB_OSS_MALLOC( requiredSize ) ;
@@ -90,7 +86,6 @@ namespace engine {
       ossMemset( chars, 0, requiredSize ) ;
       WideCharToMultiByte( targetCodePage, 0, wchars, -1, 
                            chars, requiredSize, NULL, NULL ) ;
-      // return
       targetStr = chars ;
       
    done:
@@ -101,13 +96,11 @@ namespace engine {
       goto done ;
    }
 
-   // transform GBK to UTF-8
    INT32 sptGBKToUTF8( const std::string& strGBK, std::string &strUTF8 )
    {
       return _sptConvertMultiByte( CP_ACP, CP_UTF8, strGBK, strUTF8 ) ;
    }
 
-   // transform UTF-8 to GBK
    INT32 sptUTF8ToGBK( const std::string &strUTF8, std::string &strGBK )
    {
       return _sptConvertMultiByte( CP_UTF8, CP_ACP, strUTF8, strGBK ) ;
@@ -173,7 +166,6 @@ namespace engine {
                }
                else
                {
-                   // save the word and digits which had been cached first
                    if ( !word.empty() )
                    {
                        output.push_back( word ) ;
@@ -184,13 +176,11 @@ namespace engine {
                        output.push_back( digit ) ;
                        digit.clear() ;
                    }
-                   // and then save the current charactor
                    output.push_back( *it ) ;
                }
            }
            else if ( word_len > 1 )
            {
-               // keep the word and digits which had been cached first
                if ( !word.empty() )
                {
                    output.push_back( word ) ;
@@ -201,11 +191,9 @@ namespace engine {
                    output.push_back( digit ) ;
                    digit.clear() ;
                }
-               // and then keep the current charactor
                output.push_back( *it ) ;
            }
        } // for
-       // keep the word and digits we had cached
        if ( !word.empty() )
        {
            output.push_back( word ) ;
@@ -227,10 +215,8 @@ namespace engine {
        vector<string>::iterator it ;
        INT32 left = lineLen ;
 
-       // get words, the output is: "abc", " ", ",", "1", "1024", "集合",...
        _sptChar2Word( text, vec_words ) ;
 
-       // build line
        for( it = vec_words.begin(); it != vec_words.end(); it++ )
        {
            left -= it->length() ;
@@ -242,8 +228,6 @@ namespace engine {
            else
            {
                BOOLEAN has_handle = FALSE ;
-               // if it's "," and ".", we still let 
-               // it put to the end of the line
                if ( *it == COMMA_ASCII_EN ||
                     *it == PERIOD_ASCII_EN ||
                     pre_char == BACKSLASH ||
@@ -253,19 +237,15 @@ namespace engine {
                    one_line += *it ;
                    has_handle = TRUE ;
                }
-               // put the current line into vector
                if ( !one_line.empty() )
                {
                    boost::trim_left( one_line ) ;
                    vec_result.push_back( one_line ) ;
                }
-               // clean up
                one_line.clear() ;
                pre_char = "" ;
-               // try to start a new line
                if ( !has_handle )
                {
-                   // start a new line
                    one_line += *it ;
                    pre_char = *it ;
                    left = lineLen - it->length() ;
@@ -276,13 +256,11 @@ namespace engine {
                }
            }
        }
-       // put the last line to the result vector
        if ( !one_line.empty() )
        {
            boost::trim_left( one_line ) ;
            vec_result.push_back( one_line ) ;
        }
-       // output
 #if defined ( _WINDOWS )
        for ( it = vec_result.begin(); it != vec_result.end(); it++ )
        {

@@ -112,7 +112,6 @@ INT32 readInput ( const CHAR *pPrompt, INT32 numIndent,
       return SDB_APP_FORCED ;
    }
 
-   // do a loop if the input end with '\\' character
    while ( pInBuff[ strlen(pInBuff)-1 ] == '\\' &&
            buffLen - strlen( pInBuff ) > 0 )
    {
@@ -221,7 +220,6 @@ TEST(sqlTest, parse_1)
                e->dump() ;
             }
 
-            // optimizer
             qgmOptTree tree( qgm ) ;
             optQgmOptimizer optimizer ;
             rc = optimizer.adjust( tree ) ;

@@ -1,6 +1,5 @@
 package org.springframework.data.mongodb.assist;
 
-// DBRefBase.java
 
 import com.sequoiadb.exception.SDBError;
 

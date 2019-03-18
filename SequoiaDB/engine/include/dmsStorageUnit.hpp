@@ -364,9 +364,6 @@ namespace engine
                              _monIndex &resultIndex ) ;
 
       protected :
-         // Dump helper functions
-         // NOTE: Should be called after mbContext is locked or
-         //       metadataLatch is locked
          INT32    _dumpCLInfo ( monCollection &collection,
                                 UINT16 mbID ) ;
 
@@ -380,7 +377,6 @@ namespace engine
                               const CHAR *pIndexName,
                               monIndex &resultIndex ) ;
 
-      // only for LOAD
       public:
          OSS_INLINE void    mapExtent2DelList( dmsMB * mb, dmsExtent * extAddr,
                                                SINT32 extentID ) ;
@@ -392,7 +388,6 @@ namespace engine
 
          OSS_INLINE void    addExtentRecordCount( dmsMB *mb, UINT32 count ) ;
 
-      // for dmsCB
       protected:
          OSS_INLINE void  _setLogicalCSID( UINT32 logicalID ) ;
 
@@ -401,9 +396,6 @@ namespace engine
          INT32        _resetCollection( dmsMBContext *context ) ;
 
       public:
-         // Position is used to specify the insert position of the record.
-         // Currently it's used in capped collection, holding the logical id
-         // of the record.
          INT32    insertRecord ( const CHAR *pName,
                                  BSONObj &record,
                                  _pmdEDUCB *cb,
@@ -477,12 +469,10 @@ namespace engine
                                            BSONObj &extOptions,
                                            dmsMBContext *context = NULL ) ;
 
-         //loadExtentA is not init extent records
          INT32    loadExtentA ( dmsMBContext *mbContext, const CHAR *pBuffer,
                                 UINT16 numPages, const BOOLEAN toLoad = FALSE,
                                 SINT32 *allocatedExtent = NULL ) ;
 
-         //loadExtent will init extent records
          INT32    loadExtent ( dmsMBContext *mbContext, const CHAR *pBuffer,
                                UINT16 numPages ) ;
 

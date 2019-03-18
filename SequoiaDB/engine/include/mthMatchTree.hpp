@@ -106,7 +106,6 @@ namespace engine
          INT32    loadPattern ( const BSONObj &matcher,
                                 mthMatchNormalizer &normalizer ) ;
 
-         //TODO: delete
          INT32    matches( const BSONObj &matchTarget, BOOLEAN &result,
                            _mthMatchTreeContext *context = NULL,
                            rtnParamList *parameters = NULL ) ;
@@ -240,19 +239,14 @@ namespace engine
    {
       enum EN_MATCH_RECORD_SRC_TYPE
       {
-         // just return original src obj
          MTH_SRC_TYPE_ORIGINAL       = 1,
 
-         // split src's fieldName to objs
          MTH_SRC_TYPE_ORIGINAL_SPLIT = 2,
 
-         // set original fieldName's value to NULL
          MTH_SRC_TYPE_ORIGINAL_NULL  = 3,
 
-         // combine all elements as one obj
          MTH_SRC_TYPE_ELEMENTS       = 4,
 
-         // one element one obj
          MTH_SRC_TYPE_ELEMENTS_SPLIT = 5,
       } ;
 
@@ -306,10 +300,8 @@ namespace engine
 
       EN_MATCH_RECORD_SRC_TYPE _srcType ;
 
-      //****_srcType = SRC_TYPE_ORIGINAL_SPLIT ****
       BSONObj _specifyObj ;
       BSONObjIterator _specifyIter ;
-      //*******************************************
    } ;
 
 

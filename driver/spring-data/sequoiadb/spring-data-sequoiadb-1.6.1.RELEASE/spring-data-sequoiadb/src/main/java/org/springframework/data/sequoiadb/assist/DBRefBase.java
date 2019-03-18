@@ -1,6 +1,5 @@
 package org.springframework.data.sequoiadb.assist;
 
-// DBRefBase.java
 
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;

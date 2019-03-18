@@ -57,7 +57,6 @@ namespace engine
 
    static mthCastStr2Type g_cast_str_to_type_array[] =
    {
-      //castStr,                      castType
       { "minkey",                     MinKey },
       { "double",                     NumberDouble },
       { "string",                     String },
@@ -121,7 +120,6 @@ namespace engine
    static INT32 _lower( const CHAR *str, UINT32 len, _utilString<> &us ) ;
    static INT32 _upper( const CHAR *str, UINT32 len, _utilString<> &us ) ;
 
-   /// lr: -1(ltrim) 0(trim) 1(rtrim)
    static void _ltrim( const CHAR *str, const CHAR *&trimed ) ;
    static INT32 _rtrim( const CHAR *str, INT32 size, _utilString<> &us ) ;
    static INT32 _mthTrim( const CHAR *str, INT32 size, INT8 lr,
@@ -536,7 +534,6 @@ namespace engine
                   INT64 us      = ( varLong % 1000 ) * 1000 ; // microseconds
                   if ( us < 0 )
                   {
-                     // move 1s from sec to us
                      sec--;
                      us += 1000000;
                   }
@@ -562,8 +559,6 @@ namespace engine
          }
          else if ( Date == e.type() )
          {
-            // when date is large than the max value of timestamp,
-            // return null
             INT64 sec = ( ( INT64 )( e.date().millis ) ) / 1000 ;
             if ( sec > OSS_SINT32_MAX_LL || sec < OSS_SINT32_MIN_LL )
             {
@@ -621,7 +616,6 @@ namespace engine
          {
             try
             {
-               //if the STRING has "." "e" or "E" use double type
                if ( ossStrchr ( e.valuestr (), '.' ) != NULL ||
                     ossStrchr ( e.valuestr (), 'E' ) != NULL ||
                     ossStrchr ( e.valuestr (), 'e' ) != NULL )
@@ -896,8 +890,6 @@ namespace engine
       }
       else
       {
-         /// necessary to avoid one more copy when
-         /// str is like "  abc" ?
          rc = us.append( p, size - ( p - str ) ) ;
          if ( SDB_OK != rc )
          {
@@ -912,17 +904,12 @@ namespace engine
       goto done ;
    }
 
-   // the function try to append newStr to ppStr.
-   // if the buffer is not large enough the function is responsible to allocate
-   // a larger one. If failed to allocate larger buffer, this function must
-   // maintain the validity of original pointer
    INT32 mthAppendString ( CHAR **ppStr, INT32 &bufLen,
                            INT32 strLen, const CHAR *newStr,
                            INT32 newStrLen, INT32 *pMergedLen )
    {
       INT32 rc = SDB_OK ;
       SDB_ASSERT ( ppStr && newStr, "str or newStr can't be NULL" ) ;
-      // if user doesn't know the string length, pass 0
       if ( !*ppStr )
       {
          strLen = 0 ;
@@ -931,15 +918,12 @@ namespace engine
       {
          strLen = ossStrlen ( *ppStr ) ;
       }
-      // if user doesn't know the new string len, pass 0
       if ( newStrLen <= 0 )
       {
          newStrLen = ossStrlen ( newStr ) ;
       }
-      // make sure the string len and new string len is less than buffer
       if ( strLen + newStrLen >= bufLen )
       {
-         // we need to allocate more memory if exceed buffer
          CHAR *pOldStr = *ppStr ;
          INT32 newSize = ossRoundUpToMultipleX ( strLen + newStrLen,
                                                  SDB_PAGE_SIZE ) ;
@@ -959,8 +943,6 @@ namespace engine
          }
          bufLen = newSize ;
       }
-      // now new buffer is allocated or we already have enough memory, let's do
-      // copy
       if ( *ppStr && newStr )
       {
          ossMemcpy ( &(*ppStr)[strLen], newStr, newStrLen ) ;
@@ -1061,7 +1043,6 @@ namespace engine
                *(CHAR*)pDot = 0 ;
             }
             rc = ossStrToInt( pTmp + 1, &number ) ;
-            // Restore
             if ( pDot )
             {
                *(CHAR*)pDot = '.' ;
@@ -1101,7 +1082,6 @@ namespace engine
                *(CHAR*)pDot = 0 ;
             }
             rc = ossStrToInt( pTmp + 1, &number ) ;
-            // Restore
             if ( pDot )
             {
                *(CHAR*)pDot = '.' ;
@@ -1239,7 +1219,6 @@ namespace engine
       else if ( NumberInt == in.type() )
       {
          INT32 v = in.numberInt() ;
-         /// - 2 ^ 31
          if ( OSS_SINT32_MIN != v )
          {
             outBuilder.append( name, 0 <= v ? v : -v ) ;
@@ -1253,7 +1232,6 @@ namespace engine
       else if ( NumberLong == in.type() )
       {
          INT64 v = in.numberLong() ;
-         /// return -9223372036854775808 when v is -9223372036854775808
          if ( OSS_SINT64_MIN != v)
          {
             outBuilder.append( name, 0 <= v ? ( INT64 )v : ( INT64 )( -v ) ) ;
@@ -1292,7 +1270,6 @@ namespace engine
       }
       else
       {
-         /// do nothing.
       }
 
    done:
@@ -1493,7 +1470,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       if ( in.eoo() )
       {
-         /// do nothing.
       }
       else if ( !in.isNumber() || !modm.isNumber() )
       {
@@ -1964,7 +1940,6 @@ namespace engine
       return rc ;
    }
 
-   /// lr: -1(ltrim) 0(trim) 1(rtrim)
    INT32 _mthTrimBasic( const CHAR *name, const BSONElement &in, INT8 lr,
                         BSONObjBuilder &outBuilder )
    {
@@ -2000,7 +1975,6 @@ namespace engine
       goto done ;
    }
 
-   /// lr: -1(ltrim) 0(trim) 1(rtrim)
    INT32 mthTrim( const CHAR *name, const BSONElement &in, INT8 lr,
                   BSONObjBuilder &outBuilder )
    {
@@ -2494,7 +2468,6 @@ namespace engine
          }
          else
          {
-            //overflow
             bsonDecimal decResult ;
             rc = decResult.fromString( "9223372036854775808" ) ;
             if ( SDB_OK != rc )
@@ -2781,7 +2754,6 @@ namespace engine
       return FALSE ;
    }
 
-   //substr[begin, len]/slice[begin, len]  len=-1 means unlimit len
    BOOLEAN mthIsValidLen( INT32 length )
    {
       return TRUE ;

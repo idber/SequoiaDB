@@ -537,7 +537,6 @@ namespace engine
       {
          pSub = &(it->second) ;
          ++it ;
-         // send msg, but not reply
          if ( pSub->isSend() && !pSub->hasReply() )
          {
             ret = FALSE ;
@@ -647,7 +646,6 @@ namespace engine
       {
          INT32 rcTmp = SDB_OK ;
          UINT64 nodeID = 0 ;
-         // process failed
          for ( UINT32 i = 0 ; i < vecFailedSession.size() ; ++i )
          {
             pSub = vecFailedSession[ i ] ;
@@ -754,7 +752,6 @@ namespace engine
       else
       {
          INT32 rcTmp = SDB_OK ;
-         // process failed
          for ( UINT32 i = 0 ; i < vecFailedSession.size() ; ++i )
          {
             pSub = vecFailedSession[ i ] ;
@@ -823,7 +820,6 @@ namespace engine
          goto error ;
       }
 
-      // has send msg
       if ( pSub->isSend() )
       {
          PD_LOG( PDWARNING, "Session[%s] has already send msg to "
@@ -839,11 +835,9 @@ namespace engine
       pSub->getReqMsg()->requestID = pSub->getReqID() ;
       pSub->getReqMsg()->routeID.value = MSG_INVALID_ROUTEID ;
       pSub->getReqMsg()->TID = _pEDUCB->getTID() ;
-      // add to assit node
       *pSub->getAddPos() = _pSite->addAssitNode(
          pSub->getNodeID().columns.nodeID ) ;
 
-      // first connect
       if ( NET_INVALID_HANDLE == pSub->getHandle() && _pHandle )
       {
          rc = _pHandle->onSendConnect( pSub, pSub->getReqMsg(), TRUE ) ;
@@ -856,10 +850,8 @@ namespace engine
          }
       }
 
-      // send by net handle
       if ( NET_INVALID_HANDLE != pSub->getHandle() )
       {
-         // prepare send
          if ( pSub->getIODatas()->size() > 0 )
          {
             pSub->getReqMsg()->messageLength = sizeof( MsgHeader ) +
@@ -902,10 +894,8 @@ namespace engine
          }
       }
 
-      // send by route id
       if ( !hasSend )
       {
-         // prepare send
          if ( pSub->getIODatas()->size() > 0 )
          {
             pSub->getReqMsg()->messageLength = sizeof( MsgHeader ) +
@@ -937,7 +927,6 @@ namespace engine
       }
       _sessionChange = TRUE ;
       pSub->setSendResult( TRUE ) ;
-      // add to request map
       _pSite->addSubSession( pSub ) ;
 
    done:
@@ -993,7 +982,6 @@ namespace engine
       totalUnReplyNum = getSubSessionCount( PMD_SSITR_UNREPLY ) ;
       while ( totalUnReplyNum > 0 )
       {
-         // if pending sessions is not empty
          if ( _mapPendingSubSession.size() > 0 )
          {
             MAP_SUB_SESSIONPTR_IT itPending = _mapPendingSubSession.begin() ;
@@ -1011,8 +999,6 @@ namespace engine
 
          if ( _pEDUCB->isInterrupted() )
          {
-            /// If only interrupt self, stop sub session and
-            /// need to recv the replys
             if ( _pEDUCB->isOnlySelfWhenInterrupt() )
             {
                stopSubSession() ;
@@ -1034,7 +1020,6 @@ namespace engine
                       _milliTimeout : OSS_ONE_SEC ;
          }
 
-         // wait event
          if ( !_pEDUCB->waitEvent( event, timeout ) )
          {
             if ( needTimeout )
@@ -1061,7 +1046,6 @@ namespace engine
             {
                if ( 0 == replyNum || waitAll )
                {
-                  // do nothing
                }
                else
                {
@@ -1097,7 +1081,6 @@ namespace engine
 
          if ( _sessionChange )
          {
-            // maybe in onReply, add sub session(send msg) or del sub session
             totalUnReplyNum = getSubSessionCount( PMD_SSITR_UNREPLY ) ;
             _sessionChange = FALSE ;
          }
@@ -1308,7 +1291,6 @@ namespace engine
          }
       }
 
-      /// This is called by net thread, so need to use latch for _assitNodes
       if ( _pLatch )
       {
          _pLatch->get_shared() ;
@@ -1330,7 +1312,6 @@ namespace engine
    void _pmdRemoteSessionSite::handleClose( const NET_HANDLE & handle,
                                             const _MsgRouteID & id )
    {
-      // if assit node can't find the nodeID not to send disconnect
       if ( !eduCB()->isTransaction() &&
            FALSE == existNode( id.columns.nodeID ) )
       {
@@ -1436,7 +1417,6 @@ namespace engine
       pReply = ( MsgHeader* )event._Data ;
       nodeID = pReply->routeID.value ;
 
-      // if is MSG_BS_DISCONNECT, the remote node is disconnect
       if ( MSG_BS_DISCONNECT == pReply->opCode )
       {
          MAP_SUB_SESSIONPTR disSubs ;
@@ -1471,7 +1451,6 @@ namespace engine
                {
                   pSubSession->parent()->addPending( pSubSession ) ;
                }
-               // remove from request id map
                _mapReq2SubSession.erase( itPtr++ ) ;
                removeAssitNode( pSubSession->getAddPos(),
                                 pSubSession->getNodeID().columns.nodeID ) ;
@@ -1485,7 +1464,6 @@ namespace engine
             ++itPtr ;
          }
 
-         // callback
          if ( pHandle && !disSubs.empty() )
          {
             MAP_SUB_SESSIONPTR_IT disSubPtr = disSubs.begin() ;
@@ -1526,7 +1504,6 @@ namespace engine
             {
                pSubSession->parent()->addPending( pSubSession ) ;
             }
-            // remove from request id map
             _mapReq2SubSession.erase( itPtr ) ;
             removeAssitNode( pSubSession->getAddPos(),
                              pSubSession->getNodeID().columns.nodeID ) ;
@@ -1656,7 +1633,6 @@ namespace engine
 
    _pmdRemoteSessionMgr::~_pmdRemoteSessionMgr()
    {
-      // clear euds
       _mapTID2EDU.clear() ;
       _pAgent = NULL ;
    }
@@ -1705,7 +1681,6 @@ namespace engine
 #endif //_DEBUG
       if ( pSite )
       {
-         // first to disconnect all sub session
          pSite->disconnectAllSubSession() ;
 
          _edusLatch.get() ;
@@ -1753,14 +1728,11 @@ namespace engine
          CHAR *pNewBuff = NULL ;
          pEDUCB = it->second.eduCB() ;
 
-         // assign memory
          pNewBuff = ( CHAR* )SDB_OSS_MALLOC( pMsg->messageLength + 1 ) ;
          if ( pNewBuff )
          {
-            // copy data
             ossMemcpy( pNewBuff, pMsg, pMsg->messageLength ) ;
             pNewBuff[ pMsg->messageLength ] = 0 ;
-            // push to edu queue
             pEDUCB->postEvent( pmdEDUEvent( PMD_EDU_EVENT_MSG,
                                             PMD_EDU_MEM_ALLOC,
                                             pNewBuff, (UINT64)handle ) ) ;
@@ -1806,8 +1778,6 @@ namespace engine
                                              _MsgRouteID id,
                                              BOOLEAN isPositive )
    {
-      // TODO:XUJIANHUI
-      // CHECK REMOTE ID, AND SEND HOST+SERVCIE TO PEER
    }
 
    pmdRemoteSession* _pmdRemoteSessionMgr::addSession( _pmdEDUCB * cb,

@@ -110,7 +110,6 @@ public class MongoDbFactoryParserIntegrationTests {
 		assertThat(myDbWriteConcern, is(myDbFactoryWriteConcern));
 	}
 
-	// This test will fail since equals in WriteConcern uses == for _w and not .equals
 	public void testWriteConcernEquality() {
 		String s1 = new String("rack1");
 		String s2 = new String("rack1");
@@ -134,7 +133,6 @@ public class MongoDbFactoryParserIntegrationTests {
 
 		reader.loadBeanDefinitions(new ClassPathResource("namespace/db-factory-bean.xml"));
 		Mongo mongo = factory.getBean(Mongo.class);
-//		assertThat(mongo.getMongoOptions().maxAutoConnectRetryTime, is(27L));
 	}
 
 	/**

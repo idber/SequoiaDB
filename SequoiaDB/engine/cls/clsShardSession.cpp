@@ -175,7 +175,6 @@ namespace engine
            ( _pEDUCB->getTransID() == DPS_INVALID_TRANS_ID ||
            !(sdbGetReplCB()->primaryIsMe())))
       {
-         // will be release
          ret = TRUE ;
          goto done ;
       }
@@ -229,14 +228,12 @@ namespace engine
          }
       }
 
-      /// has session init
       if ( 0 != _detailName[0] )
       {
          UINT32 ip = 0 ;
          UINT32 port = 0 ;
          ossUnpack32From64( identifyID(), ip, port ) ;
 
-         /// audit
          CHAR szTmpIP[ 50 ] = { 0 } ;
          ossIP2Str( ip, szTmpIP, sizeof(szTmpIP) - 1 ) ;
          CHAR szTmpID[ 20 ] = { 0 } ;
@@ -281,7 +278,6 @@ namespace engine
          goto error ;
       }
 
-      //Send message
       if ( size > 0 )
       {
          rc = routeAgent()->syncSend ( _netHandle, (MsgHeader *)header,
@@ -304,7 +300,6 @@ namespace engine
       goto done ;
    }
 
-   //message fuctions
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__ONOPMSG, "_clsShdSession::_onOPMsg" )
    INT32 _clsShdSession::_onOPMsg ( NET_HANDLE handle, MsgHeader * msg )
    {
@@ -402,8 +397,6 @@ namespace engine
                rc = _onInterruptMsg( handle, msg ) ;
                break ;
 #if defined (_DEBUG)
-            // for authentication message through sharding port, we simply
-            // return OK
             case MSG_AUTH_VERIFY_REQ :
             case MSG_AUTH_CRTUSR_REQ :
             case MSG_AUTH_DELUSR_REQ :
@@ -458,9 +451,6 @@ namespace engine
                break ;
          }
 
-         //Need to update catalog info
-         // SDB_CLS_NO_CATALOG_INFO: between update and check, this cata
-         // will be removed by others, so need to retry all the way
          if ( SDB_CLS_NO_CATALOG_INFO == rc ||
               ( ( SDB_CLS_DATA_NODE_CAT_VER_OLD == rc ||
                   SDB_CLS_COORD_NODE_CAT_VER_OLD == rc
@@ -478,11 +468,9 @@ namespace engine
                continue ;
             }
          }
-         //catalog has the collection, so need to create, no compression
          else if ( (SDB_DMS_CS_NOTEXIST == rc || SDB_DMS_NOTEXIST == rc) &&
                    _pCollectionName && _pReplSet->primaryIsMe() )
          {
-            /// if main collection, need update catalog info first
             if ( _isMainCL )
             {
                if ( !_hasUpdateCataInfo )
@@ -520,7 +508,6 @@ namespace engine
 
       if ( MSG_BS_INTERRUPTE == msg->opCode )
       {
-         //not to reply
          goto done ;
       }
 
@@ -531,7 +518,6 @@ namespace engine
          rc = SDB_SYS ;
       }
 
-      //Build reply message
       _replyHeader.header.opCode = MAKE_REPLY_TYPE( msg->opCode ) ;
       _replyHeader.header.messageLength = sizeof ( MsgOpReply ) ;
       _replyHeader.header.requestID = msg->requestID ;
@@ -540,7 +526,6 @@ namespace engine
 
       if ( SDB_OK != rc )
       {
-         /// when coord catalog info is old, can't rollback, coord will retry
          if ( SDB_CLS_COORD_NODE_CAT_VER_OLD != rc &&
               isNeedRollback && _pReplSet->primaryIsMe () )
          {
@@ -574,7 +559,6 @@ namespace engine
             }
             if ( 0 != _primaryID.columns.nodeID )
             {
-               // return the node id by startFrom
                startFrom = _primaryID.columns.nodeID ;
             }
          }
@@ -662,7 +646,6 @@ namespace engine
       BSONObj extOptions ;
       BSONObjBuilder builder ;
 
-      /// get sharding key
    retry:
       _pCatAgent->lock_r() ;
       clsCatalogSet *set = _pCatAgent->collectionSet( clFullName ) ;
@@ -725,14 +708,12 @@ namespace engine
       {
          if( 0 == groupCount )
          {
-            /// first clear
             _pCatAgent->lock_w() ;
             _pCatAgent->clear( clFullName ) ;
             _pCatAgent->release_w() ;
 
             if ( pParent && FALSE == mustOnSelf )
             {
-               /// ignore this sub-collection
                goto done ;
             }
 
@@ -874,7 +855,6 @@ namespace engine
          BSONObj updator( pUpdatorBuffer );
          BSONObj hint( pHintBuffer );
 
-         // add last op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                              "Collection:%s, Matcher:%s, Updator:%s, Hint:%s, "
                              "Flag:0x%08x(%u)",
@@ -884,8 +864,6 @@ namespace engine
                              hint.toString().c_str(),
                              flags, flags ) ;
 
-         // Construct query options
-         // matcher, selector, order, hint, collection, skip, limit, flag
          rtnQueryOptions options( matcher, dummy, dummy, hint, pCollectionName,
                                   0, -1, flags ) ;
          options.setMainCLName( mainCLName ) ;
@@ -986,7 +964,6 @@ namespace engine
       try
       {
          BSONObj insertor ( pInsertorBuffer ) ;
-         // add list op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                              "Collection:%s, Insertors:%s, ObjNum:%d, "
                              "Flag:0x%08x(%u)",
@@ -1081,7 +1058,6 @@ namespace engine
          BSONObj matcher ( pMatcherBuffer ) ;
          BSONObj hint ( pHintBuffer ) ;
 
-         // add last op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                              "Collection:%s, Deletor:%s, Hint:%s, "
                              "Flag:0x%08x(%u)",
@@ -1095,7 +1071,6 @@ namespace engine
                   sessionName(), deletor.toString().c_str(),
                   hint.toString().c_str() ) ; */
 
-         // matcher, selector, order, hint, collection, skip, limit, flag
          rtnQueryOptions options( matcher, dummy, dummy, hint, pCollectionName,
                                   0, -1, flags ) ;
          options.setMainCLName( mainCLName ) ;
@@ -1214,7 +1189,6 @@ namespace engine
             BSONObj orderBy ( pOrderByBuffer ) ;
             BSONObj hint ( pHintBuffer ) ;
 
-            // add last op info
             MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                                 "Collection:%s, Matcher:%s, Selector:%s, "
                                 "OrderBy:%s, Hint:%s, Skip:%llu, Limit:%lld, "
@@ -1227,8 +1201,6 @@ namespace engine
                                 numToSkip, numToReturn,
                                 flags, flags ) ;
 
-            // Construct query options
-            // matcher, selector, order, hint, collection, skip, limit, flag
             rtnQueryOptions options( matcher, selector, orderBy, hint,
                                      pCollectionName, numToSkip, numToReturn,
                                      flags ) ;
@@ -1255,13 +1227,11 @@ namespace engine
                goto error ;
             }
 
-            /// set write info
             if ( pContext && pContext->isWrite() )
             {
                pContext->setWriteInfo( _pDpsCB, w ) ;
             }
 
-            // query with return data
             if ( ( flags & FLG_QUERY_WITH_RETURNDATA ) && NULL != pContext )
             {
                rc = pContext->getMore( -1, buffObj, _pEDUCB ) ;
@@ -1349,7 +1319,6 @@ namespace engine
             }
          }
 
-         //check cata
          if ( pCommand->collectionFullName() )
          {
             rc = _checkCLStatusAndGetSth( pCommand->collectionFullName(),
@@ -1386,8 +1355,6 @@ namespace engine
 
          PD_LOG ( PDDEBUG, "Command: %s", pCommand->name () ) ;
 
-         /// sometimes we can not get catainfo from command
-         /// request. here if w < 1, we set it with 1.
          if ( w < 1 )
          {
             w = 1 ;
@@ -1411,7 +1378,6 @@ namespace engine
                   goto error ;
                }
             }
-            //run command
             rc = rtnRunCommand( pCommand, getServiceType(),
                                 _pEDUCB, _pDmsCB, _pRtnCB,
                                 _pDpsCB, w, &contextID ) ;
@@ -1423,8 +1389,6 @@ namespace engine
             goto error ;
          }
 
-         /// rename collection[space] should to remove catalog
-         /// drop collection/space remove catalog in context already
          if ( CMD_RENAME_COLLECTION == pCommand->type() )
          {
             _pCatAgent->lock_w () ;
@@ -1466,7 +1430,6 @@ namespace engine
          goto error ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld, NumToRead:%d",
                           contextID, numToRead ) ;
@@ -1505,7 +1468,6 @@ namespace engine
          goto error ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextNum:%d, ContextID:%lld",
                           contextNum, pContextIDs[0] ) ;
@@ -1535,7 +1497,6 @@ namespace engine
    INT32 _clsShdSession::_onInterruptMsg ( NET_HANDLE handle, MsgHeader * msg )
    {
       PD_TRACE_ENTRY ( SDB__CLSSHDSESS__ONINRPTMSG ) ;
-      //delete all contextID
       if ( _pEDUCB )
       {
          INT64 contextID = -1 ;
@@ -1570,7 +1531,6 @@ namespace engine
       {
          return SDB_CLS_NOT_PRIMARY;
       }
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), MSG_BS_TRANS_COMMIT_REQ,
                           "TransactionID: 0x%016x(%llu)",
                           eduCB()->getTransID(),
@@ -1584,7 +1544,6 @@ namespace engine
       {
          return SDB_CLS_NOT_PRIMARY;
       }
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), MSG_BS_TRANS_ROLLBACK_REQ,
                           "TransactionID: 0x%016x(%llu)",
                           eduCB()->getTransID(),
@@ -1648,7 +1607,6 @@ namespace engine
       }
 
       ossUnpack32From64( identifyID(), ip, port ) ;
-      /// set detail name
       CHAR szTmpIP[ 50 ] = { 0 } ;
       ossIP2Str( ip, szTmpIP, sizeof(szTmpIP) - 1 ) ;
       ossSnprintf( _detailName, SESSION_NAME_LEN, "%s,R-IP:%s,R-Port:%u",
@@ -1656,7 +1614,6 @@ namespace engine
                    port ) ;
       eduCB()->setName( _detailName ) ;
 
-      /// audit
       CHAR szTmpID[ 20 ] = { 0 } ;
       ossSnprintf( szTmpID, sizeof(szTmpID) - 1, "%llu", eduID() ) ;
       PD_AUDIT_OP( AUDIT_ACCESS, MSG_AUTH_VERIFY_REQ, AUDIT_OBJ_SESSION,
@@ -1672,7 +1629,6 @@ namespace engine
       MsgComSessionInitReq *pMsgReq = (MsgComSessionInitReq*)msg ;
       MsgRouteID localRouteID = routeAgent()->localID() ;
 
-      /// check wether the route id is matched
       if ( pMsgReq->dstRouteID.value != localRouteID.value )
       {
          rc = SDB_INVALID_ROUTEID;
@@ -1683,7 +1639,6 @@ namespace engine
       }
       else if ( (UINT32)msg->messageLength > sizeof( MsgComSessionInitReq ) )
       {
-         /// set user name info
          try
          {
             BSONObj obj( pMsgReq->data ) ;
@@ -1704,12 +1659,9 @@ namespace engine
          catch( std::exception &e )
          {
             PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-            /// do not report error
          }
-         /// set the remote info into this session
          setIdentifyInfo( pMsgReq->localIP, pMsgReq->localPort,
                           pMsgReq->localTID, pMsgReq->localSessionID ) ;
-         /// inner login
          _login() ;
       }
       return rc ;
@@ -1772,7 +1724,6 @@ namespace engine
       retryInsert:
             INT32 subInsertNum = 0 ;
             INT32 subIgnoredNum = 0 ;
-            /// insert to sub collection
             rc = rtnInsert ( pSubCLName, insertor, subObjsNum, flags,
                              _pEDUCB, _pDmsCB, _pDpsCB, w,
                              &subInsertNum, &subIgnoredNum ) ;
@@ -1794,7 +1745,6 @@ namespace engine
                goto error ;
             }
 
-            /// continue next sub collection
             pCurPos += subObjsSize ;
             totalObjsNum += subObjsNum ;
          }
@@ -1964,7 +1914,6 @@ namespace engine
          rc = _sortSubCLListByBound( options.getCLFullName(), strSubCLList ) ;
          if ( rc )
          {
-            /// can't optimize
             includeShardingOrder = FALSE ;
          }
       }
@@ -2003,7 +1952,6 @@ namespace engine
             pContextMainCL->setPrepareMoreData( TRUE ) ;
          }
 
-         /// must set before open
          pContextMainCL->setWriteInfo( _pDpsCB, w ) ;
 
          rc = pContextMainCL->open( options, strSubCLList,
@@ -2012,7 +1960,6 @@ namespace engine
                       "rc: %d", rc ) ;
       }
 
-      // Get start timestamp
       if ( cb->getMonConfigCB()->timestampON )
       {
          pContext->getMonCB()->recordStartTimestamp() ;
@@ -2086,7 +2033,6 @@ namespace engine
          }
       }
 
-      /// has some sub cl not found
       if ( strSubCLList.size() > 0 )
       {
          rc = SDB_SYS ;
@@ -2190,7 +2136,6 @@ namespace engine
       pCataSet->getSubCLList( strSubCLListTmp ) ;
       _pCatAgent->release_r() ;
 
-      /// check all sub collection is valid
       iter = strSubCLListTmp.begin() ;
       while( iter != strSubCLListTmp.end() )
       {
@@ -2212,7 +2157,6 @@ namespace engine
                goto error ;
             }
          }
-         /// not on the node, ignore
          else if ( 0 == pCataSet->groupCount() )
          {
             _pCatAgent->release_r() ;
@@ -2226,14 +2170,12 @@ namespace engine
          }
          _pCatAgent->release_r() ;
 
-         /// push to list
          subCLList.push_back( *iter ) ;
          ++iter ;
       }
 
       if ( subCLList.empty() )
       {
-         /// is empty main collection
          _pCatAgent->lock_w() ;
          _pCatAgent->clear( pCollectionName ) ;
          _pCatAgent->release_w() ;
@@ -2268,7 +2210,6 @@ namespace engine
          goto error;
       }
 
-      /// update sub collections
       iterSubCLSet = strSubCLList.begin() ;
       while( iterSubCLSet != strSubCLList.end() )
       {
@@ -2276,7 +2217,6 @@ namespace engine
          pSubCLName = (*iterSubCLSet).c_str() ;
          BSONObj shardingKey ;
 
-         // Construct query options for sub-collection
          rtnQueryOptions subCLOptions( options ) ;
          subCLOptions.setMainCLQuery( options.getCLFullName(), pSubCLName ) ;
          subCLOptions.setQuery( boNewMatcher ) ;
@@ -2308,7 +2248,6 @@ namespace engine
             goto error ;
          }
 
-         /// continue next sub collection
          updateNum += numTmp ;
          ++iterSubCLSet ;
       }
@@ -2351,7 +2290,6 @@ namespace engine
          numTmp = 0 ;
          pSubCLName = (*iterSubCLSet).c_str() ;
 
-         // Construct query options for sub-collection
          rtnQueryOptions subCLOptions( options ) ;
          subCLOptions.setMainCLQuery( options.getCLFullName(), pSubCLName ) ;
          subCLOptions.setQuery( boNewMatcher ) ;
@@ -2374,7 +2312,6 @@ namespace engine
             goto error ;
          }
 
-         /// continue next sub collection
          delNum += numTmp;
          ++iterSubCLSet;
       }
@@ -2441,7 +2378,6 @@ namespace engine
          break;
 
       case CMD_DROP_COLLECTION:
-         /// wait sync in context, not set writable
          rc = _dropMainCL( pCommand->collectionFullName(), w,
                            version, contextID );
          break;
@@ -2464,7 +2400,6 @@ namespace engine
                    "failed to run command on main-collection(rc=%d)",
                    rc );
 
-      /// wait for sync
       if ( writable && w > 1 )
       {
          _pDpsCB->completeOpr( eduCB(), w ) ;
@@ -2537,7 +2472,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "failed to get sub-collection list(rc=%d)",
                    rc );
 
-      /// reset num to skip and num to return
       if ( strSubCLList.size() <= 1 )
       {
          subNumToSkip = numToSkip ;
@@ -2749,12 +2683,8 @@ namespace engine
          ++iter ;
       }
 
-      // Clear cached main-collection plans
-      // Note: cached sub-collection plans are cleared inside create-index
-      // of sub-collections
       _pRtnCB->getAPM()->invalidateCLPlans( _pCollectionName ) ;
 
-      // Tell secondary nodes to clear cached main-collection plans
       sdbGetClsCB()->invalidatePlan( _pCollectionName ) ;
 
    done:
@@ -2841,12 +2771,8 @@ namespace engine
          rc = SDB_OK ;
       }
 
-      // Clear cached main-collection plans
-      // Note: cached sub-collection plans are cleared inside create-index
-      // of sub-collections
       _pRtnCB->getAPM()->invalidateCLPlans( _pCollectionName ) ;
 
-      // Tell secondary nodes to clear cached main-collection plans
       sdbGetClsCB()->invalidatePlan( _pCollectionName ) ;
 
    done:
@@ -2933,7 +2859,6 @@ namespace engine
          goto error ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "Option:%s", lob.toString().c_str() ) ;
 
@@ -2997,7 +2922,6 @@ namespace engine
          goto error ;
       }
 
-      /// if sequence 0 is not on this node, we have nothing to send back.
       if ( pData && dataLen > 0 )
       {
          buffObj = rtnContextBuf( pData, dataLen, 1 ) ;
@@ -3058,7 +2982,6 @@ namespace engine
       _pCollectionName = lobContext->getFullName() ;
       wWhenOpen = lobContext->getW() ;
 
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld, CollectionName:%s, TupleSize:%u",
                           header->contextID, _pCollectionName, tSize ) ;
@@ -3136,9 +3059,7 @@ namespace engine
            SDB_CLS_DATA_NODE_CAT_VER_OLD != rc &&
            SDB_CLS_NO_CATALOG_INFO != rc )
       {
-         // Do not re-create
          _pCollectionName = NULL ;
-         // do not delete main shard context
          if ( NULL == lobContext || !lobContext->isMainShard() )
          {
             rtnCB->contextDelete( context->contextID(), _pEDUCB ) ;
@@ -3183,7 +3104,6 @@ namespace engine
       lobContext = ( rtnContextShdOfLob * )context ;
       _pCollectionName = lobContext->getFullName() ;
 
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld, Collection:%s",
                           header->contextID, _pCollectionName ) ;
@@ -3203,11 +3123,8 @@ namespace engine
          goto error ;
       }
 
-      /// do not check version coz we will not
-      ///  change any thing except close the context.
       lobContext = ( rtnContextShdOfLob * )context ;
 
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld, Collection:%s",
                           header->contextID,
@@ -3228,9 +3145,7 @@ namespace engine
            SDB_CLS_DATA_NODE_CAT_VER_OLD != rc &&
            SDB_CLS_NO_CATALOG_INFO != rc )
       {
-         // Do not re-create
          _pCollectionName = NULL ;
-         // do not delete main shard context
          if ( NULL == lobContext || !lobContext->isMainShard() )
          {
             rtnCB->contextDelete( context->contextID(), _pEDUCB ) ;
@@ -3270,11 +3185,8 @@ namespace engine
          goto error ;
       }
 
-      /// do not check version coz we will not
-      ///  change any thing except close the context.
       lobContext = ( rtnContextShdOfLob * )context ;
 
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld, Collection:%s",
                           header->contextID,
@@ -3338,7 +3250,6 @@ namespace engine
       lobContext = ( rtnContextShdOfLob * )context ;
       _pCollectionName = lobContext->getFullName() ;
 
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld, Collection:%s, TupleSize:%u",
                           header->contextID, _pCollectionName, tuplesSize ) ;
@@ -3350,11 +3261,8 @@ namespace engine
          goto error ;
       }
 
-      /// When split, use writingCB to prevent reading lob conflicted
-      /// with clean job
       eduCB()->writingDB( TRUE ) ;
 
-      /// check catalog version
       rc = _checkCLStatusAndGetSth( lobContext->getFullName(),
                                     header->version,
                                     &_isMainCL, NULL ) ;
@@ -3380,9 +3288,7 @@ namespace engine
            SDB_CLS_DATA_NODE_CAT_VER_OLD != rc &&
            SDB_CLS_NO_CATALOG_INFO != rc )
       {
-         // Do not re-create
          _pCollectionName = NULL ;
-         // do not delete main shard context
          if ( NULL == lobContext || !lobContext->isMainShard() )
          {
             rtnCB->contextDelete ( context->contextID(), _pEDUCB ) ;
@@ -3433,7 +3339,6 @@ namespace engine
       _pCollectionName = lobContext->getFullName() ;
       wWhenOpen = lobContext->getW() ;
 
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld, Collection:%s, TupleSize:%u",
                           header->contextID, _pCollectionName,
@@ -3504,9 +3409,7 @@ namespace engine
            SDB_CLS_DATA_NODE_CAT_VER_OLD != rc &&
            SDB_CLS_NO_CATALOG_INFO != rc )
       {
-         // Do not re-create
          _pCollectionName = NULL ;
-         // do not delete main shard context
          if ( NULL == lobContext || !lobContext->isMainShard() )
          {
             rtnCB->contextDelete ( context->contextID(), _pEDUCB ) ;
@@ -3559,7 +3462,6 @@ namespace engine
       _pCollectionName = lobContext->getFullName() ;
       wWhenOpen = lobContext->getW() ;
 
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld, Collection:%s, TupleSize:%u",
                           header->contextID, _pCollectionName, tSize ) ;
@@ -3631,9 +3533,7 @@ namespace engine
            SDB_CLS_DATA_NODE_CAT_VER_OLD != rc &&
            SDB_CLS_NO_CATALOG_INFO != rc )
       {
-         // Do not re-create
          _pCollectionName = NULL ;
-         // do not delete main shard context
          if ( NULL == lobContext || !lobContext->isMainShard() )
          {
             rtnCB->contextDelete( context->contextID(), _pEDUCB ) ;
@@ -3679,12 +3579,8 @@ namespace engine
          ++itr ;
       }
 
-      // Clear cached main-collection plans
-      // Note: cached sub-collection plans are cleared inside truncate
-      // of sub-collections
       _pRtnCB->getAPM()->invalidateCLPlans( _pCollectionName ) ;
 
-      // Tell secondary nodes to clear cached main-collection plans
       sdbGetClsCB()->invalidatePlan( _pCollectionName ) ;
 
    done:
@@ -3731,7 +3627,6 @@ namespace engine
       const _rtnAlterCollection *alterCommand =
                  ( const _rtnAlterCollection * )command ;
       const _rtnAlterJob &job = alterCommand->getRunner().getJob() ;
-      /// do nothing when it is old version
       const BSONObj &tasks = job.isEmpty() ? BSONObj() : job.getTasks() ;
       BSONObjIterator i( tasks ) ;
       while ( i.more() )
@@ -3822,17 +3717,11 @@ namespace engine
             if ( SDB_DMS_CS_NOTEXIST == rc ||
                  SDB_DMS_NOTEXIST == rc )
             {
-               // The error should be found earlier in clsShardSesssion
-               // If report here, means the collection or collection space had
-               // been dropped, ignore the error to avoid clsShardSession to
-               // retry
                rc = SDB_OK ;
             }
             else if ( NULL != pAnalyzeCmd->getIndexName() &&
                       SDB_IXM_NOTEXIST == rc )
             {
-               // The index doesn't exist in this sub-collection, ignore it
-               // and continue with the next sub-collection
                rc = SDB_OK ;
                ++ iterSubCL ;
                continue ;
@@ -3863,7 +3752,6 @@ namespace engine
 
       _pRtnCB->getAPM()->invalidateCLPlans( pMainCLName ) ;
 
-      // Tell secondary nodes to clear cached main-collection plans
       sdbGetClsCB()->invalidatePlan( pMainCLName ) ;
 
    done :
@@ -3973,7 +3861,6 @@ namespace engine
 
       clsDCBaseInfo *pInfo = _pShdMgr->getDCMgr()->getDCBaseInfo() ;
 
-      /// dc data judge
       if ( pInfo->isReadonly() )
       {
          rc = SDB_CAT_CLUSTER_IS_READONLY ;
@@ -4077,10 +3964,6 @@ namespace engine
          goto error ;
       }
 
-      // For SYS collections, do not check the version. This limit is added when
-      // developping text search. The search engine adapter will query and pop
-      // data from capped collections through the shard flat, if the version
-      // checking is enable, no operations can be done.
       clShortName = ossStrchr( name, '.' ) + 1 ;
       if ( dmsIsSysCLName( clShortName ) )
       {

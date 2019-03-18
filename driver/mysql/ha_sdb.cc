@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, SequoiaDB and/or its affiliates. All rights reserved.
+/* Copyright (c) 2004, 2016, Oracle and/or its affiliates. All rights reserved.
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -17,8 +17,7 @@
    #define MYSQL_SERVER
 #endif
 
-#include "sql_class.h"
-#include "sql_table.h"
+#include "sql_class.h"  
 #include "ha_sdb.h"
 #include <mysql/plugin.h>
 #include <include/client.hpp>
@@ -35,18 +34,6 @@
 
 using namespace sdbclient ;
 
-#ifndef SDB_VER
-#define SDB_VER                  "UNKNOWN"
-#endif
-#define SDB_VER_INFO_NAME        "SequoiadbPluginVersion: "
-#define SDB_VER_INFO_F1()        SDB_VER_INFO_NAME
-#ifdef DEBUG
-#define SDB_VER_INFO_F2()        SDB_VER" Debug"
-#else
-#define SDB_VER_INFO_F2()        SDB_VER" Release"
-#endif
-#define SDB_VER_INFO             (SDB_VER_INFO_F1()SDB_VER_INFO_F2())
-
 #define SDB_DATA_EXT             ".data"
 #define SDB_IDX_EXT              ".idx"
 #define SDB_LOB_DATA_EXT         ".lobd"
@@ -55,21 +42,14 @@ using namespace sdbclient ;
 #define SDB_FIELD_MAX_LEN        (16*1024*1024)
 #define SDB_STR_BUF_STEP_SIZE    1024
 #define SDB_STR_BUF_SIZE         SDB_STR_BUF_STEP_SIZE
-const static char sdb_ver_info[] = SDB_VER_INFO ;
 
-//configuration parameter
-static char *                 sdb_addr                = NULL ;
-static const char*            SDB_ADDR_DFT            = "localhost:11810" ;
-static my_bool                SDB_USE_PARTITION_DFT   = TRUE ;
-static my_bool                sdb_use_partition       = SDB_USE_PARTITION_DFT ;
-
-
+static char *sdb_addr = NULL ;
+static const char* SDB_ADDR_DFT = "localhost:11810" ;
 mysql_mutex_t sdb_mutex;
 static PSI_mutex_key key_mutex_sdb, key_mutex_SDB_SHARE_mutex ;
 bson::BSONObj empty_obj ;
 static HASH sdb_open_tables;
 static PSI_memory_key key_memory_sdb_share;
-static PSI_memory_key sdb_key_memory_blobroot;
 
 static uchar* sdb_get_key( SDB_SHARE *share, size_t *length,
                            my_bool not_used MY_ATTRIBUTE((unused)))
@@ -157,11 +137,8 @@ ha_sdb::ha_sdb(handlerton * hton, TABLE_SHARE * table_arg)
    str_field_buf = (char *)malloc( str_field_buf_size ) ;
    share = NULL ;
    first_read = TRUE ;
-   used_times = 0 ;
    memset( db_name, 0, CS_NAME_MAX_SIZE+1 ) ;
    memset( table_name, 0, CL_NAME_MAX_SIZE+1 ) ;
-   init_alloc_root(sdb_key_memory_blobroot,
-                   &blobroot, 8*1024, 0 ) ;
 }
 
 ha_sdb::~ha_sdb()
@@ -171,7 +148,6 @@ ha_sdb::~ha_sdb()
       free( str_field_buf ) ;
       str_field_buf_size = 0 ;
    }
-   free_root(&blobroot, MYF(0));
 }
 
 static const char *ha_sdb_exts[] = {
@@ -239,10 +215,10 @@ int ha_sdb::open( const char *name, int mode, uint test_if_locked )
       goto error ;
    }
 
-   rc = SDB_CONN_MGR_INST->get_sdb_conn( ha_thd()->thread_id(),
-                                         connection ) ;
-   //rc = SDB_CONN_MGR_INST->get_sdb_conn( (my_thread_id)(ha_thd()->active_vio->mysql_socket.fd),
+   //rc = SDB_CONN_MGR_INST->get_sdb_conn( ha_thd()->thread_id(),
    //                                      connection ) ;
+   rc = SDB_CONN_MGR_INST->get_sdb_conn( (my_thread_id)(ha_thd()->active_vio->mysql_socket.fd),
+                                         connection ) ;
    if ( 0 != rc )
    {
       goto error ;
@@ -255,8 +231,7 @@ int ha_sdb::open( const char *name, int mode, uint test_if_locked )
    }
 
    thr_lock_data_init( &share->lock, &lock_data, (void*)this ) ;
-   //fd = ha_thd()->active_vio->mysql_socket.fd ;
-   fd = ha_thd()->thread_id() ;
+   fd = ha_thd()->active_vio->mysql_socket.fd ;
 done:
    return rc ;
 error:
@@ -347,9 +322,6 @@ int ha_sdb::row_to_obj( uchar *buf,  bson::BSONObj & obj )
                                    (*field)->val_real() ) ;
                break ;
             }
-         case MYSQL_TYPE_VARCHAR:
-         case MYSQL_TYPE_STRING:
-         case MYSQL_TYPE_VAR_STRING:
          case MYSQL_TYPE_TINY_BLOB:
          case MYSQL_TYPE_MEDIUM_BLOB:
          case MYSQL_TYPE_LONG_BLOB:
@@ -389,6 +361,36 @@ int ha_sdb::row_to_obj( uchar *buf,  bson::BSONObj & obj )
                                                         val_tmp.ptr(),
                                                         val_tmp.length() ) ;
                }
+               break ;
+            }
+         case MYSQL_TYPE_VARCHAR:
+         case MYSQL_TYPE_STRING:
+         case MYSQL_TYPE_VAR_STRING:
+            {
+               if ( str_field_buf_size < (*field)->data_length() )
+               {
+                  uint32 str_buf_size_new = 0 ;
+                  if ( (*field)->data_length() >= SDB_FIELD_MAX_LEN )
+                  {
+                     my_printf_error( ER_TOO_BIG_FIELDLENGTH,
+                                      ER(ER_TOO_BIG_FIELDLENGTH),
+                                      MYF(0), (*field)->field_name,
+                                      static_cast<ulong>(SDB_FIELD_MAX_LEN-1));
+                     rc = -1 ;
+                     goto error ;
+                  }
+                  str_buf_size_new
+                     = ( (*field)->data_length() / SDB_STR_BUF_STEP_SIZE + 1 )
+                       * SDB_STR_BUF_STEP_SIZE ;
+                  str_field_buf = (char *)realloc( str_field_buf,
+                                                   str_buf_size_new ) ;
+                  str_field_buf_size = str_buf_size_new ;
+               }
+               String val_tmp( str_field_buf, str_field_buf_size, (*field)->charset() ) ;
+               (*field)->val_str( &val_tmp, &val_tmp ) ;
+               obj_builder.appendStrWithNoTerminating( (*field)->field_name,
+                                                        val_tmp.ptr(),
+                                                        val_tmp.length() ) ;
                break ;
             }
          case MYSQL_TYPE_NEWDECIMAL:
@@ -601,52 +603,440 @@ error:
       return -1 ;
    }
 
+   int ha_sdb::index_first(uchar *buf)
+   {
+      return -1 ;
+   }
+
    int ha_sdb::index_last(uchar *buf)
    {
       return -1 ;
    }
 
-int ha_sdb::index_first(uchar *buf)
+typedef union _sdb_key_common_type
+{
+   char     sz_data[8] ;
+   int8     int8_val ;
+   uint8    uint8_val ;
+   int16    int16_val ;
+   uint16   uint16_val ;
+   int32    int24_val ; 
+   uint32   uint24_val ;
+   int32    int32_val ;
+   uint32   uint32_val ;
+   int64    int64_val ;
+   uint64   uint64_val ;
+}sdb_key_common_type ;
+
+void ha_sdb::get_unsigned_key_val( const uchar *key_ptr,
+                                   key_part_map key_part_map_val,
+                                   const KEY_PART_INFO *key_part,
+                                   bson::BSONObjBuilder &obj_builder,
+                                   const char *op_str )
+{
+   sdb_key_common_type val_tmp ;
+   val_tmp.uint64_val = 0 ;
+   if ( key_part->length > sizeof( val_tmp ) )
+   {
+      goto done ;
+   }
+
+   if( key_part_map_val & 1  && ( !key_part->null_bit || 0 == *key_ptr )) 
+   { 
+      memcpy( &(val_tmp.sz_data[0]),
+              key_ptr+key_part->store_length-key_part->length, 
+              key_part->length ); 
+      switch( key_part->length )
+      {
+         case 1:
+            {
+               obj_builder.append( op_str, val_tmp.uint8_val ) ;
+               break ;
+            }
+         case 2:
+            {
+               obj_builder.append( op_str, val_tmp.uint16_val ) ;
+               break ;
+            }
+         case 3:
+         case 4:
+            {
+               obj_builder.append( op_str, val_tmp.uint32_val ) ;
+               break ;
+            }
+         case 8:
+            {
+               if( val_tmp.int64_val >= 0)
+               {
+                  obj_builder.append( op_str, val_tmp.int64_val ) ;
+               }
+               break ;
+            }
+         default:
+            break ;
+      }
+   }
+
+done:
+   return ;
+}
+
+void ha_sdb::get_unsigned_key_range_obj( const uchar *start_key_ptr,
+                                         key_part_map start_key_part_map,
+                                         enum ha_rkey_function start_find_flag,
+                                         const uchar *end_key_ptr,
+                                         key_part_map end_key_part_map,
+                                         enum ha_rkey_function end_find_flag,
+                                         const KEY_PART_INFO *key_part,
+                                         bson::BSONObj &obj )
+{
+   bson::BSONObjBuilder obj_builder ;
+   if ( HA_READ_KEY_EXACT == start_find_flag )
+   {
+      get_unsigned_key_val( start_key_ptr, start_key_part_map,
+                            key_part, obj_builder, "$et" ) ;
+   }
+   else
+   {
+      get_unsigned_key_val( start_key_ptr, start_key_part_map,
+                            key_part, obj_builder, "$gte" ) ;
+      get_unsigned_key_val( end_key_ptr, end_key_part_map,
+                            key_part, obj_builder, "$lte" ) ;
+   }
+   obj = obj_builder.obj() ;
+}
+
+void ha_sdb::get_signed_key_val( const uchar *key_ptr,
+                                 key_part_map key_part_map_val,
+                                 const KEY_PART_INFO *key_part,
+                                 bson::BSONObjBuilder &obj_builder,
+                                 const char *op_str )
+{
+   sdb_key_common_type val_tmp ;
+   val_tmp.uint64_val = 0 ;
+   if ( key_part->length > sizeof( val_tmp ) )
+   {
+      goto done ;
+   }
+
+   if( key_part_map_val & 1  && ( !key_part->null_bit || 0 == *key_ptr )) 
+   { 
+      memcpy( &(val_tmp.sz_data[0]),
+              key_ptr+key_part->store_length-key_part->length, 
+              key_part->length ); 
+      switch( key_part->length )
+      {
+         case 1:
+            {
+               obj_builder.append( op_str, val_tmp.int8_val ) ;
+               break ;
+            }
+         case 2:
+            {
+               obj_builder.append( op_str, val_tmp.int16_val ) ;
+               break ;
+            }
+         case 3:
+            {
+               if ( val_tmp.int32_val & 0X800000 )
+               {
+                  val_tmp.sz_data[3] = 0XFF ;
+               }
+               obj_builder.append( op_str, val_tmp.int32_val ) ;
+               break ;
+            }
+         case 4:
+            {
+               obj_builder.append( op_str, val_tmp.int32_val ) ;
+               break ;
+            }
+         case 8:
+            {
+                obj_builder.append( op_str, val_tmp.int64_val ) ;
+               break ;
+            }
+         default:
+            break ;
+      }
+   }
+
+done:
+   return ;
+}
+
+void ha_sdb::get_signed_key_range_obj( const uchar *start_key_ptr,
+                                       key_part_map start_key_part_map,
+                                       enum ha_rkey_function start_find_flag,
+                                       const uchar *end_key_ptr,
+                                       key_part_map end_key_part_map,
+                                       enum ha_rkey_function end_find_flag,
+                                       const KEY_PART_INFO *key_part,
+                                       bson::BSONObj &obj )
+{
+   bson::BSONObjBuilder obj_builder ;
+   if ( HA_READ_KEY_EXACT == start_find_flag )
+   {
+      get_signed_key_val( start_key_ptr, start_key_part_map,
+                          key_part, obj_builder, "$et" ) ;
+   }
+   else
+   {
+      get_signed_key_val( start_key_ptr, start_key_part_map,
+                          key_part, obj_builder, "$gte" ) ;
+      get_signed_key_val( end_key_ptr, end_key_part_map,
+                          key_part, obj_builder, "$lte" ) ;
+   }
+   obj = obj_builder.obj() ;
+}
+
+void ha_sdb::get_text_key_val( const uchar *key_ptr,
+                               key_part_map key_part_map_val,
+                               const KEY_PART_INFO *key_part,
+                               bson::BSONObjBuilder &obj_builder,
+                               const char *op_str )
+{
+   if( key_part_map_val & 1  && ( !key_part->null_bit || 0 == *key_ptr )) 
+   { 
+      uint32 str_buf_size_new = 0 ;
+      /*if ( key_part->length >= SDB_FIELD_MAX_LEN )
+      {
+         // bson is not support so long filed,
+         // skip the condition
+         goto done ;
+      }*/
+      if ( str_field_buf_size <= key_part->length )
+      {
+         str_buf_size_new
+            = (( key_part->length + 1 ) / SDB_STR_BUF_STEP_SIZE + 1 )
+               * SDB_STR_BUF_STEP_SIZE ;
+         str_field_buf = (char *)realloc( str_field_buf, str_buf_size_new ) ;
+         str_field_buf_size = str_buf_size_new ;
+      }
+      memcpy( str_field_buf,
+              key_ptr+key_part->store_length-key_part->length, 
+              key_part->length ) ;
+
+      // TODO: Do we need to process the scene: end with space
+      /*if ( key_part->length > 0 && ' ' == str_field_buf[key_part->length-1] )
+      {
+         uint16 pos = key_part->length - 2 ;
+         char tmp[] = "( ){0,}$" ;
+         while( pos >= 0 && ' ' == str_field_buf[pos] )
+         {
+            --pos ;
+         }
+         ++pos ;
+         if ( 'e' == op_str[1] ) // $et
+         {
+            strcpy( str_field_buf + pos + 1, tmp ) ;
+            while( pos > 0 )
+            {
+               str_field_buf[pos] = str_field_buf[pos-1] ;
+               --pos ;
+            }
+            str_field_buf[0] = '^' ;
+            obj_builder.append( "$regex", str_field_buf ) ;
+            goto done ;
+         }
+         else if ( 'g' == op_str[1] ) // $gte
+         {
+            str_field_buf[pos] = 0 ;
+         }
+      }*/
+      str_field_buf[key_part->length] = 0 ;
+      obj_builder.append( op_str, str_field_buf ) ;
+   }
+done:
+   return ;
+}
+
+void ha_sdb::get_text_key_range_obj( const uchar *start_key_ptr,
+                                     key_part_map start_key_part_map,
+                                     enum ha_rkey_function start_find_flag,
+                                     const uchar *end_key_ptr,
+                                     key_part_map end_key_part_map,
+                                     enum ha_rkey_function end_find_flag,
+                                     const KEY_PART_INFO *key_part,
+                                     bson::BSONObj &obj )
+{
+   bson::BSONObjBuilder obj_builder ;
+   if ( HA_READ_KEY_EXACT == start_find_flag )
+   {
+      get_text_key_val( start_key_ptr, start_key_part_map,
+                        key_part, obj_builder, "$et" ) ;
+   }
+   else
+   {
+      get_text_key_val( start_key_ptr, start_key_part_map,
+                        key_part, obj_builder, "$gte" ) ;
+      get_text_key_val( end_key_ptr, end_key_part_map,
+                        key_part, obj_builder, "$lte" ) ;
+   }
+
+   obj = obj_builder.obj() ;
+}
+
+void ha_sdb::get_float_key_val( const uchar *key_ptr,
+                               key_part_map key_part_map_val,
+                               const KEY_PART_INFO *key_part,
+                               bson::BSONObjBuilder &obj_builder,
+                               const char *op_str )
+{
+   if( key_part_map_val & 1  && ( !key_part->null_bit || 0 == *key_ptr )) 
+   { 
+      if ( 4 == key_part->length )
+      {
+         float tmp = *((float *)(key_ptr+key_part->store_length-key_part->length)) ;
+         obj_builder.append( op_str, tmp ) ;
+      }
+      else if ( 8 == key_part->length )
+      {
+         double tmp = *((double *)(key_ptr+key_part->store_length-key_part->length)) ;
+         obj_builder.append( op_str, tmp ) ;
+      }
+   }
+}
+
+void ha_sdb::get_float_key_range_obj( const uchar *start_key_ptr,
+                                     key_part_map start_key_part_map,
+                                     enum ha_rkey_function start_find_flag,
+                                     const uchar *end_key_ptr,
+                                     key_part_map end_key_part_map,
+                                     enum ha_rkey_function end_find_flag,
+                                     const KEY_PART_INFO *key_part,
+                                     bson::BSONObj &obj )
+{
+   bson::BSONObjBuilder obj_builder ;
+   if ( HA_READ_KEY_EXACT == start_find_flag )
+   {
+      get_float_key_val( start_key_ptr, start_key_part_map,
+                        key_part, obj_builder, "$et" ) ;
+   }
+   else
+   {
+      get_float_key_val( start_key_ptr, start_key_part_map,
+                         key_part, obj_builder, "$gte" ) ;
+      get_float_key_val( end_key_ptr, end_key_part_map,
+                         key_part, obj_builder, "$lte" ) ;
+   }
+
+   obj = obj_builder.obj() ;
+}
+
+int ha_sdb::build_match_obj_by_start_stop_key( uint keynr,
+                             const uchar *key_ptr,
+                             key_part_map keypart_map,
+                             enum ha_rkey_function find_flag,
+                             bson::BSONObj &matchObj )
 {
    int rc = 0 ;
-   bson::BSONObj hint ;
-   const char *idx_name = NULL ;
-   idx_name = sdb_get_idx_name( table->key_info + keynr ) ;
-   if ( idx_name )
-   {
-      hint = BSON( "" << idx_name ) ;
-   }
-   rc = cl->query( condition, sdbclient::_sdbStaticObject,
-                   sdbclient::_sdbStaticObject, hint ) ;
-   if ( rc )
+   KEY *keyInfo ;
+   const KEY_PART_INFO *keyPart ;
+   const KEY_PART_INFO *keyEnd ;
+   const uchar *startKeyPtr = key_ptr ;
+   key_part_map startKeyPartMap = keypart_map ;
+   const uchar *endKeyPtr = NULL ;
+   key_part_map endKeyPartMap = 0 ;
+   enum ha_rkey_function endFindFlag = HA_READ_INVALID ;
+   bson::BSONObjBuilder objBuilder ;
+
+   if ( MAX_KEY == keynr || table->s->keys <= 0 )
    {
       goto error ;
    }
-   rc = index_next( buf ) ;
-   switch(rc)
+
+   keyInfo = table->key_info + keynr ;
+   if ( NULL == keyInfo || NULL == keyInfo->key_part )
    {
-      case SDB_OK:
-         {
-         	table->status = 0 ;
-   		   break;
-         }
-
-      case SDB_DMS_EOC:
-      case HA_ERR_END_OF_FILE:
-         {
-            rc = HA_ERR_KEY_NOT_FOUND ;
-            table->status = STATUS_NOT_FOUND ;
-            break ;
-         }
-
-      default:
-         {
-            table->status = STATUS_NOT_FOUND ;
-            break ;
-         }
+      goto done ;
    }
+
+   if ( NULL != end_range )
+   {
+      endKeyPtr = end_range->key ;
+      endKeyPartMap = end_range->keypart_map ;
+      endFindFlag = end_range->flag ;
+   }
+
+   keyPart = keyInfo->key_part ;
+   keyEnd = keyPart + keyInfo->user_defined_key_parts ;
+   for( ; keyPart != keyEnd && (startKeyPartMap|endKeyPartMap);
+        ++keyPart )
+   {
+      bson::BSONObj tmp_obj ;
+      switch( keyPart->type )
+      {
+         case HA_KEYTYPE_SHORT_INT:
+         case HA_KEYTYPE_LONG_INT:
+         case HA_KEYTYPE_LONGLONG:
+         case HA_KEYTYPE_INT8:
+         case HA_KEYTYPE_INT24:
+            {
+               get_signed_key_range_obj( startKeyPtr,
+                                         startKeyPartMap,
+                                         find_flag,
+                                         endKeyPtr,
+                                         endKeyPartMap,
+                                         endFindFlag,
+                                         keyPart, tmp_obj ) ;
+               break ;
+            }
+         case HA_KEYTYPE_USHORT_INT:
+         case HA_KEYTYPE_ULONG_INT:
+         case HA_KEYTYPE_ULONGLONG:
+         case HA_KEYTYPE_UINT24:
+            {
+               get_unsigned_key_range_obj( startKeyPtr,
+                                           startKeyPartMap,
+                                           find_flag,
+                                           endKeyPtr,
+                                           endKeyPartMap,
+                                           endFindFlag,
+                                           keyPart, tmp_obj ) ;
+               break ;
+            }
+         case HA_KEYTYPE_TEXT:
+         case HA_KEYTYPE_VARTEXT1:
+         case HA_KEYTYPE_VARTEXT2:
+            {
+               get_text_key_range_obj( startKeyPtr,
+                                       startKeyPartMap,
+                                       find_flag,
+                                       endKeyPtr,
+                                       endKeyPartMap,
+                                       endFindFlag,
+                                       keyPart, tmp_obj ) ;
+               break ;
+            }
+         case HA_KEYTYPE_FLOAT:
+         case HA_KEYTYPE_DOUBLE:
+            {
+               get_float_key_range_obj( startKeyPtr,
+                                        startKeyPartMap,
+                                        find_flag,
+                                        endKeyPtr,
+                                        endKeyPartMap,
+                                        endFindFlag,
+                                        keyPart, tmp_obj ) ;
+               break ;
+            }
+         case HA_KEYTYPE_NUM:
+         default:
+            break ;
+      }
+      if ( !tmp_obj.isEmpty() )
+      {
+         objBuilder.append( keyPart->field->field_name,
+                            tmp_obj ) ;
+      }
+      startKeyPtr += keyPart->store_length ;
+      endKeyPtr += keyPart->store_length ;
+      startKeyPartMap >>= 1 ;
+      endKeyPartMap >>= 1 ;
+   }
+   matchObj = objBuilder.obj() ;
+
 done:
-   condition = empty_obj ;
    return rc ;
 error:
    goto done ;
@@ -657,46 +1047,29 @@ int ha_sdb::index_read_map( uchar *buf, const uchar *key_ptr,
                             enum ha_rkey_function find_flag )
 {
    int rc = 0 ;
-   bson::BSONObj order, hint, condition_idx ;
+   int errnum = 0 ;
+   bson::BSONObj orderbyObj, hint, condition_idx ;
    bson::BSONObjBuilder cond_builder ;
    const char *idx_name = NULL ;
    if ( NULL != key_ptr && keynr >= 0 )
    {
-      rc = build_match_obj_by_start_stop_key( (uint)keynr, key_ptr,
-                                         keypart_map, find_flag,
-                                         end_range, table,
-                                         condition_idx ) ;
+      build_match_obj_by_start_stop_key( (uint)keynr, key_ptr,
+                       keypart_map, find_flag,
+                       condition_idx ) ;
    }
-   if ( rc )
-   {
-      goto error ;
-   }
-   if ( !condition.isEmpty() )
-   {
-      cond_builder.appendElements( condition ) ;
-      cond_builder.appendElements( condition_idx ) ;
-      condition = cond_builder.obj() ;
-   }
-   else
-   {
-      condition = condition_idx ;
-   }
+   cond_builder.appendElements( condition ) ;
+   cond_builder.appendElements( condition_idx ) ;
+   condition = cond_builder.obj() ;
    idx_name = sdb_get_idx_name( table->key_info + keynr ) ;
    if ( idx_name )
    {
       hint = BSON( "" << idx_name ) ;
    }
-
-   rc = sdb_get_idx_order( table->key_info + keynr,  order ) ;
-   if ( rc )
-   {
-      goto error ;
-   }
-
    rc = cl->query( condition, sdbclient::_sdbStaticObject,
-                   order, hint ) ;
+                   sdbclient::_sdbStaticObject, hint ) ;
    if ( rc )
    {
+      errnum = rc ;
       goto error ;
    }
    rc = index_next( buf ) ;
@@ -704,6 +1077,7 @@ int ha_sdb::index_read_map( uchar *buf, const uchar *key_ptr,
    {
       case SDB_OK:
          {
+            errnum = 0 ;
          	table->status = 0 ;
    		   break;
          }
@@ -711,20 +1085,21 @@ int ha_sdb::index_read_map( uchar *buf, const uchar *key_ptr,
       case SDB_DMS_EOC:
       case HA_ERR_END_OF_FILE:
          {
-            rc = HA_ERR_KEY_NOT_FOUND ;
+            errnum = HA_ERR_KEY_NOT_FOUND ;
             table->status = STATUS_NOT_FOUND ;
             break ;
          }
 
       default:
          {
+            errnum = rc ;
             table->status = STATUS_NOT_FOUND ;
             break ;
          }
    }
 done:
    condition = empty_obj ;
-   return rc ;
+   return errnum ;
 error:
    goto done ;
 }
@@ -733,11 +1108,6 @@ int ha_sdb::index_init(uint idx, bool sorted)
 {
    keynr = (int)idx ;
    active_index = idx ;
-   if( !pushed_cond )
-   {
-      condition = empty_obj ;
-   }
-   free_root(&blobroot, MYF(0));
    return 0 ;
 }
 
@@ -745,7 +1115,6 @@ int ha_sdb::index_end()
 {
    cl->close() ;
    keynr = -1 ;
-   //free_root(&blobroot, MYF(0));
    return 0 ;
 }
 
@@ -765,18 +1134,12 @@ int ha_sdb::rnd_init(bool scan)
 {
    stats.records= 0;
    first_read = TRUE ;
-   if( !pushed_cond )
-   {
-      condition = empty_obj ;
-   }
-   free_root(&blobroot, MYF(0));
    return 0 ;
 }
 
 int ha_sdb::rnd_end()
 {
    cl->close() ;
-   //free_root(&blobroot, MYF(0));
    return 0 ;
 }
 
@@ -787,8 +1150,6 @@ int ha_sdb::obj_to_row( bson::BSONObj &obj, uchar *buf )
    int rc = 0 ;
    bool read_all ;
    my_bitmap_map *org_bitmap;
-
-   //free_root( &blobroot, MYF(0) ) ;
    memset( buf, 0, table->s->null_bytes ) ;
 
    read_all= !bitmap_is_clear_all(table->write_set) ;
@@ -921,22 +1282,6 @@ int ha_sdb::obj_to_row( bson::BSONObj &obj, uchar *buf )
             rc = SDB_ERR_TYPE_UNSUPPORTED ;
             goto error ;
       }
-      if ( (*field)->flags & BLOB_FLAG )
-      {
-         Field_blob *blob = *(Field_blob**)field ;
-         uchar *src, *dst;
-         uint length, packlength;
-
-         packlength = blob->pack_length_no_ptr();
-         length = blob->get_length(blob->ptr) ;
-         memcpy( &src, blob->ptr+packlength, sizeof(char*) );
-         if( src )
-         {
-            dst = (uchar*)alloc_root( &blobroot, length ) ;
-            memmove(dst, src, length ) ;
-            memcpy(blob->ptr+packlength, &dst, sizeof(char*) ) ;
-         }
-      }
    }
 done:
    dbug_tmp_restore_column_map(table->write_set, org_bitmap);
@@ -998,8 +1343,8 @@ int ha_sdb::rnd_next(uchar *buf)
       }
       first_read = FALSE ;
    }
-   assert(cl->get_tid() == ha_thd()->thread_id()) ;
-   //assert( cl->get_tid() == (my_thread_id)(ha_thd()->active_vio->mysql_socket.fd )) ;
+   //assert(cl->get_tid() == ha_thd()->thread_id()) ;
+   assert( cl->get_tid() == (my_thread_id)(ha_thd()->active_vio->mysql_socket.fd )) ;
    ha_statistic_increment( &SSV::ha_read_rnd_next_count ) ;
    rc = next_row( cur_rec, buf ) ;
    if ( rc != 0 )
@@ -1022,7 +1367,7 @@ int ha_sdb::rnd_pos( uchar *buf, uchar *pos )
    bson::BSONObj oidObj = objBuilder.obj() ;
 
    //assert(cl->get_tid() == ha_thd()->thread_id()) ;
-   rc = cl->query_one( cur_rec, oidObj ) ;
+   rc = cl->query_one( oidObj, cur_rec ) ;
    if ( rc )
    {
       goto error ;
@@ -1062,45 +1407,23 @@ void ha_sdb::position( const uchar *record )
 int ha_sdb::info( uint flag )
 {
    int rc = 0 ;
-
-   if ( used_times++ % 100 == 0 )
-   {
-      rc = cl->get_count( rec_num ) ;
-      if ( rc != 0  )
-      {
-         goto error ;
-      }
-      last_flush_time = time( NULL ) ;
-      used_times = 1 ;
-   }
-   else if ( used_times % 10 == 0 )
-   {
-      time_t cur_time = time( NULL ) ;
-      // flush rec_num every 5 minutes
-      if ( difftime( cur_time, last_flush_time ) > 5*60 )
-      {
-         rc = cl->get_count( rec_num ) ;
-         if ( rc != 0  )
-         {
-            goto error ;
-         }
-         last_flush_time = cur_time ;
-         used_times = 1 ;
-      }
-   }
-   if ( used_times != 1 )
-   {
-      goto done ;
-   }
+   //long long count = 0 ;
 
    //TODO: fill the stats with actual info.
-   stats.data_file_length = (rec_num * 1024) + 32 * 1024 * 1024  ;
+   stats.data_file_length = 107374182400LL ; //100*1024*1024*1024
    stats.max_data_file_length = 1099511627776LL ; //1*1024*1024*1024*1024
-   stats.index_file_length = (rec_num * 100 ) + 32 * 1024 * 1024 ;
+   stats.index_file_length = 1073741824LL ; //1*1024*1024*1024
    stats.max_index_file_length = 10737418240LL ; //10*1024*1024*1024
    stats.delete_length = 0 ;
    stats.auto_increment_value = 0 ;
-   stats.records = rec_num ;
+
+   /*rc = cl.getCount( count ) ;
+   if ( rc != 0  )
+   {
+      goto error ;
+   }*/
+
+   stats.records = 10000 ;
    stats.deleted = 0 ;
    stats.mean_rec_length = 1024 ;
    stats.create_time = 0 ;
@@ -1125,16 +1448,16 @@ int ha_sdb::extra( enum ha_extra_function operation )
 void ha_sdb::check_thread()
 {
    int rc = 0 ;
-   if ( cl->get_tid() != ha_thd()->thread_id() )
-   //if ( cl->get_tid() != (my_thread_id)(ha_thd()->active_vio->mysql_socket.fd) )
+   //if ( cl->get_tid() != ha_thd()->thread_id() )
+   if ( cl->get_tid() != (my_thread_id)(ha_thd()->active_vio->mysql_socket.fd) )
    {
       //first_read = TRUE ;
       //stats.records= 0;
       sdb_conn_auto_ptr conn_tmp ;
-      rc = SDB_CONN_MGR_INST->get_sdb_conn( ha_thd()->thread_id(),
-                                            conn_tmp ) ;
-      //rc = SDB_CONN_MGR_INST->get_sdb_conn( (my_thread_id)(ha_thd()->active_vio->mysql_socket.fd),
+      //rc = SDB_CONN_MGR_INST->get_sdb_conn( ha_thd()->thread_id(),
       //                                      conn_tmp ) ;
+      rc = SDB_CONN_MGR_INST->get_sdb_conn( (my_thread_id)(ha_thd()->active_vio->mysql_socket.fd),
+                                            conn_tmp ) ;
       if ( 0 != rc )
       {
          goto error ;
@@ -1147,8 +1470,7 @@ void ha_sdb::check_thread()
       }
 
       connection = conn_tmp ;
-      //fd = ha_thd()->active_vio->mysql_socket.fd ;
-      fd = ha_thd()->thread_id() ;
+      fd = ha_thd()->active_vio->mysql_socket.fd ;
    }
 done:
    return ;
@@ -1200,16 +1522,13 @@ enum_alter_inplace_result ha_sdb::check_if_supported_inplace_alter(
       | Alter_inplace_info::ADD_UNIQUE_INDEX
       | Alter_inplace_info::DROP_UNIQUE_INDEX
       | Alter_inplace_info::ADD_PK_INDEX
-      | Alter_inplace_info::DROP_PK_INDEX
-      | Alter_inplace_info::ALTER_COLUMN_NOT_NULLABLE
-      | Alter_inplace_info::ALTER_COLUMN_NULLABLE ;
+      | Alter_inplace_info::DROP_PK_INDEX ;
 
    if ( ha_alter_info->handler_flags & ~inplace_online_operations )
    {
       // include offline-operations
-      //rs = handler::check_if_supported_inplace_alter(
-      //                           altered_table, ha_alter_info ) ;
-      rs = HA_ALTER_INPLACE_NOT_SUPPORTED ;
+      rs = handler::check_if_supported_inplace_alter(
+                                 altered_table, ha_alter_info ) ;
       goto done ;
    }
 
@@ -1233,14 +1552,14 @@ enum_alter_inplace_result ha_sdb::check_if_supported_inplace_alter(
          keyPart->field = altered_table->field[keyPart->fieldnr] ;
          keyPart->null_offset = keyPart->field->null_offset() ;
          keyPart->null_bit = keyPart->field->null_bit ;
-         if ( keyPart->field->flags & AUTO_INCREMENT_FLAG )
+         if( keyPart->field->flags & AUTO_INCREMENT_FLAG )
          {
             rs = HA_ALTER_INPLACE_NOT_SUPPORTED ;
             goto done ;
          }
       }
    }
-
+   
    rs = HA_ALTER_INPLACE_NO_LOCK ;
 done:
    return rs ;
@@ -1249,7 +1568,7 @@ done:
 bool ha_sdb::prepare_inplace_alter_table( TABLE *altered_table,
                                           Alter_inplace_info *ha_alter_info )
 {
-   /*THD *thd = current_thd ;
+   THD *thd = current_thd ;
    bool rs = false ;
    switch( thd_sql_command(thd) )
    {
@@ -1264,12 +1583,13 @@ bool ha_sdb::prepare_inplace_alter_table( TABLE *altered_table,
 done:
    return rs ;
 error:
-   goto done ;*/
-   return false ;
+   goto done ;
 }
 
 int ha_sdb::create_index( Alter_inplace_info *ha_alter_info )
 {
+   const KEY_PART_INFO *keyPart ;
+   const KEY_PART_INFO *keyEnd ;
    const KEY *keyInfo ;
    int rc = 0 ;
 
@@ -1277,7 +1597,19 @@ int ha_sdb::create_index( Alter_inplace_info *ha_alter_info )
    {
       keyInfo
          = &ha_alter_info->key_info_buffer[ha_alter_info->index_add_buffer[i]] ;
-      rc = sdb_create_index( keyInfo, cl ) ;
+      bson::BSONObjBuilder keyObjBuilder ;
+      keyPart = keyInfo->key_part ;
+      keyEnd = keyPart + keyInfo->user_defined_key_parts ;
+      for( ; keyPart != keyEnd ; ++keyPart )
+      {
+         // TODO: ASC or DESC
+         keyObjBuilder.append( keyPart->field->field_name,
+                               1 ) ;
+      }
+      bson::BSONObj keyObj = keyObjBuilder.obj() ;
+
+      //TODO: parse primary-key-index ;
+      rc = cl->create_index( keyObj, keyInfo->name, FALSE, FALSE ) ;
       if ( rc )
       {
          goto error ;
@@ -1302,7 +1634,7 @@ int ha_sdb::drop_index( Alter_inplace_info *ha_alter_info )
    {
       KEY *keyInfo = NULL ;
       keyInfo = ha_alter_info->index_drop_buffer[i] ;
-      rc = sdb_drop_index( keyInfo, cl ) ;
+      rc = cl->drop_index( keyInfo->name ) ;
       if ( rc )
       {
          goto error ;
@@ -1317,47 +1649,23 @@ error :
 bool ha_sdb::inplace_alter_table( TABLE *altered_table,
                                   Alter_inplace_info *ha_alter_info )
 {
+   THD *thd = current_thd ;
    bool rs = false ;
-   int rc = 0 ;
-
-   Alter_inplace_info::HA_ALTER_FLAGS inplace_online_addidx
-      = Alter_inplace_info::ADD_INDEX
-      | Alter_inplace_info::ADD_UNIQUE_INDEX
-      | Alter_inplace_info::ADD_PK_INDEX
-      | Alter_inplace_info::ALTER_COLUMN_NOT_NULLABLE;
-
-   Alter_inplace_info::HA_ALTER_FLAGS inplace_online_dropidx
-      = Alter_inplace_info::DROP_INDEX
-      | Alter_inplace_info::DROP_UNIQUE_INDEX
-      | Alter_inplace_info::DROP_PK_INDEX
-      | Alter_inplace_info::ALTER_COLUMN_NULLABLE ;
-
-   if ( ha_alter_info->handler_flags & inplace_online_addidx )
+   switch( thd_sql_command(thd) )
    {
-      rc = create_index( ha_alter_info ) ;
-      if ( 0 != rc )
+   case SQLCOM_CREATE_INDEX:
+      if ( 0 != create_index( ha_alter_info ) )
       {
-         my_error( ER_GET_ERRNO, MYF(0), rc );
          rs = true ;
-         goto error ;
       }
-   }
-   if ( ha_alter_info->handler_flags & inplace_online_dropidx )
-   {
-      rc = drop_index( ha_alter_info ) ;
-      if ( 0 != rc )
+      break ;
+   case SQLCOM_DROP_INDEX:
+      if ( 0 != drop_index( ha_alter_info ) )
       {
-         my_error( ER_GET_ERRNO, MYF(0), rc );
          rs = true ;
-         goto error ;
       }
-   }
-   if ( ha_alter_info->handler_flags
-      & ~(inplace_online_addidx | inplace_online_dropidx) )
-   {
-      my_printf_error( HA_ERR_UNSUPPORTED,
-                       "Storage engine doesn't support the operation.",
-                       MYF(0) ) ;
+      break ;
+   default:
       rs = true ;
       goto error ;
    }
@@ -1411,10 +1719,10 @@ int ha_sdb::delete_table(const char *from)
    }
 
 
-   rc = SDB_CONN_MGR_INST->get_sdb_conn( ha_thd()->thread_id(),
-                                         conn_tmp ) ;
-   //rc = SDB_CONN_MGR_INST->get_sdb_conn( (my_thread_id)(ha_thd()->active_vio->mysql_socket.fd),
+   //rc = SDB_CONN_MGR_INST->get_sdb_conn( ha_thd()->thread_id(),
    //                                      conn_tmp ) ;
+   rc = SDB_CONN_MGR_INST->get_sdb_conn( (my_thread_id)(ha_thd()->active_vio->mysql_socket.fd),
+                                         conn_tmp ) ;
    if ( 0 != rc )
    {
       goto error ;
@@ -1453,165 +1761,16 @@ int ha_sdb::rename_table(const char * from, const char * to)
    int rc = 0 ;
    switch( thd_sql_command(thd) )
    {
-   /*case SQLCOM_CREATE_INDEX:
+   case SQLCOM_CREATE_INDEX:
       //TODO:***********
       break ;
    case SQLCOM_DROP_INDEX:
       //TODO:************
       break ;
-   case SQLCOM_ALTER_TABLE:
-      //TODO:************
-      break ;*/
    default:
       rc = -1 ;
       goto error ;
    }
-done:
-   return rc ;
-error:
-   goto done ;
-}
-
-int ha_sdb::get_sharding_key( TABLE *form,
-                              bson::BSONObj &sharding_key )
-{
-   int rc = 0 ;
-   const KEY *shard_idx = NULL ;
-
-   for( uint i=0 ; i<form->s->keys; i++)
-   {
-      const KEY *key_info = form->s->key_info + i ;
-      if ( !strcmp(key_info->name, primary_key_name ))
-      {
-         shard_idx = key_info ;
-         break ;
-      }
-      if ( NULL == shard_idx
-           && ( key_info->flags & HA_NOSAME ))
-      {
-         shard_idx = key_info ;
-      }
-   }
-   if ( NULL != shard_idx )
-   {
-      bson::BSONObjBuilder sharding_key_builder ;
-      const KEY_PART_INFO *key_part ;
-      const KEY_PART_INFO *key_end ;
-
-      // check unique-idx if include sharding-key
-      for( uint i=0 ; i<form->s->keys; i++)
-      {
-         const KEY *key_info = form->s->key_info + i ;
-         if ( (key_info->flags & HA_NOSAME)
-              && key_info != shard_idx )
-         {
-            key_part = shard_idx->key_part ;
-            key_end = key_part + shard_idx->user_defined_key_parts ;
-            for( ; key_part != key_end ; ++key_part )
-            {
-               const KEY_PART_INFO *key_part_tmp = key_info->key_part ;
-               const KEY_PART_INFO *key_end_tmp
-                  = key_part_tmp + key_info->user_defined_key_parts ;
-               for( ; key_part_tmp != key_end_tmp ; ++key_part_tmp )
-               {
-                  if ( 0 == strcmp( key_part->field->field_name,
-                                    key_part_tmp->field->field_name ) )
-                  {
-                     break ;
-                  }
-               }
-
-               if ( key_part_tmp == key_end_tmp )
-               {
-                  rc = SDB_INVALIDARG ;
-                  my_printf_error( rc,
-                                   "The unique index('%-.192s') must include the field: '%-.192s'",
-                                   MYF(0), key_info->name, key_part->field->field_name ) ;
-                  goto error ;
-               }
-            }
-         }
-      }
-
-      key_part = shard_idx->key_part ;
-      key_end = key_part + shard_idx->user_defined_key_parts ;
-      for( ; key_part != key_end ; ++key_part )
-      {
-         sharding_key_builder.append( key_part->field->field_name,
-                                      1 ) ;
-      }
-      sharding_key = sharding_key_builder.obj() ;
-   }
-   else
-   {
-      Field **field = form->field ;
-      if ( *field )
-      {
-         sharding_key = BSON( (*field)->field_name << 1 ) ;
-      }
-   }
-
-done:
-   return rc ;
-error:
-   goto done ;
-}
-
-int ha_sdb::get_cl_options( TABLE *form,
-                            HA_CREATE_INFO *create_info,
-                            bson::BSONObj &options,
-                            my_bool use_partition )
-{
-   int rc = 0 ;
-   bson::BSONObj sharding_key ;
-
-   if ( create_info && create_info->comment.str )
-   {
-      bson::BSONElement beOptions ;
-      bson::BSONObj comments ;
-
-      rc = bson::fromjson( create_info->comment.str, comments ) ;
-      if ( 0 != rc )
-      {
-         my_printf_error( rc,
-                          "Failed to parse comment: '%-.192s'",
-                          MYF(0), create_info->comment.str ) ;
-         goto error ;
-      }
-
-      beOptions = comments.getField( "table_options" ) ;
-      if ( beOptions.type() == bson::Object )
-      {
-         options = beOptions.embeddedObject().copy() ;
-         goto done ;
-      }
-      if ( beOptions.type() != bson::EOO )
-      {
-         rc = SDB_INVALIDARG ;
-         my_printf_error( rc,
-                          "Failed to parse cl_options!",
-                          MYF(0) ) ;
-         goto error ;
-      }
-   }
-
-   //TODO: get sdb_auto_split from configure
-   if ( !use_partition )
-   {
-      goto done ;
-   }
-   rc = get_sharding_key( form, sharding_key ) ;
-   if ( rc != 0 )
-   {
-      goto error ;
-   }
-   if ( !sharding_key.isEmpty() )
-   {
-      options = BSON( "ShardingKey" << sharding_key
-                      << "EnsureShardingIndex" << false
-                      << "Compressed" << true ) ;
-   }
-
 done:
    return rc ;
 error:
@@ -1626,10 +1785,6 @@ int ha_sdb::create( const char *name, TABLE *form,
    uint str_field_len = 0 ;
    sdb_conn_auto_ptr conn_tmp ;
    bson::BSONObj options ;
-   bson::BSONObj comments ;
-   my_bool use_partition ;
-
-   fd = ha_thd()->thread_id() ;
 
    for( Field **field = form->field ; *field ; field++ )
    {
@@ -1670,33 +1825,24 @@ int ha_sdb::create( const char *name, TABLE *form,
       goto error ;
    }
 
-   use_partition = SDB_CONF_INST->get_use_partition() ;
-   rc = get_cl_options( form, create_info, options, use_partition ) ;
-   if ( 0 != rc )
+   if ( create_info && create_info->comment.str )
    {
-      goto error ;
+      rc = bson::fromjson( create_info->comment.str, options ) ;
+      if ( 0 != rc )
+      {
+         goto error ;
+      }
    }
 
-   rc = SDB_CONN_MGR_INST->get_sdb_conn( ha_thd()->thread_id(),
-                                         conn_tmp ) ;
-   //rc = SDB_CONN_MGR_INST->get_sdb_conn( (my_thread_id)(ha_thd()->active_vio->mysql_socket.fd),
+   //rc = SDB_CONN_MGR_INST->get_sdb_conn( ha_thd()->thread_id(),
    //                                      conn_tmp ) ;
+   rc = SDB_CONN_MGR_INST->get_sdb_conn( (my_thread_id)(ha_thd()->active_vio->mysql_socket.fd),
+                                         conn_tmp ) ;
    if ( 0 != rc )
    {
       goto error ;
    }
-
-   //TODO: get sdb_auto_split from configure
-   if ( use_partition )
-   {
-      rc = conn_tmp->create_global_domain_cs( SDB_CONF_INST->get_global_domain_name(),
-                                              db_name ) ;
-   }
-   if ( rc != 0 )
-   {
-      goto error ;
-   }
-
+   
    rc = conn_tmp->create_cl( db_name, table_name, cl, options ) ;
    if ( 0 != rc )
    {
@@ -1704,21 +1850,11 @@ int ha_sdb::create( const char *name, TABLE *form,
    }
 
    connection = conn_tmp ;
-   //fd = ha_thd()->active_vio->mysql_socket.fd ;
-
-   for( uint i=0 ; i<form->s->keys; i++)
-   {
-      rc = sdb_create_index( form->s->key_info+i, cl ) ;
-      if ( 0 != rc )
-      {
-         goto error ;
-      }
-   }
+   fd = ha_thd()->active_vio->mysql_socket.fd ;
 
 done:
    return rc ;
 error:
-   convert_sdb_code( rc ) ;
    goto done ;
 }
 
@@ -1731,7 +1867,7 @@ THR_LOCK_DATA **ha_sdb::store_lock( THD *thd, THR_LOCK_DATA **to,
    //       if lock_type == TL_READ then lock the record by s-lock
    //       if lock_type == TL_WIRTE then lock the record by x-lock
 /*  if (lock_type != TL_IGNORE && lock_data.type == TL_UNLOCK) 
-  {*/
+  {
     /* 
       Here is where we get into the guts of a row level lock.
       If TL_UNLOCK is set 
@@ -1742,7 +1878,7 @@ THR_LOCK_DATA **ha_sdb::store_lock( THD *thd, THR_LOCK_DATA **to,
 /*    if ((lock_type >= TL_WRITE_CONCURRENT_INSERT &&
          lock_type <= TL_WRITE) && !thd_in_lock_tables(thd)
         && !thd_tablespace_op(thd))
-      lock_type = TL_WRITE_ALLOW_WRITE;*/
+      lock_type = TL_WRITE_ALLOW_WRITE;
 
     /* 
       In queries of type INSERT INTO t1 SELECT ... FROM t2 ...
@@ -1784,10 +1920,6 @@ const Item *ha_sdb::cond_push( const Item *cond )
       //TODO: build unanalysable condition
       remain_cond = NULL ;
    }
-   else
-   {
-      condition = sdbclient::_sdbStaticObject ;
-   }
 
 done:
    return remain_cond;
@@ -1796,11 +1928,6 @@ done:
 Item *ha_sdb::idx_cond_push(uint keyno, Item* idx_cond)
 {
    return idx_cond;
-}
-
-const char *ha_sdb::get_version()
-{
-   return sdb_ver_info ;
 }
 
 static handler *sdb_create_handler(handlerton *hton,
@@ -1815,8 +1942,7 @@ static handler *sdb_create_handler(handlerton *hton,
 static PSI_memory_info all_sdb_memory[] =
 {
    { &key_memory_sdb_share, "SDB_SHARE", PSI_FLAG_GLOBAL },
-   { &sdb_key_memory_conf_coord_addrs, "coord_addrs", PSI_FLAG_GLOBAL },
-   { &sdb_key_memory_blobroot, "blobroot", 0 }
+   { &sdb_key_memory_conf_coord_addrs, "coord_addrs", PSI_FLAG_GLOBAL }
 };
 
 static PSI_mutex_info all_sdb_mutexes[] = 
@@ -1860,10 +1986,10 @@ sdb_commit(
       goto done ;
    }
 
-   rc = SDB_CONN_MGR_INST->get_sdb_conn( thd->thread_id(),
-                                         connection ) ;
-   //rc = SDB_CONN_MGR_INST->get_sdb_conn( (my_thread_id)(thd->active_vio->mysql_socket.fd),
+   //rc = SDB_CONN_MGR_INST->get_sdb_conn( thd->thread_id(),
    //                                      connection ) ;
+   rc = SDB_CONN_MGR_INST->get_sdb_conn( (my_thread_id)(thd->active_vio->mysql_socket.fd),
+                                         connection ) ;
    if ( 0 != rc )
    {
       goto error ;
@@ -1904,10 +2030,10 @@ sdb_rollback(
       goto done ;
    }
 
-   rc = SDB_CONN_MGR_INST->get_sdb_conn( thd->thread_id(),
-                                         connection ) ;
-   //rc = SDB_CONN_MGR_INST->get_sdb_conn( (my_thread_id)(thd->active_vio->mysql_socket.fd),
+   //rc = SDB_CONN_MGR_INST->get_sdb_conn( thd->thread_id(),
    //                                      connection ) ;
+   rc = SDB_CONN_MGR_INST->get_sdb_conn( (my_thread_id)(thd->active_vio->mysql_socket.fd),
+                                         connection ) ;
    if ( 0 != rc )
    {
       goto error ;
@@ -1945,9 +2071,7 @@ static int sdb_init_func(void *p)
                      | HTON_NO_PARTITION ) ;
    sdb_hton->commit = sdb_commit ;
    sdb_hton->rollback = sdb_rollback ;
-   SDB_CONF_INST->parse_conn_addrs( sdb_addr ) ;
-   SDB_CONF_INST->set_use_partition( sdb_use_partition ) ;
-   return 0 ;
+   return SDB_CONF_INST->parse_conn_addrs( sdb_addr ) ;
 }
 
 static int sdb_done_func(void *p)
@@ -1975,17 +2099,6 @@ static int sdb_conn_addrs_validate( THD * thd,
    return SDB_CONF_INST->parse_conn_addrs( conn_addr_tmp ) ;
 }
 
-static void sdb_use_partition_update( THD * thd,
-                                       struct st_mysql_sys_var *var,
-                                       void *save,
-                                       const void *value )
-{
-   my_bool use_partition = *static_cast<my_bool*>(save)
-      = *static_cast<const my_bool*>(value) ;
-
-   SDB_CONF_INST->set_use_partition( use_partition ) ;
-}
-
 static struct st_mysql_storage_engine sdb_storage_engine=
 { MYSQL_HANDLERTON_INTERFACE_VERSION };
 
@@ -1994,44 +2107,10 @@ static MYSQL_SYSVAR_STR( conn_addr, sdb_addr,
                            "Sequoiadb addr",
                            sdb_conn_addrs_validate,
                            NULL, SDB_ADDR_DFT ) ;
-static MYSQL_SYSVAR_BOOL( use_partition, sdb_use_partition,
-                           PLUGIN_VAR_BOOL|PLUGIN_VAR_MEMALLOC,
-                           "create partition table on sequoiadb",
-                           NULL, sdb_use_partition_update,
-                           SDB_USE_PARTITION_DFT ) ;
-
 static struct st_mysql_sys_var *sdb_vars[]={
    MYSQL_SYSVAR(conn_addr),
-   MYSQL_SYSVAR(use_partition),
    NULL
 };
-
-static char * get_sdb_plugin_info()
-{
-#ifdef SDB_ENTERPRISE
-   #define SDB_ENG_INFO          "SequoiaDB storage engine(Enterprise). "
-#else
-   #define SDB_ENG_INFO          "SequoiaDB storage engine(Community). "
-#endif
-   static char sdb_plugin_info[256] = SDB_ENG_INFO ;
-   char *pPos = &sdb_plugin_info[strlen(SDB_ENG_INFO)] ;
-   const char *pVersion = &sdb_ver_info[strlen(SDB_VER_INFO_NAME)] ;
-   const char *pTmp = strchr( pVersion, '_' ) ;
-   if ( pTmp != NULL )
-   {
-#define SDB_COMMENT              "Sequoiadb:"
-#define SDB_PLUGIN_COMMENT       ", Plugin:"
-      strncpy( pPos, SDB_COMMENT, strlen(SDB_COMMENT) ) ;
-      pPos += strlen(SDB_COMMENT) ;
-      strncpy( pPos, pVersion, pTmp - pVersion ) ;
-      pPos += pTmp - pVersion ;
-      strncpy( pPos, SDB_PLUGIN_COMMENT, strlen(SDB_PLUGIN_COMMENT) ) ;
-      pPos += strlen(SDB_PLUGIN_COMMENT) ;
-      strncpy( pPos, pTmp + 1, strlen(pTmp+1) ) ;
-      pPos[strlen(pTmp+1)] = 0 ;
-   }
-   return sdb_plugin_info ;
-}
 
 mysql_declare_plugin(sequoiadb)
 {
@@ -2039,7 +2118,7 @@ mysql_declare_plugin(sequoiadb)
   &sdb_storage_engine,
   "SequoiaDB",
   "Jianhua Li, SequoiaDB",
-  get_sdb_plugin_info(),
+  "SequoiaDB storage engine",
   PLUGIN_LICENSE_GPL,
   sdb_init_func, /* Plugin Init */
   sdb_done_func, /* Plugin Deinit */

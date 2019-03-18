@@ -31,7 +31,6 @@
 #ifndef EXP_OPTIONS_HPP_
 #define EXP_OPTIONS_HPP_
 
-//#include "core.hpp"
 #include "oss.hpp"
 #include "expCL.hpp"
 #include <boost/program_options.hpp>
@@ -48,7 +47,6 @@ namespace exprt
       FORMAT_CSV = 0,
       FORMAT_JSON,
 
-      // new format here
 
       FORMAT_COUNT
    } ;
@@ -59,10 +57,7 @@ namespace exprt
    public :
       expOptions() ;
       ~expOptions() ;
-      // parse command-line, confifure-file will be parsed inside of parseCmd
-      // when option '--conf' is specified in command-line
       INT32   parseCmd( INT32 argc, CHAR* argv[] ) ;
-      // write options to configure-file which specified by option '--genconf' 
       INT32   writeToConf( const expCLSet &clSet ) ;
       void    printHelpInfo() const ;
       BOOLEAN hasHelp() const ;
@@ -78,8 +73,6 @@ namespace exprt
       inline const string &typeName()     const { return _typeName ; }
       inline const string &genConf()      const { return _genConf ; }
       inline const string &conf()         const { return _conf ; }
-      //inline const string &csName()       const { return _csName ; }
-      //inline const string &clName()       const { return _clName ; }
       inline const string &cscl()         const { return _cscl ; }
       inline const string &excludeCscl()  const { return _excludeCscl ; }
       inline const string &select()       const { return _select ; }

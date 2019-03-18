@@ -178,13 +178,11 @@ namespace engine
 
       try
       {
-         // let's see if it's what we want
          if ( getMatchTree() && getMatchTree()->isInitialized() )
          {
             rc = getMatchTree()->matches ( result, isMatch ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to match record, rc: %d", rc ) ;
          }
-         // if it matches
          if ( isMatch )
          {
             if ( _numToSkip > 0 )
@@ -193,7 +191,6 @@ namespace engine
                goto done ;
             }
 
-            // if we don't want all fields, let's select the interested fields
             if ( _selector.isInitialized() )
             {
                rc = _selector.select ( result, tempObj ) ;
@@ -270,7 +267,6 @@ namespace engine
                goto error ;
             }
 
-            /// add to context
             rc = monAppend( obj ) ;
             if ( rc )
             {

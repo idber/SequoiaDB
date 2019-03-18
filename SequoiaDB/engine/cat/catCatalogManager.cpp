@@ -245,13 +245,11 @@ namespace engine
          goto error ;
       }
 
-      // get collection space all groups
       rc = catGetCSGroupsFromCLs( csName, _pEduCB, groups, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Get collection space[%s] all groups failed, "
                    "rc: %d", csName, rc ) ;
 
       builder.appendElements( boSpace ) ;
-      // add group info
       _pCatCB->makeGroupsObj( builder, groups, TRUE ) ;
 
       ctxBuf = rtnContextBuf( builder.obj() ) ;
@@ -263,7 +261,6 @@ namespace engine
       goto done ;
    }
 
-   // this function is for catalog collection check
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGMGR_QUERYCATALOG, "catCatalogueManager::processQueryCatalogue" )
    INT32 catCatalogueManager::processQueryCatalogue ( const NET_HANDLE &handle,
                                                       MsgHeader *pMsg )
@@ -274,7 +271,6 @@ namespace engine
       MsgOpReply *pReply               = NULL;
       BOOLEAN isDelay                  = FALSE ;
 
-      // primary check
       rc = _pCatCB->primaryCheck( _pEduCB, TRUE, isDelay ) ;
       if ( isDelay )
       {
@@ -287,14 +283,12 @@ namespace engine
          goto error ;
       }
 
-      // sanity check, header can't be too small
       PD_CHECK ( pCatReq->header.messageLength >=
                  (INT32)sizeof(MsgCatQueryCatReq),
                  SDB_INVALIDARG, error, PDERROR,
                  "received unexpected query catalogue request, "
                  "message length(%d) is invalid",
                  pCatReq->header.messageLength ) ;
-      // extract and query
       try
       {
          CHAR *pCollectionName = NULL ;
@@ -314,8 +308,6 @@ namespace engine
          BSONObj hint(pHint);
          PD_RC_CHECK ( rc, PDERROR,
                        "Failed to extract message, rc = %d", rc ) ;
-         // perform catalog query, result buffer will be placed in pReply, and
-         // we are responsible to free it by end of the function
          rc = catQueryAndGetMore ( &pReply, CAT_COLLECTION_INFO_COLLECTION,
                                    selector, matcher, orderBy, hint, flag,
                                    _pEduCB, numToSkip, numToReturn ) ;
@@ -324,10 +316,6 @@ namespace engine
          if ( 0 == ossStrcmp( matcher.firstElementFieldName(),
                               CAT_CATALOGNAME_NAME ) )
          {
-            // check for how many records were returned
-            // need to make sure returned record must be one
-            // 1) if returned = 0, it means collection does not exist
-            // 2) if returned > 1, it means possible catalog corruption
             PD_CHECK ( pReply->numReturned >= 1, SDB_DMS_NOTEXIST, error,
                        PDWARNING, "Collection does not exist:%s",
                        matcher.toString().c_str() ) ;
@@ -408,7 +396,6 @@ namespace engine
       CHAR *pCollectionName            = NULL ;
       BOOLEAN isDelay                  = FALSE ;
 
-      // primary check
       rc = _pCatCB->primaryCheck( _pEduCB, TRUE, isDelay ) ;
       if ( isDelay )
       {
@@ -421,7 +408,6 @@ namespace engine
          goto error ;
       }
 
-      // sanity check, the query length should be at least header size
       PD_CHECK ( pTaskRequest->header.messageLength >=
                  (INT32)sizeof(MsgCatQueryTaskReq),
                  SDB_INVALIDARG, error, PDERROR,
@@ -431,7 +417,6 @@ namespace engine
 
       try
       {
-         // extract the request message
          rc = msgExtractQuery ( (CHAR*)pTaskRequest, &flag, &pCollectionName,
                                 &numToSkip, &numToReturn, &pQuery,
                                 &pFieldSelector, &pOrderBy, &pHint ) ;
@@ -441,16 +426,12 @@ namespace engine
          BSONObj hint ( pHint ) ;
          PD_RC_CHECK ( rc, PDERROR,
                        "Failed to extract message, rc = %d", rc ) ;
-         // pReply will be allocated by catQueryAndGetMore, we are
-         // responsible to free the memory
          rc = catQueryAndGetMore ( &pReply, CAT_TASK_INFO_COLLECTION,
                                    selector, matcher, orderBy, hint, flag,
                                    _pEduCB, numToSkip, numToReturn ) ;
          PD_RC_CHECK ( rc, PDERROR,
                        "Failed to perform query from catalog, rc = %d", rc ) ;
 
-         // If there's no task satisfy the request, let's return SDB_CAT_TASK_NOTFOUND,
-         // otherwise return all tasks satisfy the request
          PD_CHECK ( pReply->numReturned >= 1, SDB_CAT_TASK_NOTFOUND, error,
                     PDINFO, "Task does not exist" ) ;
       }
@@ -460,7 +441,6 @@ namespace engine
                        "Exception when extracting query task: %s",
                        e.what() ) ;
       }
-      // construct reply header to match the request
       pReply->header.opCode        = MSG_CAT_QUERY_TASK_RSP ;
       pReply->header.TID           = pTaskRequest->header.TID ;
       pReply->header.requestID     = pTaskRequest->header.requestID ;
@@ -475,7 +455,6 @@ namespace engine
          }
          else
          {
-            // if something wrong happened, return a reply with rc
             MsgOpReply replyMsg;
             replyMsg.header.messageLength = sizeof( MsgOpReply );
             replyMsg.header.opCode        = MSG_CAT_QUERY_TASK_RSP ;
@@ -559,7 +538,6 @@ namespace engine
               MSG_CAT_SPLIT_CLEANUP_REQ == opCode ||
               MSG_CAT_SPLIT_FINISH_REQ == opCode )
          {
-            // Get the task ID
             rc = rtnGetNumberLongElement( boQuery, CAT_TASKID_NAME,
                                           (INT64 &)taskID ) ;
             PD_RC_CHECK( rc, PDERROR,
@@ -572,14 +550,12 @@ namespace engine
                     opCode, taskID ) ;
          }
 
-         // dispatch
          switch ( opCode )
          {
             case MSG_CAT_SPLIT_PREPARE_REQ :
                rc = catSplitPrepare( boQuery, _pEduCB, returnGroupID, returnVersion ) ;
                break ;
             case MSG_CAT_SPLIT_READY_REQ :
-               // Generate task ID
                taskID = _taskMgr.getTaskID() ;
                rc = catSplitReady( boQuery, taskID, _pEduCB, w, returnGroupID, returnVersion ) ;
                break ;
@@ -607,7 +583,6 @@ namespace engine
                       "Failed to split collection, opCode: %d, rc: %d",
                       opCode, rc ) ;
 
-         // Generate reply message
          if ( CAT_INVALID_GROUPID != returnGroupID )
          {
             BSONObjBuilder replyBuild ;
@@ -640,11 +615,9 @@ namespace engine
       return rc ;
 
    error:
-      // Cleanup the task ( ONLY for canceled task )
       if ( CLS_INVALID_TASKID != taskID &&
            SDB_TASK_HAS_CANCELED == rc )
       {
-         // rollback transaction before remove task
          INT32 tmpRC = catTransEnd( rc, _pEduCB, _pDpsCB ) ;
          if ( SDB_OK != tmpRC )
          {
@@ -684,7 +657,6 @@ namespace engine
       {
          BSONElement ele = it.next() ;
 
-         // name
          if ( 0 == ossStrcmp( ele.fieldName(), CAT_COLLECTION_SPACE_NAME ) )
          {
             PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
@@ -693,7 +665,6 @@ namespace engine
             csInfo._pCSName = ele.valuestr() ;
             ++expected ;
          }
-         // page size
          else if ( 0 == ossStrcmp( ele.fieldName(), CAT_PAGE_SIZE_NAME ) )
          {
             PD_CHECK( ele.isNumber(), SDB_INVALIDARG, error, PDERROR,
@@ -704,7 +675,6 @@ namespace engine
                csInfo._pageSize = ele.numberInt() ;
             }
 
-            // check size value
             PD_CHECK ( csInfo._pageSize == DMS_PAGE_SIZE4K ||
                        csInfo._pageSize == DMS_PAGE_SIZE8K ||
                        csInfo._pageSize == DMS_PAGE_SIZE16K ||
@@ -713,7 +683,6 @@ namespace engine
                        error, PDERROR, "PageSize must be 4K/8K/16K/32K/64K" ) ;
             ++expected ;
          }
-         // domain name
          else if ( 0 == ossStrcmp( ele.fieldName(), CAT_DOMAIN_NAME ) )
          {
             PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDERROR,
@@ -722,7 +691,6 @@ namespace engine
             csInfo._domainName = ele.valuestr() ;
             ++expected ;
          }
-         // lob page size
          else if ( 0 == ossStrcmp( ele.fieldName(), CAT_LOB_PAGE_SZ_NAME ) )
          {
             PD_CHECK( ele.isNumber(), SDB_INVALIDARG, error, PDERROR,
@@ -744,7 +712,6 @@ namespace engine
                        error, PDERROR, "PageSize must be 4K/8K/16K/32K/64K/128K/256K/512K" ) ;
             ++expected ;
          }
-         // capped option
          else if ( 0 == ossStrcmp( ele.fieldName(), CAT_CAPPED_NAME ) )
          {
             PD_CHECK( ele.isBoolean(), SDB_INVALIDARG, error, PDERROR,
@@ -814,7 +781,6 @@ namespace engine
 
       catCtxLockMgr lockMgr ;
 
-      // check cs obj
       rc = _checkCSObj( createObj, csInfo ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Check create collection space obj [%s] failed, rc: %d",
@@ -824,13 +790,11 @@ namespace engine
 
       PD_TRACE1 ( SDB_CATALOGMGR_CREATECS, PD_PACK_STRING ( csName ) ) ;
 
-      // name check
       rc = dmsCheckCSName( csName ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Check collection space name [%s] failed, rc: %d",
                    csName, rc ) ;
 
-      // check collection space is whether existed or not
       rc = catCheckSpaceExist( csName, isSpaceExist, spaceObj, _pEduCB ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to check existence of collection space [%s], rc: %d",
@@ -841,13 +805,11 @@ namespace engine
                 "Collection space [%s] is already existed",
                 csName ) ;
 
-      // Lock collection space
       PD_CHECK( lockMgr.tryLockCollectionSpace( csName, EXCLUSIVE ),
                 SDB_LOCK_FAILED, error, PDERROR,
                 "Failed to lock collection space [%s]",
                 csName ) ;
 
-      // check domain name
       if ( domainName )
       {
          PD_TRACE1 ( SDB_CATALOGMGR_CREATECS, PD_PACK_STRING ( domainName ) ) ;
@@ -868,7 +830,6 @@ namespace engine
             rc = catGroupID2Name( domainGroups[i], strGroupName, _pEduCB ) ;
             PD_RC_CHECK( rc, PDERROR, "Group id [%u] to group name failed, "
                          "rc: %d", domainGroups[i], rc ) ;
-            // Lock data group in this domain
             PD_CHECK( lockMgr.tryLockGroup( strGroupName, SHARED ),
                       SDB_LOCK_FAILED, error, PDERROR,
                       "Failed to lock group [%s]",
@@ -876,14 +837,12 @@ namespace engine
          }
       }
 
-      // Try to assign group to test the available of Data groups
       rc = _assignGroup( &domainGroups, groupID ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Assign group for collection space [%s] failed, rc: %d",
                    csName, rc ) ;
       catGroupID2Name( groupID, strGroupName, _pEduCB ) ;
 
-      // insert new Collection Space record
       {
          BSONObjBuilder newBuilder ;
          newBuilder.appendElements( csInfo.toBson() ) ;
@@ -924,7 +883,6 @@ namespace engine
 
       switch ( pMsg->opCode )
       {
-      // command dispatch, need the second dispath in the function
       case MSG_CAT_CREATE_COLLECTION_REQ :
       case MSG_CAT_DROP_COLLECTION_REQ :
       case MSG_CAT_CREATE_COLLECTION_SPACE_REQ :
@@ -947,7 +905,6 @@ namespace engine
       case MSG_CAT_CREATE_IDX_REQ :
       case MSG_CAT_DROP_IDX_REQ :
          {
-            // up commands is run in cluster acitve status
             _pCatCB->getCatDCMgr()->setWritedCommand( TRUE ) ;
             rc = processCommandMsg( handle, pMsg, TRUE ) ;
             break;
@@ -1006,7 +963,6 @@ namespace engine
 
       BOOLEAN delayLockFailed = TRUE ;
 
-      // init reply msg
       replyHeader.header.messageLength = sizeof( MsgOpReply ) ;
       replyHeader.contextID = -1 ;
       replyHeader.flags = SDB_OK ;
@@ -1023,7 +979,6 @@ namespace engine
          _pCatCB->getCatDCMgr()->setWritedCommand( FALSE ) ;
       }
 
-      // extract msg
       rc = msgExtractQuery( (CHAR*)pMsg, &flag, &pCMDName, &numToSkip,
                             &numToReturn, &pQuery, &pFieldSelector,
                             &pOrderBy, &pHint ) ;
@@ -1031,7 +986,6 @@ namespace engine
 
       if ( writable )
       {
-         // primary check
          BOOLEAN isDelay = FALSE ;
          rc = _pCatCB->primaryCheck( _pEduCB, TRUE, isDelay ) ;
          if ( isDelay )
@@ -1054,7 +1008,6 @@ namespace engine
          goto error ;
       }
 
-      // the second dispatch msg
       switch ( pQueryReq->header.opCode )
       {
          case MSG_CAT_CREATE_COLLECTION_SPACE_REQ :
@@ -1067,8 +1020,6 @@ namespace engine
          case MSG_CAT_SPLIT_CHGMETA_REQ :
          case MSG_CAT_SPLIT_CLEANUP_REQ :
          case MSG_CAT_SPLIT_FINISH_REQ :
-            // No delay for lock failed, since split task has lower priority to
-            // process data, if lock failed the collection might be being dropped
             delayLockFailed = FALSE ;
             rc = processCmdSplit( pQuery, pQueryReq->header.opCode,
                                   ctxBuff ) ;
@@ -1130,7 +1081,6 @@ namespace engine
             break ;
       }
 
-      // Process lock failed error first
       if ( SDB_LOCK_FAILED == rc && delayLockFailed )
       {
          goto lock_failed ;
@@ -1147,7 +1097,6 @@ namespace engine
 
       if ( !_pCatCB->isDelayed() )
       {
-         // send reply
          if ( 0 == ctxBuff.size() )
          {
             rc = _pCatCB->sendReply( handle, &replyHeader, rc ) ;
@@ -1164,7 +1113,6 @@ namespace engine
       return rc ;
 
    lock_failed:
-      // Lock failed, then try to delay operation
       if ( !_pCatCB->delayCurOperation() )
       {
          rc = SDB_LOCK_FAILED ;
@@ -1172,7 +1120,6 @@ namespace engine
       }
       else
       {
-         // Ignore the lock error
          rc = SDB_OK ;
       }
       goto done ;
@@ -1208,7 +1155,6 @@ namespace engine
 
       catCtxLockMgr lockMgr ;
 
-      // first extract pQuery and find the options
       try
       {
          BSONObj tempObj ;
@@ -1220,7 +1166,6 @@ namespace engine
          const CHAR *pDomainName = NULL ;
          INT32 expectedObjSize   = 0 ;
 
-         // find out the domain name
          BSONElement beDomainName = boQuery.getField ( CAT_DOMAINNAME_NAME ) ;
          PD_CHECK( beDomainName.type() == String,
                    SDB_INVALIDARG, error, PDERROR,
@@ -1231,7 +1176,6 @@ namespace engine
 
          PD_TRACE1 ( SDB_CATALOGMGR_CREATEDOMAIN, PD_PACK_STRING(pDomainName) ) ;
 
-         // domain name validation
          rc = catDomainNameValidate ( pDomainName ) ;
          PD_CHECK ( SDB_OK == rc,
                     rc, error, PDERROR,
@@ -1240,13 +1184,11 @@ namespace engine
          ob.append ( CAT_DOMAINNAME_NAME, pDomainName ) ;
          expectedObjSize ++ ;
 
-         // Lock domain
          PD_CHECK( lockMgr.tryLockDomain( pDomainName, EXCLUSIVE ),
                    SDB_LOCK_FAILED, error, PDERROR,
                    "Failed to lock domain[%s]",
                    pDomainName ) ;
 
-         // options validation
          beDomainOptions = boQuery.getField ( CAT_OPTIONS_NAME ) ;
          if ( !beDomainOptions.eoo() && beDomainOptions.type() != Object )
          {
@@ -1254,7 +1196,6 @@ namespace engine
                      "Invalid options type, expected eoo or object" ) ;
             rc = SDB_INVALIDARG ;
          }
-         // if we provide options, let's extract each option
          if ( beDomainOptions.type() == Object )
          {
             vector< string > vecGroups ;
@@ -1271,14 +1212,12 @@ namespace engine
 
             if ( !vecGroups.empty() )
             {
-               // check group is active or not
                rc = catCheckGroupsByName( vecGroups ) ;
                PD_RC_CHECK( rc, PDERROR,
                             "Failed to check groups for domain [%s], rc: %d",
                             pDomainName, rc ) ;
             }
 
-            // Lock data group which will be assigned to this domain
             for ( UINT32 i = 0 ; i < vecGroups.size() ; ++i )
             {
                PD_CHECK( lockMgr.tryLockGroup( vecGroups[i], SHARED ),
@@ -1288,7 +1227,6 @@ namespace engine
             }
          }
 
-         // sanity check for garbage fields
          if ( boQuery.nFields() != expectedObjSize )
          {
             PD_LOG ( PDERROR,
@@ -1297,14 +1235,11 @@ namespace engine
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-         // checks are done, let's insert into collection
          insertObj = ob.obj () ;
          rc = rtnInsert ( CAT_DOMAIN_COLLECTION, insertObj, 1,
                           0, _pEduCB ) ;
          if ( rc )
          {
-            // if there's duplicate key exception, that means the domain is
-            // already exist
             if ( SDB_IXM_DUP_KEY == rc )
             {
                PD_LOG ( PDERROR,
@@ -1348,7 +1283,6 @@ namespace engine
 
       catCtxLockMgr lockMgr ;
 
-      // first extract pQuery and find the options
       try
       {
          BSONObj tempObj ;
@@ -1356,7 +1290,6 @@ namespace engine
          BSONObj resultObj ;
          BSONObj boQuery( pQuery );
 
-         // find out the domain name
          BSONElement beDomainName = boQuery.getField( CAT_DOMAINNAME_NAME );
          PD_CHECK( beDomainName.type() == String,
                    SDB_INVALIDARG, error, PDERROR,
@@ -1367,11 +1300,7 @@ namespace engine
 
          PD_TRACE1 ( SDB_CATALOGMGR_DROPDOMAIN, PD_PACK_STRING(pDomainName) ) ;
 
-         // validate the domain is not empty by searching SYSCOLLECTIONSPACES
-         // for {Domain} field matches pDomainName
          queryObj = BSON ( CAT_DOMAIN_NAME << pDomainName ) ;
-         // context will be closed when rc == 0, otherwise it should already be
-         // closed in the function
          rc = catGetOneObj ( CAT_COLLECTION_SPACE_COLLECTION, tempObj,
                              queryObj, tempObj, _pEduCB, resultObj ) ;
          if ( SDB_DMS_EOC != rc )
@@ -1394,18 +1323,14 @@ namespace engine
             }
          }
 
-         // Lock domain
          PD_CHECK( lockMgr.tryLockDomain( pDomainName, EXCLUSIVE ),
                    SDB_LOCK_FAILED, error, PDERROR,
                    "Failed to lock domain [%s]",
                    pDomainName ) ;
 
-         // if we cannot find any record with given domain name, that's expected
-         // attempt to delete from the SYSDOMAINS
          queryObj = BSON ( CAT_DOMAINNAME_NAME << pDomainName ) ;
          rc = rtnDelete ( CAT_DOMAIN_COLLECTION, queryObj,
                           tempObj, 0, _pEduCB, &numDeleted ) ;
-         // if something wrong happened
          if ( rc )
          {
             PD_LOG ( PDERROR,
@@ -1413,7 +1338,6 @@ namespace engine
                      pDomainName, rc ) ;
             goto error ;
          }
-         // if delete is fine but we didn't find anything
          if ( 0 == numDeleted )
          {
             PD_LOG ( PDERROR,
@@ -1458,8 +1382,6 @@ namespace engine
 
       catCtxLockMgr lockMgr ;
 
-      /// 1. be sure that the request is legal.
-      /// 2. update the record of this domain.
 
       eleDomainName = alterObj.getField( CAT_DOMAINNAME_NAME ) ;
       if ( String != eleDomainName.type() )
@@ -1504,14 +1426,12 @@ namespace engine
 
       if ( !vecGroups.empty() )
       {
-         // check group is active or not
          rc = catCheckGroupsByName( vecGroups ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to check groups for domain [%s], rc: %d",
                       pDomainName, rc ) ;
       }
 
-      // Lock data group which will be assigned to this domain
       for ( UINT32 i = 0 ; i < vecGroups.size() ; ++i )
       {
          PD_CHECK( lockMgr.tryLockGroup( vecGroups[i], SHARED ),
@@ -1591,7 +1511,6 @@ namespace engine
       for ( ; itr != groupsInDomain.end(); itr++ )
       {
          BOOLEAN found = FALSE ;
-         /// ele mst be a array. we checked it in processCmdAlterDomain.
          BSONObjIterator i( groupsInReq.embeddedObject() ) ;
          while ( i.more() )
          {
@@ -1651,7 +1570,6 @@ namespace engine
       rc = catGetDomainGroups( domain, groupsInDomain ) ;
       if ( SDB_CAT_NO_GROUP_IN_DOMAIN == rc )
       {
-         /// empty domain
          rc = SDB_OK ;
       }
       else if ( SDB_OK != rc )
@@ -1660,8 +1578,6 @@ namespace engine
          goto error ;
       }
 
-      /// be sure that no data(of this domain) on the group witch will be remove from domain.
-      /// the groups will be added to domain are checked at before.
       rc = _findGroupWillBeRemoved( groupsInDomain,
                                     ele,
                                     toBeRemoved ) ;
@@ -1676,7 +1592,6 @@ namespace engine
          objToBeRemoved = arrBuilder.arr() ;
          vector< string > collectionSpaces ;
 
-         /// Get collection spaces for domain
          rc = catGetDomainCSs ( domain, _pEduCB, collectionSpaces ) ;
          if ( SDB_OK != rc )
          {
@@ -1686,9 +1601,6 @@ namespace engine
          }
          for ( UINT32 i = 0 ; i < collectionSpaces.size() ; ++i )
          {
-            /// For each collection space:
-            /// 1. Get groups from collections
-            /// 2. Get groups under splitting tasks
             vector< UINT32 > groups ;
             rc = catGetCSGroupsFromCLs( collectionSpaces[i].c_str(),
                                         _pEduCB,
@@ -1703,7 +1615,6 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR,
                          "Get collection space[%s] all groups in task failed, "
                          "rc: %d", collectionSpaces[i].c_str(), rc ) ;
-            /// Check whether the groups to be removed have data
             if ( 0 == groups.size() )
             {
                continue ;

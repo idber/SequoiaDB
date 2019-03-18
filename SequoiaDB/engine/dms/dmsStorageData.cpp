@@ -100,10 +100,8 @@ namespace engine
 
       try
       {
-         // Step 1: Prepare the data, add OID and compress if necessary.
          recordData.setData( record.objdata(), record.objsize(),
                              FALSE, TRUE ) ;
-         // verify whether the record got "_id" inside
          BSONElement ele = record.getField( DMS_ID_KEY_NAME ) ;
          const CHAR *pCheckErr = "" ;
          if ( !dmsIsRecordIDValid( ele, TRUE, &pCheckErr ) )
@@ -113,7 +111,6 @@ namespace engine
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-         // judge must oid
          if ( mustOID && ele.eoo() )
          {
             oid._oid.init() ;
@@ -125,7 +122,6 @@ namespace engine
                        oidEle.size() + record.objsize(), rc ) ;
                goto error ;
             }
-            /// copy to new data
             *(UINT32*)pMergedData = oidEle.size() + record.objsize() ;
             ossMemcpy( pMergedData + sizeof(UINT32), oidEle.rawdata(),
                        oidEle.size() ) ;
@@ -206,7 +202,6 @@ namespace engine
 
       SDB_ASSERT ( !recordData.isEmpty(), "recordData can't be empty" ) ;
 
-      // Check the new object size
       if ( newObj.objsize() + DMS_RECORD_METADATA_SZ > DMS_RECORD_USER_MAX_SZ )
       {
          PD_LOG ( PDERROR, "record is too big: %d", newObj.objsize() ) ;
@@ -231,7 +226,6 @@ namespace engine
                                 FALSE, TRUE ) ;
          dmsRecordSize = newRecordData.len() ;
 
-         // compress data
          if ( compressorEntry->ready() )
          {
             INT32 compressedDataSize     = 0 ;
@@ -241,28 +235,22 @@ namespace engine
                               newObj, NULL, 0,
                               &compressedData, &compressedDataSize,
                               compressRatio ) ;
-            // Compression is valid and ratio is less the threshold
             if ( SDB_OK == rc &&
                  compressedDataSize + sizeof(UINT32) < newRecordData.orgLen() &&
                  compressRatio < DMS_COMPRESS_RATIO_THRESHOLD )
             {
-               // 4 bytes len + compressed record
                dmsRecordSize = compressedDataSize + sizeof(UINT32) ;
                PD_TRACE2 ( SDB__DMSSTORAGEDATA__EXTENTUPDATERECORD,
                            PD_PACK_STRING ( "size after compress" ),
                            PD_PACK_UINT ( dmsRecordSize ) ) ;
 
-               // set the compression data
                newRecordData.setData( compressedData, compressedDataSize,
                                       TRUE, FALSE ) ;
             }
          }
 
-         // add metadata to size
          dmsRecordSize += DMS_RECORD_METADATA_SZ ;
          {
-            // before moving on, let's first make sure the new object doesn't
-            // violate any index unique rule
             BSONObj oriObj( recordData.data() ) ;
             BSONObj newObj( newRecordData.orgData() ) ;
             rc = _pIdxSU->indexesUpdate( context, pExtent->_logicID,
@@ -286,8 +274,6 @@ namespace engine
             pOvfRecord = ovfRW.writePtr( 0 ) ;
          }
 
-         // if the current space is big enough for the whole record,
-         // let's put it here and return rightaway
          if ( dmsRecordSize <= pRecord->getSize() )
          {
             pRecord->setData( newRecordData ) ;
@@ -298,7 +284,6 @@ namespace engine
                _extentRemoveRecord( context, ovfExtRW, ovfRW, cb, FALSE ) ;
                pRecord->setNormal() ;
             }
-            /// sub the remove data info
             context->mbStat()->_totalDataLen -= recordData.orgLen() ;
             context->mbStat()->_totalOrgDataLen -= recordData.len() ;
             context->mbStat()->_totalDataLen += newRecordData.len() ;
@@ -309,14 +294,12 @@ namespace engine
          {
             pOvfRecord->setData( newRecordData ) ;
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
-            /// sub the remove data info
             context->mbStat()->_totalDataLen -= recordData.orgLen() ;
             context->mbStat()->_totalOrgDataLen -= recordData.len() ;
             context->mbStat()->_totalDataLen += newRecordData.len() ;
             context->mbStat()->_totalOrgDataLen += newRecordData.orgLen() ;
             goto done ;
          }
-         // over-flow recrod
          else
          {
             dmsRecordID foundDeletedID ;
@@ -326,14 +309,11 @@ namespace engine
             dmsRecord *pNewRecord = NULL ;
 
             dmsRecordSize -= DMS_RECORD_METADATA_SZ ;
-            // get the recordsize that we have to allocate
             _overflowSize( dmsRecordSize ) ;
             dmsRecordSize += DMS_RECORD_METADATA_SZ ;
-            // record is ALWAYS 4 bytes aligned
             dmsRecordSize = OSS_MIN( DMS_RECORD_MAX_SZ,
                                      ossAlignX ( dmsRecordSize, 4 ) ) ;
 
-            // find a free spot from delete list
             rc = _reserveFromDeleteList ( context, dmsRecordSize,
                                           foundDeletedID, cb ) ;
             if ( rc )
@@ -353,8 +333,6 @@ namespace engine
                rc = SDB_SYS ;
                goto error ;
             }
-            // pass FALSE to addIntoList so that we don't add the record into
-            // target extent's list
             rc = _extentInsertRecord ( context, newExtRW, newRecordRW,
                                        newRecordData, dmsRecordSize,
                                        cb, FALSE ) ;
@@ -363,18 +341,14 @@ namespace engine
                PD_LOG ( PDERROR, "Failed to append record due to %d", rc ) ;
                goto error ;
             }
-            // set remote record as overflowed to
             pNewRecord->setOvt() ;
             pRecord->setOvf() ;
             pRecord->setOvfRID( foundDeletedID ) ;
             if ( ovfRID.isValid() )
             {
-               // overflowed record removal is done here, and it will mark the
-               // segment dirty in the function
                _extentRemoveRecord( context, ovfExtRW, ovfRW, cb, FALSE ) ;
             }
 
-            /// sub the remove data info
             context->mbStat()->_totalDataLen -= recordData.orgLen() ;
             context->mbStat()->_totalOrgDataLen -= recordData.len() ;
          }
@@ -394,7 +368,6 @@ namespace engine
       {
          BSONObj oriObj( recordData.data() ) ;
          BSONObj newObj( newRecordData.orgData() ) ;
-         // rollback the change on index by switching obj and oriObj
          INT32 rc1 = _pIdxSU->indexesUpdate( context, pExtent->_logicID,
                                              newObj, oriObj,
                                              recordRW.getRecordID(),
@@ -432,8 +405,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
    retry:
-      // let's count which delete slots it fits
-      // divide by 32 first since our first slot is for <32 bytes
       dmsRecordSizeTemp = ( requiredSize-1 ) >> 5 ;
       deleteRecordSlot  = 0 ;
       while ( dmsRecordSizeTemp != 0 )
@@ -456,11 +427,9 @@ namespace engine
          for ( j = deleteRecordSlot ; j < dmsMB::_max ; ++j )
          {
             dmsRecordRW preRW ;
-            // get the first delete record from delete list
             foundDeletedID = _dmsMME->_mbList[context->mbID()]._deleteList[j] ;
             for ( i = 0 ; i < s_maxSearch ; ++i )
             {
-               // if we don't get a valid record id, we break to get next slot
                if ( foundDeletedID.isNull() )
                {
                   break ;
@@ -468,8 +437,6 @@ namespace engine
                delRecordRW = record2RW( foundDeletedID, context->mbID() ) ;
                pRead = delRecordRW.readPtr<dmsDeletedRecord>() ;
 
-               // once the extent is valid, let's check the record is deleted
-               // and got sufficient size for us
                if( pRead->isDeleted() && pRead->getSize() >= requiredSize )
                {
                   if ( SDB_OK == pTransCB->transLockTestX( cb, _logicalCSID,
@@ -478,18 +445,15 @@ namespace engine
                   {
                      if ( preRW.isEmpty() )
                      {
-                        // it's just the first one from delete list, let's get it
                         context->mb()->_deleteList[j] = pRead->getNextRID() ;
                      }
                      else
                      {
                         dmsDeletedRecord *preWrite =
                            preRW.writePtr<dmsDeletedRecord>() ;
-                        // we need to link the previous delete record to the next
                         preWrite->setNextRID( pRead->getNextRID() ) ;
                      }
 
-                     // change extent free space
                      dmsExtRW rw = extent2RW( foundDeletedID._extent,
                                               context->mbID() ) ;
                      dmsExtent *pExtent = rw.writePtr<dmsExtent>() ;
@@ -502,12 +466,10 @@ namespace engine
                   }
                   else
                   {
-                     // can't increase i counter
                      --i ;
                   }
                }
 
-               //for some reason this slot can't be reused, let's get to the next
                preRW = delRecordRW ;
                foundDeletedID = pRead->getNextRID() ;
             }
@@ -520,7 +482,6 @@ namespace engine
          goto error ;
       }
 
-      // no space, need to allocate extent
       {
          UINT32 expandSize = requiredSize << DMS_RECORDS_PER_EXTENT_SQUARE ;
          if ( expandSize > DMS_BEST_UP_EXTENT_SZ )
@@ -572,7 +533,6 @@ namespace engine
                   PD_PACK_STRING ( "extentID" ),
                   PD_PACK_INT ( rid._extent ) ) ;
 
-      // assign flags to the memory
       pRecord->setDeleted() ;
       if ( recordSize > 0 )
       {
@@ -584,23 +544,10 @@ namespace engine
       }
       pRecord->setMyOffset( rid._offset ) ;
 
-      // change free space
       extAddr->_freeSpace += recordSize ;
       _mbStatInfo[mb->_blockID]._totalDataFreeSpace += recordSize ;
 
-      // let's count which delete slots it fits
-      // divide by 32 first since our first slot is for <32 bytes
       recordSize = ( recordSize - 1 ) >> 5 ;
-      // while loop, divde by 2 everytime, find the closest delete slot
-      // for example, for a given size 3000, we should go _4k (which is
-      // _deleteList[7], using 3000>>5=93
-      // then in a loop, first round we have 46, type=1
-      // then 23, type=2
-      // then 11, type=3
-      // then 5, type=4
-      // then 2, type=5
-      // then 1, type=6
-      // finally 0, type=7
 
       while ( (recordSize) != 0 )
       {
@@ -608,13 +555,9 @@ namespace engine
          recordSize = ( recordSize >> 1 ) ;
       }
 
-      // make sure we don't mis calculated it
       SDB_ASSERT ( deleteRecordSlot < dmsMB::_max, "Invalid record size" ) ;
 
-      // set the first matching delete slot to the
-      // next rid for the deleted record
       pRecord->setNextRID( mb->_deleteList [ deleteRecordSlot ] ) ;
-      // Then assign MB delete slot to the extent and offset
       mb->_deleteList[ deleteRecordSlot ] = rid ;
       PD_TRACE_EXIT ( SDB__DMSSTORAGEDATA__SAVEDELETEDRECORD ) ;
       return SDB_OK ;
@@ -687,19 +630,15 @@ namespace engine
          goto done ;
       }
 
-      // calculate the delete record size we need to use
       extentSize          = extAddr->_blockSize << pageSizeSquareRoot() ;
       extentUseableSpace  = extAddr->_freeSpace ;
       extAddr->_freeSpace = 0 ;
 
-      // make sure the delete record is not greater 16MB
       deleteRecordSize    = OSS_MIN ( extentUseableSpace,
                                       DMS_RECORD_MAX_SZ ) ;
-      // place first record offset
       recordOffset        = extentSize - extentUseableSpace ;
       curUseableSpace     = extentUseableSpace ;
 
-      /// extentUseableSpace > 16MB
       while ( curUseableSpace - deleteRecordSize >=
               (INT32)DMS_MIN_DELETEDRECORD_SZ )
       {
@@ -710,7 +649,6 @@ namespace engine
          curUseableSpace -= deleteRecordSize ;
          recordOffset += deleteRecordSize ;
       }
-      /// 16MB < curUseableSpace < 16MB + DMS_MIN_DELETEDRECORD_SZ
       if ( curUseableSpace > deleteRecordSize )
       {
          dmsRecordID rid( extentID, recordOffset ) ;
@@ -720,7 +658,6 @@ namespace engine
          curUseableSpace -= DMS_PAGE_SIZE4K ;
          recordOffset += DMS_PAGE_SIZE4K ;
       }
-      /// 0 < curUseableSpace < 16MB
       if ( curUseableSpace > 0 )
       {
          dmsRecordID rid( extentID, recordOffset ) ;
@@ -729,7 +666,6 @@ namespace engine
                              extAddr, rRW.writePtr<dmsDeletedRecord>() ) ;
       }
 
-      // correct check
       SDB_ASSERT( extentUseableSpace == extAddr->_freeSpace,
                   "Extent[%d] free space invalid" ) ;
    done :
@@ -757,7 +693,6 @@ namespace engine
 
       pRecord = recordRW.writePtr( needRecordSize ) ;
       myOffset = pRecord->getMyOffset() ;
-      // first we need to check if the delete record is large enough
       if ( pRecord->getSize() < needRecordSize )
       {
          rc = SDB_INVALIDARG ;
@@ -772,16 +707,12 @@ namespace engine
          goto error ;
       }
 
-      // set to normal status
       pRecord->setNormal() ;
       pRecord->resetAttr() ;
 
-      // and then need to check if we need to split deleted record
       if ( pRecord->getSize() - needRecordSize > DMS_MIN_RECORD_SZ )
       {
-         // original offset+new size = new delete offset
          dmsOffset newOffset = myOffset + needRecordSize ;
-         // original size - new size = new delete size
          INT32 newSize = pRecord->getSize() - needRecordSize ;
          dmsRecordID newRid = recordRW.getRecordID() ;
          newRid._offset = newOffset ;
@@ -791,47 +722,34 @@ namespace engine
             PD_LOG ( PDERROR, "Failed to save deleted record, rc: %d", rc ) ;
             goto error ;
          }
-         // set the original place with new dmsrecordSize
          pRecord->setSize( needRecordSize ) ;
       }
-      // if the leftover space is not good enough for a min_record, then we
-      // don't change the record size
 
-      // then for the original location we set new record header and copy data
       pRecord->setData( recordData ) ;
 
       pRecord->setNextOffset( DMS_INVALID_OFFSET ) ;
       pRecord->setPrevOffset( DMS_INVALID_OFFSET ) ;
 
-      // increase write counter
       DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
 
-      // no need to change offset
       if ( isInsert )
       {
          dmsExtent *extent       = extRW.writePtr<dmsExtent>() ;
          dmsOffset   offset      = extent->_lastRecordOffset ;
-         // finally add the record into list
          extent->_recCount++ ;
          ++( _mbStatInfo[ context->mbID() ]._totalRecords ) ;
-         // if there is last record in the extent
          if ( DMS_INVALID_OFFSET != offset )
          {
-            // if there is already record in the extent
             dmsRecordRW preRW = record2RW( dmsRecordID( extRW.getExtentID(),
                                                         offset ),
                                            context->mbID() ) ;
             dmsRecord *preRecord = preRW.writePtr() ;
-            // set the next of previous point to the new record
             preRecord->setNextOffset( myOffset ) ;
-            // set the previous of current points to the original last
             pRecord->setPrevOffset( offset ) ;
          }
          extent->_lastRecordOffset = myOffset ;
-         // then check for first record in extent
          if ( DMS_INVALID_OFFSET == extent->_firstRecordOffset )
          {
-            // we only change it when it points to nothing
             extent->_firstRecordOffset = myOffset ;
          }
       }
@@ -874,7 +792,6 @@ namespace engine
       pExtent = extRW.writePtr<dmsExtent>() ;
       pRecord = recordRW.readPtr() ;
 
-      // not over-flow to record
       if ( !pRecord->isOvt() )
       {
          dmsOffset prevRecordOffset = pRecord->getPrevOffset() ;
@@ -911,7 +828,6 @@ namespace engine
             --( _mbStatInfo[ context->mbID() ]._totalRecords ) ;
          }
       }
-      //increase data write counter
       DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
 
       rc = _saveDeletedRecord( context->mb(), rid, 0 ) ;
@@ -942,7 +858,6 @@ namespace engine
       }
 
       size += DMS_RECORD_METADATA_SZ ;
-      // record is ALWAYS 4 bytes aligned
       size = OSS_MIN( DMS_RECORD_MAX_SZ, ossAlignX ( size, 4 ) ) ;
       PD_TRACE2 ( SDB__DMSSTORAGEDATA__FINALRECORDSIZE,
                   PD_PACK_STRING ( "size after align" ),
@@ -996,12 +911,10 @@ namespace engine
          goto error ;
       }
 
-      /// if ovf, need to get the ovt's data
       if ( pRecord->isOvf() )
       {
          dmsRecordID ovfRID = pRecord->getOvfRID() ;
          dmsRecordRW ovfRW = record2RW( ovfRID, mbContext->mbID() ) ;
-         // Inherit no-throw property
          ovfRW.setNothrow( recordRW.isNothrow() ) ;
          pRecord = ovfRW.readPtr( 0 ) ;
          if ( NULL == pRecord )
@@ -1030,7 +943,6 @@ namespace engine
             PD_LOG( PDERROR, "Failed to uncompress data, rc: %d", rc ) ;
             goto error ;
          }
-         /// check the length
          if ( unCompressDataLen != *(INT32*)pUncompressData )
          {
             PD_LOG( PDERROR, "Uncompress data length[%d] is not unmatch "

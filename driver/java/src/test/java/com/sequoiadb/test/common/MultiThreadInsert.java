@@ -32,7 +32,6 @@ public class MultiThreadInsert implements Runnable {
 
     @Override
     public void run() {
-        //System.out.println("Insert�߳�==="+Thread.currentThread().getId()+"ִ�п�ʼ");
         List<BSONObject> list = null;
         list = new ArrayList<BSONObject>();
         for (int j = 0; j < num; j++) {
@@ -42,6 +41,5 @@ public class MultiThreadInsert implements Runnable {
             list.add(obj);
         }
         cl.bulkInsert(list, DBCollection.FLG_INSERT_CONTONDUP);
-        //System.out.println("Insert�߳�==="+Thread.currentThread().getId()+"ִ�н���");
     }
 }

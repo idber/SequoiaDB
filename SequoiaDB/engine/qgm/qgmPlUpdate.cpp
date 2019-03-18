@@ -112,7 +112,6 @@ namespace engine
                     opr.getName(), rc ) ;
             goto error ;
          }
-         /// build message
          rc = msgBuildUpdateMsg( &pMsg, &msgSize,
                                  _collection.toString().c_str(),
                                  _flag, 0,

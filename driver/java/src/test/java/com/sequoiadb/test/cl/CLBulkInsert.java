@@ -27,15 +27,12 @@ public class CLBulkInsert {
 
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } else
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        // cl
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
@@ -73,7 +70,6 @@ public class CLBulkInsert {
         cursor = cl.query();
         int i = 0;
         while (cursor.hasNext()) {
-//	    	System.out.println(cursor.getNext().toString());
             cursor.getNext();
             i++;
         }
@@ -84,18 +80,13 @@ public class CLBulkInsert {
     public void bulkInsert2() {
         int i = 0;
         BSONObject record = null;
-        // build list
         List<BSONObject> list = ConstantsInsert.createRecordList(2);
 
-        // case 1:
-        // check isOIDEnsured()
         cl.ensureOID(false);
         assertFalse(cl.isOIDEnsured());
 
-        // bulk insert
         cl.bulkInsert(list, DBCollection.FLG_INSERT_CONTONDUP);
         cursor = cl.query();
-        // check
         i = 0;
         while (cursor.hasNext()) {
             cursor.getNext();
@@ -109,17 +100,12 @@ public class CLBulkInsert {
             }
         }
 
-        // case 2:
-        // build another record
         cl.ensureOID(true);
 
-        // check isOIDEnsured()
         assertTrue(cl.isOIDEnsured());
 
-        // bulk insert
         cl.bulkInsert(list, DBCollection.FLG_INSERT_CONTONDUP);
         cursor = cl.query();
-        // check
         i = 0;
         while (cursor.hasNext()) {
             cursor.getNext();
@@ -133,7 +119,6 @@ public class CLBulkInsert {
             }
         }
 
-        // case 3:
         BSONObject obj = new BasicBSONObject();
         BSONObject obj1 = new BasicBSONObject();
         BSONObject obj2 = new BasicBSONObject();
@@ -148,10 +133,8 @@ public class CLBulkInsert {
         list.add(obj);
         list.add(obj1);
         list.add(obj2);
-        // bulk insert
         cl.bulkInsert(list, DBCollection.FLG_INSERT_CONTONDUP);
         cursor = cl.query();
-        // check
         i = 0;
         while (cursor.hasNext()) {
             cursor.getNext();
@@ -184,7 +167,6 @@ public class CLBulkInsert {
         }
         assertEquals(4, i);
 
-        // case 4:
         try {
             cl.bulkInsert(list, DBCollection.FLG_INSERT_CONTONDUP);
         } catch (BaseException e) {
@@ -192,7 +174,6 @@ public class CLBulkInsert {
         }
         try {
             cl.bulkInsert(list, 0);
-            // should not go on
             assertTrue(false);
         } catch (BaseException e) {
         }
@@ -207,7 +188,6 @@ public class CLBulkInsert {
         cursor = cl1.query();
         int i = 0;
         while (cursor.hasNext()) {
-//	    	System.out.println(cursor.getNext().toString());
             cursor.getNext();
             i++;
         }

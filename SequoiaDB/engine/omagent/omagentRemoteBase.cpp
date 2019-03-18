@@ -169,11 +169,9 @@ namespace engine
       INT32 rc = SDB_OK ;
       utilInstallInfo info ;
       CHAR confFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-      // ../conf/local/SVCNAME/sdb.conf
       string ewdConfPath = SDBCM_LOCAL_PATH OSS_FILE_SEP
                            + svcname + OSS_FILE_SEP PMD_DFT_CONF ;
 
-      // get ewd
       rc = ossGetEWD( confFile, OSS_MAX_PATHSIZE ) ;
       if ( SDB_OK != rc )
       {
@@ -181,7 +179,6 @@ namespace engine
          goto error ;
       }
 
-      // get full path: ewd + ../conf/local/SVCNAME/sdb.conf
       rc = utilCatPath( confFile, OSS_MAX_PATHSIZE, ewdConfPath.c_str() ) ;
       if ( SDB_OK != rc )
       {

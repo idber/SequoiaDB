@@ -101,7 +101,6 @@ class ConnectionManager {
     public <T extends IQueryResult> T execute(String csName, String clName, QueryInCLCallback<T> action) {
         Sequoiadb db = null;
         try {
-            // note: db is released in cursor.close().
             db = this.getConnection();
             CollectionSpace cs = db.getCollectionSpace(csName);
             DBCollection cl = cs.getCollection(clName);
@@ -117,7 +116,6 @@ class ConnectionManager {
     public <T extends IQueryResult> T execute(QueryInSessionCallback<T> action) {
         Sequoiadb db = null;
         try {
-            // note: db is released in cursor.close().
             db = this.getConnection();
             return action.doQuery(db);
         } catch(BaseException e) {

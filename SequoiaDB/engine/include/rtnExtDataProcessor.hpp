@@ -166,7 +166,6 @@ namespace engine
                                const CHAR *idxName ) ;
    private:
       ossRWMutex     _mutex ;
-      // Use a hash map to manage all the processors.
       PROCESSOR_MAP  _processorMap ;
    } ;
    typedef _rtnExtDataProcessorMgr rtnExtDataProcessorMgr ;

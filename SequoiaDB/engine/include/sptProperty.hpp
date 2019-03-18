@@ -84,7 +84,6 @@ namespace engine
          if ( value < SPT_MIN_NUMBER_VALUE ||
               value > SPT_MAX_NUMBER_VALUE )
          {
-            /// to string
             CHAR tmp[ 50 ] = { 0 } ;
             ossSnprintf( tmp, sizeof(tmp)-1, "%lld", value ) ;
             setValue( (std::string)tmp ) ;
@@ -154,12 +153,9 @@ namespace engine
       }
 
    public:
-      /// BOOLEAN, INT32, FLOAT64
       INT32 assignNative( bson::BSONType type,
                           const void *value ) ;
 
-      /// value should be base64 coded when
-      /// it is a binary data.
       INT32 assignString( const CHAR *value ) ;
 
       INT32 assignBsonobj( const bson::BSONObj &value ) ;
@@ -241,7 +237,6 @@ namespace engine
       INT32 getNative( bson::BSONType type,
                        void *value ) const ;
 
-      /// copy value if u want to modify or keep it.
       const CHAR *getString() const ;
 
       INT32 getResultVal( sptResultVal ** ppResultVal ) const ;
@@ -304,13 +299,11 @@ namespace engine
       const _sptObjDesc *_desc ;
       UINT32   _attr ;
       BOOLEAN  _deleted ;
-      // flag of js engine result value
       BOOLEAN  _isRawData ;
 
       SPT_PROP_ARRAY       _array ;
 
    private:
-      /// Forbidden
       _sptProperty( const _sptProperty &other ) ;
       _sptProperty &operator=(const _sptProperty &other) ;
 

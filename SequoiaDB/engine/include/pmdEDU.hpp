@@ -247,16 +247,12 @@ namespace engine
 
       void postEvent ( pmdEDUEvent const &data )
       {
-         // no need latch since _queue is already latched
          _queue.push ( data ) ;
       }
 
       BOOLEAN waitEvent ( pmdEDUEvent &data, INT64 millsec,
                           BOOLEAN resetStat = FALSE )
       {
-         // no need latch since _queue is already latched
-         // if millsec not 0, that means we want timeout
-         // otherwise it's infinite wait
 
          BOOLEAN waitMsg   = FALSE ;
          writingDB( FALSE ) ;
@@ -351,7 +347,6 @@ namespace engine
       UINT64 getCurRequestID() const { return _curRequestID ; }
       UINT64 incCurRequestID() { return ++_curRequestID ; }
 
-      // transaction related
       void     setRelatedTransLSN( DPS_LSN_OFFSET relatedLSN )
       {
          _relatedTransLSN = relatedLSN ;
@@ -418,7 +413,6 @@ namespace engine
       string         _userName ;
       string         _passWord ;
 
-      // buffer related
       CHAR           *_pCompressBuff ;
       UINT32         _compressBuffLen ;
       CHAR           *_pUncompressBuff ;
@@ -429,7 +423,6 @@ namespace engine
       INT64          _totalCatchSize ;
       INT64          _totalMemSize ;
 
-      // thread specific error message buffer, aka SQLCA
       CHAR              *_pErrorBuff ;
    #if defined ( _WINDOWS )
       HANDLE            _threadHdl ;
@@ -450,7 +443,6 @@ namespace engine
       ossEvent                _event ;   // for cls replSet notify
       UINT64                  _curRequestID ;
 
-      // transaction related variables
       DPS_LSN_OFFSET          _relatedTransLSN ;
       ossSpinXLatch           _transLockLstMutex ;
       DpsTransCBLockList      _transLockLst ;
@@ -482,7 +474,6 @@ namespace engine
       BOOLEAN                 _isInterruptSelf ;
       BOOLEAN                 _writingDB ;
       UINT64                  _writingID ;
-      /// aligned memory.
       void                    *_alignedMem ;
       UINT32                   _alignedMemSize ;
 

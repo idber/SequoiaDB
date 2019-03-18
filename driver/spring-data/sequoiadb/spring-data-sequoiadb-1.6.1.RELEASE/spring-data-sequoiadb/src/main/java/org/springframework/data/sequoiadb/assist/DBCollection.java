@@ -411,7 +411,6 @@ public abstract class DBCollection {
         return new DBCursor(resultIterator);
     }
 
-    // ------
 
     /**
      * Finds an object by its id.
@@ -553,7 +552,6 @@ public abstract class DBCollection {
         return findAndModify( query, null, null, true, null, false, false );
     }
 
-    // --- START INDEX CODE ---
 
     /**
      * Calls {@link DBCollection#createIndex(com.sequoiadb.BSONObject, com.sequoiadb.BSONObject)} with default index options
@@ -639,10 +637,8 @@ public abstract class DBCollection {
 
         final BSONObject myKeys = keys;
         final boolean myUnique = unique;
-        // get index name
         final String indexName = (name == null || name.isEmpty()) ? genIndexName(keys) : name;
 
-        // create index
         execute(new CLCallback<Void>() {
             @Override
             public Void doInCL(com.sequoiadb.base.DBCollection cl) throws com.sequoiadb.exception.BaseException {
@@ -674,12 +670,6 @@ public abstract class DBCollection {
         throw new UnsupportedOperationException("not supported!");
     }
 
-//    BSONObject defaultOptions( BSONObject keys ){
-//        BSONObject o = new BasicBSONObject();
-//        o.put( "name" , genIndexName( keys ) );
-//        o.put( "ns" , _fullName );
-//        return o;
-//    }
 
     /**
      * Convenience method to generate an index name from the set of fields it is over.
@@ -702,7 +692,6 @@ public abstract class DBCollection {
         return name.toString();
     }
 
-    // --- END INDEX CODE ---
 
     /**
      * Set hint fields for this collection (to optimize queries).
@@ -865,19 +854,6 @@ public abstract class DBCollection {
         return obj;
     }
 
-//
-//    // Only create a new decoder if there is a decoder factory explicitly set on the collection.  Otherwise return null
-//    // so that DBPort will use a cached decoder from the default factory.
-//    DBDecoder getDecoder() {
-//        return getDBDecoderFactory() != null ? getDBDecoderFactory().create() : null;
-//    }
-//
-//    // Only create a new encoder if there is an encoder factory explicitly set on the collection.  Otherwise return null
-//    // to allow DB to create its own or use a cached one.
-//    private DBEncoder getDBEncoder() {
-//        return getDBEncoderFactory() != null ? getDBEncoderFactory().create() : null;
-//    }
-//
 
     /**
      * calls {@link DBCollection#apply(com.sequoiadb.BSONObject, boolean)} with ensureID=true
@@ -954,7 +930,6 @@ public abstract class DBCollection {
         return update(q, m, true, false, concern);
     }
 
-    // ---- DB COMMANDS ----
     /**
      * Drops all indices from this collection
      * @throws BaseException
@@ -972,7 +947,6 @@ public abstract class DBCollection {
                     indexNames.add(name);
                 }
                 cursor.close();
-                // drop index
                 for(String name : indexNames) {
                     cl.dropIndex(name);
                 }
@@ -1633,7 +1607,6 @@ public abstract class DBCollection {
         return false;
     }
 
-    // ------
 
     /**
      * @deprecated This method should not be a part of API.
@@ -1662,7 +1635,6 @@ public abstract class DBCollection {
         String csName = null;
         String clName = null;
         if (n == null || n.isEmpty()) {
-            // TODO:
             throw new IllegalArgumentException("invalid collection name!");
         }
         if (n.indexOf(".") > 0) {
@@ -1690,7 +1662,6 @@ public abstract class DBCollection {
             }
         }
         if (isExist) {
-            // TODO: not set the csName yet.
             return new DBCollectionImpl((DBApiLayer)_db, myCLName);
         } else {
             return null;

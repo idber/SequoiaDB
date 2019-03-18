@@ -282,7 +282,6 @@ namespace engine
          goto done ;
       }
 
-      // Sort is required
       if ( !options.isOrderByEmpty() &&
            !_pScanNode->isSorted() )
       {
@@ -402,7 +401,6 @@ namespace engine
          }
       }
 
-      // Set scan node
       if ( NULL != lastDstNode )
       {
          rc = _setScanNode( lastDstNode ) ;
@@ -629,11 +627,9 @@ namespace engine
 
       ossTime userTime, sysTime ;
 
-      /// get some info before explain
       _beginMon = *cb->getMonAppCB() ;
       ossGetCurrentTime( _beginTime ) ;
 
-      /// get begin cpu time info
       ossGetCPUUsage( cb->getThreadHandle(), userTime, sysTime ) ;
       _beginUsrCpu = userTime.seconds + (FLOAT64)userTime.microsec / 1000000 ;
       _beginSysCpu = sysTime.seconds + (FLOAT64)sysTime.microsec / 1000000 ;
@@ -660,7 +656,6 @@ namespace engine
       ossGetCurrentTime( _endTime ) ;
       _endMon = *cb->getMonAppCB() ;
 
-      /// get end cpu time info
       ossGetCPUUsage( cb->getThreadHandle(), userTime, sysTime ) ;
       _endUsrCpu = userTime.seconds + (FLOAT64)userTime.microsec / 1000000 ;
       _endSysCpu = sysTime.seconds + (FLOAT64)sysTime.microsec / 1000000 ;
@@ -678,7 +673,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_OPTEXPPATH_TOBSONEXPINFO ) ;
 
-      // ReturnNum
       if ( OSS_BIT_TEST( mask, OPT_EXPINFO_MASK_RETURN_NUM ) )
       {
          if ( NULL != _pRootNode )
@@ -693,7 +687,6 @@ namespace engine
          }
       }
 
-      // ElapsedTime
       if ( OSS_BIT_TEST( mask, OPT_EXPINFO_MASK_ELAPSED_TIME ) )
       {
          UINT64 beginTime = _beginTime.time * 1000000 + _beginTime.microtm  ;
@@ -702,7 +695,6 @@ namespace engine
                          FLOAT64( ( endTime - beginTime ) / 1000000.0 ) ) ;
       }
 
-      // IndexRead
       if ( OSS_BIT_TEST( mask, OPT_EXPINFO_MASK_INDEX_READ ) )
       {
          builder.appendNumber( OPT_FIELD_INDEX_READ,
@@ -710,7 +702,6 @@ namespace engine
                                         _beginMon.totalIndexRead ) ) ;
       }
 
-      // DataRead
       if ( OSS_BIT_TEST( mask, OPT_EXPINFO_MASK_DATA_READ ) )
       {
          builder.appendNumber( OPT_FIELD_DATA_READ,
@@ -718,13 +709,11 @@ namespace engine
                                         _beginMon.totalDataRead ) ) ;
       }
 
-      // UserCPU
       if ( OSS_BIT_TEST( mask, OPT_EXPINFO_MASK_USERCPU ) )
       {
          builder.append( OPT_FIELD_USERCPU, _endUsrCpu - _beginUsrCpu ) ;
       }
 
-      // SysCPU
       if ( OSS_BIT_TEST( mask, OPT_EXPINFO_MASK_SYSCPU ) )
       {
          builder.append( OPT_FIELD_SYSCPU, _endSysCpu - _beginSysCpu ) ;

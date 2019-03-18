@@ -69,9 +69,7 @@ namespace engine
 
       job->attachOut () ;
 
-      // remove from job mgr
       jobMgr->_removeJob ( cb->getID(), rc ) ;
-      // force edu
       if ( !reuseEDU )
       {
          pEDUMgr->forceUserEDU( cb->getID() ) ;
@@ -81,7 +79,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   /// Register
    PMD_DEFINE_ENTRYPOINT( EDU_TYPE_BACKGROUND_JOB, FALSE,
                           pmdBackgroundJobEntryPoint,
                           "Task" ) ;

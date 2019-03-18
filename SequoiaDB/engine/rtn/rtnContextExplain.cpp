@@ -95,14 +95,11 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to parse explain options, "
                    "rc: %d", rc ) ;
 
-      // Reset query hint
       _queryOptions.setHint( realHint ) ;
 
-      // Reset query flags
       if ( _queryOptions.testFlag( FLG_QUERY_MODIFY ) &&
            !_queryOptions.isOrderByEmpty() )
       {
-         // Tell the optimizer to use index by sort
          _queryOptions.setFlag( FLG_QUERY_FORCE_IDX_BY_SORT ) ;
       }
 
@@ -118,16 +115,13 @@ namespace engine
          subOptions.clearFlag( FLG_QUERY_MODIFY ) ;
       }
 
-      // Open query context
       rc = _openSubContext( subOptions, cb, &queryContext ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open query context, rc: %d", rc ) ;
 
       SDB_ASSERT( NULL != queryContext, "query context is invalid" ) ;
 
-      // Disable setting query activity
       queryContext->setEnableQueryActivity( FALSE ) ;
 
-      // Log start timestamp
       if ( cb->getMonConfigCB()->timestampON )
       {
          queryContext->getMonCB()->recordStartTimestamp() ;
@@ -210,17 +204,13 @@ namespace engine
 
       if ( !_explainPrepared )
       {
-         // Set the end of explain
          rc = _explainPath->setExplainEnd( queryContext, queryCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to set explain end, rc: %d", rc ) ;
 
-         // Finish the query context
          rc = _finishSubContext( queryContext, queryCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to finish query context [%lld], "
                    "rc: %d", queryContext->contextID(), rc ) ;
 
-         // Prepare explain paths, must called after finish query context
-         // which will collect sub-explain results
          rc = _prepareExplainPath( queryContext, queryCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to prepare explain path, rc: %d", rc ) ;
 
@@ -248,7 +238,6 @@ namespace engine
          goto error ;
       }
 
-      // Reset total records for context data processor
       if ( _needResetTotalRecords() )
       {
          explainContext->_resetTotalRecords( RTN_CTX_EXPLAIN_PROCESSOR +
@@ -283,14 +272,12 @@ namespace engine
       {
          BSONElement element ;
 
-         // Extract explain options
          element = hint.getField( FIELD_NAME_OPTIONS ) ;
          if ( Object == element.type() )
          {
             explainOptions = element.embeddedObject() ;
          }
 
-         // Extract hint
          element = hint.getField( FIELD_NAME_HINT ) ;
          if ( Object == element.type() )
          {
@@ -322,19 +309,16 @@ namespace engine
       BOOLEAN hasMask = TRUE ;
       BOOLEAN hasOption = FALSE ;
 
-      // Run option
       rc = _parseBoolOption( options, FIELD_NAME_RUN, _needRun,
                              hasOption, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
                    FIELD_NAME_RUN, rc ) ;
 
-      // Detail option
       rc = _parseBoolOption( options, FIELD_NAME_DETAIL, _needDetail,
                              hasOption, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
                    FIELD_NAME_DETAIL, rc ) ;
 
-      // Expand option
       rc = _parseBoolOption( options, FIELD_NAME_EXPAND, _needExpand,
                              hasOption, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
@@ -345,7 +329,6 @@ namespace engine
          _needDetail = TRUE ;
       }
 
-      // Flatten option
       rc = _parseBoolOption( options, FIELD_NAME_FLATTEN, _needFlatten,
                              hasOption, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
@@ -357,7 +340,6 @@ namespace engine
          _needDetail = TRUE ;
       }
 
-      // Search option
       rc = _parseBoolOption( options, FIELD_NAME_SEARCH, _needSearch,
                              hasOption, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
@@ -369,7 +351,6 @@ namespace engine
          _needExpand = TRUE ;
       }
 
-      // Evaluate option
       rc = _parseBoolOption( options, FIELD_NAME_EVALUATE, _needEvaluate,
                              hasOption, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
@@ -382,7 +363,6 @@ namespace engine
          _needSearch = TRUE ;
       }
 
-      // Filter option, convert to mask
       rc = _parseMaskOption( options, FIELD_NAME_FILTER, hasMask,
                              _explainMask ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
@@ -393,7 +373,6 @@ namespace engine
          _needDetail = TRUE ;
       }
 
-      // Location option
       rc = _parseLocationOption ( options, hasOption ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
                    FIELD_NAME_LOCATION, rc ) ;
@@ -403,7 +382,6 @@ namespace engine
          _needDetail = TRUE ;
       }
 
-      // Estimate option
       rc = _parseBoolOption ( options, FIELD_NAME_ESTIMATE, _needEstimate,
                               hasOption, _needDetail ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
@@ -414,7 +392,6 @@ namespace engine
          _needDetail = TRUE ;
       }
 
-      // Reset explain mask
       if ( _needDetail )
       {
          if ( _needEstimate )
@@ -457,8 +434,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_RTNEXPBASE__PARSELOCFILTER ) ;
 
-      // We doesn't need "Location" option
-      // but it need to make sure "Detail" option is enabled
       if ( explainOptions.hasField( FIELD_NAME_SUB_COLLECTIONS ) ||
            explainOptions.hasField( FIELD_NAME_LOCATION ) )
       {
@@ -835,7 +810,6 @@ namespace engine
       {
          const optAccessPlanRuntime * planRuntime = NULL ;
 
-         // Generate explain path from plan runtime
          PD_CHECK( NULL != context, SDB_SYS, error, PDERROR,
                    "Failed to explain: data context should not be NULL" ) ;
 
@@ -999,8 +973,6 @@ namespace engine
                   startTimestamp = _tempTimestamp ;
                   if ( !_needParallelProcess() )
                   {
-                     // Not in parallel, re-use the start timestamp to save
-                     // the start timestamp of the next sub context
                      _tempTimestamp.sample() ;
                   }
                }

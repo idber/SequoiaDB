@@ -91,7 +91,6 @@ namespace engine
 
       sdbGetDMSCB()->setIxmKeySorterCreator( creator ) ;
 
-      // Remote messenger should be enabled on data node to support text search.
       if ( SDB_ROLE_DATA == pmdGetDBRole() )
       {
          _remoteMessenger = SDB_OSS_NEW rtnRemoteMessenger() ;
@@ -107,8 +106,6 @@ namespace engine
                       "rc: %d", rc ) ;
       }
 
-      // The error of initialization of APM could be ignore
-      // Only data and catalog nodes could initialize plan cache
       _accessPlanManager.init(
             ( SDB_ROLE_DATA == pmdGetDBRole() ||
               SDB_ROLE_CATALOG == pmdGetDBRole() ||
@@ -227,7 +224,6 @@ namespace engine
          INT32 reference = pContext->getReference() ;
          pContext->waitForPrefetch() ;
 
-         /// wait for sync
          if ( pContext->isWrite() && pContext->getDPSCB() &&
               pContext->getW() > 1 )
          {
@@ -250,7 +246,6 @@ namespace engine
    {
       SDB_ASSERT ( context, "context pointer can't be NULL" ) ;
 
-      // if hit max signed 64 bit integer?
       if ( _contextIdGenerator.fetch() < 0 )
       {
          return SDB_SYS ;

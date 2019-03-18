@@ -49,7 +49,6 @@ using namespace bson ;
 
 namespace engine
 {
-   // the shard mgr update some info from catalog timeout
    #define CLS_SHARD_TIMEOUT     (30*OSS_ONE_SEC)
 
    /*
@@ -256,7 +255,6 @@ namespace engine
                                 NodeID &id ) ;
          INT32 _sendToSeAdpt( NET_HANDLE handle, MsgHeader *msg ) ;
 
-      //msg functions
       protected:
          INT32 _onCatCatGroupRes ( NET_HANDLE handle, MsgHeader* msg ) ;
          INT32 _onCatalogReqMsg ( NET_HANDLE handle, MsgHeader* msg ) ;
@@ -293,8 +291,6 @@ namespace engine
          ossSpinSLatch                 _shardLatch ;
 
          MsgRouteID                    _nodeID ;
-         // External search engine adapter route id. Set when the adapter starts
-         // and registers on this data node.
          MsgRouteID                    _seAdptID ;
    } ;
 

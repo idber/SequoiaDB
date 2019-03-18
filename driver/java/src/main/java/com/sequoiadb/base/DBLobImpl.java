@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 SequoiaDB Inc.
+ * Copyright 2017 SequoiaDB Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,7 +43,6 @@ class DBLobImpl implements DBLob {
     final static String FIELD_NAME_LOB_LENGTH = "Length";
     final static int SDB_LOB_CREATEONLY = 0x00000001;
 
-    // the max lob data size to send for one message
     private final static int SDB_LOB_MAX_WRITE_DATA_LENGTH = 2097152; // 2M;
     private final static int SDB_LOB_WRITE_DATA_LENGTH = 524288; // 512k;
     private final static int SDB_LOB_READ_DATA_LENGTH = 65536; // 64k;
@@ -236,7 +235,6 @@ class DBLobImpl implements DBLob {
                 _modificationTime = (Long) obj.get(FIELD_NAME_LOB_MODIFICATION_TIME);
             }
         }
-
     }
 
     /**
@@ -253,7 +251,6 @@ class DBLobImpl implements DBLob {
         if (in == null) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "input is null");
         }
-        // get data from input stream
         int readNum = 0;
         byte[] tmpBuf = new byte[SDB_LOB_WRITE_DATA_LENGTH];
         try {
@@ -335,7 +332,6 @@ class DBLobImpl implements DBLob {
         if (out == null) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "output stream is null");
         }
-        // read data to output stream
         int readNum = 0;
         byte[] tmpBuf = new byte[SDB_LOB_READ_DATA_LENGTH];
         while (-1 < (readNum = read(tmpBuf, 0, tmpBuf.length))) {
@@ -497,23 +493,8 @@ class DBLobImpl implements DBLob {
         seek(offset, SDB_LOB_SEEK_SET);
     }
 
-    /**
-     * Check whether current offset has reached to the max size of current lob.
-     *
-     * @return Return true if yes while false for not.
-     */
-    @Override
-    public boolean isEof() {
-        return _currentOffset >= _lobSize;
-    }
-
     private int _reviseReadLen(int needLen) {
         int mod = (int) (_currentOffset & (_pageSize - 1));
-        // when "needLen" is great than (2^31 - 1) - 3,
-        // alignedLen" will be less than 0, but we should not worry
-        // about this, because before we finish using the cached data,
-        // we won't come here, at that moment, "alignedLen" will be not be less
-        // than "needLen"
         int alignedLen = Helper.alignedSize(needLen, SDB_LOB_ALIGNED_LEN);
         if (alignedLen < needLen) {
             alignedLen = SDB_LOB_ALIGNED_LEN;
@@ -539,17 +520,13 @@ class DBLobImpl implements DBLob {
         }
         int readInCache = (int) (_cachedOffset + _cachedDataBuff.remaining() - _currentOffset);
         readInCache = readInCache <= needRead ? readInCache : needRead;
-        // if we had used "lobSeek" to adjust "_currentOffset",
-        // let's adjust the right place to copy data
         if (_currentOffset > _cachedOffset) {
             int currentPos = _cachedDataBuff.position();
             int newPos = currentPos + (int) (_currentOffset - _cachedOffset);
             _cachedDataBuff.position(newPos);
         }
-        // copy the data from cache out to the buf for user
         _cachedDataBuff.get(buf, off, readInCache);
         if (_cachedDataBuff.remaining() == 0) {
-            // TODO: shell we need to reuse the ByteBuffer ?
             _cachedDataBuff = null;
         } else {
             _cachedOffset = _currentOffset + readInCache;
@@ -563,7 +540,6 @@ class DBLobImpl implements DBLob {
         int onceRead = 0;
         int alignedLen = 0;
 
-        // try to get data from local cache
         if (_hasDataCached()) {
             onceRead = _readInCache(buf, off, needRead);
             totalRead += onceRead;
@@ -572,11 +548,9 @@ class DBLobImpl implements DBLob {
             return totalRead;
         }
 
-        // get data from database
         _cachedOffset = -1;
         _cachedDataBuff = null;
 
-        // page align
         alignedLen = _reviseReadLen(needRead);
 
         LobReadRequest request = new LobReadRequest(_contextID, alignedLen, _currentOffset);
@@ -598,17 +572,13 @@ class DBLobImpl implements DBLob {
 
         int retLobLen = response.getLobLen();
 
-        // get return data
         _cachedDataBuff = response.getData();
-        // sanity check
         int remainLen = _cachedDataBuff.remaining();
         if (remainLen != retLobLen) {
             throw new BaseException(SDBError.SDB_SYS, "the remaining in buffer(" + remainLen +
                     ") is not equal with what we expect(" + retLobLen + ")");
         }
 
-        // if what we got is more than what we expect,
-        // let's cache some for next reading request.
         if (needRead < retLobLen) {
             _cachedDataBuff.get(buf, off, needRead);
             totalRead += needRead;
@@ -629,7 +599,6 @@ class DBLobImpl implements DBLob {
         int needRead = len;
         int onceRead = 0;
         int totalRead = 0;
-        // when no data for return
         if (_currentOffset == _lobSize) {
             return -1;
         }
@@ -639,7 +608,6 @@ class DBLobImpl implements DBLob {
                 if (totalRead == 0) {
                     totalRead = -1;
                 }
-                // when we finish read, let's stop
                 break;
             }
             offset += onceRead;

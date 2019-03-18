@@ -83,7 +83,6 @@ namespace engine
                             const netIOV &fixed,
                             GROUP_2_IOVEC &datas ) ;
 
-         /// main collection relation
          INT32 shardAnObj( const CHAR *pInsertor,
                            CoordCataInfoPtr &cataInfo,
                            pmdEDUCB * cb,

@@ -40,8 +40,6 @@
 
 #include "ossSocket.hpp"
 
-// Note: include utilHttpDef.hpp before http_parser.hpp, to use
-//       HTTP_MAX_HEADER_SIZE defined by ourself.
 #include "utilHttpDef.hpp"
 #include "http_parser.hpp"
 #include <string>
@@ -68,9 +66,6 @@ namespace seadapter
          _utilHttp() ;
          ~_utilHttp() ;
 
-         // The format of the uri should be like "192.168.1.100:9200".
-         // If you call init multiple times, only the last call will take
-         // affect.
          INT32 init( const string &uri, BOOLEAN keepAlive = TRUE ) ;
          void reset() ;
 
@@ -99,7 +94,6 @@ namespace seadapter
             goto done ;
          }
 
-         // Generic request.
          INT32 request( const CHAR *method,
                         const CHAR *endUrl,
                         const CHAR *data = NULL,
@@ -178,7 +172,6 @@ namespace seadapter
                                     INT32 &bodyOffset ) ;
          INT32 _parseHeader( CHAR *buff, INT32 len ) ;
 
-         // HTTP parser callback functions.
          static INT32 _onMessageBegin( void *data ) ;
          static INT32 _onUrl( void *data, const CHAR* at, size_t length ) ;
          static INT32 _onStatus( void *data, const CHAR* at, size_t length ) ;
@@ -189,10 +182,8 @@ namespace seadapter
          static INT32 _onMessageComplete( void *data ) ;
 
 
-         /// Append the chunk message to the stream.
          size_t appendChunk(string& output, CHAR* msg, size_t msgSize);
 
-         /// Determine if we must reconnect.
          /*
          inline bool mustReconnect() const
          {

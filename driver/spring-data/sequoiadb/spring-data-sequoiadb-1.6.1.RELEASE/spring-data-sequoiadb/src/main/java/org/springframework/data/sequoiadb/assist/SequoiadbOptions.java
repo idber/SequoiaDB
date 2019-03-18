@@ -70,8 +70,6 @@ public class SequoiadbOptions {
         wtimeout = 0;
         fsync = false;
         j = false;
-//        dbDecoderFactory = DefaultDBDecoder.FACTORY;
-//        dbEncoderFactory = DefaultDBEncoder.FACTORY;
         dbDecoderFactory = null;
         dbEncoderFactory = null;
         socketFactory = SocketFactory.getDefault();

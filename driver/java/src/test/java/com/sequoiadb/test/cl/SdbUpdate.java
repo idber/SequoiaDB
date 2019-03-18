@@ -21,13 +21,11 @@ public class SdbUpdate {
     @BeforeClass
     public static void beforeClass() throws Exception {
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } else
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        // cl
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
@@ -55,7 +53,6 @@ public class SdbUpdate {
         BSONObject modifier = new BasicBSONObject();
         BSONObject m = new BasicBSONObject();
         BSONObject condition = new BasicBSONObject();
-        //$inc modifier:{$inc:{Id:10}}
         modifier.put("$inc", m);
         m.put("Id", 10);
         cl.update(null, modifier, null);
@@ -71,7 +68,6 @@ public class SdbUpdate {
 
     @Test
     public void testUpdateSet() {
-        //$set  match:{Id:{$gte:0,$lte:9}} modifier:{$set:{age:12}} hint:null
         BSONObject modifier = new BasicBSONObject();
         BSONObject m = new BasicBSONObject();
 
@@ -95,7 +91,6 @@ public class SdbUpdate {
 
     @Test
     public void testUpdateUnset() {
-        //$unset match:{Id:{$gte:0,$lte:9}} modifier:{$unset:{age:""}}
         BSONObject modifier = new BasicBSONObject();
         BSONObject m = new BasicBSONObject();
 
@@ -130,7 +125,6 @@ public class SdbUpdate {
 
         BSONObject match = new BasicBSONObject();
         BSONObject con = new BasicBSONObject();
-        //$addtoset match:{Id:{$gte:0,$lte:9}}  modifier:{$addtoset:{arr:[10,20,30]}}
         int[] arr = {10, 20, 30};
         modifier.put("$addtoset", m);
         m.put("arr", arr);
@@ -158,7 +152,6 @@ public class SdbUpdate {
 
     @Test
     public void testUpdatePop() {
-        //$pop match:{Id:0} modifier:{$pop:{arr:1}}
         BSONObject modifier = new BasicBSONObject();
         BSONObject m = new BasicBSONObject();
 
@@ -189,7 +182,6 @@ public class SdbUpdate {
 
     @Test
     public void testUpdatePull() {
-        // insert array before execute pull
         BSONObject modifier1 = new BasicBSONObject();
         BSONObject m1 = new BasicBSONObject();
         modifier1.put("$push_all", m1);
@@ -198,8 +190,6 @@ public class SdbUpdate {
         BSONObject match1 = new BasicBSONObject();
         match1.put("Id", 1);
         cl.update(match1, modifier1, null);
-        // TODO:
-        //$pull match:{Id:0}  modifier:{$pull:{arr:10}}
         BSONObject modifier = new BasicBSONObject();
         BSONObject m = new BasicBSONObject();
 
@@ -211,7 +201,6 @@ public class SdbUpdate {
         match.put("Id", 1);
 
         cl.update(match, modifier, null);
-        // check
         int[] arr1 = {40, 50, 60};
         BSONObject matcher = new BasicBSONObject();
         matcher.put("arr", arr1);
@@ -221,15 +210,11 @@ public class SdbUpdate {
             cursor.getNext();
             count++;
         }
-//	    BSONObject obj = cursor.getNext();
-//	    System.out.println("obj is: "+obj.toString());
         assertEquals(count, 1);
-        //assertEquals(Integer.parseInt(obj.get("arr").toString().substring(1, 3)),20);
     }
 
     @Test
     public void testUpdatePull_all() {
-        // insert array before execute pull
         BSONObject modifier1 = new BasicBSONObject();
         BSONObject m1 = new BasicBSONObject();
         modifier1.put("$push_all", m1);
@@ -238,8 +223,6 @@ public class SdbUpdate {
         BSONObject match1 = new BasicBSONObject();
         match1.put("Id", 1);
         cl.update(match1, modifier1, null);
-        // TODO:
-        //$pull_all match:{Id:1} modifier:{$pull_all:{arr:[10,20,40]}}
         BSONObject modifier = new BasicBSONObject();
         BSONObject m = new BasicBSONObject();
 
@@ -254,7 +237,6 @@ public class SdbUpdate {
         cl.update(match, modifier, null);
 
         cursor = cl.query(match, null, null, null);
-        // check
         int[] arr2 = {50, 60, 70, 80};
         BSONObject matcher = new BasicBSONObject();
         matcher.put("arr", arr2);
@@ -269,7 +251,6 @@ public class SdbUpdate {
 
     @Test
     public void testUpdatePush() {
-        //$push match:{Id:1} modifier:{$push:{arr:30,arr2:20}}
         BSONObject modifier = new BasicBSONObject();
         BSONObject m = new BasicBSONObject();
 
@@ -302,7 +283,6 @@ public class SdbUpdate {
 
     @Test
     public void testUpdatePush_all() {
-        //$push match:{Id:1} modifier:{$push_all:{arr:[40,50,20],arr2:[20,50,30]}}
         BSONObject modifier = new BasicBSONObject();
         BSONObject m = new BasicBSONObject();
         int[] arr1 = {40, 50, 20};
@@ -318,8 +298,6 @@ public class SdbUpdate {
         cl.update(match, modifier, null);
 
         BSONObject query = new BasicBSONObject();
-//		int[] arr1_1 = {30,30,40,50,20};
-//		int[] arr2_2 = {20,20,50,30};
 
         query.put("Id", 1);
         query.put("arr", arr1);

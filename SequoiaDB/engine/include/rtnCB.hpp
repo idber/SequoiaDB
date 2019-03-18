@@ -74,13 +74,8 @@ namespace engine
 
       _rtnLobAccessManager _lobAccessManager ;
 
-      // The following members are used for communication with search engine
-      // adapter when do text searching. Search engine adapter use the shard
-      // plane to get data from data node, and data node use this new plane to
-      // send text search request to adapter.
       rtnRemoteMessenger   *_remoteMessenger ;
       ossSpinSLatch        _mutex ;        // Lock for protection of accessing
-                                          // index information.
       ossAtomicSigned64    _textIdxVersion ;
 
    public:

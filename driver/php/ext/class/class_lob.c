@@ -1,5 +1,5 @@
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@
 
 extern zend_class_entry *pSequoiadbInt64 ;
 
-extern INT32 connectionDesc ;
 extern INT32 lobDesc ;
 
 PHP_METHOD( SequoiaLob, __construct )
@@ -202,7 +201,7 @@ error:
 PHP_METHOD( SequoiaLob, seek )
 {
    INT32 rc = SDB_OK ;
-   SDB_LOB_SEEK  whence = SDB_LOB_SEEK_SET ;
+   SDB_LOB_SEEK 	whence = SDB_LOB_SEEK_SET ;
    SINT64 offset        = 0 ;
    zval *pOffset        = NULL ;
    zval *pWhence        = NULL ;
@@ -342,21 +341,3 @@ error:
    goto done ;
 }
 
-PHP_METHOD( SequoiaLob, isEof )
-{
-   BOOLEAN result   = FALSE ;
-   zval *pThisObj   = getThis() ;
-   sdbLobHandle lob = SDB_INVALID_HANDLE ;
-
-   PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
-
-   PHP_READ_HANDLE( pThisObj,
-                    lob,
-                    sdbLobHandle,
-                    SDB_LOB_HANDLE_NAME,
-                    lobDesc ) ;
-
-   result = sdbLobIsEof( lob ) ;
-
-   RETVAL_BOOL( result ) ;
-}

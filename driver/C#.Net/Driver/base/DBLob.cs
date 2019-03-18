@@ -1,20 +1,4 @@
-﻿/*
- * Copyright 2018 SequoiaDB Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
-*/
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -187,7 +171,7 @@ namespace SequoiaDB
             int errorCode = retInfo.Flags;
             if (0 != errorCode)
             {
-                throw new BaseException(errorCode, retInfo.ErrorObject);
+                throw new BaseException(errorCode);
             }
             // update the last update time
             List<BsonDocument> resultSet = retInfo.ObjectList;
@@ -440,7 +424,7 @@ namespace SequoiaDB
             int flag = retInfo.Flags;
             if (0 != flag)
             {
-                throw new BaseException(flag, retInfo.ErrorObject);
+                throw new BaseException(flag);
             }
         }
 
@@ -507,15 +491,6 @@ namespace SequoiaDB
             return _modificationTime;
         }
 
-        /** \fn          bool IsEof()
-         *  \brief       Check whether current offset has reached to the max size of current lob.
-         *  \return      Return true if yes while false for not.
-         */
-        public bool IsEof()
-        {
-            return _currentOffset >= _lobSize;
-        }
-
         /************************************** private methond **************************************/
 
         private void _Open()
@@ -572,7 +547,7 @@ namespace SequoiaDB
             int rc = retInfo.Flags;
             if (rc != 0)
             {
-                throw new BaseException(rc, retInfo.ErrorObject);
+                throw new BaseException(rc);
             }
             /// get lob's meta info returned from engine
             List<BsonDocument> objList = retInfo.ObjectList;
@@ -694,7 +669,7 @@ namespace SequoiaDB
             int flag = retInfo.Flags;
             if (0 != flag)
             {
-                throw new BaseException(flag, retInfo.ErrorObject);
+                throw new BaseException(flag);
             }
             _currentOffset += len;
             _lobSize = Math.Max(_lobSize, _currentOffset);
@@ -743,7 +718,7 @@ namespace SequoiaDB
             }
             if (rc != 0)
             {
-                throw new BaseException(rc, retInfo.ErrorObject);
+                throw new BaseException(rc);
             }
             // sanity check
             // return message is |MsgOpReply|_MsgLobTuple|data|

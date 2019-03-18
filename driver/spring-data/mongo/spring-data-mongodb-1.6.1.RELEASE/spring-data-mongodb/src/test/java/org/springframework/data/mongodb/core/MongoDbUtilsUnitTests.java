@@ -92,29 +92,20 @@ public class MongoDbUtilsUnitTests {
 	@Test
 	public void handlesTransactionSynchronizationLifecycle() {
 
-		// ensure transaction synchronization manager has no registered
-		// transaction synchronizations or bound resources at start of test
 		assertThat(TransactionSynchronizationManager.getSynchronizations().isEmpty(), is(true));
 		assertThat(TransactionSynchronizationManager.getResourceMap().isEmpty(), is(true));
 
-		// access database for one mongo instance, (registers transaction
-		// synchronization and binds transaction resource)
 		MongoDbUtils.getDB(mongo, "first");
 
-		// ensure transaction synchronization manager has registered
-		// transaction synchronizations and bound resources
 		assertThat(TransactionSynchronizationManager.getSynchronizations().isEmpty(), is(false));
 		assertThat(TransactionSynchronizationManager.getResourceMap().isEmpty(), is(false));
 
-		// simulate transaction completion, (unbinds transaction resource)
 		try {
 			simulateTransactionCompletion();
 		} catch (Exception e) {
 			fail("Unexpected exception thrown during transaction completion: " + e);
 		}
 
-		// ensure transaction synchronization manager has no bound resources
-		// at end of test
 		assertThat(TransactionSynchronizationManager.getResourceMap().isEmpty(), is(true));
 	}
 
@@ -124,30 +115,21 @@ public class MongoDbUtilsUnitTests {
 	@Test
 	public void handlesTransactionSynchronizationsLifecycle() {
 
-		// ensure transaction synchronization manager has no registered
-		// transaction synchronizations or bound resources at start of test
 		assertThat(TransactionSynchronizationManager.getSynchronizations().isEmpty(), is(true));
 		assertThat(TransactionSynchronizationManager.getResourceMap().isEmpty(), is(true));
 
-		// access multiple databases for one mongo instance, (registers
-		// transaction synchronizations and binds transaction resources)
 		MongoDbUtils.getDB(mongo, "first");
 		MongoDbUtils.getDB(mongo, "second");
 
-		// ensure transaction synchronization manager has registered
-		// transaction synchronizations and bound resources
 		assertThat(TransactionSynchronizationManager.getSynchronizations().isEmpty(), is(false));
 		assertThat(TransactionSynchronizationManager.getResourceMap().isEmpty(), is(false));
 
-		// simulate transaction completion, (unbinds transaction resources)
 		try {
 			simulateTransactionCompletion();
 		} catch (Exception e) {
 			fail("Unexpected exception thrown during transaction completion: " + e);
 		}
 
-		// ensure transaction synchronization manager has no bound
-		// transaction resources at end of test
 		assertThat(TransactionSynchronizationManager.getResourceMap().isEmpty(), is(true));
 	}
 
@@ -160,13 +142,11 @@ public class MongoDbUtilsUnitTests {
 	 */
 	private void simulateTransactionCompletion() {
 
-		// triggerBeforeCompletion() implementation without swallowed exceptions
 		List<TransactionSynchronization> synchronizations = TransactionSynchronizationManager.getSynchronizations();
 		for (TransactionSynchronization synchronization : synchronizations) {
 			synchronization.beforeCompletion();
 		}
 
-		// triggerAfterCompletion() implementation without swallowed exceptions
 		List<TransactionSynchronization> remainingSynchronizations = TransactionSynchronizationManager
 				.getSynchronizations();
 		if (remainingSynchronizations != null) {

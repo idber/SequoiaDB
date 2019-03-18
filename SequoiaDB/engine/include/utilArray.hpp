@@ -136,7 +136,6 @@ namespace engine
 
          if ( _eleSize >= _bufSize )
          {
-            /// resize by 2 mutiple
             rc = resize( _bufSize << 1 ) ;
             if ( rc )
             {
@@ -166,9 +165,7 @@ namespace engine
                rc = SDB_OOM ;
                goto error ;
             }
-            /// copy data
             ossMemcpy( pTmp, _dynamicBuf, sizeof( T ) * _eleSize ) ;
-            /// set pointer
             _dynamicBuf = pTmp ;
             _bufSize = size ;
          }

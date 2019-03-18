@@ -42,7 +42,6 @@
 #if defined (_LINUX)
 #include <sys/mman.h>
 #elif defined (_WINDOWS)
-// this defines DMS page size, need to verify with Windows page granularity
 #include "dms.hpp"
 #endif
 
@@ -81,7 +80,6 @@ void _ossMmapFile::close ()
 
    engine::ossScopedRWLock lock( &_rwMutex, EXCLUSIVE ) ;
 
-   // clear all maped regions
    for ( UINT32 i = 0 ; i < _size ; ++i )
    {
 #if defined (_LINUX)
@@ -95,7 +93,6 @@ void _ossMmapFile::close ()
 #endif
    }
    _clearSeg() ;
-   // close opened file
    if ( _opened )
    {
       ossClose ( _file ) ;
@@ -138,12 +135,10 @@ INT32 _ossMmapFile::map ( UINT64 offset, UINT32 length, void **pAddress )
 #if defined (_WINDOWS)
    SYSTEM_INFO si;
 #endif
-   // if we don't want to map anything, just return success
    if ( 0 == length )
    {
       goto done ;
    }
-   // then let's get file size to make sure we are mapping right range
    rc = ossGetFileSize ( &_file, (INT64*)&fileSize ) ;
    if ( rc )
    {
@@ -172,7 +167,6 @@ INT32 _ossMmapFile::map ( UINT64 offset, UINT32 length, void **pAddress )
       goto error ;
    }
 
-   // map region into memory
 #if defined (_LINUX)
    segment = mmap( NULL, length, PROT_READ|PROT_WRITE, MAP_SHARED,
                    _file.fd, offset ) ;
@@ -195,12 +189,8 @@ INT32 _ossMmapFile::map ( UINT64 offset, UINT32 length, void **pAddress )
       }
       goto error ;
    }
-   // advise kernel to not copy the memory during fork
-   // we don't care the return value anyway
    madvise ( segment, length, MADV_DONTFORK|MADV_SEQUENTIAL ) ;
 #elif defined (_WINDOWS)
-   // make sure the requested offset is aligned with OS memory allocation
-   // granularity. Otherwise MapViewOfFile will fail
    GetSystemInfo(&si);
    if ( offset % si.dwAllocationGranularity != 0 )
    {
@@ -343,7 +333,6 @@ INT32 _ossMmapFile::flushBlock( UINT32 segmentID, UINT32 offset,
    pSegment = &_pSegArray[segmentID] ;
    if ( offset > pSegment->_length )
    {
-      /// offset more than segment size
       rc = SDB_INVALIDARG ;
       goto error ;
    }
@@ -421,7 +410,6 @@ INT32 _ossMmapFile::_ensureSpace( UINT32 size )
    ossMmapSegment* pTmp = NULL ;
    UINT32 newSize = 0 ;
 
-   /// first check
    if ( size <= _capacity )
    {
       return rc ;
@@ -429,7 +417,6 @@ INT32 _ossMmapFile::_ensureSpace( UINT32 size )
 
    engine::ossScopedRWLock lock( &_rwMutex, EXCLUSIVE ) ;
 
-   /// double check
    if ( size <= _capacity )
    {
       goto done ;
@@ -451,13 +438,11 @@ INT32 _ossMmapFile::_ensureSpace( UINT32 size )
       rc = SDB_OOM ;
       goto error ;
    }
-   /// copy data
    for ( UINT32 i = 0 ; i < _size ; ++i )
    {
       pTmp[ i ] = _pSegArray[ i ] ;
    }
 
-   /// if tmp is not null, need to free first
    if ( _pTmpArray )
    {
       SDB_OSS_DEL [] _pTmpArray ;

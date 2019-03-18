@@ -99,17 +99,12 @@ namespace engine
       SDB_ASSERT ( _dmsCB, "dmsCB can't be NULL" ) ;
       SDB_ASSERT ( cb, "cb can't be NULL" ) ;
 
-      // exclusive lock SYSSTAT cb. this function should be called during
-      // process initialization, so it shouldn't be called in parallel by
-      // agents
       DMSSYSSUMGR_XLOCK
 
-      // first to load collection space
       rc = rtnCollectionSpaceLock( DMS_STAT_SPACE_NAME, _dmsCB, TRUE,
                                    &_su, suID ) ;
       if ( SDB_DMS_CS_NOTEXIST == rc )
       {
-         // create new SYSSTAT collection space
          rc = rtnCreateCollectionSpaceCommand ( DMS_STAT_SPACE_NAME, NULL,
                                                 _dmsCB, NULL,
                                                 DMS_PAGE_SIZE_MAX,
@@ -173,13 +168,11 @@ namespace engine
          rtnCB = pmdGetKRCB()->getRTNCB() ;
       }
 
-      // query
       rc = rtnQuery( DMS_STAT_COLLECTION_CL_NAME, boDummy, boDummy, boDummy,
                      _tbScanHint, 0, cb, 0, -1, dmsCB, rtnCB, contextID ) ;
       PD_RC_CHECK( rc, PDWARNING, "Query collection [%s] failed, rc: %d",
                    DMS_STAT_COLLECTION_CL_NAME, rc ) ;
 
-      // get more
       while ( TRUE )
       {
          dmsCollectionStat *pCollectionStat = NULL ;
@@ -234,7 +227,6 @@ namespace engine
                     rc ) ;
             SAFE_OSS_DELETE( pCollectionStat ) ;
          }
-         // Continue
          rc = SDB_OK ;
       }
 
@@ -274,13 +266,11 @@ namespace engine
          rtnCB = pmdGetKRCB()->getRTNCB() ;
       }
 
-      // query
       rc = rtnQuery( DMS_STAT_INDEX_CL_NAME, boDummy, boDummy, boDummy,
                      _tbScanHint, 0, cb, 0, -1, dmsCB, rtnCB, contextID ) ;
       PD_RC_CHECK( rc, PDWARNING, "Query collection [%s] failed, rc: %d",
                    DMS_STAT_INDEX_CL_NAME, rc ) ;
 
-      // get more
       while ( TRUE )
       {
          dmsIndexStat *pIndexStat = NULL ;
@@ -335,7 +325,6 @@ namespace engine
                     pIndexStat->getIndexName(), rc ) ;
             SAFE_OSS_DELETE( pIndexStat ) ;
          }
-         // Continue
          rc = SDB_OK ;
       }
 
@@ -573,7 +562,6 @@ namespace engine
       }
       else
       {
-         // Unset optional fields, which do not exist in default statistics
          boUpdator = BSON( "$set" << pIndexStat->toBSON() <<
                            "$unset" << BSON( DMS_STAT_IDX_MCV << "" ) ) ;
       }
@@ -765,7 +753,6 @@ namespace engine
             }
             else
             {
-               // For statistics cache, mbID is ID of cache unit
                dmsCollectionStat *pCollectionStat =
                      (dmsCollectionStat *)pCache->getCacheUnit( clItem._mbID ) ;
                if ( pCollectionStat )
@@ -836,7 +823,6 @@ namespace engine
             }
             else
             {
-               // For statistics cache, mbID is key of cache unit
                needDelete = pCache->removeCacheUnit( clItem._mbID, TRUE ) ;
             }
          }
@@ -896,7 +882,6 @@ namespace engine
             }
             else
             {
-               // For statistics cache, mbID is key of cache unit
                needDelete = pCache->removeCacheUnit( clItem._mbID, TRUE ) ;
             }
          }
@@ -956,7 +941,6 @@ namespace engine
             }
             else
             {
-               // For statistics cache, mbID is ID of cache unit
                dmsCollectionStat *pCollectionStat =
                      (dmsCollectionStat *)pCache->getCacheUnit( clItem._mbID ) ;
                if ( pCollectionStat )
@@ -1071,8 +1055,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to build index object [%s], rc: %d",
                       DMS_STAT_CL_IDX_DEF, rc ) ;
 
-         // Initialized before rtn, so no sorterCreator could be used, set
-         // sort buffer size to 0 to build index without sorterCreator
          rc = rtnTestAndCreateIndex( DMS_STAT_COLLECTION_CL_NAME, idxDef, cb,
                                      _dmsCB, NULL, TRUE, 0 ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to create index [%s], rc: %d",
@@ -1086,8 +1068,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to build index object [%s], rc: %d",
                       DMS_STAT_IDX_IDX_DEF, rc ) ;
 
-         // Initialized before rtn, so no sorterCreator could be used, set
-         // sort buffer size to 0 to build index without sorterCreator
          rc = rtnTestAndCreateIndex( DMS_STAT_INDEX_CL_NAME, idxDef, cb,
                                      _dmsCB, NULL, TRUE, 0 ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to create index [%s], rc: %d",
@@ -1119,13 +1099,11 @@ namespace engine
 
       const monCSSimple *pMonCS = NULL ;
 
-      // Get collection space information
       pMonCS = monCSSimple::getCollectionSpace( monCSList, pCSName ) ;
       PD_CHECK( pMonCS, SDB_DMS_CS_NOTEXIST, error, PDWARNING,
                 "Could not get collection space [%s] for statistics",
                 pCSName ) ;
 
-      // Get statistics cache
       iterSUStat = statCacheMap.find( pCSName ) ;
       if ( iterSUStat == statCacheMap.end() )
       {
@@ -1180,13 +1158,11 @@ namespace engine
 
       const monCSSimple *pMonCS = NULL ;
 
-      // Get collection space information
       pMonCS = monCSSimple::getCollectionSpace( monCSList, pCSName ) ;
       PD_CHECK( pMonCS, SDB_DMS_CS_NOTEXIST, error, PDWARNING,
                 "Could not get collection space [%s] for statistics",
                 pCSName ) ;
 
-      // Get statistics cache
       iterSUStat = statCacheMap.find( pCSName ) ;
 
       PD_CHECK( iterSUStat != statCacheMap.end(), SDB_DMS_CS_NOTEXIST, error,
@@ -1485,7 +1461,6 @@ namespace engine
       BSONObj boDummy ;
       INT64 contextID = -1 ;
 
-      // The collection is specified, could not skip errors
       BOOLEAN couldContinue = !pMonCL ;
 
       SDB_ASSERT( pStatCache, "pStatCache is invalid" ) ;
@@ -1500,14 +1475,12 @@ namespace engine
          rtnCB = pmdGetKRCB()->getRTNCB() ;
       }
 
-      // query
       rc = rtnQuery( DMS_STAT_COLLECTION_CL_NAME, boDummy, boMatcher, boDummy,
                      _collectionHint, 0, cb, 0, -1, dmsCB, rtnCB, contextID ) ;
       PD_RC_CHECK( rc, PDWARNING, "Query statistics [%s] from [%s] failed, "
                    "rc: %d", boMatcher.toString( FALSE, TRUE ).c_str(),
                    DMS_STAT_COLLECTION_CL_NAME, rc ) ;
 
-      // get more
       while ( TRUE )
       {
          dmsCollectionStat *pCollectionStat = NULL ;
@@ -1609,7 +1582,6 @@ namespace engine
       BSONObj boDummy ;
       INT64 contextID = -1 ;
 
-      // The index is specified, could not skip errors
       BOOLEAN couldContinue = !pMonIX ;
 
       SDB_ASSERT( pStatCache, "pStatCache is invalid" ) ;
@@ -1624,14 +1596,12 @@ namespace engine
          rtnCB = pmdGetKRCB()->getRTNCB() ;
       }
 
-      // query
       rc = rtnQuery( DMS_STAT_INDEX_CL_NAME, boDummy, boMatcher, boDummy,
                      _indexHint, 0, cb, 0, -1, dmsCB, rtnCB, contextID ) ;
       PD_RC_CHECK( rc, PDWARNING, "Query statistics [%s] from [%s] failed, "
                    "rc: %d", boMatcher.toString( FALSE, TRUE ).c_str(),
                    DMS_STAT_INDEX_CL_NAME, rc ) ;
 
-      // get more
       while ( TRUE )
       {
          dmsIndexStat *pIndexStat = NULL ;

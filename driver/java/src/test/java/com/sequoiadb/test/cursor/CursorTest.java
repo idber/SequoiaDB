@@ -30,20 +30,16 @@ public class CursorTest {
 
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
         System.out.println("connect ok!");
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } else
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        // cl
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
-        //insert 100 records
         List<BSONObject> list = ConstantsInsert.createRecordList(totalNum);
         cl.bulkInsert(list, DBCollection.FLG_INSERT_CONTONDUP);
         record = new BasicBSONObject();
@@ -111,13 +107,11 @@ public class CursorTest {
     @Test
     public void testGetNextRaw() {
         System.out.println("begin to test testGetNextRaw ...");
-        // query
         BSONObject selector1 = new BasicBSONObject();
         selector1.put("hello", "");
         cursor = cl.query(record, null, null, null);
         System.out.println(cursor.getCurrent());
 		cursor.close();
-        // query
         BSONObject selector = new BasicBSONObject();
         selector.put("hello", "");
         cursor = cl.query(record, null, null, null);
@@ -136,7 +130,6 @@ public class CursorTest {
     @Test
     public void testRunOutThenCloseCursor() {
         System.out.println("begin to test testRunOutThenCloseCursor ...");
-        // close cursor
         BSONObject obj = null;
         cursor4 = cl.query("", "", "", "", 0, 1);
         try {
@@ -167,12 +160,10 @@ public class CursorTest {
     @Test
     public void testCloseCursor() {
         System.out.println("begin to test testCloseCursor ...");
-        // close cursor
         cursor = cl.query();
         BSONObject obj = null;
         byte[] arr = null;
         cursor.close();
-        // get record again
         try {
             obj = cursor.getCurrent();
         } catch (BaseException e) {
@@ -194,7 +185,6 @@ public class CursorTest {
     @Test
     public void testCloseAllCursor() {
         System.out.println("begin to test testCloseAllCursor ...");
-        // close cursor
         cursor = cl.query();
         cursor1 = cl.query();
         cursor2 = cl.query();
@@ -206,7 +196,6 @@ public class CursorTest {
         cursor2.getNext();
         cursor3.getNextRaw();
         sdb.closeAllCursors();
-        // get record again
         try {
             obj = cursor.getCurrent();
             assertTrue(obj == null);
@@ -216,7 +205,6 @@ public class CursorTest {
         }
         try {
             obj = cursor1.getNext();
-//			assertTrue(obj == null);
         } catch (BaseException e) {
             System.out.println("2:" + e.getErrorCode());
             assertTrue(e.getErrorType().equals("SDB_RTN_CONTEXT_NOTEXIST"));

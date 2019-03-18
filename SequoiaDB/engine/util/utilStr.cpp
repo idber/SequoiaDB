@@ -174,7 +174,6 @@ namespace engine
          goto error ;
       }
 
-      /// '\0' is contained.
       for ( UINT32 i = 0; i < size ; i++ )
       {
          tmp[i] = ( src[i] >= 'a' && src[i] <= 'z' ) ?
@@ -399,8 +398,6 @@ namespace engine
 
       if( ossStrchr( str, 'T' ) || ossStrchr( str, 't' ) )
       {
-         // the format "2000-01-01T(t)01:30:24:999999Z(z)" or
-         // "2000-01-01T(t)01:30:24:000000+0800"
          /* for mongo date type, iso8601 */
          sdbTimestamp sdbTime ;
          if( timestampParse( str, ossStrlen( str ), &sdbTime ) )
@@ -413,10 +410,6 @@ namespace engine
       }
       else
       {
-         // the format is "2000-01-01-13.14.26.123456"
-         // the bound is
-         // timestamp min 1901-12-13-20.45.52.000000 +/- TZ
-         // timestamp max 2038-01-19-03.14.07.999999 +/- TZ
          static cregex reg = cregex::compile("^((((19|[2-9]\\d)\\d{2})-(0?[13578]|1[02])-(0?[1-9]|[12]\\d|3[01]))|(((19|[2-9]\\d)\\d{2})-(0?[13456789]|1[012])-(0?[1-9]|[12]\\d|30))|(((19|[2-9]\\d)\\d{2})-0?2-(0?[1-9]|1\\d|2[0-8]))|(((19|[2-9]\\d)(0[48]|[2468][048]|[13579][26])|(([2468][048]|[3579][26])00))-0?2-29))-(20|21|22|23|[0-1]?\\d).[0-5]?\\d.[0-5]?\\d(.[0-9]{6})?$") ;
          if ( !( regex_match( str, reg ) ) )
          {
@@ -481,8 +474,6 @@ namespace engine
 
       if( ossStrchr( str, 'T' ) || ossStrchr( str, 't' ) )
       {
-         // the format "2000-01-01T(t)01:30:24:999999Z(z)" or
-         // "2000-01-01T(t)01:30:24:000000+0800"
          /* for mongo date type, iso8601 */
          INT32 micros = 0 ;
          sdbTimestamp sdbTime ;
@@ -497,8 +488,6 @@ namespace engine
       }
       else
       {
-         // the format is "2000-01-01"
-         // the bound is "0000-01-01" - "9999-12-31"
          static cregex reg = cregex::compile("^(((\\d{4})-(0?[13578]|1[02])-(0?[1-9]|[12]\\d|3[01]))|((\\d{4})-(0?[13456789]|1[012])-(0?[1-9]|[12]\\d|30))|((\\d{4})-0?2-(0?[1-9]|1\\d|2[0-8]))|(((\\d{2})(0[48]|[2468][048]|[13579][26])|((0[048]|1[26]|[2468][048]|[3579][26])00))-0?2-29))$") ;
          if ( !( regex_match( str, reg ) ) )
          {
@@ -675,7 +664,6 @@ namespace engine
       }
 
       pToken = ossStrtok( pVersionStr, pDelim, &pLast ) ;
-      // XXX version: 1.8[.x]
       if ( !pToken )
       {
          rc = SDB_INVALIDARG ;
@@ -685,14 +673,12 @@ namespace engine
       {
          CHAR *pTokenTmp = NULL ;
          CHAR *pLastTmp = NULL ;
-         // 1.8[.x]
          CHAR *pVerPtr = ossStrstr( pToken, ":" ) ;
          if ( !pVerPtr )
          {
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-         // 1
          pTokenTmp = ossStrtok( pVerPtr, " .", &pLastTmp ) ;
          if ( !pTokenTmp )
          {
@@ -701,7 +687,6 @@ namespace engine
          }
          version = ossAtoi( pTokenTmp ) ;
 
-         // 8
          pTokenTmp = ossStrtok( NULL, " .", &pLastTmp ) ;
          if ( !pTokenTmp )
          {
@@ -711,7 +696,6 @@ namespace engine
          subVersion = ossAtoi( pTokenTmp ) ;
 
          fixVersion = 0 ;
-         //[.x]
          pTokenTmp = ossStrtok( NULL, " .", &pLastTmp ) ;
          if ( pTokenTmp )
          {
@@ -719,7 +703,6 @@ namespace engine
          }
       }
 
-      // Release: 14702
       pToken = ossStrtok( NULL, pDelim, &pLast ) ;
       if ( !pToken )
       {
@@ -740,7 +723,6 @@ namespace engine
          release = ossAtoi( releaseStr.c_str() ) ;
       }
 
-      // 2014-08-31-23.18.18(Debug)
       pToken = ossStrtok( NULL, pDelim, &pLast ) ;
       if ( !pToken )
       {
@@ -779,7 +761,6 @@ namespace engine
       CHAR *ch = NULL ;
       const CHAR *r = "" ;
 
-      /// restore
       if ( NULL != _last )
       {
          *_last = _ch ;
@@ -793,7 +774,6 @@ namespace engine
 
       ch = ossStrchr( _src, _ch ) ;
 
-      /// "abc"
       if ( NULL == ch )
       {
          r = _src ;

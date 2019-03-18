@@ -50,25 +50,11 @@
 
    #define ossCompilerFence() __asm__ __volatile__ ( "" ::: "memory" )
 
-   // We are using gcc built-in __sync_*** functions for atomic memory
-   // access, these builtins are considered as 'full barrier' in most
-   // cases, i.e., no memory operand will be moved across the operation,
-   // either forward or backword.  Further, instructions will be issued
-   // as necessary to prevent the processor from speculating loads across
-   // the operation and from queuing stores after the operation.
 
-   // This guarantees that all load-from-memory instructions issued prior
-   // the LFENCE instruction complete before subsequent load that follows
-   // this instruction 
    #define ossX86LoadFence()  __asm__ __volatile__ ( "lfence" ::: "memory" )
 
-   // This guarantees that all store-to-memory instructions issued prior
-   // the SFENCE instruction complete before subsequent store that follows
-   // this instruction 
    #define ossX86StoreFence() __asm__ __volatile__ ( "sfence" ::: "memory" )
 
-   // This guarantees all load-from-memory and store-to-memory instsructions
-   // complete before subsequent load and store that follow this instruction
    #define ossX86MemoryFence()  __asm__ __volatile__ ( "mfence" ::: "memory" )
 #if defined (_PPCLIN64)
    #define ossYield() __asm__ __volatile__ ( "or 27,27,27" )
@@ -96,12 +82,7 @@
    #define ossYield()         YieldProcessor()
 #endif
 
-// all atomic operations require aligned memory access,
-// either 4bytes( 32bit ) or 8byte( 64bit ) boundary depends on
-// the atomic type 
 
-// atomic compare and swap of a 32bit value.
-// return: the previous value before the operation
 #if defined (_LINUX) || defined (_AIX)
 #define ossCompareAndSwap32WithReturn(pAddr,iCompareValue,iNewValue) \
           __sync_val_compare_and_swap((volatile SINT32*)pAddr,\
@@ -127,9 +108,6 @@ static OSS_INLINE SINT32 ossCompareAndSwap32WithReturn
 #endif
 }*/
 
-// atomic compare and swap of a 32bit value.
-// return : 1 success
-//          0 failure
 #if defined (_LINUX) || defined (_AIX)
 #define ossCompareAndSwap32(pAddr,iCompareValue,iNewValue)                    \
    ( __sync_val_compare_and_swap((volatile SINT32*)pAddr,                    \
@@ -156,8 +134,6 @@ static OSS_INLINE BOOLEAN ossCompareAndSwap32
 }
 */
 
-// atomic compare and swap of a 64bit value.
-// return: the previous value before the operation
 #if defined (_LINUX) || defined (_AIX)
 #define ossCompareAndSwap64WithReturn(pAddr,iCompareValue,iNewValue) \
           __sync_val_compare_and_swap((volatile SINT64*)pAddr,\
@@ -184,9 +160,6 @@ static OSS_INLINE SINT64 ossCompareAndSwap64WithReturn
 }*/
 
 
-// atomic compare and swap of a 64bit value.
-// return : 1 success
-//          0 failure
 #if defined (_LINUX) || defined (_AIX)
 #define ossCompareAndSwap64(pAddr,iCompareValue,iNewValue)                   \
    ( __sync_val_compare_and_swap((volatile SINT64*)pAddr,                    \
@@ -213,7 +186,6 @@ static OSS_INLINE BOOLEAN ossCompareAndSwap64
 }*/
 
 
-// atomic compare and swap operation of a pointer size variable
 #if defined (OSS_ARCH_64)
 #define ossCompareAndSwapPtrWithReturn(pAddr, compareValue,newValue) \
         (ossValuePtr)ossCompareAndSwap64WithReturn((volatile SINT64*) pAddr, \
@@ -245,9 +217,6 @@ static OSS_INLINE ossValuePtr ossCompareAndSwapPtrWithReturn
 }*/
 
 
-// atomic compare and swap operation of a pointer size variable
-// return : 1 success
-//          0 failure
 #if defined (OSS_ARCH_64)
 #define ossCompareAndSwapPtr(pAddr, compareValue,newValue) \
          ossCompareAndSwap64((volatile SINT64*) pAddr, \
@@ -277,8 +246,6 @@ static OSS_INLINE BOOLEAN ossCompareAndSwapPtr
 }*/
 
 
-// atomic 32bit add
-// return : the value before the addition.
 #if defined (_LINUX) || defined (_AIX)
 #define ossFetchAndAdd32(pAddr, iAddVale) \
         __sync_fetch_and_add( (volatile SINT32*)pAddr, (SINT32)iAddVale )
@@ -301,8 +268,6 @@ static OSS_INLINE SINT32 ossFetchAndAdd32
 }*/
 
 
-// atomic 32bit OR operation
-// return : the value before the OR operation
 #if defined (_LINUX) || defined (_AIX)
 #define ossFetchAndOR32(pAddr, iValue) \
         __sync_fetch_and_or( (volatile SINT32*)pAddr, (SINT32)iValue )
@@ -325,8 +290,6 @@ static OSS_INLINE SINT32 ossFetchAndOR32
 }*/
 
 
-// atomic 32bit AND operation
-// return : the value before the AND operation
 #if defined (_LINUX) || defined (_AIX)
 #define ossFetchAndAND32(pAddr,iValue) \
         __sync_fetch_and_and((volatile SINT32*)pAddr,(SINT32)iValue)
@@ -349,8 +312,6 @@ static OSS_INLINE SINT32 ossFetchAndAND32
 }*/
 
 
-// atomic 32bit XOR operation
-// return : the value before the XOR operation
 #if defined (_LINUX) || defined (_AIX)
 #define ossFetchAndXOR32(pAddr, iValue) \
         __sync_fetch_and_xor((volatile SINT32*)pAddr, (SINT32)iValue)
@@ -373,7 +334,6 @@ static OSS_INLINE SINT32 ossFetchAndXOR32
 }*/
 
 
-// atomic 32bit increment
 #define ossFetchAndIncrement32(pAddr) \
         ossFetchAndAdd32((volatile SINT32*)pAddr,1)
 /*
@@ -383,7 +343,6 @@ static OSS_INLINE SINT32 ossFetchAndIncrement32( volatile SINT32 * const pAddr )
 }*/
 
 
-// atomic 32bit decrement
 #define ossFetchAndDecrement32(pAddr) \
         ossFetchAndAdd32((volatile SINT32*)pAddr,-1)
 /*
@@ -393,8 +352,6 @@ static OSS_INLINE SINT32 ossFetchAndDecrement32( volatile SINT32 * const pAddr )
 }*/
 
 
-// atomic 64bit add
-// return : the value before the addition.
 #if defined (_LINUX) || defined (_AIX)
 #define ossFetchAndAdd64(pAddr,iAddVale) \
         __sync_fetch_and_add((volatile SINT64*)pAddr,(SINT64)iAddVale)
@@ -417,8 +374,6 @@ static OSS_INLINE SINT64 ossFetchAndAdd64
 }*/
 
 
-// atomic 64bit OR operation
-// return : the value before the OR operation
 #if defined (_LINUX) || defined (_AIX)
 #define ossFetchAndOR64(pAddr,iValue) \
         __sync_fetch_and_or((volatile SINT64*)pAddr,(SINT64)iValue)
@@ -441,8 +396,6 @@ static OSS_INLINE SINT64 ossFetchAndOR64
 }*/
 
 
-// atomic 64bit XOR operation
-// return : the value before the XOR operation
 #if defined (_LINUX) || defined (_AIX)
 #define ossFetchAndXOR64(pAddr, iValue) \
         __sync_fetch_and_xor((volatile SINT64*)pAddr,(SINT64)iValue)
@@ -465,8 +418,6 @@ static OSS_INLINE SINT64 ossFetchAndXOR64
 }*/
 
 
-// atomic 64bit AND operation
-// return : the value before the AND operation
 #if defined (_LINUX) || defined (_AIX)
 #define ossFetchAndAND64(pAddr, iValue) \
         __sync_fetch_and_and((volatile SINT64*)pAddr,(SINT64)iValue)
@@ -489,7 +440,6 @@ static OSS_INLINE SINT64 ossFetchAndAND64
 }*/
 
 
-// atomic 64bit increment
 #define ossFetchAndIncrement64(pAddr) \
         ossFetchAndAdd64((volatile SINT64*)pAddr,1)
 /*
@@ -499,7 +449,6 @@ static OSS_INLINE SINT64 ossFetchAndIncrement64( volatile SINT64 * const pAddr )
 }*/
 
 
-// atomic 64bit decrement
 #define ossFetchAndDecrement64(pAddr) \
         ossFetchAndAdd64((volatile SINT64*)pAddr,-1)
 /*
@@ -508,8 +457,6 @@ static OSS_INLINE SINT64 ossFetchAndDecrement64( volatile SINT64 * const pAddr )
    return ossFetchAndAdd64( pAddr, -1 ) ;
 }*/
 
-// atomic 8bit exchange
-// return: previous value
 /*#if defined (_LINUX)
 #define ossAtomicExchange8(pAddr,iNewValue) \
         __sync_lock_test_and_set((volatile CHAR*)pAddr, (CHAR)iNewValue )
@@ -518,8 +465,6 @@ static OSS_INLINE SINT64 ossFetchAndDecrement64( volatile SINT64 * const pAddr )
        InterlockedExchange8((CHAR*)pAddr,(CHAR)iNewValue)
 #endif*/
 
-// atomic 32bit exchange
-// return: previous value
 #if defined (_LINUX) || defined (_AIX)
 #define ossAtomicExchange32(pAddr,iNewValue) \
         __sync_lock_test_and_set((volatile INT32*)pAddr,(SINT32)iNewValue)
@@ -542,8 +487,6 @@ static OSS_INLINE SINT32 ossAtomicExchange32
 }*/
 
 
-// atomic 64bit exchange
-// return: previous value
 #if defined (_LINUX) || defined (_AIX)
 #define ossAtomicExchange64(pAddr,iNewValue) \
         __sync_lock_test_and_set((volatile SINT64*)pAddr,(SINT64)iNewValue)
@@ -566,7 +509,6 @@ static OSS_INLINE SINT64 ossAtomicExchange64
 }*/
 
 
-// atomic exchange operation of a pointer size variable
 #if defined (OSS_ARCH_64)
 #define ossAtomicExchangePtr(pAddr,newValue) \
         ossAtomicExchange64( ( volatile SINT64 * )pAddr, (ossValuePtr)newValue )
@@ -590,7 +532,6 @@ static OSS_INLINE ossValuePtr ossAtomicExchangePtr
 }*/
 
 
-// atomic fetch 32bit data
 #define ossAtomicFetch32(pAddr) \
         ossFetchAndAdd32((volatile SINT32*)pAddr, 0)
 /*
@@ -600,7 +541,6 @@ static OSS_INLINE SINT32 ossAtomicFetch32( volatile SINT32 * const pAddr )
 }*/
 
 
-// atomic fetch 64bit data
 #define ossAtomicFetch64(pAddr) \
         ossFetchAndAdd64((volatile SINT64*)pAddr, 0)
 /*
@@ -610,7 +550,6 @@ static OSS_INLINE SINT64 ossAtomicFetch64( volatile SINT64 * const pAddr )
 }*/
 
 
-// un-ordered fetch 32bit data
 #define ossAtomicPeek32(pAddr) *(SINT32*)pAddr
 /*
 static OSS_INLINE SINT32 ossAtomicPeek32( volatile const SINT32 * const pAddr )
@@ -619,7 +558,6 @@ static OSS_INLINE SINT32 ossAtomicPeek32( volatile const SINT32 * const pAddr )
 }*/
 
 
-// un-ordered fetch 64bit data
 #define ossAtomicPeek64(pAddr) *(SINT64*)pAddr
 /*
 static OSS_INLINE SINT64 ossAtomicPeek64( volatile const SINT64 * const pAddr )

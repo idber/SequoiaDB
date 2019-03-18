@@ -71,7 +71,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      // disconnect before connect
       rc = disconnect() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to disconnect" ) ;
 

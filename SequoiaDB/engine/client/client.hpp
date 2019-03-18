@@ -62,11 +62,6 @@ do                                     \
 /** The flags represent whether bulk insert continue when hitting index key duplicate error */
 #define FLG_INSERT_CONTONDUP  0x00000001
 
-// client socket timeout value
-// since client and server may not sit in the same network, we need
-// to set this value bigger than engine socket timeout
-// this value is in millisec
-// set to 10 seconds timeout
 #define SDB_CLIENT_SOCKET_TIMEOUT_DFT 10000
 
 /** class name 'sdbReplicaNode' will be deprecated in version 2.x, use 'sdbNode' instead of it. */
@@ -223,40 +218,20 @@ namespace sdbclient
    public :
       _sdbCollection () {}
       virtual ~_sdbCollection () {}
-      // get the total number of records for a given condition, if the condition
-      // is NULL then match all records in the collection
       virtual INT32 getCount ( SINT64 &count,
                                const bson::BSONObj &condition = _sdbStaticObject,
                                const bson::BSONObj &hint = _sdbStaticObject ) = 0 ;
-      // insert a bson object into current collection
-      // given:
-      // object ( required )
-      // returns id as the pointer pointing to _id bson element
       virtual INT32 insert ( const bson::BSONObj &obj, bson::OID *id = NULL ) = 0 ;
 
       virtual INT32 bulkInsert ( SINT32 flags,
                                  std::vector<bson::BSONObj> &obj
                                ) = 0 ;
-      // update bson object from current collection
-      // given:
-      // update rule ( required )
-      // update condition ( optional )
-      // hint ( optional )
-      // flag ( optional )
       virtual INT32 update ( const bson::BSONObj &rule,
                              const bson::BSONObj &condition = _sdbStaticObject,
                              const bson::BSONObj &hint      = _sdbStaticObject,
                              INT32 flag = 0
                            ) = 0 ;
 
-      // update bson object from current collection, if there's nothing match
-      // then insert an record that modified from empty BSON object
-      // given:
-      // update rule ( required )
-      // update condition ( optional )
-      // hint ( optional )
-      // setOnInsert ( optional )
-      // flag ( optional )
       virtual INT32 upsert ( const bson::BSONObj &rule,
                              const bson::BSONObj &condition = _sdbStaticObject,
                              const bson::BSONObj &hint      = _sdbStaticObject,
@@ -264,21 +239,10 @@ namespace sdbclient
                              INT32 flag = 0
                            ) = 0 ;
 
-      // delete bson objects from current collection
-      // given:
-      // delete condition ( optional )
-      // hint ( optional )
       virtual INT32 del ( const bson::BSONObj &condition = _sdbStaticObject,
                           const bson::BSONObj &hint      = _sdbStaticObject
                         ) = 0 ;
 
-      // query objects from current collection
-      // given:
-      // query condition ( optional )
-      // query selected def ( optional )
-      // query orderby ( optional )
-      // hint ( optional )
-      // output: _sdbCursor ( required )
       virtual INT32 query  ( _sdbCursor **cursor,
                              const bson::BSONObj &condition = _sdbStaticObject,
                              const bson::BSONObj &selected  = _sdbStaticObject,
@@ -307,16 +271,6 @@ namespace sdbclient
                               INT64 numToSkip    = 0,
                               INT32 flags        = 0 ) = 0 ;
 
-      // query objects from current collection and update
-      // given:
-      // update rule ( required )
-      // query condition ( optional )
-      // query selected def ( optional )
-      // query orderby ( optional )
-      // hint ( optional )
-      // flags( optional )
-      // returnNew ( optioinal )
-      // output: sdbCursor ( required )
       virtual INT32 queryAndUpdate  ( _sdbCursor **cursor,
                                       const bson::BSONObj &update,
                                       const bson::BSONObj &condition = _sdbStaticObject,
@@ -329,14 +283,6 @@ namespace sdbclient
                                       BOOLEAN returnNew              = FALSE
                                    ) = 0 ;
 
-      // query objects from current collection and remove
-      // given:
-      // query condition ( optional )
-      // query selected def ( optional )
-      // query orderby ( optional )
-      // hint ( optional )
-      // flags( optional )
-      // output: sdbCursor ( required )
       virtual INT32 queryAndRemove  ( _sdbCursor **cursor,
                                       const bson::BSONObj &condition = _sdbStaticObject,
                                       const bson::BSONObj &selected  = _sdbStaticObject,
@@ -347,13 +293,6 @@ namespace sdbclient
                                       INT32 flag                     = 0
                                    ) = 0 ;
 
-      //virtual INT32 rename ( const CHAR *pNewName ) = 0 ;
-      // create an index for the current collection
-      // given:
-      // index definition ( required )
-      // index name ( required )
-      // uniqueness ( required )
-      // enforceness ( required )
       virtual INT32 createIndex ( const bson::BSONObj &indexDef,
                                   const CHAR *pName,
                                   BOOLEAN isUnique,
@@ -415,7 +354,6 @@ namespace sdbclient
       virtual INT32 detachCollection ( const CHAR *subClFullName) = 0 ;
 
       virtual INT32 alterCollection ( const bson::BSONObj &options ) = 0 ;
-      /// explain
       virtual INT32 explain ( sdbCursor &cursor,
                               const bson::BSONObj &condition = _sdbStaticObject,
                               const bson::BSONObj &select    = _sdbStaticObject,
@@ -425,7 +363,6 @@ namespace sdbclient
                               INT64 numToReturn              = -1,
                               INT32 flag                     = 0,
                               const bson::BSONObj &options   = _sdbStaticObject ) = 0 ;
-      /// lob
       virtual INT32 createLob( sdbLob &lob, const bson::OID *oid = NULL ) = 0 ;
 
       virtual INT32 removeLob( const bson::OID &oid ) = 0 ;
@@ -441,10 +378,8 @@ namespace sdbclient
 
       virtual INT32 listLobPieces( sdbCursor &cursor ) = 0 ;
 
-      /// truncate
       virtual INT32 truncate() = 0 ;
 
-      /// create/drop $id index
       virtual INT32 createIdIndex( const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
 
       virtual INT32 dropIdIndex() = 0 ;
@@ -1558,29 +1493,21 @@ namespace sdbclient
    public :
       _sdbNode () {}
       virtual ~_sdbNode () {}
-      // connect to the current node
       virtual INT32 connect ( _sdb **dbConn ) = 0 ;
       virtual INT32 connect ( sdb &dbConn ) = 0 ;
 
-      // get status of the current node
       virtual sdbNodeStatus getStatus () = 0 ;
 
-      // get host name of the current node
       virtual const CHAR *getHostName () = 0 ;
 
-      // get service name of the current node
       virtual const CHAR *getServiceName () = 0 ;
 
-      // get node name of the current node
       virtual const CHAR *getNodeName () = 0 ;
 
-      // stop the node
       virtual INT32 stop () = 0 ;
 
-      // start the node
       virtual INT32 start () = 0 ;
 
-      // modify config for the current node
 /*      virtual INT32 modifyConfig ( std::map<std::string,std::string>
                                    &config ) = 0 ; */
    } ;
@@ -1656,9 +1583,6 @@ namespace sdbclient
          {
             return SDB_NOT_CONNECTED ;
          }
-         // we can not use dbConn.pSDB here,
-         // for sdb had not define yet.
-         // RELEASE_INNER_HANDLE( dbConn.pSDB ) ;
          return pNode->connect ( dbConn ) ;
       }
 
@@ -1747,29 +1671,23 @@ namespace sdbclient
    public :
       _sdbReplicaGroup () {}
       virtual ~_sdbReplicaGroup () {}
-      // get number of logical nodes
       virtual INT32 getNodeNum ( sdbNodeStatus status, INT32 *num ) = 0 ;
 
-      // get detailed information for the set
       virtual INT32 getDetail ( bson::BSONObj &result ) = 0 ;
 
-      // get the master node
       virtual INT32 getMaster ( _sdbNode **node ) = 0 ;
       virtual INT32 getMaster ( sdbNode &node ) = 0 ;
 
-      // get one of the slave node
       virtual INT32 getSlave ( _sdbNode **node,
                                const vector<INT32>& positions = _sdbStaticVec ) = 0 ;
       virtual INT32 getSlave ( sdbNode &node,
                                const vector<INT32>& positions = _sdbStaticVec ) = 0 ;
 
-      // get a given node by name
       virtual INT32 getNode ( const CHAR *pNodeName,
                               _sdbNode **node ) = 0 ;
       virtual INT32 getNode ( const CHAR *pNodeName,
                               sdbNode &node ) = 0 ;
 
-      // get a given node by host/service name
       virtual INT32 getNode ( const CHAR *pHostName,
                               const CHAR *pServiceName,
                               _sdbNode **node ) = 0 ;
@@ -1777,7 +1695,6 @@ namespace sdbclient
                               const CHAR *pServiceName,
                               sdbNode &node ) = 0 ;
 
-      // create a new node in current replica group
       virtual INT32 createNode ( const CHAR *pHostName,
                                  const CHAR *pServiceName,
                                  const CHAR *pDatabasePath,
@@ -1788,33 +1705,25 @@ namespace sdbclient
                                  const CHAR *pDatabasePath,
                                  const bson::BSONObj &options = _sdbStaticObject )= 0;
 
-      // remove the specified node in current replica group
       virtual INT32 removeNode ( const CHAR *pHostName,
                                  const CHAR *pServiceName,
                                  const bson::BSONObj &configure = _sdbStaticObject ) = 0 ;
-      // stop the replica group
       virtual INT32 stop () = 0 ;
 
-      // start the replica group
       virtual INT32 start () = 0 ;
 
-      // get the replica group name
       virtual const CHAR *getName () = 0 ;
 
-      // whether the current replica group is catalog replica group or not
       virtual BOOLEAN isCatalog () = 0 ;
 
-      // attach node
       virtual INT32 attachNode( const CHAR *pHostName,
                                 const CHAR *pSvcName,
                                 const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
 
-      // detach node
       virtual INT32 detachNode( const CHAR *pHostName,
                                 const CHAR *pSvcName,
                                 const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
 
-      // reelect primary node
       virtual INT32 reelect( const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
    } ;
 
@@ -2200,14 +2109,12 @@ namespace sdbclient
    public :
       _sdbCollectionSpace () {}
       virtual ~_sdbCollectionSpace () {}
-      // get a collection object
       virtual INT32 getCollection ( const CHAR *pCollectionName,
                                     _sdbCollection **collection ) = 0 ;
 
       virtual INT32 getCollection ( const CHAR *pCollectionName,
                                     sdbCollection &collection ) = 0 ;
 
-      // create a new collection object with options
       virtual INT32 createCollection ( const CHAR *pCollection,
                                        const bson::BSONObj &options,
                                        _sdbCollection **collection ) = 0 ;
@@ -2216,25 +2123,19 @@ namespace sdbclient
                                        const bson::BSONObj &options,
                                        sdbCollection &collection ) = 0 ;
 
-      // create a new collection object
       virtual INT32 createCollection ( const CHAR *pCollection,
                                        _sdbCollection **collection ) = 0 ;
 
       virtual INT32 createCollection ( const CHAR *pCollection,
                                        sdbCollection &collection ) = 0 ;
 
-      // drop an existing collection
       virtual INT32 dropCollection ( const CHAR *pCollection ) = 0 ;
 
-      // create a collection space with current collection space name
       virtual INT32 create () = 0 ;
-      // drop a collection space with current collection space name
       virtual INT32 drop () = 0 ;
 
-      // get the collectonSpace's name
       virtual const CHAR *getCSName () = 0 ;
 
-      // rename collection
       virtual INT32 renameCollection( const CHAR* oldName, const CHAR* newName,
                          const bson::BSONObj &options = _sdbStaticObject ) = 0 ;
 
@@ -3228,12 +3129,10 @@ namespace sdbclient
 
       virtual INT32 listCollectionSpaces ( sdbCursor &result ) = 0 ;
 
-      // list all collections in a given database
       virtual INT32 listCollections ( _sdbCursor **result ) = 0 ;
 
       virtual INT32 listCollections ( sdbCursor &result ) = 0 ;
 
-      // list all the replica groups in the given database
       virtual INT32 listReplicaGroups ( _sdbCursor **result ) = 0 ;
 
       virtual INT32 listReplicaGroups ( sdbCursor &result ) = 0 ;
@@ -3283,7 +3182,6 @@ namespace sdbclient
       virtual INT32 transactionRollback() = 0 ;
 
       virtual INT32 flushConfigure( const bson::BSONObj &options ) = 0 ;
-      // stored procedure
       virtual INT32 crtJSProcedure ( const CHAR *code ) = 0 ;
       virtual INT32 rmProcedure( const CHAR *spName ) = 0 ;
       virtual INT32 listProcedures( _sdbCursor **cursor, const bson::BSONObj &condition ) = 0 ;
@@ -3297,7 +3195,6 @@ namespace sdbclient
                             sdbCursor &cursor,
                             bson::BSONObj &errmsg ) = 0 ;
 
-      // bakup
       virtual INT32 backupOffline ( const bson::BSONObj &options) = 0 ;
       virtual INT32 listBackup ( _sdbCursor **cursor,
                               const bson::BSONObj &options,
@@ -3311,7 +3208,6 @@ namespace sdbclient
                               const bson::BSONObj &orderBy = _sdbStaticObject)  = 0 ;
       virtual INT32 removeBackup ( const bson::BSONObj &options ) = 0 ;
 
-      // task
       virtual INT32 listTasks ( _sdbCursor **cursor,
                         const bson::BSONObj &condition = _sdbStaticObject,
                         const bson::BSONObj &selector = _sdbStaticObject,
@@ -3330,20 +3226,15 @@ namespace sdbclient
 
       virtual INT32 cancelTask ( SINT64 taskID,
                         BOOLEAN isAsync ) = 0 ;
-      // set session attribute
       virtual INT32 setSessionAttr ( const bson::BSONObj &options =
                                      _sdbStaticObject ) = 0 ;
-      // get session attribute
       virtual INT32 getSessionAttr ( bson::BSONObj & result ) = 0 ;
 
-      // close all cursor
       virtual INT32 closeAllCursors () = 0 ;
 
-      // connection is closed
       virtual INT32 isValid( BOOLEAN *result ) = 0 ;
       virtual BOOLEAN isValid() = 0 ;
 
-      // domain
       virtual INT32 createDomain ( const CHAR *pDomainName,
                                    const bson::BSONObj &options,
                                    _sdbDomain **domain ) = 0 ;
@@ -3378,7 +3269,6 @@ namespace sdbclient
 
       static _sdb *getObj ( BOOLEAN useSSL = FALSE ) ;
 
-      // get last alive time
       virtual UINT64 getLastAliveTime() const = 0 ;
 
       virtual INT32 syncDB(

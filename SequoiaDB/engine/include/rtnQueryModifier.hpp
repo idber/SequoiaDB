@@ -61,7 +61,6 @@ namespace engine
       inline vector<INT64>* getDollarList() { return &_dollarList ; }
 
    private:
-      // disallow copy and assign
       _rtnQueryModifier( const _rtnQueryModifier& ) ;
       void operator=( const _rtnQueryModifier& ) ;
 

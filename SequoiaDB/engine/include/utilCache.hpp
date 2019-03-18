@@ -52,7 +52,6 @@ namespace engine
    #define UTIL_PAGE_SLOT_BEGIN_SIZE            ( 256 )  /// BYTE
    #define UTIL_PAGE_SLOT_SIZE                  ( 22 )   /// 512M
 
-   /// totalSize / maxCacheSize
    #define UTIL_CACHE_RATIO                     ( 20 )   /// >=20%
 
    /*
@@ -429,7 +428,6 @@ namespace engine
 
          UINT32   avgNullTimes() ;
 
-         /// Get the detail info of the specified bucket
          void     getCacheStat( UINT32 bucketID,
                                 utilCacheStat &stat ) const ;
 
@@ -692,7 +690,6 @@ namespace engine
          BOOLEAN           _usePage ;
          BOOLEAN           _hasDiscard ;
 
-         /// should value in cache unit
          INT32             _pageID ;
          utilCachePage*    _pPage ;
          utilCacheBucket*  _pBucket ;

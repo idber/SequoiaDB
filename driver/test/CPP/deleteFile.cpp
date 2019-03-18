@@ -6,35 +6,28 @@
 #include <string.h>
 #include <stdio.h>
 
-// 判断是否为目录
 bool is_dir ( const char *path )
 {
    struct stat statbuf ;
-   //lstat 返回文件的信息，文件信息存放到stat结构中
    if ( lstat( path, &statbuf ) == 0 )
    {
-      // S_ISDIR 宏判断文件类型是否为目录
       return S_ISDIR ( statbuf.st_mode) != 0 ;
    }
    return false ;
 }
-// 判断是否为常规文件
 bool is_file ( const char *path )
 {
    struct stat statbuf ;
    if ( lstat ( path, &statbuf ) == 0 )
    {
-      // 判断文件是否为常规文件
       return S_ISREG ( statbuf.st_mode ) != 0 ;
    }
    return false ;
 }
-// 判断是否为特殊目录
 bool is_special_dir ( const char *path )
 {
    return strcmp ( path,".") == 0 || strcmp ( path, ".." ) == 0 ;
 }
-// 生成完整的文件路径
 void get_file_path ( const char *path, const char *file_name, char *file_path )
 {
    strcpy ( file_path, path ) ;

@@ -41,7 +41,6 @@ public class Person extends Contact {
 
 	private String firstname;
 	private String lastname;
-//	@Indexed(unique = true, dropDups = true) private String email;
 	private String email;
 	private Integer age;
 	@SuppressWarnings("unused") private Sex sex;
@@ -49,7 +48,6 @@ public class Person extends Contact {
 
 	List<String> skills;
 
-//	@GeoSpatialIndexed private Point location;
 	private Point location;
 
 	private Address address;

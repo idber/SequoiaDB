@@ -260,13 +260,6 @@ Linux64:
 		The second way to build:
 			cd zlib
 			scons
-			
-	    fuse 2.9.4
-		    cd fuse
-			./makeconf.sh
-			./configure
-			make
-			make install
 
 PowerLinux64:
         Building Prerequisites:

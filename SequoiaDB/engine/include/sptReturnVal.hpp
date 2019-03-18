@@ -82,15 +82,10 @@ namespace engine
       }
 
    private:
-      /// Return val. If the val's field name is not empty, will
-      /// add this val to self as property with the name
       sptProperty       _val ;
 
-      /// properties of return val. In used only when _val is Object.
-      /// Will ignored the item its name is empty.
       SPT_PROPERTIES    _valProperties ;
 
-      /// properties of self. Will ignored the item its name is empty.
       SPT_PROPERTIES    _selfProperties ;
    } ;
 

@@ -43,16 +43,6 @@ public class DBCursor implements Cursor, Iterable<BSONObject> {
     private final ArrayList<BSONObject> _all = new ArrayList<BSONObject>();
     private QueryResultIterator _resultIterator;
 
-//    /**
-//     * Initializes a new database cursor
-//     * @param collection collection to use
-//     * @param q query to perform
-//     * @param k keys to return from the query
-//     * @param preference the Read Preference for this query
-//     */
-//    public DBCursor( DBCollection collection , BSONObject q , BSONObject k, ReadPreference preference ){
-//        throw new UnsupportedOperationException("not supported!");
-//    }
 
     DBCursor(QueryResultIterator resultIterator) {
         _resultIterator = resultIterator;
@@ -141,7 +131,6 @@ public class DBCursor implements Cursor, Iterable<BSONObject> {
         throw new UnsupportedOperationException("not supported!");
     }
 
-    // ---- querty modifiers --------
 
     /**
      * Sorts this cursor's elements.
@@ -360,7 +349,6 @@ public class DBCursor implements Cursor, Iterable<BSONObject> {
         return _num;
     }
 
-    // ----- iterator api -----
 
     /**
      * Checks if there is another object available

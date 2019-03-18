@@ -232,14 +232,12 @@ JS_MAPPING_END()
       string output ;
       pdTraceParser traceParser ;
 
-      /// 1st
       rc = arg.getNative( 0, (void*)&formatType, SPT_NATIVE_INT32 ) ;
       if ( rc )
       {
          detail = BSON( SPT_ERR << "The 1st param must be number" ) ;
          goto error ;
       }
-      /// check param
       if ( PD_TRACE_FORMAT_TYPE_FLOW != formatType &&
            PD_TRACE_FORMAT_TYPE_FORMAT != formatType )
       {
@@ -248,7 +246,6 @@ JS_MAPPING_END()
          goto error ;
       }
 
-      /// 2nd
       rc = arg.getString( 1, input ) ;
       if ( rc )
       {
@@ -262,7 +259,6 @@ JS_MAPPING_END()
          goto error ;
       }
 
-      /// 3rd
       rc = arg.getString( 2, output ) ;
       if ( rc )
       {
@@ -477,7 +473,6 @@ JS_MAPPING_END()
       context = spScope->getContext() ;
       if ( !className.empty() )
       {
-         /// static functions
          sptGetObjFactory()->getClassStaticFuncNames( context,
                                                       className,
                                                       names,
@@ -493,7 +488,6 @@ JS_MAPPING_END()
             }
             names.clear() ;
          }
-         /// member functions
          sptGetObjFactory()->getClassFuncNames( context,
                                                 className,
                                                 names,
@@ -510,7 +504,6 @@ JS_MAPPING_END()
             ss << "   " << *it << endl ;
             ++it ;
          }
-         /// get global function
          names.clear() ;
          sptGetObjFactory()->getClassStaticFuncNames( context,
                                                       "",
@@ -594,7 +587,6 @@ JS_MAPPING_END()
       const sptResultVal *pResultVal = NULL ;
       CHAR realPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 
-      // get filename
       rc = arg.getString( 0, filename ) ;
       if( SDB_OUT_OF_BOUND == rc )
       {
@@ -607,7 +599,6 @@ JS_MAPPING_END()
          goto error ;
       }
 
-      // get full pathname
       if( NULL == ossGetRealPath( filename.c_str(), realPath, OSS_MAX_PATHSIZE ) )
       {
          rc = SDB_INVALIDARG ;
@@ -616,7 +607,6 @@ JS_MAPPING_END()
       }
       fullPath = realPath ;
 
-      // get scope by access private data
       {
          sptPrivateData *pPivateData = arg.getPrivateData() ;
          if( NULL == pPivateData )
@@ -632,7 +622,6 @@ JS_MAPPING_END()
          }
       }
 
-      // if only import once, need to check list to avoid importing repeatedly
       if( TRUE == importOnce )
       {
          if( pScope->isJSFileNameExistInList( fullPath ) )
@@ -642,7 +631,6 @@ JS_MAPPING_END()
       }
       else
       {
-         // same file can't be import repeatedly in a function call
          if( pScope->isJSFileNameExistInStack( fullPath ) )
          {
             goto done ;
@@ -658,7 +646,6 @@ JS_MAPPING_END()
                            ( "Failed to read file content, filename: " + filename ) ) ;
             goto error ;
          }
-         // skip BOM (notepad auto add flag for UTF-8)
          if ( readLen >= 3 && (UINT8)buf[0] == 0xEF &&
               (UINT8)buf[1] == 0xBB && (UINT8)buf[2] == 0xBF )
          {
@@ -679,7 +666,6 @@ JS_MAPPING_END()
          {
             evalFlags |= SPT_EVAL_FLAG_IGNORE_ERR_PREFIX ;
          }
-         // need to save old err print flag to recover
          BOOLEAN saveOldPrintFlag = sdbNeedPrintError() ;
          BOOLEAN saveOldIgnoreFlag = sdbNeedIgnoreErrorPrefix() ;
          rc = pScope->eval( content.c_str(), ( UINT32 )content.length(),

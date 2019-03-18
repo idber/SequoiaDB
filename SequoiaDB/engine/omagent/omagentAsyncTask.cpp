@@ -236,7 +236,6 @@ namespace engine
          pOmaMgr->sendUpdateTaskReq( reqID, &progressInfo ) ;
          if( updateEvent.wait( OMA_WAIT_OMSVC_RES_TIMEOUT, &retRc ) )
          {
-            // try to send update task request again
          }
          else
          {
@@ -351,7 +350,6 @@ namespace engine
    {
       Plan: [
          [
-            // Async exec
             { [a sub-task parameters]... },
             ...
          ],
@@ -381,7 +379,6 @@ namespace engine
             goto error ;
          }
 
-         // 1. build step argument
          _initSubTaskArg() ;
          while( subTaskIter.more() )
          {
@@ -390,7 +387,6 @@ namespace engine
             _appendSubTaskArg( subTask ) ;
          }
 
-         // 2. run step
          rc = _createSubTask() ;
          if( rc )
          {
@@ -410,7 +406,6 @@ namespace engine
             goto error ;
          }
 
-         // 3. exec js to check step result
          planCmd = createOmaCmd() ;
          if( planCmd == NULL )
          {
@@ -653,7 +648,6 @@ namespace engine
       {
          if( _planEvent.wait( OMA_WAIT_SUB_TASK_NOTIFY_TIMEOUT ) )
          {
-            //timeout
             continue ;
          }
          _planEvent.reset() ;
@@ -749,7 +743,6 @@ namespace engine
       _pmdEDUCB* cb    = pmdGetThreadEDUCB() ;
       BSONObj argument ;
       BSONObj result ;
-      //BSONObj newResult ;
 
       while( _task->getSubTaskArg( index, argument ) )
       {

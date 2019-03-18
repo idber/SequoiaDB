@@ -110,7 +110,6 @@ namespace engine
 #define NAME_RELOAD_CONFIG                   CMD_NAME_RELOAD_CONFIG
 #define NAME_ANALYZE                         CMD_NAME_ANALYZE
 
-// the commands that does not supported by data nodes or standalone mode
 #define NAME_CREATE_GROUP                    CMD_NAME_CREATE_GROUP
 #define NAME_REMOVE_GROUP                    CMD_NAME_REMOVE_GROUP
 #define NAME_CREATE_NODE                     CMD_NAME_CREATE_NODE
@@ -243,7 +242,6 @@ namespace engine
 
       CMD_ALTER_IMAGE                        = 155,
 
-      // trace commands
       CMD_TRACE_START                        = 160,
       CMD_TRACE_RESUME                       = 161,
       CMD_TRACE_STOP                         = 162,

@@ -103,8 +103,6 @@ const UINT32 RTN_MAX_READ_LEN = DMS_PAGE_SIZE128K * 512 ;      /// 64MB
          goto error ;
       }
 
-      /// first page for the last data
-      /// second page for the meta data
       _pool = ( CHAR * )SDB_OSS_MALLOC( pageSize * 2 ) ;
       if ( NULL == _pool )
       {
@@ -160,7 +158,6 @@ const UINT32 RTN_MAX_READ_LEN = DMS_PAGE_SIZE128K * 512 ;      /// 64MB
          }
       }
 
-      // put data in meta page to the second page of _pool
       if ( _metaPageDataCached && _mergeMeta &&
            _curOffset < _pageSize - DMS_LOB_META_LENGTH )
       {
@@ -188,7 +185,6 @@ const UINT32 RTN_MAX_READ_LEN = DMS_PAGE_SIZE128K * 512 ;      /// 64MB
          }
       }
 
-      // no cached data
       if ( 0 == _cachedSz )
       {
          _writeData.tuple.columns.offset = _curOffset ;
@@ -197,7 +193,6 @@ const UINT32 RTN_MAX_READ_LEN = DMS_PAGE_SIZE128K * 512 ;      /// 64MB
       }
       else
       {
-         // join cached data and write data.
          UINT32 curOffsetInPage = RTN_LOB_GET_OFFSET_IN_SEQUENCE( _curOffset,
                                                                   _mergeMeta,
                                                                   _pageSize ) ;
@@ -276,7 +271,6 @@ const UINT32 RTN_MAX_READ_LEN = DMS_PAGE_SIZE128K * 512 ;      /// 64MB
          }
          else
          {
-            /// cache data
             goto done ;
          }
       }
@@ -406,7 +400,6 @@ const UINT32 RTN_MAX_READ_LEN = DMS_PAGE_SIZE128K * 512 ;      /// 64MB
          UINT32 lenOfTuple = _pageSize - offsetOfTuple ;
          if ( ( lobLen - _curOffset ) < lenOfTuple )
          {
-            /// we want to read a whole piece unless hit the end of lob.
             lenOfTuple = lobLen - _curOffset ;
          }
 

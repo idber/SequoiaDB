@@ -190,7 +190,6 @@ namespace engine
                    "falied, rc: %d", recordHeader->_type,
                    recordHeader->_lsn, recordHeader->_length, rc ) ;
 
-      /// when collection has multi unique index, can't use paralla sync
       if ( LOG_TYPE_DATA_INSERT == recordHeader->_type ||
            LOG_TYPE_DATA_DELETE == recordHeader->_type ||
            ( LOG_TYPE_DATA_UPDATE == recordHeader->_type && updateSameOID ) )
@@ -206,18 +205,12 @@ namespace engine
             rc = su->data()->getMBContext( &mbContext, pShortName, SHARED ) ;
             if ( SDB_OK == rc )
             {
-               // For collection who has text indices, parallel replay should
-               // also be forbidden. Otherwise, the records in the capped
-               // collection will not be exactly the same.
                paralla = ( mbContext->mbStat()->_uniqueIdxNum <= 1 &&
                            0 == mbContext->mbStat()->_textIdxNum ) ?
                          TRUE : FALSE ;
                su->data()->releaseMBContext( mbContext ) ;
             }
 
-            // Currently parallel replaying on capped collection is forbidden,
-            // because we need to be sure the records are exactly the same with
-            // the ones on primary node, including their positions.
             if ( DMS_STORAGE_CAPPED == su->type() )
             {
                paralla = FALSE ;
@@ -254,7 +247,6 @@ namespace engine
       }
       else
       {
-         // wait bucket all complete and check status
          rc = pBucket->waitEmptyWithCheck() ;
          if ( rc )
          {
@@ -266,7 +258,6 @@ namespace engine
             goto error ;
          }
 
-         // judge lsn valid
          if ( !pBucket->_expectLSN.invalid() &&
               0 != pBucket->_expectLSN.compareOffset( recordHeader->_lsn ) )
          {
@@ -276,7 +267,6 @@ namespace engine
             goto error ;
          }
          rc = replay( recordHeader, eduCB ) ;
-         // re-calc complete lsn
          if ( SDB_OK == rc && !pBucket->_expectLSN.invalid() )
          {
             pBucket->_expectLSN.offset += recordHeader->_length ;
@@ -312,8 +302,6 @@ namespace engine
       goto done ;
    }
 
-   // for all UPDATE/DELETE, make sure we use hint = {"":"$id"}, so that we can
-   // bypass expensive optimizer to improve performance
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREP_REPLAY, "_clsReplayer::replay" )
    INT32 _clsReplayer::replay( dpsLogRecordHeader *recordHeader,
                                pmdEDUCB *eduCB, BOOLEAN incCount )
@@ -373,7 +361,6 @@ namespace engine
             {
                goto error ;
             }
-            /// possibly get a empty modifier
             if ( !modifier.isEmpty() )
             {
                rc = rtnUpdate( fullname, match, modifier,
@@ -544,8 +531,6 @@ namespace engine
          }
          case LOG_TYPE_IX_CRT :
          {
-            /// rebuild the index can be very time-consuming.
-            /// we create a sub thread to handle it.
             startIndexJob ( RTN_JOB_CREATE_INDEX, recordHeader,
                             _dpsCB, FALSE ) ;
             break ;
@@ -650,7 +635,6 @@ namespace engine
                goto error ;
             }
 
-            // Check if only contains name of collection space
             if ( NULL != clFullName &&
                  NULL == ossStrchr( clFullName, '.' ) )
             {
@@ -666,7 +650,6 @@ namespace engine
 
                if ( csName && 0 == ossStrcmp( csName, "SYS" ) )
                {
-                  // Reload all statistics
                   csName = NULL ;
                }
 
@@ -986,7 +969,6 @@ namespace engine
          }
          case LOG_TYPE_CS_DELETE :
          {
-            /// cant not rollback, return fail.
             rc = SDB_CLS_REPLAY_LOG_FAILED ;
             goto error ;
          }
@@ -1013,7 +995,6 @@ namespace engine
          }
          case LOG_TYPE_CL_DELETE :
          {
-            /// cant not rollback, return fail.
             rc = SDB_CLS_REPLAY_LOG_FAILED ;
             goto error ;
          }
@@ -1096,7 +1077,6 @@ namespace engine
          }
          case LOG_TYPE_CL_TRUNC :
          {
-            /// cant not rollback, return fail.
             rc = SDB_CLS_REPLAY_LOG_FAILED ;
             goto error ;
          }
@@ -1212,7 +1192,6 @@ namespace engine
          }
          case LOG_TYPE_DATA_POP:
          {
-            // Pop is not able to rollback, return error.
             rc = SDB_CLS_REPLAY_LOG_FAILED ;
             goto error ;
          }
@@ -1227,7 +1206,6 @@ namespace engine
       }
       catch ( std::exception &e )
       {
-         /// reuse error code.
          rc = SDB_CLS_REPLAY_LOG_FAILED ;
          PD_LOG( PDERROR, "unexpected exception: %s", e.what() ) ;
          goto error ;
@@ -1391,7 +1369,6 @@ namespace engine
          goto error ;
       }
 
-      /// When is $id or useSync
       if ( useSync ||
            0 == ossStrcmp( indexJob->getIndexName(), IXM_ID_KEY_NAME ) )
       {
@@ -1401,9 +1378,6 @@ namespace engine
       }
       else
       {
-         // if use RTN_JOB_MUTEX_STOP_RET, when create index have complete,
-         // drop index should not drop really, so it's error, need to use
-         // RTN_JOB_MUTEX_STOP_CONT
          rc = rtnGetJobMgr()->startJob( indexJob, RTN_JOB_MUTEX_STOP_CONT,
                                         NULL ) ;
       }

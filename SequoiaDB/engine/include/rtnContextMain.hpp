@@ -58,7 +58,6 @@ namespace engine
       virtual ~_rtnContextMain() ;
 
    private:
-      // disallow copy and assign
       _rtnContextMain( const _rtnContextMain& ) ;
       void operator=( const _rtnContextMain& ) ;
 

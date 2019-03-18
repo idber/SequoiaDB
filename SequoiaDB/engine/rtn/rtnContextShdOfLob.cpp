@@ -129,7 +129,6 @@ namespace engine
          goto error ;
       }
 
-      // Check writable first
       if ( SDB_LOB_MODE_READ != _mode )
       {
          rc = _dmsCB->writable( cb ) ;
@@ -151,7 +150,6 @@ namespace engine
          goto error ;
       }
 
-      /// get mb context
       rc = _su->data()->getMBContext( &_mbContext, clName, -1 ) ;
       if ( rc )
       {
@@ -189,7 +187,6 @@ namespace engine
          PD_LOG( PDEVENT, "Reopened main shard" ) ;
       }
 
-      /// write down
       if ( _writeDMS )
       {
          _dmsCB->writeDown( cb ) ;
@@ -569,7 +566,6 @@ namespace engine
             PD_LOG( PDERROR, "Failed to extend buf[%u], rc:%d", len * 2, rc ) ;
             goto error ;
          }
-         /// read the whole page
          rc = _su->lob()->read( record, _mbContext, cb, _buf + len, readLen ) ;
          if ( SDB_OK == rc )
          {
@@ -581,7 +577,6 @@ namespace engine
                rc = SDB_SYS ;
                goto error ;
             }
-            /// copy data
             ossMemcpy( (void*)&_meta, _buf + len, sizeof( _meta ) ) ;
             if ( !_meta.isDone() )
             {
@@ -606,7 +601,6 @@ namespace engine
                }
             }
 
-            /// if meta page has data
             if ( withData &&
                  _meta._version >= DMS_LOB_META_MERGE_DATA_VERSION &&
                  _meta._lobLen > 0 &&
@@ -619,7 +613,6 @@ namespace engine
                   _dataLen = _meta._lobLen ;
                }
                _offset = 0 ;
-               /// add msg tuple
                _pData -= sizeof( MsgLobTuple ) ;
                _dataLen += sizeof( MsgLobTuple ) ;
                MsgLobTuple *rt = (MsgLobTuple*)_pData ;
@@ -848,8 +841,6 @@ namespace engine
          }
       }
 
-      /// we need to send back pagesize when this node
-      ///  is not the main shard.
       *data = _metaObj.objdata() ;
       read = _metaObj.objsize() ;
 
@@ -878,7 +869,6 @@ namespace engine
       UINT32 i = 0 ;
       UINT32 len = 0 ;
 
-      /// calc total buff size
       for ( i = 0 ; i < cnt ; ++i )
       {
          const MsgLobTuple &t = tuples[i] ;
@@ -886,7 +876,6 @@ namespace engine
          len += t.columns.len ;
       }
 
-      /// extend buf
       rc = _extendBuf( len ) ;
       if ( rc )
       {
@@ -894,7 +883,6 @@ namespace engine
          goto error ;
       }
 
-      /// read all tuples
       for ( i = 0; i < cnt; ++i )
       {
          UINT32 onceRead = 0 ;
@@ -1057,7 +1045,6 @@ namespace engine
                break ;
             }
             rc = SDB_OK ;
-            /// do not goto error. try to rollback all pieces.
          }
          else
          {

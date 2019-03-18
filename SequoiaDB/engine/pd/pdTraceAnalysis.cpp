@@ -143,7 +143,6 @@ INT32 _pdTraceParser::parse()
 {
    INT32 rc = SDB_OK ;
 
-   /// step 1
    rc = _parseTraceDumpFile( &_inFile, &_traceHeader, _fmtFilePath.c_str() ) ;
    if ( rc )
    {
@@ -152,7 +151,6 @@ INT32 _pdTraceParser::parse()
       goto error ;
    }
 
-   /// step 2
    if ( _type != PD_TRACE_FORMAT_TYPE_FORMAT )
    {
       rc = _analysisTraceRecords( &_inFile, &_traceHeader ) ;
@@ -230,7 +228,6 @@ INT32 _pdTraceParser::_loadDumpFile( const CHAR *pInputFileName,
       goto error ;
    }
 
-   /// check eye
    if ( 0 != ossMemcmp( pHeader->_eyeCatcher, TRACECB_EYE_CATCHER,
                         TRACECB_EYE_CATCHER_SIZE ) )
    {
@@ -238,14 +235,12 @@ INT32 _pdTraceParser::_loadDumpFile( const CHAR *pInputFileName,
       rc = SDB_PD_TRACE_FILE_INVALID ;
       goto error ;
    }
-   /// check version
    if ( pHeader->_version != PD_TRACE_VERSION_CUR )
    {
       PD_LOG( PDERROR, "Version[%d] is not compatible", pHeader->_version ) ;
       rc = SDB_DMS_INCOMPATIBLE_VERSION ;
       goto error ;
    }
-   /// check header size
    if ( sizeof( pdTraceHeader ) != pHeader->_headerSize )
    {
       PD_LOG( PDERROR, "Header size[%u] is invalid",
@@ -253,7 +248,6 @@ INT32 _pdTraceParser::_loadDumpFile( const CHAR *pInputFileName,
       rc = SDB_PD_TRACE_FILE_INVALID ;
       goto error ;
    }
-   /// check total size
    if ( pHeader->_bufSize + pHeader->_headerSize != (UINT64)fileSize )
    {
       PD_LOG( PDERROR, "BufSize[%llu] + HeaderSize[%u] is not the same with "
@@ -262,7 +256,6 @@ INT32 _pdTraceParser::_loadDumpFile( const CHAR *pInputFileName,
       rc = SDB_PD_TRACE_FILE_INVALID ;
       goto error ;
    }
-   /// check buffer info
    if ( pHeader->_bufHeader > pHeader->_bufSize ||
         pHeader->_bufTail > pHeader->_bufSize )
    {
@@ -320,7 +313,6 @@ INT32 _pdTraceParser::_parseTraceDumpFile( OSSFILE *file,
       isOpen = TRUE ;
    }
 
-   // read record
    cursor = pHeader->_bufHeader + pHeader->_headerSize ;
    endPos = pHeader->_bufTail + pHeader->_headerSize ;
 
@@ -329,7 +321,6 @@ INT32 _pdTraceParser::_parseTraceDumpFile( OSSFILE *file,
       cursor = pHeader->_headerSize ;
    }
 
-   /// seek
    rc = ossSeek( file, (INT64)cursor, OSS_SEEK_SET ) ;
    if ( rc )
    {
@@ -340,7 +331,6 @@ INT32 _pdTraceParser::_parseTraceDumpFile( OSSFILE *file,
    while ( /*cursor != endPos &&*/ readLen < pHeader->_bufSize )
    {
       INT64 hasRead = 0 ;
-      /// read a chunk
       rc = ossReadN( file, TRACE_CHUNK_SIZE, pTmpBuf, hasRead ) ;
       if ( rc )
       {
@@ -356,7 +346,6 @@ INT32 _pdTraceParser::_parseTraceDumpFile( OSSFILE *file,
       }
       readLen += hasRead ;
 
-      /// parse the trunk data
       dataOffset = 0 ;
       while( cursor + dataOffset != endPos && dataOffset < TRACE_CHUNK_SIZE )
       {
@@ -368,7 +357,6 @@ INT32 _pdTraceParser::_parseTraceDumpFile( OSSFILE *file,
               record->_recordSize < sizeof( pdTraceRecord ) ||
               record->_recordSize > TRACE_RECORD_MAX_SIZE )
          {
-            /// not invalid record
             break ;
          }
 
@@ -393,7 +381,6 @@ INT32 _pdTraceParser::_parseTraceDumpFile( OSSFILE *file,
       if ( cursor >= pHeader->_bufSize + pHeader->_headerSize )
       {
          cursor = pHeader->_headerSize ;
-         /// reseek
          rc = ossSeek( file, (INT64)cursor, OSS_SEEK_SET ) ;
          if ( rc )
          {
@@ -474,7 +461,6 @@ INT32 _pdTraceParser::_analysisTraceRecords( OSSFILE *file,
    }
    exceptOpen = TRUE ;
 
-   /// analysis thread
    for ( PD_MAP_TID_RECORDS_IT it = _tid2recordsMap.begin() ;
          it != _tid2recordsMap.end() ;
          ++it )
@@ -490,7 +476,6 @@ INT32 _pdTraceParser::_analysisTraceRecords( OSSFILE *file,
       }
    }
 
-   //analysis result
    rc = _dealWithExceptRecords( pHeader, file, &funcRecFile,
                                 &exceptFile, summaryRecords ) ;
    if ( rc )
@@ -499,7 +484,6 @@ INT32 _pdTraceParser::_analysisTraceRecords( OSSFILE *file,
       goto error ;
    }
 
-   //output
    _outputErrorFunctions( errFunctions, &errFile ) ;
 
 done :
@@ -570,14 +554,12 @@ INT32 _pdTraceParser::_analysisRecordsByThread( UINT32 tid,
          timeInterval = curTimeStamp - preTimestamp ;
       }
 
-      // analysis function 
       _analysisFunctionStack( funcStack, idx,
                               vecRecordIdx[idx]._sequenceNum, 
                               timeInterval, pRecord,
                               errFunctions,
                               summaryRecords ) ;
 
-      // write to flw file
       rc = _outputTraceRecordByThread( flwFile, vecRecordIdx[idx]._sequenceNum, 
                                        numIndent, timeInterval,
                                        _pMaxRecordBuf ) ;
@@ -597,8 +579,6 @@ error :
 }
 
 
-// 1 select exception 
-// 2 output exception 
 INT32 _pdTraceParser::_dealWithExceptRecords( const pdTraceHeader *pHeader,
                                               OSSFILE *inFile,
                                               OSSFILE *funcRecFile,
@@ -681,7 +661,6 @@ INT32  _pdTraceParser::_outputErrorFunctions( PD_MAP_FUNCS &errFunctions,
       length += ossSnprintf( _pFormatBuf + length, _bufSize - length,
                              " )"OSS_NEWLINE ) ;
 
-      /// write to file
       ossWriteN( errFile, _pFormatBuf, length ) ;
 
       ++nCount ;
@@ -706,7 +685,6 @@ INT32 _pdTraceParser::_readTraceRecord( OSSFILE *file,
       goto error ;
    }
 
-   /// read header
    rc = ossReadN( file, headerLen, tempBuf, hasRead ) ;
    if ( rc )
    {
@@ -725,7 +703,6 @@ INT32 _pdTraceParser::_readTraceRecord( OSSFILE *file,
       goto error ;
    }
 
-   /// read last
    if ( record->_recordSize > headerLen )
    {
       rc = ossReadN( file, record->_recordSize - headerLen,
@@ -743,9 +720,6 @@ error :
    goto done ;
 }
 
-// 1 calculate function execution time
-// 2 maxtimeInterval
-// 3 handing error records
 void _pdTraceParser::_analysisFunctionStack( PD_STACK_FUNCS &funStack,
                                              UINT32 recdIndexIdx,
                                              UINT32 sequenceNum,
@@ -779,11 +753,9 @@ void _pdTraceParser::_analysisFunctionStack( PD_STACK_FUNCS &funStack,
    }
    else if ( !isEmpty && pRecord->_flag == PD_TRACE_RECORD_FLAG_EXIT )
    {
-      // step 1 pop
       pdFunctionRecord popRecord = funStack.top() ;
       funStack.pop() ;
 
-      // step 2 match function
       if ( popRecord._functionID == pRecord->_functionID )
       {
          popRecord._cost = curTimestamp - popRecord._cost ;
@@ -824,7 +796,6 @@ INT32 _pdTraceParser::_outputTraceRecordByThread( OSSFILE *flwFile,
    length += ossSnprintf( _pFormatBuf, _bufSize, OSS_NEWLINE"%10u:  ",
                           sequence ) ;
 
-   // for exit, let's decrease numIndent
    if ( record->_flag == PD_TRACE_RECORD_FLAG_EXIT )
    {
       --numIndent ;
@@ -833,18 +804,15 @@ INT32 _pdTraceParser::_outputTraceRecordByThread( OSSFILE *flwFile,
          numIndent = 0 ;
       }
    }
-   // write indents
    for ( INT32 i = 0 ; i < numIndent ; ++i )
    {
       length += ossSnprintf( _pFormatBuf + length, _bufSize - length,
                              "| " ) ;
    }
 
-   // output the main part
    length += ossSnprintf( _pFormatBuf + length, _bufSize - length,
                           "%s", pdGetTraceFunction( record->_functionID ) ) ;
 
-   // then check if it's start/exit
    if ( record->_flag == PD_TRACE_RECORD_FLAG_ENTRY )
    {
       length += ossSnprintf( _pFormatBuf + length , _bufSize - length,
@@ -855,14 +823,12 @@ INT32 _pdTraceParser::_outputTraceRecordByThread( OSSFILE *flwFile,
    {
       length += ossSnprintf( _pFormatBuf + length, _bufSize - length,
                              " Exit" ) ;
-      // exit with rc
       if ( 1 == record->_numArgs )
       {
          pdTraceArgument *arg = record->getArg( 0 ) ;
          if ( PD_TRACE_ARGTYPE_INT == arg->getType() )
          {
             INT32 retCode = *(INT32*)arg->argData() ;
-            // show return code only when it's not SDB_OK
             if ( SDB_OK != retCode )
             {
                length += ossSnprintf( _pFormatBuf + length,
@@ -874,7 +840,6 @@ INT32 _pdTraceParser::_outputTraceRecordByThread( OSSFILE *flwFile,
       } // if ( record->_numArgs == 1 )
    } // else if ( record->_flag == PD_TRACE_RECORD_FLAG_EXIT )
 
-   // finally write function name and timestamp
    tmpTime = record->getCurTime() ;
    ossTimestampToString ( tmpTime, timestamp ) ;
 
@@ -892,7 +857,6 @@ INT32 _pdTraceParser::_outputTraceRecordByThread( OSSFILE *flwFile,
                              timeInterval ) ;
    }
 
-   /// write to file
    rc = ossWriteN( flwFile, _pFormatBuf, length ) ;
    if ( rc )
    {
@@ -929,7 +893,6 @@ INT32 _pdTraceParser::_outputFunctionSummaryRecord( UINT64 funcId,
    UINT32 length = 0 ;
    UINT32 count = 0 ;
 
-   // PD_FUNC_RECORD_TITLE
    length = ossSnprintf( _pFormatBuf, _bufSize,
                          OSS_NEWLINE"%s,%d,%.1f,%u,%lld,%lld",
                          pdGetTraceFunction(funcId),
@@ -1032,7 +995,6 @@ INT32 _pdTraceParser::_outputExceptionReport( OSSFILE *inFile,
          }
 
          pRecord = (const pdTraceRecord*)_pMaxRecordBuf ;
-         // write to except file
          if ( pRecord->_flag == PD_TRACE_RECORD_FLAG_EXIT )
          {
             --indent ;
@@ -1163,12 +1125,10 @@ UINT32 _pdTraceParser::_outputTraceRecordFormat( CHAR *pBuffer,
    UINT32 length = 0 ;
    ossTimestamp tmpTime ;
 
-   // write sequence
    length = ossSnprintf( pBuffer, bufSize,
                          OSS_NEWLINE"%10u:  ",
                          sequence ) ;
 
-   // for exit, let's decrease numIndent
    if ( isChild )
    {
       length += ossSnprintf( &pBuffer[ length ],
@@ -1176,13 +1136,11 @@ UINT32 _pdTraceParser::_outputTraceRecordFormat( CHAR *pBuffer,
                              "| " ) ;
    }
 
-   // output the main part
    length += ossSnprintf( &pBuffer[ length ],
                           bufSize - length,
                           "%s",
                           pdGetTraceFunction( record->_functionID ) ) ;
 
-   // then check if it's start/exit
    if ( record->_flag == PD_TRACE_RECORD_FLAG_ENTRY )
    {
       length += ossSnprintf( &pBuffer[ length ],
@@ -1196,7 +1154,6 @@ UINT32 _pdTraceParser::_outputTraceRecordFormat( CHAR *pBuffer,
                              " Exit" ) ;
    }
 
-   // finally write function name and timestamp
    tmpTime = record->getCurTime() ;
    ossTimestampToString ( tmpTime, timestamp ) ;
    length += ossSnprintf( &pBuffer[ length ], bufSize - length,
@@ -1225,10 +1182,8 @@ INT32 _pdTraceParser::_outputTraceRecordByFMT( OSSFILE *out,
       pTypeStr = "Entry" ;
    }
 
-   // write sequence
    length = ossSnprintf( _pFormatBuf, _bufSize, "%u: ", sequenceNum ) ;
 
-   // write function id and timestamp
    tmpTime = pRecord->getCurTime() ;
    ossTimestampToString ( tmpTime, timestamp ) ;
    length += ossSnprintf( _pFormatBuf + length, _bufSize - length,
@@ -1238,7 +1193,6 @@ INT32 _pdTraceParser::_outputTraceRecordByFMT( OSSFILE *out,
                           pRecord->_line,
                           timestamp ) ;
 
-   // write pid/tid/arguments
    length += ossSnprintf( _pFormatBuf + length, _bufSize - length,
                           "tid: %u, numArgs: %u"OSS_NEWLINE,
                           pRecord->_tid,
@@ -1247,7 +1201,6 @@ INT32 _pdTraceParser::_outputTraceRecordByFMT( OSSFILE *out,
    pArgs = pRecord->getArg( 0 ) ;
    for ( UINT32 i = 0 ; i < pRecord->_numArgs ; ++i )
    {
-      // sanity check, make sure the argument pointer is within valid range
       if ( ( const CHAR* )pArgs - ( const CHAR* )pRecord
            >= TRACE_RECORD_MAX_SIZE ||
            ( const CHAR* )pArgs - ( const CHAR* )pRecord <
@@ -1258,7 +1211,6 @@ INT32 _pdTraceParser::_outputTraceRecordByFMT( OSSFILE *out,
          goto error ;
       }
 
-      // write out the argument
       length += ossSnprintf( _pFormatBuf + length,
                              _bufSize - length,
                              "\targ%d:",
@@ -1392,7 +1344,6 @@ INT32 _pdTraceParser::_outputTraceRecordByFMT( OSSFILE *out,
             }
             catch ( std::exception &e )
             {
-               // Just log, continue process
                PD_LOG ( PDERROR, "Failed to print BSON object: %s", e.what() ) ;
             }
             break ;

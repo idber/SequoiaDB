@@ -42,7 +42,6 @@
 
 namespace engine
 {
-   /// warning: any value can not be value-passed.
    static INT32 dpsPushTran( const DPS_TRANS_ID &transID,
                              const DPS_LSN_OFFSET &preTransLsn,
                              const DPS_LSN_OFFSET &relatedLSN,
@@ -255,8 +254,6 @@ namespace engine
             goto error ;
          }
 
-         // To save space,
-         // do not log new sharding key when it equals old sharding key.
          if ( newShardingKey.woCompare( oldShardingKey ) != 0 )
          {
             SDB_ASSERT( !oldShardingKey.isEmpty(), "must have old sharding key" ) ;
@@ -372,12 +369,10 @@ namespace engine
          }
          else if ( NULL != oldShardingKey )
          {
-            // new sharding key equals old sharding key
             *newShardingKey = *oldShardingKey ;
          }
          else
          {
-            // new sharding key equals old sharding key
             dpsLogRecord::iterator itrOldSK ;
             itrOldSK = record.find( DPS_LOG_UPDATE_OLDSHARDINGKEY ) ;
             if ( itrOldSK.valid() )
@@ -678,7 +673,6 @@ namespace engine
       itrType = record.find( DPS_LOG_CSCRT_CSTYPE ) ;
       if ( !itrType.valid() )
       {
-         // For compatible with elder versions.
          PD_LOG( PDWARNING, "Failed to find tag CS type in record, use normal "
                  "type(0)" ) ;
          type = 0 ;
@@ -1473,7 +1467,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DPS_INVALIDCATA2RECORD ) ;
 
-      // For invalidate catalog, must have clFullName
       SDB_ASSERT( NULL != clFullName, "Collection name can't be NULL" ) ;
 
       dpsLogRecordHeader &header = record.head() ;

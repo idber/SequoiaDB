@@ -154,20 +154,17 @@ namespace engine
 
       UINT16 nodeID = 0 ;
 
-      /// NodeID
       BSONElement beField = nodeObj.getField( CAT_NODEID_NAME ) ;
       PD_CHECK( NumberInt == beField.type(), SDB_INVALIDARG, error, PDWARNING,
                 "Failed to parse [%s]", CAT_NODEID_NAME ) ;
       nodeID = beField.Int() ;
 
-      /// HostName
       beField = nodeObj.getField( CAT_HOST_FIELD_NAME ) ;
       PD_CHECK( String == beField.type(), SDB_INVALIDARG, error, PDWARNING,
                 "Failed to parse [%s]", CAT_HOST_FIELD_NAME ) ;
       ossStrncpy( route._host, beField.valuestrsafe(), OSS_MAX_HOSTNAME ) ;
       route._host[ OSS_MAX_HOSTNAME ] = '\0' ;
 
-      /// Status
       beField = nodeObj.getField( CAT_STATUS_NAME ) ;
       if ( beField.eoo() || SDB_CAT_GRP_ACTIVE == beField.numberInt() )
       {
@@ -178,7 +175,6 @@ namespace engine
          route._isActive = FALSE ;
       }
 
-      /// Service
       beField = nodeObj.getField( CAT_SERVICE_FIELD_NAME ) ;
       PD_CHECK( Array == beField.type(), SDB_INVALIDARG, error, PDWARNING,
                 "Failed to parse [%s]", CAT_SERVICE_FIELD_NAME ) ;
@@ -186,7 +182,6 @@ namespace engine
       PD_RC_CHECK( rc, PDWARNING, "Failed to parse node services, rc: %d",
                    rc ) ;
 
-      /// Instance ID
       beField = nodeObj.getField( PMD_OPTION_INSTANCE_ID ) ;
       PD_CHECK( beField.eoo() || NumberInt == beField.type(), SDB_INVALIDARG,
                 error, PDWARNING, "Failed to parse [%s]",
@@ -231,19 +226,16 @@ namespace engine
          BSONObj obj( objdata ) ;
          PD_LOG( PDDEBUG, "Parsing group bson: %s", obj.toString().c_str() ) ;
 
-         // Group ID
          BSONElement ele = obj.getField( CAT_GROUPID_NAME ) ;
          PD_CHECK( NumberInt == ele.type(), SDB_INVALIDARG, error, PDWARNING,
                    "Failed to parse [%s]", CAT_GROUPID_NAME ) ;
          groupID = ele.Int() ;
 
-         // Group name
          ele = obj.getField( CAT_GROUPNAME_NAME ) ;
          PD_CHECK( String == ele.type(), SDB_INVALIDARG, error, PDWARNING,
                    "Failed to parse [%s]", CAT_GROUPNAME_NAME ) ;
          groupName = ele.str() ;
 
-         // Secret ID
          ele = obj.getField( FIELD_NAME_SECRETID ) ;
          PD_CHECK( ele.eoo() || NumberInt == ele.type(), SDB_INVALIDARG, error,
                    PDWARNING, "Failed to parse [%s]", FIELD_NAME_SECRETID ) ;
@@ -259,18 +251,15 @@ namespace engine
             }
          }
 
-         // Role
          ele = obj.getField( CAT_ROLE_NAME ) ;
          PD_CHECK( NumberInt == ele.type(), SDB_INVALIDARG, error, PDWARNING,
                    "Failed to parse [%s]", CAT_ROLE_NAME ) ;
 
-         // Version
          ele = obj.getField( CAT_VERSION_NAME ) ;
          PD_CHECK( NumberInt == ele.type(), SDB_INVALIDARG, error, PDWARNING,
                    "Failed to parse [%s]", CAT_VERSION_NAME ) ;
          version = ele.Int() ;
 
-         // Primary
          if ( pPrimary )
          {
             ele = obj.getField ( CAT_PRIMARY_NAME ) ;

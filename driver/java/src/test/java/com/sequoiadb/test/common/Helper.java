@@ -28,24 +28,4 @@ public class Helper {
         }
         return cl;
     }
-
-    public static void sleepSec(int sec) {
-        try {
-            Thread.sleep(sec * 1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static void sleepMS(long millisecond) {
-        try {
-            Thread.sleep(millisecond);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static void print(String message) {
-        System.out.println(message);
-    }
 }

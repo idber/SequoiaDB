@@ -76,7 +76,6 @@ namespace engine
       ~_rtnLobPiecesInfo() ;
 
    private:
-      // disallow copy and assign
       _rtnLobPiecesInfo( const _rtnLobPiecesInfo& ) ;
       void operator=( const _rtnLobPiecesInfo& ) ;
 

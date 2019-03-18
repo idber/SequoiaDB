@@ -27,9 +27,6 @@ public class ReadSdb implements Runnable {
 	private String sql = null;
 
 	Logger logger = Logger.getLogger(ReadSdb.class);
-//	private static ConcurrentLinkedQueue<BSONObject> queue = new ConcurrentLinkedQueue<BSONObject>();
-//	private static int count = 2;
-//	private static CountDownLatch lath = new CountDownLatch(count); // finished when lath==0
     
 
 	public ReadSdb() {
@@ -60,7 +57,6 @@ public class ReadSdb implements Runnable {
 			logger.info(e.getMessage());
 		}
 	}
-	// readDB
 	@SuppressWarnings("unused")
 	public void read(String dbType, String url, String user, String password, String sql,String fieldname,boolean flag) throws InterruptedException {
 

@@ -45,7 +45,6 @@ namespace import
 
    Routine::~Routine()
    {
-      // parsedQueue
       {
          if (!_parsedQueue.empty())
          {
@@ -60,7 +59,6 @@ namespace import
          }
       }
 
-      // shardingQueue
       {
          if (!_shardingQueue.empty())
          {

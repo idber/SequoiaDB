@@ -1,6 +1,5 @@
 package org.springframework.data.mongodb.assist;
 
-// WriteConcern.java
 
 import java.io.Serializable;
 import java.lang.reflect.Field;
@@ -140,7 +139,6 @@ public class WriteConcern implements Serializable {
      */
     public final static WriteConcern REPLICAS_SAFE = new WriteConcern(2);
 
-    // map of the constants from above for use by fromString
     private static Map<String, WriteConcern> _namedConcerns = null;
 
     /**
@@ -460,8 +458,6 @@ public class WriteConcern implements Serializable {
                     }
                 }
 
-            // Thought about doing a synchronize but this seems just as safe and
-            // I don't care about race conditions.
             _namedConcerns = newMap;
         }
 

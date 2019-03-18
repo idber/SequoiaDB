@@ -162,7 +162,6 @@ namespace engine
          else if ( pIgnoreRC && pIgnoreRC->end() !=
                    pIgnoreRC->find( pReply->flags ) )
          {
-            /// ignored
          }
          else
          {
@@ -245,7 +244,6 @@ namespace engine
       {
          if ( NULL == *ppContext )
          {
-            // create context
             rc = pRtncb->contextNew( RTN_CONTEXT_COORD,
                                      (rtnContext **)ppContext,
                                      contextID, cb ) ;
@@ -255,14 +253,9 @@ namespace engine
          else
          {
             contextID = (*ppContext)->contextID() ;
-            // the context is create in out side, do nothing
          }
          pTmpContext = *ppContext ;
 
-         // context for catalog: only primary, so query,sel,orderby...will
-         // push to catalog
-         // context for data: only for drop cs/cl execute command, not any
-         // return obj
          if ( !pTmpContext->isOpened() )
          {
             rtnQueryOptions defaultOptions ;
@@ -272,9 +265,7 @@ namespace engine
       }
 
       rc = doOnGroups( inMsg, sendOpt, cb, result ) ;
-      /// process succeed reply msg
       rcTmp = _processSucReply( okReply, pTmpContext ) ;
-      /// build nokRC
       if ( nokReply.size() > 0 )
       {
          ROUTE_REPLY_MAP::iterator itNok = nokReply.begin() ;
@@ -581,13 +572,10 @@ namespace engine
       PD_TRACE_ENTRY ( COORD_CMDBASE_QUERYONCATA ) ;
       rtnContextCoord *pContext        = NULL ;
 
-      // fill default-reply(list success)
       contextID = -1 ;
 
-      // forward source request to dest
       pMsg->opCode                     = requestType ;
 
-      // execute query data group on catalog
       rc = executeOnCataGroup ( pMsg, cb, TRUE, NULL, &pContext, buf ) ;
       if ( rc )
       {
@@ -604,7 +592,6 @@ namespace engine
       PD_TRACE_EXITRC ( COORD_CMDBASE_QUERYONCATA, rc ) ;
       return rc ;
    error :
-      // make sure to clear context whenever error happened
       if ( pContext )
       {
          INT64 contextID = pContext->contextID() ;
@@ -741,10 +728,8 @@ namespace engine
       pmdSubSession *pSub           = NULL ;
       SET_ROUTEID::iterator it ;
 
-      /// clear
       _groupSession.clear() ;
 
-      /// send msg
       it = nodes.begin() ;
       while( it != nodes.end() )
       {
@@ -760,16 +745,13 @@ namespace engine
          ++it ;
       }
 
-      /// recv reply
       rcTmp = pRemote->waitReply1( TRUE ) ;
       rc = rc ? rc : rcTmp ;
 
-      /// process reply
       rcTmp = _processNodesReply( pRemote, faileds, pContext,
                                   pIgnoreRC, pSucNodes ) ;
       rc = rc ? rc : rcTmp ;
 
-      /// clear
       _groupSession.clear() ;
 
       return rc ;
@@ -807,19 +789,15 @@ namespace engine
       rtnContextCoord *pTmpContext = NULL ;
       BOOLEAN needReset = FALSE ;
 
-      /// 1. extrace msg
       rc = queryOption.fromQueryMsg( (CHAR*)pMsg ) ;
       PD_RC_CHECK( rc, PDERROR, "Extrace query msg failed, rc: %d", rc ) ;
-      /// 2. get filter obj
       pFilterObj = coordGetFilterByID( ctrlParam._filterID, queryOption ) ;
       pSrcFilterObjData = pFilterObj->objdata() ;
-      /// 3. parse control param
       rc = coordParseControlParam( *pFilterObj, ctrlParam, mask,
                                    &newFilterObj, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "prase control param failed, rc: %d", rc ) ;
       *pFilterObj = newFilterObj ;
 
-      /// 4. parse groups
       rc = _pResource->updateGroupList( allGroupLst, cb, NULL,
                                         FALSE, FALSE, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get all group list, rc: %d",
@@ -874,7 +852,6 @@ namespace engine
       }
 
    parseNode:
-      /// 5. parse nodes
       rc = coordGetGroupNodes( _pResource, cb, *pFilterObj,
                                ctrlParam._emptyFilterSel,
                                ( 0 == groupLst.size() ? ( hasParseRetry ?
@@ -893,7 +870,6 @@ namespace engine
       {
          hasNodeOrGroupFilter = TRUE ;
       }
-      /// not use specail group
       else if ( 0 == groupLst.size() )
       {
          if ( ctrlParam._useSpecialNode )
@@ -911,7 +887,6 @@ namespace engine
 
       if ( !ctrlParam._isGlobal )
       {
-         /// no group and node info
          if ( !hasNodeOrGroupFilter )
          {
             rc = SDB_RTN_CMD_IN_LOCAL_MODE ;
@@ -920,12 +895,10 @@ namespace engine
          ctrlParam._isGlobal = TRUE ;
       }
 
-      ///6. open context
       if ( ppContext )
       {
          if ( NULL == *ppContext )
          {
-            // create context
             rc = pRtncb->contextNew( RTN_CONTEXT_COORD,
                                      (rtnContext **)ppContext,
                                      contextID, cb ) ;
@@ -935,7 +908,6 @@ namespace engine
          else
          {
             contextID = (*ppContext)->contextID() ;
-            // the context is create in out side, do nothing
          }
          pTmpContext = *ppContext ;
       }
@@ -967,7 +939,6 @@ namespace engine
                srcSkip = 0 ;
             }
 
-            // build new selector
             rtnNeedResetSelector( srcSelector, queryOption.getOrderBy(),
                                   needReset ) ;
             if ( needReset )
@@ -980,16 +951,13 @@ namespace engine
             contextOptions.setLimit( srcLimit ) ;
             contextOptions.setSkip( srcSkip ) ;
 
-            // open context
             rc = pTmpContext->open( contextOptions ) ;
          }
          PD_RC_CHECK( rc, PDERROR, "Open context failed(rc=%d)", rc ) ;
       }
 
-      /// 7. ensure new msg
       if ( pSrcFilterObjData == pFilterObj->objdata() && !needReset )
       {
-         /// not change
          pNewMsg = (CHAR*)pMsg ;
          MsgOpQuery *pQueryMsg = ( MsgOpQuery* )pNewMsg ;
          pQueryMsg->numToReturn = queryOption.getLimit() ;
@@ -1004,18 +972,15 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Build new query message failed, rc: %d",
                       rc ) ;
 
-         // Set version
          pQueryMsg = ( MsgOpQuery* )pNewMsg ;
          pQueryMsg->version = version ;
       }
 
-      /// 8. execute
       rc = executeOnNodes( (MsgHeader*)pNewMsg, cb, sendNodes,
                            faileds, pSucNodes, pIgnoreRC,
                            pTmpContext ) ;
       PD_RC_CHECK( rc, PDERROR, "Execute on nodes failed, rc: %d", rc ) ;
 
-      /// 9. build failed result
       if ( pTmpContext )
       {
          rc = _buildFailedNodeReply( faileds, pTmpContext ) ;

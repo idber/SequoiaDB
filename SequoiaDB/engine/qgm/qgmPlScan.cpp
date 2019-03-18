@@ -162,7 +162,6 @@ namespace engine
       {
          rc = _executeOnCoord( eduCB ) ;
       }
-      /// not coord or rc is SDB_COORD_UNKNOWN_OP_REQ
       if ( SDB_COORD_UNKNOWN_OP_REQ == rc ||
            SDB_ROLE_COORD != _dbRole )
       {
@@ -221,7 +220,6 @@ namespace engine
 
          PD_LOG ( PDDEBUG, "Command: %s", pCommand->name () ) ;
 
-         //run command
          rc = rtnRunCommand( pCommand, serviceType,
                              eduCB, _dmsCB, _rtnCB,
                              NULL, 1, &_contextID ) ;
@@ -232,7 +230,6 @@ namespace engine
       }
       else
       {
-         // close prefetch
          rc = rtnQuery ( pCLName, selector, _condition,
                          _orderby, _hint, 0, eduCB, _skip, _return,
                          _dmsCB, _rtnCB, _contextID, NULL, FALSE ) ;
@@ -274,7 +271,6 @@ namespace engine
          goto error ;
       }
 
-      /// build message
       rc = msgBuildQueryMsg ( &qMsg, &bufSize,
                               _collection.toString().c_str(),
                               FLG_QUERY_WITH_RETURNDATA, 0,
@@ -357,7 +353,6 @@ namespace engine
       }
       else
       {
-         /// do nothing.
       }
 
    done:

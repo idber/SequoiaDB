@@ -205,13 +205,10 @@ namespace engine
          const _rtnLobSection& cur = iter->second ;
          if ( sec.end() < cur.start() )
          {
-            // the given section is before current section,
-            // so is not completely contained
             break ;
          }
          else if ( sec.start() > cur.end() )
          {
-            // the given section is behind current section
             continue ;
          }
          else // overlapped
@@ -220,19 +217,16 @@ namespace engine
 
             if ( sec.start() < cur.start() )
             {
-               // sec.start() ~ cur.start() is not contained
                break ;
             }
             else if ( sec.end() > cur.end() )
             {
-               // remain upper section
                sec.length = sec.end() - cur.end() ;
                sec.offset = cur.end() + 1 ;
                continue ;
             }
             else
             {
-               // sec is inside of current section
                completely = TRUE ;
                break ;
             }
@@ -314,7 +308,6 @@ namespace engine
    error:
       if ( !off->empty() )
       {
-         // rollback
          std::vector<INT64>::const_iterator iter ;
          for ( iter = offsets->begin() ; iter != offsets->end() ; iter++ )
          {
@@ -345,7 +338,6 @@ namespace engine
          const _rtnLobSection& cur = iter->second ;
          if ( sec.end() < cur.start() )
          {
-            // the given section is before current section
             if ( overlapped )
             {
                tmp.insert( LOB_SECTIONS_TYPE::value_type( sec.offset, sec ) ) ;
@@ -355,7 +347,6 @@ namespace engine
          }
          else if ( sec.start() > cur.end() )
          {
-            // the given section is behind current section
             continue ;
          }
          else // overlapped
@@ -369,9 +360,6 @@ namespace engine
                goto error ;
             }
 
-            // remove overlapped region,
-            // because sections is ordered by offset,
-            // so we only need consider uppser section in next loop
             if ( sec.start() < cur.start() )
             {
                _rtnLobSection lower( sec ) ;
@@ -380,28 +368,24 @@ namespace engine
 
                if ( sec.end() > cur.end() )
                {
-                  // remain upper section
                   sec.length = sec.end() - cur.end() ;
                   sec.offset = cur.end() + 1 ;
                   continue ;
                }
                else
                {
-                  // no upper section
                   sec.reset() ;
                   break ;
                }
             }
             else if ( sec.end() > cur.end() )
             {
-               // remain upper section
                sec.length = sec.end() - cur.end() ;
                sec.offset = cur.end() + 1 ;
                continue ;
             }
             else
             {
-               // sec is inside of current section
                sec.reset() ;
                break ;
             }

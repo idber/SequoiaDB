@@ -95,16 +95,12 @@ namespace engine
          INT32 _checkWriteStatus() ;
          INT32 _checkPrimaryWhenRead( INT32 flag, INT32 reqFlag ) ;
 
-         /// do multi things to reduce times of getting lock
          INT32 _checkCLStatusAndGetSth( const CHAR *name,
                                         INT32 version,
                                         BOOLEAN *isMainCL = NULL,
                                         INT16 *w = NULL,
                                         CHAR *mainCLName = NULL ) ;
 
-         /// valid: replSize == NULL and clientW != NULL
-         ///        replSize != NULL and clientW == NULL
-         ///        replSize != NULL and clientW != NULL
          INT32 _calculateW( const INT16 *replSize,
                             const INT16 *clientW,
                             INT16 &w ) ;
@@ -122,7 +118,6 @@ namespace engine
                                       const CHAR *clFullName,
                                       const CHAR *pParent ) ;
 
-      //message functions
       protected:
          INT32 _onOPMsg ( NET_HANDLE handle, MsgHeader *msg ) ;
          INT32 _onUpdateReqMsg ( NET_HANDLE handle, MsgHeader *msg,

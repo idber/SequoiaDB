@@ -69,7 +69,6 @@ namespace engine
 
    BOOLEAN _rtnListCollections::_isCurrent() const
    {
-      /// for include system
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          return TRUE ;
@@ -116,7 +115,6 @@ namespace engine
 
    BOOLEAN _rtnListCollectionsInner::_isCurrent() const
    {
-      /// for include system
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          return TRUE ;
@@ -157,7 +155,6 @@ namespace engine
 
    BOOLEAN _rtnListCollectionspaces::_isCurrent() const
    {
-      /// for include system
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          return TRUE ;
@@ -204,7 +201,6 @@ namespace engine
 
    BOOLEAN _rtnListCollectionspacesInner::_isCurrent() const
    {
-      /// for include system
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          return TRUE ;
@@ -555,7 +551,6 @@ namespace engine
 
    BOOLEAN _rtnListStorageUnits::_isCurrent() const
    {
-      /// for include system
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          return TRUE ;
@@ -601,7 +596,6 @@ namespace engine
 
    BOOLEAN _rtnListStorageUnitsInner::_isCurrent() const
    {
-      /// for include system
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          return TRUE ;

@@ -72,8 +72,6 @@ namespace engine
          goto error ;
       }
 
-      // collection in dmsCB lock is released when context is freed
-      // This prevents other sessions drop the collectionspace during accessing
       rc = rtnResolveCollectionNameAndLock ( pCollectionName, dmsCB, &su,
                                              &pCollectionShortName, suID ) ;
       if ( rc )

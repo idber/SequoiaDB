@@ -169,14 +169,12 @@ namespace seadapter
    typedef IDX_META_MAP::iterator         IDX_META_MAP_ITR ;
    typedef IDX_META_MAP::const_iterator   IDX_META_MAP_CITR ;
 
-   // Text index metadata manager.
    class _seIdxMetaMgr : public SDBObject
    {
       public:
          _seIdxMetaMgr() {}
          ~_seIdxMetaMgr() {}
 
-         // In concurrent operation, always use lock to protect.
          INT32 lock( OSS_LATCH_MODE mode = SHARED ) ;
          INT32 unlock( OSS_LATCH_MODE mode = SHARED ) ;
 
@@ -189,7 +187,6 @@ namespace seadapter
 
          IDX_META_MAP* getIdxMetaMap() { return &_idxMetaMap ; }
 
-         // Clean all other items EXCEPT the ones with the specified version.
          void cleanByVer( INT64 excludeVer ) ;
          void clear() ;
 

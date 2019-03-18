@@ -1,20 +1,4 @@
-﻿/*
- * Copyright 2018 SequoiaDB Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
-*/
-
-using SequoiaDB;
+﻿using SequoiaDB;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using SequoiaDB.Bson;
@@ -337,90 +321,7 @@ namespace DriverTest
                     Assert.AreNotEqual(master.NodeName, slave.NodeName);
                 }
             }
-            // case 5: use IList<int>
-            List<int> list = new List<int>();
-            list.Add(pos1);
-            list.Add(pos2);
-            slave = group.GetSlave(list);
-            Console.WriteLine(String.Format("case3: group is: {0}, master is: {1}, slave is: {2}", groupName,
-            master == null ? null : master.NodeName,
-            slave == null ? null : slave.NodeName));
-            if (nodeCount == 1)
-            {
-                Assert.AreEqual(master.NodeName, slave.NodeName);
-            }
-            else
-            {
-                if ((pos1 % nodeCount == pos2 % nodeCount) &&
-                    (primaryNodePosition == (pos1 - 1) % nodeCount + 1))
-                {
-                    Assert.AreEqual(master.NodeName, slave.NodeName);
-                }
-                else
-                {
-                    Assert.AreNotEqual(master.NodeName, slave.NodeName);
-                }
-            }
-            // case 6: null test
-            List<int> list2 = null;
-            slave = group.GetSlave(list2);
-            Assert.IsNotNull(slave);
-            slave = group.GetSlave(null);
-            Assert.IsNotNull(slave);
-            list2 = new List<int>();
-            slave = group.GetSlave(list2);
-
         }
-
-        [TestMethod()]
-        public void IsGroupAndNodeExistTest()
-        {
-            if (!isCluster)
-            {
-                return;
-            }
-            // case 1:
-            string groupName = "SYSCatalogGroup";
-            ReplicaGroup group = sdb.GetReplicaGroup(groupName);
-            int groupId = group.GroupID;
-            bool isGroupExist = false;
-            isGroupExist = sdb.IsReplicaGroupExist(groupName);
-            Assert.AreEqual(true, isGroupExist);
-            isGroupExist = false;
-            isGroupExist = sdb.IsReplicaGroupExist(groupName);
-            Assert.AreEqual(true, isGroupExist);
-            SequoiaDB.Node master = group.GetMaster();
-            String hostName = master.HostName;
-            int port = master.Port;
-            bool isNodeExist = false;
-            isNodeExist = group.IsNodeExist(hostName, port);
-            Assert.AreEqual(true, isNodeExist);
-            isNodeExist = true;
-            isNodeExist = group.IsNodeExist(hostName, 5555);
-            Assert.AreEqual(false, isNodeExist);
-
-            // case 2:
-            groupName = "abc";
-            groupId = 123456;
-            try
-            {
-                sdb.GetReplicaGroup(groupName);
-            }
-            catch (BaseException e)
-            {
-                Assert.AreEqual(new BaseException("SDB_CLS_GRP_NOT_EXIST").ErrorCode, e.ErrorCode);
-            }
-
-            isGroupExist = true;
-            isGroupExist = sdb.IsReplicaGroupExist(groupName);
-            Assert.AreEqual(false, isGroupExist);
-            isGroupExist = true;
-            isGroupExist = sdb.IsReplicaGroupExist(groupName);
-            Assert.AreEqual(false, isGroupExist);
-            
-
-        }
-
 
         [TestMethod()]
         [Ignore]

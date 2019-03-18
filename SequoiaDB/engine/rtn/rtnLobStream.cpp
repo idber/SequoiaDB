@@ -155,7 +155,6 @@ namespace engine
       if ( SDB_LOB_MODE_READ == mode )
       {
          rc = _open4Read( cb ) ;
-         /// AUDIT
          PD_AUDIT_OP_WITHNAME( AUDIT_DQL, "LOB READ", AUDIT_OBJ_CL,
                                getFullName(), rc,
                                "OID:%s, Length:%llu, CreateTime:%llu, ModificationTime:%llu",
@@ -192,7 +191,6 @@ namespace engine
          goto error ;
       }
 
-      /// get page size, must call before _meta2Obj
       rc = _getLobPageSize( _lobPageSz ) ;
       if ( SDB_OK != rc )
       {
@@ -208,7 +206,6 @@ namespace engine
          goto error ;
       }
 
-      /// if has context, need copy metaObj and data to context
       if ( context )
       {
          rc = _meta2Obj( _metaObj ) ;
@@ -223,7 +220,6 @@ namespace engine
             PD_LOG( PDERROR, "Failed to append meta data, rc:%d", rc ) ;
             goto error ;
          }
-         /// add the data
          if ( _pool.getLastDataSize() > 0 &&
               ( _flags & FLG_LOBOPEN_WITH_RETURNDATA ) )
          {
@@ -266,7 +262,6 @@ namespace engine
       try
       {
          BSONObjBuilder builder ;
-         /// we can get nothing when mode is create.
          builder.append( FIELD_NAME_LOB_SIZE, _meta._lobLen ) ;
          builder.append( FIELD_NAME_LOB_PAGE_SIZE, _lobPageSz ) ;
          builder.append( FIELD_NAME_VERSION, (INT32)_meta._version ) ;
@@ -491,7 +486,6 @@ namespace engine
          }
          else
          {
-            // lock the whole lob
             rc = lock( cb, 0, -1 ) ;
             if ( SDB_OK != rc )
             {
@@ -513,7 +507,6 @@ namespace engine
          _hasPiecesInfo = TRUE ;
       }
 
-      // re-array the data and try to get a complete piece.
       rc = _lw.prepare4Write( _offset, len, buf ) ;
       if ( SDB_OK != rc )
       {
@@ -521,11 +514,7 @@ namespace engine
          goto error ;
       }
 
-      // if we update offset after write,
-      // some data will not be removed when rollback
       _offset += len ;
-      // update lobLen immediately,
-      // for _offset can be set to front position by seek 
       _meta._lobLen = OSS_MAX( _meta._lobLen, _offset ) ;
 
       while ( _lw.getNextWriteSequences( tuples )  )
@@ -602,7 +591,6 @@ namespace engine
          len = _meta._lobLen - _offset ;
       }
 
-      /// data may be cached.
       if ( _pool.match( _offset ) )
       {
          rc = _readFromPool( len, context, cb, readLen ) ;
@@ -616,10 +604,8 @@ namespace engine
          goto done ;
       }
 
-      /// clear cache when we can not get data from it.
       _pool.clear() ;
 
-      /// reset the read len of a suitable value
       rc = _lw.prepare4Read( _meta._lobLen,
                              _offset, len,
                              tuples ) ;
@@ -695,27 +681,21 @@ namespace engine
 
       if ( _wholeLobLocked )
       {
-         // the whole lob is locked, nothing to do
          goto done ;
       }
 
-      // endlessly lock from offset
       if ( -1 == length )
       {
-         // subtract offset to avoid section.end() overflow
          length = OSS_SINT64_MAX - offset ;
          section.length = length ;
       }
 
       if ( _lockSections.completelyContains( section ) )
       {
-         // already locked
          goto done ;
       }
       else
       {
-         // add to local firstly,
-         // record offsets for rollbacking if error happens
          rc = _lockSections.addSection( section, &offsets ) ;
          if ( SDB_OK != rc )
          {
@@ -743,7 +723,6 @@ namespace engine
    error:
       if ( !offsets.empty() )
       {
-         // rollback
          std::vector<INT64>::const_iterator iter ;
          for ( iter = offsets.begin() ; iter != offsets.end() ; iter++ )
          {
@@ -791,7 +770,6 @@ namespace engine
          if ( !_lw.continuous( offset ) )
          {
             _rtnLobTuple tuple ;
-            // write last data
             if ( _lw.getCachedData( tuple ) )
             {
                rc = _writeOrUpdate( tuple, cb ) ;
@@ -850,7 +828,6 @@ namespace engine
 
       if ( len >= _meta._lobLen )
       {
-         // nothing to do
          goto done ;
       }
 
@@ -861,7 +838,6 @@ namespace engine
                    _getSequence( len - 1 ) :
                    _getSequence( 0 ) ;
 
-      // do not remove start piece
       for ( UINT32 i = lastPiece ; i > startPiece ; i-- )
       {
          tuples.push_back( _rtnLobTuple( 0, i, 0, NULL ) ) ;
@@ -1270,7 +1246,6 @@ namespace engine
                   SDB_LOB_MODE_WRITE == _mode ||
                   SDB_LOB_MODE_TRUNCATE == _mode, "incorrect mode" ) ;
 
-      // write last data
       if ( withData && _lw.getCachedData( tuple ) )
       {
          rc = _writeOrUpdate( tuple, cb ) ;
@@ -1301,7 +1276,6 @@ namespace engine
             _rtnLobPieces pieces = _lobPieces.getSection( 0 ) ;
             if ( 0 == pieces.first && last == pieces.last )
             {
-               // no skipped piece, so no need to save pieces info
                piecesInfoSize= 0 ;
                _meta._piecesInfoNum = 0 ;
                OSS_BIT_CLEAR(_meta._flag, DMS_LOB_META_FLAG_PIECESINFO_INSIDE ) ;
@@ -1314,8 +1288,6 @@ namespace engine
          OSS_BIT_CLEAR(_meta._flag, DMS_LOB_META_FLAG_PIECESINFO_INSIDE ) ;
       }
 
-      // write meta data
-      // _meta._lobLen is already updated
       _meta._modificationTime = ossGetCurrentMilliseconds() ;
       _meta._status = DMS_LOB_COMPLETE ;
       if ( withData && _lw.getMetaPageData( tuple ) )

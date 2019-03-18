@@ -1,6 +1,5 @@
 package org.springframework.data.mongodb.assist;
 
-// DBRef.java
 
 import org.bson.BSONObject;
 
@@ -35,7 +34,6 @@ public class DBRef extends DBRefBase {
         super(db, ns, id);
     }
 
-    // Required for serialization framework
     private DBRef() {
         super();
     }

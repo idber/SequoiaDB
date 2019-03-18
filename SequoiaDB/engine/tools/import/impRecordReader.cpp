@@ -101,11 +101,9 @@ namespace import
 
             if (0 == _remainSize)
             {
-               // real EOF
                goto done;
             }
 
-            // the final record
             _readSize = 0;
             _final = TRUE;
          }

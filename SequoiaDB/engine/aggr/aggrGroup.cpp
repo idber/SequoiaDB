@@ -68,7 +68,6 @@ namespace engine
                 "Failed to parse the element[%s], type shoud be Object",
                 elem.toString( TRUE, TRUE ).c_str() ) ;
 
-      // 1.parse the fields
       try
       {
          obj = elem.embeddedObject() ;
@@ -80,13 +79,11 @@ namespace engine
             const CHAR *pFieldName = beField.fieldName() ;
             if ( 0 == ossStrcmp( pFieldName, FIELD_NAME_GROUPBY_ID ))
             {
-               // process groupby field(_id)
                rc = parseGroupbyField( beField, pSelect->_groupby,
                                        pTable, pCLName ) ;
             }
             else
             {
-               // process normal field(selector)
                rc = parseSelectorField( beField, pCLName, pSelect->_selector,
                                         pTable, hasFunc ) ;
             }
@@ -94,7 +91,6 @@ namespace engine
                          elem.toString( TRUE, TRUE ).c_str(), rc ) ;
          }
 
-         /// when selector is empty, need push (*) selector
          if ( pSelect->_selector.empty() )
          {
             qgmOpField selectAll ;
@@ -109,7 +105,6 @@ namespace engine
                    e.what() ) ;
       }
 
-      // 2.build the node
       pSelect->_limit = -1 ;
       pSelect->_skip = 0 ;
       pSelect->_type = QGM_OPTI_TYPE_SELECT ;
@@ -253,9 +248,7 @@ namespace engine
 
       try
       {
-         // format ex: {a:{$first:"$a"}} or {a:"$a"}
          qgmOpField selector;
-         // parse field
          const CHAR *pAlias = beField.fieldName() ;
          qgmField slAlias;
          rc = pTable->getOwnField( pAlias, slAlias ) ;
@@ -273,7 +266,6 @@ namespace engine
 
             hasFunc = TRUE;
 
-            // build selector
             qgmField slValAttr;
             qgmField slValRelegation;
 
@@ -290,7 +282,6 @@ namespace engine
          else if ( String == beField.type() &&
                    AGGR_KEYWORD_PREFIX == beField.valuestr()[0] )
          {
-            // build selector
             qgmField slValAttr;
             qgmField slValRelegation ;
 
@@ -350,7 +341,6 @@ namespace engine
          ss << &pFunc[1] ;
          ss << '(' ;
 
-         /// sum or count allow number
          if ( beField.isNumber() &&
               ( ( pFunc[1] == 's' && pFunc[2] == 'u' &&
                   pFunc[3] == 'm' && pFunc[4] == '\0' ) ||
@@ -370,7 +360,6 @@ namespace engine
                ss << beField.numberInt() ;
             }
          }
-         /// when has multi params, need use [ "$a", "$b" ... ]
          else if ( Array == beField.type() )
          {
             UINT32 paramNum = 0 ;
@@ -423,7 +412,6 @@ namespace engine
             goto error ;
          }
 
-         /// end function
          ss << ')' ;
          strFunc = ss.str() ;
 

@@ -23,15 +23,12 @@ public class CLQuery {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } else
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        // cl
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
@@ -65,10 +62,8 @@ public class CLQuery {
         assertEquals(100, i);
     }
 
-    // relational operator test
     @Test
     public void testConditionQuery() {
-        // $gt
         BSONObject query = new BasicBSONObject();
         BSONObject con_gt = new BasicBSONObject();
         con_gt.put("$gt", 90);
@@ -82,7 +77,6 @@ public class CLQuery {
         }
         assertEquals(9, gt);
 
-        // $gte
         query.removeField("Id");
         BSONObject con_gte = new BasicBSONObject();
         query.put("Id", con_gte);
@@ -95,7 +89,6 @@ public class CLQuery {
         }
         assertEquals(10, gte);
 
-        // $lt
         query.removeField("Id");
         BSONObject con_lt = new BasicBSONObject();
         query.put("Id", con_lt);
@@ -108,7 +101,6 @@ public class CLQuery {
         }
         assertEquals(90, lt);
 
-        // lte
         query.removeField("Id");
         BSONObject con_lte = new BasicBSONObject();
         query.put("Id", con_lte);
@@ -121,7 +113,6 @@ public class CLQuery {
         }
         assertEquals(91, lte);
 
-        // $ne
         query.removeField("Id");
         BSONObject con_ne = new BasicBSONObject();
         query.put("Id", con_ne);
@@ -134,7 +125,6 @@ public class CLQuery {
         }
         assertEquals(99, ne);
 
-        // et
         query.removeField("Id");
         BSONObject con_et = new BasicBSONObject();
         query.put("Id", con_et);
@@ -147,7 +137,6 @@ public class CLQuery {
         }
         assertEquals(1, et);
 
-        // equal
         query.removeField("Id");
         query.put("Id", 90);
         cursor = cl.query(query, null, null, null);
@@ -158,7 +147,6 @@ public class CLQuery {
         }
         assertEquals(1, equal);
 
-        // $gt and $lt
         query.removeField("Id");
         BSONObject con_gt_lt = new BasicBSONObject();
 
@@ -176,7 +164,6 @@ public class CLQuery {
         }
         assertEquals(9, gt_lt);
 
-        // $gte and $lt
         query.removeField("Id");
         BSONObject con_gte_lt = new BasicBSONObject();
 
@@ -193,7 +180,6 @@ public class CLQuery {
         }
         assertEquals(10, gte_lt);
 
-        // $gte and $lte
         query.removeField("Id");
         BSONObject con_gte_lte = new BasicBSONObject();
 
@@ -210,7 +196,6 @@ public class CLQuery {
         }
         assertEquals(11, gte_lte);
 
-        // $exists
         query.removeField("Id");
         BSONObject con_exists = new BasicBSONObject();
 
@@ -226,7 +211,6 @@ public class CLQuery {
         }
         assertEquals(0, j);
 
-        // $exists
         query.removeField("Id");
         BSONObject con_exist = new BasicBSONObject();
 
@@ -242,7 +226,6 @@ public class CLQuery {
         }
         assertEquals(100, k);
 
-        // $elemMatch
         query.removeField("Id");
         BSONObject con_elemMatch = new BasicBSONObject();
         BSONObject con_elemMatch2 = new BasicBSONObject();
@@ -261,8 +244,6 @@ public class CLQuery {
         }
         assertEquals(1, elem);
 
-        // logical operators test
-        // $in
         int[] arr_in = {10, 20, 30, 100};
         query.removeField("phone");
         BSONObject con_in = new BasicBSONObject();
@@ -276,7 +257,6 @@ public class CLQuery {
         }
         assertEquals(3, in);
 
-        // $nin
         int[] arr_nin = {10, 20, 30, 100};
         query.removeField("phone");
         BSONObject con_nin = new BasicBSONObject();
@@ -290,14 +270,12 @@ public class CLQuery {
         }
         assertEquals(97, nin);
 
-        // $and
         query.removeField("Id");
         List<BSONObject> list_and = new ArrayList<BSONObject>();
         BSONObject con_and_id = new BasicBSONObject();
         BSONObject con_and_query = new BasicBSONObject();
         BSONObject con_id = new BasicBSONObject();
         BSONObject con_phone = new BasicBSONObject();
-        // {$and:[{Id:{$gte:0,$lte:20}},{"phone.0":{$gte:10,$lte:30}}]}
         con_and_id.put("Id", con_id);
         con_id.put("$gte", 0);
         con_id.put("$lte", 20);
@@ -309,7 +287,6 @@ public class CLQuery {
         list_and.add(con_and_query);
 
         query.put("$and", list_and);
-        // System.out.println(query);
         cursor = cl.query(query, null, null, null);
         int and = 0;
         while (cursor.hasNext()) {
@@ -318,7 +295,6 @@ public class CLQuery {
         }
         assertEquals(11, and);
 
-        // not
         query.removeField("$and");
         List<BSONObject> list_not = new ArrayList<BSONObject>();
         BSONObject con_id_not = new BasicBSONObject();
@@ -327,8 +303,6 @@ public class CLQuery {
         BSONObject con_not_id = new BasicBSONObject();
         BSONObject con_not_phone = new BasicBSONObject();
         BSONObject con_not_phone_1 = new BasicBSONObject();
-        // {$not:[{Id:{$gte:1,$lte:30}},{"phone.0":{$gte:10,$lte:30}},{"phone.1"
-        // : { "$gte" : 25 , "$lte" : 45}]}
         con_not_id.put("$gte", 1);
         con_not_id.put("$lte", 30);
 
@@ -346,7 +320,6 @@ public class CLQuery {
         list_not.add(con_query_not_1);
 
         query.put("$not", list_not);
-        // System.out.println("not="+query);
         cursor = cl.query(query, null, null, null);
         int not = 0;
         while (cursor.hasNext()) {
@@ -355,14 +328,12 @@ public class CLQuery {
         }
         assertEquals(93, not);
 
-        // or
         query.removeField("$not");
         List<BSONObject> list_or = new ArrayList<BSONObject>();
         BSONObject con_id_or = new BasicBSONObject();
         BSONObject con_query_or = new BasicBSONObject();
         BSONObject con_or_id = new BasicBSONObject();
         BSONObject con_or_phone = new BasicBSONObject();
-        // {$or:[{Id:{$gte:0,$lte:20}},{"phone.0":{$gte:10,$lte:30}}]}
         con_or_id.put("$gte", 0);
         con_or_id.put("$lte", 20);
 
@@ -375,7 +346,6 @@ public class CLQuery {
         list_or.add(con_query_or);
 
         query.put("$or", list_or);
-        // System.out.println("or="+query);
 
         cursor = cl.query(query, null, null, null);
         int or = 0;
@@ -385,10 +355,8 @@ public class CLQuery {
         }
         assertEquals(31, or);
 
-        // $type
         query.removeField("$or");
         BSONObject con_type = new BasicBSONObject();
-        // {Id:{$type:16}}
         con_type.put("$type", 1);
         con_type.put("$et", 16);
 
@@ -548,12 +516,9 @@ public class CLQuery {
             cl.delete(matcher);
             BSONObject record = cl.queryOne();
             assertTrue(record == null);
-            // System.out.println("queryOne() no record return");
         } else {
             BSONObject record = cl.queryOne();
             assertTrue(record != null);
-            // System.out.println("queryOne() return record is: " +
-            // record.toString());
         }
     }
 
@@ -562,13 +527,10 @@ public class CLQuery {
         BSONObject dummy = new BasicBSONObject();
         BSONObject hint = new BasicBSONObject("", "$id");
         DBCursor cursor = null;
-        // case 1
         cursor = cl.query(dummy, dummy, dummy, dummy,
             DBQuery.FLG_QUERY_STRINGOUT);
-        // case 2
         cursor = cl.query(dummy, dummy, dummy, hint,
             DBQuery.FLG_QUERY_STRINGOUT | DBQuery.FLG_QUERY_FORCE_HINT);
-        // case 3
         cursor = cl.query(dummy, dummy, dummy, hint,
             DBQuery.FLG_QUERY_STRINGOUT | DBQuery.FLG_QUERY_FORCE_HINT |
                 DBQuery.FLG_QUERY_PARALLED | DBQuery.FLG_QUERY_WITH_RETURNDATA);

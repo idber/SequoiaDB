@@ -64,7 +64,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   /// Register
    PMD_DEFINE_ENTRYPOINT( EDU_TYPE_SYNCCLOCK, TRUE,
                           pmdSyncClockEntryPoint,
                           "SyncClockWorker" ) ;
@@ -92,7 +91,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   /// Register
    PMD_DEFINE_ENTRYPOINT( EDU_TYPE_SIGNALTEST, TRUE,
                           pmdSignalTestEntryPoint,
                           "SignalTest" ) ;

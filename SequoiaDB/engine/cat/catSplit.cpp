@@ -182,19 +182,15 @@ namespace engine
       PD_CHECK( csExist, SDB_DMS_CS_NOTEXIST, error, PDWARNING,
                 "Collection space[%s] is not exist", szSpace ) ;
 
-      // get domain name
       rc = rtnGetStringElement( csObj, CAT_DOMAIN_NAME, &domainName ) ;
-      // SYSTEM DOMAIN
       if ( SDB_FIELD_NOT_EXIST == rc )
       {
          existed = TRUE ;
          rc = SDB_OK ;
          goto done ;
       }
-      // USER DOMAIN
       else if ( SDB_OK == rc )
       {
-         // Check domain exist
          BSONObj domainObj ;
          map<string, UINT32> groups ;
          rc = catGetDomainObj( domainName, domainObj, cb ) ;
@@ -363,30 +359,25 @@ namespace engine
                    "Target group name [%s] is not valid, rc: %d",
                    dstName.c_str(), rc ) ;
 
-      // check dst group name is same with source name
       PD_CHECK( 0 != dstName.compare( srcName ),
                 SDB_INVALIDARG, error, PDERROR,
                 "Target group name can not the same with source group name" ) ;
 
-      // get source id
       rc = catGroupName2ID( srcName.c_str(), srcGroupID, TRUE, cb ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to convert group name [%s] to id, rc: %d",
                    srcName.c_str(), rc ) ;
 
-      // check the collection is in source id
       PD_CHECK( _isGroupInCataSet( srcGroupID, cataSet ),
                 SDB_CL_NOT_EXIST_ON_GROUP, error, PDWARNING,
                 "The collection [%s] does not exist on source group [%s]",
                 cataSet.name(), srcName.c_str() ) ;
 
-      // get target id
       rc = catGroupName2ID( dstName.c_str(), dstGroupID, TRUE, cb ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to convert group name [%s] to id, rc: %d",
                    dstName.c_str(), rc ) ;
 
-      // check dst is in cs domain
       rc = _checkDstGroupInCSDomain( dstName.c_str(), cataSet.name(),
                                      dstInCSDomain, cb ) ;
       PD_RC_CHECK( rc, PDWARNING,
@@ -437,13 +428,8 @@ namespace engine
       string mainCLName ;
       BSONObj boCollection ;
 
-      // Lock objects to check available for updates only
-      // Unlock immediately for long task, which make sure subsequent commands
-      // e.g. DropCL, have higher priority to execute on the same collection
       catCtxLockMgr lockMgr ;
 
-      // Get and lock collection catalog info
-      // Lock for shared, so could be split in parallel
       rc = catGetAndLockCollection( clName, boCollection, cb,
                                     needLock ? &lockMgr : NULL, SHARED ) ;
       PD_RC_CHECK( rc, PDERROR,
@@ -451,7 +437,6 @@ namespace engine
                    "Failed to get the collection [%s]",
                    opCode, clName.c_str() ) ;
 
-      // Update catalog set
       rc = cataSet.updateCatSet( boCollection ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Failed to execute splitCL [%d] on [%s]: "
@@ -459,14 +444,12 @@ namespace engine
                    opCode, clName.c_str(),
                    boCollection.toString().c_str(), rc ) ;
 
-      // Collection must be sharding
       PD_CHECK( cataSet.isSharding(),
                 SDB_COLLECTION_NOTSHARD, error, PDERROR,
                 "Failed to execute splitCL [%d] on [%s]: "
                 "Could not split non-sharding collection",
                 opCode, clName.c_str() ) ;
 
-      // Main-collection can't be split
       PD_CHECK( !cataSet.isMainCL(),
                 SDB_MAIN_CL_OP_ERR, error, PDERROR,
                 "Failed to split step [%d] on [%s]: "
@@ -477,8 +460,6 @@ namespace engine
       if ( !mainCLName.empty() )
       {
          BSONObj dummy ;
-         // Lock for shared, so could be split in parallel
-         // main-collection's version will be updated
          rc = catGetAndLockCollection( mainCLName, dummy, cb,
                                        needLock ? &lockMgr : NULL, SHARED ) ;
          PD_RC_CHECK( rc, PDERROR,
@@ -525,7 +506,6 @@ namespace engine
          BOOLEAN existQuery = TRUE ;
          FLOAT64 percent = 0.0 ;
 
-         // Extract collection name from query
          rc = rtnGetSTDStringElement( splitInfo, CAT_COLLECTION_NAME, clName ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to execute splitCL [%d]: "
@@ -533,10 +513,8 @@ namespace engine
                       MSG_CAT_SPLIT_PREPARE_REQ, CAT_COLLECTION_NAME,
                       splitInfo.toString().c_str() ) ;
 
-         // Initialize catalog set
          clsCatalogSet cataSet( clName.c_str() ) ;
 
-         // Check and lock collections and groups for split task
          rc = _catCheckAndLockForSplitTask ( MSG_CAT_SPLIT_PREPARE_REQ, clName,
                                              cataSet, splitInfo, cb,
                                              srcGroupID, srcName,
@@ -545,7 +523,6 @@ namespace engine
                       "Failed to check and lock collections and groups, rc: %d",
                       rc ) ;
 
-         // Get split query
          rc = rtnGetObjElement( splitInfo, CAT_SPLITQUERY_NAME, splitQuery ) ;
          if ( SDB_FIELD_NOT_EXIST == rc )
          {
@@ -558,7 +535,6 @@ namespace engine
 
          percent = splitInfo.getField( CAT_SPLITPERCENT_NAME ).numberDouble() ;
 
-         // split query or percent validation
          PD_CHECK( existQuery || ( percent > 0.0 && percent <= 100.0 ),
                    SDB_INVALIDARG, error, PDERROR,
                    "Split percent value [%f] error", percent ) ;
@@ -607,7 +583,6 @@ namespace engine
          BOOLEAN usePercent = FALSE ;
          FLOAT64 percent = 0.0 ;
 
-         // Extract collection name from query
          rc = rtnGetSTDStringElement( splitInfo, CAT_COLLECTION_NAME, clName ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to execute splitCL [%d]: "
@@ -615,10 +590,8 @@ namespace engine
                       MSG_CAT_SPLIT_PREPARE_REQ, CAT_COLLECTION_NAME,
                       splitInfo.toString().c_str() ) ;
 
-         // Initialize catalog set
          clsCatalogSet cataSet( clName.c_str() ) ;
 
-         // Check and lock collections and groups for split task
          rc = _catCheckAndLockForSplitTask ( MSG_CAT_SPLIT_READY_REQ, clName,
                                              cataSet, splitInfo, cb,
                                              srcGroupID, srcName,
@@ -627,7 +600,6 @@ namespace engine
                       "Failed to check and lock collections and groups, rc: %d",
                       rc ) ;
 
-         // Get split value
          rc = rtnGetObjElement( splitInfo, CAT_SPLITVALUE_NAME, bKey ) ;
          if ( SDB_FIELD_NOT_EXIST == rc ||
               ( SDB_OK == rc && bKey.isEmpty() ) )
@@ -662,7 +634,6 @@ namespace engine
                       "Split by percent must be hash sharding" ) ;
          }
 
-         // bKey and eKey validation
          if ( !usePercent )
          {
             rc = _checkSplitKey( bKey, cataSet, srcGroupID, FALSE, FALSE ) ;
@@ -672,7 +643,6 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Check split end key failed, rc: %d", rc ) ;
          }
 
-         // Create task
          BSONObj match ;
          BSONObj taskObj ;
          BOOLEAN conflict = FALSE ;
@@ -694,7 +664,6 @@ namespace engine
                       "Initialize split task failed, rc: %d",
                       rc ) ;
 
-         // check task conflict
          match = splitTask.toBson( CLS_SPLIT_MASK_CLNAME ) ;
          rc = _catSplitCheckConflict( match, splitTask, conflict, cb ) ;
          PD_RC_CHECK( rc, PDERROR,
@@ -704,7 +673,6 @@ namespace engine
                    SDB_CLS_MUTEX_TASK_EXIST, error, PDERROR,
                    "Exist task not compatible with the new task" ) ;
 
-         // add to task collection
          taskObj = splitTask.toBson( CLS_MASK_ALL ) ;
          rc = catAddTask( taskObj, cb, w ) ;
          PD_RC_CHECK( rc, PDERROR, "Add split task failed, rc: %d", rc ) ;
@@ -743,7 +711,6 @@ namespace engine
                 SDB_INVALIDARG, error, PDERROR,
                 "Invalid task ID for split task" ) ;
 
-      /// Check the status of task
       rc = catGetTaskStatus( taskID, status, cb ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Get task[%llu] status failed, rc: %d",
@@ -792,15 +759,12 @@ namespace engine
          BSONObj cataInfo ;
          clsSplitTask splitTask( CLS_INVALID_TASKID ) ;
 
-         // NOTE: Check the task status before locking Catalog objects
 
-         // Get task info
          rc = _catGetSplitTask( taskID, splitTask, cb ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Get task [%llu] failed, rc: %d",
                       taskID, rc ) ;
 
-         // already finished
          if ( CLS_TASK_STATUS_META == splitTask.status() ||
               CLS_TASK_STATUS_FINISH == splitTask.status() )
          {
@@ -817,7 +781,6 @@ namespace engine
                    "Split task status error, task: %s",
                    taskObj.toString().c_str() ) ;
 
-         // Extract collection name from query
          rc = rtnGetSTDStringElement( splitInfo, CAT_COLLECTION_NAME, clName ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to execute splitCL [%d]: "
@@ -831,10 +794,8 @@ namespace engine
                    "previous phase [%s]",
                    taskID, splitTask.clFullName(), clName.c_str() ) ;
 
-         // Initialize catalog set
          clsCatalogSet cataSet( clName.c_str() ) ;
 
-         // Check and lock collections and groups for split task
          rc = _catCheckAndLockForSplitTask ( MSG_CAT_SPLIT_CHGMETA_REQ, clName,
                                              cataSet, splitInfo, cb,
                                              srcGroupID, srcName,
@@ -846,7 +807,6 @@ namespace engine
          if ( !cataSet.isKeyInGroup( splitTask.splitKeyObj(),
                                      splitTask.dstID() ) )
          {
-            // again check bKey and eKey :
             rc = _checkSplitKey( splitTask.splitKeyObj(), cataSet,
                                  splitTask.sourceID(), FALSE, FALSE ) ;
             PD_RC_CHECK( rc, PDSEVERE,
@@ -861,7 +821,6 @@ namespace engine
                          "there's possible data corruption, obj: %s",
                          rc, taskObj.toString().c_str() ) ;
 
-            // split
             rc = cataSet.split( splitTask.splitKeyObj(),
                                 splitTask.splitEndKeyObj(),
                                 splitTask.dstID(), splitTask.dstName() ) ;
@@ -871,7 +830,6 @@ namespace engine
                          cataSet.toCataInfoBson().toString().c_str(),
                          taskObj.toString().c_str() ) ;
 
-            // save new catalog info
             cataInfo = cataSet.toCataInfoBson() ;
             rc = catUpdateCatalog( clName.c_str(), cataInfo, cb, w ) ;
             PD_RC_CHECK( rc, PDSEVERE,
@@ -885,7 +843,6 @@ namespace engine
             mainCLName = cataSet.getMainCLName();
             if ( !mainCLName.empty() )
             {
-               // Increase main-collection's version
                BSONObj emptyObj;
                INT32 tmpRC = SDB_OK ;
                tmpRC = catUpdateCatalog( mainCLName.c_str(), emptyObj, cb, w ) ;
@@ -902,7 +859,6 @@ namespace engine
             }
          }
 
-         // update task status
          rc = catUpdateTaskStatus( taskID, CLS_TASK_STATUS_META, cb, w ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to update task status, rc: %d",
@@ -939,7 +895,6 @@ namespace engine
                 SDB_INVALIDARG, error, PDERROR,
                 "Invalid task ID for split task" ) ;
 
-      /// Check the status of task
       rc = catGetTaskStatus( taskID, status, cb ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Get task[%llu] status failed, rc: %d",
@@ -954,7 +909,6 @@ namespace engine
       }
       else if ( CLS_TASK_STATUS_FINISH == status )
       {
-         // do nothing
       }
       else if ( CLS_TASK_STATUS_CANCELED == status )
       {
@@ -992,7 +946,6 @@ namespace engine
                 SDB_INVALIDARG, error, PDERROR,
                 "Invalid task ID for split task" ) ;
 
-      // remove task
       rc = catRemoveTask( taskID, cb, w ) ;
       PD_RC_CHECK( rc, PDERROR,
                    "Remove task[%llu] failed, rc: %d",
@@ -1020,9 +973,6 @@ namespace engine
 
       BSONElement ele = splitInfo.getField( CAT_TASKID_NAME ) ;
 
-      // split cancel has two case :
-      //   1): has task id
-      //   2): no task id
 
       if ( !ele.eoo() )
       {
@@ -1039,8 +989,6 @@ namespace engine
                  "Split cancel: got task ID [%llu]",
                  taskID ) ;
 
-         // Remove context first
-         //rc = catRemoveTaskContext( taskID, cb ) ;
 
          rc = catGetTask( taskID, taskObj, cb ) ;
          PD_RC_CHECK( rc, PDERROR,
@@ -1062,7 +1010,6 @@ namespace engine
                  "Split cancel: got target group ID [%u]",
                  returnGroupID ) ;
 
-         // can't cancel finish status
          if ( CLS_TASK_STATUS_META == status ||
               CLS_TASK_STATUS_FINISH == status )
          {
@@ -1110,8 +1057,6 @@ namespace engine
 
          BSONObj match = matchBuilder.obj() ;
 
-         // Remove contexts first
-         //rc = catRemoveTaskContexts( match, cb ) ;
 
          rc = catRemoveTask( match, cb, w ) ;
          PD_RC_CHECK( rc, PDERROR,

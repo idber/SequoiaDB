@@ -193,7 +193,6 @@ namespace engine
       return sub ;
    }
 
-   /// ex: self: abc.dek, return: abc
    _qgmField _qgmField::rootField() const
    {
       UINT32 pos = 0 ;
@@ -206,7 +205,6 @@ namespace engine
       return root ;
    }
 
-   /// ex: self: abc.dek, return: dek
    _qgmField _qgmField::lastField() const
    {
       UINT32 pos = 0 ;
@@ -220,8 +218,6 @@ namespace engine
       return last ;
    }
 
-   /// ex: self: abc.def.kk, cur: abc, return: def
-   ///                       cur: kk,  return: (null)
    _qgmField _qgmField::nextField( const _qgmField &cur ) const
    {
       _qgmField next ;
@@ -248,8 +244,6 @@ namespace engine
       return next ;
    }
 
-   /// ex: self: abc.def.kk, cur: kk, return: def
-   ///                       cur: abc,return: (null)
    _qgmField _qgmField::preField( const _qgmField &cur ) const
    {
       _qgmField next ;
@@ -521,7 +515,6 @@ namespace engine
              this->obj.getOwned() : qgmMerge( obj, next->mergedObj() ) ;
    }
 
-////////////////// _qgmValueTuple
    _qgmValueTuple::_qgmValueTuple( CHAR *data, UINT32 len, BOOLEAN format )
    :_row( data ),
     _len( len ),
@@ -644,20 +637,15 @@ namespace engine
 
       pData   = _row + sizeof( _tuple ) ;
 
-      //define in common_decimal.h __decimal
-      // size
       *( INT32 *)pData = dataLen ;
       pData += sizeof( INT32 ) ;
 
-      // typemod
       *( INT32 *)pData = decimal.getTypemod() ;
       pData += sizeof( INT32 ) ;
 
-      // sign + scale 
       *( INT16 *)pData = decimal.getStorageScale() ;
       pData += sizeof( INT16 ) ;
 
-      // weight
       *( INT16 *)pData = decimal.getWeight() ;
       pData += sizeof( INT16 ) ;
 
@@ -1131,7 +1119,6 @@ namespace engine
       else if ( ( INT16 )bson::NumberLong == getValueType() ||
                 ( INT16 )bson::NumberLong == right.getValueType() )
       {
-         //NumberLong
          INT64 lNumber = *((INT64 *)(getValue() ) ) ;
          INT64 rNumber = *(( INT64 * )( right.getValue() ) ) ;
          INT64 result64 ;
@@ -1148,7 +1135,6 @@ namespace engine
          }
          else
          {
-            //overflow
             bsonDecimal decResult ;
             rc = decResult.fromString( "9223372036854775808" ) ;
             if ( SDB_OK != rc )
@@ -1162,7 +1148,6 @@ namespace engine
       }
       else
       {
-         // int32
          INT32 lNumber = *((INT32 *)(getValue() ) ) ;
          INT32 rNumber = *(( INT32 * )( right.getValue() ) ) ;
          INT32 result32 ;
@@ -1290,7 +1275,6 @@ namespace engine
       }
       else
       {
-         //NumberLong
          INT64 lNumber = *((INT64 *)(getValue() ) ) ;
          INT64 rNumber = *(( INT64 * )( right.getValue() ) ) ;
          if ( 0 == rNumber )

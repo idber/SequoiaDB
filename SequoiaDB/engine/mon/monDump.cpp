@@ -223,7 +223,6 @@ namespace engine
 
          if ( MON_MASK_LSN_INFO & mask )
          {
-            /// begint lsn, current lsn, committed lsn
             DPS_LSN beginLSN ;
             DPS_LSN currentLSN ;
             DPS_LSN committed ;
@@ -251,7 +250,6 @@ namespace engine
             subCommit.append( FIELD_NAME_LSN_VERSION, committed.version ) ;
             subCommit.done() ;
 
-            /// complete lsn and queue size
             DPS_LSN completeLSN ;
             UINT32 lsnQueSize = 0 ;
             if ( pClsCB )
@@ -332,9 +330,6 @@ namespace engine
          obVersion.append ( FIELD_NAME_BUILD, pBuild ) ;
          obVersion.done() ;
 
-#ifdef SDB_ENTERPRISE
-         ob.append ( FIELD_NAME_EDITION, "Enterprise" ) ;
-#endif // SDB_ENTERPRISE
       }
       catch ( std::exception &e )
       {
@@ -404,11 +399,9 @@ namespace engine
       INT32 rc                = SDB_OK ;
       ossProcLimits *limInfo  = pmdGetLimit() ;
 
-      // get total number in ulimit
       limInfo->getLimit( OSS_LIMIT_OPEN_FILE, softLimit, hardLimit ) ;
       totalNum = softLimit ;
 
-      // get used number
       rc = ossGetFileDesp( usedNum ) ;
       if ( SDB_TOO_MANY_OPEN_FD == rc )
       {
@@ -420,7 +413,6 @@ namespace engine
          goto error ;
       }
 
-      // get percent
       if ( totalNum != 0 )
       {
          freeNum = totalNum - usedNum ;
@@ -434,7 +426,6 @@ namespace engine
          loadPercent = 0 ;
       }
 
-      // build bson object
       {
          BSONObjBuilder fdOb( ob.subobjStart( FIELD_NAME_FILEDESP ) ) ;
          fdOb.append( FIELD_NAME_LOADPERCENT, loadPercent ) ;
@@ -548,22 +539,18 @@ namespace engine
       INT64 rss               = 0 ;
       ossProcLimits *limInfo  = pmdGetLimit() ;
 
-      // get memory of host
       rc = ossGetMemoryInfo( loadPctRAM, totalRAM, availRAM,
                              totalSwap, availSwap, totalVM, availVM,
                              overCommitMode, commitLimit, committedAS ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get memory info of host, "
                    "rc = %d", rc ) ;
 
-      // get memory of process
       rc = ossGetProcessMemory( ossGetCurrentProcessID(), rss, allocatedVMProc );
       PD_RC_CHECK( rc, PDERROR, "Failed to get memory info of process, "
                    "rc = %d", rc ) ;
 
-      // get limited virtual memory in ulimit
       limInfo->getLimit( OSS_LIMIT_VIRTUAL_MEM, softLimit, hardLimit ) ;
 
-      // caculate
       if ( 2 == overCommitMode )
       {
          if ( -1 == softLimit )
@@ -602,7 +589,6 @@ namespace engine
          loadPctRAM = 0 ;
       }
 
-      // append bson
       {
          BSONObjBuilder memOb( ob.subobjStart( FIELD_NAME_MEMORY ) ) ;
 
@@ -650,10 +636,8 @@ namespace engine
             _clsSharingStatus primary ;
             DPS_LSN beginLSN, currentLSN,expectLSN, primaryLSN ;
 
-            // get self lsn
             dpscb->getLsnWindow( beginLSN, currentLSN, &expectLSN, NULL ) ;
 
-            // get remote primary node lsn
             if ( replcb->getPrimaryInfo( primary ) )
             {
                primaryLSN = primary.beat.endLsn ;
@@ -723,8 +707,6 @@ namespace engine
    {
       UINT32 ip = 0 ;
       UINT32 port = 0 ;
-      /// IP:00000000, PORT:0000, TID:00000000
-      /// SNPRINTF will truncate the last char, so need + 2
       CHAR szTmp[ 8 + 4 + 8 + 2 ] = { 0 } ;
 
       if ( 0 != relatedNID )
@@ -820,7 +802,6 @@ namespace engine
       ob.append( FIELD_NAME_TOTALWRITETIME,
                  (SINT64)(seconds*1000 + microseconds / 1000 ) ) ;
 
-      /// the spent time is last op
       full._monApplCB._readTimeSpent.convertToTime ( factor,
                                                      seconds,
                                                      microseconds ) ;
@@ -840,10 +821,8 @@ namespace engine
       ossTimestampToString( tmpTm, timestamp ) ;
       ob.append ( FIELD_NAME_RESETTIMESTAMP, timestamp ) ;
 
-      /// add last op info
       monDumpLastOpInfo( ob, full._monApplCB ) ;
 
-      /// add cpu info
       double userCpu;
       userCpu = userTime.seconds + (double)userTime.microsec / 1000000 ;
       ob.append( FIELD_NAME_USERCPU, userCpu ) ;
@@ -861,25 +840,21 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB_MONDMSCOLLECTIONFLAGTOSTRING ) ;
       PD_TRACE1 ( SDB_MONDMSCOLLECTIONFLAGTOSTRING, PD_PACK_USHORT(flag) ) ;
-      // free flag is 0x0000
       if ( DMS_IS_MB_FREE(flag) )
       {
          out = "Free" ;
          goto done ;
       }
-      // normal flag is 0x0001
       if ( DMS_IS_MB_NORMAL(flag) )
       {
          out = "Normal" ;
          goto done ;
       }
-      // drop flag is 0x0002
       if ( DMS_IS_MB_DROPPED(flag) )
       {
          out = "Dropped" ;
          goto done ;
       }
-      // reorg
       if ( DMS_IS_MB_OFFLINE_REORG_SHADOW_COPY(flag) )
       {
          out = "Offline Reorg Shadow Copy Phase" ;
@@ -905,7 +880,6 @@ namespace engine
       return ;
    }
 
-   // dump information for all collections
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MONDUMPINDEXES, "monDumpIndexes" )
    INT32 monDumpIndexes( MON_IDX_LIST &indexes, rtnContextDump *context )
    {
@@ -1125,14 +1099,12 @@ namespace engine
             BSONArrayBuilder blockArrBd ;
             BSONObj obj ;
 
-            // add node info
             rc = monAppendSystemInfo( builder, MON_MASK_HOSTNAME|
                                       MON_MASK_SERVICE_NAME|MON_MASK_NODEID ) ;
             PD_RC_CHECK( rc, PDERROR, "Append system info failed, rc: %d",
                          rc ) ;
 
             builder.append( FIELD_NAME_SCANTYPE, VALUE_NAME_TBSCAN ) ;
-            // add datablocks
             std::vector<dmsExtentID>::iterator it = datablocks.begin() ;
             while ( it != datablocks.end() &&
                     datablockNum < MAX_DATABLOCK_A_RECORD_NUM )
@@ -1193,7 +1165,6 @@ namespace engine
             BSONArrayBuilder blockArrBd ;
             BSONObj obj ;
 
-            // add node info
             rc = monAppendSystemInfo( builder, MON_MASK_HOSTNAME|
                                       MON_MASK_SERVICE_NAME|MON_MASK_NODEID ) ;
             PD_RC_CHECK( rc, PDERROR, "Append system info failed, rc: %d",
@@ -1203,7 +1174,6 @@ namespace engine
             builder.append( FIELD_NAME_INDEXNAME, indexName ) ;
             builder.append( FIELD_NAME_INDEXLID, indexLID ) ;
             builder.append( FIELD_NAME_DIRECTION, direction ) ;
-            // add indexblocks
             while ( ( ( 1 == direction && indexPos + 1 < idxBlocks.size() ) ||
                       ( -1 == direction && indexPos > 0 ) ) &&
                     indexblockNum < MAX_INDEXBLOCK_A_RECORD_NUM )
@@ -1516,14 +1486,12 @@ namespace engine
       eduID = _eduList.front() ;
       _eduList.pop() ;
 
-      /// clear
       _curTransInfo._lockList.clear() ;
       _curTransInfo._transID = DPS_INVALID_TRANS_ID ;
 
       if ( SDB_OK != pMgr->dumpTransInfo( eduID, _curTransInfo ) ||
            DPS_INVALID_TRANS_ID == _curTransInfo._transID )
       {
-         /// if the edu has exited
          goto retry ;
       }
 
@@ -1535,7 +1503,6 @@ namespace engine
          monAppendSystemInfo( builder, _addInfoMask ) ;
          builder.append( FIELD_NAME_SESSIONID,
                          (INT64)_curTransInfo._eduID ) ;
-         /// nodeID(16bit) | TAG(8bit) | SN(40bit)
          CHAR strTransID[ 4 + 2 + 10 + 2 ] = { 0 } ;
          ossSnprintf( strTransID, sizeof( strTransID ) - 1,
                       "%04x%010x", ( _curTransInfo._transID >> 48 ),
@@ -1762,7 +1729,6 @@ namespace engine
          it = _contextList.begin() ;
          std::set<SINT64> &setCtx = it->second ;
 
-         /// add system info
          monAppendSystemInfo( ob, _addInfoMask ) ;
 
          ob.append( FIELD_NAME_SESSIONID, (SINT64)it->first ) ;
@@ -1776,7 +1742,6 @@ namespace engine
          ba.done() ;
          obj = ob.obj() ;
 
-         /// remove current edu info
          _contextList.erase( it ) ;
          if ( _contextList.size() == 0 )
          {
@@ -1823,10 +1788,8 @@ namespace engine
          it = _contextInfoList.begin() ;
          std::set<monContextFull> &setInfo = it->second ;
 
-         /// add system info
          monAppendSystemInfo( ob, _addInfoMask ) ;
 
-         /// add session id
          ob.append( FIELD_NAME_SESSIONID, (INT64)it->first ) ;
 
          BSONArrayBuilder ba( ob.subarrayStart( FIELD_NAME_CONTEXTS ) ) ;
@@ -1855,7 +1818,6 @@ namespace engine
          ba.done() ;
          obj = ob.obj() ;
 
-         /// remove current
          _contextInfoList.erase( it ) ;
          if ( _contextInfoList.size() == 0 )
          {
@@ -2001,7 +1963,6 @@ namespace engine
          it = _setInfoSimple.begin() ;
          const monEDUSimple &simple = *it ;
 
-         /// add system info
          monAppendSystemInfo( ob, _addInfoMask ) ;
 
          ob.append ( FIELD_NAME_SESSIONID, (SINT64)simple._eduID ) ;
@@ -2014,7 +1975,6 @@ namespace engine
 
          obj = ob.obj () ;
 
-         /// remove current
          _setInfoSimple.erase( it ) ;
          if ( _setInfoSimple.empty() )
          {
@@ -2054,7 +2014,6 @@ namespace engine
          it = _setInfoDetail.begin() ;
          const monEDUFull &full = *it ;
 
-         /// add system info
          monAppendSystemInfo( ob, _addInfoMask ) ;
 
          ob.append( FIELD_NAME_SESSIONID, (INT64)full._eduID ) ;
@@ -2067,7 +2026,6 @@ namespace engine
                     (SINT64)full._processEventCount ) ;
          monAppendSessionIdentify( ob, full._relatedNID,
                                    full._relatedTID ) ;
-         /// add contexts
          BSONArrayBuilder ba( ob.subarrayStart( FIELD_NAME_CONTEXTS ) ) ;
          std::set<SINT64>::const_iterator itCtx ;
          for ( itCtx = full._eduContextList.begin() ;
@@ -2081,11 +2039,9 @@ namespace engine
          ossTime userTime, sysTime ;
          ossTickConversionFactor factor ;
          ossGetCPUUsage( full._threadHdl, userTime, sysTime ) ;
-         /// add app cb info
          monSessionMonEDUFull( ob, full, factor, userTime, sysTime ) ;
          obj = ob.obj () ;
 
-         /// remove the current
          _setInfoDetail.erase( it ) ;
          if ( _setInfoDetail.empty() )
          {
@@ -2213,7 +2169,6 @@ namespace engine
 
          obj = ob.obj () ;
 
-         /// remove current
          _collectionList.erase( it ) ;
          if ( _collectionList.empty() )
          {
@@ -2254,7 +2209,6 @@ namespace engine
          it = _collectionInfo.begin() ;
          const monCollection &full = *it ;
 
-         /// add name & space name
          ob.append ( FIELD_NAME_NAME, full._name ) ;
          const CHAR *pDot = ossStrchr( full._name, '.' ) ;
          if ( pDot )
@@ -2263,7 +2217,6 @@ namespace engine
                                             full._name,
                                             pDot - full._name ) ;
          }
-         /// add detial
          BSONArrayBuilder ba( ob.subarrayStart( FIELD_NAME_DETAILS ) ) ;
          for ( itDetail = full._details.begin() ;
                itDetail != full._details.end() ;
@@ -2276,7 +2229,6 @@ namespace engine
             std::string status = "" ;
             CHAR tmp[ MON_TMP_STR_SZ + 1 ] = { 0 } ;
 
-            /// add system info
             monAppendSystemInfo( sub, _addInfoMask ) ;
 
             sub.append ( FIELD_NAME_ID, detail._blockID ) ;
@@ -2301,7 +2253,6 @@ namespace engine
             sub.append ( FIELD_NAME_PAGE_SIZE, detail._pageSize ) ;
             sub.append ( FIELD_NAME_LOB_PAGE_SIZE, detail._lobPageSize ) ;
 
-            /// stat info
             sub.append ( FIELD_NAME_TOTAL_RECORDS,
                          (long long)(detail._totalRecords )) ;
             sub.append ( FIELD_NAME_TOTAL_LOBS,
@@ -2319,7 +2270,6 @@ namespace engine
             sub.append ( FIELD_NAME_CURR_COMPRESS_RATIO,
                          (FLOAT64)detail._currCompressRatio / 100.0 ) ;
 
-            /// sync info
             sub.append ( FIELD_NAME_DATA_COMMIT_LSN, (INT64)detail._dataCommitLSN ) ;
             sub.append ( FIELD_NAME_IDX_COMMIT_LSN, (INT64)detail._idxCommitLSN ) ;
             sub.append ( FIELD_NAME_LOB_COMMIT_LSN, (INT64)detail._lobCommitLSN ) ;
@@ -2332,7 +2282,6 @@ namespace engine
          ba.done() ;
          obj = ob.obj() ;
 
-         /// remove the current
          _collectionInfo.erase( it ) ;
          if ( _collectionInfo.empty() )
          {
@@ -2460,7 +2409,6 @@ namespace engine
 
          obj = ob.obj () ;
 
-         /// remove current
          _csList.erase( it ) ;
          if ( _csList.empty() )
          {
@@ -2504,14 +2452,10 @@ namespace engine
          it = _csInfo.begin() ;
          const monCollectionSpace &full = *it ;
 
-         /// add system info
          monAppendSystemInfo( ob, _addInfoMask ) ;
 
-         /// add name & space name
          ob.append ( FIELD_NAME_NAME, full._name ) ;
-         /// add detial
          BSONArrayBuilder sub( ob.subarrayStart( FIELD_NAME_COLLECTION ) ) ;
-         // do not list detailed collections if we are on temp cs
          if ( ossStrcmp ( full._name, SDB_DMSTEMP_NAME ) != 0 )
          {
             MON_CL_SIM_VEC::const_iterator it1 ;
@@ -2548,7 +2492,6 @@ namespace engine
          ob.append ( FIELD_NAME_TOTAL_LOB_SIZE, full._totalLobSize ) ;
          ob.append ( FIELD_NAME_FREE_LOB_SIZE, full._freeLobSize ) ;
 
-         /// sync info
          ob.append ( FIELD_NAME_DATA_COMMIT_LSN, (INT64)full._dataCommitLsn ) ;
          ob.append ( FIELD_NAME_IDX_COMMIT_LSN, (INT64)full._idxCommitLsn ) ;
          ob.append ( FIELD_NAME_LOB_COMMIT_LSN, (INT64)full._lobCommitLsn ) ;
@@ -2556,12 +2499,10 @@ namespace engine
          ob.appendBool ( FIELD_NAME_IDX_COMMITTED, full._idxIsValid ) ;
          ob.appendBool ( FIELD_NAME_LOB_COMMITTED, full._lobIsValid ) ;
 
-         /// cache info
          ob.append ( FIELD_NAME_DIRTY_PAGE, (INT32)full._dirtyPage ) ;
          ob.append( FIELD_NAME_TYPE, (INT32)full._type ) ;
          obj = ob.obj() ;
 
-         /// remove the current
          _csInfo.erase( it ) ;
          if ( _csInfo.empty() )
          {
@@ -2648,9 +2589,7 @@ namespace engine
       {
          BSONObjBuilder ob( MON_DUMP_DFT_BUILDER_SZ ) ;
 
-         /// add system info
          monAppendSystemInfo ( ob, _addInfoMask ) ;
-         /// add version
          monAppendVersion ( ob ) ;
 
          ossTickConversionFactor factor ;
@@ -2751,7 +2690,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      // cpu
       INT64 cpuUser        = 0 ;
       INT64 cpuSys         = 0 ;
       INT64 cpuIdle        = 0 ;
@@ -2763,7 +2701,6 @@ namespace engine
          goto error ;
       }
 
-      // cpu
       rc = ossGetCPUInfo ( cpuUser, cpuSys, cpuIdle, cpuOther ) ;
        if ( rc )
       {
@@ -2771,14 +2708,11 @@ namespace engine
          goto error ;
       }
 
-      // generate BSON return obj
       try
       {
          BSONObjBuilder ob( MON_DUMP_DFT_BUILDER_SZ ) ;
 
-         /// add system info
          monAppendSystemInfo ( ob, _addInfoMask ) ;
-         // cpu
          {
             BSONObjBuilder cpuOb( ob.subobjStart( FIELD_NAME_CPU ) ) ;
             cpuOb.append ( FIELD_NAME_USER, ((FLOAT64)cpuUser)/1000 ) ;
@@ -2787,9 +2721,7 @@ namespace engine
             cpuOb.append ( FIELD_NAME_OTHER, ((FLOAT64)cpuOther)/1000 ) ;
             cpuOb.done() ;
          }
-         // memory
          monAppendHostMemory( ob ) ;
-         // disk
          monAppendDisk( ob ) ;
          obj = ob.obj() ;
       }
@@ -2859,7 +2791,6 @@ namespace engine
          goto error ;
       }
 
-      // generate BSON return obj
       try
       {
          BSONObjBuilder ob( MON_DUMP_DFT_BUILDER_SZ ) ;
@@ -2874,7 +2805,6 @@ namespace engine
 
          monAppendUlimit( ob ) ;
 
-         /// number of occurred error
          pmdOccurredErr numErr = pmdGetOccurredErr();
          BSONObjBuilder errOb( ob.subobjStart( FIELD_NAME_ERRNUM ) ) ;
          errOb.append( FIELD_NAME_OOM,        (INT64)numErr._oom ) ;
@@ -2996,10 +2926,8 @@ namespace engine
          it = _suInfo.begin() ;
          const monStorageUnit &su = *it ;
 
-         /// add system info
          monAppendSystemInfo( ob, _addInfoMask ) ;
 
-         /// add name & space name
          ob.append ( FIELD_NAME_NAME, su._name ) ;
          ob.append ( FIELD_NAME_ID, su._CSID ) ;
          ob.append ( FIELD_NAME_LOGICAL_ID, su._logicalCSID ) ;
@@ -3012,7 +2940,6 @@ namespace engine
 
          obj = ob.obj() ;
 
-         /// remove the current
          _suInfo.erase( it ) ;
          if ( _suInfo.empty() )
          {
@@ -3165,7 +3092,6 @@ namespace engine
          const BSONObj &indexObj = indexItem._indexDef ;
          OID oid ;
 
-         /// add system info
          monAppendSystemInfo( ob, _addInfoMask ) ;
 
          BSONObjBuilder sub( ob.subobjStart( IXM_FIELD_NAME_INDEX_DEF ) ) ;
@@ -3350,7 +3276,6 @@ namespace engine
       {
          BSONObjBuilder ob( MON_DUMP_DFT_BUILDER_SZ * 4 ) ;
 
-         /// add system info
          monAppendSystemInfo( ob, _addInfoMask ) ;
 
          ob.append( FIELD_NAME_SCANTYPE, VALUE_NAME_TBSCAN ) ;
@@ -3445,7 +3370,6 @@ namespace engine
       PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s], rc: %d",
                    FIELD_NAME_DETAIL, rc ) ;
 
-      // option config
       rc = rtnGetBooleanElement( obj, FIELD_NAME_ISSUBDIR, isSubDir ) ;
       if ( SDB_FIELD_NOT_EXIST == rc )
       {
@@ -3462,7 +3386,6 @@ namespace engine
       PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s], rc: %d",
                    FIELD_NAME_PREFIX, rc ) ;
 
-      // make path
       if ( isSubDir && pPath )
       {
          bkpath = rtnFullPathName( pmdGetOptionCB()->getBkupPath(), pPath ) ;
@@ -3479,7 +3402,6 @@ namespace engine
       rc = bkMgr.init( bkpath.c_str(), backupName, prefix ) ;
       PD_RC_CHECK( rc, PDWARNING, "Init backup manager failed, rc: %d", rc ) ;
 
-      // list
       rc = bkMgr.list( _vecBackup, detail ) ;
       PD_RC_CHECK( rc, PDWARNING, "List backup failed, rc: %d", rc ) ;
 
@@ -3545,7 +3467,6 @@ namespace engine
          {
             BSONObjBuilder ob( MON_DUMP_DFT_BUILDER_SZ / 2 ) ;
 
-            /// add system info
             monAppendSystemInfo( ob, _addInfoMask ) ;
             ob.appendElements( _vecBackup[ _pos++ ] ) ;
 
@@ -3607,7 +3528,6 @@ namespace engine
             {
                BSONObjBuilder infoBuilder ;
 
-               /// add system info
                rc = monAppendSystemInfo( infoBuilder, addInfoMask ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to append system info, "
                             "rc: %d", rc ) ;
@@ -3692,7 +3612,6 @@ namespace engine
          {
             BSONObjBuilder builder( MON_DUMP_DFT_BUILDER_SZ / 2 ) ;
 
-            /// add system info
             builder.appendElements( _sysInfo ) ;
             builder.appendElements( _cachedPlanList[ _pos++ ] ) ;
 

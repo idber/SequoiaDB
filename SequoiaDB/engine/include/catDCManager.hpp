@@ -89,13 +89,11 @@ namespace engine
       BOOLEAN isWritedCommand() const { return _isWritedCmd ; }
 
    public :
-      // functions of _catEventHandler
       virtual const CHAR *getHandlerName () { return "catDCManager" ; }
       virtual INT32 onBeginCommand ( MsgHeader *pReqMsg ) ;
       virtual INT32 onEndCommand ( MsgHeader *pReqMsg, INT32 result ) ;
       virtual INT32 onSendReply ( MsgOpReply *pReply, INT32 result ) ;
 
-   // message process functions
    protected:
       INT32 processCommandMsg( const NET_HANDLE &handle, MsgHeader *pMsg,
                                BOOLEAN writable ) ;
@@ -103,7 +101,6 @@ namespace engine
                                   const CHAR *pQuery,
                                   rtnContextBuf &ctxBuff ) ;
 
-   // inner process
    protected:
       INT32 processCmdCreateImage( const NET_HANDLE &handle,
                                    _clsDCMgr *pDCMgr,
@@ -161,7 +158,6 @@ namespace engine
       INT32   _checkGroupsValid( map< string, string > &mapGroups,
                                  nodeMgrAgent *pNodeAgent ) ;
 
-   // tool fuctions
    private:
       INT16 _majoritySize() ;
       INT32 _updateGlobalInfo() ;
@@ -178,7 +174,6 @@ namespace engine
       _clsDCBaseInfo             *_pDCBaseInfo ;
       _catDCLogMgr               *_pLogMgr ;
 
-      // for commands
       BOOLEAN                    _isWritedCmd ;
       DPS_LSN                    _lsn ;
       _dpsMessageBlock           _mb ;

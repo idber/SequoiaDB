@@ -131,7 +131,6 @@ if guess_os == "linux":
         env.Append( LINKFLAGS=" -static " )
     env.Append ( LIBS="boost_filesystem" )
     env.Append ( LIBS="boost_system" )
-    env.Append ( LIBS="boost_program_options" )
     env.Append ( LIBS="pthread" )
     env.Append ( CPPFLAGS=" -ggdb " )
 elif guess_os == "aix":
@@ -149,7 +148,6 @@ elif guess_os == "aix":
     env.Append( LINKFLAGS=" -maix64 " )
     env.Append ( LIBS="boost_filesystem" )
     env.Append ( LIBS="boost_system" )
-    env.Append ( LIBS="boost_program_options" )
     env.Append ( LIBS="pthread" )
     env.Append ( CPPFLAGS=" -ggdb -maix64 " )
     env.Append ( CPPDEFINES=[ "SDB_BIG_ENDIAN" ] )
@@ -186,8 +184,7 @@ elif "win32" == guess_os:
                               [ "v7.1", "v7.0A", "v7.0", "v6.1", "v6.0a", "v6.0" ] )
     print( "Windows SDK Root '" + winSDKHome + "'" )
 
-    env.Append( CPPPATH=[ winSDKHome + "/Include" ] )
-    env.Append( CPPPATH=[ "C:/Program Files (x86)/Microsoft Visual Studio 10.0/VC/include" ] )
+    env.Append( EXTRACPPPATH=[ winSDKHome + "/Include" ] )
 
     # consider adding /MP build with multiple processes option.
 
@@ -197,10 +194,9 @@ elif "win32" == guess_os:
     env.Append( CPPFLAGS=" /EHsc /W3 " ) #  /WX " )
 
     if guess_arch == "ia64" and not force32:
-        env.Append( LIBPATH=[ winSDKHome + "/Lib/x64" ] )
+        env.Append( EXTRALIBPATH=[ winSDKHome + "/Lib/x64" ] )
     else:
-        env.Append( LIBPATH=[ winSDKHome + "/Lib" ] )
-    env.Append( LIBPATH=[ "C:/Program Files (x86)/Microsoft Visual Studio 10.0/VC/lib/amd64" ] )
+        env.Append( EXTRALIBPATH=[ winSDKHome + "/Lib" ] )
 
     winLibString = "ws2_32.lib kernel32.lib advapi32.lib Psapi.lib"
 
@@ -214,7 +210,7 @@ elif "win32" == guess_os:
         winLibString += " odbc32.lib odbccp32.lib uuid.lib dbghelp.lib "
 
     env.Append( LIBS=Split(winLibString) )
-    env.Append( CPPFLAGS=" /RTC1 /MDd /Z7 /TP /errorReport:none /D_CRT_SECURE_NO_DEPRECATE " )
+    env.Append( CPPFLAGS=" /RTC1 /MDd /Z7 /TP /errorReport:none " )
     env.Append( LINKFLAGS=" /debug " )
     env.Append( CPPFLAGS=" /Od " )
 
@@ -228,38 +224,31 @@ language = get_option("language")
 if language is None:
    language = "en"
 
-srcFiles = [
-   "main.cpp",
-   "options.cpp",
-   "util.cpp",
-   "generateInterface.cpp",
-   "fileStream.cpp",
-   "rc/rcGeneratorBase.cpp",
-   "rc/rcGenForC.cpp",
-   "rc/rcGenForCPP.cpp",
-   "rc/rcGenForJS.cpp",
-   "rc/rcGenForCS.cpp",
-   "rc/rcGenForJAVA.cpp",
-   "rc/rcGenForPython.cpp",
-   "rc/rcGenForDoc.cpp",
-   "rc/rcGenForWEB.cpp",
-   "spidermonkey/codeGenerator.cpp",
-   "options/optGeneratorBase.cpp",
-   "options/optGenForC.cpp",
-   "options/optGenForCPP.cpp",
-   "options/optGenForSample.cpp",
-   "options/optGenForDoc.cpp",
-   "options/optGenForSAC.cpp",
-   "fileList/fileListGenerator.cpp",
-   "trace/traceGenerator.cpp",
-   "version/versionGeneratorBase.cpp",
-   "version/versionGenForDoc.cpp",
-   "version/versionGenForPython.cpp",
-   "version/versionGenForBuild.cpp",
+copyFiles = [ "../../../SequoiaDB/engine/oss/ossUtil.c",
+              "../../../SequoiaDB/engine/oss/ossMem.c",
+              "../../../SequoiaDB/engine/oss/ossMem.cpp",
+              "../../../SequoiaDB/engine/oss/oss.c",
+              "../../../SequoiaDB/engine/oss/oss.cpp",
+              "../../../SequoiaDB/engine/pd/pdComponents.cpp" ]
+for file in copyFiles:
+   env.Execute(Copy('../', file))
+
+srcFiles = [ "ossUtil.c",
+             "ossMem.cpp",
+             "oss.cpp",
+             "pdComponents.cpp",
+             "main.cpp",
+             "rcgen.cpp",
+             "filenamegen.cpp",
+             "optgen.cpp",
+             "buildgen.cpp",
+             "tracegen.cpp",
+             "dbConfForWeb.cpp",
+             "vergen.cpp",
 ]
 
 autogen = env.Program( "autogen", srcFiles )
 cmd = "bin" + os.sep + "autogen "
-run = env.Command ( target = language, source = autogen, action = cmd + "-l " + language )
+run = env.Command ( target = language, source = autogen, action = cmd + language )
 env.Depends ( run, autogen )
 env.AlwaysBuild( run )

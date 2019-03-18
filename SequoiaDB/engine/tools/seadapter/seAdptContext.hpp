@@ -66,7 +66,6 @@ namespace seadapter
       _seAdptQueryRebuilder() ;
       ~_seAdptQueryRebuilder() ;
 
-      // Initialize the rebuilder with the original message.
       INT32 init( const BSONObj &matcher,
                   const BSONObj &selector,
                   const BSONObj &orderBy,
@@ -82,8 +81,6 @@ namespace seadapter
    } ;
    typedef _seAdptQueryRebuilder seAdptQueryRebuilder ;
 
-   // Context for operations of adapter.
-   // It maintains the buffer.
    class _seAdptContextBase : public SDBObject
    {
    public:
@@ -98,7 +95,6 @@ namespace seadapter
                           const BSONObj &hint,
                           utilCommObjBuff &objBuff,
                           pmdEDUCB *eduCB ) = 0 ;
-      // Prepare the selector, matcher, order by and hint in objBuff.
       virtual INT32 getMore( INT32 returnNum, utilCommObjBuff &objBuff ) = 0 ;
 
    protected:
@@ -110,7 +106,6 @@ namespace seadapter
    } ;
    typedef _seAdptContextBase seAdptContextBase ;
 
-   // Context for query modify.
    class _seAdptContextQuery : public _seAdptContextBase
    {
    public:
@@ -126,7 +121,6 @@ namespace seadapter
                   utilCommObjBuff &objBuff,
                   _pmdEDUCB *eduCB ) ;
 
-      // Prepare the selector, matcher, order by and hint in objBuff.
       INT32 getMore( INT32 returnNum, utilCommObjBuff &objBuff ) ;
 
    private:

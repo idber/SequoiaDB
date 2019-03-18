@@ -304,7 +304,6 @@ namespace replay
       DPS_LSN_OFFSET lsn = head._lsn;
       string op;
 
-      // when dump, don't invalidate op
       if (!dump && !isValidFilterOP(head._type))
       {
          return TRUE;
@@ -395,7 +394,6 @@ namespace replay
 
    BOOLEAN Filter::_isFileFiltered(const string& fileName)
    {
-      // this file is excluded
       if (!_exclFiles.empty())
       {
          if (_exclFiles.end() != _exclFiles.find( fileName ))
@@ -404,7 +402,6 @@ namespace replay
          }
       }
 
-      // this file is not included
       if (!_files.empty())
       {
          if (_files.end() == _files.find( fileName ))

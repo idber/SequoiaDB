@@ -255,7 +255,6 @@ public class DefaultDbRefResolver implements DbRefResolver {
 					return proxyHashCode(proxy);
 				}
 
-				// DATA_JIRA-1076 - finalize methods should not trigger proxy initialization
 				if (FINALIZE_METHOD.equals(method)) {
 					return null;
 				}

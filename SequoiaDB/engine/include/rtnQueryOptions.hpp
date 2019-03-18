@@ -80,7 +80,6 @@ namespace engine
 
          virtual INT32 getOwned () ;
 
-         /// Selector
          OSS_INLINE void setSelector ( const BSONObj &selector )
          {
             _selector = selector ;
@@ -111,7 +110,6 @@ namespace engine
             return ossHash( _selector.objdata(), _selector.objsize() ) ;
          }
 
-         /// Skip
          OSS_INLINE void setSkip ( INT64 skip )
          {
             _skip = skip > 0 ? skip : 0 ;
@@ -122,7 +120,6 @@ namespace engine
             return _skip ;
          }
 
-         /// Limit
          OSS_INLINE void setLimit ( INT64 limit )
          {
             _limit = limit ;
@@ -133,7 +130,6 @@ namespace engine
             return _limit ;
          }
 
-         /// Flag
          OSS_INLINE void resetFlag ( INT32 flag )
          {
             _flag = flag ;
@@ -208,7 +204,6 @@ namespace engine
 
          string toString () const ;
 
-         /// Query
          OSS_INLINE void setQuery ( const BSONObj & query )
          {
             _query = query ;
@@ -239,7 +234,6 @@ namespace engine
             return _query.isEmpty() ;
          }
 
-         /// OrderBy
          OSS_INLINE void setOrderBy ( const BSONObj & orderBy )
          {
             _orderBy = orderBy ;
@@ -275,7 +269,6 @@ namespace engine
             return ossHash( _orderBy.objdata(), _orderBy.objsize() ) ;
          }
 
-         /// Hint
          OSS_INLINE void setHint ( const BSONObj & hint )
          {
             _hint = hint ;
@@ -311,7 +304,6 @@ namespace engine
             return ossHash( _hint.objdata(), _hint.objsize() ) ;
          }
 
-         /// Collection name
          void setCLFullName ( const CHAR *clFullName ) ;
 
          OSS_INLINE const CHAR * getCLFullName () const
@@ -319,7 +311,6 @@ namespace engine
             return _fullName ;
          }
 
-         /// Main-Collection name
          void setMainCLName ( const CHAR *mainCLName ) ;
 
          OSS_INLINE const CHAR * getMainCLName () const

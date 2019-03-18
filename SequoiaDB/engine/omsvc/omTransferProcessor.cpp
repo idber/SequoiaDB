@@ -170,19 +170,16 @@ namespace engine
 
       if ( SDB_OK != rc )
       {
-         //this sugguest all node is failure.
          PD_LOG( PDERROR, "all nodes is failure." ) ;
          goto error ;
       }
 
-      // create context
       rc = pRtncb->contextNew( RTN_CONTEXT_OM_TRANSFER,
                                &pContext, contextID, eduCB() ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to allocate context(rc=%d)",
                    rc ) ;
 
       pTmpContext = ( _omContextTransfer *)pContext ;
-      //  conn & result will delete in destructor _omContextTransfer
       rc = pTmpContext->open( conn, result ) ;
       if ( SDB_OK != rc )
       {

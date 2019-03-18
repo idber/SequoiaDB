@@ -83,16 +83,6 @@ namespace engine
     *    collectionspace + oldname + newname
     ***********************************************/
 
-   // get total number of records for a given query.
-   // there are two scenarios
-   // 1) users provided query condition
-   // 2) users didn't specify any condition
-   // for condition (1), we convert it into a normal query and count the total
-   // number of records we read. In this case it will go through the regular
-   // codepath for rtnQuery + rtnGetMore by using tbscan or ixscan
-   // for condition (2), we directly call DMS countCollection function, this
-   // will bypass fetching records by records. Instead it will read each extent
-   // and get the _recCount in extent header for quick count
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNGETCOUNT, "rtnGetCount" )
    INT32 rtnGetCount ( const rtnQueryOptions & options,
                        SDB_DMSCB *dmsCB,
@@ -135,11 +125,8 @@ namespace engine
                          &pContextBase ) ;
          if ( rc )
          {
-            // any error will clean up queryContext
             if ( SDB_DMS_EOC == rc )
             {
-               // if we hit end of collection, let's clear the rc
-               // in this case, totalCount = 0
                rc = SDB_OK ;
             }
             else
@@ -159,7 +146,6 @@ namespace engine
                rc = rtnGetMore ( queryContextID, -1, buffObj, cb, rtnCB ) ;
                if ( rc )
                {
-                  // any error will clean up query context
                   if ( SDB_DMS_EOC == rc )
                   {
                      rc = SDB_OK ;
@@ -174,8 +160,6 @@ namespace engine
                }
                else
                {
-                  // since rtnGetMore only takes 32 bit count, so let's pass
-                  // count and add into totalCount every round
                   totalCount += buffObj.recordNum() ;
                }
             }
@@ -183,7 +167,6 @@ namespace engine
       }
       else
       {
-         // use quick extent header count
          rc = su->countCollection ( pCollectionShortName, totalCount, cb ) ;
          if ( rc )
          {
@@ -398,7 +381,6 @@ namespace engine
 
       BOOLEAN foundTargetLevel = FALSE ;
 
-      // First search the root extent
       extentIDStack.push_back( rootExtentID ) ;
       curLevelExtCount = 1 ;
 
@@ -414,7 +396,6 @@ namespace engine
             goto error ;
          }
 
-         // Breadth-first search each levels
          for ( UINT32 extIdx = 0 ; extIdx < curLevelExtCount ; extIdx ++ )
          {
             dmsExtentID curExtentID = extentIDStack.front() ;
@@ -440,8 +421,6 @@ namespace engine
 
          nextLevelExtCount = extentIDStack.size() ;
 
-         // If found leaf level or found enough sample keys, we found the
-         // target level
          if ( !foundTargetLevel &&
                ( curLevelKeyCount > sampleRecords ||
                  0 == nextLevelExtCount ) )
@@ -451,8 +430,6 @@ namespace engine
             targetLevel = levelCount ;
          }
 
-         // If the root extent has enough samples, but it is not leaf, it could
-         // not be used for estimate levels and pages, We should go deeper
          if ( ( foundTargetLevel && levelCount > 1 && !fullScan ) ||
               0 == nextLevelExtCount )
          {
@@ -463,28 +440,11 @@ namespace engine
          levelCount ++ ;
       }
 
-      // Finish the estimation
       if ( 0 != nextLevelExtCount )
       {
-         // Estimate the level of index tree
-         // 1. the max number of keys in a extent is "maxExtKeyCount"
-         // 2. the average number of keys in scanned extents of the last level
-         //    is "avgExtKeyCount"
-         // From the last scanned level:
-         // 1. For each extent in the last scanned level, there would be
-         //    ( avgExtKeyCount + 1 ) child extents by estimation. So the
-         //    total number of extents in the next level will be
-         //       lastLevelExtCount * ( avgExtKeyCount + 1 )
-         // 2. For each extent in the next level, there are maxExtKeyCount at
-         //    most, so the maximum number of keys in the next level will be
-         //       lastLevelExtCount * ( avgExtKeyCount + 1 ) * maxExtKeyCount
-         // 3. If this value is larger than totalRecords, it means the next
-         //    level would be enough for all keys, which might be the leaf
-         //    level. Then we could stop the estimation.
          UINT32 avgExtKeyCount = (UINT32)ceil( (double)curLevelKeyCount /
                                                (double)curLevelExtCount ) ;
 
-         // Calculate from next level
          UINT32 levelExtCount = nextLevelExtCount ;
          UINT32 levelKeyCount = nextLevelExtCount * maxExtKeyCount ;
          levelCount ++ ;
@@ -699,7 +659,6 @@ namespace engine
          step = keyNodeCount / segmentCount ;
          mod  = keyNodeCount % segmentCount ;
 
-         // push start
          idxBlocks.push_back( rtnUniqueKeyNameObj( startObj ) ) ;
          idxRIDs.push_back( dmsRecordID() ) ;
          prevObj = startObj ;
@@ -750,7 +709,6 @@ namespace engine
             }
          }
 
-         // push end
          idxBlocks.push_back( rtnUniqueKeyNameObj( endObj ) ) ;
          idxRIDs.push_back( dmsRecordID() ) ;
       }
@@ -899,7 +857,6 @@ namespace engine
       copiedOptions.setFlag( 0 ) ;
       copiedOptions.setLimit( -1 ) ;
 
-      // This prevents other sessions drop the collectionspace during accessing
       rc = rtnResolveCollectionNameAndLock ( pCollectionName, dmsCB, &su,
                                              &pCollectionShortName, suID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s",
@@ -911,7 +868,6 @@ namespace engine
       apm = rtnCB->getAPM() ;
       SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
 
-      // plan is released in context destructor
       rc = apm->getAccessPlan( copiedOptions, FALSE, su, mbContext, planRuntime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s, "
                    "context %lld, rc: %d", pCollectionName,
@@ -985,7 +941,6 @@ namespace engine
       SDB_ASSERT ( rtnCB, "runtimeCB can't be NULL" ) ;
       rtnContextDump *context = NULL ;
 
-      // create cursors
       rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, (rtnContext**)&context,
                                contextID, cb ) ;
       if ( rc )
@@ -999,13 +954,11 @@ namespace engine
                           options.isOrderByEmpty() ? options.getSkip() : 0 ) ;
       PD_RC_CHECK( rc, PDERROR, "Open context failed, rc: %d", rc ) ;
 
-      // sample timetamp
       if ( cb->getMonConfigCB()->timestampON )
       {
          context->getMonCB()->recordStartTimestamp() ;
       }
 
-      // do each commands, $get
       switch ( command )
       {
          case CMD_GET_INDEXES :
@@ -1035,7 +988,6 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_RTNGETCOMMANDENTRY, rc ) ;
       return rc ;
    error :
-      // delete the context when something goes wrong
       rtnCB->contextDelete ( contextID, cb ) ;
       contextID = -1 ;
       goto done ;
@@ -1059,7 +1011,6 @@ namespace engine
       BOOLEAN hasAquired   = FALSE ;
       pmdOptionsCB *optCB  = pmdGetOptionCB() ;
 
-      // make sure the collectionspace length is not out of range
       UINT32 length = ossStrlen ( pCollectionSpace ) ;
       if ( length <= 0 || length > DMS_SU_NAME_SZ )
       {
@@ -1068,7 +1019,6 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // validate collection space name
       rc = dmsCheckCSName ( pCollectionSpace, sysCall ) ;
       if ( rc )
       {
@@ -1081,13 +1031,10 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
       writable = TRUE ;
 
-      // let's see if the CS already exist or not
       rc = dmsCB->nameToSUAndLock ( pCollectionSpace, suID, &su ) ;
       if ( rc != SDB_DMS_CS_NOTEXIST )
       {
-         // make sure assign su to NULL so that we won't delete it at exit
          su = NULL ;
-         // collectionspace already exist
          PD_LOG ( PDERROR, "Collection space %s is already exist",
                   pCollectionSpace ) ;
          rc = SDB_DMS_CS_EXIST ;
@@ -1107,7 +1054,6 @@ namespace engine
          goto error ;
       }
 
-      // only for standalone
       if ( SDB_ROLE_STANDALONE == pmdGetKRCB()->getDBRole() )
       {
          rc = rtnLoadCollectionSpace ( pCollectionSpace,
@@ -1124,7 +1070,6 @@ namespace engine
          }
       }
 
-      // new storage unit, will insert into dmsCB->addCollectionSpace
       su = SDB_OSS_NEW dmsStorageUnit ( pCollectionSpace, 1,
                                         pmdGetBuffPool(),
                                         pageSize,
@@ -1151,13 +1096,11 @@ namespace engine
                   rc ) ;
          goto error ;
       }
-      /// set config
       su->setSyncConfig( optCB->getSyncInterval(),
                          optCB->getSyncRecordNum(),
                          optCB->getSyncDirtyRatio() ) ;
       su->setSyncDeep( optCB->isSyncDeep() ) ;
 
-      /// add collctionspace
       rc = dmsCB->addCollectionSpace( pCollectionSpace, 1, su, cb, dpsCB, TRUE ) ;
       if ( rc )
       {
@@ -1170,7 +1113,6 @@ namespace engine
          {
             PD_LOG ( PDERROR, "Failed to add collection space, rc = %d", rc ) ;
          }
-         /// need to remove the files
          su->remove() ;
          goto error ;
       }
@@ -1179,7 +1121,6 @@ namespace engine
               "LobPageSize:%u", pCollectionSpace, pageSize, lobPageSize ) ;
 
    done :
-      // Unlock the existing storage unit
       if ( DMS_INVALID_CS != suID )
       {
          dmsCB->suUnlock ( suID ) ;
@@ -1244,7 +1185,6 @@ namespace engine
       UINT16 collectionID = DMS_INVALID_MBID ;
       UINT32 logicalID = DMS_INVALID_CLID ;
 
-      // Check writable before su lock
       rc = dmsCB->writable( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
       writable = TRUE ;
@@ -1262,7 +1202,6 @@ namespace engine
             DMS_STORAGE_CAPPED : DMS_STORAGE_NORMAL ;
          SDB_ASSERT ( pCollectionShortName > pCollection, "Collection pointer "
                       "is not part of full collection name" ) ;
-         // set '.' to '\0'
          temp [ pCollectionShortName - pCollection - 1 ] = '\0' ;
          if ( SDB_OK == rtnCreateCollectionSpaceCommand ( temp, cb,
                                                           dmsCB, dpsCB,
@@ -1271,7 +1210,6 @@ namespace engine
                                                           type,
                                                           sysCall ) )
          {
-            //restore '\0' to '.'
             rc = rtnResolveCollectionNameAndLock ( pCollection, dmsCB,
                                                    &su, &pCollectionShortName,
                                                    suID ) ;
@@ -1314,7 +1252,6 @@ namespace engine
                                          cb, dmsCB, dpsCB, TRUE ) ;
             if ( SDB_IXM_REDEF == rc || SDB_IXM_EXIST_COVERD_ONE == rc )
             {
-               /// same defined index already exists.
                rc = SDB_OK ;
             }
             else if ( SDB_OK != rc )
@@ -1430,8 +1367,6 @@ namespace engine
                              cb, dpsCB, isSys, NULL, sortBufferSize ) ;
       if ( rc )
       {
-         // SDB_IXM_EXIST may happen when user mistakenly type index name with
-         // same name, so we display INFO instead of ERROR
          PD_LOG ( PDERROR, "Failed to create index %s: %s, rc: %d",
                   pCollection, indexObj.toString().c_str(), rc ) ;
          goto error ;
@@ -1568,7 +1503,6 @@ namespace engine
 
       SDB_ASSERT ( pCollectionSpace, "collection space can't be NULL" ) ;
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
-      // make sure the collectionspace length is not out of range
       UINT32 length = ossStrlen ( pCollectionSpace ) ;
       if ( length <= 0 || length > DMS_SU_NAME_SZ )
       {
@@ -1578,8 +1512,6 @@ namespace engine
          goto error ;
       }
 
-      // let's find out whether the collection space is held by this
-      // EDU. If so we have to get rid of those contexts
       if ( NULL != cb )
       {
          rtnDelContextForCollectionSpace( pCollectionSpace, cb ) ;
@@ -1681,7 +1613,6 @@ namespace engine
       const CHAR *pCollectionShortName    = NULL ;
       BOOLEAN writable                    = FALSE ;
 
-      // Check writable before su lock
       rc = dmsCB->writable( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
       writable = TRUE ;
@@ -1735,7 +1666,6 @@ namespace engine
       dmsMBContext *context            = NULL ;
       dmsMB *mb                        = NULL ;
 
-      // Check writable before su lock
       rc = dmsCB->writable( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
       writable = TRUE ;
@@ -1948,7 +1878,6 @@ namespace engine
          goto error ;
       }
 
-      // Check writable before su lock
       rc = dmsCB->writable( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
       writable = TRUE ;
@@ -1958,7 +1887,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s, rc: %d",
                    pCollectionName, rc ) ;
 
-      // pop can only be done on capped collections.
       if ( DMS_STORAGE_CAPPED != su->type() )
       {
          PD_LOG( PDERROR, "pop can only be used on capped collection" ) ;

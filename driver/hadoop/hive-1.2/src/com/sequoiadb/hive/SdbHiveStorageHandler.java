@@ -58,33 +58,28 @@ public class SdbHiveStorageHandler implements HiveStorageHandler {
 
 	@Override
 	public Class<? extends InputFormat> getInputFormatClass() {
-		// TODO Auto-generated method stub
 		return SdbHiveInputFormat.class;
 	}
 
 	@Override
 	public HiveMetaHook getMetaHook() {
-		// TODO Auto-generated method stub
 		return new DummyMetaHook();
 	}
 
 	@Override
 	public Class<? extends OutputFormat> getOutputFormatClass() {
-		// TODO Auto-generated method stub
 		LOG.debug("Enter SdbHiveStorageHandler getOutputFormatClass");
 		return SdbHiveOutputFormat.class;
 	}
 
 	@Override
 	public Class<? extends SerDe> getSerDeClass() {
-		// TODO Auto-generated method stub
 		LOG.debug("Enter SdbHiveStorageHandler getSerDeClass");
 		return SdbSerDe.class;
 	}
 
 	@Override
 	public Configuration getConf() {
-		// TODO Auto-generated method stub
 		return mConf;
 	}
 
@@ -100,7 +95,6 @@ public class SdbHiveStorageHandler implements HiveStorageHandler {
 		public void commitCreateTable(
 				org.apache.hadoop.hive.metastore.api.Table tbl)
 				throws org.apache.hadoop.hive.metastore.api.MetaException {
-			// no thing to do
 		}
 
 		@Override
@@ -108,38 +102,6 @@ public class SdbHiveStorageHandler implements HiveStorageHandler {
 				org.apache.hadoop.hive.metastore.api.Table tbl,
 				boolean deleteData)
 				throws org.apache.hadoop.hive.metastore.api.MetaException {
-//			boolean isExternal = MetaStoreUtils.isExternalTable(tbl);
-//			
-//			if( deleteData && !isExternal ){
-//				
-//				String dbAddr = tbl.getParameters().get(
-//						ConfigurationUtil.DB_ADDR);
-//				String dbCsName = tbl.getParameters().get(ConfigurationUtil.CS_NAME);
-//				String dbClName = tbl.getParameters().get(ConfigurationUtil.CL_NAME);
-//				String spaceName = null;
-//				String dbCollection = null;
-//
-////				String spaceName = tbl.getDbName();
-////				String dbCollection = tbl.getTableName();
-//				if( dbCsName == null && dbClName == null ){
-//					spaceName = tbl.getDbName();
-//					dbCollection = tbl.getTableName();
-//				}else{
-//					spaceName = dbCsName;
-//					dbCollection = dbClName;
-//				}
-//				LOG.debug("isExternal is "+isExternal+" and will be droped space's name is "+ spaceName);
-//				SdbConnAddr[] sdbAddr = ConfigurationUtil.getAddrList(dbAddr);
-//
-//				Sequoiadb sdb = new Sequoiadb(sdbAddr[0].getHost(),
-//						sdbAddr[0].getPort(), null, null);
-//				
-//				if( sdb.isCollectionSpaceExist(spaceName) ){
-//					sdb.dropCollectionSpace(spaceName);
-//				}
-//				sdb.disconnect();
-//				
-//			}
 
 		}
 
@@ -147,7 +109,6 @@ public class SdbHiveStorageHandler implements HiveStorageHandler {
 		public void preCreateTable(
 				org.apache.hadoop.hive.metastore.api.Table tbl)
 				throws org.apache.hadoop.hive.metastore.api.MetaException {
-			//tbl.getDbName();
 			boolean isExternal = MetaStoreUtils.isExternalTable(tbl);
 			String dbAddr = tbl.getParameters().get(ConfigurationUtil.DB_ADDR);
 			String dbCsName = tbl.getParameters().get(ConfigurationUtil.CS_NAME);
@@ -157,14 +118,10 @@ public class SdbHiveStorageHandler implements HiveStorageHandler {
 			
 			String spaceName = null;
 			String dbCollection = null;
-//			SdbConnAddr[] sdbAddr = ConfigurationUtil.getAddrList(dbAddr);
 			
-//			Sequoiadb sdb = new Sequoiadb(sdbAddr[0].getHost(),
-//					sdbAddr[0].getPort(), null, null);
 			List<String> addrList = ConfigurationUtil.getDBAddrs (dbAddr);
 			Sequoiadb sdb = new Sequoiadb (addrList, dbUserName, dbPasswd, null);
 			
-			//if( ! isExternal ){
 			if( dbCsName == null && dbClName == null ){
 				spaceName = tbl.getDbName();
 				dbCollection = tbl.getTableName();
@@ -191,7 +148,6 @@ public class SdbHiveStorageHandler implements HiveStorageHandler {
 		@Override
 		public void preDropTable(org.apache.hadoop.hive.metastore.api.Table arg0)
 				throws org.apache.hadoop.hive.metastore.api.MetaException {
-			// TODO Auto-generated method stub
 
 		}
 
@@ -199,7 +155,6 @@ public class SdbHiveStorageHandler implements HiveStorageHandler {
 		public void rollbackCreateTable(
 				org.apache.hadoop.hive.metastore.api.Table arg0)
 				throws org.apache.hadoop.hive.metastore.api.MetaException {
-			// TODO Auto-generated method stub
 
 		}
 
@@ -207,7 +162,6 @@ public class SdbHiveStorageHandler implements HiveStorageHandler {
 		public void rollbackDropTable(
 				org.apache.hadoop.hive.metastore.api.Table arg0)
 				throws org.apache.hadoop.hive.metastore.api.MetaException {
-			// TODO Auto-generated method stub
 
 		}
 
@@ -215,7 +169,6 @@ public class SdbHiveStorageHandler implements HiveStorageHandler {
 
 	@Override
 	public void configureJobConf(TableDesc tableDesc, JobConf config) {
-		// TODO Auto-generated method stub
 		Properties properties = tableDesc.getProperties();
 		ConfigurationUtil.copyProperties(properties, config);
 	}

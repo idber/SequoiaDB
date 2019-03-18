@@ -53,7 +53,6 @@ public class SequoiadbAdminIntegrationTests {
 
 	@Test
 	public void serverStats() {
-		// CommandResult result = testAdminDb.getStats();
 		CommandResult result = sdb.getDB("admin").command("serverStatus");
 		logger.info("stats = " + result);
 	}

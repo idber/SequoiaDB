@@ -628,7 +628,6 @@ namespace engine
       length =  writePos + addInfo.objsize() ;
 
 #ifdef _DEBUG
-      //_healthCheck() ;
 #endif /* _DEBUG */
 
    done:

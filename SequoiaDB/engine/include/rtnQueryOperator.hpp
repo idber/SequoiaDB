@@ -42,7 +42,6 @@
 
 namespace engine
 {
-   // Operator for query with text search.
    class _rtnTSQueryOperator : public _rtnOperator
    {
       public:

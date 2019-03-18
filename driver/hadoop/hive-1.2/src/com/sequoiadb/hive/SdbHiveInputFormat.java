@@ -135,20 +135,15 @@ public class SdbHiveInputFormat extends
 			findHiveVersion = true;
 			returnNum = 0;
 		} catch (SecurityException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (NoSuchMethodException e) {
-			// TODO Auto-generated catch block
-//			e.printStackTrace();
 			try {
 				Method method = Utilities.class.getDeclaredMethod("deserializeExpression", parameterTypes_cdh5_0_0beta2Hive);
 				findHiveVersion = true;
 				returnNum = 1;
 			} catch (SecurityException e1) {
-				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			} catch (NoSuchMethodException e1) {
-				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
 			

@@ -55,28 +55,20 @@ namespace engine
    {
       OMA_TASK_TYPE_BEGIN         = -1,
 
-      // add host
       OMA_TASK_ADD_HOST           = OM_TASK_TYPE_ADD_HOST,
 
-      // remove host
       OMA_TASK_REMOVE_HOST        = OM_TASK_TYPE_REMOVE_HOST,
 
-      // install business
       OMA_TASK_ADD_BUS            = OM_TASK_TYPE_ADD_BUSINESS,
 
-      // remove business
       OMA_TASK_REMOVE_BUS         = OM_TASK_TYPE_REMOVE_BUSINESS,
 
-      // execute ssql
       OMA_TASK_SSQL_EXEC          = OM_TASK_TYPE_SSQL_EXEC,
 
-      // extend business
       OMA_TASK_EXTEND_BUZ         = OM_TASK_TYPE_EXTEND_BUSINESS,
 
-      // shrink business
       OMA_TASK_SHRINK_BUSINESS    = OM_TASK_TYPE_SHRINK_BUSINESS,
 
-      // deploy package
       OMA_TASK_DEPLOY_PACKAGE     = OM_TASK_TYPE_DEPLOY_PACKAGE,
 
       OMA_TASK_TYPE_END,
@@ -112,7 +104,6 @@ namespace engine
       OMA_TASK_STATUS_FINISH      = OM_TASK_STATUS_FINISH ,
       
       OMA_TASK_STATUS_FAIL        = 10 , // this status only use in omagent task
-                                         // nerver send to omsvc.
       OMA_TASK_STATUS_END
    } ;
 

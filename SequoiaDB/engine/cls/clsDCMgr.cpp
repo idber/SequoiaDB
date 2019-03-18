@@ -99,10 +99,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      //reset
       _reset() ;
 
-      // begin to update
       _orgObj = obj ;
 
       BSONObj subObj ;
@@ -169,7 +167,6 @@ namespace engine
             goto error ;
          }
 
-         // image groups
          subEle = subObj.getField( FIELD_NAME_GROUPS ) ;
          if ( Array == subEle.type() )
          {
@@ -310,7 +307,6 @@ namespace engine
       it = _imageGroups.find( source ) ;
       if ( it != _imageGroups.end() )
       {
-         // already exist
          if ( it->second == image )
          {
             goto done ;
@@ -322,7 +318,6 @@ namespace engine
       it = _imageRGroups.find( image ) ;
       if ( it != _imageRGroups.end() )
       {
-         // already exist
          if ( it->second == source )
          {
             goto done ;
@@ -643,7 +638,6 @@ namespace engine
 
       if ( _init )
       {
-         // already init
          goto done ;
       }
 
@@ -714,7 +708,6 @@ namespace engine
       _peerCatLatch.get() ;
       hasLock = TRUE ;
 
-      // first send to primary node
       if ( _peerCatPrimary >= 0 &&
            ( UINT32 )_peerCatPrimary < _vecCatlog.size() )
       {
@@ -727,7 +720,6 @@ namespace engine
          }
          _peerCatPrimary = -1 ;
       }
-      // then send to any other node
       for ( UINT32 i = 0 ; i < _vecCatlog.size() ; ++i )
       {
          rc = _syncSend2PeerNode( cb, msg, ppRecvMsg, _vecCatlog[ i ],
@@ -770,7 +762,6 @@ namespace engine
       {
          goto error ;
       }
-      // if has image, parse image address
       if ( _baseInfo.hasImage() )
       {
          ossScopedLock lock( &_peerCatLatch ) ;
@@ -912,7 +903,6 @@ namespace engine
          goto error ;
       }
 
-      // need to update _vecCatlog
       while ( TRUE )
       {
          if ( SDB_OK != pCatItem->getNodeInfo( pos++, id, hostname, svcname,
@@ -923,7 +913,6 @@ namespace engine
          vecCatalog.push_back( pmdAddrPair( hostname, svcname ) ) ;
       }
       tmpPrimary = (INT32)pCatItem->getPrimaryPos() ;
-      // release lock
       _pNodeMgrAgent->release_r() ;
 
       _peerCatLatch.get() ;
@@ -999,11 +988,9 @@ namespace engine
       if ( SDB_OK != MSG_GET_INNER_REPLY_RC(pRes) )
       {
          INT32 flags = MSG_GET_INNER_REPLY_RC(pRes) ;
-         // let's check if response shows unable to find group
          if ( SDB_CLS_GRP_NOT_EXIST == flags ||
               SDB_DMS_EOC == flags )
          {
-            // in that case, let's clear local group cache information
             _pNodeMgrAgent->lock_w() ;
             _pNodeMgrAgent->clearGroup( groupID ) ;
             _pNodeMgrAgent->release_w() ;
@@ -1168,7 +1155,6 @@ namespace engine
          break ;
       }
 
-      // update dc base info
       if ( SDB_OK == pBaseInfo->lock_w() )
       {
          rc = pBaseInfo->updateFromBSON( objInfo, FALSE ) ;
@@ -1227,7 +1213,6 @@ namespace engine
          goto done ;
       }
 
-      // try go get group id
       _pNodeMgrAgent->lock_r() ;
       _pNodeMgrAgent->groupName2ID( groupName, groupID ) ;
       _pNodeMgrAgent->release_r() ;
@@ -1235,7 +1220,6 @@ namespace engine
       msgSize = ossStrlen( groupName ) + 1 ;
       msgSize += sizeof( MsgCatGroupReq ) ;
 
-      // alloc buff
       rc = cb->allocBuff( msgSize, &pBuff, NULL ) ;
       if ( rc )
       {
@@ -1285,12 +1269,10 @@ namespace engine
          goto error ;
       }
 
-      // clear all groups
       _pNodeMgrAgent->lock_w() ;
       _pNodeMgrAgent->clearAll() ;
       _pNodeMgrAgent->release_w() ;
 
-      // process query result
       rc = _processGrpQueryRes( cb, pRecvMsg ) ;
       if ( rc )
       {
@@ -1334,12 +1316,10 @@ namespace engine
          goto error ;
       }
 
-      // clear all groups
       _pCatAgent->lock_r() ;
       _pCatAgent->clearAll() ;
       _pCatAgent->release_r() ;
 
-      // process query result
       rc = _processCatQueryRes( cb, pRecvMsg ) ;
       if ( rc )
       {
@@ -1384,7 +1364,6 @@ namespace engine
          goto error ;
       }
 
-      // process query result
       rc = _processDCBaseInfoQueryRes( cb, pRecvMsg, &_imageBaseInfo ) ;
       if ( rc )
       {
@@ -1438,7 +1417,6 @@ namespace engine
       pMsg->opCode = opCode ;
 
    retry:
-      // send msg
       rc = _syncSend2PeerCatGroup( cb, pMsg, ppRecvMsg, millsec, useCBMem ) ;
       if ( rc )
       {
@@ -1483,7 +1461,6 @@ namespace engine
                                             BOOLEAN * pUpdated )
    {
       INT32 rc = SDB_OK ;
-      // sanity check
       SDB_ASSERT ( ppSet && name,
                    "ppSet and name can't be NULL" ) ;
 
@@ -1491,18 +1468,12 @@ namespace engine
       {
          _pCatAgent->lock_r() ;
          *ppSet = _pCatAgent->collectionSet( name ) ;
-         // if we can't find the name and request to update catalog
-         // we'll call syncUpdateCatalog and refind again
          if ( !(*ppSet) && noWithUpdate )
          {
             _pCatAgent->release_r() ;
-            // request to update catalog
             rc = updateImageAllCatalog( cb, waitMillSec ) ;
             if ( rc )
             {
-               // if we can't find the collection and not able to update
-               // catalog, we'll return the error of synUpdateCatalog
-               // call
                PD_LOG ( PDERROR, "Failed to sync update catalog, rc = %d",
                         rc ) ;
                goto error ;
@@ -1511,11 +1482,9 @@ namespace engine
             {
                *pUpdated = TRUE ;
             }
-            // we don't want to update again
             noWithUpdate = FALSE ;
             continue ;
          }
-         // if still not able to find it
          if ( !(*ppSet) )
          {
             _pCatAgent->release_r() ;
@@ -1552,12 +1521,9 @@ namespace engine
       {
          _pNodeMgrAgent->lock_r() ;
          *ppItem = _pNodeMgrAgent->groupItem( id ) ;
-         // can we find the group from local cache?
          if ( !(*ppItem) && noWithUpdate )
          {
             _pNodeMgrAgent->release_r() ;
-            // if we can't find such group and is okay to update cache
-            // we'll update cache from catalog
             rc = updateImageGroup( id, cb, waitMillSec ) ;
             if ( rc )
             {
@@ -1569,11 +1535,9 @@ namespace engine
             {
                *pUpdated = TRUE ;
             }
-            // only update it once
             noWithUpdate = FALSE ;
             continue ;
          }
-         // if we are not able to find one, let's return group not found
          if ( !(*ppItem) )
          {
             _pNodeMgrAgent->release_r() ;
@@ -1617,7 +1581,6 @@ namespace engine
       string svcname ;
       MsgHeader *pRecvMsg = NULL ;
 
-      // 1. get the nodes
       _pNodeMgrAgent->lock_r() ;
       hasLock = TRUE ;
       groupItem = _pNodeMgrAgent->groupItem( groupID ) ;
@@ -1661,7 +1624,6 @@ namespace engine
          goto error ;
       }
 
-      // 2. send to nodes
       for ( UINT32 i = 0 ; i < nodes.size() ; ++i )
       {
          rc = _syncSend2PeerNode( cb, msg, &pRecvMsg, nodes[ i ],
@@ -1708,7 +1670,6 @@ namespace engine
          goto error ;
       }
 
-      // get all groups
       _pNodeMgrAgent->lock_r() ;
       _pNodeMgrAgent->getGroupsID( groups ) ;
       _pNodeMgrAgent->release_r() ;

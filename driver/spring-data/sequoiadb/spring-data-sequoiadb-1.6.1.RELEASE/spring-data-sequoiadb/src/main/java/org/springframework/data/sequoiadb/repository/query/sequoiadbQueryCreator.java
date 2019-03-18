@@ -196,27 +196,6 @@ class sequoiadbQueryCreator extends AbstractQueryCreator<Query, Criteria> {
 				return criteria.is(true);
 			case FALSE:
 				return criteria.is(false);
-//			case NEAR:
-//
-//				Distance distance = accessor.getMaxDistance();
-//				Point point = accessor.getGeoNearLocation();
-//				point = point == null ? nextAs(parameters, Point.class) : point;
-//
-//				if (distance == null) {
-//					return criteria.near(point);
-//				} else {
-//					if (distance.getMetric() != null) {
-//						criteria.nearSphere(point);
-//					} else {
-//						criteria.near(point);
-//					}
-//					criteria.maxDistance(distance.getNormalizedValue());
-//				}
-//				return criteria;
-//			case WITHIN:
-//
-//				Object parameter = parameters.next();
-//				return criteria.within((Shape) parameter);
 			case SIMPLE_PROPERTY:
 
 				return isSimpleComparisionPossible(part) ? criteria.is(parameters.nextConverted(property))
@@ -265,16 +244,13 @@ class sequoiadbQueryCreator extends AbstractQueryCreator<Query, Criteria> {
 					throw new IllegalArgumentException(String.format("part %s must be of type String but was %s",
 							part.getProperty(), part.getType()));
 				}
-				// fall-through
 
 			case WHEN_POSSIBLE:
 				if (shouldNegateExpression) {
-//					criteria = criteria.not();
 				}
 				return addAppropriateLikeRegexTo(criteria, part, parameters.nextConverted(property).toString());
 
 			case NEVER:
-				// intentional no-op
 		}
 
 		throw new IllegalArgumentException(String.format("part.shouldCaseIgnore must be one of %s, but was %s",

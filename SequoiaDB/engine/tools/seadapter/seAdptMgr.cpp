@@ -79,7 +79,6 @@ namespace seadapter
 
       if ( 0 != sessionID )
       {
-         // In case of error, let reply the error to the client.
          ret = _reply( handle, rc, pReq ) ;
       }
       else
@@ -134,8 +133,6 @@ namespace seadapter
 
       try
       {
-         // Check if all the indices in the cache are in the task list. If not,
-         // add them.
          idxMetaCache->lock( SHARED ) ;
          TASK_SESSION_MAP taskMapTmp ;
          const IDX_META_MAP* metaMap = idxMetaCache->getIdxMetaMap() ;
@@ -149,8 +146,6 @@ namespace seadapter
                TASK_SESSION_ITEM* taskItem = _findTask( &*vItr ) ;
                if ( !taskItem )
                {
-                  // If not found in the task list, start the task, and
-                  // insert into the task list.
                   UINT64 sessionID = _newSessionID() ;
                   _pAdptCB->startInnerSession( SEADPT_SESSION_INDEX,
                                                sessionID,
@@ -159,8 +154,6 @@ namespace seadapter
                }
                else
                {
-                  // If found, insert the original item into task list, as
-                  // we are generating the full task map.
                   taskMapTmp.insert( *taskItem ) ;
                }
             }
@@ -184,13 +177,8 @@ namespace seadapter
 
    void _seIndexSessionMgr::stopAllIndexer()
    {
-      // Clean all remainning tasks first, to make it safe to release all task
-      // below, because the parameters to start a session are maintained by
-      // task list.
       _pAdptCB->cleanInnerSession( SEADPT_SESSION_INDEX ) ;
 
-      // Clean all the remaining task, and release all indexing sessions.
-      // _taskSet.clear() ;
       _taskSessionMap.clear() ;
    }
 
@@ -328,13 +316,11 @@ namespace seadapter
       INT32 rc = SDB_OK ;
       std::string seSvcPath ;
 
-      // register config handler to se adapter options.
       _options.setConfigHandler( pmdGetKRCB() ) ;
 
       rc = _startSvcListener() ;
       PD_RC_CHECK( rc, PDERROR, "Start service listener failed[ %d ]", rc ) ;
 
-      // Init sdb data node address.
       rc = _initSdbAddr() ;
       if ( rc )
       {
@@ -359,7 +345,6 @@ namespace seadapter
       PD_RC_CHECK( rc, PDERROR, "Init service session manager failed[ %d ]",
                    rc ) ;
 
-      // Initialize search engine client manager.
       seSvcPath = std::string( _options.getSeHost() ) + ":"
                   + std::string( _options.getSeService() ) ;
       rc = _seCltMgr.init( seSvcPath ) ;
@@ -371,8 +356,6 @@ namespace seadapter
       }
       PD_LOG( PDEVENT, "Search engine client manager init successfully" ) ;
 
-      // Set the business status to not OK. Change to OK after successfully
-      // registered on data node.
       pmdGetKRCB()->setBusinessOK( FALSE ) ;
 
    done:
@@ -390,7 +373,6 @@ namespace seadapter
       pmdEDUMgr *pEDUMgr = pmdGetKRCB()->getEDUMgr() ;
 
       _attachEvent.reset() ;
-      // 1. start se adapter manager edu.
       rc = pEDUMgr->startEDU( EDU_TYPE_SEADPTMGR, (_pmdObjBase*)this, &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start search engine adapter manager "
                    "edu, rc: %d", rc ) ;
@@ -398,7 +380,6 @@ namespace seadapter
       PD_RC_CHECK( rc, PDERROR, "Wait search engine adapter manager edu attach "
                    "failed, rc: %d", rc ) ;
 
-      // 2. start network daemon for indexer reader.
       rc = pEDUMgr->startEDU( EDU_TYPE_SE_INDEXR, &_indexNetRtAgent, &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start search engine adapter net, "
                    "rc: %d", rc ) ;
@@ -406,7 +387,6 @@ namespace seadapter
       PD_RC_CHECK( rc, PDERROR, "Wait indexer reader network daemons active "
                    "failed[ %d ]", rc ) ;
 
-      // 3. start se adapter service.
       rc = pEDUMgr->startEDU( EDU_TYPE_SE_SERVICE, (void *)&_svcRtAgent,
                               &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Start service listener failed[ %d ]", rc ) ;
@@ -417,7 +397,6 @@ namespace seadapter
       rc = _setTimers() ;
       PD_RC_CHECK( rc, PDERROR, "Set timers failed[ %d ]", rc ) ;
 
-      // Register immediately.
       _sendRegisterMsg() ;
 
    done:
@@ -482,8 +461,6 @@ namespace seadapter
       }
       else if ( timerID == _idxUpdateTimerID )
       {
-         // Only send the index update request when adapter is successfully
-         // registered.
          if ( NET_INVALID_TIMER_ID == _regTimerID )
          {
             INT32 rc = _sendIdxUpdateReq() ;
@@ -613,14 +590,10 @@ namespace seadapter
          rc = _cataEvent.wait( millsec, &result ) ;
          if ( SDB_OK == rc )
          {
-            // The collection dose not exist. So it has been dropped.
-            // Let's quit.
             rc = result ;
             if ( SDB_DMS_EOC == rc || SDB_DMS_NOTEXIST == rc )
             {
                rc = SDB_DMS_NOTEXIST ;
-               // Need to return. But DO NOT goto error, as the lock needs
-               // to be released.
             }
             else if ( SDB_CLS_NOT_PRIMARY == rc )
             {
@@ -772,8 +745,6 @@ namespace seadapter
                           "mode" ) ;
                   setDataNodePrimary( FALSE ) ;
                   _idxSessionMgr.stopAllIndexer() ;
-                  // Reset the index version. If the mode change to full again,
-                  // new indexing work should be started.
                   _localIdxVer = SEADPT_INIT_TEXT_INDEX_VERSION ;
                }
             }
@@ -814,15 +785,11 @@ namespace seadapter
                         continue ;
                      }
 
-                     // Update to the new version.
                      idxMeta.setVersion( peerVersion ) ;
-                     // Lock the cache, try to find the index meta. If found,
-                     // update its version number. If not, add it to the cache.
                      _idxMetaCache.lock( EXCLUSIVE ) ;
                      oldMeta = _idxMetaCache.getIdxMeta( idxMeta ) ;
                      if ( !oldMeta )
                      {
-                        // No need to take lock on this temporary cache.
                         _idxMetaCache.addIdxMeta( idxMeta.getOrigCLName().c_str(),
                                                   idxMeta ) ;
                         PD_LOG( PDDEBUG, "New index metadata added: %s",
@@ -983,13 +950,8 @@ namespace seadapter
       UINT16 sdbPort = 0 ;
       BOOLEAN success = FALSE ;
 
-      // Use a fixed node id and a random service port for the adapter.
-      // Try to use port starting from [ sdb_service + 7|8|9 ], skipping the
-      // ones end with 0. Find one that can be used, or return error if we
-      // can't.
       ossSocket::getPort( _options.getDbService(), sdbPort ) ;
 
-      // Create listener socket. This is for searching and command processing.
       svcRtID.columns.groupID = SDB_SEADPT_GRP_ID ;
       svcRtID.columns.nodeID = SDB_SEADPT_NODE_ID ;
       svcRtID.columns.serviceID = SDB_SEADPT_SVC_ID ;
@@ -997,7 +959,6 @@ namespace seadapter
       INT32 svcPort = sdbPort + SEADPT_SVC_PORT_PLUS;
       while ( svcPort <= SEADPT_MAX_PORT )
       {
-         // Skip the ports end with 0, for they may be used by sdb nodes.
          if ( 0 == svcPort % 10 )
          {
             svcPort += SEADPT_SVC_PORT_PLUS ;
@@ -1043,14 +1004,12 @@ namespace seadapter
 
    INT32 _seAdptCB::_initSdbAddr()
    {
-      // Add the route information of sdb node.
       INT32 rc = SDB_OK ;
       UINT16 port = 0 ;
 
       _dataNodeID.columns.groupID = DATA_NODE_GRP_ID ;
       _dataNodeID.columns.nodeID = DATA_NODE_ID ;
 
-      // capped collection from shard flat.
       _dataNodeID.columns.serviceID = MSG_ROUTE_SHARD_SERVCIE ;
       ossSocket::getPort( _options.getDbService(), port ) ;
       port += MSG_ROUTE_SHARD_SERVCIE ;
@@ -1094,7 +1053,6 @@ namespace seadapter
       goto done ;
    }
 
-   // Register on the data node. Use the auth msg.
    INT32 _seAdptCB::_sendRegisterMsg()
    {
       INT32 rc = SDB_OK ;
@@ -1104,9 +1062,6 @@ namespace seadapter
 
       try
       {
-         // Should send the route information to data node. Then data node is
-         // able to send request and reply. Currently we use a fixed node id
-         // for the adapter.
          authObj = BSON( FIELD_NAME_HOST << pmdGetKRCB()->getHostName()
                          << FIELD_NAME_SERVICE_NAME << _options.getSvcName()
                          << FIELD_NAME_GROUPID << SDB_SEADPT_GRP_ID
@@ -1136,7 +1091,6 @@ namespace seadapter
       authMsg->header.messageLength = sizeof( MsgAuthentication ) +
                                       authObj.objsize() ;
       authMsg->header.routeID.value = 0 ;
-      // Send to the main thread of shard.
       authMsg->header.TID = 0 ;
       ossMemcpy( (CHAR *)authMsg + sizeof( MsgAuthentication ),
                  authObj.objdata(), authObj.objsize() ) ;
@@ -1188,7 +1142,6 @@ namespace seadapter
       const CHAR *peerGrpName = NULL ;
       MsgOpReply *res = (MsgOpReply *)msg ;
 
-      // Adapter has registered successfully.
       if ( NET_INVALID_TIMER_ID == _regTimerID )
       {
          goto done ;
@@ -1200,7 +1153,6 @@ namespace seadapter
 
       try
       {
-         // Get the role, group id of the node.
          rc = msgExtractReply( (CHAR *)msg, &flag, &contextID, &startFrom,
                                &numReturned, objVec ) ;
          PD_RC_CHECK( rc, PDERROR, "Extract register reply failed[ %d ]", rc ) ;
@@ -1275,7 +1227,6 @@ namespace seadapter
                  "running in READONLY mode" ) ;
       }
 
-      // When connect to any node, start the index update timer.
       rc = _indexNetRtAgent.addTimer( SEADPT_IDX_UPDATE_INTERVAL,
                                       &_indexTimerHandler,
                                       _idxUpdateTimerID ) ;
@@ -1295,7 +1246,6 @@ namespace seadapter
       pmdKRCB *pKRCB = pmdGetKRCB () ;
       pmdEDUMgr *pEDUMgr = pKRCB->getEDUMgr () ;
 
-      //Start EDU
       rc = pEDUMgr->startEDU( (EDU_TYPES)type, (void *)agrs, &eduID ) ;
       if ( SDB_OK != rc )
       {
@@ -1304,7 +1254,6 @@ namespace seadapter
          goto error ;
       }
 
-      //Wait edu running
       if ( PMD_EDU_UNKNOW != waitStatus )
       {
          rc = pEDUMgr->waitUntil( (EDU_TYPES)type, waitStatus ) ;
@@ -1366,14 +1315,10 @@ namespace seadapter
       return rc ;
    }
 
-   // Communicate with SDB data node to ensure the local text index information
-   // is fresh. If not, get it from SDB and refresh local copy.
    INT32 _seAdptCB::_sendIdxUpdateReq()
    {
       INT32 rc = SDB_OK ;
 
-      // Send index query request to data node. The local index information
-      // version number will be passed.
       BSONObj msgBody ;
       INT32 msgLen = 0 ;
 
@@ -1458,8 +1403,6 @@ namespace seadapter
          PD_RC_CHECK( rc, PDERROR, "Update text index information failed[ %d ]",
                       rc ) ;
 
-         // Once finish updating the local text indices information, try to start
-         // new pending sessions, if any.
          rc = _startInnerSession( SEADPT_SESSION_INDEX, &_idxSessionMgr ) ;
          PD_RC_CHECK( rc, PDERROR, "Start inner session failed[ %d ]", rc ) ;
       }
@@ -1474,7 +1417,6 @@ namespace seadapter
    {
       INT32 rc = SDB_OK ;
 
-      // Kill the index update timer, and resume the register.
       if ( NET_INVALID_TIMER_ID != _idxUpdateTimerID )
       {
          _killTimer( _idxUpdateTimerID ) ;
@@ -1502,14 +1444,10 @@ namespace seadapter
    {
       INT32 rc = SDB_OK ;
 
-      // 1. Set the register timer. Before success, try to register every one
-      //    second. Once success, the timer will be killed.
       rc = _indexNetRtAgent.addTimer( OSS_ONE_SEC, &_indexTimerHandler,
                                       _regTimerID ) ;
       PD_RC_CHECK( rc, PDERROR, "Register timer failed[ %d ]", rc ) ;
 
-      // 2. Set the one second timer. This is for session managers to check
-      //    deleting sessions.
       rc = _indexNetRtAgent.addTimer( OSS_ONE_SEC, &_indexTimerHandler,
                                       _oneSecTimerID ) ;
       PD_RC_CHECK( rc, PDERROR, "Register timer failed[ %d ]", rc ) ;
@@ -1534,11 +1472,9 @@ namespace seadapter
 
    void _seAdptCB::_genESIdxName( seIndexMeta &idxMeta )
    {
-      // ES index name is in the format of cappedCLName_groupName.
       std::string::size_type pos = idxMeta.getCappedCLName().find('.') ;
       std::string cappedCLName = idxMeta.getCappedCLName().substr( pos + 1 ) ;
       std::string esIdx = cappedCLName + "_" + _peerGroupName ;
-      // ES index names should be in lower case.
       std::transform( esIdx.begin(), esIdx.end(), esIdx.begin(), ::tolower ) ;
       idxMeta.setESIdxName( esIdx.c_str() ) ;
    }

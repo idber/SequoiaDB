@@ -82,7 +82,6 @@ namespace engine
       INT32          _cachedSz ;
       INT32          _metaSize ;
 
-      /// reuse rtnLobPiece to keep write data.
       _rtnLobTuple   _writeData ;
    } ;
    typedef class _rtnLobWindow rtnLobWindow ;

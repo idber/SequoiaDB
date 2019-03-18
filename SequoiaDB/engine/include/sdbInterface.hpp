@@ -70,7 +70,6 @@ namespace engine
       SDB_CB_PMDCTRL,
       SDB_CB_OMPROXY,
       SDB_CB_SEADAPTER,
-      // THE MAX CB TYPE
       SDB_CB_MAX
    } ;
 
@@ -86,7 +85,6 @@ namespace engine
 
       SDB_IF_CTXMGR,
 
-      // THD MAX IF TYPE
       SDB_IF_MAX
    } ;
 
@@ -108,7 +106,6 @@ namespace engine
       SDB_SESSION_PROTOCOL,
       SDB_SESSION_SE_INDEX,
       SDB_SESSION_SE_AGENT,
-      // Reserved
       SDB_SESSION_MAX
    } ;
 
@@ -120,7 +117,6 @@ namespace engine
       SDB_CLIENT_EXTERN    = 1,  // external client,ex: local service
       SDB_CLIENT_INNER,          // inner client, ex: shard service
 
-      // Reserved
       SDB_CLIENT_MAX
    } ;
 
@@ -417,7 +413,6 @@ namespace engine
          /*
             Operation Related
          */
-         /// for read
          virtual UINT64    getBeginLsn () const = 0 ;
          virtual UINT64    getEndLsn() const = 0 ;
          virtual UINT32    getLsnCount () const = 0 ;
@@ -425,7 +420,6 @@ namespace engine
 
          virtual UINT64    getTransID () const = 0 ;
          virtual UINT64    getCurTransLsn () const = 0 ;
-         /// for write
          virtual void      resetLsn() = 0 ;
          virtual void      insertLsn( UINT64 lsn,
                                       BOOLEAN isRollback = FALSE ) = 0 ;

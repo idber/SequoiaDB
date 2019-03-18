@@ -77,7 +77,6 @@ namespace import
             file = boost::algorithm::trim_copy_if(file, boost::is_space());
             if (file.empty())
             {
-               // ignore empty string or white space
                continue;
             }
 
@@ -96,7 +95,6 @@ namespace import
                {
                   if (fs::is_directory(it->status()))
                   {
-                     // ignore sub-directory
                      continue;
                   }
 

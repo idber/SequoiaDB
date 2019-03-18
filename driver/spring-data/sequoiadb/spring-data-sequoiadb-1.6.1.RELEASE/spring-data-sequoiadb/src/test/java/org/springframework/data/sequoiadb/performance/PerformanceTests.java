@@ -174,7 +174,6 @@ public class PerformanceTests {
 	@Test
 	public void writeAndRead() throws Exception {
 
-//		sdb.setWriteConcern(WriteConcern.SAFE);
 
 		readsAndWrites(NUMBER_OF_PERSONS, ITERATIONS);
 	}

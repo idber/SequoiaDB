@@ -65,7 +65,6 @@ public abstract class AbstractPersonRepositoryIntegrationTests {
     SequoiadbOperations operations;
 
 	Person dave, oliver, carter, boyd, stefan, leroi, alicia;
-//	QPerson person;
 
 	List<Person> all;
 
@@ -84,9 +83,7 @@ public abstract class AbstractPersonRepositoryIntegrationTests {
 
 		alicia = new Person("Alicia", "Keys", 30, Sex.FEMALE);
 
-//		person = new QPerson("person");
 
-//		all = repository.save(Arrays.asList(oliver, dave, carter, boyd, stefan, leroi, alicia));
 	}
 
 	@Test
@@ -233,21 +230,11 @@ public abstract class AbstractPersonRepositoryIntegrationTests {
 	@Test
 	public void findsPeopleByQueryDslLastnameSpec() throws Exception {
 
-//		Iterable<Person> result = repository.findAll(person.lastname.eq("Matthews"));
-//		assertThat(result, hasItem(dave));
-//		assertThat(result, not(hasItems(carter, boyd, stefan, leroi, alicia)));
 	}
 
 	@Test
 	public void findsPeopleByzipCodePredicate() throws Exception {
 
-//		Address address = new Address("Foo Street 1", "C0123", "Bar");
-//		dave.setAddress(address);
-//		repository.save(dave);
-//
-//		Iterable<Person> result = repository.findAll(person.address.zipCode.eq("C0123"));
-//		assertThat(result, hasItem(dave));
-//		assertThat(result, not(hasItems(carter, boyd, stefan, leroi, alicia)));
 	}
 
 	@Test
@@ -305,12 +292,6 @@ public abstract class AbstractPersonRepositoryIntegrationTests {
 	@Test
 	public void findsPagedPeopleByPredicate() throws Exception {
 
-//		Page<Person> page = repository.findAll(person.lastname.contains("a"), new PageRequest(0, 2, Direction.ASC,
-//				"lastname"));
-//		assertThat(page.isFirst(), is(true));
-//		assertThat(page.isLast(), is(false));
-//		assertThat(page.getNumberOfElements(), is(2));
-//		assertThat(page, hasItems(carter, stefan));
 	}
 
 	/**
@@ -408,7 +389,6 @@ public abstract class AbstractPersonRepositoryIntegrationTests {
 				Metrics.KILOMETERS), new PageRequest(0, 20));
 		assertThat(results.getContent().isEmpty(), is(false));
 
-		// DATA_JIRA-607
 		assertThat(results.getAverageDistance().getMetric(), is((Metric) Metrics.KILOMETERS));
 	}
 
@@ -1003,7 +983,6 @@ public abstract class AbstractPersonRepositoryIntegrationTests {
 		dave.setCreator(user);
 		operations.save(dave);
 
-//		assertThat(repository.findOne(QPerson.person.creator.eq(user)), is(dave));
 	}
 
 	/**
@@ -1011,7 +990,6 @@ public abstract class AbstractPersonRepositoryIntegrationTests {
 	 */
 	@Test
 	public void shouldFindPersonsWhenUsingQueryDslPerdicatedOnIdProperty() {
-//		assertThat(repository.findAll(person.id.in(Arrays.asList(dave.id, carter.id))), containsInAnyOrder(dave, carter));
 	}
 
 	/**
@@ -1037,7 +1015,6 @@ public abstract class AbstractPersonRepositoryIntegrationTests {
 
 		List<Person> persons = new ArrayList<Person>(100);
 		for (int i = 0; i < 100; i++) {
-			// format firstname to assert sorting retains proper order
 			persons.add(new Person(String.format("%03d", i), "ln" + 1, 100));
 		}
 

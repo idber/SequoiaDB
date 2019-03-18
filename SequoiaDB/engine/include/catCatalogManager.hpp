@@ -52,7 +52,6 @@ namespace engine
    class _SDB_DMSCB ;
    class _rtnAlterJob ;
 
-   // create collection assign group type
    enum CAT_ASSIGNGROUP_TYPE
    {
       ASSIGN_FOLLOW     = 1,
@@ -183,7 +182,6 @@ namespace engine
       INT32 active() ;
       INT32 deactive() ;
 
-   // message process functions
    protected:
       INT32 processCommandMsg( const NET_HANDLE &handle, MsgHeader *pMsg,
                                BOOLEAN writable ) ;
@@ -204,7 +202,6 @@ namespace engine
       INT32 processCmdDropDomain ( const CHAR *pQuery ) ;
       INT32 processCmdAlterDomain ( const CHAR *pQuery ) ;
 
-   // tool functions
    protected:
       void  _fillRspHeader( MsgHeader *rspMsg, const MsgHeader *reqMsg ) ;
 

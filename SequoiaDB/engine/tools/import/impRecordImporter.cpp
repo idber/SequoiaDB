@@ -189,7 +189,6 @@ namespace import
       if (SDB_OK != rc)
       {
          PD_LOG(PDERROR, "failed to bulk insert, rc=%d", rc);
-         // the transaction is rollbacked automatically
          goto error;
       }
 
@@ -260,7 +259,6 @@ namespace import
             totalSize += objSize;
          }
 
-         // import last records in array
          if (totalSize > 0)
          {
             rc = import(&records[start], i - start);

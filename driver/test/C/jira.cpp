@@ -38,7 +38,6 @@ pthread_once_t once = PTHREAD_ONCE_INIT ;
 static int a = 0 ;
 void once_run()
 {
-//   cout << "once_run in thread " << (unsigned int)pthread_self() << endl ;
    a = 1 ;
    sleep( 2 ) ;
    cout << "wait up" << endl ;

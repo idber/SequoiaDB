@@ -376,8 +376,6 @@ int _decimal_sub_abs( const bson_decimal *left, const bson_decimal *right,
    res_buf[0] = 0 ;          /* spare digit for later rounding */
    res_digits = res_buf + 1 ;
 
-   // align the decimal point. ex. left=1.2  right=341.2134
-   //                              ==>  1.2000  ==>341.2134
    i1 = res_rscale + left->weight + 1 ;
    i2 = res_rscale + right->weight + 1 ;
    for ( i = res_ndigits - 1 ; i >= 0 ; i-- )
@@ -408,7 +406,6 @@ int _decimal_sub_abs( const bson_decimal *left, const bson_decimal *right,
 
    if ( borrow != 0 )
    {
-      //right is greater than left
       rc = -6 ;
       goto error ;
    }
@@ -1184,7 +1181,6 @@ int _decimal_div( const bson_decimal *left, const bson_decimal *right,
     */
    if ( rightNdigits == 0 || right->digits[0] == 0 )
    {
-      // divisor is zero.
       rc = -6 ;
       goto error ;
    }
@@ -2010,7 +2006,6 @@ error:
    goto done ;
 }
 
-// the caller is responsible for freeing this value(bson_free)
 int decimal_to_str( const bson_decimal *decimal, char *value, int value_size )
 {
    int dscale      = 0 ;
@@ -2167,13 +2162,11 @@ error:
    goto done ;
 }
 
-// the caller is responsible for freeing this decimal( decimal_free )
 int decimal_from_int( int value, bson_decimal *decimal )
 {
    return decimal_from_long( ( int64_t ) value, decimal ) ;
 }
 
-// the caller is responsible for freeing this decimal( decimal_free )
 int decimal_from_long( int64_t value, bson_decimal *decimal )
 {
    uint64_t uval    = 0 ;
@@ -2242,7 +2235,6 @@ error:
    goto done ;
 }
 
-// the caller is responsible for freeing this decimal( decimal_free )
 int decimal_from_double( double value, bson_decimal *decimal )
 {
    char buf[ SDB_DECIMAL_DBL_DIG + 100 ] = "" ;
@@ -2434,7 +2426,6 @@ int decimal_from_str( const char *value, bson_decimal *decimal )
 #endif
       if ( cp == pEndPtr )
       {
-         //wrong format
          rc = -6 ;
          goto error ;
       }
@@ -2443,7 +2434,6 @@ int decimal_from_str( const char *value, bson_decimal *decimal )
       if ( exponent > DECIMAL_MAX_PRECISION ||
            exponent < -DECIMAL_MAX_PRECISION )
       {
-         //meet the limit
          rc = -6 ;
          goto error ;
       }
@@ -2456,7 +2446,6 @@ int decimal_from_str( const char *value, bson_decimal *decimal )
       }
    }
 
-   // make sure the count of digits is in the bound
    if ( dweight >= DECIMAL_MAX_DWEIGHT ||
         dscale > DECIMAL_MAX_DSCALE )
    {
@@ -2466,7 +2455,6 @@ int decimal_from_str( const char *value, bson_decimal *decimal )
 
    if ( *cp != '\0' )
    {
-      // exist not digits value
       rc = -6 ;
       goto error ;
    }
@@ -2545,7 +2533,6 @@ int decimal_from_bsonvalue( const char *value, bson_decimal *decimal )
    int index    = 0 ;
    int rc       = 0 ;
 
-   //define in common_decimal.h __decimal
    bson_little_endian32( &size, value ) ;
    value += 4 ;
 
@@ -2671,7 +2658,6 @@ int decimal_to_jsonstr_len( int sign, int weight, int dscale,
       goto error ;
    }
 
-   // get the simple decimal string len.  like "123.45678"
    simpleSize = _decimal_sprint_len( sign, weight, dscale ) ;
 
    tmpSize = strlen( decimal_str_start ) + simpleSize +
@@ -2781,7 +2767,6 @@ int decimal_cmp( const bson_decimal *left, const bson_decimal *right )
       return 1 ;
    }
 
-   // min is equal min;  min is less than any non-min.
    if ( decimal_is_min( left ) )
    {
       if ( decimal_is_min( right ) )
@@ -2798,7 +2783,6 @@ int decimal_cmp( const bson_decimal *left, const bson_decimal *right )
       return 1 ;
    }
 
-   // max is equal max;  max is larger than any non-max.
    if ( decimal_is_max( left ) )
    {
       if ( decimal_is_max( right ) )
@@ -2918,7 +2902,6 @@ SDB_EXPORT int decimal_add( const bson_decimal *left,
 done:
    return rc ;
 error:
-   //do not free result. result may point to left or right
    goto done ;
 }
 
@@ -2955,7 +2938,6 @@ SDB_EXPORT int decimal_sub( const bson_decimal *left,
 done:
    return rc ;
 error:
-   //do not free result. result may point to left or right
    goto done ;
 }
 
@@ -3281,7 +3263,6 @@ int decimal_update_typemod( bson_decimal *decimal, int typemod )
 
    if ( decimal_is_out_of_precision( decimal, typemod ) )
    {
-      //if out of precision define. remove the precision define
       decimal->typemod = -1 ;
       goto done ;
    }

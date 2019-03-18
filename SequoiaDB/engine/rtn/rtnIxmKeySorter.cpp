@@ -109,15 +109,12 @@ namespace engine
 
       _tailOffset -= keyDataSize + sizeof(dmsRecordID) ;
 
-      // copy key data
       keyPosition = _buf + _tailOffset ;
       ossMemcpy( keyPosition , key.data(), keyDataSize ) ;
 
-      //copy record id
       rid = (dmsRecordID*)( keyPosition + keyDataSize ) ;
       *rid = recordID ;
 
-      // set key slot
       keySlot = (CHAR**)( _buf + _headOffset ) ;
       *keySlot = keyPosition ;
       _headOffset += sizeof(ixmKey*) ;

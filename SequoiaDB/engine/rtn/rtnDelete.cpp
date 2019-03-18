@@ -84,7 +84,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNDEL2 ) ;
       BSONObj dummy ;
-      // matcher, selector, order, hint, collection, skip, limit, flag
       rtnQueryOptions options( matcher, dummy, dummy, hint, pCollectionName,
                                0, -1, flags ) ;
       rc = rtnDelete( options, cb, dmsCB, dpsCB, w, pDelNum ) ;
@@ -130,12 +129,10 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s, rc: %d",
                    options._fullName, rc ) ;
 
-      // get mb context
       rc = su->data()->getMBContext( &mbContext, pCollectionShortName, -1 ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s] mb context, "
                    "rc: %d", options._fullName, rc ) ;
 
-      // Capped collection has no index, but delete is supported.
       if ( OSS_BIT_TEST( mbContext->mb()->_attributes, DMS_MB_ATTR_NOIDINDEX )
            &&
            !(OSS_BIT_TEST( mbContext->mb()->_attributes, DMS_MB_ATTR_CAPPED ) ) )
@@ -148,7 +145,6 @@ namespace engine
       apm = rtnCB->getAPM() ;
       SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
 
-      // plan is released when exiting the function
       rc = apm->getAccessPlan( options, FALSE, su, mbContext, planRuntime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s for delete, "
                    "rc: %d", options._fullName, rc ) ;
@@ -173,7 +169,6 @@ namespace engine
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to get dms scanner, rc: %d", rc ) ;
 
-      // delete
       {
          _mthRecordGenerator generator ;
          dmsRecordID recordID ;
@@ -287,7 +282,6 @@ namespace engine
       BSONObj hint ;
       BSONObj dummy ;
 
-      // make sure the database is not doing any offline operations
       rc = dmsCB->writable( cb ) ;
       PD_RC_CHECK ( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
       writable = TRUE;
@@ -297,14 +291,12 @@ namespace engine
       PD_RC_CHECK ( rc, PDERROR, "Failed to resolve collection name %s, rc: %d",
                     pCollectionName, rc ) ;
 
-      // get mb context
       rc = su->data()->getMBContext( &mbContext, pCollectionShortName, -1 ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s] mb context, "
                    "rc: %d", pCollectionName, rc ) ;
 
       try
       {
-         // build hint
          hint = BSON( "" << pIndexName ) ;
       }
       catch ( std::exception &e )
@@ -315,7 +307,6 @@ namespace engine
 
       {
          optAccessPlanRuntime planRuntime ;
-         // matcher, selector, order, hint, collection, skip, limit, flag
          rtnQueryOptions options( dummy, dummy, dummy, hint, pCollectionName,
                                   0, -1, 0 ) ;
          rc = sdbGetRTNCB()->getAPM()->getTempAccessPlan( options, su,
@@ -323,7 +314,6 @@ namespace engine
                                                           planRuntime ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get access plan, rc: %d", rc ) ;
 
-         // Must apply the hint to find index-scan plan
          PD_CHECK ( planRuntime.getScanType() == IXSCAN &&
                     !planRuntime.isAutoGen(),
                     SDB_INVALIDARG, error, PDERROR,
@@ -332,14 +322,12 @@ namespace engine
          SDB_ASSERT( NULL != planRuntime.getPredList(),
                      "predList can't be NULL" ) ;
 
-         // set traversal direction
          planRuntime.getPredList()->setDirection ( dir ) ;
 
          rc = rtnGetIXScanner( pCollectionShortName, &planRuntime, su, mbContext,
                                cb, &pScanner, DMS_ACCESS_TYPE_DELETE ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get dms ixscanner, rc: %d", rc ) ;
 
-         // relocate key
          {
             rtnIXScanner *scanner = ((dmsIXScanner*)pScanner)->getScanner() ;
             dmsRecordID rid ;
@@ -357,7 +345,6 @@ namespace engine
                           "location: %s, rc: %d", key.toString().c_str(), rc ) ;
          }
 
-         // delete
          {
             _mthRecordGenerator generator ;
             dmsRecordID recordID ;

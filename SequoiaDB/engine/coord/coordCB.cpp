@@ -104,7 +104,6 @@ namespace engine
       pmdOptionsCB *optCB = pmdGetOptionCB() ;
       const CHAR* hostName = pmdGetKRCB()->getHostName() ;
 
-      // 1. create objs: netAgent and handler
       _pTimerHandler = SDB_OSS_NEW _coordTimerHandler() ;
       if ( !_pTimerHandler )
       {
@@ -128,7 +127,6 @@ namespace engine
       }
       _pAgent->getFrame()->setBeatInfo( optCB->getOprTimeout() ) ;
 
-      // 2. init param
       rc = _resource.init( _pAgent, optCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Init resource failed, rc: %d", rc ) ;
 
@@ -142,10 +140,8 @@ namespace engine
       rc = _remoteSessionMgr.init( _pAgent, &_sitePropMgr ) ;
       PD_RC_CHECK ( rc, PDERROR, "Init session manager failed, rc: %d", rc ) ;
 
-      // set remote session manager to pmdController
       sdbGetPMDController()->setRSManager( &_remoteSessionMgr ) ;
 
-      // 3. create listen socket
       nodeID.columns.serviceID = _shardServiceID ;
       _pAgent->updateRoute( nodeID, hostName, _shdServiceName ) ;
       rc = _pAgent->listen( nodeID ) ;
@@ -154,13 +150,10 @@ namespace engine
       PD_LOG ( PDEVENT, "Create sharding listen[ServiceName:%s] succeed",
                _shdServiceName ) ;
 
-      // 4. set bussiness OK, do not need wait register successfully
       pmdGetKRCB()->setBusinessOK( TRUE ) ;
 
-      // 5. set startup ok
       pmdGetStartup().ok( TRUE ) ;
 
-      // 6. set group name
       pmdGetKRCB()->setGroupName( COORD_GROUPNAME ) ;
 
    done:
@@ -180,11 +173,9 @@ namespace engine
       EDUID eduID = PMD_INVALID_EDUID ;
       CoordVecNodeInfo catalogAddrList ;
 
-      // set to primary
       pmdSetPrimary( TRUE ) ;
       sdbGetPMDController()->registerNet( _pAgent->getFrame() ) ;
 
-      // 1. start coord net work
       rc = pEDUMgr->startEDU ( EDU_TYPE_COORDNETWORK, (void*)_pAgent,
                                &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start coord network edu, rc: %d",
@@ -192,7 +183,6 @@ namespace engine
       rc = pEDUMgr->waitUntil( eduID, PMD_EDU_RUNNING ) ;
       PD_RC_CHECK( rc, PDERROR, "Wait CoordNet active failed, rc: %d", rc ) ;
 
-      // 2. start coord manager
       _attachEvent.reset() ;
       rc = pEDUMgr->startEDU ( EDU_TYPE_COORDMGR, (_pmdObjBase*)this,
                                &eduID ) ;
@@ -203,8 +193,6 @@ namespace engine
                    "attach, rc: %d", rc ) ;
 
 
-      // 3. set timer, and send register msg
-      // if this coord is created before all catalog, don't need to register
       _resource.getCataNodeAddrList( catalogAddrList ) ;
       if ( !catalogAddrList.empty() )
       {
@@ -231,11 +219,8 @@ namespace engine
    {
       if ( _pAgent )
       {
-         // 1. unreg net from controller
          sdbGetPMDController()->unregNet( _pAgent->getFrame() ) ;
-         // 2. close listen
          _pAgent->closeListen() ;
-         // 3. stop io
          _pAgent->stop() ;
       }
 
@@ -318,7 +303,6 @@ namespace engine
 
    void _CoordCB::onTimer( UINT64 timerID, UINT32 interval )
    {
-      //Judge the timer is myself, if not, dispatch to sub object
       if ( timerID == _regTimerID )
       {
          _sendRegisterMsg () ;
@@ -338,7 +322,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__COORDCB__REPLY ) ;
 
-      // check message length
       if ( (UINT32)( pReply->header.messageLength ) !=
            sizeof( MsgOpReply ) + replyDataLen )
       {
@@ -349,7 +332,6 @@ namespace engine
          goto error ;
       }
 
-      // when error, but has no data, fill the error obj
       if ( pReply->flags &&
            pReply->header.messageLength == sizeof( MsgOpReply ) )
       {
@@ -362,7 +344,6 @@ namespace engine
          pReply->header.messageLength += replyDataLen ;
       }
 
-      // Send message
       if ( replyDataLen > 0 )
       {
          rc = _pAgent->syncSend ( handle, (MsgHeader *)pReply,
@@ -408,7 +389,6 @@ namespace engine
       CoordGroupInfoPtr cataGroupPtr ;
 
 retry :
-      // sanity check
       if ( !_pAgent )
       {
          rc = SDB_SYS ;
@@ -416,7 +396,6 @@ retry :
          goto error ;
       }
 
-      // get info of cata group
       cataGroupPtr = _resource.getCataGroupInfo() ;
       if ( 0 == cataGroupPtr->nodeCount() )
       {
@@ -436,7 +415,6 @@ retry :
          }
       }
 
-      // get catalog primary node
       nodeID = cataGroupPtr->primary( MSG_ROUTE_CAT_SERVICE ) ;
       if ( MSG_INVALID_ROUTEID == nodeID.value )
       {
@@ -460,7 +438,6 @@ retry :
          }
       }
 
-      // send to catalog primary node
       rc = _pAgent->syncSend ( nodeID, (void*)pMsg, pHandle ) ;
       if ( rc != SDB_OK )
       {
@@ -495,7 +472,6 @@ retry :
       BSONObj regObj = regAssit.buildRequestObj () ;
       length = regObj.objsize () + sizeof ( MsgCatRegisterReq ) ;
 
-      // free by end of the function
       buff = (CHAR *)SDB_OSS_MALLOC ( length ) ;
       if ( buff == NULL )
       {
@@ -538,7 +514,6 @@ retry :
       MsgRouteID routeID ;
       clsRegAssit regAssit ;
 
-      // have register succeed
       if ( _regTimerID == CLS_INVALID_TIMERID )
       {
          goto done ;
@@ -555,26 +530,21 @@ retry :
       }
       if ( SDB_CAT_AUTH_FAILED == rc )
       {
-         // This coord is not belong to coord group, so just kill
-         // register timer, and keep it runing.
          killTimer ( _regTimerID ) ;
          _regTimerID = CLS_INVALID_TIMERID ;
          goto done ;
       }
       PD_RC_CHECK ( rc, PDSEVERE, "Node register failed, rc: %d", rc ) ;
 
-      // get nodeid
       rc = regAssit.extractResponseMsg ( pMsg ) ;
       PD_RC_CHECK( rc, PDERROR, "Node register response error, rc: %d", rc ) ;
       groupID = regAssit.getGroupID () ;
       nodeID = regAssit.getNodeID () ;
       hostname = regAssit.getHostname () ;
 
-      // Kill register timer
       killTimer ( _regTimerID ) ;
       _regTimerID = CLS_INVALID_TIMERID ;
 
-      // Update the net route agent the local id
       _selfNodeID.columns.groupID = groupID ;
       _selfNodeID.columns.nodeID = nodeID ;
       PD_LOG ( PDEVENT, "Register succeed, groupID:%u, nodeID:%u",
@@ -587,12 +557,10 @@ retry :
        */
       pmdGetKRCB()->setHostName( hostname ) ;
 
-      // set local id
       routeID.value = _selfNodeID.value ;
       routeID.columns.serviceID = _shardServiceID ;
       _pAgent->setLocalID ( routeID ) ;
 
-      // set global id
       pmdSetNodeID( _selfNodeID ) ;
       pmdGetKRCB()->callRegisterEventHandler( _selfNodeID ) ;
 
@@ -613,7 +581,6 @@ retry :
 
    void _CoordCB::_onMsgBegin( MsgHeader *pMsg )
    {
-      // set reply header ( except flags, length )
       _replyHeader.numReturned          = 0 ;
       _replyHeader.startFrom            = 0 ;
       _replyHeader.header.opCode        = MAKE_REPLY_TYPE( pMsg->opCode ) ;
@@ -686,8 +653,6 @@ retry :
          case MSG_BS_MSG_REQ :
             rc = _processMsgReq( pMsg ) ;
             break ;
-         // for authentication message through sharding port, we simply return
-         // OK, maybe we will has authentication in sharding port later
          case MSG_AUTH_VERIFY_REQ :
          case MSG_AUTH_CRTUSR_REQ :
          case MSG_AUTH_DELUSR_REQ :
@@ -708,7 +673,6 @@ retry :
                  pMsg->routeID.columns.serviceID, rc ) ;
       }
 
-      /// send reply
       _replyHeader.header.messageLength = sizeof( MsgOpReply ) + buffObj.size();
       _replyHeader.flags                = rc ;
       _replyHeader.contextID            = contextID ;
@@ -748,11 +712,9 @@ retry :
       INT32 rc         = SDB_OK ;
       INT32 numToRead  = 0 ;
 
-      /// extract msg
       rc = msgExtractGetMore( (CHAR*)pMsg, &numToRead, &contextID ) ;
       PD_RC_CHECK ( rc, PDERROR, "Extract GETMORE msg failed[rc:%d]", rc ) ;
 
-      /// execute get more
       MON_SAVE_OP_DETAIL( _pEDUCB->getMonAppCB(), pMsg->opCode,
                           "ContextID:%lld, NumToRead:%d",
                           contextID, numToRead ) ;
@@ -870,14 +832,12 @@ retry :
       INT16 w                 = 1 ;
       _rtnCommand *pCommand   = NULL ;
 
-      /// extract msg
       rc = msgExtractQuery ( (CHAR *)pMsg, &flags, &pCollectionName,
                              &numToSkip, &numToReturn, &pQueryBuff,
                              &pFieldSelector, &pOrderByBuffer, &pHintBuffer ) ;
       PD_RC_CHECK ( rc, PDERROR, "Extract query msg failed[rc:%d]", rc ) ;
 
 
-      /// not allow query
       if ( !rtnIsCommand ( pCollectionName ) )
       {
          PD_LOG( PDERROR, "Receive unknown msg[opCode:(%d)%d, len: %d, "
@@ -891,7 +851,6 @@ retry :
          goto error ;
       }
 
-      /// ready command
       rc = rtnParserCommand( pCollectionName, &pCommand ) ;
       PD_RC_CHECK ( rc, PDERROR, "Parse command[%s] failed[rc:%d]",
                     pCollectionName, rc ) ;
@@ -910,7 +869,6 @@ retry :
       {
          if ( SDB_RTN_CMD_NO_NODE_AUTH == rc )
          {
-            // ignore the error, just return empty data
             rc = SDB_OK ;
             goto done ;
          }
@@ -927,7 +885,6 @@ retry :
          goto error ;
       }
 
-      /// add monitor info
       _pCollectionName = NULL ;
       _cmdCollectionName.clear() ;
       if ( NULL != pCommand->collectionFullName() )
@@ -947,7 +904,6 @@ retry :
                            BSONObj(pHintBuffer).toString().c_str(),
                            numToSkip, numToReturn, flags, flags ) ;
 
-      /// run command
       if ( CMD_INVALIDATE_CACHE == pCommand->type() )
       {
          getResource()->invalidateCataInfo() ;
@@ -980,7 +936,6 @@ retry :
       PD_TRACE_ENTRY ( SDB__COORDCB__SESSIONINIT ) ;
       MsgComSessionInitReq *pMsgReq = (MsgComSessionInitReq*)pMsg ;
 
-      /// check wether the route id is right
       MsgRouteID localRouteID = _pAgent->localID() ;
       if ( pMsgReq->dstRouteID.value != localRouteID.value )
       {
@@ -1002,9 +957,7 @@ retry :
    {
       PD_LOG( PDEVENT, "Recieve interrupt msg[handle: %u, tid: %u]",
               handle, header->TID ) ;
-      // release the ' handle + tid ' all context
       _delContext( handle, header->TID ) ;
-      // not reply
       return SDB_OK ;
    }
 
@@ -1013,9 +966,7 @@ retry :
    {
       PD_LOG( PDEVENT, "Recieve disconnect msg[handle: %u, tid: %u]",
               handle, header->TID ) ;
-      // release the ' handle + tid ' all context
       _delContext( handle, header->TID ) ;
-      // not reply
       return SDB_OK ;
    }
 
@@ -1081,7 +1032,6 @@ retry :
             ++iterMap ;
             continue ;
          }
-         // rtn delete
          _pRtnCB->contextDelete( iterMap->first, _pEDUCB );
          iterMap =  _contextLst.erase( iterMap ) ;
       }
@@ -1108,7 +1058,6 @@ retry :
             ++iterMap ;
             continue ;
          }
-         // rtn delete
          _pRtnCB->contextDelete( iterMap->first, _pEDUCB ) ;
          iterMap = _contextLst.erase( iterMap ) ;
       }

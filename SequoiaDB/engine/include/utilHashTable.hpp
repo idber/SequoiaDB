@@ -246,7 +246,6 @@ namespace engine
 
          OSS_INLINE static UINT32 _getMurmur3HashCode ( UINT32 keyCode )
          {
-            // Murmur3 hash code
             keyCode ^= keyCode >> 16 ;
             keyCode *= 0x85ebca6b ;
             keyCode ^= keyCode >> 13 ;
@@ -293,8 +292,6 @@ namespace engine
             _list.clearList ( TRUE ) ;
          }
 
-         // Get item matched with given key from bucket
-         // NOTE: should be called with shared lock
          utilHashTableItem *getItem ( const utilHashTableKey &key )
          {
             utilHashTableItem *pCurItem = (utilHashTableItem *)_list.getHead() ;
@@ -309,8 +306,6 @@ namespace engine
             return pCurItem ;
          }
 
-         // Add item into bucket
-         // NOTE: should be called with exclusively lock
          BOOLEAN addItem ( utilHashTableItem *pItem )
          {
             SDB_ASSERT( pItem != NULL, "pItem is invalid" ) ;
@@ -326,16 +321,12 @@ namespace engine
             return TRUE ;
          }
 
-         // Remove item from bucket
-         // NOTE: should be called with exclusive lock
          BOOLEAN removeItem ( utilHashTableItem *pItem )
          {
             SDB_ASSERT( pItem != NULL, "pItem is invalid" ) ;
             return _list.removeItem( pItem ) ;
          }
 
-         // Get head of bucket
-         // NOTE: should be called with lock
          OSS_INLINE utilHashTableItem *getHead ()
          {
             return (utilHashTableItem *)_list.getHead() ;
@@ -438,7 +429,6 @@ namespace engine
             UINT32 roundedBucketNum = 0 ;
             if ( bucketNum > 0 )
             {
-               // Bucket number should be power of 2, between 128 and 4096
                for ( roundedBucketNum = UTIL_HASH_TABLE_DFT_BUCKET_NUM ;
                      roundedBucketNum < UTIL_HASH_TABLE_MAX_BUCKET_NUM ;
                      roundedBucketNum <<= 1 )
@@ -579,7 +569,6 @@ namespace engine
          }
 
       protected :
-         // Hooks
          virtual void _afterAddItem ( UINT32 bucketID,
                                       utilHashTableItem *pItem )
          {

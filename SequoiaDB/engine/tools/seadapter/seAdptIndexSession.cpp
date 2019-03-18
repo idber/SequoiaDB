@@ -133,7 +133,6 @@ namespace seadapter
       INT32 numReturned = 0 ;
       vector<BSONObj> docObjs ;
 
-      // When get the reply of query, go on to send a get more request.
       if ( SDB_DMS_EOC == reply->flags )
       {
          _onSDBEOC() ;
@@ -150,8 +149,6 @@ namespace seadapter
       }
       else if ( SDB_OK != reply->flags )
       {
-         // If we find the node is not primary when pop, switch may have
-         // happened. So quit the current indexing work.
          if ( SDB_CLS_NOT_PRIMARY == reply->flags )
          {
             PD_LOG( PDEVENT, "Node is not primary when pop. Switch of primary "
@@ -188,9 +185,6 @@ namespace seadapter
                            "Returned object number is wrong" ) ;
                _lastPopLID =
                   docObjs[0].getField(SEADPT_FIELD_NAME_ID).Number() ;
-               // Remember the logical id of the last record in capped
-               // collection. After finishing processing the original
-               // collection, we'll start here.
                _expectLID = _lastPopLID ;
                PD_LOG( PDDEBUG, "Last logical id in capped collection[ %s ] is "
                        "[ %lld ]", _cappedCLFullName.c_str(), _lastPopLID ) ;
@@ -211,7 +205,6 @@ namespace seadapter
                }
                else
                {
-                  // ERROR, need to start from beginning
                   PD_LOG( PDERROR, "The expected logical id is [ %lld ], but "
                           "the capped collection [ %s ] is empty. Begin to "
                           "start all over again", _expectLID,
@@ -237,8 +230,6 @@ namespace seadapter
                }
                else
                {
-                  // ERROR
-                  // need to clean the index and start over
                   PD_LOG( PDERROR, "The expected logical id is [ %lld ], but "
                           "the actual last logical id in capped collection "
                           "[ %s ] is [ %lld ]. Begin to start all over again",
@@ -251,10 +242,6 @@ namespace seadapter
             }
          }
 
-         // pop is after a query/getmore on a capped collection. A new context
-         // will be created for pop operation. We need to fetch the remaining
-         // data in the capped collection, so need to store the original context
-         // id, and use it for getmore after the pop operation.
          if ( SEADPT_SESSION_STAT_POP_CAP == _status )
          {
             _switchStatus( SEADPT_SESSION_STAT_QUERY_CAP_TBL ) ;
@@ -275,8 +262,6 @@ namespace seadapter
       goto done ;
    }
 
-   // When some records are fetched from data node, different operation will be
-   // done based on the status.
    INT32 _seAdptIndexSession::handleGetMoreRes( NET_HANDLE handle,
                                                 MsgHeader *msg )
    {
@@ -307,7 +292,6 @@ namespace seadapter
    done:
       return rc ;
    error:
-      // If cs or cl not exists, the index is not there any longer.
       if ( SDB_DMS_NOTEXIST == rc || SDB_DMS_CS_NOTEXIST == rc )
       {
          INT32 rcTmp = _onOrigIdxDropped() ;
@@ -317,7 +301,6 @@ namespace seadapter
                     rcTmp  ) ;
          }
 
-         // The index is dropped, this is not error for us.
          rc = SDB_OK ;
       }
       goto done ;
@@ -347,8 +330,6 @@ namespace seadapter
       return _quit ;
    }
 
-   // Called by pmdAsyncSessionAgentEntryPoint. It will be invoked every one
-   // second.
    void _seAdptIndexSession::onTimer( UINT64 timerID, UINT32 interval )
    {
       INT32 rc = SDB_OK ;
@@ -358,7 +339,6 @@ namespace seadapter
          goto done ;
       }
 
-      // Consult and query triggers by timer.
       switch ( _status )
       {
          case SEADPT_SESSION_STAT_BEGIN:
@@ -381,14 +361,11 @@ namespace seadapter
             {
                PD_LOG( PDERROR, "Consult failed[ %d ]. Try to start from the "
                        "beginning...", rc ) ;
-               // _switchStatus( SEADPT_SESSION_STAT_BEGIN ) ;
                _startOver() ;
                goto error ;
             }
             break ;
          case SEADPT_SESSION_STAT_QUERY_NORMAL_TBL:
-            // Only when the query is not in progress that we start a fresh
-            // query.
             if ( !_isQueryBusy() )
             {
                INT32 clVersion = -1 ;
@@ -445,12 +422,6 @@ namespace seadapter
       goto done ;
    }
 
-   // Build the query condition and selector for querying the original
-   // collection. It's in the format of:
-   // db.cs.cl.find({$or:[{field1:{$exists:1}}, ..., {fieldn:{$exists:1}}]},
-   //               {_id:"", field1:"", ..., fieldn:""})
-   // field1~fieldn are the fields in the text index.
-   // So records without any index field will not be indexed on ES.
    void _seAdptIndexSession::_onAttach()
    {
       try
@@ -497,7 +468,6 @@ namespace seadapter
       catch ( std::exception &e )
       {
          PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
-         // In case of exception, quit.
          _quit = TRUE ;
       }
    }
@@ -590,8 +560,6 @@ namespace seadapter
 
       try
       {
-         // In the capped collection, the field name of logical id is '_id', and
-         // the original '_id' is named '_rid'.
          selector = BSON( SEADPT_FIELD_NAME_ID << "" ) ;
          orderBy = BSON( SEADPT_FIELD_NAME_ID << -1 ) ;
 
@@ -647,7 +615,6 @@ namespace seadapter
 
    INT32 _seAdptIndexSession::_cleanData( INT64 recLID )
    {
-      // Build a pop command to pop the data from capped collection.
       INT32 rc = SDB_OK ;
       MsgHeader *msg = NULL ;
       INT32 msgLen = 0 ;
@@ -688,7 +655,6 @@ namespace seadapter
       goto done ;
    }
 
-   // Parse the original object and get the items we want.
    INT32 _seAdptIndexSession::_parseSrcData( const BSONObj &origObj,
                                              _rtnExtOprType &oprType,
                                              const CHAR **origOID,
@@ -754,8 +720,6 @@ namespace seadapter
    INT32 _seAdptIndexSession::_processNormalCLRecords( NET_HANDLE handle,
                                                        MsgHeader *msg )
    {
-      // We fetched the _id in the record, but should remove it when indexing
-      // on elasticsearch, for we use the value of _id as the _id in ES.
       INT32 rc = SDB_OK ;
       MsgOpReply *reply = (MsgOpReply *)msg ;
       INT32 flag = 0 ;
@@ -769,8 +733,6 @@ namespace seadapter
       {
          if ( SDB_DMS_EOC == reply->flags )
          {
-            // When reach to the end of the original collection, switch to capped
-            // collection. Write an end mark of _lid : -1.
             BSONObj emptyObj = BSON( SEADPT_FIELD_NAME_LID << _expectLID ) ;
             rc = _markProgress( emptyObj ) ;
             PD_RC_CHECK( rc, PDERROR, "Write end mark for normal collection[ %s ] "
@@ -898,8 +860,6 @@ namespace seadapter
 
       rc = flag ;
 
-      // If reach end of the capped collection, start another query on it. It
-      // will be started in onTimer.
       if ( SDB_DMS_EOC == rc )
       {
          rc = SDB_OK ;
@@ -912,7 +872,6 @@ namespace seadapter
       else if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Get more failed[ %d ]", rc ) ;
-         // Start another query.
          _switchStatus( SEADPT_SESSION_STAT_QUERY_CAP_TBL ) ;
          _setQueryBusyFlag( FALSE ) ;
          goto error ;
@@ -945,8 +904,6 @@ namespace seadapter
             const CHAR *origOID = NULL ;
             BSONElement sourceEle ;
 
-            // Parse and the original object into 4 items: operation type, id,
-            // source data( the real data to be indexed on Elasticsearch ).
             rc = _parseSrcData( *itr, oprType, &origOID, logicalID, sourceObj ) ;
             PD_RC_CHECK( rc, PDERROR, "Get id string and source object "
                          "failed[ %d ]", rc ) ;
@@ -1000,8 +957,6 @@ namespace seadapter
                   break ;
                /*
                case RTN_EXT_TRUNCATE:
-                  // Truncate(actuall delete by type) can not be done in bulk
-                  // operation. So wait for the current bulk to finish.
                   rc = _bulkFinish() ;
                   PD_RC_CHECK( rc, PDERROR, "Finish operation of bulk "
                                "failed[ %d ]", rc ) ;
@@ -1038,9 +993,6 @@ namespace seadapter
          PD_RC_CHECK( rc, PDERROR, "Update progress failed[ %d ]", rc ) ;
       }
 
-      // After each batch of data processed successfully, pop the last batch of
-      // data out. If -1 == _lastPopLID, it's the first time. We do not pop in
-      // this round, just to fetch the next batch of results.
       if ( _lastPopLID >= 0 )
       {
          rc = _cleanData( _lastPopLID ) ;
@@ -1064,8 +1016,6 @@ namespace seadapter
       goto done ;
    }
 
-   // Compare records from capped collection and data on ES, to
-   // find the last one which has been index on ES successfully.
    INT32 _seAdptIndexSession::_getLastIndexedLID( NET_HANDLE handle,
                                                   MsgHeader *msg )
    {
@@ -1081,7 +1031,6 @@ namespace seadapter
          PD_LOG( PDERROR, "Get more data from capped collection[ %s ] failed"
                  "[ %d ]. Try to start from the beinning...",
                  _cappedCLFullName.c_str(), rc ) ;
-         // Change the status back to begin to start over.
          _switchStatus( SEADPT_SESSION_STAT_BEGIN ) ;
          goto error ;
       }
@@ -1094,8 +1043,6 @@ namespace seadapter
       goto done ;
    }
 
-   // Write a mark record on elasticsearch to specify all the data in the normal
-   // collection has been indexed.
    INT32 _seAdptIndexSession::_markProgress( BSONObj &infoObj )
    {
       INT32 rc = SDB_OK ;
@@ -1156,22 +1103,6 @@ namespace seadapter
       goto done ;
    }
 
-   // The consult step and strategy is as follows:
-   // First, check if the index exist on ES. If not, then need to do full
-   // indexing.
-   // If index exists, check the commit mark. If not found, it means the
-   // last indexing process is interrupted when processing data of the
-   // original collection. In this case, we do not know where to start. So
-   // we start all around.
-   // If index exists and the commit mark is found, get the _lid in it.
-   // Suggest it's called m. Get the last logical id in the capped
-   // collection. Suggest it's n.
-   // (1) If n does not exist( capped collection is empty), and m is not -1,
-   //     start all around.
-   // (2) If m is -1 and n is greater than 0, start all around.
-   // (3) If m is greater than n, start all around.
-   // (4) If m is less than or equal to n, continue to fetch data from capped
-   //     collection with logical id greater than m.
    INT32 _seAdptIndexSession::_consult()
    {
       INT32 rc = SDB_OK ;
@@ -1184,7 +1115,6 @@ namespace seadapter
       PD_RC_CHECK( rc, PDERROR, "The search engine client is not active[ %d ]",
                    rc ) ;
 
-      // 1. Check index existence.
       rc = _esClt->indexExist( _indexName.c_str(), found ) ;
       PD_RC_CHECK( rc, PDERROR, "Check index[ %s ] existence on search engine "
                    "failed[ %d ]", _indexName.c_str(), rc ) ;
@@ -1230,7 +1160,6 @@ namespace seadapter
             goto error ;
          }
 
-         // Get the commit logical id as expect logical id.
          lidEle = resultObj.getField( SEADPT_FIELD_NAME_LID ) ;
          PD_LOG( PDDEBUG, "Commit object: %s", resultObj.toString().c_str() ) ;
          _expectLID = lidEle.numberLong() ;
@@ -1250,8 +1179,6 @@ namespace seadapter
    done:
       return rc ;
    error:
-      // In case of error, switch back to begin status, and wait for next try
-      // of consult.
       _switchStatus( SEADPT_SESSION_STAT_BEGIN ) ;
       goto done ;
    }
@@ -1300,8 +1227,6 @@ namespace seadapter
       }
       else if ( SEADPT_SESSION_STAT_UPDATE_CL_VERSION == _status )
       {
-         // If the collection can not be found on catalog, it has been dropped.
-         // So let's quit.
          PD_LOG( PDEVENT, "Collection[ %s ] can not be found on catalog. It "
                  "may have been dropped. Task ready to exit.",
                  _origCLFullName.c_str() ) ;
@@ -1323,8 +1248,6 @@ namespace seadapter
       goto done ;
    }
 
-   // Start all over again. If the index exists, it will be dropped and
-   // re-created later.
    INT32 _seAdptIndexSession::_startOver()
    {
       INT32 rc = SDB_OK ;
@@ -1347,7 +1270,6 @@ namespace seadapter
                  _indexName.c_str() ) ;
       }
 
-      // _switchStatus( SEADPT_SESSION_STAT_BEGIN ) ;
       _switchStatus( SEADPT_SESSION_STAT_CONSULT ) ;
       _setQueryBusyFlag( FALSE ) ;
 
@@ -1408,8 +1330,6 @@ namespace seadapter
    {
       INT32 rc = SDB_OK ;
 
-      // If reaching the size limit of the bulk builder, fire the operation and
-      // go on with the next batch of data.
       if ( actionItem.outSizeEstimate() > _bulkBuilder.getFreeSize() )
       {
          PD_LOG( PDDEBUG, "Bulk operation data: %s",

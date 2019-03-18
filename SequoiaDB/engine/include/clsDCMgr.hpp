@@ -50,7 +50,6 @@ using namespace std ;
 
 namespace engine
 {
-   // the dc mgr update some info from catalog timeout
    #define DC_UPDATE_TIMEOUT     (10*OSS_ONE_SEC)
 
    /*

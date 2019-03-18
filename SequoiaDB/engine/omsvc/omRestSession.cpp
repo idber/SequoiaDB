@@ -69,7 +69,6 @@ namespace engine
    INT32 _omRestSession::_processMsg( HTTP_PARSE_COMMON command, 
                                       const CHAR *pFilePath )
    {
-      //PD_TRACE_ENTRY( SDB_OMRESTSN_PROMSG );
       INT32 rc = SDB_OK ;
       restAdaptor *pAdaptor   = sdbGetPMDController()->getRestAdptor() ;
       const CHAR *pSubCommand = NULL ;
@@ -118,7 +117,6 @@ namespace engine
 
       if ( COM_GETFILE == command )
       {
-         //get file
          rc = _actionGetFile( pFilePath ) ;
          if ( rc )
          {
@@ -137,7 +135,6 @@ namespace engine
       }
 
    done:
-      //PD_TRACE_EXITRC ( SDB_OMRESTSN_PROMSG, rc );
       return rc ;
    error:
       goto done ;
@@ -304,7 +301,6 @@ namespace engine
          user   = result.getStringField( OM_AUTH_FIELD_USER ) ;
          passwd = result.getStringField( OM_AUTH_FIELD_PASSWD ) ;
       }
-      //if do not have any record. just leave it empty
    done:
       return rc ;
    error:
@@ -624,13 +620,10 @@ namespace engine
             {
                PD_LOG_MSG( PDERROR, "fetch context failed:rc=%d", rc ) ;
                disconnect() ;
-               //_sendOpError2Web( rc, pAdaptor, this, _pEDUCB ) ;
                goto error ;
             }
             if ( -1 != contextID )
             {
-               // -1 != contextID means we have more data to send. 
-               // so we should enable chunk mod;
                pAdaptor->setChunkModal( this ) ;
             }
          }
@@ -668,7 +661,6 @@ namespace engine
                      PD_LOG_MSG( PDERROR, "append http body failed:rc=%d", 
                                  rc ) ;
                      disconnect() ;
-                     //_sendOpError2Web( rc, pAdaptor, this, _pEDUCB ) ;
                      goto error ;
                   }
                }
@@ -680,7 +672,6 @@ namespace engine
                   {
                      PD_LOG_MSG( PDERROR, "getmore failed:rc=%d", rc ) ;
                      disconnect() ;
-                     //_sendOpError2Web( rc, pAdaptor, this, _pEDUCB ) ;
                      goto error ;
                   }
 
@@ -834,7 +825,6 @@ namespace engine
          }
          else
          {
-            //forward to the plugin
             rc = _forwardPlugin( pAdaptor, businessType ) ;
          }
       }
@@ -871,8 +861,6 @@ namespace engine
            && ossStrcmp( pSubCommand, OM_CHECK_SESSION_REQ ) != 0
            && !isAuthOK() )
       {
-         // except login_rep and check_seesion_req, other commands can only 
-         // execute in authrity status
          rc = SDB_PMD_SESSION_NOT_EXIST ;
          PD_LOG( PDERROR, "session is not exist:rc=%d", rc ) ;
          _sendOpError2Web( rc, pAdptor, this, eduCB() ) ;

@@ -126,7 +126,6 @@ INT32 ossResetTty() ;
          fflush(stdout) ;\
       } while (0)
 #endif
-// String compare without case
 BOOLEAN ossIsInteger( const CHAR *pStr ) ;
 BOOLEAN ossIsUTF8 ( CHAR *pzInfo ) ;
 INT32 ossStrncasecmp ( const CHAR *pString1, const CHAR *pString2,

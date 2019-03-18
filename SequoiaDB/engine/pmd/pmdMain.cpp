@@ -79,7 +79,6 @@ namespace engine
       }
 
       rc = pmdGetOptionCB()->init( argc, argv, exePath ) ;
-      // if user only ask for help information, we simply return
       if ( SDB_PMD_HELP_ONLY == rc || SDB_PMD_VERSION_ONLY == rc )
       {
          PMD_SHUTDOWN_DB( SDB_OK ) ;
@@ -110,7 +109,6 @@ namespace engine
       BOOLEAN bOk = TRUE ;
       pmdStartupHstLogger *logger = pmdGetStartupHstLogger() ;
 
-      // analysis the start type
       rc = pmdGetStartup().init( pmdGetOptionCB()->getDbPath() ) ;
       PD_RC_CHECK( rc, PDERROR, "Start up check failed[rc:%d]", rc ) ;
 
@@ -120,12 +118,10 @@ namespace engine
               pmdGetStartTypeStr( startType ),
               bOk ? "normal" : "abnormal" ) ;
 
-      // Init qgm strategy table
       rc = getQgmStrategyTable()->init() ;
       PD_RC_CHECK( rc, PDERROR, "Init qgm strategy table failed, rc: %d",
                    rc ) ;
 
-      // write start-up info, ignore error
       rc = logger->init() ;
       if ( SDB_OK != rc )
       {
@@ -151,7 +147,6 @@ namespace engine
       }
       else
       {
-         /// stop db
          PMD_SHUTDOWN_DB( rc ) ;
       }
    }
@@ -178,7 +173,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   // based on millisecond
    #define PMD_START_WAIT_TIME         ( 60000 )
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDMSTTHRDMAIN, "pmdMasterThreadMain" )
@@ -190,7 +184,6 @@ namespace engine
       UINT32 startTimerCount               = 0 ;
       CHAR verText[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 
-      // 1. read command line first
       rc = pmdResolveArguments ( argc, argv ) ;
       if ( rc )
       {
@@ -203,11 +196,9 @@ namespace engine
          return rc ;
       }
 
-      // 2. enalble pd log
       sdbEnablePD( pmdGetOptionCB()->getDiagLogPath(),
                    pmdGetOptionCB()->diagFileNum() ) ;
       setPDLevel( (PDLEVEL)( pmdGetOptionCB()->getDiagLevel() ) ) ;
-      // enalble pd audit
       sdbEnableAudit( pmdGetOptionCB()->getAuditLogPath(),
                       pmdGetOptionCB()->auditFileNum() ) ;
       setAuditMask( pmdGetOptionCB()->auditMask() ) ;
@@ -220,14 +211,12 @@ namespace engine
                "Start sequoiadb(%s) [%s]...",
                pmdGetOptionCB()->krcbRole(), verText ) ;
 
-      // 3. printf all configs
       {
          BSONObj confObj ;
          krcb->getOptionCB()->toBSON( confObj ) ;
          PD_LOG( PDEVENT, "All configs: %s", confObj.toString().c_str() ) ;
       }
 
-      // 4. dump limit info
       {
          PD_LOG( PDEVENT, "dump limit info:\n%s",
                  pmdGetLimit()->str().c_str() ) ;
@@ -243,22 +232,18 @@ namespace engine
          }
       }
 
-      // 5. handlers and init global mem
       rc = pmdEnableSignalEvent( pmdGetOptionCB()->getDiagLogPath(),
                                  (PMD_ON_QUIT_FUNC)pmdOnQuit ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to enable trap, rc: %d", rc ) ;
 
-      // 6. register cbs
       sdbGetPMDController()->registerCB( pmdGetDBRole() ) ;
 
-      // 7. system init
       rc = _pmdSystemInit() ;
       if ( rc )
       {
          goto error ;
       }
 
-      // 8. init krcb
       rc = krcb->init() ;
       if ( rc )
       {
@@ -266,14 +251,12 @@ namespace engine
          goto error ;
       }
 
-      // 9. post init
       rc = _pmdPostInit() ;
       if ( rc )
       {
          goto error ;
       }
 
-      // wait until all daemon threads start
       while ( PMD_IS_DB_UP() && startTimerCount < PMD_START_WAIT_TIME &&
               !krcb->isBusinessOK() )
       {
@@ -295,9 +278,6 @@ namespace engine
       {
          EDUID agentEDU = PMD_INVALID_EDUID ;
          pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
-         // Then start pipe listener for "fast status check" service
-         // Note this listener doesn't need to authenticate
-         // It's only valid for status check, not for any status change
          eduMgr->startEDU ( EDU_TYPE_PIPESLISTENER,
                             (void*)pmdGetOptionCB()->getServiceAddr(),
                             &agentEDU ) ;
@@ -309,21 +289,16 @@ namespace engine
 
 #if defined (_LINUX)
       {
-         // once all threads starts ( especially we need to make sure the
-         // TcpListener thread is successfully started ), we can rename the
-         // process. Otherwise if TcpListener failed
          CHAR pmdProcessName [ OSS_RENAME_PROCESS_BUFFER_LEN + 1 ] = {0} ;
          ossSnprintf ( pmdProcessName, OSS_RENAME_PROCESS_BUFFER_LEN,
                        "%s(%s) %s", utilDBTypeStr( pmdGetDBType() ),
                        pmdGetOptionCB()->getServiceAddr(),
                        utilDBRoleShortStr( pmdGetDBRole() ) ) ;
-         // rename the process to append port number and service type
          ossEnableNameChanges ( argc, argv ) ;
          ossRenameProcess ( pmdProcessName ) ;
       }
 #endif // _LINUX
 
-      // Now master thread get into big loop and check shutdown flag
       while ( PMD_IS_DB_UP() )
       {
          ossSleepsecs ( 1 ) ;

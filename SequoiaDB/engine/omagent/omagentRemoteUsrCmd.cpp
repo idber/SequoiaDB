@@ -71,7 +71,6 @@ namespace engine
       BSONObjBuilder builder ;
       _sptUsrCmdCommon _cmdCommon ;
 
-      // get argument
       if ( FALSE == _valueObj.hasField( "command" ) )
       {
          rc = SDB_INVALIDARG ;
@@ -209,7 +208,6 @@ namespace engine
          timeout = _optionObj.getIntField( "timeout" ) ;
       }
 
-      // useShell, default : 1
       if ( TRUE == _optionObj.hasField( "useShell" ) )
       {
          if ( NumberInt != _optionObj.getField( "useShell" ).type() )
@@ -266,7 +264,6 @@ namespace engine
       rc = _remoteExec::init( pInfomation ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get argument, rc: %d", rc ) ;
 
-      // get js code
       if ( FALSE == _valueObj.hasField( "code" ) )
       {
          rc = SDB_INVALIDARG ;
@@ -281,7 +278,6 @@ namespace engine
       }
       _code = _valueObj.getStringField( "code" ) ;
 
-      // get scope
       _jsScope = sdbGetOMAgentMgr()->getScopeBySession() ;
       if ( !_jsScope )
       {
@@ -303,7 +299,6 @@ namespace engine
       BSONObjBuilder builder ;
       BSONObj rval ;
 
-      // run js code
       rc = _jsScope->eval( _code.c_str(), _code.size(),
                            "", 1, SPT_EVAL_FLAG_NONE, &pRval ) ;
       if ( rc )
@@ -314,7 +309,6 @@ namespace engine
          goto error ;
       }
 
-      // set result
       rval = pRval->toBSON() ;
       rc = final ( rval, retObj ) ;
       if ( rc )

@@ -429,8 +429,6 @@
 #define FIELD_OP_VALUE_KEEP                  "keep"
 #define FIELD_OP_VALUE_REPLACE               "replace"
 
-// For parameters
-// Used internal: { $param : paramIndex, $ctype : canonicalType }
 #define FIELD_NAME_PARAM                     "$param"
 #define FIELD_NAME_CTYPE                     "$ctype"
 #define FIELD_NAME_PARAMETERS                "Parameters"
@@ -668,7 +666,6 @@ enum SDB_LOB_MODE
 
 #define SDB_ALTER_VERSION 1
 
-/// append only, do not change any existing types.
 #define SDB_ALTER_DB          "db"
 #define SDB_ALTER_CL          "collection"
 #define SDB_ALTER_CS          "collection space"

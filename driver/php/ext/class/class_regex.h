@@ -1,5 +1,5 @@
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -21,7 +21,5 @@
 
 PHP_METHOD( SequoiaRegex, __construct ) ;
 PHP_METHOD( SequoiaRegex, __toString ) ;
-//PHP_METHOD( SequoiaRegex, setOptions ) ;
-//PHP_METHOD( SequoiaRegex, getOptions ) ;
 
 #endif

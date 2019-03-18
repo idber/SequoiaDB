@@ -37,7 +37,6 @@
 
 namespace engine
 {
-   // One hour interval
    #define STORAGE_CHECK_UNIT_INTERVAL ( OSS_ONE_SEC * 60 * 60 )
 
    /*

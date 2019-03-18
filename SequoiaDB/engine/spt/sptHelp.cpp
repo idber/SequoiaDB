@@ -69,8 +69,6 @@ namespace engine
    }
 
 
-   // "fuzzyFuncName" can be "Oma/Oma::createCoord/createCoord" or something like 
-   // "create" for fuzzy searching 
    INT32 _sptHelp::displayManual( const string &fuzzyFuncName,
                                   const string &matcher,
                                   BOOLEAN isInstance )
@@ -85,7 +83,6 @@ namespace engine
       {
          goto error ;
       }
-      // check
       if ( vec.size() == 0 )
       {
          stringstream ss ;
@@ -115,8 +112,6 @@ namespace engine
          vector<string>::iterator it ;
          string funcName ;
          std::size_t pos = 0 ;
-         // we don't want to show a method like "Oma::createOM" in Oma class
-         // or in Oma instance
          for ( it = vec.begin(); it != vec.end(); it++ )
          {
             if ( matcher == "" )
@@ -138,9 +133,6 @@ namespace engine
                   ossStrlen( SPT_CLASS_SEPARATOR ) ;
                funcName = it->substr( pos ) ;
             }
-            // if the fuzzyFuncName is full match with the function's name,
-            // such as fuzzyFuncName is "find", and vector contains 
-            // "find,findOne", let's display the manual of "find"
             if ( fuzzyFuncName == funcName )
             {
                string funcFullName = *it ;
@@ -154,7 +146,6 @@ namespace engine
                v_tmp.push_back( funcName ) ;
             }
          }
-         // try to display multi matching methods
          if ( v_tmp.size() > 1 )
          {
             if ( matcher == "" )
@@ -186,13 +177,11 @@ namespace engine
             goto done ;
          }
       }
-      // get troff file
       rc = _meta.getTroffFile( vec[0], filePath ) ;
       if ( rc )
       {
          goto error ;
       }
-      // display manual
 #if defined ( _WINDOWS )
       rc = sptParseMandoc::getInstance().parse( filePath.c_str() ) ;
 #else
@@ -237,7 +226,6 @@ namespace engine
       }
       else
       {
-         // display constructor methods
          rc = _meta.getMetaInfo( className, SPT_FUNC_CONSTRUCTOR, vec ) ;
          if ( rc ) goto error ;
          if ( vec.size() > 0 )
@@ -245,7 +233,6 @@ namespace engine
             rc = _displayConstructorMethod( className, vec ) ;
             if ( rc ) goto error ;
          }
-         // display static methods
          vec.clear() ;
          rc = _meta.getMetaInfo( className, SPT_FUNC_STATIC, vec ) ;
          if ( rc ) goto error ;
@@ -254,7 +241,6 @@ namespace engine
             rc = _displayStaticMethod( className, vec ) ;
             if ( rc ) goto error ;
          }
-         // display instance methods
          vec.clear() ;
          rc = _meta.getMetaInfo( className, 
                                  SPT_FUNC_INSTANCE, vec ) ;
@@ -376,7 +362,6 @@ namespace engine
       goto done ;
    }
 
-   // i am not going to display cutline in windows system
    INT32 _sptHelp::_displayEntry( const vector<string> &synopsis, 
                                   const string &brief,
                                   INT32 synopsisIndent,
@@ -388,7 +373,6 @@ namespace engine
       vector<string> vec ;
       vector<string>::iterator it ;
 
-      // check arguments
       if ( synopsis.size() < 1 )
       {
          ossPrintf( "Invalid argument, %s:%d"OSS_NEWLINE,
@@ -396,7 +380,6 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // when we have several synopsises, we dispay n-1 pieces first.
       if ( synopsis.size() > 1 )
       {
          INT32 i = 0 ;
@@ -406,11 +389,8 @@ namespace engine
             i++ ;
          }
       }
-      // we are going to display the last one
       lastSynopsis = synopsis[synopsis.size() - 1] ;
       synopsisLen = synopsisIndent + lastSynopsis.length() + 1 ;
-      // in this case, display like this:
-      //                                 synopsis  - brief
       if ( synopsisLen < briefIndent )
       {
          rc = _splitBrief( brief, vec ) ;
@@ -419,7 +399,6 @@ namespace engine
             goto error ;
          }
          it = vec.begin() ;
-         // display the first line
          cout << setw( synopsisIndent ) << " " << lastSynopsis.c_str() 
               << setw( briefIndent - synopsisLen + 1 ) << " " << *it << endl ;
          for( it++; it != vec.end(); it++ )
@@ -427,25 +406,18 @@ namespace engine
             cout << setw( briefIndent + SPT_BRIEF_ALIGNED ) << " " << *it << endl ;
          }
       }
-      // in this case, display like this:
-      //                                 synopsis
-      //                                          - brief
       else
       {
-         // display the first part
          cout << setw( synopsisIndent ) << " " << lastSynopsis.c_str() << endl ;
-         // display the second part
          rc = _splitBrief( brief, vec ) ;
          if ( rc )
          {
             goto error ;
          }
-         // display the first line
          if ( vec.size() > 0 )
          {
             cout << setw( briefIndent ) << " " << vec[0] << endl ;
          }
-         // display the rest
          it = vec.begin() ;
          for ( it++; it != vec.end(); it++ )
          {
@@ -468,7 +440,6 @@ namespace engine
          const CHAR *pb = brief.c_str() ;
          INT32 offset = -1 ;
          string str ;
-         // check argument
          if ( !pb )
          {
             ossPrintf( "Invalid argument, %s:%d"OSS_NEWLINE,
@@ -482,8 +453,6 @@ namespace engine
             rc = _getSplitPosition( pb, SPT_BRIEF_SIZE, &offset ) ;
             if ( rc )
                goto error ;
-            // if offset == 0, means we finish going through the whole brief 
-            // and the whole brief has been insert into vec
             if ( 0 == offset )
             {
                str = string( pb, ossStrlen(pb) ) ;
@@ -516,7 +485,6 @@ namespace engine
       const CHAR *end = NULL ;
       const CHAR *mark = NULL ;
       INT32 left = 0 ;
-      // check argument
       if ( !pos || lineLen <= 0 )
       {
          rc = SDB_INVALIDARG ;
@@ -527,7 +495,6 @@ namespace engine
       left = ossStrlen( pos ) + 1 ;
       if ( left <= lineLen )
       {
-         // means pos point to the last part of brief
          *offset = 0 ;
       }
       else
@@ -539,10 +506,8 @@ namespace engine
          }
          if ( mark > end )
          {
-            // we want to let ' ' in the end of a line
             ++end ;
          }
-         // set which position to split a new line
          *offset = (end == pos) ? lineLen : end - pos ;
       }
    done :

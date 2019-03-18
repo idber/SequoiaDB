@@ -113,7 +113,6 @@ inline void setQueryFlags( const INT32 reserved, SINT32 &flags)
 
    if ( reserved & QUERY_CURSOR_TAILABLE )
    {
-      // unsupported yet
    }
 
    if ( reserved & QUERY_SLAVE_OK )
@@ -139,7 +138,6 @@ inline void setQueryFlags( const INT32 reserved, SINT32 &flags)
 
    if ( reserved & QUERY_EXHAUST )
    {
-      // unsupported yet
    }
 }
 

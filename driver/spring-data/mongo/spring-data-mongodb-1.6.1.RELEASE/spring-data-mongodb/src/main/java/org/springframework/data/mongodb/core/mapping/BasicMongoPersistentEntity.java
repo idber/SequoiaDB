@@ -221,11 +221,9 @@ public class BasicMongoPersistentEntity<T> extends BasicPersistentEntity<T, Mong
 							+ "as explicit id. Check your mapping configuration!", property.getField(), currentIdPropertyField));
 
 		} else if (newIdPropertyIsExplicit && !currentIdPropertyIsExplicit) {
-			// explicit id property takes precedence over implicit id property
 			return property;
 
 		} else if (!newIdPropertyIsExplicit && currentIdPropertyIsExplicit) {
-			// no id property override - current property is explicitly defined
 
 		} else {
 			throw new MappingException(String.format(

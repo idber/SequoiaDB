@@ -57,8 +57,6 @@ namespace engine
    } ;
    typedef enum _RTN_EXTCTX_TYPE RTN_EXTCTX_TYPE ;
 
-   // The life circle of this context is in each operation. It holds all the
-   // text index processors of one collection.
    class _rtnExtContextBase : public SDBObject
    {
    public:

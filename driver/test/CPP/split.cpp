@@ -178,26 +178,20 @@ protected :
       BSONObj clInfo ;
       const CHAR *sourceRGName ;
 
-      // connect
       rc = connectTo ( share._common.host, share._common.port,
                        share._common.user, share._common.passwd, db ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
-      // get cs
       rc = getCollectionSpace ( db, COLLECTION_SPACE_NAME, cs ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
-      // drop cs
       rc = db.dropCollectionSpace ( COLLECTION_SPACE_NAME ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
-      // create cs
       rc = db.createCollectionSpace ( COLLECTION_SPACE_NAME, SDB_PAGESIZE_4K, cs ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
-      // create hash cl
       clInfo = BSON ( "ShardingKey" << BSON ( "id" << 1 ) <<
                       "ShardingType" << "hash" <<
                       "Partition" << 1024 ) ;
       rc = cs.createCollection ( COLLECTION_NAME, clInfo, cl ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
-      // gen record
       rc =  genRecord ( cl, NUM ) ;
       ASSERT_EQ( SDB_OK, rc ) ;
    }
@@ -212,7 +206,6 @@ protected :
       db.disconnect () ;
    }
 protected :
-   // global for all the hash split test
    split share ;
    sdb db ;
    sdbCollectionSpace cs ;
@@ -238,54 +231,42 @@ TEST_F(hashSplitTest, split_sync_percent)
    FLOAT32 percent             = 0 ;
    SINT64 count                = 0 ;
    BSONObj empty ;
-   // use to connect to data note to check
    sdb ddb ;
    sdbCollectionSpace dcs ;
    sdbCollection dcl ;
 
-   // get host name
    host = share.getHost () ;
    ASSERT_TRUE ( NULL != host ) ;
-   // get port
    port = SERVER1 ;
-   // get date path
    dataPath = share.getDataNotePath ( _DATAPATH1, DATAPATH1 ) ;
    ASSERT_TRUE ( NULL != dataPath ) ;
 
-   // create target rg
    rc = share.buildTargetRG ( TARGETRGNAME, rg  ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
-   // create node
    rc = share.buildAndStartNode ( rg, host, port, dataPath ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // get source group name
    rc = share.getSourceRGName ( COLLECTION_FULL_NAME, &sourceRGName ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // hash split by percent
    percent = 50.0 ;
    rc = cl.split( sourceRGName, TARGETRGNAME, percent ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    sleep ( 15 ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // goto datanote to check
    rc = connectTo ( host, port, "", "", ddb ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cs
    rc = getCollectionSpace ( ddb, COLLECTION_SPACE_NAME, dcs ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cl
    rc = getCollection ( dcs, COLLECTION_NAME, dcl ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get count
    rc = dcl.getCount( count, empty ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    cout << "count is: " << count << endl ;
@@ -306,35 +287,27 @@ TEST_F(hashSplitTest, split_sync_range)
    BSONObj endCond ;
    BSONObj empty ;
    SINT64 count                = 0 ;
-   // use to connect to data note to check
    sdb ddb ;
    sdbCollectionSpace dcs ;
    sdbCollection dcl ;
 
-   // get host name
    host = share.getHost () ;
    ASSERT_TRUE ( NULL != host ) ;
-   // get port
    port = SERVER1 ;
-   // get date path
    dataPath = share.getDataNotePath ( _DATAPATH1, DATAPATH1 ) ;
    ASSERT_TRUE ( NULL != dataPath ) ;
 
-   // create target rg
    rc = share.buildTargetRG ( TARGETRGNAME, rg  ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
-   // create node
    rc = share.buildAndStartNode ( rg, host, port, dataPath ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // get source group name
    rc = share.getSourceRGName ( COLLECTION_FULL_NAME, &sourceRGName ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // hash split by range
    cond = BSON ( "Partition" << 0 ) ;
    endCond = BSON ( "Partition" << 512 ) ;
    rc = cl.split( sourceRGName, TARGETRGNAME, cond, endCond ) ;
@@ -342,19 +315,15 @@ TEST_F(hashSplitTest, split_sync_range)
    sleep ( 15 ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // goto datanote to check
    rc = connectTo ( host, port, "", "", ddb ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cs
    rc = getCollectionSpace ( ddb, COLLECTION_SPACE_NAME, dcs ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cl
    rc = getCollection ( dcs, COLLECTION_NAME, dcl ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get count
    rc = dcl.getCount( count, empty ) ;
    cout << "count is: " << count << endl ;
    ASSERT_EQ( SDB_OK, rc ) ;
@@ -374,58 +343,45 @@ TEST_F(hashSplitTest, split_async_percent)
    SINT64 taskID               = 0 ;
    SINT64 count                = 0 ;
    BSONObj empty ;
-   // use to connect to data note to check
    sdb ddb ;
    sdbCollectionSpace dcs ;
    sdbCollection dcl ;
 
-   // get host name
    host = share.getHost () ;
    ASSERT_TRUE ( NULL != host ) ;
-   // get port
    port = SERVER1 ;
-   // get date path
    dataPath = share.getDataNotePath ( _DATAPATH1, DATAPATH1 ) ;
    ASSERT_TRUE ( NULL != dataPath ) ;
 
-   // create target rg
    rc = share.buildTargetRG ( TARGETRGNAME, rg  ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
-   // create node
    rc = share.buildAndStartNode ( rg, host, port, dataPath ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // get source group name
    rc = share.getSourceRGName ( COLLECTION_FULL_NAME, &sourceRGName ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // hash split by percent
    percent = 50.0 ;
    rc = cl.splitAsync ( sourceRGName, TARGETRGNAME, percent, taskID ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
-   // wait task
    SINT64 taskIDs[1] = { taskID } ;
    rc = db.waitTasks ( taskIDs, 1 ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // goto datanote to check
    rc = connectTo ( host, port, "", "", ddb ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cs
    rc = getCollectionSpace ( ddb, COLLECTION_SPACE_NAME, dcs ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cl
    rc = getCollection ( dcs, COLLECTION_NAME, dcl ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get count
    rc = dcl.getCount( count, empty ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    cout << "count is: " << count << endl ;
@@ -448,59 +404,46 @@ TEST_F(hashSplitTest, split_async_range)
    BSONObj cond ;
    BSONObj endCond ;
    BSONObj empty ;
-   // use to connect to data note to check
    sdb ddb ;
    sdbCollectionSpace dcs ;
    sdbCollection dcl ;
 
-   // get host name
    host = share.getHost () ;
    ASSERT_TRUE ( NULL != host ) ;
-   // get port
    port = SERVER1 ; //58000
-   // get date path
    dataPath = share.getDataNotePath ( _DATAPATH1, DATAPATH1 ) ;
    ASSERT_TRUE ( NULL != dataPath ) ;
 
-   // create target rg
    rc = share.buildTargetRG ( TARGETRGNAME, rg  ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // create node
    rc = share.buildAndStartNode ( rg, host, port, dataPath ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // get source group name
    rc = share.getSourceRGName ( COLLECTION_FULL_NAME, &sourceRGName ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // hash split by range
    cond = BSON ( "Partition" << 0 ) ;
    endCond = BSON ( "Partition" << 512 ) ;
    rc = cl.splitAsync ( taskID, sourceRGName, TARGETRGNAME, cond, endCond ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // wait task
    taskIDs[0] = taskID ;
    rc = db.waitTasks ( taskIDs, 1 ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // goto datanote to check
    rc = connectTo ( host, port, "", "", ddb ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cs
    rc = getCollectionSpace ( ddb, COLLECTION_SPACE_NAME, dcs ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cl
    rc = getCollection ( dcs, COLLECTION_NAME, dcl ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get count
    rc = dcl.getCount( count, empty ) ;
    CHECK_MSG("%s%d\n","rc = ",rc);
    cout << "count is: " << count << endl ;

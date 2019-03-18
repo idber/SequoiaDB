@@ -1,4 +1,3 @@
-// ObjectId.java
 
 /**
  *      Copyright (C) 2008 10gen Inc.
@@ -98,28 +97,14 @@ public class ObjectId implements Comparable<ObjectId> , java.io.Serializable {
         return null;
     }
 
-    /**
-     * Construct ObjectId by java.util.Date.
-     */
     public ObjectId( Date time ){
         this(time, _genmachine, _nextInc.getAndIncrement());
     }
 
-    /**
-     * Construct ObjectId.
-     * @param time Date time.
-     * @param  inc Increment.
-     */
     public ObjectId( Date time , int inc ){
         this( time , _genmachine , inc );
     }
 
-    /**
-     * Construct ObjectId.
-     * @param time Date time.
-     * @param machine the number of machine.
-     * @param  inc Increment.
-     */
     public ObjectId( Date time , int machine , int inc ){
         _time = (int)(time.getTime() / 1000);
         _machine = machine;
@@ -154,10 +139,6 @@ public class ObjectId implements Comparable<ObjectId> , java.io.Serializable {
         _new = false;
     }
 
-    /**
-     * Construct ObjectId instance by 12 bytes data..
-     * @param b array of 12 bytes data.
-     */
     public ObjectId( byte[] b ){
         if ( b.length != 12 )
             throw new IllegalArgumentException( "need 12 bytes" );
@@ -235,7 +216,6 @@ public class ObjectId implements Comparable<ObjectId> , java.io.Serializable {
     public byte[] toByteArray(){
         byte b[] = new byte[12];
         ByteBuffer bb = ByteBuffer.wrap( b );
-        // by default BB is big endian like we need
         bb.putInt( _time );
         bb.putInt( _machine );
         bb.putInt( _inc );
@@ -291,30 +271,24 @@ public class ObjectId implements Comparable<ObjectId> , java.io.Serializable {
         return _compareUnsigned( _inc , id._inc );
     }
 
-    /**
-     * @return the machine number of this ID.
-     */
     public int getMachine(){
         return _machine;
     }
 
     /**
-     * @return the time of this ID, in milliseconds
+     * Gets the time of this ID, in milliseconds
      */
     public long getTime(){
         return _time * 1000L;
     }
 
     /**
-     * @return the time of this ID, in seconds
+     * Gets the time of this ID, in seconds
      */
     public int getTimeSecond(){
         return _time;
     }
 
-    /**
-     * @return the increment of this ID.
-     */
     public int getInc(){
         return _inc;
     }
@@ -329,16 +303,10 @@ public class ObjectId implements Comparable<ObjectId> , java.io.Serializable {
         return _inc;
     }
 
-    /**
-     * @return tell the current ID has been used or not.
-     */
     public boolean isNew(){
         return _new;
     }
 
-    /**
-     * set the current ID has been used.
-     */
     public void notNew(){
         _new = false;
     }
@@ -378,7 +346,6 @@ public class ObjectId implements Comparable<ObjectId> , java.io.Serializable {
     static {
 
         try {
-            // build a 2-byte machine piece based on NICs info
             int machinePiece;
             {
                 try {
@@ -390,15 +357,12 @@ public class ObjectId implements Comparable<ObjectId> , java.io.Serializable {
                     }
                     machinePiece = sb.toString().hashCode() << 16;
                 } catch (Throwable e) {
-                    // exception sometimes happens with IBM JVM, use random
                     LOGGER.log(Level.WARNING, e.getMessage(), e);
                     machinePiece = (new Random().nextInt()) << 16;
                 }
                 LOGGER.fine( "machine piece post: " + Integer.toHexString( machinePiece ) );
             }
 
-            // add a 2 byte process piece. It must represent not only the JVM but the class loader.
-            // Since static var belong to class loader there could be collisions otherwise
             final int processPiece;
             {
                 int processId = new java.util.Random().nextInt();

@@ -94,7 +94,6 @@ accesses) is the same as if
 
     template< class Allocator >
     class _BufBuilder {
-        // non-copyable, non-assignable
         _BufBuilder( const _BufBuilder& );
         _BufBuilder& operator=( const _BufBuilder& );
         Allocator al;
@@ -218,7 +217,6 @@ accesses) is the same as if
             if (minSize > size)
                 grow_reallocate(minSize);
 
-            // This must happen *after* any attempt to grow.
             reservedBytes += bytes;
         }
 
@@ -249,7 +247,6 @@ accesses) is the same as if
         char *data;
         int l;
         int size;
-        // eagerly grow_reallocate to keep this many bytes of spare room.
         int reservedBytes;
 
         friend class StringBuilder;
@@ -272,7 +269,6 @@ accesses) is the same as if
 
 #if defined(_WIN32)
 #pragma warning( push )
-// warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS.
 #pragma warning( disable : 4996 )
 #endif
 
@@ -359,7 +355,6 @@ accesses) is the same as if
     private:
         BufBuilder _buf;
 
-        // non-copyable, non-assignable
         StringBuilder( const StringBuilder& );
         StringBuilder& operator=( const StringBuilder& );
 

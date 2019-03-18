@@ -83,7 +83,6 @@ namespace engine
    void _coordCmdSnapshotReset::_preSet( pmdEDUCB *cb,
                                          coordCtrlParam &ctrlParam )
    {
-      // catalog / data has been set with default 1
       ctrlParam._role[ SDB_ROLE_COORD ] = 1 ;
    }
 
@@ -306,7 +305,6 @@ namespace engine
    void _coordCMDSnapshotHealthIntr::_preSet( pmdEDUCB *cb,
                                               coordCtrlParam &ctrlParam )
    {
-      // catalog / data has been set with default 1
       ctrlParam._role[ SDB_ROLE_COORD ] = 1 ;
    }
 

@@ -109,7 +109,6 @@ namespace engine
    {
       LZW_CODE  _code ;
       LZW_CODE  _prev ;   // Code of the previous part of the string
-                          // (the last character excluded)
       LZW_CODE  _first ;  // first 'child'
       LZW_CODE  _next ;   // first 'brother'
       UINT32    _len ;    // Length of the string.

@@ -78,7 +78,6 @@ namespace engine
          _buffSize = 0 ;
       }
 
-      // Flag Load
       BOOLEAN isFlagLoad ( dmsMB *mb )
       {
          return DMS_IS_MB_LOAD ( mb->_flag ) ;
@@ -94,7 +93,6 @@ namespace engine
          OSS_BIT_CLEAR ( mb->_flag, DMS_MB_FLAG_LOAD ) ;
       }
 
-      // Flag Load Load
       BOOLEAN isFlagLoadLoad ( dmsMB *mb )
       {
          return DMS_IS_MB_FLAG_LOAD_LOAD ( mb->_flag ) ;
@@ -110,7 +108,6 @@ namespace engine
          OSS_BIT_CLEAR ( mb->_flag, DMS_MB_FLAG_LOAD_LOAD ) ;
       }
 
-      // Flag Load Build
       BOOLEAN isFlagLoadBuild ( dmsMB *mb )
       {
          return DMS_IS_MB_FLAG_LOAD_BUILD ( mb->_flag ) ;

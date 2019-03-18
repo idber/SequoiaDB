@@ -1,19 +1,3 @@
-/*
- * Copyright 2018 SequoiaDB Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.sequoiadb.datasource;
 
 import java.util.Iterator;
@@ -61,80 +45,110 @@ class ConnectionItemMgr {
     private static long _sequenceNumber = -1;
     private TreeSet<ConnItem> _idleItem = null;
     private TreeSet<ConnItem> _usedItem = null;
+    private ReentrantLock _lock = new ReentrantLock();
 
     public ConnectionItemMgr(int capacity, List<ConnItem> usedItems) {
         _capacity = capacity;
         _idleItem = new TreeSet<ConnItem>();
         _usedItem = new TreeSet<ConnItem>();
-        int initNum = 0;
+        int initIdleItemCount = 0;
         if (usedItems != null) {
             Iterator<ConnItem> itr = usedItems.iterator();
             while (itr.hasNext()) {
                 _usedItem.add(itr.next());
             }
-            initNum = (capacity > _usedItem.size()) ? (capacity - _usedItem.size()) : 0;
+            initIdleItemCount = (capacity > _usedItem.size()) ? (capacity - _usedItem.size()) : 0;
         } else {
-            initNum = capacity;
+            initIdleItemCount = capacity;
         }
-        for (int i = 0; i < initNum; i++) {
-            // we must give a sequence number to the instance of ConnItem,
-            // for _idleItem is TreeSet, it won't save two instances with
-            // the same content
+        for (int i = 0; i < initIdleItemCount; i++) {
             _idleItem.add(new ConnItem("", ++_sequenceNumber));
         }
     }
 
-    public synchronized long getCurrentSequenceNumber() {
-        return _sequenceNumber;
+    public long getCurrentSequenceNumber() {
+        _lock.lock();
+        try {
+            return _sequenceNumber;
+        } finally {
+            _lock.unlock();
+        }
     }
 
-    public synchronized int getCapacity() {
-        return _capacity;
+    public int getCapacity() {
+        _lock.lock();
+        try {
+            return _capacity;
+        } finally {
+            _lock.unlock();
+        }
     }
 
-    public synchronized int getIdleItemNum() {
-        return _idleItem.size();
+    public int getIdleItemNum() {
+        _lock.lock();
+        try {
+            return _idleItem.size();
+        } finally {
+            _lock.unlock();
+        }
     }
 
-    public synchronized int getUsedItemNum() {
-        return _usedItem.size();
+    public int getUsedItemNum() {
+        _lock.lock();
+        try {
+            return _usedItem.size();
+        } finally {
+            _lock.unlock();
+        }
     }
 
-    public synchronized void resetCapacity(int capacity) {
-        if (_capacity < capacity) {
-            // increase items
-            for (int i = _capacity; i < capacity; i++) {
-                _idleItem.add(new ConnItem("", ++_sequenceNumber));
-            }
-        } else {
-            // decrease items
-            int deltaNum = _capacity - capacity;
-            while (deltaNum-- != 0) {
-                ConnItem connItem = _idleItem.pollFirst();
-                if (connItem == null) {
-                    break;
+    public void resetCapacity(int capacity) {
+        _lock.lock();
+        try {
+            if (_capacity < capacity) {
+                for (int i = _capacity; i < capacity; i++) {
+                    _idleItem.add(new ConnItem("", ++_sequenceNumber));
+                }
+            } else {
+                int deltaNum = _capacity - capacity;
+                while (deltaNum-- != 0) {
+                    ConnItem connItem = _idleItem.pollFirst();
+                    if (connItem == null) {
+                        break;
+                    }
                 }
             }
+            _capacity = capacity;
+        } finally {
+            _lock.unlock();
         }
-        _capacity = capacity;
     }
 
-    public synchronized ConnItem getItem() {
-        ConnItem connItem = _idleItem.pollFirst();
-        // reset sequence number
-        if (connItem != null) {
-            connItem.setSequenceNumber(++_sequenceNumber);
-            _usedItem.add(connItem);
+    public ConnItem getItem() {
+        ConnItem connItem = null;
+        _lock.lock();
+        try {
+            connItem = _idleItem.pollFirst();
+            if (connItem != null) {
+                connItem.setSequenceNumber(++_sequenceNumber);
+                _usedItem.add(connItem);
+            }
+        } finally {
+            _lock.unlock();
         }
         return connItem;
     }
 
-    public synchronized void releaseItem(ConnItem item) {
-        _usedItem.remove(item);
-        // _usedItem has remove one, so we must use "<" here
-        if (_usedItem.size() + _idleItem.size() < _capacity) {
-            item.setAddr("");
-            _idleItem.add(item);
+    public void releaseItem(ConnItem item) {
+        _lock.lock();
+        try {
+            _usedItem.remove(item);
+            if (_usedItem.size() + _idleItem.size() < _capacity) {
+                item.setAddr("");
+                _idleItem.add(item);
+            }
+        } finally {
+            _lock.unlock();
         }
     }
 }

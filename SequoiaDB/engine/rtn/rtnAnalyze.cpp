@@ -316,20 +316,16 @@ namespace engine
 
       if ( param._mode == SDB_ANALYZE_MODE_RELOAD )
       {
-         // Dump all information here, reload statistics is a quick process
          dmsCB->dumpInfo( monCSList, FALSE, TRUE, TRUE ) ;
       }
       else
       {
-         // Dump all information later, analyze is a long process
          dmsCB->dumpInfo( monCSList, FALSE, FALSE, FALSE ) ;
       }
 
       if ( monCSList.empty() &&
            param._mode != SDB_ANALYZE_MODE_CLEAR )
       {
-         // No collection space is found, need to do nothing except for clear
-         // mode which need to clear cached plans as well
          INT32 tmpRC = _rtnPostAnalyzeAll( param, rtnCB, dpsCB ) ;
          if ( SDB_OK != tmpRC )
          {
@@ -347,7 +343,6 @@ namespace engine
       }
       else if ( param._mode == SDB_ANALYZE_MODE_CLEAR )
       {
-         // Clear cached plans and statistics
          dmsCB->clearSUCaches( monCSList,
                                DMS_EVENT_MASK_PLAN | DMS_EVENT_MASK_STAT ) ;
       }
@@ -415,8 +410,6 @@ namespace engine
       {
          if ( SDB_DMS_CS_NOTEXIST == rc )
          {
-            // Collection space doesn't have storage unit, but might contain
-            // main-collections
             INT32 tmpRC = _rtnPostAnalyzeCS( pCSName, param, rtnCB, dpsCB ) ;
             if ( SDB_OK != tmpRC )
             {
@@ -433,24 +426,19 @@ namespace engine
 
       suLocked = TRUE ;
 
-      // Check if statistics cache is ready for collection space
       pStatCache = pSU->getStatCache() ;
       PD_CHECK( pStatCache, SDB_INVALIDARG, error, PDERROR,
                 "No statistics manger in storage unit [%s]", pCSName ) ;
 
       if ( param._mode == SDB_ANALYZE_MODE_RELOAD )
       {
-         // Dump index list with collections, since reload statistics process
-         // will be quick
          pSU->dumpInfo( monCS, FALSE, TRUE, TRUE ) ;
       }
       else if ( param._mode == SDB_ANALYZE_MODE_CLEAR )
       {
-         // Do nothing
       }
       else
       {
-         // Dump index list later, since analyze process will be long time
          pSU->dumpInfo( monCS, FALSE, TRUE, FALSE ) ;
       }
 
@@ -463,7 +451,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to reload statistics for "
                       "collection space [%s], rc: %d", pCSName, rc ) ;
 
-         // Make sure main-collection plans are removed
          rtnCB->getAPM()->invalidateSUPlans( pCSName ) ;
       }
       else if ( param._mode == SDB_ANALYZE_MODE_CLEAR )
@@ -474,7 +461,6 @@ namespace engine
          dmsCB->suUnlock( suID, csLockType ) ;
          suLocked = FALSE ;
 
-         // Make sure main-collection plans are removed
          rtnCB->getAPM()->invalidateSUPlans( pCSName ) ;
       }
       else
@@ -486,7 +472,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to analyze collection space [%s], "
                       "rc: %d", pCSName, rc ) ;
 
-         // Make sure main-collection plans are removed
          rtnCB->getAPM()->invalidateSUPlans( pCSName ) ;
       }
 
@@ -552,7 +537,6 @@ namespace engine
       PD_CHECK( !dmsIsSysCLName( pCLName ), SDB_INVALIDARG, error, PDERROR,
                 "Could not analyze SYS collection [%s]", pCLFullName ) ;
 
-      // Check if statistics cache is ready for collection space
       pStatCache = pSU->getStatCache() ;
       PD_CHECK( pStatCache, SDB_INVALIDARG, error, PDERROR,
                 "No statistics manger in storage unit [%s]", pCSName ) ;
@@ -574,7 +558,6 @@ namespace engine
          dmsEventCLItem clItem( pCLName, mbContext->mbID(),
                                 mbContext->clLID() ) ;
 
-         // Get index list here, reload statistics will be a quick process
          pSU->dumpInfo( monCL, mbContext, TRUE ) ;
 
          rc = _rtnReloadCLStats( &monCS, &monCL, pStatCache,
@@ -582,7 +565,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to reload statistics for "
                       "collection [%s], rc: %d", pCLFullName, rc ) ;
 
-         // Clear cached plans based on old statistics
          pSU->getEventHolder()->onClearCLCaches( DMS_EVENT_MASK_PLAN, clItem ) ;
       }
       else if ( param._mode == SDB_ANALYZE_MODE_CLEAR )
@@ -590,16 +572,13 @@ namespace engine
          dmsEventCLItem clItem( pCLName, mbContext->mbID(),
                                 mbContext->clLID() ) ;
 
-         // Clear cached plans and statistics
          pSU->getEventHolder()->onClearCLCaches( DMS_EVENT_MASK_PLAN |
                                                  DMS_EVENT_MASK_STAT, clItem ) ;
       }
       else
       {
-         // Get index list later, analyze process will be long time
          pSU->dumpInfo( monCL, mbContext, FALSE ) ;
 
-         // Unlock first
          pSU->data()->releaseMBContext( mbContext ) ;
          dmsCB->suUnlock( suID, SHARED ) ;
          pSU = NULL ;
@@ -611,7 +590,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to analyze statistics for "
                       "collection [%s], rc: %d", pCLFullName, rc ) ;
 
-         // Notify backup nodes to clear old cached statistics
          rc = rtnAnalyzeDpsLog( NULL, pCLFullName, NULL, dpsCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to write analyze log, rc: %d", rc ) ;
       }
@@ -686,22 +664,18 @@ namespace engine
       PD_CHECK( !dmsIsSysCLName( pCLName ), SDB_INVALIDARG, error, PDERROR,
                 "Could not analyze SYS collection [%s]", pCLFullName ) ;
 
-      // Check if statistics cache is ready for collection space
       pStatCache = pSU->getStatCache() ;
       PD_CHECK( pStatCache, SDB_INVALIDARG, error, PDERROR,
                 "No statistics manger in storage unit [%s]", pCSName ) ;
 
-      // Dump CS information
       pSU->dumpInfo( monCS, FALSE, FALSE, FALSE ) ;
 
-      // Reload and clear mode acquire exclusive lock
       if ( param._mode == SDB_ANALYZE_MODE_RELOAD ||
            param._mode == SDB_ANALYZE_MODE_CLEAR )
       {
          clLockType = EXCLUSIVE ;
       }
 
-      // Get mbContext
       rc = pSU->data()->getMBContext( &mbContext, pCLName, clLockType ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get collection [%s], rc: %d",
                    pCLFullName, rc ) ;
@@ -722,7 +696,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to reload statistics for "
                       "index [%s %s], rc: %d", pCLFullName, pIndexName, rc ) ;
 
-         // Clear cached plans based on old statistics
          pSU->getEventHolder()->onClearCLCaches( DMS_EVENT_MASK_PLAN, clItem ) ;
       }
       else if ( param._mode == SDB_ANALYZE_MODE_CLEAR )
@@ -730,7 +703,6 @@ namespace engine
          dmsEventCLItem clItem( pCLName, mbContext->mbID(),
                                 mbContext->clLID() ) ;
 
-         // Clear cached plans and statistics
          pSU->getEventHolder()->onClearCLCaches( DMS_EVENT_MASK_PLAN |
                                                  DMS_EVENT_MASK_STAT, clItem ) ;
       }
@@ -746,7 +718,6 @@ namespace engine
                _rtnGetSampleRecords( mbContext->mbStat()->_totalRecords, param ) ;
          localParam._sampleByNum = FALSE ;
 
-         // Unlock first
          pSU->data()->releaseMBContext( mbContext ) ;
          dmsCB->suUnlock( suID, SHARED ) ;
          pSU = NULL ;
@@ -759,7 +730,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to analyze statistics for "
                       "index [%s %s], rc: %d", pCLFullName, pIndexName, rc ) ;
 
-         // Notify backup nodes to clear old cached statistics
          rc = rtnAnalyzeDpsLog( NULL, pCLFullName, pIndexName, dpsCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to write analyze log, rc: %d", rc ) ;
       }
@@ -828,8 +798,6 @@ namespace engine
             continue ;
          }
 
-         // Need check logical IDs again, since we unlock the objects
-         // after dumping objects
          rc = _rtnReplaceCSStats( pMonCS, pStatCache, needCheck, dmsCB ) ;
          if ( SDB_OK != rc )
          {
@@ -883,12 +851,10 @@ namespace engine
 
       suLocked = TRUE ;
 
-      // Check if statistics cache is ready for collection space
       pStatCache = pSU->getStatCache() ;
       PD_CHECK( pStatCache, SDB_INVALIDARG, error, PDERROR,
                 "No statistics manger in storage unit [%s]", pCSName ) ;
 
-      // Clear current statistics caches
       pSU->getEventHolder()->onClearSUCaches( DMS_EVENT_MASK_STAT ) ;
 
       if ( pInputStatCache )
@@ -906,7 +872,6 @@ namespace engine
          pStatCache->setStatus( UTIL_SU_CACHE_UNIT_STATUS_CACHED ) ;
       }
 
-      // Clear current plan caches based on old statistics
       pSU->getEventHolder()->onClearSUCaches( DMS_EVENT_MASK_PLAN ) ;
 
    done :
@@ -951,8 +916,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to load index statistics for "
                    "collection space [%s], rc: %d", pCSName, rc ) ;
 
-      // Need check logical IDs again, since we unlock the objects
-      // after dumping objects
       rc = _rtnReplaceCSStats( pMonCS, &statMap, needCheck, dmsCB ) ;
       if ( SDB_OK != rc )
       {
@@ -1040,7 +1003,6 @@ namespace engine
       pCollectionStat =
             (dmsCollectionStat *)pStatCache->getCacheUnit( pMonCL->_blockID ) ;
 
-      // The collection statistics is empty, try reload first
       if ( NULL == pCollectionStat )
       {
          rc = pStatSUMgr->loadCollectionStat( pMonCS, pMonCL, pStatCache,
@@ -1106,7 +1068,6 @@ namespace engine
             goto error ;
          }
 
-         // Dump collection list
          rc = dmsCB->verifySUAndLock( &suItem, &pSU, SHARED, OSS_ONE_SEC ) ;
          if ( SDB_OK != rc )
          {
@@ -1281,10 +1242,8 @@ namespace engine
                 pMonCL->_blockID, pMonCL->_logicalID,
                 mbContext->mbID(), mbContext->clLID() ) ;
 
-      // Dump index list
       pSU->getIndexes( mbContext, monIdxList ) ;
 
-      // Analyze collection
       localParam._sampleRecords =
             _rtnGetSampleRecords( mbContext->mbStat()->_totalRecords, param ) ;
       localParam._sampleByNum = TRUE ;
@@ -1401,7 +1360,6 @@ namespace engine
       PD_CHECK( pStatCache, SDB_INVALIDARG, error, PDERROR,
                 "No statistics manger in storage unit [%s]", pCSName ) ;
 
-      // Do not set the version, set it when lock collection exclusive
       pCollectionStat = SDB_OSS_NEW dmsCollectionStat( pCSName, pCLName,
                                                        pSU->LogicalCSID(),
                                                        mbContext->mbID(),
@@ -1425,7 +1383,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to lock collection [%s.%s], rc: %d",
                    pCSName, pCLName, rc ) ;
 
-      // The collection is locked exclusive, set the version
       pCollectionStat->setCreateTime( ossGetCurrentMilliseconds() ) ;
 
       PD_CHECK( pStatCache->addCacheUnit( pCollectionStat, TRUE, FALSE ),
@@ -1433,8 +1390,6 @@ namespace engine
                 "Failed to add collection statistics [%s.%s]",
                 pCSName, pCLName ) ;
 
-      // The collection statistics is inserted into statistics cache,
-      // let the cache manage it
       pTmpCLStat = pCollectionStat ;
       pCollectionStat = NULL ;
 
@@ -1448,7 +1403,6 @@ namespace engine
          dmsEventCLItem clItem( pCLName, mbContext->mbID(),
                                 mbContext->clLID() ) ;
 
-         // Clear cached plans based on old statistics
          pSU->getEventHolder()->onClearCLCaches( DMS_EVENT_MASK_PLAN, clItem ) ;
       }
 
@@ -1638,16 +1592,13 @@ namespace engine
 
       if ( needUpdateCL )
       {
-         // Re-analyze collection statistics if needed
          rc = _rtnAnalyzeCLInternal( pSU, mbContext, param, FALSE, cb,
                                      dmsCB, rtnCB, dpsCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to analyze collection [%s.%s], "
                       "rc: %d", pCSName, pCLName, rc ) ;
 
-         // Make statistics of other indexes are loaded
          rtnReloadCLStats( pSU, mbContext, cb, dmsCB ) ;
 
-         // Lock shared to allow parallel reading during analyze index
          rc = mbContext->mbLock( SHARED ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to lock collection [%s.%s], rc: %d",
                       pCSName, pCLName, rc ) ;
@@ -1700,7 +1651,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to lock collection [%s.%s], rc: %d",
                    pCSName, pCLName, rc ) ;
 
-      // The collection is locked exclusive, set the version
       pIndexStat->setCreateTime( ossGetCurrentMilliseconds() ) ;
 
       PD_CHECK( pStatCache->addCacheSubUnit( pIndexStat, TRUE, FALSE ),
@@ -1708,8 +1658,6 @@ namespace engine
                 "Failed to add index statistics [%s.%s %s]",
                 pCSName, pCLName, pIXName ) ;
 
-      // The collection statistics is inserted into statistics cache,
-      // let the cache manage it
       pTmpIdxStat = pIndexStat ;
       pIndexStat = NULL ;
 
@@ -1722,7 +1670,6 @@ namespace engine
          dmsEventCLItem clItem( pCLName, mbContext->mbID(),
                                 mbContext->clLID() ) ;
 
-         // Clear cached plans based on old statistics
          pSU->getEventHolder()->onClearCLCaches( DMS_EVENT_MASK_PLAN, clItem ) ;
       }
 
@@ -1743,7 +1690,6 @@ namespace engine
            param._mode == SDB_ANALYZE_MODE_RELOAD ||
            param._mode == SDB_ANALYZE_MODE_CLEAR )
       {
-         // Samples are not needed in these modes
          sampleRecords = 0 ;
       }
       else
@@ -1857,7 +1803,6 @@ namespace engine
          {
             if ( 0 != prevKey.woCompare( curKey, dummy, FALSE ) )
             {
-               // A different key, push the previous one into MCV set
                fraction = (double) prevCount / (double) sortCount ;
                rc = pIndexStat->pushMCVSet( prevKey, fraction ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to insert MCV value, rc: %d",
@@ -1869,7 +1814,6 @@ namespace engine
          prevCount ++ ;
       }
 
-      // Push the last one into MCV set
       fraction = (double) prevCount / (double) sortCount ;
       rc = pIndexStat->pushMCVSet( prevKey, fraction ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to insert MCV value, rc: %d", rc ) ;
@@ -1903,7 +1847,6 @@ namespace engine
          }
          else if ( NULL == pCSName && NULL == pCLFullName )
          {
-            // Reload all statistics
             pCLFullName = "SYS" ;
          }
 
@@ -1936,13 +1879,11 @@ namespace engine
 
       SDB_ASSERT( rtnCB, "rtnCB is invalid" ) ;
 
-      // Make sure main-collection plans are removed
       rtnCB->getAPM()->invalidateAllPlans() ;
 
       if ( param._mode != SDB_ANALYZE_MODE_RELOAD &&
            param._mode != SDB_ANALYZE_MODE_CLEAR )
       {
-         // Notify backup nodes to clear old cached statistics
          rc = rtnAnalyzeDpsLog( NULL, NULL, NULL, dpsCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to write analyze log, rc: %d", rc ) ;
       }
@@ -1968,13 +1909,11 @@ namespace engine
       SDB_ASSERT( pCSName, "pCSName is invalid" ) ;
       SDB_ASSERT( rtnCB, "rtnCB is invalid" ) ;
 
-      // Make sure main-collection plans are removed
       rtnCB->getAPM()->invalidateSUPlans( pCSName ) ;
 
       if ( param._mode != SDB_ANALYZE_MODE_RELOAD &&
            param._mode != SDB_ANALYZE_MODE_CLEAR )
       {
-         // Notify backup nodes to clear old cached statistics
          rc = rtnAnalyzeDpsLog( pCSName, NULL, NULL, dpsCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to write analyze log, rc: %d", rc ) ;
       }

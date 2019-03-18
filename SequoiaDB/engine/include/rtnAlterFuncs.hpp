@@ -38,9 +38,7 @@ namespace engine
 {
    class _pmdEDUCB ;
    class _dpsLogWrapper ;
-   /// see func's name in msgDef.hpp
 
-   /// SDB_ALTER_CRT_ID_INDEX
    INT32 rtnCreateIDIndex( const CHAR *name,
                            const bson::BSONObj &pubArgs,
                            const bson::BSONObj &args,
@@ -49,7 +47,6 @@ namespace engine
 
    INT32 rtnCreateIDIndexVerify( const bson::BSONObj &args ) ;
 
-   /// SDB_ALTER_DROP_ID_INDEX
    INT32 rtnDropIDIndex( const CHAR *name,
                          const bson::BSONObj &pubArgs,
                          const bson::BSONObj &args,

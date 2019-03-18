@@ -105,13 +105,11 @@ namespace import
          workQueue->wait_and_pop(records);
          if (NULL == records)
          {
-            // stop signal
             break;
          }
 
          if (records->empty())
          {
-            // empty signal, just ignore it
             freeRecordArray(&records);
             continue;
          }
@@ -318,7 +316,6 @@ namespace import
       {
          RecordArray* empty = NULL;
 
-         // push empty RecordArray as stop signal
          _workQueue->push(empty);
       }
 

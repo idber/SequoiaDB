@@ -77,7 +77,6 @@ namespace engine
             }
             catch( std::exception & )
             {
-               /// do nothing
             }
          }
       }
@@ -279,7 +278,6 @@ namespace engine
       }
 
    private:
-      // if the catalogue-info is update, build a new one, don't modify the old
       _CoordCataInfo()
       :_catlogSet( NULL, FALSE ) 
       {}  

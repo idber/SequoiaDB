@@ -65,8 +65,6 @@ public:                                                              \
 #define DECLARE_COMMAND_VAR( command )                            \
       __DECLARE_COMMAND_VAR( command##Command, command##Cmd )
 
-///////////////////////////////////////////////////////////////////
-// declare all command supported
 
 DECLARE_COMMAND( insert )
 DECLARE_COMMAND( delete )
@@ -75,7 +73,6 @@ DECLARE_COMMAND( query )
 DECLARE_COMMAND( getMore )
 DECLARE_COMMAND( killCursors )
 
-// other command
 DECLARE_COMMAND( getnonce )
 DECLARE_COMMAND( authenticate )
 DECLARE_COMMAND( createUser )
@@ -83,7 +80,6 @@ DECLARE_COMMAND( dropUser )
 DECLARE_COMMAND( listUsers )
 DECLARE_COMMAND( create )
 DECLARE_COMMAND( createCS )
-//DECLARE_COMMAND( createCollection )
 DECLARE_COMMAND( listCollection )
 DECLARE_COMMAND( drop )
 DECLARE_COMMAND( count )

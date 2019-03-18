@@ -46,7 +46,6 @@ public class SdbSplit extends FileSplit implements InputSplit {
 	public SdbSplit(String host, int port, String dbUserName, String dbPasswd, String collectionSpaceName,
 			String collectionName, Path dummyPath) {
 		super(dummyPath, 0, 0, EMPTY_ARRAY);
-//		this.sdbAddr = new SdbConnAddr(host, port);
 		this.dbHostName = host;
 		this.dbPort = port;
 		this.dbUserName = dbUserName;
@@ -59,9 +58,6 @@ public class SdbSplit extends FileSplit implements InputSplit {
 	public void readFields(final DataInput input) throws IOException {
 		LOG.debug("enter sdbSplit readFields");
 		super.readFields(input);
-//		this.sdbAddr = new SdbConnAddr();
-//		sdbAddr.setHost(input.readUTF());
-//		sdbAddr.setPort(input.readInt());
 		this.dbHostName = input.readUTF();
 		this.dbPort = input.readInt();
 		this.dbUserName = input.readUTF();
@@ -125,7 +121,6 @@ public class SdbSplit extends FileSplit implements InputSplit {
 
 		final Path[] tablePaths = FileInputFormat.getInputPaths(conf);
 
-		// ///////////////////////////////
 		Sequoiadb sdb = null;
 		BaseException lastException = null;
 

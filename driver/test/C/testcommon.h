@@ -14,8 +14,6 @@
 
 #define HOST                  "localhost"
 #define SERVER                "11810" // for coord
-//#define HOST                  "192.168.20.42"
-//#define SERVER                "50000" // for coord
 #define SERVER1               "11800" // for catalog
 #define SERVER2               "20100" // for data
 #define USER                  ""
@@ -32,7 +30,6 @@
 #define NUM_RECORD            5
 
 
-// for rg
 #define GROUPNAME1            "testgroup1"
 #define GROUPNAME2            "testgroup2"
 #define GROUPNAME3            "testgroup3"

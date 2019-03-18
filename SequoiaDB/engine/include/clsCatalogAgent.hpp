@@ -92,7 +92,6 @@ namespace engine
    } ;
    typedef _clsCataItemKey clsCataItemKey ;
 
-   // the range is [lowBound, upBound)
    class _clsCatalogItem : public SDBObject
    {
       public:
@@ -319,7 +318,6 @@ namespace engine
          std::string       _mainCLName;
          UINT32            _internalV ;
          UINT32            _maxID ;
-         /// sharding key site id, 0: invalid
          UINT32            _skSiteID ;
          _clsShardingKeySite *_pSite ;
          UTIL_COMPRESSOR_TYPE _compressType ;
@@ -354,7 +352,6 @@ namespace engine
          INT32   clearBySpaceName ( const CHAR* name,
                                     vector< string > *pRelatedCLs = NULL,
                                     _utilSet< string > * pMainCLs = NULL ) ;
-         /// caller need to hold the write lock
          INT32   clearAll () ;
 
          INT32   lock_r ( INT32 millisec = -1 ) ;
@@ -387,7 +384,6 @@ namespace engine
 
       private:
          UINT32                  _id ;
-         /// UINT64 ==> ID:32 + Ref:32
          map< BSONObj, UINT64 >  _mapKey2ID ;
          ossSpinXLatch           _mutex ;
    } ;
@@ -519,7 +515,6 @@ namespace engine
          clsGroupItem* groupItem ( UINT32 id ) ;
          clsGroupItem* groupItem ( const CHAR* name ) ;
 
-         /// caller need to hold the write lock
          INT32       clearAll () ;
          INT32       clearGroup ( UINT32 id ) ;
 
@@ -544,11 +539,9 @@ namespace engine
    typedef _clsNodeMgrAgent nodeMgrAgent ;
 
 
-   /// cls catalog agent tool fucntions :
    INT32    clsPartition( const BSONObj &keyObj, UINT32 partitionBit, UINT32 internalV ) ;
    INT32    clsPartition( const bson::OID &oid, UINT32 sequence, UINT32 partitionBit ) ;
 
-   /// global function
    clsShardingKeySite* clsGetShardingKeySite() ;
 
 }

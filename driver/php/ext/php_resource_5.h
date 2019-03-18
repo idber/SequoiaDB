@@ -1,5 +1,5 @@
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@
 
 #include "php_driver.h"
 
-//supper php7 code
 #define zend_resource zend_rsrc_list_entry
 
 #define PHP_REGISTER_RESOURCE( destroy, longDestroy, resourceName, resourceId )\
@@ -30,7 +29,6 @@
                                                    module_number ) ;\
 }
 
-//save resource
 #define PHP_SAVE_RESOURCE( thisObj, name, resource, resourceId )\
 {\
    zval *pZvalResource = NULL ;\
@@ -50,13 +48,11 @@
                          pZvalResource TSRMLS_CC ) ;\
 }
 
-//save sdb handle resource
 #define PHP_SAVE_HANDLE( thisObj, handle, resourceId )\
 {\
    PHP_SAVE_RESOURCE( thisObj, "_handle", handle, resourceId ) ;\
 }
 
-//read resource
 #define PHP_READ_RESOURCE( thisObj, name, resource, resourceType, resourceName, resourceId )\
 {\
    zval *pZvalResource = NULL ;\
@@ -76,7 +72,6 @@
    }\
 }
 
-//delete resource
 #define PHP_DEL_RESOURCE( thisObj, name )\
 {\
    zval *pZvalResource = NULL ;\
@@ -84,13 +79,11 @@
    zend_list_delete( Z_LVAL_P( pZvalResource ) ) ;\
 }
 
-//read handle resource
 #define PHP_READ_HANDLE( thisObj, handle, handleType, resourceName, resourceId )\
 {\
    PHP_READ_RESOURCE( thisObj, "_handle", handle, handleType, resourceName, resourceId ) ;\
 }
 
-//delete handle resource
 #define PHP_DEL_HANDLE( thisObj )\
 {\
    PHP_DEL_RESOURCE( thisObj, "_handle" ) ;\

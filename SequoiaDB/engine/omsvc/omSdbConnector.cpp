@@ -82,7 +82,6 @@ namespace engine
       rc = _pSocket->disableNagle() ;
       if ( SDB_OK != rc )
       {
-         // just warning
          PD_LOG( PDWARNING, "disable nagle failed:rc=%d", rc ) ;
          rc = SDB_OK ;
       }

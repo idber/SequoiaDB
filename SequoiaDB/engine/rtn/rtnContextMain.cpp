@@ -57,7 +57,6 @@ namespace engine
       SDB_RTNCB* rtnCB = pKrcb->getRTNCB() ;
       pmdEDUCB* eduCB = pKrcb->getEDUMgr()->getEDUByID( eduID() ) ;
 
-      // clean ordered context
       SUB_ORDERED_CTX_MAP::iterator orderIter = _orderedContextMap.begin() ;
       while ( orderIter != _orderedContextMap.end() )
       {
@@ -265,8 +264,6 @@ namespace engine
                goto error ;
             }
 
-            // if main buffer is not empty, break to return objs,
-            // so this sub context can prefetch simultaneously
             if ( !isEmpty() )
             {
                break ;
@@ -284,15 +281,9 @@ namespace engine
             }
          }
 
-         // make sure we still have room to read another
-         // record_max_sz (i.e. 16MB). if we have less than 16MB
-         // to 256MB, we can't safely assume the next record we
-         // read will not overflow the buffer, so let's just break
-         // before reading the next record
          if ( buffEndOffset() + DMS_RECORD_MAX_SZ >
               RTN_RESULTBUFFER_SIZE_MAX )
          {
-            // let's break if there's no room for another max record
             break ;
          }
       }

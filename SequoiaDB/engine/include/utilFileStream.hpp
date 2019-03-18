@@ -47,7 +47,6 @@ namespace engine
    class utilFileStreamBase: public SDBObject
    {
    private:
-      // disallow copy and assign
       utilFileStreamBase( const utilFileStreamBase& ) ;
       void operator=( const utilFileStreamBase& ) ;
 
@@ -60,10 +59,8 @@ namespace engine
       OSS_INLINE ossFile* file() const { return _file ; }
 
    protected:
-      // in stream only
       INT32 _read( CHAR* buf, INT64 bufLen, INT64& readSize ) ;
 
-      // out stream only
       INT32 _write( const CHAR* buf, INT64 bufLen ) ;
       INT32 _flush() ;
 

@@ -47,7 +47,6 @@ using namespace bson ;
 
 namespace engine
 {
-   // Factory takes care of creating and releasing nodes of a parse tree.
    class _rtnCondNodeFactory : public SDBObject
    {
       public:
@@ -61,7 +60,6 @@ namespace engine
    } ;
    typedef _rtnCondNodeFactory rtnCondNodeFactory ;
 
-   // Parse a condition which represents in a BSONObj.
    class _rtnSimpleCondParseTree : public SDBObject
    {
       typedef map<string, rtnCondNode*> TAG_NODE_MAP ;
@@ -70,8 +68,6 @@ namespace engine
          _rtnSimpleCondParseTree() ;
          ~_rtnSimpleCondParseTree() ;
 
-         // tagFieldNames is used to put tags on the nodes with these names.
-         // We can later get the node by use the name.
          INT32 parse( const BSONObj &condition ) ;
          void clear() ;
          BOOLEAN hasTextCond() ;
@@ -102,7 +98,6 @@ namespace engine
          rtnCondNode          *_root ;
          rtnCondNodeAllocator _allocator ;
          rtnCondNode          *_textNode ;
-         // Whether text node is descendant of a $not clause.
          BOOLEAN              _textNodeInNot ;
    } ;
    typedef _rtnSimpleCondParseTree rtnSimpleCondParseTree ;

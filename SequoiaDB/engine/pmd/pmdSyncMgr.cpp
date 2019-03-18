@@ -200,9 +200,7 @@ namespace engine
          if ( pUnit->canSync( force ) )
          {
             _unitList.erase( it ) ;
-            /// lock the unit
             pUnit->lock() ;
-            /// dec idle agent
             --_idleAgent ;
             break ; 
          }
@@ -228,9 +226,7 @@ namespace engine
       {
          _unitList.push_back( pUnit ) ;
       }
-      /// release the unit
       pUnit->unlock() ;
-      /// inc idla agent
       ++_idleAgent ;
       PD_TRACE_EXIT( SDB__PMDSYNCMGR_PUSHBACKUNIT ) ;
    }
@@ -258,10 +254,8 @@ namespace engine
 
       if ( readyNum > 0 )
       {
-         /// wake up the agent
          _wakeUpEvent.signalAll() ;
 
-         /// start agent
          while ( _curAgent < PMD_MIN_SYNC_JOB ||
                  ( readyNum / 10 > _idleAgent &&
                    _curAgent < _maxSyncJob ) )
@@ -378,13 +372,11 @@ namespace engine
          {
             pEDUMgr->waitEDU( eduCB() ) ;
 
-            /// sync unit
             pUnit = _pMgr->dispatchUnit() ;
             if ( pUnit )
             {
                timeout = 0 ;
                _doUnit( pUnit ) ;
-               /// push back
                _pMgr->pushBackUnit( pUnit ) ;
             }
             else
@@ -401,7 +393,6 @@ namespace engine
 
                if ( timeout >= (UINT32)_timeout )
                {
-                  /// over _timeout millsecs, donothing, qiut the job
                   break ;
                }
             }
@@ -450,7 +441,6 @@ namespace engine
          goto error ;
       }
       rc = rtnGetJobMgr()->startJob( pJob, RTN_JOB_MUTEX_NONE, pEDUID  ) ;
-      /// neither failed or succeed, the pJob will release in job manager
 
    done:
       PD_TRACE_EXITRC( SDB__PMDSTARTSYNCJOB, rc ) ;

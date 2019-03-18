@@ -69,7 +69,6 @@ namespace engine
       ( PMD_OPTION_HELPFULL, "help all configs" ) \
       ( PMD_OPTION_CURUSER, "use current user" ) \
       
-   // initialize options
    void init ( po::options_description &desc,
                po::options_description &all )
    {
@@ -129,7 +128,6 @@ namespace engine
       if ( vm.count ( PMD_OPTION_SVCNAME ) )
       {
          string svcname = vm[PMD_OPTION_SVCNAME].as<string>() ;
-         // break service names using ';'
          rc = utilSplitStr( svcname, listServices, ", \t" ) ;
          if ( rc )
          {
@@ -208,7 +206,6 @@ namespace engine
       
       init ( desc, all ) ;
 
-      // validate arguments
       rc = resolveArgument ( desc, all, vm, argc, argv, listServices, typeFilter,
                              roleFilter, bForce ) ;
       if ( rc )
@@ -230,7 +227,6 @@ namespace engine
          UTIL_CHECK_AND_CHG_USER() ;
       }
       
-      // make path
       rc = ossGetEWD( dialogFile, OSS_MAX_PATHSIZE ) ;
       if ( rc )
       {
@@ -238,20 +234,17 @@ namespace engine
                     rc ) ;
          goto error ;
       }
-      // dialog path and file
       rc = utilCatPath( dialogFile, OSS_MAX_PATHSIZE, SDBCM_LOG_PATH ) ;
       if ( rc )
       {
          ossPrintf( "Failed to build dialog path: %d"OSS_NEWLINE, rc ) ;
          goto error ;
       }
-      // make sure the dir exist
       rc = ossMkdir( dialogFile ) ;
       if ( rc && SDB_FE != rc )
       {
          ossPrintf( "Create dialog dir[%s] failed, rc: %d"OSS_NEWLINE,
                     dialogFile, rc ) ;
-         // not go to error, continue
          rc = SDB_OK ;
       }
       rc = engine::utilCatPath( dialogFile, OSS_MAX_PATHSIZE,
@@ -259,10 +252,8 @@ namespace engine
       if ( rc )
       {
          ossPrintf( "Failed to build dialog file: %d"OSS_NEWLINE, rc ) ;
-         // not go to error, continue
          rc = SDB_OK ;
       }
-      // enable pd log
       sdbEnablePD( dialogFile ) ;
       setPDLevel( PDINFO ) ;
 
@@ -271,12 +262,10 @@ namespace engine
 
       if ( listServices.size() > 0 )
       {
-         // if used -p, list all nodes
          typeFilter = -1 ;
          roleFilter = -1 ;
       }
 
-      // list all nodes
       utilListNodes( listNodes, typeFilter, NULL, OSS_INVALID_PID,
                      roleFilter ) ;
 
@@ -284,7 +273,6 @@ namespace engine
       {
          utilNodeInfo &info = listNodes[ i ] ;
 
-         // can't stop oma
          if ( SDB_TYPE_OMA == info._type )
          {
             continue ;

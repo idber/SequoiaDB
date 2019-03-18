@@ -78,7 +78,6 @@ namespace engine
       _mbps          = 0 ;
       _lastStatTick  = _lastSendTick ;
 
-      /// attach
       _evSuitPtr->addHandle( _handle ) ;
    }
 
@@ -92,7 +91,6 @@ namespace engine
          SDB_OSS_FREE( _buf ) ;
       }
 
-      /// detach
       _evSuitPtr->delHandle( _handle ) ;
    }
 
@@ -293,7 +291,6 @@ namespace engine
          _sock.open( tcp::v4()) ;
 
          _sock.connect( endpoint, ec ) ;
-         /// may return ok when we in a local area network.
          if ( ec )
          {
             if ( boost::asio::error::would_block == ec )
@@ -405,7 +402,6 @@ namespace engine
                                     shared_from_this(),
                                     boost::asio::placeholders::error ) ) ;
          }
-         // for MsgSysInfoRequest msg(12bytes)
          else if ( FALSE == _hasRecvMsg )
          {
             async_read( _sock, buffer(&_header, sizeof(MsgSysInfoRequest)),
@@ -464,7 +460,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__NETEVNHND_SYNCSND );
       UINT32 send = 0 ;
 
-      /// not care send suc or failed
       _lastSendTick = pmdGetDBTick() ;
       _srDataLen += len ;
 
@@ -578,10 +573,8 @@ namespace engine
 
       if ( NET_EVENT_HANDLER_STATE_HEADER == _state )
       {
-         /// error header
          if ( ( UINT32 )MSG_SYSTEM_INFO_LEN == (UINT32)_header.messageLength )
          {
-            // sys info request
             if ( SDB_OK != _allocateBuf( sizeof(MsgSysInfoRequest) ))
             {
                goto error_close ;
@@ -608,14 +601,12 @@ namespace engine
             if ( FALSE == _hasRecvMsg )
             {
                _hasRecvMsg = TRUE ;
-               // need to recv the last header msg
                _state = NET_EVENT_HANDLER_STATE_HEADER_LAST ;
                asyncRead() ;
                _state = NET_EVENT_HANDLER_STATE_HEADER ;
                goto done ;
             }
 
-            /// add to route table
             if ( MSG_INVALID_ROUTEID == _id.value )
             {
                if ( MSG_INVALID_ROUTEID != _header.routeID.value )
@@ -631,7 +622,6 @@ namespace engine
                     msg2String( &_header, MSG_MASK_ALL, 0 ).c_str(),
                     remoteAddr().c_str(), remotePort() ) ;
          }
-         /// msg has only header
          if ( (UINT32)sizeof(_MsgHeader) == (UINT32)_header.messageLength )
          {
             _srDataLen += sizeof(_MsgHeader) ;
@@ -688,11 +678,6 @@ namespace engine
    {
       boost::system::error_code ec ;
 
-      /// only shutdown, don't call _sock.close
-      /// because when close, the net-thread will be in asyncRead code.
-      /// then close will release socket's descriptor, but asyncRead
-      /// will used after, so it cuase null poiniter exception
-      /// To fix the bug, we call _sock.close in destructor
       _sock.shutdown( boost::asio::ip::tcp::socket::shutdown_both,
                       ec ) ;
       _isConnected = FALSE ;

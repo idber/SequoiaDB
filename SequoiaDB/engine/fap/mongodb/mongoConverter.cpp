@@ -45,8 +45,6 @@ INT32 mongoConverter::convert( msgBuffer &out )
    baseCommand *&cmd = _parser.command() ;
    _parser.extractMsg( _msgdata, _msglen ) ;
 
-   // convert mongodb msg to sequoiadb msg
-   // for all kinds of requests available
    commandMgr *cmdMgr = commandMgr::instance() ;
    if ( NULL == cmdMgr )
    {
@@ -162,14 +160,8 @@ INT32 mongoConverter::reConvert( msgBuffer &out, MsgOpReply *reply )
       goto done ;
    }
 
-   // create collection failed
    if ( OP_CMD_CREATE == _parser.currentOption() )
    {
-      // here mean mongo msg was converted to multi sdb msg
-      // like create collection command msg
-      // those msg convert to more than one sdb msg
-      // that time cs may be not existed, should skip the error
-      // and create collection space first
       if ( SDB_OK != reply->flags && SDB_DMS_CS_NOTEXIST == reply->flags )
       {
          _parser.reparse() ;
@@ -196,7 +188,6 @@ INT32 mongoConverter::reConvert( msgBuffer &out, MsgOpReply *reply )
       }
    }
 
-   // if is create collection space msg
    if ( OP_CMD_CREATE_CS == _parser.currentOption() )
    {
       if ( SDB_OK != reply->flags && SDB_DMS_CS_EXIST != reply->flags )
@@ -205,7 +196,6 @@ INT32 mongoConverter::reConvert( msgBuffer &out, MsgOpReply *reply )
          goto error ;
       }
 
-      // then, try to create collection again
       _parser.reparse() ;
       cmd = cmdMgr->findCommand( "create" ) ;
       if ( NULL != cmd )
@@ -224,7 +214,6 @@ INT32 mongoConverter::reConvert( msgBuffer &out, MsgOpReply *reply )
       }
    }
 
-   // when not handled above, assigned the reply flags to rc for return
    rc = reply->flags ;
 
 done:

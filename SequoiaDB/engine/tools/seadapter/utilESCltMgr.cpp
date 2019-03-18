@@ -49,7 +49,6 @@ namespace seadapter
 
    _utilESCltMgr::~_utilESCltMgr()
    {
-      // Clean all clients.
       for ( vector<utilESClt *>::iterator itr = _vecSEClt.begin();
             itr != _vecSEClt.end(); ++itr )
       {
@@ -82,7 +81,6 @@ namespace seadapter
 
       SDB_ASSERT( seClt, "Parameter should not be null" ) ;
 
-      // If there are idle client, get it. Otherwise, create a new one.
       _latch.get() ;
       if ( _vecSEClt.size() > 0 )
       {

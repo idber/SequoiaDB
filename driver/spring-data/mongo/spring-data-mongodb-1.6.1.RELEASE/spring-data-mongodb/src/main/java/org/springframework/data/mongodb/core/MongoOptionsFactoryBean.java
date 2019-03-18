@@ -42,14 +42,12 @@ public class MongoOptionsFactoryBean implements FactoryBean<MongoOptions>, Initi
 	private static final MongoOptions DEFAULT_MONGO_OPTIONS = new MongoOptions.Builder().build();
 	private MongoOptions options;
 
-	// options for connection
 	private int connectTimeout = DEFAULT_MONGO_OPTIONS.getConnectTimeout();
 	private int socketTimeout = DEFAULT_MONGO_OPTIONS.getSocketTimeout();
 	private boolean socketKeepAlive = DEFAULT_MONGO_OPTIONS.isSocketKeepAlive();
 	private boolean useNagle = DEFAULT_MONGO_OPTIONS.isUseNagle();
 	private boolean useSSL = DEFAULT_MONGO_OPTIONS.isUseSSL();
 
-	// options for datasource
 	private int deltaIncCount = DEFAULT_MONGO_OPTIONS.deltaIncCount();
 	private int maxIdleCount = DEFAULT_MONGO_OPTIONS.maxIdleCount();
 	private int maxCount = DEFAULT_MONGO_OPTIONS.maxCount();
@@ -59,7 +57,6 @@ public class MongoOptionsFactoryBean implements FactoryBean<MongoOptions>, Initi
 	private boolean validateConnection = DEFAULT_MONGO_OPTIONS.isValidateConnection();
 	private ConnectStrategy connectStrategy = ConnectStrategy.SERIAL;
 
-	// options for session
 	private List<String> preferedInstance = DEFAULT_MONGO_OPTIONS.getPreferedInstance();
 	private String preferedInstanceMode = DEFAULT_MONGO_OPTIONS.getPreferedInstanceMode();
 	private int sessionTimeout = DEFAULT_MONGO_OPTIONS.getSessionTimeout();

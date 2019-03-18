@@ -40,8 +40,6 @@
 #include "rtn.hpp"
 #include "rtnTrace.hpp"
 
-// Currently we set the size limit of capped collection to 30GB. This may change
-// in the future.
 #define RTN_CAPPED_CL_MAXSIZE       ( 30 * 1024 * 1024 * 1024LL )
 #define RTN_CAPPED_CL_MAXRECNUM     0
 #define RTN_FIELD_NAME_RID          "_rid"
@@ -89,8 +87,6 @@ namespace engine
       {
          BSONElement ele ;
          ixmIndexKeyGen keygen( &indexCB, GEN_OBJ_KEEP_FIELD_NAME ) ;
-         // If any field is an array, it should keep that format instead of
-         // being breaking into separate objects.
          rc = keygen.getKeys( inputObj, keySet, NULL, TRUE, FALSE, TRUE ) ;
          PD_RC_CHECK( rc, PDERROR, "Generate key from object failed[ %d ]",
                       rc ) ;
@@ -98,11 +94,9 @@ namespace engine
          SDB_ASSERT( keySet.size() <= 1, "Key set size should be 1" ) ;
          if ( 0 == keySet.size() )
          {
-            // No index key in the record, skip.
             goto done ;
          }
 
-         // Get the _id from the insert object.
          ele = inputObj.getField( DMS_ID_KEY_NAME ) ;
          if ( EOO == ele.type() )
          {
@@ -153,8 +147,6 @@ namespace engine
       {
          BSONElement ele ;
          ixmIndexKeyGen keygen( &indexCB, GEN_OBJ_KEEP_FIELD_NAME ) ;
-         // If any field is an array, it should keep that format instead of
-         // being breaking into separate objects.
          rc = keygen.getKeys( inputObj, keySet, NULL, TRUE, FALSE, TRUE ) ;
          PD_RC_CHECK( rc, PDERROR, "Generate key from object failed[ %d ]",
                       rc ) ;
@@ -162,7 +154,6 @@ namespace engine
          SDB_ASSERT( keySet.size() <= 1, "Key set size should be 1" ) ;
          if ( 0 == keySet.size() )
          {
-            // No index key in the record, skip.
             goto done ;
          }
 
@@ -213,8 +204,6 @@ namespace engine
       {
          BSONElement ele ;
 
-         // Check if the keys of the index are the same with before. If yes,
-         // nothing needs to be done.
          ixmIndexKeyGen keygen( &indexCB, GEN_OBJ_KEEP_FIELD_NAME ) ;
          rc = keygen.getKeys( originalObj, keySetOri, NULL,
                               TRUE, FALSE, TRUE ) ;
@@ -297,8 +286,6 @@ namespace engine
       INT32 ignoreNum = 0 ;
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
 
-      // Pass dpsCB as NULL as we don't want to write dps log. The replication
-      // of external data totally relies on the original data.
       rc = rtnInsert( _cappedCLName, record, 1, 0,
                       cb, dmsCB, dpsCB, 1, &insertNum, &ignoreNum ) ;
       PD_RC_CHECK( rc, PDERROR, "Insert record failed[ %d ]", rc ) ;
@@ -374,7 +361,6 @@ namespace engine
 
    INT32 _rtnExtDataProcessor::doLoad()
    {
-      // TODO:YSD
       return SDB_OK ;
    }
 
@@ -415,9 +401,6 @@ namespace engine
       SDB_DB_STATUS dbStatus = krcb->getDBStatus() ;
       SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
 
-      // In case of rebuilding, we don't know whether the capped collections are
-      // valid or not. So we directly drop and re-create the capped collection
-      // again.
       if ( SDB_DB_REBUILDING == dbStatus )
       {
          rc = rtnDropCollectionSpaceCommand( _cappedCSName, cb,
@@ -568,15 +551,12 @@ namespace engine
 
       try
       {
-         // 1. Append operation type.
          objBuilder.append( FIELD_NAME_TYPE, oprType ) ;
-         // 2. Append the _id as _rid.
          if ( oidRequired )
          {
             objBuilder.append( RTN_FIELD_NAME_RID, dataOID->str().c_str() ) ;
          }
 
-         // 3. Append data if necessarry.
          if ( dataRequired )
          {
             objBuilder.append( RTN_FIELD_NAME_SOURCE, *dataObj ) ;
@@ -635,7 +615,6 @@ namespace engine
       {
          builder.append( FIELD_NAME_SIZE, RTN_CAPPED_CL_MAXSIZE ) ;
          builder.append( FIELD_NAME_MAX, RTN_CAPPED_CL_MAXRECNUM ) ;
-         // Set the OverWrite option as false.
          builder.appendBool( FIELD_NAME_OVERWRITE, FALSE ) ;
          extOptions = builder.done() ;
       }

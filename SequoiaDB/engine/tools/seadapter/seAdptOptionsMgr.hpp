@@ -42,7 +42,6 @@
 
 namespace seadapter
 {
-   // Manage the configurations of the search engine adapter
    class _seAdptOptionsMgr : public engine::_pmdCfgRecord
    {
    public:

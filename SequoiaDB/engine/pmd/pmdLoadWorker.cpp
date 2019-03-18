@@ -72,7 +72,6 @@ namespace engine
       goto done ;
    }
 
-   /// Register
    PMD_DEFINE_ENTRYPOINT( EDU_TYPE_LOADWORKER, FALSE,
                           pmdLoadWorkerEntryPoint,
                           "MigLoadWork" ) ;

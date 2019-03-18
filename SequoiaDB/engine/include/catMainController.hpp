@@ -65,8 +65,6 @@ namespace engine
    {
       CAT_DELAY_REPLY_UNKNOWN = 0,
 
-      // Wait synchronization of transaction ending LSN
-      // between Catalog replicas
       CAT_DELAY_REPLY_SYNC,
    } ;
 
@@ -133,12 +131,10 @@ namespace engine
 
       void _deleteDelayedOperation ( UINT32 handle ) ;
 
-   // event process functions
    protected:
       INT32 _onActiveEvent( pmdEDUEvent *event ) ;
       INT32 _onDeactiveEvent( pmdEDUEvent *event ) ;
 
-   // msg process functions
    protected :
       INT32 _processGetMoreMsg ( const NET_HANDLE &handle, MsgHeader *pMsg ) ;
       INT32 _processQueryMsg( const NET_HANDLE &handle, MsgHeader *pMsg ) ;
@@ -172,7 +168,6 @@ namespace engine
       void _delContext( const UINT32 &handle, UINT32 tid ) ;
 
    public :
-      // functions of _catEventHandler
       virtual const CHAR *getHandlerName () { return "catMainController" ; }
 
       virtual INT32 onBeginCommand ( MsgHeader *pReqMsg ) ;
@@ -182,7 +177,6 @@ namespace engine
       virtual INT32 onSendReply ( MsgOpReply *pReply, INT32 result ) ;
 
    public :
-      // functions of wait sync
       virtual INT32 waitSync( const NET_HANDLE &handle, MsgOpReply *pReply,
                               void *pReplyData, UINT32 replyDataLen ) ;
 
@@ -227,7 +221,6 @@ namespace engine
 
       ossEvent          _changeEvent ;
 
-      // for cata delayed event
       VEC_EVENT         _vecEvent ;
       UINT32            _checkEventTimerID ;
       pmdEDUEvent       _lastDelayEvent ;

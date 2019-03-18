@@ -333,7 +333,6 @@ namespace engine
       {
       }
 
-      /// warning: we do not release next in destructor.
       virtual ~_qgmFetchOut()
       {
          next = NULL ;

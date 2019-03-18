@@ -1,3 +1,0 @@
-﻿<div style="padding:10px 15px;" ng-controller="Data.Other.Index.Ctrl" ng-container="{}">
-   <iframe frameborder="0" ng-src="{{url}}" ng-container="{}"></iframe>
-</div>

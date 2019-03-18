@@ -35,16 +35,13 @@ public class BSONDecimalTest {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } else {
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         }
-        // cl
         cl = cs.createCollection(Constants.TEST_CL_NAME_1,
             new BasicBSONObject().append("ReplSize", 0));
     }
@@ -115,7 +112,6 @@ public class BSONDecimalTest {
         int scale = 0;
         int retScale = 0;
 
-        // case 1: specify string value, precision, scale
         value = "123456789.0987654321";
         expectValue = "123456789.098765432100000";
         precision = 30;
@@ -135,7 +131,6 @@ public class BSONDecimalTest {
         Assert.assertEquals(precision, retPrecision);
         Assert.assertEquals(scale, retScale);
 
-        // case 2: specify string value
         value = "1.234567890987654321";
         expectValue = value;
         decimal = new BSONDecimal(value);
@@ -153,7 +148,6 @@ public class BSONDecimalTest {
         Assert.assertEquals(-1, retPrecision);
         Assert.assertEquals(-1, retScale);
 
-        // case 3: specify BigDecimal
         value = "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
         expectValue = "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890.1234567890";
         MathContext context = new MathContext(75);
@@ -176,11 +170,9 @@ public class BSONDecimalTest {
         Assert.assertEquals(-1, retPrecision);
         Assert.assertEquals(-1, retScale);
 
-        // case 4: toBigDecimal
         BigDecimal big2 = retDecimal.toBigDecimal();
         Assert.assertEquals(0, big.compareTo(big2));
 
-        // case 5: getValue
         Assert.assertEquals(big.toPlainString(), decimal.getValue());
         Assert.assertEquals(big.toPlainString(), retDecimal.getValue());
 
@@ -200,7 +192,6 @@ public class BSONDecimalTest {
         int precision = 0;
         int scale = 0;
 
-        // case 1: no precision and scale
         decimal = DecimalCommon.genBSONDecimal(false, true, false, 0);
         str = decimal.getValue();
         decimal1 = new BSONDecimal(str);
@@ -208,8 +199,6 @@ public class BSONDecimalTest {
         Assert.assertTrue(decimal1.equals(decimal2));
 
 
-        // case 2: have precision and scale
-//		decimal = DecimalCommon.genBSONDecimal(true, true, false, 0);
         str = "123456789.1234567890123456789";
         decimal = new BSONDecimal(str, 30, 15);
         str = decimal.getValue();
@@ -220,8 +209,6 @@ public class BSONDecimalTest {
         decimal2 = new BSONDecimal(str, precision, scale);
         Assert.assertTrue(decimal1.equals(decimal2));
 
-        // case 3: one has but another not
-//		decimal = DecimalCommon.genBSONDecimal(true, true, false, 0);
         str = "123456789.1234567890123456789";
         decimal1 = new BSONDecimal(str, 100, 50);
         decimal2 = new BSONDecimal(str);
@@ -229,7 +216,6 @@ public class BSONDecimalTest {
         decimal2 = new BSONDecimal(str, precision, scale);
         Assert.assertTrue(decimal1.equals(decimal2));
 
-        // case 4: compare with itself
         str = "123456789.1234567890123456789";
         decimal1 = new BSONDecimal(str, 100, 50);
         decimal2 = new BSONDecimal(str);
@@ -238,7 +224,6 @@ public class BSONDecimalTest {
         Assert.assertTrue(decimal1.equals(decimal1));
         Assert.assertTrue(decimal2.equals(decimal2));
 
-        // case 5: has the same value, but different expression
         lhs = "1.23456789E8";
         rhs = "123456789";
         decimal1 = new BSONDecimal(lhs);
@@ -247,7 +232,6 @@ public class BSONDecimalTest {
         Assert.assertTrue(decimal1.equals(decimal1));
         Assert.assertTrue(decimal2.equals(decimal2));
 
-        // case 6: not equal
         lhs = "1.23456789";
         rhs = "123456789";
         decimal1 = new BSONDecimal(lhs);
@@ -264,7 +248,6 @@ public class BSONDecimalTest {
         BSONObject obj = null;
         BSONDecimal decimal = null;
 
-        // case 1: specify invalid scale
         String value = "12345.6789";
         try {
             decimal = new BSONDecimal(value, 1, -1);
@@ -273,7 +256,6 @@ public class BSONDecimalTest {
             System.out.println("inserted obj is: " + obj);
             cl.insert(obj);
         } catch (IllegalArgumentException e) {
-            // ok
         } catch (Exception e) {
             Assert.fail();
         }
@@ -316,23 +298,17 @@ public class BSONDecimalTest {
         String str2 = "1.2345";
         BasicBSONObject ret = null;
 
-        /// 使用decimal内容构建bson
-        // 方式一（原始方式）：
         BasicBSONObject obj1 = new BasicBSONObject("case1", "test_in_java");
         obj1.put("field1", new BSONDecimal(str1));
         System.out.println("obj1 is: " + obj1); // 输出： { "field1" : { "$decimal" : "0.6789"}}
-        // 方式二（新增方式）：
         BasicBSONObject obj2 = new BasicBSONObject("case2", "test_in_java");
         obj2.put("field2", new BigDecimal(str2));
         System.out.println("obj2 is: " + obj2); // 输出：{ "field2" : { "$decimal" : "1.2345"}}
 
-        /// 从bson中获取decimal内容
-        // 方式一（原始方式）：
         BSONDecimal bsonDecimal = (BSONDecimal) obj1.get("field1");
         BigDecimal decimal1 = bsonDecimal.toBigDecimal();
         System.out.println("decimal1 is: " + decimal1); // 输出：0.6789
 
-        // 方式二（新增方式）：
         BigDecimal decimal3 = obj1.getBigDecimal("field1");
         System.out.println("decimal3 is: " + decimal3); // 输出：0.6789
         BigDecimal decimal4 = obj2.getBigDecimal("field2");
@@ -357,23 +333,17 @@ public class BSONDecimalTest {
     @Test
     public void buildBSONDecimalSample() {
 
-        /// 使用decimal内容构建bson
-        // 方式一（原始方式）：
         BasicBSONObject obj1 = new BasicBSONObject();
         obj1.put("field1", new BSONDecimal("0.6789"));
         System.out.println("obj1 is: " + obj1); // 输出： { "field1" : { "$decimal" : "0.6789"}}
-        // 方式二（新增方式）：
         BasicBSONObject obj2 = new BasicBSONObject();
         obj2.put("field2", new BigDecimal("1.2345"));
         System.out.println("obj2 is: " + obj2); // 输出：{ "field2" : { "$decimal" : "1.2345"}}
 
-        /// 从bson中获取decimal内容
-        // 方式一（原始方式）：
         BSONDecimal bsonDecimal = (BSONDecimal) obj1.get("field1");
         BigDecimal decimal1 = bsonDecimal.toBigDecimal();
         System.out.println("decimal1 is: " + decimal1); // 输出：0.6789
 
-        // 方式二（新增方式）：
         BigDecimal decimal3 = obj1.getBigDecimal("field1");
         System.out.println("decimal3 is: " + decimal3); // 输出：0.6789
         BigDecimal decimal4 = obj2.getBigDecimal("field2");
@@ -383,13 +353,11 @@ public class BSONDecimalTest {
 
     @Test
     public void bug_jira_1990_q1_q2_q3() {
-        // TODO: test more
         String str = null;
         int precision = 0;
         int scale = 0;
         BSONDecimal d = null;
 
-        // q1
         str = "112233.112233445566778899";
         precision = 21;
         scale = 18;
@@ -399,7 +367,6 @@ public class BSONDecimalTest {
         } catch (IllegalArgumentException e) {
         }
 
-        // q2
         str = "123";
         precision = 6;
         scale = 4;
@@ -409,7 +376,6 @@ public class BSONDecimalTest {
         } catch (IllegalArgumentException e) {
         }
 
-        // q3
         str = "1";
         precision = 1000;
         scale = 1000;

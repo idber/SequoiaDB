@@ -67,7 +67,6 @@ public class BtreeIndexCounters extends AbstractMonitor {
 			}
 		}
 		DBObject btree = (DBObject) indexCounters.get("btree");
-		// Class c = btree.get(key).getClass();
 		return (Integer) btree.get(key);
 	}
 

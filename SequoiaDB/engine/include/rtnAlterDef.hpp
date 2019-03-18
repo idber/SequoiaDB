@@ -56,7 +56,6 @@ namespace engine
    class _rtnAlterOptions : public SDBObject
    {
    public:
-      /// ignore one alter's exception and continue to run next.
       BOOLEAN ignoreException ;
 
       _rtnAlterOptions()

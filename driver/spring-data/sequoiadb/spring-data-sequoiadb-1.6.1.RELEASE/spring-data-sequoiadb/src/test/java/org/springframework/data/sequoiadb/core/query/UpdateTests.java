@@ -323,15 +323,11 @@ public class UpdateTests {
 
 	@Test
 	public void testPullAllWithSomeFields() {
-//		Update u = new Update().set("a",new BasicBSONObject("id",2)).set("b",new BasicBSONObject("id",4));
-//		System.out.println("obj is: " + u.getUpdateObject());
 	}
 
 	@Test
 	public void testRename() {
 
-//		Update u = new Update().rename("directory", "folder");
-//		assertThat(u.getUpdateObject().toString(), is("{ \"$rename\" : { \"directory\" : \"folder\"}}"));
 	}
 
 	@Test
@@ -355,8 +351,6 @@ public class UpdateTests {
 	@Test
 	public void testSetOnInsert() {
 
-//		Update u = new Update().setOnInsert("size", 1);
-//		assertThat(u.getUpdateObject().toString(), is("{ \"$setOnInsert\" : { \"size\" : 1}}"));
 	}
 
 	/**
@@ -364,9 +358,6 @@ public class UpdateTests {
 	 */
 	@Test
 	public void testSetOnInsertSetOnInsert() {
-//
-//		Update u = new Update().setOnInsert("size", 1).setOnInsert("count", 1);
-//		assertThat(u.getUpdateObject().toString(), is("{ \"$setOnInsert\" : { \"size\" : 1 , \"count\" : 1}}"));
 	}
 
 	/**
@@ -529,9 +520,6 @@ public class UpdateTests {
 	@Test
 	public void getUpdateObjectShouldReturnCurrentDateCorrectlyForSingleFieldWhenUsingDate() {
 
-//		Update update = new Update().currentDate("foo");
-//		assertThat(update.getUpdateObject(),
-//				equalTo(new BasicBSONObjectBuilder().add("$currentDate", new BasicBSONObject("foo", true)).get()));
 	}
 
 	/**
@@ -540,10 +528,6 @@ public class UpdateTests {
 	@Test
 	public void getUpdateObjectShouldReturnCurrentDateCorrectlyForMultipleFieldsWhenUsingDate() {
 
-//		Update update = new Update().currentDate("foo").currentDate("bar");
-//		assertThat(update.getUpdateObject(),
-//				equalTo(new BasicBSONObjectBuilder().add("$currentDate", new BasicBSONObject("foo", true).append("bar", true))
-//						.get()));
 	}
 
 	/**
@@ -551,12 +535,6 @@ public class UpdateTests {
 	 */
 	@Test
 	public void getUpdateObjectShouldReturnCurrentDateCorrectlyForSingleFieldWhenUsingTimestamp() {
-//
-//		Update update = new Update().currentTimestamp("foo");
-//		assertThat(
-//				update.getUpdateObject(),
-//				equalTo(new BasicBSONObjectBuilder().add("$currentDate",
-//						new BasicBSONObject("foo", new BasicBSONObject("$type", "timestamp"))).get()));
 	}
 
 	/**
@@ -565,13 +543,6 @@ public class UpdateTests {
 	@Test
 	public void getUpdateObjectShouldReturnCurrentDateCorrectlyForMultipleFieldsWhenUsingTimestamp() {
 
-//		Update update = new Update().currentTimestamp("foo").currentTimestamp("bar");
-//		assertThat(
-//				update.getUpdateObject(),
-//				equalTo(new BasicBSONObjectBuilder().add(
-//						"$currentDate",
-//						new BasicBSONObject("foo", new BasicBSONObject("$type", "timestamp")).append("bar", new BasicBSONObject("$type",
-//								"timestamp"))).get()));
 	}
 
 	/**
@@ -579,12 +550,6 @@ public class UpdateTests {
 	 */
 	@Test
 	public void getUpdateObjectShouldReturnCurrentDateCorrectlyWhenUsingMixedDateAndTimestamp() {
-//
-//		Update update = new Update().currentDate("foo").currentTimestamp("bar");
-//		assertThat(
-//				update.getUpdateObject(),
-//				equalTo(new BasicBSONObjectBuilder().add("$currentDate",
-//						new BasicBSONObject("foo", true).append("bar", new BasicBSONObject("$type", "timestamp"))).get()));
 	}
 
 	/**

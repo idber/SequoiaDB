@@ -70,8 +70,6 @@ namespace engine
 
    INT16 sdbCatalogueCB::majoritySize( BOOLEAN needWaitSync )
    {
-      // For sub-command inside transaction, do not wait for replicas
-      // For ending transaction of commands, wait for majority number of replicas
       INT16 w = (INT16)( sdbGetReplCB()->groupSize() / 2 + 1 ) ;
       INT16 ret = 1 ;
 
@@ -99,8 +97,6 @@ namespace engine
       }
       rc = SDB_CLS_NOT_PRIMARY ;
 
-      // if know primary exist( and not self ) or no majority size,
-      // return at now, otherwise, need to wait some time
       if ( MSG_INVALID_ROUTEID !=
            ( _primaryID.value = pRepl->getPrimary().value ) &&
            !pRepl->primaryIsMe() &&
@@ -161,15 +157,12 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CATALOGCB_INIT ) ;
 
-      // 1. init param
       _routeID.columns.serviceID = MSG_ROUTE_CAT_SERVICE ;
       _strHostName = pmdGetKRCB()->getHostName() ;
       _strCatServiceName = pmdGetOptionCB()->catService() ;
 
-      // register event handle
       pmdGetKRCB()->regEventHandler( this ) ;
 
-      // 2. create objs
       _pNetWork = SDB_OSS_NEW _netRouteAgent( &_catMainCtrl ) ;
       if ( !_pNetWork )
       {
@@ -178,7 +171,6 @@ namespace engine
          goto error ;
       }
 
-      // 3. member objs init
       rc = _catMainCtrl.init() ;
       PD_RC_CHECK( rc, PDERROR, "Init main controller failed, rc: %d", rc ) ;
 
@@ -191,7 +183,6 @@ namespace engine
       rc = _catDCMgr.init() ;
       PD_RC_CHECK( rc, PDERROR, "Init cat dc manager failed, rc: %d", rc ) ;
 
-      // 4. create listen
       PD_TRACE1 ( SDB_CATALOGCB_INIT,
                   PD_PACK_ULONG ( _routeID.value ) ) ;
       _pNetWork->setLocalID( _routeID );
@@ -230,7 +221,6 @@ namespace engine
       pmdEDUMgr *pEDUMgr = pmdGetKRCB()->getEDUMgr() ;
       EDUID eduID = PMD_INVALID_EDUID ;
 
-      // 1. start catMgr edu
       _catMainCtrl.getAttachEvent()->reset() ;
       rc = pEDUMgr->startEDU ( EDU_TYPE_CATMGR,
                                (_pmdObjBase*)getMainController(),
@@ -241,7 +231,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to wait cat manager edu "
                    "attach, rc: %d", rc ) ;
 
-      // 2. start net edu
       rc = pEDUMgr->startEDU ( EDU_TYPE_CATNETWORK,
                                (netRouteAgent*)netWork(),
                                &eduID ) ;
@@ -258,13 +247,11 @@ namespace engine
 
    INT32 sdbCatalogueCB::deactive ()
    {
-      // 1. stop listen
       if ( _pNetWork )
       {
          _pNetWork->closeListen() ;
       }
 
-      // 2. stop io
       if ( _pNetWork )
       {
          _pNetWork->stop() ;
@@ -275,13 +262,11 @@ namespace engine
 
    INT32 sdbCatalogueCB::fini ()
    {
-      // member objects fini
       _catDCMgr.fini() ;
       _catNodeMgr.fini() ;
       _catlogueMgr.fini() ;
       _catMainCtrl.fini() ;
 
-      // unregister event handle
       pmdGetKRCB()->unregEventHandler( this ) ;
 
       if ( _pNetWork != NULL )
@@ -767,7 +752,6 @@ namespace engine
       return id;
    }
 
-   // The caller must make sure id has the correct serviceID
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGCB_UPDATEROUTEID, "sdbCatalogueCB::updateRouteID" )
    void sdbCatalogueCB::onRegistered ( const MsgRouteID &nodeID )
    {
@@ -884,7 +868,6 @@ namespace engine
 
       PD_TRACE_EXIT( SDB_CATALOGCB_ONBEGINCMD ) ;
 
-      // Ignore errors
       return SDB_OK ;
    }
 
@@ -895,7 +878,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_CATALOGCB_ONENDCMD ) ;
 
-      // Over reverse order
       for ( VEC_EVENT_HANDLER::reverse_iterator iter = _vecEventHandler.rbegin();
             iter != _vecEventHandler.rend() ;
             ++iter )
@@ -912,7 +894,6 @@ namespace engine
 
       PD_TRACE_EXIT( SDB_CATALOGCB_ONENDCMD ) ;
 
-      // ignore errors
       return SDB_OK ;
    }
 
@@ -923,7 +904,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_CATALOGCB_ONSENDREPLY ) ;
 
-      // Over reverse order
       for ( VEC_EVENT_HANDLER::reverse_iterator iter = _vecEventHandler.rbegin();
             iter != _vecEventHandler.rend() ;
             ++iter )
@@ -972,7 +952,6 @@ namespace engine
                  "Sending reply message [%d] with rc [%d]",
                  pReply->header.opCode, pReply->flags ) ;
 
-         /// when error, but has no data, fill the error obj
          if ( pReply->flags &&
               pReply->header.messageLength == sizeof( MsgOpReply ) )
          {
@@ -1007,18 +986,14 @@ namespace engine
    error :
       if ( pReply )
       {
-         // Delete context if the reply message specifies contextID
-         // since Coord will not send KillContext if Catalog reports error
          SINT64 contextID = pReply->contextID ;
          if ( -1 != contextID )
          {
             _catMainCtrl.delContextByID( contextID, TRUE ) ;
          }
 
-         /// when org-operator is succeed
          if ( SDB_OK == result || SDB_DMS_EOC == result )
          {
-            // Replace with error reply
             fillErrReply( pReply, &errReply, rc ) ;
             pReply = &errReply ;
             pReplyData = NULL ;
@@ -1034,7 +1009,6 @@ namespace engine
       SDB_ASSERT( pReply, "pReply should not be NULL" ) ;
       SDB_ASSERT( pErrReply, "pErrReply should not be NULL" ) ;
 
-      // Fill error reply message
       pErrReply->header.messageLength = sizeof( MsgOpReply ) ;
       pErrReply->header.opCode = pReply->header.opCode ;
       pErrReply->header.requestID = pReply->header.requestID ;

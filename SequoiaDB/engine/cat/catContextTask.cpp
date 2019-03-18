@@ -291,7 +291,6 @@ namespace engine
                    "Failed to get the collection [%s], rc: %d",
                    _dataName.c_str(), rc ) ;
 
-      // Check version
       rc = rtnGetIntElement( _boData, CAT_VERSION_NAME, curVersion ) ;
       PD_RC_CHECK( rc, PDWARNING,
                    "Failed to get the field [%s], rc: %d",
@@ -306,7 +305,6 @@ namespace engine
                     "( curVer: %d, coordVer: %d )",
                   _dataName.c_str(), curVersion, _version ) ;
          }
-         // Always update Coord
          _needUpdateCoord = TRUE ;
       }
 
@@ -329,7 +327,6 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_CATCTXDROPCLTASK_PREEXECUTE_INT ) ;
 
-      // Remove tasks in checking step to avoid tasks to wait for locks
       rc = catRemoveCLTasks( _dataName, cb, w ) ;
       if ( SDB_CAT_TASK_NOTFOUND == rc )
       {
@@ -400,7 +397,6 @@ namespace engine
                    "Failed to get the main-collection [%s], rc: %d",
                    _dataName.c_str(), rc ) ;
 
-      // Main-collection should be main collection
       rc = catCheckMainCollection( _boData, TRUE ) ;
       PD_RC_CHECK( rc, PDWARNING,
                    "Source collection [%s] must be partitioned-collection!",
@@ -425,7 +421,6 @@ namespace engine
 
       BSONObj dummyLowBound, dummyUpBound ;
 
-      // update main-collection catalog info
       rc = catUnlinkMainCLStep( _dataName, _subCLName,
                                 FALSE, dummyLowBound, dummyUpBound,
                                 cb, pDmsCB, pDpsCB, w ) ;
@@ -480,7 +475,6 @@ namespace engine
                    "Sub-collection [%s] could not be a main-collection!",
                    _dataName.c_str() ) ;
 
-      // Check if sub-collection already linked
       rc = catCheckRelinkCollection ( _boData, tmpMainCLName ) ;
       if ( rc == SDB_RELINK_SUB_CL )
       {
@@ -495,7 +489,6 @@ namespace engine
       }
       else
       {
-         // Need return SDB_OK to keep quiet
          PD_LOG( PDWARNING,
                  "Sub-collection [%s] hasn't been linked",
                  _dataName.c_str() ) ;
@@ -524,7 +517,6 @@ namespace engine
          goto done ;
       }
 
-      // update sub-collection catalog info
       rc = catUnlinkSubCLStep( _dataName, cb, pDmsCB, pDpsCB, w ) ;
       PD_RC_CHECK( rc, PDWARNING,
                    "Failed to update the sub-collection [%s], rc: %d",
@@ -610,7 +602,6 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB_CATCTXCREATEIDXTASK_EXECUTE_INT ) ;
 
-      // Do nothing
 
       PD_TRACE_EXIT ( SDB_CATCTXCREATEIDXTASK_EXECUTE_INT ) ;
 
@@ -625,7 +616,6 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB_CATCTXCREATEIDXTASK_ROLLBACK_INT ) ;
 
-      // Do nothing
 
       PD_TRACE_EXIT ( SDB_CATCTXCREATEIDXTASK_ROLLBACK_INT ) ;
 
@@ -645,13 +635,11 @@ namespace engine
       {
          if ( checkedKeyIDs.count( skSiteID ) > 0 )
          {
-            /// already checked
             goto done ;
          }
          checkedKeyIDs.insert( skSiteID ) ;
       }
 
-      /// check the sharding key
       try
       {
          const BSONObj &shardingKey = cataSet.getShardingKey() ;
@@ -725,7 +713,6 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB_CATCTXDROPIDXTASK_EXECUTE_INT ) ;
 
-      // Do nothing
 
       PD_TRACE_EXIT ( SDB_CATCTXDROPIDXTASK_EXECUTE_INT ) ;
 
@@ -781,7 +768,6 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_CATCTXDELCLCSTASK_CHECK_INT ) ;
 
-      // Do nothing
 
       PD_TRACE_EXITRC ( SDB_CATCTXDELCLCSTASK_CHECK_INT, rc ) ;
 
@@ -876,7 +862,6 @@ namespace engine
                       "Failed to get the main-collection [%s], rc: %d",
                       mainCLName.c_str(), rc ) ;
 
-         // Main-collection should be main collection
          rc = catCheckMainCollection( boMainCL, TRUE ) ;
          if ( SDB_INVALID_MAIN_CL == rc )
          {

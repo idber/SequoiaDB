@@ -88,7 +88,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 	private int _precision;
 	private int _scale;
 
-    // fields for helping to build decimal(result in middle)
     private int _mid_typemod;
     private int _mid_ndigits;
     private int _mid_sign;
@@ -98,14 +97,12 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
     private int _mid_digits_idx = 0;
     private boolean _hasCarry = false;
 
-    // fields for building bson
     private int _size;
     private int _typemod;
     private short _signscale;
     private short _weight;
     private short[] _digits;
 
-    // other fields for help
     private static final int[] round_powers = { 0, 1000, 100, 10 };
 
     /*
@@ -183,19 +180,11 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 	public short[] getDigits() {
         short[] retDigits = new short[_mid_ndigits];
 
-        // here _mid_digits and _digits have the same reference,
-        // so we just use _mid_digits but not _digits
 
-        // when input nan/max/min, _mid_digits is null
         if (_mid_digits != null && _mid_digits.length > 0) {
             if (!_hasCarry) {
-		        // actually, "_ndigits" is less than "_digits.length",
-		        // so, we can never user the later to replace the former
             	System.arraycopy(_mid_digits, 1, retDigits, 0, _mid_ndigits);
             } else {
-		        // when we come here, we just copy "_mid_ndigits" from the 
-		        // source array, but not "_mid_ndigits + 1", for we have 
-		        // adjust "_mid_ndigits" when carry happen.
             	System.arraycopy(_mid_digits, 0, retDigits, 0, _mid_ndigits);
             }
         }
@@ -281,7 +270,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 	 */
 	public BSONDecimal(int size, int typemod, 
 			short signscale, short weight, short[] digits) {
-        // check
         if ((size < DECIMAL_HEADER_SIZE) ||
             (size == DECIMAL_HEADER_SIZE && (digits != null && digits.length != 0)) ||
             (size > DECIMAL_HEADER_SIZE && (digits == null ||digits.length == 0))) {
@@ -304,7 +292,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
         _digits[0] = (short)0;
         System.arraycopy(digits, 0, _digits, 1, digits.length);
 
-        // init the middle result
         _mid_typemod = _typemod;
         _mid_ndigits = digits.length; // here we can't use "_digits.length", "digits.length" is the actual count
         _mid_sign = _signscale & DECIMAL_SIGN_MASK;
@@ -315,7 +302,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
         _mid_digits_idx = 1;
         _hasCarry = false;
 
-        // transform to string value/precision/scale
         _value = _getValue();
         _precision = _getPrecision();
         _scale = _getScale();
@@ -456,7 +442,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
     @Override
     public int hashCode(){
     	String value = _value;
-    	// let "2.0" or "2.00" to be "2"
     	if (value.indexOf(".") > -1) {
     		value = value.replaceAll("0+$", "");
     		value = value.replaceAll("[.]$", "");
@@ -464,7 +449,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
     			value = "0";
     		}
     	}
-        // see Effective Java by Joshua Bloch
         int hash = 17;
         hash = 37 * hash + 37 * BSON.NUMBER_DECIMAL;
         hash = 37 * hash + value.hashCode();
@@ -477,8 +461,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
      */
     @Override
 	public String toString() {
-//		return "{" + "\"$decimal\" : \"" + _value + "\", \"$precision\" : [ " + _precision
-//				+ ", " + _scale + " ]" + "}";
 		return JSON.serialize(this);
 	}
     
@@ -499,7 +481,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 		int cp_idx = 0;
 
 		if (_value.length() >= 3) {
-			// not a number
 			if ((cp[0] == 'n' || cp[0] == 'N')
 					&& (cp[1] == 'a' || cp[1] == 'A')
 					&& (cp[2] == 'n' || cp[2] == 'N')) {
@@ -507,7 +488,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 				_update();
 				return;
 			}
-			// min
 			if ((cp[0] == 'm' || cp[0] == 'M')
 					&& (cp[1] == 'i' || cp[1] == 'I')
 					&& (cp[2] == 'n' || cp[2] == 'N')) {
@@ -515,28 +495,10 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 				_update();
 				return;
 			}
-			// max
 			if ((cp[0] == 'm' || cp[0] == 'M')
 					&& (cp[1] == 'a' || cp[1] == 'A')
 					&& (cp[2] == 'x' || cp[2] == 'X')) {
 				_setMax();
-				_update();
-				return;
-			}
-			// inf
-			if ((cp[0] == 'i' || cp[0] == 'I')
-					&& (cp[1] == 'n' || cp[1] == 'N')
-					&& (cp[2] == 'f' || cp[2] == 'F')) {
-				_setMax();
-				_update();
-				return;
-			}
-			// -inf
-			if ((cp[0] == '-') &&
-					(cp[1] == 'i' || cp[1] == 'I')
-					&& (cp[2] == 'n' || cp[2] == 'N')
-					&& (cp[3] == 'f' || cp[3] == 'F')) {
-				_setMin();
 				_update();
 				return;
 			}
@@ -563,13 +525,9 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 			cp_idx++;
 		}
 
-		// the first digit should be a number
 		if (!Character.isDigit(cp[cp_idx])) {
 			throw new IllegalArgumentException("invalid decimal: " + _value);
 		}
-		// actually, "decdigitsnum" is more than what we need, we need to make
-		// sure
-		// we have enough space for holding the digits
 		int decdigits_idx = 0;
 		int decdigitsnum = (cp.length - cp_idx) + DECIMAL_DEC_DIGITS * 2;
 		int[] decdigits = new int[decdigitsnum];
@@ -601,24 +559,20 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 				}
 			} else {
 				if (cp[cp_idx] != 'e' && cp[cp_idx] != 'E') {
-					// invalid argument
 					throw new IllegalArgumentException(
 							"invalid digit in decimal: " + _value);
 				} else {
-					// when cp[cp_idx] is 'e' or 'E', let's handle it later
 					break;
 				}
 			}
 		}
 
-		// "ddigits" does not contain '.'
 		ddigits = decdigits_idx - DECIMAL_DEC_DIGITS;
 
 		/* Handle exponent, if any */
 		if ((cp_idx < cp.length) && (cp[cp_idx] == 'e' || cp[cp_idx] == 'E')) {
 			long exponent = 0L;
 			cp_idx++;
-			// Long.parseLong() in JDK1.6 can't resolve '+'
 			if (cp_idx < cp.length && cp[cp_idx] == '+') {
 				cp_idx++;
 			}
@@ -641,7 +595,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 			}
 		}
 		
-		// make sure the count of digits is in the bound
 		if (dweight >= DECIMAL_MAX_DWEIGHT) {
 			throw new IllegalArgumentException(
 					"the integer part of the value is out of bound");
@@ -658,43 +611,17 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 		 * have a correctly aligned first NBASE digit.
 		 */
 		if (dweight >= 0) {
-			// "dweight + 1" is the count of digits in the left of decimal
-			// point,
-			// "(dweight + 1 + DECIMAL_DEC_DIGITS - 1) / DECIMAL_DEC_DIGITS"
-			// tells
-			// us which part is the first digit in,
-			// because when dweight >= 0, weight starts from 0(the first part in
-			// the
-			// left of decimal point), so we need to decrease 1
 			weight = (dweight + 1 + DECIMAL_DEC_DIGITS - 1) / DECIMAL_DEC_DIGITS - 1;
 		} else {
-			// "-dweight - 1" means how many "0" exists ahead the first valid
-			// digit,
-			// for example, "0.00000123", "dweight" is -6, "-dweight - 1" means
-			// there
-			// has 5 "0" ahead the first valid digit "1".
-			// "(-dweight - 1)/DECIMAL_DEC_DIGITS + 1" tells us which part is
-			// the
-			// first valid digit in, because when dweight < 0, weight starts
-			// from -1(
-			// the first part in the right of decimal point), so we need to
-			// increase 1
 			weight = -((-dweight - 1) / DECIMAL_DEC_DIGITS + 1);
 		}
-		// notic that: when we input a decimal in format of ".123456" or
-		// ".01234e5"
-		// "dweight","weight" and "offset" do not express their own meaning
-		// accurately, but function "_decimal_strip" will help us to fix the
-		// "weight", and what we need to care about is the corrent "weight".
 
 		offset = (weight + 1) * DECIMAL_DEC_DIGITS - (dweight + 1);
 		ndigits = (ddigits + offset + DECIMAL_DEC_DIGITS - 1)
 				/ DECIMAL_DEC_DIGITS;
 
-		// alloc buffer for keeping digits
 		_alloc(ndigits);
 
-		// keep result to local
 	    _mid_sign = sign;
 	    _mid_weight = weight;
 	    _mid_dscale = dscale;
@@ -723,7 +650,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 		char[] cp = new char[expect_char_size];
 		int cp_idx = 0;
 		int cp_idx_end = 0;
-		// decimal is nan
 		if (_isNan(this)) {
 			cp[0] = 'N';
 			cp[1] = 'a';
@@ -731,7 +657,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 			retStr = new String(cp);
 			return retStr;
 		}
-		// decimal is min
 		if (_isMin(this)) {
 			cp[0] = 'M';
 			cp[1] = 'I';
@@ -739,7 +664,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 			retStr = new String(cp);
 			return retStr;
 		}
-		// decimal is max
 		if (_isMax(this)) {
 			cp[0] = 'M';
 			cp[1] = 'A';
@@ -747,24 +671,19 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 			retStr = new String(cp);
 			return retStr;
 		}
-		// output a dash for negative values
 		if (_mid_sign == SDB_DECIMAL_NEG) {
 			cp[cp_idx++] = '-';
 		}
-		// output all digits before the decimal point
 		if (_mid_weight < 0) {
 			d = _mid_weight + 1;
 			cp[cp_idx++] = '0';
 		} else {
 			for (d = 0; d <= _mid_weight; d++) {
-			    // for _digits[0] is placed carry, so we need to known whether these has carry or not.
-                // if so, we start from position 0, otherwise, we start from position 1
                 if (_hasCarry) {
                     dig = ((d < _mid_ndigits) ? _mid_digits[d] : (short)0);
                 } else {
                     dig = ((d < _mid_ndigits) ? _mid_digits[1 + d] : (short)0);
                 }
-				// in the first digit, suppress extra leading decimal zeroes
 				{
 					boolean putit = (d > 0);
 
@@ -802,8 +721,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 			cp[cp_idx++] = '.';
 			cp_idx_end = cp_idx + _mid_dscale;
 			for (int i = 0; i < _mid_dscale; d++, i += DECIMAL_DEC_DIGITS) {
-                // for _digits[0] is placed carry, so we need to known whether these has carry or not.
-                // if so, we start from position 0, otherwise, we start from position 1
                 if (_hasCarry) {
                     dig = (d >= 0 && d < _mid_ndigits) ? _mid_digits[d] : (short)0;
                 } else {
@@ -823,23 +740,19 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 				
 				cp[cp_idx++] = (char)(dig + '0');
 			}
-			// we need to add some zeros to tail sometimes
 			while(cp_idx < cp_idx_end) {
 				cp[cp_idx++] = '0';
 			}
-			// we don't need the extra zeros in the tail
 			while(cp_idx_end < cp_idx) {
 				cp[cp_idx_end] = (char)(cp[cp_idx_end] - '0');
 				cp_idx_end++;
 			}
 		}
-		// build the return BSONDecimal
 		retStr = new String(cp).trim();
 		return retStr;
 	}
     
 	private void _init(String value, int precision, int scale) {
-		// check 
 		if (value == null || value == "") {
 			throw new IllegalArgumentException("the string of decimal value is null or empty");
 		}
@@ -852,12 +765,10 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 			throw new IllegalArgumentException("invalid precision: "
 					+ precision + ", and scale: " + scale);
 		}
-        // init(never remove this, if we don't init _value, it's null)
         _value = value;
         _precision = precision;
         _scale = scale;
 
-        // fields for helping to build decimal(result in middle)
         if (precision == -1 && scale == -1)
         {
             _mid_typemod = -1;
@@ -872,7 +783,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
         _mid_weight = 0;
         _mid_digits = null;
 
-        // fields for building bson
         _size = -1;
         _typemod = -1;
         _signscale = 0;
@@ -954,8 +864,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
     }
 	
 	private void _alloc(int ndigits) {
-		// we need another short for carry,
-		// when rounding happen, we may use this short
 	    _mid_digits = new short[ndigits + 1]; 
 	    _mid_digits_idx = 0;
 	    _mid_digits[_mid_digits_idx++] = 0;
@@ -964,15 +872,10 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 	
     private void _update()
     {
-        // 1. _size
         _size = DECIMAL_HEADER_SIZE + _mid_ndigits * SIZEOF_SHORT;
-        // 2. _typemod
         _typemod = _isSpecial(this) ? -1 : _mid_typemod;
-        // 3. _signscale
         _signscale = (short)((_mid_dscale & DECIMAL_DSCALE_MASK) | _mid_sign);
-        // 4. _weight
         _weight = (short)_mid_weight;
-        // 5. _digits
         if (_mid_digits == null || _mid_digits.length == 0 || _mid_ndigits == 0)
         {
             _digits = _mid_digits = new short[0];
@@ -986,17 +889,14 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 	private void _strip() {
 		int ndigits = _mid_ndigits;
 		int digits_idx_f = 1;
-		// _digits starts from index 1, so we need to add 1
 		int digits_idx_e = (ndigits + 1) - 1;
 
-		// strip leading zeroes
 		while (ndigits > 0 && _mid_digits[digits_idx_f] == 0) {
 			digits_idx_f++;
 			_mid_weight--;
 			ndigits--;
 		}
 
-		// strip trailing zeroes
 		while (ndigits > 0 && _mid_digits[digits_idx_e] == 0) {
 			digits_idx_e--;
 			ndigits--;
@@ -1008,13 +908,11 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 					+ "] is not equal with [" + count + "]");
 		}
 
-		// if it's zero, normalize the sign and weight
 		if (ndigits == 0) {
 		    _mid_sign = SDB_DECIMAL_POS;
 		    _mid_weight = 0;
 		}
 
-		// update the local results, when the begin index is not in position 1
 		if (digits_idx_f != 1) {
 			for (int i = digits_idx_f, begin_idx = 1; i <= digits_idx_e; ++i, ++begin_idx) {
 				_mid_digits[begin_idx] = _mid_digits[i];
@@ -1024,7 +922,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 		for (int i = digits_idx_e + 1; i < _mid_digits.length; i++) {
 			_mid_digits[i] = 0;
 		}
-		// reset it to the beginning
 	    _mid_digits_idx = 1;
 	    _mid_ndigits = ndigits;
 	}
@@ -1036,7 +933,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 		int ddigits = 0;
 		int i = 0;
 
-		// Do nothing if we have a default _typemod(-1)
 		if (_mid_typemod == -1) {
 			return;
 		}
@@ -1045,7 +941,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 		scale = _mid_typemod & 0xffff;
 		maxdigits = precision - scale;
 
-		// Round to target scale (and set _dscale)
 		_round(scale);
 
 		/*
@@ -1057,7 +952,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 		 */
 		ddigits = (_mid_weight + 1) * DECIMAL_DEC_DIGITS;
 		if (ddigits > maxdigits) {
-			// Determine true weight; and check for all-zero result
             if (!_hasCarry) {
             	i = 1;
             } else {
@@ -1066,7 +960,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 			for (; i <= _mid_ndigits; i++) {
 				short dig = _mid_digits[i];
 				if (dig != 0) {
-					// Adjust for any high-order decimal zero digits
 					if (dig < 10) {
 						ddigits -= 3;
 					} else if (dig < 100) {
@@ -1095,7 +988,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 
 		_mid_dscale = rscale;
 
-		// decimal digits wanted
 		di = (_mid_weight + 1) * DECIMAL_DEC_DIGITS + rscale;
 
 		/*
@@ -1107,21 +999,16 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 		    _mid_weight = 0;
 		    _mid_sign = SDB_DECIMAL_POS;
 		} else {
-			// NBASE digits wanted
 			ndigits = (di + DECIMAL_DEC_DIGITS - 1) / DECIMAL_DEC_DIGITS;
 
-			// 0, or number of decimal digits to keep in last NBASE digit
 			di %= DECIMAL_DEC_DIGITS;
 
 			if ((ndigits < _mid_ndigits) || (ndigits == _mid_ndigits && di > 0)) {
 				_mid_ndigits = ndigits;
 				if (di == 0) {
-					// for digits in _digits starts from position 1 but not 0,
-					// so we need to increase 1
 					carry = (_mid_digits[ndigits + 1] >= DECIMAL_HALF_NBASE) ? 1
 							: 0;
 				} else {
-					// Must round within last NBASE digit
 					int extra = 0;
 					int pow10 = 0;
 					pow10 = round_powers[di];
@@ -1139,7 +1026,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 					}
 				}
 
-				// Propagate carry if needed
 				while (carry != 0) {
 					carry += _mid_digits[--ndigits + 1];
 					if (carry >= DECIMAL_NBASE) {
@@ -1152,7 +1038,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
 				}
 
 				if (ndigits < 0) {
-					// better not have added > 1 digit
 					if (ndigits != -1) {
 						throw new IllegalStateException("ndigits[" + ndigits
 								+ "] is not -1");
@@ -1236,7 +1121,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
     {
         if (other == null) { return 1; }
 
-        // min is equal min;  min is less than any non-min.
         if (_isMin(this))
         {
             if (_isMin(other))
@@ -1253,7 +1137,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
             return 1;
         }
 
-        // max is equal max;  max is larger than any non-max.
         if (_isMax(this))
         {
             if (_isMax(other))
@@ -1335,8 +1218,6 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
         {
             return -1;
         }
-        // note that, when we come here, we both "this" and "other" are negative number
-        // so, we need to return the opposite result
         return -_compareABS(other);
     }
 	
@@ -1357,11 +1238,9 @@ public class BSONDecimal implements Comparable<BSONDecimal>, Serializable {
              return 1;
          }
 
-         // we use "xxx.Digits", so we do not need to care about carry
          digits1 = this.getDigits();
          digits2 = other.getDigits();            
 
-         // check whether digits1 and digits2 will be null or not
          if (digits1 == null || digits2 == null)
          {
              String message = "";

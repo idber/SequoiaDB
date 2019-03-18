@@ -292,7 +292,6 @@ namespace engine
          UINT32            _metaGroup ;
 
          UINT32            _alignBuf ;
-         /// error info
          ROUTE_RC_MAP      _nokRC ;
 
          coordResource        *_pResource ;

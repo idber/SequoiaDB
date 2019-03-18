@@ -71,7 +71,6 @@ namespace engine
       _direction        = 0 ;
       _queryModifier    = NULL ;
 
-      // Save query activity
       _enableMonContext = TRUE ;
       _enableQueryActivity = TRUE ;
    }
@@ -84,21 +83,17 @@ namespace engine
          _scanner = NULL ;
       }
 
-      // first release plan
       setQueryActivity( _hitEnd ) ;
       _planRuntime.releasePlan() ;
 
-      // second release mb context
       if ( _mbContext && _su )
       {
          _su->data()->releaseMBContext( _mbContext ) ;
       }
-      // last unlock su
       if ( _dmsCB && _su && -1 != contextID() )
       {
          _dmsCB->suUnlock ( _su->CSID() ) ;
       }
-      // query modifier
       if ( _queryModifier )
       {
          SDB_OSS_DEL _queryModifier ;
@@ -150,7 +145,6 @@ namespace engine
 
       rtnPredicateList *predList = NULL ;
 
-      // for index scan, we maintain context by runtime instead of by DMS
       ixmIndexCB indexCB ( _planRuntime.getIndexCBExtent(), su->index(), NULL ) ;
       if ( !indexCB.isInitialized() )
       {
@@ -166,16 +160,13 @@ namespace engine
          rc = SDB_IXM_NOTEXIST ;
          goto error ;
       }
-      // get the predicate list
       predList = _planRuntime.getPredList() ;
       SDB_ASSERT ( predList, "predList can't be NULL" ) ;
 
-      // create scanner
       if ( _scanner )
       {
          SDB_OSS_DEL _scanner ;
       }
-      // _scanner should be deleted in context destructor
       _scanner = SDB_OSS_NEW rtnIXScanner ( &indexCB, predList,
                                             su, cb ) ;
       if ( !_scanner )
@@ -186,7 +177,6 @@ namespace engine
       }
       _scanner->setMonCtxCB ( &_monCtxCB ) ;
 
-      // index block scan
       if ( blockObj )
       {
          SDB_ASSERT( direction == 1 || direction == -1,
@@ -299,7 +289,6 @@ namespace engine
          goto error ;
       }
 
-      // once context is opened, let's construct matcher and selector
       if ( !selector.isEmpty() )
       {
          try
@@ -391,7 +380,6 @@ namespace engine
       }
       _scanner = scanner ;
 
-      // once context is opened, let's construct matcher and selector
       if ( !selector.isEmpty() )
       {
          try
@@ -640,7 +628,6 @@ namespace engine
             mthContext.enableDollarList() ;
          }
 
-         // prefetch
          if ( eduID() != cb->getID() && !isOpened() )
          {
             rc = SDB_DMS_CONTEXT_IS_CLOSE ;
@@ -657,7 +644,6 @@ namespace engine
 
                if ( _queryModifier )
                {
-                  //dollarList is pointed to _queryModifier->getDollarList()
                   mthContext.getDollarList( dollarList ) ;
                   rc = _queryModify( cb, recordID, recordDataPtr, obj ) ;
                   PD_RC_CHECK( rc, PDERROR, "Failed to query modify" ) ;
@@ -673,15 +659,12 @@ namespace engine
                rc = SDB_SYS ;
                goto error ;
             }
-            // increase counter
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_SELECT, 1 ) ;
-            // decrease numToReturn
             if ( _numToReturn > 0 )
             {
                --_numToReturn ;
             }
 
-            //do not clear dollarlist flag
             mthContext.clearRecordInfo() ;
          } // end while
 
@@ -727,8 +710,6 @@ namespace engine
          }
          _lastExtLID = extScanner->curExtent()->_logicID ;
 
-         // If the next extent is valid, let's step to it. Otherwise, the end
-         // is hit.
          if ( DMS_INVALID_EXTENT == _extentID ||
               SDB_DMS_EOC == extScanner->stepToNextExtent() )
          {
@@ -795,7 +776,6 @@ namespace engine
          generator.setQueryModify( TRUE ) ;
       }
 
-      // loop until we read something in the buffer
       while ( numRecords() == startNumRecords )
       {
          _mthMatchTreeContext mthContext ;
@@ -804,7 +784,6 @@ namespace engine
             mthContext.enableDollarList() ;
          }
 
-         // prefetch
          if ( eduID() != cb->getID() && !isOpened() )
          {
             rc = SDB_DMS_CONTEXT_IS_CLOSE ;
@@ -839,7 +818,6 @@ namespace engine
 
                   if ( _queryModifier )
                   {
-                     //dollarList is pointed to _queryModifier->getDollarList()
                      mthContext.getDollarList( dollarList ) ;
                      rc = _queryModify( cb, recordID, recordDataPtr, obj ) ;
                      PD_RC_CHECK( rc, PDERROR, "Failed to query modify" ) ;
@@ -849,16 +827,10 @@ namespace engine
                   rc = _innerAppend( selector, generator ) ;
                   PD_RC_CHECK( rc, PDERROR, "innerAppend failed:rc=%d", rc ) ;
 
-                  // make sure we still have room to read another
-                  // record_max_sz (i.e. 16MB). if we have less than 16MB
-                  // to 256MB, we can't safely assume the next record we
-                  // read will not overflow the buffer, so let's just break
-                  // before reading the next record
                   if ( buffEndOffset() + DMS_RECORD_MAX_SZ >
                        RTN_RESULTBUFFER_SIZE_MAX )
                   {
                      secScanner.stop () ;
-                     // let's break if there's no room for another max record
                      break ;
                   }
                }
@@ -868,7 +840,6 @@ namespace engine
                   rc = SDB_SYS ;
                   goto error ;
                }
-               // increase counter
                DMS_MON_OP_COUNT_INC( pMonAppCB, MON_SELECT, 1 ) ;
             }
             else
@@ -879,7 +850,6 @@ namespace engine
                             rc ) ;
             }
 
-            //do not clear dollarlist flag
             mthContext.clearRecordInfo() ;
          }
 
@@ -1055,22 +1025,18 @@ namespace engine
             goto error ;
          }
          indexObj = ele.embeddedObject() ;
-         // StartKey
          rc = rtnGetObjElement( indexObj, FIELD_NAME_STARTKEY, startKey ) ;
          PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s] from obj[%s], "
                       "rc: %d", FIELD_NAME_STARTKEY,
                       indexObj.toString().c_str(), rc ) ;
-         // EndKey
          rc = rtnGetObjElement( indexObj, FIELD_NAME_ENDKEY, endKey ) ;
          PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s] from obj[%s], "
                       "rc: %d", FIELD_NAME_ENDKEY,
                       indexObj.toString().c_str(), rc ) ;
-         // StartRID
          rc = _parseRID( indexObj.getField( FIELD_NAME_STARTRID ), startRID ) ;
          PD_RC_CHECK( rc, PDWARNING, "Failed to parse %s, rc: %d",
                       FIELD_NAME_STARTRID, rc ) ;
 
-         // EndRID
          rc = _parseRID( indexObj.getField( FIELD_NAME_ENDRID ), endRID ) ;
          PD_RC_CHECK( rc, PDWARNING, "Failed to parse %s, rc: %d",
                       FIELD_NAME_ENDRID, rc ) ;
@@ -1262,7 +1228,6 @@ namespace engine
                 error, PDERROR, "Failed to get dms mb context, rc: %d",
                 SDB_DMS_NOTEXIST ) ;
 
-      // create a new context
       dataContext = SDB_OSS_NEW rtnContextData( -1, eduID() ) ;
       if ( !dataContext )
       {
@@ -1284,7 +1249,6 @@ namespace engine
       dataContext->enablePrefetch ( cb, &_prefWather ) ;
       dataContext->setEnableQueryActivity( FALSE ) ;
 
-      // sample timetamp
       if ( cb->getMonConfigCB()->timestampON )
       {
          dataContext->getMonCB()->recordStartTimestamp() ;
@@ -1451,7 +1415,6 @@ namespace engine
             pContext = _vecContext[0] ;
          }
 
-         // get data
          if ( pContext )
          {
             rtnContextBuf buffObj ;
@@ -1464,7 +1427,6 @@ namespace engine
                maxReturnNum = -1 ;
             }
 
-            // get data
             rc = pContext->getMore( maxReturnNum, buffObj, cb ) ;
             if ( rc )
             {
@@ -1488,7 +1450,6 @@ namespace engine
             {
                buffObj.truncate( _numToReturn ) ;
             }
-            // append data
             rc = appendObjs( buffObj.data(), buffObj.size(),
                              buffObj.recordNum() ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to add objs, rc: %d", rc ) ;
@@ -1792,7 +1753,6 @@ namespace engine
          else if ( 0 < _numToSkip )
          {
             -- _numToSkip ;
-            /// wo do not want to break this loop when get nothing.
             -- i ;
             continue ;
          }
@@ -1893,7 +1853,6 @@ namespace engine
 
    _rtnContextTemp::~_rtnContextTemp ()
    {
-      // release temp collection
       if ( _dmsCB && _mbContext )
       {
          _dmsCB->getTempSUMgr()->release( _mbContext ) ;

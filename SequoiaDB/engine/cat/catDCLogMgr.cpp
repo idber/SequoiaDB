@@ -77,7 +77,6 @@ namespace engine
 
    string _catDCLogItem::toString() const
    {
-      // name + count + first lsn + last lsn
       stringstream ss ;
       ss << "Name:" << _clName << ", Count:" << getCount()
          << ", First lsn:" << _first.version << "." << (INT64)_first.offset
@@ -102,7 +101,6 @@ namespace engine
       const CHAR *pCLShortName = NULL ;
       dmsMBContext *mbContext = NULL ;
 
-      // get logical id and count
       rc = rtnResolveCollectionNameAndLock( _clName.c_str(),
                                             _pDmsCB,
                                             &su,
@@ -137,22 +135,18 @@ namespace engine
       BSONObj orderByFirst = BSON( FIELD_NAME_LSN_OFFSET << 1 ) ;
       BSONObj orderByLast = BSON( FIELD_NAME_LSN_OFFSET << -1 ) ;
 
-      // first reset
       _reset() ;
 
       rc = _parseMeta( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Parse system log[%s] meta failed, rc: %d",
                    toString().c_str(), rc ) ;
 
-      // get the first lsn
       rc = _parseLsn( orderByFirst, cb, _first ) ;
       PD_RC_CHECK( rc, PDERROR, "Parse first lsn failed, rc: %d", rc ) ;
 
-      // get the last lsn
       rc = _parseLsn( orderByLast, cb, _last ) ;
       PD_RC_CHECK( rc, PDERROR, "Parse last lsn failed, rc: %d", rc ) ;
 
-      // if the lsn is not continuous, need to drop the collection
       if ( ( _first.invalid() && ( !_last.invalid() || 0 != _count ) ) ||
            ( _last.invalid() && ( !_first.invalid() || 0 != _count ) ) ||
            ( !_first.invalid() && !_last.invalid() &&
@@ -225,7 +219,6 @@ namespace engine
          goto error ;
       }
 
-      // kill context
       _pRtnCB->contextDelete( contextID, cb ) ;
 
    done:
@@ -244,7 +237,6 @@ namespace engine
 
       _reset() ;
 
-      // re-parse meta
       rc = _parseMeta( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Parse system log[%s] meta info failed, "
                    "rc: %d", toString().c_str(), rc ) ;
@@ -340,14 +332,12 @@ namespace engine
             goto error ;
          }
 
-         // add objs to mb block
          if( mb->idleSize() < (UINT32)buffObj.size() )
          {
             rc = mb->extend( buffObj.size() - mb->idleSize() ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to extend mb, rc: %d", rc ) ;
          }
 
-         // copy
          ossMemcpy( mb->writePtr(), buffObj.data(), buffObj.size() ) ;
          mb->writePtr( mb->length() + buffObj.size() ) ;
 
@@ -356,12 +346,10 @@ namespace engine
             maxSize = maxSize > buffObj.size() ? maxSize - buffObj.size() : 0 ;
          }
 
-         /// max size check
          if ( 0 == maxSize )
          {
             break ;
          }
-         /// max time check
          if ( maxTime > 0 && time( NULL ) - bTime >= (UINT64)maxTime )
          {
             break ;
@@ -404,16 +392,13 @@ namespace engine
 
       _reset() ;
 
-      // parse meta
       rc = _parseMeta( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Parse system log[%s] meta failed, rc: %d",
                    toString().c_str(), rc ) ;
 
-      // get the first lsn
       rc = _parseLsn( orderByFirst, cb, _first ) ;
       PD_RC_CHECK( rc, PDERROR, "Parse first lsn failed, rc: %d", rc ) ;
 
-      // get the last lsn
       rc = _parseLsn( orderByLast, cb, _last ) ;
       PD_RC_CHECK( rc, PDERROR, "Parse last lsn failed, rc: %d", rc ) ;
 
@@ -564,8 +549,6 @@ Begin Fobidden DC
          }
       }
 
-      // analyse the current work position
-      // 1. find the begin
       for ( i = 0 ; i < _vecLogCL.size() ; ++i )
       {
          pLog = _vecLogCL[ i ] ;
@@ -577,7 +560,6 @@ Begin Fobidden DC
             minLsn = firstLsn ;
          }
       }
-      // 2. find the work
       tmpWork = _begin ;
       comingLsn = minLsn ;
       for ( i = 0 ; i < _vecLogCL.size() ; ++i )
@@ -601,7 +583,6 @@ Begin Fobidden DC
          _expectLsn = pLog->getComingLSN() ;
       }
 
-      // 3. reset others
       for ( ; i < _vecLogCL.size() ; ++i )
       {
          tmpWork = _incFileID( tmpWork ) ;
@@ -741,7 +722,6 @@ END
          *expected = _expectLsn ;
       }
 
-      /// no committed
       return ;
    }
 
@@ -759,7 +739,6 @@ END
       {
          *pExpectLsn = _expectLsn ;
       }
-      /// no committed
       return ;
    }
 
@@ -783,7 +762,6 @@ END
 
       begin = _getStartLsn() ;
 
-      // out of all range
       if ( _curLsn.invalid() || offset < begin.offset ||
            offset > _expectLsn.offset )
       {
@@ -809,7 +787,6 @@ END
                          rc ) ;
             _work = _decFileID( _work ) ;
          }
-         // remove current collection
          rc = _vecLogCL[ _work ]->removeDataToLow( offset, _pEduCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Remove system log[%s] by to low "
                       "offset[%lld] failed, rc: %d",
@@ -915,7 +892,6 @@ END
       catDCLogItem *pLog   = NULL ;
       UINT32 pos           = _work ;
 
-      // write to collection
       pLog = _vecLogCL[ pos ] ;
       if ( pLog->isFull() )
       {
@@ -1032,13 +1008,11 @@ Begin Fobidden DC
       BSONObj obj ;
       DPS_LSN_OFFSET orgOffset = pHeader->_lsn ;
 
-      /// filter log
       rc = _filterLog( pHeader, valid ) ;
       PD_RC_CHECK( rc, PDERROR, "Filter log failed, rc: %d", rc ) ;
 
       if ( !valid )
       {
-         /// don't save the log
          goto done ;
       }
       else

@@ -90,7 +90,6 @@ INT32 clientConnect ( const CHAR *pHostName,
    }
 
 #if defined (_WINDOWS)
-   // init socket for windows
    ossOnceRun( &initOnce, _winSockInit );
    if ( FALSE == sockInitialized )
    {
@@ -112,7 +111,6 @@ INT32 clientConnect ( const CHAR *pHostName,
 
    ossMemset ( &sockAddress, 0, sizeof(sockAddress) ) ;
    sockAddress.sin_family = AF_INET ;
-   // get host info
 #if defined (_WINDOWS)
    if ( (hp = gethostbyname ( pHostName ) ) )
 #elif defined (_LINUX)
@@ -145,7 +143,6 @@ INT32 clientConnect ( const CHAR *pHostName,
    {
       sockAddress.sin_addr.s_addr = inet_addr ( pHostName ) ;
    }
-   // get service info
    servinfo = getservbyname ( pServiceName, "tcp" ) ;
    if ( !servinfo )
    {
@@ -316,7 +313,6 @@ INT32 setKeepAlive( SOCKET sock, INT32 keepAlive, INT32 keepIdle,
       goto error ;
    }
    
-   // set keep alive options
 #if defined (_WINDOWS)
    alive_in.onoff             = keepAlive ;
    alive_in.keepalivetime     = keepIdle * 1000 ; // ms
@@ -480,13 +476,11 @@ INT32 clientSend ( Socket* sock, const CHAR *pMsg, INT32 len,
       FD_SET ( rawSocket, &fds ) ;
       rc = select ( rawSocket + 1, NULL, &fds, NULL,
                     timeout>=0?&maxSelectTime:NULL ) ;
-      // 0 means timeout
       if ( 0 == rc )
       {
          rc = SDB_TIMEOUT ;
          goto done ;
       }
-      // if < 0, means something wrong
       if ( 0 > rc )
       {
          rc = SOCKET_GETLASTERROR ;
@@ -510,7 +504,6 @@ INT32 clientSend ( Socket* sock, const CHAR *pMsg, INT32 len,
          goto error ;
       }
 
-      // if the socket we interested is not receiving anything, let's continue
       if ( FD_ISSET ( rawSocket, &fds ) )
       {
          break ;
@@ -643,20 +636,17 @@ INT32 clientRecv ( Socket* sock, CHAR *pMsg, INT32 len,
       maxSelectTime.tv_sec = 1000000 ;
       maxSelectTime.tv_usec = 0 ;
    }
-   // wait loop until either we timeout or get a message
    while ( TRUE )
    {
       FD_ZERO ( &fds ) ;
       FD_SET ( rawSocket, &fds ) ;
       rc = select ( rawSocket + 1, &fds, NULL, NULL,
                     timeout>=0?&maxSelectTime:NULL ) ;
-      // 0 means timeout
       if ( 0 == rc )
       {
          rc = SDB_TIMEOUT ;
          goto done ;
       }
-      // if < 0, means something wrong
       if ( 0 > rc )
       {
          rc = SOCKET_GETLASTERROR ;
@@ -679,7 +669,6 @@ INT32 clientRecv ( Socket* sock, CHAR *pMsg, INT32 len,
          rc = SDB_NETWORK ;
          goto error ;
       }
-      // if the socket is not receiving anything, let's continue
       if ( FD_ISSET ( rawSocket, &fds ) )
       {
          break ;
@@ -705,7 +694,6 @@ INT32 clientRecv ( Socket* sock, CHAR *pMsg, INT32 len,
       }
       else
       {
-         // if rc < 0
          rc = SOCKET_GETLASTERROR ;
 #if defined (_WINDOWS)
          if ( WSAETIMEDOUT == rc )

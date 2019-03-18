@@ -1,5 +1,5 @@
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -19,8 +19,6 @@
 #define TIMESTAMP_FORMAT "%d-%d-%d-%d.%d.%d.%d"
 #define TIMESTAMP_FORMAT2 "%d-%d-%d-%d:%d:%d.%d"
 
-#define TIMESTAMP_MAX_INC 1000000
-
 extern INT32 timestampDesc ;
 
 static void local_time ( time_t *Time, struct tm *TM )
@@ -30,9 +28,6 @@ static void local_time ( time_t *Time, struct tm *TM )
 #if defined (__linux__ ) || defined (_AIX)
    localtime_r( Time, TM ) ;
 #elif defined (_WIN32)
-   // The Time represents the seconds elapsed since midnight (00:00:00),
-   // January 1, 1970, UTC. This value is usually obtained from the time
-   // function.
    localtime_s( TM, Time ) ;
 #else
 #error "unimplemented local_time()"
@@ -43,7 +38,6 @@ PHP_METHOD( SequoiaTimestamp, __construct )
 {
    INT32 rc = SDB_OK ;
    zval *pTimestamp  = NULL ;
-   zval *pMicros     = NULL ;
    zval *pThisObj    = getThis() ;
    struct phpTimestamp *pDriverTimestamp = (struct phpTimestamp *)\
             emalloc( sizeof( struct phpTimestamp ) ) ;
@@ -56,7 +50,7 @@ PHP_METHOD( SequoiaTimestamp, __construct )
    pDriverTimestamp->second = 0 ;
    pDriverTimestamp->micros = 0 ;
 
-   if( PHP_GET_PARAMETERS( "|zz", &pTimestamp, &pMicros ) == FAILURE )
+   if( PHP_GET_PARAMETERS( "|z", &pTimestamp ) == FAILURE )
    {
       goto error ;
    }
@@ -66,15 +60,7 @@ PHP_METHOD( SequoiaTimestamp, __construct )
       if( Z_TYPE_P( pTimestamp ) == IS_LONG )
       {
          pDriverTimestamp->second = Z_LVAL_P( pTimestamp ) ;
-
-         if( pMicros && Z_TYPE_P( pMicros ) == IS_LONG )
-         {
-            pDriverTimestamp->micros = Z_LVAL_P( pMicros ) ;
-         }
-         else
-         {
-            pDriverTimestamp->micros = 0 ;
-         }
+         pDriverTimestamp->micros = 0 ;
       }
       else if( Z_TYPE_P( pTimestamp ) == IS_STRING )
       {
@@ -121,22 +107,6 @@ PHP_METHOD( SequoiaTimestamp, __construct )
    {
       pDriverTimestamp->second = (INT32)time( NULL ) ;
       pDriverTimestamp->micros = 0 ;
-   }
-
-   if ( pDriverTimestamp->micros < 0 ||
-        pDriverTimestamp->micros >= TIMESTAMP_MAX_INC )
-   {
-      INT32 sec = pDriverTimestamp->micros / TIMESTAMP_MAX_INC ;
-      INT32 us  = pDriverTimestamp->micros % TIMESTAMP_MAX_INC ;
-
-      if ( us < 0 )
-      {
-         sec -= 1;
-         us += TIMESTAMP_MAX_INC;
-      }
-
-      pDriverTimestamp->second += sec ;
-      pDriverTimestamp->micros = us ;
    }
 
 done:

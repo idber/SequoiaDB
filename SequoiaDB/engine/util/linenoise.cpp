@@ -249,10 +249,7 @@ static int win32read(char *c)
             e = b.Event.KeyEvent;
             *c = b.Event.KeyEvent.uChar.AsciiChar;
 
-            //if (e.dwControlKeyState & (LEFT_ALT_PRESSED | RIGHT_ALT_PRESSED))
-            //{
                 /* Alt+key ignored */
-            //} else
             if (e.dwControlKeyState & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED))
             {
                 /* Ctrl+Key */
@@ -851,7 +848,6 @@ static int calcHighLightPos( struct linenoiseState *l )
     char *buffer = l->buf ;
     int highlight_pos = -1 ;
 
-    // find out the place to high light
     if ( ( !l->remove_col ) && ( pos < len ) )
     {
        int direction = 0 ;
@@ -909,7 +905,6 @@ static int setDisplayAttribute( bool enhancedDisplay,
         switch ( oldLowByte )
         {
         case 0x07:
-            // most similar to xterm appearance
             newLowByte = FOREGROUND_BLUE | FOREGROUND_GREEN ;
             break;
         case 0x70:
@@ -1236,13 +1231,11 @@ static void refreshMultiLine(struct linenoiseState *l)
     }
     for ( int i = 0 ; i < old_rows - 1 ; ++i )
     {
-        // in windows, we need to minus 1, because (X, Y) start from (0, 0)
         coord.Y = y + old_rows - 1 - i ;
         setDisplayAttribute( false, coord, b.dwSize.X ) ;
         FillConsoleOutputCharacterA( hOut, ' ', b.dwSize.X, coord, &w ) ;
     }
 
-    // clear the top line
     coord.Y = y ;
     setDisplayAttribute( false, coord, b.dwSize.X ) ;
     FillConsoleOutputCharacterA( hOut, ' ', b.dwSize.X, coord, &w ) ;
@@ -1251,7 +1244,6 @@ static void refreshMultiLine(struct linenoiseState *l)
          ( plen + (int)l->pos ) % (int)l->cols == 0 ||
          moveLeft )
     {
-        // Move cursor to the left edge
         SetConsoleCursorPosition( hOut, coord ) ;
     }
     int beginY = coord.Y ;
@@ -1348,8 +1340,6 @@ static void refreshMultiLine(struct linenoiseState *l)
     if ( !moveLeft )
     {
         coord.Y = y + rpos2 - 1 ;
-        // In windows, (X, Y) coordinate start from top left corner (0, 0)
-        // X = 0 is the first column
         coord.X = ( plen + (int)l->pos ) % (int)l->cols ;
     }
     else
@@ -1671,7 +1661,6 @@ static int linenoiseEdit( int stdin_fd, int stdout_fd, char *buf,
         switch(c)
         {
         case ENTER:    /* enter */
-            // remove colour
             l.remove_col = true ;
             refreshLine( &l ) ;
             history_len--;
@@ -1679,7 +1668,6 @@ static int linenoiseEdit( int stdin_fd, int stdout_fd, char *buf,
             ret = (int)l.len;
             goto done;
         case CTRL_C:  /* ctrl-c */
-            // remove colour
             l.remove_col = true ;
             refreshLine( &l ) ;
             errno = (l.len == 0 && 0 == strncmp(l.prompt, "> ", strlen("> ")))
@@ -2230,8 +2218,6 @@ static void setDisplayAttribute( bool enhancedDisplay, struct abuf *ab )
         BYTE newLowByte;
         switch ( oldLowByte ) {
         case 0x07:
-            //newLowByte = FOREGROUND_BLUE | FOREGROUND_INTENSITY;  // too dim
-            //newLowByte = FOREGROUND_BLUE;                         // even dimmer
             newLowByte = FOREGROUND_BLUE | FOREGROUND_GREEN;        // most similar to xterm appearance
             break;
         case 0x70:

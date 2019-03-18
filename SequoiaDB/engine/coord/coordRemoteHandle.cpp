@@ -68,7 +68,6 @@ namespace engine
                                           const MsgHeader *pReply,
                                           BOOLEAN isPending )
    {
-      /// do nothing
    }
 
    INT32 _coordRemoteHandlerBase::onSendConnect( _pmdSubSession *pSub,
@@ -133,7 +132,6 @@ namespace engine
          }
       }
 
-      /// construct info
       try
       {
          objInfo = BSON( SDB_AUTH_USER << cb->getUserName() <<
@@ -151,7 +149,6 @@ namespace engine
          goto error ;
       }
 
-      /// allocate memory
       rc = cb->allocBuff( msgLength, &pBuff, NULL ) ;
       if ( rc )
       {
@@ -161,7 +158,6 @@ namespace engine
       }
       pInitReq = (MsgComSessionInitReq*)pBuff ;
 
-      /// init message
       pInitReq->header.messageLength = msgLength ;
       pInitReq->header.opCode = MSG_COM_SESSION_INIT_REQ ;
       pInitReq->header.requestID = 0 ;
@@ -178,7 +174,6 @@ namespace engine
       ossMemset( pInitReq->reserved, 0, sizeof( pInitReq->reserved ) ) ;
       ossMemcpy( pInitReq->data, objInfo.objdata(), objInfo.objsize() ) ;
 
-      /// send message to peer
       pSub = pSession->addSubSession( nodeID.value ) ;
       pSub->setReqMsg( ( MsgHeader* )pInitReq, PMD_EDU_MEM_NONE ) ;
 
@@ -190,7 +185,6 @@ namespace engine
          goto error ;
       }
 
-      /// get reply
       rc = pSession->waitReply1( TRUE ) ;
       if ( rc )
       {
@@ -199,7 +193,6 @@ namespace engine
          goto error ;
       }
 
-      /// process result
       pReply = ( MsgOpReply* )pSub->getRspMsg( FALSE ) ;
       if ( !pReply )
       {
@@ -242,7 +235,6 @@ namespace engine
                                                     const MsgHeader *pReq,
                                                     BOOLEAN isFirst )
    {
-      /// already disconnect
       return SDB_NET_NOT_CONNECT ;
    }
 
@@ -283,7 +275,6 @@ namespace engine
       if ( _interruptWhenFailed )
       {
          MsgOpReply *pOpReply = ( MsgOpReply* )pReply ;
-         /// When not ok and not in ignored rc set
          if ( SDB_OK != pOpReply->flags &&
               _ignoreRC.find( pOpReply->flags ) == _ignoreRC.end() )
          {

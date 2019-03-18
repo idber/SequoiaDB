@@ -144,10 +144,8 @@ namespace engine
          }
          else
          {
-            /// do noting.
          }
 
-         /// match
          if ( NULL != _condition )
          {
             BOOLEAN r = FALSE ;
@@ -162,17 +160,14 @@ namespace engine
             }
             else
             {
-               /// do nothing.
             }
          }
 
-         /// skip
          if ( 0 < _skip && ++_currentSkip <= _skip )
          {
             continue ;
          }
 
-         /// get needed fields.
          if ( !_selector.empty() )
          {
             rc = _selector.select( fetch,
@@ -189,7 +184,6 @@ namespace engine
 
          if ( !_merge )
          {
-            /// if sub input is a join, can _alias be empty?
             next.alias = _alias.empty()?
                          fetch.alias : _alias ;
          }

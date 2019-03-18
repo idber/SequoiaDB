@@ -29,7 +29,6 @@ public class MultiThreadUpdate implements Runnable {
 
     @Override
     public void run() {
-        //System.out.println("Update�߳�==="+Thread.currentThread().getId()+"ִ�п�ʼ");
         BSONObject modifier = new BasicBSONObject();
         BSONObject m = new BasicBSONObject();
         modifier.put("$set", m);
@@ -37,6 +36,5 @@ public class MultiThreadUpdate implements Runnable {
         m.put(field, Thread.currentThread().getName());
 
         cl.update(null, modifier, null);
-        //System.out.println("Update�߳�==="+Thread.currentThread().getId()+"ִ�н���");
     }
 }

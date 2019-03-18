@@ -27,7 +27,6 @@ import org.apache.hadoop.hive.serde2.SerDeStats;
 import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.lazy.LazyFactory;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
-//import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe.SerDeParameters;
 import org.apache.hadoop.hive.serde2.lazy.LazyStruct;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazySimpleStructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
@@ -72,7 +71,6 @@ public class SdbSerDe implements SerDe {
 
 	public SdbSerDe() throws SerDeException {
 		super();
-		// TODO Auto-generated constructor stub
 	}
 
 	static final String HIVE_TYPE_DOUBLE = "double";
@@ -84,18 +82,14 @@ public class SdbSerDe implements SerDe {
 	static final String HIVE_TYPE_INT = "int";
 	static final String HIVE_TYPE_STRING = "string";
 
-//	private SerDeParameters serdeParams;
-//	private final MapWritable cachedWritable = new MapWritable();
 	private final BSONWritable bsonwritable = new BSONWritable ();
 
 	private int fieldCount;
 	private ObjectInspector objectInspector;
 	private List<String> columnNames;
 	public List<TypeInfo> columnTypes;
-//	private ObjectInspector docOI;
 	private StructTypeInfo docTypeInfo;
 	
-	//private String[] columnTypesArray;
 
 	private List<Object> row = new ArrayList<Object>();
 	
@@ -460,124 +454,16 @@ public class SdbSerDe implements SerDe {
 	 * if value != null
 	 *    return 1;
 	 */
-//	private int checkSerializeValue(final Object obj, final ObjectInspector fieldInspector){
-//		
-//		Object value = null;
 		
 		
-//			if ( null != ((PrimitiveObjectInspector) fieldInspector).getPrimitiveJavaObject(obj)){
-//				value = 1 ;
-//				out.write("value != null \n");
-//			}else {
-//				out.write("value == null \n");
-//				value = null;
-//			}
-//		
-//			try {
-//				out.write("exception , value == null \n");
-//				out.write("exception string = " + e.toString() + "\n");
-//			} catch (IOException e1) {
-//				// TODO Auto-generated catch block
-//				e1.printStackTrace();
-//			}
-//			value = null;
 
 		
-//		try{
-//		switch (fieldInspector.getCategory()){
-//		case LIST:
-//			
-////			value = ((ListObjectInspector) fieldInspector).getList(obj);
-//			List<?> field = ((ListObjectInspector) fieldInspector).getList(obj); 
-//			
-//			if (field == null || field.size() == 0){
-//				out.write("****list, value = null\n");
-//				value = null;
-//			}else{
-//				out.write("list, value = 1\n");
-//				value = 1;
-//			}
-//			break;
-//		case MAP:
-//			out.write("!!!map typename = " + fieldInspector.getTypeName() + ", map toString = " + fieldInspector.toString() + "\n");
-//			((MapObjectInspector) fieldInspector).getMapValueObjectInspector();
-//			Map<?, ?> t_map = ((MapObjectInspector) fieldInspector).getMap(obj);
-//			if (t_map.size() == 0 || t_map == null){
-//				out.write("****map, value = null\n");
-//				value = null;
-//			}else {
-//				out.write("map, value = 1\n");
-//				value = 1;
-//			}
-//			break;
-//		case PRIMITIVE:
-//			if (((PrimitiveObjectInspector) fieldInspector).getPrimitiveCategory() == 
-//					org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector.PrimitiveCategory.TIMESTAMP){
-//				out.write("!!!!timesmap class getTypeName = " + fieldInspector.getTypeName() + ", toString = " + fieldInspector.toString() + ", classname = " + fieldInspector.getClass().getName() + "\n");
-//				((JavaTimestampObjectInspector) fieldInspector).getPrimitiveJavaObject(obj);
-//				out.write("!!!!timesmap getPrimitiveJavaObject over\n");
-//				TimestampWritable ts = (TimestampWritable)((JavaTimestampObjectInspector) fieldInspector).getPrimitiveWritableObject(obj);
-//				if (ts == null){
-//					value = null;
-//				}else{
-//					value = 1;
-//				}
-//				
-//			}else{
-//				if ( null != ((PrimitiveObjectInspector) fieldInspector).getPrimitiveJavaObject(obj))
-//					value = 1;
-//				else
-//					value = null;
-//			}
-//			break;
-//		case STRUCT:
-//			value = ((StructObjectInspector) fieldInspector).getAllStructFieldRefs();
-//			break;
-//		case UNION:
-//		default:
-//			LOG.error("Cannot serialize " + obj + " of type " + obj.getClass());
-//			break;
-//		}
-//		}catch(Exception e){
-//			try {
-//				out.write("enter exception , exception = " + e.toString() + "\n");
-//			} catch (IOException e1) {
-//				// TODO Auto-generated catch block
-//				e1.printStackTrace();
-//			}
-//			value = null;
-//		
-//		}
-//		
-//		if (value == null){
-//			try {
-//				out.write("####check value , return -1\n");
-//			} catch (IOException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}
-//			return -1;
-//		}
-//		else
-//			return 1;
-//		
-//	}
 
 	@Override 
 	public Writable serialize(final Object obj, final ObjectInspector inspector)
 			throws SerDeException {
 
 		
-//		
-//		try{
-//			String fileName = "/tmp/root/hive-SdbSerDe.log" ;
-//			
-//	
-//			File writename = new File(fileName);
-//	        writename.createNewFile(); 
-//	        out = new BufferedWriter(new FileWriter(writename));  
-//	        out.write("Enter SdbSerDe serialize\n");
-//	        out.write("obj toString = " + obj.toString());
         
 		
 		LOG.debug("Enter SdbSerDe serialize ");
@@ -619,22 +505,6 @@ public class SdbSerDe implements SerDe {
 		
 		bsonwritable.setBson(t_obj);
 		
-//		} catch (Exception e) {  
-//        	e.printStackTrace();  
-//        } finally{
-//        	try {
-//				out.flush();
-//			} catch (IOException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			} 
-//	        try {
-//				out.close();
-//			} catch (IOException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}
-//        }
         
 		return bsonwritable;
 	}

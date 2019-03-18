@@ -78,14 +78,12 @@ namespace engine
          rc = clearEvent->wait( OPT_PLANCLEARJOB_WAIT_INTERVAL ) ;
          pEduMgr->activateEDU( cb ) ;
 
-         // The database is shutting down
          if ( PMD_IS_DB_DOWN() ||
               cb->isForced() )
          {
             break ;
          }
 
-         // No signals
          if ( SDB_TIMEOUT == rc )
          {
             monitor->checkAccessTimestamp() ;
@@ -93,11 +91,9 @@ namespace engine
             continue ;
          }
 
-         // Got signal to clear cached plans
          PD_LOG( PDDEBUG, "optPlanClearJob: start clearing cached plans" ) ;
          monitor->clearCachedPlans() ;
 
-         // Clear for too frequent signals
          clearEvent->reset() ;
       } // End while
 

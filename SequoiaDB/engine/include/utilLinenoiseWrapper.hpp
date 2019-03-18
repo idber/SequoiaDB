@@ -54,7 +54,6 @@ struct _linenoiseCmd : public SDBObject
 };
 typedef _linenoiseCmd linenoiseCmd ;
 
-// use for checking if linenoise can continue read next line
 typedef BOOLEAN (*canContinueNextLineCallback)( const CHAR * str ) ;
 
 class _linenoiseCmdBuilder : public SDBObject
@@ -95,7 +94,6 @@ class _linenoiseCmdBuilder : public SDBObject
 };
 typedef _linenoiseCmdBuilder linenoiseCmdBuilder ;
 
-/// Tool functions
 
 linenoiseCmdBuilder* getLinenoiseCmdBuilder() ;
 #define g_lnBuilder (*getLinenoiseCmdBuilder())

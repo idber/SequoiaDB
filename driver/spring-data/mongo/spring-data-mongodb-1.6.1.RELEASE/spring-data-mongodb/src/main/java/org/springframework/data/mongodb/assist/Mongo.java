@@ -127,7 +127,6 @@ public class Mongo {
      * @throws UnknownHostException
      * @throws MongoException
      */
-//    @Deprecated
     public Mongo() throws UnknownHostException {
         this(new ServerAddress());
     }
@@ -140,7 +139,6 @@ public class Mongo {
      * @throws UnknownHostException if the database host cannot be resolved
      * @throws MongoException
      */
-//    @Deprecated
     public Mongo(String host, int port) throws UnknownHostException {
         this(new ServerAddress(host, port));
     }
@@ -155,7 +153,6 @@ public class Mongo {
      *
      * @param addr the database address
      */
-//    @Deprecated
     public Mongo(ServerAddress addr) {
         this(Arrays.asList(addr));
     }
@@ -165,7 +162,6 @@ public class Mongo {
      *
      * @param coords address of coord nodes
      */
-//    @Deprecated
     public Mongo(List<ServerAddress> coords) {
         this(coords, null);
     }
@@ -177,7 +173,6 @@ public class Mongo {
      * @param options options for creating connections
      * @throws MongoException
      */
-//    @Deprecated
     public Mongo(ServerAddress addr, MongoOptions options) {
         this(Arrays.asList(addr), "", "", options);
     }
@@ -192,7 +187,6 @@ public class Mongo {
      * @param coords  address of coord nodes
      * @param options options for creating connections
      */
-//    @Deprecated
     public Mongo(List<ServerAddress> coords, MongoOptions options) {
         this(coords, "", "", options);
     }
@@ -206,7 +200,6 @@ public class Mongo {
      * @param password the password of the authentication user
      * @throws MongoException
      */
-//    @Deprecated
     public Mongo(List<ServerAddress> coords, String userName, String password,
                  MongoOptions options) {
         List<String> list = _getAddresses(coords);
@@ -237,7 +230,6 @@ public class Mongo {
             try {
                 list.add(new ServerAddress(tmp[0], Integer.parseInt(tmp[1])));
             } catch (UnknownHostException e) {
-                // TODO:
                 continue;
             }
         }
@@ -542,7 +534,6 @@ public class Mongo {
         throw new UnsupportedOperationException("not supported!");
     }
 
-    // -------
 
 
     /**

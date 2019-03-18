@@ -185,7 +185,6 @@ namespace engine
       PD_TRACE_EXITRC( SDB__RTNLOBFETCHER_FETCH, rc ) ;
       return rc ;
    error:
-      /// last error valuate must in collection latch
       _lastErr = rc ;
       _fini() ;
       goto done ;
@@ -218,7 +217,6 @@ namespace engine
 
    void _rtnLobFetcher::close( INT32 cause )
    {
-      /// last error valuate must in collection latch
       _lastErr = cause ;
       _fini() ;
    }

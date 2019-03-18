@@ -104,7 +104,6 @@ namespace engine
          BOOLEAN                          _active ;
          UINT32                           _noAttachTimeout ;
 
-         /// timer
          boost::asio::steady_timer        _timer;
 
    } ;

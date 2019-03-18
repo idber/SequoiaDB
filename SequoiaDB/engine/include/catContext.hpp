@@ -76,10 +76,8 @@ namespace engine
       virtual ~_catContextBase () ;
 
    public:
-      // Override functions
       virtual _dmsStorageUnit* getSU () { return NULL ; }
 
-      // Catalog context functions
       CAT_CONTEXT_STATUS getStatus () const { return _status ; }
 
       virtual INT32 open ( const NET_HANDLE &handle,
@@ -124,7 +122,6 @@ namespace engine
                                  const CHAR *pQuery,
                                  _pmdEDUCB *cb ) ;
 
-      // Must be called in destruction function
       virtual INT32 _onCtxDelete () ;
 
       void _changeStatusOnError () ;
@@ -142,7 +139,6 @@ namespace engine
       CAT_CONTEXT_STATUS _status ;
       catCtxLockMgr _lockMgr ;
 
-      // Flags to control process
       BOOLEAN _executeAfterLock ;
       BOOLEAN _commitAfterExecute ;
       BOOLEAN _needPreExecute ;

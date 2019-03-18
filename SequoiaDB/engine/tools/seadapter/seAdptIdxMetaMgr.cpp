@@ -264,8 +264,6 @@ namespace seadapter
             }
          }
 
-         // If all indices of one collection are dropped, remove the item in the
-         // map.
          if ( 0 == metaVec.size() )
          {
             _idxMetaMap.erase( mItr ) ;

@@ -84,9 +84,6 @@ SDB_EXTERN_C_START
 
 #define SDB_DECIMAL_DBL_DIG        ( DBL_DIG )
 
-//sign + dscale
-//   sign  = dscale & 0xC000
-//   scale = dscale & 0x3FFF
 
 
 /*
@@ -129,7 +126,6 @@ typedef struct {
       NULL              /* digits */\
    }
 
-//storage detail define in bson.h  (BSON_DECIMAL)
 #define DECIMAL_HEADER_SIZE  12  /*size + typemod + dscale + weight*/
 
 #pragma pack(1)
@@ -138,16 +134,11 @@ typedef struct
   int    size;    //total size of this value
 
   int    typemod; //precision + scale
-                  //   precision = (typmod >> 16) & 0xffff
-                  //   scale     = typmod & 0xffff
 
   short  dscale;  //sign + dscale
-                  //   sign  = dscale & 0xC000
-                  //   scale = dscale & 0x3FFF
 
   short  weight;  //weight of this decimal (NBASE=10000)
 
-  //short  digitis[0]; //real data
 } __decimal ;
 
 #pragma pack()

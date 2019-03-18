@@ -212,7 +212,6 @@ namespace engine
          BSONObj selector( pSelectorBuffer );
          BSONObj updator( pUpdatorBuffer );
          BSONObj hint( pHintBuffer );
-         // add last op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                              "Collection:%s, Matcher:%s, Updator:%s, Hint:%s, "
                              "Flag:0x%08x(%u)",
@@ -231,7 +230,6 @@ namespace engine
          rc = rtnUpdate( pCollectionName, selector, updator, hint,
                          flags, eduCB(), _pDMSCB, dpsCB, 1, &updatedNum,
                          &insertNum ) ;
-         /// AUDIT
          PD_AUDIT_OP( AUDIT_DML, MSG_BS_UPDATE_REQ, AUDIT_OBJ_CL,
                       pCollectionName, rc,
                       "UpdatedNum:%llu, InsertedNum:%u, Matcher:%s, "
@@ -273,7 +271,6 @@ namespace engine
          INT32   insertedNum = 0 ;
          INT32   ignoredNum = 0 ;
          BSONObj insertor( pInsertor ) ;
-         // add list op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                              "Collection:%s, Insertors:%s, ObjNum:%d, "
                              "Flag:0x%08x(%u)",
@@ -289,7 +286,6 @@ namespace engine
 
          rc = rtnInsert( pCollectionName, insertor, count, flag, eduCB(),
                          &insertedNum, &ignoredNum ) ;
-         /// AUDIT
          PD_AUDIT_OP( AUDIT_DML, MSG_BS_INSERT_REQ, AUDIT_OBJ_CL,
                       pCollectionName, rc, "InsertedNum:%u, IgnoredNum:%u, "
                       "ObjNum:%u, Insertor:%s, Flag:0x%08x(%u)", insertedNum,
@@ -346,7 +342,6 @@ namespace engine
             BSONObj selector ( pFieldSelector ) ;
             BSONObj orderBy ( pOrderByBuffer ) ;
             BSONObj hint ( pHintBuffer ) ;
-            // add last op info
             MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                                 "Collection:%s, Matcher:%s, Selector:%s, "
                                 "OrderBy:%s, Hint:%s, Skip:%llu, Limit:%lld, "
@@ -370,7 +365,6 @@ namespace engine
             rc = rtnQuery( pCollectionName, selector, matcher, orderBy,
                            hint, flags, eduCB(), numToSkip, numToReturn,
                            _pDMSCB, _pRTNCB, contextID, &pContext, TRUE ) ;
-            /// AUDIT
             PD_AUDIT_OP( ( flags & FLG_QUERY_MODIFY ? AUDIT_DML : AUDIT_DQL ),
                          MSG_BS_QUERY_REQ, AUDIT_OBJ_CL,
                          pCollectionName, rc,
@@ -383,13 +377,11 @@ namespace engine
                          hint.toString().c_str(),
                          numToSkip, numToReturn,
                          flags, flags ) ;
-            /// Jduge error
             if ( rc )
             {
                goto error ;
             }
 
-            /// if write operator, need set dps info( local session: w=1)
             if ( pContext && pContext->isWrite() )
             {
                pContext->setWriteInfo( dpsCB, 1 ) ;
@@ -459,7 +451,6 @@ namespace engine
 
          PD_LOG ( PDDEBUG, "Command: %s", pCommand->name () ) ;
 
-         //run command
          rc = rtnRunCommand( pCommand, getSession()->getServiceType(),
                              eduCB(), _pDMSCB, _pRTNCB,
                              dpsCB, 1, &contextID ) ;
@@ -497,7 +488,6 @@ namespace engine
          INT64 deletedNum = 0 ;
          BSONObj deletor ( pDeletorBuffer ) ;
          BSONObj hint ( pHintBuffer ) ;
-         // add last op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                              "Collection:%s, Deletor:%s, Hint:%s, "
                              "Flag:0x%08x(%u)",
@@ -513,7 +503,6 @@ namespace engine
                   hint.toString().c_str(), flags, flags ) ; */
          rc = rtnDelete( pCollectionName, deletor, hint, flags, eduCB(), 
                          _pDMSCB, dpsCB, 1, &deletedNum ) ;
-         /// AUDIT
          PD_AUDIT_OP( AUDIT_DML, MSG_BS_DELETE_REQ, AUDIT_OBJ_CL,
                       pCollectionName, rc,
                       "DeletedNum:%u, Deletor:%s, Hint:%s, Flag:0x%08x(%u)",
@@ -545,7 +534,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract get more msg failed, "
                    "rc: %d", getSession()->sessionName(), rc ) ;
 
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld, NumToRead:%d",
                           contextID, numToRead ) ;
@@ -575,7 +563,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract kill contexts msg failed, "
                    "rc: %d", getSession()->sessionName(), rc ) ;
 
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextNum:%d, ContextID:%lld",
                           contextNum, pContextIDs[0] ) ;
@@ -608,7 +595,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract sql msg failed, rc: %d",
                    getSession()->sessionName(), rc ) ;
 
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "%s", sql ) ;
 
@@ -665,7 +651,6 @@ namespace engine
       }
       else
       {
-         // add last op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), MSG_BS_TRANS_COMMIT_REQ,
                              "TransactionID: 0x%016x(%llu)",
                              eduCB()->getTransID(),
@@ -692,7 +677,6 @@ namespace engine
       }
       else
       {
-         // add last op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), MSG_BS_TRANS_ROLLBACK_REQ,
                              "TransactionID: 0x%016x(%llu)",
                              eduCB()->getTransID(),
@@ -724,7 +708,6 @@ namespace engine
       {
          BSONObj objs( pObjs ) ;
 
-         /// Prepare last info
          CHAR szTmp[ MON_APP_LASTOP_DESC_LEN + 1 ] = { 0 } ;
          UINT32 len = 0 ;
          const CHAR *pObjData = pObjs ;
@@ -740,7 +723,6 @@ namespace engine
             }
          }
 
-         // add last op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                              "Collection:%s, ObjNum:%u, Objs:%s, "
                              "Flag:0x%08x(%u)",
@@ -750,7 +732,6 @@ namespace engine
          rc = rtnAggregate( pCollectionName, objs, count, flags, eduCB(),
                             _pDMSCB, contextID ) ;
 
-         /// AUDIT
          PD_AUDIT_OP( AUDIT_DQL, msg->opCode, AUDIT_OBJ_CL,
                       pCollectionName, rc,
                       "ContextID:%lld, ObjNum:%u, Objs:%s, Flag:0x%08x(%u)",
@@ -787,11 +768,9 @@ namespace engine
 
       try
       {
-         // add last op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                              "Option:%s", lob.toString().c_str() ) ;
 
-         /// pStream will delete in context
          pStream = SDB_OSS_NEW _rtnLocalLobStream() ;
          if ( !pStream )
          {
@@ -801,7 +780,6 @@ namespace engine
          }
          rc = rtnOpenLob( lob, header->flags, eduCB(), dpsCB, pStream,
                           header->w, contextID, buffObj ) ;
-         /// Jduge
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to open lob:%d", rc ) ;
@@ -837,7 +815,6 @@ namespace engine
          goto error ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld, Len:%u, Offset:%llu",
                           header->contextID, len, offset ) ;
@@ -872,7 +849,6 @@ namespace engine
          goto error ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld, Len:%u, Offset:%llu",
                           header->contextID, readLen, offset ) ;
@@ -906,7 +882,6 @@ namespace engine
          goto error ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld", header->contextID ) ;
 
@@ -935,7 +910,6 @@ namespace engine
          goto error ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld", header->contextID ) ;
 
@@ -967,7 +941,6 @@ namespace engine
 
       try
       {
-         // add last op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                              "Option:%s", meta.toString().c_str() ) ;
 
@@ -1007,7 +980,6 @@ namespace engine
 
       try
       {
-         // add last op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                              "Option:%s", meta.toString().c_str() ) ;
 
@@ -1036,7 +1008,6 @@ namespace engine
       PD_LOG ( PDEVENT, "Session[%s, %lld] recieved interrupt msg",
                getSession()->sessionName(), eduCB()->getID() ) ;
 
-      // delete all contextID, rollback transaction
       INT64 contextID = -1 ;
       while ( -1 != ( contextID = eduCB()->contextPeek() ) )
       {
@@ -1083,7 +1054,6 @@ namespace engine
 
    void _pmdDataProcessor::_onDetach()
    {
-      // rollback transaction
       if ( DPS_INVALID_TRANS_ID != eduCB()->getTransID() )
       {
          INT32 rc = rtnTransRollback( eduCB(), getDPSCB() ) ;
@@ -1094,7 +1064,6 @@ namespace engine
          }
       }
 
-      // delete all context
       INT64 contextID = -1 ;
       while ( -1 != ( contextID = eduCB()->contextPeek() ) )
       {
@@ -1102,7 +1071,6 @@ namespace engine
       }
    }
 
-   //***************_pmdCoordProcessor*********************
    _pmdCoordProcessor::_pmdCoordProcessor()
    {
    }
@@ -1123,9 +1091,7 @@ namespace engine
 
    void _pmdCoordProcessor::_onAttach()
    {
-      // must call base _onAttach first
       pmdDataProcessor::_onAttach() ;
-      // do self
       if ( sdbGetPMDController()->getRSManager() )
       {
          sdbGetPMDController()->getRSManager()->registerEDU( eduCB() ) ;
@@ -1134,10 +1100,7 @@ namespace engine
 
    void _pmdCoordProcessor::_onDetach()
    {
-      // must call base _onDetach first( will kill context, but kill context
-      // need the coordSession
       pmdDataProcessor::_onDetach() ;
-      // do self
       if ( sdbGetPMDController()->getRSManager() )
       {
          sdbGetPMDController()->getRSManager()->unregEUD( eduCB() ) ;
@@ -1162,7 +1125,6 @@ namespace engine
                 MSG_BS_INTERRUPTE_SELF == msg->opCode ||
                 MSG_BS_DISCONNECT == msg->opCode )
       {
-         // don't need auth
       }
       else if ( !getClient()->isAuthed() )
       {
@@ -1222,8 +1184,6 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Init operator[%s] failed, rc: %d",
                          opr.getName(), rc ) ;
             rc = opr.execute( msg, eduCB(), contextID, &contextBuff ) ;
-            /// needRollback call must after opr.execute, because the sql
-            /// command is parsed in execute
             needRollback = opr.needRollback() ;
             break ;
          }
@@ -1432,7 +1392,6 @@ namespace engine
          goto error ;
       }
 
-      /// command
       if ( pCollectionName && CMD_ADMIN_PREFIX[0] == pCollectionName[0] )
       {
          pFactory = coordGetFactory() ;
@@ -1447,7 +1406,6 @@ namespace engine
             goto error ;
          }
 
-         // add last op info
          MON_SAVE_CMD_DETAIL( eduCB()->getMonAppCB(), CMD_UNKNOW - 1,
                               "Command:%s, Match:%s, "
                               "Selector:%s, OrderBy:%s, Hint:%s, Skip:%llu, "
@@ -1494,7 +1452,6 @@ namespace engine
             goto error ;
          }
 
-         // query with return data
          if ( ( flag & FLG_QUERY_WITH_RETURNDATA ) &&
               -1 != contextID &&
               NULL != ( pContext = _pRTNCB->contextFind( contextID ) ) )

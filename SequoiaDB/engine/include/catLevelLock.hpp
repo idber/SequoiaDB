@@ -156,7 +156,6 @@ namespace engine
          CAT_LOCK_TYPE           _type ;
 
       private:
-         // forbidden copy construct and equal assignment
          _catZeroLevelLock( const _catZeroLevelLock &right ) ;
          _catZeroLevelLock& operator=( const _catZeroLevelLock &right ) ;
 
@@ -276,7 +275,6 @@ namespace engine
       ~_catCtxLockMgr () ;
 
    public:
-      // _catCtxLockMgr functions
       BOOLEAN tryLockCollectionSpace ( const std::string &csName,
                                        OSS_LATCH_MODE mode ) ;
 

@@ -146,7 +146,6 @@ namespace engine
                }
             }
 
-            /// 1. find from data nodes map
             it = _mapDataNode.find( (void*)node ) ;
             if ( it != _mapDataNode.end() )
             {
@@ -154,7 +153,6 @@ namespace engine
             }
             else
             {
-               /// create and add to map
                BSONObjBuilder bb ;
                BSONObj obj ;
 
@@ -232,7 +230,6 @@ namespace engine
                goto done ;
             }
 
-            /// 1. find from data nodes map
             it = _mapDataNode.find( (void*)node ) ;
             if ( it != _mapDataNode.end() )
             {
@@ -240,7 +237,6 @@ namespace engine
             }
             else
             {
-               /// create and add to map
                BSONObj obj = BSON( "" << node->right->value.toString() ) ;
                _mapDataNode[ (void*)node ] = qgmMatcherDataNode( obj ) ;
                fromCondition = obj.firstElement() ;

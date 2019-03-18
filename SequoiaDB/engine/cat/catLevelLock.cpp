@@ -222,7 +222,6 @@ namespace engine
       catLockTreeNode &lockTree = _mapType2Lock[ type ] ;
       if ( NULL == lockTree._getMgr() )
       {
-         // zero level don't need latch
          lockTree._setType( type ) ;
          lockTree._setMgr( this ) ;
       }
@@ -352,8 +351,6 @@ namespace engine
    {
       BOOLEAN locked = FALSE ;
 
-      // first lock zero
-      // then lock one
       if ( _catZeroLevelLock::tryLock( SHARED ) )
       {
          if ( NULL == _oneLevelNode )
@@ -416,8 +413,6 @@ namespace engine
    {
       BOOLEAN locked = FALSE ;
 
-      // first lock one
-      // then lock two
       if ( _catOneLevelLock::tryLock( SHARED ) )
       {
          if ( NULL == _twoLevelNode )
@@ -519,7 +514,6 @@ namespace engine
 
    _catCtxLockMgr::~_catCtxLockMgr ()
    {
-      // Make sure objects are unlocked
       unlockObjects() ;
    }
 
@@ -545,7 +539,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       CHAR csName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = {0} ;
 
-      // Resolve collection space from collection full name
       rc = rtnResolveCollectionSpaceName( clFullName.c_str(),
                                           clFullName.size(),
                                           csName,
@@ -584,7 +577,6 @@ namespace engine
    {
       catOneLevelLock *pLock = NULL ;
 
-      // Create lock by lock type
       switch ( type )
       {
       case CAT_LOCK_DATA :
@@ -612,7 +604,6 @@ namespace engine
 
       SDB_ASSERT( parentName != name, "Names of 2 levels are the same" ) ;
 
-      // Create lock by lock type
       switch ( type )
       {
       case CAT_LOCK_DATA :
@@ -651,7 +642,6 @@ namespace engine
       {
          catOneLevelLock *pLock = ( *iterLock ) ;
          iterLock = _lockList.erase( iterLock ) ;
-         // Make sure the object is unlocked
          pLock->unLock();
          SDB_OSS_DEL pLock;
       }

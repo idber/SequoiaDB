@@ -103,9 +103,6 @@ public class ServerAddress {
         _port = addr.getPort();
     }
 
-    // --------
-    // equality, etc...
-    // --------
 
 
     /**
@@ -179,9 +176,6 @@ public class ServerAddress {
     final String _host;
     final int _port;
 
-    // --------
-    // static helpers
-    // --------
 
     /**
      * Returns the default database host: "127.0.0.1"

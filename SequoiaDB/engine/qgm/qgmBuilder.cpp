@@ -830,7 +830,6 @@ namespace engine
          goto error ;
       }
 
-      /// condition has been taken over by pyh, so here need to reset to null
       s->_condition = NULL ;
    done:
       PD_TRACE_EXITRC( SDB__QGMBUILDER__ADDPHYSCAN, rc ) ;
@@ -869,7 +868,6 @@ namespace engine
          goto error ;
       }
 
-      /// condition has been taken over by pScan, so here need to reset null
       s->_condition = NULL ;
    done:
       PD_TRACE_EXITRC( SDB__QGMBUILDER__ADDMTHMATHERSCAN, rc ) ;
@@ -950,8 +948,6 @@ namespace engine
          goto error ;
       }
 
-      /// we push condition of filter into phyf.
-      /// it's mem will be managed by phyf.
       s->_condition = NULL ;
    done:
       PD_TRACE_EXITRC( SDB__QGMBUILDER__CRTPHYFILTER, rc ) ;
@@ -990,8 +986,6 @@ namespace engine
          goto error ;
       }
 
-      /// we push condition of filter into phyf.
-      /// it's mem will be managed by phyf.
       s->_condition = NULL ;
       phy = pFilter ;
    done:
@@ -1258,7 +1252,6 @@ namespace engine
          goto error ;
       }
 
-      /// build set
       {
          BSONObjBuilder builder( 128 ) ;
          BSONObjBuilder sub( builder.subobjStart( "$set" ) ) ;
@@ -1782,7 +1775,6 @@ namespace engine
             goto error ;
          }
 
-         /// build object
          for ( UINT32 i = 0 ; i < columns.size() ; ++i )
          {
             rc = qgmParseValue( values[i], builder,
@@ -1820,7 +1812,6 @@ namespace engine
          qgmOpField field ;
          field.type = type ;
          node->_selector.push_back( field ) ;
-         /// do nothing.
       }
       else if ( SQL_GRAMMAR::DBATTR == type )
       {
@@ -2026,7 +2017,6 @@ namespace engine
                }
             }
 
-            /// parse on.
             if ( ++itr != root->children.end() )
             {
                rc = _buildCondition( itr, join->_condition ) ;
@@ -2105,7 +2095,6 @@ namespace engine
 
          if ( NULL != alias )
          {
-            /// we do not set collection's alias, it is not used.
             rc = _table->getField( alias, len, select->_alias ) ;
             if ( SDB_OK != rc )
             {
@@ -2484,7 +2473,6 @@ namespace engine
             goto error ;
          }
 
-         ///default is asc.
          field.type = SQL_GRAMMAR::ASC ;
          if ( !isFromOne( field, order, FALSE ) )
          {
@@ -2827,7 +2815,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__QGMBUILDER__ADDSELECTORFROMEXPR ) ;
       qgmOpField opField ;
-      /// destructed when goto error or destruction of qgmSelectorExpr
       _qgmSelectorExprNode *exprRoot = NULL ;
 
       exprRoot = new (std::nothrow) _qgmSelectorExprNode() ;
@@ -2879,7 +2866,6 @@ namespace engine
 
       if ( isMathOp( type ) )
       {
-         /// destructed in exprNode's destruction
          _qgmSelectorExprNode *right = NULL ;
          _qgmSelectorExprNode *left = NULL ;
 
@@ -2940,7 +2926,6 @@ namespace engine
 
          if ( !builder.appendAsNumber( "", field.toString() ) )
          {
-            /// try decimal
             if ( !builder.appendDecimal( "", field.toString() ) )
             {
                PD_LOG( PDERROR, "Failed to cast [%s] to digital",

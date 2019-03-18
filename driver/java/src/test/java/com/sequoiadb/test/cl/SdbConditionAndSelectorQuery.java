@@ -23,21 +23,16 @@ public class SdbConditionAndSelectorQuery {
 
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } else {
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         }
-        // cl
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
-//		List<BSONObject>list = ConstantsInsert.createRecordList(100);
-//		cl.bulkInsert(list, 0);
     }
 
     @AfterClass
@@ -59,7 +54,6 @@ public class SdbConditionAndSelectorQuery {
     }
 
     @Test
-//	@Ignore
     public void testSdbConditionAndSelectorQuery() {
         BSONObject query = new BasicBSONObject();
         BSONObject con = new BasicBSONObject();
@@ -105,7 +99,6 @@ public class SdbConditionAndSelectorQuery {
     }
 
     @Test
-//	@Ignore
     public void testDelete() {
         BSONObject con = new BasicBSONObject();
         con.put("Id", 0);
@@ -115,7 +108,6 @@ public class SdbConditionAndSelectorQuery {
     }
 
     @Test
-//	@Ignore
     public void testDeleteByHint() {
         BSONObject con = new BasicBSONObject();
         BSONObject hint = new BasicBSONObject();

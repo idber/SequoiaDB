@@ -76,7 +76,6 @@ INT32 WINAPI pmdWinstartService( const CHAR *pServiceName,
                "invalid service name size!" );
    PD_CHECK( nameLen <= PMD_WINSVC_SVCNAME_MAX_LEN, SDB_INVALIDARG, error,
             PDERROR, "invalid service name size(%u)", nameLen );
-   //ossStrcpy( g_service_name, pServiceName );
    MultiByteToWideChar( CP_ACP, 0, pServiceName, -1,
                         g_service_name, PMD_WINSVC_SVCNAME_MAX_LEN );
    g_service_fun = svcFun;
@@ -171,7 +170,6 @@ void WINAPI pmdWinServiceMain( DWORD argc, LPTSTR *argv )
       goto error;
    }
 
-   // start the service
    try
    {
       boost::thread serviceThrd( g_service_fun, argc, (CHAR **)argv );
@@ -224,7 +222,6 @@ BOOLEAN pmdWinSvcReportStatusToSCMgr( DWORD dwStatus )
 
    g_service_status.dwCurrentState = dwStatus;
 
-   // failed to set service status
    if ( !( SetServiceStatus(g_status_handle, &g_service_status) ) )
    {
       result = FALSE;

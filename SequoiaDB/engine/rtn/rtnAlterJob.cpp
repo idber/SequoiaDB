@@ -65,7 +65,6 @@ namespace engine
       string lower ;
       try
       {
-         /// version
          BSONElement e = obj.getField( FIELD_NAME_VERSION ) ;
          if ( !e.isNumber() )
          {
@@ -85,7 +84,6 @@ namespace engine
 
          builder.append( FIELD_NAME_VERSION, _v ) ;
 
-         /// type
          e = obj.getField( FIELD_NAME_ALTER_TYPE ) ;
          if ( String != e.type() )
          {
@@ -106,7 +104,6 @@ namespace engine
          boost::algorithm::to_lower( lower ) ;
          builder.append( FIELD_NAME_ALTER_TYPE, lower ) ;
 
-         /// name
          e = obj.getField( FIELD_NAME_NAME ) ;
          if ( String != e.type() )
          {
@@ -117,7 +114,6 @@ namespace engine
          }
          builder.append( FIELD_NAME_NAME, e.valuestrsafe() ) ;
 
-         /// alter list
          e = obj.getField( FIELD_NAME_ALTER ) ;
          if ( Array != e.type() &&
               Object != e.type() )
@@ -136,7 +132,6 @@ namespace engine
 
          builder.append( FIELD_NAME_ALTER, arrBuilder.arr() ) ;
 
-         /// options is not necessary.
          e = obj.getField( FIELD_NAME_OPTIONS ) ;
          if ( Object == e.type() )
          {

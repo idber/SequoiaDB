@@ -1,17 +1,17 @@
-/* Copyright (c) 2018, SequoiaDB and/or its affiliates. All rights reserved.
+/* Copyright (c) 2003, 2011, Oracle and/or its affiliates. All rights reserved.
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; version 2 of the License.
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; version 2 of the License.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
 
 #include "handler.h"
 #include "include/client.hpp"
@@ -186,8 +186,6 @@ public:
    */
    int index_last(uchar *buf);
 
-   //int index_read(uchar *buf, const uchar *key_ptr, uint key_len,
-   //               enum ha_rkey_function find_flage);
 
    int index_init(uint idx, bool sorted);
 
@@ -247,8 +245,6 @@ public:
 
    Item *idx_cond_push( uint keyno, Item* idx_cond ) ;
 
-   const char *get_version() ;
-
 
 private:
 
@@ -262,14 +258,75 @@ private:
 
    int cur_row( uchar *buf ) ;
 
+   int build_match_obj_by_start_stop_key( uint keynr,
+                        const uchar *key_ptr,
+                        key_part_map keypart_map,
+                        enum ha_rkey_function find_flag,
+                        bson::BSONObj &matchObj ) ;
+
    int create_index( Alter_inplace_info *ha_alter_info ) ;
 
    int drop_index( Alter_inplace_info *ha_alter_info ) ;
 
-   int get_cl_options( TABLE *form, HA_CREATE_INFO *create_info,
-                       bson::BSONObj &options, my_bool use_partition ) ;
+   void get_unsigned_key_val( const uchar * key_ptr,
+                              key_part_map key_part_map_val,
+                              const KEY_PART_INFO * key_part,
+                              bson::BSONObjBuilder & obj_builder,
+                              const char * op_str ) ;
 
-   int get_sharding_key( TABLE *form, bson::BSONObj &options ) ;
+   void get_unsigned_key_range_obj( const uchar * start_key_ptr,
+                                    key_part_map start_key_part_map,
+                                    enum ha_rkey_function start_find_flag,
+                                    const uchar * end_key_ptr,
+                                    key_part_map end_key_part_map,
+                                    enum ha_rkey_function end_find_flag,
+                                    const KEY_PART_INFO * key_part,
+                                    bson::BSONObj & obj ) ;
+
+   void get_signed_key_val( const uchar * key_ptr,
+                            key_part_map key_part_map_val,
+                            const KEY_PART_INFO * key_part,
+                            bson::BSONObjBuilder & obj_builder,
+                            const char * op_str ) ;
+
+   void get_signed_key_range_obj( const uchar * start_key_ptr,
+                                  key_part_map start_key_part_map,
+                                  enum ha_rkey_function start_find_flag,
+                                  const uchar * end_key_ptr,
+                                  key_part_map end_key_part_map,
+                                  enum ha_rkey_function end_find_flag,
+                                  const KEY_PART_INFO * key_part,
+                                  bson::BSONObj & obj ) ;
+
+   void get_text_key_val( const uchar * key_ptr,
+                          key_part_map key_part_map_val,
+                          const KEY_PART_INFO * key_part,
+                          bson::BSONObjBuilder & obj_builder,
+                          const char * op_str ) ;
+
+   void get_text_key_range_obj( const uchar * start_key_ptr,
+                                key_part_map start_key_part_map,
+                                enum ha_rkey_function start_find_flag,
+                                const uchar * end_key_ptr,
+                                key_part_map end_key_part_map,
+                                enum ha_rkey_function end_find_flag,
+                                const KEY_PART_INFO * key_part,
+                                bson::BSONObj & obj ) ;
+
+   void get_float_key_val( const uchar * key_ptr,
+                           key_part_map key_part_map_val,
+                           const KEY_PART_INFO * key_part,
+                           bson::BSONObjBuilder & obj_builder,
+                           const char * op_str ) ;
+
+   void get_float_key_range_obj( const uchar * start_key_ptr,
+                                 key_part_map start_key_part_map,
+                                 enum ha_rkey_function start_find_flag,
+                                 const uchar * end_key_ptr,
+                                 key_part_map end_key_part_map,
+                                 enum ha_rkey_function end_find_flag,
+                                 const KEY_PART_INFO * key_part,
+                                 bson::BSONObj & obj ) ;
 
 private:
    THR_LOCK_DATA                             lock_data ;
@@ -285,8 +342,4 @@ private:
    char                                      db_name[CS_NAME_MAX_SIZE + 1] ;
    char                                      table_name[CL_NAME_MAX_SIZE + 1] ;
    int                                       fd ;
-   time_t                                    last_flush_time ;
-   int                                       used_times ;
-   long long                                 rec_num ;
-   MEM_ROOT                                  blobroot ;
 };

@@ -69,7 +69,6 @@ namespace engine
       rc = forward( pMsg, cb, FALSE, contextID, &pUserName, &pPassWord ) ;
       if ( pUserName )
       {
-         /// AUDIT
          PD_AUDIT_OP( AUDIT_DCL, pMsg->opCode, AUDIT_OBJ_USER,
                       pUserName, rc, "" ) ;
       }
@@ -78,7 +77,6 @@ namespace engine
          goto error ;
       }
 
-      /// update user info
       cb->setUserInfo( pUserName, pPassWord ) ;
 
    done:

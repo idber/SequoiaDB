@@ -70,7 +70,6 @@ namespace engine
 
          virtual void    onTimer ( UINT64 timerID, UINT32 interval ) ;
 
-         // fileObj operation function
          virtual INT32 newFileObj( UINT32 &fID, sptUsrFileCommon** fileObj ) ;
          virtual void releaseFileObj( UINT32 fID ) ;
          virtual sptUsrFileCommon* getFileObjByID( UINT32 fID ) ;
@@ -79,7 +78,6 @@ namespace engine
          virtual void   _onAttach () ;
          virtual INT32  _defaultMsgFunc ( NET_HANDLE handle, MsgHeader* msg ) ;
 
-      // msg map function
       protected:
          INT32       _onNodeMgrReq( const NET_HANDLE &handle,
                                     MsgHeader *pMsg ) ;

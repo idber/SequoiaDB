@@ -11,7 +11,6 @@ int main(int argc, char *argv[])
 {
    if(argc == 2)
    {
-      //cout << "./envCheck.out logFilePath" << endl;
       sdbEnablePD(argv[1], 1000, 10) ;
    }
    if(argc == 1)
@@ -25,8 +24,6 @@ int main(int argc, char *argv[])
       cout << "wrong cmd format !" << endl ;
    }
    
-  // sdbEnablePD(argv[1], 1, 100) ;
-   //setPDLevel( (PDLEVEL)( pmdGetOptionCB()->getDiagLevel() ) );
    utilCheckEnv();
    return 0;
 }

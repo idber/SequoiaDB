@@ -1,4 +1,3 @@
-// TODO: need to change pNodeHostName, pNodeSvcName
 #include <stdio.h>
 #include <gtest/gtest.h>
 #include "client.hpp"
@@ -40,23 +39,18 @@ CHAR tmp_buf[tmp_buf_size + 1] = { 0 } ;
  * @description: test for replica group's api
  * @author: tanzhaobo
  */
-//class replicaGroupTest : public testing::Environment
 class replicaGroupTest : public testing::Test
 {
    public:
       replicaGroupTest() {}
 
    public:
-      // run before all the testcase
       static void SetUpTestCase() ;
 
-      // run before all the testcase
       static void TearDownTestCase() ;
 
-      // run before every testcase
       virtual void SetUp() ;
 
-      // run before every testcase
       virtual void TearDown() ;
 } ;
 
@@ -65,7 +59,6 @@ void replicaGroupTest::SetUpTestCase()
    INT32 rc = SDB_OK ;
    BSONObj option ;
 
-   // connect
    rc = db.connect( pHostName, pSvcName, pUser, pPassword ) ;
    if ( SDB_OK != rc )
    {
@@ -76,7 +69,6 @@ void replicaGroupTest::SetUpTestCase()
    {
       connect_flag = TRUE ;
    }
-   // check it's in cluster env or not
    if ( TRUE == isCluster( db ) )
    {
       is_cluster = TRUE ;
@@ -85,7 +77,6 @@ void replicaGroupTest::SetUpTestCase()
    {
       return ;
    }
-   // create rg
    rc = db.createReplicaGroup( pGroupName, rg ) ;
    if ( SDB_OK != rc )
    {
@@ -98,7 +89,6 @@ void replicaGroupTest::SetUpTestCase()
    {
       create_rg_flag = TRUE ;
    }
-   // create node
    option = BSON( "logfilenum" << 1 ) ;
    rc = rg.createNode( pNodeHostName, pNodeSvcName, pNodePath, option ) ;
    if ( SDB_OK != rc )
@@ -108,7 +98,6 @@ void replicaGroupTest::SetUpTestCase()
       cout << tmp_buf << endl ;
       return ;
    }
-   // start node
    rc = rg.start() ;
    if ( SDB_OK != rc )
    {
@@ -148,7 +137,6 @@ void replicaGroupTest::SetUp()
       return ;
 
    create_node_flag2 = FALSE ;
-   // create node
    option = BSON( "logfilenum" << 1 ) ;
    rc = rg.createNode( pNodeHostName, pNodeSvcName2, pNodePath2, option ) ;
    if ( SDB_OK != rc )
@@ -159,7 +147,6 @@ void replicaGroupTest::SetUp()
       cout << tmp_buf << endl ;
       return ;
    }
-   // start node
    rc = rg.start() ;
    if ( SDB_OK != rc )
    {
@@ -234,29 +221,24 @@ TEST_F( replicaGroupTest, detachNode )
 
    INT32 rc = SDB_OK ;
    sdbNode node ;
-   // detach node 
    rc = rg.detachNode( pNodeHostName2, pNodeSvcName2 ) ;
    ASSERT_EQ( SDB_OK, rc ) << "Failed to detach data node from group " <<
       pGroupName << ", rc = " << rc ;
 
-   // check
    rc = rg.getNode( pNodeHostName2, pNodeSvcName2, node ) ;
    ASSERT_EQ( SDB_CLS_NODE_NOT_EXIST, rc ) << "What we expect is "
       "SDB_CLS_NODE_NOT_EXIST, but rc = " << rc ;
 
-   // attach node
    rc = rg.attachNode( pNodeHostName2, pNodeSvcName2 ) ;
    ASSERT_EQ( SDB_OK, rc ) << "Failed to attach data node to group " <<
       pGroupName << ", rc = " << rc ;
   
-   // check 
    rc = rg.getNode( pNodeHostName2, pNodeSvcName2, node ) ;
    ASSERT_EQ( SDB_OK, rc ) << "Failed to get data node from group " <<
       pGroupName << ", rc = " << rc ;
 
 }
 
-// TODO:
 /*
 getNodeNum
 getDetail

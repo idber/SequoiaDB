@@ -62,7 +62,6 @@ namespace engine
       MAP_PAGES_IT it = _mapPages.find( src ) ;
       if ( it == _mapPages.end() )
       {
-         /// insert
          _mapPages[ src ] = dst ;
 
          if ( 0 == _size.inc() )
@@ -73,7 +72,6 @@ namespace engine
       }
       else
       {
-         /// update
          it->second = dst ;
       }
    }
@@ -83,7 +81,6 @@ namespace engine
       MAP_PAGES_IT it = _mapPages.find( src ) ;
       if ( it != _mapPages.end() )
       {
-         /// find
          _mapPages.erase( it ) ;
 
          if ( 1 == _size.dec() )

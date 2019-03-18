@@ -43,10 +43,8 @@
 namespace engine
 {
 
-   // Same as DMS_MME_SLOTS
    #define UTIL_SU_CACHE_DFT_SIZE ( 4096 )
 
-   // Same as DMS_INVALID_MBID
    #define UTIL_SU_INVALID_UNITID ( 65535 )
 
    template < UINT16 CACHESIZE >
@@ -114,10 +112,8 @@ namespace engine
          }
 
       protected :
-         // Unit ID to index in cache
          UINT16   _unitID ;
 
-         // CreateTime (timestamp) of the cache unit
          UINT64   _createTime ;
    } ;
 
@@ -190,7 +186,6 @@ namespace engine
             if ( needCheck && NULL != _pHolder &&
                  !_pHolder->checkCacheUnit( pUnit ) )
             {
-               // Failed to check cache unit
                goto done ;
             }
 
@@ -234,7 +229,6 @@ namespace engine
             if ( needCheck && NULL != _pHolder &&
                  !_pHolder->checkCacheUnit( pSubUnit ) )
             {
-               // Failed to check cache unit
                goto done ;
             }
 

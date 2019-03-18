@@ -215,7 +215,6 @@ namespace engine
       BSONObj conf ;
       string err ;
 
-      // get configsObj
       if ( FALSE == _valueObj.hasField( "configsObj" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -395,7 +394,6 @@ namespace engine
          goto error ;
       }
 
-      // get param
       rc = _parseListParam( _optionObj, optionParam, errMsg ) ;
       if ( rc )
       {
@@ -403,7 +401,6 @@ namespace engine
          goto error ;
       }
 
-      // get nodes list
       utilListNodes( nodes, optionParam._typeFilter, NULL,
                      OSS_INVALID_PID, optionParam._roleFilter,
                      optionParam._showAlone ) ;
@@ -417,7 +414,6 @@ namespace engine
             bFind = FALSE ;
             utilNodeInfo &info = *it ;
 
-            // match specified svcname
             for ( UINT32 j = 0 ; j < optionParam._svcnames.size() ; ++j )
             {
                if ( info._svcname == optionParam._svcnames[ j ] )
@@ -457,7 +453,6 @@ namespace engine
 
             utilBuildFullPath( rootPath, SDBCM_CONF_PATH_FILE,
                                OSS_MAX_PATHSIZE, confFile ) ;
-            // file exist
             if ( 0 == ossAccess( confFile ) )
             {
                utilGetCMService( rootPath, hostName, node._svcname, TRUE ) ;
@@ -471,7 +466,6 @@ namespace engine
             utilNodeInfo &info = *it ;
             bFind = FALSE ;
 
-            // match specified svcname
             for ( UINT32 j = 0 ; j < optionParam._svcnames.size() ; ++j )
             {
                if ( info._svcname == optionParam._svcnames[ j ] )
@@ -501,7 +495,6 @@ namespace engine
          }
       }
 
-      // build BSONObj vector
       for ( UINT32 k = 0 ; k < nodes.size() ; ++k )
       {
          BSONObj obj = _nodeInfo2Bson( nodes[ k ],
@@ -513,7 +506,6 @@ namespace engine
          vecObj.push_back( obj ) ;
       }
 
-      // if no svcname, and list all/list cm, need to show sdbcmd
       if ( optionParam._svcnames.size() == 0 &&
            ( SDB_TYPE_OMA == optionParam._typeFilter ||
              -1 == optionParam._typeFilter ) &&
@@ -531,7 +523,6 @@ namespace engine
          }
       }
 
-      // build retObj
       for( UINT32 index = 0; index < vecObj.size(); index++ )
       {
          try
@@ -547,7 +538,6 @@ namespace engine
          }
       }
 
-      // set result
       retObj = builder.obj() ;
 
    done:
@@ -567,7 +557,6 @@ namespace engine
       {
          BSONElement e = it.next() ;
 
-         // type
          if ( 0 == ossStrcasecmp( e.fieldName(), PMD_OPTION_TYPE ) )
          {
             if ( String != e.type() )
@@ -600,7 +589,6 @@ namespace engine
             }
          }
 
-         // mode
          else if ( 0 == ossStrcasecmp( e.fieldName(), PMD_OPTION_MODE ) )
          {
             if ( String != e.type() )
@@ -627,7 +615,6 @@ namespace engine
             }
          }
 
-         // role
          else if ( 0 == ossStrcasecmp( e.fieldName(), PMD_OPTION_ROLE ) )
          {
             if ( String != e.type() )
@@ -647,7 +634,6 @@ namespace engine
             }
          }
 
-         // svcname
          else if ( 0 == ossStrcasecmp( e.fieldName(), PMD_OPTION_SVCNAME ) )
          {
             if ( String != e.type() )
@@ -665,13 +651,11 @@ namespace engine
             }
          }
 
-         // showalone
          else if ( 0 == ossStrcasecmp( e.fieldName(), "showalone" ) )
          {
             param._showAlone = e.booleanSafe() ? TRUE : FALSE ;
          }
 
-         // expand
          else if ( 0 == ossStrcasecmp( e.fieldName(), PMD_OPTION_EXPAND ) )
          {
             param._expand = e.booleanSafe() ? TRUE : FALSE ;
@@ -752,7 +736,6 @@ namespace engine
       BSONObj obj ;
       CHAR confFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 
-      // not cm
       if ( type != SDB_TYPE_OMA )
       {
          pmdOptionsCB conf ;
@@ -822,7 +805,6 @@ namespace engine
       string errMsg ;
       BSONObj conf ;
 
-      // get svcname
       if ( FALSE == _matchObj.hasField( "svcname" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -856,14 +838,12 @@ namespace engine
          goto error ;
       }
 
-      // build conf path
       rc = _getNodeConfigFile( svcname, confPath ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG_MSG( PDERROR, "Failed to get conf file path" ) ;
          goto error ;
       }
-      // get confObj
       rc = _getNodeConfInfo( confPath, conf, errMsg ) ;
       if ( SDB_OK != rc )
       {
@@ -906,7 +886,6 @@ namespace engine
       string svcname ;
       BSONType bsonType ;
 
-      // get svcname
       if ( FALSE == _matchObj.hasField( "svcname" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -940,7 +919,6 @@ namespace engine
          goto error ;
       }
 
-      // get configsObj
       if ( FALSE == _valueObj.hasField( "configsObj" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -962,7 +940,6 @@ namespace engine
          goto error ;
       }
 
-      // build conf path
       rc = _getNodeConfigFile( svcname, confFile ) ;
       if ( SDB_OK != rc )
       {
@@ -970,7 +947,6 @@ namespace engine
          goto error ;
       }
 
-      // write confFile
       rc = utilWriteConfigFile( confFile.c_str(), str.c_str(), FALSE ) ;
       if ( rc )
       {
@@ -1016,7 +992,6 @@ namespace engine
       BSONType bsonType ;
       BSONObjBuilder builder ;
 
-      // get svcname
       if ( FALSE == _matchObj.hasField( "svcname" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -1050,7 +1025,6 @@ namespace engine
          goto error ;
       }
 
-      // get configsObj
       if ( FALSE == _valueObj.hasField( "configsObj" ) )
       {
          rc = SDB_OUT_OF_BOUND ;
@@ -1065,7 +1039,6 @@ namespace engine
       }
       newConf = _valueObj.getObjectField( "configsObj" );
 
-      // build conf path
       rc = _getNodeConfigFile( svcname, confFile ) ;
       if ( SDB_OK != rc )
       {
@@ -1073,7 +1046,6 @@ namespace engine
          goto error ;
       }
 
-      // get exist configs
       rc = _getNodeConfInfo( confFile, oldConf, errMsg ) ;
       if ( SDB_OK != rc )
       {
@@ -1081,7 +1053,6 @@ namespace engine
          goto error ;
       }
 
-      // merge configs, new conf should be append before append olf conf
       builder.appendElementsUnique( newConf ) ;
       builder.appendElementsUnique( oldConf ) ;
 
@@ -1092,7 +1063,6 @@ namespace engine
          goto error ;
       }
 
-      // write configs file
       rc = utilWriteConfigFile( confFile.c_str(), str.c_str(), FALSE ) ;
       if ( rc )
       {
@@ -1133,7 +1103,6 @@ namespace engine
       CHAR currentPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       omAgentOptions option ;
 
-      // Get current path
       ossGetEWD( currentPath, OSS_MAX_PATHSIZE ) ;
       option.init( currentPath ) ;
       option.toBSON( optionObj, PMD_CFG_MASK_SKIP_UNFIELD ) ;

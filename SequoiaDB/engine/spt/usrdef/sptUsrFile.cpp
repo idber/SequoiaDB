@@ -144,7 +144,6 @@ JS_MAPPING_END()
       BSONObjBuilder opBuilder ;
       string err ;
 
-      // get filename
       rc = arg.getString( 0, filename ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
@@ -156,7 +155,6 @@ JS_MAPPING_END()
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to get filename, rc: %d", rc ) ;
 
-      // get mode
       if ( arg.argc() > 1 )
       {
          rc = arg.getNative( 1, (void*)&permission, SPT_NATIVE_INT32 ) ;
@@ -201,7 +199,6 @@ JS_MAPPING_END()
    {
       INT32 rc = SDB_OK ;
 
-      // new File Object and set return value
       _sptUsrFile * fileObj = SDB_OSS_NEW _sptUsrFile() ;
       if ( !fileObj )
       {
@@ -286,7 +283,6 @@ JS_MAPPING_END()
       string content ;
       string err ;
 
-      // get content
       rc = arg.getString( 0, content ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
@@ -385,7 +381,6 @@ JS_MAPPING_END()
       BSONObjBuilder optionBuilder ;
       string err ;
 
-      //get read length
       rc = arg.getNative( 0, &readLen, SPT_NATIVE_INT64 ) ;
       if( SDB_OK == rc )
       {
@@ -708,7 +703,6 @@ JS_MAPPING_END()
       BSONObj remoteInfo ;
       BSONObjBuilder builder ;
 
-      // get information about Object
       rc = arg.getBsonobj( 0, remoteInfo ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
@@ -721,13 +715,11 @@ JS_MAPPING_END()
          goto error ;
       }
 
-      // if it is not a remote obj, append local filename
       if ( FALSE == remoteInfo.getBoolField( "isRemote" ) )
       {
          builder.append( "filename", _fileCommon.getFileName() ) ;
       }
 
-      // build result
       builder.append( "type", "File" ) ;
       builder.appendElements( remoteInfo ) ;
       rval.getReturnVal().setValue( builder.obj() ) ;
@@ -1022,7 +1014,6 @@ JS_MAPPING_END()
       goto done ;
    }
 
-   // Read all the contents of the file
    INT32 _sptUsrFile::readFile( const _sptArguments & arg,
                                 _sptReturnVal & rval,
                                 BSONObj & detail )
@@ -1137,7 +1128,6 @@ JS_MAPPING_END()
       INT32 mode = 0 ;
       string err ;
 
-      // read argument
       rc = arg.getString( 0, pathname ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
@@ -1196,7 +1186,6 @@ JS_MAPPING_END()
       BSONObjBuilder opBuilder ;
       string err ;
 
-      // raed arugment
       rc = arg.getString( 0, pathname ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
@@ -1255,7 +1244,6 @@ JS_MAPPING_END()
       string err ;
       BSONObjBuilder opBuilder ;
 
-      // get argument
       rc = arg.getString( 0, pathname ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
@@ -1332,7 +1320,6 @@ JS_MAPPING_END()
       INT32 mask = 0 ;
       string err ;
 
-      // get argument
       rc = arg.getNative( 0, (void*)&mask, SPT_NATIVE_INT32 ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
@@ -1366,7 +1353,6 @@ JS_MAPPING_END()
       string pathType ;
       string err ;
 
-      // get pathname
       rc = arg.getString( 0, pathname ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
@@ -1401,7 +1387,6 @@ JS_MAPPING_END()
       INT32 permission = 0 ;
       string err ;
 
-      // get pathname
       rc = arg.getString( 0, pathname ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
@@ -1436,7 +1421,6 @@ JS_MAPPING_END()
       string pathname ;
       string err ;
 
-      // get pathname
       rc = arg.getString( 0, pathname ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
@@ -1471,7 +1455,6 @@ JS_MAPPING_END()
       string err ;
       BSONObj retObj ;
 
-      // get argument
       rc = arg.getString( 0, pathname ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
@@ -1506,7 +1489,6 @@ JS_MAPPING_END()
       string code ;
       string err ;
 
-      // check, we need 1 argument filename
       if ( 0 == arg.argc() )
       {
          rc = SDB_OUT_OF_BOUND ;

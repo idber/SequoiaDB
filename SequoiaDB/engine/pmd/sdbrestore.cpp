@@ -307,7 +307,6 @@ namespace engine
                }
             }
 
-            // make dir
             ossMkdir( _dialogPath ) ;
 
             return SDB_OK ;
@@ -341,7 +340,6 @@ namespace engine
       po::options_description desc( "Command options" ) ;
       po::options_description all( "Command options" ) ;
 
-      //init description
       PMD_ADD_PARAM_OPTIONS_BEGIN( desc )
          PMD_RS_OPTIONS
       PMD_ADD_PARAM_OPTIONS_END
@@ -351,7 +349,6 @@ namespace engine
          PMD_RS_HIDE_OPTIONS
       PMD_ADD_PARAM_OPTIONS_END
 
-      // read command line
       rc = utilReadCommandLine( argc, argv, all, vm ) ;
       if ( rc )
       {
@@ -361,7 +358,6 @@ namespace engine
 
       rsOptMgr._vm = vm ;
 
-      // resolve --help --version
       if ( vm.count( PMD_OPTION_HELP ) )
       {
          std::cout << desc << std::endl ;
@@ -381,13 +377,11 @@ namespace engine
          goto done ;
       }
 
-      // change user
       if ( !vm.count( PMD_OPTION_CURUSER ) )
       {
          UTIL_CHECK_AND_CHG_USER() ;
       }
 
-      // init optionMgr
       rc = rsOptMgr.init( NULL, &vm ) ;
       if ( rc )
       {
@@ -414,7 +408,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      // check sequoaidb is not running
       rc = pmdGetStartup().init( pmdGetOptionCB()->getDbPath() ) ;
       if ( rc )
       {
@@ -427,7 +420,6 @@ namespace engine
                 << pmdGetOptionCB()->getServiceAddr()
                 << ") is not running...OK" << std::endl ;
 
-      /// when node is crashed, need restore full
       if ( pOption->_beginIncID < 0 && !pmdGetStartup().isOK() )
       {
          pOption->_beginIncID = 0 ;
@@ -437,13 +429,11 @@ namespace engine
 
       if ( 0 == pOption->_beginIncID )
       {
-         // clean dps logs
          std::cout << "Begin to clean dps logs..." << std::endl ;
          rc = sdbCleanDirFiles( pmdGetOptionCB()->getReplLogPath() ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to clean dps logs[%s], rc: %d",
                       pmdGetOptionCB()->getReplLogPath(), rc ) ;
 
-         // clean dms storages
          std::cout << "Begin to clean dms storages..." << std::endl ;
          rc = sdbCleanDirSUFiles( pmdGetOptionCB()->getDbPath() ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to clean data[%s] su, rc: %d",
@@ -478,7 +468,6 @@ namespace engine
       }
       else
       {
-         // remove start file
          pmdGetStartup().ok( TRUE ) ;
          pmdGetStartup().final() ;
       }
@@ -508,7 +497,6 @@ namespace engine
          return rc ;
       }
       std::cout << "backup list: " << std::endl ;
-      // list all backups
       vector < BSONObj >::iterator it = backups.begin() ;
       while ( it != backups.end() )
       {
@@ -533,7 +521,6 @@ namespace engine
       CHAR diaglog[ OSS_MAX_PATHSIZE + 1 ] = {0} ;
       rsOptionMgr optMgr ;
 
-      // 1. read command line first
       rc = resolveArguments( argc, argv, optMgr ) ;
       if ( SDB_PMD_HELP_ONLY == rc || SDB_PMD_VERSION_ONLY == rc )
       {
@@ -546,13 +533,11 @@ namespace engine
          return rc ;
       }
 
-      // 2. enable pd log
       utilBuildFullPath( optMgr._dialogPath, PMD_SDBRESTORE_DIAGLOG_NAME,
                          OSS_MAX_PATHSIZE, diaglog ) ;
       sdbEnablePD( diaglog ) ;
       setPDLevel( (PDLEVEL)optMgr._diagLevel ) ;
 
-      // 3. handlers and init global mem
       rc = pmdEnableSignalEvent( optMgr._dialogPath,
                                  (PMD_ON_QUIT_FUNC)pmdOnQuit ) ;
       if ( rc )
@@ -562,10 +547,8 @@ namespace engine
          return rc ;
       }
 
-      // 4. register cbs
       registerCB() ;
 
-      // only for list
       if ( 0 == ossStrcmp( optMgr._action, RS_BK_LIST ) )
       {
          rc = listBackups( optMgr ) ;
@@ -588,7 +571,6 @@ namespace engine
 
       if ( optMgr._isSelf )
       {
-         // restore configs
          rc = krcb->getOptionCB()->restore ( g_restoreLogger.getConf(),
                                              &(optMgr._vm) ) ;
       }
@@ -603,12 +585,10 @@ namespace engine
          goto error ;
       }
 
-      // initialize variables
       rc = restoreSysInit( &optMgr ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to initialize, rc: %d", rc ) ;
 
       krcb->setIsRestore( TRUE ) ;
-      // 5. inti krcb
       rc = krcb->init() ;
       if ( rc )
       {
@@ -617,7 +597,6 @@ namespace engine
       }
 
       std::cout << "Begin to restore... " << std::endl ;
-      // start restore task
       rc = startRestoreJob( &agentEDU, &g_restoreLogger ) ;
       if ( rc )
       {
@@ -626,7 +605,6 @@ namespace engine
          goto error ;
       }
 
-      // Now master thread get into big loop and check shutdown flag
       while ( PMD_IS_DB_UP() )
       {
          ossSleepsecs ( 1 ) ;

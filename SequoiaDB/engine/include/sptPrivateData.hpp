@@ -58,7 +58,6 @@ namespace engine
 
       void clearErrInfo() ;
    private:
-      // _scope can't be modified after init
       sptScope *_scope ;
       std::string _errFileName ;
       UINT32 _errLineno ;

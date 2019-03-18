@@ -184,7 +184,6 @@ public class SdbQueryMethodUnitTests {
 
 	interface PersonRepository extends Repository<User, Long> {
 
-		// Misses Pageable
 		GeoPage<User> findByLocationNear(Point point, Distance distance);
 
 		GeoPage<User> findByLocationNear(Point point, Distance distance, Pageable pageable);

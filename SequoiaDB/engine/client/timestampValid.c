@@ -37,9 +37,7 @@
 
 #include "timestamp.h"
 
-//0001-01-01T00:00:00
 #define MIN_SEC (-62135596800LL)
-//9999-12-31T23:59:59
 #define MAX_SEC (253402300799LL)
 
 BOOLEAN timestampValid( const sdbTimestamp *pTime )

@@ -187,7 +187,6 @@ public class Update_bak {
 		for (int i = 0; i < values.length; i++) {
 			convertedValues[i] = values[i];
 		}
-//		addMultiFieldOperation("$pushAll", key, convertedValues);
 		addMultiFieldOperation("$push_all", key, convertedValues);
 		return this;
 	}

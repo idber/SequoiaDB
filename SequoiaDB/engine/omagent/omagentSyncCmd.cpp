@@ -42,15 +42,12 @@ using namespace bson ;
 
 namespace engine
 {
-   // command list:
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaScanHost )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaPreCheckHost )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaCheckHost )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaPostCheckHost )
-//   IMPLEMENT_OACMD_AUTO_REGISTER( _omaRemoveHost )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaUpdateHostsInfo )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaQueryHostStatus )
-//   IMPLEMENT_OACMD_AUTO_REGISTER( _omaQueryTaskProgress )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaHandleTaskNotify )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaHandleInterruptTask )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaHandleSsqlGetMore )
@@ -77,7 +74,6 @@ namespace engine
       {
          stringstream ss ;
          BSONObj bus( pInstallInfo ) ;
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; " ;
          _jsFileArgs = ss.str() ;
@@ -122,13 +118,11 @@ namespace engine
       stringstream ss ;
       BSONObj bus( pInfo ) ;
 
-      // build js file arguments
       ss << "var " << JS_ARG_BUS << " = " 
          << bus.toString(FALSE, TRUE).c_str() << " ; " ;
       _jsFileArgs = ss.str() ;
       PD_LOG ( PDDEBUG, "Pre-check host passes argument: %s",
                _jsFileArgs.c_str() ) ;
-      // add js file
       rc = addJsFile( FILE_CHECK_HOST_INIT, _jsFileArgs.c_str() ) ;
       if ( rc )
       {
@@ -164,7 +158,6 @@ namespace engine
          stringstream ss ;
          BSONObj bus( pInstallInfo ) ;
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; " ;
          _jsFileArgs = ss.str() ;
@@ -219,13 +212,11 @@ namespace engine
          stringstream ss ;
          BSONObj bus( pInstallInfo ) ;
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; " ;
          _jsFileArgs = ss.str() ;
          PD_LOG ( PDDEBUG, "Post-check host passes argument: %s",
                   _jsFileArgs.c_str() ) ;
-         // add js file
          rc = addJsFile( FILE_CHECK_HOST_FINAL, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
@@ -268,7 +259,6 @@ namespace engine
       {
          BSONObj bus( pInfo ) ;
 
-         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
                       JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str() ) ;
          PD_LOG ( PDDEBUG, "Remove hosts passes argument: %s",
@@ -312,13 +302,11 @@ namespace engine
       INT32 rc = SDB_OK ;
       stringstream ss ;
       BSONObj bus( pInstallInfo ) ;
-      // build js file argument
       ss << "var " << JS_ARG_BUS << " = " 
          << bus.toString(FALSE, TRUE).c_str() << " ; " ;
       _jsFileArgs = ss.str() ;
       PD_LOG ( PDDEBUG, "Update hosts info passes argument: %s",
                _jsFileArgs.c_str() ) ;
-      // set js file
       rc = addJsFile ( FILE_UPDATE_HOSTS_INFO, _jsFileArgs.c_str() ) ;
       if ( rc )
       {
@@ -352,7 +340,6 @@ namespace engine
          stringstream ss ;
          BSONObj bus( pInstallInfo ) ;
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; " ;
          _jsFileArgs = ss.str() ;
@@ -410,7 +397,6 @@ namespace engine
       try
       {
          obj = BSONObj( pInstallInfo ).copy() ;
-         // get taskID from omsvc
          ele = obj.getField( OMA_FIELD_TASKID ) ;
          if ( NumberInt != ele.type() && NumberLong != ele.type() )
          {
@@ -472,7 +458,6 @@ namespace engine
       try
       {
          obj = BSONObj( pInterruptInfo ).copy() ;
-         // get taskID from omsvc
          ele = obj.getField( OMA_FIELD_TASKID ) ;
          if ( NumberInt != ele.type() && NumberLong != ele.type() )
          {
@@ -561,7 +546,6 @@ namespace engine
       try
       {
          obj = BSONObj( pInterruptInfo ).copy() ;
-         // get taskID from omsvc
          ele = obj.getField( OMA_FIELD_TASKID ) ;
          if ( NumberInt != ele.type() && NumberLong != ele.type() )
          {
@@ -670,7 +654,6 @@ namespace engine
          stringstream ss ;
          BSONObj bus( pInstallInfo ) ;
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; " ;
          _jsFileArgs = ss.str() ;
@@ -717,7 +700,6 @@ namespace engine
          stringstream ss ;
          BSONObj bus( pInfo ) ;
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; " ;
          _jsFileArgs = ss.str() ;
@@ -764,7 +746,6 @@ namespace engine
          stringstream ss ;
          BSONObj bus( pInfo ) ;
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; " ;
          _jsFileArgs = ss.str() ;

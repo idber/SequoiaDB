@@ -208,73 +208,47 @@ namespace sdbclient
       void close() ;
 
    
-//#if defined (_DEBUG)
-//   private:
-//      void printCreateInfo(const std::string& coord) ;
-//#endif
 
 
    private:
-      // check address arguments, if valid, add it
       BOOLEAN _checkAddrArg( const string &url ) ;
 
-      // new a strategy with config
       INT32 _buildStrategy() ;
 
-      // clear data source
       void _clearDataSource() ;
 
-      // try to get a connection
       BOOLEAN _tryGetConn( sdb*& conn ) ;
 
-      // create connection by a number
       INT32 _createConnByNum( INT32 num ) ;
 
-      // sync coord node info
       void _syncCoordNodes() ;
 
-      // get back the coord address from the abnormal address list
       INT32 _retrieveAddrFromAbnormalList() ;
 
-      // check keep alive time out or not
       BOOLEAN _keepAliveTimeOut( sdb *conn ) ;
 
-      // check max connection number intervally
       void _checkMaxIdleConn() ;
 
-      // add new connection and make sure not reach max connection count
       BOOLEAN _addNewConnSafely( sdb *conn, const std::string &coord );
 
    private:
-      // create connections function
       void _createConn() ;
 
-      //destroy connections function
       void _destroyConn() ;
 
-      // background task function
       void _bgTask() ;
 
    private:
-      // idle connection list
       std::list<sdb*>         _idleList ;
       ossAtomic32             _idleSize ;
-      // busy connection list
       std::list<sdb*>         _busyList ;
       ossAtomic32             _busySize ;
-      // to be destroyed connection list
       std::list<sdb*>         _destroyList ;
-      // data source confiture
       sdbDataSourceConf       _conf ;
-      // data source strategy
       sdbDataSourceStrategy*  _strategy ;
-      // lock for connection lists
       ossSpinXLatch           _connMutex ;
-      // lock for global commuincate
       ossSpinXLatch           _globalMutex ;
-      // if has been inited
       BOOLEAN                 _isInited ;
-      // if is enabled
       BOOLEAN                 _isEnabled ;
 
    private:

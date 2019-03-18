@@ -71,7 +71,6 @@ public:
       return _parser ;
    }
 
-   // virtual function for baseConverter
    virtual INT32 convert( msgBuffer &out ) ;
    INT32 reConvert( msgBuffer &out, MsgOpReply *reply ) ;
 

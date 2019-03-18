@@ -281,7 +281,6 @@ namespace engine
       }
 
       _pPropSite->getEDUCB()->getTransNodeRouteID( groupID, nodeID ) ;
-      /// In transaction, need to use the trans node
       if ( MSG_INVALID_ROUTEID != nodeID.value &&
            _svcType == nodeID.columns.serviceID )
       {
@@ -329,7 +328,6 @@ namespace engine
 
       if ( MSG_INVALID_ROUTEID == nodeID.value )
       {
-         /// when no primary node, select any one
          rc = _selOtherBegin( nodeID ) ;
          if ( rc )
          {
@@ -357,7 +355,6 @@ namespace engine
       UINT32 nodeNum = 0 ;
 
       nodeID.value = _pPropSite->getLastNode( groupID ) ;
-      // last node is valid and in group info
       if ( MSG_INVALID_ROUTEID != nodeID.value &&
            COORD_GROUP_SEL_INVALID == _pos )
       {
@@ -481,7 +478,6 @@ namespace engine
             case PREFER_INSTANCE_TYPE_MASTER_SND :
             {
                pos = pGroupItem->getPrimaryPos() ;
-               // if there is no primary, then go on to get random node
                if ( CLS_RG_NODE_POS_INVALID != pos )
                {
                   selected = TRUE ;
@@ -521,12 +517,9 @@ namespace engine
 
          if ( !selected && nodeCount > 0 )
          {
-            // Round up the position to number of nodes
             pos = pos % nodeCount ;
             if ( isSlavePreferred && pos == primaryPos )
             {
-               // Move one position back for slave preferred but primary has
-               // been chosen
                pos = ( pos + 1 ) % nodeCount ;
             }
          }
@@ -557,10 +550,6 @@ namespace engine
          {
             if ( _selectedPositions.empty() )
             {
-               // Only when choose from group will consider move position
-               // for slave preferred option
-               // The selected positions have been considered for slave
-               // preferred option
                isSlavePreferred = instanceOption.isSlavePerferred() ;
                tmpPos = ( tmpPos + 1 ) % nodeCount ;
             }
@@ -573,7 +562,6 @@ namespace engine
 
          if ( isSlavePreferred )
          {
-            // Slave is preferred, avoid to use the primary node
             UINT32 primaryPos = pGroupItem->getPrimaryPos() ;
             if ( CLS_RG_NODE_POS_INVALID != primaryPos &&
                  selTimes + 1 == nodeCount )
@@ -636,7 +624,6 @@ namespace engine
          if ( SDB_OK == rc )
          {
             _resetStatus() ;
-            /// need set update to TRUE
             _hasUpdate = TRUE ;
             rc = _selOtherBegin( nodeID ) ;
          }
@@ -693,7 +680,6 @@ namespace engine
                   {
                      if ( !primaryFirst && !primaryLast )
                      {
-                        // Primary is not specified in this case
                         tempPositions.append( pos ) ;
                      }
                      foundPrimary = TRUE ;
@@ -734,14 +720,10 @@ namespace engine
                 ( instanceOption.getSpecialInstance() == PREFER_INSTANCE_TYPE_MASTER ||
                   instanceOption.getSpecialInstance() == PREFER_INSTANCE_TYPE_MASTER_SND ) )
       {
-         // Primary is not in the selected list, but "M" or "m" is specified,
-         // so we need to consider primary node if all previous selected nodes
-         // are failing, put the primary node to the end
          selectedPositions.push_back( primaryPos ) ;
          OSS_BIT_CLEAR( unselectMask, 1 << primaryPos ) ;
       }
 
-      // Push the unselected positions in the end of selected positions
       if ( !selectedPositions.empty() )
       {
          UINT8 tmpPos = (UINT8)random ;
@@ -871,7 +853,6 @@ namespace engine
       rc = _pResource->updateCataInfo( pCollectionName, _cataPtr, cb ) ;
       if ( rc )
       {
-         /// Restore the rc when changed by updateCataInfo
          if ( isRoot && SDB_CLS_COORD_NODE_CAT_VER_OLD == rc )
          {
             rc = SDB_DMS_NOTEXIST ;
@@ -967,7 +948,6 @@ namespace engine
 
       if ( !_cataPtr->isMainCL() )
       {
-         // normal collection or sub-collection
          if ( NULL == pQuery || pQuery->isEmpty() )
          {
             _cataPtr->getGroupLst( groupLst ) ;
@@ -994,7 +974,6 @@ namespace engine
          }
          else
          {
-            //don't resend to the node which reply ok
             CoordGroupList::const_iterator iter = exceptGrpLst.begin();
             while( iter != exceptGrpLst.end() )
             {
@@ -1005,7 +984,6 @@ namespace engine
       }
       else
       {
-         // main-collection
          vector< string > subCLLst ;
          vector< string >::iterator iterCL ;
 
@@ -1146,7 +1124,6 @@ namespace engine
 
       if ( coordCheckNodeReplyFlag( flag ) )
       {
-         /// remove last node
          _pPropSite->delLastNode( nodeID.columns.groupID, nodeID.value ) ;
       }
 
@@ -1169,10 +1146,6 @@ namespace engine
          if ( SDB_OK == groupPtr->updatePrimary( primaryNodeID,
                                                  TRUE, &preStat ) )
          {
-            /// when primay's crash has not discoverd by other nodes,
-            /// new primary's nodeid may still be old one. 
-            /// To avoid send msg to crashed node frequently,
-            /// sleep some times.
             if ( NET_NODE_STAT_NORMAL != preStat )
             {
                groupPtr->cancelPrimary() ;
@@ -1214,14 +1187,9 @@ namespace engine
             }
          }
       }
-      // [SDB_COORD_REMOTE_DISC] can't use in write command,
-      // because when some insert/update opr do partibal,
-      // if retry, data will repeat. The code can't update status,
-      // because it maybe occured in long time ago
       else if ( ( isReadCmd && SDB_COORD_REMOTE_DISC == flag ) ||
                 SDB_CLS_NODE_NOT_ENOUGH == flag )
       {
-         /// do nothing
       }
       else if ( SDB_CLS_FULL_SYNC == flag || SDB_RTN_IN_REBUILD == flag )
       {
@@ -1445,7 +1413,6 @@ namespace engine
       const netIOVec *pCommonIO = NULL ;
       const netIOVec *pIOVec = NULL ;
 
-      // find common iovec
       itIO = iov.find( 0 ) ; // group id is 0 for common iovec
       if ( iov.end() != itIO )
       {
@@ -1536,11 +1503,8 @@ namespace engine
             _groupSel.selDone() ;
             break ;
          }
-         /// remove the sub node
          _pSession->delSubSession( nodeID.value ) ;
-         /// update node stat
          _groupSel.updateStat( nodeID, rc ) ;
-         /// get next node
          if ( SDB_OK != _groupSel.selNext( nodeID ) )
          {
             goto error ;

@@ -81,12 +81,10 @@ public abstract class SequoiadbUtils {
 
 		DbHolder dbHolder = (DbHolder) TransactionSynchronizationManager.getResource(sdb);
 
-		// Do we have a populated holder and TX sync active?
 		if (dbHolder != null && !dbHolder.isEmpty() && TransactionSynchronizationManager.isSynchronizationActive()) {
 
 			DB db = dbHolder.getDB(databaseName);
 
-			// DB found but not yet synchronized
 			if (db != null && !dbHolder.isSynchronizedWithTransaction()) {
 
 				LOGGER.debug("Registering Spring transaction synchronization for existing SequoiaDB {}.", databaseName);
@@ -100,7 +98,6 @@ public abstract class SequoiadbUtils {
 			}
 		}
 
-		// Lookup fresh database instance
 		LOGGER.debug("Getting Sdb Database name=[{}]", databaseName);
 
 		DB db = sdb.getDB(databaseName);
@@ -122,7 +119,6 @@ public abstract class SequoiadbUtils {
 			}
 		}
 
-		// TX sync active, bind new database to thread
 		if (TransactionSynchronizationManager.isSynchronizationActive()) {
 
 			LOGGER.debug("Registering Spring transaction synchronization for SequoiaDB instance {}.", databaseName);
@@ -135,7 +131,6 @@ public abstract class SequoiadbUtils {
 				holderToUse.addDB(databaseName, db);
 			}
 
-			// synchronize holder only if not yet synchronized
 			if (!holderToUse.isSynchronizedWithTransaction()) {
 				TransactionSynchronizationManager.registerSynchronization(new SequoiadbSynchronization(holderToUse, sdb));
 				holderToUse.setSynchronizedWithTransaction(true);
@@ -146,7 +141,6 @@ public abstract class SequoiadbUtils {
 			}
 		}
 
-		// Check whether we are allowed to return the DB.
 		if (!allowCreate && !isDBTransactional(db, sdb)) {
 			throw new IllegalStateException("No Sdb DB bound to thread, "
 					+ "and configuration does not allow creation of non-transactional one here");

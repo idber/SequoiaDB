@@ -66,8 +66,6 @@ public class SequoiadbRepositoryFactory extends RepositoryFactorySupport {
 	 */
 	@Override
 	protected Class<?> getRepositoryBaseClass(RepositoryMetadata metadata) {
-//		return isQueryDslRepository(metadata.getRepositoryInterface()) ? QueryDslSequoiadbRepository.class
-//				: SimpleSequoiadbRepository.class;
 		return SimpleSequoiadbRepository.class;
 	}
 
@@ -82,11 +80,6 @@ public class SequoiadbRepositoryFactory extends RepositoryFactorySupport {
 		Class<?> repositoryInterface = metadata.getRepositoryInterface();
 		SequoiadbEntityInformation<?, Serializable> entityInformation = getEntityInformation(metadata.getDomainType());
 
-//		if (isQueryDslRepository(repositoryInterface)) {
-//			return new QueryDslSequoiadbRepository(entityInformation, sequoiadbOperations);
-//		} else {
-//			return new SimpleSequoiadbRepository(entityInformation, sequoiadbOperations);
-//		}
 		return new SimpleSequoiadbRepository(entityInformation, sequoiadbOperations);
 	}
 

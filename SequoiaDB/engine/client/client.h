@@ -1346,7 +1346,6 @@ SDB_EXPORT INT32 sdbInsert1 ( sdbCollectionHandle cHandle,
       INT32 i = 0 ;
       const INT32 num = 10 ;
       bson* obj[num] ;
-      // create bson poiter array
       for ( i = 0; i < num; i++ )
       {
          obj[i] = bson_create();
@@ -1357,11 +1356,9 @@ SDB_EXPORT INT32 sdbInsert1 ( sdbCollectionHandle cHandle,
          if ( rc != 0 )
             printf ( "something wrong.\n" ) ;
       }
-      // bulk insert
       rc = sdbBulkInsert ( cl, 0, obj, num ) ;
       if ( rc )
          printf ( "something wrong, rc = %d.\n", rc ) ;
-      // free memory
       for ( i = 0; i < num; i++ )
       {
          bson_dispose ( obj[i] ) ;
@@ -1904,24 +1901,18 @@ SDB_EXPORT void sdbReleaseDC ( sdbDCHandle cHandle ) ;
           "{ $project: { no: 1, \"info.name\": 1, major: 1 } }"
         } ;
 
-        // create bson poiter array
         for ( i = 0; i < num; i++ )
         {
            obj[i] = bson_create();
            jsonToBson ( obj[i], pArr[i] ) ;
         }
-        // TODO: get collection handle
-        // aggregate
-        //rc = sdbAggregate ( cl, obj, num, &cursor ) ;
         if ( rc )
            printf ( "something wrong, rc = %d.\n", rc ) ;
-        // free memory
         for ( i = 0; i < num; i++ )
         {
            bson_print( obj[i] ) ;
            bson_dispose ( obj[i] ) ;
         }
-        // TODO: release collection and cursor handles
    \endcode
 */
 SDB_EXPORT INT32 sdbAggregate ( sdbCollectionHandle cHandle,

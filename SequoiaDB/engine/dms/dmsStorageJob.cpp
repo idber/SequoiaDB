@@ -180,7 +180,6 @@ namespace engine
 
          _ntyEvent.signalAll() ;
 
-         /// start agent
          while ( _curAgent < DMS_MIN_MAPPING_JOB ||
                  ( count / 10 > _idleAgent &&
                    _curAgent < DMS_MAX_MAPPING_JOB ) )
@@ -326,7 +325,6 @@ namespace engine
 
                if ( timeout >= (UINT32)_timeout )
                {
-                  /// over _timeout millsecs, donothing, qiut the job
                   break ;
                }
             }
@@ -363,13 +361,11 @@ namespace engine
       pPageMap = pMapUnit->beginNonEmpty( slot ) ;
       while( pPageMap )
       {
-         /// get mb context
          rc = su->data()->getMBContext( &mbContext, slot,
                                         DMS_INVALID_CLID, -1 ) ;
          if ( SDB_OK == rc )
          {
             _doACollection( su, mbContext, pPageMap ) ;
-            /// release mb context
             su->data()->releaseMBContext( mbContext ) ;
          }
 
@@ -396,7 +392,6 @@ namespace engine
 
       while( curPageNum > 0 && !pPageMap->isEmpty() )
       {
-         /// lock
          rc = mbContext->mbLock( EXCLUSIVE ) ;
          if ( rc )
          {
@@ -416,7 +411,6 @@ namespace engine
             eduCB()->incEventCount( 1 ) ;
             --curPageNum ;
          }
-         /// unlock
          mbContext->mbUnlock() ;
       }
 
@@ -462,7 +456,6 @@ namespace engine
          goto error ;
       }
       rc = rtnGetJobMgr()->startJob( pJob, RTN_JOB_MUTEX_NONE, pEDUID  ) ;
-      /// neither failed or succeed, the pJob will release in job manager
 
    done:
       return rc ;

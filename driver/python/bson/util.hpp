@@ -19,7 +19,6 @@
 #define _SDB_PYTHON_DRIVER_UTIL_HPP_
 
 #include "ossFeat.hpp"
-// the following two options will be redefined in Python
 #undef _XOPEN_SOURCE
 #undef _POSIX_C_SOURCE
 #include <Python.h>
@@ -41,7 +40,6 @@
 
 #define PARSE_PYTHON_ARGS PyArg_ParseTuple
 
-///< new and delete 
 #define NEW_CPPOBJECT( pObject, CLASSNAME ) \
    pObject = new (std::nothrow) CLASSNAME()
 
@@ -208,29 +206,6 @@
       }                                                                 \
    }while( FALSE ) 
 
-#define MAKE_PYLIST_TO_CSTRING_VECTOR( py_list, vec_str )               \
-   do                                                                   \
-   {                                                                    \
-      if( !PyList_Check( py_list) )                                     \
-      {                                                                 \
-         rc = SDB_INVALIDARGS ;                                         \
-         goto done ;                                                    \
-      }                                                                 \
-                                                                        \
-      Py_ssize_t list_size = PyList_Size( py_list ) ;                   \
-      for ( int idx = 0 ; idx < list_size ; ++idx )                     \
-      {                                                                 \
-         const char *str = NULL ;                                             \
-         str = PyString_AsString( PyList_GetItem( py_list, idx) ) ;     \
-         if ( NULL == str )                                             \
-         {                                                              \
-         rc = SDB_INVALIDARGS ;                                         \
-         goto done ;                                                    \
-         }                                                              \
-         vec_str.push_back( str ) ;                                     \
-      }                                                                 \
-   }while( FALSE ) 
-
 #define MAKE_PYLIST_TO_BUFFER( py_list, buffer )                        \
    do                                                                   \
    {                                                                    \
@@ -252,7 +227,6 @@ struct module_state {
     PyObject *error;
 };
 
-///<  macros used in module declaration
 #define DEFINE_MODULE(modulename, methods)   \
 static struct PyModuleDef moduledef = {      \
    PyModuleDef_HEAD_INIT,                    \

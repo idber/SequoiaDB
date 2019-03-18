@@ -30,7 +30,6 @@ public class DomainTest {
 
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
         getDataGroups();
         if (!standaloneFlag)
@@ -131,7 +130,6 @@ public class DomainTest {
         assertEquals(!standaloneFlag, result);
     }
 
-    //
     private static void getDataGroups() {
         try {
             groupList = sdb.getReplicaGroupNames();

@@ -69,7 +69,6 @@ namespace engine
 
       SDB_RTNCB *pRtncb                = pmdGetKRCB()->getRTNCB() ;
 
-      // fill default-reply(execute success)
       contextID                        = -1 ;
 
       coordQueryOperator queryOpr( isReadOnly() ) ;
@@ -80,7 +79,6 @@ namespace engine
 
       CHAR *pHint = NULL ;
 
-      // extract request-message
       rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL,
                             NULL, NULL, NULL, NULL,
                             NULL, &pHint );
@@ -90,7 +88,6 @@ namespace engine
       try
       {
          BSONObj boHint( pHint ) ;
-         //get collection name
          BSONElement ele = boHint.getField( FIELD_NAME_COLLECTION ) ;
          PD_CHECK ( ele.type() == String,
                     SDB_INVALIDARG, error, PDERROR,
@@ -115,7 +112,6 @@ namespace engine
                                    sendOpt, &queryConf, buf ) ;
       PD_RC_CHECK( rc, PDERROR, "Query failed, rc: %d", rc ) ;
 
-      // statistics the result
       rc = generateResult( pContext, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to execute statistics, rc: %d", rc ) ;
 
@@ -157,7 +153,6 @@ namespace engine
       CoordIndexMap indexMap ;
       rtnContextBuf buffObj ;
 
-      // get index from all nodes
       while( TRUE )
       {
          rc = pContext->getMore( 1, buffObj, cb ) ;
@@ -202,7 +197,6 @@ namespace engine
             }
             else
             {
-               // check the index
                BSONObjIterator newIter( boIndexDef ) ;
                BSONObj boOldDef ;
 
@@ -353,7 +347,6 @@ namespace engine
    INT32 _coordCMDGetDatablocks::generateResult( rtnContext * pContext,
                                                  pmdEDUCB * cb )
    {
-      // don't merge data, do nothing
       return SDB_OK ;
    }
 

@@ -235,8 +235,6 @@ public class UpdateMapper extends QueryMapper {
 			protected String mapPropertyName(SequoiadbPersistentProperty property) {
 
 				String mappedName = PropertyToFieldNameConverter.INSTANCE.convert(property);
-//				return iterator.hasNext() && iterator.next().equals("$") ? String.format("%s.$", mappedName) : mappedName;
-				/// modify by tanzhobo
 				return iterator.hasNext() && iterator.next().equals("$") ? String.format("%s.0", mappedName) : mappedName;
 			}
 

@@ -83,15 +83,12 @@ namespace engine
       const sptFuncMap::NORMAL_FUNCS &memberFuncs = fMap.getMemberFuncs() ;
       const sptFuncMap::NORMAL_FUNCS &staticFuncs = fMap.getStaticFuncs() ;
 
-      // register constructor
       _insert( objName, objName, SPT_FUNC_CONSTRUCTOR ) ;
-      // register instance method for help
       sptFuncMap::NORMAL_FUNCS::const_iterator itr = memberFuncs.begin() ;
       for ( ; itr != memberFuncs.end() && !itr->first.empty() ; itr++ )
       {
          _insert( objName, itr->first.c_str(), SPT_FUNC_INSTANCE ) ;
       }
-      // register static method for help
       itr = staticFuncs.begin() ;
       for ( ; itr != staticFuncs.end() && !itr->first.empty() ;  itr++ )
       {

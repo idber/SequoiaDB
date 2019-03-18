@@ -1,24 +1,7 @@
-﻿/*
- * Copyright 2018 SequoiaDB Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
-*/
-
-using SequoiaDB;
+﻿using SequoiaDB;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
-using SequoiaDB.Bson;
 
 namespace DriverTest
 {
@@ -98,56 +81,6 @@ namespace DriverTest
             cs.DropCollection(clName);
             Assert.IsFalse(cs.IsCollectionExist(clName));
             sdb.DropCollectionSpace(csName);
-            sdb.Disconnect();
-        }
-
-        [TestMethod()]
-        public void SetAttributeTest()
-        {
-            CollectionSpace cs = null;
-            Sequoiadb sdb = new Sequoiadb(config.conf.Coord.Address);
-            sdb.Connect(config.conf.UserName, config.conf.Password);
-            cs = sdb.CreateCollectionSpace("testCS");
-            BsonDocument options = new BsonDocument();
-            options.Add("PageSize", 8192);
-            cs.SetAttributes(options);
-            sdb.DropCollectionSpace("testCS");
-            sdb.Disconnect();
-        }
-
-        [TestMethod()]
-        public void AlterTest()
-        {
-            CollectionSpace cs = null;
-            Sequoiadb sdb = new Sequoiadb(config.conf.Coord.Address);
-            sdb.Connect(config.conf.UserName, config.conf.Password);
-            cs = sdb.CreateCollectionSpace("testCS");
-            BsonDocument options = new BsonDocument();
-            options.Add("PageSize", 8192);
-            cs.Alter(options);
-            sdb.DropCollectionSpace("testCS");
-            sdb.Disconnect();
-        }
-
-        [TestMethod()]
-        public void AlterMultiTest()
-        {
-            CollectionSpace cs = null;
-            Sequoiadb sdb = new Sequoiadb(config.conf.Coord.Address);
-            sdb.Connect(config.conf.UserName, config.conf.Password);
-            cs = sdb.CreateCollectionSpace("testCS");
-            BsonArray alterArray = new BsonArray();
-            alterArray.Add(new BsonDocument{
-                {"Name","set attributes"},
-                {"Args",new BsonDocument{{"PageSize", 111}}}});
-            alterArray.Add(new BsonDocument{
-                {"Name","set attributes"},
-                {"Args",new BsonDocument{{"PageSize", 8192}}}});
-            BsonDocument options = new BsonDocument();
-            options.Add("Alter", alterArray);
-            options.Add("Options", new BsonDocument { {"IgnoreException", true } });
-            cs.Alter(options);
-            sdb.DropCollectionSpace("testCS");
             sdb.Disconnect();
         }
     }

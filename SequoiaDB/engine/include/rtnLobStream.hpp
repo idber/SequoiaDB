@@ -81,8 +81,6 @@ namespace engine
                   INT64 offset,
                   INT64 length ) ;
  
-      /// buf may be invalid when do next read.
-      /// copy data to your own buf if necessary.
       INT32 next( _pmdEDUCB *cb,
                   const CHAR **buf,
                   UINT32 &len ) ;

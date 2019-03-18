@@ -42,7 +42,6 @@ using namespace boost::property_tree;
 
 namespace engine
 {
-   // ***************** omUnbindBusinessCommand *****************************
    omUnbindBusinessCommand::omUnbindBusinessCommand(
                                                 restAdaptor *pRestAdaptor,
                                                 pmdRestSession *pRestSession )
@@ -150,7 +149,6 @@ namespace engine
       goto done ;
    }
 
-   // ***************** omRemoveBusinessCommand *****************************
    omRemoveBusinessCommand::omRemoveBusinessCommand( restAdaptor *pRestAdaptor,
                                                    pmdRestSession *pRestSession,
                                                    string localAgentHost,
@@ -416,7 +414,6 @@ namespace engine
 
          hostInfo = tmpHostInfo.filterFieldsUndotted( filter, TRUE ) ;
 
-         //get install path
          packages = tmpHostInfo.getObjectField( OM_HOST_FIELD_PACKAGES ) ;
          {
             BSONObjIterator pkgIter( packages ) ;

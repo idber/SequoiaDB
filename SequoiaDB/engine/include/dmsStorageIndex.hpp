@@ -44,7 +44,6 @@
 
 using namespace bson ;
 
-// Default Size of the capped collection used by the text index.
 #define DMS_DFT_TEXTINDEX_BUFF_SIZE             (30 * 1024 * 1024 * 1024LL)
 
 namespace engine
@@ -76,10 +75,8 @@ namespace engine
          dmsPageMap*       getPageMap( UINT16 mbID ) ;
 
       public:
-         // reserve a signal page
          INT32    reserveExtent ( UINT16 mbID, dmsExtentID &extentID,
                                   _dmsContext *context ) ;
-         // release a signal page
          INT32    releaseExtent ( dmsExtentID extentID,
                                   BOOLEAN setFlag = FALSE ) ;
 
@@ -106,18 +103,15 @@ namespace engine
          INT32    rebuildIndexes ( _dmsMBContext *context, _pmdEDUCB *cb,
                                    INT32 sortBufferSize = SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE ) ;
 
-         // Caller must hold mb exclusive lock
          INT32    indexesInsert ( _dmsMBContext *context, dmsExtentID extLID,
                                   BSONObj &inputObj, const dmsRecordID &rid,
                                   _pmdEDUCB *cb ) ;
 
-         // Caller must hold mb exclusive lock
          INT32    indexesUpdate ( _dmsMBContext *context, dmsExtentID extLID,
                                   BSONObj &originalObj, BSONObj &newObj,
                                   const dmsRecordID &rid, _pmdEDUCB *cb,
                                   BOOLEAN isRollback ) ;
 
-         // Caller must hold mb exclusive lock
          INT32    indexesDelete ( _dmsMBContext *context, dmsExtentID extLID,
                                   BSONObj &inputObj, const dmsRecordID &rid,
                                   _pmdEDUCB *cb ) ;
@@ -147,7 +141,6 @@ namespace engine
                                 BOOLEAN isSys,
                                 INT32 sortBufferSize ) ;
 
-         // if indexLID == DMS_INALID_EXTENT, it will get from index cb
          INT32    _rebuildIndex ( _dmsMBContext *context,
                                   dmsExtentID indexExtentID,
                                   _pmdEDUCB * cb,

@@ -67,7 +67,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      // fill default-reply
       contextID    = -1 ;
 
       CoordGroupList groupLst ;
@@ -79,15 +78,12 @@ namespace engine
       pmdSubSession *pSub           = NULL ;
       SET_ROUTEID::iterator it ;
 
-      // run msg on local node, in case that it isn't registered in the cluster.
       rtnMsg( (MsgOpMsg *)pMsg ) ;
 
-      // list all groups
       rc = _pResource->updateGroupList( groupLst, cb, NULL,
                                         FALSE, FALSE, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get all group list, rc: %d", rc ) ;
 
-      // get nodes
       rc = coordGetGroupNodes( _pResource, cb, BSONObj(), NODE_SEL_ALL,
                                groupLst, sendNodes, NULL, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get nodes, rc: %d", rc ) ;
@@ -98,16 +94,12 @@ namespace engine
          goto error ;
       }
 
-      // erase local node, because rtnMsg() has been executed on
-      // local node already
       routeID = pmdGetNodeID() ;
       routeID.columns.serviceID = MSG_ROUTE_SHARD_SERVCIE ;
       sendNodes.erase( routeID.value ) ;
 
-      /// clear
       _groupSession.clear() ;
 
-      /// send msg
       it = sendNodes.begin() ;
       while( it != sendNodes.end() )
       {
@@ -123,7 +115,6 @@ namespace engine
          ++it ;
       }
 
-      /// recv reply
       rc = pRemote->waitReply1( TRUE ) ;
       if ( rc )
       {

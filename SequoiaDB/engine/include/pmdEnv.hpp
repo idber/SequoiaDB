@@ -62,7 +62,6 @@ namespace engine
       pmd system info define
    */
 
-   // save the number of error occured
    typedef struct _pmdOccurredErr
    {
       UINT64 _oom ;
@@ -87,19 +86,14 @@ namespace engine
       BOOLEAN                       _quitFlag ;
       PMD_ON_QUIT_FUNC              _pQuitFunc ;
 
-      /// loop updated by pmdSyncClockEntryPoint
       volatile UINT64               _tick ;
 
-      /// loop updated by clsReplicaSet
       volatile UINT64               _validationTick ;
 
-      /// global id
       ossAtomic64                   _globalID ;
 
-      /// ulimit info
       ossProcLimits                 _limitInfo ;
 
-      /// number of occurred error
       pmdOccurredErr                _numErr ;
 
       _pmdSysInfo()

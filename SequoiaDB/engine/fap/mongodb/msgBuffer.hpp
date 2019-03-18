@@ -60,8 +60,6 @@ public:
          _data = NULL ;
       }
 
-      //_size = 0 ;
-      //_capacity = 0 ;
    }
 
    BOOLEAN empty() const

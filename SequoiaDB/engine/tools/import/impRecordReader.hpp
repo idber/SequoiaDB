@@ -59,7 +59,6 @@ namespace import
       INT32          _bufferSize;
       INT32          _recDelLen;
 
-      // runtime
       CHAR*          _data;
       INT32          _dataLength;
       INT32          _remainSize;

@@ -69,7 +69,6 @@ namespace engine
       rc = forward( pMsg, cb, FALSE, contextID, &pUserName, &pPass ) ;
       if ( pUserName )
       {
-         /// AUDIT
          PD_AUDIT_OP( AUDIT_DCL, pMsg->opCode, AUDIT_OBJ_USER,
                       pUserName, rc, "" ) ;
       }

@@ -26,7 +26,6 @@ public class CLGetQueryMeta {
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
-        // gen record
         ConstantsInsert.insertVastRecord(Constants.HOST, Constants.PORT,
             Constants.TEST_CS_NAME_1, Constants.TEST_CL_NAME_1,
             Constants.SDB_PAGESIZE_4K, RECORDNUM);
@@ -51,11 +50,9 @@ public class CLGetQueryMeta {
     @Test
     public void getQueryMeta() {
         try {
-            // query data from master
             BSONObject sessionAttrObj = new BasicBSONObject();
             sessionAttrObj.put("PreferedInstance", "M");
             sdb.setSessionAttr(sessionAttrObj);
-            // condition
             BSONObject empty = new BasicBSONObject();
             BSONObject subobj = new BasicBSONObject();
             subobj.put("$gt", 1);
@@ -63,14 +60,11 @@ public class CLGetQueryMeta {
             BSONObject condition = new BasicBSONObject();
             condition.put("age", subobj);
             System.out.println("condition is: " + condition.toString());
-            // select
             BSONObject select = new BasicBSONObject();
             select.put("", "ageIndex");
-            // orderBy
             BSONObject orderBy = new BasicBSONObject();
             orderBy.put("Indexblocks", 1);
             cursor = cl.getQueryMeta(condition, orderBy, empty, 0, -1, 0);
-//			cursor = cl.getQueryMeta(empty, empty, empty, 0, 0, 0);
             long i = 0;
             while (cursor.hasNext()) {
                 System.out.println(cursor.getNext().toString());

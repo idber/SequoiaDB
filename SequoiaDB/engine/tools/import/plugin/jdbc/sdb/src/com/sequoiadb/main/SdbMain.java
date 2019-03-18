@@ -112,7 +112,6 @@ public static void main(String[] args) {
 			formatter.printHelp(formatstr, opt);
 			logger.info(e.getStackTrace(), e);
 		}
-		// -h or --help
 		if (cl == null) {
 			logger.info("CommandLine error");
 			System.exit(1);
@@ -126,7 +125,6 @@ public static void main(String[] args) {
 			System.out.println(versionstr);
 			System.exit(1);
 		}
-		// --connect
 		if (null != cl && cl.hasOption("connect")) {
 			String conStr = cl.getOptionValue("connect");
 			int mysqlIndex = conStr.indexOf("oracle");
@@ -137,27 +135,21 @@ public static void main(String[] args) {
 				map.put("dbType", "db2");
 			map.put("url", cl.getOptionValue("connect"));
 		}
-		// --username
 		if (null != cl && cl.hasOption("username")) {
 			map.put("user", cl.getOptionValue("username"));
 		}
-		// --password
 		if (null != cl && cl.hasOption("password")) {
 			map.put("password", cl.getOptionValue("password"));
 		}
-		// --table
 		if (null != cl && cl.hasOption("table")) {
 			map.put("table", cl.getOptionValue("table"));
 		}
-		// --startrow
 	    if (null != cl && cl.hasOption("startrow")) {
 			map.put("startRow", cl.getOptionValue("startrow"));
 			}
-		// --endrow
 		if (null != cl && cl.hasOption("endrow")) {
 			map.put("endRow", cl.getOptionValue("endrow"));
 		}
-		// --threads
 		if (null != cl && cl.hasOption("threads")) {
 			int thr = Integer.parseInt(cl.getOptionValue("threads"));
 			if(thr < 0 || thr>100){

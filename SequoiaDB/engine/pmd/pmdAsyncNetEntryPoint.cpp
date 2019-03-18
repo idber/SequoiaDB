@@ -72,7 +72,6 @@ namespace engine
          goto error ;
       }
 
-      //start run
       PD_LOG ( PDEVENT, "Run %s[Type: %d] ...", getEDUName( cb->getType() ),
                cb->getType() ) ;
 
@@ -104,7 +103,6 @@ namespace engine
       goto done;
    }
 
-   /// Register
    PMD_DEFINE_ENTRYPOINT( EDU_TYPE_REPR, TRUE,
                           pmdAsyncNetEntryPoint,
                           "ReplReader" ) ;

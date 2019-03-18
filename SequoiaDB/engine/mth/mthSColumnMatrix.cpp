@@ -90,7 +90,6 @@ namespace engine
 
       try
       {
-         /// must be sorted.
          BSONObjIteratorSorted i( _pattern ) ;
          while ( i.more() )
          {
@@ -335,15 +334,12 @@ namespace engine
       _mthSColumn *node = NULL ;
       INT32 eleNumber = 0 ;
 
-      /// WARNING: fieldName may be changed when get next.
-      /// do not use it again until i is destroyed.
       utilSplitIterator i( ( CHAR * )fieldName ) ;
       while ( i.more() )
       {
          node = NULL ;
          const CHAR *columnName = i.next() ;
 
-         /// a.$[0].b
          if ( '$' == *columnName &&
               NULL != father &&
               SDB_OK == mthConvertSubElemToNumeric( columnName,

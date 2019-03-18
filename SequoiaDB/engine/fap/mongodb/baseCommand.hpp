@@ -84,7 +84,6 @@ public:
       baseCommand *tmp = _cmdMap[name] ;
       if ( NULL != tmp )
       {
-         // should never hit here!
       }
       _cmdMap[name] = cmd ;
    }

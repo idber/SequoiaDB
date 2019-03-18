@@ -54,7 +54,6 @@ using namespace bson ;
 #define ES_SOURCE_KEY            "_source"
 #define ES_ERROR_FIELD_NAME      "errors"
 
-// For arguments check.
 #define ES_CLT_ARG_CHK1( index )                         \
 do                                                       \
 {                                                        \
@@ -196,13 +195,11 @@ namespace seadapter
       }
       else if ( HTTP_NOT_FOUND == status )
       {
-         // If page not found, the index does not exist.
          exist = FALSE ;
          rc = SDB_OK ;
          goto done ;
       }
 
-      // Otherwise, error happened...
       rc = _processReply( rc, reply, replyLen, replyInfo ) ;
       PD_RC_CHECK( rc, PDERROR, "Process request reply failed[ %d ]", rc ) ;
 
@@ -212,7 +209,6 @@ namespace seadapter
       goto done ;
    }
 
-   // Create index, optionally with data (settings, mappings etc)
    INT32 _utilESClt::createIndex( const CHAR *index, const CHAR *data )
    {
       INT32 rc = SDB_OK ;
@@ -233,7 +229,6 @@ namespace seadapter
       goto done ;
    }
 
-   // Drop given index (and all types, documents, mappings)s
    INT32 _utilESClt::dropIndex( const CHAR *index )
    {
       INT32 rc = SDB_OK ;
@@ -254,7 +249,6 @@ namespace seadapter
       goto done ;
    }
 
-   // Index a document with a specified id.
    INT32 _utilESClt::indexDocument( const CHAR *index, const CHAR *type,
                                     const CHAR *id, const CHAR *jsonData )
    {
@@ -267,7 +261,6 @@ namespace seadapter
 
       ES_CLT_ARG_CHK4( index, type, id, jsonData ) ;
 
-      // Plus 2 bytes for '/'
       if ( strlen( index ) + strlen( type ) + strlen( id ) + 2
            > UTIL_SE_MAX_URL_SIZE )
       {
@@ -278,7 +271,6 @@ namespace seadapter
          goto error ;
       }
 
-      // Get the full url for operation.
       ossSnprintf( url, UTIL_SE_MAX_URL_SIZE, "%s/%s/%s", index, type, id ) ;
       rc = _http.put( url, jsonData, &status, &reply, &replyLen ) ;
       rc = _processReply( rc, reply, replyLen, bsonObj ) ;
@@ -302,7 +294,6 @@ namespace seadapter
 
       ES_CLT_ARG_CHK4( index, type, id, newData ) ;
 
-      // Plus 2 bytes for '/'
       if ( strlen( index ) + strlen( type ) + strlen( id ) + 2
            > UTIL_SE_MAX_URL_SIZE )
       {
@@ -313,7 +304,6 @@ namespace seadapter
          goto error ;
       }
 
-      // Get the full url for operation.
       ossSnprintf( url, UTIL_SE_MAX_URL_SIZE, "%s/%s/%s", index, type, id ) ;
       rc = _http.put( url, newData, &status, &reply, &replyLen ) ;
       rc = _processReply( rc, reply, replyLen, bsonObj ) ;
@@ -436,7 +426,6 @@ namespace seadapter
                                   const CHAR *query, utilCommObjBuff &objBuff,
                                   BOOLEAN withMeta )
    {
-      // TODO:
       return SDB_OK ;
    }
 
@@ -479,9 +468,7 @@ namespace seadapter
       ES_CLT_ARG_CHK3( index, type, id ) ;
 
       oss << index << "/" << type << "/" << id ;
-      // Only need the status code in the head.
       rc = _http.head( oss.str().c_str(), NULL, &status, &reply, &replyLen ) ;
-      // We are get the document by id, so if it exists, the status would be OK.
       if ( SDB_OK == rc )
       {
          exist = ( HTTP_OK == status ) ;
@@ -688,7 +675,6 @@ namespace seadapter
          goto error ;
       }
 
-      // Index and type are optional.
       if ( index )
       {
          endUrl = string( index ) ;

@@ -74,18 +74,13 @@ namespace engine
       _dbStatus = SDB_DB_NORMAL ;
       /* <-- external status, can be changed by modifying config file --> */
 
-      // standalone role by default, user may overwrite this setting
       _role = SDB_ROLE_STANDALONE ;
 
       setGroupName ( "" );
-      // monitor switch initialization, no latch needed
-      // for better performance these monitor swtich should be turned off
-      // here, turn it on for testing
 
       _monCfgCB.timestampON = TRUE ;
       _monDBCB.recordActivateTimestamp () ;
 
-      // register config handler to option mgr
       _optioncb.setConfigHandler( this ) ;
    }
 
@@ -280,11 +275,7 @@ namespace engine
       if ( (INT32)( pCB->cbType () ) < 0 ||
            (INT32)( pCB->cbType () ) >= SDB_CB_MAX )
       {
-         // We need to panic in debug mode for troubleshooting
          SDB_ASSERT ( FALSE, "CB registration should not be out of range" ) ;
-         // In release mode at least we need to see something indicating
-         // the CB can't be registered.
-         // We don't panic or fail startup anyway in the caller function
          PD_LOG ( PDSEVERE, "Control Block type is not valid: %d",
                   pCB->cbType () ) ;
          rc = SDB_SYS ;
@@ -330,7 +321,6 @@ namespace engine
          pmdDeclareEDUCB( _mainEDU ) ;
       }
 
-      // get hostname
       rc = ossGetHostName( _hostName, OSS_MAX_HOSTNAME ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get host name, rc: %d", rc ) ;
 
@@ -343,7 +333,6 @@ namespace engine
 
       _init = TRUE ;
 
-      /// Init the cache manager
       _buffPool.setMaxCacheJob( _optioncb.getMaxCacheJob() ) ;
       _buffPool.enablePerfStat( _optioncb.isEnabledPerfStat() ) ;
       rc = _buffPool.init( _optioncb.getMaxCacheSize() ) ;
@@ -353,11 +342,9 @@ namespace engine
          goto error ;
       }
 
-      /// Init the sync manager
       _syncMgr.init( _optioncb.getMaxSyncJob(),
                      _optioncb.isSyncDeep() ) ;
 
-      // Init all registered cb
       for ( index = 0 ; index < SDB_CB_MAX ; ++index )
       {
          pCB = _arrayCBs[ index ] ;
@@ -373,7 +360,6 @@ namespace engine
          }
       }
 
-      // Activate all registered cb after initilization complete
       for ( index = 0 ; index < SDB_CB_MAX ; ++index )
       {
          pCB = _arrayCBs[ index ] ;
@@ -408,13 +394,11 @@ namespace engine
 
       if ( !_init )
       {
-         /// not init, don't to call the rest code
          return ;
       }
 
       _isActive = FALSE ;
 
-      // Deactive all registered cbs
       for ( index = SDB_CB_MAX ; index > 0 ; --index )
       {
          pCB = _arrayCBs[ index - 1 ] ;
@@ -429,14 +413,10 @@ namespace engine
          }
       }
 
-      // stop all io services and edus(thread)
-      // The quit flag is set inside reset()
       normalStop = _eduMgr.reset() ;
 
-      /// sync complete lsn
       _syncMgr.syncAndGetLastLSN() ;
 
-      // Fini all registered cbs ( final resource cleanup )
       for ( index = SDB_CB_MAX ; index > 0 ; --index )
       {
          pCB = _arrayCBs[ index - 1 ] ;
@@ -451,7 +431,6 @@ namespace engine
          }
       }
 
-      /// fini cache manager
       _buffPool.fini() ;
       _syncMgr.fini() ;
 
@@ -475,7 +454,6 @@ namespace engine
       INT32 index = 0 ;
       IControlBlock *pCB = NULL ;
 
-      // Reconfig all registered cbs
       for ( index = 0 ; index < SDB_CB_MAX ; ++index )
       {
          pCB = _arrayCBs[ index ] ;
@@ -492,7 +470,6 @@ namespace engine
       INT32 index = 0 ;
       IControlBlock *pCB = NULL ;
 
-      // Reconfig all registered cbs
       for ( index = 0 ; index < SDB_CB_MAX ; ++index )
       {
          pCB = _arrayCBs[ index ] ;
@@ -509,14 +486,12 @@ namespace engine
       _role = utilGetRoleEnum( _optioncb.krcbRole() ) ;
       pmdSetDBRole( _role ) ;
 
-      // Call trace start if we want to trace start up procedure
       if ( _optioncb.isTraceOn() && _optioncb.traceBuffSize() != 0 )
       {
          sdbGetPDTraceCB()->start ( (UINT64)_optioncb.traceBuffSize(),
                                     0xFFFFFFFF ) ;
       }
 
-      // enable memory debug option
       ossEnableMemDebug( _optioncb.memDebugEnabled(),
                          _optioncb.memDebugSize() ) ;
 

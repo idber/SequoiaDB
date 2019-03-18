@@ -22,8 +22,8 @@
          <cn>类型</cn>
       </stentry_type>
       <stentry_reloadable>
-         <en>Reload Type</en>
-         <cn>生效类型</cn>
+         <en>Reloadable</en>
+         <cn>动态生效</cn>
       </stentry_reloadable>
       <stentry_reloadstrategy>
          <en>Reload Strategy</en>
@@ -39,10 +39,6 @@
          <en>The total size of synch log (logfilesz * logfilenum)determines the fault tolerance in the process of sync. If log is bigger, the possiblity of full sync is lower.</en>
          <cn>同步日志的总大小（logfilesz * logfilenum）决定了在同步过程中的容错能力。日志越大则进行全量恢复的可能性越小。</cn>
       </first>
-      <second>
-         <en>Blank reload type configurations cannot be modified online.</en>
-         <cn>“生效类型”为空的配置不能进行在线修改。</cn>
-      </second>
    </note>
 
 </optOtherInfoForWeb>

@@ -26,7 +26,6 @@
 
 #include "ossTypes.h"
 
-// define value for snapshot
 #define SDB_SNAP_CONTEXTS         0
 #define SDB_SNAP_CONTEXTS_CURRENT 1
 #define SDB_SNAP_SESSIONS         2
@@ -41,7 +40,6 @@
 #define SDB_SNAP_ACCESSPLANS      11
 #define SDB_SNAP_HEALTH           12
 
-// define value for list
 #define SDB_LIST_CONTEXTS         0
 #define SDB_LIST_CONTEXTS_CURRENT 1
 #define SDB_LIST_SESSIONS         2
@@ -64,7 +62,6 @@ typedef BOOLEAN (*socketInterruptFunc)(void) ;
 
 typedef struct _sdbClientConf
 {
-   // used for cache strategy
    BOOLEAN enableCacheStrategy ; /**< The flag to OPEN the cache strategy */
    UINT32  cacheTimeInterval ;   /**< The life cycle(in seconds) of cached object */
 } sdbClientConf ;

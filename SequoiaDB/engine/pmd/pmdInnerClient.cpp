@@ -79,7 +79,6 @@ namespace engine
       _pRTAgent = pNetRouter ;
       _netHandle = handle ;
 
-      // init ip and port infomation
       NET_EH eh = _pRTAgent->getFrame()->getEventHandle( handle ) ;
       if ( eh.get() )
       {

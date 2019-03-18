@@ -69,13 +69,6 @@ public class QueryCursorPreparerUnitTests {
 	@Test
 	public void doesNotApplyMetaWhenEmpty() {
 
-//		Query query = query(where("foo").is("bar"));
-//		query.setMeta(new Meta());
-//
-//		pepare(query);
-//
-//		verify(cursor, never()).copy();
-//		verify(cursorToUse, never()).addSpecial(any(String.class), anyObject());
 	}
 
 	/**
@@ -83,12 +76,6 @@ public class QueryCursorPreparerUnitTests {
 	 */
 	@Test
 	public void appliesMaxScanCorrectly() {
-//
-//		Query query = query(where("foo").is("bar")).maxScan(100);
-//
-//		pepare(query);
-//
-//		verify(cursorToUse).addSpecial(eq("$maxScan"), eq(100L));
 	}
 
 	/**
@@ -97,11 +84,6 @@ public class QueryCursorPreparerUnitTests {
 	@Test
 	public void appliesMaxTimeCorrectly() {
 
-//		Query query = query(where("foo").is("bar")).maxTime(1, TimeUnit.SECONDS);
-//
-//		pepare(query);
-//
-//		verify(cursorToUse).addSpecial(eq("$maxTimeMS"), eq(1000L));
 	}
 
 	/**
@@ -110,11 +92,6 @@ public class QueryCursorPreparerUnitTests {
 	@Test
 	public void appliesCommentCorrectly() {
 
-//		Query query = query(where("foo").is("bar")).comment("spring data");
-//
-//		pepare(query);
-//
-//		verify(cursorToUse).addSpecial(eq("$comment"), eq("spring data"));
 	}
 
 	/**
@@ -123,11 +100,6 @@ public class QueryCursorPreparerUnitTests {
 	@Test
 	public void appliesSnapshotCorrectly() {
 
-//		Query query = query(where("foo").is("bar")).useSnapshot();
-//
-//		pepare(query);
-//
-//		verify(cursorToUse).addSpecial(eq("$snapshot"), eq(true));
 	}
 
 	private DBCursor pepare(Query query) {

@@ -51,23 +51,16 @@ public class ConstantsInsert {
             Sequoiadb sdb;
             CollectionSpace cs;
             DBCollection cl;
-            // connect
             sdb = new Sequoiadb(host, port, "", "");
-            // cs
             if (sdb.isCollectionSpaceExist(csName)) {
                 sdb.dropCollectionSpace(csName);
                 cs = sdb.createCollectionSpace(csName, pageSize);
             } else
                 cs = sdb.createCollectionSpace(csName, pageSize);
-            // build shardingkey1
             BSONObject shardingkey = new BasicBSONObject();
             shardingkey.put("ShardingKey", new BasicBSONObject("Id", 1));
-            // cl
             cl = cs.createCollection(clName, shardingkey);
-            // index
-//			cl.createIndex("IdIndex", "{\"Id\":1}", false, false);
             cl.createIndex("ageIndex", "{\"age\":-1}", false, false);
-            // TO DO
             if (num <= 0) {
                 throw new Exception("insert number must > 0");
             }
@@ -129,7 +122,6 @@ public class ConstantsInsert {
             ObjectId id = new ObjectId();
             ;
 
-//			obj.put("_id",id) ;
             obj.put("Id", 10);
             obj.put("����", "��ķ");
             obj.put("����", 30);
@@ -154,11 +146,9 @@ public class ConstantsInsert {
 
     public static void insertRecords(DBCollection cl, int num) throws BaseException {
         try {
-            // check arg
             if (null == cl || num <= 0) {
                 throw new BaseException(SDBError.SDB_INVALIDARG);
             }
-            // TO DO
             cl.bulkInsert(createRecordList(num), DBCollection.FLG_INSERT_CONTONDUP);
         } catch (Exception e) {
             System.out.println("Failed to insert records.");
@@ -168,11 +158,9 @@ public class ConstantsInsert {
 
     public static void insertLongRecords(DBCollection cl, int length, int num) throws BaseException {
         try {
-            // check arg
             if (null == cl || num <= 0 || length <= 0) {
                 throw new BaseException(SDBError.SDB_INVALIDARG);
             }
-            // TO DO
             BSONObject obj = new BasicBSONObject();
             long sum = length * num;
             for (int i = 0; i < sum; i++) {

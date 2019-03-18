@@ -59,8 +59,6 @@ namespace engine
                               INT32 limit,
                                _mthSAction &action ) const ;
    public:
-      /// all children will be used as a singleton
-      /// do not hold any dynamic member in child class.
       class parser : public SDBObject
       {
       public:

@@ -47,9 +47,6 @@ namespace engine
 {
 
 
-   // 
-   // overflow check in basic operation
-   //
    BOOLEAN utilAddIsOverflow( INT64 l, INT64 r, INT64 result ) ;
 
    BOOLEAN utilSubIsOverflow( INT64 l, INT64 r, INT64 result ) ;

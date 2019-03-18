@@ -1,6 +1,6 @@
 /*******************************************************************************
 
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ function main()
 {
    var PD_LOGGER = new Logger( "removeBusiness.js" ) ;
 
-   PD_LOGGER.log( PDEVENT, sprintf( "Begin to remove business, Step [?]",
+   PD_LOGGER.logComm( PDEVENT, sprintf( "Begin to remove business, Step [?]",
                                         SYS_STEP ) ) ;
 
    var taskInfo     = BUS_JSON[FIELD_INFO] ;
@@ -37,7 +37,7 @@ function main()
       var error = new SdbError( SDB_INVALIDARG,
                                 sprintf( "Invalid business type [?]",
                                          businessType ) ) ;
-      PD_LOGGER.log( PDERROR, error ) ;
+      PD_LOGGER.logTask( PDERROR, error ) ;
       throw error ;
    }
 

@@ -193,7 +193,6 @@ namespace engine
       ossSpinSLatch                 _handlerLatch ;
 
    private :
-      // configured options
       CHAR           _groupName[ OSS_MAX_GROUPNAME_SIZE + 1 ] ;
       CHAR           _hostName[ OSS_MAX_HOSTNAME + 1 ] ;
 
@@ -341,7 +340,6 @@ namespace engine
       }
       void setDBStatus ( SDB_DB_STATUS status )
       {
-         /// SDB_DB_SHUTDOWN is highest status, cant change
          if ( SDB_DB_SHUTDOWN != _dbStatus )
          {
             _dbStatus = status ;

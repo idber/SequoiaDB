@@ -62,7 +62,6 @@ namespace engine
 
       PD_LOG( PDEVENT, "Log archive manager start" );
 
-      // just sit here do nothing at the moment
       while ( !cb->isDisconnected() )
       {
          rc = dpsCB->archive() ;
@@ -81,7 +80,6 @@ namespace engine
       goto done ;
    }
 
-   /// Register
    PMD_DEFINE_ENTRYPOINT( EDU_TYPE_LOGARCHIVEMGR, TRUE,
                           pmdLogArchiveMgrEntryPoint,
                           "LogArchiveMgr" ) ;

@@ -20,15 +20,14 @@ using System.Text;
 
 namespace SequoiaDB.Bson
 {
-
-    /** \class BsonDefaults
-     *  \brief A static helper class containing BSON defaults.
-     */
+    /// <summary>
+    /// A static helper class containing BSON defaults.
+    /// </summary>
     public static class BsonDefaults
     {
         // private static fields
         private static GuidRepresentation __guidRepresentation = GuidRepresentation.CSharpLegacy;
-        private static int __maxDocumentSize = 16 * 1024 * 1024 + 16 * 1024; // 16MiB + 16K
+        private static int __maxDocumentSize = 4 * 1024 * 1024; // 4MiB
         private static int __maxSerializationDepth = 100;
         private static bool __compatible = false;
 
@@ -45,7 +44,7 @@ namespace SequoiaDB.Bson
         }
 
         /// <summary>
-        /// Gets or sets the default max document size. The default is 16MiB.
+        /// Gets or sets the default max document size. The default is 4MiB.
         /// </summary>
         public static int MaxDocumentSize
         {

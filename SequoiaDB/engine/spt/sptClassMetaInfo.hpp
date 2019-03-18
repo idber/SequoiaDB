@@ -81,7 +81,6 @@ namespace engine
    typedef map< string, vector<sptFuncMetaInfo> > MAP_FUNC_META_INFO ;
    typedef map< string, vector<sptFuncMetaInfo> >::iterator MAP_FUNC_META_INFO_IT ;
 
-   // extract js class's info and func's info from conf file and troff file
    class _sptClassMetaInfo : public SDBObject
    {
    public:

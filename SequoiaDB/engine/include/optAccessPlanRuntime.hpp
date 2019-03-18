@@ -326,19 +326,14 @@ namespace engine
                                const rtnContext *context ) const ;
 
       protected :
-         // Pointer to access plan
          optAccessPlan *         _plan ;
 
-         // Pointer to access plan manager
          optAccessPlanManager *  _apm ;
 
-         // Whether query activity is set
          BOOLEAN                 _hasQueryActivity ;
 
-         // Mark the plan is new created or got from cache
          BOOLEAN                 _isNewPlan ;
 
-         // Used for main CL plan, bind sub-collection and index
          BOOLEAN                 _ownedPlanInfo ;
          optCLScanInfo *         _clScanInfo ;
    } ;

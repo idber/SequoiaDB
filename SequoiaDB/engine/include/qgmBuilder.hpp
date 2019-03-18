@@ -60,7 +60,6 @@ namespace engine
    class qgmOptiMthMatchSelect;
    class _qgmSelectorExprNode ;
 
-   /// qgmBuilder can not be freed before sql operation done.
    class _qgmBuilder : public SDBObject
    {
    public:

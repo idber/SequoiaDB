@@ -160,7 +160,6 @@ namespace engine
       }
       else
       {
-         /// do noting.
       }
 
       return ss.str() ;
@@ -492,8 +491,6 @@ namespace engine
       {
          if ( _partition.isEmpty() )
          {
-            // pass 0 for attributes, which indicates no-compression for the
-            // moment
             rc = rtnCreateCollectionCommand( _fullName.toString().c_str(),
                                              0, eduCB, dmsCB, dpsCB ) ;
          }

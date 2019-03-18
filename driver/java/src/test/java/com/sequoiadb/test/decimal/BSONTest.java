@@ -30,20 +30,15 @@ public class BSONTest {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } else {
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         }
-        // cl
         cl = cs.createCollection(Constants.TEST_CL_NAME_1,
             new BasicBSONObject().append("ReplSize", 0));
-//		// debug
-//		cl = sdb.getCollectionSpace(Constants.TEST_CS_NAME_1).getCollection(Constants.TEST_CL_NAME_1);
     }
 
     @AfterClass
@@ -69,7 +64,6 @@ public class BSONTest {
      * 将BSONDecimal嵌套于对象中
      */
     @Test
-//	@Ignore
     public void nestingBSONDecimalInObjectTest() {
         BSONDecimal decimal1 = DecimalCommon.genBSONDecimal();
         BSONDecimal decimal2 = DecimalCommon.genBSONDecimal();
@@ -78,7 +72,6 @@ public class BSONTest {
         System.out.println("decimal2 is: " + decimal2);
         System.out.println("decimal3 is: " + decimal3);
 
-        // case 1: {a:{b:decimal1, c:{d:decimal2}}, aa:decimal3, case1:"test_in_java"}
         BSONObject obj = null;
         BSONObject subObj2 = new BasicBSONObject("d", decimal2);
         BSONObject subObj1 = new BasicBSONObject("b", decimal1).append("c", subObj2);
@@ -90,8 +83,6 @@ public class BSONTest {
         assertTrue(cur.hasNext());
         obj = cur.getNext();
         System.out.println("returned obj is: " + obj);
-        // {a:{b:decimal1, c:{d:decimal2}}, aa:decimal3, case1:"test_in_java"}
-        // get the return BSONDecimal 
         BSONObject objA = (BasicBSONObject) obj.get("a");
         BSONDecimal retDecimal1 = (BSONDecimal) objA.get("b");
         BSONObject objC = (BasicBSONObject) objA.get("c");
@@ -101,7 +92,6 @@ public class BSONTest {
         System.out.println("retDecimal2 is: " + retDecimal2);
         System.out.println("retDecimal3 is: " + retDecimal3);
 
-        // check
         Assert.assertEquals(decimal1.getPrecision(), retDecimal1.getPrecision());
         Assert.assertEquals(decimal1.getScale(), retDecimal1.getScale());
         Assert.assertEquals(0, new BigDecimal(decimal1.getValue()).compareTo(new BigDecimal(retDecimal1.getValue())));
@@ -120,7 +110,6 @@ public class BSONTest {
      * 将BSONDecimal嵌套于数组中
      */
     @Test
-//	@Ignore
     public void nestingBSONDecimalInArrayTest() {
         BSONDecimal decimal1 = DecimalCommon.genBSONDecimal();
         BSONDecimal decimal2 = DecimalCommon.genBSONDecimal();
@@ -139,7 +128,6 @@ public class BSONTest {
         System.out.println("decimal7 is: " + decimal7);
         System.out.println("decimal8 is: " + decimal8);
 
-        // case 1: {a:{b:decimal1}, aa:[decimal2,decimal3,decimal4], aaa:{c:[decimal5,decimal6], d:[{e:decimal7},{f:decimal8}]}, case1:"test_in_java"}
         BSONObject obj = null;
         BSONObject subObj1 = new BasicBSONObject("b", decimal1);
         BSONObject subArr1 = new BasicBSONList();
@@ -164,8 +152,6 @@ public class BSONTest {
         assertTrue(cur.hasNext());
         obj = cur.getNext();
         System.out.println("returned obj is: " + obj);
-        // {a:{b:decimal1}, aa:[decimal2,decimal3,decimal4], aaa:{c:[decimal5,decimal6], d:[{e:decimal7},{f:decimal8}]}, case1:"test_in_java"}
-        // get the return BSONDecimal 
         BSONObject objA = (BasicBSONObject) obj.get("a");
         BSONDecimal retDecimal1 = (BSONDecimal) objA.get("b");
 
@@ -195,7 +181,6 @@ public class BSONTest {
         System.out.println("retDecimal8 is: " + retDecimal8);
 
 
-        // check
         Assert.assertEquals(decimal1.getPrecision(), retDecimal1.getPrecision());
         Assert.assertEquals(decimal1.getScale(), retDecimal1.getScale());
         Assert.assertEquals(0, new BigDecimal(decimal1.getValue()).compareTo(new BigDecimal(retDecimal1.getValue())));
