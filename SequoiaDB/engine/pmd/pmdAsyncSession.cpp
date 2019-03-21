@@ -77,7 +77,9 @@ namespace engine
 
       _sessionID   = sessionID ;
 
-      _latchIn.get () ;
+      _evtIn.reset() ;
+      _evtOut.signal() ;
+
       PD_TRACE_EXIT ( SDB__PMDSN ) ;
    }
 
@@ -86,7 +88,6 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__PMDSN_DESC ) ;
       clear() ;
-      _latchIn.release () ;
       PD_TRACE_EXIT ( SDB__PMDSN_DESC ) ;
    }
 
@@ -137,8 +138,8 @@ namespace engine
       _identifyTID = cb->getTID() ;
       _identifyEDUID = cb->getID() ;
 
-      _latchOut.try_get () ;
-      _latchIn.release () ;
+      _evtOut.reset() ;
+      _evtIn.signal() ;
       _detachEvent.reset() ;
 
       _onAttach () ;
@@ -165,7 +166,7 @@ namespace engine
 
       _client.detachCB() ;
       _pEDUCB->detachSession() ;
-      _latchOut.release () ;
+      _evtOut.signal() ;
       _pEDUCB = NULL ;
       PD_TRACE_EXIT ( SDB__PMDSN_ATHOUT );
       return SDB_OK ;
@@ -189,7 +190,9 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDSN_CLEAR, "_pmdAsyncSession::clear" )
    void _pmdAsyncSession::clear()
    {
-      _reset() ;      
+      _reset() ;
+
+      _evtIn.reset() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDSN_RESET, "_pmdAsyncSession::_reset" )
@@ -360,22 +363,21 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDSN_WTATH, "_pmdAsyncSession::waitAttach" )
-   INT32 _pmdAsyncSession::waitAttach ()
+   INT32 _pmdAsyncSession::waitAttach ( INT64 millisec )
    {
       PD_TRACE_ENTRY ( SDB__PMDSN_WTATH );
-      _latchIn.get () ;
+      INT32 rc = _evtIn.wait( millisec ) ;
       PD_TRACE_EXIT ( SDB__PMDSN_WTATH );
-      return SDB_OK ;
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDSN_WTDTH, "_pmdAsyncSession::waitDetach" )
-   INT32 _pmdAsyncSession::waitDetach ()
+   INT32 _pmdAsyncSession::waitDetach ( INT64 millisec )
    {
       PD_TRACE_ENTRY ( SDB__PMDSN_WTDTH );
-      _latchOut.get () ;
-      _latchOut.release () ;
+      INT32 rc = _evtOut.wait( millisec ) ;
       PD_TRACE_EXIT ( SDB__PMDSN_WTDTH );
-      return SDB_OK ;
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDSN_CPMSG, "_pmdAsyncSession::copyMsg" )
@@ -936,7 +938,14 @@ namespace engine
          goto error ;
       }
 
-      pSession->waitAttach () ;
+      while( SDB_OK != pSession->waitAttach ( OSS_ONE_SEC ) )
+      {
+         if ( !pEDUMgr->getEDUByID( eduID ) )
+         {
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
 
    done:
       PD_TRACE_EXITRC ( PMD_SESSMGR_STARTEDU, rc ) ;
@@ -979,18 +988,17 @@ namespace engine
 
       SDB_ASSERT ( pSession, "pSession can't be NULL" ) ;
 
-      pSession->forceBack() ;
-
       if ( !_quit && postQuit && pSession->eduCB() )
       {
-         pmdEDUCB *pEDU = pSession->eduCB() ;
-         pmdEDUMgr *pMgr = pEDU->getEDUMgr() ;
-         pMgr->disconnectUserEDU( pEDU->getID() ) ;
+         pmdEDUMgr *pMgr = pmdGetKRCB()->getEDUMgr() ;
+         pMgr->disconnectUserEDU( pSession->eduID() ) ;
       }
+
+      pSession->forceBack() ;
 
       onSessionDestoryed( pSession ) ;
 
-      if ( delay )
+      if ( delay || !pSession->isDetached() )
       {
          ossScopedLock lock ( &_deqDeletingMutex ) ;
          _deqDeletingSessions.push_back ( pSession ) ;

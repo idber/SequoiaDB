@@ -48,6 +48,26 @@
 namespace engine
 {
 
+   /*
+      pmdAsyncSessionScope define
+   */
+   class pmdAsyncSessionScope
+   {
+      public:
+         pmdAsyncSessionScope( _pmdAsyncSession *pSession,
+                               pmdEDUCB *cb )
+         {
+            _pSession = pSession ;
+            _pSession->attachIn( cb ) ;
+         }
+         ~pmdAsyncSessionScope()
+         {
+            _pSession->attachOut() ;
+         }
+      private:
+         _pmdAsyncSession     *_pSession ;
+   } ;
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDSYNCSESSIONAGENTEP, "pmdAsyncSessionAgentEntryPoint" )
    INT32 pmdAsyncSessionAgentEntryPoint ( pmdEDUCB * cb, void * pData )
    {
@@ -60,7 +80,7 @@ namespace engine
       pmdKRCB *krcb    = pmdGetKRCB() ;
       monDBCB *mondbcb = krcb->getMonDBCB () ;
 
-      pSession->attachIn ( cb ) ;
+      pmdAsyncSessionScope assitScope( pSession, cb ) ;
 
       while ( !cb->isDisconnected() )
       {
@@ -133,8 +153,6 @@ namespace engine
             pSession->onTimer( 0, OSS_ONE_SEC ) ;
          }
       }
-
-      pSession->attachOut () ;
 
       PD_TRACE_EXIT ( SDB_PMDSYNCSESSIONAGENTEP );
       return SDB_OK ;
