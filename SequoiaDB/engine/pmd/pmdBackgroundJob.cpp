@@ -49,6 +49,7 @@ namespace engine
       rtnBaseJob *job = (rtnBaseJob*)pData ;
       INT32 rc = SDB_OK ;
       BOOLEAN reuseEDU = job->reuseEDU() ;
+      string expStr ;
 
       PD_LOG( PDINFO, "Start a background job[%s]", job->name() ) ;
 
@@ -72,6 +73,8 @@ namespace engine
       catch( std::exception &e )
       {
          PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+         rc = SDB_SYS ;
+         expStr = e.what() ;
       }
 
       job->attachOut () ;
@@ -80,6 +83,11 @@ namespace engine
       if ( !reuseEDU )
       {
          pEDUMgr->forceUserEDU( cb->getID() ) ;
+      }
+
+      if ( !expStr.empty() )
+      {
+         throw pdGeneralException( rc, expStr ) ;
       }
 
       PD_TRACE_EXITRC ( SDB_PMDBGJOBENTPNT, rc );
