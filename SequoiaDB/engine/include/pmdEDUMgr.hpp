@@ -137,6 +137,7 @@ namespace engine
                                                UINT64 idThreshold = 0 ) ;
 
          void              resetMon( EDUID eduID = PMD_INVALID_EDUID ) ;
+         void              resetIOService() ;
          void              dumpInfo( set<monEDUSimple> &info ) ;
          void              dumpInfo( set<monEDUFull> &info ) ;
 

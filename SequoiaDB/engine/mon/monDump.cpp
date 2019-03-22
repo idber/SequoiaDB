@@ -970,15 +970,17 @@ namespace engine
       {
          case CMD_SNAPSHOT_ALL :
          {
-            mondbcb->reset () ;
-            mgr->resetMon () ;
+            mondbcb->reset() ;
+            mgr->resetMon() ;
+            mgr->resetIOService() ;
             pmdResetErrNum () ;
             startLogger->clearAll() ;
             break ;
          }
          case CMD_SNAPSHOT_DATABASE :
          {
-            mondbcb->reset () ;
+            mondbcb->reset() ;
+            mgr->resetIOService() ;
             break ;
          }
          case CMD_SNAPSHOT_SESSIONS :
