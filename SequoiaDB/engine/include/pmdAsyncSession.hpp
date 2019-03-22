@@ -158,8 +158,8 @@ namespace engine
          virtual BOOLEAN canAttachMeta() const { return TRUE ; }
 
          void* copyMsg ( const CHAR *msg, UINT32 length ) ;
-         INT32 waitAttach () ;
-         INT32 waitDetach () ;
+         INT32 waitAttach ( INT64 millisec = -1 ) ;
+         INT32 waitDetach ( INT64 millisec = -1 ) ;
          INT32 attachIn ( pmdEDUCB *cb ) ;
          INT32 attachOut () ;
 
@@ -221,8 +221,8 @@ namespace engine
          pmdInnerClient       _client ;
 
       private:
-         ossSpinXLatch        _latchIn ;
-         ossSpinXLatch        _latchOut ;
+         ossEvent             _evtIn ;
+         ossEvent             _evtOut ;
          BOOLEAN              _lockFlag ;
          INT32                _startType ;
 

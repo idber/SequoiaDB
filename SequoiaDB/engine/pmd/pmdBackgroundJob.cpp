@@ -55,16 +55,23 @@ namespace engine
       cb->setName( job->name() ) ;
       job->attachIn( cb ) ;
 
-      pEDUMgr->activateEDU( cb ) ;
-      rc = job->doit () ;
-      if ( SDB_OK != rc )
+      try
       {
-         PD_LOG ( PDWARNING, "Background job[%s] do failed, rc = %d",
-                  job->name(), rc ) ;
+         pEDUMgr->activateEDU( cb ) ;
+         rc = job->doit () ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG ( PDWARNING, "Background job[%s] do failed, rc = %d",
+                     job->name(), rc ) ;
+         }
+         else
+         {
+            PD_LOG ( PDINFO, "Background job[%s] finished", job->name() ) ;
+         }
       }
-      else
+      catch( std::exception &e )
       {
-         PD_LOG ( PDINFO, "Background job[%s] finished", job->name() ) ;
+         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
       }
 
       job->attachOut () ;

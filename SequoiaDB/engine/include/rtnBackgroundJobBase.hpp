@@ -35,7 +35,7 @@
 #ifndef RTN_BACKGROUND_JOB_BASE_HPP_
 #define RTN_BACKGROUND_JOB_BASE_HPP_
 
-#include "ossLatch.hpp"
+#include "ossEvent.hpp"
 #include "pmdEDUMgr.hpp"
 #include <map>
 
@@ -116,14 +116,14 @@ namespace engine
          INT32 attachIn ( pmdEDUCB *cb ) ;
          INT32 attachOut () ;
 
+         pmdEDUCB* eduCB() ;
+
       public:
          _rtnBaseJob () ;
          virtual ~_rtnBaseJob () ;
 
-         INT32 waitAttach () ;
-         INT32 waitDetach () ;
-
-         pmdEDUCB* eduCB() ;
+         INT32 waitAttach ( INT64 millsec = -1 ) ;
+         INT32 waitDetach ( INT64 millsec = -1 ) ;
 
       public:
          virtual RTN_JOB_TYPE type () const = 0 ;
@@ -134,8 +134,8 @@ namespace engine
          virtual BOOLEAN reuseEDU() const { return FALSE ; }
 
       private:
-         ossSpinXLatch        _latchIn ;
-         ossSpinXLatch        _latchOut ;
+         ossEvent             _evtIn ;
+         ossEvent             _evtOut ;
       protected:
          pmdEDUCB*            _pEDUCB ;
 

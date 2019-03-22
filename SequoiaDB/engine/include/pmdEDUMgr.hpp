@@ -104,7 +104,9 @@ namespace engine
          UINT32            sizeRun() ;
          UINT32            sizeIdle() ;
          UINT32            sizeSystem() ;
-         void              sizeInfo( UINT32 &runSize, UINT32 &idleSize ) ;
+         void              sizeInfo( UINT32 &runSize,
+                                     UINT32 &idleSize,
+                                     UINT32 &sysSize ) ;
 
          EDUID             getSystemEDU( INT32 eduType ) ;
          BOOLEAN           isSystemEDU( EDUID eduID ) ;
@@ -193,6 +195,7 @@ namespace engine
 
          UINT32            calIdleLowSize( UINT32 *pRunSize = NULL,
                                            UINT32 *pIdleSize = NULL,
+                                           UINT32 *pSysSize = NULL,
                                            UINT32 *pPoolSize = NULL ) ;
 
       private:
@@ -201,6 +204,7 @@ namespace engine
          void              _postDestoryEDU( pmdEDUCB *cb ) ;
          UINT32            _calIdleLowSize( UINT32 runSize,
                                             UINT32 idleSize,
+                                            UINT32 sysSize,
                                             UINT32 poolSize ) ;
 
       private:
