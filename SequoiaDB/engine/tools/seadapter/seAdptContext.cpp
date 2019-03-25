@@ -203,7 +203,7 @@ namespace seadapter
             goto error ;
          }
 
-         queryCond = eleTmp.Obj().toString() ;
+         queryCond = eleTmp.Obj().toString( FALSE, TRUE ) ;
       }
 
       rc = _queryRebuilder.init(  matcher, selector, orderBy, hint ) ;
