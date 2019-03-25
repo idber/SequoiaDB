@@ -126,6 +126,8 @@ namespace engine
       }
 
       _children[ child->_idxInParent ] = newChild ;
+      newChild->_idxInParent = child->_idxInParent ;
+      newChild->_parent = this ;
       child->release() ;
 
    done:
