@@ -65,22 +65,13 @@ namespace sdbclient
 
       INT64 _totalRead ;
       INT32 _offset ;
-      void _killCursor () ;
+      INT32 _killCursor () ;
       INT32 _readNextBuffer () ;
-      void _setConnection ( _sdb *connection ) ;
-      void _setCollection ( _sdbCollectionImpl *collection ) ;
-      void _dropConnection()
-      {
-         _connection = NULL ;
-      }
-      void _dropCollection()
-      {
-         _collection = NULL ;
-      }
-      void _close()
-      {
-         _isClosed = TRUE;
-      }
+      void _attachConnection ( _sdbImpl *connection ) ;
+      void _attachCollection ( _sdbCollectionImpl *collection ) ;
+      void _detachConnection() ;
+      void _detachCollection() ;
+      void _close() ;
 
       friend class _sdbCollectionImpl ;
       friend class _sdbNodeImpl ;
@@ -122,23 +113,9 @@ namespace sdbclient
       INT32 _setName ( const CHAR *pCollectionFullName ) ;
       void _setConnection ( _sdb *connection ) ;
       void* _getConnection () ;
-      void _dropConnection()
-      {
-         _connection = NULL ;
-      }
-      void _regCursor ( _sdbCursorImpl *cursor )
-      {
-         lock () ;
-         _cursors.insert ( (ossValuePtr)cursor ) ;
-         unlock () ;
-      }
-      void _unregCursor ( _sdbCursorImpl * cursor )
-      {
-         lock () ;
-         _cursors.erase ( (ossValuePtr)cursor ) ;
-         unlock () ;
-      }
-
+      void _dropConnection() ;
+      void _regCursor ( _sdbCursorImpl *cursor ) ;
+      void _unregCursor ( _sdbCursorImpl * cursor ) ;
       INT32 _queryAndModify  ( _sdbCursor **cursor,
                                const BSONObj &condition,
                                const BSONObj &selected,
@@ -831,10 +808,10 @@ namespace sdbclient
       bson::BSONArray         _piecesInfo ;
       const CHAR              *_dataCache ;
 
-      void _setConnection( _sdb *pConnection ) ;
-      void _dropConnection() { _connection = NULL ; }
-      void _setCollection( _sdbCollectionImpl *pCollection ) ;
-      void _dropCollection() { _collection = NULL ; }
+      void _attachConnection( _sdb *pConnection ) ;
+      void _attachCollection( _sdbCollectionImpl *pCollection ) ;
+      void _detachConnection() ;
+      void _detachCollection() ;
       void _close () ;
       BOOLEAN _dataCached() ;
       void _readInCache( void *buf, UINT32 len, UINT32 *read ) ;
@@ -941,124 +918,26 @@ namespace sdbclient
                           _sdbCursor **ppCursor = NULL ) ;
       INT32 _buildEmptyCursor( _sdbCursor **ppCursor ) ;
       INT32 _requestSysInfo () ;
-      void _regCursor ( _sdbCursorImpl *cursor )
-      {
-         lock () ;
-         _cursors.insert ( (ossValuePtr)cursor ) ;
-         unlock () ;
-      }
-      void _regCollection ( _sdbCollectionImpl *collection )
-      {
-         lock () ;
-         _collections.insert ( (ossValuePtr)collection ) ;
-         unlock () ;
-      }
-      void _regCollectionSpace ( _sdbCollectionSpaceImpl *collectionspace )
-      {
-         lock () ;
-         _collectionspaces.insert ( (ossValuePtr)collectionspace ) ;
-         unlock () ;
-      }
-      void _regNode ( _sdbNodeImpl *node )
-      {
-         lock () ;
-         _nodes.insert ( (ossValuePtr)node ) ;
-         unlock () ;
-      }
-      void _regReplicaGroup ( _sdbReplicaGroupImpl *replicaGroup )
-      {
-         lock () ;
-         _replicaGroups.insert ( (ossValuePtr)replicaGroup ) ;
-         unlock () ;
-      }
-      void _regDomain ( _sdbDomainImpl *domain )
-      {
-         lock () ;
-         _domains.insert ( (ossValuePtr)domain ) ;
-         unlock () ;
-      }
-      void _regDataCenter ( _sdbDataCenterImpl *dc )
-      {
-         lock () ;
-         _dataCenters.insert ( (ossValuePtr)dc ) ;
-         unlock () ;
-      }
-      void _regLob ( _sdbLobImpl *lob )
-      {
-         lock () ;
-         _lobs.insert ( (ossValuePtr)lob ) ;
-         unlock () ;
-      }
-      void _unregCursor ( _sdbCursorImpl *cursor )
-      {
-         lock () ;
-         _cursors.erase ( (ossValuePtr)cursor ) ;
-         unlock () ;
-      }
-      /*void _changeCollectionName ( const CHAR *pCollectionSpaceName,
-                                   const CHAR *pCollectionOldName,
-                                   const CHAR *pCollectionNewName )
-      {
-         std::set<ossValuePtr>::iterator it ;
-         INT32 newNameLen = ossStrlen ( pCollectionNewName ) ;
-         if ( newNameLen > CLIENT_COLLECTION_NAMESZ )
-            return ;
-         for ( it = _collections.begin(); it != _collections.end(); ++it )
-         {
-            _sdbCollectionImpl *collection = (_sdbCollectionImpl*)(*it) ;
-            collection->_renameAttempt ( pCollectionOldName,
-                                         pCollectionNewName ) ;
-         }
-      }*/
-      void _unregCollection ( _sdbCollectionImpl *collection )
-      {
-         lock () ;
-         _collections.erase ( (ossValuePtr)collection ) ;
-         unlock () ;
-      }
-      void _unregCollectionSpace ( _sdbCollectionSpaceImpl *collectionspace )
-      {
-         lock () ;
-         _collectionspaces.erase ( (ossValuePtr)collectionspace ) ;
-         unlock () ;
-      }
-      void _unregNode ( _sdbNodeImpl *node )
-      {
-         lock () ;
-         _nodes.erase ( (ossValuePtr)node ) ;
-         unlock () ;
-      }
-      void _unregReplicaGroup ( _sdbReplicaGroupImpl *replicaGroup )
-      {
-         lock () ;
-         _replicaGroups.erase ( (ossValuePtr)replicaGroup ) ;
-         unlock () ;
-      }
-      void _unregDomain ( _sdbDomainImpl *domain )
-      {
-         lock () ;
-         _domains.erase ( (ossValuePtr)domain ) ;
-         unlock () ;
-      }
-      void _unregDataCenter ( _sdbDataCenterImpl *dc )
-      {
-         lock () ;
-         _dataCenters.erase ( (ossValuePtr)dc ) ;
-         unlock () ;
-      }
-      void _unregLob ( _sdbLobImpl *lob )
-      {
-         lock () ;
-         _lobs.erase ( (ossValuePtr)lob ) ;
-         unlock () ;
-      }
-      hashTable* _getCachedContainer() const
-      {
-         return _tb ;
-      }
-
-      INT32 _connect( const CHAR *pHostName,
-                      UINT16 port ) ;
+      void _regCursor ( _sdbCursorImpl *cursor ) ;
+      void _regCollection ( _sdbCollectionImpl *collection ) ;
+      void _regCollectionSpace ( _sdbCollectionSpaceImpl *collectionspace ) ;
+      void _regNode ( _sdbNodeImpl *node ) ;
+      void _regReplicaGroup ( _sdbReplicaGroupImpl *replicaGroup ) ;
+      void _regDomain ( _sdbDomainImpl *domain ) ;
+      void _regDataCenter ( _sdbDataCenterImpl *dc ) ;
+      void _regLob ( _sdbLobImpl *lob ) ;
+      void _unregCursor ( _sdbCursorImpl *cursor ) ;
+      void _unregCollection ( _sdbCollectionImpl *collection ) ;
+      void _unregCollectionSpace ( _sdbCollectionSpaceImpl *collectionspace ) ;
+      void _unregNode ( _sdbNodeImpl *node ) ;
+      void _unregReplicaGroup ( _sdbReplicaGroupImpl *replicaGroup ) ;
+      void _unregDomain ( _sdbDomainImpl *domain ) ;
+      void _unregDataCenter ( _sdbDataCenterImpl *dc ) ;
+      void _unregLob ( _sdbLobImpl *lob ) ;
+      
+      hashTable* _getCachedContainer() const ;
+      
+      INT32 _connect( const CHAR *pHostName, UINT16 port ) ;
 
       INT32 _traceStrtok( BSONArrayBuilder &arrayBuilder, const CHAR* pLine ) ;
 
