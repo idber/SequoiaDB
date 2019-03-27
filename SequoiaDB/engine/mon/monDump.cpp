@@ -453,7 +453,7 @@ namespace engine
                    "logger, rc = %d", rc ) ;
 
       {
-         vector<string> startHst, crashHst;
+         vector<string> startHst, abnormalHst;
          vector<pmdStartupLog>::iterator i ;
          for ( i = startLogs.begin(); i != startLogs.end(); ++i )
          {
@@ -462,13 +462,13 @@ namespace engine
             ossTimestampToString( log._time, time ) ;
 
             startHst.push_back( string( time ) ) ;
-            if( SDB_START_CRASH == log._type )
+            if( SDB_START_NORMAL != log._type )
             {
-               crashHst.push_back( string( time ) ) ;
+               abnormalHst.push_back( string( time ) ) ;
             }
          }
-         ob.append( FIELD_NAME_STARTHST, startHst ) ;
-         ob.append( FIELD_NAME_CRASHHST, crashHst ) ;
+         ob.append( FIELD_NAME_STARTHST,    startHst ) ;
+         ob.append( FIELD_NAME_ABNORMALHST, abnormalHst ) ;
       }
 
    done:

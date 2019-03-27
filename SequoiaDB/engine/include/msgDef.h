@@ -183,7 +183,7 @@
 #define FIELD_NAME_TOTALNUM                  "TotalNum"
 #define FIELD_NAME_FREENUM                   "FreeNum"
 #define FIELD_NAME_FILEDESP                  "FileDesp"
-#define FIELD_NAME_CRASHHST                  "CrashHistory"
+#define FIELD_NAME_ABNORMALHST               "AbnormalHistory"
 #define FIELD_NAME_STARTHST                  "StartHistory"
 #define FIELD_NAME_DIFFLSNPRIMARY            "DiffLSNWithPrimary"
 #define FIELD_NAME_DATABASEPATH              "DatabasePath"
