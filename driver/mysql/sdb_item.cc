@@ -344,14 +344,41 @@ int sdb_func_item::get_item_val( const char *field_name,
          {
             if ( item_val->result_type() == INT_RESULT )
             {
-               if ( NULL == arr_builder )
+               longlong val_tmp = 0 ;
+               if ( item_val->unsigned_flag )
                {
-                  obj = BSON( field_name
-                              << item_val->val_int() ) ;
+                  val_tmp = item_val->val_uint() ;
+                  if ( val_tmp < 0 )
+                  {
+                     if ( NULL == arr_builder )
+                     {
+                        bson::BSONObjBuilder obj_builder ;
+                        my_decimal dec_tmp ;
+                        char buff[MAX_FIELD_WIDTH];
+                        String str( buff, sizeof(buff),
+                                    item_val->charset_for_protocol() ) ;
+                        item_val->val_decimal( &dec_tmp ) ;
+                        my_decimal2string( E_DEC_FATAL_ERROR, &dec_tmp,
+                                           0, 0, 0, &str ) ;
+                        obj_builder.appendDecimal( field_name, str.c_ptr() ) ;
+                        obj = obj_builder.obj() ;
+                        break ;
+                     }
+                     rc = SDB_ERR_OVF ;
+                     goto error ;
+                  }
                }
                else
                {
-                  arr_builder->append( item_val->val_int() ) ;
+                  val_tmp = item_val->val_int() ;
+               }
+               if ( NULL == arr_builder )
+               {
+                  obj = BSON( field_name << val_tmp ) ;
+               }
+               else
+               {
+                  arr_builder->append( val_tmp ) ;
                }
             }
             else if( item_val->result_type() == REAL_RESULT )
@@ -392,6 +419,18 @@ int sdb_func_item::get_item_val( const char *field_name,
                       goto error ;
                   }
                    arr_builder->append( decimal ) ;
+               }
+            }
+            else if( item_val->result_type() == STRING_RESULT )
+            {
+               if ( NULL == arr_builder )
+               {
+                  obj = BSON( field_name
+                              << item_val->item_name.ptr() ) ;
+               }
+               else
+               {
+                  arr_builder->append( item_val->item_name.ptr() ) ;
                }
             }
             else
@@ -499,6 +538,8 @@ int sdb_func_item::get_item_val( const char *field_name,
             goto error ;
          }
 
+      case MYSQL_TYPE_TIMESTAMP:
+      case MYSQL_TYPE_TIMESTAMP2:
       case MYSQL_TYPE_DATETIME:
          {
             MYSQL_TIME ltime ;
@@ -534,9 +575,6 @@ int sdb_func_item::get_item_val( const char *field_name,
             rc = SDB_ERR_COND_UNEXPECTED_ITEM ;
             goto error ;
          }
-
-      case MYSQL_TYPE_TIMESTAMP:
-      case MYSQL_TYPE_TIMESTAMP2:
 
       case MYSQL_TYPE_TIME:
       case MYSQL_TYPE_YEAR:

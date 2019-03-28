@@ -34,6 +34,11 @@
 
 using namespace sdbclient ;
 
+#ifndef SDB_VER
+#define SDB_VER                  "UNKNOWN"
+#endif
+#define SDB_VER_INFO             "SDBVersion: "SDB_VER
+
 #define SDB_DATA_EXT             ".data"
 #define SDB_IDX_EXT              ".idx"
 #define SDB_LOB_DATA_EXT         ".lobd"
@@ -42,7 +47,7 @@ using namespace sdbclient ;
 #define SDB_FIELD_MAX_LEN        (16*1024*1024)
 #define SDB_STR_BUF_STEP_SIZE    1024
 #define SDB_STR_BUF_SIZE         SDB_STR_BUF_STEP_SIZE
-
+const static char sdb_ver_info[] = SDB_VER_INFO ;
 static char *sdb_addr = NULL ;
 static const char* SDB_ADDR_DFT = "localhost:11810" ;
 mysql_mutex_t sdb_mutex;
@@ -999,13 +1004,16 @@ int ha_sdb::build_match_obj_by_start_stop_key( uint keynr,
          case HA_KEYTYPE_VARTEXT1:
          case HA_KEYTYPE_VARTEXT2:
             {
-               get_text_key_range_obj( startKeyPtr,
-                                       startKeyPartMap,
-                                       find_flag,
-                                       endKeyPtr,
-                                       endKeyPartMap,
-                                       endFindFlag,
-                                       keyPart, tmp_obj ) ;
+               if ( !keyPart->field->binary() )
+               {
+                  get_text_key_range_obj( startKeyPtr,
+                                          startKeyPartMap,
+                                          find_flag,
+                                          endKeyPtr,
+                                          endKeyPartMap,
+                                          endFindFlag,
+                                          keyPart, tmp_obj ) ;
+               }//TODO: process the binary
                break ;
             }
          case HA_KEYTYPE_FLOAT:
@@ -1022,6 +1030,7 @@ int ha_sdb::build_match_obj_by_start_stop_key( uint keynr,
             }
          case HA_KEYTYPE_NUM:
          default:
+            rc = HA_ERR_UNSUPPORTED ;
             break ;
       }
       if ( !tmp_obj.isEmpty() )
@@ -1053,13 +1062,25 @@ int ha_sdb::index_read_map( uchar *buf, const uchar *key_ptr,
    const char *idx_name = NULL ;
    if ( NULL != key_ptr && keynr >= 0 )
    {
-      build_match_obj_by_start_stop_key( (uint)keynr, key_ptr,
-                       keypart_map, find_flag,
-                       condition_idx ) ;
+      rc = build_match_obj_by_start_stop_key( (uint)keynr, key_ptr,
+                                         keypart_map, find_flag,
+                                         condition_idx ) ;
    }
-   cond_builder.appendElements( condition ) ;
-   cond_builder.appendElements( condition_idx ) ;
-   condition = cond_builder.obj() ;
+   if ( rc )
+   {
+      errnum = rc ;
+      goto error ;
+   }
+   if ( !condition.isEmpty() )
+   {
+      cond_builder.appendElements( condition ) ;
+      cond_builder.appendElements( condition_idx ) ;
+      condition = cond_builder.obj() ;
+   }
+   else
+   {
+      condition = condition_idx ;
+   }
    idx_name = sdb_get_idx_name( table->key_info + keynr ) ;
    if ( idx_name )
    {
@@ -1108,6 +1129,10 @@ int ha_sdb::index_init(uint idx, bool sorted)
 {
    keynr = (int)idx ;
    active_index = idx ;
+   if( !pushed_cond )
+   {
+      condition = empty_obj ;
+   }
    return 0 ;
 }
 
@@ -1134,6 +1159,10 @@ int ha_sdb::rnd_init(bool scan)
 {
    stats.records= 0;
    first_read = TRUE ;
+   if( !pushed_cond )
+   {
+      condition = empty_obj ;
+   }
    return 0 ;
 }
 
@@ -1602,6 +1631,16 @@ int ha_sdb::create_index( Alter_inplace_info *ha_alter_info )
       keyEnd = keyPart + keyInfo->user_defined_key_parts ;
       for( ; keyPart != keyEnd ; ++keyPart )
       {
+         if ( keyPart->field->type() < MYSQL_TYPE_TINY
+            || ( keyPart->field->type() > MYSQL_TYPE_DOUBLE
+               && keyPart->field->type() != MYSQL_TYPE_LONGLONG
+               && keyPart->field->type() != MYSQL_TYPE_INT24
+               && ( keyPart->field->type() != MYSQL_TYPE_BLOB
+                    || keyPart->field->binary() )))
+         {
+            rc = SDB_ERR_TYPE_UNSUPPORTED ;
+            goto error ;
+         }
          // TODO: ASC or DESC
          keyObjBuilder.append( keyPart->field->field_name,
                                1 ) ;
@@ -1827,10 +1866,17 @@ int ha_sdb::create( const char *name, TABLE *form,
 
    if ( create_info && create_info->comment.str )
    {
-      rc = bson::fromjson( create_info->comment.str, options ) ;
+      bson::BSONObj comments ;
+      bson::BSONElement beOptions ;
+      rc = bson::fromjson( create_info->comment.str, comments ) ;
       if ( 0 != rc )
       {
          goto error ;
+      }
+      beOptions = comments.getField( "cl_options" ) ;
+      if ( beOptions.type() == bson::Object )
+      {
+         options = beOptions.embeddedObject() ;
       }
    }
 
@@ -1920,6 +1966,10 @@ const Item *ha_sdb::cond_push( const Item *cond )
       //TODO: build unanalysable condition
       remain_cond = NULL ;
    }
+   else
+   {
+      condition = sdbclient::_sdbStaticObject ;
+   }
 
 done:
    return remain_cond;
@@ -1928,6 +1978,11 @@ done:
 Item *ha_sdb::idx_cond_push(uint keyno, Item* idx_cond)
 {
    return idx_cond;
+}
+
+const char *ha_sdb::get_version()
+{
+   return sdb_ver_info;
 }
 
 static handler *sdb_create_handler(handlerton *hton,
