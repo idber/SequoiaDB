@@ -13,7 +13,10 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
-add_definitions(-Wno-error)
+if (SDB_VER)
+   ADD_DEFINITIONS(-DSDB_VER=\"${SDB_VER}\")
+endif()
+ADD_DEFINITIONS(-Wno-error)
 SET(SEQUOIADB_PLUGIN_DYNAMIC "ha_sequoiadb")
 SET(SEQUOIADB_SOURCES
 ha_sdb.cc

@@ -245,6 +245,8 @@ public:
 
    Item *idx_cond_push( uint keyno, Item* idx_cond ) ;
 
+   const char *get_version() ;
+
 
 private:
 

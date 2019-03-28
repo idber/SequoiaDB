@@ -16,7 +16,7 @@ sdb_cl::~sdb_cl()
 {
    //assert( cursor.pCursor == NULL ) ;
    //cursor.close() ;
-   cursor.pCursor = NULL ;
+   //cursor.pCursor = NULL ;
 }
 
 int sdb_cl::init( sdb_conn *connection,
@@ -30,7 +30,7 @@ int sdb_cl::init( sdb_conn *connection,
       goto error ;
    }
 
-   cursor.pCursor = NULL ;
+   //cursor.pCursor = NULL ;
 
    p_conn = connection ;
    cs_name[CS_NAME_MAX_SIZE] = 0 ;
@@ -197,8 +197,6 @@ retry:
    {
       goto error ;
    }
-   //cursor_tmp.close() ;
-   cursor_tmp.pCursor = NULL ;
 
 done:
    return rc ;
@@ -434,8 +432,8 @@ error:
 
 void sdb_cl::close()
 {
-   //cursor.close() ;
-   cursor.pCursor = NULL ;
+   cursor.close() ;
+   //cursor.pCursor = NULL ;
 }
 
 my_thread_id sdb_cl::get_tid()
