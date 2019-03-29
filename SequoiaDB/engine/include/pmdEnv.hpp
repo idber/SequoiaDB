@@ -67,10 +67,12 @@ namespace engine
       UINT64 _oom ;
       UINT64 _noSpc ;
       UINT64 _tooManyOpenFD ;
+      ossTimestamp _resetTimestamp ;
 
       _pmdOccurredErr()
       : _oom( 0 ), _noSpc( 0 ), _tooManyOpenFD( 0 )
       {
+         ossGetCurrentTime( _resetTimestamp ) ;
       }
    } pmdOccurredErr ;
 

@@ -158,6 +158,7 @@ namespace engine
       pmdGetSysInfo()->_numErr._oom = 0 ;
       pmdGetSysInfo()->_numErr._noSpc = 0 ;
       pmdGetSysInfo()->_numErr._tooManyOpenFD = 0 ;
+      ossGetCurrentTime( pmdGetSysInfo()->_numErr._resetTimestamp ) ;
    }
 
    pmdOccurredErr pmdGetOccurredErr()
