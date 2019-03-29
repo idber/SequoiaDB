@@ -2808,6 +2808,10 @@ namespace engine
          monAppendUlimit( ob ) ;
 
          pmdOccurredErr numErr = pmdGetOccurredErr();
+         CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
+         ossTimestampToString( numErr._resetTimestamp, timestamp ) ;
+         ob.append( FIELD_NAME_RESETTIMESTAMP, timestamp ) ;
+
          BSONObjBuilder errOb( ob.subobjStart( FIELD_NAME_ERRNUM ) ) ;
          errOb.append( FIELD_NAME_OOM,        (INT64)numErr._oom ) ;
          errOb.append( FIELD_NAME_NOSPC,      (INT64)numErr._noSpc ) ;
