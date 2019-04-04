@@ -1,0 +1,71 @@
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/36633/trunk/driver/java/src/main/java/org/bson/types
+END
+BasicBSONList.java
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/sequoiadb/!svn/ver/36423/trunk/driver/java/src/main/java/org/bson/types/BasicBSONList.java
+END
+BSONDecimal.java
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/sequoiadb/!svn/ver/35009/trunk/driver/java/src/main/java/org/bson/types/BSONDecimal.java
+END
+ObjectId.java
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/sequoiadb/!svn/ver/36423/trunk/driver/java/src/main/java/org/bson/types/ObjectId.java
+END
+Binary.java
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/sequoiadb/!svn/ver/36423/trunk/driver/java/src/main/java/org/bson/types/Binary.java
+END
+BSONTimestamp.java
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/sequoiadb/!svn/ver/36633/trunk/driver/java/src/main/java/org/bson/types/BSONTimestamp.java
+END
+Symbol.java
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/sequoiadb/!svn/ver/32587/trunk/driver/java/src/main/java/org/bson/types/Symbol.java
+END
+Code.java
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/sequoiadb/!svn/ver/24419/trunk/driver/java/src/main/java/org/bson/types/Code.java
+END
+CodeWScope.java
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/sequoiadb/!svn/ver/9949/trunk/driver/java/src/main/java/org/bson/types/CodeWScope.java
+END
+MinKey.java
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/sequoiadb/!svn/ver/36423/trunk/driver/java/src/main/java/org/bson/types/MinKey.java
+END
+MaxKey.java
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/sequoiadb/!svn/ver/36423/trunk/driver/java/src/main/java/org/bson/types/MaxKey.java
+END
+package.html
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/sequoiadb/!svn/ver/9949/trunk/driver/java/src/main/java/org/bson/types/package.html
+END

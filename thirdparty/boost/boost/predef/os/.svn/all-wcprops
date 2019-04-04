@@ -1,0 +1,113 @@
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/os
+END
+ios.h
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/os/ios.h
+END
+windows.h
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/os/windows.h
+END
+linux.h
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/os/linux.h
+END
+cygwin.h
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/os/cygwin.h
+END
+haiku.h
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/os/haiku.h
+END
+macos.h
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/os/macos.h
+END
+vms.h
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/os/vms.h
+END
+os400.h
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/os/os400.h
+END
+bsd.h
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/os/bsd.h
+END
+irix.h
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/os/irix.h
+END
+solaris.h
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/os/solaris.h
+END
+android.h
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/os/android.h
+END
+amigaos.h
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/os/amigaos.h
+END
+aix.h
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/os/aix.h
+END
+unix.h
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/os/unix.h
+END
+hpux.h
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/os/hpux.h
+END
+qnxnto.h
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/os/qnxnto.h
+END
+beos.h
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/os/beos.h
+END

@@ -1,0 +1,77 @@
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/log/sources
+END
+severity_logger.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/log/sources/severity_logger.hpp
+END
+features.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/log/sources/features.hpp
+END
+logger.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/log/sources/logger.hpp
+END
+basic_logger.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/log/sources/basic_logger.hpp
+END
+severity_channel_logger.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/log/sources/severity_channel_logger.hpp
+END
+channel_feature.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/log/sources/channel_feature.hpp
+END
+global_logger_storage.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/log/sources/global_logger_storage.hpp
+END
+severity_feature.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/log/sources/severity_feature.hpp
+END
+exception_handler_feature.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/log/sources/exception_handler_feature.hpp
+END
+channel_logger.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 85
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/log/sources/channel_logger.hpp
+END
+record_ostream.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 85
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/log/sources/record_ostream.hpp
+END
+threading_models.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/log/sources/threading_models.hpp
+END

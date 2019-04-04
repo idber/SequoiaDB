@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/masmx86
+END
+match686.asm
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/masmx86/match686.asm
+END
+bld_ml32.bat
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/masmx86/bld_ml32.bat
+END
+inffas32.asm
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/masmx86/inffas32.asm
+END
+readme.txt
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/masmx86/readme.txt
+END

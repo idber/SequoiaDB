@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/sequoiadb/!svn/ver/37040/trunk/misc/autogen/trace
+END
+traceGenerator.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/37040/trunk/misc/autogen/trace/traceGenerator.cpp
+END
+traceGenerator.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/37040/trunk/misc/autogen/trace/traceGenerator.hpp
+END

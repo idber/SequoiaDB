@@ -1,0 +1,41 @@
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/endian/detail
+END
+disable_warnings_pop.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/endian/detail/disable_warnings_pop.hpp
+END
+disable_warnings.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/endian/detail/disable_warnings.hpp
+END
+cover_operators.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/endian/detail/cover_operators.hpp
+END
+lightweight_test.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/endian/detail/lightweight_test.hpp
+END
+intrinsic.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/endian/detail/intrinsic.hpp
+END
+config.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/endian/detail/config.hpp
+END

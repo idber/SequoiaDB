@@ -1,0 +1,113 @@
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/is_valid
+END
+has_spikes.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/is_valid/has_spikes.hpp
+END
+debug_complement_graph.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 117
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/is_valid/debug_complement_graph.hpp
+END
+debug_print_turns.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 112
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/is_valid/debug_print_turns.hpp
+END
+pointlike.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 104
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/is_valid/pointlike.hpp
+END
+has_valid_self_turns.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 115
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/is_valid/has_valid_self_turns.hpp
+END
+ring.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 99
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/is_valid/ring.hpp
+END
+interface.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 104
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/is_valid/interface.hpp
+END
+multipolygon.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/is_valid/multipolygon.hpp
+END
+segment.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/is_valid/segment.hpp
+END
+linear.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/is_valid/linear.hpp
+END
+debug_validity_phase.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 115
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/is_valid/debug_validity_phase.hpp
+END
+complement_graph.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 111
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/is_valid/complement_graph.hpp
+END
+implementation.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/is_valid/implementation.hpp
+END
+is_acceptable_turn.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 113
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/is_valid/is_acceptable_turn.hpp
+END
+polygon.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/is_valid/polygon.hpp
+END
+has_invalid_coordinate.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 117
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/is_valid/has_invalid_coordinate.hpp
+END
+has_duplicates.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/is_valid/has_duplicates.hpp
+END
+box.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/is_valid/box.hpp
+END

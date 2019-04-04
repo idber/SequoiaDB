@@ -1,0 +1,107 @@
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail
+END
+translator.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/translator.hpp
+END
+config_end.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/config_end.hpp
+END
+distance_predicates.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/distance_predicates.hpp
+END
+exception.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/exception.hpp
+END
+tags.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 85
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/tags.hpp
+END
+assert.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/assert.hpp
+END
+varray.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/varray.hpp
+END
+config_begin.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/config_begin.hpp
+END
+bounded_view.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/bounded_view.hpp
+END
+is_bounding_geometry.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/is_bounding_geometry.hpp
+END
+utilities.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/utilities.hpp
+END
+tuples.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/tuples.hpp
+END
+serialization.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/serialization.hpp
+END
+predicates.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/predicates.hpp
+END
+meta.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 85
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/meta.hpp
+END
+is_indexable.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/is_indexable.hpp
+END
+varray_detail.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/varray_detail.hpp
+END

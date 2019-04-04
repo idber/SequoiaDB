@@ -1,0 +1,47 @@
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/sequoiadb/!svn/ver/40070/trunk/misc/ci/src/conf
+END
+test.conf
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/sequoiadb/!svn/ver/38812/trunk/misc/ci/src/conf/test.conf
+END
+deploy_conf_STANDALONE.js
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/sequoiadb/!svn/ver/37115/trunk/misc/ci/src/conf/deploy_conf_STANDALONE.js
+END
+deploy_conf_RELIABILITY.js
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/37115/trunk/misc/ci/src/conf/deploy_conf_RELIABILITY.js
+END
+deploy_conf_TPCC.js
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/28308/trunk/misc/ci/src/conf/deploy_conf_TPCC.js
+END
+deploy_conf_G1D3.js
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/37115/trunk/misc/ci/src/conf/deploy_conf_G1D3.js
+END
+deploy_conf_G3D3.js
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/40070/trunk/misc/ci/src/conf/deploy_conf_G3D3.js
+END
+deploy_conf_CONFIGURE.js
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/37115/trunk/misc/ci/src/conf/deploy_conf_CONFIGURE.js
+END

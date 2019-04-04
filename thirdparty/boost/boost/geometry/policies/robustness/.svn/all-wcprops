@@ -1,0 +1,47 @@
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/policies/robustness
+END
+no_rescale_policy.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/policies/robustness/no_rescale_policy.hpp
+END
+get_rescale_policy.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 106
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/policies/robustness/get_rescale_policy.hpp
+END
+rescale_policy.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/policies/robustness/rescale_policy.hpp
+END
+robust_type.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 99
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/policies/robustness/robust_type.hpp
+END
+segment_ratio.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/policies/robustness/segment_ratio.hpp
+END
+segment_ratio_type.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 106
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/policies/robustness/segment_ratio_type.hpp
+END
+robust_point_type.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/policies/robustness/robust_point_type.hpp
+END

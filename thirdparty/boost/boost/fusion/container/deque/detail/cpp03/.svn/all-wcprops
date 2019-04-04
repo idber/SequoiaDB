@@ -1,0 +1,59 @@
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/fusion/container/deque/detail/cpp03
+END
+deque_forward_ctor.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 113
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/fusion/container/deque/detail/cpp03/deque_forward_ctor.hpp
+END
+deque_keyed_values_call.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 118
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/fusion/container/deque/detail/cpp03/deque_keyed_values_call.hpp
+END
+limits.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/fusion/container/deque/detail/cpp03/limits.hpp
+END
+build_deque.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 106
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/fusion/container/deque/detail/cpp03/build_deque.hpp
+END
+deque.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/fusion/container/deque/detail/cpp03/deque.hpp
+END
+deque_fwd.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 104
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/fusion/container/deque/detail/cpp03/deque_fwd.hpp
+END
+deque_keyed_values.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 113
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/fusion/container/deque/detail/cpp03/deque_keyed_values.hpp
+END
+as_deque.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 103
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/fusion/container/deque/detail/cpp03/as_deque.hpp
+END
+deque_initial_size.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 113
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/fusion/container/deque/detail/cpp03/deque_initial_size.hpp
+END

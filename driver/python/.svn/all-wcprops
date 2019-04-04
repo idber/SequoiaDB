@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 45
+/sequoiadb/!svn/ver/38789/trunk/driver/python
+END
+py3include.py
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/32081/trunk/driver/python/py3include.py
+END
+SConscript
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/sequoiadb/!svn/ver/32137/trunk/driver/python/SConscript
+END
+SConstruct
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/sequoiadb/!svn/ver/32137/trunk/driver/python/SConstruct
+END
+setup.py
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/sequoiadb/!svn/ver/32137/trunk/driver/python/setup.py
+END

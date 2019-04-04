@@ -1,0 +1,53 @@
+K 25
+svn:wc:ra_dav:version-url
+V 103
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/controller
+END
+BucketDelimiterController.java
+K 25
+svn:wc:ra_dav:version-url
+V 134
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/controller/BucketDelimiterController.java
+END
+BucketController.java
+K 25
+svn:wc:ra_dav:version-url
+V 125
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/controller/BucketController.java
+END
+UserController.java
+K 25
+svn:wc:ra_dav:version-url
+V 123
+/sequoiadb/!svn/ver/39216/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/controller/UserController.java
+END
+BucketVersioningController.java
+K 25
+svn:wc:ra_dav:version-url
+V 135
+/sequoiadb/!svn/ver/38124/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/controller/BucketVersioningController.java
+END
+RegionController.java
+K 25
+svn:wc:ra_dav:version-url
+V 125
+/sequoiadb/!svn/ver/38971/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/controller/RegionController.java
+END
+BucketLocationController.java
+K 25
+svn:wc:ra_dav:version-url
+V 133
+/sequoiadb/!svn/ver/38971/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/controller/BucketLocationController.java
+END
+ObjectController.java
+K 25
+svn:wc:ra_dav:version-url
+V 125
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/controller/ObjectController.java
+END
+RestExceptionHandler.java
+K 25
+svn:wc:ra_dav:version-url
+V 129
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/controller/RestExceptionHandler.java
+END

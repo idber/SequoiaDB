@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/lockfree
+END
+spsc_queue.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/lockfree/spsc_queue.hpp
+END
+queue.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/lockfree/queue.hpp
+END
+stack.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/lockfree/stack.hpp
+END
+policies.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/lockfree/policies.hpp
+END

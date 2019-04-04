@@ -1,0 +1,143 @@
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/38357/trunk/driver/java/src/test/java/com/sequoiadb/test/cl
+END
+CLSaveWithListArg.java
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/test/cl/CLSaveWithListArg.java
+END
+CLBulkInsert.java
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/sequoiadb/!svn/ver/28053/trunk/driver/java/src/test/java/com/sequoiadb/test/cl/CLBulkInsert.java
+END
+DBCollectionTest.java
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/sequoiadb/!svn/ver/38357/trunk/driver/java/src/test/java/com/sequoiadb/test/cl/DBCollectionTest.java
+END
+CLAggregate.java
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/test/cl/CLAggregate.java
+END
+TestIndex.java
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/sequoiadb/!svn/ver/36963/trunk/driver/java/src/test/java/com/sequoiadb/test/cl/TestIndex.java
+END
+TestCreateIdIndex.java
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/test/cl/TestCreateIdIndex.java
+END
+CLSplit.java
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/sequoiadb/!svn/ver/35294/trunk/driver/java/src/test/java/com/sequoiadb/test/cl/CLSplit.java
+END
+TestFindAndModify.java
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/test/cl/TestFindAndModify.java
+END
+SdbUpdate.java
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/test/cl/SdbUpdate.java
+END
+CLInsertNest.java
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/test/cl/CLInsertNest.java
+END
+testMultiThreadInsertAndQuery.java
+K 25
+svn:wc:ra_dav:version-url
+V 114
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/test/cl/testMultiThreadInsertAndQuery.java
+END
+CreateGetDropIndex.java
+K 25
+svn:wc:ra_dav:version-url
+V 103
+/sequoiadb/!svn/ver/28053/trunk/driver/java/src/test/java/com/sequoiadb/test/cl/CreateGetDropIndex.java
+END
+testCollectionSaveAndAs.java
+K 25
+svn:wc:ra_dav:version-url
+V 108
+/sequoiadb/!svn/ver/37287/trunk/driver/java/src/test/java/com/sequoiadb/test/cl/testCollectionSaveAndAs.java
+END
+CLInsert.java
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/sequoiadb/!svn/ver/37311/trunk/driver/java/src/test/java/com/sequoiadb/test/cl/CLInsert.java
+END
+CLSelectQuery.java
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/sequoiadb/!svn/ver/28012/trunk/driver/java/src/test/java/com/sequoiadb/test/cl/CLSelectQuery.java
+END
+CLSaveAndAs.java
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/sequoiadb/!svn/ver/28053/trunk/driver/java/src/test/java/com/sequoiadb/test/cl/CLSaveAndAs.java
+END
+CLQuery.java
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/sequoiadb/!svn/ver/32215/trunk/driver/java/src/test/java/com/sequoiadb/test/cl/CLQuery.java
+END
+TestTruncate.java
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/test/cl/TestTruncate.java
+END
+testMutilThreadUpdate.java
+K 25
+svn:wc:ra_dav:version-url
+V 106
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/test/cl/testMutilThreadUpdate.java
+END
+CLInsertMultiThread.java
+K 25
+svn:wc:ra_dav:version-url
+V 104
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/test/cl/CLInsertMultiThread.java
+END
+SdbConditionAndSelectorQuery.java
+K 25
+svn:wc:ra_dav:version-url
+V 113
+/sequoiadb/!svn/ver/28012/trunk/driver/java/src/test/java/com/sequoiadb/test/cl/SdbConditionAndSelectorQuery.java
+END
+CLGetQueryMeta.java
+K 25
+svn:wc:ra_dav:version-url
+V 99
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/test/cl/CLGetQueryMeta.java
+END
+testMultiThreadInsertAndUpdate.java
+K 25
+svn:wc:ra_dav:version-url
+V 115
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/test/cl/testMultiThreadInsertAndUpdate.java
+END

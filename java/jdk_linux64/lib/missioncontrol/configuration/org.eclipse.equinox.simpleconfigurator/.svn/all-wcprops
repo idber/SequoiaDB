@@ -1,0 +1,11 @@
+K 25
+svn:wc:ra_dav:version-url
+V 120
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/lib/missioncontrol/configuration/org.eclipse.equinox.simpleconfigurator
+END
+bundles.info
+K 25
+svn:wc:ra_dav:version-url
+V 133
+/sequoiadb/!svn/ver/20647/trunk/java/jdk_linux64/lib/missioncontrol/configuration/org.eclipse.equinox.simpleconfigurator/bundles.info
+END

@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/algorithm/searching
+END
+knuth_morris_pratt.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/algorithm/searching/knuth_morris_pratt.hpp
+END
+boyer_moore.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/algorithm/searching/boyer_moore.hpp
+END
+boyer_moore_horspool.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 99
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/algorithm/searching/boyer_moore_horspool.hpp
+END

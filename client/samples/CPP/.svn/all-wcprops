@@ -1,0 +1,125 @@
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/sequoiadb/!svn/ver/31445/trunk/client/samples/CPP
+END
+sql.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/sequoiadb/!svn/ver/31444/trunk/client/samples/CPP/sql.cpp
+END
+insert.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/sequoiadb/!svn/ver/31444/trunk/client/samples/CPP/insert.cpp
+END
+query.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/31445/trunk/client/samples/CPP/query.cpp
+END
+index.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/31444/trunk/client/samples/CPP/index.cpp
+END
+worker.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/sequoiadb/!svn/ver/27464/trunk/client/samples/CPP/worker.cpp
+END
+lob.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/sequoiadb/!svn/ver/31444/trunk/client/samples/CPP/lob.cpp
+END
+README_zh
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/9949/trunk/client/samples/CPP/README_zh
+END
+worker.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/sequoiadb/!svn/ver/27464/trunk/client/samples/CPP/worker.hpp
+END
+dataSourceTask.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/27464/trunk/client/samples/CPP/dataSourceTask.hpp
+END
+update.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/sequoiadb/!svn/ver/31444/trunk/client/samples/CPP/update.cpp
+END
+buildApp.bat
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/sequoiadb/!svn/ver/27189/trunk/client/samples/CPP/buildApp.bat
+END
+common.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/sequoiadb/!svn/ver/27464/trunk/client/samples/CPP/common.cpp
+END
+buildApp.sh
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/sequoiadb/!svn/ver/17244/trunk/client/samples/CPP/buildApp.sh
+END
+connectWithSdbDataSource.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/31444/trunk/client/samples/CPP/connectWithSdbDataSource.cpp
+END
+connect.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/sequoiadb/!svn/ver/31444/trunk/client/samples/CPP/connect.cpp
+END
+readme.txt
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/9949/trunk/client/samples/CPP/readme.txt
+END
+dataSource.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/27464/trunk/client/samples/CPP/dataSource.cpp
+END
+replicaGroup.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/31444/trunk/client/samples/CPP/replicaGroup.cpp
+END
+run.sh
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/sequoiadb/!svn/ver/19127/trunk/client/samples/CPP/run.sh
+END
+common.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/sequoiadb/!svn/ver/27464/trunk/client/samples/CPP/common.hpp
+END

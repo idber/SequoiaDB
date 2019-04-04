@@ -1,0 +1,10 @@
+K 10
+svn:ignore
+V 41
+build
+version.py
+version.pyc
+.idea
+*.iml
+
+END

@@ -1,0 +1,101 @@
+K 25
+svn:wc:ra_dav:version-url
+V 44
+/sequoiadb/!svn/ver/40193/trunk/misc/autogen
+END
+options.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/sequoiadb/!svn/ver/36932/trunk/misc/autogen/options.hpp
+END
+fileStream.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/36932/trunk/misc/autogen/fileStream.hpp
+END
+optOtherInfoForWeb.xml
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/36175/trunk/misc/autogen/optOtherInfoForWeb.xml
+END
+SConscript
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/sequoiadb/!svn/ver/39307/trunk/misc/autogen/SConscript
+END
+config.h
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/sequoiadb/!svn/ver/37508/trunk/misc/autogen/config.h
+END
+generateInterface.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/36932/trunk/misc/autogen/generateInterface.cpp
+END
+ver_conf.h.in
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/sequoiadb/!svn/ver/36932/trunk/misc/autogen/ver_conf.h.in
+END
+optlist.xml
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/sequoiadb/!svn/ver/40132/trunk/misc/autogen/optlist.xml
+END
+util.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/sequoiadb/!svn/ver/36932/trunk/misc/autogen/util.cpp
+END
+rclist.xml
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/sequoiadb/!svn/ver/40193/trunk/misc/autogen/rclist.xml
+END
+generateInterface.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/36932/trunk/misc/autogen/generateInterface.hpp
+END
+util.h
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/sequoiadb/!svn/ver/36932/trunk/misc/autogen/util.h
+END
+main.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/sequoiadb/!svn/ver/36932/trunk/misc/autogen/main.cpp
+END
+SConstruct
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/sequoiadb/!svn/ver/24750/trunk/misc/autogen/SConstruct
+END
+options.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/sequoiadb/!svn/ver/36932/trunk/misc/autogen/options.cpp
+END
+fileStream.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/36932/trunk/misc/autogen/fileStream.cpp
+END

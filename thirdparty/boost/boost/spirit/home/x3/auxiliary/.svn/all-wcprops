@@ -1,0 +1,41 @@
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/spirit/home/x3/auxiliary
+END
+attr.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/spirit/home/x3/auxiliary/attr.hpp
+END
+eoi.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/spirit/home/x3/auxiliary/eoi.hpp
+END
+eol.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/spirit/home/x3/auxiliary/eol.hpp
+END
+guard.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/spirit/home/x3/auxiliary/guard.hpp
+END
+any_parser.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/spirit/home/x3/auxiliary/any_parser.hpp
+END
+eps.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/spirit/home/x3/auxiliary/eps.hpp
+END

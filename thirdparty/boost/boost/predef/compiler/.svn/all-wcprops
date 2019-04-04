@@ -1,0 +1,179 @@
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler
+END
+dignus.h
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/dignus.h
+END
+palm.h
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/palm.h
+END
+watcom.h
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/watcom.h
+END
+sgi_mipspro.h
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/sgi_mipspro.h
+END
+ekopath.h
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/ekopath.h
+END
+greenhills.h
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/greenhills.h
+END
+gcc.h
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/gcc.h
+END
+edg.h
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/edg.h
+END
+diab.h
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/diab.h
+END
+digitalmars.h
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/digitalmars.h
+END
+metrowerks.h
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/metrowerks.h
+END
+mpw.h
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/mpw.h
+END
+kai.h
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/kai.h
+END
+metaware.h
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/metaware.h
+END
+microtec.h
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/microtec.h
+END
+visualc.h
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/visualc.h
+END
+ibm.h
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/ibm.h
+END
+comeau.h
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/comeau.h
+END
+llvm.h
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/llvm.h
+END
+intel.h
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/intel.h
+END
+iar.h
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/iar.h
+END
+gcc_xml.h
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/gcc_xml.h
+END
+hp_acc.h
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/hp_acc.h
+END
+tendra.h
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/tendra.h
+END
+pgi.h
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/pgi.h
+END
+compaq.h
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/compaq.h
+END
+borland.h
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/borland.h
+END
+clang.h
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/clang.h
+END
+sunpro.h
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/predef/compiler/sunpro.h
+END

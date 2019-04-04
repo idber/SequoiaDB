@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/inflate86
+END
+inffas86.c
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/inflate86/inffas86.c
+END
+inffast.S
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/21254/trunk/thirdparty/zlib/contrib/inflate86/inffast.S
+END

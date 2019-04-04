@@ -1,0 +1,40 @@
+10
+
+dir
+40212
+http://192.168.20.11/sequoiadb/trunk/driver/java/src/test/java/com/sequoiadb
+http://192.168.20.11/sequoiadb
+
+
+
+2019-01-24T05:13:54.418089Z
+39117
+tanzhaobo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+6121f079-4a18-41d3-8c30-8870a322f2c2
+
+test
+dir
+
+testdata
+dir
+
+base
+dir
+
+datasource
+dir
+

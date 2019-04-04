@@ -1,0 +1,47 @@
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/utilities
+END
+are_levels_ok.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 110
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/utilities/are_levels_ok.hpp
+END
+statistics.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/utilities/statistics.hpp
+END
+view.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/utilities/view.hpp
+END
+are_counts_ok.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 110
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/utilities/are_counts_ok.hpp
+END
+print.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/utilities/print.hpp
+END
+gl_draw.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 104
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/utilities/gl_draw.hpp
+END
+are_boxes_ok.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/index/detail/rtree/utilities/are_boxes_ok.hpp
+END

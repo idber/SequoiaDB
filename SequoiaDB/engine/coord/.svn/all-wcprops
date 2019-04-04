@@ -1,0 +1,293 @@
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/sequoiadb/!svn/ver/40188/trunk/SequoiaDB/engine/coord
+END
+coordFactory.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/coord/coordFactory.cpp
+END
+coordCommandSequence.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/40187/trunk/SequoiaDB/engine/coord/coordCommandSequence.cpp
+END
+coordRemoteHandle.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/40188/trunk/SequoiaDB/engine/coord/coordRemoteHandle.cpp
+END
+coordInterruptOperator.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/coord/coordInterruptOperator.cpp
+END
+coordGroupHandle.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/coord/coordGroupHandle.cpp
+END
+coordCommandData.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/39954/trunk/SequoiaDB/engine/coord/coordCommandData.cpp
+END
+coordCommandList.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/40187/trunk/SequoiaDB/engine/coord/coordCommandList.cpp
+END
+coordOmProxy.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/coord/coordOmProxy.cpp
+END
+coordUtil.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/37206/trunk/SequoiaDB/engine/coord/coordUtil.cpp
+END
+coordDeleteOperator.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/coord/coordDeleteOperator.cpp
+END
+coordOmStrategyAccessor.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/coord/coordOmStrategyAccessor.cpp
+END
+coordQueryOperator.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/40187/trunk/SequoiaDB/engine/coord/coordQueryOperator.cpp
+END
+coordKeyKicker.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/39235/trunk/SequoiaDB/engine/coord/coordKeyKicker.cpp
+END
+coordCommand2Phase.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/39616/trunk/SequoiaDB/engine/coord/coordCommand2Phase.cpp
+END
+coordContext.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/40187/trunk/SequoiaDB/engine/coord/coordContext.cpp
+END
+coordCB.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/39235/trunk/SequoiaDB/engine/coord/coordCB.cpp
+END
+coordCommandNode.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/38183/trunk/SequoiaDB/engine/coord/coordCommandNode.cpp
+END
+coordCommandDC.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/coord/coordCommandDC.cpp
+END
+coordCommandCommon.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/39069/trunk/SequoiaDB/engine/coord/coordCommandCommon.cpp
+END
+coordCommandProcedure.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/coord/coordCommandProcedure.cpp
+END
+coordOmOperator.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/coord/coordOmOperator.cpp
+END
+coordResource.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/39841/trunk/SequoiaDB/engine/coord/coordResource.cpp
+END
+coordLobOperator.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/coord/coordLobOperator.cpp
+END
+coordOmStrategyJob.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/36005/trunk/SequoiaDB/engine/coord/coordOmStrategyJob.cpp
+END
+coordCommandTrace.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/coord/coordCommandTrace.cpp
+END
+coordCommandSnapshot.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/40187/trunk/SequoiaDB/engine/coord/coordCommandSnapshot.cpp
+END
+coordOmCache.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/coord/coordOmCache.cpp
+END
+coordRemoteSession.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/40187/trunk/SequoiaDB/engine/coord/coordRemoteSession.cpp
+END
+coordMsgOperator.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/coord/coordMsgOperator.cpp
+END
+coordTransOperator.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/40188/trunk/SequoiaDB/engine/coord/coordTransOperator.cpp
+END
+coordCommandBackup.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/coord/coordCommandBackup.cpp
+END
+coordCommandDomain.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/coord/coordCommandDomain.cpp
+END
+coordCommandBase.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/39235/trunk/SequoiaDB/engine/coord/coordCommandBase.cpp
+END
+coordCommandStat.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/coord/coordCommandStat.cpp
+END
+coordSqlOperator.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/coord/coordSqlOperator.cpp
+END
+coordAuthOperator.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/39920/trunk/SequoiaDB/engine/coord/coordAuthOperator.cpp
+END
+coordInsertOperator.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/sequoiadb/!svn/ver/39235/trunk/SequoiaDB/engine/coord/coordInsertOperator.cpp
+END
+coordAuthCrtOperator.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/39521/trunk/SequoiaDB/engine/coord/coordAuthCrtOperator.cpp
+END
+coordSequenceAgent.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/39013/trunk/SequoiaDB/engine/coord/coordSequenceAgent.cpp
+END
+coordLobStream.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/36954/trunk/SequoiaDB/engine/coord/coordLobStream.cpp
+END
+coordCommon.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/39235/trunk/SequoiaDB/engine/coord/coordCommon.cpp
+END
+coordOperator.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/40187/trunk/SequoiaDB/engine/coord/coordOperator.cpp
+END
+coordAggrOperator.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/39069/trunk/SequoiaDB/engine/coord/coordAggrOperator.cpp
+END
+coordAuthBase.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/39521/trunk/SequoiaDB/engine/coord/coordAuthBase.cpp
+END
+coordUpdateOperator.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/sequoiadb/!svn/ver/37080/trunk/SequoiaDB/engine/coord/coordUpdateOperator.cpp
+END
+coordCommands.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/coord/coordCommands.cpp
+END
+coordAuthDelOperator.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/39521/trunk/SequoiaDB/engine/coord/coordAuthDelOperator.cpp
+END
+coordCommandWithLocation.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/coord/coordCommandWithLocation.cpp
+END

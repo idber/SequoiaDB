@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/resources
+END
+logback.xml
+K 25
+svn:wc:ra_dav:version-url
+V 95
+/sequoiadb/!svn/ver/38971/trunk/SequoiaDB/engine/tools/sequoias3/src/main/resources/logback.xml
+END
+application.properties
+K 25
+svn:wc:ra_dav:version-url
+V 106
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/resources/application.properties
+END

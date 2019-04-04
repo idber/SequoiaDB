@@ -1,0 +1,101 @@
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/sequoiadb/!svn/ver/39902/trunk/SequoiaDB/engine/spt/usrdef
+END
+sptUsrFile.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/sequoiadb/!svn/ver/39902/trunk/SequoiaDB/engine/spt/usrdef/sptUsrFile.cpp
+END
+sptUsrOmaAssit.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/spt/usrdef/sptUsrOmaAssit.cpp
+END
+sptUsrHash.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/spt/usrdef/sptUsrHash.cpp
+END
+sptUsrSystem.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/spt/usrdef/sptUsrSystem.cpp
+END
+sptUsrOmaCommon.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/39476/trunk/SequoiaDB/engine/spt/usrdef/sptUsrOmaCommon.cpp
+END
+sptUsrFilter.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/spt/usrdef/sptUsrFilter.cpp
+END
+sptUsrFileCommon.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/sequoiadb/!svn/ver/37856/trunk/SequoiaDB/engine/spt/usrdef/sptUsrFileCommon.cpp
+END
+sptUsrRemote.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/spt/usrdef/sptUsrRemote.cpp
+END
+sptUsrSystemCommon.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/sequoiadb/!svn/ver/37856/trunk/SequoiaDB/engine/spt/usrdef/sptUsrSystemCommon.cpp
+END
+sptUsrSsh.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/38885/trunk/SequoiaDB/engine/spt/usrdef/sptUsrSsh.cpp
+END
+sptUsrRemoteAssit.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/spt/usrdef/sptUsrRemoteAssit.cpp
+END
+sptUsrCmd.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/38885/trunk/SequoiaDB/engine/spt/usrdef/sptUsrCmd.cpp
+END
+sptUsrSdbTool.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/spt/usrdef/sptUsrSdbTool.cpp
+END
+sptUsrFileContent.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/sequoiadb/!svn/ver/39902/trunk/SequoiaDB/engine/spt/usrdef/sptUsrFileContent.cpp
+END
+sptUsrOma.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/sequoiadb/!svn/ver/38085/trunk/SequoiaDB/engine/spt/usrdef/sptUsrOma.cpp
+END
+sptUsrCmdCommon.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/spt/usrdef/sptUsrCmdCommon.cpp
+END

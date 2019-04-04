@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/sequoiadb/!svn/ver/39175/trunk/conf/script/removeBusiness
+END
+sequoiasql-postgresql.js
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/sequoiadb/!svn/ver/36314/trunk/conf/script/removeBusiness/sequoiasql-postgresql.js
+END
+sequoiasql-mysql.js
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/sequoiadb/!svn/ver/39175/trunk/conf/script/removeBusiness/sequoiasql-mysql.js
+END

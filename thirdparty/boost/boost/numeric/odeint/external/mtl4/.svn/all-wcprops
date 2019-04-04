@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/numeric/odeint/external/mtl4
+END
+mtl4.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/numeric/odeint/external/mtl4/mtl4.hpp
+END
+mtl4_resize.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 99
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/numeric/odeint/external/mtl4/mtl4_resize.hpp
+END
+mtl4_algebra_dispatcher.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 111
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/numeric/odeint/external/mtl4/mtl4_algebra_dispatcher.hpp
+END
+implicit_euler_mtl4.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/numeric/odeint/external/mtl4/implicit_euler_mtl4.hpp
+END

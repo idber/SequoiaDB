@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/sequoiadb/!svn/ver/33744/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE
+END
+CONTRIBUTING.MD
+K 25
+svn:wc:ra_dav:version-url
+V 106
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/CONTRIBUTING.MD
+END
+pom.xml
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/sequoiadb/!svn/ver/33744/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/pom.xml
+END
+README.md
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/README.md
+END

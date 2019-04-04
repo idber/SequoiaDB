@@ -1,0 +1,11 @@
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/sequoiadb/!svn/ver/20435/trunk/driver/sequoiadb-jdbc
+END
+build.xml
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/sequoiadb/!svn/ver/20435/trunk/driver/sequoiadb-jdbc/build.xml
+END

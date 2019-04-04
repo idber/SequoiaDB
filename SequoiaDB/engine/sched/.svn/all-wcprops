@@ -1,0 +1,53 @@
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/sequoiadb/!svn/ver/39521/trunk/SequoiaDB/engine/sched
+END
+schedTaskMgr.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/sched/schedTaskMgr.cpp
+END
+schedPrepareJob.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/sched/schedPrepareJob.cpp
+END
+schedDispatchJob.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/36005/trunk/SequoiaDB/engine/sched/schedDispatchJob.cpp
+END
+schedTaskQue.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/sched/schedTaskQue.cpp
+END
+schedDef.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/39521/trunk/SequoiaDB/engine/sched/schedDef.cpp
+END
+schedTaskAdapterBase.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/sched/schedTaskAdapterBase.cpp
+END
+schedTaskAdapter.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/sched/schedTaskAdapter.cpp
+END
+schedTaskContainer.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/sched/schedTaskContainer.cpp
+END

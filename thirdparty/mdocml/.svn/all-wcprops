@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/sequoiadb/!svn/ver/29439/trunk/thirdparty/mdocml
+END
+SConscript
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/29436/trunk/thirdparty/mdocml/SConscript
+END
+SConstruct
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/29436/trunk/thirdparty/mdocml/SConstruct
+END

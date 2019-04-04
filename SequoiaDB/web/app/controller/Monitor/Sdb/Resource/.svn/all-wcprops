@@ -1,0 +1,41 @@
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/sequoiadb/!svn/ver/34996/trunk/SequoiaDB/web/app/controller/Monitor/Sdb/Resource
+END
+Context.js
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/sequoiadb/!svn/ver/34996/trunk/SequoiaDB/web/app/controller/Monitor/Sdb/Resource/Context.js
+END
+Transaction.js
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/sequoiadb/!svn/ver/34996/trunk/SequoiaDB/web/app/controller/Monitor/Sdb/Resource/Transaction.js
+END
+Domain.js
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/sequoiadb/!svn/ver/34996/trunk/SequoiaDB/web/app/controller/Monitor/Sdb/Resource/Domain.js
+END
+Procedure.js
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/sequoiadb/!svn/ver/34996/trunk/SequoiaDB/web/app/controller/Monitor/Sdb/Resource/Procedure.js
+END
+ResourceCharts.js
+K 25
+svn:wc:ra_dav:version-url
+V 99
+/sequoiadb/!svn/ver/34996/trunk/SequoiaDB/web/app/controller/Monitor/Sdb/Resource/ResourceCharts.js
+END
+Session.js
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/sequoiadb/!svn/ver/34996/trunk/SequoiaDB/web/app/controller/Monitor/Sdb/Resource/Session.js
+END

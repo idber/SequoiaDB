@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/coroutine/posix
+END
+protected_stack_allocator.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/coroutine/posix/protected_stack_allocator.hpp
+END
+segmented_stack_allocator.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/coroutine/posix/segmented_stack_allocator.hpp
+END

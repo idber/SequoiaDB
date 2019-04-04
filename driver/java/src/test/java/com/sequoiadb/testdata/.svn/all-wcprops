@@ -1,0 +1,89 @@
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/sequoiadb/!svn/ver/32563/trunk/driver/java/src/test/java/com/sequoiadb/testdata
+END
+ArrayListBean.java
+K 25
+svn:wc:ra_dav:version-url
+V 99
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/testdata/ArrayListBean.java
+END
+ListBean.java
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/testdata/ListBean.java
+END
+ListClassA.java
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/testdata/ListClassA.java
+END
+NotWriteMethodClass.java
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/testdata/NotWriteMethodClass.java
+END
+DecimalBean.java
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/testdata/DecimalBean.java
+END
+ListNestedClassA.java
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/testdata/ListNestedClassA.java
+END
+Student.java
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/sequoiadb/!svn/ver/32563/trunk/driver/java/src/test/java/com/sequoiadb/testdata/Student.java
+END
+BasicClass.java
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/testdata/BasicClass.java
+END
+HaveMapPropClass.java
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/sequoiadb/!svn/ver/32563/trunk/driver/java/src/test/java/com/sequoiadb/testdata/HaveMapPropClass.java
+END
+SDBTestHelper.java
+K 25
+svn:wc:ra_dav:version-url
+V 99
+/sequoiadb/!svn/ver/28182/trunk/driver/java/src/test/java/com/sequoiadb/testdata/SDBTestHelper.java
+END
+NestedClassA.java
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/testdata/NestedClassA.java
+END
+TotalReadValue.java
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/testdata/TotalReadValue.java
+END
+ClassWithID.java
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/testdata/ClassWithID.java
+END
+User.java
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/sequoiadb/!svn/ver/32563/trunk/driver/java/src/test/java/com/sequoiadb/testdata/User.java
+END

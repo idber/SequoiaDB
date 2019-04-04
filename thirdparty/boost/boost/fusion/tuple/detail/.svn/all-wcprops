@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/fusion/tuple/detail
+END
+tuple.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/fusion/tuple/detail/tuple.hpp
+END
+tuple_fwd.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/fusion/tuple/detail/tuple_fwd.hpp
+END
+tuple_tie.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/fusion/tuple/detail/tuple_tie.hpp
+END
+make_tuple.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/fusion/tuple/detail/make_tuple.hpp
+END
+tuple_expand.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/fusion/tuple/detail/tuple_expand.hpp
+END

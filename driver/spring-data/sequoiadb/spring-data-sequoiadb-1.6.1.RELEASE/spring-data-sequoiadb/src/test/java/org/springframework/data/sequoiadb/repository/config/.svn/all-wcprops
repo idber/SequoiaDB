@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 185
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/config
+END
+SequoiadbRepositoryConfigurationExtensionUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 241
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/config/SequoiadbRepositoryConfigurationExtensionUnitTests.java
+END
+SdbRepositoriesRegistrarIntegrationTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 231
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/config/SdbRepositoriesRegistrarIntegrationTests.java
+END
+SdbNamespaceIntegrationTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 219
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/repository/config/SdbNamespaceIntegrationTests.java
+END

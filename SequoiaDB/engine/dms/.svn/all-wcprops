@@ -1,0 +1,203 @@
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/sequoiadb/!svn/ver/40142/trunk/SequoiaDB/engine/dms
+END
+dmsSMEMgr.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/dms/dmsSMEMgr.cpp
+END
+dmsCompress.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/dms/dmsCompress.cpp
+END
+dmsStorageIndex.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/40004/trunk/SequoiaDB/engine/dms/dmsStorageIndex.cpp
+END
+dmsStorageLoadExtent.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/39920/trunk/SequoiaDB/engine/dms/dmsStorageLoadExtent.cpp
+END
+dmsStorageData.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/39920/trunk/SequoiaDB/engine/dms/dmsStorageData.cpp
+END
+dmsLobDirectBuffer.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/dms/dmsLobDirectBuffer.cpp
+END
+dmsDump.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/sequoiadb/!svn/ver/36296/trunk/SequoiaDB/engine/dms/dmsDump.cpp
+END
+dmsInspect.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/dms/dmsInspect.cpp
+END
+dmsStorageDataCommon.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/40142/trunk/SequoiaDB/engine/dms/dmsStorageDataCommon.cpp
+END
+dmsPageMap.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/dms/dmsPageMap.cpp
+END
+dmsSUCache.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/dms/dmsSUCache.cpp
+END
+dmsStorageDataCapped.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/39920/trunk/SequoiaDB/engine/dms/dmsStorageDataCapped.cpp
+END
+dmsStatUnit.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/36954/trunk/SequoiaDB/engine/dms/dmsStatUnit.cpp
+END
+dmsTransLockCallback.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/40009/trunk/SequoiaDB/engine/dms/dmsTransLockCallback.cpp
+END
+dmsReorgUnit.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/35919/trunk/SequoiaDB/engine/dms/dmsReorgUnit.cpp
+END
+dms.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/sequoiadb/!svn/ver/39920/trunk/SequoiaDB/engine/dms/dms.cpp
+END
+dmsTempSUMgr.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/36789/trunk/SequoiaDB/engine/dms/dmsTempSUMgr.cpp
+END
+dmsStorageDataFactory.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/dms/dmsStorageDataFactory.cpp
+END
+dmsLobDirectInBuffer.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/dms/dmsLobDirectInBuffer.cpp
+END
+dmsScanner.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/40136/trunk/SequoiaDB/engine/dms/dmsScanner.cpp
+END
+dmsLobDirectOutBuffer.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/dms/dmsLobDirectOutBuffer.cpp
+END
+dmsStorageLobData.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/sequoiadb/!svn/ver/38798/trunk/SequoiaDB/engine/dms/dmsStorageLobData.cpp
+END
+dmsTransContext.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/39920/trunk/SequoiaDB/engine/dms/dmsTransContext.cpp
+END
+dmsStorageJob.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/dms/dmsStorageJob.cpp
+END
+dmsStorageBase.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/39920/trunk/SequoiaDB/engine/dms/dmsStorageBase.cpp
+END
+dmsIndexBuilderImpl.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/37249/trunk/SequoiaDB/engine/dms/dmsIndexBuilderImpl.cpp
+END
+dmsStorageLob.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/37164/trunk/SequoiaDB/engine/dms/dmsStorageLob.cpp
+END
+dmsStorageUnit.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/40011/trunk/SequoiaDB/engine/dms/dmsStorageUnit.cpp
+END
+dmsIndexBuilder.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/40008/trunk/SequoiaDB/engine/dms/dmsIndexBuilder.cpp
+END
+dmsCachedPlanUnit.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/dms/dmsCachedPlanUnit.cpp
+END
+dmsCB.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/sequoiadb/!svn/ver/39920/trunk/SequoiaDB/engine/dms/dmsCB.cpp
+END
+dmsTmpBlkUnit.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/dms/dmsTmpBlkUnit.cpp
+END
+dmsStatSUMgr.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/36789/trunk/SequoiaDB/engine/dms/dmsStatSUMgr.cpp
+END

@@ -1,0 +1,94 @@
+10
+
+dir
+40212
+http://192.168.20.11/sequoiadb/trunk/java/jdk_linux64/lib/missioncontrol/features
+http://192.168.20.11/sequoiadb
+
+
+
+2015-10-22T07:00:43.563672Z
+20647
+linyoubin
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+6121f079-4a18-41d3-8c30-8870a322f2c2
+
+org.eclipse.emf.common_2.10.1.v20140901-1043
+dir
+
+com.jrockit.mc.feature.rcp_5.5.0.165303
+dir
+
+com.jrockit.mc.feature.rcp.zh_CN_5.5.0.165303
+dir
+
+org.eclipse.ecf.filetransfer.ssl.feature_1.0.0.v20140827-1444
+dir
+
+org.eclipse.emf.ecore_2.10.1.v20140901-1043
+dir
+
+org.eclipse.ecf.filetransfer.httpclient4.ssl.feature_1.0.0.v20140827-1444
+dir
+
+com.jrockit.mc.feature.core_5.5.0.165303
+dir
+
+org.eclipse.equinox.p2.rcp.feature_1.2.0.v20140523-0116
+dir
+
+org.eclipse.rcp_4.4.0.v20141007-2301
+dir
+
+org.eclipse.help_2.0.102.v20141007-2301
+dir
+
+org.eclipse.ecf.core.ssl.feature_1.0.0.v20140827-1444
+dir
+
+org.eclipse.ecf.core.feature_1.1.0.v20140827-1444
+dir
+
+org.eclipse.equinox.p2.core.feature_1.3.0.v20140523-0116
+dir
+
+org.eclipse.babel.nls_eclipse_zh_4.4.0.v20140623020002
+dir
+
+org.eclipse.e4.rcp_1.3.100.v20141007-2033
+dir
+
+com.jrockit.mc.feature.console_5.5.0.165303
+dir
+
+org.eclipse.ecf.filetransfer.feature_3.9.0.v20140827-1444
+dir
+
+com.jrockit.mc.feature.flightrecorder_5.5.0.165303
+dir
+
+org.eclipse.ecf.filetransfer.httpclient4.feature_3.9.1.v20140827-1444
+dir
+
+org.eclipse.babel.nls_eclipse_ja_4.4.0.v20140623020002
+dir
+
+com.jrockit.mc.rcp.product_5.5.0.165303
+dir
+
+com.jrockit.mc.feature.rcp.ja_5.5.0.165303
+dir
+

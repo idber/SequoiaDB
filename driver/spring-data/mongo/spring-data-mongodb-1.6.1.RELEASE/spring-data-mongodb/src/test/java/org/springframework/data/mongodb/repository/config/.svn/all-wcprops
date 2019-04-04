@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 175
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository/config
+END
+MongoRepositoriesRegistrarIntegrationTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 223
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository/config/MongoRepositoriesRegistrarIntegrationTests.java
+END
+MongoNamespaceIntegrationTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 211
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository/config/MongoNamespaceIntegrationTests.java
+END
+MongoRepositoryConfigurationExtensionUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 227
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository/config/MongoRepositoryConfigurationExtensionUnitTests.java
+END

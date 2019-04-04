@@ -1,0 +1,107 @@
+K 25
+svn:wc:ra_dav:version-url
+V 106
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/dao/sequoiadb
+END
+SdbDataLob.java
+K 25
+svn:wc:ra_dav:version-url
+V 122
+/sequoiadb/!svn/ver/38627/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/dao/sequoiadb/SdbDataLob.java
+END
+SequoiadbUserDao.java
+K 25
+svn:wc:ra_dav:version-url
+V 128
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/dao/sequoiadb/SequoiadbUserDao.java
+END
+SdbInitSystem.java
+K 25
+svn:wc:ra_dav:version-url
+V 125
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/dao/sequoiadb/SdbInitSystem.java
+END
+SdbQueryDbCursor.java
+K 25
+svn:wc:ra_dav:version-url
+V 128
+/sequoiadb/!svn/ver/37577/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/dao/sequoiadb/SdbQueryDbCursor.java
+END
+SdbDaoMgr.java
+K 25
+svn:wc:ra_dav:version-url
+V 121
+/sequoiadb/!svn/ver/37343/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/dao/sequoiadb/SdbDaoMgr.java
+END
+SequoiadbRegionDao.java
+K 25
+svn:wc:ra_dav:version-url
+V 130
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/dao/sequoiadb/SequoiadbRegionDao.java
+END
+SequoiadbMetaDao.java
+K 25
+svn:wc:ra_dav:version-url
+V 128
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/dao/sequoiadb/SequoiadbMetaDao.java
+END
+SdbConnectionDao.java
+K 25
+svn:wc:ra_dav:version-url
+V 128
+/sequoiadb/!svn/ver/37343/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/dao/sequoiadb/SdbConnectionDao.java
+END
+SdbTransaction.java
+K 25
+svn:wc:ra_dav:version-url
+V 126
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/dao/sequoiadb/SdbTransaction.java
+END
+SequoiadbRegionSpaceDao.java
+K 25
+svn:wc:ra_dav:version-url
+V 135
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/dao/sequoiadb/SequoiadbRegionSpaceDao.java
+END
+SdbDataSourceWrapper.java
+K 25
+svn:wc:ra_dav:version-url
+V 132
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/dao/sequoiadb/SdbDataSourceWrapper.java
+END
+SdbBaseOperation.java
+K 25
+svn:wc:ra_dav:version-url
+V 128
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/dao/sequoiadb/SdbBaseOperation.java
+END
+SequoiadbDataDao.java
+K 25
+svn:wc:ra_dav:version-url
+V 128
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/dao/sequoiadb/SequoiadbDataDao.java
+END
+SdbTask.java
+K 25
+svn:wc:ra_dav:version-url
+V 119
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/dao/sequoiadb/SdbTask.java
+END
+SdbDirDao.java
+K 25
+svn:wc:ra_dav:version-url
+V 121
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/dao/sequoiadb/SdbDirDao.java
+END
+SdbIDGenerator.java
+K 25
+svn:wc:ra_dav:version-url
+V 126
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/dao/sequoiadb/SdbIDGenerator.java
+END
+SequoiadbBucketDao.java
+K 25
+svn:wc:ra_dav:version-url
+V 130
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/dao/sequoiadb/SequoiadbBucketDao.java
+END

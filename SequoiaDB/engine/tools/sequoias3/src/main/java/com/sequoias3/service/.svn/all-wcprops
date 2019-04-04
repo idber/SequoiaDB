@@ -1,0 +1,41 @@
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/service
+END
+UserService.java
+K 25
+svn:wc:ra_dav:version-url
+V 117
+/sequoiadb/!svn/ver/37343/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/service/UserService.java
+END
+BucketVersioningService.java
+K 25
+svn:wc:ra_dav:version-url
+V 129
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/service/BucketVersioningService.java
+END
+RegionService.java
+K 25
+svn:wc:ra_dav:version-url
+V 119
+/sequoiadb/!svn/ver/38971/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/service/RegionService.java
+END
+ObjectService.java
+K 25
+svn:wc:ra_dav:version-url
+V 119
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/service/ObjectService.java
+END
+BucketDelimiterService.java
+K 25
+svn:wc:ra_dav:version-url
+V 128
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/service/BucketDelimiterService.java
+END
+BucketService.java
+K 25
+svn:wc:ra_dav:version-url
+V 119
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/service/BucketService.java
+END

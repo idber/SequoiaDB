@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/sequoiadb/!svn/ver/28352/trunk/misc/ci/src/test/exec_testcase/lib
+END
+detect_cluster.js
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/sequoiadb/!svn/ver/28308/trunk/misc/ci/src/test/exec_testcase/lib/detect_cluster.js
+END
+func.js
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/sequoiadb/!svn/ver/28352/trunk/misc/ci/src/test/exec_testcase/lib/func.js
+END

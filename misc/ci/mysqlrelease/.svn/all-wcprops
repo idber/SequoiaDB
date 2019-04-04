@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/sequoiadb/!svn/ver/36830/trunk/misc/ci/mysqlrelease
+END
+sequoiamysql_server.xml
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/36830/trunk/misc/ci/mysqlrelease/sequoiamysql_server.xml
+END
+sequoiamysql_zh.lng
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/36830/trunk/misc/ci/mysqlrelease/sequoiamysql_zh.lng
+END
+sequoiamysql_en.lng
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/35709/trunk/misc/ci/mysqlrelease/sequoiamysql_en.lng
+END

@@ -1,0 +1,107 @@
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/38357/trunk/driver/java/src/test/java/com/sequoiadb/base
+END
+TestSnapshot.java
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/sequoiadb/!svn/ver/33906/trunk/driver/java/src/test/java/com/sequoiadb/base/TestSnapshot.java
+END
+TestSQL.java
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/sequoiadb/!svn/ver/38357/trunk/driver/java/src/test/java/com/sequoiadb/base/TestSQL.java
+END
+TestConnection.java
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/sequoiadb/!svn/ver/38357/trunk/driver/java/src/test/java/com/sequoiadb/base/TestConnection.java
+END
+TestMainCollection.java
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/sequoiadb/!svn/ver/32983/trunk/driver/java/src/test/java/com/sequoiadb/base/TestMainCollection.java
+END
+TestBSON.java
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/sequoiadb/!svn/ver/36633/trunk/driver/java/src/test/java/com/sequoiadb/base/TestBSON.java
+END
+TestDelete.java
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/base/TestDelete.java
+END
+TestInsert.java
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/sequoiadb/!svn/ver/37662/trunk/driver/java/src/test/java/com/sequoiadb/base/TestInsert.java
+END
+TestIndex.java
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/base/TestIndex.java
+END
+TestCollectionSpace.java
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/sequoiadb/!svn/ver/35388/trunk/driver/java/src/test/java/com/sequoiadb/base/TestCollectionSpace.java
+END
+TestGetQueryMeta.java
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/base/TestGetQueryMeta.java
+END
+TestLob.java
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/sequoiadb/!svn/ver/33089/trunk/driver/java/src/test/java/com/sequoiadb/base/TestLob.java
+END
+TestUser.java
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/sequoiadb/!svn/ver/32983/trunk/driver/java/src/test/java/com/sequoiadb/base/TestUser.java
+END
+TestUpdate.java
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/sequoiadb/!svn/ver/27970/trunk/driver/java/src/test/java/com/sequoiadb/base/TestUpdate.java
+END
+TestAggregate.java
+K 25
+svn:wc:ra_dav:version-url
+V 95
+/sequoiadb/!svn/ver/32563/trunk/driver/java/src/test/java/com/sequoiadb/base/TestAggregate.java
+END
+TestLobConcurrentWrite.java
+K 25
+svn:wc:ra_dav:version-url
+V 104
+/sequoiadb/!svn/ver/32563/trunk/driver/java/src/test/java/com/sequoiadb/base/TestLobConcurrentWrite.java
+END
+TestCollection.java
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/sequoiadb/!svn/ver/36633/trunk/driver/java/src/test/java/com/sequoiadb/base/TestCollection.java
+END
+PerfTimer.java
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/sequoiadb/!svn/ver/31744/trunk/driver/java/src/test/java/com/sequoiadb/base/PerfTimer.java
+END

@@ -1,0 +1,125 @@
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/model
+END
+GetServiceResult.java
+K 25
+svn:wc:ra_dav:version-url
+V 120
+/sequoiadb/!svn/ver/37343/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/model/GetServiceResult.java
+END
+ObjectsFilter.java
+K 25
+svn:wc:ra_dav:version-url
+V 117
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/model/ObjectsFilter.java
+END
+RawVersion.java
+K 25
+svn:wc:ra_dav:version-url
+V 114
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/model/RawVersion.java
+END
+ListRegionsResult.java
+K 25
+svn:wc:ra_dav:version-url
+V 121
+/sequoiadb/!svn/ver/38971/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/model/ListRegionsResult.java
+END
+ListVersionsResult.java
+K 25
+svn:wc:ra_dav:version-url
+V 122
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/model/ListVersionsResult.java
+END
+DelimiterConfiguration.java
+K 25
+svn:wc:ra_dav:version-url
+V 126
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/model/DelimiterConfiguration.java
+END
+CommonPrefix.java
+K 25
+svn:wc:ra_dav:version-url
+V 116
+/sequoiadb/!svn/ver/37343/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/model/CommonPrefix.java
+END
+VersioningConfigurationNull.java
+K 25
+svn:wc:ra_dav:version-url
+V 131
+/sequoiadb/!svn/ver/37343/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/model/VersioningConfigurationNull.java
+END
+Content.java
+K 25
+svn:wc:ra_dav:version-url
+V 111
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/model/Content.java
+END
+VersioningConfiguration.java
+K 25
+svn:wc:ra_dav:version-url
+V 127
+/sequoiadb/!svn/ver/37343/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/model/VersioningConfiguration.java
+END
+LocationConstraint.java
+K 25
+svn:wc:ra_dav:version-url
+V 122
+/sequoiadb/!svn/ver/38971/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/model/LocationConstraint.java
+END
+VersionsFilter.java
+K 25
+svn:wc:ra_dav:version-url
+V 118
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/model/VersionsFilter.java
+END
+GetResult.java
+K 25
+svn:wc:ra_dav:version-url
+V 113
+/sequoiadb/!svn/ver/37581/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/model/GetResult.java
+END
+GetRegionResult.java
+K 25
+svn:wc:ra_dav:version-url
+V 119
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/model/GetRegionResult.java
+END
+ListObjectsResult.java
+K 25
+svn:wc:ra_dav:version-url
+V 121
+/sequoiadb/!svn/ver/37343/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/model/ListObjectsResult.java
+END
+Version.java
+K 25
+svn:wc:ra_dav:version-url
+V 111
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/model/Version.java
+END
+CreateBucketConfiguration.java
+K 25
+svn:wc:ra_dav:version-url
+V 129
+/sequoiadb/!svn/ver/37343/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/model/CreateBucketConfiguration.java
+END
+PutDeleteResult.java
+K 25
+svn:wc:ra_dav:version-url
+V 119
+/sequoiadb/!svn/ver/37577/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/model/PutDeleteResult.java
+END
+Owner.java
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/sequoiadb/!svn/ver/40202/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/model/Owner.java
+END
+AccessKeys.java
+K 25
+svn:wc:ra_dav:version-url
+V 114
+/sequoiadb/!svn/ver/37343/trunk/SequoiaDB/engine/tools/sequoias3/src/main/java/com/sequoias3/model/AccessKeys.java
+END

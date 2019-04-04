@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/turns
+END
+debug_turn.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/turns/debug_turn.hpp
+END
+compare_turns.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/turns/compare_turns.hpp
+END
+remove_duplicate_turns.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 114
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/turns/remove_duplicate_turns.hpp
+END
+filter_continue_turns.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 113
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/turns/filter_continue_turns.hpp
+END
+print_turns.hpp
+K 25
+svn:wc:ra_dav:version-url
+V 103
+/sequoiadb/!svn/ver/22210/trunk/thirdparty/boost/boost/geometry/algorithms/detail/turns/print_turns.hpp
+END

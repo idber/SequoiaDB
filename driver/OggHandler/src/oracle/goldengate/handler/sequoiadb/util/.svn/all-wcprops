@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/sequoiadb/!svn/ver/31865/trunk/driver/OggHandler/src/oracle/goldengate/handler/sequoiadb/util
+END
+DeliveryException.java
+K 25
+svn:wc:ra_dav:version-url
+V 117
+/sequoiadb/!svn/ver/31865/trunk/driver/OggHandler/src/oracle/goldengate/handler/sequoiadb/util/DeliveryException.java
+END
+DBOperationFactory.java
+K 25
+svn:wc:ra_dav:version-url
+V 118
+/sequoiadb/!svn/ver/31865/trunk/driver/OggHandler/src/oracle/goldengate/handler/sequoiadb/util/DBOperationFactory.java
+END

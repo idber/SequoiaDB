@@ -1,0 +1,43 @@
+10
+
+dir
+40212
+http://192.168.20.11/sequoiadb/trunk/misc/ci
+http://192.168.20.11/sequoiadb
+
+
+
+2019-04-03T08:55:30.172954Z
+40206
+chensiqin
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+6121f079-4a18-41d3-8c30-8870a322f2c2
+
+doc
+dir
+
+lib
+dir
+
+mysqlrelease
+dir
+
+src
+dir
+
+mkrelease
+dir
+

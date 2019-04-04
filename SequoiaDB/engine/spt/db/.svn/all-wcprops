@@ -1,0 +1,143 @@
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/sequoiadb/!svn/ver/40193/trunk/SequoiaDB/engine/spt/db
+END
+sptDBBinData.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/sequoiadb/!svn/ver/35928/trunk/SequoiaDB/engine/spt/db/sptDBBinData.cpp
+END
+sptDBOptionBase.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/38865/trunk/SequoiaDB/engine/spt/db/sptDBOptionBase.cpp
+END
+sptDBTimestamp.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/spt/db/sptDBTimestamp.cpp
+END
+sptDBQuery.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/38875/trunk/SequoiaDB/engine/spt/db/sptDBQuery.cpp
+END
+sptDBCS.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/38875/trunk/SequoiaDB/engine/spt/db/sptDBCS.cpp
+END
+sptDBNumberDecimal.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/spt/db/sptDBNumberDecimal.cpp
+END
+sptDBDomain.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/38875/trunk/SequoiaDB/engine/spt/db/sptDBDomain.cpp
+END
+sptDBSdb.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/39069/trunk/SequoiaDB/engine/spt/db/sptDBSdb.cpp
+END
+sptDBRG.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/38875/trunk/SequoiaDB/engine/spt/db/sptDBRG.cpp
+END
+sptDBNumberLong.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/sequoiadb/!svn/ver/38799/trunk/SequoiaDB/engine/spt/db/sptDBNumberLong.cpp
+END
+sptDBRegex.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/38620/trunk/SequoiaDB/engine/spt/db/sptDBRegex.cpp
+END
+sptDBOID.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/sequoiadb/!svn/ver/38620/trunk/SequoiaDB/engine/spt/db/sptDBOID.cpp
+END
+sptDBCursor.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/38875/trunk/SequoiaDB/engine/spt/db/sptDBCursor.cpp
+END
+sptDBDate.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/35929/trunk/SequoiaDB/engine/spt/db/sptDBDate.cpp
+END
+sptDBSecureSdb.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/sequoiadb/!svn/ver/38875/trunk/SequoiaDB/engine/spt/db/sptDBSecureSdb.cpp
+END
+sptDBNode.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/sequoiadb/!svn/ver/38875/trunk/SequoiaDB/engine/spt/db/sptDBNode.cpp
+END
+sptDBDC.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/38875/trunk/SequoiaDB/engine/spt/db/sptDBDC.cpp
+END
+sptDBSnapshotOption.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/sequoiadb/!svn/ver/38850/trunk/SequoiaDB/engine/spt/db/sptDBSnapshotOption.cpp
+END
+sptDBCount.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/sequoiadb/!svn/ver/38875/trunk/SequoiaDB/engine/spt/db/sptDBCount.cpp
+END
+sptDBMinKey.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/spt/db/sptDBMinKey.cpp
+END
+sptDBQueryOption.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/sequoiadb/!svn/ver/38865/trunk/SequoiaDB/engine/spt/db/sptDBQueryOption.cpp
+END
+sptDBCL.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/sequoiadb/!svn/ver/40193/trunk/SequoiaDB/engine/spt/db/sptDBCL.cpp
+END
+sptDBMaxKey.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/sequoiadb/!svn/ver/35761/trunk/SequoiaDB/engine/spt/db/sptDBMaxKey.cpp
+END

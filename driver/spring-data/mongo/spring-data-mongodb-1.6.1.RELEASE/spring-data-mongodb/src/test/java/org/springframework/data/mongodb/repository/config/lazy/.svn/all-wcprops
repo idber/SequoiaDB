@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 180
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository/config/lazy
+END
+AllowNestedMongoRepositoriesRepositoryConfigTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 235
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository/config/lazy/AllowNestedMongoRepositoriesRepositoryConfigTests.java
+END
+ClassWithNestedRepository.java
+K 25
+svn:wc:ra_dav:version-url
+V 211
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository/config/lazy/ClassWithNestedRepository.java
+END
+NestedMongoRepositoriesJavaConfigTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 224
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/mongo/spring-data-mongodb-1.6.1.RELEASE/spring-data-mongodb/src/test/java/org/springframework/data/mongodb/repository/config/lazy/NestedMongoRepositoriesJavaConfigTests.java
+END

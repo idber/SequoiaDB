@@ -1,0 +1,59 @@
+K 25
+svn:wc:ra_dav:version-url
+V 178
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/index
+END
+PathUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 197
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/index/PathUnitTests.java
+END
+TextIndexTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 198
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/index/TextIndexTests.java
+END
+SequoiadbPersistentEntityIndexCreatorUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 230
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/index/SequoiadbPersistentEntityIndexCreatorUnitTests.java
+END
+IndexInfoUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 202
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/index/IndexInfoUnitTests.java
+END
+SequoiadbPersistentEntityIndexResolverUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 231
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/index/SequoiadbPersistentEntityIndexResolverUnitTests.java
+END
+SequoiadbPersistentEntityIndexCreatorIntegrationTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 237
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/index/SequoiadbPersistentEntityIndexCreatorIntegrationTests.java
+END
+IndexingIntegrationTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 208
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/index/IndexingIntegrationTests.java
+END
+IndexFieldUnitTests.java
+K 25
+svn:wc:ra_dav:version-url
+V 203
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/index/IndexFieldUnitTests.java
+END
+SampleEntity.java
+K 25
+svn:wc:ra_dav:version-url
+V 196
+/sequoiadb/!svn/ver/33142/trunk/driver/spring-data/sequoiadb/spring-data-sequoiadb-1.6.1.RELEASE/spring-data-sequoiadb/src/test/java/org/springframework/data/sequoiadb/core/index/SampleEntity.java
+END
