@@ -274,6 +274,9 @@ key: {"OM_HOST_FIELD_IP":1}, unique: true, enforced: true }"
    #define OM_TASKINFO_FIELD_AUTH_USER          "AuthUser"
    #define OM_TASKINFO_FIELD_AUTH_PASSWD        "AuthPasswd"
 
+   #define OM_CS_DEPLOY_CL_TASKINFOIDX1      "{name:\"SYSDEPLOY_TASKINFO_IDX1\",key: {"\
+OM_TASKINFO_FIELD_TASKID":1}, unique: true, enforced: true } "
+
    /******* SYSBUSINESSAUTH *******/
    #define OM_CS_DEPLOY_CL_BUSINESS_AUTH        OM_CS_DEPLOY".SYSBUSINESSAUTH"
    #define OM_AUTH_FIELD_BUSINESS_NAME          OM_PUBLIC_FIELD_BUSINESS_NAME
@@ -303,6 +306,14 @@ _IDX1\",key: {"OM_RELATIONSHIP_FIELD_NAME":1}, unique: true, enforced: true }"
    #define OM_CS_DEPLOY_CL_PLUGINSIDX2          "{name:\"SYSDEPLOY_PLUGINS_IDX2\
 \",key: {"OM_PLUGINS_FIELD_BUSINESSTYPE":1}, unique: true, enforced: true }"
 
+   /********** SYSSTRATEGY **********/
+   #define OM_CS_STRATEGY                       "SYSSTRATEGY"
+
+   /********** SYSBUSINESSTASKPROPERTY **********/
+   #define OM_CS_STRATEGY_CL_BUSINESS_TASK_PRO  OM_CS_STRATEGY".SYSBUSINESSTASKPROPERTY"
+   #define OM_STRATEGY_FIELD_TASKID             FIELD_NAME_TASKID
+   #define OM_STRATEGY_BUSINESSTASKPROIDX1      "{name:\"OM_STRATEGY_BUSINESSTASKPROIDX1\",\
+key: {"OM_STRATEGY_FIELD_TASKID":1} }"
 
 
    #define OM_PATH_WEB                       "web"
@@ -387,14 +398,6 @@ _IDX1\",key: {"OM_RELATIONSHIP_FIELD_NAME":1}, unique: true, enforced: true }"
    #define OM_BUSINESS_SEQUOIASQL_OLAP       "sequoiasql-olap"
    #define OM_BUSINESS_SEQUOIASQL_OLTP       "sequoiasql-oltp"
 
-
-
-   #define OM_CS_STRATEGY                          "SYSSTRATEGY"
-   #define OM_CS_STRATEGY_CL_BUSINESS_TASK_PRO     OM_CS_STRATEGY".SYSBUSINESSTASKPROPERTY"
-   #define OM_STRATEGY_FIELD_TASKID                FIELD_NAME_TASKID
-   #define OM_CS_STRATEGY_CL_BUSINESSTASKPROIDX1   "{name:\"OM_CS_STRATEGY_CL_BUSINESSTASKPROIDX1\",key: {"\
-                                                   OM_STRATEGY_FIELD_TASKID":1} } "
-
    /*
       discover businesss respone
    */
@@ -407,9 +410,6 @@ _IDX1\",key: {"OM_RELATIONSHIP_FIELD_NAME":1}, unique: true, enforced: true }"
       }
    */
    #define OM_TASKINFO_FIELD_FLOW            "Flow"
-
-   #define OM_CS_DEPLOY_CL_TASKINFOIDX1      "{name:\"SYSDEPLOY_TASKINFO_IDX1\",key: {"\
-                                             OM_TASKINFO_FIELD_TASKID":1}, unique: true, enforced: true } "
 
    enum omTaskType
    {
@@ -560,6 +560,7 @@ _IDX1\",key: {"OM_RELATIONSHIP_FIELD_NAME":1}, unique: true, enforced: true }"
    #define  OM_QUERY_BUSINESS_AUTH_REQ       "query business authority"
    #define  OM_DISCOVER_BUSINESS_REQ         "discover business"
    #define  OM_UNDISCOVER_BUSINESS_REQ       "undiscover business"
+
    #define  OM_TASK_STRATEGY_LIST_REQ        "list task strategy"
    #define  OM_TASK_STRATEGY_ADD_REQ         "add task strategy"
    #define  OM_TASK_STRATEGY_UPDATE_NICE_REQ "update task strategy nice"
@@ -600,14 +601,15 @@ _IDX1\",key: {"OM_RELATIONSHIP_FIELD_NAME":1}, unique: true, enforced: true }"
    #define  OM_REST_FIELD_LOGIN_PASSWD       "Passwd"
    #define  OM_REST_FIELD_TIMESTAMP          "Timestamp"
    #define  OM_REST_FIELD_NEW_PASSWD         "NewPasswd"
+
    #define  OM_REST_FIELD_TASK_ID            "TaskID"
    #define  OM_REST_FIELD_RULE_ID            "RuleID"
    #define  OM_REST_FIELD_USER_NAME          "UserName"
    #define  OM_REST_FIELD_TASK_NAME          "TaskName"
    #define  OM_REST_FIELD_IPS                "IPs"
    #define  OM_REST_FIELD_NICE               "Nice"
-   #define  OM_REST_FIELD_ADDRESS            "Address"
 
+   #define  OM_REST_FIELD_ADDRESS            "Address"
    #define  OM_BSON_FIELD_HOST_INFO          OM_REST_FIELD_HOST_INFO
    #define  OM_BSON_FIELD_HOST_IP            OM_HOST_FIELD_IP
    #define  OM_BSON_FIELD_HOST_NAME          OM_HOST_FIELD_NAME

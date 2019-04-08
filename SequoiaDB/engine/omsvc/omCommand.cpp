@@ -11013,7 +11013,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       const CHAR *pValTmp = NULL ;
-      std::string errorDetail ;
+      string errorDetail ;
       omTaskStrategyInfo inputInfo ;
       SDB_ASSERT( _restAdaptor != NULL && _restSession != NULL,
                   "_restAdaptor and _restSession can't be null!" ) ;
@@ -11022,55 +11022,57 @@ namespace engine
                               &pValTmp ) ;
       if ( NULL == pValTmp )
       {
-          errorDetail = std::string("Failed to get the field("
-                                    OM_REST_FIELD_TASK_NAME")") ;
+          errorDetail = string( "Failed to get the field("
+                                OM_REST_FIELD_TASK_NAME")" ) ;
           rc = SDB_INVALIDARG ;
           goto error ;
       }
-      inputInfo.taskName = pValTmp ;
+      inputInfo.setTaskName( pValTmp ) ;
 
       _restAdaptor->getQuery( _restSession, OM_REST_FIELD_NICE,
                               &pValTmp ) ;
       if ( NULL == pValTmp )
       {
-          errorDetail = std::string("Failed to get the field("
-                                    OM_REST_FIELD_NICE")") ;
+          errorDetail = string( "Failed to get the field("
+                                OM_REST_FIELD_NICE")" ) ;
           rc = SDB_INVALIDARG ;
           goto error ;
       }
-      inputInfo.nice = ossAtoi( pValTmp ) ;
+      inputInfo.setNice( ossAtoi( pValTmp ) ) ;
 
       _restAdaptor->getQuery( _restSession, OM_REST_FIELD_RULE_ID,
                               &pValTmp ) ;
       if ( pValTmp != NULL )
       {
-         inputInfo._id = ossAtoll( pValTmp ) ;
+         inputInfo.setID( ossAtoll( pValTmp ) ) ;
       }
 
       _restAdaptor->getQuery( _restSession, OM_REST_FIELD_USER_NAME,
                               &pValTmp ) ;
       if ( pValTmp != NULL )
       {
-         inputInfo.userName = pValTmp ;
+         inputInfo.setUserName( pValTmp ) ;
       }
 
       _restAdaptor->getQuery( _restSession, OM_REST_FIELD_IPS,
                               &pValTmp ) ;
       if ( pValTmp != NULL )
       {
-         rc = _parseIPsField( pValTmp, inputInfo.ips ) ;
+         set< string > ipSet ;
+         rc = _parseIPsField( pValTmp, ipSet ) ;
          if ( rc != SDB_OK )
          {
-            errorDetail = std::string( "Failed to parse the field("
-                                       OM_REST_FIELD_IPS")" ) ;
+            errorDetail = string( "Failed to parse the field("
+                                  OM_REST_FIELD_IPS")" ) ;
             goto error ;
          }
+         inputInfo.setIPSet( ipSet ) ;
       }
 
-      rc = omStrategyMgrInst.insertTask( inputInfo, _cb ) ;
+      rc = omGetStrategyMgr()->insertTask( inputInfo, _cb ) ;
       if ( rc != SDB_OK )
       {
-         errorDetail = std::string( "Failed to add the strategy");
+         errorDetail = string( "Failed to add the strategy" );
          goto error ;
       }
 
@@ -11080,8 +11082,7 @@ namespace engine
       return rc ;
    error:
       _sendErrorRes2Web( rc, errorDetail ) ;
-      PD_LOG( PDERROR, "%s, rc=%d",
-              errorDetail.c_str(), rc ) ;
+      PD_LOG( PDERROR, "%s, rc: %d", errorDetail.c_str(), rc ) ;
       goto done ;
    }
 
@@ -11100,20 +11101,21 @@ namespace engine
       INT32 rc = SDB_OK ;
       SINT64 contextID = - 1 ;
       const SINT32 maxNumToReturn = 1000 ;
-      std::string errorDetail, resultObjs ;
+      string errorDetail, resultObjs ;
       rtnContextBuf buffObj ;
       BSONObj objTmp ;
 
-      rc = omStrategyMgrInst.queryTasks( contextID, _cb ) ;
+      rc = omGetStrategyMgr()->queryTasks( contextID, _cb ) ;
       if ( rc != SDB_OK )
       {
-         errorDetail = std::string( "Failed to list task-strategy" ) ;
+         errorDetail = string( "Failed to list task-strategy" ) ;
          goto error ;
       }
 
       while ( TRUE )
       {
-         rc = rtnGetMore( contextID, maxNumToReturn, buffObj, _cb, _pRTNCB ) ;
+         rc = rtnGetMore( contextID, maxNumToReturn, buffObj,
+                          _cb, _pRTNCB ) ;
          if ( rc != SDB_OK )
          {
             if ( SDB_DMS_EOC == rc )
@@ -11123,11 +11125,12 @@ namespace engine
             }
             else
             {
-               errorDetail = std::string("Getmore failed") ;
+               errorDetail = string( "Getmore failed" ) ;
                goto error ;
             }
          }
-         while ( TRUE )
+
+         while( TRUE )
          {
             rc = buffObj.nextObj( objTmp ) ;
             if ( rc != SDB_OK )
@@ -11139,7 +11142,7 @@ namespace engine
                }
                else
                {
-                  errorDetail = std::string("Failed to parse record") ;
+                  errorDetail = string( "Failed to parse record" ) ;
                   goto error ;
                }
             }
@@ -11147,6 +11150,7 @@ namespace engine
          }
       }
       _sendErrorRes2Web( SDB_OK, resultObjs ) ;
+
    done:
       if ( rc != SDB_DMS_EOC && contextID != -1 )
       {
@@ -11155,8 +11159,7 @@ namespace engine
       return rc ;
    error:
       _sendErrorRes2Web( rc, errorDetail ) ;
-      PD_LOG( PDERROR, "%s, rc=%d",
-              errorDetail.c_str(), rc ) ;
+      PD_LOG( PDERROR, "%s, rc: %d", errorDetail.c_str(), rc ) ;
       goto done ;
    }
 
@@ -11176,7 +11179,7 @@ namespace engine
       INT32 nice = 0 ;
       INT64 ruleId = 0 ;
       const CHAR *pValTmp = NULL ;
-      std::string errorDetail ;
+      string errorDetail ;
       SDB_ASSERT( _restAdaptor != NULL && _restSession != NULL,
                   "_restAdaptor and _restSession can't be null!" ) ;
 
@@ -11184,8 +11187,8 @@ namespace engine
                               &pValTmp ) ;
       if ( NULL == pValTmp )
       {
-          errorDetail = std::string("Failed to get the field("
-                                    OM_REST_FIELD_NICE")") ;
+          errorDetail = string( "Failed to get the field("
+                                 OM_REST_FIELD_NICE")" ) ;
           rc = SDB_INVALIDARG ;
           goto error ;
       }
@@ -11195,26 +11198,26 @@ namespace engine
                               &pValTmp ) ;
       if ( NULL == pValTmp )
       {
-          errorDetail = std::string("Failed to get the field("
-                                    OM_REST_FIELD_RULE_ID")") ;
+          errorDetail = string( "Failed to get the field("
+                                 OM_REST_FIELD_RULE_ID")" ) ;
           rc = SDB_INVALIDARG ;
           goto error ;
       }
       ruleId = ossAtoll( pValTmp ) ;
 
-      rc = omStrategyMgrInst.updateTaskNiceById( nice, ruleId, _cb ) ;
+      rc = omGetStrategyMgr()->updateTaskNiceById( nice, ruleId, _cb ) ;
       if ( rc != SDB_OK )
       {
-         errorDetail = std::string( "Failed to update nice");
+         errorDetail = string( "Failed to update nice" ) ;
          goto error ;
       }
       _sendOKRes2Web() ;
+
    done:
       return rc ;
    error:
       _sendErrorRes2Web( rc, errorDetail ) ;
-      PD_LOG( PDERROR, "%s, rc=%d",
-              errorDetail.c_str(), rc ) ;
+      PD_LOG( PDERROR, "%s, rc: %d", errorDetail.c_str(), rc ) ;
       goto done ;
    }
 
@@ -11232,7 +11235,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       INT64 ruleId = 0 ;
-      std::set<std::string> IPs ;
+      set< string > IPs ;
       const CHAR *pValTmp = NULL ;
       std::string errorDetail ;
       SDB_ASSERT( _restAdaptor != NULL && _restSession != NULL,
@@ -11242,8 +11245,8 @@ namespace engine
                               &pValTmp ) ;
       if ( NULL == pValTmp )
       {
-          errorDetail = std::string("Failed to get the field("
-                                    OM_REST_FIELD_RULE_ID")") ;
+          errorDetail = string( "Failed to get the field("
+                                 OM_REST_FIELD_RULE_ID")" ) ;
           rc = SDB_INVALIDARG ;
           goto error ;
       }
@@ -11253,32 +11256,32 @@ namespace engine
                               &pValTmp ) ;
       if ( NULL == pValTmp )
       {
-          errorDetail = std::string("Failed to get the field("
-                                    OM_REST_FIELD_IPS")") ;
+          errorDetail = string( "Failed to get the field("
+                                 OM_REST_FIELD_IPS")" ) ;
           rc = SDB_INVALIDARG ;
           goto error ;
       }
       rc = _parseIPsField( pValTmp, IPs ) ;
       if ( rc != SDB_OK )
       {
-         errorDetail = std::string("Failed to parse the field("
-                                    OM_REST_FIELD_IPS")") ;
+         errorDetail = string( "Failed to parse the field("
+                                OM_REST_FIELD_IPS")" ) ;
          goto error ;
       }
 
-      rc = omStrategyMgrInst.addTaskIpsById( IPs, ruleId, _cb ) ;
+      rc = omGetStrategyMgr()->addTaskIpsById( IPs, ruleId, _cb ) ;
       if ( rc != SDB_OK )
       {
-         errorDetail = std::string( "Failed to add ip");
+         errorDetail = string( "Failed to add ip" ) ;
          goto error ;
       }
       _sendOKRes2Web() ;
+
    done:
       return rc ;
    error:
       _sendErrorRes2Web( rc, errorDetail ) ;
-      PD_LOG( PDERROR, "%s, rc=%d",
-              errorDetail.c_str(), rc ) ;
+      PD_LOG( PDERROR, "%s, rc: %d", errorDetail.c_str(), rc ) ;
       goto done ;
    }
 
@@ -11296,9 +11299,9 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       INT64 ruleId = 0 ;
-      std::set<std::string> IPs ;
+      set< string > IPs ;
       const CHAR *pValTmp = NULL ;
-      std::string errorDetail ;
+      string errorDetail ;
       SDB_ASSERT( _restAdaptor != NULL && _restSession != NULL,
                   "_restAdaptor and _restSession can't be null!" ) ;
 
@@ -11306,8 +11309,8 @@ namespace engine
                               &pValTmp ) ;
       if ( NULL == pValTmp )
       {
-          errorDetail = std::string("Failed to get the field("
-                                    OM_REST_FIELD_RULE_ID")") ;
+          errorDetail = string( "Failed to get the field("
+                                 OM_REST_FIELD_RULE_ID")" ) ;
           rc = SDB_INVALIDARG ;
           goto error ;
       }
@@ -11317,32 +11320,32 @@ namespace engine
                               &pValTmp ) ;
       if ( NULL == pValTmp )
       {
-          errorDetail = std::string("Failed to get the field("
-                                    OM_REST_FIELD_IPS")") ;
+          errorDetail = string( "Failed to get the field("
+                                OM_REST_FIELD_IPS")" ) ;
           rc = SDB_INVALIDARG ;
           goto error ;
       }
       rc = _parseIPsField( pValTmp, IPs ) ;
       if ( rc != SDB_OK )
       {
-         errorDetail = std::string("Failed to parse the field("
-                                    OM_REST_FIELD_IPS")") ;
+         errorDetail = string( "Failed to parse the field("
+                               OM_REST_FIELD_IPS")" ) ;
          goto error ;
       }
 
-      rc = omStrategyMgrInst.delTaskIpsById( IPs, ruleId, _cb ) ;
+      rc = omGetStrategyMgr()->delTaskIpsById( IPs, ruleId, _cb ) ;
       if ( rc != SDB_OK )
       {
-         errorDetail = std::string( "Failed to delete ip");
+         errorDetail = string( "Failed to delete ip" );
          goto error ;
       }
       _sendOKRes2Web() ;
+
    done:
       return rc ;
    error:
       _sendErrorRes2Web( rc, errorDetail ) ;
-      PD_LOG( PDERROR, "%s, rc=%d",
-              errorDetail.c_str(), rc ) ;
+      PD_LOG( PDERROR, "%s, rc: %d", errorDetail.c_str(), rc ) ;
       goto done ;
    }
 
@@ -11361,7 +11364,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       INT64 ruleId = 0 ;
       const CHAR *pValTmp = NULL ;
-      std::string errorDetail ;
+      string errorDetail ;
       SDB_ASSERT( _restAdaptor != NULL && _restSession != NULL,
                   "_restAdaptor and _restSession can't be null!" ) ;
 
@@ -11369,26 +11372,26 @@ namespace engine
                               &pValTmp ) ;
       if ( NULL == pValTmp )
       {
-          errorDetail = std::string("Failed to get the field("
-                                    OM_REST_FIELD_RULE_ID")") ;
+          errorDetail = string( "Failed to get the field("
+                                OM_REST_FIELD_RULE_ID")" ) ;
           rc = SDB_INVALIDARG ;
           goto error ;
       }
       ruleId = ossAtoll( pValTmp ) ;
 
-      rc = omStrategyMgrInst.delTaskById( ruleId, _cb ) ;
+      rc = omGetStrategyMgr()->delTaskById( ruleId, _cb ) ;
       if ( rc != SDB_OK )
       {
-         errorDetail = std::string( "Failed to delete task strategy record");
+         errorDetail = string( "Failed to delete task strategy record" ) ;
          goto error ;
       }
       _sendOKRes2Web() ;
+
    done:
       return rc ;
    error:
       _sendErrorRes2Web( rc, errorDetail ) ;
-      PD_LOG( PDERROR, "%s, rc=%d",
-              errorDetail.c_str(), rc ) ;
+      PD_LOG( PDERROR, "%s, rc: %d", errorDetail.c_str(), rc ) ;
       goto done ;
    }
 

@@ -154,7 +154,8 @@ namespace engine
          void              _setOPResult( INT32 rc, const CHAR* detail ) ;
          void              _sendErrorRes2Web( INT32 rc, const CHAR* detail ) ;
          void              _sendErrorRes2Web( INT32 rc, const string &detail ) ;
-         INT32             _parseIPsField( const CHAR *input, std::set<std::string> &IPs ) ;
+         INT32             _parseIPsField( const CHAR *input,
+                                           set< string > &IPs ) ;
          
       protected:
          SDB_RTNCB         *_pRTNCB ;

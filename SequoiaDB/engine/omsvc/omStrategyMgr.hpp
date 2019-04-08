@@ -41,88 +41,85 @@
 #include "omStrategyDef.hpp"
 #include <string>
 
+using namespace bson ;
+using namespace std ;
+
 namespace engine
 {
-   class omStrategyMgr : public SDBObject
+   /*
+      _omStrategyMgr define
+   */
+   class _omStrategyMgr : public SDBObject
    {
-   public:
+      public:
+         _omStrategyMgr() ;
+         ~omStrategyMgr() ;
 
-      INT32 init( pmdEDUCB *cb ) ;
+         INT32 init( pmdEDUCB *cb ) ;
 
-      INT32 queryTasks( SINT64 &contextID, pmdEDUCB *cb ) ;
+         INT32 queryTasks( SINT64 &contextID,
+                           pmdEDUCB *cb ) ;
 
-      INT32 insertTask( omTaskStrategyInfo &strategyInfo, pmdEDUCB *cb ) ;
+         INT32 insertTask( omTaskStrategyInfo &strategyInfo,
+                           pmdEDUCB *cb ) ;
 
-      INT32 updateTaskNiceById( INT32 newNice, INT64 _id, pmdEDUCB *cb ) ;
+         INT32 updateTaskNiceById( INT32 newNice,
+                                   INT64 id,
+                                   pmdEDUCB *cb ) ;
 
-      INT32 addTaskIpsById( const std::set<std::string> &ips,
-                            INT64 _id, pmdEDUCB *cb ) ;
+         INT32 addTaskIpsById( const set< string > &ips,
+                               INT64 id,
+                               pmdEDUCB *cb ) ;
 
-      INT32 delTaskIpsById( const std::set<std::string> &ips,
-                            INT64 _id, pmdEDUCB *cb ) ;
+         INT32 delTaskIpsById( const set< string > &ips,
+                               INT64 id,
+                               pmdEDUCB *cb ) ;
 
-      INT32 delTaskById( INT64 _id, pmdEDUCB *cb ) ;
+         INT32 delAllTaskIpsById( INT64 id, pmdEDUCB *cb ) ;
 
-      /*
-      INT32 getTaskStrategy( const std::string &taskName,
-                             const std::string &userName,
-                             const std::string &IP ) ;
-      */
+         INT32 delTaskById( INT64 id, pmdEDUCB *cb ) ;
 
-   private:
+      private:
 
-      INT32 getFieldMaxValue( const CHAR *pFieldName, INT64 &value,
-                              INT64 defaultVal, pmdEDUCB * cb ) ;
+         INT32 getFieldMaxValue( const CHAR *pFieldName,
+                                 INT64 &value,
+                                 INT64 defaultVal,
+                                 pmdEDUCB *cb ) ;
 
-      INT32 incRecordRuleID( INT64 beginID, pmdEDUCB * cb ) ;
+         INT32 incRecordRuleID( INT64 beginID, pmdEDUCB *cb ) ;
 
-      INT32 decRecordRuleID( INT64 beginID, pmdEDUCB * cb ) ;
+         INT32 decRecordRuleID( INT64 beginID, pmdEDUCB *cb ) ;
 
-      INT64 incRuleID() ;
+         INT64 incRuleID() ;
 
-      INT64 decRuleID() ;
+         INT64 decRuleID() ;
 
-      INT32 checkTaskStrategyInfo( omTaskStrategyInfo &strategyInfo,
-                                   pmdEDUCB * cb ) ;
+         INT32 checkTaskStrategyInfo( omTaskStrategyInfo &strategyInfo,
+                                      pmdEDUCB * cb ) ;
 
-      INT32 getTaskID( const std::string &taskName, INT64 &taskID,
-                       pmdEDUCB * cb ) ;
+         INT32 getTaskID( const string &taskName,
+                          INT64 &taskID,
+                          pmdEDUCB *cb ) ;
 
-      INT32 getATaskStrategyRecord( bson::BSONObj &recordObj,
-                                    const bson::BSONObj &selector,
-                                    const bson::BSONObj &matcher,
-                                    const bson::BSONObj &orderBy,
-                                    pmdEDUCB * cb ) ;
+         INT32 getATaskStrategyRecord( BSONObj &recordObj,
+                                       const BSONObj &selector,
+                                       const BSONObj &matcher,
+                                       const BSONObj &orderBy,
+                                       pmdEDUCB *cb ) ;
 
-      void rollbackRuleID() ;
+      private:
+         ossSpinXLatch                 m_mutex ;
+         INT64                         m_curTaskID ;
+         INT64                         m_curRuleID ;
+         pmdKRCB *                     m_pKrCB ;
+         SDB_DMSCB *                   m_pDmsCB ;
+         SDB_RTNCB *                   m_pRtnCB ;
+   } ;
+   typedef _omStrategyMgr omStrategyMgr ;
 
-      void clearRuleIDIncVal() ;
+   omStrategyMgr* omGetStrategyMgr() ;
 
-   public:
-
-      ~omStrategyMgr(){}
-
-      static omStrategyMgr &getInstance() ;
-
-   private:
-
-      omStrategyMgr() ;
-
-      omStrategyMgr( const omStrategyMgr & others ) ;
-
-   private:
-      ossSpinXLatch                 m_mutex ;
-      INT64                         m_curTaskID ;
-      INT64                         m_curRuleID ;
-      bson::BSONObj                 m_emptyObj ;
-      pmdKRCB *                     m_pKrCB ;
-      SDB_DMSCB *                   m_pDmsCB ;
-      SDB_RTNCB *                   m_pRtnCB ;
-      INT32                         m_ruleIDIncVal ;
-   };
-
-
-#define omStrategyMgrInst           omStrategyMgr::getInstance()
 }
 
-#endif
+#endif // OM_STRATEGY_MGR_HPP_
+

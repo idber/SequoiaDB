@@ -305,7 +305,7 @@ namespace engine
             PD_RC_CHECK ( rc, PDERROR, "Failed to update om tables rc = %d", 
                           rc ) ;
 
-            rc = omStrategyMgrInst.init( pmdGetThreadEDUCB() ) ;
+            rc = omGetStrategyMgr()->init( pmdGetThreadEDUCB() ) ;
             PD_RC_CHECK ( rc, PDERROR, "Failed to init strategy manager, rc:%d",
                           rc) ;
  
