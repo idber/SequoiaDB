@@ -57,7 +57,7 @@ namespace engine
    */
    class _omTaskStrategyInfo
    {
-      friend class omStrategyMgr ;
+      friend class _omStrategyMgr ;
       public:
          _omTaskStrategyInfo() ;
 

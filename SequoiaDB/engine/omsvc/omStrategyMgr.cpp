@@ -53,6 +53,10 @@ namespace engine
       m_pRtnCB = NULL ;
    }
 
+   _omStrategyMgr::~_omStrategyMgr()
+   {
+   }
+
    _omStrategyMgr::_omStrategyMgr( const omStrategyMgr &others )
    {
       m_curTaskID = others.m_curTaskID ;

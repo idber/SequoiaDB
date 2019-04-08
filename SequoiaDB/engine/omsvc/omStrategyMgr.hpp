@@ -122,3 +122,4 @@ namespace engine
 }
 
 #endif // OM_STRATEGY_MGR_HPP_
+
