@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2016 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dpsArchiveFile.cpp
 
@@ -144,7 +143,6 @@ namespace engine
          }
       }
 
-      // skip file header
       rc = _file.seek( DPS_LOG_HEAD_LEN ) ;
       if ( SDB_OK != rc )
       {
@@ -357,7 +355,6 @@ namespace engine
 
       SDB_ASSERT( NULL != _logHeader, "_logHeader can't be NULL" ) ;
 
-      // remember current position
       rc = _file.position( offset ) ;
       if ( SDB_OK != rc )
       {
@@ -366,7 +363,6 @@ namespace engine
          goto error ;
       }
 
-      // move to file header
       rc = _file.seek( 0 ) ;
       if ( SDB_OK != rc )
       {
@@ -385,7 +381,6 @@ namespace engine
       SDB_ASSERT( readSize == DPS_LOG_HEAD_LEN,
                   "readSize != DPS_LOG_HEAD_LEN" ) ;
 
-      // go back to previous position
       rc = _file.seek( offset ) ;
       if ( SDB_OK != rc )
       {
@@ -408,7 +403,6 @@ namespace engine
       SDB_ASSERT( NULL != _logHeader, "_logHeader can't be NULL" ) ;
       SDB_ASSERT( !_readOnly, "can't finish readonly file header" ) ;
 
-      // remember current position
       rc = _file.position( offset ) ;
       if ( SDB_OK != rc )
       {
@@ -417,7 +411,6 @@ namespace engine
          goto error ;
       }
 
-      // move to file header
       rc = _file.seek( 0 ) ;
       if ( SDB_OK != rc )
       {
@@ -434,7 +427,6 @@ namespace engine
          goto error ;
       }
 
-      // go back to previous position
       rc = _file.seek( offset ) ;
       if ( SDB_OK != rc )
       {

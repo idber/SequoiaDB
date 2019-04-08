@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pmdEDUMgr.cpp
 
@@ -69,7 +68,6 @@ namespace engine
    {
       _pResource = NULL ;
       _pMonitorThd = NULL ;
-      _pDeadCheckThd = NULL ;
    }
 
    _pmdEDUMgr::~_pmdEDUMgr()
@@ -110,7 +108,6 @@ namespace engine
       }
       _pResource = pResource ;
 
-      /// create monitor thread
       try
       {
          _pMonitorThd = new boost::thread( boost::bind( &pmdEDUMgr::monitor,
@@ -147,7 +144,6 @@ namespace engine
          normalStop = destroyAll( timeout ) ;
          if ( !normalStop )
          {
-            /// check again
             normalStop = destroyAll( PMD_STOP_MIN_TIMEOUT ) ;
          }
       }
@@ -157,46 +153,6 @@ namespace engine
       }
 
       return normalStop ;
-   }
-
-   INT32 _pmdEDUMgr::startDeadCheck( INT64 timeout )
-   {
-      INT32 rc = SDB_OK ;
-
-      /// create dead check thread
-      try
-      {
-         _pDeadCheckThd = new boost::thread( boost::bind( &pmdEDUMgr::deadCheck,
-                                                          this,
-                                                          timeout )
-                                          ) ;
-      }
-      catch ( std::exception &e )
-      {
-         PD_LOG ( PDSEVERE, "Failed to create dead check thread: %s",
-                  e.what() ) ;
-         delete _pDeadCheckThd ;
-         _pDeadCheckThd = NULL ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   void _pmdEDUMgr::stopDeadCheck()
-   {
-      _deadCheckEvent.signal() ;
-
-      if ( _pDeadCheckThd )
-      {
-         _pDeadCheckThd->join() ;
-         delete _pDeadCheckThd ;
-         _pDeadCheckThd = NULL ;
-      }
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_DUMPINFO, "_pmdEDUMgr::dumpInfo" )
@@ -329,7 +285,6 @@ namespace engine
       setQuiesced( TRUE ) ;
       _monitorEvent.signal() ;
 
-      /// join monitor
       if ( _pMonitorThd )
       {
          _pMonitorThd->join() ;
@@ -337,7 +292,6 @@ namespace engine
          _pMonitorThd = NULL ;
       }
 
-      //stop all ioservice
       timeoutCounter = 0 ;
       while ( countIOService() > 0 )
       {
@@ -351,13 +305,11 @@ namespace engine
             break ;
          }
       }
-      /// fix lastTimeout value
       if ( timeoutCounter < itemTimeout + lastTimeout )
       {
          lastTimeout = itemTimeout + lastTimeout - timeoutCounter ;
       }
 
-      //stop all user edus
       timeoutCounter = 0 ;
       UINT32 timeCounter = 0 ;
       UINT32 eduCount = _getEDUCount( EDU_USER ) ;
@@ -377,13 +329,11 @@ namespace engine
          }
          eduCount = _getEDUCount( EDU_USER ) ;
       }
-      /// fix lastTimeout value
       if ( timeoutCounter < itemTimeout + lastTimeout )
       {
          lastTimeout = itemTimeout + lastTimeout - timeoutCounter ;
       }
 
-      //stop all system edus
       timeoutCounter = 0 ;
       timeCounter = 0 ;
       eduCount = _getEDUCount( EDU_ALL ) ;
@@ -436,7 +386,7 @@ namespace engine
       if ( ( it = _mapRuns.find( eduID ) ) != _mapRuns.end() )
       {
          cb = it->second ;
-         isSystem = ( _isSystemEDU( cb ) || cb->isLocked() ) ;
+         isSystem = _isSystemEDU( cb ) ;
       }
       else if ( ( it = _mapIdles.find( eduID ) ) != _mapIdles.end() )
       {
@@ -476,7 +426,7 @@ namespace engine
       if ( ( it = _mapRuns.find( eduID ) ) != _mapRuns.end() )
       {
          cb = it->second ;
-         isSystem = ( _isSystemEDU( cb ) || cb->isLocked() ) ;
+         isSystem = _isSystemEDU( cb ) ;
       }
       else if ( ( it = _mapIdles.find( eduID ) ) != _mapIdles.end() )
       {
@@ -515,7 +465,7 @@ namespace engine
       if ( ( it = _mapRuns.find( eduID ) ) != _mapRuns.end() )
       {
          cb = it->second ;
-         isSystem = ( _isSystemEDU( cb ) || cb->isLocked() ) ;
+         isSystem = _isSystemEDU( cb ) ;
       }
       else if ( ( it = _mapIdles.find( eduID ) ) != _mapIdles.end() )
       {
@@ -593,46 +543,6 @@ namespace engine
       _latch.get_shared() ;
       UINT32 count = _mapSystemEdu.size() ;
       _latch.release_shared() ;
-      return count ;
-   }
-
-   UINT32 _pmdEDUMgr::sizeByType( INT32 type )
-   {
-      UINT32 count = 0 ;
-      MAP_EDUCB_IT it ;
-      _latch.get_shared() ;
-
-      it = _mapRuns.begin() ;
-      while( it != _mapRuns.end() )
-      {
-         if ( it->second->getType() == type )
-         {
-            ++count ;
-         }
-         ++it ;
-      }
-      _latch.release_shared() ;
-
-      return count ;
-   }
-
-   UINT32 _pmdEDUMgr::sizeWithSession()
-   {
-      UINT32 count = 0 ;
-      MAP_EDUCB_IT it ;
-      _latch.get_shared() ;
-
-      it = _mapRuns.begin() ;
-      while( it != _mapRuns.end() )
-      {
-         if ( NULL != it->second->getSession() )
-         {
-            ++count ;
-         }
-         ++it ;
-      }
-      _latch.release_shared() ;
-
       return count ;
    }
 
@@ -1018,7 +928,6 @@ namespace engine
             goto done ;
          }
 
-         /// destory the edu
          {
             MAP_EDUCB_IT it ;
             ossScopedLock lock( &_latch, EXCLUSIVE ) ;
@@ -1056,7 +965,6 @@ namespace engine
 
    void _pmdEDUMgr::_postDestoryEDU( pmdEDUCB *cb )
    {
-      /// remove tid map
       MAP_TID2EDU_IT itTid = _mapTid2Edu.begin() ;
       while( itTid != _mapTid2Edu.end() )
       {
@@ -1067,7 +975,6 @@ namespace engine
          }
          ++itTid ;
       }
-      /// remove from system map
       _mapSystemEdu.erase( cb->getType() ) ;
    }
 
@@ -1086,14 +993,9 @@ namespace engine
       _latch.get() ;
       hasLock = TRUE ;
 
-      /// When cb is creating, do nothing
       if ( PMD_EDU_CREATING != cb->getStatus() )
       {
          if ( cb->isForced() || _isDestroyed )
-         {
-            toDestory = TRUE ;
-         }
-         else if ( cb->isLocked() )
          {
             toDestory = TRUE ;
          }
@@ -1107,12 +1009,10 @@ namespace engine
             toDestory = TRUE ;
          }
 
-         /// In run map
          if ( ( it = _mapRuns.find( cb->getID() ) ) != _mapRuns.end() )
          {
             _mapRuns.erase( it ) ;
 
-            /// add to idle map
             if ( !toDestory )
             {
                try
@@ -1121,7 +1021,7 @@ namespace engine
                   SDB_ASSERT( PMD_EDU_IDLE != cb->getStatus(),
                               "Status can't be idle" ) ;
                   cb->setStatus( PMD_EDU_IDLE ) ;
-                  cb->setType( EDU_TYPE_UNKNOWN ) ;
+                  cb->setType( PMD_EDU_UNKNOW ) ;
                }
                catch( std::exception &e )
                {
@@ -1130,7 +1030,6 @@ namespace engine
                }
             }
          }
-         /// In idle map
          else if ( ( it = _mapIdles.find( cb->getID() ) ) != _mapIdles.end() )
          {
             if ( toDestory )
@@ -1138,7 +1037,6 @@ namespace engine
                _mapIdles.erase( it ) ;
             }
          }
-         /// Not found
          else
          {
             SDB_ASSERT( FALSE, "CB is not found" ) ;
@@ -1221,11 +1119,10 @@ namespace engine
                                                _mapSystemEdu.size(),
                                                maxPool ) )
       {
-         /// Notify monitor thread
          _monitorEvent.signal() ;
       }
 
-      return cb ;
+      return cb ;      
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_STARTEDU, "_pmdEDUMgr::startEDU" )
@@ -1268,7 +1165,6 @@ namespace engine
          {
             *pEDUID = eduCB->getID() ;
          }
-         /// post resume event
          eduCB->postEvent( pmdEDUEvent( PMD_EDU_EVENT_RESUME,
                                         PMD_EDU_MEM_NONE,
                                         args ) ) ;
@@ -1325,19 +1221,15 @@ namespace engine
          goto error ;
       }
 
-      // set to creating status
       cb->setStatus ( PMD_EDU_IDLE ) ;
 
-      /// need to use ossScopedLock to prevent lock leak when exception
       {
          ossScopedLock lock( &_latch, EXCLUSIVE ) ;
          newID = _EDUID++ ;
          cb->setID( newID ) ;
-         /// add to map
          _mapIdles[ newID ] = cb ;
       }
 
-      // create a new thread here
       try
       {
          boost::thread agentThread ( boost::bind( &pmdEDUMgr::pmdEDUEntryPointWrapper,
@@ -1345,13 +1237,10 @@ namespace engine
                                                   cb,
                                                   ePtr )
                                    ) ;
-         // detach the agent so that he's all on his own
-         // we only track based on CB
          agentThread.detach () ;
       }
       catch ( std::exception &e )
       {
-         // if we failed to create thread, make sure to clean runqueue
          PD_LOG ( PDSEVERE, "Failed to create new edu: %s",
                   e.what() ) ;
          rc = SDB_SYS ;
@@ -1363,7 +1252,6 @@ namespace engine
          goto error ;
       }
 
-      /// Wait thread attach
       rc = pEvent->wait( -1, &result ) ;
       if ( SDB_OK == rc )
       {
@@ -1425,33 +1313,27 @@ namespace engine
          goto error ;
       }
 
-      // set to creating status
       cb->setStatus ( PMD_EDU_CREATING ) ;
       if ( pInitName )
       {
          cb->setName( pInitName ) ;
       }
 
-      /// need to use ossScopedLock to prevent lock leak when exception
       {
          ossScopedLock lock( &_latch, EXCLUSIVE ) ;
          newID = _EDUID++ ;
          cb->setID( newID ) ;
-         /// add to map
          _mapRuns[ newID ] = cb ;
-         /// add to system map
          if ( isSystem )
          {
             _mapSystemEdu[ type ] = newID ;
          }
 
-         /// post resume event before thread start
          cb ->postEvent( pmdEDUEvent( PMD_EDU_EVENT_RESUME,
                                       PMD_EDU_MEM_NONE,
                                       arg ) ) ;
       }
 
-      // create a new thread here
       try
       {
          boost::thread agentThread ( boost::bind( &pmdEDUMgr::pmdEDUEntryPointWrapper,
@@ -1459,13 +1341,10 @@ namespace engine
                                                   cb,
                                                   ePtr )
                                     ) ;
-         // detach the agent so that he's all on his own
-         // we only track based on CB
          agentThread.detach () ;
       }
       catch ( std::exception &e )
       {
-         // if we failed to create thread, make sure to clean runqueue
          PD_LOG ( PDSEVERE, "Failed to create new edu: %s",
                   e.what() ) ;
          rc = SDB_SYS ;
@@ -1481,7 +1360,6 @@ namespace engine
          goto error ;
       }
 
-      /// Wait thread attach
       rc = pEvent->wait( -1, &result ) ;
       if ( SDB_OK == rc )
       {
@@ -1544,7 +1422,6 @@ namespace engine
 
       eduStatus = cb->getStatus() ;
 
-      // if it's already waiting, let's do nothing
       if ( PMD_IS_EDU_WAITING ( eduStatus ) )
       {
          goto done ;
@@ -1552,7 +1429,6 @@ namespace engine
       else if ( !PMD_IS_EDU_RUNNING( eduStatus ) &&
                 !PMD_IS_EDU_CREATING( eduStatus ) )
       {
-         // if it's not running status
          rc = SDB_EDU_INVAL_STATUS ;
          goto error ;
       }
@@ -1619,22 +1495,6 @@ namespace engine
       return rc ;
    error:
       goto done ;
-   }
-
-   void _pmdEDUMgr::lockEDU( pmdEDUCB *cb )
-   {
-      if ( cb )
-      {
-         cb->setLock( TRUE ) ;
-      }
-   }
-
-   void _pmdEDUMgr::unlockEDU( pmdEDUCB *cb )
-   {
-      if ( cb )
-      {
-         cb->setLock( FALSE ) ;
-      }
    }
 
    pmdEDUCB *_pmdEDUMgr::getEDU( UINT32 tid )
@@ -1836,8 +1696,6 @@ namespace engine
          for ( it = _mapRuns.begin() ; it != _mapRuns.end() ; ++it )
          {
             cb = it->second ;
-            // threadID was initialized to 0 in constructor, and set to real
-            // thread id in pmdEDUEntryPoint
             if ( 0 == cb->getThreadID() ||
                  ossPThreadSelf() == cb->getThreadID() )
             {
@@ -1855,8 +1713,6 @@ namespace engine
          for ( it = _mapIdles.begin() ; it != _mapIdles.end() ; ++it )
          {
             cb = it->second ;
-            // threadID was initialized to 0 in constructor, and set to real
-            // thread id in pmdEDUEntryPoint
             if ( 0 == cb->getThreadID() ||
                  ossPThreadSelf() == cb->getThreadID() )
             {
@@ -1920,38 +1776,6 @@ namespace engine
       }
    }
 
-   void _pmdEDUMgr::deadCheck( INT64 timeout )
-   {
-      INT32 rc = SDB_OK ;
-      INT64 restTimeout = timeout > PMD_STOP_MIN_TIMEOUT ?
-                          timeout : PMD_STOP_MIN_TIMEOUT ;
-
-      while( TRUE )
-      {
-         rc = _deadCheckEvent.wait( OSS_ONE_SEC ) ;
-         if ( SDB_OK == rc )
-         {
-            /// has safety quit
-            break ;
-         }
-
-         restTimeout -= OSS_ONE_SEC ;
-
-         if ( restTimeout <= 0 )
-         {
-            /// dump abnormal edus
-            dumpAbnormalEDU() ;
-            /// panic the process
-            PD_LOG( PDSEVERE, "The programme is dead over %d secs, "
-                    "panic itself", timeout / OSS_ONE_SEC ) ;
-            ossPanic() ;
-
-            break ;
-         }
-      }
-   }
-
-   ///  edu entry point functions
    INT32 _pmdEDUMgr::pmdEDUEntryPointWrapper( pmdEDUCB *cb, pmdEventPtr ePtr )
    {
       INT32 rc = SDB_OK ;
@@ -1959,12 +1783,11 @@ namespace engine
       UINT32 tid = ossGetCurrentThreadID() ;
       BOOLEAN quitWithException = FALSE ;
 
-      // save kernel thread id ( Linux ), or thread handle ( windows )
 #if defined (_WINDOWS)
       HANDLE      tHdl = NULL ;
       BOOLEAN     isHdlCreated = FALSE ;
       if ( DuplicateHandle( GetCurrentProcess(), GetCurrentThread(),
-                            GetCurrentProcess(), &tHdl, 0, false,
+                            GetCurrentProcess(), &tHdl, 0, false, 
                             DUPLICATE_SAME_ACCESS ) )
       {
          isHdlCreated = TRUE ;
@@ -1978,7 +1801,6 @@ namespace engine
 
       try
       {
-         // register TLS, this must happen at very beginning of each thread
          rc = pmdEDUEntryPoint( pmdDeclareEDUCB( cb ),
                                 ePtr,
                                 quitWithException ) ;
@@ -1986,7 +1808,6 @@ namespace engine
       catch( std::exception &e )
       {
          rc = SDB_SYS ;
-         // notify
          ePtr->signal( rc ) ;
 
          cb = findAndRemove( eduID ) ;
@@ -2009,11 +1830,9 @@ namespace engine
          }
       }
 
-      // undeclare must happen after all TLS access
       pmdUndeclareEDUCB() ;
 
    #if defined (_WINDOWS)
-      // close handle
       if ( isHdlCreated )
       {
          CloseHandle( tHdl ) ;
@@ -2023,9 +1842,6 @@ namespace engine
       return rc ;
    }
 
-   // main entry point for all EDUs
-   // it will call individual main function for each EDU type
-   // entry points are defined in getEntryFuncByType
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDEDUENTPNT, "pmdEDUEntryPoint" )
    INT32 _pmdEDUMgr::pmdEDUEntryPoint( pmdEDUCB *cb,
                                        pmdEventPtr ePtr,
@@ -2052,7 +1868,6 @@ namespace engine
       PD_LOG ( PDEVENT, "Start thread[%u] for EDU[ID:%lld, type:%s, Name:%s]",
                cb->getTID(), myEDUID, getEDUName( eduType ), cb->getName() ) ;
 
-      /// Notify ok
       ePtr->signal() ;
       quitWithException = TRUE ;
 
@@ -2085,23 +1900,21 @@ namespace engine
             }
 
             eduMgr->waitEDU( cb ) ;
-            pdInitCurAuditMask( pdGetAuditMask() ) ;
+            initCurAuditMask( getAuditMask() ) ;
 
             *(cb->getMonConfigCB()) = *(krcb->getMonCB()) ;
             cb->initMonAppCB() ;
-            cb->initTransConf() ;
 
             rc = pItem->_pFunc( cb, event._Data ) ;
-            // copy name
             ossStrncpy( eduName, cb->getName(), OSS_MAX_PATHSIZE ) ;
 
             if ( PMD_IS_DB_UP() )
             {
                if ( pItem->isSystem() )
                {
-                  PD_LOG( PDSEVERE, "System EDU[ID:%lld, type:%s, Name:%s] "
-                          "exit with %d. Restart DB", cb->getID(),
-                          pItem->_name.c_str(), cb->getName(), rc ) ;
+                  PD_LOG( PDSEVERE, "System EDU[ID:%lld, type:%s] exit "
+                          "with %d. Restart DB", cb->getID(),
+                          pItem->_name.c_str(), rc ) ;
                   PMD_RESTART_DB( rc ) ;
                }
                else if ( SDB_OK != rc )
@@ -2112,11 +1925,8 @@ namespace engine
                }
             }
 
-            // set EDU status to wait
             eduMgr->waitEDU( cb ) ;
-            //reset and clear
             cb->resetMon() ;
-            //delete all leak context
             if( pCtxMgr )
             {
                SINT64 contextID = -1 ;
@@ -2127,7 +1937,6 @@ namespace engine
                            myEDUID, getEDUName( eduType ), contextID ) ;
                }
             }
-            // make sure lock released
             cb->assertLocks() ;
          }
          else if ( PMD_EDU_EVENT_TERM != event._eventType )
@@ -2138,7 +1947,6 @@ namespace engine
             rc = SDB_SYS ;
          }
 
-         // release the event data
          pmdEduEventRelase( event, cb ) ;
          event.reset() ;
 
@@ -2151,7 +1959,6 @@ namespace engine
          }
       }
 
-      /// Call the thread exit hook function to release thread local variables
       if ( pmdGetEDUHook() )
       {
          PMD_ON_EDU_EXIT_FUNC pFunc = pmdGetEDUHook() ;

@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnCommandDef.hpp
 
@@ -84,8 +83,6 @@ namespace engine
 #define NAME_SNAPSHOT_TRANSACTIONS           CMD_NAME_SNAPSHOT_TRANSACTIONS
 #define NAME_SNAPSHOT_ACCESSPLANS            CMD_NAME_SNAPSHOT_ACCESSPLANS
 #define NAME_SNAPSHOT_HEALTH                 CMD_NAME_SNAPSHOT_HEALTH
-#define NAME_SNAPSHOT_CONFIGS                CMD_NAME_SNAPSHOT_CONFIGS
-#define NAME_SNAPSHOT_SVCTASKS               CMD_NAME_SNAPSHOT_SVCTASKS
 #define NAME_TEST_COLLECTION                 CMD_NAME_TEST_COLLECTION
 #define NAME_TEST_COLLECTIONSPACE            CMD_NAME_TEST_COLLECTIONSPACE
 #define NAME_SET_PDLEVEL                     CMD_NAME_SET_PDLEVEL
@@ -100,7 +97,6 @@ namespace engine
 #define NAME_LINK_COLLECTION                 CMD_NAME_LINK_CL
 #define NAME_UNLINK_COLLECTION               CMD_NAME_UNLINK_CL
 #define NAME_INVALIDATE_CACHE                CMD_NAME_INVALIDATE_CACHE
-#define NAME_INVALIDATE_SEQUENCE_CACHE       CMD_NAME_INVALIDATE_SEQUENCE_CACHE
 #define NAME_FORCE_SESSION                   CMD_NAME_FORCE_SESSION
 #define NAME_LIST_LOBS                       CMD_NAME_LIST_LOBS
 #define NAME_REELECT                         CMD_NAME_REELECT
@@ -108,16 +104,12 @@ namespace engine
 #define NAME_JSON_LOAD                       CMD_NAME_JSON_LOAD
 #define NAME_TRUNCATE                        CMD_NAME_TRUNCATE
 #define NAME_ALTER_COLLECTION                CMD_NAME_ALTER_COLLECTION
-#define NAME_ALTER_COLLECTION_SPACE          CMD_NAME_ALTER_COLLECTION_SPACE
 #define NAME_ALTER_DC                        CMD_NAME_ALTER_DC
 #define NAME_SYNC_DB                         CMD_NAME_SYNC_DB
 #define NAME_POP                             CMD_NAME_POP
 #define NAME_RELOAD_CONFIG                   CMD_NAME_RELOAD_CONFIG
-#define NAME_UPDATE_CONFIG                   CMD_NAME_UPDATE_CONFIG
-#define NAME_DELETE_CONFIG                   CMD_NAME_DELETE_CONFIG
 #define NAME_ANALYZE                         CMD_NAME_ANALYZE
 
-// the commands that does not supported by data nodes or standalone mode
 #define NAME_CREATE_GROUP                    CMD_NAME_CREATE_GROUP
 #define NAME_REMOVE_GROUP                    CMD_NAME_REMOVE_GROUP
 #define NAME_CREATE_NODE                     CMD_NAME_CREATE_NODE
@@ -146,8 +138,7 @@ namespace engine
 #define NAME_SNAPSHOT_CATA                   CMD_NAME_SNAPSHOT_CATA
 #define NAME_WAITTASK                        CMD_NAME_WAITTASK
 #define NAME_GET_DCINFO                      CMD_NAME_GET_DCINFO
-#define NAME_LIST_SEQUENCES                  CMD_NAME_LIST_SEQUENCES
-#define NAME_SNAP_SEQUENCES                  CMD_NAME_SNAPSHOT_SEQUENCES
+
    /*
       Command Type Define
    */
@@ -159,7 +150,6 @@ namespace engine
       CMD_CREATE_COLLECTIONSPACE             = 11,
       CMD_CREATE_INDEX                       = 12,
       CMD_ALTER_COLLECTION                   = 13,
-      CMD_ALTER_COLLECTIONSPACE              = 14,
 
       CMD_DROP_COLLECTION                    = 20,
       CMD_DROP_COLLECTIONSPACE               = 21,
@@ -193,11 +183,9 @@ namespace engine
       CMD_LIST_TRANS_CURRENT                 = 56,
       CMD_CREATE_PROCEDURE                   = 57,
       CMD_REMOVE_PROCEDURE                   = 58,
-      CMD_LIST_SVCTASKS                      = 59,
 
       CMD_RENAME_COLLECTION                  = 60,
       CMD_RENAME_COLLECTIONSPACE             = 61,
-      CMD_LIST_SEQUENCES                     = 62,
 
       CMD_REORG_OFFLINE                      = 70,
       CMD_REORG_ONLINE                       = 71,
@@ -220,10 +208,6 @@ namespace engine
       CMD_SNAPSHOT_TRANSACTIONS              = 101,
       CMD_SNAPSHOT_ACCESSPLANS               = 102,
       CMD_SNAPSHOT_HEALTH                    = 103,
-      CMD_SNAPSHOT_CONFIGS                   = 104,
-      CMD_SNAPSHOT_VCL_SESSIONINFO           = 105,
-      CMD_SNAPSHOT_SVCTASKS                  = 106,
-      CMD_SNAPSHOT_SEQUENCES                 = 107,
 
       CMD_TEST_COLLECTION                    = 110,
       CMD_TEST_COLLECTIONSPACE               = 111,
@@ -258,7 +242,6 @@ namespace engine
 
       CMD_ALTER_IMAGE                        = 155,
 
-      // trace commands
       CMD_TRACE_START                        = 160,
       CMD_TRACE_RESUME                       = 161,
       CMD_TRACE_STOP                         = 162,
@@ -268,10 +251,9 @@ namespace engine
 
       CMD_EXPORT_CONFIG                      = 200,
       CMD_RELOAD_CONFIG                      = 201,
-      CMD_UPDATE_CONFIG                      = 202,
-      CMD_DELETE_CONFIG                      = 203,
 
       CMD_REMOVE_BACKUP                      = 210,
+
       CMD_INVALIDATE_CACHE                   = 220,
       CMD_FORCE_SESSION                      = 221,
       CMD_LIST_LOB                           = 222,
@@ -280,8 +262,8 @@ namespace engine
 
       CMD_SYNC_DB                            = 251,
       CMD_POP                                = 252,
+
       CMD_ANALYZE                            = 253,
-      CMD_INVALIDATE_SEQUENCE_CACHE          = 254,
 
       CMD_UNKNOW                             = 65535
    };

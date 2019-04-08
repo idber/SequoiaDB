@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnContextMainCL.cpp
 
@@ -49,7 +48,6 @@ namespace engine
                                        INT64 contextID )
       : _rtnSubContext( orderBy, keyGen, contextID )
    {
-      _startPos = 0 ;
       _remainNum = 0;
    }
 
@@ -66,32 +64,15 @@ namespace engine
    {
       INT32 rc = SDB_OK;
       BSONObj obj;
-
-      if ( _remainNum <= 0 )
-      {
-         goto done ;
-      }
-
       _isOrderKeyChange = TRUE;
       _remainNum--;
+      rc = _buffer.nextObj( obj );
       if ( _remainNum <= 0 )
       {
          rtnContextBuf emptyBuf;
          _buffer = emptyBuf;
-         _startPos = 0 ;
       }
-      else
-      {
-         rc = _buffer.nextObj( obj );
-         PD_RC_CHECK( rc, PDERROR, "Get next object in buffer failed, rc: %d",
-                      rc ) ;
-         _startPos++ ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
+      return rc;
    }
 
    INT32 _rtnSubCLContext::popN( INT32 num )
@@ -120,7 +101,6 @@ namespace engine
    INT32 _rtnSubCLContext::popAll()
    {
       _isOrderKeyChange = TRUE;
-      _startPos = 0 ;
       _remainNum = 0;
       rtnContextBuf emptyBuf;
       _buffer = emptyBuf;
@@ -139,18 +119,8 @@ namespace engine
 
    INT32 _rtnSubCLContext::truncate ( INT32 num )
    {
-      INT32 rc = SDB_OK ;
-
       SDB_ASSERT( num >= 0, "num can't <0 " ) ;
-      // Why? Please refer to the comment of the _startPos.
-      rc = _buffer.truncate( (UINT32)( _startPos + num ) ) ;
-      PD_RC_CHECK( rc, PDERROR, "Truncate context buffer failed, rc: %d", rc ) ;
-
-      _remainNum = _buffer.recordNum() - _startPos ;
-   done:
-      return rc ;
-   error:
-      goto done ;
+      return _buffer.truncate( (UINT32) num ) ;
    }
 
    INT32 _rtnSubCLContext::getOrderKey( _rtnOrderKey& orderKey )
@@ -205,7 +175,6 @@ namespace engine
       : _rtnContextMain( contextID, eduID ),
         _includeShardingOrder( FALSE )
    {
-      _isWrite = FALSE ;
    }
 
    _rtnContextMainCL::~_rtnContextMainCL()
@@ -335,7 +304,6 @@ namespace engine
       rtnContextBase *contextObj = NULL ;
       if ( !_subs.empty() )
       {
-         // Construct query options of sub-collection
          const string &clName = *( _subs.begin() ) ;
          rtnQueryOptions subCLOptions( _options ) ;
          subCLOptions.setMainCLQuery( _options.getCLFullName(),
@@ -352,13 +320,11 @@ namespace engine
 
          if ( NULL != contextObj && contextObj->isWrite() )
          {
-            _isWrite = TRUE ;
             contextObj->setWriteInfo( this->getDPSCB(),
                                       this->getW() ) ;
          }
 
          _subs.pop_front() ;
-         /// do not use clName again.
       }
    done:
       contextID = context ;
@@ -387,7 +353,6 @@ namespace engine
       _numToSkip = _options.getSkip() ;
       _includeShardingOrder = shardSort ;
 
-      /// _options._skip will be used in sub query.
       _options.setSkip( 0 ) ;
       _keyGen = SDB_OSS_NEW _ixmIndexKeyGen( _options.getOrderBy() ) ;
       PD_CHECK( _keyGen != NULL, SDB_OOM, error, PDERROR,
@@ -456,8 +421,8 @@ namespace engine
    }
 
    INT32 _rtnContextMainCL::_prepareSubCLData( SINT64 contextID,
-                                               _pmdEDUCB * cb,
-                                               INT32 maxNumToReturn )
+                                                _pmdEDUCB * cb,
+                                                INT32 maxNumToReturn )
    {
       INT32 rc = SDB_OK;
       _SDB_RTNCB *pRtnCB = pmdGetKRCB()->getRTNCB();
@@ -531,7 +496,6 @@ namespace engine
          else
          {
             SDB_ASSERT( _subs.empty(), "must be empty" ) ;
-            /// do nothing.
          }
       }
       else if ( SDB_OK != rc )
@@ -626,7 +590,7 @@ namespace engine
             {
                rtnCB->contextDelete( subCtx->contextID(), cb );
                SDB_OSS_DEL iter->second ;
-               _subContextMap.erase( iter++ ) ;
+               iter = _subContextMap.erase( iter ) ;
                rc = SDB_OK ;
                continue ;
             }
@@ -639,8 +603,8 @@ namespace engine
 
          SDB_ASSERT( subCtx->recordNum() > 0, "no data for sub ctx" ) ;
 
-         _subContextMap.erase( iter++ ) ;
-
+         iter = _subContextMap.erase( iter ) ;
+         
          rc = _saveNonEmptyOrderedSubCtx( subCtx ) ;
          if ( rc != SDB_OK )
          {
@@ -734,8 +698,6 @@ namespace engine
       SDB_ASSERT( NULL != subCtx, "subCtx can't be NULL" ) ;
       SDB_ASSERT( subCtx->recordNum() == 0, "sub ctx is not empty" ) ;
 
-      // normal sub ctx is in _subContextMap,
-      // no need to do anything
       return SDB_OK ;
    }
 
@@ -744,8 +706,6 @@ namespace engine
       SDB_ASSERT( NULL != subCtx, "subCtx can't be NULL" ) ;
       SDB_ASSERT( subCtx->recordNum() > 0, "sub ctx is empty" ) ;
 
-      // normal sub ctx is in _subContextMap,
-      // no need to do anything
       return SDB_OK ;
    }
 
@@ -756,7 +716,6 @@ namespace engine
       SDB_RTNCB *pRtncb = pKrcb->getRTNCB();
       pmdEDUCB *cb = pKrcb->getEDUMgr()->getEDUByID( eduID() );
 
-      // clean normal context
       SUBCL_CTX_MAP::iterator iter = _subContextMap.begin();
       while( iter != _subContextMap.end() )
       {
@@ -775,7 +734,8 @@ namespace engine
    _rtnContextMainCLExplain::_rtnContextMainCLExplain ( INT64 contextID,
                                                         UINT64 eduID )
    : _rtnContextBase( contextID, eduID ),
-     _explainMergePath( getPlanAllocator() )
+     _rtnExplainMainBase( &_explainMergePath ),
+     _explainMergePath( &_planAllocator )
    {
    }
 
@@ -974,7 +934,7 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CTXMAINCLEXP__PARSELOCFILTER, "_rtnContextMainCLExplain::_parseLocationOption" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CTXMAINCLEXP__PARSELOCFILTER, "_rtnContextMainCLExplain::_parseLocationFilter" )
    INT32 _rtnContextMainCLExplain::_parseLocationOption ( const BSONObj & explainOptions,
                                                           BOOLEAN & hasOption )
    {
@@ -986,14 +946,11 @@ namespace engine
       {
          hasOption = FALSE ;
 
-         // Get sub-collections option
          BSONElement ele = explainOptions.getField( FIELD_NAME_SUB_COLLECTIONS ) ;
          if ( ele.eoo() )
          {
             if ( Object == explainOptions.getField( FIELD_NAME_LOCATION ).type() )
             {
-               // The MERGE doesn't need "Location" option,
-               // but it need to make sure "Detail" option is enabled
                hasOption = TRUE ;
             }
             goto done ;

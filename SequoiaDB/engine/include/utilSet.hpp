@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = utilSet.hpp
 
@@ -84,12 +83,10 @@ namespace engine
             {
                if ( _pData && rhs._pData )
                {
-                  /// left, right is end
                   BOOLEAN leftEnd = _pData >= _pSrc + *_pEleSize ?
                                     TRUE : FALSE ;
                   BOOLEAN rightEnd = rhs._pData > rhs._pSrc + *(rhs._pEleSize) ?
                                      TRUE : FALSE ;
-                  /// both end,equal
                   if ( leftEnd && rightEnd &&
                        _pSrc == rhs._pSrc &&
                        _pEleSize == rhs._pEleSize )
@@ -219,170 +216,6 @@ namespace engine
             typename set<T>::iterator     _it ;
       } ;
 
-      class const_iterator
-      {
-         friend class _utilSet< T, stackSize > ;
-         public:
-            const_iterator()
-            {
-               _pData      = NULL ;
-               _pSrc       = NULL ;
-               _pEleSize   = NULL ;
-            }
-            const_iterator( const const_iterator &rhs )
-            {
-               _pData      = rhs._pData ;
-               _pSrc       = rhs._pSrc ;
-               _pEleSize   = rhs._pEleSize ;
-               _it         = rhs._it ;
-            }
-            const_iterator( const iterator &rhs )
-            {
-               _pData      = rhs._pData ;
-               _pSrc       = rhs._pSrc ;
-               _pEleSize   = rhs._pEleSize ;
-               _it         = rhs._it ;
-            }
-            BOOLEAN operator== ( const const_iterator &rhs ) const
-            {
-               if ( _pData && rhs._pData )
-               {
-                  /// left, right is end
-                  BOOLEAN leftEnd = _pData >= _pSrc + *_pEleSize ?
-                                    TRUE : FALSE ;
-                  BOOLEAN rightEnd = rhs._pData > rhs._pSrc + *(rhs._pEleSize) ?
-                                     TRUE : FALSE ;
-                  /// both end,equal
-                  if ( leftEnd && rightEnd &&
-                       _pSrc == rhs._pSrc &&
-                       _pEleSize == rhs._pEleSize )
-                  {
-                     return TRUE ;
-                  }
-                  return _pData == rhs._pData ? TRUE : FALSE ;
-               }
-               else if ( !_pData && !rhs._pData )
-               {
-                  return _it == rhs._it ? TRUE : FALSE ;
-               }
-               return FALSE ;
-            }
-            BOOLEAN operator!= ( const const_iterator &rhs ) const
-            {
-               return this->operator==( rhs ) ? FALSE : TRUE ;
-            }
-            const_iterator& operator= ( const const_iterator &rhs )
-            {
-               _pData         = rhs._pData ;
-               _pSrc          = rhs._pSrc ;
-               _pEleSize      = rhs._pEleSize ;
-               _it            = rhs._it ;
-               return *this ;
-            }
-            const T& operator* () const
-            {
-               if ( _pData )
-               {
-                  return *_pData ;
-               }
-               return *_it ;
-            }
-            const_iterator& operator++ ()
-            {
-               if ( _pData )
-               {
-                  ++_pData ;
-               }
-               else
-               {
-                  ++_it ;
-               }
-               return *this ;
-            }
-            const_iterator& operator++ ( int )
-            {
-               if ( _pData )
-               {
-                  _pData++ ;
-               }
-               else
-               {
-                  _it++ ;
-               }
-               return *this ;
-            }
-            const_iterator& operator-- ()
-            {
-               if ( _pData )
-               {
-                  --_pData ;
-               }
-               else
-               {
-                  --_it ;
-               }
-               return *this ;
-            }
-            const_iterator& operator-- ( int )
-            {
-               if ( _pData )
-               {
-                  _pData-- ;
-               }
-               else
-               {
-                  _it-- ;
-               }
-               return *this ;
-            }
-            const_iterator& operator+ ( UINT32 step )
-            {
-               if ( _pData )
-               {
-                  _pData += step ;
-               }
-               else
-               {
-                  _it += step ;
-               }
-               return *this ;
-            }
-            const_iterator& operator- ( UINT32 step )
-            {
-               if ( _pData )
-               {
-                  _pData -= step ;
-               }
-               else
-               {
-                  _it -= step ;
-               }
-               return *this ;
-            }
-
-         protected:
-            const_iterator( const T* pData, const T *pSrc,
-                            const UINT32 *pEleSize )
-            {
-               _pData         = pData ;
-               _pSrc          = pSrc ;
-               _pEleSize      = pEleSize ;
-            }
-            const_iterator( typename set<T>::const_iterator it )
-            {
-               _pData         = NULL ;
-               _pSrc          = NULL ;
-               _pEleSize      = NULL ;
-               _it            = it ;
-            }
-
-         private:
-            const T*                      _pData ;
-            const T*                      _pSrc ;
-            const UINT32*                 _pEleSize ;
-            typename set<T>::const_iterator  _it ;
-      } ;
-
    public:
       OSS_INLINE UINT32 size() const
       {
@@ -411,15 +244,6 @@ namespace engine
          return iterator( _staticBuf, _staticBuf, &_eleSize ) ;
       }
 
-      OSS_INLINE const_iterator begin() const
-      {
-         if ( _pSet )
-         {
-            return const_iterator( _pSet->begin() ) ;
-         }
-         return const_iterator( _staticBuf, _staticBuf, &_eleSize ) ;
-      }
-
       OSS_INLINE iterator end()
       {
          if ( _pSet )
@@ -427,16 +251,6 @@ namespace engine
             return iterator( _pSet->end() ) ;
          }
          return iterator( &_staticBuf[ stackSize ], _staticBuf, &_eleSize ) ;
-      }
-
-      OSS_INLINE const_iterator end() const
-      {
-         if ( _pSet )
-         {
-            return const_iterator( _pSet->end() ) ;
-         }
-         return const_iterator( &_staticBuf[ stackSize ], _staticBuf,
-                                &_eleSize ) ;
       }
 
       OSS_INLINE void erase( iterator position )
@@ -559,7 +373,6 @@ namespace engine
                }
                else if ( _staticBuf[ pos - 1 ] < val )
                {
-                  /// find the position
                   _staticBuf[ pos ] = val ;
                   ++_eleSize ;
                   return pair<iterator, BOOLEAN>( iterator( &_staticBuf[ pos ],
@@ -569,7 +382,6 @@ namespace engine
                }
                else
                {
-                  /// restore
                   while( pos < _eleSize )
                   {
                      _staticBuf[ pos ] = _staticBuf[ pos + 1 ] ;
@@ -580,55 +392,25 @@ namespace engine
                   return pair<iterator, BOOLEAN>( end(), FALSE ) ;
                }
             }
-            /// insert to the begin
             _staticBuf[ 0 ] = val ;
             ++_eleSize ;
             return pair<iterator, BOOLEAN>( begin(), TRUE ) ;
          }
       }
 
-      OSS_INLINE _utilSet<T, stackSize>& operator= ( const _utilSet<T, stackSize> &rhs )
+      OSS_INLINE _utilSet<T>& operator= ( const _utilSet<T> &rhs )
       {
          UINT32 rSize = rhs.size() ;
 
-         /// clear self
          clear( TRUE ) ;
-         /// alloc space
          _ensureSpace( rSize ) ;
-         /// copy all elements
-         const_iterator it = rhs.begin() ;
+         iterator it = rhs.begin() ;
          while( it != rhs.end() )
          {
             insert( *it ) ;
             ++it ;
          }
          return *this ;
-      }
-
-      OSS_INLINE BOOLEAN operator== ( const _utilSet<T, stackSize> &rhs )
-      {
-         if ( rhs.size() != size() )
-         {
-            return FALSE ;
-         }
-
-         iterator itThis = begin() ;
-         const_iterator itRhs = rhs.begin() ;
-         while( itRhs != rhs.end() )
-         {
-            if ( *itRhs < *itThis || *itThis < *itRhs )
-            {
-               return FALSE ;
-            }
-            ++itThis ;
-            ++itRhs ;
-         }
-         return TRUE ;
-      }
-
-      OSS_INLINE BOOLEAN operator!= ( const _utilSet<T, stackSize> &rhs )
-      {
-         return this->operator==( rhs ) ? FALSE : TRUE ;
       }
 
       OSS_INLINE iterator find( const T& val )
@@ -643,20 +425,6 @@ namespace engine
             return end() ;
          }
          return iterator( &_staticBuf[ pos ], _staticBuf, &_eleSize ) ;
-      }
-
-      OSS_INLINE const_iterator find( const T& val ) const
-      {
-         if ( _pSet )
-         {
-            return const_iterator( _pSet->find( val ) ) ;
-         }
-         UINT32 pos = _findInStackBuf( val ) ;
-         if ( this->npos == pos )
-         {
-            return end() ;
-         }
-         return const_iterator( &_staticBuf[ pos ], _staticBuf, &_eleSize ) ;
       }
 
       OSS_INLINE UINT32 count( const T& val ) const
@@ -745,14 +513,12 @@ namespace engine
             }
             if ( _pSet->size() <= threshold )
             {
-               /// copy data to stack
                _eleSize = 0 ;
                typename set<T>::iterator it = _pSet->begin() ;
                for ( ; it != _pSet->end() ; ++it )
                {
                   _staticBuf[ _eleSize++ ] = *it ;
                }
-               /// release the deque
                delete _pSet ;
                _pSet = NULL ;
             }
@@ -796,7 +562,6 @@ namespace engine
                rc = SDB_OOM ;
                goto error ;
             }
-            /// copy stack data to deque
             for ( UINT32 i = 0 ; i < _eleSize ; ++i )
             {
                _pSet->insert( _staticBuf[ i ] ) ;

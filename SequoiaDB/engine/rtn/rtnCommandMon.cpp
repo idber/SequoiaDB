@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnCommandMon.cpp
 
@@ -108,7 +107,6 @@ namespace engine
          goto error ;
       }
 
-      /// init
       rc = pNewFetch->init( cb, _isCurrent(), _isDetail(),
                             _addInfoMask(), _getOptObj() ) ;
       if ( rc )
@@ -164,7 +162,6 @@ namespace engine
          goto error ;
       }
 
-      // create cursors
       rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, (rtnContext**)&context,
                                *pContextID, cb ) ;
       if ( rc )
@@ -179,20 +176,17 @@ namespace engine
                           orderBy.isEmpty() ? _numToSkip : 0 ) ;
       PD_RC_CHECK( rc, PDERROR, "Open context failed, rc: %d", rc ) ;
 
-      // sample timetamp
       if ( cb->getMonConfigCB()->timestampON )
       {
          context->getMonCB()->recordStartTimestamp() ;
       }
 
-      /// create and init fetch
       rc = _createFetch( cb, &pFetch ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create fetch, rc: %d", rc ) ;
 
       context->setMonFetch( pFetch, TRUE ) ;
       pFetch = NULL ;
 
-      /// when has orderby
       if ( !orderBy.isEmpty() )
       {
          rc = rtnSort( (rtnContext**)&context, orderBy, cb,
@@ -248,13 +242,12 @@ namespace engine
       BSONObj selector ;
       BSONObj orderBy ;
       BSONObj hint ;
-      BSONObj newHint ;
 
       try
       {
          hint = BSONObj( _hintBuff ) ;
 
-         rc = parseUserAggr( hint, vecUserAggr, newHint ) ;
+         rc = parseUserAggr( hint, vecUserAggr ) ;
          PD_RC_CHECK( rc, PDERROR, "Parse user define aggr failed, rc: %d",
                       rc ) ;
 
@@ -278,7 +271,6 @@ namespace engine
 
       if ( vecUserAggr.size() > 0 )
       {
-         /// add new matcher
          if ( !matcher.isEmpty() )
          {
             rc = appendObj( BSON( AGGR_MATCH_PARSER_NAME << matcher ),
@@ -287,7 +279,6 @@ namespace engine
                          rc ) ;
          }
 
-         /// order by
          if ( !orderBy.isEmpty() )
          {
             rc = appendObj( BSON( AGGR_SORT_PARSER_NAME << orderBy ),
@@ -305,27 +296,8 @@ namespace engine
                          rc ) ;
          }
 
-         /// offset
-         if ( _numToSkip > 0 )
-         {
-            rc = appendObj( BSON( AGGR_SKIP_PARSER_NAME << _numToSkip ),
-                            pOutBuff, buffSize, buffUsedSize, buffObjNum ) ;
-            PD_RC_CHECK( rc, PDERROR, "Append skip failed, rc: %d", rc ) ;
-         }
-
-         /// limit
-         if ( _numToReturn != -1 )
-         {
-            rc = appendObj( BSON( AGGR_LIMIT_PARSER_NAME << _numToReturn ),
-                            pOutBuff, buffSize, buffUsedSize, buffObjNum ) ;
-            PD_RC_CHECK( rc, PDERROR, "Append limit failed, rc: %d", rc ) ;
-         }
-
-         /// open context
          rc = openContext( pOutBuff, buffObjNum, getIntrCMDName(),
-                           selector, newHint,
-                           0, -1,
-                           cb, *pContextID ) ;
+                           selector, cb, *pContextID ) ;
          PD_RC_CHECK( rc, PDERROR, "Open context failed, rc: %d", rc ) ;
       }
       else

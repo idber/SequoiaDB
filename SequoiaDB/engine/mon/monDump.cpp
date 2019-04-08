@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = monDump.cpp
 
@@ -41,7 +40,6 @@
 #include <map>
 #include "pmd.hpp"
 #include "pmdCB.hpp"
-#include "pmdEDU.hpp"
 #include "pmdEDUMgr.hpp"
 #include "dmsCB.hpp"
 #include "monDump.hpp"
@@ -61,8 +59,7 @@
 #include "monTrace.hpp"
 #include "pmdEnv.hpp"
 #include "utilEnvCheck.hpp"
-#include "pmdStartupHistoryLogger.hpp"
-#include "msgDef.h"
+#include "pmdStartupHstLogger.hpp"
 
 using namespace bson ;
 
@@ -226,7 +223,6 @@ namespace engine
 
          if ( MON_MASK_LSN_INFO & mask )
          {
-            /// begint lsn, current lsn, committed lsn
             DPS_LSN beginLSN ;
             DPS_LSN currentLSN ;
             DPS_LSN committed ;
@@ -254,7 +250,6 @@ namespace engine
             subCommit.append( FIELD_NAME_LSN_VERSION, committed.version ) ;
             subCommit.done() ;
 
-            /// complete lsn and queue size
             DPS_LSN completeLSN ;
             UINT32 lsnQueSize = 0 ;
             if ( pClsCB )
@@ -335,9 +330,6 @@ namespace engine
          obVersion.append ( FIELD_NAME_BUILD, pBuild ) ;
          obVersion.done() ;
 
-#ifdef SDB_ENTERPRISE
-         ob.append ( FIELD_NAME_EDITION, "Enterprise" ) ;
-#endif // SDB_ENTERPRISE
       }
       catch ( std::exception &e )
       {
@@ -407,11 +399,9 @@ namespace engine
       INT32 rc                = SDB_OK ;
       ossProcLimits *limInfo  = pmdGetLimit() ;
 
-      // get total number in ulimit
       limInfo->getLimit( OSS_LIMIT_OPEN_FILE, softLimit, hardLimit ) ;
       totalNum = softLimit ;
 
-      // get used number
       rc = ossGetFileDesp( usedNum ) ;
       if ( SDB_TOO_MANY_OPEN_FD == rc )
       {
@@ -423,7 +413,6 @@ namespace engine
          goto error ;
       }
 
-      // get percent
       if ( totalNum != 0 )
       {
          freeNum = totalNum - usedNum ;
@@ -437,7 +426,6 @@ namespace engine
          loadPercent = 0 ;
       }
 
-      // build bson object
       {
          BSONObjBuilder fdOb( ob.subobjStart( FIELD_NAME_FILEDESP ) ) ;
          fdOb.append( FIELD_NAME_LOADPERCENT, loadPercent ) ;
@@ -551,22 +539,18 @@ namespace engine
       INT64 rss               = 0 ;
       ossProcLimits *limInfo  = pmdGetLimit() ;
 
-      // get memory of host
       rc = ossGetMemoryInfo( loadPctRAM, totalRAM, availRAM,
                              totalSwap, availSwap, totalVM, availVM,
                              overCommitMode, commitLimit, committedAS ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get memory info of host, "
                    "rc = %d", rc ) ;
 
-      // get memory of process
       rc = ossGetProcessMemory( ossGetCurrentProcessID(), rss, allocatedVMProc );
       PD_RC_CHECK( rc, PDERROR, "Failed to get memory info of process, "
                    "rc = %d", rc ) ;
 
-      // get limited virtual memory in ulimit
       limInfo->getLimit( OSS_LIMIT_VIRTUAL_MEM, softLimit, hardLimit ) ;
 
-      // caculate
       if ( 2 == overCommitMode )
       {
          if ( -1 == softLimit )
@@ -605,7 +589,6 @@ namespace engine
          loadPctRAM = 0 ;
       }
 
-      // append bson
       {
          BSONObjBuilder memOb( ob.subobjStart( FIELD_NAME_MEMORY ) ) ;
 
@@ -653,10 +636,8 @@ namespace engine
             _clsSharingStatus primary ;
             DPS_LSN beginLSN, currentLSN,expectLSN, primaryLSN ;
 
-            // get self lsn
             dpscb->getLsnWindow( beginLSN, currentLSN, &expectLSN, NULL ) ;
 
-            // get remote primary node lsn
             if ( replcb->getPrimaryInfo( primary ) )
             {
                primaryLSN = primary.beat.endLsn ;
@@ -726,8 +707,6 @@ namespace engine
    {
       UINT32 ip = 0 ;
       UINT32 port = 0 ;
-      /// IP:00000000, PORT:0000, TID:00000000
-      /// SNPRINTF will truncate the last char, so need + 2
       CHAR szTmp[ 8 + 4 + 8 + 2 ] = { 0 } ;
 
       if ( 0 != relatedNID )
@@ -823,7 +802,6 @@ namespace engine
       ob.append( FIELD_NAME_TOTALWRITETIME,
                  (SINT64)(seconds*1000 + microseconds / 1000 ) ) ;
 
-      /// the spent time is last op
       full._monApplCB._readTimeSpent.convertToTime ( factor,
                                                      seconds,
                                                      microseconds ) ;
@@ -843,10 +821,8 @@ namespace engine
       ossTimestampToString( tmpTm, timestamp ) ;
       ob.append ( FIELD_NAME_RESETTIMESTAMP, timestamp ) ;
 
-      /// add last op info
       monDumpLastOpInfo( ob, full._monApplCB ) ;
 
-      /// add cpu info
       double userCpu;
       userCpu = userTime.seconds + (double)userTime.microsec / 1000000 ;
       ob.append( FIELD_NAME_USERCPU, userCpu ) ;
@@ -864,25 +840,21 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB_MONDMSCOLLECTIONFLAGTOSTRING ) ;
       PD_TRACE1 ( SDB_MONDMSCOLLECTIONFLAGTOSTRING, PD_PACK_USHORT(flag) ) ;
-      // free flag is 0x0000
       if ( DMS_IS_MB_FREE(flag) )
       {
          out = "Free" ;
          goto done ;
       }
-      // normal flag is 0x0001
       if ( DMS_IS_MB_NORMAL(flag) )
       {
          out = "Normal" ;
          goto done ;
       }
-      // drop flag is 0x0002
       if ( DMS_IS_MB_DROPPED(flag) )
       {
          out = "Dropped" ;
          goto done ;
       }
-      // reorg
       if ( DMS_IS_MB_OFFLINE_REORG_SHADOW_COPY(flag) )
       {
          out = "Offline Reorg Shadow Copy Phase" ;
@@ -908,7 +880,6 @@ namespace engine
       return ;
    }
 
-   // dump information for all collections
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MONDUMPINDEXES, "monDumpIndexes" )
    INT32 monDumpIndexes( MON_IDX_LIST &indexes, rtnContextDump *context )
    {
@@ -925,7 +896,6 @@ namespace engine
             UINT16 idxType = IXM_EXTENT_TYPE_NONE ;
             monIndex &indexItem = (*it) ;
             BSONObj &indexObj = indexItem._indexDef ;
-            const CHAR *extDataName = NULL ;
             BSONObj obj ;
             BSONObjBuilder builder( MON_DUMP_DFT_BUILDER_SZ ) ;
             BSONObjBuilder ob (builder.subobjStart(IXM_FIELD_NAME_INDEX_DEF )) ;
@@ -945,8 +915,6 @@ namespace engine
                         indexObj.getBoolField(IXM_DROPDUP_FIELD) ) ;
             ob.append ( IXM_ENFORCED_FIELD,
                         indexObj.getBoolField(IXM_ENFORCED_FIELD) ) ;
-            ob.append ( IXM_NOTNULL_FIELD,
-                        indexObj.getBoolField(IXM_NOTNULL_FIELD) ) ;
             BSONObj range = indexObj.getObjectField( IXM_2DRANGE_FIELD ) ;
             if ( !range.isEmpty() )
             {
@@ -963,11 +931,6 @@ namespace engine
             }
             indexItem.getIndexType( idxType ) ;
             builder.append( FIELD_NAME_TYPE, getIndexTypeDesp( idxType ) ) ;
-            extDataName = indexItem.getExtDataName() ;
-            if ( ossStrlen( extDataName ) > 0 )
-            {
-               builder.append( FIELD_NAME_EXT_DATA_NAME, extDataName ) ;
-            }
             obj = builder.obj() ;
             rc = context->monAppend( obj ) ;
             if ( rc )
@@ -1002,7 +965,7 @@ namespace engine
       pmdKRCB *krcb = pmdGetKRCB() ;
       monDBCB *mondbcb = krcb->getMonDBCB () ;
       pmdEDUMgr *mgr = krcb->getEDUMgr() ;
-      pmdStartupHistoryLogger *startLogger = pmdGetStartupHstLogger() ;
+      pmdStartupHstLogger *startLogger = pmdGetStartupHstLogger() ;
       switch ( type )
       {
          case CMD_SNAPSHOT_ALL :
@@ -1012,15 +975,12 @@ namespace engine
             mgr->resetIOService() ;
             pmdResetErrNum () ;
             startLogger->clearAll() ;
-            krcb->getSvcTaskMgr()->reset() ;
-            sdbGetClsCB()->resetDumpSchedInfo() ;
             break ;
          }
          case CMD_SNAPSHOT_DATABASE :
          {
             mondbcb->reset() ;
             mgr->resetIOService() ;
-            sdbGetClsCB()->resetDumpSchedInfo() ;
             break ;
          }
          case CMD_SNAPSHOT_SESSIONS :
@@ -1044,11 +1004,6 @@ namespace engine
          {
             pmdResetErrNum () ;
             startLogger->clearAll() ;
-            break ;
-         }
-         case CMD_SNAPSHOT_SVCTASKS :
-         {
-            krcb->getSvcTaskMgr()->reset() ;
             break ;
          }
          default :
@@ -1082,7 +1037,7 @@ namespace engine
             builder.append( "PadSize", (INT64)traceCB->getPadSize() ) ;
 #endif // _DEBUG
             BSONArrayBuilder arr( builder.subarrayStart( FIELD_NAME_MASK ) ) ;
-            for ( UINT32 i = 0; i < pdGetTraceComponentSize() ; ++i )
+            for ( INT32 i = 0; i < _pdTraceComponentNum; ++i )
             {
                UINT32 mask = ((UINT32)1)<<i ;
                if ( mask & traceCB->getMask() )
@@ -1146,14 +1101,12 @@ namespace engine
             BSONArrayBuilder blockArrBd ;
             BSONObj obj ;
 
-            // add node info
             rc = monAppendSystemInfo( builder, MON_MASK_HOSTNAME|
                                       MON_MASK_SERVICE_NAME|MON_MASK_NODEID ) ;
             PD_RC_CHECK( rc, PDERROR, "Append system info failed, rc: %d",
                          rc ) ;
 
             builder.append( FIELD_NAME_SCANTYPE, VALUE_NAME_TBSCAN ) ;
-            // add datablocks
             std::vector<dmsExtentID>::iterator it = datablocks.begin() ;
             while ( it != datablocks.end() &&
                     datablockNum < MAX_DATABLOCK_A_RECORD_NUM )
@@ -1214,7 +1167,6 @@ namespace engine
             BSONArrayBuilder blockArrBd ;
             BSONObj obj ;
 
-            // add node info
             rc = monAppendSystemInfo( builder, MON_MASK_HOSTNAME|
                                       MON_MASK_SERVICE_NAME|MON_MASK_NODEID ) ;
             PD_RC_CHECK( rc, PDERROR, "Append system info failed, rc: %d",
@@ -1224,7 +1176,6 @@ namespace engine
             builder.append( FIELD_NAME_INDEXNAME, indexName ) ;
             builder.append( FIELD_NAME_INDEXLID, indexLID ) ;
             builder.append( FIELD_NAME_DIRECTION, direction ) ;
-            // add indexblocks
             while ( ( ( 1 == direction && indexPos + 1 < idxBlocks.size() ) ||
                       ( -1 == direction && indexPos > 0 ) ) &&
                     indexblockNum < MAX_INDEXBLOCK_A_RECORD_NUM )
@@ -1443,39 +1394,6 @@ namespace engine
       goto done ;
    }
 
-   void monDumpSvcTaskInfo( BSONObjBuilder &ob,
-                            const monSvcTaskInfo *pInfo,
-                            BOOLEAN exceptIDName )
-   {
-      CHAR   timestamp[ OSS_TIMESTAMP_STRING_LEN + 1] = { 0 } ;
-      ossTimestamp tmpTime ;
-
-      if ( !exceptIDName )
-      {
-         ob.append( FIELD_NAME_TASK_ID, (INT64)pInfo->getTaskID() ) ;
-         ob.append( FIELD_NAME_TASK_NAME, pInfo->getTaskName() ) ;
-      }
-      ob.append( FIELD_NAME_TOTALTIME, (INT64)( pInfo->_totalTime / 1000 ) ) ;
-      ob.append( FIELD_NAME_TOTALCONTEXTS, (INT64)pInfo->_totalContexts ) ;
-      ob.append( FIELD_NAME_TOTALDATAREAD, (INT64)pInfo->_totalDataRead ) ;
-      ob.append( FIELD_NAME_TOTALINDEXREAD, (INT64)pInfo->_totalIndexRead ) ;
-      ob.append( FIELD_NAME_TOTALDATAWRITE, (INT64)pInfo->_totalDataWrite ) ;
-      ob.append( FIELD_NAME_TOTALINDEXWRITE, (INT64)pInfo->_totalIndexWrite ) ;
-      ob.append( FIELD_NAME_TOTALUPDATE, (INT64)pInfo->_totalUpdate ) ;
-      ob.append( FIELD_NAME_TOTALDELETE, (INT64)pInfo->_totalDelete ) ;
-      ob.append( FIELD_NAME_TOTALINSERT, (INT64)pInfo->_totalInsert ) ;
-      ob.append( FIELD_NAME_TOTALSELECT, (INT64)pInfo->_totalSelect ) ;
-      ob.append( FIELD_NAME_TOTALREAD, (INT64)pInfo->_totalRead ) ;
-      ob.append( FIELD_NAME_TOTALWRITE, (INT64)pInfo->_totalWrite ) ;
-
-      tmpTime = pInfo->_startTimestamp ;
-      ossTimestampToString( tmpTime, timestamp ) ;
-      ob.append ( FIELD_NAME_STARTTIMESTAMP, timestamp ) ;
-      tmpTime = pInfo->_resetTimestamp ;
-      ossTimestampToString( tmpTime, timestamp ) ;
-      ob.append ( FIELD_NAME_RESETTIMESTAMP, timestamp ) ;
-   }
-
    /*
       _monTransFetcher implement
    */
@@ -1557,11 +1475,10 @@ namespace engine
       INT32 rc = SDB_OK ;
       EDUID eduID = PMD_INVALID_EDUID ;
       pmdEDUMgr *pMgr = pmdGetKRCB()->getEDUMgr() ;
-      dpsTransCB *pTransCB = sdbGetTransCB() ;
-      dpsTransLockManager *pLockMgr = pTransCB->getLockMgrHandle() ;
+      dpsTransCB *pTransCB= sdbGetTransCB() ;
 
    retry:
-      if ( !pLockMgr || _eduList.empty() )
+      if ( _eduList.empty() )
       {
          _hitEnd = TRUE ;
          rc = SDB_DMS_EOC ;
@@ -1571,30 +1488,15 @@ namespace engine
       eduID = _eduList.front() ;
       _eduList.pop() ;
 
-      /// clear
-      _curTransInfo.clear() ;
-
-      /// lock
-      pLockMgr->acquireMonLatch() ;
+      _curTransInfo._lockList.clear() ;
+      _curTransInfo._transID = DPS_INVALID_TRANS_ID ;
 
       if ( SDB_OK != pMgr->dumpTransInfo( eduID, _curTransInfo ) ||
            DPS_INVALID_TRANS_ID == _curTransInfo._transID )
       {
-         /// if the edu has exited
-         pLockMgr->releaseMonLatch() ;
          goto retry ;
       }
 
-      /// dump lock info and waiter info
-      pLockMgr->dumpLockInfo( _curTransInfo._lastLRB,
-                              _curTransInfo._lockList ) ;
-      pLockMgr->dumpLockInfo( _curTransInfo._waitLRB,
-                              _curTransInfo._waitLock ) ;
-
-      /// release lock
-      pLockMgr->releaseMonLatch() ;
-
-      _curTransInfo._locksNum = _curTransInfo._lockList.size() ;
       _pos = _curTransInfo._lockList.begin() ;
 
       try
@@ -1603,28 +1505,18 @@ namespace engine
          monAppendSystemInfo( builder, _addInfoMask ) ;
          builder.append( FIELD_NAME_SESSIONID,
                          (INT64)_curTransInfo._eduID ) ;
-         /// nodeID(16bit) | TAG(8bit) | SN(40bit)
          CHAR strTransID[ 4 + 2 + 10 + 2 ] = { 0 } ;
          ossSnprintf( strTransID, sizeof( strTransID ) - 1,
-                      "%04x%010x",
-                      DPS_TRANS_GET_NODEID( _curTransInfo._transID ),
-                      DPS_TRANS_GET_SN( _curTransInfo._transID ) ) ;
+                      "%04x%010x", ( _curTransInfo._transID >> 48 ),
+                      ( _curTransInfo._transID & DPS_TRANSID_SN_BIT ) ) ;
          builder.append( FIELD_NAME_TRANSACTION_ID, strTransID ) ;
          builder.appendBool( FIELD_NAME_IS_ROLLBACK,
                              pTransCB->isRollback( _curTransInfo._transID ) ?
                              TRUE : FALSE ) ;
          builder.append( FIELD_NAME_TRANS_LSN_CUR,
                          (INT64)_curTransInfo._curTransLsn ) ;
-
-         /// waiter lock
-         BSONObjBuilder subWaiter( builder.subobjStart(
-                                   FIELD_NAME_TRANS_WAIT_LOCK ) ) ;
-         if ( _curTransInfo._waitLRB )
-         {
-            _curTransInfo._waitLock.toBson( subWaiter, FALSE ) ;
-         }
-         subWaiter.done() ;
-
+         builder.append( FIELD_NAME_TRANS_WAIT_LOCK,
+                         _curTransInfo._waitLock.toBson() ) ;
          builder.append( FIELD_NAME_TRANS_LOCKS_NUM,
                          (INT32)_curTransInfo._locksNum ) ;
          monAppendSessionIdentify( builder, _curTransInfo._relatedNID,
@@ -1676,15 +1568,12 @@ namespace engine
             {
                break ;
             }
-            else if ( (*_pos)._id == _curTransInfo._waitLock._id )
+            else if ( _pos->first == _curTransInfo._waitLock )
             {
                ++_pos ;
                continue ;
             }
-
-            BSONObjBuilder subLock( babLockList.subobjStart() ) ;
-            (*_pos).toBson( subLock ) ;
-            subLock.done() ;
+            babLockList.append( _pos->first.toBson() ) ;
             ++_pos ;
          }
          babLockList.done() ;
@@ -1758,7 +1647,7 @@ namespace engine
       {
          if ( _dumpCurrent )
          {
-            pmdEDUCB::SET_CONTEXT &contextList = _contextList[ cb->getID() ] ;
+            std::set <SINT64> &contextList = _contextList[ cb->getID() ] ;
             cb->contextCopy( contextList ) ;
          }
          else
@@ -1836,13 +1725,12 @@ namespace engine
       try
       {
          BSONObjBuilder ob ;
-         std::map<UINT64, pmdEDUCB::SET_CONTEXT>::iterator it ;
-         pmdEDUCB::SET_CONTEXT::iterator itSet ;
+         std::map<UINT64, std::set<SINT64> >::iterator it ;
+         std::set<SINT64>::iterator itSet ;
 
          it = _contextList.begin() ;
-         pmdEDUCB::SET_CONTEXT &setCtx = it->second ;
+         std::set<SINT64> &setCtx = it->second ;
 
-         /// add system info
          monAppendSystemInfo( ob, _addInfoMask ) ;
 
          ob.append( FIELD_NAME_SESSIONID, (SINT64)it->first ) ;
@@ -1856,7 +1744,6 @@ namespace engine
          ba.done() ;
          obj = ob.obj() ;
 
-         /// remove current edu info
          _contextList.erase( it ) ;
          if ( _contextList.size() == 0 )
          {
@@ -1903,10 +1790,8 @@ namespace engine
          it = _contextInfoList.begin() ;
          std::set<monContextFull> &setInfo = it->second ;
 
-         /// add system info
          monAppendSystemInfo( ob, _addInfoMask ) ;
 
-         /// add session id
          ob.append( FIELD_NAME_SESSIONID, (INT64)it->first ) ;
 
          BSONArrayBuilder ba( ob.subarrayStart( FIELD_NAME_CONTEXTS ) ) ;
@@ -1935,7 +1820,6 @@ namespace engine
          ba.done() ;
          obj = ob.obj() ;
 
-         /// remove current
          _contextInfoList.erase( it ) ;
          if ( _contextInfoList.size() == 0 )
          {
@@ -2081,7 +1965,6 @@ namespace engine
          it = _setInfoSimple.begin() ;
          const monEDUSimple &simple = *it ;
 
-         /// add system info
          monAppendSystemInfo( ob, _addInfoMask ) ;
 
          ob.append ( FIELD_NAME_SESSIONID, (SINT64)simple._eduID ) ;
@@ -2094,7 +1977,6 @@ namespace engine
 
          obj = ob.obj () ;
 
-         /// remove current
          _setInfoSimple.erase( it ) ;
          if ( _setInfoSimple.empty() )
          {
@@ -2134,7 +2016,6 @@ namespace engine
          it = _setInfoDetail.begin() ;
          const monEDUFull &full = *it ;
 
-         /// add system info
          monAppendSystemInfo( ob, _addInfoMask ) ;
 
          ob.append( FIELD_NAME_SESSIONID, (INT64)full._eduID ) ;
@@ -2147,9 +2028,8 @@ namespace engine
                     (SINT64)full._processEventCount ) ;
          monAppendSessionIdentify( ob, full._relatedNID,
                                    full._relatedTID ) ;
-         /// add contexts
          BSONArrayBuilder ba( ob.subarrayStart( FIELD_NAME_CONTEXTS ) ) ;
-         ossPoolSet<SINT64>::const_iterator itCtx ;
+         std::set<SINT64>::const_iterator itCtx ;
          for ( itCtx = full._eduContextList.begin() ;
                itCtx != full._eduContextList.end() ;
                ++itCtx )
@@ -2161,11 +2041,9 @@ namespace engine
          ossTime userTime, sysTime ;
          ossTickConversionFactor factor ;
          ossGetCPUUsage( full._threadHdl, userTime, sysTime ) ;
-         /// add app cb info
          monSessionMonEDUFull( ob, full, factor, userTime, sysTime ) ;
          obj = ob.obj () ;
 
-         /// remove the current
          _setInfoDetail.erase( it ) ;
          if ( _setInfoDetail.empty() )
          {
@@ -2293,7 +2171,6 @@ namespace engine
 
          obj = ob.obj () ;
 
-         /// remove current
          _collectionList.erase( it ) ;
          if ( _collectionList.empty() )
          {
@@ -2334,9 +2211,7 @@ namespace engine
          it = _collectionInfo.begin() ;
          const monCollection &full = *it ;
 
-         /// add name & space name
          ob.append ( FIELD_NAME_NAME, full._name ) ;
-         ob.append ( FIELD_NAME_UNIQUEID, (INT64)full._clUniqueID ) ;
          const CHAR *pDot = ossStrchr( full._name, '.' ) ;
          if ( pDot )
          {
@@ -2344,7 +2219,6 @@ namespace engine
                                             full._name,
                                             pDot - full._name ) ;
          }
-         /// add detial
          BSONArrayBuilder ba( ob.subarrayStart( FIELD_NAME_DETAILS ) ) ;
          for ( itDetail = full._details.begin() ;
                itDetail != full._details.end() ;
@@ -2357,7 +2231,6 @@ namespace engine
             std::string status = "" ;
             CHAR tmp[ MON_TMP_STR_SZ + 1 ] = { 0 } ;
 
-            /// add system info
             monAppendSystemInfo( sub, _addInfoMask ) ;
 
             sub.append ( FIELD_NAME_ID, detail._blockID ) ;
@@ -2382,7 +2255,6 @@ namespace engine
             sub.append ( FIELD_NAME_PAGE_SIZE, detail._pageSize ) ;
             sub.append ( FIELD_NAME_LOB_PAGE_SIZE, detail._lobPageSize ) ;
 
-            /// stat info
             sub.append ( FIELD_NAME_TOTAL_RECORDS,
                          (long long)(detail._totalRecords )) ;
             sub.append ( FIELD_NAME_TOTAL_LOBS,
@@ -2400,7 +2272,6 @@ namespace engine
             sub.append ( FIELD_NAME_CURR_COMPRESS_RATIO,
                          (FLOAT64)detail._currCompressRatio / 100.0 ) ;
 
-            /// sync info
             sub.append ( FIELD_NAME_DATA_COMMIT_LSN, (INT64)detail._dataCommitLSN ) ;
             sub.append ( FIELD_NAME_IDX_COMMIT_LSN, (INT64)detail._idxCommitLSN ) ;
             sub.append ( FIELD_NAME_LOB_COMMIT_LSN, (INT64)detail._lobCommitLSN ) ;
@@ -2413,7 +2284,6 @@ namespace engine
          ba.done() ;
          obj = ob.obj() ;
 
-         /// remove the current
          _collectionInfo.erase( it ) ;
          if ( _collectionInfo.empty() )
          {
@@ -2541,7 +2411,6 @@ namespace engine
 
          obj = ob.obj () ;
 
-         /// remove current
          _csList.erase( it ) ;
          if ( _csList.empty() )
          {
@@ -2585,16 +2454,10 @@ namespace engine
          it = _csInfo.begin() ;
          const monCollectionSpace &full = *it ;
 
-         /// add system info
          monAppendSystemInfo( ob, _addInfoMask ) ;
 
-         /// add name & space name
          ob.append ( FIELD_NAME_NAME, full._name ) ;
-         ob.append ( FIELD_NAME_UNIQUEID, full._csUniqueID ) ;
-
-         /// add detial
          BSONArrayBuilder sub( ob.subarrayStart( FIELD_NAME_COLLECTION ) ) ;
-         // do not list detailed collections if we are on temp cs
          if ( ossStrcmp ( full._name, SDB_DMSTEMP_NAME ) != 0 )
          {
             MON_CL_SIM_VEC::const_iterator it1 ;
@@ -2602,10 +2465,7 @@ namespace engine
                   it1!= full._collections.end();
                   it1++ )
             {
-               sub.append ( BSON ( FIELD_NAME_NAME <<
-                                   it1->_name <<
-                                   FIELD_NAME_UNIQUEID <<
-                                   (INT64)it1->_clUniqueID ) ) ;
+               sub.append (BSON ( FIELD_NAME_NAME << (*it1)._name ) ) ;
             }
          }
          sub.done() ;
@@ -2634,7 +2494,6 @@ namespace engine
          ob.append ( FIELD_NAME_TOTAL_LOB_SIZE, full._totalLobSize ) ;
          ob.append ( FIELD_NAME_FREE_LOB_SIZE, full._freeLobSize ) ;
 
-         /// sync info
          ob.append ( FIELD_NAME_DATA_COMMIT_LSN, (INT64)full._dataCommitLsn ) ;
          ob.append ( FIELD_NAME_IDX_COMMIT_LSN, (INT64)full._idxCommitLsn ) ;
          ob.append ( FIELD_NAME_LOB_COMMIT_LSN, (INT64)full._lobCommitLsn ) ;
@@ -2642,12 +2501,10 @@ namespace engine
          ob.appendBool ( FIELD_NAME_IDX_COMMITTED, full._idxIsValid ) ;
          ob.appendBool ( FIELD_NAME_LOB_COMMITTED, full._lobIsValid ) ;
 
-         /// cache info
          ob.append ( FIELD_NAME_DIRTY_PAGE, (INT32)full._dirtyPage ) ;
          ob.append( FIELD_NAME_TYPE, (INT32)full._type ) ;
          obj = ob.obj() ;
 
-         /// remove the current
          _csInfo.erase( it ) ;
          if ( _csInfo.empty() )
          {
@@ -2734,9 +2591,7 @@ namespace engine
       {
          BSONObjBuilder ob( MON_DUMP_DFT_BUILDER_SZ ) ;
 
-         /// add system info
          monAppendSystemInfo ( ob, _addInfoMask ) ;
-         /// add version
          monAppendVersion ( ob ) ;
 
          ossTickConversionFactor factor ;
@@ -2746,8 +2601,6 @@ namespace engine
                      (SINT32)mgr->sizeIdle () ) ;
          ob.append ( FIELD_NAME_CURRENTSYSTEMSESSIONS,
                      (SINT32)mgr->sizeSystem() ) ;
-         ob.append( FIELD_NAME_CURRENTTASKSESSIONS,
-                     (SINT32)mgr->sizeByType( EDU_TYPE_BACKGROUND_JOB ) ) ;
          ob.append ( FIELD_NAME_CURRENTCONTEXTS, (SINT32)rtnCB->contextNum() ) ;
          ob.append ( FIELD_NAME_RECEIVECOUNT,
                      (INT64)mondbcb->getReceiveNum() ) ;
@@ -2779,8 +2632,6 @@ namespace engine
          monDBDumpProcMemInfo( ob ) ;
          monDBDumpStorageInfo( ob ) ;
          monDBDumpNetInfo( ob ) ;
-
-         sdbGetClsCB()->dumpSchedInfo( ob ) ;
 
          obj = ob.obj () ;
       }
@@ -2841,7 +2692,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      // cpu
       INT64 cpuUser        = 0 ;
       INT64 cpuSys         = 0 ;
       INT64 cpuIdle        = 0 ;
@@ -2853,7 +2703,6 @@ namespace engine
          goto error ;
       }
 
-      // cpu
       rc = ossGetCPUInfo ( cpuUser, cpuSys, cpuIdle, cpuOther ) ;
        if ( rc )
       {
@@ -2861,14 +2710,11 @@ namespace engine
          goto error ;
       }
 
-      // generate BSON return obj
       try
       {
          BSONObjBuilder ob( MON_DUMP_DFT_BUILDER_SZ ) ;
 
-         /// add system info
          monAppendSystemInfo ( ob, _addInfoMask ) ;
-         // cpu
          {
             BSONObjBuilder cpuOb( ob.subobjStart( FIELD_NAME_CPU ) ) ;
             cpuOb.append ( FIELD_NAME_USER, ((FLOAT64)cpuUser)/1000 ) ;
@@ -2877,9 +2723,7 @@ namespace engine
             cpuOb.append ( FIELD_NAME_OTHER, ((FLOAT64)cpuOther)/1000 ) ;
             cpuOb.done() ;
          }
-         // memory
          monAppendHostMemory( ob ) ;
-         // disk
          monAppendDisk( ob ) ;
          obj = ob.obj() ;
       }
@@ -2949,7 +2793,6 @@ namespace engine
          goto error ;
       }
 
-      // generate BSON return obj
       try
       {
          BSONObjBuilder ob( MON_DUMP_DFT_BUILDER_SZ ) ;
@@ -2964,7 +2807,6 @@ namespace engine
 
          monAppendUlimit( ob ) ;
 
-         /// number of occurred error
          pmdOccurredErr numErr = pmdGetOccurredErr();
          CHAR timestamp[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
          ossTimestampToString( numErr._resetTimestamp, timestamp ) ;
@@ -3090,12 +2932,9 @@ namespace engine
          it = _suInfo.begin() ;
          const monStorageUnit &su = *it ;
 
-         /// add system info
          monAppendSystemInfo( ob, _addInfoMask ) ;
 
-         /// add name & space name
          ob.append ( FIELD_NAME_NAME, su._name ) ;
-         ob.append ( FIELD_NAME_UNIQUEID, su._csUniqueID ) ;
          ob.append ( FIELD_NAME_ID, su._CSID ) ;
          ob.append ( FIELD_NAME_LOGICAL_ID, su._logicalCSID ) ;
          ob.append ( FIELD_NAME_PAGE_SIZE, su._pageSize ) ;
@@ -3107,7 +2946,6 @@ namespace engine
 
          obj = ob.obj() ;
 
-         /// remove the current
          _suInfo.erase( it ) ;
          if ( _suInfo.empty() )
          {
@@ -3260,7 +3098,6 @@ namespace engine
          const BSONObj &indexObj = indexItem._indexDef ;
          OID oid ;
 
-         /// add system info
          monAppendSystemInfo( ob, _addInfoMask ) ;
 
          BSONObjBuilder sub( ob.subobjStart( IXM_FIELD_NAME_INDEX_DEF ) ) ;
@@ -3280,8 +3117,6 @@ namespace engine
                       indexObj.getBoolField( IXM_DROPDUP_FIELD ) ) ;
          sub.append ( IXM_ENFORCED_FIELD,
                       indexObj.getBoolField( IXM_ENFORCED_FIELD ) ) ;
-         sub.append ( IXM_NOTNULL_FIELD,
-                      indexObj.getBoolField( IXM_NOTNULL_FIELD ) ) ;
          BSONObj range = indexObj.getObjectField( IXM_2DRANGE_FIELD ) ;
          if ( !range.isEmpty() )
          {
@@ -3447,7 +3282,6 @@ namespace engine
       {
          BSONObjBuilder ob( MON_DUMP_DFT_BUILDER_SZ * 4 ) ;
 
-         /// add system info
          monAppendSystemInfo( ob, _addInfoMask ) ;
 
          ob.append( FIELD_NAME_SCANTYPE, VALUE_NAME_TBSCAN ) ;
@@ -3542,7 +3376,6 @@ namespace engine
       PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s], rc: %d",
                    FIELD_NAME_DETAIL, rc ) ;
 
-      // option config
       rc = rtnGetBooleanElement( obj, FIELD_NAME_ISSUBDIR, isSubDir ) ;
       if ( SDB_FIELD_NOT_EXIST == rc )
       {
@@ -3559,7 +3392,6 @@ namespace engine
       PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s], rc: %d",
                    FIELD_NAME_PREFIX, rc ) ;
 
-      // make path
       if ( isSubDir && pPath )
       {
          bkpath = rtnFullPathName( pmdGetOptionCB()->getBkupPath(), pPath ) ;
@@ -3576,7 +3408,6 @@ namespace engine
       rc = bkMgr.init( bkpath.c_str(), backupName, prefix ) ;
       PD_RC_CHECK( rc, PDWARNING, "Init backup manager failed, rc: %d", rc ) ;
 
-      // list
       rc = bkMgr.list( _vecBackup, detail ) ;
       PD_RC_CHECK( rc, PDWARNING, "List backup failed, rc: %d", rc ) ;
 
@@ -3642,7 +3473,6 @@ namespace engine
          {
             BSONObjBuilder ob( MON_DUMP_DFT_BUILDER_SZ / 2 ) ;
 
-            /// add system info
             monAppendSystemInfo( ob, _addInfoMask ) ;
             ob.appendElements( _vecBackup[ _pos++ ] ) ;
 
@@ -3704,7 +3534,6 @@ namespace engine
             {
                BSONObjBuilder infoBuilder ;
 
-               /// add system info
                rc = monAppendSystemInfo( infoBuilder, addInfoMask ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to append system info, "
                             "rc: %d", rc ) ;
@@ -3789,7 +3618,6 @@ namespace engine
          {
             BSONObjBuilder builder( MON_DUMP_DFT_BUILDER_SZ / 2 ) ;
 
-            /// add system info
             builder.appendElements( _sysInfo ) ;
             builder.appendElements( _cachedPlanList[ _pos++ ] ) ;
 
@@ -3813,291 +3641,6 @@ namespace engine
       return rc ;
    error :
       goto done ;
-   }
-
-   /*
-      _monConfigFetch implement
-   */
-   IMPLEMENT_FETCH_AUTO_REGISTER( _monConfigsFetch, RTN_FETCH_CONFIGS )
-
-   _monConfigsFetch::_monConfigsFetch()
-   {
-      _addInfoMask   = 0 ;
-      _hitEnd        = TRUE ;
-      _isLocalMode   = FALSE ;
-      _isExpand      = TRUE ;
-   }
-
-   _monConfigsFetch::~_monConfigsFetch()
-   {
-   }
-
-   INT32 _monConfigsFetch::init( pmdEDUCB *cb,
-                                 BOOLEAN isCurrent,
-                                 BOOLEAN isDetail,
-                                 UINT32 addInfoMask,
-                                 const BSONObj obj )
-   {
-      INT32 rc = SDB_OK ;
-
-      try
-      {
-         BSONObjIterator itr( obj ) ;
-         BSONElement elem ;
-         while ( itr.more() )
-         {
-            elem = itr.next() ;
-            // ignore case for backward compatibility
-            if ( 0 == ossStrcasecmp( elem.fieldName(), FIELD_NAME_MODE ) )
-            {
-               if ( 0 == ossStrcmp( elem.valuestr(), VALUE_NAME_LOCAL ) )
-               {
-                  _isLocalMode = TRUE ;
-               }
-            }
-            else if ( 0 == ossStrcasecmp( elem.fieldName(), FIELD_NAME_EXPAND ) )
-            {
-               if ( elem.type() == bson::Bool )
-               {
-                  _isExpand = elem.boolean() ;
-               }
-               else if ( elem.type() == bson::String )
-               {
-                  ossStrToBoolean( elem.valuestr(), &_isExpand ) ;
-               }
-            }
-         }
-      }
-      catch ( std::exception &e )
-      {
-         PD_LOG ( PDERROR, "Failed to read configs options ",
-                  e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      _addInfoMask = addInfoMask ;
-      _hitEnd = FALSE ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   const CHAR* _monConfigsFetch::getName() const
-   {
-      return CMD_NAME_SNAPSHOT_CONFIGS ;
-   }
-
-   BOOLEAN _monConfigsFetch::isHitEnd() const
-   {
-      return _hitEnd ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__MONCONFIGSFETCH_FETCH, "_monConfigsFetch::fetch" )
-   INT32 _monConfigsFetch::fetch( BSONObj &obj )
-   {
-      PD_TRACE_ENTRY ( SDB__MONCONFIGSFETCH_FETCH ) ;
-      INT32 rc             = SDB_OK ;
-      INT32 mask           = 0 ;
-
-      if ( _hitEnd )
-      {
-         rc = SDB_DMS_EOC ;
-         goto error ;
-      }
-      else
-      {
-         BSONObjBuilder ob( 1024 ) ;
-         BSONObj tmpObj ;
-
-         /// add system info
-         monAppendSystemInfo( ob, _addInfoMask ) ;
-
-         if ( !_isExpand )
-         {
-            mask |= PMD_CFG_MASK_SKIP_UNFIELD ;
-         }
-         if ( _isLocalMode )
-         {
-            mask |= PMD_CFG_MASK_MODE_LOCAL ;
-         }
-
-         rc = pmdGetOptionCB()->toBSON( tmpObj, mask ) ;
-         if ( rc != SDB_OK )
-         {
-            PD_LOG ( PDERROR, "Failed to generate config, rc: %d", rc ) ;
-            goto error ;
-         }
-         ob.appendElements( tmpObj ) ;
-         obj = ob.obj() ;
-
-         _hitEnd = TRUE ;
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB__MONCONFIGSFETCH_FETCH, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   /*
-      _monVCLSessionInfoFetch implement
-   */
-   IMPLEMENT_FETCH_AUTO_REGISTER( _monVCLSessionInfoFetch, RTN_FETCH_VCL_SESSIONINFO )
-   _monVCLSessionInfoFetch::_monVCLSessionInfoFetch()
-   {
-      _hitEnd = TRUE ;
-   }
-
-   _monVCLSessionInfoFetch::~_monVCLSessionInfoFetch()
-   {
-   }
-
-   INT32 _monVCLSessionInfoFetch::init( pmdEDUCB *cb,
-                                        BOOLEAN isCurrent,
-                                        BOOLEAN isDetail,
-                                        UINT32 addInfoMask,
-                                        const BSONObj obj )
-   {
-      ISession *pSession = cb->getSession() ;
-
-      if ( pSession )
-      {
-         schedItem *pItem = ( schedItem* )pSession->getSchedItemPtr() ;
-         _info = pItem->_info.toBSON() ;
-         _hitEnd = FALSE ;
-
-         if ( cb->getMonAppCB()->getSvcTaskInfo() )
-         {
-            BSONObjBuilder builder ;
-            builder.appendElements( _info ) ;
-            monDumpSvcTaskInfo( builder,
-                                cb->getMonAppCB()->getSvcTaskInfo(),
-                                TRUE ) ;
-            _info = builder.obj() ;
-         }
-      }
-      else
-      {
-         _hitEnd = TRUE ;
-      }
-
-      return SDB_OK ;
-   }
-
-   const CHAR* _monVCLSessionInfoFetch::getName() const
-   {
-      return SYS_CL_SESSION_INFO ;
-   }
-
-   BOOLEAN _monVCLSessionInfoFetch::isHitEnd() const
-   {
-      return _hitEnd ;
-   }
-
-   INT32 _monVCLSessionInfoFetch::fetch( BSONObj & obj )
-   {
-      INT32 rc = SDB_OK ;
-
-      if ( _hitEnd )
-      {
-         rc = SDB_DMS_EOC ;
-      }
-      else
-      {
-         obj = _info ;
-         _hitEnd = TRUE ;
-      }
-
-      return rc ;
-   }
-
-   IMPLEMENT_FETCH_AUTO_REGISTER( _monSvcTasksFetch, RTN_FETCH_SVCTASKS )
-   /*
-      _monSvcTasksFetch implement
-   */
-   _monSvcTasksFetch::_monSvcTasksFetch()
-   {
-      _addInfoMask = 0 ;
-      _hitEnd = TRUE ;
-      _isDetail= TRUE ;
-   }
-
-   _monSvcTasksFetch::~_monSvcTasksFetch()
-   {
-   }
-
-   INT32 _monSvcTasksFetch::init( pmdEDUCB *cb,
-                                  BOOLEAN isCurrent,
-                                  BOOLEAN isDetail,
-                                  UINT32 addInfoMask,
-                                  const BSONObj obj )
-   {
-      schedTaskMgr *pMgr = pmdGetKRCB()->getSvcTaskMgr() ;
-
-      _isDetail = isDetail ;
-      _addInfoMask = addInfoMask ;
-      _mapSvcTask = pMgr->getTaskInfos() ;
-
-      if ( _mapSvcTask.empty() )
-      {
-         _hitEnd = TRUE ;
-      }
-      else
-      {
-         _hitEnd = FALSE ;
-      }
-
-      return SDB_OK ;
-   }
-
-   const CHAR* _monSvcTasksFetch::getName() const
-   {
-      return _isDetail ? CMD_NAME_SNAPSHOT_SVCTASKS :
-                         CMD_NAME_LIST_SVCTASKS ;
-   }
-
-   BOOLEAN _monSvcTasksFetch::isHitEnd() const
-   {
-      return _hitEnd ;
-   }
-
-   INT32 _monSvcTasksFetch::fetch( BSONObj &obj )
-   {
-      INT32 rc = SDB_OK ;
-      MAP_SVCTASKINFO_PTR_IT it ;
-
-      if ( _hitEnd )
-      {
-         rc = SDB_DMS_EOC ;
-      }
-      else
-      {
-         BSONObjBuilder builder ;
-         it = _mapSvcTask.begin() ;
-
-         monAppendSystemInfo( builder, _addInfoMask ) ;
-
-         if ( _isDetail )
-         {
-            monDumpSvcTaskInfo( builder, it->second.get() ) ;
-         }
-         else
-         {
-            const monSvcTaskInfo *pInfo = it->second.get() ;
-            builder.append( FIELD_NAME_TASK_ID, (INT64)pInfo->getTaskID() ) ;
-            builder.append( FIELD_NAME_TASK_NAME, pInfo->getTaskName() ) ;
-         }
-         obj = builder.obj() ;
-
-         _mapSvcTask.erase( it ) ;
-         _hitEnd = _mapSvcTask.empty() ? TRUE : FALSE ;
-      }
-
-      return rc ;
    }
 
 }

@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = aggrBuilder.cpp
 
@@ -103,11 +102,8 @@ namespace engine
       return SDB_OK ;
    }
 
-   INT32 aggrBuilder::build( const BSONObj &objs,
-                             INT32 objNum,
-                             const CHAR *pCLName,
-                             const BSONObj &hint,
-                             _pmdEDUCB *cb,
+   INT32 aggrBuilder::build( const BSONObj &objs, INT32 objNum,
+                             const CHAR *pCLName, _pmdEDUCB *cb,
                              SINT64 &contextID )
    {
       INT32 rc = SDB_OK;
@@ -124,19 +120,16 @@ namespace engine
                "malloc failed" );
       hasNew = TRUE;
 
-      // 1.parse the input objs and build the opti tree
       rc = buildTree( objs, objNum, pOptiTree, pContainer->ptrTable(),
-                      pContainer->paramTable(), pCLName, hint );
+                      pContainer->paramTable(), pCLName );
       PD_RC_CHECK( rc, PDERROR,
                   "failed to build the opti tree(rc=%d)",
                   rc );
 
-      // 2.extend
       rc = pOptiTree->extend( pExtend );
       PD_RC_CHECK( rc, PDERROR,
                   "extend failed(rc=%d)", rc );
 
-      // 3.optimize
       {
          qgmOptTree tree( pExtend );
          optQgmOptimizer optimizer;
@@ -147,7 +140,6 @@ namespace engine
          pExtend = tree.getRoot();
       }
 
-      // 4.build physical plan
       {
          qgmBuilder builder( pContainer->ptrTable(),
                              pContainer->paramTable() );
@@ -159,11 +151,9 @@ namespace engine
                      "invalid container type!" );
       }
 
-      // 5.execute
       rc = pContainer->execute( cb );
       PD_RC_CHECK( rc, PDERROR, "execute failed(rc=%d)", rc );
 
-      // 6. create context
       SDB_ASSERT( QGM_PLAN_TYPE_RETURN == pContainer->type(),
                   "invalid container type!" );
       rc = createContext( pContainer, cb, contextID );
@@ -191,78 +181,53 @@ namespace engine
                                  _qgmOptiTreeNode *&root,
                                  _qgmPtrTable * pPtrTable,
                                  _qgmParamTable *pParamTable,
-                                 const CHAR *pCollectionName,
-                                 const BSONObj &hint )
+                                 const CHAR *pCollectionName )
    {
-      INT32 rc = SDB_OK ;
-      INT32 i = 0 ;
-
-      const CHAR *pCLNameTmp = pCollectionName ;
-      BSONObj tmpHint = hint ;
-      ossValuePtr pDataPos = 0 ;
-
-      AGGR_PARSER_MAP::iterator iterMap ;
-
+      INT32 rc = SDB_OK;
+      INT32 i = 0;
+      const CHAR *pCLNameTmp = pCollectionName;
+      ossValuePtr pDataPos = 0;
       PD_CHECK( !objs.isEmpty(), SDB_INVALIDARG, error, PDERROR,
-                "Parameter-object can't be empty!" ) ;
-
-      pDataPos = (ossValuePtr)objs.objdata() ;
+               "Parameter-object can't be empty!" );
+      pDataPos = (ossValuePtr)objs.objdata();
       while ( i < objNum )
       {
          try
          {
-            // parse an obj, i.e:{$group:{_id: groupby, total:{$sum: "$num"}}}
-            BSONObj paraObj ( (const CHAR*)pDataPos ) ;
-            BSONElement bePara ;
-            const CHAR *pAggrOp = NULL ;
-
-            if ( paraObj.nFields() != 1 )
-            {
-               PD_LOG( PDERROR, "Only one element in one aggregate object "
-                       "is allowed: %s", paraObj.toString().c_str() ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-
-            bePara = paraObj.firstElement() ;
-            pAggrOp = bePara.fieldName() ;
-
-            iterMap = _parserMap.find( pAggrOp ) ;
-            if ( iterMap == _parserMap.end() )
-            {
-               PD_LOG( PDERROR, "Unknow aggregation-operator name: %s",
-                       pAggrOp ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-
+            BSONObj paraObj ( (const CHAR*)pDataPos );
+            PD_CHECK( paraObj.nFields() == 1, SDB_INVALIDARG,
+                     error, PDERROR,
+                     "only one element in one aggregate object is allowed" );
+            BSONElement bePara = paraObj.firstElement();
+            const CHAR *pAggrOp = bePara.fieldName();
+            AGGR_PARSER_MAP::iterator iterMap
+                                       = _parserMap.find( pAggrOp );
+            PD_CHECK( iterMap != _parserMap.end(), SDB_INVALIDARG,
+                     error, PDERROR,
+                     "unknow aggregation-operator name(%s)",
+                     pAggrOp );
             rc = iterMap->second->parse( bePara, root, pPtrTable,
-                                         pParamTable, pCLNameTmp,
-                                         tmpHint ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Failed to build the opti tree, rc: %d", rc ) ;
-               goto error ;
-            }
-
+                                         pParamTable, pCLNameTmp );
+            PD_RC_CHECK( rc, PDERROR,
+                        "failed to build the opti tree(rc=%d)", rc );
             pDataPos += ossAlignX( (ossValuePtr)paraObj.objsize(), 4 );
-            i++ ;
-            pCLNameTmp = NULL ;
+            i++;
+            pCLNameTmp = NULL;
          }
          catch ( std::exception &e )
          {
-            PD_LOG( PDERROR, "Failed to build tree, occur unexpected "
-                    "error:%s", e.what() ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
+            PD_LOG( PDERROR,
+                  "Failed to build tree, received unexpected error:%s",
+                  e.what() );
+            rc = SDB_INVALIDARG;
+            goto error;
          }
       }
-
    done:
       return rc;
    error:
-      SAFE_OSS_DELETE( root ) ;
-      goto done ;
+      SAFE_OSS_DELETE( root );
+      goto done;
    }
 
    INT32 aggrBuilder::createContext( _qgmPlanContainer *container,
@@ -339,9 +304,6 @@ namespace engine
                                     INT32 objNum,
                                     const CHAR *pInnerCmd,
                                     const BSONObj &selector,
-                                    const BSONObj &hint,
-                                    INT64 skip,
-                                    INT64 limit,
                                     _pmdEDUCB *cb,
                                     SINT64 &contextID )
    {
@@ -364,7 +326,6 @@ namespace engine
 
       rc = pmdGetKRCB()->getAggrCB()->build( obj, objNum,
                                              pInnerCmd,
-                                             hint,
                                              cb, aggrContextID ) ;
       if ( SDB_OK != rc )
       {
@@ -380,14 +341,13 @@ namespace engine
          goto error ;
       }
 
-      rc = context->open( selector, BSONObj(), limit, skip ) ;
+      rc = context->open( selector, BSONObj() ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to open dump context, rc: %d", rc ) ;
          goto error ;
       }
 
-      /// dump data
       {
          rtnDataSet ds( aggrContextID, cb ) ;
          while( TRUE )
@@ -434,8 +394,7 @@ namespace engine
    }
 
    INT32 _aggrCmdBase::parseUserAggr( const BSONObj &hint,
-                                      vector<BSONObj> &vecObj,
-                                      BSONObj &newHint )
+                                      vector<BSONObj> &vecObj )
    {
       INT32 rc = SDB_OK ;
 
@@ -444,13 +403,10 @@ namespace engine
          BSONElement e = hint.getField( FIELD_NAME_SYS_AGGR ) ;
          if ( e.eoo() )
          {
-            newHint = hint ;
             goto done ;
          }
          else if ( Object == e.type() )
          {
-            newHint = hint.filterFieldsUndotted( BSON( FIELD_NAME_SYS_AGGR <<
-                                                 1 ), false ) ;
             vecObj.push_back( e.embeddedObject() ) ;
          }
          else if ( Array != e.type() )
@@ -461,8 +417,6 @@ namespace engine
          }
          else
          {
-            newHint = hint.filterFieldsUndotted( BSON( FIELD_NAME_SYS_AGGR <<
-                                                 1 ), false ) ;
             BSONObjIterator it( e.embeddedObject() ) ;
             while( it.more() )
             {
@@ -508,7 +462,6 @@ namespace engine
          {
             BSONElement ele = iter.next() ;
 
-            /// $and:[{a:{$eq:1}},{global:{$et:1}}]
             if ( Array == ele.type() &&
                  0 == ossStrcmp( ele.fieldName(), "$and" ) )
             {
@@ -549,8 +502,7 @@ namespace engine
                       0 == ossStrcasecmp( ele.fieldName(), FIELD_NAME_NODEID ) ||
                       0 == ossStrcasecmp( ele.fieldName(), FIELD_NAME_HOST ) ||
                       0 == ossStrcasecmp( ele.fieldName(), PMD_OPTION_SVCNAME ) ||
-                      0 == ossStrcasecmp( ele.fieldName(), FIELD_NAME_SERVICE_NAME ) ||
-                      0 == ossStrcasecmp( ele.fieldName(), FIELD_NAME_NODE_NAME )
+                      0 == ossStrcasecmp( ele.fieldName(), FIELD_NAME_SERVICE_NAME )
                      ) )
             {
                nodesCondBuilder.append( ele ) ;

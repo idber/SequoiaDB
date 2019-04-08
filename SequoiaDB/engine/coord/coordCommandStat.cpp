@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordCommandStat.cpp
 
@@ -70,7 +69,6 @@ namespace engine
 
       SDB_RTNCB *pRtncb                = pmdGetKRCB()->getRTNCB() ;
 
-      // fill default-reply(execute success)
       contextID                        = -1 ;
 
       coordQueryOperator queryOpr( isReadOnly() ) ;
@@ -81,7 +79,6 @@ namespace engine
 
       CHAR *pHint = NULL ;
 
-      // extract request-message
       rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL,
                             NULL, NULL, NULL, NULL,
                             NULL, &pHint );
@@ -91,7 +88,6 @@ namespace engine
       try
       {
          BSONObj boHint( pHint ) ;
-         //get collection name
          BSONElement ele = boHint.getField( FIELD_NAME_COLLECTION ) ;
          PD_CHECK ( ele.type() == String,
                     SDB_INVALIDARG, error, PDERROR,
@@ -105,37 +101,22 @@ namespace engine
                        "error:%s", e.what() ) ;
       }
 
-      if ( 0 == ossStrncmp( queryConf._realCLName.c_str(),
-                            CMD_ADMIN_PREFIX SYS_VIRTUAL_CS".",
-                            SYS_VIRTUAL_CS_LEN + 1 ) )
+      rc = queryOpr.init( _pResource, cb, getTimeout() ) ;
+      if ( rc )
       {
-         rc = _executeOnVCL( queryConf._realCLName.c_str(), cb, contextID ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Execute on VCL failed, rc: %d", rc ) ;
-            goto error ;
-         }
+         PD_LOG( PDERROR, "Init query operator failed, rc: %d", rc ) ;
+         goto error ;
       }
-      else
-      {
-         rc = queryOpr.init( _pResource, cb, getTimeout() ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Init query operator failed, rc: %d", rc ) ;
-            goto error ;
-         }
 
-         rc = queryOpr.queryOrDoOnCL( pMsg, cb, &pContext,
-                                      sendOpt, &queryConf, buf ) ;
-         PD_RC_CHECK( rc, PDERROR, "Query failed, rc: %d", rc ) ;
+      rc = queryOpr.queryOrDoOnCL( pMsg, cb, &pContext,
+                                   sendOpt, &queryConf, buf ) ;
+      PD_RC_CHECK( rc, PDERROR, "Query failed, rc: %d", rc ) ;
 
-         // statistics the result
-         rc = generateResult( pContext, cb ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to execute statistics, rc: %d", rc ) ;
+      rc = generateResult( pContext, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to execute statistics, rc: %d", rc ) ;
 
-         contextID = pContext->contextID() ;
-         pContext->reopen() ;
-      }
+      contextID = pContext->contextID() ;
+      pContext->reopen() ;
 
    done:
       PD_TRACE_EXITRC ( COORD_CMDSTATBASE_EXE, rc ) ;
@@ -146,62 +127,6 @@ namespace engine
          pRtncb->contextDelete( pContext->contextID(), cb ) ;
       }
       goto done ;
-   }
-
-   INT32 _coordCMDStatisticsBase::_executeOnVCL( const CHAR *pCLName,
-                                                 pmdEDUCB *cb,
-                                                 INT64 &contextID )
-   {
-      INT32 rc = SDB_OK ;
-      rtnContextCoord *pContext = NULL ;
-      SDB_RTNCB *pRtncb = pmdGetKRCB()->getRTNCB() ;
-      rtnQueryOptions defaultOptions ;
-
-      if ( 0 != ossStrcmp( pCLName, CMD_ADMIN_PREFIX SYS_CL_SESSION_INFO ) )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      rc = pRtncb->contextNew( RTN_CONTEXT_COORD,
-                               (rtnContext**)&pContext,
-                               contextID, cb ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Create context failed, rc: %d", rc ) ;
-         goto error ;
-      }
-
-      rc = pContext->open( defaultOptions, FALSE ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Open context failed, rc: %d", rc ) ;
-         goto error ;
-      }
-
-      rc = generateVCLResult( pCLName, pContext, cb ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Generate VCL result failed, rc: %d", rc ) ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      if ( contextID != -1 )
-      {
-         pRtncb->contextDelete( contextID , cb ) ;
-         contextID = -1 ;
-      }
-      goto done ;
-   }
-
-   INT32 _coordCMDStatisticsBase::generateVCLResult( const CHAR *pCLName,
-                                                     rtnContext *pContext,
-                                                     pmdEDUCB *cb )
-   {
-      return SDB_OK ;
    }
 
    /*
@@ -228,7 +153,6 @@ namespace engine
       CoordIndexMap indexMap ;
       rtnContextBuf buffObj ;
 
-      // get index from all nodes
       while( TRUE )
       {
          rc = pContext->getMore( 1, buffObj, cb ) ;
@@ -273,7 +197,6 @@ namespace engine
             }
             else
             {
-               // check the index
                BSONObjIterator newIter( boIndexDef ) ;
                BSONObj boOldDef ;
 
@@ -407,15 +330,6 @@ namespace engine
       goto done ;
    }
 
-   INT32 _coordCMDGetCount::generateVCLResult( const CHAR *pCLName,
-                                               rtnContext *pContext,
-                                               pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-      rc = pContext->append( BSON( FIELD_NAME_TOTAL << (INT64)1 ) ) ;
-      return rc ;
-   }
-
    /*
       _coordCMDGetDatablocks implement
    */
@@ -433,7 +347,6 @@ namespace engine
    INT32 _coordCMDGetDatablocks::generateResult( rtnContext * pContext,
                                                  pmdEDUCB * cb )
    {
-      // don't merge data, do nothing
       return SDB_OK ;
    }
 

@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omagentDef.hpp
 
@@ -91,7 +90,6 @@ namespace engine
    #define SDBCM_EXE_FILE_NAME         "sdbcm"
    #define SDBCM_CFG_FILE_NAME         SDBCM_EXE_FILE_NAME".conf"
    #define SDBCM_DIALOG_FILE_NAME      SDBCM_EXE_FILE_NAME".log"
-   #define SDBCM_PID_FILE_NAME         SDBCM_EXE_FILE_NAME".pid"
 
    #define SDB_CM_ROOT_PATH            ".." OSS_FILE_SEP SDBCM_CONF_DIR_NAME OSS_FILE_SEP
    #define SDBCM_CONF_PATH_FILE        SDB_CM_ROOT_PATH SDBCM_CFG_FILE_NAME
@@ -126,12 +124,9 @@ namespace engine
    #define OMA_CMD_QUERY_HOST_STATUS                  OM_QUERY_HOST_STATUS_REQ
 
    #define OMA_CMD_SYNC_BUSINESS_CONF                 OM_SYNC_BUSINESS_CONF_REQ
-   #define OMA_CMD_RESTART_BUSINESS                   OM_RESTART_BUSINESS_REQ
 
    #define OMA_CMD_CREATE_RELATIONSHIP                OM_CREATE_RELATIONSHIP_REQ
    #define OMA_CMD_REMOVE_RELATIONSHIP                OM_REMOVE_RELATIONSHIP_REQ
-
-   #define OMA_CMD_MODIFY_BUSINESS_CONFIG             OM_MODIFY_BUSINESS_CONFIG_REQ
 
    #define OMA_CMD_START_PLUGIN                       "start plugins"
    #define OMA_CMD_STOP_PLUGIN                        "stop plugins"
@@ -183,8 +178,6 @@ namespace engine
 
    #define OMA_CMD_UPDATE_TASK                        "update task"
 
-   #define OMA_CMD_ASYNC_SUB_TASK                     "async sub task"
-
 
    /*
       oma js file
@@ -234,12 +227,9 @@ namespace engine
    #define FILE_DEPLOY_PACKAGE              "deployPackage.js"
 
    #define FILE_SYNC_BUSINESS_CONF          "syncBusinessConf.js"
-   #define FILE_RESTART_BUSINESS            "restartBusiness.js"
 
    #define FILE_CREATE_RELATIONSHIP         "createRelationship.js"
    #define FILE_REMOVE_RELATIONSHIP         "removeRelationship.js"
-
-   #define FILE_MODIFY_BUSINESS_CONFIG      "modifyBusinessConfig.js"
 
    #define FILE_INIT_ENV                    "initEnv.js"
    #define FILE_INSTALL_ZOOKEEPER           "installZNode.js"
@@ -285,7 +275,6 @@ namespace engine
    #define DEPLAY_SA                        "standalone"
    #define DEPLAY_DB                        "distribution"
 
-   // oma extend mode
    #define EXTEND_HORZ                      "horizontal"
    #define EXTEND_VERT                      "vertical"
 
@@ -371,8 +360,6 @@ namespace engine
    #define OMA_REMOTE_OMA_GET_OMA_CONFIG_FILE     "oma get oma config file"
    #define OMA_REMOTE_OMA_GET_OMA_CONFIGS         "oma get oma configs"
    #define OMA_REMOTE_OMA_SET_OMA_CONFIGS         "oma set oma configs"
-   #define OMA_REMOTE_OMA_GET_INI_CONFIGS         "oma get ini configs"
-   #define OMA_REMOTE_OMA_SET_INI_CONFIGS         "oma set ini configs"
    #define OMA_REMOTE_OMA_GET_A_OMA_SVC_NAME      "oma get a oma svc name"
    #define OMA_REMOTE_OMA_ADD_A_OMA_SVC_NAME      "oma add a oma svc name"
    #define OMA_REMOTE_OMA_DEL_A_OMA_SVC_NAME      "oma del a oma svc name"
@@ -381,8 +368,6 @@ namespace engine
    #define OMA_REMOTE_OMA_SET_NODE_CONFIGS        "oma set node configs"
    #define OMA_REMOTE_OMA_UPDATE_NODE_CONFIGS     "oma update node configs"
    #define OMA_REMOTE_OMA_RELOAD_CONFIGS          CMD_NAME_RELOAD_CONFIG
-   #define OMA_REMOTE_OMA_START_NODES             "oma start nodes"
-   #define OMA_REMOTE_OMA_STOP_NODES              "oma stop nodes"
 }
 
 #endif // OMAGENT_DEF_HPP__

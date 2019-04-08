@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordDef.hpp
 
@@ -38,7 +37,7 @@
 #define COORDDEF_HPP__
 
 #include "clsCatalogAgent.hpp"
-#include "ossMemPool.hpp"
+#include "utilMap.hpp"
 #include "../bson/bson.h"
 #include <vector>
 #include <queue>
@@ -49,6 +48,7 @@ using namespace bson ;
 
 namespace engine
 {
+   #define COORD_GROUPS_AVG_NUM              ( 20 )
 
    struct coordErrorInfo
    {
@@ -77,29 +77,28 @@ namespace engine
             }
             catch( std::exception & )
             {
-               /// do nothing
             }
          }
       }
    } ;
-   typedef std::queue<CHAR *>                         REPLY_QUE ;
-   typedef ossPoolMap< UINT64, coordErrorInfo>        ROUTE_RC_MAP ;
-   typedef ossPoolMap< UINT64, MsgHeader*>            ROUTE_REPLY_MAP ;
-   typedef ossPoolMap< UINT32, netIOVec>              GROUP_2_IOVEC ;
-   typedef ossPoolSet< INT32 >                        SET_RC ;
-   typedef ossPoolSet< UINT64 >                       SET_ROUTEID ;
+   typedef std::queue<CHAR *>                                        REPLY_QUE ;
+   typedef _utilMap< UINT64, coordErrorInfo, COORD_GROUPS_AVG_NUM >  ROUTE_RC_MAP ;
+   typedef _utilMap< UINT64, MsgHeader*, COORD_GROUPS_AVG_NUM >      ROUTE_REPLY_MAP ;
+   typedef _utilMap< UINT32, netIOVec, COORD_GROUPS_AVG_NUM >        GROUP_2_IOVEC ;
+   typedef std::set< INT32 >                                         SET_RC ;
+   typedef std::set< UINT64 >                                        SET_ROUTEID ;
 
-   typedef ossPoolMap< UINT32, UINT32>                CoordGroupList ;
-   typedef clsNodeItem                                CoordNodeInfo ;
-   typedef VEC_NODE_INFO                              CoordVecNodeInfo ;
+   typedef _utilMap< UINT32, UINT32, COORD_GROUPS_AVG_NUM >          CoordGroupList ;
+   typedef clsNodeItem                                               CoordNodeInfo ;
+   typedef VEC_NODE_INFO                                             CoordVecNodeInfo ;
 
-   typedef clsGroupItem                               CoordGroupInfo ;
+   typedef clsGroupItem                                              CoordGroupInfo ;
 
-   typedef boost::shared_ptr<CoordGroupInfo>          CoordGroupInfoPtr;
-   typedef ossPoolMap< UINT32, CoordGroupInfoPtr>     CoordGroupMap;
-   typedef std::vector< CoordGroupInfoPtr >           GROUP_VEC ;
-   typedef std::vector<std::string>                   CoordSubCLlist;
-   typedef ossPoolMap< UINT32, CoordSubCLlist>        CoordGroupSubCLMap;
+   typedef boost::shared_ptr<CoordGroupInfo>                         CoordGroupInfoPtr;
+   typedef _utilMap< UINT32, CoordGroupInfoPtr, COORD_GROUPS_AVG_NUM >  CoordGroupMap;
+   typedef std::vector< CoordGroupInfoPtr >                          GROUP_VEC ;
+   typedef std::vector<std::string>                                  CoordSubCLlist;
+   typedef _utilMap< UINT32, CoordSubCLlist, COORD_GROUPS_AVG_NUM >  CoordGroupSubCLMap;
 
    /*
       _CoordCataInfo define
@@ -107,10 +106,8 @@ namespace engine
    class _CoordCataInfo : public SDBObject
    {
    public:
-      _CoordCataInfo( INT32 version,
-                      const char *pCollectionName,
-                      utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL )
-      :_catlogSet ( pCollectionName, FALSE, clUniqueID )
+      _CoordCataInfo( INT32 version, const char *pCollectionName )
+      :_catlogSet ( pCollectionName, FALSE )
       {
          _catlogSet.setSKSite( clsGetShardingKeySite() ) ;
       }
@@ -268,11 +265,6 @@ namespace engine
          return _catlogSet.name() ;
       }
 
-      utilCLUniqueID clUniqueID() const
-      {
-         return _catlogSet.clUniqueID() ;
-      }
-
       UINT32 getShardingKeySiteID() const
       {
          return _catlogSet.getShardingKeySiteID() ;
@@ -285,26 +277,10 @@ namespace engine
          return _catlogSet.findGroupID( oid, sequence, groupID ) ;
       }
 
-      BOOLEAN hasAutoIncrement() const
-      {
-         return _catlogSet.getAutoIncSet()->fieldCount() > 0 ? TRUE : FALSE ;
-      }
-
-      const vector<BSONObj>& getAutoIncFields() const
-      {
-         return _catlogSet.getAutoIncSet()->getFields() ;
-      }
-
-      const clsAutoIncSet& getAutoIncSet() const
-      {
-         return *( _catlogSet.getAutoIncSet() ) ;
-      }
-
    private:
-      // if the catalogue-info is update, build a new one, don't modify the old
       _CoordCataInfo()
-      :_catlogSet( NULL, FALSE )
-      {}
+      :_catlogSet( NULL, FALSE ) 
+      {}  
 
    private:
       clsCatalogSet        _catlogSet ;
@@ -313,8 +289,8 @@ namespace engine
    };
    typedef _CoordCataInfo CoordCataInfo ;
 
-   typedef boost::shared_ptr< CoordCataInfo >            CoordCataInfoPtr ;
-   typedef ossPoolMap< std::string, CoordCataInfoPtr >   CoordCataMap ;
+   typedef boost::shared_ptr< CoordCataInfo >         CoordCataInfoPtr ;
+   typedef std::map< std::string, CoordCataInfoPtr >  CoordCataMap ;
 
 }
 

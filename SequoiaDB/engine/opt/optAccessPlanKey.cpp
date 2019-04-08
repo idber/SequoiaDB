@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = optAccessPlanKey.cpp
 
@@ -62,7 +61,6 @@ namespace engine
    {
       SDB_ASSERT( NULL != getCLFullName(), "pCLFullName is invalid" ) ;
 
-      // Selector, skip and limit is not used to generate keys, reset them
       setSelector( BSONObj() ) ;
       setSkip( 0 ) ;
       setLimit( -1 ) ;
@@ -94,7 +92,6 @@ namespace engine
          return FALSE ;
       }
 
-      // Check the IDs of Collection Space and Collection
       if ( DMS_INVALID_SUID == _suID && DMS_INVALID_SUID == planKey._suID &&
            0 != ossStrncmp( getCLFullName(), planKey.getCLFullName(),
                             DMS_COLLECTION_FULL_NAME_SZ ) )
@@ -112,7 +109,6 @@ namespace engine
          return FALSE ;
       }
 
-      // User query must be identical
       if ( _normalizedQuery.isEmpty() )
       {
          if ( !getQuery().shallowEqual( planKey.getQuery() ) )
@@ -128,13 +124,11 @@ namespace engine
          }
       }
 
-      // Order by must be identical
       if ( !getOrderBy().shallowEqual( planKey.getOrderBy() ) )
       {
          return FALSE ;
       }
 
-      // Query with modifier should use index to sort
       if ( getFlag() != planKey.getFlag() )
       {
          BOOLEAN lhsFlag = isSortedIdxRequired() ? TRUE : FALSE ;
@@ -145,8 +139,6 @@ namespace engine
          }
       }
 
-      /// Hint must compare field by field, and need ignore object field and
-      /// field name
       BSONObjIterator itr( planKey.getHint() ) ;
       BSONObjIterator itrSelf( getHint() ) ;
       while( itr.more() )
@@ -174,7 +166,6 @@ namespace engine
          }
       }
 
-      /// If _hint has other hint field, not the same
       while( itrSelf.more() )
       {
          BSONElement e = itrSelf.next() ;
@@ -200,7 +191,6 @@ namespace engine
 
       SDB_ASSERT( matchRuntime, "matchRuntime is invalid" ) ;
 
-      // Copy the query
       matchRuntime->setQuery( getQuery(), TRUE ) ;
 
       rc = planHelper.normalizeQuery( matchRuntime->getQuery(),
@@ -211,7 +201,6 @@ namespace engine
       {
          _normalizedQuery = normalBuilder.obj() ;
 
-         // No parameters have been found, decrease the cache level
          if ( matchRuntime->getParameters().isEmpty() &&
               _cacheLevel >= OPT_PLAN_PARAMETERIZED )
          {
@@ -230,7 +219,6 @@ namespace engine
               "the cache level to OPT_PLAN_ORIGINAL, rc: %d",
               getQuery().toString( FALSE, TRUE ).c_str(), rc ) ;
 
-      // Ignore errors, goto full generation for original cache level
       _cacheLevel = OPT_PLAN_ORIGINAL ;
       rc = SDB_OK ;
 
@@ -250,7 +238,6 @@ namespace engine
    {
       UINT32 keyCode = 0 ;
 
-      // Information of collection space and collection
       if ( DMS_INVALID_SUID != _suID )
       {
          keyCode = ossHash( (CHAR *)&_suID, sizeof( _suID ), 5 ) ;
@@ -265,7 +252,6 @@ namespace engine
 
       keyCode ^= ossHash( (CHAR *)&_cacheLevel, sizeof( _cacheLevel ), 5 ) ;
 
-      // Query
       if ( _normalizedQuery.isEmpty() && !isQueryEmpty() )
       {
          keyCode ^= getQueryHash() ;
@@ -276,13 +262,11 @@ namespace engine
                              _normalizedQuery.objsize() ) ;
       }
 
-      // Order-By
       if ( !isOrderByEmpty() )
       {
          keyCode ^= getOrderByHash() ;
       }
 
-      // Hint
       BSONObjIterator itr( getHint() ) ;
       while( itr.more() )
       {

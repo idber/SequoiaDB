@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dmsScanner.hpp
 
@@ -52,8 +51,6 @@
 #include "../bson/bson.h"
 #include "../bson/bsonobj.h"
 #include "mthMatchRuntime.hpp"
-#include "ossMemPool.hpp"
-#include "dmsTransLockCallback.hpp"
 
 using namespace bson ;
 
@@ -69,7 +66,6 @@ namespace engine
    class _pmdEDUCB ;
    class _monAppCB ;
    class dpsTransCB ;
-   class _dpsTransExecutor;
 
    /*
       _dmsScanner define
@@ -81,16 +77,6 @@ namespace engine
                        mthMatchRuntime *matchRuntime,
                        DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH ) ;
          virtual ~_dmsScanner () ;
-
-         BOOLEAN  isReadOnly() const
-         {
-            return SHARED == _mbLockType ? TRUE : FALSE ;
-         }
-
-         virtual dmsTransLockCallback*       callbackHandler() = 0 ;
-         virtual const dmsTransRecordInfo*   recordInfo() const = 0 ;
-
-         BOOLEAN needWaitForLock() const { return _waitLock ; }
 
       public:
          virtual INT32 advance ( dmsRecordID &recordID,
@@ -104,11 +90,6 @@ namespace engine
          _dmsMBContext          *_context ;
          mthMatchRuntime        *_matchRuntime ;
          DMS_ACCESS_TYPE         _accessType ;
-         INT32                   _mbLockType ;
-
-         INT32                   _transIsolation ;
-         BOOLEAN                 _waitLock ;
-         BOOLEAN                 _useRollbackSegment ;
 
    } ;
    typedef _dmsScanner dmsScanner ;
@@ -125,13 +106,8 @@ namespace engine
                               mthMatchRuntime *matchRuntime,
                               dmsExtentID curExtentID,
                               DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH,
-                              INT64 maxRecords = -1,
-                              INT64 skipNum = 0,
-                              INT32 flag = 0 ) ;
+                              INT64 maxRecords = -1, INT64 skipNum = 0 ) ;
          virtual ~_dmsExtScannerBase () ;
-
-         virtual dmsTransLockCallback*       callbackHandler() ;
-         virtual const dmsTransRecordInfo*   recordInfo() const ;
 
          const dmsExtent* curExtent () const { return _extent ; }
          dmsExtentID nextExtentID () const ;
@@ -153,8 +129,6 @@ namespace engine
                                    _pmdEDUCB *cb,
                                    _mthMatchTreeContext *mhtContext = NULL) = 0 ;
          void _checkMaxRecordsNum( _mthRecordGenerator &generator ) ;
-         void acquireCSCLLock() ;
-         void releaseCSCLLock() ;
 
       protected:
          INT64                _maxRecords ;
@@ -166,15 +140,10 @@ namespace engine
          const dmsRecord      *_curRecordPtr ;
          dmsOffset            _next ;
          BOOLEAN              _firstRun ;
-         BOOLEAN              _hasLockedRecord ;
          dpsTransCB           *_pTransCB ;
-         INT32                _recordLock ;
+         BOOLEAN              _recordXLock ;
          BOOLEAN              _needUnLock ;
-         BOOLEAN              _CSCLLockHeld ;
-         BOOLEAN              _selectForUpdate ;
          _pmdEDUCB            *_cb ;
-
-         dmsTransLockCallback    _callback ;
    };
    typedef _dmsExtScannerBase dmsExtScannerBase ;
 
@@ -185,9 +154,7 @@ namespace engine
                          mthMatchRuntime *matchRuntime,
                          dmsExtentID curExtentID,
                          DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH,
-                         INT64 maxRecords = -1,
-                         INT64 skipNum = 0,
-                         INT32 flag = 0 ) ;
+                         INT64 maxRecords = -1, INT64 skipNum = 0 ) ;
          virtual ~_dmsExtScanner() ;
 
       private:
@@ -202,8 +169,8 @@ namespace engine
    class _dmsCappedExtScanner : public _dmsExtScannerBase
    {
       typedef std::pair<dmsExtentID, dmsExtentID>  EXT_LID_PAIR ;
-      typedef ossPoolSet<EXT_LID_PAIR>       EXT_RANGE_SET ;
-      typedef EXT_RANGE_SET::iterator              EXT_RANGE_SET_ITR ;
+      typedef std::set<EXT_LID_PAIR>               EXT_RANGE_SET ;
+      typedef std::set<EXT_LID_PAIR>::iterator     EXT_RANGE_SET_ITR ;
 
       public:
          _dmsCappedExtScanner ( dmsStorageDataCommon *su,
@@ -211,9 +178,7 @@ namespace engine
                                 mthMatchRuntime *matchRuntime,
                                 dmsExtentID curExtentID,
                                 DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH,
-                                INT64 maxRecords = -1,
-                                INT64 skipNum = 0,
-                                INT32 flag = 0 ) ;
+                                INT64 maxRecords = -1, INT64 skipNum = 0 ) ;
          virtual ~_dmsCappedExtScanner() ;
          INT64 getMaxRecords() const { return _maxRecords ; }
          INT64 getSkipNum () const { return _skipNum ; }
@@ -253,13 +218,8 @@ namespace engine
          _dmsTBScanner ( _dmsStorageDataCommon *su, _dmsMBContext *context,
                          mthMatchRuntime *matchRuntime,
                          DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH,
-                         INT64 maxRecords = -1,
-                         INT64 skipNum = 0,
-                         INT32 flag = 0  ) ;
+                         INT64 maxRecords = -1, INT64 skipNum = 0 ) ;
          ~_dmsTBScanner () ;
-
-         virtual dmsTransLockCallback*       callbackHandler() ;
-         virtual const dmsTransRecordInfo*   recordInfo() const ;
 
       public:
 
@@ -282,14 +242,12 @@ namespace engine
          BOOLEAN                    _firstRun ;
          INT64                      _maxRecords ;
          INT64                      _skipNum ;
-         INT32                      _flag ;
    };
    typedef _dmsTBScanner dmsTBScanner ;
 
    class _dmsIXScanner ;
    /*
       _dmsIXSecScanner define
-      dms index section scanner
    */
    class _dmsIXSecScanner : public _dmsScanner
    {
@@ -300,13 +258,8 @@ namespace engine
                             mthMatchRuntime *matchRuntime,
                             _rtnIXScanner *scanner,
                             DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH,
-                            INT64 maxRecords = -1,
-                            INT64 skipNum = 0,
-                            INT32 flag = 0 ) ;
+                            INT64 maxRecords = -1, INT64 skipNum = 0 ) ;
          virtual ~_dmsIXSecScanner () ;
-
-         virtual dmsTransLockCallback*       callbackHandler() ;
-         virtual const dmsTransRecordInfo*   recordInfo() const ;
 
          void  enableIndexBlockScan( const BSONObj &startKey,
                                      const BSONObj &endKey,
@@ -315,8 +268,10 @@ namespace engine
                                      INT32 direction ) ;
 
          void  enableCountMode() { _countOnly = TRUE ; }
+
          INT64 getMaxRecords() const { return _maxRecords ; }
          INT64 getSkipNum () const { return _skipNum ; }
+
          BOOLEAN eof () const { return _eof ; }
 
       public:
@@ -333,8 +288,6 @@ namespace engine
          dmsRecordID* _getStartRID () ;
          dmsRecordID* _getEndRID () ;
          void _updateMaxRecordsNum( _mthRecordGenerator &generator ) ;
-         void  acquireCSCLLock( ) ;
-         void  releaseCSCLLock( ) ;
 
       private:
          INT64                _maxRecords ;
@@ -343,17 +296,13 @@ namespace engine
          dmsRecordRW          _recordRW ;
          const dmsRecord      *_curRecordPtr ;
          BOOLEAN              _firstRun ;
-         BOOLEAN              _hasLockedRecord ;
          dpsTransCB           *_pTransCB ;
-         INT8                 _recordLock ;
+         BOOLEAN              _recordXLock ;
          BOOLEAN              _needUnLock ;
-         BOOLEAN              _selectForUpdate ;
          _pmdEDUCB            *_cb ;
          _rtnIXScanner        *_scanner ;
          INT64                _onceRestNum ;
          BOOLEAN              _eof ;
-
-         dmsTransLockCallback _callback ;
 
          BSONObj              _startKey ;
          BSONObj              _endKey ;
@@ -364,8 +313,8 @@ namespace engine
          BOOLEAN              _judgeStartKey ;
          BOOLEAN              _includeStartKey ;
          BOOLEAN              _includeEndKey ;
+
          BOOLEAN              _countOnly ;
-         BOOLEAN              _CSCLLockHeld ;
    } ;
    typedef _dmsIXSecScanner dmsIXSecScanner ;
 
@@ -381,13 +330,8 @@ namespace engine
                          _rtnIXScanner *scanner,
                          BOOLEAN ownedScanner = FALSE,
                          DMS_ACCESS_TYPE accessType = DMS_ACCESS_TYPE_FETCH,
-                         INT64 maxRecords = -1,
-                         INT64 skipNum = 0,
-                         INT32 flag = 0 ) ;
+                         INT64 maxRecords = -1, INT64 skipNum = 0 ) ;
          ~_dmsIXScanner () ;
-
-         virtual dmsTransLockCallback*       callbackHandler() ;
-         virtual const dmsTransRecordInfo*   recordInfo() const ;
 
          _rtnIXScanner* getScanner () { return _scanner ; }
 
@@ -454,14 +398,11 @@ namespace engine
                                     dmsExtentID curExtentID,
                                     DMS_ACCESS_TYPE accessType,
                                     INT64 maxRecords,
-                                    INT64 skipNum,
-                                    INT32 flag ) ;
+                                    INT64 skipNum ) ;
    } ;
    typedef _dmsExtScannerFactory dmsExtScannerFactory ;
 
    dmsExtScannerFactory* dmsGetScannerFactory() ;
-
-
 }
 
 #endif //DMSSCANNER_HPP__

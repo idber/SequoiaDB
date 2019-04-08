@@ -75,7 +75,6 @@ public class SequoiadbUtilsIntegrationTests {
 
 		factory.destroy();
 
-		// Remove test database
 
 		template.execute(new DbCallback<Void>() {
 			public Void doInDB(DB db) throws BaseException, DataAccessException {
@@ -91,7 +90,6 @@ public class SequoiadbUtilsIntegrationTests {
 	@Test
 	public void authenticatesCorrectlyInMultithreadedEnvironment() throws Exception {
 
-		// Create sample user
 		template.execute(new DbCallback<Void>() {
 			public Void doInDB(DB db) throws BaseException, DataAccessException {
 				db.addUser("admin", "admin".toCharArray());
@@ -132,7 +130,6 @@ public class SequoiadbUtilsIntegrationTests {
 	@Test
 	public void authenticatesCorrectlyWithAuthenticationDB() throws Exception {
 
-		// Create sample user
 		template.execute(new DbCallback<Void>() {
 			public Void doInDB(DB db) throws BaseException, DataAccessException {
 				db.getSisterDB("admin").addUser("admin", "admin".toCharArray());

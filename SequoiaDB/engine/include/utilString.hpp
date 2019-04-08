@@ -1,19 +1,18 @@
 /******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = utilString.hpp
 
@@ -65,21 +64,6 @@ namespace engine
       }
 
    public:
-      void  clear()
-      {
-         _buf[0] = '\0' ;
-         _len = 0 ;
-      }
-
-      INT32 append( const CHAR *str )
-      {
-         if ( str && *str )
-         {
-            return append( str, ossStrlen( str ) ) ;
-         }
-         return SDB_OK ;
-      }
-
       INT32 append( const CHAR *str, UINT32 len )
       {
          INT32 rc = SDB_OK ;
@@ -120,7 +104,8 @@ namespace engine
       INT32 resize( UINT32 size )
       {
          INT32 rc = SDB_OK ;
-         if ( BUFFERSIZE < _bufLen && _bufLen < size )
+         if ( UTIL_STRING_STAITC_LEN < _bufLen &&
+              _bufLen < size )
          {
             CHAR *p = ( CHAR * )SDB_OSS_REALLOC( _dynamic, size ) ;
             if ( NULL == p )
@@ -133,7 +118,8 @@ namespace engine
             _bufLen = size ;
             _buf = _dynamic ;
          }
-         else if ( BUFFERSIZE == _bufLen && _bufLen < size )
+         else if ( UTIL_STRING_STAITC_LEN == _bufLen &&
+                   _bufLen < size )
          {
             _dynamic = ( CHAR * )SDB_OSS_MALLOC( size ) ;
             if ( NULL == _dynamic )
@@ -161,7 +147,6 @@ namespace engine
          return _buf ;
       }
 
-      /// does not include terminating character
       OSS_INLINE UINT32 len() const
       {
          return _len ;

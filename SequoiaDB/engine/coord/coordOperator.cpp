@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordOperator.cpp
 
@@ -140,7 +139,6 @@ namespace engine
                                    INT64 &contextID,
                                    rtnContextBuf *buf )
    {
-      /// do nothing
       return SDB_OK ;
    }
 
@@ -185,7 +183,6 @@ namespace engine
       UINT32 groupID = 0 ;
       BOOLEAN needRetry = FALSE ;
 
-      /// set options
       _remoteHandler.enableInterruptWhenFailed( _interruptWhenFailed(),
                                                 options._pIgnoreRC ) ;
       pGroupSel->setPrimary( options._primary ) ;
@@ -193,10 +190,8 @@ namespace engine
 
    retry:
       needRetry = FALSE ;
-      /// clear sub-sessions
       _groupSession.resetSubSession() ;
 
-      /// send request to groups
       if ( !inMsg.hasData() )
       {
          rcTmp = _groupSession.sendMsg( inMsg.msg(), options._groupLst,
@@ -211,7 +206,6 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to send request[%s] to groups, rc: %d",
                  msg2String( inMsg.msg() ).c_str(), rcTmp ) ;
-         /// don't goto error, need to process the reply
          rc = rc ? rc : rcTmp ;
 
          if ( _interruptWhenFailed() )
@@ -220,17 +214,14 @@ namespace engine
          }
       }
 
-      /// reply the reply from groups
       rcTmp = pRemoteSession->waitReply1( TRUE ) ;
       if ( rcTmp )
       {
          PD_LOG( PDERROR, "Failed to recieve replys from groups, rc: %d",
                  rcTmp ) ;
-         /// don't goto error
          rc = rc ? rc : rcTmp ;
       }
 
-      /// process the replys
       result.clearError() ;
       itr = pRemoteSession->getSubSessionItr( PMD_SSITR_REPLY ) ;
       while( itr.more() )
@@ -243,53 +234,52 @@ namespace engine
          groupID = routeID.columns.groupID ;
          rcTmp = pReply->flags ;
 
-         if ( rcTmp &&
-              _isTrans( cb, (MsgHeader*)pReply ) &&
-              SDB_OK != cb->getTransRC() )
+         if ( rcTmp && !options.isIgnored( rcTmp ) )
          {
-            processType = COORD_PROCESS_NOK ;
-            if ( !result.pushNokRC( routeID.value, pReply ) )
+            if ( _isTrans( cb, (MsgHeader*)pReply ) )
             {
-               rc = rc ? rc : rcTmp ;
-            }
-            PD_LOG( ( rc ? PDERROR : PDINFO ),
-                    "Do trans command[%d] on data node[%s] "
-                    "failed, rc: %d", inMsg.opCode(),
-                    routeID2String( routeID ).c_str(), rcTmp ) ;
-         }
-         else if ( rcTmp && !options.isIgnored( rcTmp ) )
-         {
-            if ( pCtrl->canRetry( rcTmp, routeID, primaryID,
-                                  isReadOnly(), TRUE ) )
-            {
-               processType = COORD_PROCESS_IGNORE ;
-               result.pushIgnoreRC( routeID.value, rcTmp ) ;
-               rcTmp = SDB_OK ;
-               needRetry = TRUE ;
+               processType = COORD_PROCESS_NOK ;
+               if ( SDB_CLS_COORD_NODE_CAT_VER_OLD != rcTmp ||
+                    !result.pushNokRC( routeID.value, pReply ) )
+               {
+                  PD_LOG( PDERROR, "Do trans command[%d] on data node[%s] "
+                          "failed, rc: %d", inMsg.opCode(),
+                          routeID2String( routeID ).c_str(), rcTmp ) ;
+                  rc = rc ? rc : rcTmp ;
+               }
             }
             else
             {
-               processType = COORD_PROCESS_NOK ;
-               if ( !result.pushNokRC( routeID.value, pReply ) )
+               if ( pCtrl->canRetry( rcTmp, routeID, primaryID,
+                                     isReadOnly(), TRUE ) )
                {
-                  rc = rc ? rc : rcTmp ;
+                  processType = COORD_PROCESS_IGNORE ;
+                  result.pushIgnoreRC( routeID.value, rcTmp ) ;
+                  rcTmp = SDB_OK ;
+                  needRetry = TRUE ;
                }
-               PD_LOG( ( rc ? PDERROR : PDINFO ),
-                       "Failed to execute command[%u] on "
-                       "node[%s], rc: %d", inMsg.opCode(),
-                       routeID2String( routeID ).c_str(), rcTmp ) ;
+               else
+               {
+                  processType = COORD_PROCESS_NOK ;
+                  if ( !result.pushNokRC( routeID.value, pReply ) )
+                  {
+                     rc = rc ? rc : rcTmp ;
+                  }
+                  PD_LOG( ( rc ? PDERROR : PDINFO ),
+                          "Failed to execute command[%u] on "
+                          "node[%s], rc: %d", inMsg.opCode(),
+                          routeID2String( routeID ).c_str(), rcTmp ) ;
+               }
             }
          }
          else
          {
             processType = COORD_PROCESS_OK ;
-            // process succeed
             result._sucGroupLst[ groupID ] = groupID ;
             result.pushOkRC( routeID.value, rcTmp ) ;
             options._groupLst.erase( groupID ) ;
          }
 
-         // callback for parse
          _onNodeReply( processType, pReply, cb, inMsg ) ;
 
          if ( !result.pushReply( (MsgHeader *)pReply, processType ) )
@@ -342,7 +332,6 @@ namespace engine
          PD_LOG( PDDEBUG, "Using specified group" ) ;
       }
 
-      // construct msg
       if ( cataSel.getCataPtr()->isMainCL() )
       {
          rc = _prepareMainCLOp( cataSel, inMsg, options, cb, result ) ;
@@ -354,7 +343,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Prepare collection operation failed, "
                    "rc: %d", rc ) ;
 
-      // do
       rc = doOnGroups( inMsg, options, cb, result ) ;
 
       if ( cataSel.getCataPtr()->isMainCL() )
@@ -365,7 +353,6 @@ namespace engine
       {
          _doneCLOp( cataSel, inMsg, options, cb, result ) ;
       }
-      _cataPtr = cataSel.getCataPtr() ;
 
       PD_RC_CHECK( rc, PDERROR, "Do command[%d] on groups failed, rc: %d",
                    inMsg.opCode(), rc ) ;
@@ -401,7 +388,6 @@ namespace engine
 
       if ( SDB_OK == rc && ( !pRC || pRC->empty() ) )
       {
-         // is succeed, don't need to retry
          retry = FALSE ;
          goto done ;
       }
@@ -495,7 +481,6 @@ namespace engine
                                       pmdEDUCB *cb,
                                       coordSendMsgIn &inMsg )
    {
-      // do nothing
    }
 
 }

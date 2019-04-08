@@ -24,15 +24,12 @@ public class Bug_CL_InsertOld {
 
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } else
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        // cl
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
@@ -79,8 +76,6 @@ public class Bug_CL_InsertOld {
         assertTrue(rec.toString().equals(str));
         System.out.println("finish testInsertOid\n");
 
-        // { "_id" : { "$oid" : "000102030405060708090a0b"}}
-        // { "_id" : { "$oid" : "03020100070605040b0a0908"}}
     }
 
     @Test
@@ -101,9 +96,7 @@ public class Bug_CL_InsertOld {
         list.add(obj1);
         list.add(obj2);
 
-        // test
         cl.bulkInsert(list, 0);
-        // check
         DBCursor cursor1 = cl.query(obj1, null, null, null);
         BSONObject rec1 = null;
         int i = 0;
@@ -135,8 +128,6 @@ public class Bug_CL_InsertOld {
         System.out.println("rec2 is: " + rec2.toString());
         System.out.println("finish testBulkInsertOid\n");
 
-//      rec1 is: { "_id" : { "$oid" : "03020100070605040b0a0908"}}
-//		rec1 is: { "_id" : { "$oid" : "0f0e0d0c1312111017161514"}}
     }
 
     @Test
@@ -149,7 +140,6 @@ public class Bug_CL_InsertOld {
         BSONObject obj2 = new BasicBSONObject();
         ObjectId id1 = new ObjectId(arr1);
         ObjectId id2 = new ObjectId(arr2);
-        // prepare 2 record
         obj1.put("_id", id1);
         obj2.put("_id", id2);
         cl.insert(obj1);
@@ -161,11 +151,9 @@ public class Bug_CL_InsertOld {
         BSONObject match = new BasicBSONObject();
         match.put("$match", new BasicBSONObject("_id", new BasicBSONObject("$et", id1)));
 
-        // test
         list.add(project);
         list.add(match);
         cursor = cl.aggregate(list);
-        // check
         BSONObject rec = null;
         int i = 0;
         while (cursor.hasNext()) {

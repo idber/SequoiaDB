@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = catCatalogManager.hpp
 
@@ -42,7 +41,6 @@
 #include "catSplit.hpp"
 #include "rtnContextBuff.hpp"
 #include "utilCompressor.hpp"
-#include "utilArguments.hpp"
 
 using namespace bson ;
 
@@ -54,17 +52,33 @@ namespace engine
    class _SDB_DMSCB ;
    class _rtnAlterJob ;
 
-   // create collection assign group type
    enum CAT_ASSIGNGROUP_TYPE
    {
       ASSIGN_FOLLOW     = 1,
       ASSIGN_RANDOM     = 2
    } ;
 
+   #define CAT_MASK_CLNAME          0x00000001
+   #define CAT_MASK_SHDKEY          0x00000002
+   #define CAT_MASK_REPLSIZE        0x00000004
+   #define CAT_MASK_SHDIDX          0x00000008
+   #define CAT_MASK_SHDTYPE         0x00000010
+   #define CAT_MASK_SHDPARTITION    0x00000020
+   #define CAT_MASK_COMPRESSED      0x00000040
+   #define CAT_MASK_ISMAINCL        0x00000080
+   #define CAT_MASK_AUTOASPLIT      0x00000100
+   #define CAT_MASK_AUTOREBALAN     0x00000200
+   #define CAT_MASK_AUTOINDEXID     0x00000400
+   #define CAT_MASK_COMPRESSIONTYPE 0x00000800
+   #define CAT_MASK_CAPPED          0x00001000
+   #define CAT_MASK_CLMAXRECNUM     0x00002000
+   #define CAT_MASK_CLMAXSIZE       0x00004000
+   #define CAT_MASK_CLOVERWRITE     0x00008000
+   #define CAT_MASK_STRICTDATAMODE  0x00010000
+
    struct _catCollectionInfo
    {
       const CHAR  *_pCLName ;
-      utilCLUniqueID _clUniqueID ;
       BSONObj     _shardingKey ;
       INT32       _replSize ;
       BOOLEAN     _enSureShardIndex ;
@@ -86,23 +100,17 @@ namespace engine
       INT64       _maxRecNum ;
       INT64       _maxSize ;
       BOOLEAN     _overwrite ;
-      BSONObj     _autoIncFields ;
-      clsAutoIncSet _autoIncSet ;
+
+      std::vector<std::string>   _subCLList;
 
       _catCollectionInfo()
       {
-         reset() ;
-      }
-
-      void reset()
-      {
          _pCLName             = NULL ;
-         _clUniqueID          = UTIL_UNIQUEID_NULL ;
          _replSize            = 1 ;
          _enSureShardIndex    = TRUE ;
          _pShardingType       = CAT_SHARDING_TYPE_HASH ;
          _shardPartition      = CAT_SHARDING_PARTITION_DEFAULT ;
-         _isHash              = TRUE ;
+         _isHash              = FALSE ;
          _isSharding          = FALSE ;
          _isCompressed        = FALSE ;
          _isMainCL            = FALSE ;
@@ -118,31 +126,21 @@ namespace engine
          _maxRecNum           = 0 ;
          _maxSize             = 0 ;
          _overwrite           = FALSE ;
-         _autoIncSet.clear() ;
       }
    };
    typedef _catCollectionInfo catCollectionInfo ;
 
    struct _catCSInfo
    {
-      const CHAR*       _pCSName ;
-      utilCSUniqueID    _csUniqueID ;
-      utilCLUniqueID    _clUniqueHWM ;
-      INT32             _pageSize ;
-      const CHAR*       _domainName ;
-      INT32             _lobPageSize ;
-      DMS_STORAGE_TYPE  _type ;
+      const CHAR  *_pCSName ;
+      INT32       _pageSize ;
+      const CHAR  *_domainName ;
+      INT32       _lobPageSize ;
+      DMS_STORAGE_TYPE _type ;
 
       _catCSInfo()
       {
-         reset() ;
-      }
-
-      void reset()
-      {
          _pCSName = NULL ;
-         _csUniqueID = UTIL_UNIQUEID_NULL ;
-         _clUniqueHWM = UTIL_UNIQUEID_NULL ;
          _pageSize = DMS_PAGE_SIZE_DFT ;
          _domainName = NULL ;
          _lobPageSize = DMS_DEFAULT_LOB_PAGE_SZ ;
@@ -153,8 +151,6 @@ namespace engine
       {
          BSONObjBuilder builder ;
          builder.append( CAT_COLLECTION_SPACE_NAME, _pCSName ) ;
-         builder.append( CAT_CS_UNIQUEID, _csUniqueID ) ;
-         builder.append( CAT_CS_CLUNIQUEHWM, (INT64)_clUniqueHWM ) ;
          builder.append( CAT_PAGE_SIZE_NAME, _pageSize ) ;
          if ( _domainName )
          {
@@ -186,9 +182,6 @@ namespace engine
       INT32 active() ;
       INT32 deactive() ;
 
-      UINT64 assignTaskID () ;
-
-   // message process functions
    protected:
       INT32 processCommandMsg( const NET_HANDLE &handle, MsgHeader *pMsg,
                                BOOLEAN writable ) ;
@@ -208,23 +201,23 @@ namespace engine
       INT32 processCmdCreateDomain ( const CHAR *pQuery ) ;
       INT32 processCmdDropDomain ( const CHAR *pQuery ) ;
       INT32 processCmdAlterDomain ( const CHAR *pQuery ) ;
-      INT32 processCmdTruncate ( const CHAR *pQuery ) ;
 
-   // tool functions
    protected:
       void  _fillRspHeader( MsgHeader *rspMsg, const MsgHeader *reqMsg ) ;
 
       INT32 _createCS( BSONObj & createObj, UINT32 &groupID ) ;
 
-      INT32 _checkAndGetCSInfo( const BSONObj &infoObj, catCSInfo &csInfo ) ;
+      INT32 _checkCSObj( const BSONObj &infoObj,
+                         catCSInfo &csInfo ) ;
 
       INT32 _assignGroup( vector< UINT32 > *pGoups, UINT32 &groupID ) ;
 
-      INT32 _checkAllCSCLUniqueID() ;
    private:
       INT16 _majoritySize() ;
-      INT32 _setCSCLUniqueID( string csName, const BSONObj& boCollections,
-                              UINT32 csUniqueID ) ;
+
+      INT32 _buildAlterGroups( const BSONObj &domain,
+                               const BSONElement &ele,
+                               BSONObjBuilder &builder ) ;
 
    private:
       sdbCatalogueCB       *_pCatCB;

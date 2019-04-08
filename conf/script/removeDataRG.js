@@ -1,6 +1,6 @@
 /*******************************************************************************
 
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -60,8 +60,6 @@ function _final()
             sprintf( "Finish running task[?] for removing data groups", task_id ) ) ;
 }
 
-
-
 function main()
 {
    var tmpCoordHostName = null ;
@@ -72,10 +70,9 @@ function main()
    var groupNames       = [] ;
    var csNum            = 0;
    var i                = 0 ;
-   var force            = false ;
-
+   
    _init() ;
-
+   
    try
    {
       // 1. get arguments
@@ -85,7 +82,6 @@ function main()
          tmpCoordSvcName  = SYS_JSON[TmpCoordSvcName] ;
          authUser         = BUS_JSON[AuthUser] ;
          authPasswd       = BUS_JSON[AuthPasswd] ;
-         force            = BUS_JSON[FIELD_FORCE] ;
       }
       catch( e )
       {
@@ -113,46 +109,17 @@ function main()
                   errMsg + ", rc: " + rc + ", detail: " + GETLASTERRMSG() ) ;
          exception_handle( rc, errMsg ) ;
       }
-
-      var cursor = db.listCollectionSpaces() ;
-
-      if ( force )
+      // 3. check whether the data groups are empty or not
+      csNum = db.listCollectionSpaces().size();
+      if (csNum != 0)
       {
-         try
-         {
-            var csInfo = null ;
-            while( null != ( csInfo = cursor.next() ) )
-            {
-               var csName = csInfo.toObj()['Name'] ;
-
-               db.dropCS( csName ) ;
-            }
-         }
-         catch( e )
-         {
-            SYSEXPHANDLE( e ) ;
-            errMsg = "Failed to drop collection space" ;
-            rc = GETLASTERROR() ;
-            PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_REMOVE_DATA_RG,
-                     errMsg + ", rc: " + rc + ", detail: " + GETLASTERRMSG() ) ;
-            exception_handle( rc, errMsg ) ;
-         }
+         rc = SDB_CAT_RM_GRP_FORBIDDEN;
+         errMsg = sprintf( "Can't remove data groups, for there still has " + 
+                           "[?] collection space(s) in the database", csNum ) ;
+         PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_REMOVE_DATA_RG,
+                  errMsg + ", rc: " + rc ) ;
+         exception_handle( rc, errMsg ) ;
       }
-      else
-      {
-         csNum = cursor.size();
-         // 3. check whether the data groups are empty or not
-         if (csNum != 0)
-         {
-            rc = SDB_CAT_RM_GRP_FORBIDDEN;
-            errMsg = sprintf( "Can't remove data groups, for there still has " + 
-                              "[?] collection space(s) in the database", csNum ) ;
-            PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_REMOVE_DATA_RG,
-                     errMsg + ", rc: " + rc ) ;
-            exception_handle( rc, errMsg ) ;
-         }
-      }
-
       // 4. get data groups from catalog
       try
       {

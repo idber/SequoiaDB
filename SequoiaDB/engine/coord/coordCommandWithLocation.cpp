@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordCommandWithLocation.cpp
 
@@ -87,7 +86,6 @@ namespace engine
                                          pmdEDUCB *cb,
                                          ROUTE_RC_MAP &faileds )
    {
-      /// do on local
       UINT32 mask = 0 ;
       INT32 rc = SDB_OK ;
       CHAR *pMatcherBuff = NULL ;
@@ -106,10 +104,6 @@ namespace engine
          else if ( e.isNumber() )
          {
             INT32 type = e.numberInt() ;
-            /// 0: ignore none
-            /// 1: ignore hide default
-            /// 2: ignore default
-            /// 3: ignore unfield
             switch( type )
             {
                case 0 :
@@ -181,10 +175,8 @@ namespace engine
                                                coordCtrlParam &ctrlParam,
                                                SET_RC &ignoreRCList )
    {
-      /// invalidate local catalog cache and group cache
       _pResource->invalidateCataInfo() ;
       _pResource->invalidateGroupInfo() ;
-      _pResource->invalidateStrategy() ;
       return SDB_OK ;
    }
 
@@ -267,7 +259,6 @@ namespace engine
                PD_LOG( PDERROR, "Alloc query msg failed, rc: %d", rc ) ;
                goto error ;
             }
-            /// change the opCode
             ((MsgHeader*)pNewMsg)->opCode = MSG_CAT_QUERY_SPACEINFO_REQ ;
             rc = executeOnCataGroup( (MsgHeader*)pNewMsg, cb, &grpLst ) ;
             if ( rc )
@@ -371,7 +362,6 @@ namespace engine
                PD_LOG( PDERROR, "Alloc query msg failed, rc: %d", rc ) ;
                goto error ;
             }
-            /// change the opCode
             ((MsgHeader*)pNewMsg)->opCode = MSG_CAT_QUERY_SPACEINFO_REQ ;
             rc = executeOnCataGroup( (MsgHeader*)pNewMsg, cb, &grpLst ) ;
             if ( rc )
@@ -506,74 +496,6 @@ namespace engine
    }
 
    /*
-      _coordUpdateConf implement
-   */
-   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordUpdateConf,
-                                      CMD_NAME_UPDATE_CONFIG,
-                                      TRUE ) ;
-   _coordUpdateConf::_coordUpdateConf()
-   {
-   }
-
-   _coordUpdateConf::~_coordUpdateConf()
-   {
-   }
-
-   INT32 _coordUpdateConf::_onLocalMode( INT32 flag )
-   {
-      return SDB_COORD_UNKNOWN_OP_REQ ;
-   }
-
-   void _coordUpdateConf::_preSet( pmdEDUCB * cb,
-                                   coordCtrlParam & ctrlParam )
-   {
-      ctrlParam._isGlobal = TRUE ;
-      ctrlParam._filterID = FILTER_ID_MATCHER ;
-      ctrlParam._emptyFilterSel = NODE_SEL_ALL ;
-      ctrlParam._role[ SDB_ROLE_CATALOG ] = 1 ;
-      ctrlParam._role[ SDB_ROLE_COORD ] = 1 ;
-   }
-
-   UINT32 _coordUpdateConf::_getControlMask() const
-   {
-      return COORD_CTRL_MASK_ALL ;
-   }
-
-   /*
-      _coordDeleteConf implement
-   */
-   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordDeleteConf,
-                                      CMD_NAME_DELETE_CONFIG,
-                                      TRUE ) ;
-   _coordDeleteConf::_coordDeleteConf()
-   {
-   }
-
-   _coordDeleteConf::~_coordDeleteConf()
-   {
-   }
-
-   INT32 _coordDeleteConf::_onLocalMode( INT32 flag )
-   {
-      return SDB_COORD_UNKNOWN_OP_REQ ;
-   }
-
-   void _coordDeleteConf::_preSet( pmdEDUCB * cb,
-                                   coordCtrlParam & ctrlParam )
-   {
-      ctrlParam._isGlobal = TRUE ;
-      ctrlParam._filterID = FILTER_ID_MATCHER ;
-      ctrlParam._emptyFilterSel = NODE_SEL_ALL ;
-      ctrlParam._role[ SDB_ROLE_CATALOG ] = 1 ;
-      ctrlParam._role[ SDB_ROLE_COORD ] = 1 ;
-   }
-
-   UINT32 _coordDeleteConf::_getControlMask() const
-   {
-      return COORD_CTRL_MASK_ALL ;
-   }
-
-   /*
       _coordCMDAnalyze implement
     */
    COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDAnalyze,
@@ -591,23 +513,18 @@ namespace engine
    void _coordCMDAnalyze::_preSet( pmdEDUCB *cb,
                                    coordCtrlParam &ctrlParam )
    {
-      // On global mode
       ctrlParam._isGlobal = TRUE ;
 
-      // Put options in matcher
       ctrlParam._filterID = FILTER_ID_MATCHER ;
 
-      // On primary node
       ctrlParam._emptyFilterSel = NODE_SEL_PRIMARY ;
 
-      // On data group
       ctrlParam.resetRole() ;
       ctrlParam._role[ SDB_ROLE_DATA ] = 1 ;
    }
 
    UINT32 _coordCMDAnalyze::_getControlMask() const
    {
-      // Only allow node selection
       return COORD_CTRL_MASK_NODE_SELECT ;
    }
 
@@ -638,7 +555,6 @@ namespace engine
          BSONObj obj( pQuery ) ;
          BSONElement e ;
 
-         // Check collection space name
          e = obj.getField( FIELD_NAME_COLLECTIONSPACE ) ;
          if ( String == e.type() )
          {
@@ -652,7 +568,6 @@ namespace engine
             goto error ;
          }
 
-         // Check collection name
          e = obj.getField( FIELD_NAME_COLLECTION ) ;
          if ( String == e.type() )
          {
@@ -666,7 +581,6 @@ namespace engine
             goto error ;
          }
 
-         // Check index name
          e = obj.getField( FIELD_NAME_INDEX ) ;
          if ( String == e.type() )
          {
@@ -680,7 +594,6 @@ namespace engine
             goto error ;
          }
 
-         // Check mode
          e = obj.getField( FIELD_NAME_ANALYZE_MODE ) ;
          if ( NumberInt == e.type() )
          {
@@ -691,7 +604,6 @@ namespace engine
                  SDB_ANALYZE_MODE_RELOAD == mode ||
                  SDB_ANALYZE_MODE_CLEAR == mode )
             {
-               /// do nothing
             }
             else
             {
@@ -709,7 +621,6 @@ namespace engine
             goto error ;
          }
 
-         // Check sample number
          e = obj.getField( FIELD_NAME_ANALYZE_NUM ) ;
          if ( NumberInt == e.type() )
          {
@@ -726,7 +637,6 @@ namespace engine
             sampleByNum = TRUE ;
          }
 
-         // Check sample percent
          e = obj.getField( FIELD_NAME_ANALYZE_PERCENT ) ;
          if ( NumberInt == e.type() )
          {
@@ -749,7 +659,6 @@ namespace engine
          goto error ;
       }
 
-      // Check conflicts
       if ( NULL != csname )
       {
          if ( NULL != clname )
@@ -796,9 +705,6 @@ namespace engine
          rc = _getCSGrps( csname, cb, ctrlParam ) ;
          PD_RC_CHECK( rc, PDERROR, "Get groups of collectionspace[%s], "
                       "rc: %d", csname, rc ) ;
-         // The group list may contain sub-collections' groups, which may
-         // not belong to the collection space
-         // Ignore the error in this case
          ignoreRCList.insert( SDB_DMS_CS_NOTEXIST ) ;
       }
       else if ( NULL != clname )
@@ -839,7 +745,6 @@ namespace engine
       rc = queryOpt.toQueryMsg( &pNewMsg, newMsgSize, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Alloc query msg failed, rc: %d", rc ) ;
 
-      /// change the opCode
       ((MsgHeader*)pNewMsg)->opCode = MSG_CAT_QUERY_SPACEINFO_REQ ;
       rc = executeOnCataGroup( (MsgHeader*)pNewMsg, cb, &grpLst ) ;
       PD_RC_CHECK( rc, PDERROR, "Query collectionspace[%s] info from catalog "
@@ -893,7 +798,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Get collection[%s]'s group list failed, "
                    "rc: %d", clname, rc ) ;
 
-      // Set the version for verify in data-groups
       pRequest->version = cataSel.getCataPtr()->getVersion() ;
 
       ctrlParam._useSpecialGrp = TRUE ;

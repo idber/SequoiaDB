@@ -11,10 +11,8 @@ TEST(newapi, a)
 /*
 TEST(newapi,aggregate)
 {
-   // initialize the word environment
    rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // initialize local variables
    sdbConnectionHandle connection    = 0 ;
    sdbCollectionHandle collection    = 0 ;
    sdbCursorHandle cursor            = 0 ;
@@ -35,15 +33,12 @@ TEST(newapi,aggregate)
    record[3] = "{cust_id:\"A123\",amount:300,status:\"D\"}" ;
    const char* m = "{$match:{status:\"A\"}}" ;
    const char* g = "{$group:{_id:\"$cust_id\",total:{$sum:\"$amount\"}}}" ;
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
    ASSERT_TRUE( rc==SDB_OK ) ;
-   // get collection
    rc = getCollection ( connection,
                         COLLECTION_FULL_NAME,
                         &collection ) ;
    ASSERT_TRUE( rc==SDB_OK ) ;
-   // insert record
    for( i=0; i<rNUM; i++ )
    {
       bson_init( &obj ) ;
@@ -56,7 +51,6 @@ printf("rc= %d\n", rc ) ;
       bson_destroy( &obj ) ;
    }
 
-   // build bson array
    for( i=0; i<iNUM; i++ )
    {
       ob[i] = bson_create() ;
@@ -64,20 +58,15 @@ printf("rc= %d\n", rc ) ;
 bson_print( ob[i] ) ;
       ASSERT_TRUE( flag == true ) ;
    }
-   // aggregate
    rc = sdbAggregate( collection, ob, iNUM, &cursor ) ;
    printf("rc = %d\n",rc ) ;
    ASSERT_TRUE( rc == SDB_OK ) ;
-   // display
    displayRecord ( &cursor ) ;
-   // free memory which is malloc by bson_create()
    for( i=0; i<iNUM; i++ )
    {
       bson_dispose( ob[i] ) ;
    }
-   // disconnect the connection
    sdbDisconnect ( connection ) ;
-   //release the local variables
    sdbReleaseCursor ( cursor ) ;
    sdbReleaseCollection ( collection ) ;
    sdbReleaseConnection ( connection ) ;
@@ -85,16 +74,12 @@ bson_print( ob[i] ) ;
 
 TEST( newapi, insert_binary_data )
 {
-   // initialize the word environment
    rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // initialize local variables
    sdbConnectionHandle connection    = 0 ;
    sdbCollectionHandle collection    = 0 ;
    sdbCursorHandle cursor            = 0 ;
    INT32 rc                          = SDB_OK ;
-//   const char *str = "{\"key\":{\"$binary\":\"aGVsbG8gd29ybGQ=\",\"$type\":1}}" ;
-//   const char *str = "{a:1}" ;
    char *rawstr = "hello world!" ;
    int len = getEnBase64Size ( rawstr ) ;
    char *out = ( char* )malloc ( len ) ;
@@ -105,30 +90,20 @@ printf( "out is %s\n", out ) ;
    bson_append_binary( &obj, "key", 49, rawstr, strlen ( rawstr ) );
    bson_finish ( &obj ) ;
    free ( out ) ;
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
    ASSERT_TRUE( rc==SDB_OK ) ;
-   // get collection
    rc = getCollection ( connection,
                         COLLECTION_FULL_NAME,
                         &collection ) ;
    ASSERT_TRUE( rc==SDB_OK ) ;
-//   rc = jsonToBson ( &obj, str ) ;
-//printf ( "rc is %d\n", rc ) ;
    ASSERT_TRUE ( rc == SDB_OK ) ;
-//bson_print ( &obj ) ;
    rc = sdbInsert ( collection, &obj ) ;
    ASSERT_TRUE( rc==SDB_OK ) ;
    bson_destroy( &obj ) ;
-   // query all the record in this collection
    rc = sdbQuery( collection, NULL, NULL, NULL, NULL, 0, -1, &cursor ) ;
    ASSERT_TRUE( rc==SDB_OK ) ;
-   // get the current record
-//   displayRecord ( &cursor ) ;
 
-   // disconnect the connection
    sdbDisconnect ( connection ) ;
-   // release the local variables
    sdbReleaseCursor ( cursor ) ;
    sdbReleaseCollection ( collection ) ;
    sdbReleaseConnection ( connection ) ;
@@ -136,17 +111,12 @@ printf( "out is %s\n", out ) ;
 
 TEST( newapi, insert_regex )
 {
-   // initialize the word environment
    rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // initialize local variables
    sdbConnectionHandle connection    = 0 ;
    sdbCollectionHandle collection    = 0 ;
    sdbCursorHandle cursor            = 0 ;
    INT32 rc                          = SDB_OK ;
-//   const char *str =
-//   "{\"key\":{\"$binary\":\"aGVsbG8gd29ybGQ=\",\"$type\":1}}" ;
-//   const char *str = "{a:1}" ;
    char *rawstr = "hello world!" ;
    int len = getEnBase64Size ( rawstr ) ;
    char *out = ( char* )malloc ( len ) ;
@@ -157,30 +127,20 @@ printf( "out is %s\n", out ) ;
    bson_append_binary( &obj, "key", 49, rawstr, strlen ( rawstr ) );
    bson_finish ( &obj ) ;
    free ( out ) ;
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
    ASSERT_TRUE( rc==SDB_OK ) ;
-   // get collection
    rc = getCollection ( connection,
                         COLLECTION_FULL_NAME,
                         &collection ) ;
    ASSERT_TRUE( rc==SDB_OK ) ;
-//   rc = jsonToBson ( &obj, str ) ;
-//printf ( "rc is %d\n", rc ) ;
    ASSERT_TRUE ( rc == SDB_OK ) ;
-//bson_print ( &obj ) ;
    rc = sdbInsert ( collection, &obj ) ;
    ASSERT_TRUE( rc==SDB_OK ) ;
    bson_destroy( &obj ) ;
-   // query all the record in this collection
    rc = sdbQuery( collection, NULL, NULL, NULL, NULL, 0, -1, &cursor ) ;
    ASSERT_TRUE( rc==SDB_OK ) ;
-   // get the current record
-//   displayRecord ( &cursor ) ;
 
-   // disconnect the connection
    sdbDisconnect ( connection ) ;
-   // release the local variables
    sdbReleaseCursor ( cursor ) ;
    sdbReleaseCollection ( collection ) ;
    sdbReleaseConnection ( connection ) ;
@@ -190,26 +150,20 @@ printf( "out is %s\n", out ) ;
 /*
 TEST(cursor,sdbCurrent)
 {
-   // initialize the word environment
    rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // initialize local variables
    sdbConnectionHandle connection    = 0 ;
    sdbCollectionHandle collection    = 0 ;
    sdbCursorHandle cursor            = 0 ;
    INT32 rc                          = SDB_OK ;
    bson obj ;
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
    ASSERT_TRUE( rc==SDB_OK ) ;
-   // get collection
    rc = getCollection ( connection,
                         COLLECTION_FULL_NAME,
                         &collection ) ;
    ASSERT_TRUE( rc==SDB_OK ) ;
-   // query all the record in this collection
    rc = sdbQuery( collection, NULL, NULL, NULL, NULL, 0, -1, &cursor ) ;
-   // get the current record
    bson_init(&obj);
    rc = sdbCurrent( cursor, &obj ) ;
    ASSERT_TRUE( rc==SDB_OK ) ;
@@ -218,9 +172,7 @@ TEST(cursor,sdbCurrent)
    printf("\n") ;
    bson_destroy( &obj ) ;
 
-   // disconnect the connection
    sdbDisconnect ( connection ) ;
-   // release the local variables
    sdbReleaseCursor ( cursor ) ;
    sdbReleaseCollection ( collection ) ;
    sdbReleaseConnection ( connection ) ;

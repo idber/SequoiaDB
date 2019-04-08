@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordCommandCommon.cpp
 
@@ -286,7 +285,6 @@ namespace engine
       rtnQueryOptions queryOption ;
       coordCtrlParam ctrlParam ;
       vector< BSONObj > vecUserAggr ;
-      BSONObj newHint ;
 
       contextID = -1 ;
 
@@ -297,20 +295,18 @@ namespace engine
                                    COORD_CTRL_MASK_RAWDATA, NULL, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Parse control param failed, rc: %d", rc ) ;
 
-      rc = parseUserAggr( queryOption.getHint(), vecUserAggr, newHint ) ;
+      rc = parseUserAggr( queryOption.getHint(), vecUserAggr ) ;
       PD_RC_CHECK( rc, PDERROR, "Parse user define aggr[%s] failed, rc: %d",
                    queryOption.getHint().toString().c_str(), rc ) ;
 
       if ( ( !ctrlParam._rawData && getInnerAggrContent() ) ||
            vecUserAggr.size() > 0 )
       {
-         /// add aggr operators
          BSONObj nodeMatcher ;
          BSONObj newMatcher ;
          rc = parseMatcher( queryOption.getQuery(), nodeMatcher, newMatcher ) ;
          PD_RC_CHECK( rc, PDERROR, "Parse matcher failed, rc: %d", rc ) ;
 
-         /// add nodes matcher to the botton
          if ( !nodeMatcher.isEmpty() )
          {
             rc = appendObj( BSON( AGGR_MATCH_PARSER_NAME << nodeMatcher ),
@@ -328,7 +324,6 @@ namespace engine
                          getInnerAggrContent(), rc ) ;
          }
 
-         /// add new matcher
          if ( !newMatcher.isEmpty() )
          {
             rc = appendObj( BSON( AGGR_MATCH_PARSER_NAME << newMatcher ),
@@ -337,7 +332,6 @@ namespace engine
                          rc ) ;
          }
 
-         /// order by
          if ( !queryOption.isOrderByEmpty() )
          {
             rc = appendObj( BSON( AGGR_SORT_PARSER_NAME <<
@@ -356,30 +350,8 @@ namespace engine
                          rc ) ;
          }
 
-         /// offset
-         if ( queryOption.getSkip() > 0 )
-         {
-            rc = appendObj( BSON( AGGR_SKIP_PARSER_NAME <<
-                                  queryOption.getSkip() ),
-                            pOutBuff, buffSize, buffUsedSize, buffObjNum ) ;
-            PD_RC_CHECK( rc, PDERROR, "Append skip failed, rc: %d", rc ) ;
-         }
-
-         /// limit
-         if ( queryOption.getLimit() != -1 )
-         {
-            rc = appendObj( BSON( AGGR_LIMIT_PARSER_NAME <<
-                                  queryOption.getLimit() ),
-                            pOutBuff, buffSize, buffUsedSize, buffObjNum ) ;
-            PD_RC_CHECK( rc, PDERROR, "Append limit failed, rc: %d", rc ) ;
-         }
-
-         /// open context
          rc = openContext( pOutBuff, buffObjNum, getIntrCMDName(),
-                           queryOption.getSelector(),
-                           newHint,
-                           0, -1,
-                           cb, contextID ) ;
+                           queryOption.getSelector(), cb, contextID ) ;
          PD_RC_CHECK( rc, PDERROR, "Open context failed, rc: %d", rc ) ;
       }
       else
@@ -457,9 +429,7 @@ namespace engine
       string clName ;
       BSONObj outSelector ;
       rtnQueryOptions queryOpt ;
-      BSONElement ele ;
 
-      // parse msg
       rc = queryOpt.fromQueryMsg( (CHAR*)pMsg ) ;
       if ( rc )
       {
@@ -474,37 +444,18 @@ namespace engine
                  queryOpt.toString().c_str(), rc ) ;
          goto error ;
       }
-
-      ele = queryOpt._query.getField( FIELD_NAME_NAME ) ;
-      if ( String == ele.type() &&
-           0 == ossStrncmp( ele.valuestr(),
-                            CMD_ADMIN_PREFIX SYS_VIRTUAL_CS".",
-                            SYS_VIRTUAL_CS_LEN + 1 ) )
+      if ( !clName.empty() )
       {
-         rc = _processQueryVCS( queryOpt, ele.valuestr(),
-                                cb, contextID, buf ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Process query VCS failed, rc: %d", rc ) ;
-            goto error ;
-         }
+         queryOpt.setCLFullName( clName.c_str() ) ;
       }
-      else
-      {
-         if ( !clName.empty() )
-         {
-            queryOpt.setCLFullName( clName.c_str() ) ;
-         }
-         queryOpt.setFlag( FLG_QUERY_WITH_RETURNDATA ) ;
+      queryOpt.clearFlag( FLG_QUERY_WITH_RETURNDATA ) ;
 
-         // query on catalog
-         rc = queryOnCatalog( queryOpt, cb, contextID, buf ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Query on catalog[%s] failed, rc: %d",
-                    queryOpt.toString().c_str(), rc ) ;
-            goto error ;
-         }
+      rc = queryOnCatalog( queryOpt, cb, contextID, buf ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Query on catalog[%s] failed, rc: %d",
+                 queryOpt.toString().c_str(), rc ) ;
+         goto error ;
       }
 
       if ( !outSelector.isEmpty() && -1 != contextID )
@@ -513,7 +464,6 @@ namespace engine
          rtnContext *pContext = rtnCB->contextFind( contextID ) ;
          if ( pContext )
          {
-            /// re-load pattern
             pContext->getSelector().clear() ;
             pContext->getSelector().loadPattern( outSelector ) ;
          }
@@ -529,58 +479,6 @@ namespace engine
          contextID = -1 ;
       }
       goto done ;
-   }
-
-   INT32 _coordCMDQueryBase::_processQueryVCS( rtnQueryOptions &queryOpt,
-                                               const CHAR *pName,
-                                               pmdEDUCB *cb,
-                                               INT64 &contextID,
-                                               rtnContextBuf *buf )
-   {
-      INT32 rc = SDB_OK ;
-      rtnContextCoord *pContext = NULL ;
-      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
-
-      rc = rtnCB->contextNew( RTN_CONTEXT_COORD,
-                              ( rtnContext**)&pContext,
-                              contextID,
-                              cb ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Create context failed, rc: %d", rc ) ;
-         goto error ;
-      }
-
-      rc = pContext->open( queryOpt, FALSE ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Open context failed, rc: %d", rc ) ;
-         goto error ;
-      }
-
-      rc = _processVCS( queryOpt, pName, pContext ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Process VCS failed, rc: %d", rc ) ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      if ( -1 != contextID )
-      {
-         rtnCB->contextDelete( contextID, cb ) ;
-         contextID = -1 ;
-      }
-      goto done ;
-   }
-
-   INT32 _coordCMDQueryBase::_processVCS( rtnQueryOptions &queryOpt,
-                                          const CHAR *pName,
-                                          rtnContext *pContext )
-   {
-      return SDB_INVALIDARG ;
    }
 
 }

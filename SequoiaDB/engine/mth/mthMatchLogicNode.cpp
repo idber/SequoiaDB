@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = mthMatchLogicNode.cpp
 
@@ -144,7 +143,6 @@ namespace engine
       return builder.obj() ;
    }
 
-   //*******************_mthMatchLogicAndNode***********************
    _mthMatchLogicAndNode::_mthMatchLogicAndNode( _mthNodeAllocator *allocator,
                                                  const mthNodeConfig *config )
                          :_mthMatchLogicNode( allocator, config )
@@ -204,8 +202,19 @@ namespace engine
 
    BOOLEAN _mthMatchLogicAndNode::isTotalConverted()
    {
-      //treat and as true
       return TRUE ;
+   }
+
+   void _mthMatchLogicAndNode::release()
+   {
+      if ( NULL != _allocator && _allocator->isAllocatedByme( this ) )
+      {
+         this->~_mthMatchLogicAndNode() ;
+      }
+      else
+      {
+         delete this ;
+      }
    }
 
    void _mthMatchLogicAndNode::evalEstimation ( const optCollectionStat *pCollectionStat,
@@ -233,7 +242,6 @@ namespace engine
       cpuCost += OPT_MTH_OPTR_BASE_CPU_COST ;
    }
 
-   //*******************_mthMatchLogicAndNode***********************
    _mthMatchLogicOrNode::_mthMatchLogicOrNode( _mthNodeAllocator *allocator,
                                                const mthNodeConfig *config )
                         :_mthMatchLogicNode( allocator, config )
@@ -302,15 +310,25 @@ namespace engine
    INT32 _mthMatchLogicOrNode::calcPredicate( rtnPredicateSet &predicateSet,
                                               const rtnParamList * paramList )
    {
-      // Logic or do not have predicatekey.
       return SDB_OK ;
    }
 
    INT32 _mthMatchLogicOrNode::extraEqualityMatches( BSONObjBuilder &builder,
                                                      const rtnParamList *parameters )
    {
-      // do not extraEqualityMatches in logic or.
       return SDB_OK ;
+   }
+
+   void _mthMatchLogicOrNode::release()
+   {
+      if ( NULL != _allocator && _allocator->isAllocatedByme( this ) )
+      {
+         this->~_mthMatchLogicOrNode() ;
+      }
+      else
+      {
+         delete this ;
+      }
    }
 
    void _mthMatchLogicOrNode::evalEstimation ( const optCollectionStat *pCollectionStat,
@@ -338,7 +356,6 @@ namespace engine
       cpuCost += OPT_MTH_OPTR_BASE_CPU_COST ;
    }
 
-   //*******************_mthMatchLogicNotNode***************************
    _mthMatchLogicNotNode::_mthMatchLogicNotNode( _mthNodeAllocator *allocator,
                                                  const mthNodeConfig *config )
                          :_mthMatchLogicAndNode( allocator, config )
@@ -392,20 +409,30 @@ namespace engine
    INT32 _mthMatchLogicNotNode::calcPredicate( rtnPredicateSet &predicateSet,
                                                const rtnParamList * paramList )
    {
-      // Logic not do not have predicatekey.
       return SDB_OK ;
    }
 
    INT32 _mthMatchLogicNotNode::extraEqualityMatches( BSONObjBuilder &builder,
                                                       const rtnParamList *parameters )
    {
-      // do not extraEqualityMatches in logic not.
       return SDB_OK ;
    }
 
    BOOLEAN _mthMatchLogicNotNode::isTotalConverted()
    {
       return FALSE ;
+   }
+
+   void _mthMatchLogicNotNode::release()
+   {
+      if ( NULL != _allocator && _allocator->isAllocatedByme( this ) )
+      {
+         this->~_mthMatchLogicNotNode() ;
+      }
+      else
+      {
+         delete this ;
+      }
    }
 
    void _mthMatchLogicNotNode::evalEstimation ( const optCollectionStat *pCollectionStat,

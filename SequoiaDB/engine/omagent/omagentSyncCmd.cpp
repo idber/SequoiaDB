@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omagentCommand.cpp
 
@@ -43,22 +42,18 @@ using namespace bson ;
 
 namespace engine
 {
-   // command list:
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaScanHost )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaPreCheckHost )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaCheckHost )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaPostCheckHost )
-//   IMPLEMENT_OACMD_AUTO_REGISTER( _omaRemoveHost )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaUpdateHostsInfo )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaQueryHostStatus )
-//   IMPLEMENT_OACMD_AUTO_REGISTER( _omaQueryTaskProgress )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaHandleTaskNotify )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaHandleInterruptTask )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaHandleSsqlGetMore )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaSyncBuzConfigure )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaCreateRelationship )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaRemoveRelationship )
-   IMPLEMENT_OACMD_AUTO_REGISTER( _omaModifyBusinessConfig )
 
    /******************************* scan host *********************************/
    /*
@@ -79,7 +74,6 @@ namespace engine
       {
          stringstream ss ;
          BSONObj bus( pInstallInfo ) ;
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; " ;
          _jsFileArgs = ss.str() ;
@@ -124,13 +118,11 @@ namespace engine
       stringstream ss ;
       BSONObj bus( pInfo ) ;
 
-      // build js file arguments
       ss << "var " << JS_ARG_BUS << " = " 
          << bus.toString(FALSE, TRUE).c_str() << " ; " ;
       _jsFileArgs = ss.str() ;
       PD_LOG ( PDDEBUG, "Pre-check host passes argument: %s",
                _jsFileArgs.c_str() ) ;
-      // add js file
       rc = addJsFile( FILE_CHECK_HOST_INIT, _jsFileArgs.c_str() ) ;
       if ( rc )
       {
@@ -166,7 +158,6 @@ namespace engine
          stringstream ss ;
          BSONObj bus( pInstallInfo ) ;
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; " ;
          _jsFileArgs = ss.str() ;
@@ -221,13 +212,11 @@ namespace engine
          stringstream ss ;
          BSONObj bus( pInstallInfo ) ;
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; " ;
          _jsFileArgs = ss.str() ;
          PD_LOG ( PDDEBUG, "Post-check host passes argument: %s",
                   _jsFileArgs.c_str() ) ;
-         // add js file
          rc = addJsFile( FILE_CHECK_HOST_FINAL, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
@@ -270,7 +259,6 @@ namespace engine
       {
          BSONObj bus( pInfo ) ;
 
-         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
                       JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str() ) ;
          PD_LOG ( PDDEBUG, "Remove hosts passes argument: %s",
@@ -314,13 +302,11 @@ namespace engine
       INT32 rc = SDB_OK ;
       stringstream ss ;
       BSONObj bus( pInstallInfo ) ;
-      // build js file argument
       ss << "var " << JS_ARG_BUS << " = " 
          << bus.toString(FALSE, TRUE).c_str() << " ; " ;
       _jsFileArgs = ss.str() ;
       PD_LOG ( PDDEBUG, "Update hosts info passes argument: %s",
                _jsFileArgs.c_str() ) ;
-      // set js file
       rc = addJsFile ( FILE_UPDATE_HOSTS_INFO, _jsFileArgs.c_str() ) ;
       if ( rc )
       {
@@ -354,7 +340,6 @@ namespace engine
          stringstream ss ;
          BSONObj bus( pInstallInfo ) ;
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; " ;
          _jsFileArgs = ss.str() ;
@@ -412,7 +397,6 @@ namespace engine
       try
       {
          obj = BSONObj( pInstallInfo ).copy() ;
-         // get taskID from omsvc
          ele = obj.getField( OMA_FIELD_TASKID ) ;
          if ( NumberInt != ele.type() && NumberLong != ele.type() )
          {
@@ -474,7 +458,6 @@ namespace engine
       try
       {
          obj = BSONObj( pInterruptInfo ).copy() ;
-         // get taskID from omsvc
          ele = obj.getField( OMA_FIELD_TASKID ) ;
          if ( NumberInt != ele.type() && NumberLong != ele.type() )
          {
@@ -509,7 +492,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          rc = SDB_OM_TASK_NOT_EXIST ;
-         PD_LOG_MSG( PDERROR, "task does not exist:task="OSS_LL_PRINT_FORMAT
+         PD_LOG_MSG( PDERROR, "task is not exist:task="OSS_LL_PRINT_FORMAT
                      ",rc=%d", _taskID, rc ) ;
          goto error ;
       }
@@ -563,7 +546,6 @@ namespace engine
       try
       {
          obj = BSONObj( pInterruptInfo ).copy() ;
-         // get taskID from omsvc
          ele = obj.getField( OMA_FIELD_TASKID ) ;
          if ( NumberInt != ele.type() && NumberLong != ele.type() )
          {
@@ -604,7 +586,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          rc = SDB_OM_TASK_NOT_EXIST ;
-         PD_LOG_MSG( PDERROR, "task does not exist:task="OSS_LL_PRINT_FORMAT
+         PD_LOG_MSG( PDERROR, "task is not exist:task="OSS_LL_PRINT_FORMAT
                      ",rc=%d", _taskID, rc ) ;
          goto error ;
       }
@@ -672,7 +654,6 @@ namespace engine
          stringstream ss ;
          BSONObj bus( pInstallInfo ) ;
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; " ;
          _jsFileArgs = ss.str() ;
@@ -719,7 +700,6 @@ namespace engine
          stringstream ss ;
          BSONObj bus( pInfo ) ;
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; " ;
          _jsFileArgs = ss.str() ;
@@ -766,60 +746,12 @@ namespace engine
          stringstream ss ;
          BSONObj bus( pInfo ) ;
 
-         // build js file arguments
          ss << "var " << JS_ARG_BUS << " = " 
             << bus.toString(FALSE, TRUE).c_str() << " ; " ;
          _jsFileArgs = ss.str() ;
          PD_LOG ( PDDEBUG, "Scan host passes argument: %s",
                   _jsFileArgs.c_str() ) ;
          rc = addJsFile( FILE_REMOVE_RELATIONSHIP, _jsFileArgs.c_str() ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to add js file[%s], rc = %d ",
-                     FILE_SCAN_HOST, rc ) ;
-            goto error ;
-         }
-      }
-      catch ( std::exception &e )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG ( PDERROR, "Failed to build bson, exception is: %s",
-                  e.what() ) ;
-         goto error ;
-      }
-   done:
-      return rc ;
-   error:
-     goto done ;
-   }
-
-   /************************** modify business config ************************/
-   /*
-      _omaModifyBusinessConfig
-   */
-   _omaModifyBusinessConfig::_omaModifyBusinessConfig()
-   {
-   }
-
-   _omaModifyBusinessConfig::~_omaModifyBusinessConfig()
-   {
-   }
-
-   INT32 _omaModifyBusinessConfig::init( const CHAR *pInfo )
-   {
-      INT32 rc = SDB_OK ;
-      try
-      {
-         stringstream ss ;
-         BSONObj bus( pInfo ) ;
-
-         // build js file arguments
-         ss << "var " << JS_ARG_BUS << " = " 
-            << bus.toString(FALSE, TRUE).c_str() << " ; " ;
-         _jsFileArgs = ss.str() ;
-         PD_LOG ( PDDEBUG, "Modify business config passes argument: %s",
-                  _jsFileArgs.c_str() ) ;
-         rc = addJsFile( FILE_MODIFY_BUSINESS_CONFIG, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to add js file[%s], rc = %d ",

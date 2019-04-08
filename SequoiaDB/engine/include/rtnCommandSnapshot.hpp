@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnCommandSnapshot.hpp
 
@@ -534,98 +533,6 @@ namespace engine
          virtual INT32   _getFetchType () const ;
          virtual BOOLEAN _isCurrent () const ;
          virtual UINT32  _addInfoMask () const ;
-   } ;
-
-   class _rtnSnapshotConfigs : public _rtnSnapshot
-   {
-      DECLARE_CMD_AUTO_REGISTER()
-
-      public :
-         _rtnSnapshotConfigs () ;
-         virtual ~_rtnSnapshotConfigs () ;
-
-         virtual const CHAR * name () ;
-         virtual RTN_COMMAND_TYPE type () ;
-
-      protected:
-         virtual INT32   _getFetchType() const ;
-         virtual BOOLEAN _isCurrent() const ;
-         virtual UINT32  _addInfoMask() const ;
-         virtual BSONObj _getOptObj() const ;
-
-      private:
-         virtual const CHAR *getIntrCMDName() ;
-   };
-
-   class _rtnSnapshotConfigsInner : public _rtnSnapshotInner
-   {
-      DECLARE_CMD_AUTO_REGISTER()
-
-      public:
-         _rtnSnapshotConfigsInner() {}
-         virtual ~_rtnSnapshotConfigsInner() {}
-
-         virtual const CHAR * name () ;
-         virtual RTN_COMMAND_TYPE type () ;
-
-      protected:
-         virtual INT32   _getFetchType() const ;
-         virtual BOOLEAN _isCurrent() const ;
-         virtual UINT32  _addInfoMask() const ;
-   } ;
-
-   class _rtnSnapshotVCLSessionInfoInner : public _rtnSnapshotInner
-   {
-      DECLARE_CMD_AUTO_REGISTER()
-
-      public:
-         _rtnSnapshotVCLSessionInfoInner() {}
-         virtual ~_rtnSnapshotVCLSessionInfoInner() {}
-
-         virtual const CHAR * name () ;
-         virtual RTN_COMMAND_TYPE type () ;
-
-      protected:
-         virtual INT32   _getFetchType() const ;
-         virtual BOOLEAN _isCurrent() const ;
-         virtual UINT32  _addInfoMask() const ;
-   } ;
-
-   class _rtnSnapshotSvcTasks : public _rtnSnapshot
-   {
-      DECLARE_CMD_AUTO_REGISTER()
-
-      public:
-         _rtnSnapshotSvcTasks() {}
-         virtual ~_rtnSnapshotSvcTasks() {}
-
-         virtual const CHAR * name () ;
-         virtual RTN_COMMAND_TYPE type () ;
-
-      protected:
-         virtual INT32   _getFetchType() const ;
-         virtual BOOLEAN _isCurrent() const ;
-         virtual UINT32  _addInfoMask() const ;
-
-      private:
-         virtual const CHAR *getIntrCMDName() ;
-   } ;
-
-   class _rtnSnapshotSvcTasksInner : public _rtnSnapshotInner
-   {
-      DECLARE_CMD_AUTO_REGISTER()
-
-      public:
-         _rtnSnapshotSvcTasksInner() {}
-         virtual ~_rtnSnapshotSvcTasksInner() {}
-
-         virtual const CHAR * name () ;
-         virtual RTN_COMMAND_TYPE type () ;
-
-      protected:
-         virtual INT32   _getFetchType() const ;
-         virtual BOOLEAN _isCurrent() const ;
-         virtual UINT32  _addInfoMask() const ;
    } ;
 
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -39,10 +39,8 @@ SDB_EXPORT void JsonSetPrintfLog( void (*pFun)( const CHAR *pFunc,
                                                 const CHAR *pFmt,
                                                 ... ) ) ;
 
-//Compatible with the old version, the new code is not recommended use.
 SDB_EXPORT BOOLEAN jsonToBson ( bson *bs, const CHAR *json_str ) ;
 
-//Compatible with the old version, the new code is not recommended use.
 SDB_EXPORT BOOLEAN jsonToBson2 ( bson *bs,
                                  const CHAR *json_str,
                                  BOOLEAN isMongo,
@@ -60,15 +58,11 @@ SDB_EXPORT BOOLEAN json2bson2( const CHAR *pJson, bson *pBson ) ;
 /** \fn BOOLEAN json2bson( const CHAR *pJson,
                            CJSON_MACHINE *pMachine,
                            INT32 parseMode,
-                           BOOLEAN isCheckEnd,
-                           BOOLEAN isUnicode,
                            bson *pBson )
     \brief Json converts to bson.
     \param [in]  pJson The json string to convert
     \param [in]  pMachine The json parse state machine
     \param [in]  parseMode The json parse mode, 0:loose mode; 1:rigorous mode;
-    \param [in]  isCheckEnd whether to check the end of json
-    \param [in]  isUnicode whether to escape Unicode encoding
     \param [out] pBson The return bson object
     \retval TRUE Operation Success
     \retval FALSE Operation Fail
@@ -77,7 +71,6 @@ SDB_EXPORT BOOLEAN json2bson( const CHAR *pJson,
                               CJSON_MACHINE *pMachine,
                               INT32 parseMode,
                               BOOLEAN isCheckEnd,
-                              BOOLEAN isUnicode,
                               bson *pBson ) ;
 
 SDB_EXPORT void setJsonPrecision( const CHAR *pFloatFmt ) ;

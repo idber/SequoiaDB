@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = optAccessPlan.hpp
 
@@ -71,9 +70,6 @@ namespace engine
    /*
       _optAccessPlan define
     */
-   // note _optAccessPlan object should NEVER been deleted by caller other than
-   // _optAccessPlanManager, user should call getAccessPlan and releasePlan to
-   // make sure all plans are properly tracked
    class _optAccessPlan : public _utilHashTableItem,
                           public _mthMatchTreeStackHolder,
                           public _mthMatchRuntimeHolder
@@ -84,21 +80,13 @@ namespace engine
 
          virtual ~_optAccessPlan () ;
 
-         OSS_INLINE BOOLEAN isInitialized () const
+         OSS_INLINE virtual BOOLEAN isInitialized () const
          {
             return _isInitialized ;
          }
 
-         OSS_INLINE BOOLEAN isInvalid() const
-         {
-            return _isInvalid ;
-         }
-
-         void markInvalid() ;
-
          virtual OPT_PLAN_TYPE getPlanType () const = 0 ;
 
-         /// Information for plan execution and explanation
          OSS_INLINE BOOLEAN isHintFailed () const
          {
             return _hintFailed ;
@@ -109,29 +97,27 @@ namespace engine
             return _isAutoPlan ;
          }
 
-         // Information of collection space
-         OSS_INLINE dmsStorageUnitID getSUID () const
+         OSS_INLINE virtual dmsStorageUnitID getSUID () const
          {
             return _key.getSUID() ;
          }
 
-         OSS_INLINE UINT32 getSULID () const
+         OSS_INLINE virtual UINT32 getSULID () const
          {
             return _key.getSULID() ;
          }
 
-         // Information of collection
-         OSS_INLINE const CHAR *getCLFullName () const
+         OSS_INLINE virtual const CHAR *getCLFullName () const
          {
             return _key.getCLFullName() ;
          }
 
-         OSS_INLINE UINT16 getCLMBID () const
+         OSS_INLINE virtual UINT16 getCLMBID () const
          {
             return _key.getCLMBID() ;
          }
 
-         OSS_INLINE UINT32 getCLLID () const
+         OSS_INLINE virtual UINT32 getCLLID () const
          {
             return _key.getCLLID() ;
          }
@@ -140,18 +126,17 @@ namespace engine
 
          virtual INT32 toBSON ( BSONObjBuilder &builder ) const ;
 
-         /// Plan cache related
-         OSS_INLINE const optAccessPlanKey &getKey () const
+         OSS_INLINE virtual const optAccessPlanKey &getKey () const
          {
             return _key ;
          }
 
-         OSS_INLINE optAccessPlanKey &getKey ()
+         OSS_INLINE virtual optAccessPlanKey &getKey ()
          {
             return _key ;
          }
 
-         OSS_INLINE INT32 getKeyOwned ()
+         OSS_INLINE virtual INT32 getKeyOwned ()
          {
             return _key.getOwned() ;
          }
@@ -161,25 +146,23 @@ namespace engine
             return _key.isEqual( key ) ;
          }
 
-         OSS_INLINE BOOLEAN isEqual ( const _optAccessPlan &item ) const
+         OSS_INLINE virtual BOOLEAN isEqual ( const _optAccessPlan &item ) const
          {
             return _key.isEqual( item._key ) ;
          }
 
-         OSS_INLINE UINT32 getKeyCode () const
+         OSS_INLINE virtual UINT32 getKeyCode () const
          {
             return _key.getKeyCode () ;
          }
 
          OSS_INLINE void setActivityID ( INT32 activityID )
          {
-            // No need to check
             _activityID.init( activityID ) ;
          }
 
          OSS_INLINE INT32 resetActivityID ()
          {
-            // Already reset by others
             return _activityID.swap( OPT_INVALID_ACT_ID ) ;
          }
 
@@ -299,22 +282,13 @@ namespace engine
          optAccessPlanKey  _key ;
 
          BOOLEAN _isInitialized ;
-         BOOLEAN _isInvalid ;
 
-         // Hint related
          BOOLEAN _hintFailed ;
-         // auto plan, TRUE when the plan is not generated by hint or
-         // hint is not valid
          BOOLEAN _isAutoPlan ;
 
-         /// Used in plan cache
-         // Activity ID to index the activity statistics
          ossAtomicSigned32 _activityID ;
-         // Reference count to the plan
-         // Note, the plan could be only deleted when reference count is zero
          ossAtomic32 _refCount ;
 
-         /// Scan path
          optPlanAllocator _planAllocator ;
          optScanPath _scanPath ;
    } ;
@@ -343,14 +317,12 @@ namespace engine
 
          OSS_INLINE virtual void setCachedBitmap ()
          {
-            // Set the cached plan bitmap for collection space
             if ( NULL != _cachedPlanMgr )
             {
                _cachedPlanMgr->setCacheBitmapForPlan( _key.getKeyCode() ) ;
             }
          }
 
-         // Virtual functions for parameterized plans
          OSS_INLINE virtual BOOLEAN isParamValid () const
          {
             return FALSE ;

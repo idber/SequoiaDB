@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2016 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dpsArchiveFileMgr.cpp
 
@@ -124,7 +123,6 @@ namespace engine
       return ss.str() ;
    }
 
-   // archivelog.<fileId>[.p|.m]
    BOOLEAN dpsArchiveFileMgr::isArchiveFileName( const string& fileName )
    {
       if ( utilStrStartsWith( fileName, DPS_ARCHIVE_FILE_PREFIX ) )
@@ -135,7 +133,6 @@ namespace engine
       return FALSE ;
    }
 
-   // archivelog.<fileId>
    BOOLEAN dpsArchiveFileMgr::isFullFileName( const string& fileName )
    {
       SDB_ASSERT( isArchiveFileName( fileName ), "not archive file" ) ;
@@ -155,7 +152,6 @@ namespace engine
       return TRUE ;
    }
 
-   // archivelog.<fileId>.p
    BOOLEAN dpsArchiveFileMgr::isPartialFileName( const string& fileName )
    {
       SDB_ASSERT( isArchiveFileName( fileName ), "not archive file" ) ;
@@ -168,7 +164,6 @@ namespace engine
       return FALSE ;
    }
 
-   // archivelog.<fileId>.m
    BOOLEAN dpsArchiveFileMgr::isMovedFileName( const string& fileName )
    {
       SDB_ASSERT( isArchiveFileName( fileName ), "not archive file" ) ;
@@ -191,7 +186,6 @@ namespace engine
       return FALSE ;
    }
 
-   // archivelog.<fileId>[.p|.m]
    INT32 dpsArchiveFileMgr::getFileId( const string& fileName, UINT32& fileId )
    {
       INT32 rc = SDB_OK ;
@@ -305,7 +299,6 @@ namespace engine
       in = &fileIn ;
       out = &fileOut ;
 
-      // copy archive file header
       rc = stream.copy( *in, *out, DPS_LOG_HEAD_LEN, &streamSize ) ;
       if ( SDB_OK != rc )
       {
@@ -346,7 +339,6 @@ namespace engine
          out = &fileOut ;
       }
 
-      // copy archive file body
       rc = stream.copy( *in, *out, NULL, si ) ;
       if ( SDB_OK != rc )
       {
@@ -531,8 +523,6 @@ namespace engine
          goto error ;
       }
 
-      // if move forward, 
-      // don't delete moved file if no full or partial file
       if ( existMoved && (!forward || existFull || existPartial ) )
       {
          rc = ossFile::deleteFile( movedPath ) ;
@@ -739,7 +729,6 @@ namespace engine
 
       if ( lastTime > time )
       {
-         // not expired
          continued = FALSE ;
          goto done ;
       }

@@ -322,15 +322,14 @@ class replicagroup(object):
             iscatalog = True
         return iscatalog
 
-    def attach_node(self, hostname, servicename, config):
+    def attach_node(self, hostname, servicename, config=None):
         """Attach node in a given replica group.
 
         Parameters:
            Name         Type     Info:
            hostname     str      The host name for the node.
            servicename  str      The servicename for the node.
-           config       dict     The configurations for the node. Can not be null or empty. Can be the follow options: 
-                                 KeepData: Whether to keep the original data of the new node. This option has no default value. User should specify its value explicitly. 
+           config       dict     The configurations for the node.
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
@@ -338,25 +337,25 @@ class replicagroup(object):
             raise SDBTypeError("host must be an instance of str_type")
         if not isinstance(servicename, str_type):
             raise SDBTypeError("service name must be an instance of str_type")
-        if not isinstance(config, dict):
+        if config is not None and not isinstance(config, dict):
             raise SDBTypeError("config must be an instance of dict")
 
+        if config is None:
+            config = {}
         bson_options = bson.BSON.encode(config)
 
         rc = sdb.gp_attach_node(self._group,
                                 hostname, servicename, bson_options)
         raise_if_error(rc, "Failed to attach node")
 
-    def detach_node(self, hostname, servicename, config):
+    def detach_node(self, hostname, servicename, config=None):
         """Detach node in a given replica group.
 
         Parameters:
            Name         Type     Info:
            hostname     str      The host name for the node.
            servicename  str      The servicename for the node.
-           config       dict     The configurations for the node. Can not be null or empty. Can be the follow options:
-                                 KeepData: Whether to keep the original data of the detached node. This option has no default value. User should specify its value explicitly. 
-                                 Enforced: Whether to detach the node forcibly, default to be false. 
+           config       dict     The configurations for the node.
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
@@ -364,30 +363,13 @@ class replicagroup(object):
             raise SDBTypeError("host must be an instance of str_type")
         if not isinstance(servicename, str_type):
             raise SDBTypeError("service name must be an instance of str_type")
-        if not isinstance(config, dict):
+        if config is not None and not isinstance(config, dict):
             raise SDBTypeError("config must be an instance of dict")
 
+        if config is None:
+            config = {}
         bson_options = bson.BSON.encode(config)
 
         rc = sdb.gp_detach_node(self._group,
                                 hostname, servicename, bson_options)
         raise_if_error(rc, "Failed to detach node")
-
-    def reelect(self, options=None):
-        """Reelect in current group.
-
-        Parameters:
-           Name         Type     Info:
-           options      dict     The control parameters:
-                                 Seconds: (Type: int) Specify how long the reelect should be done. Default value is 30.
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        if options is not None and not isinstance(options, dict):
-            raise SDBTypeError("options must be an instance of dict")
-        if options is None:
-            options = {}
-        bson_options = bson.BSON.encode(options)
-
-        rc = sdb.gp_reelect(self._group, bson_options)
-        raise_if_error(rc, "Failed to reelect")

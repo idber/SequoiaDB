@@ -1,5 +1,5 @@
 /*******************************************************************************
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -115,20 +115,17 @@ SDB_EXPORT  void JsonSetPrintfLog( void (*pFun)( const CHAR *pFunc,
    cJsonSetPrintfLog( pFun ) ;
 }
 
-//Compatible with the old version, the new code is not recommended use.
 SDB_EXPORT BOOLEAN jsonToBson ( bson *bs, const CHAR *json_str )
 {
    return json2bson2( json_str, bs ) ;
 }
 
-//Compatible with the old version, the new code is not recommended use.
 SDB_EXPORT BOOLEAN jsonToBson2 ( bson *bs,
                                  const CHAR *json_str,
                                  BOOLEAN isMongo,
                                  BOOLEAN isBatch )
 {
-   return json2bson( json_str, NULL, CJSON_RIGOROUS_PARSE,
-                     !isBatch, TRUE, bs ) ;
+   return json2bson( json_str, NULL, CJSON_RIGOROUS_PARSE, !isBatch, bs ) ;
 }
 
 /*
@@ -139,7 +136,7 @@ SDB_EXPORT BOOLEAN jsonToBson2 ( bson *bs,
 */
 SDB_EXPORT BOOLEAN json2bson2( const CHAR *pJson, bson *pBson )
 {
-   return json2bson( pJson, NULL, CJSON_RIGOROUS_PARSE, TRUE, TRUE, pBson ) ;
+   return json2bson( pJson, NULL, CJSON_RIGOROUS_PARSE, TRUE, pBson ) ;
 }
 
 /*
@@ -148,8 +145,6 @@ SDB_EXPORT BOOLEAN json2bson2( const CHAR *pJson, bson *pBson )
  * pMachine : cJSON state machine
  * parseMode: 0 - loose mode
  *            1 - rigorous mode
- * isCheckEnd: whether to check the end of json
- * isUnicode: whether to escape Unicode encoding
  * pBson : bson object
  * return : the conversion result
 */
@@ -158,7 +153,6 @@ SDB_EXPORT BOOLEAN json2bson( const CHAR *pJson,
                               CJSON_MACHINE *pMachine,
                               INT32 parseMode,
                               BOOLEAN isCheckEnd,
-                              BOOLEAN isUnicode,
                               bson *pBson )
 {
    BOOLEAN flag = TRUE ;
@@ -178,7 +172,7 @@ SDB_EXPORT BOOLEAN json2bson( const CHAR *pJson,
       }
    }
 
-   cJsonInit( pMachine, parseMode, isCheckEnd, isUnicode ) ;
+   cJsonInit( pMachine, parseMode, isCheckEnd ) ;
 
    if( cJsonParse( pJson, pMachine ) == FALSE )
    {
@@ -247,7 +241,6 @@ BOOLEAN bsonToJson ( CHAR *buffer, INT32 bufsize, const bson *b,
     INT32 leftsize = bufsize ;
     if ( bufsize <= 0 || !buffer || !b )
        return FALSE ;
-    //memset ( pbuf, 0, bufsize ) ;
     result = bsonConvertJson ( &pbuf, &leftsize, b->data, 1,
                                toCSV, skipUndefined, FALSE ) ;
     if ( !result || !leftsize )
@@ -273,7 +266,6 @@ BOOLEAN bsonToJson2 ( CHAR *buffer, INT32 bufsize, const bson *b,
     INT32 leftsize = bufsize ;
     if ( bufsize <= 0 || !buffer || !b )
        return FALSE ;
-    //memset ( pbuf, 0, bufsize ) ;
     result = bsonConvertJson ( &pbuf, &leftsize, b->data, 1,
                                FALSE, TRUE, isStrict ) ;
     if ( !result || !leftsize )
@@ -365,7 +357,6 @@ static BOOLEAN date2Time( const CHAR *pDate,
       /* sanity check for years */
       if( valType == CJSON_TIMESTAMP )
       {
-         //[ 1901, 2038 ]
          if( year > INT32_LAST_YEAR )
          {
             JSON_PRINTF_LOG( "Timestamp year not greater than %d",
@@ -379,7 +370,6 @@ static BOOLEAN date2Time( const CHAR *pDate,
             goto error ;
          }
 
-         //[1,12]
          if( month > RELATIVE_MON )
          {
             JSON_PRINTF_LOG( "Timestamp month not greater than %d",
@@ -392,7 +382,6 @@ static BOOLEAN date2Time( const CHAR *pDate,
             goto error ;
          }
 
-         //[1,31]
          if( day > RELATIVE_DAY )
          {
             JSON_PRINTF_LOG( "Timestamp day not greater than %d",
@@ -405,7 +394,6 @@ static BOOLEAN date2Time( const CHAR *pDate,
             goto error ;
          }
 
-         //[0,23]
          if( hour >= RELATIVE_HOUR )
          {
             JSON_PRINTF_LOG( "Timestamp hours not greater than %d",
@@ -418,7 +406,6 @@ static BOOLEAN date2Time( const CHAR *pDate,
             goto error ;
          }
 
-         //[0,59]
          if( minute >= RELATIVE_MIN_SEC )
          {
             JSON_PRINTF_LOG( "Timestamp minutes not greater than %d",
@@ -431,7 +418,6 @@ static BOOLEAN date2Time( const CHAR *pDate,
             goto error ;
          }
 
-         //[0,59]
          if( second >= RELATIVE_MIN_SEC )
          {
             JSON_PRINTF_LOG( "Timestamp seconds not greater than %d",
@@ -446,7 +432,6 @@ static BOOLEAN date2Time( const CHAR *pDate,
       }
       else if( valType == CJSON_DATE )
       {
-         //[0000,9999]
          if( year > INT64_LAST_YEAR )
          {
             JSON_PRINTF_LOG( "Date year not greater than %d",
@@ -459,7 +444,6 @@ static BOOLEAN date2Time( const CHAR *pDate,
             goto error ;
          }
 
-         //[1,12]
          if( month > RELATIVE_MON )
          {
             JSON_PRINTF_LOG( "Date month not greater than %d",
@@ -472,7 +456,6 @@ static BOOLEAN date2Time( const CHAR *pDate,
             goto error ;
          }
 
-         //[1,31]
          if( day > RELATIVE_DAY )
          {
             JSON_PRINTF_LOG( "Date day not greater than %d",
@@ -1225,7 +1208,7 @@ static BOOLEAN jsonConvertBson( const CJSON_MACHINE *pMachine,
       }
       case CJSON_DECIMAL:
       {
-         bson_decimal bsonDecimal = SDB_DECIMAL_DEFAULT_VALUE ;
+         bson_decimal bsonDecimal = DECIMAL_DEFAULT_VALUE ;
          cJsonIteratorDecimal( pIter, &arg1, &arg2 ) ;
          if( arg1.valType != CJSON_INT32 &&
              arg1.valType != CJSON_INT64 &&
@@ -1265,9 +1248,9 @@ static BOOLEAN jsonConvertBson( const CJSON_MACHINE *pMachine,
                                 "be an array of two integet element", pKey ) ;
                goto error ;
             }
-            if( sdb_decimal_init1( &bsonDecimal,
-                                   precisionVal.valInt,
-                                   scaleVal.valInt ) != 0 )
+            if( decimal_init1( &bsonDecimal,
+                               precisionVal.valInt,
+                               scaleVal.valInt ) != 0 )
             {
                JSON_PRINTF_LOG( "Failed to init decimal, key: %s", pKey ) ;
                goto error ;
@@ -1276,7 +1259,7 @@ static BOOLEAN jsonConvertBson( const CJSON_MACHINE *pMachine,
 
          if( arg1.valType == CJSON_INT32 )
          {
-            if( sdb_decimal_from_int( arg1.valInt, &bsonDecimal ) != 0 )
+            if( decimal_from_int( arg1.valInt, &bsonDecimal ) != 0 )
             {
                JSON_PRINTF_LOG( "Failed to build decimal int, key: %s", pKey ) ;
                goto error ;
@@ -1284,7 +1267,7 @@ static BOOLEAN jsonConvertBson( const CJSON_MACHINE *pMachine,
          }
          else if( arg1.valType == CJSON_INT64 )
          {
-            if( sdb_decimal_from_long( arg1.valInt64, &bsonDecimal ) != 0 )
+            if( decimal_from_long( arg1.valInt64, &bsonDecimal ) != 0 )
             {
                JSON_PRINTF_LOG( "Failed to build decimal int64, key: %s",
                                 pKey ) ;
@@ -1293,7 +1276,7 @@ static BOOLEAN jsonConvertBson( const CJSON_MACHINE *pMachine,
          }
          else if( arg1.valType == CJSON_DOUBLE )
          {
-            if( sdb_decimal_from_double( arg1.valDouble, &bsonDecimal ) != 0 )
+            if( decimal_from_double( arg1.valDouble, &bsonDecimal ) != 0 )
             {
                JSON_PRINTF_LOG( "Failed to build decimal double, key: %s",
                                 pKey ) ;
@@ -1302,7 +1285,7 @@ static BOOLEAN jsonConvertBson( const CJSON_MACHINE *pMachine,
          }
          else if( arg1.valType == CJSON_STRING )
          {
-            if( sdb_decimal_from_str( arg1.pValStr, &bsonDecimal ) != 0 )
+            if( decimal_from_str( arg1.pValStr, &bsonDecimal ) != 0 )
             {
                JSON_PRINTF_LOG( "Failed to build decimal string, key: %s",
                                 pKey ) ;
@@ -1312,10 +1295,10 @@ static BOOLEAN jsonConvertBson( const CJSON_MACHINE *pMachine,
          if( bson_append_decimal( pBson, pKey, &bsonDecimal ) == BSON_ERROR )
          {
             JSON_PRINTF_LOG( "Failed to append bson '%s' decimal", pKey ) ;
-            sdb_decimal_free( &bsonDecimal ) ;
+            decimal_free( &bsonDecimal ) ;
             goto error ;
          }
-         sdb_decimal_free( &bsonDecimal ) ;
+         decimal_free( &bsonDecimal ) ;
          break ;
       }
       case CJSON_NONE:
@@ -1368,7 +1351,6 @@ static void bsonConvertJsonRawConcat( CHAR **pbuf,
       {
          switch ( *data )
          {
-         //the JSON standard does not need to be escaped single quotation marks
          /*case '\'':
          {
            pTempBuf[i] = '\\' ;
@@ -1691,7 +1673,6 @@ static BOOLEAN bsonConvertJson ( CHAR **pbuf,
           * string */
          if ( toCSV )
          {
-            // we don't support BIN DATA in csv output
             break ;
          }
          bin_type = bson_iterator_bin_type( &i ) ;
@@ -1825,7 +1806,6 @@ static BOOLEAN bsonConvertJson ( CHAR **pbuf,
           * options string. */
          if ( toCSV )
          {
-            // we don't support CSV for regex
             break ;
          }
          bsonConvertJsonRawConcat ( pbuf, left, "{ \"$regex\": \"", FALSE ) ;
@@ -1905,34 +1885,32 @@ static BOOLEAN bsonConvertJson ( CHAR **pbuf,
       }
       case BSON_DECIMAL:
       {
-         bson_decimal decimal = SDB_DECIMAL_DEFAULT_VALUE ;
+         bson_decimal decimal = DECIMAL_DEFAULT_VALUE ;
          int rc        = 0 ;
          CHAR *value   = NULL ;
          int size      = 0 ;
 
-         // get decimal
          bson_iterator_decimal( &i, &decimal ) ;
 
-         sdb_decimal_to_jsonstr_len( decimal.sign, decimal.weight,
-                                     decimal.dscale,
-                                     decimal.typemod, &size ) ;
+         decimal_to_jsonstr_len( decimal.sign, decimal.weight, decimal.dscale,
+                                 decimal.typemod, &size ) ;
          value = malloc( size ) ;
          if ( NULL == value )
          {
-            sdb_decimal_free( &decimal ) ;
+            decimal_free( &decimal ) ;
             return FALSE ;
          }
 
-         rc = sdb_decimal_to_jsonstr( &decimal, value, size ) ;
+         rc = decimal_to_jsonstr( &decimal, value, size ) ;
          if ( 0 != rc )
          {
             free( value ) ;
-            sdb_decimal_free( &decimal ) ;
+            decimal_free( &decimal ) ;
             return FALSE ;
          }
 
          bsonConvertJsonRawConcat ( pbuf, left, value, FALSE ) ;
-         sdb_decimal_free( &decimal ) ;
+         decimal_free( &decimal ) ;
          free( value ) ;
          CHECK_LEFT ( left ) ;
          break ;
@@ -2046,7 +2024,6 @@ static INT32 strlen_a( const CHAR *data )
    }
    while ( data && *data )
    {
-      //the JSON standard does not need to be escaped single quotation marks
       if ( data[0] == '\"' ||
            data[0] == '\\' ||
            data[0] == '\b' ||
@@ -2076,9 +2053,6 @@ static void local_time( time_t *Time, struct tm *TM )
 #if defined (__linux__ ) || defined (_AIX)
    localtime_r( Time, TM ) ;
 #elif defined (_WIN32)
-   // The Time represents the seconds elapsed since midnight (00:00:00),
-   // January 1, 1970, UTC. This value is usually obtained from the time
-   // function.
    localtime_s( TM, Time ) ;
 #else
 #error "unimplemented local_time()"

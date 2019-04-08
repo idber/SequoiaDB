@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = monDMS.hpp
 
@@ -48,7 +47,6 @@
 #include "../bson/bsonobj.h"
 #include <set>
 #include <vector>
-#include "ossMemPool.hpp"
 using namespace std ;
 using namespace bson ;
 
@@ -66,7 +64,6 @@ namespace engine
       dmsExtentID    _scanExtLID ;
       dmsExtentID    _indexLID ;
       BSONObj        _indexDef ;
-      CHAR           _extDataName[ DMS_MAX_EXT_NAME_SIZE + 1 ] ;
 
       _monIndex()
       {
@@ -74,7 +71,6 @@ namespace engine
          _version = 0 ;
          _scanExtLID = -1 ;
          _indexLID = -1 ;
-         ossMemset( _extDataName, 0, DMS_MAX_EXT_NAME_SIZE + 1 ) ;
       }
 
       OSS_INLINE const CHAR *getIndexName () const
@@ -125,11 +121,6 @@ namespace engine
       error:
          goto done ;
       }
-
-      OSS_INLINE const CHAR* getExtDataName() const
-      {
-         return _indexDef.getStringField( FIELD_NAME_EXT_DATA_NAME ) ;
-      }
    } ;
 
    typedef class _monIndex monIndex ;
@@ -154,7 +145,6 @@ namespace engine
       UINT32 _pageSize ;
       UINT32 _lobPageSize ;
 
-      // stat info
       UINT64 _totalRecords ;
       UINT64 _totalLobs ;
       UINT32 _totalDataPages ;
@@ -163,9 +153,7 @@ namespace engine
       UINT64 _totalDataFreeSpace ;
       UINT64 _totalIndexFreeSpace ;
       UINT32 _currCompressRatio ;
-      // end
 
-      /// sync info
       UINT64 _dataCommitLSN ;
       UINT64 _idxCommitLSN ;
       UINT64 _lobCommitLSN ;
@@ -198,7 +186,6 @@ namespace engine
          _totalIndexFreeSpace = 0 ;
          _currCompressRatio   = 0 ;
 
-         /// sync info
          _dataCommitLSN       = -1 ;
          _idxCommitLSN        = -1 ;
          _lobCommitLSN        = -1 ;
@@ -208,7 +195,7 @@ namespace engine
       }
    } ;
    typedef class _detailedInfo detailedInfo ;
-   typedef ossPoolMap<UINT32, detailedInfo>  MON_CL_DETAIL_MAP ;
+   typedef std::map<UINT32, detailedInfo> MON_CL_DETAIL_MAP ;
 
    /*
       _monCLSimple define
@@ -223,7 +210,6 @@ namespace engine
 
          UINT16 _blockID ;
          UINT32 _logicalID ;
-         utilCLUniqueID _clUniqueID ;
 
          MON_IDX_LIST _idxList ;
 
@@ -234,7 +220,6 @@ namespace engine
             _csname[ 0 ] = 0 ;
             _blockID = 0 ;
             _logicalID = 0 ;
-            _clUniqueID = UTIL_UNIQUEID_NULL ;
          }
 
          BOOLEAN operator< (const _monCLSimple &r) const
@@ -273,7 +258,7 @@ namespace engine
 
    typedef class _monCLSimple monCLSimple ;
 
-   typedef ossPoolSet<monCLSimple>  MON_CL_SIM_LIST ;
+   typedef std::set<monCLSimple> MON_CL_SIM_LIST ;
    typedef std::vector<monCLSimple> MON_CL_SIM_VEC ;
 
    /*
@@ -283,13 +268,11 @@ namespace engine
    {
    public :
       CHAR _name [ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
-      utilCLUniqueID _clUniqueID ;
       MON_CL_DETAIL_MAP _details ;
 
       _monCollection()
       {
          _name[ 0 ]  = 0 ;
-         _clUniqueID = UTIL_UNIQUEID_NULL ;
       }
       OSS_INLINE BOOLEAN operator<(const _monCollection &r) const
       {
@@ -329,16 +312,16 @@ namespace engine
       }
 
    } ;
-   typedef class _monCollection        monCollection ;
-   typedef ossPoolSet<monCollection>   MON_CL_LIST ;
+   typedef class _monCollection monCollection ;
+   typedef std::set<monCollection> MON_CL_LIST ;
 
    /*
       _monCSSimple define
    */
 
    class _monCSSimple ;
-   typedef class _monCSSimple       monCSSimple ;
-   typedef ossPoolSet<monCSSimple>  MON_CS_SIM_LIST ;
+   typedef class _monCSSimple monCSSimple ;
+   typedef std::set<monCSSimple> MON_CS_SIM_LIST ;
 
    class _monCSSimple : public SDBObject
    {
@@ -347,14 +330,12 @@ namespace engine
          dmsStorageUnitID _suID ;
          UINT32 _logicalID ;
          MON_CL_SIM_VEC _clList ;
-         utilCSUniqueID _csUniqueID ;
 
          _monCSSimple ()
          {
             _name[ 0 ] = 0 ;
             _suID = DMS_INVALID_SUID ;
             _logicalID = DMS_INVALID_LOGICCSID ;
-            _csUniqueID = UTIL_UNIQUEID_NULL ;
          }
 
          BOOLEAN operator< ( const _monCSSimple &r ) const
@@ -407,7 +388,6 @@ namespace engine
    {
    public :
       CHAR _name [ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] ;
-      utilCSUniqueID _csUniqueID ;
       MON_CL_SIM_VEC _collections ;
       INT32 _pageSize ;
       INT32 _clNum ;
@@ -422,7 +402,6 @@ namespace engine
       INT64 _freeIndexSize ;
       INT64 _freeLobSize ;
 
-      /// commit info
       UINT64 _dataCommitLsn ;
       UINT64 _idxCommitLsn ;
       UINT64 _lobCommitLsn ;
@@ -430,14 +409,12 @@ namespace engine
       BOOLEAN _idxIsValid ;
       BOOLEAN _lobIsValid ;
 
-      /// cache info
       UINT32 _dirtyPage ;
       DMS_STORAGE_TYPE _type ;
 
       _monCollectionSpace ()
       {
          ossMemset ( _name, 0, sizeof(_name)) ;
-         _csUniqueID = UTIL_UNIQUEID_NULL ;
          _pageSize = 0 ;
          _clNum    = 0 ;
          _totalRecordNum = 0 ;
@@ -464,7 +441,6 @@ namespace engine
       _monCollectionSpace ( const _monCollectionSpace &right )
       {
          ossStrcpy ( _name, right._name ) ;
-         _csUniqueID = right._csUniqueID ;
          _collections = right._collections ;
          _pageSize = right._pageSize ;
          _clNum    = right._clNum ;
@@ -501,7 +477,6 @@ namespace engine
       _monCollectionSpace &operator= (const _monCollectionSpace &right)
       {
          ossStrcpy ( _name, right._name ) ;
-         _csUniqueID = right._csUniqueID ;
          _collections = right._collections ;
          _pageSize = right._pageSize ;
          _clNum    = right._clNum ;
@@ -528,8 +503,8 @@ namespace engine
          return *this ;
       }
    } ;
-   typedef class _monCollectionSpace      monCollectionSpace ;
-   typedef ossPoolSet<monCollectionSpace> MON_CS_LIST ;
+   typedef class _monCollectionSpace monCollectionSpace ;
+   typedef std::set<monCollectionSpace> MON_CS_LIST ;
 
    /*
       _monStorageUnit define
@@ -538,7 +513,6 @@ namespace engine
    {
    public :
       CHAR _name [ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] ;
-      utilCSUniqueID _csUniqueID ;
       dmsStorageUnitID _CSID ;
       UINT32 _logicalCSID ;
       SINT32 _pageSize ;
@@ -551,7 +525,6 @@ namespace engine
       OSS_INLINE BOOLEAN operator<(const _monStorageUnit &r) const
       {
          SINT32 rc = ossStrncmp( _name, r._name, sizeof(_name))<0 ;
-         // if two storage unit got same name, let's check sequence
          if ( !rc )
             return _sequence < r._sequence ;
          return rc ;
@@ -566,7 +539,6 @@ namespace engine
       _monStorageUnit()
       {
          _name[ 0 ] = 0 ;
-         _csUniqueID = UTIL_UNIQUEID_NULL ;
          _CSID = -1 ;
          _logicalCSID = 0 ;
          _pageSize = 0 ;
@@ -577,8 +549,8 @@ namespace engine
          _size = 0 ;
       }
    } ;
-   typedef class _monStorageUnit       monStorageUnit ;
-   typedef ossPoolSet<monStorageUnit>  MON_SU_LIST ;
+   typedef class _monStorageUnit monStorageUnit ;
+   typedef std::set<monStorageUnit> MON_SU_LIST ;
 
    /*
       _monCSName define

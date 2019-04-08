@@ -25,16 +25,13 @@ public class CLSaveAndAs {
 
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
 
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } else
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        // cl
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
@@ -60,7 +57,6 @@ public class CLSaveAndAs {
      */
     @Test
     public void testListBean() {
-        // case1:
         BSONObject obj = new BasicBSONObject();
         BSONObject arr = new BasicBSONList();
         arr.put("0", 0);
@@ -77,7 +73,6 @@ public class CLSaveAndAs {
             Assert.fail();
         }
 
-        // case2:
         BSONObject retObj = null;
         ListBean outBean = null;
         ListBean inBean = new ListBean();
@@ -101,7 +96,6 @@ public class CLSaveAndAs {
     @Test
     @Ignore
     public void testArrListBean() {
-        // case1:
         BSONObject obj = new BasicBSONObject();
         BSONObject arr = new BasicBSONList();
         arr.put("0", 0);
@@ -118,7 +112,6 @@ public class CLSaveAndAs {
             Assert.fail();
         }
 
-        // case2:
         BSONObject retObj = null;
         ArrayListBean outBean = null;
         ArrayListBean inBean = new ArrayListBean();

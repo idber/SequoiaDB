@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = qgmPlCommand.cpp
 
@@ -161,7 +160,6 @@ namespace engine
       }
       else
       {
-         /// do noting.
       }
 
       return ss.str() ;
@@ -301,7 +299,7 @@ namespace engine
          pCommand = CMD_NAME_DROP_INDEX ;
          BSONObj obj = BSON( FIELD_NAME_COLLECTION << _fullName.toString() <<
                              FIELD_NAME_INDEX <<
-                                 BSON( IXM_FIELD_NAME_NAME << _indexName.toString() <<
+                                 BSON( IXM_FIELD_NAME_NAME << _indexName.toString() << 
                                        IXM_FIELD_NAME_KEY << "" )
                             ) ;
          rc = msgBuildQueryMsg( &msg, &bufSize,
@@ -482,8 +480,7 @@ namespace engine
       if ( SQL_GRAMMAR::CRTCS == _commandType )
       {
          rc = rtnCreateCollectionSpaceCommand( _fullName.toString().c_str(),
-                                               eduCB, dmsCB, dpsCB,
-                                               UTIL_CSUNIQUEID_LOCAL ) ;
+                                               eduCB, dmsCB, dpsCB ) ;
       }
       else if ( SQL_GRAMMAR::DROPCS == _commandType )
       {
@@ -494,18 +491,14 @@ namespace engine
       {
          if ( _partition.isEmpty() )
          {
-            // pass 0 for attributes, which indicates no-compression for the
-            // moment
             rc = rtnCreateCollectionCommand( _fullName.toString().c_str(),
-                                             0, eduCB, dmsCB, dpsCB,
-                                             UTIL_CLUNIQUEID_LOCAL ) ;
+                                             0, eduCB, dmsCB, dpsCB ) ;
          }
          else
          {
             rc = rtnCreateCollectionCommand( _fullName.toString().c_str(),
                                              _partition, 0,
-                                             eduCB, dmsCB, dpsCB,
-                                             UTIL_CLUNIQUEID_LOCAL ) ;
+                                             eduCB, dmsCB, dpsCB ) ;
          }
       }
       else if ( SQL_GRAMMAR::DROPCL == _commandType )

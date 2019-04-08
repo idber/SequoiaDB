@@ -262,55 +262,11 @@ struct agent_ops agent_ops_unix = {
 #define PAGEANT_COPYDATA_ID 0x804e50ba   /* random goop */
 #define PAGEANT_MAX_MSGLEN  8192
 
-#ifdef _UNICODE
-static int _ANSI2WC ( LPCSTR lpcszString,
-                      LPWSTR *plppszWCString,
-                      DWORD  *plpdwWCString )
-{
-   int strSize          = 0 ;
-   int requiredSize     = 0 ;
-   requiredSize         = MultiByteToWideChar ( CP_ACP, 0, lpcszString,
-                                                -1, NULL, 0 ) ;
-   // caller is responsible to free memory
-   *plppszWCString = (LPWSTR)malloc ( requiredSize * sizeof(WCHAR) ) ;
-   if ( !plppszWCString )
-   {
-      return LIBSSH2_ERROR_ALLOC ;
-   }
-   strSize = MultiByteToWideChar ( CP_ACP, 0, lpcszString, -1,
-                                   *plppszWCString, requiredSize ) ;
-   if ( 0 == strSize )
-   {
-      free ( *plppszWCString ) ;
-      *plppszWCString = NULL ;
-      return LIBSSH2_ERROR_ALLOC ;
-   }
-
-   if ( plpdwWCString )
-      *plpdwWCString = strSize ;
-
-   return LIBSSH2_ERROR_NONE ;
-}
-#endif // _UNICODE
-
 static int
 agent_connect_pageant(LIBSSH2_AGENT *agent)
 {
     HWND hwnd;
-
-#ifdef _UNICODE
-    LPWSTR pName = NULL ;
-    int ret = 0 ;
-    ret = _ANSI2WC( "Pageant", &pName, NULL ) ;
-    if ( ret )
-    {
-        return ret ;
-    }
-    hwnd = FindWindow( pName, pName );
-    free( pName ) ;
-#else
-    hwnd = FindWindow( "Pageant", "Pageant" );
-#endif // _UNICODE
+    hwnd = FindWindow("Pageant", "Pageant");
     if (!hwnd)
         return _libssh2_error(agent->session, LIBSSH2_ERROR_AGENT_PROTOCOL,
                               "failed connecting agent");
@@ -329,43 +285,19 @@ agent_transact_pageant(LIBSSH2_AGENT *agent, agent_transaction_ctx_t transctx)
     int id;
     COPYDATASTRUCT cds;
 
-#ifdef _UNICODE
-    LPWSTR pName = NULL ;
-    int ret = 0 ;
-#endif //_UNICODE
-
     if (!transctx || 4 + transctx->request_len > PAGEANT_MAX_MSGLEN)
         return _libssh2_error(agent->session, LIBSSH2_ERROR_INVAL,
                               "illegal input");
-#ifdef _UNICODE
-        ret = _ANSI2WC( "Pageant", &pName, NULL ) ;
-        if ( ret )
-        {
-            return ret ;
-        }
-        hwnd = FindWindow(pName, pName);
-        free( pName ) ;
-#else
-        hwnd = FindWindow("Pageant", "Pageant");
-#endif //_UNICODE
+
+    hwnd = FindWindow("Pageant", "Pageant");
     if (!hwnd)
         return _libssh2_error(agent->session, LIBSSH2_ERROR_AGENT_PROTOCOL,
                               "found no pageant");
 
     sprintf(mapname, "PageantRequest%08x", (unsigned)GetCurrentThreadId());
-#ifdef _UNICODE
-    ret = _ANSI2WC( mapname, &pName, NULL ) ;
-    if ( ret )
-    {
-        return ret ;
-    }
-    filemap = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE,
-                                0, PAGEANT_MAX_MSGLEN, pName);
-    free( pName ) ;
-#else
     filemap = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE,
                                 0, PAGEANT_MAX_MSGLEN, mapname);
-#endif //_UNICODE
+
     if (filemap == NULL || filemap == INVALID_HANDLE_VALUE)
         return _libssh2_error(agent->session, LIBSSH2_ERROR_AGENT_PROTOCOL,
                               "failed setting up pageant filemap");

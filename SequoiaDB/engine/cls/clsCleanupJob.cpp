@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsCleanupJob.cpp
 
@@ -46,8 +45,6 @@ using namespace bson ;
 
 namespace engine
 {
-
-   #define CLS_CLEAN_TRANS_MIN_TIMEOUT          ( 300000 )   // 5 min
 
    _clsCleanupJob::_clsCleanupJob ( const std::string &clFullName,
                                     const BSONObj &splitKeyObj,
@@ -96,17 +93,6 @@ namespace engine
          _name += _splitKeyObj.toString() ;
          _name += "]" ;
       }
-   }
-
-   void _clsCleanupJob::_onAttach()
-   {
-      dpsTransExecutor *pExe = eduCB()->getTransExecutor() ;
-      UINT32 transTimeout = pExe->getTransTimeout() * 5 ;
-      if ( transTimeout < CLS_CLEAN_TRANS_MIN_TIMEOUT )
-      {
-         transTimeout = CLS_CLEAN_TRANS_MIN_TIMEOUT ;
-      }
-      pExe->setTransTimeout( transTimeout, TRUE ) ;
    }
 
    CLS_CLEANUP_TYPE _clsCleanupJob::_cleanupType () const
@@ -163,7 +149,6 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCLNJOB_DOIT, "_clsCleanupJob::doit" )
    INT32 _clsCleanupJob::doit ()
    {
-      // need to update catalog
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSCLNJOB_DOIT );
       clsTaskMgr *pTaskMgr = pmdGetKRCB()->getClsCB()->getTaskMgr() ;
@@ -187,12 +172,7 @@ namespace engine
          }
 
          rc = pShardCB->syncUpdateCatalog( _clFullName.c_str(), OSS_ONE_SEC ) ;
-         if ( SDB_DMS_NOTEXIST == rc )
-         {
-            dropCollection = TRUE ;
-            break ;
-         }
-         else if ( SDB_OK != rc )
+         if ( SDB_OK != rc && SDB_DMS_NOTEXIST != rc )
          {
             continue ;
          }
@@ -201,26 +181,21 @@ namespace engine
          catSet = catAgent->collectionSet( _clFullName.c_str() ) ;
          if ( catSet )
          {
-            // w = catSet->getW () ;
             dropCollection = ( 0 == catSet->groupCount() ) ? TRUE : FALSE ;
          }
          else
          {
-            catAgent->release_r() ;
-            continue ;
+            dropCollection = TRUE ;
          }
-
          catAgent->release_r() ;
          break ;
       }
 
-      // drop collection
       if ( dropCollection )
       {
          pTaskMgr->lockReg( SHARED ) ;
          if ( 0 == pTaskMgr->getRegCount( _clFullName, TRUE ) )
          {
-            // delete the collection
             rc = rtnDropCollectionCommand( _clFullName.c_str(), eduCB(),
                                            _dmsCB, _dpsCB ) ;
             PD_LOG ( PDEVENT, "Job[%s] drop the collection[%s], rc:%d", name(),
@@ -231,7 +206,6 @@ namespace engine
             }
             else if ( SDB_OK == rc || SDB_DMS_NOTEXIST == rc )
             {
-               // drop empty collectionspace, ignore errors
                _dmsCB->dropEmptyCollectionSpace(
                         dmsGetCSNameFromFullName( _clFullName ).c_str(),
                         eduCB(), _dpsCB ) ;
@@ -284,7 +258,7 @@ namespace engine
       UINT32 belongTo = 0 ;
       BOOLEAN need2ReleaseR = FALSE ;
 
-   retry:
+retry:
       catAgent->lock_r() ;
       need2ReleaseR = TRUE ;
       catSet = catAgent->collectionSet( _clFullName.c_str() ) ;
@@ -300,11 +274,8 @@ namespace engine
          }
          else
          {
-            if ( SDB_DMS_NOTEXIST != rc )
-            {
-               PD_LOG( PDERROR, "Failed to update catalog info of %s",
-                       _clFullName.c_str() ) ;
-            }
+            PD_LOG( PDERROR, "failed to update catalog info of %s",
+                    _clFullName.c_str() ) ;
             goto error ;
          }
       }
@@ -318,7 +289,7 @@ namespace engine
             goto error ;
          }
 
-         need2Remove = ( groupID != belongTo ) ;
+         need2Remove = groupID != belongTo ;
          goto done ;
       }
       else if ( catSet->isHashSharding() && !_splitKeyObj.isEmpty()
@@ -356,15 +327,14 @@ namespace engine
 
       if ( !_isHashSharding )
       {
-         /// do not support non-hash sharding.
          goto done ;
       }
       else if ( CLS_CLEANUP_BY_SHARDINGINDEX == _cleanupType() )
       {
-         PD_LOG( PDERROR, "we can not clean lob data when type is "
-                 "SHARDINGINDEX " ) ;
+         PD_LOG( PDERROR, "we can not clean lob data when type is SHARDINGINDEX " ) ;
          goto done ;
       }
+      
 
       rc = fetcher.init( _clFullName.c_str(), FALSE ) ;
       if ( SDB_OK != rc )
@@ -373,49 +343,18 @@ namespace engine
          goto error ;
       }
 
-      while( TRUE )
+      do
       {
          need2Remove = FALSE ;
          rc = fetcher.fetch( eduCB(), page ) ;
          if ( SDB_OK == rc )
          {
             rc = _filterDel( page, need2Remove ) ;
-            if ( SDB_DMS_NOTEXIST == rc )
+            if ( SDB_OK != rc )
             {
-               clsTaskMgr *pTaskMgr = pmdGetKRCB()->getClsCB()->getTaskMgr() ;
-               pTaskMgr->lockReg( SHARED ) ;
-               if ( 0 == pTaskMgr->getRegCount( _clFullName, TRUE ) )
-               {
-                  // delete the collection
-                  rc = rtnDropCollectionCommand( _clFullName.c_str(),
-                                                 eduCB(), _dmsCB, _dpsCB ) ;
-                  PD_LOG ( PDEVENT, "Job[%s] drop the collection[%s], rc:%d",
-                           name(), _clFullName.c_str(), rc ) ;
-                  if ( SDB_DMS_CS_NOTEXIST == rc )
-                  {
-                     rc = SDB_OK ;
-                  }
-                  else if ( SDB_OK == rc || SDB_DMS_NOTEXIST == rc )
-                  {
-                     // drop empty collectionspace, ignore errors
-                     _dmsCB->dropEmptyCollectionSpace(
-                              dmsGetCSNameFromFullName( _clFullName ).c_str(),
-                              eduCB(), _dpsCB ) ;
-                     rc = SDB_OK ;
-                  }
-                  pTaskMgr->releaseReg( SHARED ) ;
-                  goto done ;
-               }
-               pTaskMgr->releaseReg( SHARED ) ;
-
-               break ;
-            }
-            else if ( rc )
-            {
-               PD_LOG( PDERROR, "Failed to filter lob:%d", rc ) ;
+               PD_LOG( PDERROR, "failed to filter lob:%d", rc ) ;
                goto error ;
             }
-
             if ( need2Remove)
             {
                rc = rtnRemoveLobPiece( _clFullName.c_str(),
@@ -444,8 +383,7 @@ namespace engine
             PD_LOG( PDERROR, "failed to fetch lob:%d", rc ) ;
             goto done ;
          }
-      }
-
+      } while( TRUE ) ;
    done:
       PD_TRACE_EXITRC( SDB__CLSCLNJOB__CLEANLOBDATA, rc ) ;
       return rc ;
@@ -473,7 +411,6 @@ namespace engine
 
       rtnContextBuf buffObj ;
 
-      // TABSCAN, and delete not self record
       rc = rtnQuery( fullName, selector, matcher, orderBy, hint,
                      0, eduCB(), 0, -1, _dmsCB, rtnCB, contextID ) ;
       if ( SDB_DMS_EOC == rc ||
@@ -513,7 +450,6 @@ namespace engine
             goto error ;
          }
 
-         //delete records
          if ( SDB_DMS_NOTEXIST == _filterDel( buffObj.data(), buffObj.size(),
                                               cleanType, groupID ) )
          {
@@ -521,7 +457,6 @@ namespace engine
             pTaskMgr->lockReg( SHARED ) ;
             if ( 0 == pTaskMgr->getRegCount( _clFullName, TRUE ) )
             {
-               // delete the collection
                rc = rtnDropCollectionCommand( fullName, eduCB(), _dmsCB,
                                               _dpsCB ) ;
                PD_LOG ( PDEVENT, "Job[%s] drop the collection[%s], rc:%d",
@@ -532,7 +467,6 @@ namespace engine
                }
                else if ( SDB_OK == rc || SDB_DMS_NOTEXIST == rc )
                {
-                  // drop empty collectionspace, ignore errors
                   _dmsCB->dropEmptyCollectionSpace(
                            dmsGetCSNameFromFullName( _clFullName ).c_str(),
                            eduCB(), _dpsCB ) ;
@@ -601,7 +535,6 @@ namespace engine
                if ( !catSet->isObjInGroup( recordObj, groupID) )
                {
                   needDel = TRUE ;
-                  // w = catSet->getW() ;
                }
             }
             else if ( catSet && CLS_CLEANUP_BY_RANGE == cleanType )
@@ -625,7 +558,6 @@ namespace engine
                       !catSet->isKeyInGroup( BSON(""<<hashValue), groupID ) )
                   {
                      needDel = TRUE ;
-                     // w = catSet->getW() ;
                   }
                }
                else
@@ -638,14 +570,12 @@ namespace engine
                        !catSet->isKeyInGroup( keyObj, groupID ) )
                   {
                      needDel = TRUE ;
-                     // w = catSet->getW() ;
                   }
                }
             }
 
             catAgent->release_r() ;
 
-            // not found collection catalog
             if ( !catSet )
             {
                while ( TRUE )
@@ -674,7 +604,6 @@ namespace engine
                break ;
             }
 
-            // delete record
             if ( needDel )
             {
                BSONElement idEle = recordObj.getField( DMS_ID_KEY_NAME ) ;

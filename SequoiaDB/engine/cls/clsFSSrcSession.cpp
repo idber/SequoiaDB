@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsFSyncSrcSession.cpp
 
@@ -53,7 +52,6 @@
 #include "rtnContextLob.hpp"
 #include "rtnContextData.hpp"
 #include "msgMessageFormat.hpp"
-#include "rtnExtDataHandler.hpp"
 #include <set>
 
 using namespace bson ;
@@ -63,7 +61,6 @@ namespace engine
 
 #define CLS_SYNC_MAX_TIME                 (5)         // second
 #define CLS_FS_SRC_MAX_NO_MSG_TIME        (3600000)   // 1 hour
-#define CLS_FS_DISABLE_EXTDATA_TIME       (10000)
 
 #define CLS_IS_LOB_LOG( type )\
         ( LOG_TYPE_LOB_WRITE == ( type ) || \
@@ -74,7 +71,6 @@ namespace engine
    _clsDataSrcBaseSession : implement
    */
    BEGIN_OBJ_MSG_MAP ( _clsDataSrcBaseSession, _pmdAsyncSession )
-      //ON_MSG
       ON_MSG( MSG_CLS_FULL_SYNC_META_REQ, handleFSMeta )
       ON_MSG( MSG_CLS_FULL_SYNC_INDEX_REQ, handleFSIndex )
       ON_MSG( MSG_CLS_FULL_SYNC_NOTIFY, handleFSNotify )
@@ -104,13 +100,10 @@ namespace engine
       _curCollection = ~0 ;
       _beginLSNOffset = 0 ;
 
-      //init disconnect msg
       _disconnectMsg.messageLength = sizeof ( MsgHeader ) ;
       _disconnectMsg.opCode = MSG_BS_DISCONNECT ;
       _disconnectMsg.TID = CLS_TID( sessionID ) ;
       _disconnectMsg.requestID = 0 ;
-
-      _info._info.setNice( SCHED_NICE_MIN ) ;
    }
 
    _clsDataSrcBaseSession::~_clsDataSrcBaseSession ()
@@ -146,7 +139,6 @@ namespace engine
             goto done ;
          }
 
-         /// if the peer node no msg a long time, shoud to quit
          if ( CLS_FS_SRC_MAX_NO_MSG_TIME < _timeCounter )
          {
             PD_LOG ( PDWARNING, "Session[%s]: no msg a long time, quit",
@@ -161,13 +153,11 @@ namespace engine
 
    void _clsDataSrcBaseSession::_onAttach()
    {
-      // register session
       _pRepl->regSession ( this ) ;
    }
 
    void _clsDataSrcBaseSession::_onDetach()
    {
-      // unregister session
       _pRepl->unregSession ( this ) ;
       _reset() ;
    }
@@ -264,7 +254,6 @@ namespace engine
                msg.lsn.offset = _beginLSNOffset ;
             }
             _LSNlatch.release() ;
-            /// build collection's commit info
             BSONObj commitObj ;
             if ( _buildCLCommitInfo( _curCollecitonName, commitObj ) )
             {
@@ -302,7 +291,6 @@ namespace engine
       MON_IDX_LIST::iterator itr = _indexs.begin() ;
       while ( itr != _indexs.end() )
       {
-         // get name
          BSONElement nameE = itr->_indexDef.getField ( IXM_NAME_FIELD ) ;
          if ( ossStrcmp( nameE.str().c_str(), IXM_ID_KEY_NAME ) == 0 )
          {
@@ -319,7 +307,6 @@ namespace engine
       MON_IDX_LIST::iterator itr = _indexs.begin() ;
       while ( itr != _indexs.end() )
       {
-         // get name
          BSONElement nameE = itr->_indexDef.getField ( IXM_NAME_FIELD ) ;
          if ( ossStrcmp( nameE.str().c_str(), indexName ) == 0 )
          {
@@ -361,20 +348,17 @@ namespace engine
          _lobContextID = -1 ;
       }
 
-      // not need data, don't open context
       if ( 0 == _needData )
       {
          goto done ;
       }
 
-      // TABSCAN
       if ( TBSCAN == _scanType() )
       {
          rc = rtnQuery( fullName, selector, matcher, orderBy, hint, 0, eduCB(),
                         0, -1,  pmdGetKRCB()->getDMSCB(), pRtnCB,
                         _contextID, (rtnContextBase**)&_context ) ;
       }
-      // SHARD KEY INDEX SCAN
       else
       {
          rc = rtnTraversalQuery( fullName, _rangeKeyObj, IXM_SHARD_KEY_NAME, 1,
@@ -384,8 +368,6 @@ namespace engine
 
       if ( SDB_DMS_EOC == rc )
       {
-         // Empty collection, hit end already
-         // Make sure the context is closed
          if ( -1 != _contextID )
          {
             rtnKillContexts( 1, &_contextID , eduCB(), pRtnCB ) ;
@@ -395,7 +377,6 @@ namespace engine
 
          _findEnd = TRUE ;
 
-         // Ignore error
          rc = SDB_OK ;
       }
       else if ( rc )
@@ -409,7 +390,6 @@ namespace engine
          SDB_ASSERT( _context->scanType() == _scanType(), "scan type error" ) ;
          if ( _context->eof() )
          {
-            // Empty collection, hit end already
             rtnKillContexts( 1, &_contextID , eduCB(), pRtnCB ) ;
             _contextID = -1 ;
             _context = NULL ;
@@ -417,7 +397,6 @@ namespace engine
          }
       }
 
-      /// create lob context
       rc = pRtnCB->contextNew( RTN_CONTEXT_LOB_FETCHER,
                                (rtnContext**)&pContextLob,
                                _lobContextID, eduCB() ) ;
@@ -426,7 +405,6 @@ namespace engine
          PD_LOG( PDERROR, "Create lob context failed, rc: %d", rc ) ;
          goto error ;
       }
-      /// open lob context
       rc = pContextLob->open( &_lobFetcher,
                               _curCollecitonName.c_str(),
                               FALSE ) ;
@@ -461,10 +439,7 @@ namespace engine
          for ( ; itr != _indexs.end(); itr++ )
          {
             BSONObjBuilder index ;
-            BSONObj filter = BSON( FIELD_NAME_EXT_DATA_NAME << "" ) ;
-            BSONObj finalIdx =
-                  itr->_indexDef.filterFieldsUndotted( filter, false ) ;
-            array.append( finalIdx ) ;
+            array.append( itr->_indexDef ) ;
          }
          builder.append( CLS_FS_INDEXES, array.arr() ) ;
          obj = builder.obj() ;
@@ -477,7 +452,6 @@ namespace engine
    void _clsDataSrcBaseSession::_constructMeta( BSONObj &obj,
                                                 const CHAR *cs,
                                                 const CHAR *collection,
-                                                utilCLUniqueID clUniqueID,
                                                 _dmsStorageUnit *su )
    {
       PD_TRACE_ENTRY ( SDB__CLSDSBS__CONSTMETA );
@@ -504,7 +478,6 @@ namespace engine
       builder2.append( CLS_FS_CS_META_NAME, builder1.obj() ) ;
       builder2.append( CLS_FS_CS_NAME, cs ) ;
       builder2.append( CLS_FS_COLLECTION_NAME, collection ) ;
-      builder2.append( CLS_FS_COLLECTION_UNIQUEID, (INT64)clUniqueID );
       obj = builder2.obj() ;
       PD_TRACE_EXIT ( SDB__CLSDSBS__CONSTMETA );
       return ;
@@ -673,7 +646,6 @@ namespace engine
       const UINT32 bmSize = sizeof( MsgLobTuple ) + sizeof( bson::OID ) ;
       time_t bTime = time( NULL ) ;
 
-      /// | oid | MsgLobTuple | data | ... | oid | MsgLobTuple | data |
       while ( _lobContextID >= 0 )
       {
          need2Send = FALSE ;
@@ -700,9 +672,6 @@ namespace engine
                  SDB_DMS_NOTEXIST == rc ||
                  SDB_DMS_TRUNCATED == rc )
             {
-               // Ignore errors:
-               // 1. end of collection
-               // 2. collection dropped or collection truncated
                rc = SDB_OK ;
                break ;
             }
@@ -773,7 +742,6 @@ namespace engine
             msg.lsn.offset = _beginLSNOffset ;
          }
          _LSNlatch.release() ;
-         /// build collection's commit info
          BSONObj commitObj ;
          if ( SDB_OK == _buildCLCommitInfo( _curCollecitonName, commitObj ) )
          {
@@ -838,7 +806,6 @@ namespace engine
             break ;
          }
 
-         // search for a given lsn
          rc = dpsCB->search( _lsn, &_mb ) ;
          if ( SDB_OK == rc )
          {
@@ -848,16 +815,6 @@ namespace engine
             _lsn.offset += header->_length ;
             _lsn.version = header->_version ;
 
-            /// We should update the begin lsn offset. Because in notifyLSN(),
-            /// when extLID is invalid, add ZERO to _beginLSNOffset for
-            /// perfermance
-            if ( header->_lsn == _beginLSNOffset )
-            {
-               _beginLSNOffset += header->_length ;
-            }
-
-            // if we read something making the mb length exceed threshold, let's
-            // break out from the loop
             if ( CLS_SYNC_MAX_LEN <= _mb.length() ||
                  ( time( NULL ) - bTime >= CLS_SYNC_MAX_TIME &&
                    _mb.length() > 0 ) )
@@ -867,7 +824,6 @@ namespace engine
          }
          else
          {
-            // if other errors happened during search, let's dump error
             PD_LOG ( PDERROR, "Session[%s]: Failed to search LSN[%lld,%d], "
                      "rc: %d", sessionName(), _lsn.offset, _lsn.version, rc ) ;
             goto error ;
@@ -947,7 +903,6 @@ namespace engine
       UINT32 alignLen = 0 ;
       rtnContextBuf buffObj ;
 
-      /// mask sure the context wether exist
       if ( -1 == _contextID )
       {
          rc = SDB_RTN_CONTEXT_NOTEXIST ;
@@ -971,7 +926,7 @@ namespace engine
             }
             else
             {
-               _curScanKeyObj = _context->getIXScanner()->getSavedObj()->copy() ;
+               _curScanKeyObj = _context->getIXScanner()->getSavedObj().copy() ;
                PD_LOG ( PDDEBUG, "Session[%s]: scan cur key obj: %s",
                         sessionName(), _curScanKeyObj.toString().c_str() ) ;
             }
@@ -988,7 +943,6 @@ namespace engine
                  _mb.length() != 0 ) )
             {
                alignLen = ossRoundUpToMultipleX (_queryLen, sizeof( UINT32 )) ;
-               // add to mb block
                if ( _mb.idleSize() < alignLen )
                {
                   tempSize = ossRoundUpToMultipleX ( alignLen - _mb.idleSize(),
@@ -1002,7 +956,6 @@ namespace engine
                   }
                }
 
-               // copy
                ossMemcpy ( _mb.writePtr(), _query, _queryLen ) ;
                _mb.writePtr ( _mb.length() + alignLen ) ;
             }
@@ -1026,7 +979,6 @@ namespace engine
          _context->getMBContext()->mbUnlock() ;
       }
 
-      // release context id when found error or found end
       if ( ( SDB_OK != rc || _findEnd ) && -1 != _contextID )
       {
          pRtnCB->contextDelete( _contextID, eduCB() ) ;
@@ -1045,10 +997,6 @@ namespace engine
            SDB_DMS_NOTEXIST == rc ||
            SDB_DMS_TRUNCATED == rc )
       {
-         // End the scan in below cases :
-         // 1. hit end of collection
-         // 2. contextID is already closed
-         // 3. collection dropped or collection truncated
          _findEnd = TRUE ;
 
          if ( 0 == _queryLen )
@@ -1079,13 +1027,11 @@ namespace engine
       }
       else if ( SDB_OK != rc )
       {
-         // otherwise if we hit other error, let's dump it
          PD_LOG ( PDERROR, "Session[%s]: Failed to run GetMore, rc = %d",
                   sessionName(), rc ) ;
       }
       else
       {
-         // if everything is fine, let's send out the data
          msg.header.header.messageLength = sizeof( MsgClsFSNotifyRes ) +
                                     _queryLen ;
          _agent->syncSend( handle, &(msg.header.header), (void*)_query,
@@ -1109,7 +1055,6 @@ namespace engine
       _dmsStorageUnit *su = NULL ;
       dmsMBContext *mbContext = NULL ;
       UINT64 curCollection = ~0 ;
-      utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
 
       MsgClsFSMetaRes res ;
       res.header.header.TID = header->TID ;
@@ -1117,8 +1062,6 @@ namespace engine
       res.header.header.routeID = header->routeID ;
       res.header.header.requestID = header->requestID ;
 
-      /// a collection sync will be done only when recv a notify
-      /// over msg. then can start a new sync.
       if ( !_init )
       {
          PD_LOG( PDWARNING, "Session[%s]: not init, disconnect",
@@ -1133,13 +1076,6 @@ namespace engine
          goto error ;
       }
 
-      /// steps of a collection syncing:
-      /// 1. parse msg.
-      /// 2. lock su.
-      /// 3. get indexs.
-      /// 4. open context.
-      /// 5. unlock su.
-      /// any setp fails, we should release resources.
       try
       {
          BSONObj meta ;
@@ -1179,7 +1115,6 @@ namespace engine
          _curCollecitonName += "." ;
          _curCollecitonName += collection ;
 
-         /// clean indexes
          _indexs.clear() ;
 
          rc = dmsCB->nameToSUAndLock( cs, suID, &su ) ;
@@ -1190,7 +1125,6 @@ namespace engine
             goto error ;
          }
 
-         // get cur cs and cl logical id, unique id
          rc = su->data()->getMBContext( &mbContext, collection, SHARED ) ;
          if ( rc )
          {
@@ -1199,11 +1133,8 @@ namespace engine
             goto error ;
          }
 
-         clUniqueID = mbContext->mb()->_clUniqueID ;
-
          curCollection = ossPack32To64 ( su->LogicalCSID(),
                                          mbContext->clLID() ) ;
-         /// get indexes
          rc = su->getIndexes( mbContext, _indexs ) ;
          if ( rc )
          {
@@ -1213,16 +1144,12 @@ namespace engine
             goto error ;
          }
          {
-            // Lock _LSNlatch to avoid other write operations, e.g. createIndex
-            // on this collection before updating _curCollection
             ossScopedLock lock( &_LSNlatch ) ;
 
             su->data()->releaseMBContext( mbContext ) ;
 
-            /// erase index of "_id"
             _eraseDefaultIndex() ;
 
-            // must release su lock, because _openContext will get lock again
             dmsCB->suUnlock ( suID ) ;
             suID = DMS_INVALID_SUID ;
 
@@ -1238,7 +1165,7 @@ namespace engine
             }
             _curCollection = curCollection ;
          }
-         _constructMeta( meta, cs, collection, clUniqueID, su ) ;
+         _constructMeta( meta, cs, collection, su ) ;
          PD_LOG( PDDEBUG, "Session[%s]: get meta [%s]", sessionName(),
                  meta.toString().c_str() ) ;
          res.header.header.messageLength = sizeof( MsgClsFSMetaRes ) +
@@ -1271,9 +1198,6 @@ namespace engine
    error:
       if ( SDB_DMS_CS_NOTEXIST == rc || SDB_DMS_NOTEXIST == rc )
       {
-         // NOTE: could not ignore SDB_DMS_TRUNCATED, in that case, meta-data
-         // of indexes might not be dumped, so disconnect and let the
-         // destination node to restart the sync process
          res.header.res = rc ;
          res.header.header.messageLength = sizeof ( MsgClsFSMetaRes ) ;
          if ( SDB_OK == _agent->syncSend ( handle, (void*)&res ) )
@@ -1355,8 +1279,6 @@ namespace engine
          goto done ;
       }
 
-      /// the sync of this collection is done.
-      /// prepare for the next sync.
       if ( CLS_FS_NOTIFY_TYPE_OVER == msg->type )
       {
          PD_LOG( PDEVENT, "Session[%s]: Collection[%s] notify end",
@@ -1372,15 +1294,12 @@ namespace engine
          goto done ;
       }
 
-      /// wrong packet. ignore it.
       if ( msg->packet < _packetID )
       {
          PD_LOG( PDWARNING, "Session[%s]: wrong packet id [remote:%lld]"
                  "[local:%lld]", sessionName(), msg->packet, _packetID ) ;
          goto done ;
       }
-      /// msg was delayed or lost.
-      /// resend last msg.
       else if ( msg->packet == _packetID && _canResend )
       {
          PD_LOG( PDWARNING, "Session[%s]: msg was delayed or lost. resend "
@@ -1492,7 +1411,6 @@ namespace engine
    _clsFSSrcSession : implement
    */
    BEGIN_OBJ_MSG_MAP( _clsFSSrcSession, _clsDataSrcBaseSession )
-      //ON_MSG
       ON_MSG( MSG_CLS_FULL_SYNC_BEGIN, handleBegin )
       ON_MSG( MSG_CLS_FULL_SYNC_END, handleEnd )
       ON_MSG( MSG_CLS_FULL_SYNC_TRANS_REQ, handleSyncTransReq )
@@ -1507,8 +1425,6 @@ namespace engine
 
    _clsFSSrcSession::~_clsFSSrcSession()
    {
-      rtnGetExtDataHandler()->enable() ;
-      PD_LOG( PDEVENT, "External data handler resumed" ) ;
    }
 
    SDB_SESSION_TYPE _clsFSSrcSession::sessionType() const
@@ -1545,7 +1461,6 @@ namespace engine
          goto done ;
       }
 
-      //if not ready, can't be the source node of the full sync
       if ( SDB_OK != ( rc = _isReady() ) )
       {
          PD_LOG( PDWARNING, "Session[%s] is not ready[%d], refused",
@@ -1556,7 +1471,6 @@ namespace engine
          goto done ;
       }
 
-      /// compatiable with old version( without obj )
       if ( (UINT32)(header->messageLength) > sizeof( MsgClsFSBegin ) )
       {
          try
@@ -1581,48 +1495,26 @@ namespace engine
          }
       }
 
-      /// steps:
-      /// begin
-      /// loop: meta
-      ///       indexes
-      ///       loop: notify
-      /// end
       {
          _reset() ;
          BSONObj obj ;
 
-         /// get expcect lsn
          _lsn = dpscb->expectLsn() ;
          msg.lsn = _lsn ;
          _beginLSNOffset = _lsn.offset ;
 
-         // release notify lsn que, and prevent create cs/cl, drop cs/cl,
-         // rename cl, truncate cl and so on occur during construct full names
-         // and set _init = TRUE
          ossScopedLock lock( &_LSNlatch ) ;
          _deqLSN.clear() ;
 
-         /// Notify fullsync, So will kick the node from sync control nodes.
-         /// In _processValidCLs, need to get lock of collection, If has some
-         /// operators hold the lock and in sync control, will occur dead wait
          _pRepl->syncMgr()->notifyFullSync( header->routeID ) ;
 
-         /// process valid collections
          _processValidCLs( validCLs ) ;
-
-         // New collections may be created when constructing the respond data.
-         // So maybe they are not in the collection list in the respond message.
-         // In that case, we rely on the replication log to create them on slave
-         // nodes. Set _init to TRUE to make sure the log can be pushed to notify
-         // queue( in function notifyLSN ).
-         _init =  TRUE ;
 
          if ( SDB_OK != _constructBeginRspData( obj, validCLs ) )
          {
             PD_LOG ( PDWARNING, "Session[%s] construct begin response data "
                      "failed", sessionName() ) ;
             _disconnect() ;
-            _init = FALSE ;
             goto done ;
          }
          msg.header.header.messageLength = sizeof( msg ) + obj.objsize() ;
@@ -1635,31 +1527,12 @@ namespace engine
                     routeID2String( header->routeID ).c_str(),
                     _lsn.version, _lsn.offset ) ;
 
-            // Disable external data handler. Currently external handler is
-            // about text indices. As capped collections for text indices are
-            // required to be exactly the same on primary and slave nodes, and
-            // during full sync, the original collection and the capped
-            // collection are syncing seperately by themselves. If any write
-            // operation happened on primary capped collection, it will finally
-            // result in data mismatch on primary and salve. So we directly
-            // disable the external handler during the full sync. It will be
-            // enabled after full sync is done or aborted.
-            rc = rtnGetExtDataHandler()->disable( CLS_FS_DISABLE_EXTDATA_TIME ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Disable external data handler failed[ %d ]",
-                       rc ) ;
-               _disconnect() ;
-               goto done ;
-            }
-            PD_LOG( PDEVENT, "Disable external data handler "
-                             "during full sync" ) ;
+            _init = TRUE ;
             _quit = FALSE ;
          }
          else
          {
             _mapOveredCLs.clear() ;
-            _init = FALSE ;
          }
       }
 
@@ -1687,9 +1560,6 @@ namespace engine
          _quit = TRUE ;
       }
 
-      rtnGetExtDataHandler()->enable() ;
-
-   //done:
       PD_TRACE_EXIT ( SDB__CLSFSSS_HNDEND );
       return SDB_OK ;
    }
@@ -1756,7 +1626,6 @@ namespace engine
          msgRsp.eof = CLS_FS_EOF;
       }
 
-      // send reponse
       if ( _mb.length() != 0  && SDB_OK == rc )
       {
          msgRsp.header.header.messageLength
@@ -1800,7 +1669,6 @@ namespace engine
                "extLID:%d, offset:%lld], curScan extLID:%d", sessionName(),
                suLID, clLID, extLID, offset, _curExtID ) ;
 
-      // already complete collection
       it = _mapOveredCLs.find ( fullCLLID ) ;
 
       if ( DMS_INVALID_EXTENT == extLID ||
@@ -1888,7 +1756,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      /// 1. not primary
       if ( !pmdIsPrimary() )
       {
          /* MSG_INVALID_ROUTEID != sdbGetReplCB()->getPrimary().value */
@@ -1896,21 +1763,18 @@ namespace engine
          PD_LOG( PDWARNING, "Session[%s] not ready: Self node is not "
                  "primary", sessionName() ) ;
       }
-      /// 2. in full sync
       else if ( SDB_DB_FULLSYNC == PMD_DB_STATUS() )
       {
          rc = SDB_CLS_FULL_SYNC ;
          PD_LOG( PDWARNING, "Session[%s] not ready: Self node is "
                  "already in full sync", sessionName() ) ;
       }
-      /// 3. in rebuild
       else if ( SDB_DB_REBUILDING == PMD_DB_STATUS() )
       {
          rc = SDB_RTN_IN_REBUILD ;
          PD_LOG( PDWARNING, "Session[%s] not ready: Self node is "
                  "already in rebuilding", sessionName() ) ;
       }
-      /// 4. business is not ok
       else if ( !pmdGetStartup().isOK () )
       {
          rc = SDB_RTN_IN_REBUILD ;
@@ -1949,7 +1813,6 @@ namespace engine
 
       try
       {
-         // empty space
          BSONArrayBuilder csArrayBuilder ;
          MON_CS_LIST::iterator itCS = csList.begin() ;
          for ( ; itCS != csList.end() ; ++itCS )
@@ -1962,14 +1825,11 @@ namespace engine
                                             CLS_FS_LOB_PAGE_SIZE <<
                                             itCS->_lobPageSize <<
                                             CLS_FS_CS_TYPE <<
-                                            itCS->_type <<
-                                            CLS_FS_CS_UNIQUEID <<
-                                            itCS->_csUniqueID ) ) ;
+                                            itCS->_type ) ) ;
             }
          }
          b.appendArray( CLS_FS_CSNAMES, csArrayBuilder.arr() ) ;
 
-         // collection list
          BSONArrayBuilder clArrayBuilder ;
          MON_CL_LIST::const_iterator itr = collectionList.begin() ;
          for ( ; itr != collectionList.end(); itr++ )
@@ -1978,7 +1838,6 @@ namespace engine
          }
          b.appendArray( CLS_FS_FULLNAMES, clArrayBuilder.arr() ) ;
 
-         /// valid collection list
          BSONArrayBuilder validArrayBuilder ;
          MAP_SU_STATUS::iterator itValid = validCLs.begin() ;
          for ( ; itValid != validCLs.end() ; ++itValid )
@@ -2005,47 +1864,6 @@ namespace engine
       return rc ;
    error:
       goto done ;
-   }
-
-   BOOLEAN _clsFSSrcSession::_hasExternalData() const
-   {
-      BOOLEAN result = FALSE ;
-      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
-      MON_CS_SIM_LIST csList ;
-
-      dmsCB->dumpInfo( csList, FALSE, TRUE, TRUE ) ;
-      for ( MON_CS_SIM_LIST::iterator csItr = csList.begin();
-            csItr != csList.end(); ++csItr )
-      {
-         for ( MON_CL_SIM_VEC::const_iterator clItr = csItr->_clList.begin();
-               clItr != csItr->_clList.end(); ++clItr )
-         {
-            for ( MON_IDX_LIST::const_iterator idxItr = clItr->_idxList.begin();
-                  idxItr != clItr->_idxList.end(); ++idxItr )
-            {
-               INT32 rcTmp = SDB_OK ;
-               UINT16 idxType = IXM_EXTENT_TYPE_NONE ;
-               rcTmp = idxItr->getIndexType( idxType ) ;
-               if ( rcTmp )
-               {
-                  // Only warning, and process the remaining ones.
-                  PD_LOG( PDERROR, "Get type of index failed[ %d ], cs[ %s ],"
-                                   " cl[ %s ], index[ %s ]",
-                          rcTmp, csItr->_name, clItr->_name,
-                          idxItr->getIndexName() ) ;
-                  continue;
-               }
-               // Only dump text indices in normal status.
-               if ( IXM_EXTENT_TYPE_TEXT == idxType )
-               {
-                  result = TRUE;
-                  goto done ;
-               }
-            }
-         }
-      }
-   done:
-      return result ;
    }
 
    INT32 _clsFSSrcSession::_extractBeginBody( const BSONObj &obj,
@@ -2145,7 +1963,6 @@ namespace engine
       {
          rtnRUInfo &info = it->second ;
 
-         /// not all valid, remove
          if ( !info.isAllValid() )
          {
             validCLs.erase( it++ ) ;
@@ -2163,7 +1980,6 @@ namespace engine
             continue ;
          }
 
-         /// get mb context
          rc = su->data()->getMBContext( &pContext, pCLShortName, SHARED ) ;
          if ( rc )
          {
@@ -2175,7 +1991,6 @@ namespace engine
             continue ;
          }
 
-         /// compare
          UINT64 maxLSN = pContext->mbStat()->_lastLSN.peek() ;
          if ( DPS_INVALID_LSN_OFFSET != pContext->mbStat()->_idxLastLSN.peek() &&
               pContext->mbStat()->_idxLastLSN.peek() > maxLSN )
@@ -2207,7 +2022,6 @@ namespace engine
 
             curCollection = ossPack32To64 ( su->LogicalCSID(),
                                             pContext->clLID() ) ;
-            /// add to complete list
             _mapOveredCLs[curCollection] = 0 ;
          }
 
@@ -2221,7 +2035,6 @@ namespace engine
    _clsSplitSrcSession : implement
    */
    BEGIN_OBJ_MSG_MAP( _clsSplitSrcSession, _clsDataSrcBaseSession )
-      //ON_MSG
       ON_MSG( MSG_CLS_FULL_SYNC_BEGIN, handleBegin )
       ON_MSG( MSG_CLS_FULL_SYNC_END, handleEnd )
       ON_MSG( MSG_CLS_FULL_SYNC_LEND_REQ, handleLEnd )
@@ -2291,17 +2104,14 @@ namespace engine
       _LSNlatch.get() ;
       locked = TRUE ;
 
-      // Access to _curCollection should be protected by _LSNlatch
       ossUnpack32From64( _curCollection, curSULID, curCLLID ) ;
 
       if ( (UINT64)~0 != _curCollection )
       {
-         // not the cs
          if ( suLID != curSULID )
          {
             goto done ;
          }
-         // not the cl or it is a drop cs
          if ( ( (UINT32)~0 != clLID && curCLLID != clLID ) ||
               ( (UINT32)~0 == clLID ) )
          {
@@ -2318,8 +2128,6 @@ namespace engine
          inEndMap = TRUE ;
       }
 
-      // if the lsn is in my self, and the extLID not invalid, need to read lsn
-      // from file
       if ( DMS_INVALID_EXTENT == extLID )
       {
          _deqLSN.push_back( offset ) ;
@@ -2345,8 +2153,6 @@ namespace engine
       }
       lsnLen = record.head()._length ;
 
-      // no sharding index, scan by table
-      // log of lob can be ignored, coz _findEnd is false.
       if ( TBSCAN == _scanType() && !inEndMap && !_findEnd &&
            extLID > _curExtID && !( CLS_IS_LOB_LOG( record.head()._type ) ) )
       {
@@ -2397,7 +2203,6 @@ namespace engine
          }
          else
          {
-            /// will sync this record by _syncLob.
          }
 
          goto done ;
@@ -2434,7 +2239,6 @@ namespace engine
             goto done ;
          }
 
-         //jduge the object is less than the _curScanObj
          {
             BSONObj keyObj ;
             rc = _genKeyObj( recordObj, keyObj ) ;
@@ -2487,7 +2291,6 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSPLSS__ONFSMETA, "_clsSplitSrcSession::_onFSMeta" )
    INT32 _clsSplitSrcSession::_onFSMeta( const CHAR * clFullName )
    {
-      //get sharding key
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSSPLSS__ONFSMETA );
       _clsCatalogSet *catSet = NULL ;
@@ -2495,10 +2298,8 @@ namespace engine
       UINT32 groupID = sdbGetShardCB()->nodeID().columns.groupID ;
       BSONObj upBound ;
 
-      /// exist $shard index
       _hasShardingIndex = _existIndex( IXM_SHARD_KEY_NAME ) ;
 
-      //check range key
       if ( _rangeKeyObj.isEmpty() )
       {
          PD_LOG ( PDERROR, "Session[%s] range key obj is empty",
@@ -2507,7 +2308,6 @@ namespace engine
          goto done ;
       }
 
-      //update the newest catalog,and get sharding key
       while ( count < CLS_SPLIT_UPCATELOG_RETRY_TIME )
       {
          ++count ;
@@ -2554,9 +2354,6 @@ namespace engine
    {
       if ( _ntyOverTime > 0 )
       {
-         /// Blocking has been started, the sync process might be restarted
-         /// by drop or truncate of collection, need to unblock the previous
-         /// one
          PD_LOG( PDDEBUG, "Session[%s]: Blocking write operations of "
                  "collection [%s] has been started, end blocking for further "
                  "process", sessionName(), clFullName ) ;
@@ -2576,8 +2373,6 @@ namespace engine
       _ntyOverTime = 0 ;
       _mainCLName.clear() ;
 
-      /// If the collection has main collection, need to block its main
-      /// collection
       _pCatAgent->lock_r() ;
       clsCatalogSet *pSet = _pCatAgent->collectionSet( clFullName ) ;
       if ( pSet )
@@ -2586,7 +2381,6 @@ namespace engine
       }
       _pCatAgent->release_r() ;
 
-      /// Block collection and main-collection ( if have ) together
       _pFreezingWindow->registerCL( clFullName, _mainCLName.c_str(),
                                     _ntyOverTime ) ;
       PD_LOG( PDEVENT, "Session[%s]: Begin to block all write operations "
@@ -2615,21 +2409,9 @@ namespace engine
          pmdEDUMgr *pEDUMgr = eduCB()->getEDUMgr() ;
          if ( pEDUMgr->getWritingEDUCount( -1, _ntyOverTime ) > 0 )
          {
-            PD_LOG( PDINFO, "Session[%s] operator ID [%llu] : Waiting for "
+            PD_LOG( PDDEBUG, "Session[%s] operator ID [%llu] : Waiting for "
                     "other operations to finish", sessionName(),
                     _ntyOverTime ) ;
-            return FALSE ;
-         }
-
-         /// transaction check
-         INT32 rc = rtnTransTryOrTestLockCL( _curCollecitonName.c_str(),
-                                             DPS_TRANSLOCK_S, TRUE, eduCB() ) ;
-         if ( SDB_DMS_CS_NOTEXIST != rc || SDB_DMS_NOTEXIST != rc ||
-              SDB_OK != rc )
-         {
-            PD_LOG( PDINFO, "Session[%s] test collection[%s]'s shared "
-                    "trans-lock failed, rc: %d", sessionName(),
-                    _curCollecitonName.c_str(), rc ) ;
             return FALSE ;
          }
 
@@ -2683,7 +2465,6 @@ namespace engine
          goto done ;
       }
 
-      //can't be self group
       if ( header->routeID.columns.groupID ==
            sdbGetShardCB()->nodeID().columns.groupID )
       {
@@ -2693,7 +2474,6 @@ namespace engine
          goto done ;
       }
 
-      //if not ready, can't be the source node of split
       if ( SDB_OK != ( rc = _isReady() ) )
       {
          PD_LOG( PDWARNING, "Session[%s] not ready[%d], refused",
@@ -2708,9 +2488,6 @@ namespace engine
          msg.lsn = _lsn ;
          _beginLSNOffset = _lsn.offset ;
 
-         // release notify lsn que, and prevent create cs/cl, drop cs/cl,
-         // rename cl, truncate cl and so on occur during construct full names
-         // and set _init = TRUE
          ossScopedLock lock( &_LSNlatch ) ;
          _deqLSN.clear() ;
 
@@ -2737,7 +2514,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSSPLSS_HNDEND );
       INT32 cleanResult = SDB_OK ;
 
-      //need to start clean up job
       if ( PMD_INVALID_EDUID == _cleanupJobID )
       {
          if ( !_init )
@@ -2766,11 +2542,9 @@ namespace engine
             _disconnect () ;
             goto done ;
          }
-         // sleep one second
          ossSleep( OSS_ONE_SEC ) ;
       }
 
-      //check cleanup whether is over
       if ( PMD_INVALID_EDUID != _cleanupJobID &&
            !rtnGetJobMgr()->findJob( _cleanupJobID, &cleanResult ) )
       {
@@ -2787,7 +2561,6 @@ namespace engine
             _lastOprLSN = pmdGetKRCB()->getDPSCB()->getCurrentLsn().offset ;
          }
 
-         // need wait the group other nodes sync complete
          if ( _collectionW > 1 )
          {
             INT32 rc = sdbGetReplCB()->sync( _lastOprLSN,
@@ -2822,7 +2595,6 @@ namespace engine
    INT32 _clsSplitSrcSession::handleLEnd( NET_HANDLE handle,
                                           MsgHeader * header )
    {
-      //need to update catalog, and check the rangKeyObj is not in my self
       PD_TRACE_ENTRY ( SDB__CLSSPLSS_HNDEND2 );
       _clsCatalogSet *pSet = NULL ;
       shardCB *pShard = sdbGetShardCB() ;
@@ -2880,7 +2652,6 @@ namespace engine
 
       if ( hasSplit )
       {
-         /// Unblock
          _pFreezingWindow->unregisterCL( _curCollecitonName.c_str(),
                                          _mainCLName.c_str(),
                                          _ntyOverTime ) ;
@@ -2924,28 +2695,24 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      /// 1. not primary
       if ( !pmdIsPrimary() )
       {
          rc = SDB_CLS_NOT_PRIMARY ;
          PD_LOG( PDWARNING, "Session[%s] not ready: Self node is "
                  "not primary", sessionName() ) ;
       }
-      /// 2. In full sync
       else if ( SDB_DB_FULLSYNC == PMD_DB_STATUS() )
       {
          rc = SDB_CLS_FULL_SYNC ;
          PD_LOG( PDWARNING, "Session[%s] not ready: Self node is "
                  "in full sync", sessionName() ) ;
       }
-      /// 3. In rebuild
       else if ( SDB_DB_REBUILDING == PMD_DB_STATUS() )
       {
          rc = SDB_RTN_IN_REBUILD ;
          PD_LOG( PDWARNING, "Session[%s] not ready: Self node is "
                  "in rebuilding", sessionName() ) ;
       }
-      /// 4. not recoved from crash
       else if ( !pmdGetStartup().isOK () )
       {
          rc = SDB_RTN_IN_REBUILD ;
@@ -3067,7 +2834,6 @@ namespace engine
       {
          UINT32 tempSize = ossRoundUpToMultipleX ( alignSize-_filterMB.idleSize(),
                                                    4 ) ;
-         //alloc memry
          rc = _filterMB.extend( tempSize ) ;
          if ( SDB_OK != rc )
          {
@@ -3077,7 +2843,6 @@ namespace engine
          }
       }
 
-      //copy
       ossMemcpy( _filterMB.writePtr(), data, size ) ;
       _filterMB.writePtr( _filterMB.length() + alignSize ) ;
 
@@ -3101,7 +2866,6 @@ namespace engine
       INT32 indexPos = 0 ;
       const CHAR *pBuffIndex = inBuff + indexPos;
 
-      // split by index, all is correct, but need to check arrays
       if ( IXSCAN == _scanType() && FALSE == _hasEndRange )
       {
          try
@@ -3143,7 +2907,6 @@ namespace engine
          {
             BSONObj recordObj ( pBuffIndex ) ;
 
-            //jduge the obj whether is correct, if ok push to filterMB
             BSONObj keyObj ;
             rc = _genKeyObj( recordObj, keyObj ) ;
             if ( SDB_OK != rc )
@@ -3193,7 +2956,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSSPLSS__ONATH );
       _clsDataSrcBaseSession::_onAttach() ;
 
-      // add empty split task to start timmer
       _clsTaskMgr *taskMgr = pmdGetKRCB()->getClsCB()->getTaskMgr() ;
       _clsDummyTask *pTask = SDB_OSS_NEW _clsDummyTask ( taskMgr->getTaskID() ) ;
       if ( pTask && SDB_OK == taskMgr->addTask( pTask ) )
@@ -3213,7 +2975,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSSPLSS__ONDTH );
       _clsDataSrcBaseSession::_onDetach() ;
 
-      // remove the empty split task
       _clsTaskMgr *taskMgr = pmdGetKRCB()->getClsCB()->getTaskMgr() ;
       if ( 0 != _taskID )
       {
@@ -3235,7 +2996,6 @@ namespace engine
          }
       }
 
-      // wait cleanup done
       while ( PMD_INVALID_EDUID != _cleanupJobID &&
               rtnGetJobMgr()->findJob( _cleanupJobID ) )
       {

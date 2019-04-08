@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omManager.cpp
 
@@ -47,8 +46,6 @@
 #include "omCommandTool.hpp"
 #include "ossVer.h"
 #include "omStrategyMgr.hpp"
-#include "omStrategyObserverJob.hpp"
-#include "rtnContextDump.hpp"
 
 using namespace bson ;
 
@@ -62,6 +59,7 @@ namespace engine
       Message Map
    */
    BEGIN_OBJ_MSG_MAP( _omManager, _pmdObjBase )
+      ON_MSG( MSG_BS_QUERY_REQ, _onAgentQueryTaskReq )
       ON_MSG( MSG_OM_UPDATE_TASK_REQ, _onAgentUpdateTaskReq )
    END_OBJ_MSG_MAP()
 
@@ -74,7 +72,7 @@ namespace engine
     _netAgent( &_msgHandler )
    {
       _hwRouteID.value             = MSG_INVALID_ROUTEID ;
-      _hwRouteID.columns.groupID   = OMAGENT_GROUPID ;
+      _hwRouteID.columns.groupID   = 2 ;
       _hwRouteID.columns.nodeID    = 0 ;
       _hwRouteID.columns.serviceID = MSG_ROUTE_LOCAL_SERVICE ;
 
@@ -82,18 +80,10 @@ namespace engine
 
       _pKrcb               = NULL ;
       _pDmsCB              = NULL ;
-      _pRtnCB              = NULL ;
-      _pEDUCB              = NULL ;
       _hostVersion         = SDB_OSS_NEW omHostVersion() ;
       _taskManager         = SDB_OSS_NEW omTaskManager() ;
       _updatePluinUsrTimer = NET_INVALID_TIMER_ID ;
       _updateTimestamp     = 0 ;
-
-      _myNodeID.value      = MSG_INVALID_ROUTEID ;
-      _needReply           = TRUE ;
-      _inPacketLevel       = 0 ;
-      _pendingContextID    = -1 ;
-      ossMemset( (void*)&_replyHeader, 0, sizeof(_replyHeader) ) ;
    }
 
    _omManager::~_omManager()
@@ -115,10 +105,8 @@ namespace engine
    {
       INT32 rc           = SDB_OK ;
 
-      //set bson to string for js format
       BSONObj::setJSCompatibility( TRUE ) ;
 
-      // create collection space and collection
       _pKrcb  = pmdGetKRCB() ;
       _pDmsCB = _pKrcb->getDMSCB() ;
       _pRtnCB = _pKrcb->getRTNCB() ;
@@ -127,10 +115,8 @@ namespace engine
 
       _pmdOptionsMgr *pOptMgr = _pKrcb->getOptionCB() ;
 
-      // get options
       _wwwRootPath = pmdGetOptionCB()->getWWWPath() ;
 
-      // set remote session manager to pmdController
       sdbGetPMDController()->setRSManager( &_rsManager ) ;
 
       rc = _rsManager.init( getRouteAgent() ) ;
@@ -141,11 +127,7 @@ namespace engine
       _createVersionFile() ;
 
       _myNodeID.value             = MSG_INVALID_ROUTEID ;
-      _myNodeID.columns.groupID   = OM_GROUPID ;
-      _myNodeID.columns.nodeID    = OM_NODE_ID_BEGIN ;
-      pmdSetNodeID( _myNodeID ) ;
-
-      _myNodeID.columns.serviceID = MSG_ROUTE_OM_SERVICE ;
+      _myNodeID.columns.serviceID = MSG_ROUTE_LOCAL_SERVICE ;
       _netAgent.updateRoute( _myNodeID, _pKrcb->getHostName(), 
                              pOptMgr->getOMService() ) ;
       rc = _netAgent.listen( _myNodeID ) ;
@@ -155,12 +137,9 @@ namespace engine
                   _pKrcb->getHostName(), pOptMgr->getOMService() ) ;
          goto error ;
       }
-      _netAgent.setLocalID( _myNodeID ) ;
 
       PD_LOG ( PDEVENT, "Create listen success:host=%s,port=%s",
                _pKrcb->getHostName(), pOptMgr->getOMService() ) ;
-
-      _pKrcb->setBusinessOK( TRUE ) ;
 
    done:
       return rc;
@@ -303,7 +282,6 @@ namespace engine
 
    void _omManager::onRegistered( const MsgRouteID &nodeID )
    {
-      //do nothing here
    }
 
    void _omManager::onPrimaryChange( BOOLEAN primary,
@@ -360,7 +338,6 @@ namespace engine
       omDatabaseTool dbTool( cb ) ;
       omAuthTool authTool( cb, pAuthCB ) ;
 
-      // SYSDEPLOY.SYSCLUSTER
       rc = dbTool.createCollection( OM_CS_DEPLOY_CL_CLUSTER ) ;
       if ( rc )
       {
@@ -374,7 +351,6 @@ namespace engine
          goto error ;
       }
 
-      // SYSDEPLOY.SYSHOST
       rc = dbTool.createCollection( OM_CS_DEPLOY_CL_HOST ) ;
       if ( rc )
       {
@@ -395,7 +371,6 @@ namespace engine
          goto error ;
       }
 
-      // SYSDEPLOY.SYSBUSINESS
       rc = dbTool.createCollection( OM_CS_DEPLOY_CL_BUSINESS ) ;
       if ( rc )
       {
@@ -408,14 +383,12 @@ namespace engine
          goto error ;
       }
 
-      // SYSDEPLOY.SYSCONFIGURE
       rc = dbTool.createCollection( OM_CS_DEPLOY_CL_CONFIGURE ) ;
       if ( rc )
       {
          goto error ;
       }
 
-      // SYSDEPLOY.SYSTASKINFO
       rc = dbTool.createCollection( OM_CS_DEPLOY_CL_TASKINFO ) ;
       if ( rc )
       {
@@ -429,7 +402,6 @@ namespace engine
          goto error ;
       }
 
-      // SYSDEPLOY.SYSBUSINESSAUTH
       rc = dbTool.createCollection( OM_CS_DEPLOY_CL_BUSINESS_AUTH ) ;
       if ( rc )
       {
@@ -443,7 +415,6 @@ namespace engine
          goto error ;
       }
 
-      // SYSDEPLOY.SYSRELATIONSHIP
       rc = dbTool.createCollection( OM_CS_DEPLOY_CL_RELATIONSHIP ) ;
       if ( rc )
       {
@@ -457,7 +428,6 @@ namespace engine
          goto error ;
       }
 
-      // SYSDEPLOY.SYSPLUGINS
       rc = dbTool.createCollection( OM_CS_DEPLOY_CL_PLUGINS ) ;
       if ( rc )
       {
@@ -466,6 +436,13 @@ namespace engine
 
       rc = dbTool.createCollectionIndex( OM_CS_DEPLOY_CL_PLUGINS,
                                          OM_CS_DEPLOY_CL_PLUGINSIDX1 ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
+      rc = dbTool.createCollectionIndex( OM_CS_DEPLOY_CL_PLUGINS,
+                                         OM_CS_DEPLOY_CL_PLUGINSIDX2 ) ;
       if ( rc )
       {
          goto error ;
@@ -920,7 +897,6 @@ namespace engine
       {
          string clusterName = *iter ;
 
-         //HostFile
          rc = _appendClusterGrant( clusterName,
                                    OM_CLUSTER_FIELD_HOSTFILE, TRUE ) ;
          if ( rc )
@@ -930,7 +906,6 @@ namespace engine
             goto error ;
          }
 
-         //RootUser
          rc = _appendClusterGrant( clusterName,
                                    OM_CLUSTER_FIELD_ROOTUSER, TRUE ) ;
          if ( rc )
@@ -1078,47 +1053,9 @@ namespace engine
       goto done ;
    }
 
-   INT32 _omManager::_updatePluginIndex()
-   {
-      INT32 rc = SDB_OK ;
-      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
-      omDatabaseTool dbTool( cb ) ;
-
-      dbTool.removePlugin( "SequoiaSQL-PostgreSQL",
-                           OM_BUSINESS_SEQUOIASQL_POSTGRESQL ) ;
-
-      rc = dbTool.createCollectionIndex( OM_CS_DEPLOY_CL_PLUGINS,
-                                         OM_CS_DEPLOY_CL_PLUGINSIDX1 ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "failed to create index: name=%s, rc=%d",
-                 OM_CS_DEPLOY_CL_PLUGINS, rc ) ;
-         goto error ;
-      }
-
-      rc = dbTool.removeCollectionIndex( OM_CS_DEPLOY_CL_PLUGINS,
-                                         OM_CS_DEPLOY_CL_PLUGINSIDX2 ) ;
-      if ( SDB_IXM_NOTEXIST == rc )
-      {
-         rc = SDB_OK ;
-      }
-      else if ( rc )
-      {
-         PD_LOG( PDERROR, "failed to drop index: name=%s, rc=%d",
-                 OM_CS_DEPLOY_CL_PLUGINS, rc ) ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
    INT32 _omManager::_updateTable()
    {
       INT32 rc = SDB_OK ;
-      //OM_CS_DEPLOY_CL_CONFIGURE
       rc = _updateConfTable() ;
       PD_RC_CHECK( rc, PDERROR, "update table failed:table=%s,rc=%d", 
                    OM_CS_DEPLOY_CL_CONFIGURE, rc ) ;
@@ -1140,14 +1077,6 @@ namespace engine
       {
          PD_LOG( PDERROR, "update table failed:table=%s,rc=%d", 
                  OM_CS_DEPLOY_CL_HOST, rc ) ;
-         goto error ;
-      }
-
-      rc = _updatePluginIndex() ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "update table index failed:table=%s,rc=%d", 
-                 OM_CS_DEPLOY_CL_PLUGINS, rc ) ;
          goto error ;
       }
 
@@ -1192,27 +1121,16 @@ namespace engine
       pmdEDUMgr *pEDUMgr = pmdGetKRCB()->getEDUMgr() ;
       EDUID eduID = PMD_INVALID_EDUID ;
 
-      // start om manager edu
       rc = pEDUMgr->startEDU( EDU_TYPE_OMMGR, (_pmdObjBase*)this, &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start OM Manager edu, rc: %d", rc ) ;
-      // wait attach
       rc = _attachEvent.wait( OM_WAIT_CB_ATTACH_TIMEOUT ) ;
       PD_RC_CHECK( rc, PDERROR, "Wait OM Manager edu attach failed, rc: %d",
                    rc ) ;
 
-      // start om net
       rc = pEDUMgr->startEDU( EDU_TYPE_OMNET, (netRouteAgent*)&_netAgent,
                               &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start om net, rc: %d", rc ) ;
 
-      /// start om strategy observer job
-      rc = omStartStrategyObserverJob() ;
-      if ( rc )
-      {
-         goto error ;
-      }
-
-      // start update plugin user timer (24 hour)
       _updateTimestamp = (INT64)time( NULL ) ;
       _updatePluinUsrTimer = setTimer(
                               OM_UPDATE_PLUGIN_PASSWD_TIMEOUT * OSS_ONE_SEC ) ;
@@ -1226,7 +1144,6 @@ namespace engine
    INT32 _omManager::deactive ()
    {
       _netAgent.closeListen() ;
-      // stop io
       _netAgent.stop() ;
 
       return SDB_OK ;
@@ -1236,7 +1153,6 @@ namespace engine
    {
       _pKrcb->unregEventHandler( this ) ;
       _rsManager.fini() ;
-      omGetStrategyMgr()->fini() ;
 
       _mapID2Host.clear() ;
       _mapHost2ID.clear() ;
@@ -1246,7 +1162,6 @@ namespace engine
 
    void _omManager::attachCB( _pmdEDUCB *cb )
    {
-      _pEDUCB = cb ;
       _rsManager.registerEDU( cb ) ;
       _msgHandler.attach( cb ) ;
       _timerHandler.attach( cb ) ;
@@ -1258,7 +1173,6 @@ namespace engine
       _msgHandler.detach() ;
       _timerHandler.detach() ;
       _rsManager.unregEUD( cb ) ;
-      _pEDUCB = NULL ;
    }
 
    UINT32 _omManager::setTimer( UINT32 milliSec )
@@ -1496,11 +1410,8 @@ namespace engine
          const CHAR* hostName = pmdGetKRCB()->getHostName();
          string localAgentHost = hostName ;
          string localAgentPort = this->getLocalAgentPort() ;
-
-         omInterruptTaskCommand interruptTask( NULL, NULL, NULL, NULL,
-                                               localAgentHost, localAgentPort,
-                                               "" ) ;
-
+         omInterruptTaskCommand interruptTask( NULL, NULL, localAgentHost,
+                                               localAgentPort ) ;
          interruptTask.init( pmdGetThreadEDUCB() ) ;
          taskIDEle = task.getField( OM_TASKINFO_FIELD_TASKID ) ;
          taskID    = taskIDEle.Long() ;
@@ -1664,21 +1575,16 @@ namespace engine
       return FALSE ;
    }
 
-   void _omManager::_sendResVector2Agent( NET_HANDLE handle,
-                                          MsgHeader *pSrcMsg, 
-                                          INT32 flag,
-                                          vector < BSONObj > &objs,
-                                          INT64 contextID )
+   void _omManager::_sendResVector2Agent( NET_HANDLE handle, MsgHeader *pSrcMsg, 
+                                          INT32 flag, vector < BSONObj > &objs )
    {
       INT32 rc          = SDB_OK ;
       CHAR *pbuffer     = NULL ;
       INT32 bufferSize  = 0 ;
       MsgOpReply *reply = NULL ;
-
       rc = msgBuildReplyMsg( &pbuffer, &bufferSize, 
-                             pSrcMsg->opCode, flag, contextID,
-                             0, objs.size(), pSrcMsg->requestID,
-                             &objs ) ;
+                             pSrcMsg->opCode, flag, -1, 
+                             0, objs.size(), pSrcMsg->requestID, &objs ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "build reply msg failed:rc=%d", rc ) ;
@@ -1686,14 +1592,13 @@ namespace engine
       }
 
       reply = ( MsgOpReply *) pbuffer ;
-      reply->header.TID = pSrcMsg->TID ;
+      reply->header.TID = 0 ;
       rc = _netAgent.syncSend( handle, pbuffer ) ;
       if ( rc != SDB_OK )
       {
          PD_LOG ( PDERROR, "send response to agent failed:rc=%d", rc ) ;
          goto error ;
       }
-
    done:
       if ( NULL != pbuffer )
       {
@@ -1704,12 +1609,10 @@ namespace engine
       goto done ;
    }
 
-   void _omManager::_sendRes2Agent( NET_HANDLE handle,
-                                    MsgHeader *pSrcMsg, 
-                                    INT32 flag,
-                                    const rtnContextBuf &buffObj,
-                                    INT64 contextID )
+   void _omManager::_sendRes2Agent( NET_HANDLE handle, MsgHeader *pSrcMsg, 
+                                    INT32 flag, rtnContextBuf &buffObj )
    {
+
       MsgOpReply reply ;
       INT32 rc                   = SDB_OK ;
       const CHAR *pBody          = buffObj.data() ;
@@ -1719,7 +1622,7 @@ namespace engine
       reply.header.TID           = pSrcMsg->TID ;
       reply.header.routeID.value = 0 ;
       reply.header.requestID     = pSrcMsg->requestID ;
-      reply.contextID            = contextID ;
+      reply.contextID            = -1 ;
       reply.flags                = flag ;
       reply.startFrom            = 0 ;
       reply.numReturned          = buffObj.recordNum() ;
@@ -1740,38 +1643,25 @@ namespace engine
       }
    }
 
-   void _omManager::_sendRes2Agent( NET_HANDLE handle,
-                                    MsgHeader *pSrcMsg, 
-                                    INT32 flag,
-                                    const BSONObj &obj,
-                                    INT64 contextID )
+   void _omManager::_sendRes2Agent( NET_HANDLE handle, MsgHeader *pSrcMsg, 
+                                    INT32 flag, BSONObj &obj )
    {
       MsgOpReply reply ;
       INT32 rc                   = SDB_OK ;
+      const CHAR *pBody          = obj.objdata() ;
+      INT32 bodyLen              = obj.objsize() ;
+      reply.header.messageLength = sizeof( MsgOpReply ) + bodyLen ;
       reply.header.opCode        = MAKE_REPLY_TYPE( pSrcMsg->opCode ) ;
       reply.header.TID           = pSrcMsg->TID ;
       reply.header.routeID.value = 0 ;
       reply.header.requestID     = pSrcMsg->requestID ;
-      reply.contextID            = contextID ;
+      reply.contextID            = -1 ;
       reply.flags                = flag ;
       reply.startFrom            = 0 ;
+      reply.numReturned          = 1 ;
 
-      if ( !obj.isEmpty() )
-      {
-         const CHAR *pBody          = obj.objdata() ;
-         INT32 bodyLen              = obj.objsize() ;
-         reply.header.messageLength = sizeof( MsgOpReply ) + bodyLen ;
-         reply.numReturned          = 1 ;
-         rc = _netAgent.syncSend ( handle, (MsgHeader *)( &reply ),
-                                   (void*)pBody, bodyLen ) ;
-      }
-      else
-      {
-         reply.header.messageLength = sizeof( MsgOpReply ) ;
-         reply.numReturned          = 0 ;
-         rc = _netAgent.syncSend ( handle, (void *)( &reply ) ) ;
-      }
-
+      rc = _netAgent.syncSend ( handle, (MsgHeader *)( &reply ),
+                                (void*)pBody, bodyLen ) ;
       if ( rc != SDB_OK )
       {
          PD_LOG ( PDERROR, "send response to agent failed:rc=%d", rc ) ;
@@ -1806,7 +1696,7 @@ namespace engine
       if ( _isCommand( pCollectionName ) )
       {
          if ( ossStrcasecmp( OM_AGENT_UPDATE_TASK, 
-                             ( pCollectionName + 1 ) ) == 0 )
+                                            ( pCollectionName + 1 ) ) == 0 )
          {
             BSONObj updateReq( pQuery ) ;
             BSONObj taskUpdateInfo ;
@@ -1841,13 +1731,14 @@ namespace engine
       }
 
    done:
+
       if ( SDB_OK == rc )
       {
          _sendRes2Agent( handle, pMsg, rc, response ) ;
       }
       else
       {
-         string errorInfo = _pEDUCB->getInfo( EDU_INFO_ERROR ) ;
+         string errorInfo = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          response = BSON( OP_ERR_DETAIL << errorInfo ) ;
          _sendRes2Agent( handle, pMsg, rc, response ) ;
       }
@@ -1857,9 +1748,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _omManager::_processQueryMsg( MsgHeader *pMsg,
-                                       rtnContextBuf &buf,
-                                       INT64 &contextID )
+   INT32 _omManager::_onAgentQueryTaskReq( NET_HANDLE handle, MsgHeader *pMsg )
    {
       INT32 rc = SDB_OK ;
       INT32 flags               = 0 ;
@@ -1870,496 +1759,67 @@ namespace engine
       CHAR *pHintBuffer         = NULL ;
       SINT64 numToSkip          = -1 ;
       SINT64 numToReturn        = -1 ;
-
-      // extract command
+      vector < BSONObj > result ;
+      BSONObj response ;
       rc = msgExtractQuery ( (CHAR *)pMsg, &flags, &pCollectionName,
                              &numToSkip, &numToReturn, &pQuery,
-                             &pFieldSelector, &pOrderByBuffer,
-                             &pHintBuffer ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to parse the request(rc=%d)!",
-                   rc ) ;
-
-      if ( _isCommand( pCollectionName ) )
-      {
-         rc = SDB_RTN_CMD_NO_NODE_AUTH ;
-         goto error ;
-      }
-      else
-      {
-         try
-         {
-            BSONObj matcher ( pQuery ) ;
-            BSONObj selector ( pFieldSelector ) ;
-            BSONObj orderBy ( pOrderByBuffer ) ;
-            BSONObj hint ( pHintBuffer ) ;
-
-            rc = rtnQuery( pCollectionName, selector, matcher, orderBy,
-                           hint, flags, _pEDUCB, numToSkip,
-                           numToReturn, _pDmsCB, _pRtnCB, contextID,
-                           NULL, TRUE ) ;
-            if ( rc )
-            {
-               if ( rc != SDB_DMS_EOC )
-               {
-                  PD_LOG ( PDERROR, "Failed to query on collection[%s], "
-                           "rc: %d", pCollectionName, rc ) ;
-               }
-               goto error ;
-            }
-            else if ( flags & FLG_QUERY_WITH_RETURNDATA )
-            {
-               rtnContextDump contextDump( 0, _pEDUCB->getID() ) ;
-               rc = contextDump.open( BSONObj(), BSONObj(), -1, 0 ) ;
-               PD_RC_CHECK( rc, PDERROR, "Open dump context failed, rc: %d",
-                            rc ) ;
-
-               while ( TRUE )
-               {
-                  rc = rtnGetMore( contextID, -1, buf, _pEDUCB, _pRtnCB ) ;
-                  if ( rc )
-                  {
-                     contextID = -1 ;
-                     if ( SDB_DMS_EOC != rc )
-                     {
-                        PD_LOG( PDERROR, "Get more failed, rc: %d", rc ) ;
-                        goto error ;
-                     }
-                     rc = SDB_OK ;
-                     break ;
-                  }
-                  // add to dump context
-                  rc = contextDump.appendObjs( buf.data(), buf.size(),
-                                               buf.recordNum(), TRUE ) ;
-                  PD_RC_CHECK( rc, PDERROR, "Append objs to dump context "
-                               "failed, rc: %d", rc ) ;
-               }
-
-               rc = contextDump.getMore( -1, buf, _pEDUCB ) ;
-               if ( SDB_DMS_EOC == rc )
-               {
-                  rc = SDB_OK ;
-               }
-               PD_RC_CHECK( rc, PDERROR, "Get more from dump context failed, "
-                            "rc: %d", rc ) ;
-            }
-         }
-         catch ( std::exception &e )
-         {
-            PD_LOG ( PDERROR, "Occur exception: %s", e.what () ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _omManager::_processGetMoreMsg( MsgHeader *pMsg,
-                                         rtnContextBuf &buf,
-                                         INT64 &contextID )
-   {
-      INT32 rc         = SDB_OK ;
-      INT32 numToRead  = 0 ;
-      BOOLEAN rtnDel   = TRUE ;
-
-      rc = msgExtractGetMore ( (CHAR*)pMsg, &numToRead, &contextID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Extract get more msg failed(rc=%d)!", rc ) ;
-
-      rc = rtnGetMore ( contextID, numToRead, buf,
-                        _pEDUCB, _pRtnCB ) ;
+                             &pFieldSelector, &pOrderByBuffer, &pHintBuffer ) ;
       if ( rc )
       {
-         rtnDel = FALSE ;
-         if ( SDB_DMS_EOC != rc )
-         {
-            PD_LOG ( PDERROR, "Failed to get more, rc: %d", rc ) ;
-         }
+         PD_LOG_MSG( PDERROR, "extract omAgent's command msg failed:rc=%d", 
+                     rc ) ;
+         rc = SDB_INVALIDARG ;
          goto error ;
       }
 
-   done:
-      return rc ;
-   error:
-      _delContextByID( contextID, rtnDel ) ;
-      contextID = -1 ;
-      goto done ;
-   }
-
-   INT32 _omManager::_processKillContext( MsgHeader * pMsg )
-   {
-      INT32 rc = SDB_OK ;
-      INT32 contextNum = 0 ;
-      INT64 *pContextIDs = NULL ;
-
-      rc = msgExtractKillContexts( (CHAR *)pMsg, &contextNum, &pContextIDs ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to parse killcontexts "
-                   "request(rc=%d)", rc ) ;
-
-      for( INT32 i = 0 ; i < contextNum ; i++ )
+      PD_LOG( PDEVENT, "receive agent's command:%s", pCollectionName ) ;
+      try
       {
-         _delContextByID( pContextIDs[i], TRUE ) ;
-      }
+         BSONObj matcher( pQuery ) ;
+         BSONObj selector( pFieldSelector ) ;
+         BSONObj orderBy( pOrderByBuffer ) ;
+         BSONObj hint( pHintBuffer ) ;
+         PD_LOG ( PDDEBUG, "Query: matcher: %s\nselector: "
+                  "%s\norderBy: %s\nhint:%s",
+                  matcher.toString().c_str(), selector.toString().c_str(),
+                  orderBy.toString().c_str(), hint.toString().c_str() ) ;
 
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _omManager::_processSessionInit( MsgHeader *pMsg )
-   {
-      INT32 rc = SDB_OK;
-      MsgComSessionInitReq *pMsgReq = (MsgComSessionInitReq*)pMsg ;
-
-      /// check wether the route id is right
-      MsgRouteID localRouteID = _netAgent.localID() ;
-      if ( pMsgReq->dstRouteID.value != localRouteID.value )
-      {
-         rc = SDB_INVALID_ROUTEID ;
-         PD_LOG ( PDERROR, "Session init failed: route id does not match."
-                  "Message info: [%s], Local route id: %s",
-                  msg2String( pMsg ).c_str(),
-                  routeID2String( localRouteID ).c_str() ) ;
-      }
-
-      return rc ;
-   }
-
-   INT32 _omManager::_processDisconnectMsg( NET_HANDLE handle,
-                                            MsgHeader * pMsg )
-   {
-      PD_LOG( PDEVENT, "Recieve disconnect msg[handle: %u, tid: %u]",
-              handle, pMsg->TID ) ;
-      // release the ' handle + tid ' all context
-      _delContext( handle, pMsg->TID ) ;
-      // not reply
-      return SDB_OK ;
-   }
-
-   INT32 _omManager::_processInterruptMsg( NET_HANDLE handle,
-                                           MsgHeader *pMsg )
-   {
-      PD_LOG( PDEVENT, "Recieve interrupt msg[handle: %u, tid: %u]",
-              handle, pMsg->TID ) ;
-      // release the ' handle + tid ' all context
-      _delContext( handle, pMsg->TID ) ;
-      // not reply
-      return SDB_OK ;
-   }
-
-   INT32 _omManager::_processRemoteDisc( NET_HANDLE handle,
-                                         MsgHeader *pMsg )
-   {
-      _delContextByHandle( handle ) ;
-      return SDB_OK ;
-   }
-
-   INT32 _omManager::_processPacketMsg( const NET_HANDLE &handle,
-                                        MsgHeader *header,
-                                        INT64 &contextID,
-                                        rtnContextBuf &buf )
-   {
-      INT32 rc = SDB_OK ;
-      INT32 pos = 0 ;
-      MsgHeader *pTmpMsg = NULL ;
-
-      ++_inPacketLevel ;
-
-      pos += sizeof( MsgHeader ) ;
-      while( pos < header->messageLength )
-      {
-         pTmpMsg = ( MsgHeader* )( ( CHAR*)header + pos ) ;
-
-         rc = _processMsg( handle, pTmpMsg ) ;
-         if ( rc )
+         rc = _taskManager->queryTasks( selector, matcher, orderBy, hint, 
+                                        result ) ;
+         if ( SDB_OK == rc && result.size() == 0 )
          {
+            rc = SDB_DMS_EOC ;
+         }
+
+         if( SDB_OK != rc )
+         {
+            PD_LOG_MSG( PDERROR, "query task failed:rc=%d", rc ) ;
             goto error ;
          }
-         pos += pTmpMsg->messageLength ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG_MSG( PDERROR, "Failed to create matcher and "
+                     "selector for QUERY: %s", e.what () ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
       }
 
    done:
-      --_inPacketLevel ;
-      if ( 0 == _inPacketLevel )
+
+      if ( SDB_OK == rc )
       {
-         contextID = _pendingContextID ;
-         _pendingContextID = -1 ;
-         buf = _pendingBuff ;
-         _pendingBuff = rtnContextBuf() ;
+         _sendResVector2Agent( handle, pMsg, rc, result ) ;
+      }
+      else
+      {
+         string errorInfo = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
+         response = BSON( OP_ERR_DETAIL << errorInfo ) ;
+         _sendRes2Agent( handle, pMsg, rc, response ) ;
       }
 
       return rc ;
    error:
-      goto done ;
-   }
-
-   void _omManager::_addContext( const UINT32 &handle,
-                                 UINT32 tid,
-                                 INT64 contextID )
-   {
-      if ( -1 != contextID )
-      {
-         PD_LOG( PDDEBUG, "add context( handle=%u, contextID=%lld )",
-                 handle, contextID );
-         ossScopedLock lock( &_contextLatch ) ;
-         _contextLst[ contextID ] = ossPack32To64( handle, tid ) ;
-      }
-   }
-
-   void _omManager::_delContextByHandle( const UINT32 &handle )
-   {
-      PD_LOG ( PDDEBUG, "delete context( handle=%u )", handle ) ;
-      UINT32 saveTid = 0 ;
-      UINT32 saveHandle = 0 ;
-
-      ossScopedLock lock( &_contextLatch ) ;
-      CONTEXT_LIST::iterator iterMap = _contextLst.begin() ;
-      while ( iterMap != _contextLst.end() )
-      {
-         ossUnpack32From64( iterMap->second, saveHandle, saveTid ) ;
-         if ( handle != saveHandle )
-         {
-            ++iterMap ;
-            continue ;
-         }
-         // rtn delete
-         _pRtnCB->contextDelete( iterMap->first, _pEDUCB ) ;
-         _contextLst.erase( iterMap++ ) ;
-      }
-   }
-
-   void _omManager::_delContext( const UINT32 &handle,
-                                 UINT32 tid )
-   {
-      PD_LOG ( PDDEBUG, "delete context( handle=%u, tid=%u )",
-               handle, tid ) ;
-      UINT32 saveTid = 0 ;
-      UINT32 saveHandle = 0 ;
-
-      ossScopedLock lock( &_contextLatch ) ;
-      CONTEXT_LIST::iterator iterMap = _contextLst.begin() ;
-      while ( iterMap != _contextLst.end() )
-      {
-         ossUnpack32From64( iterMap->second, saveHandle, saveTid ) ;
-         if ( handle != saveHandle || tid != saveTid )
-         {
-            ++iterMap ;
-            continue ;
-         }
-         // rtn delete
-         _pRtnCB->contextDelete( iterMap->first, _pEDUCB ) ;
-         _contextLst.erase( iterMap++ ) ;
-      }
-   }
-
-   void _omManager::_delContextByID( INT64 contextID, BOOLEAN rtnDel )
-   {
-      PD_LOG ( PDDEBUG, "delete context( contextID=%lld )", contextID ) ;
-
-      ossScopedLock lock( &_contextLatch ) ;
-      CONTEXT_LIST::iterator iterMap = _contextLst.find( contextID ) ;
-      if ( iterMap != _contextLst.end() )
-      {
-         if ( rtnDel )
-         {
-            _pRtnCB->contextDelete( iterMap->first, _pEDUCB ) ;
-         }
-         _contextLst.erase( iterMap ) ;
-      }
-   }
-
-   INT32 _omManager::_defaultMsgFunc( NET_HANDLE handle, MsgHeader *pMsg )
-   {
-      INT32 rc = SDB_OK ;
-
-      rc = _processMsg( handle, pMsg ) ;
-      return rc ;
-   }
-
-   void _omManager::_onMsgBegin( MsgHeader *pMsg )
-   {
-      // set reply header ( except flags, length )
-      _replyHeader.numReturned          = 0 ;
-      _replyHeader.startFrom            = 0 ;
-      _replyHeader.header.opCode        = MAKE_REPLY_TYPE( pMsg->opCode ) ;
-      _replyHeader.header.requestID     = pMsg->requestID ;
-      _replyHeader.header.TID           = pMsg->TID ;
-      _replyHeader.header.routeID.value = 0 ;
-
-      if ( MSG_BS_INTERRUPTE      == pMsg->opCode ||
-           MSG_BS_INTERRUPTE_SELF == pMsg->opCode ||
-           MSG_BS_DISCONNECT      == pMsg->opCode ||
-           MSG_COM_REMOTE_DISC    == pMsg->opCode )
-      {
-         _needReply = FALSE ;
-      }
-      else
-      {
-         _needReply = TRUE ;
-      }
-
-      MON_START_OP( _pEDUCB->getMonAppCB() ) ;
-      _pEDUCB->getMonAppCB()->setLastOpType( pMsg->opCode ) ;
-   }
-
-   void _omManager::_onMsgEnd( )
-   {
-      MON_END_OP( _pEDUCB->getMonAppCB() ) ;
-   }
-
-   INT32 _omManager::_processMsg( const NET_HANDLE &handle,
-                                  MsgHeader *pMsg )
-   {
-      INT32 rc = SDB_OK ;
-      rtnContextBuf buffObj ;
-      INT64 contextID = -1 ;
-
-      if ( MSG_PACKET == pMsg->opCode )
-      {
-         rc = _processPacketMsg( handle, pMsg, contextID, buffObj ) ;
-      }
-      else
-      {
-         _onMsgBegin( pMsg ) ;
-         switch ( pMsg->opCode )
-         {
-            case MSG_BS_QUERY_REQ:
-               rc = _processQueryMsg( pMsg, buffObj, contextID );
-               break;
-            case MSG_BS_GETMORE_REQ :
-               rc = _processGetMoreMsg( pMsg, buffObj, contextID ) ;
-               break ;
-            case MSG_BS_KILL_CONTEXT_REQ:
-               rc = _processKillContext( pMsg ) ;
-               break;
-            case MSG_COM_SESSION_INIT_REQ :
-               rc = _processSessionInit( pMsg ) ;
-               break;
-            case MSG_BS_INTERRUPTE :
-               rc = _processInterruptMsg( handle, pMsg ) ;
-               break ;
-            case MSG_BS_DISCONNECT :
-               rc = _processDisconnectMsg( handle, pMsg ) ;
-               break ;
-            case MSG_COM_REMOTE_DISC :
-               rc = _processRemoteDisc( handle, pMsg ) ;
-               break ;
-            case MSG_BS_INTERRUPTE_SELF :
-               rc = SDB_OK ;
-               break ;
-            default :
-               rc = SDB_CLS_UNKNOW_MSG ;
-               break ;
-         }
-      }
-
-      if ( rc && SDB_DMS_EOC != rc )
-      {
-         PD_LOG( PDERROR, "prcess msg[opCode:(%d)%d, len: %d, "
-                 "tid: %d, reqID: %lld, nodeID: %u.%u.%u] failed, rc: %d",
-                 IS_REPLY_TYPE(pMsg->opCode), GET_REQUEST_TYPE(pMsg->opCode),
-                 pMsg->messageLength, pMsg->TID, pMsg->requestID,
-                 pMsg->routeID.columns.groupID, pMsg->routeID.columns.nodeID,
-                 pMsg->routeID.columns.serviceID, rc ) ;
-      }
-
-      /// add context
-      if(  MSG_BS_QUERY_REQ == pMsg->opCode && contextID != -1 )
-      {
-         _addContext( handle, pMsg->TID, contextID );
-      }
-
-      if ( _needReply )
-      {
-         if ( rc && 0 == buffObj.size() )
-         {
-            _errorInfo = utilGetErrorBson( rc, _pEDUCB->getInfo(
-                                           EDU_INFO_ERROR ) ) ;
-            buffObj = rtnContextBuf( _errorInfo ) ;
-         }
-
-         if ( _inPacketLevel > 0 )
-         {
-            _pendingContextID = contextID ;
-            _pendingBuff = buffObj ;
-         }
-         else
-         {
-            /// send reply
-            _replyHeader.header.messageLength = sizeof( MsgOpReply ) +
-                                                buffObj.size();
-            _replyHeader.flags                = rc ;
-            _replyHeader.contextID            = contextID ;
-            _replyHeader.startFrom            = (INT32)buffObj.getStartFrom() ;
-            _replyHeader.numReturned          = buffObj.recordNum() ;
-
-            rc = _reply( handle, &_replyHeader, buffObj.data(),
-                         buffObj.size() ) ;
-            if ( rc )
-            {
-               PD_LOG ( PDERROR, "failed to send reply, rc: %d", rc ) ;
-            }
-         }
-      }
-
-      _onMsgEnd() ;
-
-      return rc ;
-   }
-
-   INT32 _omManager::_reply( const NET_HANDLE &handle,
-                             MsgOpReply *pReply,
-                             const CHAR *pReplyData,
-                             UINT32 replyDataLen )
-   {
-      INT32 rc = SDB_OK ;
-
-      // check message length
-      if ( (UINT32)( pReply->header.messageLength ) !=
-           sizeof( MsgOpReply ) + replyDataLen )
-      {
-         PD_LOG ( PDERROR, "Reply message length error[%u != %u]",
-                  pReply->header.messageLength,
-                  sizeof( MsgOpReply ) + replyDataLen ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      // Send message
-      if ( replyDataLen > 0 )
-      {
-         rc = _netAgent.syncSend ( handle, (MsgHeader *)pReply,
-                                   (void*)pReplyData, replyDataLen ) ;
-      }
-      else
-      {
-         rc = _netAgent.syncSend ( handle, (void *)pReply ) ;
-      }
-
-      PD_RC_CHECK ( rc, PDDEBUG, "Fail to send reply message[opCode:(%d)%d, "
-              "tid: %d, reqID: %lld, nodeID: %u.%u.%u], rc: %d",
-              IS_REPLY_TYPE( pReply->header.opCode ),
-              GET_REQUEST_TYPE( pReply->header.opCode ),
-              pReply->header.TID, pReply->header.requestID,
-              pReply->header.routeID.columns.groupID,
-              pReply->header.routeID.columns.nodeID,
-              pReply->header.routeID.columns.serviceID, rc ) ;
-      PD_LOG( PDDEBUG, "Succeed in sending reply message[opCode:(%d)%d, "
-              "tid: %d, reqID: %lld, nodeID: %u.%u.%u]",
-              IS_REPLY_TYPE( pReply->header.opCode ),
-              GET_REQUEST_TYPE( pReply->header.opCode ),
-              pReply->header.TID, pReply->header.requestID,
-              pReply->header.routeID.columns.groupID,
-              pReply->header.routeID.columns.nodeID,
-              pReply->header.routeID.columns.serviceID ) ;
-
-   done :
-      return rc ;
-   error :
       goto done ;
    }
 

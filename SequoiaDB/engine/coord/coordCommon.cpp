@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordCommon.cpp
 
@@ -40,7 +39,6 @@
 #include "pmdOptions.h"
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
-#include "coordSequenceAgent.hpp"
 
 using namespace bson ;
 
@@ -50,19 +48,16 @@ namespace engine
    INT32 coordParseBoolean( BSONElement &e, BOOLEAN &value, UINT32 mask )
    {
       INT32 rc = SDB_INVALIDARG ;
-      /// a:true
       if ( e.isBoolean() && ( mask & COORD_PARSE_MASK_ET_DFT ) )
       {
          value = e.boolean() ? TRUE : FALSE ;
          rc = SDB_OK ;
       }
-      /// a:1
       else if ( e.isNumber() && ( mask & COORD_PARSE_MASK_ET_DFT ) )
       {
          value = 0 != e.numberInt() ? TRUE : FALSE ;
          rc = SDB_OK ;
       }
-      /// a:{$et:true} or a:{$et:1}
       else if ( Object == e.type() && ( mask & COORD_PARSE_MASK_ET_OPR ) )
       {
          BSONObj obj = e.embeddedObject() ;
@@ -80,13 +75,11 @@ namespace engine
    INT32 coordParseInt( BSONElement &e, INT32 &value, UINT32 mask )
    {
       INT32 rc = SDB_INVALIDARG ;
-      /// a:1
       if ( e.isNumber() && ( mask & COORD_PARSE_MASK_ET_DFT ) )
       {
          value = e.numberInt() ;
          rc = SDB_OK ;
       }
-      /// a:{$et:1}
       else if ( Object == e.type() && ( mask & COORD_PARSE_MASK_ET_OPR ) )
       {
          BSONObj obj = e.embeddedObject() ;
@@ -106,7 +99,6 @@ namespace engine
       INT32 rc = SDB_INVALIDARG ;
       INT32 value = 0 ;
 
-      /// a:1 or a:{$et:1}
       if ( ( !e.isABSONObj() ||
              0 == ossStrcmp( e.embeddedObject().firstElement().fieldName(),
                              "$et") ) &&
@@ -118,7 +110,6 @@ namespace engine
             vecValue.push_back( value ) ;
          }
       }
-      /// a:[1,2,3]
       else if ( Array == e.type() && ( mask & COORD_PARSE_MASK_IN_DFT ) )
       {
          BSONObjIterator it( e.embeddedObject() ) ;
@@ -134,7 +125,6 @@ namespace engine
             vecValue.push_back( value ) ;
          }
       }
-      /// a:{$in:[1,2,3]}
       else if ( Object == e.type() &&
                 0 == ossStrcmp( e.embeddedObject().firstElement().fieldName(),
                                 "$in") &&
@@ -155,13 +145,11 @@ namespace engine
                            UINT32 mask )
    {
       INT32 rc = SDB_INVALIDARG ;
-      /// a:"xxx"
       if ( String == e.type() && ( mask & COORD_PARSE_MASK_ET_DFT ) )
       {
          value = e.valuestr() ;
          rc = SDB_OK ;
       }
-      /// a:{$et:"xxx"}
       else if ( Object == e.type() && ( mask & COORD_PARSE_MASK_ET_OPR ) )
       {
          BSONObj obj = e.embeddedObject() ;
@@ -183,7 +171,6 @@ namespace engine
       INT32 rc = SDB_INVALIDARG ;
       const CHAR *value = NULL ;
 
-      /// a:"xxx" or a:{$et:"xxx"}
       if ( ( !e.isABSONObj() ||
              0 == ossStrcmp( e.embeddedObject().firstElement().fieldName(),
                              "$et") ) &&
@@ -195,7 +182,6 @@ namespace engine
             vecValue.push_back( value ) ;
          }
       }
-      /// a:["xxx", "yyy", "zzz"]
       else if ( Array == e.type() && ( mask & COORD_PARSE_MASK_IN_DFT ) )
       {
          BSONObjIterator it( e.embeddedObject() ) ;
@@ -211,7 +197,6 @@ namespace engine
             vecValue.push_back( value ) ;
          }
       }
-      /// a:{$in:["xxx", "yyy", "zzz"]}
       else if ( Object == e.type() &&
                 0 == ossStrcmp( e.embeddedObject().firstElement().fieldName(),
                                 "$in") &&
@@ -236,32 +221,12 @@ namespace engine
 
       try
       {
-         BSONElement eName, eID, eVersion ;
-         utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
-
-         // Check types of name, id, version elements
+         BSONElement eName, eVersion ;
          eName = obj.getField( CAT_CATALOGNAME_NAME ) ;
          if ( String != eName.type() )
          {
             PD_LOG( PDERROR, "Failed to get field[%s] from obj[%s]",
                     CAT_CATALOGNAME_NAME, obj.toString().c_str() ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-
-         eID = obj.getField( CAT_CL_UNIQUEID ) ;
-         if ( eID.eoo() )
-         {
-            // it is ok, catalog hasn't been upgraded to new version.
-         }
-         else if ( eID.isNumber() )
-         {
-            clUniqueID = ( utilCLUniqueID ) eID.numberLong() ;
-         }
-         else
-         {
-            PD_LOG( PDERROR, "Failed to get field[%s] from obj[%s]",
-                    CAT_CL_UNIQUEID, obj.toString().c_str() ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
@@ -276,8 +241,7 @@ namespace engine
          }
 
          pCataInfoTmp = SDB_OSS_NEW CoordCataInfo( eVersion.number(),
-                                                   eName.valuestr(),
-                                                   clUniqueID ) ;
+                                                   eName.valuestr() ) ;
          if ( !pCataInfoTmp )
          {
             PD_LOG( PDERROR, "Allocate memory for catalog info failed" ) ;
@@ -339,7 +303,6 @@ namespace engine
                SDB_CAT_NO_MATCH_CATALOG == flag ) ;
    }
 
-   // return TRUE if we should delete the node
    BOOLEAN  coordCheckNodeReplyFlag( INT32 flag )
    {
       switch( flag )
@@ -395,7 +358,6 @@ namespace engine
       {
          BSONElement e = it.next() ;
 
-         /// $and:[{a:1},{b:2}]
          if ( Array == e.type() &&
               0 == ossStrcmp( e.fieldName(), "$and" ) )
          {
@@ -425,11 +387,7 @@ namespace engine
                      if ( tmpNew.objdata() != tmpObj.objdata() )
                      {
                         modify = TRUE ;
-
-                        if ( !tmpNew.isEmpty() )
-                        {
-                           sub.append( tmpNew ) ;
-                        }
+                        sub.append( tmpNew ) ;
                      }
                      else
                      {
@@ -636,7 +594,6 @@ namespace engine
       {
          BSONElement ele = it.next() ;
 
-         // $and:[{GroupID:1000}, {GroupName:"xxx"}]
          if ( Array == ele.type() &&
               0 == ossStrcmp( ele.fieldName(), "$and" ) )
          {
@@ -666,11 +623,7 @@ namespace engine
                      if ( tmpNew.objdata() != tmpObj.objdata() )
                      {
                         isModify = TRUE ;
-
-                        if ( !tmpNew.isEmpty() )
-                        {
-                           sub.append( tmpNew ) ;
-                        }
+                        sub.append( tmpNew ) ;
                      }
                      else
                      {
@@ -681,7 +634,6 @@ namespace engine
             }
             sub.done() ;
          } /// end $and
-         // group id
          else if ( 0 == ossStrcasecmp( ele.fieldName(), CAT_GROUPID_NAME ) )
          {
             rc = coordParseInt( ele, vecID, COORD_PARSE_MASK_ALL ) ;
@@ -698,7 +650,6 @@ namespace engine
                rc = SDB_OK ;
             }
          }
-         // group name
          else if ( ( 0 == ossStrcasecmp( ele.fieldName(),
                                          FIELD_NAME_GROUPNAME ) ||
                      0 == ossStrcasecmp( ele.fieldName(),
@@ -747,7 +698,6 @@ namespace engine
                               vector< INT32 > &vecNodeID,
                               vector< const CHAR* > &vecHostName,
                               vector< const CHAR* > &vecSvcName,
-                              vector< const CHAR* > &vecNodeName,
                               BSONObj *pNewObj,
                               BOOLEAN strictCheck )
    {
@@ -760,7 +710,6 @@ namespace engine
       {
          BSONElement ele = itr.next() ;
 
-         // $and:[{NodeID:1001, HostName:"xxxx" }]
          if ( Array == ele.type() &&
               0 == ossStrcmp( ele.fieldName(), "$and" ) )
          {
@@ -782,7 +731,6 @@ namespace engine
                   BSONObj tmpObj = tmpE.embeddedObject() ;
                   rc = coordParseNodesInfo( tmpObj, vecNodeID,
                                             vecHostName, vecSvcName,
-                                            vecNodeName,
                                             pNewObj ? &tmpNew : NULL,
                                             strictCheck ) ;
                   PD_RC_CHECK( rc, PDERROR, "Parse obj[%s] nodes failed ",
@@ -792,11 +740,7 @@ namespace engine
                      if ( tmpNew.objdata() != tmpObj.objdata() )
                      {
                         isModify = TRUE ;
-
-                        if ( !tmpNew.isEmpty() )
-                        {
-                           sub.append( tmpNew ) ;
-                        }
+                        sub.append( tmpNew ) ;
                      }
                      else
                      {
@@ -861,30 +805,6 @@ namespace engine
                rc = SDB_OK ;
             }
          }
-         else if ( 0 == ossStrcasecmp( ele.fieldName(),
-                                       FIELD_NAME_NODE_NAME ) )
-         {
-            rc = coordParseString( ele, vecNodeName,
-                                   COORD_PARSE_MASK_ALL ) ;
-            if ( SDB_OK == rc )
-            {
-               rc = coordCheckNodeName( vecNodeName ) ;
-            }
-
-            /// check result
-            if ( SDB_OK == rc )
-            {
-               isModify = TRUE ;
-            }
-            else if ( strictCheck )
-            {
-               goto error ;
-            }
-            else
-            {
-               rc = SDB_OK ;
-            }
-         }
          else if ( pNewObj )
          {
             builder.append( ele ) ;
@@ -903,187 +823,6 @@ namespace engine
          }
       }
 
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   void coordFilterGroupsByRole( CoordGroupList &groupList,
-                                 INT32 *pRoleFilter )
-   {
-      CoordGroupList::iterator it = groupList.begin() ;
-      while( it != groupList.end() )
-      {
-         if ( ( !pRoleFilter[ SDB_ROLE_DATA ] &&
-                it->second >= DATA_GROUP_ID_BEGIN &&
-                it->second <= DATA_GROUP_ID_END ) ||
-              ( !pRoleFilter[ SDB_ROLE_CATALOG ] &&
-                CATALOG_GROUPID == it->second ) ||
-              ( !pRoleFilter[ SDB_ROLE_COORD ] &&
-                COORD_GROUPID == it->second ) )
-         {
-            groupList.erase( it++ ) ;
-         }
-         else
-         {
-            ++it ;
-         }
-      }
-   }
-
-   void coordFilterNodesByRole( SET_ROUTEID &nodes, INT32 *pRoleFilter )
-   {
-      MsgRouteID nodeID ;
-      SET_ROUTEID::iterator it = nodes.begin() ;
-      while( it != nodes.end() )
-      {
-         nodeID.value = *it ;
-
-         if ( ( !pRoleFilter[ SDB_ROLE_DATA ] &&
-                nodeID.columns.groupID >= DATA_GROUP_ID_BEGIN &&
-                nodeID.columns.groupID <= DATA_GROUP_ID_END ) ||
-              ( !pRoleFilter[ SDB_ROLE_CATALOG ] &&
-                CATALOG_GROUPID == nodeID.columns.groupID ) ||
-              ( !pRoleFilter[ SDB_ROLE_COORD ] &&
-                COORD_GROUPID == nodeID.columns.groupID ) )
-         {
-            nodes.erase( it++ ) ;
-         }
-         else
-         {
-            ++it ;
-         }
-      }
-   }
-
-   INT32 coordCheckNodeName( const CHAR *pNodeName )
-   {
-      /*
-         Valid format : HostName:svcname[:svcname2[:svcname3]...]
-      */
-      INT32 rc = SDB_INVALIDARG ;
-
-      if ( pNodeName )
-      {
-         const CHAR *pCh = ossStrchr( pNodeName, ':' ) ;
-         if ( pCh && pCh[1] && ':' != pCh[1] )
-         {
-            rc = SDB_OK ;
-         }
-      }
-
-      return rc ;
-   }
-
-   INT32 coordCheckNodeName( const vector <const CHAR*> &vecNodeName )
-   {
-      INT32 rc = SDB_OK ;
-
-      for ( UINT32 i = 0 ; i < vecNodeName.size() ; ++i )
-      {
-         rc = coordCheckNodeName( vecNodeName[i] ) ;
-         if ( rc )
-         {
-            break ;
-         }
-      }
-
-      return rc ;
-   }
-
-   BOOLEAN coordMatchNodeName( const CHAR *pNodeName,
-                               const CHAR *pHostName,
-                               const CHAR *pSvcName )
-   {
-      /*
-         Valid format : HostName:svcname[:svcname2[:svcname3]...]
-      */
-      BOOLEAN hasMatch = FALSE ;
-
-      const CHAR *p = NULL ;
-      const CHAR *pn = NULL ;
-
-      /// HostName match
-      p = ossStrchr( pNodeName, ':' ) ;
-      if ( !p || 0 != ossStrncmp( pHostName, pNodeName, p - pNodeName ) )
-      {
-         goto done ;
-      }
-
-      /// Service name match
-      ++p ;
-      pn = ossStrchr( p, ':' ) ;
-      while( pn )
-      {
-         if ( 0 == ossStrncmp( pSvcName, p, pn - p ) )
-         {
-            hasMatch = TRUE ;
-            goto done ;
-         }
-         p = pn + 1 ;
-         pn = ossStrchr( p, ':' ) ;
-      }
-
-      /// The last service name
-      if ( *p && 0 == ossStrcmp( pSvcName, p ) )
-      {
-         hasMatch = TRUE ;
-         goto done ;
-      }
-
-   done:
-      return hasMatch ;
-   }
-
-   BOOLEAN coordMatchNodeName( const vector<const CHAR*> &vecNodeName,
-                               const CHAR *pHostName,
-                               const CHAR *pSvcName )
-   {
-      BOOLEAN hasMatch = FALSE ;
-
-      for ( UINT32 i = 0 ; i < vecNodeName.size() ; ++i )
-      {
-         hasMatch = coordMatchNodeName( vecNodeName[i], pHostName, pSvcName ) ;
-         if ( hasMatch )
-         {
-            break ;
-         }
-      }
-
-      return hasMatch ;
-   }
-
-   INT32 coordInvalidateSequenceCache( CoordCataInfoPtr cataPtr, _pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-      const clsAutoIncItem* pItem = NULL ;
-      const CHAR *seqName = NULL ;
-      utilSequenceID seqID ;
-
-      if ( cataPtr->hasAutoIncrement() )
-      {
-         const clsAutoIncSet &set = cataPtr->getAutoIncSet() ;
-         clsAutoIncIterator it( set, clsAutoIncIterator::RECURS ) ;
-
-         while ( it.more() )
-         {
-            pItem = it.next() ;
-            seqName = pItem->sequenceName() ;
-            seqID = pItem->sequenceID() ;
-
-            rc = coordSequenceInvalidateCache( seqName, cb, seqID ) ;
-            if ( SDB_SEQUENCE_NOT_EXIST == rc )
-            {
-               PD_LOG( PDWARNING, "Sequence not found, name[%s], id[%llu]",
-                       seqName, seqID ) ;
-               rc = SDB_OK ;
-            }
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to invalidate cache of sequence[%s], rc: %d",
-                         seqName, rc ) ;
-         }
-      }
    done:
       return rc ;
    error:

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 SequoiaDB Inc.
+ * Copyright 2017 SequoiaDB Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,9 +26,6 @@ public final class MsgOpCode {
     public static final int INVALID_OP_CODE = 0;
 
     public static final int RESP_MASK = 0x80000000;
-
-    public static final int MSG_REQ = 1000;
-    public static final int MSG_RESP = RESP_MASK | MSG_REQ;
 
     public static final int UPDATE_REQ = 2001;
     public static final int UPDATE_RESP = RESP_MASK | UPDATE_REQ;
@@ -99,7 +96,6 @@ public final class MsgOpCode {
     public static final int LOB_TRUNCATE_REQ = 8008;
     public static final int LOB_TRUNCATE_RESP = RESP_MASK | LOB_TRUNCATE_REQ;
 
-    // fake OpCode for SysInfoHeader msg
     public static final int SYS_INFO_REQ = 0xFFFFFFFF;
     public static final int SYS_INFO_RESP = 0xFFFFFFFF;
 }

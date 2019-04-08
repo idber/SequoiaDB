@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptCommon.cpp
 
@@ -73,11 +72,6 @@ namespace engine
    */
    static const CHAR* _buildObjByErrno( INT32 flag, const CHAR *pDetail )
    {
-      /// BSON Struct
-      /// Size(4Byte) + Type(1Byte)(value:16) + FileName('errno'+'\0') + Value(4Bytes)
-      ///             + Type(1Byte)(value:2) + FileName('description'+'\0') + Size(4Bytes) + Value(...'\0')
-      ///             + Type(1Byte)(value:2) + FileName('detail'+'\0') + Size(4Bytes) + Value(...'\0')
-      ///             + Type(1Byte)(value:0)
       const CHAR *pErr = getErrDesp( flag ) ;
       UINT32 errLen = ossStrlen( pErr ) ;
       UINT32 detailLen = 0 ;
@@ -122,11 +116,9 @@ namespace engine
       {
          UINT32 offset = 0 ;
 
-         /// size
          *(INT32*)&pObjBuff[offset] = objSize ;
          offset += 4 ;
 
-         /// OP_ERRNOFIELD
          pObjBuff[ offset ] = (CHAR)16 ;
          offset += 1 ;
          ossStrcpy( &pObjBuff[ offset ], OP_ERRNOFIELD ) ;
@@ -134,7 +126,6 @@ namespace engine
          *(INT32*)&pObjBuff[offset] = flag ;
          offset += 4 ;
 
-         /// OP_ERRDESP_FIELD
          pObjBuff[ offset ] = (CHAR)2 ;
          offset += 1 ;
          ossStrcpy( &pObjBuff[ offset ], OP_ERRDESP_FIELD ) ;
@@ -144,7 +135,6 @@ namespace engine
          ossStrcpy( &pObjBuff[ offset ], pErr ) ;
          offset += ( errLen + 1 ) ;
 
-         /// OP_ERR_DETAIL
          pObjBuff[ offset ] = (CHAR)2 ;
          offset += 1 ;
          ossStrcpy( &pObjBuff[ offset ], OP_ERR_DETAIL ) ;
@@ -154,7 +144,6 @@ namespace engine
          ossStrcpy( &pObjBuff[ offset ], pDetail ) ;
          offset += ( detailLen + 1 ) ;
 
-         /// EOO
          pObjBuff[ offset ] = 0 ;
       }
 
@@ -170,7 +159,6 @@ namespace engine
    {
       if ( !replace && __hasSetErrMsg__ )
       {
-         /// not replace
          return ;
       }
 
@@ -184,7 +172,6 @@ namespace engine
 
       if ( len > 0 )
       {
-         /// make sure space
          if ( __errmsgSize__ > 0 && __errmsgSize__ < len + 1 )
          {
             SDB_OSS_FREE( __errmsg__ ) ;
@@ -202,7 +189,6 @@ namespace engine
             }
          }
 
-         /// copy data
          if ( __errmsgSize__ >= len + 1 )
          {
             ossStrcpy( __errmsg__, err ) ;
@@ -220,7 +206,6 @@ namespace engine
    {
       if ( !replace && __hasSetErrMsg__ )
       {
-         /// not replace
          return ;
       }
 
@@ -238,7 +223,6 @@ namespace engine
 
          len = ossStrlen( err ) + ossStrlen( detail ) + 10 ;
 
-         /// make sure space
          if ( __errmsgSize__ > 0 && __errmsgSize__ < len + 1 )
          {
             SDB_OSS_FREE( __errmsg__ ) ;
@@ -283,7 +267,6 @@ namespace engine
    {
       if ( !replace && __hasSetErrNo__ )
       {
-         /// not replace
          return ;
       }
       __errno__ = errNum ;
@@ -429,11 +412,10 @@ namespace engine
       const CHAR* filename = NULL ;
       UINT32 lineno = 0 ;
 
-      // get privateData to get exception filename and lineno
       sptPrivateData *privateData = ( sptPrivateData* ) JS_GetContextPrivate( cx ) ;
       if( NULL != privateData && privateData->isSetErrInfo() )
       {
-         filename = privateData->getErrFileName() ;
+         filename = privateData->getErrFileName().c_str() ;
          lineno = privateData->getErrLineno() ;
       }
       else

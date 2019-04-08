@@ -30,29 +30,18 @@
          </tbody>
       </table>
    </div>
-   <div ng-switch-when="inline">
-      <table class="table loosen">
-         <tbody>
-            <tr>
-               <td ng-repeat="childInfo in inputInfo.child track by $index" ng-style="{true:{'padding-left':'0'}}[$first]">
-                  <div ng-eval="inputInfo=childInfo;" ng-include="'./app/template/Component/Form_child.html'"></div>
-               </td>
-            </tr>
-         </tbody>
-      </table>
-   </div>
    <div ng-switch-when="list">
       <table class="table loosen">
          <tbody>
             <tr ng-repeat="childList in inputInfo.child track by $index">
-               <td ng-repeat="childInfo in childList track by $index" ng-eval="remove=childInfo.remove;" ng-style="{true:{'padding-left':'0'}}[$first]">
+               <td ng-repeat="childInfo in childList track by $index" ng-style="{true:{'padding-left':'0'}}[$first]">
                   <div ng-eval="inputInfo=childInfo;" ng-include="'./app/template/Component/Form_child.html'"></div>
                </td>
                <td style="width:23px;">
-                  <button class="FormBtn" ng-click="listAppend(inputInfo,childList)"><i class="fa fa-plus"></i></button>
+                  <button class="FormBtn" ng-click="listAppend(inputInfo.child,childList)"><i class="fa fa-plus"></i></button>
                </td>
                <td style="width:23px;">
-                  <button class="FormBtn" ng-if="canRemove(inputInfo.listType,childList)" ng-click="listRemove(inputInfo.child,childList)"><i class="fa fa-minus"></i></button>
+                  <button class="FormBtn" ng-click="listRemove(inputInfo.child,childList)"><i class="fa fa-minus"></i></button>
                </td>
             </tr>
          </tbody>

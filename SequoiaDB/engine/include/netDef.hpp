@@ -1,20 +1,19 @@
 /******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pd.hpp
 
@@ -57,7 +56,6 @@ namespace engine
    typedef UINT32 NET_NODE_ID ;
    typedef UINT16 NET_SERVICE_ID ;
 
-   // invalid timer id
    #define NET_INVALID_TIMER_ID        ( 0 )
 
    /*
@@ -93,7 +91,6 @@ namespace engine
 
    private:
       SINT32 _status;     // make sure the addr of _status is aligned 4 bytes,
-                          // so the assignment of _status is atomic
       UINT64 _faultTime ; // fault time
 
    public:
@@ -219,7 +216,6 @@ namespace engine
 
    typedef std::vector<netIOV> netIOVec ;
 
-   /// calc the netio vec len
    UINT32 netCalcIOVecSize( const netIOVec &ioVec ) ;
 
 }

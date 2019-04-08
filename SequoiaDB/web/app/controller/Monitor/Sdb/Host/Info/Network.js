@@ -4,6 +4,8 @@
    //控制器
    sacApp.controllerProvider.register( 'Performance.Network.Index.Ctrl', function( $scope, $compile, $location, SdbRest, SdbFunction ){
       
+      _IndexPublic.checkMonitorEdition( $location ) ; //检测是不是企业版
+
       var clusterName = SdbFunction.LocalData( 'SdbClusterName' ) ;
       var moduleType = SdbFunction.LocalData( 'SdbModuleType' ) ;
       var moduleName = SdbFunction.LocalData( 'SdbModuleName' ) ;
@@ -60,7 +62,6 @@
                            if( isFirstBuild == true )
                            {
                               netList.push( {
-                                 'IP': networkInfo['IP'],
                                  'Name': networkInfo['Name'],
                                  'Wirespeed': '-',
                                  'RXBytes':   sizeConvert( rxBytes ),

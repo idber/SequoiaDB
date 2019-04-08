@@ -8,9 +8,6 @@ EXTERNAL_PATH = $(CURRENT_PATH)/external/client
 BSON_PATH = $(EXTERNAL_PATH)/sdbbson
 ENGINE_PATH = $(CURRENT_PATH)/../../SequoiaDB/engine
 
-OPENSSL_PATH = $(CURRENT_PATH)/../../thirdparty/crypto/openssl-1.0.1c
-OPENSSL_LIBRARY = $(CURRENT_PATH)/../../thirdparty/crypto/openssl-1.0.1c/lib
-
 BSON_SOURCE = $(BSON_PATH)/numbers.c $(BSON_PATH)/bson.c $(BSON_PATH)/encoding.c $(BSON_PATH)/common_decimal.c
 
 MD5_SOURCE = $(MD5_PATH)/md5.c
@@ -21,7 +18,7 @@ EXTERNAL_SOURCE = $(EXTERNAL_PATH)/client.c  $(EXTERNAL_PATH)/oss.c     $(EXTERN
                   $(EXTERNAL_PATH)/base64c.c $(EXTERNAL_PATH)/cJSON.c   $(EXTERNAL_PATH)/jstobs.c \
                   $(EXTERNAL_PATH)/timestampParse.c                     $(EXTERNAL_PATH)/timestampTm.c \
                   $(EXTERNAL_PATH)/timestampValid.c                     $(EXTERNAL_PATH)/cJSON_ext.c \
-                  $(EXTERNAL_PATH)/cJSON_iterator.c                     $(EXTERNAL_PATH)/utilCipher.c
+                  $(EXTERNAL_PATH)/cJSON_iterator.c
 
 BSON_HEADER = $(BSON_PATH)/sdbbson.h $(BSON_PATH)/encoding.h $(BSON_PATH)/common_decimal.h $(BSON_PATH)/common_decimal_fun.h $(BSON_PATH)/common_decimal_type.h 
 
@@ -33,7 +30,7 @@ EXTERNAL_HEADER = $(EXTERNAL_PATH)/client.h   $(EXTERNAL_PATH)/jstobs.h  $(EXTER
                   $(EXTERNAL_PATH)/pmdOptions.h                          $(EXTERNAL_PATH)/msgCatalogDef.h \
                   $(EXTERNAL_PATH)/fmpDef.h   $(EXTERNAL_PATH)/oss.h     $(EXTERNAL_PATH)/cJSON.h \
                   $(EXTERNAL_PATH)/timestamp.h                           $(EXTERNAL_PATH)/clientDef.h \
-                  $(EXTERNAL_PATH)/cJSON_ext.h                           $(EXTERNAL_PATH)/utilCipher.h
+                  $(EXTERNAL_PATH)/cJSON_ext.h \
 
 $(MD5_PATH)/md5.c:                  $(ENGINE_PATH)/bson/md5.c
 $(MD5_HEADER_PATH)/md5.h:           $(ENGINE_PATH)/bson/lib/md5.h
@@ -56,7 +53,6 @@ $(EXTERNAL_PATH)/jstobs.c:          $(ENGINE_PATH)/client/jstobs.c
 $(EXTERNAL_PATH)/timestampParse.c:  $(ENGINE_PATH)/client/timestampParse.c
 $(EXTERNAL_PATH)/timestampTm.c:     $(ENGINE_PATH)/client/timestampTm.c
 $(EXTERNAL_PATH)/timestampValid.c:  $(ENGINE_PATH)/client/timestampValid.c
-$(EXTERNAL_PATH)/utilCipher.c:      $(ENGINE_PATH)/util/utilCipher.c
 
 $(BSON_PATH)/sdbbson.h:             $(ENGINE_PATH)/client/bson/bson.h
 $(BSON_PATH)/common_decimal.h:      $(ENGINE_PATH)/include/common_decimal.h
@@ -86,7 +82,6 @@ $(EXTERNAL_PATH)/fmpDef.h:          $(ENGINE_PATH)/include/fmpDef.h
 $(EXTERNAL_PATH)/pmdOptions.h:      $(ENGINE_PATH)/include/pmdOptions.h
 $(EXTERNAL_PATH)/msgCatalogDef.h:   $(ENGINE_PATH)/include/msgCatalogDef.h
 $(EXTERNAL_PATH)/clientDef.h:       $(ENGINE_PATH)/client/clientDef.h
-$(EXTERNAL_PATH)/utilCipher.h:      $(ENGINE_PATH)/include/utilCipher.h
 
 # Compile flags
 ALL_DEFINES=$(DEFINES)
@@ -100,7 +95,7 @@ OPTIMIZATION?=-O3
 WARNINGS?=-Wall -Wno-unknown-pragmas -Wno-missing-prototypes -Wno-missing-format-attribute
 #DEBUG?=-ggdb -DSDB_USE_OWN_POSTGRES
 DEBUG?=-ggdb 
-INCLUDEPATH=-I$(EXTERNAL_PATH) -I$(BSON_PATH) -I$(MD5_PATH) -I$(OPENSSL_PATH)/include
+INCLUDEPATH=-I$(EXTERNAL_PATH) -I$(BSON_PATH) -I$(MD5_PATH)
 ALL_CFLAGS=$(CFLAGS) $(OPTIMIZATION) $(WARNINGS) $(DEBUG) $(INCLUDEPATH) $(ALL_DEFINES) $(DYN_FLAGS)
 
 
@@ -116,25 +111,11 @@ DATA = sdb_fdw--1.0.sql
 MODULE_big = sdb_fdw
 OBJS = sdb_fdw_util.o sdb_fdw.o $(OBJECTS)
 #SHLIB_LINK = -lcrypto
-
-
-ifeq ($(OS),Windows_NT)
-
-else
-    UNAME_S := $(shell uname -s)
-    UNAME_P := $(shell uname -p)
-    ifeq ($(UNAME_S),Linux)
-        ifeq ($(UNAME_P),x86_64)
-            SHLIB_LINK = -pthread -lcrypto -L$(OPENSSL_LIBRARY)/linux64
-        else
-            SHLIB_LINK = -pthread -lcrypto -L$(OPENSSL_LIBRARY)/linux32
-        endif
-    endif
-endif
-
+SHLIB_LINK = -pthread
 
 # Procedures
 local: $(BSON_PATH) $(MD5_HEADER_PATH) $(MD5_PATH) $(COPY_FILES) $(COMPILEOBJECTS) 
+	sed -i "s/return pthread_once ( control, func ) ;/return 0;/g" $(EXTERNAL_PATH)/oss.c
 
 $(BSON_PATH):
 	mkdir -p $@

@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dmsStorageIndex.hpp
 
@@ -42,10 +41,10 @@
 #include "dmsStorageBase.hpp"
 #include "dpsLogWrapper.hpp"
 #include "dmsPageMap.hpp"
-#include "utilInsertResult.hpp"
-#include "dmsOprHandler.hpp"
 
 using namespace bson ;
+
+#define DMS_DFT_TEXTINDEX_BUFF_SIZE             (30 * 1024 * 1024 * 1024LL)
 
 namespace engine
 {
@@ -76,10 +75,8 @@ namespace engine
          dmsPageMap*       getPageMap( UINT16 mbID ) ;
 
       public:
-         // reserve a signal page
          INT32    reserveExtent ( UINT16 mbID, dmsExtentID &extentID,
                                   _dmsContext *context ) ;
-         // release a signal page
          INT32    releaseExtent ( dmsExtentID extentID,
                                   BOOLEAN setFlag = FALSE ) ;
 
@@ -106,25 +103,18 @@ namespace engine
          INT32    rebuildIndexes ( _dmsMBContext *context, _pmdEDUCB *cb,
                                    INT32 sortBufferSize = SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE ) ;
 
-         // Caller must hold mb exclusive lock
          INT32    indexesInsert ( _dmsMBContext *context, dmsExtentID extLID,
                                   BSONObj &inputObj, const dmsRecordID &rid,
-                                  _pmdEDUCB *cb,
-                                  IDmsOprHandler *pOprHandle,
-                                  utilInsertResult *insertResult = NULL ) ;
+                                  _pmdEDUCB *cb ) ;
 
-         // Caller must hold mb exclusive lock
          INT32    indexesUpdate ( _dmsMBContext *context, dmsExtentID extLID,
                                   BSONObj &originalObj, BSONObj &newObj,
                                   const dmsRecordID &rid, _pmdEDUCB *cb,
-                                  BOOLEAN isRollback,
-                                  IDmsOprHandler *pOprHandle ) ;
+                                  BOOLEAN isRollback ) ;
 
-         // Caller must hold mb exclusive lock
          INT32    indexesDelete ( _dmsMBContext *context, dmsExtentID extLID,
                                   BSONObj &inputObj, const dmsRecordID &rid,
-                                  _pmdEDUCB *cb,
-                                  IDmsOprHandler *pOprHandle ) ;
+                                  _pmdEDUCB *cb ) ;
 
          INT32    truncateIndexes ( _dmsMBContext *context, _pmdEDUCB *cb ) ;
 
@@ -143,35 +133,19 @@ namespace engine
          void     addStatFreeSpace ( UINT16 mbID, UINT16 size ) ;
          void     decStatFreeSpace ( UINT16 mbID, UINT16 size ) ;
 
-         INT32    indexKeySizeMax() { return _idxKeySizeMax ; }
-
       private:
          INT32    _createIndex( _dmsMBContext *context,
                                 const BSONObj &index,
-                                dmsExtentID metaExtentID,
-                                dmsExtentID rootExtentID,
-                                UINT16 indexType,
-                                _pmdEDUCB *cb,
+                                _pmdEDUCB * cb,
                                 SDB_DPSCB *dpscb,
                                 BOOLEAN isSys,
                                 INT32 sortBufferSize ) ;
 
-         INT32 _checkForCrtTextIdx( _dmsMBContext *context,
-                                    const BSONObj &index ) ;
-
-         // newIndex - 'ExtDataName' will be added into index.
-         INT32    _createTextIdx( _dmsMBContext *context,
-                                  const BSONObj &index,
-                                  dmsExtentID metaExtentID,
-                                  dmsExtentID rootExtentID,
-                                  _pmdEDUCB *cb,
-                                  SDB_DPSCB *dpscb ) ;
-
-         // if indexLID == DMS_INALID_EXTENT, it will get from index cb
-         INT32    _rebuildIndex( _dmsMBContext *context,
-                                 dmsExtentID indexExtentID,
-                                 dmsExtentID indexLID, _pmdEDUCB *cb,
-                                 INT32 sortBufferSize, UINT16 indexType ) ;
+         INT32    _rebuildIndex ( _dmsMBContext *context,
+                                  dmsExtentID indexExtentID,
+                                  _pmdEDUCB * cb,
+                                  INT32 sortBufferSize,
+                                  UINT16 indexType ) ;
 
          INT32    _indexInsert( _ixmIndexCB *indexCB,
                                  const _ixmKey &key, const dmsRecordID &rid,
@@ -182,20 +156,16 @@ namespace engine
          INT32    _indexInsert ( _dmsMBContext *context, _ixmIndexCB *indexCB,
                                  BSONObj &inputObj, const dmsRecordID &rid,
                                  _pmdEDUCB *cb, BOOLEAN dupAllowed,
-                                 BOOLEAN dropDups,
-                                 IDmsOprHandler *pOprHandle,
-                                 utilInsertResult *insertResult = NULL ) ;
+                                 BOOLEAN dropDups ) ;
 
          INT32    _indexUpdate ( _dmsMBContext *context, _ixmIndexCB *indexCB,
                                  BSONObj &originalObj, BSONObj &newObj,
                                  const dmsRecordID &rid, _pmdEDUCB *cb,
-                                 BOOLEAN isRollback,
-                                 IDmsOprHandler *pOprHandle ) ;
+                                 BOOLEAN isRollback ) ;
 
          INT32    _indexDelete ( _dmsMBContext *context, _ixmIndexCB *indexCB,
                                  BSONObj &inputObj, const dmsRecordID &rid,
-                                 _pmdEDUCB *cb,
-                                 IDmsOprHandler *pOprHandle ) ;
+                                 _pmdEDUCB *cb ) ;
 
       private:
          virtual UINT64 _dataOffset() ;
@@ -220,14 +190,12 @@ namespace engine
          virtual void   _onRestore() ;
 
          INT32 _allocateIdxID( _dmsMBContext *context,
-                               const CHAR *indexName,
                                const BSONObj &index,
                                INT32 &indexID ) ;
 
       private:
          _dmsStorageData         *_pDataSu ;
          dmsPageMapUnit          _mbPageInfo ;
-         INT32                   _idxKeySizeMax ; // max size of index key value
 
       friend class _dmsIndexBuilder ;
    };

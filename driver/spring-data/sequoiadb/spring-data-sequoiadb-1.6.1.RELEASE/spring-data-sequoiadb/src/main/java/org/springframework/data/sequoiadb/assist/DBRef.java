@@ -1,6 +1,5 @@
 package org.springframework.data.sequoiadb.assist;
 
-// DBRef.java
 
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
@@ -36,7 +35,6 @@ public class DBRef extends DBRefBase {
         super(db, ns, id);
     }
 
-    // Required for serialization framework
     private DBRef() {
         super();
     }

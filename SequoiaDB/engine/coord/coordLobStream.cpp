@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordLobStream.cpp
 
@@ -102,7 +101,6 @@ namespace engine
          goto error ;
       }
 
-      /// set primary
       _groupSession.getGroupSel()->setPrimary( ( SDB_LOB_MODE_READ != mode ) ?
                                                TRUE : FALSE ) ;
       _groupSession.getGroupCtrl()->setMaxRetryTimes( LOB_MAX_RETRYTIMES ) ;
@@ -121,7 +119,7 @@ namespace engine
       goto done ;
    }
 
-   //PD_TRACE_DECLARE_FUNCTION( COORD_LOBSTREAM_UPDATECATAINFO, "_coordLobStream::_updateCataInfo" )
+   //PD_TRACE_DECLARE_FUNCTION( COORD_LOBSTREAM_UPDATECATAINFO, "_coordLobStream::_openSubStreams" )
    INT32 _coordLobStream::_updateCataInfo( BOOLEAN refresh,
                                            _pmdEDUCB *cb )
    {
@@ -137,7 +135,6 @@ namespace engine
          rc = _pResource->updateCataInfo( getFullName(), _cataInfo, cb ) ;
          if ( rc )
          {
-            /// Lob doesn't support main collection
             if ( SDB_CLS_COORD_NODE_CAT_VER_OLD == rc )
             {
                rc = SDB_DMS_NOTEXIST ;
@@ -170,7 +167,6 @@ namespace engine
             PD_LOG( PDERROR, "failed to get meta group:%d", rc ) ;
             goto error ;
          }
-         // get group info
          rc = _pResource->getOrUpdateGroupInfo( _metaGroup, _metaGroupInfo,
                                                 cb ) ;
          if ( rc )
@@ -231,7 +227,6 @@ namespace engine
       coordGroupSessionCtrl *pCtrl = _groupSession.getGroupCtrl() ;
       coordGroupSel *pSel = _groupSession.getGroupSel() ;
 
-      /// reset retry times
       pCtrl->resetRetry() ;
 
       builder.append( FIELD_NAME_COLLECTION, fullName )
@@ -240,7 +235,6 @@ namespace engine
              .appendBool( FIELD_NAME_LOB_IS_MAIN_SHD, FALSE ) ;
       if ( SDB_LOB_MODE_READ == mode )
       {
-         /// send meta data to every group.
          builder.append( FIELD_NAME_LOB_META_DATA, _metaObj ) ;
       }
 
@@ -295,7 +289,6 @@ namespace engine
                goto error ;
             }
 
-            /// add group info
             pSel->addGroupPtr2Map( itMap->second ) ;
 
             sendGrpLst[ itr->first ] = itr->second ;
@@ -313,9 +306,6 @@ namespace engine
 
          rc = _getReply( cb, FALSE, tag ) ;
          pCtrl->incRetry() ;
-         /// need to add succeed nodes to subs whether successful or not,
-         /// because it can close all opened contexts that on data node
-         /// when some nodes failed
          rcTmp = _addSubStreamsFromReply() ;
          if ( SDB_OK != rc )
          {
@@ -344,7 +334,7 @@ namespace engine
       } while ( TRUE ) ;
 
    done:
-      _clearMsgData() ;
+      _clearMsgData() ; 
       PD_TRACE_EXITRC( COORD_LOBSTREAM_OPENOTHERSTREAMS, rc ) ;
       return rc ;
    error:
@@ -371,7 +361,6 @@ namespace engine
       coordGroupSessionCtrl *pCtrl = _groupSession.getGroupCtrl() ;
       coordGroupSel *pSel = _groupSession.getGroupSel() ;
 
-      /// reset retry times
       pCtrl->resetRetry() ;
 
       builder.append( FIELD_NAME_COLLECTION, fullName )
@@ -412,7 +401,6 @@ namespace engine
          INT32 tag = RETRY_TAG_NULL ;
          header.version = _cataInfo->getVersion() ;
 
-         /// add group info
          pSel->addGroupPtr2Map( _metaGroupInfo ) ;
 
          rc = _groupSession.sendMsg( (MsgHeader*)&header,
@@ -449,7 +437,6 @@ namespace engine
          rc = _extractMeta( reply, _metaObj, dataTuple ) ;
          if ( dataTuple.data && dataTuple.len > 0 )
          {
-            /// push data to pool
             rc = _getPool().push( dataTuple.data,
                                   dataTuple.len,
                                   dataTuple.offset ) ;
@@ -728,7 +715,6 @@ namespace engine
       pmdRemoteSession *pSession = _groupSession.getSession() ;
       pmdSubSession *pSub = NULL ;
 
-      /// reset retry times
       pCtrl->resetRetry() ;
 
       _initHeader( header, opCode,
@@ -792,7 +778,7 @@ namespace engine
          {
             break ;
          }
-         else
+         else 
          {
             rc = _reopenSubStreams( cb ) ;
             if ( SDB_OK != rc )
@@ -832,10 +818,8 @@ namespace engine
       pmdRemoteSession *pSession = _groupSession.getSession() ;
       pmdSubSession *pSub = NULL ;
 
-      /// reset retry times
       pCtrl->resetRetry() ;
 
-      /// will reassign length
       _initHeader( header, opCode,
                    0, -1 ) ;
 
@@ -873,7 +857,6 @@ namespace engine
                continue ;
             }
 
-            /// we have pushed part of header to body.
             header.header.messageLength = sizeof( MsgHeader ) + dg.bodyLen ;
             header.contextID = dg.contextID ;
 
@@ -1079,7 +1062,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( COORD_LOBSTREAM_READV ) ;
 
-      DONE_LST doneLst ;
+      DONE_LST doneLst ; 
       BOOLEAN needReshard = TRUE ;
       MsgOpLob header ;
       RTN_LOB_TUPLES newTuples ;
@@ -1109,7 +1092,7 @@ namespace engine
                {
                   goto error ;
                }
-
+ 
                rc = _getPool().push( _emptyPageBuf, t.tuple.columns.len,
                                      RTN_LOB_GET_OFFSET_OF_LOB(
                                          pageSize,
@@ -1135,12 +1118,11 @@ namespace engine
          }
       }
 
-      /// reset retry times
       pCtrl->resetRetry() ;
 
       _initHeader( header, MSG_BS_LOB_READ_REQ,
                    0, -1 ) ;
-
+      
       do
       {
          _clearMsgData() ;
@@ -1301,13 +1283,7 @@ namespace engine
       PD_TRACE_ENTRY( COORD_LOBSTREAM_COMPLETELOB ) ;
       if ( SDB_LOB_MODE_CREATEONLY == _getMode() )
       {
-         // Before SequoiaDB 3.0, we send UPDATE message to
-         // complete lob when close lob in CREATEONLY mode.
-         // And in 3.0.1 we also send UPDATE message,
-         // in order to compatible with version<3.0.
-         // But actually we should WRITE the meta sequence.
-         // See also _rtnContextShdOfLob::update().
-         rc = _update( tuple, cb ) ;
+         rc = _write( tuple, cb ) ;
       }
       else if ( SDB_LOB_MODE_WRITE == _getMode() ||
                 SDB_LOB_MODE_TRUNCATE == _getMode() )
@@ -1337,7 +1313,6 @@ namespace engine
       pmdRemoteSession *pSession = _groupSession.getSession() ;
       pmdSubSession *pSub = NULL ;
 
-      /// reset retry times
       pCtrl->resetRetry() ;
 
       builder.append( FIELD_NAME_LOB_OFFSET, offset )
@@ -1451,7 +1426,6 @@ namespace engine
       pmdRemoteSession *pSession = _groupSession.getSession() ;
       pmdSubSession *pSub = NULL ;
 
-      /// reset retry times
       pCtrl->resetRetry() ;
 
       _initHeader( header, MSG_BS_LOB_CLOSE_REQ,
@@ -1512,12 +1486,10 @@ namespace engine
 
          if ( RETRY_TAG_NULL == tag )
          {
-            break ;
+            break ;            
          }
          else
          {
-            /// here we only need to close opened sub streams.
-            /// do not reopen new streams.
             continue ;
          }
       } while ( TRUE ) ;
@@ -1530,15 +1502,13 @@ namespace engine
       goto done ;
    }
 
-   //PD_TRACE_DECLARE_FUNCTION( COORD_LOBSTREAM_CLOSESUBSTREAMWITHEXCEP, "_coordLobStream::_closeSubStreamsWithException" )
+   //PD_TRACE_DECLARE_FUNCTION( COORD_LOBSTREAM_CLOSESUBSTREAMWITHEXCEP, "_coordLobStream::__closeSubStreamsWithException" )
    INT32 _coordLobStream::_closeSubStreamsWithException( _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( COORD_LOBSTREAM_CLOSESUBSTREAMWITHEXCEP ) ;
 
       pmdRemoteSession *pSession = _groupSession.getSession() ;
-      /// When the cb->isInterrupted(), don't kill context, because the
-      /// session will send interrupt or disconnect message to peer node
       if ( pSession && !cb->isInterrupted() )
       {
          MsgOpKillContexts killMsg ;
@@ -1565,12 +1535,10 @@ namespace engine
                PD_LOG( PDWARNING, "Kill sub-context on node[%d:%d] failed, "
                        "rc:%d", itr->second.id.columns.groupID,
                        itr->second.id.columns.nodeID, rc ) ;
-               /// try to rollback all substreams, so do not goto error.
             }
          }
 
-         /// wait reply
-         rc = pSession->waitReply1( TRUE ) ;
+         rc = pSession->waitReply1( TRUE, NULL, FALSE ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Wait all reply failed, rc: %d", rc ) ;
@@ -1587,7 +1555,7 @@ namespace engine
       goto done ;
    }
 
-   //PD_TRACE_DECLARE_FUNCTION( COORD_LOBSTREAM_EXTRACTMETA, "_coordLobStream::_extractMeta" )
+   //PD_TRACE_DECLARE_FUNCTION( COORD_LOBSTREAM_EXTRACTMETA, "_coordLobStream::_extractMeta" )   
    INT32 _coordLobStream::_extractMeta( const MsgOpReply *header,
                                         bson::BSONObj &metaObj,
                                         _rtnLobDataPool::tuple &dataTuple )
@@ -1628,7 +1596,6 @@ namespace engine
          goto error ;
       }
 
-      /// If have data, need add to pool
       if ( (UINT32)header->header.messageLength >
            dataOffset + sizeof( MsgLobTuple ) )
       {
@@ -1672,7 +1639,6 @@ namespace engine
       pmdRemoteSession *pSession = _groupSession.getSession() ;
       pmdSubSession *pSub = NULL ;
 
-      /// reset retry times
       pCtrl->resetRetry() ;
 
       _initHeader( header,
@@ -1831,7 +1797,6 @@ namespace engine
          if ( SDB_OK == flags ||
               ( pIgoreErr && pIgoreErr->count( flags ) > 0 ) )
          {
-            /// pReply will be released by _clearMsgData()
             _results.push_back( pReply ) ;
             continue ;
          }
@@ -1840,11 +1805,10 @@ namespace engine
                  "new primary: %d", id.columns.groupID, id.columns.nodeID,
                  flags, pReply->startFrom ) ;
 
-         // get group info
-         CoordGroupMap::iterator it = _mapGroupInfo.find(
-                                 pSub->getNodeID().columns.groupID ) ;
+         CoordGroupMap::iterator it = _mapGroupInfo.find( id.columns.groupID ) ;
          if ( it == _mapGroupInfo.end() )
          {
+            SDB_ASSERT( FALSE, "Group info is not exist" ) ;
             flags = SDB_COOR_NO_NODEGROUP_INFO ;
          }
          else if ( !nodeSpecified &&
@@ -1855,13 +1819,11 @@ namespace engine
             tag |= RETRY_TAG_RETRY ;
             flags = SDB_OK ;
 
-            /// if meta group has update, so need to update meta group
             if ( _metaGroup == it->first )
             {
                _metaGroupInfo = it->second ;
             }
          }
-         // then catalog
          else if ( pCtrl->canRetry( flags, cataSel, FALSE ) &&
                    SDB_OK == ( flags = _updateCataInfo( TRUE, cb ) ) )
          {
@@ -1903,7 +1865,7 @@ namespace engine
       _groupSession.resetSubSession() ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION( COORD_LOBSTREAM_REOPENSUBSTREAMS, "_coordLobStream::_reopenSubStreams" )
+   // PD_TRACE_DECLARE_FUNCTION( COORD_LOBSTREAM_REOPENSUBSTREAMS, "_coordLobStream::_reopenSubStreams" ) 
    INT32 _coordLobStream::_reopenSubStreams( _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
@@ -2067,7 +2029,6 @@ namespace engine
          }
       }
 
-      /// we need to keep reply msg in memory.
       {
       std::vector<MsgOpReply *>::const_iterator itr = _results.begin() ;
       for ( ; itr != _results.end(); ++itr )
@@ -2092,7 +2053,7 @@ namespace engine
       std::vector<MsgOpReply *>::const_iterator itr = _results.begin() ;
       for ( ; itr != _results.end(); ++itr )
       {
-         SDB_ASSERT( SDB_OK == ( *itr )->flags, "impossible" ) ;
+         SDB_ASSERT( SDB_OK == ( *itr )->flags, "impossible" ) ; 
          rc = _add2DoneLst( ( *itr )->header.routeID.columns.groupID,
                             doneLst ) ;
          if ( SDB_OK != rc )

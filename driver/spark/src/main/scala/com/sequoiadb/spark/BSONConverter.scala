@@ -16,7 +16,6 @@
 
 package com.sequoiadb.spark
 
-import java.lang.reflect.Field
 import java.math.BigInteger
 import java.sql.{Date, Timestamp}
 import java.text.SimpleDateFormat
@@ -25,7 +24,7 @@ import java.util.UUID
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.analysis.{DecimalPrecision, TypeCoercion}
 import org.apache.spark.sql.catalyst.expressions.GenericRow
-import org.apache.spark.sql.types.{DataType, _}
+import org.apache.spark.sql.types._
 import org.bson.types._
 import org.bson.{BSONObject, BasicBSONObject}
 
@@ -599,28 +598,6 @@ private[spark] object BSONConverter {
     private[spark] val DoubleDecimal = DecimalType(30, 15)
     private[spark] val BigIntDecimal = DecimalType(38, 0)
 
-    private lazy val findTightestCommonType: (DataType, DataType) => Option[DataType] = {
-        val cls = TypeCoercion.getClass
-        val f: Field = {
-            try {
-                cls.getDeclaredField("findTightestCommonType")
-            } catch {
-                case _: NoSuchFieldException => {
-                    cls.getDeclaredField("findTightestCommonTypeOfTwo")
-                }
-                case e: Throwable => throw e
-            }
-        }
-
-        f.setAccessible(true)
-        try {
-            f.get(TypeCoercion)
-                .asInstanceOf[(DataType, DataType) => Option[DataType]]
-        } finally {
-            f.setAccessible(false)
-        }
-    }
-
     private[spark] def forType(dataType: DataType): DecimalType = dataType match {
         case ByteType => ByteDecimal
         case ShortType => ShortDecimal
@@ -639,7 +616,7 @@ private[spark] object BSONConverter {
       * }}}
       */
     def compatibleType(t1: DataType, t2: DataType): DataType = {
-        findTightestCommonType(t1, t2) match {
+        TypeCoercion.findTightestCommonTypeOfTwo(t1, t2) match {
             case Some(commonType) => commonType
             case None =>
                 // t1 or t2 is a StructType, ArrayType, or an unexpected type.
@@ -683,74 +660,6 @@ private[spark] object BSONConverter {
                 .map(typeOfData)
                 .reduce(compatibleType)
             ArrayType(elementType, containsNull)
-        }
-    }
-
-    def removeNullFields(array: BasicBSONList): BasicBSONList = {
-        if (array == null) {
-            return null
-        }
-
-        // when remove field in BasicBSONList,
-        // the elements behind the removed one will be moved forward,
-        // and keys behind the removed one will be changed,
-        // so can not use keySet like BSONObject
-        val iter = array.iterator()
-        while (iter.hasNext) {
-            val value = iter.next()
-            value match {
-                case null => iter.remove()
-                case value: BasicBSONList =>
-                    val embeddedArray = removeNullFields(value)
-                    if (embeddedArray == null) {
-                        iter.remove()
-                    }
-                case value: BSONObject =>
-                    val embeddedObj = removeNullFields(value)
-                    if (embeddedObj == null) {
-                        iter.remove()
-                    }
-                case _ =>
-            }
-        }
-
-        if (array.isEmpty) {
-            null
-        } else {
-            array
-        }
-    }
-
-    def removeNullFields(obj: BSONObject): BSONObject = {
-        if (obj == null) {
-            return null
-        }
-
-        // keySet actually hold a iterator of obj,
-        // exception will be thrown when remove filed,
-        // so we convert it to Sequence
-        obj.keySet().toSeq.foreach { field =>
-            val value = obj.get(field)
-            value match {
-                case null => obj.removeField(field)
-                case value: BasicBSONList =>
-                    val embeddedArray = removeNullFields(value)
-                    if (embeddedArray == null) {
-                        obj.removeField(field)
-                    }
-                case value: BSONObject =>
-                    val embeddedObj = removeNullFields(value)
-                    if (embeddedObj == null) {
-                        obj.removeField(field)
-                    }
-                case _ =>
-            }
-        }
-
-        if (obj.isEmpty) {
-            null
-        } else {
-            obj
         }
     }
 }

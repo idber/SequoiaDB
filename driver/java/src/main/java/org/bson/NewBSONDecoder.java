@@ -32,7 +32,6 @@ import static org.bson.BSON.*;
  */
 public class NewBSONDecoder implements BSONDecoder {
 
-    //@Override
     public BSONObject readObject(final byte [] pData) {
         _length = pData.length;
         final BasicBSONCallback c = new BasicBSONCallback();
@@ -48,9 +47,7 @@ public class NewBSONDecoder implements BSONDecoder {
         return (BSONObject)c.get();
     }
 
-    //@Override
     public BSONObject readObject(final InputStream pIn) throws IOException {
-        // Slurp in the data and convert to a byte array.
         _length = Bits.readInt(pIn);
 
         if (_data == null || _data.length < _length) {
@@ -82,7 +79,6 @@ public class NewBSONDecoder implements BSONDecoder {
         return _length;
     }
 
-    //@Override
     public int decode(final InputStream pIn, final BSONCallback pCallback) throws IOException {
         _length = Bits.readInt(pIn);
 
@@ -253,7 +249,6 @@ public class NewBSONDecoder implements BSONDecoder {
             }
 
             case OID: {
-                // OID is stored as big endian
 
                 final int p1 = Bits.readIntBE(_data, _pos);
                 _pos += 4;

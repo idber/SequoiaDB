@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2015 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dmsIndexBuilder.cpp
 
@@ -41,14 +40,12 @@ namespace engine
                                        _dmsStorageData* dataSU,
                                        _dmsMBContext* mbContext,
                                        _pmdEDUCB* eduCB,
-                                       dmsExtentID indexExtentID,
-                                       dmsExtentID indexLogicID )
+                                       dmsExtentID indexExtentID )
    : _suIndex ( indexSU ),
      _suData ( dataSU ),
      _mbContext ( mbContext ),
      _eduCB ( eduCB ),
-     _indexExtentID ( indexExtentID ),
-     _indexLID( indexLogicID )
+     _indexExtentID ( indexExtentID )
    {
       _indexCB = NULL ;
       _scanExtLID = DMS_INVALID_EXTENT ;
@@ -78,11 +75,9 @@ namespace engine
       SDB_ASSERT( _suData != NULL, "_suData can't be NULL" ) ;
       SDB_ASSERT( _mbContext != NULL, "_mbContext can't be NULL" ) ;
 
-      // lock mb
       rc = _mbContext->mbLock( EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
-      // make sure the extent is valid
       PD_CHECK ( DMS_INVALID_EXTENT != _indexExtentID,
                  SDB_INVALIDARG, error, PDERROR,
                  "Index Extent ID %d is invalid for collection %d",
@@ -97,24 +92,14 @@ namespace engine
          goto error ;
       }
 
-      // verify the index control block is initialized
       PD_CHECK ( _indexCB->isInitialized(), SDB_DMS_INIT_INDEX,
                  error, PDERROR, "Failed to initialize index" ) ;
 
-      // Someone else may have dropped the index before we take the mb lock.
-      // Check for that.
-      if ( _indexLID != _indexCB->getLogicalID() )
-      {
-         rc = SDB_DMS_INVALID_INDEXCB ;
-         PD_LOG( PDERROR, "Index logical id in indexCB is not as expected. "
-                          "The index may have been recreated") ;
-         goto error ;
-      }
+      _indexLID = _indexCB->getLogicalID() ;
 
       rc = _indexCB->getIndexID ( _indexOID ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to get indexID, rc = %d", rc ) ;
 
-      // already creating, continue
       if ( IXM_INDEX_FLAG_CREATING == _indexCB->getFlag() )
       {
          _scanExtLID = _indexCB->scanExtLID() ;
@@ -130,7 +115,6 @@ namespace engine
       }
       else
       {
-         // truncate index, do NOT remove root
          rc = _indexCB->truncate ( FALSE ) ;
          if ( rc )
          {
@@ -167,14 +151,9 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      /// start rebuilding
       _currentExtentID = _mbContext->mb()->_firstExtentID ;
       if ( DMS_INVALID_EXTENT == _currentExtentID )
       {
-         /// when the collection is empty, we complete the index creating
-         /// fast( when unlock the context and scan the data, because the
-         /// scanExtLID always is -1, so when scan finished, the new instor
-         /// will not insert to the index )
          _indexCB->setFlag ( IXM_INDEX_FLAG_NORMAL ) ;
          _indexCB->scanExtLID ( DMS_INVALID_EXTENT ) ;
          rc = SDB_DMS_EOC ;
@@ -205,18 +184,9 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      dpsTransExecutor *pTransExe = _eduCB->getTransExecutor() ;
-
-      /// first get transisolation
-      INT32 oldIsolation = pTransExe->getTransIsolation() ;
-      UINT32 oldMask = pTransExe->getTransConfMask() ;
-      /// set isolation to ru
-      pTransExe->setTransIsolation( TRANS_ISOLATION_RU, FALSE ) ;
-
       rc = _init() ;
       if ( SDB_DMS_EOC == rc )
       {
-         /// no data, has already finished
          rc = SDB_OK ;
          goto done ;
       }
@@ -238,17 +208,10 @@ namespace engine
       }
 
    done:
-      /// restore transisolation
-      pTransExe->setTransIsolation( oldIsolation,
-                                    ( oldMask & TRANS_CONF_MASK_ISOLATION ) ) ;
       return rc ;
    init_error:
       goto done ;
    error:
-      // do NOT set flag when SDB_DMS_INVALID_INDEXCB,
-      // because something else may changed the indexCB,
-      // it's possible other threads dropped index so that
-      // the extent is reused. So we should NOT touch the block here
       if ( SDB_DMS_INVALID_INDEXCB != rc )
       {
          if ( SDB_OK == _checkIndexAfterLock( SHARED ) )
@@ -264,7 +227,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      // make sure the index cb is still valid
       if ( !_indexCB->isStillValid ( _indexOID ) ||
            _indexLID != _indexCB->getLogicalID() )
       {
@@ -272,8 +234,6 @@ namespace engine
          goto error ;
       }
 
-      // get the address of extent indicated in context for where
-      // should we starts
       _extRW = _suData->extent2RW( _currentExtentID, _mbContext->mbID() ) ;
       _extRW.setNothrow( TRUE ) ;
       _extent = _extRW.readPtr<dmsExtent>() ;
@@ -284,7 +244,6 @@ namespace engine
          goto error ;
       }
 
-      // find the extent by logical id
       if ( DMS_INVALID_EXTENT != _scanExtLID &&
            _extent->_logicID < _scanExtLID )
       {
@@ -337,10 +296,6 @@ namespace engine
       rc = _suIndex->_indexInsert( _indexCB, key, rid, ordering, _eduCB, !_unique, _dropDups ) ;
       if ( SDB_OK != rc )
       {
-         // during index rebuild, it's possible some other
-         // sessions inserted records that already stored in
-         // index, and then when we scan the disk we read it
-         // again. In  this case let's simply skip it
          if ( SDB_IXM_IDENTICAL_KEY == rc )
          {
             rc = SDB_OK ;
@@ -349,7 +304,6 @@ namespace engine
          }
          else
          {
-            // for any other index insert error, let's return error
             PD_LOG ( PDERROR, "Failed to insert into index, rc: %d", rc ) ;
          }
       }
@@ -396,7 +350,6 @@ namespace engine
          goto error ;
       }
 
-      // make sure the index cb is still valid
       if ( !_indexCB->isStillValid ( _indexOID ) ||
            _indexLID != _indexCB->getLogicalID() )
       {
@@ -416,7 +369,6 @@ namespace engine
                                                        _dmsMBContext* mbContext,
                                                        _pmdEDUCB* eduCB,
                                                        dmsExtentID indexExtentID,
-                                                       dmsExtentID indexLogicID,
                                                        INT32 sortBufferSize,
                                                        UINT16 indexType )
    {
@@ -429,9 +381,11 @@ namespace engine
 
       if ( IXM_EXTENT_HAS_TYPE( IXM_EXTENT_TYPE_TEXT, indexType ) )
       {
-         builder = SDB_OSS_NEW _dmsIndexExtBuilder( indexSU, dataSU, mbContext,
-                                                    eduCB, indexExtentID,
-                                                    indexLogicID ) ;
+         builder = SDB_OSS_NEW _dmsIndexExtBuilder( indexSU,
+                                                    dataSU,
+                                                    mbContext,
+                                                    eduCB,
+                                                    indexExtentID ) ;
          if ( NULL == builder)
          {
             PD_LOG ( PDERROR, "failed to allocate _dmsIndexExtBuilder" ) ;
@@ -447,10 +401,11 @@ namespace engine
          }
          else if ( 0 == sortBufferSize )
          {
-            builder = SDB_OSS_NEW _dmsIndexOnlineBuilder( indexSU, dataSU,
-                                                          mbContext, eduCB,
-                                                          indexExtentID,
-                                                          indexLogicID ) ;
+            builder = SDB_OSS_NEW _dmsIndexOnlineBuilder( indexSU,
+                                                          dataSU,
+                                                          mbContext,
+                                                          eduCB,
+                                                          indexExtentID ) ;
             if ( NULL == builder)
             {
                PD_LOG ( PDERROR, "failed to allocate _dmsIndexOnlineBuilder" ) ;
@@ -458,10 +413,11 @@ namespace engine
          }
          else
          {
-            builder = SDB_OSS_NEW _dmsIndexSortingBuilder( indexSU, dataSU,
-                                                           mbContext, eduCB,
+            builder = SDB_OSS_NEW _dmsIndexSortingBuilder( indexSU,
+                                                           dataSU,
+                                                           mbContext,
+                                                           eduCB,
                                                            indexExtentID,
-                                                           indexLogicID,
                                                            sortBufferSize ) ;
             if ( NULL == builder)
             {

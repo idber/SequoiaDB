@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = fmpDef.h
 
@@ -50,8 +49,6 @@
 #define PD_FMP_DIAGLOG_PREFIX       "fmpdiag"
 #define PD_FMP_DIAGLOG_SUBFIX       "log"
 
-/// WARNING: do not modify this define.
-/// spdFMP.cpp::SPD_NEXT is depend on this define.
 #define FMP_MSG_MAGIC               {(CHAR)0xFF, (CHAR)0xFE, (CHAR)0xFD, (CHAR)0xFB, 0}
 
 #define FMP_FUNC_VALUE        FIELD_NAME_FUNC
@@ -61,7 +58,6 @@
 #define FMP_RES_TYPE          "resType"
 #define FMP_RES_VALUE         "value"
 #define FMP_RES_CODE          "retCode"
-#define FMP_RES_CLASSNAME     "className"
 #define FMP_CONTROL_FIELD     "step"
 #define FMP_DIAG_PATH         "diag"
 #define FMP_SEQ_ID            "seqid"
@@ -77,7 +73,6 @@
 #define FMP_CONTROL_STEP_DOWNLOAD   1
 #define FMP_CONTROL_STEP_EVAL       2
 #define FMP_CONTROL_STEP_FETCH      3
-/// when add step, max must be changed.
 #define FMP_CONTROL_SETP_MAX        4
 
 
@@ -87,8 +82,10 @@
 #define FMP_RES_TYPE_OBJ         SDB_SPD_RES_TYPE_OBJ
 #define FMP_RES_TYPE_BOOL        SDB_SPD_RES_TYPE_BOOL
 #define FMP_RES_TYPE_RECORDSET   SDB_SPD_RES_TYPE_RECORDSET
-#define FMP_RES_TYPE_SPECIALOBJ  SDB_SPD_RES_TYPE_SPECIALOBJ
-#define FMP_RES_TYPE_NULL        SDB_SPD_RES_TYPE_NULL
+#define FMP_RES_TYPE_CS          SDB_SPD_RES_TYPE_CS
+#define FMP_RES_TYPE_CL          SDB_SPD_RES_TYPE_CL
+#define FMP_RES_TYPE_RG          SDB_SPD_RES_TYPE_RG
+#define FMP_RES_TYPE_RN          SDB_SPD_RES_TYPE_RN
 
 #define FMP_FUNC_TYPE_INVALID    -1
 #define FMP_FUNC_TYPE_JS         0

@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = utilCache.cpp
 
@@ -222,7 +221,6 @@ namespace engine
 
       if ( size() < offset + len )
       {
-         /// no space for write data
          rc = SDB_NOSPC ;
          goto error ;
       }
@@ -249,7 +247,6 @@ namespace engine
 
       SDB_ASSERT( lastLen == 0, "Last len must be 0" ) ;
 
-      /// update meta
       ossGetCurrentTime( t ) ;
       _lastTime = t.time * 1000 + t.microtm / 1000 ;
       if ( dirty )
@@ -308,12 +305,10 @@ namespace engine
 
       if ( size() < offset + len )
       {
-         /// no space for write data
          rc = SDB_NOSPC ;
          goto error ;
       }
 
-      /// update meta
       ossGetCurrentTime( t ) ;
       _lastTime = t.time * 1000 + t.microtm / 1000 ;
 
@@ -365,7 +360,6 @@ namespace engine
          hasRead += onceRead ;
       }
 
-      /// update meta
       ++_readTimes ;
       ossGetCurrentTime( t ) ;
       _lastTime = t.time * 1000 + t.microtm / 1000 ;
@@ -396,7 +390,6 @@ namespace engine
          offset += blockSz ;
       }
 
-      /// other value
       _start = right._start ;
       _length = right._length ;
       _dirtyStart = right._dirtyStart ;
@@ -660,7 +653,6 @@ namespace engine
       beginSlot = _sizeUp2Slot( lastSize ) ;
       exceedSlot = 0 ;
 
-      /// first to alloc a whole page
       while( beginSlot < UTIL_PAGE_SLOT_SIZE &&
              exceedSlot < UTIL_MAX_EXCEED_SLOT_SIZE &&
              _freeSize.peek() >= lastSize )
@@ -675,12 +667,10 @@ namespace engine
             slotItem.pop_back() ;
             _freeSize.sub( pageSize ) ;
             _allocSize.add( pageSize ) ;
-            /// update the bucket stat
             utilCacheStat &stat = _getBucketCache( beginSlot ) ;
             stat._freeSize -= pageSize ;
             stat._allocSize += pageSize ;
             stat._useTimes += 1 ;
-            /// release the bucket latch
             pLatch->release() ;
             _totalUseTimes.inc() ;
             goto done ;
@@ -692,7 +682,6 @@ namespace engine
 
       beginSlot = _sizeUp2Slot( lastSize ) ;
       exceedSlot = 0 ;
-      /// then not alloc, but freeSize is more than lastSize, merge the pages
       if ( beginSlot >= UTIL_PAGE_SLOT_SIZE )
       {
          beginSlot = UTIL_PAGE_SLOT_SIZE - 1 ;
@@ -714,7 +703,6 @@ namespace engine
             _freeSize.sub( pageSize ) ;
             _allocSize.add( pageSize ) ;
 
-            /// update the bucket stat
             utilCacheStat &stat = _getBucketCache( beginSlot ) ;
             stat._freeSize -= pageSize ;
             stat._allocSize += pageSize ;
@@ -734,7 +722,6 @@ namespace engine
          pLatch->release() ;
       }
 
-      /// no space for the lastSize, alloc and retry
       if ( _sizeUp2Slot( lastSize ) >= UTIL_PAGE_SLOT_SIZE )
       {
          pageSize = _slot2PageSize( UTIL_PAGE_SLOT_SIZE - 1 ) ;
@@ -785,7 +772,6 @@ namespace engine
       beginSlot = _sizeUp2Slot( size ) ;
       exceedSlot = 0 ;
 
-      /// first to alloc a whole page
       while( beginSlot < UTIL_PAGE_SLOT_SIZE &&
              exceedSlot < UTIL_MAX_EXCEED_SLOT_SIZE &&
              _freeSize.peek() >= size )
@@ -799,12 +785,10 @@ namespace engine
             slotItem.pop_back() ;
             _freeSize.sub( pageSize ) ;
             _allocSize.add( pageSize ) ;
-            /// update the bucket stat
             utilCacheStat &stat = _getBucketCache( beginSlot ) ;
             stat._freeSize -= pageSize ;
             stat._allocSize += pageSize ;
             stat._useTimes += 1 ;
-            /// release the bucket latch
             _latch[ beginSlot ]->release() ;
             _totalUseTimes.inc() ;
             goto done_assign ;
@@ -814,7 +798,6 @@ namespace engine
          ++exceedSlot ;
       }
 
-      /// no space for the size, alloc and retry
       rc = _allocMem( size ) ;
       if ( SDB_OK == rc )
       {
@@ -826,7 +809,6 @@ namespace engine
       }
 
    done_assign:
-      /// copy data from source page
       if ( item.isPinned() || item.isLocked() ||
            item.isDirty() ||
            ( keepData && !item.isDataEmpty() ) )
@@ -843,7 +825,6 @@ namespace engine
          item.clearDirty() ;
          item.clearDataInfo() ;
       }
-      /// release the source page
       if ( !item.isEmpty() )
       {
          release( item ) ;
@@ -880,7 +861,6 @@ namespace engine
                      "PageSize is not invalid" ) ;
          _latch[ slot ]->get() ;
          _slot[ slot ].push_back( pPage ) ;
-         /// update the bucket stat
          utilCacheStat &stat = _getBucketCache( slot ) ;
          UINT32 slotSize = _slot2PageSize( slot ) ;
          stat._freeSize += slotSize ;
@@ -921,7 +901,6 @@ namespace engine
       beginSlot = _sizeUp2Slot( size ) ;
       exceedSlot = 0 ;
 
-      /// first to alloc a whole page
       while( beginSlot < UTIL_PAGE_SLOT_SIZE &&
              exceedSlot < UTIL_MAX_EXCEED_SLOT_SIZE &&
              _freeSize.peek() >= size )
@@ -936,12 +915,10 @@ namespace engine
             slotItem.pop_back() ;
             _freeSize.sub( pageSize ) ;
             _allocSize.add( pageSize ) ;
-            /// update the bucket stat
             utilCacheStat &stat = _getBucketCache( beginSlot ) ;
             stat._freeSize -= pageSize ;
             stat._allocSize += pageSize ;
             stat._useTimes += 1 ;
-            /// release the bucket latch
             _latch[ beginSlot ]->release() ;
             _totalUseTimes.inc() ;
             goto done ;
@@ -951,7 +928,6 @@ namespace engine
          ++exceedSlot ;
       }
 
-      /// no space for the size, alloc and retry
       if ( SDB_OK == _allocMem( size ) )
       {
          goto retry ;
@@ -986,7 +962,6 @@ namespace engine
       beginSlot = _sizeUp2Slot( size ) ;
       exceedSlot = 0 ;
 
-      /// first to alloc a whole page
       while( beginSlot < UTIL_PAGE_SLOT_SIZE &&
              exceedSlot < UTIL_MAX_EXCEED_SLOT_SIZE &&
              _freeSize.peek() >= size )
@@ -996,21 +971,17 @@ namespace engine
          if ( !slotItem.empty() )
          {
             pageSize = _slot2PageSize( beginSlot ) ;
-            /// save the pBlock first
             pTmpBlock = pBlock ;
             tmpBlockSize = blockSize ;
-            /// assign the new block
             pBlock = slotItem.back() ;
             blockSize = pageSize ;
             slotItem.pop_back() ;
             _freeSize.sub( pageSize ) ;
             _allocSize.add( pageSize ) ;
-            /// update the bucket stat
             utilCacheStat &stat = _getBucketCache( beginSlot ) ;
             stat._freeSize -= pageSize ;
             stat._allocSize += pageSize ;
             stat._useTimes += 1 ;
-            /// release the bucket latch
             _latch[ beginSlot ]->release() ;
             _totalUseTimes.inc() ;
             goto done_assign ;
@@ -1020,14 +991,12 @@ namespace engine
          ++exceedSlot ;
       }
 
-      /// no space for the size, alloc and retry
       if ( SDB_OK == _allocMem( size ) )
       {
          goto retry ;
       }
       else
       {
-         /// error, need to release the orignal data
          releaseBlock( pBlock, blockSize ) ;
          goto done ;
       }
@@ -1035,9 +1004,7 @@ namespace engine
    done_assign:
       if ( pTmpBlock )
       {
-         /// copy the orignal data
          ossMemcpy( pBlock, pTmpBlock, tmpBlockSize ) ;
-         /// release the orignal data
          releaseBlock( pTmpBlock, tmpBlockSize ) ;
       }
 
@@ -1060,7 +1027,6 @@ namespace engine
 
          _latch[ slot ]->get() ;
          _slot[ slot ].push_back( pBlock ) ;
-         /// update the bucket stat
          utilCacheStat &stat = _getBucketCache( slot ) ;
          UINT32 slotSize = _slot2PageSize( slot ) ;
          stat._freeSize += slotSize ;
@@ -1118,7 +1084,6 @@ namespace engine
             stat._nullTimes += 1 ;
             if ( stat._freeSize < lastSize )
             {
-               /// reset event
                _releaseEvent.reset() ;
             }
             _latch[ slot ]->release() ;
@@ -1136,7 +1101,6 @@ namespace engine
          }
 
          _latch[ slot ]->get() ;
-         /// push to vector
          if ( !addNonEmpty && 0 == _getBucketCache( slot )._totalSize &&
               pageSize > 0 )
          {
@@ -1146,7 +1110,6 @@ namespace engine
          _getBucketCache( slot )._totalSize += pageSize ;
          _getBucketCache( slot )._freeSize += pageSize ;
          _latch[ slot ]->release() ;
-         /// update the meta
          _totalSize.add( pageSize ) ;
          _freeSize.add( pageSize ) ;
          ++count ;
@@ -1270,13 +1233,11 @@ namespace engine
       curTime = t.time * 1000 + t.microtm / 1000 ;
       freeRatio = _getFreeRatio( curTime ) ;
 
-      /// when free ratio over the threshold
       if ( totalSize() * 100 / maxCacheSize() >= UTIL_CACHE_RATIO &&
            freeRatio >= UTIL_BLOCK_RECYCLE_FREE_RATIO )
       {
          needRecycle = TRUE ;
       }
-      /// when page dirty timeout
       else
       {
          UINT64 timeDiff = 0 ;
@@ -1339,11 +1300,9 @@ namespace engine
                 totalNullTimes() )
              )
          {
-            /// recycle the bucket
             recycleSize += _recycleBucket( slotItem, &statItem, freeItem ) ;
          }
 
-         /// clear the use times
          tmpTimes += statItem._useTimes ;
          tmpNullTimes += statItem._nullTimes ;
          statItem._useTimes = 0 ;
@@ -1351,7 +1310,6 @@ namespace engine
 
          pLatch->release() ;
 
-         /// really free memory
          it = freeItem.begin() ;
          while( it != freeItem.end() )
          {
@@ -1397,7 +1355,6 @@ namespace engine
 
       for ( UINT32 i = 0 ; i < size ; ++i )
       {
-         /// release block memory
          freeItem.push_back( slotItem.back() ) ;
          slotItem.pop_back() ;
 
@@ -1408,7 +1365,6 @@ namespace engine
             break ;
          }
       }
-      /// update meta data
       pStat->_freeSize -= recycleSize ;
       pStat->_totalSize -= recycleSize ;
       _freeSize.sub( recycleSize ) ;
@@ -1488,14 +1444,11 @@ namespace engine
             if ( !pPage->isDirty() && !pPage->isLocked() &&
                  !pPage->isPinned() && pPage->size() >= size )
             {
-               /// clear data info
                pPage->clearDataInfo() ;
                pPage->clearNewest() ;
                utilCachePage tmpPage( *pPage ) ;
 
-               /// remove it
                _pages.erase( it ) ;
-               /// add new page
                utilCachePage &newPage = _pages[ pageID ] ;
                newPage = tmpPage ;
                pPage = &newPage ;
@@ -1714,11 +1667,6 @@ namespace engine
 
       if ( isPageValid() )
       {
-         /// the page
-         /// -----------|<start>-------|<end>-----------------
-         ///  |--A--|-C-|              |---D--|--B--|
-         /// when write in A, need to load the data C
-         /// when write in B, need to load the data D
          if ( !_pPage->isDataEmpty() &&
               ( offset + len < _pPage->start() ||
                 _pPage->length() < offset ) )
@@ -1827,11 +1775,6 @@ namespace engine
 
       if ( isPageValid() )
       {
-         /// the page
-         /// -----------|<start>-------|<end>-----------------
-         ///  |--A----------|     |------B--|
-         /// when read in A, need to load the data
-         /// when read in B, need to load the data
          if ( offset >= _pPage->start() &&
               offset + len <= _pPage->length() )
          {
@@ -1840,12 +1783,10 @@ namespace engine
          else if ( offset + len <= _pPage->start() ||
                    _pPage->length() <= offset )
          {
-            /// read from file
             readPage = FALSE ;
          }
          else if ( _pPage->isDirty() )
          {
-            /// load the data
             if ( offset < _pPage->start() )
             {
                rc = _loadPage( offset, _pPage->start() - offset, cb ) ;
@@ -1945,7 +1886,6 @@ namespace engine
             if ( _usePage )
             {
                BOOLEAN setDirty = FALSE ;
-               /// write to page
                rc = _pPage->write( _pData, _offset, _len, setDirty ) ;
                if ( setDirty )
                {
@@ -1958,7 +1898,6 @@ namespace engine
             }
             else
             {
-               /// write to file
                utilCachFileBase* pFile = _pUnit->getCacheFile() ;
                rc = pFile->write( _pageID, _pData, _len, _offset,
                                   _newestMask, cb ) ;
@@ -1974,12 +1913,10 @@ namespace engine
          {
             if ( _usePage )
             {
-               /// read from page
                len = _pPage->read( _pData, _offset, _len ) ;
             }
             else
             {
-               /// read from file
                utilCachFileBase* pFile = _pUnit->getCacheFile() ;
                rc = pFile->read( _pageID, _pData, _len, _offset, len, cb ) ;
                if ( rc )
@@ -1988,7 +1925,6 @@ namespace engine
                           "file[%s] failed, rc: %d", _pageID, _offset,
                           _len, pFile->getFileName(), rc ) ;
                }
-               /// write to cache page
                else if ( _writeBack && _pPage )
                {
                   _pPage->load( _pData, _offset, len ) ;
@@ -2001,7 +1937,6 @@ namespace engine
             ossPanic() ;
          }
 
-         /// clear data info
          _pData = NULL ;
          _len = 0 ;
          _offset = 0 ;
@@ -2067,7 +2002,6 @@ namespace engine
       {
          CHAR *ptr = _pPage->str() ;
          pFile = _pUnit->getCacheFile() ;
-         /// read from file
          rc = pFile->read( _pageID, ptr + offset, len, offset, readLen, cb ) ;
          if ( rc )
          {
@@ -2075,7 +2009,6 @@ namespace engine
                     pFile->getFileName(), rc ) ;
             goto error ;
          }
-         /// load with no data
          rc = _pPage->loadWithoutData( offset, len ) ;
          if ( rc )
          {
@@ -2093,7 +2026,6 @@ namespace engine
          }
 
          pFile = _pUnit->getCacheFile() ;
-         /// read from file
          rc = pFile->read( _pageID, pBuff, len, offset, readLen, cb ) ;
          if ( rc )
          {
@@ -2101,7 +2033,6 @@ namespace engine
                     pFile->getFileName(), rc ) ;
             goto error ;
          }
-         /// write to page
          rc = _pPage->load( pBuff, offset, readLen ) ;
          if ( rc )
          {
@@ -2168,7 +2099,6 @@ namespace engine
       _isAlignment = alignment ;
       _cacheSize = ossAlignX( cacheSize, pageSize ) ;
 
-      /// allocate memory
       if ( alignment )
       {
          _pCache = ( CHAR* )ossAlignedAlloc( OSS_FILE_DIRECT_IO_ALIGNMENT,
@@ -2272,7 +2202,6 @@ namespace engine
       UINT32 lastLen = pPage->dirtyLength() ;
       UINT32 alignLen = ossAlignX( lastLen, _pageSize ) ;
 
-      /// page id is not continous
       if ( _pageNum > 0 && _lastPageID + 1 != pageID )
       {
          rc = SDB_IO ;
@@ -2317,7 +2246,6 @@ namespace engine
          {
             len = lastLen ;
          }
-         /// copy data
          ossMemcpy( _pCache + _dataLength + offset,
                     pBuff,
                     len ) ;
@@ -2369,7 +2297,6 @@ namespace engine
             goto error ;
          }
 
-         /// clear data info
          _pageNum = 0 ;
          _firstPageID = -1 ;
          _lastPageID = -1 ;
@@ -2468,7 +2395,6 @@ namespace engine
          ++_bucketSize ;
       }
 
-      /// register the unit
       _pMgr->registerUnit( this ) ;
       _hasReg = TRUE ;
       _closed = FALSE ;
@@ -2517,10 +2443,8 @@ namespace engine
          {
             lockPageCleaner() ;
 
-            /// release cacheMerge
             _cacheMerge.fini() ;
 
-            /// re-create cacheMerge
             if ( _useCache && cacheSize > 0 &&
                  _pMgr->maxCacheSize() > cacheSize )
             {
@@ -2561,18 +2485,15 @@ namespace engine
 
       _closed = TRUE ;
 
-      /// unregister self must be after set closed
       if ( _pMgr && _hasReg )
       {
          _pMgr->unregUnit( this ) ;
          _hasReg = FALSE ;
       }
 
-      /// wait the page cleaner
       _pageCleaner.get() ;
       _pageCleaner.release() ;
 
-      /// wait all dirty page flushed to file
       while( dirtyPages() > 0 )
       {
          if ( 0 == syncPages( cb, TRUE, TRUE ) )
@@ -2677,7 +2598,6 @@ namespace engine
       {
          goto done ;
       }
-      /// min for the _pageSize
       if ( size > 0 && size < _pageSize )
       {
          size = _pageSize ;
@@ -2690,14 +2610,12 @@ namespace engine
          utilCachePage tmpPage ;
          INT32 rc = SDB_OK ;
 
-         /// check the size and whether closed
          if ( _pMgr->maxCacheSize() < size || _closed )
          {
             goto done ;
          }
          if ( tmpMode != EXCLUSIVE )
          {
-            /// need to switch to exclusive
             pBucket->unlock( tmpMode ) ;
             tmpMode = EXCLUSIVE ;
             pBucket->lock( tmpMode ) ;
@@ -2711,7 +2629,6 @@ namespace engine
          rc = _pMgr->alloc( size, tmpPage, _wholePage ) ;
          if ( SDB_OK == rc )
          {
-            /// add to bucket
             pPage = pBucket->addPage( pageID, tmpPage ) ;
             _totalPage.inc() ;
          }
@@ -2724,7 +2641,6 @@ namespace engine
             }
             else
             {
-               /// get from self bucket or get from all bucket
                if ( NULL != ( pPage = pBucket->allocPage( pageID, size ) ) ||
                     NULL != ( pPage = _allocFromBucket( pBucket, size, pageID,
                                                         NULL, FALSE ) ) )
@@ -2782,7 +2698,6 @@ namespace engine
             /*pPage->pin() ;
             pBucket->unlock( tmpMode ) ;
 
-            /// recycle and try again
             recyclePages( TRUE, size ) ;
 
             pBucket->lock( tmpMode ) ;
@@ -2800,7 +2715,6 @@ namespace engine
                {
                   PD_LOG( PDERROR, "Alloc page[%u] failed, rc: %d",
                           size, rc ) ;
-                  /// can't goto done
                }
 
                if ( timeout < _allocTimeout )
@@ -2824,7 +2738,6 @@ namespace engine
                   pBucket->lock( tmpMode ) ;
                   goto reget ;
                }
-               /// if the page is dirty, need to sync first
                else if ( pPage->isDirty() )
                {
                   rc = _syncPage( pBucket, TRUE, pPage, pageID, cb,
@@ -2854,7 +2767,6 @@ namespace engine
    done:
       if ( mode != tmpMode )
       {
-         /// switch to mode
          if ( pPage )
          {
             pPage->pin() ;
@@ -2975,7 +2887,6 @@ namespace engine
          }
       }
 
-      /// clear the dirty
       hasSync = TRUE ;
       pPage->clearDirty() ;
       decDirtyPages( pBucket ) ;
@@ -2994,7 +2905,6 @@ namespace engine
 
          if ( myBlkLock )
          {
-            /// lock the page then unlock bucket
             pPage->lock() ;
             myPgLock = TRUE ;
             pBucket->unlock( SHARED ) ;
@@ -3092,9 +3002,7 @@ namespace engine
 
       if ( dirtyPages() <= 0 )
       {
-         // nothing
       }
-      /// when dirty ratio over the threshold
       else if ( totalPages() > UTIL_CACHE_SYNC_TOTAL_THRESHOLD &&
                 dirtyPages() * 100 / totalPages() >= _bgDirtyRatio )
       {
@@ -3103,7 +3011,6 @@ namespace engine
          force = TRUE ;
          needSync = TRUE ;
       }
-      /// when page dirty timeout
       else
       {
          ossTimestamp t ;
@@ -3140,7 +3047,6 @@ namespace engine
       MAP_ID_2_PAGE_PRT tmpPages ;
       UINT32 blkSyncNum = 0 ;
 
-      /// get current time
       ossGetCurrentTime( t ) ;
       _lastSyncTime = t.time * 1000 + t.microtm / 1000 ;
 
@@ -3161,13 +3067,11 @@ namespace engine
          {
             utilCachePage &tmpPage = it->second ;
 
-            /// un-dirty page, ignored
             if ( !tmpPage.isDirty() )
             {
                ++it ;
                continue ;
             }
-            /// add to tmp map, and sort
             else if ( force || _lastSyncTime - tmpPage.lastWriteTime() >=
                       _dirtyTimeout )
             {
@@ -3187,7 +3091,6 @@ namespace engine
 
          if ( tmpPages.size() >= UTIL_CACHE_SYNC_ONCE_NUM )
          {
-            /// sync pages
             totalPages += _syncPages( tmpPages, cb, TRUE ) ;
             tmpPages.clear() ;
          }
@@ -3371,13 +3274,11 @@ namespace engine
 
       if ( totalPages() <= 0 )
       {
-         // nothing
       }
       else if ( 0 == _pMgr->maxCacheSize() )
       {
          needRecycle = TRUE ;
       }
-      /// when free ratio over the threshold
       else if ( _pMgr->totalSize() * 100 / _pMgr->maxCacheSize() >=
                 UTIL_CACHE_RATIO &&
                 _pMgr->freeSize() * 100 / _pMgr->totalSize() <=
@@ -3388,7 +3289,6 @@ namespace engine
          force = TRUE ;
          needRecycle = TRUE ;
       }
-      /// when page dirty timeout
       else
       {
          ossTimestamp t ;
@@ -3426,7 +3326,6 @@ namespace engine
       UINT32 blkRecycleNum = 0 ;
       UINT32 bucketPages = 0 ;
 
-      /// get current time
       ossGetCurrentTime( t ) ;
       _lastRecycleTime = t.time * 1000 + t.microtm / 1000 ;
 
@@ -3448,24 +3347,20 @@ namespace engine
          {
             utilCachePage& page = it->second ;
 
-            /// dirty page, locked page and pink page, ignored
             if ( page.isDirty() || page.isLocked() || page.isPinned() )
             {
                ++it ;
                continue ;
             }
-            /// not-force and time is not up to the limit, ignored
             if ( !force && _lastRecycleTime - page.lastTime() < _pageTimeout )
             {
                ++it ;
                continue ;
             }
-            /// release the page
             totalSize += page.size() ;
             _pMgr->release( page ) ;
             pPages->erase( it++ ) ;
             --bucketPages ;
-            /// update the meta
             _totalPage.dec() ;
             ++totalPageNum ;
 
@@ -3477,7 +3372,6 @@ namespace engine
          }
          pBucket->unlock( EXCLUSIVE ) ;
 
-         /// when up to the size, break
          if ( exceptSize > 0 && totalSize > ( ( UINT64 )exceptSize << 1 ) )
          {
             break ;
@@ -3520,7 +3414,6 @@ namespace engine
          pItem->pin() ;
       }
 
-      /// release bucket
       pBucket->unlock( EXCLUSIVE ) ;
 
       for ( UINT32 i = 0 ; i < _bucketSize ; ++i )
@@ -3536,7 +3429,6 @@ namespace engine
          {
             utilCachePage& page = it->second ;
 
-            /// dirty page, locked page and pink page, ignored
             if ( page.isDirty() || page.isLocked() || page.isPinned() )
             {
                ++it ;
@@ -3548,7 +3440,6 @@ namespace engine
                continue ;
             }
 
-            /// get this page
             tmpPage = page ;
             pPages->erase( it ) ;
             bGet = TRUE ;
@@ -3563,7 +3454,6 @@ namespace engine
          }
       }
 
-      /// get lock
       pBucket->lock( EXCLUSIVE ) ;
 
       if ( pItem )
@@ -3578,10 +3468,8 @@ namespace engine
 
       tmpPage.validate() ;
 
-      /// when the page is already exist in bucket
       if ( pItem )
       {
-         /// copy data from source page
          pItem->waitToUnlock() ;
 
          if ( pItem->isDirty() || pItem->isPinned() || pItem->isLocked() ||
@@ -3594,9 +3482,7 @@ namespace engine
             pItem->clearDataInfo() ;
          }
 
-         /// release the source page
          _pMgr->release( *pItem ) ;
-         /// update meta
          _totalPage.dec() ;
          _incRecycleNum( 1 ) ;
 
@@ -3605,7 +3491,6 @@ namespace engine
       }
       else
       {
-         /// alread exist
          pPage = pBucket->getPage( pageID ) ;
          if ( pPage )
          {
@@ -3631,13 +3516,11 @@ namespace engine
                *pPage = tmpPage ;
             }
 
-            /// update meta
             _totalPage.dec() ;
             _incRecycleNum( 1 ) ;
          }
          else
          {
-            /// add to bucket
             pPage = pBucket->addPage( pageID, tmpPage ) ;
          }
       }

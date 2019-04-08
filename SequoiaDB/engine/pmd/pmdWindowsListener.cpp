@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pmdWindowsListener.cpp
 
@@ -73,25 +72,19 @@ namespace engine
          goto error ;
       }
 
-      // create a named pipe
       rc = nodePipe.createPipe( pSvcName ) ;
       if ( rc )
       {
-         // if we are not able to create named pipe, then we are not able
-         // to stop it using sdbstop.exe. So we should nicely shutdown
-         // database in order to prevent killing process later
          PD_LOG ( PDSEVERE, "Failed to create named pipe: %s, rc = %d",
                   nodePipe.getReadPipeName(), rc ) ;
          goto error ;
       }
 
-      // just sit here do nothing at the moment
       while ( !cb->isDisconnected() )
       {
          rc = nodePipe.connectPipe() ;
          if ( rc )
          {
-            // we just loop if nothing returns in SDB_TIMEOUT
             if ( SDB_TIMEOUT == rc )
             {
                continue ;
@@ -101,9 +94,6 @@ namespace engine
                ossSleep( OSS_ONE_SEC ) ;
                continue ;
             }
-            // if we are not able to connect named pipe, then we are not able
-            // to stop it using sdbstop.exe. So we should nicely shutdown
-            // database in order to prevent killing process later
             PD_LOG ( PDSEVERE, "Failed to connect named pipe: %s, rc = %d",
                      nodePipe.getReadPipeName(), rc ) ;
             goto error ;
@@ -112,14 +102,11 @@ namespace engine
          hasRead = 0 ;
          while ( 0 == hasRead && !cb->isDisconnected() )
          {
-            // then let's read from pipe. For this version let's just read
             rc = nodePipe.readPipe( tempBuffer, PMD_WL_NPIPE_BUFSZ, hasRead ) ;
             if ( rc )
             {
-               // if we simply timeout, maybe the sender is too slow. Let's continue
                if ( SDB_TIMEOUT == rc )
                   continue ;
-               // if we failed to read, let's dump error and break out the loop
                PD_LOG ( PDERROR, "Failed to read packet, rc = %d", rc ) ;
                hasRead = 0 ;
                rc = SDB_OK ;
@@ -235,7 +222,6 @@ namespace engine
       goto done ;
    }
 
-   /// Register
    PMD_DEFINE_ENTRYPOINT( EDU_TYPE_PIPESLISTENER, TRUE,
                           pmdPipeListenerEntryPoint,
                           "PipeListener" ) ;

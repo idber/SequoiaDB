@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsMgr.hpp
 
@@ -50,19 +49,15 @@
 #include "clsCatalogAgent.hpp"
 #include "ossLatch.hpp"
 #include "clsTask.hpp"
-#include "ossMemPool.hpp"
+#include <map>
 #include <deque>
 #include <vector>
 #include <string>
-
-using namespace bson ;
 
 namespace engine
 {
 
    class _clsMgr ;
-   class _schedTaskAdapterBase ;
-   class _schedTaskContanierMgr ;
 
    /*
       _innerSessionInfo define
@@ -87,10 +82,6 @@ namespace engine
       public:
          _clsShardSessionMgr( _clsMgr *pClsMgr ) ;
          virtual ~_clsShardSessionMgr() ;
-
-         schedTaskInfo*       getTaskInfo() ;
-
-         void                 onConfigChange() ;
 
          virtual INT32        handleSessionTimeout( UINT32 timerID,
                                                     UINT32 interval ) ;
@@ -141,7 +132,6 @@ namespace engine
          _clsMgr                 *_pClsMgr ;
          UINT32                  _unShardSessionTimer ;
          map< UINT64, _clsIdentifyInfo >    _mapIdentifys ;
-         schedTaskInfo           _taskInfo ;
 
    } ;
    typedef _clsShardSessionMgr clsShardSessionMgr ;
@@ -203,7 +193,7 @@ namespace engine
       DECLARE_OBJ_MSG_MAP()
 
       typedef std::vector<_innerSessionInfo>    VECINNERPARAM ;
-      typedef ossPoolMap<UINT64, BSONObj>       MAPTASKQUERY ;
+      typedef std::map<UINT64, BSONObj>         MAPTASKQUERY ;
 
       public:
          _clsMgr() ;
@@ -261,9 +251,6 @@ namespace engine
          INT32    invalidateStatistics () ;
          INT32    invalidatePlan ( const CHAR *name ) ;
 
-         void     dumpSchedInfo( BSONObjBuilder &builder ) ;
-         void     resetDumpSchedInfo() ;
-
       protected:
 
          INT32          _startEDU ( INT32 type, EDU_STATUS waitStatus,
@@ -282,7 +269,6 @@ namespace engine
          INT32       _prepareTask () ;
          INT32       _addTaskInnerSession ( const CHAR *objdata ) ;
 
-      //msg and event function
       protected:
          INT32 _onCatRegisterRes ( NET_HANDLE handle, MsgHeader* msg ) ;
          INT32 _onCatQueryTaskRes ( NET_HANDLE handle, MsgHeader* msg ) ;
@@ -290,6 +276,17 @@ namespace engine
          INT32 _onStepUp( pmdEDUEvent *event ) ;
 
       private:
+         _shdMsgHandler                _shdMsgHandlerObj ;
+         _replMsgHandler               _replMsgHandlerObj ;
+         _clsShardTimerHandler         _shdTimerHandler ;
+         _clsReplTimerHandler          _replTimerHandler ;
+
+         _netRouteAgent                _replNetRtAgent ;
+         _netRouteAgent                _shardNetRtAgent ;
+
+         _clsShardMgr                  _shdObj ;
+         _clsReplicateSet              _replObj ;
+
          clsShardSessionMgr            _shardSessionMgr ;
          clsReplSessionMgr             _replSessionMgr ;
 
@@ -312,19 +309,6 @@ namespace engine
          UINT64                        _regTimerID ;
          UINT32                        _regFailedTimes ;
          UINT64                        _oneSecTimerID ;
-
-         _schedTaskContanierMgr        *_pContainerMgr ;
-         _schedTaskAdapterBase         *_pShardAdapter ;
-         _shdMsgHandler                *_shdMsgHandlerObj ;
-         _replMsgHandler               *_replMsgHandlerObj ;
-         _clsShardTimerHandler         *_shdTimerHandler ;
-         _clsReplTimerHandler          *_replTimerHandler ;
-
-         _netRouteAgent                *_replNetRtAgent ;
-         _netRouteAgent                *_shardNetRtAgent ;
-
-         _clsShardMgr                  *_shdObj ;
-         _clsReplicateSet              *_replObj ;
 
    };
 

@@ -1,6 +1,6 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -37,7 +37,6 @@
 
 #include "timestamp.h"
 
-//1970-01-01T00:00:00
 #define RDN_OFFSET (62135683200LL)
 
 static const UINT16 _dayOffset[13] = {
@@ -73,15 +72,10 @@ static void rdn2Tm( UINT32 rdn, struct tm *pTmTime )
       d = C + 59 + ( ( y & 3 ) == 0 && ( y % 100 != 0 || y % 400 == 0 ) ) ;
    }
 
-   //Day of month [1,31]
    pTmTime->tm_mday = C - _dayOffset[m] ;
-   //Month of year [0,11]
    pTmTime->tm_mon  = m - 1;
-   //Years since 1900
    pTmTime->tm_year = y - 1900 ;
-   //Day of week [0,6] (Sunday =0)
    pTmTime->tm_wday = rdn % 7 ;
-   //Day of year [0,365]
    pTmTime->tm_yday = d - 1 ;
 }
 

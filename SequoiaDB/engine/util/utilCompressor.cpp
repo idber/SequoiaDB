@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2016 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = utilCompressor.cpp
 
@@ -44,30 +43,28 @@ namespace engine
 {
    utilCompressor* getCompressorByType( UTIL_COMPRESSOR_TYPE type )
    {
-      utilCompressor * compressor = NULL ;
+      utilCompressor *compressor = NULL ;
 
       static utilCompressorSnappy snappyCompressor ;
       static utilCompressorLZW lzwCompressor ;
       static utilCompressorLZ4 lz4Compressor ;
       static utilCompressorZlib zlibCompressor ;
-
       switch ( type )
       {
-         case UTIL_COMPRESSOR_SNAPPY :
-            compressor = &snappyCompressor ;
-            break ;
-         case UTIL_COMPRESSOR_LZW :
+         case UTIL_COMPRESSOR_LZW:
             compressor = &lzwCompressor ;
             break ;
-         case UTIL_COMPRESSOR_LZ4 :
+         case UTIL_COMPRESSOR_SNAPPY:
+            compressor = &snappyCompressor ;
+            break;
+         case UTIL_COMPRESSOR_LZ4:
             compressor = &lz4Compressor ;
-            break ;
-         case UTIL_COMPRESSOR_ZLIB :
+            break;
+         case UTIL_COMPRESSOR_ZLIB:
             compressor = &zlibCompressor ;
-            break ;
-         default :
+            break;
+         default:
             compressor = NULL ;
-            break ;
       }
 
       return compressor ;

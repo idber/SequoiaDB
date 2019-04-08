@@ -152,13 +152,6 @@ static int history_max_len = LINENOISE_DEFAULT_HISTORY_MAX_LEN;
 int history_len = 0;
 static char **history = NULL;
 
-/*
-* echo Char = 0, echo original content
-* echo Char != 0, echo corresponding ASCII character 
-*/
-static char echoChar = 0;
-static int echoOn = 1;
-
 /* The linenoiseState structure represents the state during line editing.
  * We pass this state to functions implementing specific editing
  * functionalities. */
@@ -256,10 +249,7 @@ static int win32read(char *c)
             e = b.Event.KeyEvent;
             *c = b.Event.KeyEvent.uChar.AsciiChar;
 
-            //if (e.dwControlKeyState & (LEFT_ALT_PRESSED | RIGHT_ALT_PRESSED))
-            //{
                 /* Alt+key ignored */
-            //} else
             if (e.dwControlKeyState & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED))
             {
                 /* Ctrl+Key */
@@ -348,21 +338,6 @@ error:
    goto done;
 }
 #endif
-
-void setEchoOn()
-{
-   echoOn = 1;
-}
-
-void setEchoOff()
-{
-   echoOn = 0;
-}
-
-void setEchoChar(char c)
-{
-   echoChar = c;
-}
 
 int linenoiseHistoryAdd(const char *line);
 static void refreshLine(struct linenoiseState *l);
@@ -873,7 +848,6 @@ static int calcHighLightPos( struct linenoiseState *l )
     char *buffer = l->buf ;
     int highlight_pos = -1 ;
 
-    // find out the place to high light
     if ( ( !l->remove_col ) && ( pos < len ) )
     {
        int direction = 0 ;
@@ -931,7 +905,6 @@ static int setDisplayAttribute( bool enhancedDisplay,
         switch ( oldLowByte )
         {
         case 0x07:
-            // most similar to xterm appearance
             newLowByte = FOREGROUND_BLUE | FOREGROUND_GREEN ;
             break;
         case 0x70:
@@ -1153,32 +1126,17 @@ static void refreshMultiLine(struct linenoiseState *l)
 
     /* Write the prompt and the current buffer content */
     abAppend(&ab,l->prompt,strlen(l->prompt));
-
-    if ( !echoOn )
+    if ( -1 == highlight_pos )
     {
-      /// not append
-    }
-    else if ( echoChar != 0 )
-    {
-       for ( unsigned int i = 0 ; i < l->len ; ++i )
-       {
-          abAppend( &ab, &echoChar, 1 ) ;
-       }
+        abAppend(&ab,l->buf,l->len) ;
     }
     else
     {
-       if ( -1 == highlight_pos )
-       {
-           abAppend(&ab,l->buf,l->len ) ;
-       }
-       else
-       {
-           abAppend( &ab, l->buf, highlight_pos ) ;
-           setDisplayAttribute( true, &ab ) ;
-           abAppend( &ab, l->buf + highlight_pos, 1 ) ;
-           setDisplayAttribute( false, &ab ) ;
-           abAppend( &ab, l->buf + highlight_pos + 1, l->len - highlight_pos - 1 ) ;
-       }
+        abAppend( &ab, l->buf, highlight_pos ) ;
+        setDisplayAttribute( true, &ab ) ;
+        abAppend( &ab, l->buf + highlight_pos, 1 ) ;
+        setDisplayAttribute( false, &ab ) ;
+        abAppend( &ab, l->buf + highlight_pos + 1, l->len - highlight_pos - 1 ) ;
     }
 
     /* If we are at the very end of the screen with our prompt, we need to
@@ -1214,14 +1172,7 @@ static void refreshMultiLine(struct linenoiseState *l)
     }
     else
     {
-        if ( !echoOn )
-        {
-            cur_column = 1+((plen) % (int)l->cols) ;
-        }
-        else
-        {
-            cur_column = 1+((plen+(int)l->pos) % (int)l->cols) ;
-        }
+        cur_column = 1+((plen+(int)l->pos) % (int)l->cols) ;
     }
     lndebug("set col %d", cur_column ) ;
     snprintf(seq,64,"\x1b[%dG", cur_column ) ;
@@ -1233,8 +1184,6 @@ static void refreshMultiLine(struct linenoiseState *l)
     if (write(fd,ab.b,ab.len) == -1) {} /* Can't recover from write error. */
     abFree(&ab);
 
-    PD_TRACE_EXIT ( SDB_REFRESHMULTILINE );
-    return;
 #else
     REDIS_NOTUSED( seq ) ;
     REDIS_NOTUSED( fd ) ;
@@ -1282,13 +1231,11 @@ static void refreshMultiLine(struct linenoiseState *l)
     }
     for ( int i = 0 ; i < old_rows - 1 ; ++i )
     {
-        // in windows, we need to minus 1, because (X, Y) start from (0, 0)
         coord.Y = y + old_rows - 1 - i ;
         setDisplayAttribute( false, coord, b.dwSize.X ) ;
         FillConsoleOutputCharacterA( hOut, ' ', b.dwSize.X, coord, &w ) ;
     }
 
-    // clear the top line
     coord.Y = y ;
     setDisplayAttribute( false, coord, b.dwSize.X ) ;
     FillConsoleOutputCharacterA( hOut, ' ', b.dwSize.X, coord, &w ) ;
@@ -1297,7 +1244,6 @@ static void refreshMultiLine(struct linenoiseState *l)
          ( plen + (int)l->pos ) % (int)l->cols == 0 ||
          moveLeft )
     {
-        // Move cursor to the left edge
         SetConsoleCursorPosition( hOut, coord ) ;
     }
     int beginY = coord.Y ;
@@ -1394,8 +1340,6 @@ static void refreshMultiLine(struct linenoiseState *l)
     if ( !moveLeft )
     {
         coord.Y = y + rpos2 - 1 ;
-        // In windows, (X, Y) coordinate start from top left corner (0, 0)
-        // X = 0 is the first column
         coord.X = ( plen + (int)l->pos ) % (int)l->cols ;
     }
     else
@@ -1406,13 +1350,12 @@ static void refreshMultiLine(struct linenoiseState *l)
 
     /* record the position for next refresh */
     l->oldpos = l->pos ;
-
+#endif
 done:
     PD_TRACE_EXIT ( SDB_REFRESHMULTILINE );
     return;
 error:
     goto done;
-#endif
 }
 
 /* Calls the two low level functions refreshSingleLine() or
@@ -1718,7 +1661,6 @@ static int linenoiseEdit( int stdin_fd, int stdout_fd, char *buf,
         switch(c)
         {
         case ENTER:    /* enter */
-            // remove colour
             l.remove_col = true ;
             refreshLine( &l ) ;
             history_len--;
@@ -1726,7 +1668,6 @@ static int linenoiseEdit( int stdin_fd, int stdout_fd, char *buf,
             ret = (int)l.len;
             goto done;
         case CTRL_C:  /* ctrl-c */
-            // remove colour
             l.remove_col = true ;
             refreshLine( &l ) ;
             errno = (l.len == 0 && 0 == strncmp(l.prompt, "> ", strlen("> ")))
@@ -2041,7 +1982,7 @@ error:
 
 /* Free the history, but does not reset it. Only used when we have to
  * exit() to avoid memory leaks are reported by valgrind & co. */
-PD_TRACE_DECLARE_FUNCTION ( SDB_FREEHISTORYINLINENOISE, "freeHistory" )
+PD_TRACE_DECLARE_FUNCTION ( SDB_FREEHISTORYINLINENOISE, "linenoiseAtExit" )
 static void freeHistory(void)
 {
     PD_TRACE_ENTRY ( SDB_FREEHISTORYINLINENOISE );
@@ -2277,8 +2218,6 @@ static void setDisplayAttribute( bool enhancedDisplay, struct abuf *ab )
         BYTE newLowByte;
         switch ( oldLowByte ) {
         case 0x07:
-            //newLowByte = FOREGROUND_BLUE | FOREGROUND_INTENSITY;  // too dim
-            //newLowByte = FOREGROUND_BLUE;                         // even dimmer
             newLowByte = FOREGROUND_BLUE | FOREGROUND_GREEN;        // most similar to xterm appearance
             break;
         case 0x70:

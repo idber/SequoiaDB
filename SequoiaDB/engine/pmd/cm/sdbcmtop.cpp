@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sdbcmtop.cpp
 
@@ -126,7 +125,6 @@ namespace engine
          goto error ;
       }
 
-      // wait until process terminate
       while ( ossIsProcessRunning( pid ) )
       {
          ossSleep( OSS_ONE_SEC ) ;
@@ -208,6 +206,22 @@ namespace engine
       return rc ;
    }
 
+#if defined (_LINUX)
+
+   INT32 stopSdbcm ( BOOLEAN asProc, const string &port )
+   {
+      if ( port.empty() )
+      {
+         return _stopSdbcmd() ;
+      }
+      else
+      {
+         return _stopSdbcm( port ) ;
+      }
+   }
+
+#elif defined (_WINDOWS)
+
    static INT32 _stopSdbcmByProc( const string &port )
    {
       INT32 rc = SDB_OK ;
@@ -221,7 +235,6 @@ namespace engine
          goto done ;
       }
 
-      // wait sdbcmd quit
       while ( timewait > 0 )
       {
          --timewait ;
@@ -239,15 +252,6 @@ namespace engine
    done:
       return rc ;
    }
-
-#if defined (_LINUX)
-
-   INT32 stopSdbcm ( BOOLEAN asProc, const string &port )
-   {
-      return _stopSdbcmByProc( port ) ;
-   }
-
-#elif defined (_WINDOWS)
 
    INT32 stopSdbcm ( BOOLEAN asProc, const string &port )
    {
@@ -279,7 +283,6 @@ namespace engine
       CHAR verText[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 
       init ( desc, all ) ;
-      // validate arguments
       rc = utilReadCommandLine ( argc, argv, all, vm, FALSE ) ;
       if ( rc )
       {
@@ -287,11 +290,9 @@ namespace engine
          displayArg ( desc ) ;
          goto done ;
       }
-      /// read cmd first
       if ( vm.count( PMD_OPTION_HELP ) )
       {
          displayArg( desc ) ;
-         //rc = SDB_PMD_HELP_ONLY ;
          goto done ;
       }
       if ( vm.count( PMD_OPTION_HELPFULL ) )
@@ -302,7 +303,6 @@ namespace engine
       if ( vm.count( PMD_OPTION_VERSION ) )
       {
          ossPrintVersion( "Sdb CM Stop version" ) ;
-         //rc = SDB_PMD_VERSION_ONLY ;
          goto done ;
       }
 #if defined( _WINDOWS )
@@ -312,7 +312,6 @@ namespace engine
       }
 #endif // _WINDOWS
 
-      // check user before create dir or files
       if ( !vm.count( PMD_OPTION_CURUSER ) )
       {
          UTIL_CHECK_AND_CHG_USER() ;
@@ -339,7 +338,6 @@ namespace engine
          ossPrintf( "Failed to build dialog path: %d"OSS_NEWLINE, rc ) ;
          goto error ;
       }
-      // make sure the dir exist
       rc = ossMkdir( dialogFile ) ;
       if ( rc && SDB_FE != rc )
       {
@@ -354,14 +352,12 @@ namespace engine
          ossPrintf( "Failed to build dialog file: %d"OSS_NEWLINE, rc ) ;
          goto error ;
       }
-      // enable pd log
       sdbEnablePD( dialogFile ) ;
       setPDLevel( PDINFO ) ;
 
       ossSprintVersion( "Version", verText, OSS_MAX_PATHSIZE, FALSE ) ;
       PD_LOG( PDEVENT, "Start programme[%s]...", verText ) ;
 
-      // stop cm
       rc = stopSdbcm ( asProc, port ) ;
       if ( rc )
       {

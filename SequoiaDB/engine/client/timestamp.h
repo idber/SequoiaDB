@@ -1,6 +1,6 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -46,24 +46,17 @@
 SDB_EXTERN_C_START
 
 typedef struct {
-   //Number of seconds
    INT64 sec ;
-   //[ 0, 999999999 ]
    INT32 nsec ;
-   //Offset from UTC in minutes [-1439, 1439]
    INT16 offset;
 } sdbTimestamp ;
 
-//parse timestamp
 INT32 timestampParse( const CHAR *str, INT32 len, sdbTimestamp *pTime ) ;
 
-//check timestamp
 BOOLEAN timestampValid( const sdbTimestamp *pTime ) ;
 
-//timestamp convert to utc time
 INT32 timestamp2UtcTm( const sdbTimestamp *pTime, struct tm *pTmTime ) ;
 
-//timestamp convert to local time
 INT32 timestamp2LocalTm( const sdbTimestamp *pTime, struct tm *pTmTime ) ;
 
 SDB_EXTERN_C_END

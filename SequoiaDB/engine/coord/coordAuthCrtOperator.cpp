@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordAuthCrtOperator.cpp
 
@@ -35,8 +34,6 @@
 #include "msgMessageFormat.hpp"
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
-
-using namespace bson ;
 
 namespace engine
 {
@@ -68,26 +65,19 @@ namespace engine
       PD_TRACE_ENTRY ( COORD_AUTHCRTOPR_EXE ) ;
       const CHAR *pUserName = NULL ;
       const CHAR *pPassWord = NULL ;
-      BSONObj options ;
 
-      rc = forward( pMsg, cb, FALSE, contextID,
-                    &pUserName, &pPassWord, &options ) ;
+      rc = forward( pMsg, cb, FALSE, contextID, &pUserName, &pPassWord ) ;
       if ( pUserName )
       {
-         /// AUDIT
          PD_AUDIT_OP( AUDIT_DCL, pMsg->opCode, AUDIT_OBJ_USER,
-                      pUserName, rc, "Options:%s",
-                      options.toString().c_str() ) ;
+                      pUserName, rc, "" ) ;
       }
       if ( rc )
       {
          goto error ;
       }
-      else if ( *cb->getUserName() == '\0' )
-      {
-         cb->setUserInfo( pUserName, pPassWord ) ;
-         updateSessionByOptions( options ) ;
-      }
+
+      cb->setUserInfo( pUserName, pPassWord ) ;
 
    done:
       PD_TRACE_EXITRC ( COORD_AUTHCRTOPR_EXE, rc ) ;
@@ -95,5 +85,4 @@ namespace engine
    error:
       goto done ;
    }
-
 }

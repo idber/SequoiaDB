@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnDelete.cpp
 
@@ -85,7 +84,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNDEL2 ) ;
       BSONObj dummy ;
-      // matcher, selector, order, hint, collection, skip, limit, flag
       rtnQueryOptions options( matcher, dummy, dummy, hint, pCollectionName,
                                0, -1, flags ) ;
       rc = rtnDelete( options, cb, dmsCB, dpsCB, w, pDelNum ) ;
@@ -131,12 +129,10 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s, rc: %d",
                    options._fullName, rc ) ;
 
-      // get mb context
       rc = su->data()->getMBContext( &mbContext, pCollectionShortName, -1 ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s] mb context, "
                    "rc: %d", options._fullName, rc ) ;
 
-      // Capped collection has no index, but delete is supported.
       if ( OSS_BIT_TEST( mbContext->mb()->_attributes, DMS_MB_ATTR_NOIDINDEX )
            &&
            !(OSS_BIT_TEST( mbContext->mb()->_attributes, DMS_MB_ATTR_CAPPED ) ) )
@@ -146,97 +142,82 @@ namespace engine
          goto error ;
       }
 
-      try
+      apm = rtnCB->getAPM() ;
+      SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
+
+      rc = apm->getAccessPlan( options, FALSE, su, mbContext, planRuntime ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s for delete, "
+                   "rc: %d", options._fullName, rc ) ;
+
+      if ( planRuntime.getScanType() == TBSCAN )
       {
-         apm = rtnCB->getAPM() ;
-         SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
+         rc = rtnGetTBScanner( pCollectionShortName, &planRuntime, su,
+                               mbContext, cb, &pScanner,
+                               DMS_ACCESS_TYPE_DELETE ) ;
+      }
+      else if ( planRuntime.getScanType() == IXSCAN )
+      {
+         rc = rtnGetIXScanner( pCollectionShortName, &planRuntime, su,
+                               mbContext, cb, &pScanner,
+                               DMS_ACCESS_TYPE_DELETE ) ;
+      }
+      else
+      {
+         PD_LOG ( PDERROR, "Invalid return type for scan" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to get dms scanner, rc: %d", rc ) ;
 
-         // plan is released when exiting the function
-         rc = apm->getAccessPlan( options, FALSE, su, mbContext, planRuntime ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s for delete"
-                      ", rc: %d", options._fullName, rc ) ;
+      {
+         _mthRecordGenerator generator ;
+         dmsRecordID recordID ;
+         ossValuePtr recordDataPtr = 0 ;
 
-         if ( planRuntime.getScanType() == TBSCAN )
+         ossTick startTime, endTime, execStartTime, execEndTime ;
+         ossTickDelta queryTime ;
+         monContextCB monCtxCB ;
+         rtnReturnOptions returnOptions ;
+
+         if ( cb->getMonConfigCB()->timestampON )
          {
-            rc = rtnGetTBScanner( pCollectionShortName, &planRuntime, su,
-                                  mbContext, cb, &pScanner,
-                                  DMS_ACCESS_TYPE_DELETE ) ;
+            monCtxCB.recordStartTimestamp() ;
          }
-         else if ( planRuntime.getScanType() == IXSCAN )
+
+         startTime = krcb->getCurTime() ;
+
+         while ( SDB_OK == ( rc = pScanner->advance( recordID, generator,
+                                                     cb ) ) )
          {
-            rc = rtnGetIXScanner( pCollectionShortName, &planRuntime, su,
-                                  mbContext, cb, &pScanner,
-                                  DMS_ACCESS_TYPE_DELETE ) ;
+            execStartTime = krcb->getCurTime() ;
+
+            generator.getDataPtr( recordDataPtr ) ;
+            rc = su->data()->deleteRecord( mbContext, recordID, recordDataPtr,
+                                           cb, dpsCB ) ;
+            PD_RC_CHECK( rc, PDERROR, "Delete record failed, rc: %d", rc ) ;
+            ++delNum ;
+
+            execEndTime = krcb->getCurTime() ;
+            monCtxCB.monExecuteTimeInc( execStartTime, execEndTime ) ;
          }
-         else
+
+         if ( SDB_DMS_EOC == rc )
          {
-            PD_LOG ( PDERROR, "Invalid return type for scan" ) ;
-            rc = SDB_SYS ;
+            rc = SDB_OK ;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to get next record, rc: %d", rc ) ;
             goto error ;
          }
-         PD_RC_CHECK( rc, PDERROR, "Failed to get dms scanner, rc: %d", rc ) ;
 
-         // delete
-         {
-            _mthRecordGenerator generator ;
-            dmsRecordID recordID ;
-            ossValuePtr recordDataPtr = 0 ;
+         endTime = krcb->getCurTime() ;
+         queryTime = endTime - startTime ;
+         queryTime -= monCtxCB.getExecuteTime() ;
+         monCtxCB.setQueryTime( queryTime ) ;
 
-            ossTick startTime, endTime, execStartTime, execEndTime ;
-            ossTickDelta queryTime ;
-            monContextCB monCtxCB ;
-            rtnReturnOptions returnOptions ;
-
-            if ( cb->getMonConfigCB()->timestampON )
-            {
-               monCtxCB.recordStartTimestamp() ;
-            }
-
-            startTime = krcb->getCurTime() ;
-
-            while ( SDB_OK == ( rc = pScanner->advance( recordID, generator,
-                                                        cb ) ) )
-            {
-               // by now, we have a qualified record to delete, and already hold
-               // the record lock in X
-               execStartTime = krcb->getCurTime() ;
-
-               generator.getDataPtr( recordDataPtr ) ;
-               rc = su->data()->deleteRecord( mbContext, recordID, recordDataPtr,
-                                              cb, dpsCB,
-                                              pScanner->callbackHandler(),
-                                              pScanner->recordInfo() ) ;
-               PD_RC_CHECK( rc, PDERROR, "Delete record failed, rc: %d", rc ) ;
-               ++delNum ;
-
-               execEndTime = krcb->getCurTime() ;
-               monCtxCB.monExecuteTimeInc( execStartTime, execEndTime ) ;
-            }
-
-            if ( SDB_DMS_EOC == rc )
-            {
-               rc = SDB_OK ;
-            }
-            else if ( rc )
-            {
-               PD_LOG( PDERROR, "Failed to get next record, rc: %d", rc ) ;
-               goto error ;
-            }
-
-            endTime = krcb->getCurTime() ;
-            queryTime = endTime - startTime ;
-            queryTime -= monCtxCB.getExecuteTime() ;
-            monCtxCB.setQueryTime( queryTime ) ;
-
-            planRuntime.setQueryActivity( MON_DELETE, monCtxCB, returnOptions,
-                                          TRUE ) ;
-         }
-      }
-      catch ( std::exception &e )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Occur exception: %s, rc: %d", e.what(), rc ) ;
-         goto error ;
+         planRuntime.setQueryActivity( MON_DELETE, monCtxCB, returnOptions,
+                                       TRUE ) ;
       }
 
    done :
@@ -301,7 +282,6 @@ namespace engine
       BSONObj hint ;
       BSONObj dummy ;
 
-      // make sure the database is not doing any offline operations
       rc = dmsCB->writable( cb ) ;
       PD_RC_CHECK ( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
       writable = TRUE;
@@ -311,14 +291,12 @@ namespace engine
       PD_RC_CHECK ( rc, PDERROR, "Failed to resolve collection name %s, rc: %d",
                     pCollectionName, rc ) ;
 
-      // get mb context
       rc = su->data()->getMBContext( &mbContext, pCollectionShortName, -1 ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s] mb context, "
                    "rc: %d", pCollectionName, rc ) ;
 
       try
       {
-         // build hint
          hint = BSON( "" << pIndexName ) ;
       }
       catch ( std::exception &e )
@@ -329,7 +307,6 @@ namespace engine
 
       {
          optAccessPlanRuntime planRuntime ;
-         // matcher, selector, order, hint, collection, skip, limit, flag
          rtnQueryOptions options( dummy, dummy, dummy, hint, pCollectionName,
                                   0, -1, 0 ) ;
          rc = sdbGetRTNCB()->getAPM()->getTempAccessPlan( options, su,
@@ -337,7 +314,6 @@ namespace engine
                                                           planRuntime ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get access plan, rc: %d", rc ) ;
 
-         // Must apply the hint to find index-scan plan
          PD_CHECK ( planRuntime.getScanType() == IXSCAN &&
                     !planRuntime.isAutoGen(),
                     SDB_INVALIDARG, error, PDERROR,
@@ -346,26 +322,15 @@ namespace engine
          SDB_ASSERT( NULL != planRuntime.getPredList(),
                      "predList can't be NULL" ) ;
 
-         // set traversal direction
          planRuntime.getPredList()->setDirection ( dir ) ;
 
-         // we do NOT need to create callback for this code path now because
-         // of the complexity of split
          rc = rtnGetIXScanner( pCollectionShortName, &planRuntime, su, mbContext,
                                cb, &pScanner, DMS_ACCESS_TYPE_DELETE ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get dms ixscanner, rc: %d", rc ) ;
 
-         // relocate key
          {
             rtnIXScanner *scanner = ((dmsIXScanner*)pScanner)->getScanner() ;
             dmsRecordID rid ;
-
-            if ( !scanner )
-            {
-               rc = SDB_OOM ;
-               PD_RC_CHECK ( rc, PDERROR, 
-                             "Unable to allocate memory for index scanner:" ) ;
-            }
 
             if ( -1 == dir )
             {
@@ -380,7 +345,6 @@ namespace engine
                           "location: %s, rc: %d", key.toString().c_str(), rc ) ;
          }
 
-         // delete
          {
             _mthRecordGenerator generator ;
             dmsRecordID recordID ;
@@ -391,9 +355,7 @@ namespace engine
             {
                generator.getDataPtr( recordDataPtr ) ;
                rc = su->data()->deleteRecord( mbContext, recordID, recordDataPtr,
-                                              cb, dpsCB,
-                                              pScanner->callbackHandler(),
-                                              pScanner->recordInfo() ) ;
+                                              cb, dpsCB ) ;
                PD_RC_CHECK( rc, PDERROR, "Delete record failed, rc: %d", rc ) ;
             }
 

@@ -1,6 +1,6 @@
 <?php
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ class SequoiaCursor
     * @code
     * $cursor = $cl -> find( array( 'a' => array( '$lte' => 50 ) ) ) ;
     * if( empty( $cursor ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to find, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -59,7 +59,7 @@ class SequoiaCursor
     * @code
     * $cursor = $cl -> find( array( 'a' => array( '$lte' => 50 ) ) ) ;
     * if( empty( $cursor ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to find, error code: ".$err['errno'] ;
     *    return ;
     * }

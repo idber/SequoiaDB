@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnContextTS.cpp
 
@@ -49,9 +48,9 @@ namespace engine
    : rtnContextMain( contextID, eduID )
    {
       _eduCB = NULL ;
+      _remoteSession = NULL ;
       _remoteSessionID = 0 ;
       _subContext = NULL ;
-      _remoteCtxID = -1 ;
    }
 
    _rtnContextTS::~_rtnContextTS()
@@ -59,7 +58,7 @@ namespace engine
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
       rtnRemoteMessenger *messenger = rtnCB->getRemoteMessenger() ;
 
-      messenger->removeSession( _remoteSessionID, pmdGetThreadEDUCB() ) ;
+      messenger->removeSession( pmdGetThreadEDUCB() ) ;
       if ( _subContext )
       {
          if ( _subContext->contextID() )
@@ -101,16 +100,10 @@ namespace engine
       rc = messenger->prepareSession( eduCB, _remoteSessionID ) ;
       PD_RC_CHECK( rc, PDERROR, "Prepare remote task failed[ %d ]", rc ) ;
 
-      // 1. Store the query items.
-      // 2. Send the query to search engine adapter, and get the replay. Then
-      //    call query interface again, to get a sub context id.
       _options = options ;
       rc = _options.getOwned() ;
       PD_RC_CHECK( rc, PDERROR, "Get owned of query options failed[ %d ]",
                    rc ) ;
-      _numToReturn = _options.getLimit() ;
-      _numToSkip = _options.getSkip() ;
-      _eduCB = eduCB ;
 
 #ifdef _DEBUG
       PD_LOG( PDDEBUG, "Options for search: %s", options.toString().c_str() ) ;
@@ -121,13 +114,7 @@ namespace engine
       rc = _prepareNextSubContext( eduCB, FALSE ) ;
       if ( rc )
       {
-         if ( SDB_DMS_EOC == rc )
-         {
-            _hitEnd = TRUE ;
-            rc = SDB_OK ;
-            goto done ;
-         }
-         else
+         if ( SDB_DMS_EOC != rc )
          {
             PD_LOG( PDERROR, "Prepare next sub context failed[ %d ]", rc ) ;
          }
@@ -178,15 +165,8 @@ namespace engine
                else
                {
                   rc = _prepareNextSubContext( cb ) ;
-                  if ( rc )
-                  {
-                     if ( SDB_DMS_EOC != rc )
-                     {
-                        PD_LOG( PDERROR, "Prepare next sub context "
-                                "failed[ %d ]", rc ) ;
-                     }
-                     goto error ;
-                  }
+                  PD_RC_CHECK( rc, PDERROR, "Prepare next sub context "
+                               "failed[ %d ]", rc ) ;
                   if ( !_subContext )
                   {
                      rc = SDB_DMS_EOC ;
@@ -222,6 +202,39 @@ namespace engine
       return SDB_OK ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTTS__GETMOREFROMREMOTE, "_rtnContextTS::_getMoreFromRemote" )
+   INT32 _rtnContextTS::_getMoreFromRemote( pmdEDUCB *eduCB )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNCONTEXTTS__GETMOREFROMREMOTE ) ;
+      MsgHeader *msg = NULL ;
+      INT32 msgSize = 0 ;
+      INT32 numToReturn = 0 ;
+      INT64 contextID = 0 ;
+      UINT64 reqID = 0 ;
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      rtnRemoteMessenger *messenger = rtnCB->getRemoteMessenger() ;
+
+      rc = msgBuildGetMoreMsg( (CHAR **)&msg, &msgSize, numToReturn,
+                               contextID, reqID, eduCB ) ;
+      PD_RC_CHECK( rc, PDERROR, "Build get more message failed[ %d ]", rc ) ;
+
+      msg->opCode = MSG_BS_GETMORE_REQ ;
+
+      rc = messenger->send( _remoteSessionID, msg, eduCB ) ;
+      PD_RC_CHECK( rc, PDERROR, "Send message by remote messenger failed[ %d ]",
+                   rc ) ;
+
+      rc = _prepareNextSubContext( eduCB ) ;
+      PD_RC_CHECK( rc, PDERROR, "Wait and process reply for get more from "
+                   "search engine adapter failed[ %d ]", rc ) ;
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNCONTEXTTS__GETMOREFROMREMOTE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTTS__PREPARENEXTSUBCONTEXT, "_rtnContextTS::_prepareNextSubContext" )
    INT32 _rtnContextTS::_prepareNextSubContext( pmdEDUCB *eduCB,
@@ -231,6 +244,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__RTNCONTEXTTS__PREPARENEXTSUBCONTEXT ) ;
       MsgOpReply *reply = NULL ;
       INT32 flag = 0 ;
+      INT64 ctxID = 0 ;
       INT32 startFrom = 0 ;
       INT32 numReturned = 0 ;
       vector< BSONObj > objList ;
@@ -247,7 +261,7 @@ namespace engine
       if ( getMore )
       {
          rc = msgBuildGetMoreMsg( (CHAR **)&msg, &msgSize, numToReturn,
-                                  _remoteCtxID, reqID, eduCB ) ;
+                                  contextID(), reqID, eduCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Build get more message failed[ %d ]", rc ) ;
 
          msg->opCode = MSG_BS_GETMORE_REQ ;
@@ -261,7 +275,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Receive reply by remote messenger failed"
                    "[ %d ]", rc ) ;
 
-      rc = msgExtractReply( (CHAR *)reply, &flag, &_remoteCtxID, &startFrom,
+      rc = msgExtractReply( (CHAR *)reply, &flag, &ctxID, &startFrom,
                             &numReturned, objList ) ;
       PD_RC_CHECK( rc, PDERROR, "Extract query respond message failed[ %d ]",
                    rc ) ;
@@ -276,13 +290,12 @@ namespace engine
                if ( 0 != objList.size() )
                {
                   PD_LOG_MSG( PDERROR, "Error returned from remote: %s",
-                              objList.front().toString( FALSE, TRUE ).c_str() ) ;
+                              objList.front().toString().c_str() ) ;
                }
             }
             goto error ;
          }
 
-         // 4 objects are expected: matcher, selector, order by, hint.
          if ( objList.size() != 4 )
          {
             PD_LOG( PDERROR, "Respond message size is wrong, expect[ %d ], "
@@ -298,10 +311,10 @@ namespace engine
          goto error ;
       }
 
-      // Do a query, and get another subcontext.
       rc = rtnQuery( _options.getCLFullName(), objList[1], objList[0],
                      objList[2], objList[3], _options.getFlag(), eduCB,
-                     0, -1, dmsCB, rtnCB, subContextID ) ;
+                     _options.getSkip(), _options.getLimit(), dmsCB, rtnCB,
+                     subContextID ) ;
       PD_RC_CHECK( rc, PDERROR, "Query data on collection[ %s ] failed[ %d ]",
                    _options.getCLFullName(), rc ) ;
       if ( _subContext )
@@ -324,10 +337,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to check sub context, rc: %d", rc ) ;
 
    done:
-      if ( msg )
-      {
-         msgReleaseBuffer( (CHAR *)msg, eduCB ) ;
-      }
       PD_TRACE_EXITRC( SDB__RTNCONTEXTTS__PREPARENEXTSUBCONTEXT, rc ) ;
       return rc ;
    error:
@@ -355,15 +364,8 @@ namespace engine
 
       rc = rtnGetMore( _subContext->contextID(), maxNumToReturn,
                        contextBuf, cb, rtnCB ) ;
-      if ( rc )
-      {
-         if ( SDB_DMS_EOC != rc )
-         {
-            PD_LOG( PDERROR, "Get more for context[ %lld ] failed[ %d ]",
-                    _subContext->contextID(), rc ) ;
-         }
-         goto error ;
-      }
+      PD_RC_CHECK( rc, PDERROR, "Get more for context[ %lld ] failed[ %d ]",
+                   _subContext->contextID(), rc ) ;
 
       {
          _subContext->setBuffer( contextBuf ) ;
@@ -399,7 +401,6 @@ namespace engine
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
       rtnRemoteMessenger *messenger = rtnCB->getRemoteMessenger() ;
 
-      // Format the message, and send it to search engine adapter.
       rc = options.toQueryMsg( (CHAR **)&queryMsg, msgSize, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Build query message from options failed[ %d ]",
                    rc ) ;
@@ -411,10 +412,6 @@ namespace engine
                    rc ) ;
 
    done:
-      if ( queryMsg )
-      {
-         msgReleaseBuffer( (CHAR *)queryMsg, cb ) ;
-      }
       PD_TRACE_EXITRC( SDB__RTNCONTEXTTS__QUERYREMOTE, rc ) ;
       return rc ;
    error:

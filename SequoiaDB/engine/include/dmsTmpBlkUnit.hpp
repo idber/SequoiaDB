@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dmsTmpBlkUnit.hpp
 
@@ -40,8 +39,8 @@
 #define DMSTMPBLKUNIT_HPP_
 
 #include "ossIO.hpp"
-#include "ossMemPool.hpp"
 #include <string>
+#include <list>
 
 #define DMS_TMP_BLK_FILE_BEGIN "TMP_"
 
@@ -77,7 +76,7 @@ namespace engine
    } ;
    typedef class _dmsTmpBlk dmsTmpBlk ;
 
-   typedef ossPoolList<_dmsTmpBlk> RTN_SORT_BLKS ;
+   typedef std::list<_dmsTmpBlk> RTN_SORT_BLKS ;
    typedef SINT64 DMS_TMP_FILE_ID ;
 
    class _dmsTmpBlkUnit
@@ -109,8 +108,6 @@ namespace engine
       INT32 read( dmsTmpBlk &blk, UINT64 size,
                   void *buf, UINT64 &got ) ;
 
-      /// blks should be managed by user.
-      /// especially rebuild a blk on a old blk.
       INT32 buildBlk( const UINT64 &begin,
                       const UINT64 &size,
                       dmsTmpBlk &blk ) ;

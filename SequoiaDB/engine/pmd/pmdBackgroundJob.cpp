@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pmdReplay.cpp
 
@@ -50,8 +49,6 @@ namespace engine
       rtnBaseJob *job = (rtnBaseJob*)pData ;
       INT32 rc = SDB_OK ;
       BOOLEAN reuseEDU = job->reuseEDU() ;
-      BOOLEAN isSystem = job->isSystem() ;
-      BOOLEAN hasExcp = FALSE ;
       string expStr ;
 
       PD_LOG( PDINFO, "Start a background job[%s]", job->name() ) ;
@@ -62,11 +59,6 @@ namespace engine
       try
       {
          pEDUMgr->activateEDU( cb ) ;
-         if ( isSystem )
-         {
-            pEDUMgr->lockEDU( cb ) ;
-         }
-
          rc = job->doit () ;
          if ( SDB_OK != rc )
          {
@@ -82,34 +74,18 @@ namespace engine
       {
          PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
          rc = SDB_SYS ;
-         hasExcp = TRUE ;
          expStr = e.what() ;
       }
 
       job->attachOut () ;
 
-      if ( isSystem )
-      {
-         if ( PMD_IS_DB_UP() )
-         {
-            PD_LOG( PDSEVERE, "System job[EDUID:%lld, Type:%s, Name:%s] "
-                    "exit with %d. Restart DB", cb->getID(),
-                    getEDUName( cb->getType() ), job->name(), rc ) ;
-            PMD_RESTART_DB( rc ) ;
-         }
-         pEDUMgr->unlockEDU( cb ) ;
-      }
-
-      // remove from job mgr
       jobMgr->_removeJob ( cb->getID(), rc ) ;
-      // force edu
       if ( !reuseEDU )
       {
          pEDUMgr->forceUserEDU( cb->getID() ) ;
       }
 
-      /// throw
-      if ( hasExcp )
+      if ( !expStr.empty() )
       {
          throw pdGeneralException( rc, expStr ) ;
       }
@@ -118,7 +94,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   /// Register
    PMD_DEFINE_ENTRYPOINT( EDU_TYPE_BACKGROUND_JOB, FALSE,
                           pmdBackgroundJobEntryPoint,
                           "Task" ) ;

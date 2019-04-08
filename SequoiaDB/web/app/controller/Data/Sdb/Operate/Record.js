@@ -672,6 +672,225 @@
          } ) ;
       }
 
+      //显示方式
+      $scope.show = function( type, isRender ){
+         if( type == 1 )
+         {
+            //构造json
+            $scope.showType = 1 ;
+            if( isRender == true || $scope.GridData1['title'].length == 0 )
+            {
+               var gridData = {
+                  'title': [ { 'text': '#' }, { 'text': '' }, { 'text': 'Record' } ],
+                  'body': [],
+                  'tool': {
+                     'position': 'bottom',
+                     'left': [
+                        { 'html': $compile( '<i class="fa fa-font"  ng-class="{ active: showType == 1 }" ng-click="show(1)"></i>' )( $scope ) },
+                        { 'html': $compile( '<i class="fa fa-list" ng-class="{ active: showType == 2 }" ng-click="show(2)"></i>' )( $scope ) },
+                        { 'html': $compile( '<i class="fa fa-table"  ng-class="{ active: showType == 3 }" ng-click="show(3)"></i>' )( $scope ) }
+                     ],
+                     'right': [
+                        { 'html': $compile( '<span ng-bind="recordTotal"></span>' )( $scope ) }
+                     ]
+                  },
+                  'options': {
+                     'grid': { 'tdModel': 'auto', 'gridModel': 'fixed', 'titleWidth': [ '60px', '80px', 100 ] }
+                  }
+               } ;
+               if( $scope.isNotFilter )
+               {
+                  gridData.tool.left.push( {} ) ;
+                  gridData.tool.left.push( {} ) ;
+                  gridData.tool.left.push( { 'html': $compile( '<i class="fa fa-play fa-flip-horizontal" ng-show="current > 1" ng-click="previous()"></i>' )( $scope ) } ) ;
+                  gridData.tool.left.push( { 'html': $compile( '<input style="width:100px;" ng-change="checkCurrent()" ng-model="setCurrent" ng-keypress="gotoPate($event)">' )( $scope ) } ) ;
+                  gridData.tool.left.push( { 'html': $compile( '<span>/<span>' )( $scope ) } ) ;
+                  gridData.tool.left.push( { 'html': $compile( '<span ng-bind="total"></span>' )( $scope ) } ) ;
+                  gridData.tool.left.push( { 'html': $compile( '<i class="fa fa-play" ng-show="current < total" ng-click="nextPage()"></i>' )( $scope ) } ) ;
+               }
+               $.each( $scope.records, function( index, record ){
+                  var tmpJson = JSON.stringify( record, null, 3 ) ;
+                  var editBtn = $compile( '<a ng-click="Edit(' + index + ')"></a>' )( $scope ).addClass( 'linkButton' ).append( $( '<i class="fa fa-edit"></i>' ).attr( 'data-desc', $scope.autoLanguage( '编辑' ) ) ) ;
+                  var copyBtn = $compile( '<a ng-click="Insert(' + index + ')"></a>' )( $scope ).addClass( 'linkButton' ).append( $( '<i class="fa fa-copy"></i>' ).attr( 'data-desc', $scope.autoLanguage( '复制' ) ) ) ;
+                  var deleteBtn = $compile( '<a ng-click="DeleteRecord(' + index + ')" ></a>' )( $scope ).addClass( 'linkButton' ).append( $( '<i class="fa fa-remove"></i>' ).attr( 'data-desc', $scope.autoLanguage( '删除' ) ) ) ;
+                  if( $scope.ErrRecord[index] == false )
+                  {
+                     gridData['body'].push( [
+                        { 'text': index + 1 },
+                        { 'html': $compile( '<span></span>' )( $scope ).append( editBtn ).append( '&nbsp;&nbsp;' ).append( copyBtn ).append( '&nbsp;&nbsp;' ).append( deleteBtn ), 'ellipsis': false },
+                        { 'text': tmpJson, 'ellipsis': false }
+                     ] ) ;
+                  }
+                  else
+                  {
+                     gridData['body'].push( [
+                        { 'html': $compile( '<span>' + ( index + 1 ) + '&nbsp;<i class="fa fa-warning" style="color:#FF8804;" data-desc="' + $scope.autoLanguage( '解释失败的记录' ) + '"></i></span>' )( $scope ) },
+                        { 'html': $compile( '<span></span>' )( $scope ).append( editBtn ).append( '&nbsp;&nbsp;' ).append( copyBtn ).append( '&nbsp;&nbsp;' ).append( deleteBtn ), 'ellipsis': false },
+                        { 'text': tmpJson, 'ellipsis': false }
+                     ] ) ;
+                  }
+               } ) ;
+               $scope.GridData1 = gridData ;
+            }
+            else
+            {
+               setTimeout( function(){
+                  $scope.GridData1.onResize() ;
+                  $scope.$apply() ;
+               } ) ;
+            }
+         }
+         else if( type == 2 )
+         {
+            $scope.showType = 2 ;
+            if( isRender == true || $scope.GridData2['title'].length == 0 )
+            {
+               $scope.jsonTree = [] ;
+               var gridData = {
+                  'title': [
+                     { 'text': 'Key' }, { 'text': 'Value' }, { 'text': 'Type' }
+                  ],
+                  'body': [],
+                  'tool': {
+                     'position': 'bottom',
+                     'left': [
+                        { 'html': $compile( '<i class="fa fa-font" ng-class="{ active: showType == 1 }" ng-click="show(1)"></i>' )( $scope ) },
+                        { 'html': $compile( '<i class="fa fa-list" ng-class="{ active: showType == 2 }" ng-click="show(2)"></i>' )( $scope ) },
+                        { 'html': $compile( '<i class="fa fa-table" ng-class="{ active: showType == 3 }" ng-click="show(3)"></i>' )( $scope ) }
+                     ],
+                     'right': [
+                        { 'html': $compile( '<span ng-bind="recordTotal"></span>' )( $scope ) }
+                     ]
+                  },
+                  'options': {
+                     'grid': { 'tdModel': 'dynamic', 'gridModel': 'fixed' },
+                     'event': {
+                        'onResize': function( column, line, width, height ){
+                           if( column == 0 )
+                           {
+                              var id = line ;
+                             $scope.jsonTree[id]['width'] = parseInt( width ) ;
+                           }
+                        }
+                     }
+                  },
+                  'data': []
+               } ;
+               if( $scope.isNotFilter )
+               {
+                  gridData.tool.left.push( {} ) ;
+                  gridData.tool.left.push( {} ) ;
+                  gridData.tool.left.push( { 'html': $compile( '<i class="fa fa-play fa-flip-horizontal" ng-show="current > 1" ng-click="previous()"></i>' )( $scope ) } ) ;
+                  gridData.tool.left.push( { 'html': $compile( '<input type="text" style="width:100px;" ng-change="checkCurrent()" ng-model="setCurrent" ng-keypress="gotoPate($event)">' )( $scope ) } ) ;
+                  gridData.tool.left.push( { 'html': $compile( '<span>/<span>' )( $scope ) } ) ;
+                  gridData.tool.left.push( { 'html': $compile( '<span ng-bind="total"></span>' )( $scope ) } ) ;
+                  gridData.tool.left.push( { 'html': $compile( '<i class="fa fa-play" ng-show="current < total" ng-click="nextPage()"></i>' )( $scope ) } ) ;
+               }
+               $.each( $scope.records, function( index, record ){
+                  var index2 =$scope.jsonTree.length ;
+                  var line = json2Array( record, 0, true ) ;
+                  $scope.jsonTree.push( { 'Json': line, 'index': index + 1, width: 100 } ) ;
+                  gridData['body'].push( [
+                     { 'html':  $compile( '<div tree-key para="jsonTree[' + index2 + ']"></div>' )( $scope ) },
+                     { 'html':  $compile( '<div tree-value para="jsonTree[' + index2 + ']"></div>' )( $scope ) },
+                     { 'html':  $compile( '<div tree-type para="jsonTree[' + index2 + ']"></div>' )( $scope ) }
+                  ] ) ;
+               } ) ;
+               $scope.GridData2 = gridData ;
+            }
+            else
+            {
+               setTimeout( function(){
+                  $scope.GridData2.onResize() ;
+                  $scope.$apply() ;
+               } ) ;
+            }
+         }
+         else
+         {
+            $scope.showType = 3 ;
+            if( isRender == true || $scope.GridData3['title'].length == 0 )
+            {
+               var gridData = {
+                  'title': [],
+                  'body': [],
+                  'tool': {
+                     'position': 'bottom',
+                     'left': [
+                        { 'html': $compile( '<i class="fa fa-font"  ng-class="{ active: showType == 1 }" ng-click="show(1)"></i>' )( $scope ) },
+                        { 'html': $compile( '<i class="fa fa-list"  ng-class="{ active: showType == 2 }" ng-click="show(2)"></i>' )( $scope ) },
+                        { 'html': $compile( '<i class="fa fa-table" ng-class="{ active: showType == 3 }" ng-click="show(3)"></i>' )( $scope ) }
+                     ],
+                     'right': [
+                        { 'html': $compile( '<span ng-bind="recordTotal"></span>' )( $scope ) }
+                     ]
+                  },
+                  'options': {
+                     'grid': { 'tdModel': 'fixed', 'gridModel': 'fixed', 'tdHeight': '19px', 'titleWidth': [ '60px' ] }
+                  }
+               } ;
+               if( $scope.isNotFilter )
+               {
+                  gridData.tool.left.push( {} ) ;
+                  gridData.tool.left.push( {} ) ;
+                  gridData.tool.left.push( { 'html': $compile( '<i class="fa fa-play fa-flip-horizontal" ng-show="current > 1" ng-click="previous()"></i>' )( $scope ) } ) ;
+                  gridData.tool.left.push( { 'html': $compile( '<input style="width:100px;" ng-change="checkCurrent()" ng-model="setCurrent" ng-keypress="gotoPate($event)">' )( $scope ) } ) ;
+                  gridData.tool.left.push( { 'html': $compile( '<span>/<span>' )( $scope ) } ) ;
+                  gridData.tool.left.push( { 'html': $compile( '<span ng-bind="total"></span>' )( $scope ) } ) ;
+                  gridData.tool.left.push( { 'html': $compile( '<i class="fa fa-play" ng-show="current < total" ng-click="nextPage()"></i>' )( $scope ) } ) ;
+               }
+               var keyList = [] ;
+               //取得json的所有键
+               $.each( $scope.ShowKey2, function( index, showKeyInfo ){
+                  if( showKeyInfo['show'] == true )
+                  {
+                     keyList.push( showKeyInfo['key'] ) ;
+                  }
+               } ) ;
+               $scope.ShowKeyList = keyList ;
+               keyList.unshift( '#' ) ;
+               //计算列宽
+               var titleWidth = 100 / ( ( keyList.length > 20 ? 20 : keyList.length ) - 1 ) ;
+               $.each( keyList, function( index, key ){
+                  if( index >= 20 )
+                  {
+                     return false ;
+                  }
+                  //填写标题
+                  gridData['title'].push( { 'text': key } ) ;
+                  if( index > 0 )
+                  {
+                     //设置宽度
+                     gridData.options.grid.titleWidth.push( titleWidth ) ;
+                  }
+               } ) ;
+               //取得json的所有值
+               $.each( $scope.records, function( index, record ){
+                  var line = [] ;
+                  line = SdbFunction.getJsonValues( record, keyList, line ) ;
+                  line[0] = index + 1 ;
+                  var newRow = [] ;
+                  $.each( line, function( index, value ){
+                     if( index >= 20 )
+                     {
+                        return false ;
+                     }
+                     newRow.push( { 'text': value } ) ;
+                  } ) ;
+                  gridData['body'].push( newRow ) ;
+               } ) ;
+               $scope.GridData3 = gridData ;
+            }
+            else
+            {
+               setTimeout( function(){
+                  $scope.GridData3.onResize() ;
+                  $scope.$apply() ;
+               } ) ;
+            }
+         }
+      }
+
       getIndexInfo() ;
    } ) ;
 
@@ -815,8 +1034,7 @@
             'mode': 'dynamic',
             'trim': true,
             'width': { '#': '100px' },
-            'max': 30,
-            'isRenderHide': false
+            'max': 30
          }
       } ;
 

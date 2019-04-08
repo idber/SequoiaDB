@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = utilHttp.cpp
 
@@ -95,6 +94,8 @@
 #define REST_STRING_CHUNKED_END "0\r\n\r\n"
 #define REST_STRING_CHUNKED_END_SIZE (sizeof( REST_STRING_CHUNKED_END ) - 1)
 
+#define REST_OPRATION_TIMEOUT    10000
+
 namespace seadapter
 {
    _utilHttp::_utilHttp()
@@ -102,7 +103,6 @@ namespace seadapter
      _keepAlive( TRUE ),
      _port( 0 ),
      _socket( NULL ),
-     _timeout( HTTP_OPRATION_TIMEOUT ),
      _sendBuf( NULL ),
      _sendBufSize( 0 ),
      _recvBuf( NULL ),
@@ -116,24 +116,21 @@ namespace seadapter
       reset() ;
    }
 
-   INT32 _utilHttp::init( const string &uri, BOOLEAN keepAlive, INT32 timeout )
+   INT32 _utilHttp::init( const string &uri, BOOLEAN keepAlive )
    {
       INT32 rc = SDB_OK ;
       http_parser_settings *parserSettings = NULL ;
 
-      // If initialized already, reset first. The original resources will be
-      // released.
       if ( _init )
       {
          reset() ;
       }
 
       rc = _parseUri( uri ) ;
-      PD_RC_CHECK( rc, PDERROR, "Parse uri[ %s ] failed[ %d ]",
-                   uri.c_str(), rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Parse uri[ %s ] failed", uri.c_str() ) ;
 
       rc = _connectBySocket() ;
-      PD_RC_CHECK( rc, PDERROR, "Connect by socket failed[ %d ]", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Prepare socket failed[ %d ]", rc ) ;
 
       _sendBuf = ( CHAR *)SDB_OSS_MALLOC( HTTP_DEF_BUF_SIZE ) ;
       if ( !_sendBuf )
@@ -177,22 +174,55 @@ namespace seadapter
 
       _parserSetting = parserSettings ;
       _keepAlive = keepAlive ;
-      _timeout = timeout ;
       _init = TRUE ;
 
    done:
       return rc ;
    error:
-      _cleanup() ;
+      reset() ;
       goto done ;
    }
 
    void _utilHttp::reset()
    {
-      if ( _init )
+      if ( !_init )
       {
-         _cleanup() ;
+         goto done ;
       }
+
+      _init = FALSE ;
+      _keepAlive = TRUE ;
+      _url.clear() ;
+      _urn.clear() ;
+      _port = 0 ;
+
+      if ( _socket )
+      {
+         _socket->close() ;
+         SDB_OSS_DEL _socket ;
+         _socket = NULL ;
+      }
+
+      if ( _sendBuf )
+      {
+         SDB_OSS_FREE( _sendBuf ) ;
+         _sendBuf = NULL ;
+         _sendBufSize = 0 ;
+      }
+      if ( _recvBuf )
+      {
+         SDB_OSS_FREE( _recvBuf ) ;
+         _recvBuf = NULL ;
+         _recvBufSize = 0 ;
+      }
+      if ( _parserSetting )
+      {
+         SDB_OSS_FREE( _parserSetting ) ;
+         _parserSetting = NULL ;
+      }
+
+   done:
+      return ;
    }
 
    INT32 _utilHttp::request( const CHAR *method, const CHAR *endUrl,
@@ -202,7 +232,7 @@ namespace seadapter
                              INT32 *replyLen, const CHAR *contentType )
    {
       INT32 rc = SDB_OK ;
-      BOOLEAN onlyHead = FALSE ;
+      BOOLEAN onlyHead = 0 == ossStrcmp( method, HTTP_REQ_HEAD_STR ) ;
 
       if ( !_init )
       {
@@ -225,7 +255,15 @@ namespace seadapter
          goto error ;
       }
 
-      onlyHead = ( 0 == ossStrcmp( method, HTTP_REQ_HEAD_STR ) ) ;
+      if( !isConnected() )
+      {
+         rc = _connect() ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Reconnect to remote server failed[ %d ]", rc ) ;
+            goto error ;
+         }
+      }
 
       rc = _sendMessage( method, endUrl, data, contentType ) ;
       PD_RC_CHECK( rc, PDERROR, "Send message to remote server failed[ %d ]",
@@ -240,8 +278,6 @@ namespace seadapter
       goto done ;
    }
 
-   // The uri should be in the format:
-   // [http://]192.168.1.100:9200[/...]
    INT32 _utilHttp::_parseUri( const string &uri )
    {
       INT32 rc = SDB_OK ;
@@ -255,7 +291,6 @@ namespace seadapter
          goto error ;
       }
 
-      // Find the 'http://' prefix. If found, remove them.
       pos = uri.find( HTTP_URI_PREFIX ) ;
       if( pos != string::npos )
       {
@@ -274,7 +309,6 @@ namespace seadapter
          _urn = "/" ;
       }
 
-      // Extract the port if it's in the domain name.
       pos = _url.find( ":" ) ;
       if ( pos != string::npos )
       {
@@ -312,7 +346,7 @@ namespace seadapter
          goto error ;
       }
 
-      rc = _connect() ;
+      rc = _connect( TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Socket connect failed[ %d ]", rc ) ;
       PD_LOG( PDEVENT,
               "Connection with remote server establised successfully" ) ;
@@ -328,11 +362,15 @@ namespace seadapter
       goto done ;
    }
 
-   INT32 _utilHttp::_connect()
+   INT32 _utilHttp::_connect( BOOLEAN newSock )
    {
       INT32 rc = SDB_OK ;
 
       SDB_ASSERT( _socket, "socket should not be NULL" ) ;
+      if ( !newSock )
+      {
+         _socket->close() ;
+      }
 
       rc = _socket->initSocket() ;
       if ( rc )
@@ -352,12 +390,13 @@ namespace seadapter
       rc = _socket->disableNagle() ;
       if ( rc )
       {
-         // Just warning.
          PD_LOG( PDWARNING, "Disable nable failed[ %d ]", rc ) ;
          rc = SDB_OK ;
       }
 
-      rc = _socket->setKeepAlive() ;
+      rc = _socket->setKeepAlive( _keepAlive, OSS_SOCKET_KEEP_IDLE,
+                                  OSS_SOCKET_KEEP_INTERVAL,
+                                  OSS_SOCKET_KEEP_CONTER ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Set socket keep alive failed[ %d ]", rc ) ;
@@ -404,14 +443,6 @@ namespace seadapter
                                  const CHAR *data, const CHAR *content_type,
                                  string &requestStr, BOOLEAN &chunked )
    {
-      /// Example of request.
-      /// "POST /test.php HTTP/1.0\r\n"
-      /// "Host: www.mariequantier.com\r\n"
-      /// "Content-Type: application/json\r\n"
-      /// "Content-length: 36\r\n\r\n"
-      /// Then the content.
-      ///
-      /// Where /test.php is the URN and www.mariequantier.com is the URL.
       INT32 dataSize = 0 ;
 
       SDB_ASSERT( method, "method should not be NULL" ) ;
@@ -444,31 +475,25 @@ namespace seadapter
 
       requestStr += string( " HTTP/1.1\r\n" ) ;
 
-      // Concatenate the host.
       requestStr += string( "Host: " ) ;
       requestStr += _url ;
       requestStr += string( "\r\n" ) ;
-      // We only accept reply in json format.
       requestStr += string( "Accept: application/json\r\n" ) ;
-      if( !_keepAlive )
+      if( _keepAlive )
       {
-         requestStr += string( "Connection: close\r\n" ) ;
+         requestStr += string( "Connection: Keep-Alive\r\n" ) ;
       }
 
-      // If no data, it's done.
       if ( !data || ( 0 == ( dataSize = ossStrlen( data ) ) ) )
       {
          requestStr += string( "\r\n" ) ;
          goto done ;
       }
 
-      // Concatenate the content.
       requestStr += string( "Content-Type: " ) ;
       requestStr += string( content_type ) ;
       requestStr += string( "\r\n" ) ;
 
-      // If size is small enough, send as one message with the header.
-      // Otherwise, send it in chunked mode.
       if ( dataSize < HTTP_CHUNK_SIZE )
       {
          std::stringstream lengthStr ;
@@ -489,7 +514,6 @@ namespace seadapter
       return ;
    }
 
-   // Parse the message and split if necessary.
    INT32 _utilHttp::_sendMessage( const CHAR *method, const CHAR *endUrl,
                                   const CHAR *data, const CHAR *content_type )
    {
@@ -504,11 +528,10 @@ namespace seadapter
       if ( !chunked )
       {
          rc = _send( requestStr.c_str(), requestStr.size() ) ;
-         PD_RC_CHECK( rc, PDERROR, "Send request string failed[ %d ]", rc ) ;
+         PD_RC_CHECK( rc, PDERROR, "Send request string failed[ %d ]" ) ;
       }
       else
       {
-         // Send in chunk mode.
          rc = _sendInChunkMode( requestStr, data ) ;
          PD_RC_CHECK( rc, PDERROR, "Send request in chunk mode failed[ %d ]",
                       rc ) ;
@@ -525,11 +548,10 @@ namespace seadapter
       INT32 rc = SDB_OK ;
       INT32 offset = 0 ;
 
-      // Check if the connection is ok. If not, try to connect once again.
       if ( !isConnected() )
       {
          PD_LOG( PDWARNING, "Connection interrupted, try to connect again." ) ;
-         rc = _connectBySocket() ;
+         rc = _connect() ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to connect to remote, rc: %d", rc ) ;
@@ -541,7 +563,7 @@ namespace seadapter
       {
          INT32 sendSize = 0 ;
          rc = _socket->send( &request[offset], reqSize - offset, sendSize,
-                             _timeout ) ;
+                             HTTP_REQ_TIMEOUT ) ;
          offset += sendSize ;
          if ( rc )
          {
@@ -563,7 +585,6 @@ namespace seadapter
       string chunkEnd = "0\r\n\r\n" ;
       UINT32 dataSize = ossStrlen( data ) ;
 
-      // First, send the header.
       rc = _send( header.c_str(), header.size() ) ;
       PD_RC_CHECK( rc, PDERROR, "Send header failed[ %d ]", rc ) ;
 
@@ -579,12 +600,12 @@ namespace seadapter
          chunk += string( data + totalSent, chunkSize ) ;
          chunk += "\r\n" ;
 
+         PD_LOG( PDDEBUG, "chunk string: %s", chunk.c_str() ) ;
          rc = _send( chunk.c_str(), chunk.size() ) ;
          PD_RC_CHECK( rc, PDERROR, "Send chund data failed[ %d ]", rc ) ;
          totalSent += chunkSize;
       }
 
-      // Final chunk message
       rc = _send( chunkEnd.c_str(), chunkEnd.size() ) ;
       PD_RC_CHECK( rc, PDERROR, "Send final chunk message failed[ %d ]" ) ;
 
@@ -598,7 +619,6 @@ namespace seadapter
                                          INT32 &bodyOffset )
    {
       const CHAR *position = NULL ;
-      // TODO: end str may be splitted ?
       position = ossStrstr( buff, HTTP_BLOCK_END_STR ) ;
       if ( !position )
       {
@@ -668,12 +688,11 @@ namespace seadapter
       const CHAR *itemPtr = NULL ;
       http_parser *parser = _getHttpParser() ;
 
-      // 1. Receive the header.
       remainSize = HTTP_MAX_HEADER_SIZE ;
       while ( headerSize < HTTP_MAX_HEADER_SIZE )
       {
          rc = _socket->recv( _recvBuf + headerSize, remainSize,
-                             curRecvSize, _timeout, 0, FALSE ) ;
+                             curRecvSize, REST_OPRATION_TIMEOUT, 0, FALSE ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to receive data, rc: %d", rc ) ;
          _recvBuf[ headerSize + curRecvSize + 1 ] = '\0' ;
          headFound = _checkEndOfHeader( _recvBuf + headerSize,
@@ -699,7 +718,6 @@ namespace seadapter
          goto error ;
       }
 
-      // 2. Parse the header, to check the status code.
       rc = _parseHeader( _recvBuf, headerSize ) ;
       PD_RC_CHECK( rc, PDERROR, "Parse http header failed[ %d ], header: %s",
                    rc, _recvBuf ) ;
@@ -709,17 +727,13 @@ namespace seadapter
          *statusCode = parser->status_code ;
       }
 
-      // If rc is not SDB_OK, error has happened.
       rc = _chkStatusCode( (HTTP_STATUS_CODE)parser->status_code ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "The status code is %u. Error has happened[ %d ]",
-                 (HTTP_STATUS_CODE)parser->status_code, rc ) ;
-         // Do not go to error here. Need to check if any error information is
-         // sent back by application.
+                 (HTTP_STATUS_CODE)parser->status_code ) ;
       }
 
-      // If we only want the head, just leave the remainning data.
       if ( onlyHead )
       {
          *reply = NULL ;
@@ -727,18 +741,13 @@ namespace seadapter
          goto done ;
       }
 
-      // Check if in chunk transfer mode.
       itemPtr = _getHeaderItemVal( REST_STRING_TRANSFER ) ;
       if ( itemPtr && ( 0 == ossStrcmp( itemPtr, REST_STRING_CHUNKED ) ) )
       {
-         // TODO: Receive in chunk mode.
          SDB_ASSERT( FALSE, "TODO" ) ;
-         //_recvInChunkMode( bodyTotalLen ) ;
       }
       else
       {
-         // Non-chunk mode, get the content of Content-Length.
-         // Get the Content-Length.
          itemPtr = _getHeaderItemVal( REST_STRING_CONLEN ) ;
          if ( !itemPtr )
          {
@@ -749,32 +758,30 @@ namespace seadapter
          }
          else
          {
-            // Note that the pointers in parser may not be used any more.
             contentLen = ossAtoi( itemPtr ) ;
             bodyTotalLen = contentLen ;
             bodyRemainLen = contentLen - bodyPartLen ;
          }
 
-         // Loop and receive the total body.
          totalRecv = headerSize + bodyPartLen ;
          if ( (UINT32)( headerSize + bodyTotalLen ) > _recvBufSize )
          {
-            CHAR *pNew = (CHAR *)SDB_OSS_REALLOC( _recvBuf,
-                                                  headerSize + bodyTotalLen ) ;
-            if ( !pNew )
+            _recvBuf = (CHAR *)SDB_OSS_REALLOC( _recvBuf,
+                                                headerSize + bodyTotalLen ) ;
+            if ( !_recvBuf )
             {
                rc = SDB_OOM ;
                PD_LOG( PDERROR, "Reallocate memory failed, required size: %u",
                        headerSize + bodyTotalLen ) ;
                goto error ;
             }
-            _recvBuf = pNew ;
             _recvBufSize = headerSize + bodyTotalLen ;
          }
          while ( bodyRemainLen > 0 )
          {
             rc = _socket->recv( _recvBuf + totalRecv, bodyRemainLen,
-                                curRecvSize, _timeout, 0, FALSE ) ;
+                                curRecvSize, REST_OPRATION_TIMEOUT,
+                                0, FALSE ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to receive data, rc: %d", rc ) ;
             bodyRemainLen -= curRecvSize ;
             totalRecv += curRecvSize ;
@@ -855,8 +862,6 @@ namespace seadapter
                                               (http_parser_settings *)_parserSetting,
                                               buff, len ) )
       {
-         // If it's not HPE_PAUSED(defined in http_parser, refer to
-         // HTTP_ERRNO_GEN ), then error happend.
          if ( HTTP_PARSER_ERRNO( parser ) != HPE_PAUSED )
          {
             PD_LOG( PDERROR, "Parse http header failed[ %s ]",
@@ -872,7 +877,6 @@ namespace seadapter
       goto done ;
    }
 
-   // Append CHAR* to output.
    size_t _utilHttp::appendChunk(string& output, CHAR* msg, size_t msgSize)
    {
       return 0 ;
@@ -890,8 +894,6 @@ namespace seadapter
 
    INT32 _utilHttp::_onStatus( void *data, const CHAR* at, size_t length )
    {
-      // Only the status description is passed with at and length. The status
-      // code is not included. So it should be "OK" or something else.
       return SDB_OK ;
    }
 
@@ -906,7 +908,6 @@ namespace seadapter
          {
             pHttpCon->_pTempKey[pHttpCon->_tempKeyLen] = 0 ;
             pHttpCon->_pTempValue[pHttpCon->_tempValueLen] = 0 ;
-            //printf("%s %s \n", pHttpCon->_pTempKey, pHttpCon->_pTempValue ) ;
             pHttpCon->_requestHeaders.insert(
                   std::make_pair( pHttpCon->_pTempKey,pHttpCon->_pTempValue ) );
             pHttpCon->_pTempKey = NULL ;
@@ -982,7 +983,6 @@ namespace seadapter
 
    INT32 _utilHttp::_onBody( void *data, const CHAR* at, size_t length )
    {
-      // call back functions in es clt.
       return SDB_OK ;
    }
 
@@ -1002,42 +1002,6 @@ namespace seadapter
 
       it = _connection._requestHeaders.find( key ) ;
       return ( it == _connection._requestHeaders.end() ) ? NULL : it->second ;
-   }
-
-   void _utilHttp::_cleanup()
-   {
-      _init = FALSE ;
-      _keepAlive = TRUE ;
-      _url.clear() ;
-      _urn.clear() ;
-      _port = 0 ;
-
-      if ( _socket )
-      {
-         _socket->close() ;
-         SDB_OSS_DEL _socket ;
-         _socket = NULL ;
-      }
-
-      _timeout = HTTP_OPRATION_TIMEOUT ;
-
-      if ( _sendBuf )
-      {
-         SDB_OSS_FREE( _sendBuf ) ;
-         _sendBuf = NULL ;
-         _sendBufSize = 0 ;
-      }
-      if ( _recvBuf )
-      {
-         SDB_OSS_FREE( _recvBuf ) ;
-         _recvBuf = NULL ;
-         _recvBufSize = 0 ;
-      }
-      if ( _parserSetting )
-      {
-         SDB_OSS_FREE( _parserSetting ) ;
-         _parserSetting = NULL ;
-      }
    }
 }
 

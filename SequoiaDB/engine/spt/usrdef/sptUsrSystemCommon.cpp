@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptUsrSystemCommon.cpp
 
@@ -240,7 +239,6 @@ namespace engine
       const string *release = NULL ;
       const string *desp = NULL ;
 
-      /// not performance sensitive.
       try
       {
          boost::algorithm::split( splited, buf, boost::is_any_of("\n:") ) ;
@@ -604,7 +602,6 @@ namespace engine
             info._ip = ip ;
             vecItems.push_back( info ) ;
          }
-         // write
          rc = _writeHostsFile( vecItems, err ) ;
          if ( rc )
          {
@@ -638,14 +635,12 @@ namespace engine
             usrSystemHostItem &item = *it ;
             if( item._lineType == LINE_HOST && hostname == item._host )
             {
-               // del
                it = vecItems.erase( it ) ;
                hasDel = TRUE ;
                continue ;
             }
             ++it ;
          }
-         // write
          if ( hasDel )
          {
             rc = _writeHostsFile( vecItems, err ) ;
@@ -1065,7 +1060,6 @@ namespace engine
                rctmp = ossReadlink( driverName.c_str(), pathBuffer, 256 ) ;
                if ( SDB_OK == rctmp )
                {
-                  // only match the driver name after /dev/
                   driverName = pathBuffer ;
                   if ( string::npos != driverName.find( "../", 0, 3 ) )
                   {
@@ -1218,7 +1212,6 @@ namespace engine
          }
          for ( vector<string>::iterator itr2 = columns.begin();
                itr2 != columns.end();
-               /// do not ++
                )
          {
             if ( itr2->empty() )
@@ -1242,7 +1235,6 @@ namespace engine
          freeSpace = columns[ 4 ] ;
          mount = columns[ 2 ] ;
 
-         // build
          SINT64 totalNum = 0 ;
          SINT64 usedNumber = 0 ;
          SINT64 avaNumber = 0 ;
@@ -1422,14 +1414,10 @@ namespace engine
                }
             }
 
-            // if not match format,discard the row
             if ( vColumns.size() < 9 )
             {
                continue ;
             }
-      //card rx_byte   rx_packet rx_err rx_drop tx_byte tx_packet tx_err tx_drop
-      //lo   14755559460 44957591  0      0       14755559460 44957591 0 0
-      //eth1 4334054313  11529654  0      0       9691246348  3513633  0 0
             try
             {
                BSONObjBuilder innerBuilder ;
@@ -1536,7 +1524,6 @@ namespace engine
          }
       }
 
-      // get the seconds since 1970.1.1:0:0:0(Calendar Time)
       myTime = time( NULL ) ;
       uRetCode = GetIfTable( pTable, &size, TRUE ) ;
       if ( NO_ERROR != uRetCode )
@@ -1671,7 +1658,6 @@ namespace engine
          }
          builder.appendBool( CMD_USR_SYSTEM_USABLE, result ) ;
          retObj = builder.obj() ;
-         //close the socket
          sock.close() ;
       }
 
@@ -1694,14 +1680,12 @@ namespace engine
       stringstream     cmd ;
       _ossCmdRunner    runner ;
 
-      // build cmd
 #if defined ( _LINUX )
    cmd << "ps ax -o user -o pid -o stat -o command" ;
 #elif defined (_WINDOWS)
    cmd << "tasklist /FO \"CSV\"" ;
 #endif
 
-      // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc )
@@ -1717,7 +1701,6 @@ namespace engine
          goto error ;
       }
 
-      // get result
       rc = runner.read( outStr ) ;
       if ( SDB_OK != rc )
       {
@@ -1729,7 +1712,6 @@ namespace engine
          goto error ;
       }
 
-      // extract result
       rc = _extractProcessInfo( outStr.c_str(), showDetail, builder ) ;
       if ( SDB_OK != rc )
       {
@@ -1803,7 +1785,6 @@ namespace engine
       cmd << " /PID " << pid ;
 #endif
 
-      // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc )
@@ -1819,7 +1800,6 @@ namespace engine
          goto error ;
       }
 
-      // get result
       rc = runner.read( outStr ) ;
       if ( SDB_OK != rc )
       {
@@ -1848,7 +1828,6 @@ namespace engine
       _ossCmdRunner     runner ;
       UINT32            exitCode ;
 
-      // init cmd
       cmd << "useradd" ;
 
       if ( configObj.hasField( "passwd" ) )
@@ -1925,7 +1904,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get name, rc: %d", rc ) ;
       cmd << " " << configObj.getStringField( "name" ) ;
 
-      // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc )
@@ -1941,7 +1919,6 @@ namespace engine
          goto error ;
       }
 
-      // get result
       rc = runner.read( outStr ) ;
       if ( SDB_OK != rc )
       {
@@ -1974,7 +1951,6 @@ namespace engine
       _ossCmdRunner   runner ;
       UINT32          exitCode ;
 
-      // check argument and build cmd
       cmd << "groupadd" ;
       if ( configObj.hasField( "passwd" ) )
       {
@@ -2030,7 +2006,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get name, rc: %d", rc ) ;
       cmd << " " << configObj.getStringField( "name" ) ;
 
-      // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc )
@@ -2046,7 +2021,6 @@ namespace engine
          goto error ;
       }
 
-      // read result
       rc = runner.read( outStr ) ;
       if ( SDB_OK != rc )
       {
@@ -2164,7 +2138,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get name, rc: %d", rc ) ;
       cmd << " " << configObj.getStringField( "name" ) ;
 
-      // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc )
@@ -2180,7 +2153,6 @@ namespace engine
          goto error ;
       }
 
-      // read result
       rc = runner.read( outStr ) ;
       if ( SDB_OK != rc )
       {
@@ -2241,7 +2213,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get name, rc: %d", rc ) ;
       cmd << " " << configObj.getStringField( "name" ) ;
 
-      // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc )
@@ -2257,7 +2228,6 @@ namespace engine
          goto error ;
       }
 
-      // read result
       rc = runner.read( outStr ) ;
       if ( SDB_OK != rc )
       {
@@ -2291,7 +2261,6 @@ namespace engine
       UINT32            exitCode ;
 
       cmd << "groupdel " << groupName ;
-      // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc )
@@ -2307,7 +2276,6 @@ namespace engine
          goto error ;
       }
 
-      // read result
       rc = runner.read( outStr ) ;
       if ( SDB_OK != rc )
       {
@@ -2343,11 +2311,9 @@ namespace engine
       _ossCmdRunner      runner ;
       string             outStr ;
 
-      // check argument and build cmd
       cmd << "who" ;
       showDetail = optionObj.getBoolField( "detail" ) ;
 
-      // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc )
@@ -2363,7 +2329,6 @@ namespace engine
          goto error ;
       }
 
-      // read result
       rc = runner.read( outStr ) ;
       if ( SDB_OK != rc )
       {
@@ -2375,7 +2340,6 @@ namespace engine
          goto error ;
       }
 
-      // extract result
       rc = _extractLoginUsersInfo( outStr.c_str(), builder, showDetail ) ;
       if ( SDB_OK != rc )
       {
@@ -2406,11 +2370,9 @@ namespace engine
       stringstream       cmd ;
       _ossCmdRunner      runner ;
 
-      // check argument and build cmd
       cmd << "cat /etc/passwd" ;
       showDetail = optionObj.getBoolField( "detail" ) ;
 
-      // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc )
@@ -2426,7 +2388,6 @@ namespace engine
          goto error ;
       }
 
-      // get result
       rc = runner.read( outStr ) ;
       if ( SDB_OK != rc )
       {
@@ -2438,7 +2399,6 @@ namespace engine
          goto error ;
       }
 
-      // extract result
       rc = _extractAllUsersInfo( outStr.c_str(), builder, showDetail ) ;
       if ( SDB_OK != rc )
       {
@@ -2469,11 +2429,9 @@ namespace engine
       _ossCmdRunner      runner ;
       string             outStr ;
 
-      // check argument and build cmd
       cmd << "cat /etc/group" ;
       showDetail = optionObj.getBoolField( "detail" ) ;
 
-      // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc )
@@ -2489,7 +2447,6 @@ namespace engine
          goto error ;
       }
 
-      // get result
       rc = runner.read( outStr ) ;
       if ( SDB_OK != rc )
       {
@@ -2501,7 +2458,6 @@ namespace engine
          goto error ;
       }
 
-      // extract result
       rc = _extractGroupsInfo( outStr.c_str(), builder, showDetail ) ;
       if ( SDB_OK != rc )
       {
@@ -2535,7 +2491,6 @@ namespace engine
       OSSGID             gid ;
 
       cmd << "whoami 2>/dev/null" ;
-      // run command
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc )
@@ -2551,7 +2506,6 @@ namespace engine
          goto error ;
       }
 
-      // read result
       rc = runner.read( username ) ;
       if ( SDB_OK != rc )
       {
@@ -2567,7 +2521,6 @@ namespace engine
          username.erase( username.size()-1, 1 ) ;
       }
 
-      // get user info
       rc = ossGetUserInfo( username.c_str(), uid, gid ) ;
       if ( SDB_OK != rc )
       {
@@ -2579,7 +2532,6 @@ namespace engine
          gidStr << gid ;
       }
 
-      // get home dir
       rc = getHomePath( homeDir, err ) ;
       if ( SDB_OK != rc )
       {
@@ -2616,7 +2568,6 @@ namespace engine
 
       if( !type.empty() )
       {
-         // input format: "xxx|xxxx|xxx"
          try
          {
             boost::algorithm::split( typeSplit, type, boost::is_any_of( " |" ) ) ;
@@ -2629,7 +2580,6 @@ namespace engine
             goto error ;
          }
 
-         // if specify all type, remove other type
          if( typeSplit.end() != find( typeSplit.begin(), typeSplit.end(),
                                       "all" ) )
          {
@@ -2641,7 +2591,6 @@ namespace engine
             for( vector< string >::iterator itr = typeSplit.begin();
                  itr != typeSplit.end(); )
             {
-               // if not required type ,erase it
                if( configsType + 7 == find( configsType,
                                             configsType + 7,
                                             *itr ) )
@@ -2697,7 +2646,6 @@ namespace engine
                                "stack_size", "cpu_time", "max_user_processes",
                                "virtual_memory", "file_locks" } ;
 
-      // get ulimit
       for ( UINT32 index = 0; index < CMD_RESOURCE_NUM; index++ )
       {
          rlimit rlim ;
@@ -2708,8 +2656,6 @@ namespace engine
             goto error ;
          }
 
-         // -1 mean unlimited
-         // if val > max exact int or val == ulimited, append as string
          if ( OSS_SINT64_JS_MAX < (UINT64)rlim.rlim_cur &&
               (UINT64)-1 != rlim.rlim_cur )
          {
@@ -2749,13 +2695,11 @@ namespace engine
                                "POSIX_message_queues", "realtime_priority",
                                "stack_size", "cpu_time", "max_user_processes",
                                "virtual_memory", "file_locks" } ;
-      // set ulimit
       for ( UINT32 index = 0; index < CMD_RESOURCE_NUM; index++ )
       {
          char *limitItem = resourceName[ index ] ;
          if ( configsObj[ limitItem ].ok() )
          {
-            // support string type or number type
             if( FALSE == configsObj.getField( limitItem ).isNumber() &&
                 String != configsObj.getField( limitItem ).type() )
             {
@@ -2854,7 +2798,6 @@ namespace engine
          cmd << " " << options ;
       }
 
-      // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc )
@@ -2870,7 +2813,6 @@ namespace engine
          goto error ;
       }
 
-      // get result
       rc = runner.read( outStr ) ;
       if ( SDB_OK != rc )
       {
@@ -2908,7 +2850,6 @@ namespace engine
       string             outStr ;
       string             homePath ;
       string             cmd ;
-      // get home path
       rc = getHomePath( homePath, err ) ;
       if ( SDB_OK != rc )
       {
@@ -2918,7 +2859,6 @@ namespace engine
 
       cmd = "echo -e \"n\" | ssh-keygen -t rsa -f " + homePath +
             "/.ssh/id_rsa -N \"\" " ;
-      // create Ssh key
       rc = runner.exec( cmd.c_str(),
                         exitCode, FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc )
@@ -2958,7 +2898,6 @@ namespace engine
 #elif defined (_WINDOWS)
       cmd = "cmd /C set HOMEPATH" ;
 #endif
-      // run cmd
       rc = runner.exec( cmd.c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc )
@@ -2969,7 +2908,6 @@ namespace engine
          goto error ;
       }
 
-      // get result
       rc = runner.read( outStr ) ;
       if ( SDB_OK != rc )
       {
@@ -2980,10 +2918,8 @@ namespace engine
       if( !outStr.empty() && outStr[ outStr.size() - 1 ] == '\n' )
       {
 #if defined (_LINUX)
-         // erase /n
          outStr.erase( outStr.size()-1, 1 ) ;
 #elif defined (_WINDOWS)
-         // erase /r/n
          outStr.erase( outStr.size()-2, 2 ) ;
 #endif
       }
@@ -3048,14 +2984,12 @@ namespace engine
       _ossCmdRunner       runner ;
       string              outStr ;
 
-// build cmd
 #if defined (_LINUX)
       cmd = "env" ;
 #elif defined (_WINDOWS)
       cmd = "cmd /C set" ;
 #endif
 
-      // run cmd
       rc = runner.exec( cmd.c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc )
@@ -3071,7 +3005,6 @@ namespace engine
          goto error ;
       }
 
-      // get result
       rc = runner.read( outStr ) ;
       if ( SDB_OK != rc )
       {
@@ -3083,7 +3016,6 @@ namespace engine
          goto error ;
       }
 
-      // extract result
       rc = _extractEnvInfo( outStr.c_str(), builder ) ;
       if ( SDB_OK != rc )
       {
@@ -3170,7 +3102,6 @@ namespace engine
          }
       }
 
-      // build obj vector
       if( TRUE == showDetail )
       {
          for ( vector<string>::iterator itrSplit = splited.begin() + 1;
@@ -3204,13 +3135,11 @@ namespace engine
                }
             }
 
-            // result at least contain 4 col
             if ( 4 > columns.size() )
             {
                continue ;
             }
 
-            // filename may contain ' ', need to merge
             for ( UINT32 index = 4; index < columns.size(); index++ )
             {
                columns[ 3 ] += " " + columns[ index ] ;
@@ -3255,13 +3184,11 @@ namespace engine
                }
             }
 
-            // result at least contain 4 col
             if ( 4 > columns.size() )
             {
                continue ;
             }
 
-            // filename may contain ' ', need to merge
             for ( UINT32 index = 4; index < columns.size(); index++ )
             {
                columns[ 3 ] += " " + columns[ index ] ;
@@ -3272,7 +3199,6 @@ namespace engine
          }
       }
 
-      // merge vector< BSONObj > into BsonObj
       for( UINT32 index = 0; index < procVec.size(); index++ )
       {
          try
@@ -3336,7 +3262,6 @@ namespace engine
          }
       }
 
-      // build obj vector
       if( TRUE == showDetail )
       {
          for ( vector<string>::iterator itrSplit = splited.begin() + 1;
@@ -3370,7 +3295,6 @@ namespace engine
                }
             }
 
-            // result must contain 5 col
             if ( 5 != columns.size() )
             {
                continue ;
@@ -3415,7 +3339,6 @@ namespace engine
                }
             }
 
-            // result must contain 5 col
             if ( 5 != columns.size() )
             {
                continue ;
@@ -3426,7 +3349,6 @@ namespace engine
          }
       }
 
-      // merge into BsonObj
       for( UINT32 index = 0; index < procVec.size(); index++ )
       {
          try
@@ -3490,7 +3412,6 @@ namespace engine
       }
       isOpen = TRUE ;
 
-      // read file
       rc = ossReadN( &file, fileSize, pBuff, hasRead ) ;
       if ( rc )
       {
@@ -3507,7 +3428,6 @@ namespace engine
          goto error ;
       }
 
-      // remove last empty
       if ( vecItems.size() > 0 )
       {
          VEC_HOST_ITEM::iterator itr = vecItems.end() - 1 ;
@@ -3549,7 +3469,6 @@ namespace engine
          ossDelete( tmpFile.c_str() ) ;
       }
 
-      // 1. first back up the file
       if ( SDB_OK == ossAccess( HOSTS_FILE ) )
       {
          if ( SDB_OK == ossRenamePath( HOSTS_FILE, tmpFile.c_str() ) )
@@ -3558,7 +3477,6 @@ namespace engine
          }
       }
 
-      // 2. Create the file
       rc = ossOpen ( HOSTS_FILE, OSS_READWRITE|OSS_SHAREWRITE|OSS_REPLACE,
                      OSS_RU|OSS_WU|OSS_RG|OSS_RO, file ) ;
       if ( rc )
@@ -3568,7 +3486,6 @@ namespace engine
       }
       isOpen = TRUE ;
 
-      // 3. write data
       {
          VEC_HOST_ITEM::iterator it = vecItems.begin() ;
          UINT32 count = 0 ;
@@ -3592,7 +3509,6 @@ namespace engine
          }
       }
 
-      // 4. remove tmp
       if ( SDB_OK == ossAccess( tmpFile.c_str() ) )
       {
          ossDelete( tmpFile.c_str() ) ;
@@ -3668,7 +3584,6 @@ namespace engine
          }
          for ( vector<string>::iterator itr2 = columns.begin();
                itr2 != columns.end();
-                /// do not ++
                )
          {
             if ( itr2->empty() )
@@ -3681,8 +3596,6 @@ namespace engine
             }
          }
 
-         /// xxx.xxx.xxx.xxx xxxx
-         /// xxx.xxx.xxx.xxx xxxx.xxxx xxxx
          if ( 2 != columns.size() && 3 != columns.size() )
          {
             item._ip = *itr ;
@@ -3745,12 +3658,10 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BSONArrayBuilder arrBuilder ;
-      // extract the follow 3 fields from the return content
       string strProcessor  = "processor" ;
       string strCpu        = "cpu" ;
       string strClock      = "clock" ;
       string strMachine    = "machine" ;
-      // use to record the frequency of those 3 fields
       INT32 processorCount = 0 ;
       INT32 cpuCount       = 0 ;
       INT32 clockCount     = 0 ;
@@ -3787,8 +3698,6 @@ namespace engine
       for ( vector<string>::iterator itr = splited.begin();
             itr != splited.end(); itr++ )
       {
-         // *itr is in the format of "xxx : xx", so let's
-         // split it with ":"
          vector<string> columns ;
 
          try
@@ -3835,7 +3744,6 @@ namespace engine
             rc = SDB_SYS ;
             goto error ;
          }
-         // check and keep the cpu info
          if ( 1 == machineCount )
          {
             if ( processorCount != cpuCount ||
@@ -3846,7 +3754,6 @@ namespace engine
                rc = SDB_SYS ;
                goto error ;
             }
-            // merge cpu info
             {
                UINT32 coreNum    = processorCount ;
                string info       = modelName ;
@@ -3886,7 +3793,6 @@ namespace engine
                                    << CMD_USR_SYSTEM_INFO << info
                                    << CMD_USR_SYSTEM_FREQ << strAvgFreq + "GHz" ) ;
             }
-            // clean the counters
             processorCount = 0 ;
             cpuCount       = 0 ;
             clockCount     = 0 ;
@@ -3908,12 +3814,10 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BSONArrayBuilder arrBuilder ;
-      // extract the follow 4 fields from the return content
       string strModelName  = "model name" ;
       string strFreq       = "cpu MHz" ;
       string strCoreNum    = "cpu cores" ;
       string strPhysicalID = "physical id" ;
-      // use to mark which field we had accessed
       INT32 flag           = 0x00000000 ;
       BOOLEAN mustPush ;
       vector<string> splited ;
@@ -3946,15 +3850,12 @@ namespace engine
          }
       }
 
-      // there is at lease one cpu
       physicalIDSet.insert( "0" ) ;
       info.reset() ;
       for ( vector<string>::iterator itr = splited.begin();
             itr != splited.end();
             itr++ )
       {
-         // *itr is in the format of "xxx : xx", so let's
-         // split it with ":"
          vector<string> columns ;
          try
          {
@@ -4040,24 +3941,20 @@ namespace engine
             rc = SDB_SYS ;
             goto error ;
          }
-         // check and keep the cpu info
          if ( TRUE == mustPush )
          {
             vecCpuInfo.push_back( info ) ;
             info.reset() ;
             flag = 0 ;
-            // need to decrease itr becase not use the value of itr
             itr-- ;
          }
       }
 
-      // push last info obj
       if ( flag )
       {
          vecCpuInfo.push_back( info ) ;
       }
 
-      // merge the cpu info
       for ( set<string>::iterator itr = physicalIDSet.begin();
             itr != physicalIDSet.end(); itr++ )
       {
@@ -4071,7 +3968,6 @@ namespace engine
          {
             if ( physicalID == itr2->physicalID )
             {
-               // sum freq
                try
                {
                   FLOAT32 inc = boost::lexical_cast<FLOAT32>( itr2->freq ) ;
@@ -4084,12 +3980,10 @@ namespace engine
                   rc = SDB_SYS ;
                   goto error ;
                }
-               // set modelName if it is uninitialized
                if ( modelName == "" )
                {
                   modelName = itr2->modelName ;
                }
-               // add core num
                coreNum++ ;
             }
          }
@@ -4162,7 +4056,6 @@ namespace engine
          }
          for ( vector<string>::iterator itr2 = columns.begin();
                itr2 != columns.end();
-               /// do not ++
                )
          {
             if ( itr2->empty() )
@@ -4175,7 +4068,6 @@ namespace engine
             }
          }
 
-         /// eg: 3200 AMD Athlon(tm) II X2 B26 Processor 2
          if ( columns.size() < 3 )
          {
             rc = SDB_SYS ;
@@ -4233,7 +4125,6 @@ namespace engine
       }
       for ( vector<string>::iterator itr = splited.begin();
             itr != splited.end();
-            /// do not ++
           )
       {
          if ( itr->empty() )
@@ -4245,8 +4136,6 @@ namespace engine
             ++itr ;
          }
       }
-      /// Mem:       8194232    2373776    5820456          0     387924     992756
-      /// choose total used free
       if ( splited.size() < 4 )
       {
          rc = SDB_SYS ;
@@ -4294,7 +4183,6 @@ namespace engine
       }
       pAdapterInfo = (PIP_ADAPTER_INFO)pBuff ;
 
-      // first call GetAdapterInfo to get ulOutBufLen size
       dwRetVal = GetAdaptersInfo( pAdapterInfo, &ulOutbufLen ) ;
       if ( dwRetVal == ERROR_BUFFER_OVERFLOW )
       {
@@ -4350,7 +4238,6 @@ namespace engine
 
       if ( SDB_OK != ioctl( sock, SIOCGIFCONF, &ifc ) )
       {
-         close( sock ) ;
          rc = SDB_SYS ;
          PD_LOG( PDERROR, "failed to call ioctl" ) ;
          goto error ;
@@ -4367,7 +4254,6 @@ namespace engine
                                          (ifreq->ifr_addr))->sin_addr) ) ;
          ++ifreq ;
       }
-      close( sock ) ;
 #endif
       builder.append( CMD_USR_SYSTEM_NETCARDS, arrBuilder.arr() ) ;
    done:
@@ -4427,7 +4313,6 @@ namespace engine
          }
       }
 
-      // build obj vector
       if( TRUE == showDetail )
       {
          for ( vector<string>::iterator itrSplit = splited.begin();
@@ -4462,7 +4347,6 @@ namespace engine
                }
             }
 
-            // at least contain 4 col
             if ( 4 > columns.size() )
             {
                continue ;
@@ -4529,7 +4413,6 @@ namespace engine
                }
             }
 
-            // at least contain 4 col
             if ( 4 > columns.size() )
             {
                continue ;
@@ -4540,7 +4423,6 @@ namespace engine
          }
       }
 
-      // merge vector< BSONObj > into BsonObj
       for( UINT32 index = 0; index < userVec.size(); index++ )
       {
          try
@@ -4604,7 +4486,6 @@ namespace engine
          }
       }
 
-      // build obj vector
       if( TRUE == showDetail )
       {
          for ( vector<string>::iterator itrSplit = splited.begin();
@@ -4626,7 +4507,6 @@ namespace engine
                goto error ;
             }
 
-            // if no match format
             if ( columns.size() != 7 )
             {
                continue ;
@@ -4658,7 +4538,6 @@ namespace engine
                goto error ;
             }
 
-            // if no match format
             if ( columns.size() != 7 )
             {
                continue ;
@@ -4668,7 +4547,6 @@ namespace engine
          }
       }
 
-      // merge vector< BSONObj > into BsonObj
       for( UINT32 index = 0; index < userVec.size(); index++ )
       {
          try
@@ -4732,7 +4610,6 @@ namespace engine
          }
       }
 
-      // build obj vector
       if( TRUE == showDetail )
       {
          for ( vector<string>::iterator itrSplit = splited.begin();
@@ -4767,13 +4644,11 @@ namespace engine
                }
             }
 
-            // if no match format
             if ( columns.size() < 3 )
             {
                continue ;
             }
 
-            // if group has list of user
             if ( columns.size() == 4 )
             {
                groupMem = columns[ 3 ] ;
@@ -4821,7 +4696,6 @@ namespace engine
                }
             }
 
-            // if no match format
             if ( columns.size() < 3 )
             {
                continue ;
@@ -4831,7 +4705,6 @@ namespace engine
          }
       }
 
-      // merge into BsonObj
       for( UINT32 index = 0; index < groupVec.size(); index++ )
       {
          try
@@ -4900,7 +4773,6 @@ namespace engine
          keySplit.clear() ;
          valueSplit.clear() ;
 
-         // open file
          rc = op.Open( itr->second.c_str(), OSS_PRIMITIVE_FILE_OP_READ_ONLY ) ;
          if ( SDB_OK != rc )
          {
@@ -4908,7 +4780,6 @@ namespace engine
             continue ;
          }
 
-         // read file content
          {
             INT32 readByte = 0 ;
             INT32 hasRead = 0 ;
@@ -4929,19 +4800,16 @@ namespace engine
                }
                hasRead += readByte ;
                curPos = buf + hasRead ;
-               // mem not enough, need to realloc, newBuffSize = 2*oldBuffSize
                if ( readByte == readLen )
                {
-                  INT32 newBufLen = bufLen + increaseLen ;
-                  CHAR *pNewBuf = (CHAR*)SDB_OSS_REALLOC( buf, newBufLen ) ;
-                  if ( NULL == pNewBuf )
+                  bufLen += increaseLen ;
+                  buf = (CHAR*) SDB_OSS_REALLOC( buf, bufLen ) ;
+                  if ( NULL == buf )
                   {
                      rc = SDB_OOM ;
                      PD_LOG( PDERROR, "Failed to realloc buff" ) ;
                      goto error ;
                   }
-                  bufLen = newBufLen ;
-                  buf = pNewBuf ;
                   readLen = increaseLen ;
                   increaseLen *= 2 ;
                }
@@ -4957,7 +4825,6 @@ namespace engine
             buf[ hasRead ] = '\0' ;
          }
 
-         // split key
          try
          {
             boost::algorithm::split( keySplit, itr->second,
@@ -4996,7 +4863,6 @@ namespace engine
             key += "." + ( *vecItr ) ;
          }
 
-         // split value
          try
          {
             boost::algorithm::split( valueSplit, buf,
@@ -5024,18 +4890,15 @@ namespace engine
             }
          }
 
-         if ( valueSplit.size() > 0 )
+         if ( 0 == valueSplit.size() )
          {
-            value = *( valueSplit.begin() ) ;
-            for( std::vector< string >::iterator vecItr = valueSplit.begin()+1;
-               vecItr != valueSplit.end(); vecItr++ )
-            {
-               value += ";" + ( *vecItr ) ;
-            }  
+            continue ;
          }
-         else
+         value = *( valueSplit.begin() ) ;
+         for( std::vector< string >::iterator vecItr = valueSplit.begin()+1;
+              vecItr != valueSplit.end(); vecItr++ )
          {
-            value = "" ;
+            value += ";" + ( *vecItr ) ;
          }
          builder.append( key, value ) ;
       }
@@ -5097,7 +4960,6 @@ namespace engine
          vector<string> columns ;
          string value ;
 
-         // if no contain '=', it is the part of previous row
          if ( std::string::npos == (*itrSplit).find( "=" ) )
          {
             if ( envVec.size() )
@@ -5132,7 +4994,6 @@ namespace engine
             }
          }
 
-         // at least conatain 1 cols
          if ( columns.size() < 1 )
          {
             continue ;

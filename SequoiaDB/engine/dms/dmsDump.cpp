@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dmsDump.cpp
 
@@ -189,9 +188,6 @@ namespace engine
          len += ossSnprintf ( outBuf + len, outSize - len,
                               " SU Name     : %s"OSS_NEWLINE,
                               header->_name ) ;
-         len += ossSnprintf ( outBuf + len, outSize - len,
-                              " CS Unique ID: %d"OSS_NEWLINE,
-                              header->_csUniqueID ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
                               " Sequence    : %d"OSS_NEWLINE,
                               header->_sequence ) ;
@@ -368,13 +364,11 @@ namespace engine
          goto exit ;
       }
 
-      // if we want to find a specific collection
       if ( collectionName )
       {
          if ( ossStrncmp ( mb->_collectionName, collectionName,
                            DMS_COLLECTION_NAME_SZ ) != 0 )
          {
-            // if it doesn't match our expectation
             goto exit ;
          }
       }
@@ -386,7 +380,6 @@ namespace engine
       }
       else if ( !force )
       {
-         // if not enable force, when mb is invalid, ignored
          goto exit ;
       }
 
@@ -411,11 +404,6 @@ namespace engine
          len += ossSnprintf( outBuf + len, outSize - len,
                              OSS_NEWLINE" Collection name   : %s"OSS_NEWLINE,
                              mb->_collectionName ) ;
-
-         len += ossSnprintf( outBuf + len, outSize - len,
-                             " CL Unique ID      : %ld"OSS_NEWLINE,
-                             mb->_clUniqueID ) ;
-
          len += ossSnprintf( outBuf + len, outSize - len,
                              " Flag              : 0x%04lx (%s)"OSS_NEWLINE,
                              mb->_flag, tmpStr ) ;
@@ -465,7 +453,6 @@ namespace engine
                              mb->_loadLastExtentID, mb->_loadLastExtentID,
                              mb->_mbExExtentID, mb->_mbExExtentID ) ;
 
-         /// stat
          len += ossSnprintf( outBuf + len, outSize - len,
                              " Total records     : %llu"OSS_NEWLINE
                              " Total lobs        : %llu"OSS_NEWLINE
@@ -486,7 +473,6 @@ namespace engine
                              mb->_totalOrgDataLen,
                              mb->_totalDataLen ) ;
 
-         /// compress
          len += ossSnprintf( outBuf + len, outSize - len,
                              " Dict extent ID    : 0x%08x (%d)"OSS_NEWLINE
                              " New Dict extent ID: 0x%08x (%d)"OSS_NEWLINE
@@ -519,7 +505,6 @@ namespace engine
          CHAR strLobTime[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
          ossTimestampToString( lobTm, strLobTime ) ;
 
-         /// commit info
          len += ossSnprintf( outBuf + len, outSize - len,
                              " Data Commit Flag  : %d"OSS_NEWLINE
                              " Data Commit LSN   : 0x%016lx (%lld)"OSS_NEWLINE
@@ -539,11 +524,9 @@ namespace engine
                              mb->_lobCommitFlag,
                              mb->_lobCommitLSN, mb->_lobCommitLSN,
                              strLobTime, mb->_lobCommitTime ) ;
-         // Extent option extent id
          len += ossSnprintf( outBuf + len, outSize - len,
                              " Extend option extent ID: 0x%08x (%d)"OSS_NEWLINE,
                              mb->_mbOptExtentID, mb->_mbOptExtentID ) ;
-         // Delete list
          len += ossSnprintf( outBuf + len, outSize - len,
                              " Deleted list :"OSS_NEWLINE ) ;
          tmpInt = 16 ;
@@ -578,7 +561,6 @@ namespace engine
                                 mb->_deleteList[i]._offset ) ;
          }
 
-         // index list
          len += ossSnprintf( outBuf + len, outSize - len,
                              " Index extent:"OSS_NEWLINE ) ;
 
@@ -664,7 +646,6 @@ namespace engine
                               " Meta Extent Header :"OSS_NEWLINE ) ;
          len += dumpExtentHeader ( inBuf, inSize, outBuf + len,
                                    outSize - len ) ;
-         // make sure the extent is valid and in use
          if ( DMS_EXTENT_FLAG_FREED == mbEx->_header._flag )
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
@@ -938,7 +919,6 @@ namespace engine
                               " Data Extent Header:"OSS_NEWLINE ) ;
          len += dumpExtentHeader ( inBuf, inSize, outBuf + len,
                                    outSize - len ) ;
-         // make sure the extent is valid and in use
          if ( DMS_EXTENT_FLAG_FREED == extent->_flag )
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
@@ -1242,12 +1222,8 @@ namespace engine
          record = (dmsCappedRecord*)( ((CHAR*)inBuf) + nextRecord ) ;
          logicalID = record->getLogicalID() ;
 
-         // If we have gone beyond the last record offset, we see it as the end.
-         // In that case, no error will be reported.
          if ( logicalID < 0 )
          {
-            // If we are still before the last record offset, print the current
-            // record, but stop going to the next one.
             if ( nextRecord <= lastRecord )
             {
                len += ossSnprintf( outBuf + len, outSize - len,
@@ -1263,8 +1239,6 @@ namespace engine
          }
          else
          {
-            // Check if the logical id in the record header matches the position
-            // (extent and offset). If not, print the current record, and stop.
             myOffset = logicalID % DMS_CAP_EXTENT_BODY_SZ +
                        DMS_EXTENT_METADATA_SZ ;
             if ( myOffset != nextRecord )
@@ -1367,31 +1341,23 @@ namespace engine
       }
 
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       Flag         : 0x%02x (%s)"OSS_NEWLINE,
+                           "       Flag        : 0x%02x (%s)"OSS_NEWLINE,
                            flag, flagText ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       Compressed   : %s"OSS_NEWLINE,
+                           "       Compressed  : %s"OSS_NEWLINE,
                            OSS_BIT_TEST ( flag, DMS_RECORD_FLAG_COMPRESSED ) ?
                            "True":"False" ) ;
-      if ( OSS_BIT_TEST( flag, DMS_RECORD_FLAG_COMPRESSED ) &&
-           OSS_BIT_TEST( compressorEntry->getFlags(), UTIL_COMPRESS_ALTERABLE_FLAG ) )
-      {
-         len += ossSnprintf ( outBuf + len, outSize - len,
-                              "       CompressType : 0x%02x (%s)"OSS_NEWLINE,
-                              record->getCompressType(),
-                              utilCompressType2String( record->getCompressType() ) ) ;
-      }
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       Record Size  : %u"OSS_NEWLINE,
+                           "       Record Size : %u"OSS_NEWLINE,
                            recordSize ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       My Offset    : 0x%08x (%d)"OSS_NEWLINE,
+                           "       My Offset   : 0x%08x (%d)"OSS_NEWLINE,
                            record->_myOffset, record->_myOffset ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       Prev Offset  : 0x%08x (%d)"OSS_NEWLINE,
+                           "       Prev Offset : 0x%08x (%d)"OSS_NEWLINE,
                            record->_previousOffset, record->_previousOffset ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       Next Offset  : 0x%08x (%d)"OSS_NEWLINE,
+                           "       Next Offset : 0x%08x (%d)"OSS_NEWLINE,
                            record->_nextOffset, record->_nextOffset ) ;
 
       if ( DMS_INVALID_OFFSET != nextRecord &&  record->_myOffset!= nextRecord )
@@ -1407,7 +1373,6 @@ namespace engine
       nextRecord = record->_nextOffset ;
       if ( isDel )
       {
-         // dump nothing for deleted record, and set nextRecord to invalid
          nextRecord = DMS_INVALID_OFFSET ;
          goto exit ;
       }
@@ -1426,7 +1391,6 @@ namespace engine
       }
       else
       {
-         // for normal and ovfto types, let's dump data
          try
          {
             ossValuePtr recordPtr = 0 ;
@@ -1470,27 +1434,20 @@ namespace engine
       }
 
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       Flag          : 0x%02x (%s)"OSS_NEWLINE,
+                           "       Flag        : 0x%02x (%s)"OSS_NEWLINE,
                            flag, flagText ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       Compressed    : %s"OSS_NEWLINE,
+                           "       Compressed  : %s"OSS_NEWLINE,
                            OSS_BIT_TEST ( flag, DMS_RECORD_FLAG_COMPRESSED ) ?
                            "True":"False" ) ;
-      if ( OSS_BIT_TEST ( flag, DMS_RECORD_FLAG_COMPRESSED ) )
-      {
-         len += ossSnprintf ( outBuf + len, outSize - len,
-                              "       CompressType  : 0x%02x (%s)"OSS_NEWLINE,
-                              record->getCompressType(),
-                              utilCompressType2String( record->getCompressType() ) ) ;
-      }
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       Record Size   : %u"OSS_NEWLINE,
+                           "       Record Size : %u"OSS_NEWLINE,
                            record->getSize() ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       Record Number : %u"OSS_NEWLINE,
+                           "       Record Number: %u"OSS_NEWLINE,
                            record->getRecordNo() ) ;
       len += ossSnprintf ( outBuf + len, outSize - len,
-                           "       LogicalID     : %lld"OSS_NEWLINE,
+                           "       LogicalID: %lld"OSS_NEWLINE,
                            record->getLogicalID() ) ;
 
       try
@@ -1547,7 +1504,6 @@ namespace engine
          goto exit ;
       }
 
-      // get all child extents
       for ( INT32 i = 0 ; i < extentHead->_totalKeyNodeNum ; ++i )
       {
          UINT32 keyOffset = sizeof(ixmExtentHead) + sizeof(ixmKeyNode)*i ;
@@ -1570,7 +1526,6 @@ namespace engine
       {
          childExtents.push_back ( extentHead->_right ) ;
       }
-      // dump hex
       if ( DMS_SU_DMP_OPT_HEX & options )
       {
          if ( DMS_SU_DMP_OPT_HEX_PREFIX_AS_ADDR & options )
@@ -1591,7 +1546,6 @@ namespace engine
                               " Index Extent Header:"OSS_NEWLINE ) ;
          len += dumpExtentHeader ( inBuf, inSize, outBuf + len,
                                    outSize - len ) ;
-         // make sure extent is valid and in use
          if ( DMS_EXTENT_FLAG_FREED == extentHead->_flag )
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
@@ -1601,7 +1555,6 @@ namespace engine
 
          if( dumpIndexKey )
          {
-            // dump all index keys
             for ( INT32 i = 0; i < extentHead->_totalKeyNodeNum; ++i )
             {
                UINT32 keyOffset = sizeof(ixmExtentHead) +
@@ -2003,7 +1956,6 @@ UINT32 _dmsDump::dumpDmsLobData( CHAR *inBuf, UINT32 inSize,
 
    if ( DMS_SU_DMP_OPT_FORMATTED & options )
    {
-      ///TODO:dump record
    }
 
    len += ossSnprintf ( outBuf + len, outSize - len, OSS_NEWLINE ) ;

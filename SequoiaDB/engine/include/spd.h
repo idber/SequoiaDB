@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = spd.h
 
@@ -42,9 +41,8 @@
 
 #include "core.h"
 
-/*
-   _SDB_SPD_RES_TYPE define
-*/
+SDB_EXTERN_C_START
+
 enum _SDB_SPD_RES_TYPE
 {
    SDB_SPD_RES_TYPE_VOID = 0, /**< Js return void type */
@@ -53,14 +51,16 @@ enum _SDB_SPD_RES_TYPE
    SDB_SPD_RES_TYPE_OBJ,      /**< Js return an object */
    SDB_SPD_RES_TYPE_BOOL,     /**< Js return a bool */
    SDB_SPD_RES_TYPE_RECORDSET,/**< Js return a cursor handle */
-   SDB_SPD_RES_TYPE_SPECIALOBJ = 10, /**< Js return a special obj */
-   SDB_SPD_RES_TYPE_NULL,     /**< Js return null type */
-
-   SDB_SPD_RES_TYPE_MAX
+   SDB_SPD_RES_TYPE_CS,       /**< Js return a collection space handle */
+   SDB_SPD_RES_TYPE_CL,       /**< Js return a collection handle */
+   SDB_SPD_RES_TYPE_RG,       /**< Js return a replica group handle */
+   SDB_SPD_RES_TYPE_RN,       /**< Js return a data node handle */
 } ;
 
 /** Js return type */
 typedef enum _SDB_SPD_RES_TYPE SDB_SPD_RES_TYPE ;
 
-#endif //SPD_H_
+SDB_EXTERN_C_END
+
+#endif
 

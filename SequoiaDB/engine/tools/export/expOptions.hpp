@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2016 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = expOptions.cpp
 
@@ -32,7 +31,6 @@
 #ifndef EXP_OPTIONS_HPP_
 #define EXP_OPTIONS_HPP_
 
-//#include "core.hpp"
 #include "oss.hpp"
 #include "expCL.hpp"
 #include <boost/program_options.hpp>
@@ -49,7 +47,6 @@ namespace exprt
       FORMAT_CSV = 0,
       FORMAT_JSON,
 
-      // new format here
 
       FORMAT_COUNT
    } ;
@@ -60,10 +57,7 @@ namespace exprt
    public :
       expOptions() ;
       ~expOptions() ;
-      // parse command-line, confifure-file will be parsed inside of parseCmd
-      // when option '--conf' is specified in command-line
       INT32   parseCmd( INT32 argc, CHAR* argv[] ) ;
-      // write options to configure-file which specified by option '--genconf' 
       INT32   writeToConf( const expCLSet &clSet ) ;
       void    printHelpInfo() const ;
       BOOLEAN hasHelp() const ;
@@ -75,13 +69,10 @@ namespace exprt
       inline const string &svcName()      const { return _svcName ; }
       inline const string &user()         const { return _user ; }
       inline const string &password()     const { return _password ; }
-      inline const string &cipher()       const { return _cipherfile ; }
       inline const string &delRecord()    const { return _delRecord ; }
       inline const string &typeName()     const { return _typeName ; }
       inline const string &genConf()      const { return _genConf ; }
       inline const string &conf()         const { return _conf ; }
-      //inline const string &csName()       const { return _csName ; }
-      //inline const string &clName()       const { return _clName ; }
       inline const string &cscl()         const { return _cscl ; }
       inline const string &excludeCscl()  const { return _excludeCscl ; }
       inline const string &select()       const { return _select ; }
@@ -137,8 +128,6 @@ namespace exprt
       string               _svcName ;
       string               _user ;
       string               _password ;
-      string               _token ;
-      string               _cipherfile ;
       string               _delRecord ;
       string               _typeName ;
       EXP_FILE_FORMAT      _type ;

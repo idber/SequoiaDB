@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = aggrProject.hpp
 
@@ -48,7 +47,6 @@ namespace engine
    */
    INT32 aggrProjectParser::buildNode( const BSONElement &elem,
                                        const CHAR *pCLName,
-                                       BSONObj &hint,
                                        qgmOptiTreeNode *&pNode,
                                        _qgmPtrTable *pTable,
                                        _qgmParamTable *pParamTable )
@@ -66,7 +64,6 @@ namespace engine
                 "Failed to parse the parameter[%s], need be object",
                 elem.toString( TRUE, TRUE ).c_str() ) ;
 
-      // 1.parse the fields
       try
       {
          obj = elem.embeddedObject() ;
@@ -86,7 +83,6 @@ namespace engine
                          beField.toString( TRUE, TRUE ).c_str(), rc ) ;
          }
 
-         /// when empty, add (*)
          if ( pSelect->_selector.empty() )
          {
             qgmOpField selectAll;
@@ -101,14 +97,10 @@ namespace engine
                    e.what() ) ;
       }
 
-      // 2.build the node
       pSelect->_limit = -1 ;
       pSelect->_skip = 0 ;
       pSelect->_type = QGM_OPTI_TYPE_SELECT ;
       pSelect->_hasFunc = hasFunc ;
-      pSelect->_objHint = hint ;
-      aggrEmptyBSONObj( hint ) ;
-
       rc = pTable->getOwnField( AGGR_CL_DEFAULT_ALIAS, pSelect->_alias ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get the own field[%s], rc: %d",
                    AGGR_CL_DEFAULT_ALIAS, rc ) ;
@@ -279,7 +271,6 @@ namespace engine
                    "Param[%s] can't be empty",
                    Obj.toString( TRUE, TRUE ).c_str() ) ;
 
-         /// end function
          ss << ')' ;
          strFunc = ss.str() ;
 

@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptUsrOma.cpp
 
@@ -73,9 +72,7 @@ namespace engine
    JS_STATIC_FUNC_DEFINE(_sptUsrOma, getOmaInstallFile)
    JS_STATIC_FUNC_DEFINE(_sptUsrOma, getOmaConfigFile)
    JS_STATIC_FUNC_DEFINE(_sptUsrOma, getOmaConfigs)
-   JS_STATIC_FUNC_DEFINE(_sptUsrOma, getIniConfigs)
    JS_STATIC_FUNC_DEFINE(_sptUsrOma, setOmaConfigs)
-   JS_STATIC_FUNC_DEFINE(_sptUsrOma, setIniConfigs)
    JS_STATIC_FUNC_DEFINE(_sptUsrOma, getAOmaSvcName)
    JS_STATIC_FUNC_DEFINE(_sptUsrOma, addAOmaSvcName)
    JS_STATIC_FUNC_DEFINE(_sptUsrOma, delAOmaSvcName)
@@ -102,9 +99,7 @@ namespace engine
       JS_ADD_STATIC_FUNC("getOmaInstallFile", getOmaInstallFile)
       JS_ADD_STATIC_FUNC("getOmaConfigFile", getOmaConfigFile)
       JS_ADD_STATIC_FUNC("getOmaConfigs", getOmaConfigs)
-      JS_ADD_STATIC_FUNC("getIniConfigs", getIniConfigs)
       JS_ADD_STATIC_FUNC("setOmaConfigs", setOmaConfigs)
-      JS_ADD_STATIC_FUNC("setIniConfigs", setIniConfigs)
       JS_ADD_STATIC_FUNC("getAOmaSvcName", getAOmaSvcName)
       JS_ADD_STATIC_FUNC("addAOmaSvcName", addAOmaSvcName)
       JS_ADD_STATIC_FUNC("delAOmaSvcName", delAOmaSvcName)
@@ -174,7 +169,6 @@ namespace engine
       rval.addSelfProperty( "_host" )->setValue( _hostname ) ;
       rval.addSelfProperty( "_svcname" )->setValue( _svcname ) ;
 
-      // check remote info
       rc = _assit.runCommand( "oma test", NULL, &retBuf, retCode ) ;
       sdbClearErrorInfo() ;
       if( SDB_OK != rc )
@@ -283,7 +277,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to get config, rc: %d", rc ) ;
       }
 
-      // add role
       {
          BSONObjBuilder builder ;
          BSONObjIterator it( config ) ;
@@ -362,7 +355,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to get config, rc: %d", rc ) ;
       }
 
-      // add role
       {
          BSONObjBuilder builder ;
          BSONObjIterator it( config ) ;
@@ -506,7 +498,6 @@ namespace engine
       BSONObj recvObj ;
       string command ;
 
-      // merge arg
       rc = _mergeArg( arg, detail, command, &mergeObj ) ;
       if ( SDB_OK != rc )
       {
@@ -515,7 +506,6 @@ namespace engine
          goto error ;
       }
 
-      // get argument needRecv
       if ( arg.argc() >= 5 )
       {
          rc = arg.getNative( 4, &needRecv, SPT_NATIVE_INT32 ) ;
@@ -526,7 +516,6 @@ namespace engine
          }
       }
 
-      // run command and get retrun BSONObj
       rc = _assit.runCommand( command, mergeObj.objdata(),
                               &retBuffer, retCode, needRecv ) ;
       if ( SDB_OK != rc )
@@ -536,10 +525,8 @@ namespace engine
          goto error ;
       }
 
-      // if need recv, need to build recvObj ;
       if ( needRecv )
       {
-         // build recvObj
          SDB_ASSERT( retBuffer, "retBuffer can't be null" ) ;
          try
          {
@@ -554,7 +541,6 @@ namespace engine
             goto error ;
          }
 
-         // if remote cm failed to exec command, retObj contain error detail
          if ( SDB_OK != retCode )
          {
             rc = retCode ;
@@ -681,18 +667,15 @@ namespace engine
 
       if ( !asStandalone )
       {
-         // first to check whether the process exist
          ossEnumProcesses( procs, procShortName.c_str(), TRUE, TRUE ) ;
          if ( procs.size() > 0 )
          {
-            // find it
             outStr << "Success: sdbcmd is already started ("
                    << (*procs.begin())._pid << ")" << endl ;
             goto done ;
          }
       }
 
-      // start progress
       rc = _startSdbcm ( argvs, pid, asProc ) ;
       if ( rc )
       {
@@ -723,7 +706,6 @@ namespace engine
          }
       }
 
-      // wait bussiness ok
       rc = utilWaitNodeOK( cmInfo, NULL,
                            asStandalone ? pid : OSS_INVALID_PID,
                            SDB_TYPE_OMA, SDB_SDBCM_WAIT_TIMEOUT,
@@ -844,54 +826,6 @@ namespace engine
       goto done ;
    }
 
-   INT32 _sptUsrOma::getIniConfigs( const _sptArguments & arg,
-                                    _sptReturnVal & rval,
-                                    BSONObj & detail )
-   {
-      INT32 rc = SDB_OK ;
-      string confFile ;
-      BSONObj conf ;
-      BSONObjBuilder argBuilder ;
-      string err ;
-
-      rc = arg.getString( 0, confFile ) ;
-      if ( rc )
-      {
-         detail = BSON( SPT_ERR << "confFile must be string" ) ;
-         goto error ;
-      }
-
-      argBuilder.append( "confFile", confFile ) ;
-
-      if ( arg.argc() > 1 )
-      {
-         BSONObj options ;
-
-         rc = arg.getBsonobj( 1, options ) ;
-         if ( rc )
-         {
-            detail = BSON( SPT_ERR << "options must be object" ) ;
-            goto error ;
-         }
-
-         argBuilder.appendElements( options ) ;
-      }
-
-      rc = _sptUsrOmaCommon::getIniConfigs( argBuilder.obj(), conf, err ) ;
-      if ( rc )
-      {
-         detail = BSON( SPT_ERR << err ) ;
-         goto error ;
-      }
-
-      rval.getReturnVal().setValue( conf ) ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
    INT32 _sptUsrOma::setOmaConfigs( const _sptArguments & arg,
                                     _sptReturnVal & rval,
                                     BSONObj & detail )
@@ -931,64 +865,6 @@ namespace engine
          detail = BSON( SPT_ERR << err ) ;
          goto error ;
       }
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _sptUsrOma::setIniConfigs( const _sptArguments & arg,
-                                    _sptReturnVal & rval,
-                                    BSONObj & detail )
-   {
-      INT32 rc = SDB_OK ;
-      string confFile ;
-      BSONObj conf ;
-      BSONObjBuilder argBuilder ;
-      string err ;
-
-      rc = arg.getBsonobj( 0, conf ) ;
-      if ( SDB_OUT_OF_BOUND == rc )
-      {
-         detail = BSON( SPT_ERR << "obj must be config" ) ;
-         goto error ;
-      }
-      else if ( rc )
-      {
-         detail = BSON( SPT_ERR << "obj must be object" ) ;
-         goto error ;
-      }
-
-      rc = arg.getString( 1, confFile ) ;
-      if ( rc )
-      {
-         detail = BSON( SPT_ERR << "confFile must be string" ) ;
-         goto error ;
-      }
-
-      argBuilder.append( "confFile", confFile ) ;
-
-      if ( arg.argc() > 2 )
-      {
-         BSONObj options ;
-
-         rc = arg.getBsonobj( 2, options ) ;
-         if ( rc )
-         {
-            detail = BSON( SPT_ERR << "options must be object" ) ;
-            goto error ;
-         }
-
-         argBuilder.appendElements( options ) ;
-      }
-
-      rc = _sptUsrOmaCommon::setIniConfigs( argBuilder.obj(), conf, err ) ;
-      if ( rc )
-      {
-         detail = BSON( SPT_ERR << err ) ;
-         goto error ;
-      }
-
    done:
       return rc ;
    error:
@@ -1058,7 +934,6 @@ namespace engine
       BSONObjBuilder matchObjBuilder ;
       string err ;
 
-      // hostname
       rc = arg.getString( 0, hostname ) ;
       if ( rc == SDB_OUT_OF_BOUND )
       {
@@ -1078,7 +953,6 @@ namespace engine
       }
       valueObjBuilder.append( "hostname", hostname ) ;
 
-      // svcname
       rc = arg.getString( 1, svcname ) ;
       if ( rc == SDB_OUT_OF_BOUND )
       {
@@ -1098,7 +972,6 @@ namespace engine
       }
       valueObjBuilder.append( "svcname", svcname ) ;
 
-      // get isReplace
       if ( arg.argc() > 2 )
       {
          rc = arg.getNative( 2, (void*)&isReplace, SPT_NATIVE_INT32 ) ;
@@ -1110,7 +983,6 @@ namespace engine
          optionObjBuilder.appendBool( "isReplace", isReplace ) ;
       }
 
-      // get confFile
       if ( arg.argc() > 3 )
       {
          rc = arg.getString( 3, confFile ) ;
@@ -1215,7 +1087,6 @@ namespace engine
       BSONObj matchObj ;
       BSONObj valueObj ;
 
-      // get command
       rc = arg.getString( 0, command ) ;
       if ( rc == SDB_OUT_OF_BOUND )
       {
@@ -1237,7 +1108,6 @@ namespace engine
          goto error ;
       }
 
-      // get optionObj
       if ( arg.argc() >= 2 )
       {
          rc = arg.getBsonobj( 1, optionObj ) ;
@@ -1249,7 +1119,6 @@ namespace engine
          }
       }
 
-      // get matchObj
       if ( arg.argc() >= 3 )
       {
          rc = arg.getBsonobj( 2, matchObj ) ;
@@ -1261,7 +1130,6 @@ namespace engine
          }
       }
 
-      // get valueObj
       if ( arg.argc() >= 4 )
       {
          rc = arg.getBsonobj( 3, valueObj ) ;
@@ -1273,7 +1141,6 @@ namespace engine
          }
       }
 
-      // merge argument
       {
          BSONObjBuilder builder ;
          builder.append( "$optionObj", optionObj ) ;

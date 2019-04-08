@@ -65,22 +65,17 @@
             </tr>
          </table>
       </div>
-
-      <div ng-dropdown="config in GroupOperateDropdown.config" dropdown-event="GroupOperateDropdown.event" dropdown-callback="GroupOperateDropdown.callback">
-         <span class="Ellipsis" style="padding:5px 10px;display:block;" ng-click="GroupOperateDropdown.OnClick($index)">&nbsp;{{config.key}}</span>
-      </div>
-
       <div ng-container="{offsetY:-45}" ng-if="Configure['DeployMod'] == 'distribution'">
          <div class="pull-left" ng-container="{width:400}">
 
-            <div style="height:30px;font-size:110%;font-weight:bold;">{{autoLanguage("服务")}}: {{ModuleName}}</div>
+            <div style="height:30px;font-size:110%;font-weight:bold;">{{autoLanguage("业务")}}: {{ModuleName}}</div>
 
             <div class="borderBox" style="padding:10px;font-size:90%;" ng-container="{offsetY:-30}">
 
                <div class="alert alert-info" style="height:32px;" ng-style="{'zh-CN':{'line-height':'32px'}}[Language]">
                   {{autoLanguage("提示：批量配置节点信息说明。详情请点击")}}<a class="linkButton" ng-click="ShowHelper()">{{autoLanguage("帮助")}}</a>
                </div>
-               
+
                <div style="margin:10px 0;">
                   <button class="btn btn-default" ng-click="ShowCreateGroup()"><i class="fa fa-plus"></i>&nbsp;{{autoLanguage("创建分区组")}}</button>
                   <button class="btn btn-default" ng-click="CreateExportConfigModel()">{{autoLanguage("编辑配置")}}</button>
@@ -103,7 +98,7 @@
                                  <div class="Ellipsis" style="font-size:90%;color:#888;padding-top:3px;">{{autoLanguage("节点数")}}: {{groupInfo['nodeNum']}}</div>
                               </td>
                               <td style="padding-left:10px;width:50px;">
-                                 <button class="btn btn-default btn-lg" ng-click="OpenDropdown( $event, groupInfo['role'], $index )">
+                                 <button class="btn btn-default btn-lg" dropdown-menu="groupInfo['DropdownMenu']">
                                     <span class="caret caret-bottom"></span>
                                  </button>
                               </td>
@@ -159,7 +154,7 @@
       </div>
 
       <div ng-container="{offsetY:-45}" ng-if="Configure['DeployMod'] == 'standalone'">
-         <div style="height:30px;font-size:110%;font-weight:bold;">{{autoLanguage("服务")}}: {{ModuleName}}</div>
+         <div style="height:30px;font-size:110%;font-weight:bold;">{{autoLanguage("业务")}}: {{ModuleName}}</div>
          <div class="underlineTab" style="height:50px;">
             <ul class="left">
                <li ng-class="{true:'active'}[StandaloneShow == 1]">

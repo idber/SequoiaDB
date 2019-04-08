@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptUsrFileCommon.cpp
 
@@ -77,7 +76,6 @@ namespace engine
 
       {
          SDB_OSS_FILETYPE type ;
-         // check path type
          rc = ossGetPathType( filename.c_str(), &type ) ;
          if ( SDB_OK == rc && SDB_OSS_DIR == type )
          {
@@ -86,7 +84,6 @@ namespace engine
             goto error ;
          }
       }
-      // get mode
       if ( optionObj.hasField( SPT_FILE_COMMON_FIELD_PERMISSION ) )
       {
          INT32 mode = 0 ;
@@ -148,7 +145,6 @@ namespace engine
          iMode = optionObj.getIntField( "mode" ) ;
       }
 
-      // open file
       rc = ossOpen( _filename.c_str(),
                     iMode,
                     permission,
@@ -230,9 +226,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _sptUsrFileCommon::readLine( std::string &err,
-                                      CHAR** buf,
-                                      SINT64 &readLen )
+   INT32 _sptUsrFileCommon::readLine( std::string &err, CHAR** buf, SINT64 &readLen )
    {
       INT32 rc = SDB_OK ;
       SINT64 size = SPT_BUFFER_INIT_SIZE ;
@@ -250,20 +244,14 @@ namespace engine
 
       *buf = ( CHAR* )SDB_OSS_MALLOC( size + 1 ) ;
       {
-         CHAR readChar = '\0' ;
-         SINT64 readSize = 0 ;
+         CHAR readChar ;
+         SINT64 readSize ;
          rc = ossReadN( &_file, 1, &readChar, readSize ) ;
          while( SDB_OK == rc && readSize )
          {
             if( size <= totalRead )
             {
-               CHAR *pNewBuf = ( CHAR* )SDB_OSS_REALLOC( *buf, size*2 + 1 ) ;
-               if ( !pNewBuf )
-               {
-                  rc = SDB_OOM ;
-                  goto error ;
-               }
-               *buf = pNewBuf ;
+               *buf = ( CHAR* )SDB_OSS_REALLOC( *buf, size*2 + 1 ) ;
                size *= 2 ;
             }
             (*buf)[ totalRead ] = readChar ;
@@ -406,7 +394,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      // delete file
       rc = ossDelete( path.c_str() ) ;
       if ( SDB_OK != rc )
       {
@@ -427,7 +414,6 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       isExist = FALSE ;
-      // try to access file
       rc = ossAccess( path.c_str() ) ;
       if ( SDB_OK != rc && SDB_FNE != rc )
       {
@@ -705,7 +691,6 @@ namespace engine
       */
       if ( "n" == findType )
       {
-         // can't contain path, only filename
          if ( string::npos != value.find( "/", 0 ) )
          {
             rc = SDB_INVALIDARG ;
@@ -745,7 +730,6 @@ namespace engine
 
       }
 
-      // build cmd
 #if defined (_LINUX)
       cmd << "find" ;
 
@@ -759,7 +743,6 @@ namespace engine
          cmd << mode << " " << value ;
       }
 #elif defined (_WINDOWS)
-      // windows only support finding file by name
       if ( " -name" != mode )
       {
          goto done ;
@@ -772,7 +755,6 @@ namespace engine
       }
       cmd << "cmd /C dir /b /s "<< pathname << value ;
 #endif
-      // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                      FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc )
@@ -788,7 +770,6 @@ namespace engine
          goto error ;
       }
 
-      // get result
       rc = runner.read( outStr ) ;
       if ( SDB_OK != rc )
       {
@@ -811,7 +792,6 @@ namespace engine
          goto error ;
       }
 
-      // extract result
       rc = _extractFindInfo( outStr.c_str(), builder ) ;
       if ( SDB_OK != rc )
       {
@@ -839,7 +819,6 @@ namespace engine
       _ossCmdRunner      runner ;
       string             outStr ;
 
-      // check argument and build cmd
 #if defined (_LINUX)
       cmd << "ls -A -l" ;
 #elif defined (_WINDOWS)
@@ -857,7 +836,6 @@ namespace engine
          cmd << " " << optionObj.getStringField( SPT_FILE_COMMON_FIELD_PATHNAME ) ;
       }
 
-      // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc )
@@ -873,7 +851,6 @@ namespace engine
          goto error ;
       }
 
-      // get result
       rc = runner.read( outStr ) ;
       if ( SDB_OK != rc )
       {
@@ -891,7 +868,6 @@ namespace engine
          goto error ;
       }
 
-      // extract result
       rc = _extractListInfo( outStr.c_str(), builder, showDetail ) ;
       if ( SDB_OK != rc )
       {
@@ -920,7 +896,6 @@ namespace engine
       isRecursive = optionObj.getBoolField( SPT_FILE_COMMON_FIELD_IS_RECURSIVE ) ;
 
       mode = mode & 0xfff ;
-      // build cmd
       cmd << "chmod" ;
       if ( TRUE == isRecursive )
       {
@@ -928,7 +903,6 @@ namespace engine
       }
       cmd << " " << oct << mode << " " << pathname ;
 
-      // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc )
@@ -944,7 +918,6 @@ namespace engine
          goto error ;
       }
 
-      // read result
       rc = runner.read( outStr ) ;
       if ( SDB_OK != rc )
       {
@@ -1012,7 +985,6 @@ namespace engine
          groupname = ownerObj.getStringField( SPT_FILE_COMMON_FIELD_GROUPNAME ) ;
       }
 
-      // build cmd
       cmd << "chown" ;
       if ( TRUE == isRecursive )
       {
@@ -1020,7 +992,6 @@ namespace engine
       }
       cmd << " " << username << ":" << groupname << " " << pathname ;
 
-      // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc )
@@ -1036,7 +1007,6 @@ namespace engine
          goto error ;
       }
 
-      // read result
       rc = runner.read( outStr ) ;
       if ( SDB_OK != rc )
       {
@@ -1072,7 +1042,6 @@ namespace engine
 
       isRecursive = optionObj.getBoolField( SPT_FILE_COMMON_FIELD_IS_RECURSIVE ) ;
 
-      // build cmd
       cmd << "chgrp" ;
       if ( TRUE == isRecursive )
       {
@@ -1081,7 +1050,6 @@ namespace engine
 
       cmd << " " << groupname << " " << pathname ;
 
-      // run cmd
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc )
@@ -1097,7 +1065,6 @@ namespace engine
          goto error ;
       }
 
-      // read result
       rc = runner.read( outStr ) ;
       if ( SDB_OK != rc )
       {
@@ -1128,7 +1095,6 @@ namespace engine
       string cmd = "umask" ;
       _ossCmdRunner runner ;
 
-      // run cmd
       rc = runner.exec( cmd.c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc )
@@ -1144,7 +1110,6 @@ namespace engine
          goto error ;
       }
 
-      // get result
       rc = runner.read( retStr ) ;
       if ( SDB_OK != rc )
       {
@@ -1215,7 +1180,6 @@ namespace engine
          userMask |= S_IRUSR ;
       }
 
-      // set mask
       umask( userMask ) ;
       return SDB_OK ;
 
@@ -1232,7 +1196,6 @@ namespace engine
       CHAR   realPath[ OSS_MAX_PATHSIZE + 1] = { '\0' } ;
       SDB_OSS_FILETYPE type ;
 
-      // build real path
       if ( NULL == ossGetRealPath( pathname.c_str(),
                                    realPath,
                                    OSS_MAX_PATHSIZE + 1 ) )
@@ -1242,7 +1205,6 @@ namespace engine
          goto error ;
       }
 
-      // get path type
       rc = ossGetPathType( realPath, &type ) ;
       if ( SDB_OK != rc )
       {
@@ -1358,7 +1320,6 @@ namespace engine
          goto error ;
       }
 
-      // check path type
       rc = ossGetPathType( pathname.c_str(), &type ) ;
       if ( SDB_OK != rc )
       {
@@ -1403,10 +1364,8 @@ namespace engine
       BSONObjBuilder     builder ;
       string             fileType ;
 
-      // set result format
       cmd << "stat -c\"%n|%s|%U|%G|%x|%y|%z|%A\" " << pathname ;
 
-      // run command
       rc = runner.exec( cmd.str().c_str(), exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc )
@@ -1422,7 +1381,6 @@ namespace engine
          goto error ;
       }
 
-      // get result
       rc = runner.read( outStr ) ;
       if ( SDB_OK != rc )
       {
@@ -1503,13 +1461,11 @@ namespace engine
                itr++ ;
             }
          }
-         // ignore useless info
          if( 8 != token.size() )
          {
             continue ;
          }
 
-         // get file type
          switch( token[ 7 ][ 0 ] )
          {
             case '-':
@@ -1580,7 +1536,6 @@ namespace engine
          goto error ;
       }
 
-      // get file type
       rc = ossGetPathType( realPath, &ossFileType ) ;
       if ( SDB_OK != rc )
       {
@@ -1599,7 +1554,6 @@ namespace engine
             fileType = "unknow" ;
       }
 
-      // get file size
       rc = ossGetFileSizeByName( realPath, &fileSize ) ;
       if ( SDB_OK != rc )
       {
@@ -1634,8 +1588,7 @@ namespace engine
 
       SDB_ASSERT ( pBuf, "Invalid arguments" ) ;
 
-      rc = file.open ( filename.c_str() , OSS_READONLY | OSS_SHAREREAD,
-                       OSS_DEFAULTFILE ) ;
+      rc = file.open ( filename.c_str() , OSS_READONLY | OSS_SHAREREAD, OSS_DEFAULTFILE ) ;
       if ( rc != SDB_OK )
       {
          err = "Can't open file: %s" + filename ;
@@ -1691,7 +1644,6 @@ namespace engine
       md5_init( &st ) ;
       md5::md5digest digest ;
 
-      // open the file
       rc = ossOpen( filename.c_str(), OSS_READONLY | OSS_SHAREREAD,
                     OSS_DEFAULTFILE, file ) ;
       if ( rc )
@@ -1701,7 +1653,6 @@ namespace engine
       }
       isOpen = TRUE ;
 
-      // read file and get md5
       while ( TRUE )
       {
          rc = ossReadN( &file, bufSize, readBuf, hasRead ) ;
@@ -1835,7 +1786,6 @@ namespace engine
             itr++ ;
          }
       }
-      // erase first row: total xx
       splited.erase( splited.begin() ) ;
 
       if( TRUE == showDetail )
@@ -1871,14 +1821,12 @@ namespace engine
                }
             }
 
-            // one line has 9 columns at least. otherwise, discard it
             if ( 9 > columns.size() )
             {
                continue ;
             }
             else
             {
-               // exist filename contain ' ', need to merge
                for ( UINT32 index = 9; index < columns.size(); index++ )
                {
                   columns[ 8 ] += " " + columns[ index ] ;
@@ -1929,7 +1877,6 @@ namespace engine
                }
             }
 
-            // at least 9 columns
             if ( 9 > columns.size() )
             {
                rc = SDB_SYS ;
@@ -1938,7 +1885,6 @@ namespace engine
             }
             else
             {
-               // exist filename contain ' ', need to merge
                for ( UINT32 index = 9; index < columns.size(); index++ )
                {
                   columns[ 8 ] += " " + columns[ index ] ;
@@ -1951,7 +1897,6 @@ namespace engine
          }
       }
 
-      // merge vector< BSONObj> into BSONObj
       for( UINT32 index = 0; index < fileVec.size(); index++ )
       {
          try
@@ -2026,7 +1971,6 @@ namespace engine
             itr++ ;
          }
       }
-      // erase head and tail
       splited.erase( splited.end() - 2, splited.end() ) ;
       splited.erase( splited.begin() , splited.begin() + 5 ) ;
 
@@ -2063,14 +2007,12 @@ namespace engine
                }
             }
 
-            // at least 4 columns
             if ( 4 > columns.size() )
             {
                continue ;
             }
             else
             {
-               // exist filename contain ' ', need to merge
                for ( UINT32 index = 4; index < columns.size(); index++ )
                {
                   columns[ 3 ] += " " + columns[ index ] ;
@@ -2123,14 +2065,12 @@ namespace engine
                }
             }
 
-            // at least 4 columns
             if ( 4 > columns.size() )
             {
                continue ;
             }
             else
             {
-               // exist filename contain ' ', need to merge
                for ( UINT32 index = 4; index < columns.size(); index++ )
                {
                   columns[ 3 ] += " " + columns[ index ] ;
@@ -2143,7 +2083,6 @@ namespace engine
          }
       }
 
-      // merge vector< BSONObj> into BSONObj
       for( UINT32 index = 0; index < fileVec.size(); index++ )
       {
          try

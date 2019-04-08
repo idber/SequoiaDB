@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordCommandNode.cpp
 
@@ -167,7 +166,6 @@ namespace engine
 
       _pResource->updateGroupList( grpLst, cb, NULL, FALSE, FALSE, TRUE ) ;
 
-      // get nodes
       rc = coordGetGroupNodes( _pResource, cb, BSONObj(), NODE_SEL_ALL,
                                grpLst, nodes ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get nodes, rc: %d", rc ) ;
@@ -185,7 +183,6 @@ namespace engine
          nodes.erase( routeID.value ) ;
       }
 
-      /// send msg
       it = nodes.begin() ;
       while( it != nodes.end() )
       {
@@ -230,12 +227,9 @@ namespace engine
                                                  const CoordGroupList &pGroupLst )
    {
       INT32 rc = SDB_OK ;
-
       PD_TRACE_ENTRY ( COORD_NODE3PHASE_DOONCATAP2 ) ;
 
-      rtnContextBuf buffObj ;
-
-      rc = _processContext( cb, ppContext, 1, buffObj ) ;
+      rc = _processContext( cb, ppContext, 1 ) ;
 
       PD_TRACE_EXITRC ( COORD_NODE3PHASE_DOONCATAP2, rc ) ;
 
@@ -272,7 +266,6 @@ namespace engine
       SINT32 opType = getOpType() ;
       SINT32 retCode = SDB_OK ;
 
-      // fill default-reply(active group success)
       contextID                        = -1 ;
 
       rc = queryOption.fromQueryMsg( (CHAR *)pMsg ) ;
@@ -312,7 +305,6 @@ namespace engine
          goto error ;
       }
 
-      /// execute on node
       rc = rtnRemoteExec ( opType, strHostName,
                            &retCode, &boNodeConf ) ;
       rc = rc ? rc : retCode ;
@@ -386,7 +378,7 @@ namespace engine
    {
    }
 
-   // PD_TRACE_DECLARE_FUNCTION( COORD_CMDOPONGROUP_OPON1NODE, "_coordCMDOpOnGroup::_opOnOneNode" )
+   // PD_TRACE_DECLARE_FUNCTION( COORD_CMDOPONGROUP_OPON1NODE, "_coordCMDOpOnGroup::_opOnNodes" )
    INT32 _coordCMDOpOnGroup::_opOnOneNode ( const vector<INT32> &opList,
                                             string hostName,
                                             string svcName,
@@ -467,7 +459,6 @@ namespace engine
             string hostName, svcName ;
             BSONElement beService ;
 
-            /// get hostname and svcname of the node
             rc = rtnGetSTDStringElement( boNode, FIELD_NAME_HOST, hostName ) ;
             if ( rc )
             {
@@ -495,8 +486,6 @@ namespace engine
                goto error ;
             }
 
-            /// skip stopping myself
-            /// if want to stop itself, we must stop all other first.
             vector<INT32>::const_iterator it = std::find( opList.begin(),
                                                           opList.end(),
                                                           SDBSTOP ) ;
@@ -510,11 +499,9 @@ namespace engine
                }
             }
 
-            /// do operation
             rc = _opOnOneNode( opList, hostName, svcName, dataObjs ) ;
          }
 
-         /// stop itself after all other node stoped
          if ( skipSelf )
          {
             rc = _opOnOneNode( opList, selfHostName, selfSvcName, dataObjs ) ;
@@ -593,7 +580,6 @@ namespace engine
          const clsNodeItem &item = vecNodes[ pos ] ;
          ++pos ;
 
-         // get local service
          UINT16 cataPort = 0 ;
          UINT16 svcPort = 0 ;
          char svcChar[10] = { 0 } ;
@@ -609,7 +595,6 @@ namespace engine
          ossSnprintf( svcChar, sizeof( svcChar ), "%u", svcPort ) ;
          svcName = svcChar ;
 
-         // do operation
          rc = _opOnOneNode( opList, item._host, svcName, dataObjs ) ;
       }
 
@@ -679,7 +664,6 @@ namespace engine
 
       try
       {
-         // role and catalogaddr will be added if user doesn't provide
          BSONObj boInput( pQuery ) ;
          BSONObjBuilder bobNodeConf( boInput.objsize() + 128 ) ;
          BSONObjIterator iter( boInput ) ;
@@ -690,7 +674,6 @@ namespace engine
 
          const CHAR *pFieldName = NULL ;
 
-         // loop through each input parameter
          while ( iter.more() )
          {
             BSONElement beField = iter.next() ;
@@ -707,7 +690,6 @@ namespace engine
                continue ;
             }
 
-            // make sure to skip hostname and group name
             if ( 0 == ossStrcmp( pFieldName, FIELD_NAME_HOST ) ||
                  0 == ossStrcmp( pFieldName, PMD_OPTION_ROLE ) )
             {
@@ -756,11 +738,9 @@ namespace engine
                continue ;
             }
 
-            // append into beField
             bobNodeConf.append( beField );
          } /// end while
 
-         // assign role if it doesn't include
          roleStr = utilDBRoleStr( role ) ;
          if ( *roleStr == 0 )
          {
@@ -768,7 +748,6 @@ namespace engine
             goto error ;
          }
 
-         /// cluster name
          if ( !hasClusterName )
          {
             string strName ;
@@ -779,7 +758,6 @@ namespace engine
             }
          }
 
-         /// business name
          if ( !hasBusinessName )
          {
             string strName ;
@@ -827,12 +805,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      /// role string
       builder.append ( PMD_OPTION_ROLE, roleStr ) ;
 
-      // assign catalog address, make sure to include all catalog nodes
-      // that configured in the system ( for HA ), each system should be
-      // separated by "," and sit in a single key: PMD_OPTION_CATALOG_ADDR
       if ( !hasCataAddr )
       {
          CoordGroupInfoPtr cataGroupPtr = pResource->getCataGroupInfo() ;
@@ -989,12 +963,8 @@ namespace engine
       INT32 rc                         = SDB_OK;
       PD_TRACE_ENTRY ( COORD_CMD_UPDATENODE_EXE ) ;
 
-      // fill default-reply(create group success)
       contextID = -1 ;
 
-      // TODO:
-      // 1. first modify by the host's cm
-      // 2. then send to catalog to update dbpath or other info
 
       rc = SDB_COORD_UNKNOWN_OP_REQ ;
 
@@ -1046,7 +1016,6 @@ namespace engine
       rc = getNodeInfo( pQuery, boNodeInfo ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get node info, rc: %d", rc ) ;
 
-      /// make sure is no catalog addr
       if ( !_pResource->addCataNodeAddrWhenEmpty( _pHostName,
                                                   _cataSvcName.c_str() ) )
       {
@@ -1054,28 +1023,23 @@ namespace engine
          goto error ;
       }
 
-      // Create
       rc = rtnRemoteExec( SDBADD, _pHostName, &retCode,
                           &boNodeConfig, &boNodeInfo ) ;
       rc = rc ? rc : retCode ;
       PD_RC_CHECK( rc, PDERROR, "Do remote execute on node[%s:%s] "
                    "failed, rc: %d", _pHostName, _pSvcName, rc ) ;
 
-      // Start
       rc = rtnRemoteExec( SDBSTART, _pHostName, &retCode, &boNodeConfig ) ;
       rc = rc ? rc : retCode ;
-      // if start catalog failed, need to remove config
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Do remote execute on node[%s:%s] "
                  "failed, rc: %d", _pHostName, _pSvcName, rc ) ;
-         // boBackup for remove node to backup node info
          rtnRemoteExec( SDBRM, _pHostName, &retCode,
                         &boNodeConfig, &boBackup ) ;
          goto error ;
       }
 
-      /// update the config file
       _pResource->syncAddress2Options( TRUE, FALSE ) ;
 
    done:
@@ -1089,7 +1053,6 @@ namespace engine
       PD_TRACE_EXITRC ( COORD_CREATECATAGRP_EXE, rc ) ;
       return rc ;
    error:
-      // clear the catalog-group info
       if ( rc != SDB_COORD_RECREATE_CATALOG )
       {
          _pResource->clearCataNodeAddrList() ;
@@ -1143,7 +1106,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       string cataAddr ;
 
-      /// role
       builder.append( PMD_OPTION_ROLE, SDB_ROLE_CATALOG_STR ) ;
 
       if ( !_pHostName || !(*_pHostName) )
@@ -1176,7 +1138,6 @@ namespace engine
       cataAddr = _pHostName ;
       cataAddr += ":" ;
       cataAddr += _cataSvcName ;
-      /// catalog address list
       builder.append( PMD_OPTION_CATALOG_ADDR, cataAddr ) ;
 
    done:
@@ -1217,7 +1178,6 @@ namespace engine
 
       PD_TRACE_ENTRY ( COORD_CREATEGROUP_EXE ) ;
 
-      // fill default-reply(create group success)
       contextID                        = -1 ;
 
       rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL,
@@ -1244,7 +1204,6 @@ namespace engine
          goto error ;
       }
 
-      /// execute on catalog
       pCreateReq->header.opCode = MSG_CAT_CREATE_GROUP_REQ ;
       rc = executeOnCataGroup ( pMsg, cb, TRUE, NULL, NULL, buf ) ;
       if ( rc )
@@ -1351,7 +1310,6 @@ namespace engine
       {
          _pResource->getCataNodeAddrList( _vecNodes ) ;
 
-         // For catalog group only
          if ( 0 == pArgs->_targetName.compare( CATALOG_GROUPNAME ) &&
               !_vecNodes.empty() )
          {
@@ -1400,7 +1358,6 @@ namespace engine
                                                 cb ) ;
          if ( SDB_OK == rc )
          {
-            // For catalog group
             rc = _opOnCataNodes( opList, groupPtr.get(), dataObjs ) ;
          }
          else if ( 0 == pArgs->_targetName.compare( CATALOG_GROUPNAME ) &&
@@ -1558,7 +1515,6 @@ namespace engine
       {
          if ( 0 == pArgs->_targetName.compare( CATALOG_GROUPNAME ) )
          {
-            // Should have problem (e.g. -79) when shutdown Catalog group
             PD_LOG( PDWARNING, "Ignored error[%d] when do "
                     "command[%s, targe:%s]", rc, getName(),
                     pArgs->_targetName.c_str() ) ;
@@ -1607,8 +1563,7 @@ namespace engine
          }
          pArgs->_targetName = groupName ;
 
-         /// get enforce
-         rc = rtnGetBooleanElement( pArgs->_boQuery, FIELD_NAME_ENFORCED1,
+         rc = rtnGetBooleanElement( pArgs->_boQuery, CMD_NAME_ENFORCED,
                                     _enforce ) ;
          if ( SDB_FIELD_NOT_EXIST == rc )
          {
@@ -1617,7 +1572,7 @@ namespace engine
          else if ( rc )
          {
             PD_LOG( PDERROR, "Get field[%s] failed on command[%s], "
-                    "rc: %d", FIELD_NAME_ENFORCED1, getName(), rc ) ;
+                    "rc: %d", CMD_NAME_ENFORCED, getName(), rc ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
@@ -1746,7 +1701,6 @@ namespace engine
          _pResource->removeGroupInfo( pArgs->_targetName.c_str() ) ;
       }
 
-      /// remove last node
       if ( cb->getRemoteSite() )
       {
          pmdRemoteSessionSite *pSite = NULL ;
@@ -1781,7 +1735,6 @@ namespace engine
       {
          if ( 0 == pArgs->_targetName.compare( CATALOG_GROUPNAME ) )
          {
-            // Should have problem (e.g. -79) when removing Catalog group
             PD_LOG( PDWARNING, "Ignored error[%d] when do "
                     "command[%s, targe:%s]", rc, getName(),
                     pArgs->_targetName.c_str() ) ;
@@ -1822,7 +1775,6 @@ namespace engine
 
       try
       {
-         UINT32 validCount = 0 ;
          BSONElement ele ;
          rc = rtnGetSTDStringElement( pArgs->_boQuery, CAT_GROUPNAME_NAME,
                                       pArgs->_targetName ) ;
@@ -1833,7 +1785,6 @@ namespace engine
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-         ++validCount ;
 
          ele = pArgs->_boQuery.getField( CAT_HOST_FIELD_NAME ) ;
          if ( String != ele.type() )
@@ -1844,7 +1795,6 @@ namespace engine
             goto error ;
          }
          _pHostName = ele.valuestr() ;
-         ++validCount ;
 
          rc = rtnGetBooleanElement( pArgs->_boQuery, FIELD_NAME_ONLY_ATTACH,
                                     _onlyAttach ) ;
@@ -1859,12 +1809,7 @@ namespace engine
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-         else
-         {
-            ++validCount ;
-         }
 
-         /// check svcname
          ele = pArgs->_boQuery.getField( PMD_OPTION_SVCNAME ) ;
          if ( String != ele.type() )
          {
@@ -1874,7 +1819,6 @@ namespace engine
             goto error ;
          }
          _pSvcName = ele.valuestr() ;
-         ++validCount ;
 
          if ( _onlyAttach )
          {
@@ -1888,30 +1832,20 @@ namespace engine
 
             rc = rtnGetBooleanElement( pArgs->_boQuery, FIELD_NAME_KEEP_DATA,
                                        _keepData ) ;
-            if ( rc )
+            if ( SDB_FIELD_NOT_EXIST == rc )
             {
-               PD_LOG_MSG( PDERROR, "Not specify the field[%s] or it has" 
-                           " an invalid value in options"
-                           " when attaching node.", FIELD_NAME_KEEP_DATA ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
+               rc = SDB_OK ;
             }
-            else
+            else if ( rc )
             {
-               ++validCount ;
-            }
-
-            if ( (UINT32)pArgs->_boQuery.nFields() > validCount )
-            {
+               PD_LOG( PDERROR, "Get field[%s] failed on command[%s], "
+                       "rc: %d", FIELD_NAME_KEEP_DATA, getName(), rc ) ;
                rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "Unknown parameters in command's args[%s]",
-                       pArgs->_boQuery.toString().c_str() ) ;
                goto error ;
             }
          }
          else
          {
-            /// check dbpath
             ele = pArgs->_boQuery.getField( PMD_OPTION_DBPATH ) ;
             if ( String != ele.type() )
             {
@@ -1921,23 +1855,11 @@ namespace engine
                goto error ;
             }
 
-            /// check instance ID
             ele = pArgs->_boQuery.getField( PMD_OPTION_INSTANCE_ID ) ;
-            if ( ele.eoo() || ele.isNumber() || ele.type() == bson::String )
+            if ( ele.eoo() || ele.isNumber() )
             {
-               UINT32 instanceID = NODE_INSTANCE_ID_UNKNOWN ;
-               if ( ele.isNumber() )
-               {
-                  instanceID = ele.numberInt() ;
-               }
-               else if ( ele.type() == bson::String )
-               {
-                  rc = utilStr2Num( ele.str().c_str(), (INT32 &)instanceID,
-                                    UTIL_STR2NUM_DEC ) ;
-                  PD_RC_CHECK( rc, PDERROR,
-                               "Fail to convert field[%s] %s to int, rc: %d",
-                               PMD_OPTION_INSTANCE_ID, ele.str().c_str(), rc ) ;
-               }
+               UINT32 instanceID = ele.isNumber() ? ele.numberInt() :
+                                                    NODE_INSTANCE_ID_UNKNOWN ;
                PD_CHECK( utilCheckInstanceID( instanceID, TRUE ),
                          SDB_INVALIDARG, error, PDERROR,
                          "Failed to check field [%s], "
@@ -2061,7 +1983,6 @@ namespace engine
 
       if ( !_onlyAttach )
       {
-         // We need to test the sdbcm
          INT32 retCode = SDB_OK ;
          rc = rtnRemoteExec( SDBTEST, _pHostName, &retCode ) ;
          PD_RC_CHECK( rc, PDERROR, "Do remote test on node[%s:%s] failed, "
@@ -2071,8 +1992,6 @@ namespace engine
       }
       else
       {
-         // When attaching, sdbcm is tested by getting node configure in
-         // previous phase, so do nothing here.
       }
 
    done :
@@ -2155,14 +2074,11 @@ namespace engine
 
       CoordGroupInfoPtr groupPtr ;
 
-      // update group info on local node, in case that it isn't registered
-      // in the cluster. ignored error.
       _pResource->updateGroupInfo( pArgs->_targetName.c_str(),
                                    groupPtr, cb ) ;
 
       if ( 0 == pArgs->_targetName.compare( CATALOG_GROUPNAME ) )
       {
-         // notify all nodes, except local node
          notifyCatalogChange2AllNodes( cb, TRUE ) ;
       }
 
@@ -2221,8 +2137,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_REMOVENODE_PARSEMSG ) ;
 
-      UINT32 validCount = 0 ;
-
       try
       {
          BSONElement ele ;
@@ -2235,7 +2149,6 @@ namespace engine
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-         ++validCount ;
 
          ele = pArgs->_boQuery.getField( CAT_HOST_FIELD_NAME ) ;
          if ( String != ele.type() )
@@ -2246,7 +2159,6 @@ namespace engine
             goto error ;
          }
          _pHostName = ele.valuestr() ;
-         ++validCount ;
 
          rc = rtnGetBooleanElement( pArgs->_boQuery, FIELD_NAME_ONLY_DETACH,
                                     _onlyDetach ) ;
@@ -2261,14 +2173,8 @@ namespace engine
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-         else
-         {
-            ++validCount ;
-         }
 
-         /// get enforced and Enforced
-         /// if there are both Enforced and enforced, just use Enforced.
-         rc = rtnGetBooleanElement( pArgs->_boQuery, FIELD_NAME_ENFORCED,
+         rc = rtnGetBooleanElement( pArgs->_boQuery, CMD_NAME_ENFORCED,
                                     _enforce ) ;
          if ( SDB_FIELD_NOT_EXIST == rc )
          {
@@ -2277,34 +2183,11 @@ namespace engine
          else if ( rc )
          {
             PD_LOG( PDERROR, "Get field[%s] failed on command[%s], "
-                    "rc: %d", FIELD_NAME_ENFORCED, getName(), rc ) ;
+                    "rc: %d", CMD_NAME_ENFORCED, getName(), rc ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-         else
-         {
-            ++validCount ;
-         }
 
-         rc = rtnGetBooleanElement( pArgs->_boQuery, FIELD_NAME_ENFORCED1,
-                                    _enforce ) ;
-         if ( SDB_FIELD_NOT_EXIST == rc )
-         {
-            rc = SDB_OK ;
-         }
-         else if ( rc )
-         {
-            PD_LOG( PDERROR, "Get field[%s] failed on command[%s], "
-                    "rc: %d", FIELD_NAME_ENFORCED1, getName(), rc ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         else
-         {
-            ++validCount ;
-         }
-
-         /// check svcname
          ele = pArgs->_boQuery.getField( PMD_OPTION_SVCNAME ) ;
          if ( String != ele.type() )
          {
@@ -2314,7 +2197,6 @@ namespace engine
             goto error ;
          }
          _pSvcName = ele.valuestr() ;
-         ++validCount ;
 
          if ( _onlyDetach )
          {
@@ -2328,26 +2210,17 @@ namespace engine
 
             rc = rtnGetBooleanElement( pArgs->_boQuery, FIELD_NAME_KEEP_DATA,
                                        _keepData ) ;
-            if ( rc )
+            if ( SDB_FIELD_NOT_EXIST == rc )
             {
-               PD_LOG_MSG( PDERROR, "Not specify the field[%s] or it has" 
-                           " an invalid value in options"
-                           " when detaching node.", FIELD_NAME_KEEP_DATA ) ;
+               rc = SDB_OK ;
+            }
+            else if ( rc )
+            {
+               PD_LOG( PDERROR, "Get field[%s] failed on command[%s], "
+                       "rc: %d", FIELD_NAME_KEEP_DATA, getName(), rc ) ;
                rc = SDB_INVALIDARG ;
                goto error ;
             }
-            else
-            {
-               ++validCount ;
-            }
-         }
-
-         if ( (UINT32)pArgs->_boQuery.nFields() > validCount )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Unknown parameters in command's args[%s]",
-                    pArgs->_boQuery.toString().c_str() ) ;
-            goto error ;
          }
       }
       catch( std::exception &e )
@@ -2395,7 +2268,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_REMOVENODE_DOONDATA ) ;
 
-      // We need to test the sdbcm
       INT32 retCode = SDB_OK ;
       rc = rtnRemoteExec ( SDBTEST, _pHostName, &retCode ) ;
       if ( rc )
@@ -2434,12 +2306,8 @@ namespace engine
 
       INT32 retCode = SDB_OK ;
 
-      /// notify the other nodes to update groupinfo.
-      /// here we do not care whether they succeed.
       _notify2GroupNodes( cb, pArgs ) ;
 
-      /// ignore the stop result, because remove or clear will
-      /// retry to stop in sdbcm
       rc = rtnRemoteExec ( SDBSTOP, _pHostName, &retCode,
                            &(pArgs->_boQuery) ) ;
       rc = rc ? rc : retCode ;
@@ -2515,14 +2383,11 @@ namespace engine
 
       CoordGroupInfoPtr groupPtr ;
 
-      // update group info on local node, in case that it isn't registered
-      // in the cluster. ignored error.
       _pResource->updateGroupInfo( pArgs->_targetName.c_str(),
                                    groupPtr, cb ) ;
 
       if ( 0 == pArgs->_targetName.compare( CATALOG_GROUPNAME ) )
       {
-         // notify all nodes, except local node
          notifyCatalogChange2AllNodes( cb, TRUE ) ;
       }
 

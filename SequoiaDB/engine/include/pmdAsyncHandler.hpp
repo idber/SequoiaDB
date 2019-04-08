@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pmdAsyncHandler.hpp
 
@@ -39,7 +38,6 @@
 #include "netTimer.hpp"
 #include "netMsgHandler.hpp"
 #include "pmdEDU.hpp"
-#include "schedTaskAdapterBase.hpp"
 
 namespace engine
 {
@@ -77,8 +75,7 @@ namespace engine
    class _pmdAsyncMsgHandler : public _netMsgHandler
    {
       public:
-         _pmdAsyncMsgHandler( _pmdAsycSessionMgr *pSessionMgr,
-                              _schedTaskAdapterBase *pTaskAdapter = NULL ) ;
+         _pmdAsyncMsgHandler( _pmdAsycSessionMgr *pSessionMgr ) ;
          virtual ~_pmdAsyncMsgHandler () ;
 
          OSS_INLINE void attach( pmdEDUCB *cb ) { _pMgrEDUCB = cb; }
@@ -98,10 +95,6 @@ namespace engine
                                   const _MsgHeader *header,
                                   const CHAR *msg );
 
-         INT32 _handleAdapterMsg( const NET_HANDLE &handle,
-                                  const _MsgHeader *header,
-                                  const CHAR *msg ) ;
-
          INT32 _handleMainMsg( const NET_HANDLE &handle,
                                const _MsgHeader *header,
                                const CHAR *msg ) ;
@@ -115,9 +108,8 @@ namespace engine
                                     MsgHeader *pNewMsg ) ;
 
       protected:
-         _pmdAsycSessionMgr      *_pSessionMgr ;
-         _schedTaskAdapterBase   *_pTaskAdapter ;
-         pmdEDUCB                *_pMgrEDUCB ;
+         _pmdAsycSessionMgr   *_pSessionMgr ;
+         pmdEDUCB             *_pMgrEDUCB ;
 
    } ;
    typedef _pmdAsyncMsgHandler pmdAsyncMsgHandler ;

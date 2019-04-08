@@ -37,19 +37,15 @@
       {
          if( shrink == true )
          {
-            $scope.stepList = _Deploy.BuildSdbShrinkStep( $scope, $location, $scope['Url']['Method'], 'sequoiadb' ) ;
+            $scope.stepList = _Deploy.BuildSdbShrinkStep( $scope, $location, $scope['Url']['Action'], 'sequoiadb' ) ;
          }
-         else if( $scope.ModuleType == 'sequoiasql-postgresql' )
+         else if( $scope.ModuleType == 'sequoiasql-oltp' )
          {
-            $scope.stepList = _Deploy.BuildSdbPgsqlStep( $scope, $location, $scope['Url']['Method'] ) ;
-         }
-         else if( $scope.ModuleType == 'sequoiasql-mysql' )
-         {
-            $scope.stepList = _Deploy.BuildSdbMysqlStep( $scope, $location, $scope['Url']['Method'] ) ;
+            $scope.stepList = _Deploy.BuildSdbOltpStep( $scope, $location, $scope['Url']['Action'] ) ;
          }
          else
          {
-            $scope.stepList = _Deploy.BuildSdbStep( $scope, $location, $scope.DeployType, $scope['Url']['Method'], $scope.ModuleType ) ;
+            $scope.stepList = _Deploy.BuildSdbStep( $scope, $location, $scope.DeployType, $scope['Url']['Action'], $scope.ModuleType ) ;
          }
 
          if( $scope.DeployType != 'Task' && $scope.stepList['info'].length == 0 )
@@ -116,7 +112,7 @@
                'Flow':        '40%'
             } ;
          }
-         else if( moduleType == 'sequoiasql-postgresql' || moduleType == 'sequoiasql-mysql' )
+         else if( moduleType == 'sequoiasql-oltp' )
          {
             $scope.TaskTable['title'] = {
                'Status':         '',
@@ -149,13 +145,9 @@
          {
             $location.path( '/Deploy/ZKP-Mod' ).search( { 'r': new Date().getTime() } ) ;
          }
-         else if( $scope.ModuleType == 'sequoiasql-postgresql' )
+         else if( $scope.ModuleType == 'sequoiasql-oltp' )
          {
-            $location.path( '/Deploy/PostgreSQL-Mod' ).search( { 'r': new Date().getTime() } ) ;
-         }
-         else if( $scope.ModuleType == 'sequoiasql-mysql' )
-         {
-            $location.path( '/Deploy/MySQL-Mod' ).search( { 'r': new Date().getTime() } ) ;
+            $location.path( '/Deploy/OLTP-Mod' ).search( { 'r': new Date().getTime() } ) ;
          }
       }
 
@@ -194,10 +186,8 @@
                return true ;
             }, $scope.autoLanguage( '错误' ), $scope.autoLanguage( '获取日志失败。' ) ) ;
          } ) ;
+         $scope.GetLogWindow['callback']['SetOkButton']( $scope.autoLanguage( '确定' ) ) ;
          $scope.GetLogWindow['callback']['SetTitle']( $scope.autoLanguage( '日志' ) ) ;
-         $scope.GetLogWindow['callback']['SetCloseButton']( $scope.autoLanguage( '关闭' ), function(){
-            $scope.GetLogWindow['callback']['Close']() ;
-         } ) ;
          $scope.GetLogWindow['callback']['Open']() ;
       }
 
@@ -250,7 +240,7 @@
                         $scope.BarColor = 2 ;
                      }
                   }
-                  else if( $scope.ModuleType == 'zookeeper' || $scope.ModuleType == 'sequoiasql' || $scope.ModuleType == 'sequoiasql-postgresql' || $scope.ModuleType == 'sequoiasql-mysql' )
+                  else if( $scope.ModuleType == 'zookeeper' || $scope.ModuleType == 'sequoiasql' || $scope.ModuleType == 'sequoiasql-oltp' )
                   {
                      $.each( $scope.TaskInfo['ResultInfo'], function( index, nodeInfo ){
                         if( nodeInfo['errno'] != 0 )

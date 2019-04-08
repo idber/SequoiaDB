@@ -1,6 +1,6 @@
 <?php
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ class SequoiaDB
    /** Get the snapshot of the system. */
    define( "SDB_SNAP_SYSTEM",              7 ) ;
    /** Get the snapshot of the catalog. */
-   define( "SDB_SNAP_CATALOG",             8 ) ;
+   define( "SDB_SNAP_CATA",                8 ) ;
    /** Get the snapshot of all the transactions. */
    define( "SDB_SNAP_TRANSACTIONS",        9 ) ;
    /** Get the snapshot of current transaction. */
@@ -49,13 +49,7 @@ class SequoiaDB
    /** Get the snapshot of cached access plans. */
    define( "SDB_SNAP_ACCESSPLANS",         11 ) ;
    /** Get the snapshot of node health detection. */
-   define( "SDB_SNAP_HEALTH",              12 ) ;
-   /** Get the snapshot of node configurations. */
-   define( "SDB_SNAP_CONFIGS",             13 ) ;
-   /** Get the snapshot of service tasks. */
-   define( "SDB_SNAP_SVCTASKS",            14 ) ;
-   /** Get the snapshot of sequences. */
-   define( "SDB_SNAP_SEQUENCES",           15 ) ;
+   define( "SDB_SNAP_HEALTH", 12 ) ;
 
    /**
     * Get the snapshot of all the collections.
@@ -80,9 +74,9 @@ class SequoiaDB
     *
     * @deprecated
     *
-    * @see SDB_SNAP_CATALOG
+    * @see SDB_SNAP_CATA
    */
-   define( "SDB_SNAP_CATA",             8 ) ;
+   define( "SDB_SNAP_CATALOG",             8 ) ;
 
    /**
     * Get the snapshot of all the transactions.
@@ -101,39 +95,33 @@ class SequoiaDB
     * @see SDB_SNAP_TRANSACTIONS_CURRENT
    */
    define( "SDB_SNAP_TRANSACTION_CURRENT", 10 ) ;
-
+  
    /** Get the list of the contexts. */
-   define( "SDB_LIST_CONTEXTS",                 0 ) ;
+   define( "SDB_LIST_CONTEXTS",         0 ) ;
    /** Get the list of current context. */
-   define( "SDB_LIST_CONTEXTS_CURRENT",         1 ) ;
+   define( "SDB_LIST_CONTEXTS_CURRENT", 1 ) ;
    /** Get the list of the sessions. */
-   define( "SDB_LIST_SESSIONS",                 2 ) ;
+   define( "SDB_LIST_SESSIONS",         2 ) ;
    /** Get the list of current session. */
-   define( "SDB_LIST_SESSIONS_CURRENT",         3 ) ;
+   define( "SDB_LIST_SESSIONS_CURRENT", 3 ) ;
    /** Get the list of the collections. */
-   define( "SDB_LIST_COLLECTIONS",              4 ) ;
+   define( "SDB_LIST_COLLECTIONS",      4 ) ;
    /** Get the list of the collecion spaces. */
-   define( "SDB_LIST_COLLECTIONSPACES",         5 ) ;
+   define( "SDB_LIST_COLLECTIONSPACES", 5 ) ;
    /** Get the list of the storage units. */
-   define( "SDB_LIST_STORAGEUNITS",             6 ) ;
+   define( "SDB_LIST_STORAGEUNITS",     6 ) ;
    /** Get the list of the replica groups ( only applicable in sharding env ). */
-   define( "SDB_LIST_GROUPS",                   7 ) ;
+   define( "SDB_LIST_GROUPS",           7 ) ;
    /** Get the list of the stored procedures ( only applicable in sharding env ). */
-   define( "SDB_LIST_STOREPROCEDURES",          8 ) ;
+   define( "SDB_LIST_STOREPROCEDURES",  8 ) ;
    /** Get the list of the domains ( only applicable in sharding env ). */
-   define( "SDB_LIST_DOMAINS",                  9 ) ;
+   define( "SDB_LIST_DOMAINS",          9 ) ;
    /** Get the list of the tasks ( only applicable in sharding env ). */
-   define( "SDB_LIST_TASKS",                    10 ) ;
+   define( "SDB_LIST_TASKS",            10 ) ;
    /** Get all the transactions information. */
-   define( "SDB_LIST_TRANSACTIONS",             11 ) ;
+   define( "SDB_LIST_TRANSACTIONS",     11 ) ;
    /** Get the transactions information of current session. */
-   define( "SDB_LIST_TRANSACTIONS_CURRENT",     12 ) ;
-   /** Get the list of service tasks. */
-   define( "SDB_LIST_SVCTASKS",                 14 ) ;
-   /** Get the list of sequences. */
-   define( "SDB_LIST_SEQUENCES",                15 ) ;
-   /** Get the list of users. */
-   define( "SDB_LIST_USERS",                    16 ) ;
+   define( "SDB_LIST_TRANSACTIONS_CURRENT", 12 ) ;
    /** Get the list of the collections in specified domain. */
    define( "SDB_LIST_CL_IN_DOMAIN",     129 ) ;
    /** Get the list of the collection spaces in specified domain. */
@@ -163,7 +151,7 @@ class SequoiaDB
     * Example: 2. Connect to the database.
     * @code
     * $db = new SequoiaDB( "192.168.1.10:11810" ) ;
-    * $err = $db -> getLastErrorMsg() ;
+    * $err = $db -> getError() ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to connect database, error code: ".$err['errno'] ;
     *    return ;
@@ -173,7 +161,7 @@ class SequoiaDB
     * Example: 3. Connect to the database, using the default service name. The default service name is 11810.
     * @code
     * $db = new SequoiaDB( "192.168.1.10" ) ;
-    * $err = $db -> getLastErrorMsg() ;
+    * $err = $db -> getError() ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to connect database, error code: ".$err['errno'] ;
     *    return ;
@@ -183,7 +171,7 @@ class SequoiaDB
     * Example: 4. Connect to the running database one.
     * @code
     * $db = new SequoiaDB( [ "192.168.1.10:11810", "192.168.1.11:11810", "192.168.1.12:11810" ] ) ;
-    * $err = $db -> getLastErrorMsg() ;
+    * $err = $db -> getError() ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to connect database, error code: ".$err['errno'] ;
     *    return ;
@@ -193,7 +181,7 @@ class SequoiaDB
     * Example: 5. Connect to the authentication database.
     * @code
     * $db = new SequoiaDB( "192.168.1.10:11810", "admin", "123456" ) ;
-    * $err = $db -> getLastErrorMsg() ;
+    * $err = $db -> getError() ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to connect database, error code: ".$err['errno'] ;
     *    return ;
@@ -203,7 +191,7 @@ class SequoiaDB
     * Example: 6. Connect to the running authentication database one.
     * @code
     * $db = new SequoiaDB( [ "192.168.1.10:11810", "192.168.1.11:11810", "192.168.1.12:11810" ], "admin", "123456" ) ;
-    * $err = $db -> getLastErrorMsg() ;
+    * $err = $db -> getError() ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to connect database, error code: ".$err['errno'] ;
     *    return ;
@@ -213,7 +201,7 @@ class SequoiaDB
     * Example: 7. Connect to the database with ssl.
     * @code
     * $db = new SequoiaDB( "192.168.1.10:11810", "", "", true ) ;
-    * $err = $db -> getLastErrorMsg() ;
+    * $err = $db -> getError() ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to connect database with ssl, error code: ".$err['errno'] ;
     *    return ;
@@ -233,7 +221,7 @@ class SequoiaDB
     * Example: 9. Connect to the database with ssl.
     * @code
     * $db = new SecureSdb( "192.168.1.10:11810" ) ;
-    * $err = $db -> getLastErrorMsg() ;
+    * $err = $db -> getError() ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to connect database with ssl, error code: ".$err['errno'] ;
     *    return ;
@@ -262,7 +250,7 @@ class SequoiaDB
     * @code
     * $db = new SequoiaDB() ;
     * $db -> install( array( 'install' => true ) ) ;
-    * $err = $db -> getLastErrorMsg() ;
+    * $err = $db -> getError() ;
     * echo "The result is an array type. " ;
     * var_dump( $err ) ;
     * //output: array(1){ ["errno"] => int(0) }
@@ -272,7 +260,7 @@ class SequoiaDB
     * @code
     * $db = new SequoiaDB() ;
     * $db -> install( array( 'install' => false ) ) ;
-    * $err = $db -> getLastErrorMsg() ;
+    * $err = $db -> getError() ;
     * echo "The result is the string type. " ;
     * var_dump( $err ) ;
     * //output: string(14) "{ "errno": 0 }"
@@ -288,18 +276,12 @@ class SequoiaDB
    public function install( array|string $options = null ){}
 
    /**
-    * Get the error object of the previous operation. The error object is not automatically cleared until the next operation.
+    * When function return value is result, the return content contains the error code. but a small part of function does not return an error code, So you can call getError() to retrieve the error code.
     *
-    * @return Returns the result of the last error message
+    * @return Returns the result of the last operation, default return array, set the return type by using the install() function.
     *
-    * @retval array error infomation
-    *
-    * If there has an error, it contains the follow fields: 
-    *    @code
-    *    errno:       the error number
-    *    description: the description of the errno
-    *    detail:      the error detail
-    *    @endcode
+    * @retval array   array( 'errno' => 0 )
+    * @retval string  { "errno": 0 }
     *
     * Example:
     * @code
@@ -310,31 +292,14 @@ class SequoiaDB
     *    echo "Failed to connect database, error code: ".$err['errno'] ;
     *    return ;
     * }
-    * $cs = $db -> getCS( "not_exist_cs" ) ;
-    * echo "Get the last error message." ;
-    * $errMsg = $db -> getLastErrorMsg() ;
-    * var_dump( $errMsg ) ;
+    * $cl = $db -> getCL( "foo.bar" ) ;
+    * echo "Get the error code for the getCL function." ;
+    * $err = $db -> getError() ;
+    * var_dump( $err ) ;
     * @endcode
    */
-   public function getLastErrorMsg(){}
-
-   /**
-    * Clean the last error object(returned by engine) of current connection.
-    *
-    * Example:
-    * @code
-    * $db = new SequoiaDB() ;
-    * $err = $db -> connect( "192.168.1.10:11810" ) ;
-    * if( $err['errno'] != 0 )
-    * {
-    *    echo "Failed to connect database, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * $db -> cleanLastErrorMsg() ;
-    * @endcode
-   */
-   public function cleanLastErrorMsg(){}
-
+   public function getError(){}
+   
    /**
     * Connect to database.
     *
@@ -471,7 +436,7 @@ class SequoiaDB
     *                                               Deep              : (INT32) Flush with deep mode or not. 1 in default. 0 for non-deep mode,1 for deep mode,-1 means use the configuration with server.
     *                                               Block             : (Bool) Flush with block mode or not. false in default.
     *                                               CollectionSpace   : (String) Specify the collectionspace to sync. If not set, will sync all the collectionspaces and logs, otherwise, will only sync the collectionspace specified.
-    *                                               Location Elements : (Only take effect in coordinate nodes) GroupID:INT32, GroupName:String, NodeID:INT32, HostName:String, svcname:String ...
+    *                                               Location Elements	: (Only take effect in coordinate nodes) GroupID:INT32, GroupName:String, NodeID:INT32, HostName:String, svcname:String ...
     *                                               @endcode
     *
     * @return Returns the result, default return array.
@@ -517,84 +482,22 @@ class SequoiaDB
    public function syncDB( array|string $options = null ){}
 
    /**
-    * Clear node cache.
-    *
-    * @param $condition an array or the string argument . Filter condition:
-    *                                               @code
-    *                                               If the GroupID, GroupName, NodeID, HostName, and svcname fields are set, this field is ignored.
-    *                                               Global    : true | false
-    *
-    *                                               The default is all groups, the relationship between GroupID and GroupName is or.
-    *                                               GroupID   : 1001 | [ 1001, 1002, ... ], 
-    *                                               GroupName : "group1" | [ "group1", "group2", ... ]
-    *
-    *                                               The default is all nodes in the group, the relationship between GroupID and GroupName is and.
-    *                                               NodeID    : 1001 | [ 1001, 1002, ... ]
-    *                                               HostName  : "host1" | [ "host1", "host2", ... ]
-    *                                               svcname   : "11810" | [ "11810", "11820", ... ]
-    *                                               @endcode
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example:
-    * 1. Clear all node cache.
-    * @code
-    * $db = new SequoiaDB() ;
-    * $err = $db -> connect( "192.168.1.10:11810" ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to connect database, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * $result = $db -> invalidateCache() ;
-    * var_dump( $result ) ;
-    * @endcode
-    * 2. Clear specified group cache.
-    * @code
-    * $db = new SequoiaDB() ;
-    * $err = $db -> connect( "192.168.1.10:11810" ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to connect database, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * $result = $db -> invalidateCache( array( 'GroupName' => 'group1' ) ) ;
-    * var_dump( $result ) ;
-    * @endcode
-    * 3. Clear specified node cache.
-    * @code
-    * $db = new SequoiaDB() ;
-    * $err = $db -> connect( "192.168.1.10:11810" ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to connect database, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * $result = $db -> invalidateCache( array( 'HostName' => 'host1', 'svcname' => '11810' ) ) ;
-    * var_dump( $result ) ;
-    * @endcode
-   */
-   public function invalidateCache( array|string $condition = array( 'Global' => true ) ){}
-
-   /**
     * Get the snapshot.
     *
     * @param $type	an integer argument. The snapshot type as below: @code
-    *                                                               SDB_SNAP_CONTEXTS              : Get the snapshot of all the contexts
-    *                                                               SDB_SNAP_CONTEXTS_CURRENT      : Get the snapshot of current context
-    *                                                               SDB_SNAP_SESSIONS              : Get the snapshot of all the sessions
-    *                                                               SDB_SNAP_SESSIONS_CURRENT      : Get the snapshot of current session
-    *                                                               SDB_SNAP_COLLECTIONS           : Get the snapshot of all the collections
-    *                                                               SDB_SNAP_COLLECTIONSPACES      : Get the snapshot of all the collection spaces
-    *                                                               SDB_SNAP_DATABASE              : Get the snapshot of the database
-    *                                                               SDB_SNAP_SYSTEM                : Get the snapshot of the system
-    *                                                               SDB_SNAP_CATALOG               : Get the snapshot of the catalog
-    *                                                               SDB_SNAP_TRANSACTIONS          : Get snapshot of transactions
-    *                                                               SDB_SNAP_TRANSACTIONS_CURRENT  : Get snapshot of all the transactions in current session
-    *                                                               SDB_SNAP_ACCESSPLANS           : Get the snapshot of cached access plans
-    *                                                               SDB_SNAP_HEALTH                : Get snapshot of node health detection
-    *                                                               SDB_SNAP_CONFIGS               : Get snapshot of node configurations
-    *                                                               SDB_SNAP_SEQUENCES             : Get the snapshot of sequences
+    *                                                               SDB_SNAP_CONTEXTS
+    *                                                               SDB_SNAP_CONTEXTS_CURRENT
+    *                                                               SDB_SNAP_SESSIONS
+    *                                                               SDB_SNAP_SESSIONS_CURRENT
+    *                                                               SDB_SNAP_COLLECTIONS
+    *                                                               SDB_SNAP_COLLECTIONSPACES
+    *                                                               SDB_SNAP_DATABASE
+    *                                                               SDB_SNAP_SYSTEM
+    *                                                               SDB_SNAP_CATA
+    *                                                               SDB_SNAP_TRANSACTIONS
+    *                                                               SDB_SNAP_TRANSACTIONS_CURRENT
+    *                                                               SDB_SNAP_ACCESSPLANS
+    *                                                               SDB_SNAP_HEALTH
     *                                                               @endcode
     *
     * @param $condition an array or the string argument. The matching rule, match all the documents if null.
@@ -603,12 +506,7 @@ class SequoiaDB
     *
     * @param $orderBy an array or the string argument. The ordered rule, never sort if null.
     *
-    * @param $hint an array or the string argument. The options provided for specific snapshot type.
-    *        format: array( '$Options' => <options> )
-    *
-    * @param $numToSkip an integer argument.  Skip the first numToSkip records, never skip if this parameter is 0.
-    *
-    * @param $numToReturn an integer argument. Only return numToReturn records, return all if this parameter is -1.
+    * @param $hint	an array or the string argument. This parameter is reserved and must be null.
     *
     * @return Returns a new SequoiaCursor object.
     *
@@ -624,16 +522,17 @@ class SequoiaDB
     * }
     * $cursor = $db -> snapshot( SDB_SNAP_CONTEXTS ) ;
     * if( empty( $cursor ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call snapshot, error code: ".$err['errno'] ;
     *    return ;
     * }
     * while( $record = $cursor -> next() ) {
     *    var_dump( $record ) ;
-    * }
+    * } 
     * @endcode
    */
-   public function snapshot( integer $type, array|string $condition = null, array|string $selector = null, array|string $orderBy = null, array|string $hint = null, integer $numToSkip = 0, integer $numToReturn = -1 ){}
+   public function snapshot( integer $type, array|string $condition = null, array|string $selector = null, array|string $orderBy = null, array|string $hint = null ){}
+
    /**
     * Reset the snapshot.
     *
@@ -646,7 +545,7 @@ class SequoiaDB
     *                          "health"
     *                          "all"
     *        SessionID       : (Int32) Specify the session ID to be reset.
-    *        Other Options   : Some of other options are as below:(please visit the official website to search "Location Elements" for more detail.)
+    *        Other Options   : Some of other options are as below:(please visit the official website to search "Location Elements" for more detail.) 
     *                          GroupID:INT32,
     *                          GroupName:String,
     *                          NodeID:INT32,
@@ -680,7 +579,7 @@ class SequoiaDB
    /**
     * Get the specified list.
     *
-    * @param $type an integer argument. The list type as below: @code
+    * @param $type	an integer argument. The list type as below: @code
     *                                                           SDB_LIST_CONTEXTS
     *                                                           SDB_LIST_CONTEXTS_CURRENT
     *                                                           SDB_LIST_SESSIONS
@@ -694,9 +593,6 @@ class SequoiaDB
     *                                                           SDB_LIST_TASKS
     *                                                           SDB_LIST_TRANSACTIONS
     *                                                           SDB_LIST_TRANSACTIONS_CURRENT
-    *                                                           SDB_LIST_SVCTASKS
-    *                                                           SDB_LIST_SEQUENCES
-    *                                                           SDB_LIST_USERS
     *                                                           SDB_LIST_CL_IN_DOMAIN
     *                                                           SDB_LIST_CS_IN_DOMAIN
     *                                                           @endcode
@@ -707,11 +603,7 @@ class SequoiaDB
     *
     * @param $orderBy an array or the string argument. The ordered rule, never sort if null.
     *
-    * @param $hint an array or the string argument. The options provided for specific list type. Reserved.
-    *
-    * @param $numToSkip an integer argument.	Skip the first numToSkip records, never skip if this parameter is 0.
-    *
-    * @param $numToReturn	an integer argument. Only return numToReturn records, return all if this parameter is -1.
+    * @param $hint	an array or the string argument. This parameter is reserved and must be null.
     *
     * @return Returns a new SequoiaCursor object.
     *
@@ -727,16 +619,16 @@ class SequoiaDB
     * }
     * $cursor = $db -> list( SDB_LIST_CONTEXTS ) ;
     * if( empty( $cursor ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call list, error code: ".$err['errno'] ;
     *    return ;
     * }
     * while( $record = $cursor -> next() ) {
     *    var_dump( $record ) ;
-    * }
+    * } 
     * @endcode
    */
-   public function list( integer $type, array|string $condition = null, array|string $selector = null, array|string $orderBy = null, array|string $hint = null, integer $numToSkip = 0, integer $numToReturn = -1 ){}
+   public function list( integer $type, array|string $condition = null, array|string $selector = null, array|string $orderBy = null, array|string $hint = null ){}
 
    /**
     * List all collection space of current database(include temporary collection space)
@@ -763,17 +655,17 @@ class SequoiaDB
     * }
     * $cursor = $db -> listCS() ;
     * if( empty( $cursor ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call listCS, error code: ".$err['errno'] ;
     *    return ;
     * }
     * while( $record = $cursor -> next() ) {
     *    var_dump( $record ) ;
-    * }
+    * } 
     * @endcode
    */
    public function listCS( array|string $condition = null, array|string $selector = null, array|string $orderBy = null, array|string $hint = null ){}
-
+   
    /**
     * Get the specified collection space, if is not exist,will auto create.
     *
@@ -803,14 +695,14 @@ class SequoiaDB
     * }
     * $cs = $db -> selectCS( 'foo', array( 'PageSize' => 4096 ) ) ;
     * if( empty( $cs ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call selectCS, error code: ".$err['errno'] ;
     *    return ;
     * }
     * @endcode
    */
    public function selectCS( string $name, array|string $options = null ){}
-
+   
    /**
     * Get the specified collection space, if is not exist,will auto create.
     *
@@ -832,7 +724,7 @@ class SequoiaDB
     * }
     * $cs = $db -> selectCS( 'foo', 4096 ) ;
     * if( empty( $cs ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call selectCS, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -896,7 +788,7 @@ class SequoiaDB
     * }
     * $cs = $db -> getCS( 'foo' ) ;
     * if( empty( $cs ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call getCS, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -932,37 +824,6 @@ class SequoiaDB
    public function dropCS( string $name ){}
 
    /**
-    * Rename collectionSpace
-    *
-    * @param $oldName   The old collection space name
-    *
-    * @param $newName   The new collection space name
-    *
-    * @param $options   Reserved
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example:
-    * @code
-    * $db = new SequoiaDB() ;
-    * $err = $db -> connect( "192.168.1.10:11810" ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to connect database, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * $err = $db -> renameCS( 'foo', 'new_foo' ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to rename collection space, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-   */
-   public function renameCS( string $oldName, string $newName, array|string $options = null ){}
-
-   /**
     * List all collection of current database(not include temporary collection of temporary collection space)
     *
     * @param $condition	an array or the string argument. This parameter is reserved and must be null.
@@ -987,13 +848,13 @@ class SequoiaDB
     * }
     * $cursor = $db -> listCL() ;
     * if( empty( $cursor ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call listCL, error code: ".$err['errno'] ;
     *    return ;
     * }
     * while( $record = $cursor -> next() ) {
     *    var_dump( $record ) ;
-    * }
+    * } 
     * @endcode
    */
    public function listCL( array|string $condition = null, array|string $selector = null, array|string $orderBy = null, array|string $hint = null ){}
@@ -1017,7 +878,7 @@ class SequoiaDB
     * }
     * $cl = $db -> getCL( 'foo.bar' ) ;
     * if( empty( $cl ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call getCL, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -1077,7 +938,7 @@ class SequoiaDB
     * }
     * $cursor = $db -> listDomain() ;
     * if( empty( $cursor ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call listDomains, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -1145,7 +1006,7 @@ class SequoiaDB
     * }
     * $domainObj = $db -> getDomain( 'myDomain' ) ;
     * if( empty( $domainObj ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call getDomain, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -1179,7 +1040,7 @@ class SequoiaDB
     * @endcode
    */
    public function dropDomain( string $name ){}
-
+   
    /**
     * List all the replica groups of current database.
     *
@@ -1205,7 +1066,7 @@ class SequoiaDB
     * }
     * $cursor = $db -> listGroup() ;
     * if( empty( $cursor ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call listGroup, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -1233,7 +1094,7 @@ class SequoiaDB
     * }
     * $groupObj = $db -> getGroup( 'myGroup' ) ;
     * if( empty( $groupObj ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call getGroup, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -1327,7 +1188,7 @@ class SequoiaDB
     * @endcode
    */
    public function createCataGroup( string $hostName, string $serviceName, string $databasePath, array|string $configure = null ){}
-
+   
    /**
     * Executing SQL command.
     *
@@ -1347,7 +1208,7 @@ class SequoiaDB
     * }
     * $cursor = $db -> execSQL( 'select * from foo.bar' ) ;
     * if( empty( $cursor ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call execSQL, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -1384,7 +1245,7 @@ class SequoiaDB
     * @endcode
    */
    public function execUpdateSQL( string $sql ){}
-
+   
    /**
     * Create an account.
     *
@@ -1442,7 +1303,7 @@ class SequoiaDB
     * @endcode
    */
    public function removeUser( string $userName, string $passwd ){}
-
+   
    /**
     * Flush the options to configure file.
     *
@@ -1476,79 +1337,7 @@ class SequoiaDB
     * @endcode
    */
    public function flushConfigure( array|string $options ){}
-
-   /**
-    * Force the node to update config from file and take effect.
-    *
-    * @param $configs the specific configuration parameters to update
-    * @param $options The control options:(Only take effect in coordinate nodes)
-    *                                                  @code
-    *                                                  GroupID:INT32,
-    *                                                  GroupName:String,
-    *                                                  NodeID:INT32,
-    *                                                  HostName:String,
-    *                                                  svcname:String,
-    *                                                  ...
-    *                                                  @endcode
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example:
-    * @code
-    * $db = new SequoiaDB() ;
-    * $err = $db -> connect( "192.168.1.10:11810" ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to connect database, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * $err = $db -> updateConfig( '{"diagnum":20}', '{"svcname":"20000"}' ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to call updateConfig, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-   */
-   public function updateConfig( array|string $configs, array|string $options ){}
-
-   /**
-    * Force the node to delete config from file and take effect.
-    *
-    * @param $configs the specific configuration parameters to delete
-    * @param $options The control options:(Only take effect in coordinate nodes)
-    *                                                  @code
-    *                                                  GroupID:INT32,
-    *                                                  GroupName:String,
-    *                                                  NodeID:INT32,
-    *                                                  HostName:String,
-    *                                                  svcname:String,
-    *                                                  ...
-    *                                                  @endcode
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example:
-    * @code
-    * $db = new SequoiaDB() ;
-    * $err = $db -> connect( "192.168.1.10:11810" ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to connect database, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * $err = $db -> deleteConfig( '{"diagnum":1}', '{"svcname":"20000"}' ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to call deleteConfig, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-   */
-   public function deleteConfig( array|string $configs, array|string $options ){}
-
+   
    /**
     * List store procedures.
     *
@@ -1574,7 +1363,7 @@ class SequoiaDB
     * }
     * $cursor = $db -> listProcedure( array( 'name' => 'sum' ) ) ;
     * if( empty( $cursor ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call listProcedure, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -1670,7 +1459,7 @@ class SequoiaDB
     *    return ;
     * }
     * $result = $db -> evalJs( 'sum( 1, 2 );' ) ;
-    * $err = $db -> getLastErrorMsg() ;
+    * $err = $db -> getError() ;
     * if( $err['errno'] != 0 ) ) {
     *    echo "Failed to call evalJs, error code: ".$err['errno'] ;
     *    if( strlen( $result ) > 0 )
@@ -1744,7 +1533,7 @@ class SequoiaDB
     * }
     * $cl = $db -> getCL( 'foo.bar' ) ;
     * if( empty( $cl ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call getCL, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -1785,7 +1574,7 @@ class SequoiaDB
     * }
     * $cl = $db -> getCL( 'foo.bar' ) ;
     * if( empty( $cl ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call getCL, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -1826,7 +1615,7 @@ class SequoiaDB
     * }
     * $cl = $db -> getCL( 'foo.bar' ) ;
     * if( empty( $cl ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call getCL, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -1937,7 +1726,7 @@ class SequoiaDB
     * }
     * $cursor = $db -> listBackup( array( 'Name' => 'myBackup_1' ) ) ;
     * if( empty( $cursor ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call listBackup, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -2007,7 +1796,7 @@ class SequoiaDB
     * }
     * $cursor = $db -> listTask() ;
     * if( empty( $cursor ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call listTask, error code: ".$err['errno'] ;
     *    return ;
     * }

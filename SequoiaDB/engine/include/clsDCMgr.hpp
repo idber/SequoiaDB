@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsDCMgr.hpp
 
@@ -51,7 +50,6 @@ using namespace std ;
 
 namespace engine
 {
-   // the dc mgr update some info from catalog timeout
    #define DC_UPDATE_TIMEOUT     (10*OSS_ONE_SEC)
 
    /*
@@ -97,8 +95,6 @@ namespace engine
          BOOLEAN        isActivated() const { return _activated ; }
          BOOLEAN        isReadonly() const { return _readonly ; }
 
-         utilCSUniqueID getCSUniqueHWM() const { return _csUniqueHWM ; }
-
          const CHAR*    getClusterName() const ;
          const CHAR*    getBusinessName() const ;
          const CHAR*    getAddress() const ;
@@ -134,7 +130,6 @@ namespace engine
          string         _address ;
          BOOLEAN        _activated ;
          BOOLEAN        _readonly ;
-         utilCSUniqueID _csUniqueHWM ;
 
          string         _imageClusterName ;
          string         _imageBusinessName ;
@@ -278,7 +273,7 @@ namespace engine
                                    BOOLEAN useCBMem = FALSE ) ;
 
          /*
-            Only for catalog group info is empty, and the msg is end to
+            Only for catalog group info is empty, and the msg is end to 
             catalog service, not shard service
          */
          INT32 _syncSend2PeerCatGroup( pmdEDUCB *cb, MsgHeader *msg,
@@ -287,7 +282,7 @@ namespace engine
                                        BOOLEAN useCBMem = FALSE ) ;
 
          /*
-            Process cat group response, this result will update to
+            Process cat group response, this result will update to 
             _pNodeMgrAgent.
          */
          INT32 _processCatGrpRes( pmdEDUCB *cb, MsgHeader *pRes,
@@ -298,7 +293,7 @@ namespace engine
          */
          INT32 _processGrpQueryRes( pmdEDUCB *cb, MsgHeader *pRes ) ;
          /*
-            Process catalog query response, this result will update to
+            Process catalog query response, this result will update to 
             _pCatAgent
          */
          INT32 _processCatQueryRes( pmdEDUCB *cb, MsgHeader *pRes ) ;

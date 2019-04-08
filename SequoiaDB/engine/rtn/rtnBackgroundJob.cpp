@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnBackgroundJob.cpp
 
@@ -45,9 +44,6 @@
 namespace engine
 {
 
-   ////////////////////////////////////////////////////////////////////////////
-   // background job implements //
-   ////////////////////////////////////////////////////////////////////////////
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINDEXJOB__RTNINDEXJOB, "_rtnIndexJob::_rtnIndexJob" )
    _rtnIndexJob::_rtnIndexJob ( RTN_JOB_TYPE type, const CHAR *pCLName,
@@ -59,9 +55,6 @@ namespace engine
       ossStrncpy ( _clFullName, pCLName, DMS_COLLECTION_FULL_NAME_SZ ) ;
       _clFullName[DMS_COLLECTION_FULL_NAME_SZ] = 0 ;
       _indexObj = indexObj.copy() ;
-      _hasAddUnique = FALSE ;
-      _csLID = DMS_INVALID_LOGICCSID ;
-      _clLID = DMS_INVALID_LOGICCLID ;
       _dpsCB = dpsCB ;
       _dmsCB = pmdGetKRCB()->getDMSCB() ;
       _lsn = offset ;
@@ -71,109 +64,26 @@ namespace engine
 
    _rtnIndexJob::~_rtnIndexJob ()
    {
-      INT32 rc = SDB_OK ;
-      dmsStorageUnitID suID = DMS_INVALID_SUID ;
-      dmsStorageUnit *su = NULL ;
-      dmsMBContext *mbContext = NULL ;
-      const CHAR *pCLShortName = NULL ;
-
-      if ( _hasAddUnique )
-      {
-         rc = rtnResolveCollectionNameAndLock ( _clFullName, _dmsCB,
-                                                &su, &pCLShortName,
-                                                suID ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG ( PDERROR, "Failed to resolve collection name %s",
-                     _clFullName ) ;
-            goto error ;
-         }
-         if ( _csLID != su->LogicalCSID() )
-         {
-            goto done ;
-         }
-
-         rc = su->data()->getMBContext( &mbContext, pCLShortName,
-                                        EXCLUSIVE ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG ( PDERROR, "Lock collection[%s] failed, rc = %d",
-                     _clFullName, rc ) ;
-            goto error ;
-         }
-         if ( _clLID != mbContext->clLID() )
-         {
-            goto done ;
-         }
-
-         mbContext->mbStat()->_uniqueIdxNum-- ;
-         _hasAddUnique = FALSE ;
-      }
-
-   done:
-      if ( mbContext )
-      {
-         su->data()->releaseMBContext( mbContext ) ;
-      }
-      if ( DMS_INVALID_SUID != suID )
-      {
-         _dmsCB->suUnlock( suID ) ;
-      }
-      return ;
-   error:
-      goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINDEXJOB_INIT, "_rtnIndexJob::init" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINDEXJOB_INIT, "_rtnIndexJob::init ()" )
    INT32 _rtnIndexJob::init ()
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNINDEXJOB_INIT ) ;
       dmsStorageUnitID suID = DMS_INVALID_SUID ;
-      dmsStorageUnit *su = NULL ;
-      dmsMBContext *mbContext = NULL ;
-      const CHAR *pCLShortName = NULL ;
-
-      rc = rtnResolveCollectionNameAndLock ( _clFullName, _dmsCB,
-                                             &su, &pCLShortName,
-                                             suID ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG ( PDERROR, "Failed to resolve collection name %s",
-                  _clFullName ) ;
-         goto error ;
-      }
 
       switch ( _type )
       {
          case RTN_JOB_CREATE_INDEX :
             {
                _jobName = "CreateIndex-" ;
-               // need to get the index name
                _indexName = _indexObj.getStringField( IXM_NAME_FIELD ) ;
-
-               if ( _indexObj.getBoolField( IXM_UNIQUE_FIELD ) )
-               {
-                  rc = su->data()->getMBContext( &mbContext, pCLShortName,
-                                                 EXCLUSIVE ) ;
-                  if ( SDB_OK != rc )
-                  {
-                     PD_LOG ( PDERROR, "Lock collection[%s] failed, rc = %d",
-                              _clFullName, rc ) ;
-                     goto error ;
-                  }
-
-                  mbContext->mbStat()->_uniqueIdxNum++ ;
-                  _hasAddUnique = TRUE ;
-                  _csLID = su->LogicalCSID() ;
-                  _clLID = mbContext->clLID() ;
-               }
             }
             break ;
          case RTN_JOB_DROP_INDEX :
             {
                _jobName = "DropIndex-" ;
-               // need to get the index name
                _indexEle = _indexObj.getField( IXM_NAME_FIELD ) ;
                if ( _indexEle.eoo() )
                {
@@ -183,7 +93,20 @@ namespace engine
                if ( jstOID == _indexEle.type() )
                {
                   OID oid ;
+                  const CHAR *pCLShortName = NULL ;
+                  dmsStorageUnit *su = NULL ;
+                  dmsMBContext *mbContext = NULL ;
                   dmsExtentID idxExtent = DMS_INVALID_EXTENT ;
+
+                  rc = rtnResolveCollectionNameAndLock ( _clFullName, _dmsCB,
+                                                         &su, &pCLShortName,
+                                                         suID ) ;
+                  if ( SDB_OK != rc )
+                  {
+                     PD_LOG ( PDERROR, "Failed to resolve collection name %s",
+                              _clFullName ) ;
+                     goto error ;
+                  }
 
                   rc = su->data()->getMBContext( &mbContext, pCLShortName,
                                                  SHARED ) ;
@@ -195,7 +118,6 @@ namespace engine
                   }
 
                   _indexEle.Val( oid ) ;
-                  // get index extent
                   rc = su->index()->getIndexCBExtent( mbContext, oid,
                                                       idxExtent ) ;
                   if ( SDB_OK != rc )
@@ -208,6 +130,10 @@ namespace engine
 
                   ixmIndexCB indexCB ( idxExtent, su->index(), NULL ) ;
                   _indexName = indexCB.getName() ;
+
+                  su->data()->releaseMBContext( mbContext ) ;
+                  _dmsCB->suUnlock( suID ) ;
+                  suID = DMS_INVALID_SUID ;
                }
                else
                {
@@ -231,17 +157,13 @@ namespace engine
       }
 
    done:
-      if ( mbContext )
-      {
-         su->data()->releaseMBContext( mbContext ) ;
-      }
+      PD_TRACE_EXITRC ( SDB__RTNINDEXJOB_INIT, rc ) ;
+      return rc ;
+   error:
       if ( DMS_INVALID_SUID != suID )
       {
          _dmsCB->suUnlock( suID ) ;
       }
-      PD_TRACE_EXITRC ( SDB__RTNINDEXJOB_INIT, rc ) ;
-      return rc ;
-   error:
       goto done ;
    }
 
@@ -380,7 +302,7 @@ namespace engine
             PD_LOG ( PDERROR, "Failed to lock collection space, rc=%d", rc ) ;
             goto error ;
          }
-
+   
          dmsLoadExtent.init ( su ) ;
 
          su->dumpInfo ( clList, FALSE ) ;
@@ -411,7 +333,6 @@ namespace engine
             }
             collectionFlag = mbContext->mb()->_flag ;
 
-            // unlock collection
 
             if ( DMS_IS_MB_FLAG_LOAD_LOAD ( collectionFlag ) )
             {
@@ -548,8 +469,6 @@ namespace engine
       }
 
       pJob->setInfo( pFunc ) ;
-      /// When suc or failed, the job is hold on by job manager,
-      /// so don't to release it
       rc = rtnGetJobMgr()->startJob( pJob, RTN_JOB_MUTEX_RET, NULL ) ;
       if ( rc )
       {

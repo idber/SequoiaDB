@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnRemoteMessenger.hpp
 
@@ -44,7 +43,6 @@
 
 namespace engine
 {
-   // Remote session handler. Used by _rtnContextTS.
    class _rtnRSHandler : public IRemoteSessionHandler
    {
       public:
@@ -66,8 +64,6 @@ namespace engine
    } ;
    typedef _rtnRSHandler rtnRSHandler ;
 
-   class _rtnRemoteMessenger ;
-
    class _rtnMsgHandler : public _netMsgHandler
    {
       public:
@@ -87,8 +83,6 @@ namespace engine
    } ;
    typedef _rtnMsgHandler rtnMsgHandler ;
 
-   // A messenger for communication with remote target, the search engine
-   // adapter, for example.
    class _rtnRemoteMessenger : public SDBObject
    {
    public:
@@ -97,31 +91,23 @@ namespace engine
 
       INT32 init() ;
       INT32 active() ;
-      void deactive() ;
       INT32 setTarget( const _MsgRouteID &id, const CHAR *host,
                        const CHAR *service ) ;
       INT32 setLocalID( const MsgRouteID &id ) ;
 
       INT32 prepareSession( pmdEDUCB *cb, UINT64 &sessionID ) ;
-      INT32 removeSession( UINT64 sessionID, pmdEDUCB *cb ) ;
       INT32 send( UINT64 sessionID, const MsgHeader *msg, pmdEDUCB *cb ) ;
       INT32 receive( UINT64 sessionID, pmdEDUCB *cb, MsgOpReply *&reply ) ;
 
-      // If disconnect with adapter, disable the messenger.
-      void onDisconnect() ;
-
-      OSS_INLINE BOOLEAN isReady()
-      {
-         ossScopedRWLock lock( &_lock, SHARED ) ;
-         return _ready ;
-      }
+      INT32 removeSession( UINT64 sessionID, pmdEDUCB *cb ) ;
+      void removeSession( pmdEDUCB *cb ) ;
+      BOOLEAN isReady() const { return _ready ; }
 
    private:
       pmdRemoteSessionMgr  _rsMgr ;
       rtnMsgHandler        _msgHandler ;
       netRouteAgent        _routeAgent ;
       rtnRSHandler         _rsHandler ;
-      ossRWMutex           _lock ;
       BOOLEAN              _ready ;
       UINT64               _targetNodeID ;
    } ;

@@ -129,7 +129,6 @@ public class SequoiadbURI {
         throw new UnsupportedOperationException("not supported!");
     }
 
-    // ---------------------------------
 
     /**
      * Gets the username
@@ -199,8 +198,6 @@ public class SequoiadbURI {
     @SuppressWarnings("deprecation")
     public Sdb connect()
             throws UnknownHostException {
-        // TODO caching?
-        // Note: we can't change this to new SdbClient(this) as that would silently change the default write concern.
         return new Sdb(this);
     }
 
@@ -242,7 +239,6 @@ public class SequoiadbURI {
         return connectDB(sdb).getCollection( getCollection() );
     }
 
-    // ---------------------------------
 
     @Override
     public String toString() {

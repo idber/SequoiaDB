@@ -284,23 +284,6 @@ public class MapReduceTests {
 	@Test
 	public void mapReduceShouldUseQueryMapper() {
 
-//		DBCollection c = mongoTemplate.getDb().getCollection("jmrWithGeo");
-//
-////		c.save(new BasicDBObject("x", new String[] { "a", "b" }).append("loc", new double[] { 0, 0 }));
-////		c.save(new BasicDBObject("x", new String[] { "b", "c" }).append("loc", new double[] { 0, 0 }));
-////		c.save(new BasicDBObject("x", new String[] { "c", "d" }).append("loc", new double[] { 0, 0 }));
-//
-//		Query query = new Query(where("x").ne(new String[] { "a", "b" }).and("loc")
-//				.within(new Box(new double[] { 0, 0 }, new double[] { 1, 1 })));
-//
-//		MapReduceResults<ValueObject> results = template.mapReduce(query, "jmrWithGeo", mapFunction, reduceFunction,
-//				ValueObject.class);
-//
-//		Map<String, Float> m = copyToMap(results);
-//		assertEquals(3, m.size());
-//		assertEquals(1, m.get("b").intValue());
-//		assertEquals(2, m.get("c").intValue());
-//		assertEquals(1, m.get("d").intValue());
 	}
 
 	private void performMapReduce(boolean inline, boolean withQuery) {

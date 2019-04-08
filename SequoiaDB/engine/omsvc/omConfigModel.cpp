@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omConfigModel.cpp
 
@@ -35,8 +34,7 @@
 #include "omConfigSdb.hpp"
 #include "omConfigZoo.hpp"
 #include "omConfigSsqlOlap.hpp"
-#include "omConfigPostgreSQL.hpp"
-#include "omConfigMySQL.hpp"
+#include "omConfigSsqlOltp.hpp"
 #include "pd.hpp"
 #include <sstream>
 
@@ -69,13 +67,9 @@ namespace engine
       {
          _node = SDB_OSS_NEW OmSsqlOlapNode() ;
       }
-      else if ( businessType == OM_BUSINESS_SEQUOIASQL_POSTGRESQL )
+      else if ( businessType == OM_BUSINESS_SEQUOIASQL_OLTP )
       {
          _node = SDB_OSS_NEW OmSsqlOltpNode() ;
-      }
-      else if ( businessType == OM_BUSINESS_SEQUOIASQL_MYSQL )
-      {
-         _node = SDB_OSS_NEW OmMySQLNode() ;
       }
       else
       {
@@ -577,26 +571,6 @@ namespace engine
       goto done ;
    }
 
-   void OmHost::appendDeployPath( const string &packageName,
-                                  string &deployPath )
-   {
-      _deployPathes.insert( make_pair( packageName, deployPath ) ) ;
-   }
-
-   string OmHost::getDeployPath( const string &packageName )
-   {
-      map<const string, string>::iterator it ;
-      string deployPath ;
-
-      it = _deployPathes.find( packageName ) ;
-      if ( it != _deployPathes.end() )
-      {
-         deployPath = it->second ;
-      }
-
-      return deployPath ;
-   }
-
    const simpleDiskInfo* OmHost::getDisk( const string path )
    {
       INT32 maxFitSize = 0 ;
@@ -880,8 +854,7 @@ namespace engine
       if ( hostName == "" )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "invalid host name: %s",
-                     hostNodeInfo.toString().c_str() ) ;
+         PD_LOG_MSG( PDERROR, "invalid host name: %s", hostNodeInfo.toString().c_str() ) ;
          goto error ;
       }
 
@@ -892,27 +865,6 @@ namespace engine
          PD_LOG_MSG( PDERROR, "failed to alloc new OmHost: %s, out of memory",
                  hostName.c_str() ) ;
          goto error ;
-      }
-
-      {
-         BSONObj packages = hostNodeInfo.getObjectField(
-                                                      OM_HOST_FIELD_PACKAGES ) ;
-
-         {
-            BSONObjIterator iter( packages ) ;
-
-            while ( iter.more() )
-            {
-               BSONElement ele = iter.next() ;
-               BSONObj packageInfo = ele.embeddedObject() ;
-               string packageName = packageInfo.getStringField(
-                                                   OM_HOST_FIELD_PACKAGENAME ) ;
-               string installPath = packageInfo.getStringField(
-                                                   OM_HOST_FIELD_INSTALLPATH ) ;
-
-               host->appendDeployPath( packageName, installPath ) ;
-            }
-         }
       }
 
       {
@@ -1064,8 +1016,6 @@ namespace engine
          goto error ;
       }
 
-      // add node to cluser
-      // must be at the last, because the cluster manages the node
       rc = _addNode( node ) ;
       if ( SDB_OK != rc )
       {
@@ -1117,7 +1067,6 @@ namespace engine
 
       SDB_ASSERT( NULL != node, "node can't be NULL") ;
 
-      // add to business
       {
          OmBusiness* business = NULL ;
          rc = getBusiness( node->getBusinessInfo().businessName, business ) ;
@@ -1136,7 +1085,6 @@ namespace engine
          }
       }
 
-      // add to host
       {
          OmHost* host = NULL ;
          rc = getHost( node->getHostName(), host ) ;
@@ -1155,8 +1103,6 @@ namespace engine
          }
       }
 
-      // must be at the last, because of the node memory is managed by cluster
-      // add to nodes
       rc = _addNode( node ) ;
       if ( SDB_OK != rc )
       {

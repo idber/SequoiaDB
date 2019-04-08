@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordRemoteSession.hpp
 
@@ -41,7 +40,6 @@
 #include "pmdRemoteSession.hpp"
 #include "coordRemoteHandle.hpp"
 #include "rtnSessionProperty.hpp"
-#include "ossMemPool.hpp"
 
 using namespace bson ;
 
@@ -73,15 +71,10 @@ namespace engine
    */
    class _coordSessionPropSite : public _rtnSessionProperty
    {
-      public:
-         typedef ossPoolMap< UINT32, UINT64 >      MAP_GROUP_2_NODE ;
-         typedef MAP_GROUP_2_NODE::iterator        MAP_GROUP_2_NODE_IT ;
+      typedef std::map< UINT32, UINT64 >        MAP_GROUP_2_NODE ;
+      typedef MAP_GROUP_2_NODE::iterator        MAP_GROUP_2_NODE_IT ;
 
-         typedef ossPoolMap< UINT32, MsgRouteID >  MAP_TRANS_NODES ;
-         typedef MAP_TRANS_NODES::iterator         MAP_TRANS_NODES_IT ;
-         typedef MAP_TRANS_NODES::const_iterator   MAP_TRANS_NODES_CIT ;
-
-         friend class _coordSessionPropMgr ;
+      friend class _coordSessionPropMgr ;
 
       public:
          _coordSessionPropSite() ;
@@ -95,43 +88,17 @@ namespace engine
          void        delLastNode( UINT32 groupID ) ;
          void        delLastNode( UINT32 groupID, UINT64 nodeID ) ;
 
-         /*
-            Trans info
-         */
-         BOOLEAN     isTransNode( const MsgRouteID &routeID ) const ;
-         BOOLEAN     getTransNodeRouteID( UINT32 groupID,
-                                          MsgRouteID &routeID ) const ;
-         BOOLEAN     hasTransNode( UINT32 groupID ) const ;
-         BOOLEAN     isTransNodeEmpty() const ;
-
-         BOOLEAN     delTransNode( const MsgRouteID &routeID ) ;
-         void        addTransNode( const MsgRouteID &routeID ) ;
-
-         UINT32      getTransNodeSize() const ;
-         UINT32      dumpTransNode( SET_ROUTEID &setID ) const ;
-
-         const MAP_TRANS_NODES* getTransNodeMap() const ;
-
-         INT32       beginTrans( _pmdEDUCB *cb ) ;
-         void        endTrans( _pmdEDUCB *cb ) ;
-
          _pmdEDUCB*  getEDUCB() { return _pEDUCB ; }
-         pmdRemoteSessionSite* getSite() { return _pSite ; }
 
       protected :
          virtual void _onSetInstance () ;
 
       private:
          void        setEduCB( _pmdEDUCB *cb ) ;
-         void        setSite( pmdRemoteSessionSite *pSite ) ;
 
       private:
-         MAP_GROUP_2_NODE     _mapLastNodes ;
-         _pmdEDUCB            *_pEDUCB ;
-         pmdRemoteSessionSite *_pSite ;
-
-         MAP_TRANS_NODES      _mapTransNodes ;
-         INT32                _transResult ;
+         MAP_GROUP_2_NODE  _mapLastNodes ;
+         _pmdEDUCB         *_pEDUCB ;
    } ;
 
    typedef _coordSessionPropSite coordSessionPropSite ;
@@ -142,8 +109,8 @@ namespace engine
    class _coordSessionPropMgr : public _IRemoteMgrHandle,
                                 public _rtnSessionProperty
    {
-      typedef ossPoolMap< UINT32, coordSessionPropSite >    MAP_TID_2_PROP ;
-      typedef MAP_TID_2_PROP::iterator                      MAP_TID_2_PROP_IT ;
+      typedef map< UINT32, coordSessionPropSite >     MAP_TID_2_PROP ;
+      typedef MAP_TID_2_PROP::iterator                MAP_TID_2_PROP_IT ;
 
       public:
          _coordSessionPropMgr() ;
@@ -200,8 +167,8 @@ namespace engine
          INT32    _selOtherBegin( MsgRouteID &nodeID ) ;
 
       protected :
-         typedef _utilArray< UINT8, CLS_REPLSET_MAX_NODE_SIZE >   COORD_POS_ARRAY ;
-         typedef ossPoolList< UINT8>                              COORD_POS_LIST ;
+         typedef _utilArray< UINT8, CLS_REPLSET_MAX_NODE_SIZE > COORD_POS_ARRAY ;
+         typedef _utilList< UINT8, CLS_REPLSET_MAX_NODE_SIZE > COORD_POS_LIST ;
       private:
          INT32    _calcBeginPos( clsGroupItem *pGroupItem,
                                  const rtnInstanceOption & instanceOption,
@@ -298,8 +265,7 @@ namespace engine
 
          void        init( coordResource *pResource,
                            coordSessionPropSite *pPropSite,
-                           coordGroupSel *pGroupSel,
-                           IRemoteSessionHandler *pRemoteHandle ) ;
+                           coordGroupSel *pGroupSel ) ;
 
          BOOLEAN     canRetry( INT32 flag,
                                const MsgRouteID &nodeID,
@@ -326,7 +292,6 @@ namespace engine
          coordResource           *_pResource ;
          coordSessionPropSite    *_pPropSite ;
          coordGroupSel           *_pGroupSel ;
-         IRemoteSessionHandler   *_pRemoteHandle ;
 
    } ;
    typedef _coordGroupSessionCtrl coordGroupSessionCtrl ;

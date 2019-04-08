@@ -40,9 +40,6 @@ static void local_time ( time_t *Time, struct tm *TM )
 #if defined (__linux__ ) || defined (_AIX)
    localtime_r( Time, TM ) ;
 #elif defined (_WIN32)
-   // The Time represents the seconds elapsed since midnight (00:00:00),
-   // January 1, 1970, UTC. This value is usually obtained from the time
-   // function.
    localtime_s( TM, Time ) ;
 #endif
 }
@@ -112,14 +109,11 @@ namespace bson {
         return BSONObj( value() + 4 + 4 + strSizeWNull );
     }
 
-    // deep (full) equality
-    // return true if exactly equal
     inline bool BSONObj::equal(const BSONObj &rhs) const {
         BSONObjIterator i(*this);
         BSONObjIterator j(rhs);
         BSONElement l,r;
         do {
-            // so far, equal...
             l = i.next();
             r = j.next();
             if ( l.eoo() )
@@ -146,8 +140,6 @@ namespace bson {
     */
     inline NOINLINE_DECL BSONObj BSONObj::copy() const {
         Holder *h = (Holder*) malloc(objsize() + sizeof(unsigned));
-        if ( !h )
-            msgasserted( 13551, "BSONObj copy() out-of-memory" );
         h->zero();
         memcpy(h->data, objdata(), objsize());
         return BSONObj(h);
@@ -159,7 +151,6 @@ namespace bson {
         return copy();
     }
 
-    // wrap this element up as a singleton object.
     inline BSONObj BSONElement::wrap() const {
         BSONObjBuilder b(size()+6);
         b.append(*this);
@@ -222,7 +213,7 @@ namespace bson {
         return *this;
     }
 
-    inline BSONObjBuilder& BSONObjBuilder::appendElementsWithoutName(BSONObj x)
+    inline BSONObjBuilder& BSONObjBuilder::appendElementsWithoutName(BSONObj x) 
     {
         BSONObjIterator it(x);
         while ( it.moreWithEOO() ) {
@@ -254,7 +245,7 @@ namespace bson {
     }
 
 
-    inline bool BSONObj::isValid() const {
+    inline bool BSONObj::isValid() {
         int x = objsize();
         return x > 0 && x <= BSONObjMaxInternalSize;
     }
@@ -319,7 +310,6 @@ namespace bson {
         return *s_->_builder;
     }
 
-    // {a: {b:1}} -> {a.b:1}
     void nested2dotted(BSONObjBuilder& b, const BSONObj& obj, const string&
       base="");
     inline BSONObj nested2dotted(const BSONObj& obj) {
@@ -328,7 +318,6 @@ namespace bson {
         return b.obj();
     }
 
-    // {a.b:1} -> {a: {b:1}}
     void dotted2nested(BSONObjBuilder& b, const BSONObj& obj);
     inline BSONObj dotted2nested(const BSONObj& obj) {
         BSONObjBuilder b;
@@ -382,7 +371,7 @@ namespace bson {
     }
 
     inline string BSONObj::toString( bool isArray, bool full ) const {
-        if ( isEmpty() )
+        if ( isEmpty() ) 
         {
            if ( isArray )
            {
@@ -472,10 +461,8 @@ namespace bson {
             int objSize = *( int * )( value() + 4 + 4 + strSizeWNull );
             massert( 10326 ,  "Invalid CodeWScope object size",
               totalSize == 4 + 4 + strSizeWNull + objSize );
-            // Subobject validation handled elsewhere.
         }
         case Object:
-            // We expect Object size validation to be handled elsewhere.
         default:
             break;
         }
@@ -546,8 +533,6 @@ namespace bson {
             const char *p = value();
             size_t len1 = ( maxLen == -1 ) ? strlen( p ) :
               (size_t)bson::strnlen( p, remain );
-            //massert( 10318 ,  "Invalid regex string", len1 != -1 );
-            // ERH - 4/28/10 - don't think this does anything
             p = p + len1 + 1;
             size_t len2;
             if( maxLen == -1 )
@@ -557,8 +542,6 @@ namespace bson {
                 assert( x <= 0x7fffffff );
                 len2 = bson::strnlen( p, (int) x );
             }
-            //massert( 10319 ,  "Invalid regex options string", len2 != -1 );
-            // ERH - 4/28/10 - don't think this does anything
             x = (int) (len1 + 1 + len2 + 1);
         }
         break;
@@ -743,12 +726,10 @@ namespace bson {
         {
             long long milli = date() ;
             char buffer[64] ;
-            // date() return UINT64, but need INT64
             struct tm psr ;
             memset ( buffer, 0, 64 ) ;
             time_t timer = (time_t)( ( (long long)milli ) / 1000 ) ;
             local_time ( &timer, &psr ) ;
-            //[ 0000-01-01, 9999-12-31 ]
             if( psr.tm_year + 1900 >= 0 &&
                 psr.tm_year + 1900 <= 9999 )
             {
@@ -788,15 +769,7 @@ namespace bson {
             double valNum = number() ;
             if( isInf( valNum, &sign ) == false )
             {
-               // check NaN
-               if( valNum != valNum )
-           	   {
-           	      s << "NaN" ;
-           	   }
-			   else
-			   {
-                  s.appendDoubleNice( valNum ) ;
-			   }
+               s.appendDoubleNice( valNum );
             }
             else
             {
@@ -871,12 +844,10 @@ namespace bson {
                 int len = strlen( pStr ) ;
                 len = len > 70 ? 70 : len ;
                 escapeString( s, valuestr(), len ) ;
-                //s.write(valuestr(), 70);
                 s << "...";
             }
             else {
                 escapeString( s, valuestr() ) ;
-                //s.write(valuestr(), valuestrsize()-1);
             }
             s << "\" }";
             break;
@@ -888,7 +859,6 @@ namespace bson {
                 int len = strlen( pStr ) ;
                 len = len > 150 ? 150 : len ;
                 escapeString( s, valuestr(), len ) ;
-                //s.write(valuestr(), 150);
                 s << "...";
             }
             else {
@@ -998,7 +968,6 @@ namespace bson {
     }
 
     inline BSONObj::BSONObj() {
-        //_holder = NULL ;
         /* little endian ordering here, but perhaps that is ok regardless as
            BSON is spec'd to be little endian external to the system. (i.e. the
            rest of the implementation of bson, not this part, fails to support

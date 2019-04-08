@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsMsgHandler.cpp
 
@@ -41,9 +40,8 @@ namespace engine
    /*
       _shdMsgHandler implement
    */
-   _shdMsgHandler::_shdMsgHandler ( _pmdAsycSessionMgr *pSessionMgr,
-                                    _schedTaskAdapterBase *pTaskAdapter )
-      : _pmdAsyncMsgHandler ( pSessionMgr, pTaskAdapter )
+   _shdMsgHandler::_shdMsgHandler ( _pmdAsycSessionMgr *pSessionMgr )
+      : _pmdAsyncMsgHandler ( pSessionMgr )
    {
       _pShardCB = NULL ;
    }
@@ -68,7 +66,6 @@ namespace engine
       }
       else
       {
-         //store type to TID and dispatch restore
          pNewMsg->TID = (UINT32)CLS_SHARD ;
          _pMgrEDUCB->postEvent( pmdEDUEvent( PMD_EDU_EVENT_MSG,
                                              PMD_EDU_MEM_ALLOC,
@@ -81,7 +78,6 @@ namespace engine
    {
       _pmdAsyncMsgHandler::handleClose( handle, id ) ;
 
-      /// post msg to shard edu
       if ( _pShardCB )
       {
          MsgOpReply *pMsg = NULL ;
@@ -125,7 +121,6 @@ namespace engine
    void _replMsgHandler::_postMainMsg( const NET_HANDLE &handle,
                                        MsgHeader *pNewMsg )
    {
-      //store type to TID and dispatch restore
       pNewMsg->TID = (UINT32)CLS_REPL ;
       _pMgrEDUCB->postEvent( pmdEDUEvent( PMD_EDU_EVENT_MSG,
                                           PMD_EDU_MEM_ALLOC,

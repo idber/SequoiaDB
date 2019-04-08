@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = optPlanClearJob.cpp
 
@@ -79,24 +78,22 @@ namespace engine
          rc = clearEvent->wait( OPT_PLANCLEARJOB_WAIT_INTERVAL ) ;
          pEduMgr->activateEDU( cb ) ;
 
-         // The database is shutting down
          if ( PMD_IS_DB_DOWN() ||
               cb->isForced() )
          {
             break ;
          }
 
-         // No signals
          if ( SDB_TIMEOUT == rc )
          {
+            monitor->checkAccessTimestamp() ;
+            monitor->checkFreeIndexes() ;
             continue ;
          }
 
-         // Got signal to clear cached plans
          PD_LOG( PDDEBUG, "optPlanClearJob: start clearing cached plans" ) ;
          monitor->clearCachedPlans() ;
 
-         // Clear for too frequent signals
          clearEvent->reset() ;
       } // End while
 

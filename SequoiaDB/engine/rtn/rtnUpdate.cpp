@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnUpdate.cpp
 
@@ -86,7 +85,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNUPDATE2 ) ;
       BSONObj dummy ;
-      // matcher, selector, order, hint, collection, skip, limit, flag
       rtnQueryOptions options( matcher, dummy, dummy, hint, pCollectionName,
                                0, -1, flags ) ;
       rc = rtnUpdate( options, updator, cb, dmsCB, dpsCB, w, pUpdateNum,
@@ -128,7 +126,6 @@ namespace engine
       monContextCB monCtxCB ;
       rtnReturnOptions returnOptions ;
 
-      // updator is modifier
       if ( updator.isEmpty() )
       {
          PD_LOG ( PDERROR, "modifier can't be empty" ) ;
@@ -136,7 +133,6 @@ namespace engine
          goto error ;
       }
 
-      // writeable judge
       rc = dmsCB->writable( cb ) ;
       if ( rc )
       {
@@ -151,7 +147,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s, rc: %d",
                    options.getCLFullName(), rc ) ;
 
-      // get mb context
       rc = su->data()->getMBContext( &mbContext, pCollectionShortName, -1 ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s] mb context, "
                    "rc: %d", options.getCLFullName(), rc ) ;
@@ -188,151 +183,130 @@ namespace engine
          goto error ;
       }
 
-      try
+      apm = rtnCB->getAPM() ;
+      SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
+
+      rc = apm->getAccessPlan( options, FALSE, su, mbContext, planRuntime ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s for update, "
+                   "rc: %d", options.getCLFullName(), rc ) ;
+
+      if ( planRuntime.getScanType() == TBSCAN )
       {
-         apm = rtnCB->getAPM() ;
-         SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
+         rc = rtnGetTBScanner( pCollectionShortName, &planRuntime, su,
+                               mbContext, cb, &pScanner,
+                               DMS_ACCESS_TYPE_UPDATE ) ;
+      }
+      else if ( planRuntime.getScanType() == IXSCAN )
+      {
+         rc = rtnGetIXScanner( pCollectionShortName, &planRuntime, su, mbContext,
+                               cb, &pScanner, DMS_ACCESS_TYPE_UPDATE ) ;
+      }
+      else
+      {
+         PD_LOG ( PDERROR, "Invalid return type for scan" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to get dms scanner, rc: %d", rc ) ;
 
-         // plan is released when exiting the function
-         rc = apm->getAccessPlan( options, FALSE, su, mbContext, planRuntime ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s for update, "
-                      "rc: %d", options.getCLFullName(), rc ) ;
+      {
+         _mthRecordGenerator generator ;
+         _mthMatchTreeContext mthContext ;
+         dmsRecordID recordID ;
+         ossValuePtr recordDataPtr = 0 ;
 
-         if ( planRuntime.getScanType() == TBSCAN )
+         ossTick startTime, endTime, execStartTime, execEndTime ;
+         ossTickDelta queryTime ;
+
+         if ( cb->getMonConfigCB()->timestampON )
          {
-            rc = rtnGetTBScanner( pCollectionShortName, &planRuntime, su,
-                                  mbContext, cb, &pScanner,
-                                  DMS_ACCESS_TYPE_UPDATE ) ;
-         }
-         else if ( planRuntime.getScanType() == IXSCAN )
-         {
-            rc = rtnGetIXScanner( pCollectionShortName, &planRuntime, su,
-                                  mbContext, cb, &pScanner,
-                                  DMS_ACCESS_TYPE_UPDATE ) ;
-         }
-         else
-         {
-            PD_LOG ( PDERROR, "Invalid return type for scan" ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         PD_RC_CHECK( rc, PDERROR, "Failed to get dms scanner, rc: %d", rc ) ;
-
-         // update
-         {
-            _mthRecordGenerator generator ;
-            _mthMatchTreeContext mthContext ;
-            dmsRecordID recordID ;
-            ossValuePtr recordDataPtr = 0 ;
-
-            ossTick startTime, endTime, execStartTime, execEndTime ;
-            ossTickDelta queryTime ;
-
-            if ( cb->getMonConfigCB()->timestampON )
-            {
-               monCtxCB.recordStartTimestamp() ;
-            }
-
-            startTime = krcb->getCurTime() ;
-
-            mthContext.enableDollarList() ;
-
-            while ( SDB_OK == ( rc = pScanner->advance( recordID, generator,
-                                                        cb, &mthContext ) ) )
-            {
-               execStartTime = krcb->getCurTime() ;
-
-               mthContext.getDollarList( &dollarList ) ;
-               generator.getDataPtr( recordDataPtr ) ;
-               rc = su->data()->updateRecord( mbContext, recordID,
-                                              recordDataPtr, cb, dpsCB,
-                                              modifier, NULL,
-                                              pScanner->callbackHandler() ) ;
-               PD_RC_CHECK( rc, PDERROR, "Update record failed, rc: %d", rc ) ;
-
-               ++numUpdatedRecords ;
-               mthContext.clear() ;
-               mthContext.enableDollarList() ;
-
-               execEndTime = krcb->getCurTime() ;
-               monCtxCB.monExecuteTimeInc( execStartTime, execEndTime ) ;
-            }
-
-            if ( SDB_DMS_EOC == rc )
-            {
-               rc = SDB_OK ;
-            }
-            else if ( rc )
-            {
-               PD_LOG( PDERROR, "Failed to get next record, rc: %d", rc ) ;
-               goto error ;
-            }
-
-            endTime = krcb->getCurTime() ;
-            queryTime = endTime - startTime ;
-            queryTime -= monCtxCB.getExecuteTime() ;
-            monCtxCB.setQueryTime( queryTime ) ;
+            monCtxCB.recordStartTimestamp() ;
          }
 
-         // if we didn't update anything, let's attempt to insert if
-         // we are doing upsert
-         if ( ( 0 == numUpdatedRecords ) &&
-              options.testFlag( FLG_UPDATE_UPSERT ) )
+         startTime = krcb->getCurTime() ;
+
+         mthContext.enableDollarList() ;
+
+         while ( SDB_OK == ( rc = pScanner->advance( recordID, generator,
+                                                     cb, &mthContext ) ) )
          {
-            BSONObj source = planRuntime.getEqualityQueryObject() ;
-            PD_LOG ( PDDEBUG, "equality query object: %s",
-                     source.toString().c_str() ) ;
-
-            BSONObj target ;
-            ossTick execStartTime, execEndTime ;
-
             execStartTime = krcb->getCurTime() ;
 
-            // upsertor means generate a new record from empty source
-            rc = modifier.modify ( source, target ) ;
-            if ( rc )
-            {
-               PD_LOG ( PDERROR, "Failed to generate upsertor record, rc: %d",
-                        rc ) ;
-               goto error ;
-            }
-            PD_LOG ( PDDEBUG, "modified equality query object: %s",
-                     target.toString().c_str() ) ;
+            mthContext.getDollarList( &dollarList ) ;
+            generator.getDataPtr( recordDataPtr ) ;
+            rc = su->data()->updateRecord( mbContext, recordID, recordDataPtr,
+                                           cb, dpsCB, modifier ) ;
+            PD_RC_CHECK( rc, PDERROR, "Update record failed, rc: %d", rc ) ;
 
-            BSONElement setOnInsert =
-                       options.getHint().getField( FIELD_NAME_SET_ON_INSERT ) ;
-            if ( !setOnInsert.eoo() )
-            {
-               rc = rtnUpsertSet( setOnInsert, target ) ;
-               PD_RC_CHECK( rc, PDERROR,
-                            "Failed to set when upsert, rc: %d", rc ) ;
-            }
-
-            rc = su->data()->insertRecord( mbContext, target, cb, dpsCB,
-                                           TRUE, TRUE ) ;
-            if ( rc )
-            {
-               PD_LOG ( PDERROR, "Failed to insert record %s\ninto "
-                        "collection: %s", target.toString().c_str(),
-                        pCollectionShortName ) ;
-               goto error ;
-            }
-            ++insertNum ;
+            ++numUpdatedRecords ;
+            mthContext.clear() ;
+            mthContext.enableDollarList() ;
 
             execEndTime = krcb->getCurTime() ;
             monCtxCB.monExecuteTimeInc( execStartTime, execEndTime ) ;
          }
 
-         planRuntime.setQueryActivity( MON_UPDATE, monCtxCB, returnOptions,
-                                       TRUE ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_OK ;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to get next record, rc: %d", rc ) ;
+            goto error ;
+         }
 
+         endTime = krcb->getCurTime() ;
+         queryTime = endTime - startTime ;
+         queryTime -= monCtxCB.getExecuteTime() ;
+         monCtxCB.setQueryTime( queryTime ) ;
       }
-      catch ( std::exception &e )
+
+      if ( ( 0 == numUpdatedRecords ) && options.testFlag( FLG_UPDATE_UPSERT ) )
       {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Occur exception: %s, rc: %d", e.what(), rc ) ;
-         goto error ;
+         BSONObj source = planRuntime.getEqualityQueryObject() ;
+         PD_LOG ( PDDEBUG, "equality query object: %s",
+                  source.toString().c_str() ) ;
+
+         BSONObj target ;
+         ossTick execStartTime, execEndTime ;
+
+         execStartTime = krcb->getCurTime() ;
+
+         rc = modifier.modify ( source, target ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to generate upsertor record, rc: %d",
+                     rc ) ;
+            goto error ;
+         }
+         PD_LOG ( PDDEBUG, "modified equality query object: %s",
+                  target.toString().c_str() ) ;
+
+         BSONElement setOnInsert =
+                        options.getHint().getField( FIELD_NAME_SET_ON_INSERT ) ;
+         if ( !setOnInsert.eoo() )
+         {
+            rc = rtnUpsertSet( setOnInsert, target ) ;
+            PD_RC_CHECK( rc, PDERROR, "failed to set when upsert, rc: %d", rc ) ;
+         }
+
+         rc = su->data()->insertRecord( mbContext, target, cb, dpsCB,
+                                        TRUE, TRUE ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to insert record %s\ninto collection: %s",
+                     target.toString().c_str(), pCollectionShortName ) ;
+            goto error ;
+         }
+         ++insertNum ;
+
+         execEndTime = krcb->getCurTime() ;
+         monCtxCB.monExecuteTimeInc( execStartTime, execEndTime ) ;
       }
+
+      planRuntime.setQueryActivity( MON_UPDATE, monCtxCB, returnOptions,
+                                    TRUE ) ;
 
    done :
       if ( pUpdateNum )
@@ -387,8 +361,8 @@ namespace engine
 
          mthModifier setModifier ;
          rc = setModifier.loadPattern( setObj ) ;
-         PD_RC_CHECK( rc, PDERROR, "Invalid pattern is detected: { %s }, "
-                      "rc: %d", setOnInsert.toString().c_str(), rc ) ;
+         PD_RC_CHECK( rc, PDERROR, "Invalid pattern is detected: { %s }, rc: %d",
+                      setOnInsert.toString().c_str(), rc ) ;
          rc = setModifier.modify( target, newTarget ) ;
          PD_RC_CHECK( rc, PDERROR, "failed to generate upsertor "
                       "record(rc=%d) by " FIELD_NAME_SET_ON_INSERT, rc ) ;
@@ -407,39 +381,6 @@ namespace engine
       return rc ;
    error :
       goto done ;
-   }
-
-   BSONObj rtnUpdator2Obj( const BSONObj &source, const BSONObj &updator )
-   {
-      INT32 rc = SDB_OK ;
-      BSONObj obj ;
-      mthModifier modifier ;
-
-      try
-      {
-         rc = modifier.loadPattern( updator ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Load pattern[%s] failed, rc: %d",
-                    updator.toString().c_str(), rc ) ;
-            goto done ;
-         }
-         rc = modifier.modify( source, obj ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Make modify[%s] failed, rc: %d",
-                    updator.toString().c_str(), rc ) ;
-            goto done ;
-         }
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         goto done ;
-      }
-
-   done:
-      return obj ;
    }
 
 }

@@ -24,7 +24,6 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-//import java.util.Optional;
 
 import org.bson.BSONObject;
 import org.bson.types.ObjectId;
@@ -172,7 +171,6 @@ public class AbstractSdbQueryUnitTests {
 		verify(this.sequoiadbOperationsMock, times(1))
 				.find(captor.capture(), Matchers.eq(Person.class), Matchers.eq("persons"));
 
-//		assertThat(captor.getValue().getMeta().getComment(), nullValue());
 	}
 
 	/**
@@ -188,7 +186,6 @@ public class AbstractSdbQueryUnitTests {
 
 		verify(this.sequoiadbOperationsMock, times(1))
 				.find(captor.capture(), Matchers.eq(Person.class), Matchers.eq("persons"));
-//		assertThat(captor.getValue().getMeta().getComment(), is("comment"));
 	}
 
 	/**
@@ -203,7 +200,6 @@ public class AbstractSdbQueryUnitTests {
 		ArgumentCaptor<Query> captor = ArgumentCaptor.forClass(Query.class);
 
 		verify(this.sequoiadbOperationsMock, times(1)).count(captor.capture(), Matchers.eq("persons"));
-//		assertThat(captor.getValue().getMeta().getComment(), is("comment"));
 	}
 
 	/**
@@ -219,7 +215,6 @@ public class AbstractSdbQueryUnitTests {
 
 		verify(this.sequoiadbOperationsMock, times(1))
 				.find(captor.capture(), Matchers.eq(Person.class), Matchers.eq("persons"));
-//		assertThat(captor.getValue().getMeta().getComment(), is("comment"));
 	}
 
 	/**
@@ -368,6 +363,5 @@ public class AbstractSdbQueryUnitTests {
 		/** @see DATA_JIRA-1057 */
 		Slice<Person> findByLastname(String lastname, Pageable page);
 
-//		Optional<Person> findByLastname(String lastname);
 	}
 }

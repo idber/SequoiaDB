@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = catContext.hpp
 
@@ -43,7 +42,7 @@
 #include "catLevelLock.hpp"
 #include "catalogueCB.hpp"
 #include "catContextTask.hpp"
-#include "catContextAlterTask.hpp"
+#include "rtnAlterRunner.hpp"
 
 namespace engine
 {
@@ -77,10 +76,8 @@ namespace engine
       virtual ~_catContextBase () ;
 
    public:
-      // Override functions
       virtual _dmsStorageUnit* getSU () { return NULL ; }
 
-      // Catalog context functions
       CAT_CONTEXT_STATUS getStatus () const { return _status ; }
 
       virtual INT32 open ( const NET_HANDLE &handle,
@@ -89,11 +86,14 @@ namespace engine
                            rtnContextBuf &buffObj,
                            _pmdEDUCB *cb ) ;
 
-   protected:
-      virtual INT32 _prepareData ( _pmdEDUCB *cb ) ;
+      virtual INT32 getMore ( INT32 maxNumToReturn,
+                              rtnContextBuf &buffObj,
+                              _pmdEDUCB *cb ) ;
 
    protected:
       virtual void _setStatus ( CAT_CONTEXT_STATUS status ) ;
+
+      virtual INT32 _prepareData ( _pmdEDUCB *cb ) { return SDB_OK ; }
 
       virtual INT32 _parseQuery (_pmdEDUCB *cb ) = 0 ;
 
@@ -121,10 +121,7 @@ namespace engine
                                  MsgHeader *pMsg,
                                  const CHAR *pQuery,
                                  _pmdEDUCB *cb ) ;
-      virtual INT32 _clear ( _pmdEDUCB *cb ) ;
-      virtual INT32 _clearInternal(  _pmdEDUCB *cb, INT16 w  ) = 0 ;
 
-      // Must be called in destruction function
       virtual INT32 _onCtxDelete () ;
 
       void _changeStatusOnError () ;
@@ -142,7 +139,6 @@ namespace engine
       CAT_CONTEXT_STATUS _status ;
       catCtxLockMgr _lockMgr ;
 
-      // Flags to control process
       BOOLEAN _executeAfterLock ;
       BOOLEAN _commitAfterExecute ;
       BOOLEAN _needPreExecute ;
@@ -150,7 +146,6 @@ namespace engine
       BOOLEAN _needRollback ;
       BOOLEAN _needUpdate ;
       BOOLEAN _hasUpdated ;
-      BOOLEAN _needClearAfterDone ;
 
       std::string _targetName ;
       BSONObj _boTarget ;

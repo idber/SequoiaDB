@@ -1,6 +1,5 @@
 (function(){
    var sacApp = window.SdbSacManagerModule ;
-   var moduleTypeList = [ 'sequoiadb' ] ;
    function _getPluginRoute( async, clusterName, businessName, func )
    {
       $.ajax( {
@@ -54,14 +53,9 @@
    {
       _getBusinessList( async, function( buzList ){
          $.each( buzList, function( index, buzInfo ){
-            if( moduleTypeList.indexOf( buzInfo['BusinessType'] ) < 0 )
+            if( buzInfo['BusinessType'] != 'sequoiadb' )
             {
                _getPluginRoute( async, buzInfo['ClusterName'], buzInfo['BusinessName'], function( routes ){
-                  if( moduleTypeList.indexOf( buzInfo['BusinessType'] ) >= 0 )
-                  {
-                     return ;
-                  }
-                  moduleTypeList.push( buzInfo['BusinessType'] ) ;
                   $.each( routes['route'], function( index, aRoute ){
                      aRoute['options']['resolve'] = resolveFun( aRoute['options']['resolve'] ) ;
                      $routeProvider.when( aRoute['path'], aRoute['options'] ) ;
@@ -85,14 +79,11 @@
       {
          $routeProvider.when( aRoute[i]['path'], aRoute[i]['options'] ) ;
       }
-      if( window.SdbSacName == 'SAC' )
-      {
-         //动态注册插件的路由表
-         _loadPluginRoute( false, $routeProvider ) ;
-         setInterval( function(){
-            _loadPluginRoute( true, $routeProvider ) ;
-         }, 10000 ) ;
-      }
+      //动态注册插件的路由表
+      _loadPluginRoute( false, $routeProvider ) ;
+      setInterval( function(){
+         _loadPluginRoute( true, $routeProvider ) ;
+      }, 10000 ) ;
       //默认访问
       $routeProvider.otherwise( window.SdbSacManagerConf.defaultRoute ) ;
    } ) ;

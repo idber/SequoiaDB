@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordContext.hpp
 
@@ -43,8 +42,6 @@
 #include "rtnContextMain.hpp"
 #include "rtnContextExplain.hpp"
 #include "coordDef.hpp"
-#include "coordRemoteHandle.hpp"
-#include "ossMemPool.hpp"
 
 using namespace bson ;
 
@@ -86,7 +83,6 @@ namespace engine
       }
 
    private:
-      // disallow copy and assign
       _coordSubContext () ;
       _coordSubContext ( const _coordSubContext& ) ;
       void operator=( const _coordSubContext& ) ;
@@ -99,8 +95,8 @@ namespace engine
    } ;
    typedef _coordSubContext coordSubContext ;
 
-   typedef ossPoolMap< UINT64, coordSubContext*>         EMPTY_CONTEXT_MAP ;
-   typedef ossPoolMap< UINT64, MsgRouteID>               PREPARE_NODES_MAP ;
+   typedef _utilMap< UINT64, coordSubContext*, 20 >         EMPTY_CONTEXT_MAP ;
+   typedef _utilMap< UINT64, MsgRouteID, 20 >               PREPARE_NODES_MAP ;
 
    /*
       _rtnContextCoord define
@@ -121,25 +117,21 @@ namespace engine
                               BOOLEAN preRead = TRUE ) ;
 
          INT32    reopen () ;
-         void     setModify( BOOLEAN modify ) ;
 
          void     killSubContexts( _pmdEDUCB *cb ) ;
 
-         /*
-            Unit: millisec
-         */
-         INT64    getWaitTime() const ;
+         INT64    getSessionMilliTimeout () const ;
 
          virtual void optimizeReturnOptions ( MsgOpQuery * pQueryMsg,
                                               UINT32 targetGroupNum ) ;
 
-         virtual void      getErrorInfo( INT32 rc,
-                                         pmdEDUCB *cb,
-                                         rtnContextBuf &buffObj ) ;
+         virtual void     getErrorInfo( INT32 rc,
+                                        pmdEDUCB *cb,
+                                        rtnContextBuf &buffObj ) ;
 
-         virtual UINT32    getCachedRecordNum() ;
+         virtual UINT32   getCachedRecordNum() ;
 
-         virtual BOOLEAN   needRollback() const { return _isModify ; }
+         INT32   createSubContext ( MsgRouteID routeID, SINT64 contextID ) ;
 
       public:
          virtual std::string      name() const ;
@@ -155,7 +147,6 @@ namespace engine
 
       protected:
          OSS_INLINE BOOLEAN _requireExplicitSorting () const ;
-         INT32   _createSubContext ( MsgRouteID routeID, SINT64 contextID ) ;
          INT32   _prepareAllSubCtxDataByOrder( _pmdEDUCB *cb ) ;
          INT32   _getNonEmptyNormalSubCtx( _pmdEDUCB *cb, rtnSubContext*& subCtx ) ;
          INT32   _saveEmptyOrderedSubCtx( rtnSubContext* subCtx ) ;
@@ -182,14 +173,10 @@ namespace engine
          BOOLEAN                    _preRead ;
 
          BOOLEAN                    _needReOrder ;
-         /// error info
          ROUTE_RC_MAP               _nokRC ;
 
-         _coordNoSessionInitHandler _handler ;
          _pmdRemoteSessionSite      *_pSite ;
          _pmdRemoteSession          *_pSession ;
-
-         BOOLEAN                    _isModify ;
    } ;
    typedef _rtnContextCoord rtnContextCoord ;
 
@@ -203,8 +190,6 @@ namespace engine
 
    OSS_INLINE BOOLEAN _rtnContextCoord::_requireExplicitSorting () const
    {
-      // 1. order is required ( sort is not empty )
-      // 2. has more than one sub-context
       return requireOrder() &&
              ( _orderedContextMap.size() + _emptyContextMap.size() +
                _prepareContextMap.size() > 1 ) ;
@@ -270,14 +255,10 @@ namespace engine
                      OPT_EXPINFO_MASK_SYSCPU ) ;
          }
 
-         virtual optExplainMergePathBase* getExplainMergePath()
-         {
-            return &_explainCoordPath ;
-         }
-
       protected :
          SET_ROUTEID             _locationFilter ;
          optExplainCoordPath     _explainCoordPath ;
+         UINT64                  _startSessionTimeout ;
          UINT64                  _endSessionTimeout ;
    } ;
 

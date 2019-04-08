@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptUsrCmdCommon.cpp
 
@@ -136,10 +135,8 @@ namespace engine
       }
 
 #if defined( _LINUX )
-      // we should block SIGCHLD and rembmer caller's mask
       sigemptyset ( &childmask ) ;
       sigaddset ( &childmask, SIGCHLD ) ;
-      // set new mask, save old mask
       rc = pthread_sigmask( SIG_BLOCK, &childmask, &savemask ) ;
       if ( rc )
       {
@@ -147,10 +144,8 @@ namespace engine
          rc = SDB_SYS ;
          goto error ;
       }
-      // once we changed signal mask, we have to restore it later
       restoreSigMask = TRUE ;
 
-      // change sigchld action to default
       ignore.sa_handler = SIG_DFL ;
       sigemptyset ( &ignore.sa_mask ) ;
       ignore.sa_flags = 0 ;
@@ -161,7 +156,6 @@ namespace engine
          rc = SDB_SYS ;
          goto error ;
       }
-      // once we change signal handler, we have to restore it later
       restoreSIGCHLDHandling = TRUE ;
 #endif //_LINUX
 
@@ -193,7 +187,6 @@ namespace engine
                }
                else
                {
-                  /// get exitcode and out string
                   rc = ossGetExitCodeProcess( processHandle, _retCode ) ;
                   if ( rc )
                   {
@@ -228,6 +221,10 @@ namespace engine
       }
 
    done:
+      if ( 0 != processHandle )
+      {
+         ossCloseProcessHandle( processHandle ) ;
+      }
 #if defined( _LINUX )
       if ( restoreSIGCHLDHandling )
       {
@@ -238,14 +235,6 @@ namespace engine
          pthread_sigmask ( SIG_SETMASK, &savemask, NULL ) ;
       }
 #endif // _LINUX
-      {
-         UINT32 tmpCode = SDB_OK ;
-         ossGetExitCodeProcess( processHandle, tmpCode ) ;
-      }
-      if ( 0 != processHandle )
-      {
-         ossCloseProcessHandle( processHandle ) ;
-      }
       return rc ;
    error:
       goto done ;

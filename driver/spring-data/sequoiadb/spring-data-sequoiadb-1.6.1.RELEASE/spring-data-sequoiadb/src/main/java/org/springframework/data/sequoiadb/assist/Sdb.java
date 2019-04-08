@@ -339,7 +339,6 @@ public class Sdb {
             try {
                 list.add(new ServerAddress(tmp[0], Integer.parseInt(tmp[1])));
             } catch(UnknownHostException e) {
-                // TODO:
                 continue;
             }
         }
@@ -635,7 +634,6 @@ public class Sdb {
         throw new UnsupportedOperationException("not supported!");
     }
 
-    // -------
 
 
     /**

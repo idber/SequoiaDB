@@ -1,6 +1,5 @@
 package org.springframework.data.mongodb.assist;
 
-// DB.java
 
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.Sequoiadb;
@@ -45,17 +44,6 @@ public abstract class DB {
         _cm = _mongo.getConnectionManager();
     }
 
-//    /**
-//     * Determines the read preference that should be used for the given command.
-//     *
-//     * @param command             the {@link DBObject} representing the command
-//     * @param requestedPreference the preference requested by the client.
-//     * @return the read preference to use for the given command.  It will never return {@code null}.
-//     * @see com.mongodb.ReadPreference
-//     */
-//    ReadPreference getCommandReadPreference(DBObject command, ReadPreference requestedPreference){
-//        throw new UnsupportedOperationException("not supported!");
-//    }
 
     /**
      * Starts a new 'consistent request'.
@@ -656,21 +644,6 @@ public abstract class DB {
     @Deprecated
     public WriteResult addUser( String username , char[] passwd ){
         throw new UnsupportedOperationException("not supported!");
-//        final String myUserName = username;
-//        final String myPasswd = new String(passwd);
-//
-//        return _cm.execute(new DBCallback<WriteResult>() {
-//            @Override
-//            public WriteResult doInDB(Sequoiadb db) throws BaseException {
-//                WriteResult result = new WriteResult();
-//                try {
-//                    db.createUser(myUserName, myPasswd);
-//                } catch(BaseException e) {
-//                    result.setExpInfo(e, "failed to create db user");
-//                }
-//                return result;
-//            }
-//        });
     }
 
     /**

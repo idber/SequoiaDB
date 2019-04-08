@@ -34,9 +34,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="sequoiadb">
-      <HintPath>C:\Users\tanzhaobo\Downloads\sequoiadb.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -52,6 +49,16 @@
   </ItemGroup>
   <ItemGroup>
     <WCFMetadata Include="Service References\" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Driver\Bson\Bson.csproj">
+      <Project>{0E9A3A2A-49CD-4F6C-847C-DC79B4B65CE6}</Project>
+      <Name>Bson</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Driver\Driver.csproj">
+      <Project>{99B0CB56-7B4B-473A-BBA5-BA616F49BE68}</Project>
+      <Name>Driver</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

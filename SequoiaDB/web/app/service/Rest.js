@@ -536,14 +536,7 @@
          var errJson = [] ;
          var arrLen ;
 
-         if ( typeof( data['Sql'] ) == 'string' )
-         {
-            cmd = 'sql' ;
-         }
-         else
-         {
-            cmd = data['cmd'] ;
-         }
+         cmd = data['cmd'] ;
          options['errJson'] = errJson ;
 
          if( options['v'] == 'v1' )
@@ -560,29 +553,18 @@
             if( typeof( json ) == 'string' )
             {
                jsonArr = JSON.parse( json ) ;
-               arrLen = jsonArr.length ;
             }
             else
             {
                jsonArr = json ;
-               arrLen = jsonArr.length ;
             }
             if( isArray( jsonArr ) == false )
             {
                jsonArr = [ jsonArr ] ;
-               arrLen = jsonArr.length ;
             }
             if( options['parseJson'] == false )
             {
                //还没实现
-            }
-         }
-
-         if ( arrLen > 0 )
-         {
-            if( isNaN( jsonArr[0]['status'] ) == false )
-            {
-               jsonArr[0]['errno'] = jsonArr[0]['status'] ;
             }
          }
 
@@ -642,12 +624,6 @@
          {
             //其他错误
             jsonArr[0]['cmd'] = cmd ;
-
-            if ( typeof( jsonArr[0]['description'] ) == 'undefined' && typeof( jsonArr[0]['message'] ) == 'string' )
-            {
-               jsonArr[0]['description'] = jsonArr[0]['message'] ;
-               jsonArr[0]['detail'] = jsonArr[0]['message'] ;
-            }
 
             try
             {
@@ -791,17 +767,13 @@
                      parseJson:  是否解析记录, 默认true
                               true:  解析记录    返回格式 [ {xxx}, {xxx}, ... ]
                               false: 不解析记录  返回格式 [ "xxx", "xxx", ... ]
+                     errJson:  []   传出参数, 解析错误的json, 只有解析失败才会有
       */
       g._sendAjax = function( type, url, data, event, options ){
 
          if( g._errorNum > 0 )
          {
             g._errorTask.push( { 'type': type, 'url': url, 'data': data, 'event': event, 'options': options } ) ;
-            return ;
-         }
-
-         if( options['scope'] !== false && options['scope'] !== $location.url() )
-         {
             return ;
          }
 
@@ -834,27 +806,15 @@
 
          $.ajax( { 'type': type, 'url': url, 'data': data,
             'beforeSend': function( XMLHttpRequest ){
-               if( options['scope'] !== false && options['scope'] !== $location.url() )
-               {
-                  return ;
-               }
                restBeforeSend( XMLHttpRequest ) ;
                return g._eventBefore( type, url, data, event, options, XMLHttpRequest ) ;
             },
             'success': function( json, textStatus, jqXHR ){
-               if( options['scope'] !== false && options['scope'] !== $location.url() )
-               {
-                  return ;
-               }
                g._errorNum = 0 ;
                g._eventSuccess( type, url, data, event, options, json, textStatus, jqXHR ) ;
             },
             'error': function( XMLHttpRequest, textStatus, errorThrown ) {
-               if( options['scope'] !== false && options['scope'] !== $location.url() )
-               {
-                  return ;
-               }
-               if( XMLHttpRequest.status != 0 ) //网络错误是0
+               if( XMLHttpRequest.status == 404 )
                {
                   g._eventError( type, url, data, event, options, XMLHttpRequest, textStatus, errorThrown ) ;
                   return ;
@@ -1095,33 +1055,6 @@
          g._sendAjax( 'POST', path, data, event, options ) ;
       }
 
-      //手工设置cluster和module
-      g.DataOperationV21 = function( clusterName, businessName, path, data, event, options ){
-         var oldBefore = event ? event['before'] : null ;
-         event['before'] = function( jqXHR ){
-	         if( clusterName !== null )
-	         {
-		         jqXHR.setRequestHeader( 'SdbClusterName', clusterName ) ;
-	         }
-	         if( businessName !== null )
-	         {
-		         jqXHR.setRequestHeader( 'SdbBusinessName', businessName ) ;
-	         }
-            if( typeof( oldBefore ) == 'function' )
-            {
-               return oldBefore( jqXHR ) ;
-            }
-         }
-         if( typeof( options ) != 'object' )
-         {
-            options = {} ;
-         }
-         options['v'] = 'v2' ;
-         event = g._checkEvent( event ) ;
-         options = g._checkOptions( options ) ;
-         g._sendAjax( 'POST', path, data, event, options ) ;
-      }
-
       //数据操作( 手工设置cluster和module )
       g.DataOperation2 = function( clusterName, businessName, data, event, options, errJson ){
          var oldBefore = event ? event['before'] : null ;
@@ -1306,7 +1239,7 @@
 
       g.getPing = function( complete ){
          var time1 = $.now() ;
-         g.getFile( './app/language/test.txt', true, function( text ){
+         g.getFile( './app/language/test', true, function( text ){
             var time2 = $.now() ;
             complete( time2 - time1 ) ;
          }, function(){

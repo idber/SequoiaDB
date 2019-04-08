@@ -1,6 +1,6 @@
 <?php
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ class SequoiaCS
     * Example:
     * @code
     * $csName = $cs -> getName() ;
-    * $err = $db -> getLastErrorMsg() ;
+    * $err = $db -> getError() ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to get collection space name, error code: ".$err['errno'] ;
     *    return ;
@@ -81,7 +81,6 @@ class SequoiaCS
     *                                                  Group               : To create a replication group.
     *                                                  AutoIndexId         : Collection is automatically created using the _id field is called '$id' a unique index, default true.
     *                                                  EnsureShardingIndex : Collection is automatically created using the ShardingKey contains the field names for the '$shard' index, default true.
-    *                                                  AutoIncrement       : Auto increment.
     *                                                  @endcode
     *
     * @return Returns a new SequoiaCL object.
@@ -92,16 +91,7 @@ class SequoiaCS
     * @code
     * $cl = $cs -> selectCL( 'bar', array( 'Compressed' => true ) ) ;
     * if( empty( $cl ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
-    *    echo "Failed to call selectCL, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-    *
-    * Example: create auto increment collection
-    * @code
-    * $err = $cs -> selectCL( 'bar', array( 'AutoIncrement' => array( 'Field' => 'a', 'MaxValue' => 20000 ) ) ) ;
-    * if( $err['errno'] != 0 ) {
+    *    $err = $db -> getError() ;
     *    echo "Failed to call selectCL, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -112,7 +102,7 @@ class SequoiaCS
    /**
     * Create the specified collection.
     *
-    * @param $name   the string argument. The collection name.
+    * @param $name	the string argument. The collection name.
     *
     * @param $options an array or the string argument. The options specified by use.
     *                                                  e.g. @code
@@ -130,7 +120,6 @@ class SequoiaCS
     *                                                  Group               : To create a replication group.
     *                                                  AutoIndexId         : Collection is automatically created using the _id field is called '$id' a unique index, default true.
     *                                                  EnsureShardingIndex : Collection is automatically created using the ShardingKey contains the field names for the '$shard' index, default true.
-    *                                                  AutoIncrement       : Auto increment.
     *                                                  @endcode
     *
     * @return Returns the result, default return array.
@@ -141,15 +130,6 @@ class SequoiaCS
     * Example:
     * @code
     * $err = $cs -> createCL( 'bar', array( 'Compressed' => true ) ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to create collection, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-    *
-    * Example: create auto increment collection
-    * @code
-    * $err = $cs -> createCL( 'bar', array( 'AutoIncrement' => array( 'Field' => 'a', 'MaxValue' => 20000 ) ) ) ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to create collection, error code: ".$err['errno'] ;
     *    return ;
@@ -171,7 +151,7 @@ class SequoiaCS
     * @code
     * $cl = $cs -> getCL( 'bar' ) ;
     * if( empty( $cl ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call getCL, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -199,149 +179,4 @@ class SequoiaCS
     * @endcode
    */
    public function dropCL( string $name ){}
-
-   /**
-    * Rename collection name
-    *
-    * @param $oldName   The old collection name
-    *
-    * @param $newName   The new collection name
-    *
-    * @param $options   Reserved
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example:
-    * @code
-    * $err = $cs -> renameCL( 'bar', 'new_bar' ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to rename collection, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-   */
-   public function renameCL( string $oldName, string $newName, array|string $options = null ){}
-
-   /**
-    * Alter the specified collection space.
-    *
-    * @param $options   the array or string argument. The options to alter.
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example:
-    * @code
-    * $err = $cs -> alter( array( 'PageSize' => 4096 ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to alter collection space, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-   */
-   public function alter( array|string $options ){}
-
-   /**
-    * Alter the specified collection space to set domain.
-    *
-    * @param $options   the array or string argument. The options to alter.
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example:
-    * @code
-    * $err = $cs -> setDomain( array( 'Domain' => 'domain' ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to alter collection space, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-   */
-   public function setDomain( array|string $options ){}
-
-   /**
-    * Alter the specified collection space to remove domain.
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example:
-    * @code
-    * $err = $cs -> removeDomain() ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to alter collection space, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-   */
-   public function removeDomain(){}
-
-   /**
-    * Alter the specified collection space to enable capped.
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example:
-    * @code
-    * $err = $cs -> enableCapped() ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to alter collection space, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-   */
-   public function enableCapped(){}
-
-   /**
-    * Alter the specified collection space to disable capped.
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example:
-    * @code
-    * $err = $cs -> disableCapped() ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to alter collection space, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-   */
-   public function disableCapped(){}
-
-   /**
-    * Alter the specified collection space.
-    *
-    * @param $options   the array or string argument. The options to alter.
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example:
-    * @code
-    * $err = $cs -> setAttributes( array( 'PageSize' => 4096 ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to alter collection space, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-   */
-   public function setAttributes( array|string $options ){}
 }

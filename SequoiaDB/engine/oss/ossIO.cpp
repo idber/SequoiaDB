@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = ossIO.cpp
 
@@ -115,7 +114,6 @@ INT32 ossOpen(const CHAR   *pFileName ,
    UINT32 mode       = 0;
    UINT32 direct     = 0 ;
 
-   // sanity check, only take effect in debug build
    SDB_ASSERT ( pFileName , "pFileName is NULL" ) ;
 
 #if defined (_WINDOWS)
@@ -132,7 +130,6 @@ INT32 ossOpen(const CHAR   *pFileName ,
    {
       err = ossGetLastError () ;
 
-       // handle errors
       pdLog( PDERROR, __FUNC__, __FILE__, __LINE__,
              "Failed to convert  file name to unicode: %s, Error: %d",
              pFileName, err ) ;
@@ -140,7 +137,6 @@ INT32 ossOpen(const CHAR   *pFileName ,
       goto error;
    }
 
-   // open/create mode
    switch ( iMode & OSS_CREATE )
    {
    case OSS_DEFAULT: // just open the existing file
@@ -157,11 +153,9 @@ INT32 ossOpen(const CHAR   *pFileName ,
       break ;
    }
 
-   // read/write access
    switch ( iMode & OSS_READWRITE )
    {
    case OSS_WRITEONLY: // write only mode
-      // write operation with shared read mode
       if ( iMode & OSS_SHAREREAD )
       {
          desiredAccess = GENERIC_READ | GENERIC_WRITE ;
@@ -173,7 +167,6 @@ INT32 ossOpen(const CHAR   *pFileName ,
       break ;
 
    case OSS_READONLY: // read only mode
-      // read operation with exclusive mode
       if ( ( iMode & OSS_SHAREREAD ) == OSS_EXCLUSIVE )
       {
          desiredAccess = GENERIC_READ | GENERIC_WRITE ;
@@ -189,7 +182,6 @@ INT32 ossOpen(const CHAR   *pFileName ,
       break ;
    }
 
-   // shared mode
    switch ( iMode & OSS_SHAREWRITE )
    {
    case OSS_EXCLUSIVE:
@@ -212,26 +204,21 @@ INT32 ossOpen(const CHAR   *pFileName ,
       break ;
    }
 
-   // direct io
    if ( iMode & OSS_DIRECTIO )
    {
       attributes |= FILE_FLAG_NO_BUFFERING ;
    }
 
-   // sync IO
    if ( iMode & OSS_WRITETHROUGH )
    {
       attributes |= FILE_FLAG_WRITE_THROUGH ;
    }
 
-   // setup permission
    if ( 0 == iPermission )
    {
-      // if no permission is defined, let's use default
       permission = OSS_DEFAULTFILE ;
    }
 
-   // open file
    while ( TRUE )
    {
       retryLoops ++ ;
@@ -261,7 +248,6 @@ INT32 ossOpen(const CHAR   *pFileName ,
             rc = SDB_IO ;
             break ;
          }
-         // handle errors
          pdLog( PDERROR, __FUNC__, __FILE__, __LINE__,
                 "Failed to open file: %s, Error: %d", pFileName, err ) ;
          break;
@@ -269,13 +255,11 @@ INT32 ossOpen(const CHAR   *pFileName ,
       break ;
    } // while (TRUE)
 done:
-// final clean up here, if pBuffer is allocated, we need to free
    PD_TRACE_EXITRC ( SDB_OSSOPEN, rc );
    return rc;
 error :
    goto done ;
 #elif defined (_LINUX)
-    // open/create mode
     switch ( iMode & OSS_CREATE )
     {
     case OSS_DEFAULT: // just open the existing file
@@ -292,7 +276,6 @@ error :
        break ;
     }
 
-    // read/write access
     switch ( iMode & OSS_READWRITE )
     {
     case OSS_WRITEONLY: // write only mode
@@ -307,7 +290,6 @@ error :
        break ;
 
     case OSS_READONLY: // read only mode
-       // read operation with exclusive mode
        if (( iMode & OSS_SHAREREAD ) == OSS_EXCLUSIVE )
        {
           mode |= O_RDWR ;
@@ -322,40 +304,31 @@ error :
        break ;
     }
 
-    // direct io
     if ( iMode & OSS_DIRECTIO )
     {
        direct = O_DIRECT ;
     }
 
-    // sync IO
     if ( iMode & OSS_WRITETHROUGH )
     {
        mode |= O_SYNC ;
     }
 
-    // setup permission
     if ( iPermission == 0 )
     {
-       // if no permission is defined, let's use default
        permission = OSS_DEFAULTFILE ;
     }
 
-    // open file
     while ( TRUE )
     {
        retryLoops ++ ;
        do
        {
           pFile.fd = open ( pFileName, mode | direct, permission ) ;
-          // if we failed by interrupt, loop to open file again
        } while ( (-1==pFile.fd) && (EINTR== ( err=ossGetLastError () )) ) ;
 
-       // if we are not able to open the file
        if ( -1 == pFile.fd )
        {
-          // some version of file system may not implement DIO,
-          // then we remove the flag and try again
           if( ( EINVAL == err ) && ( O_DIRECT == direct) )
           {
              direct = 0 ;
@@ -368,7 +341,6 @@ error :
           }
           pdLog ( PDERROR, __func__, __FILE__, __LINE__,
                   "Failed to open file: %s, errno: %d", pFileName, err ) ;
-          // setup return code based on errno
           switch ( err )
           {
           case ENOENT:
@@ -389,7 +361,6 @@ error :
           }
           break ; // break out loop
        } //if ( -1 == pFile.fd )
-       // if everything is fine, fd is successfully created
        break ;
     } // while(TRUE)
     PD_TRACE_EXITRC ( SDB_OSSOPEN, rc );
@@ -439,11 +410,9 @@ INT32 ossClose(OSSFILE &pFile)
    pFile.fd = 0 ;
 #endif
 done :
-   // final clean up here, if pBuffer is allocated, we need to free
    PD_TRACE_EXITRC ( SDB_OSSCLOSE, rc );
    return rc ;
 error :
-   // if anything need to be performed in error condition, do it here
    goto done ;
 }
 
@@ -464,7 +433,6 @@ INT32 ossMkdir ( const CHAR* pPathName, UINT32 iPermission )
 {
    INT32   rc  = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_OSSMKDIR );
-   // sanity check, only take effect in debug build
    SDB_ASSERT ( pPathName , "pPathName is NULL" ) ;
    try
    {
@@ -473,7 +441,6 @@ INT32 ossMkdir ( const CHAR* pPathName, UINT32 iPermission )
 
       if ( !(iPermission & OSS_PERMALL) )
       {
-         /// default
          permission = fs::owner_all |
                       fs::group_read | fs::group_exe |
                       fs::others_read | fs::others_exe ;
@@ -534,7 +501,6 @@ INT32 ossMkdir ( const CHAR* pPathName, UINT32 iPermission )
                                   "Failed to create_directory(dirpath)" ) ;
       }
 
-      /// set permission
       fs::permissions( dirpath, permission ) ;
    }
    catch ( fs::filesystem_error& e )
@@ -560,11 +526,9 @@ INT32 ossMkdir ( const CHAR* pPathName, UINT32 iPermission )
    }
 
 done :
-   // final clean up here, if pBuffer is allocated, we need to free
    PD_TRACE_EXITRC ( SDB_OSSMKDIR, rc );
    return rc ;
 error :
-   // if anything need to be performed in error condition, do it here
    goto done ;
 }
 
@@ -662,7 +626,6 @@ INT32 ossDelete ( const CHAR *pPathName )
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_OSSDELETE );
 
-   // sanity check, only take effect in debug build
    SDB_ASSERT ( pPathName , "pPathName is NULL" ) ;
 
    try
@@ -671,7 +634,6 @@ INT32 ossDelete ( const CHAR *pPathName )
 
       if ( !exists( pathName ) )
       {
-         // if file does not exist, let's return FNE but not log anything
          rc = SDB_FNE ;
          goto error ;
       }
@@ -721,11 +683,9 @@ INT32 ossDelete ( const CHAR *pPathName )
       goto error ;
    }
 done :
-   // final clean up here, if pBuffer is allocated, we need to free
    PD_TRACE_EXITRC ( SDB_OSSDELETE, rc );
    return rc ;
 error :
-   // if anything need to be performed in error condition, do it here
    goto done ;
 }
 
@@ -903,7 +863,6 @@ INT32 ossRead( OSSFILE* pFile,
 #if defined (_WINDOWS)
    DWORD   readBytes = 0 ;
 #endif
-   // sanity check, only take effect in debug build
    SDB_ASSERT ( pFile       , "pFile is NULL" ) ;
    SDB_ASSERT ( pBufferRead , "pBufferRead is NULL" ) ;
    SDB_ASSERT ( pLenRead    , "pLenRead is NULL" ) ;
@@ -927,7 +886,6 @@ INT32 ossRead( OSSFILE* pFile,
    if ( !err )
    {
       err = ossGetLastError() ;
-      // handle errors
       pdLog( PDERROR, __FUNC__, __FILE__, __LINE__,
              "Failed to ReadFile() : %x, Error: %d",
              pFile->hFile, err ) ;
@@ -953,7 +911,6 @@ INT32 ossRead( OSSFILE* pFile,
    if( -1 == readSize )
    {
       err = ossGetLastError() ;
-      // handle errors
       PD_LOG ( PDERROR, "Failed to read() : %x, Error: %d", pFile->fd, err ) ;
       switch ( err )
       {
@@ -984,11 +941,9 @@ INT32 ossRead( OSSFILE* pFile,
    }
 #endif
 done :
-   // final clean up here, if pBuffer is allocated, we need to free
    PD_TRACE_EXITRC ( SDB_OSSREAD, rc );
    return rc ;
 error :
-   // if anything need to be performed in error condition, do it here
    goto done ;
 }
 
@@ -1023,7 +978,6 @@ INT32 ossWrite( OSSFILE  *pFile,
 #if defined (_WINDOWS)
    DWORD writeBytes = 0 ;
 #endif
-   // sanity check, only take effect in debug build
    SDB_ASSERT ( pFile         , "pFile is NULL" ) ;
    SDB_ASSERT ( pBufferWrite  , "pBufferWrite is NULL" ) ;
    SDB_ASSERT ( pLenWritten   , "pLenWritten is NULL" ) ;
@@ -1047,7 +1001,6 @@ INT32 ossWrite( OSSFILE  *pFile,
    if ( !err )
    {
       err = ossGetLastError();
-      // handle errors
       pdLog( PDERROR, __FUNC__, __FILE__, __LINE__,
              "Failed to WriteFile() : %x, Error: %d",
              pFile->hFile, err ) ;
@@ -1075,7 +1028,6 @@ INT32 ossWrite( OSSFILE  *pFile,
    {
       (*pLenWritten) = 0 ;
       err = ossGetLastError() ;
-      // handle errors
       pdLog ( PDERROR, __FUNC__, __FILE__, __LINE__,
               "Failed to write() : %x, Error: %d",
               pFile->fd, err ) ;
@@ -1105,11 +1057,9 @@ INT32 ossWrite( OSSFILE  *pFile,
 #endif
 
 done :
-   // final clean up here, if pBuffer is allocated, we need to free
    PD_TRACE_EXITRC ( SDB_OSSWRITE, rc );
    return rc ;
 error :
-   // if anything need to be performed in error condition, do it here
    goto done ;
 }
 
@@ -1143,7 +1093,6 @@ INT32 ossSeek ( OSSFILE  *pFile,
    if ( -1 == seekOff )
    {
        INT32 err = ossGetLastError () ;
-       // handle errors
        pdLog ( PDERROR, __FUNC__, __FILE__, __LINE__,
                "Failed to lseek() : %x, Error: %d",
                pFile->fd, err ) ;
@@ -1235,7 +1184,6 @@ INT32 ossSeekAndRead( OSSFILE   *pFile,
 #if defined (_WINDOWS)
    LARGE_INTEGER li ;
 #endif
-   // sanity check, only take effect in debug build
    SDB_ASSERT ( pFile        , "pFile is NULL" ) ;
    SDB_ASSERT ( pBufferRead  , "pBufferRead is NULL" ) ;
    SDB_ASSERT ( pLenRead     , "pLenRead is NULL" ) ;
@@ -1278,7 +1226,6 @@ INT32 ossSeekAndRead( OSSFILE   *pFile,
       {
          err = ossGetLastError() ;
 
-         // handle errors
          pdLog( PDERROR, __FUNC__, __FILE__, __LINE__,
                       "Failed to ReadFile() : %x, Error: %d",
                       pFile->hFile, err ) ;
@@ -1306,7 +1253,6 @@ INT32 ossSeekAndRead( OSSFILE   *pFile,
    if ( -1 == readSize )
    {
       err = ossGetLastError() ;
-      // handle errors
       pdLog ( PDERROR, __FUNC__, __FILE__, __LINE__,
               "Failed to pread() : %x, Error: %d",
               pFile->fd, err ) ;
@@ -1339,11 +1285,9 @@ INT32 ossSeekAndRead( OSSFILE   *pFile,
    }
 #endif
 done :
-   // final clean up here, if pBuffer is allocated, we need to free
    PD_TRACE_EXITRC ( SDB_OSSSEEKANDREAD, rc );
    return rc ;
 error :
-   // if anything need to be performed in error condition, do it here
    goto done ;
 
  }
@@ -1382,11 +1326,9 @@ INT32 ossSeekAndWrite ( OSSFILE    *pFile,
    LARGE_INTEGER li;
 #endif
 
-   // sanity check, only take effect in debug build
    SDB_ASSERT ( pFile        , "pFile is NULL" ) ;
    SDB_ASSERT ( pBufferWrite , "pBufferWrite is NULL" ) ;
    SDB_ASSERT ( pLenWritten  , "pLenWritten is NULL" ) ;
-   // if we want to write nothing, let's get out of here
    if ( 0 == iLenToWrite )
       goto done ;
    /* validate parameters */
@@ -1424,7 +1366,6 @@ INT32 ossSeekAndWrite ( OSSFILE    *pFile,
       {
          err = ossGetLastError() ;
 
-         // handle errors
          pdLog( PDERROR, __FUNC__, __FILE__, __LINE__,
                 "Failed to pread() : %x, Error: %d",
                 pFile->hFile, err ) ;
@@ -1450,7 +1391,6 @@ INT32 ossSeekAndWrite ( OSSFILE    *pFile,
    if( -1 == writeSize )
    {
       err = ossGetLastError () ;
-      // handle errors
       pdLog( PDERROR, __FUNC__, __FILE__, __LINE__,
              "Failed to pwrite() : %x, Error: %d",
              pFile->fd, err ) ;
@@ -1480,11 +1420,9 @@ INT32 ossSeekAndWrite ( OSSFILE    *pFile,
    }
 #endif
 done :
-   // final clean up here, if pBuffer is allocated, we need to free
    PD_TRACE_EXITRC ( SDB_OSSSEEKANDWRITE, rc );
    return rc ;
 error :
-   // if anything need to be performed in error condition, do it here
    goto done ;
 }
 
@@ -1506,7 +1444,6 @@ INT32 ossFsync( OSSFILE* pFile )
    PD_TRACE_ENTRY ( SDB_OSSFSYNC );
    UINT32  err = 0 ;
 
-   // sanity check, only take effect in debug build
    SDB_ASSERT ( pFile , "pFile is NULL" ) ;
 
 #if defined (_WINDOWS)
@@ -1527,7 +1464,6 @@ error :
    if( rc )
    {
       err = ossGetLastError () ;
-      // handle errors
       pdLog( PDERROR, __FUNC__, __FILE__, __LINE__,
              "Failed to pwrite() : %x, Error: %d",
              pFile->fd, err ) ;
@@ -1575,7 +1511,6 @@ INT32 ossGetPathType ( const CHAR  *pPath, SDB_OSS_FILETYPE *pFileType )
    struct stat sb ;
 #endif
 
-   // sanity check, only take effect in debug build
    SDB_ASSERT ( pPath     , "pPath is NULL" ) ;
    SDB_ASSERT ( pFileType , "pFileType is NULL" ) ;
 
@@ -1593,7 +1528,6 @@ INT32 ossGetPathType ( const CHAR  *pPath, SDB_OSS_FILETYPE *pFileType )
                                    ossStrlen( pPath ) + 1 ) )
    {
       err = ossGetLastError () ;
-      // handle errors
       pdLog( PDERROR, __FUNC__, __FILE__, __LINE__,
              "Failed to convert  file name to unicode: %s, Error: %d",
              pPath, err ) ;
@@ -1602,7 +1536,6 @@ INT32 ossGetPathType ( const CHAR  *pPath, SDB_OSS_FILETYPE *pFileType )
                                "Failed to MultiByteToWideChar()" ) ;
    }
 
-   // if file doesn't exist , it goes to error
    if (  INVALID_FILE_ATTRIBUTES == GetFileAttributes( FileNameUnicode )
                         && ERROR_FILE_NOT_FOUND ==  ossGetLastError () )
    {
@@ -1622,7 +1555,6 @@ INT32 ossGetPathType ( const CHAR  *pPath, SDB_OSS_FILETYPE *pFileType )
    else
    {
       err = ossGetLastError () ;
-      // handle errors
       pdLog( PDERROR, __FUNC__, __FILE__, __LINE__,
              "Failed to GetFileAttributes: %s, dwAttrs: %d, Error: %d",
              FileNameUnicode, dwAttrs, err ) ;
@@ -1673,11 +1605,9 @@ INT32 ossGetPathType ( const CHAR  *pPath, SDB_OSS_FILETYPE *pFileType )
   }
 #endif
 done :
-   // final clean up here, if pBuffer is allocated, we need to free
    PD_TRACE_EXITRC ( SDB_OSSGETPATHTYPE, rc );
    return rc ;
 error :
-   // if anything need to be performed in error condition, do it here
    (*pFileType) = SDB_OSS_UNK ;
    goto done ;
 }
@@ -1711,7 +1641,6 @@ INT32 ossGetFileSizeByName ( const CHAR* pFileName, INT64 *pFileSize )
 #elif defined (_LINUX)
    struct stat sb;
 #endif
-   // sanity check, only take effect in debug build
    SDB_ASSERT ( pFileName , "pFileName is NULL" ) ;
    SDB_ASSERT ( pFileSize , "pFileSize is NULL" ) ;
 
@@ -1724,7 +1653,6 @@ INT32 ossGetFileSizeByName ( const CHAR* pFileName, INT64 *pFileSize )
    {
       err = ossGetLastError () ;
 
-      // handle errors
       pdLog( PDERROR, __FUNC__, __FILE__, __LINE__,
              "Failed to convert  file name to unicode: %s, Error: %d",
              pFileName, err ) ;
@@ -1732,7 +1660,6 @@ INT32 ossGetFileSizeByName ( const CHAR* pFileName, INT64 *pFileSize )
                                "Failed to MultiByteToWideChar()" ) ;
    }
 
-   // if file doesn't exist , it goes to error
    if (  INVALID_FILE_ATTRIBUTES == GetFileAttributes( FileNameUnicode )
                         && ERROR_FILE_NOT_FOUND ==  ossGetLastError () )
    {
@@ -1747,7 +1674,6 @@ INT32 ossGetFileSizeByName ( const CHAR* pFileName, INT64 *pFileSize )
    SDB_VALIDATE_GOTOERROR ( fOk, SDB_IO,
                             "Failed to GetFileAttributesEx()" ) ;
 
-   // get the sum of file size
    (*pFileSize) = ( (INT64)fileInfo.nFileSizeHigh << 32 ) +
                     fileInfo.nFileSizeLow ;
 done :
@@ -1760,7 +1686,6 @@ error :
    if ( -1 == rc )
    {
       err = ossGetLastError() ;
-      // handle errors
       pdLog( PDERROR, __FUNC__, __FILE__, __LINE__,
              "Failed to stat() : %s, Error: %d",
              pFileName, err ) ;
@@ -1819,7 +1744,6 @@ INT32 ossGetFileSize ( OSSFILE *pFile, INT64 *pfsize )
 #elif defined (_LINUX)
    struct stat sb ;
 #endif
-   // sanity check, only take effect in debug build
    SDB_ASSERT ( pFile , "input file is NULL" ) ;
    SDB_ASSERT ( pfsize, "output size buffer is NULL" ) ;
 
@@ -1841,7 +1765,6 @@ error :
    if ( -1 == rc )
    {
       err = ossGetLastError () ;
-      // handle errors
       pdLog( PDERROR, __FUNC__, __FILE__, __LINE__,
              "Failed to fstat() : %x, Error: %d",
              pFile->fd, err ) ;
@@ -1879,9 +1802,6 @@ error :
 #endif
 }
 
-// truncate a file to fileLen bytes
-// note this function is NOT threadsafe, the caller must hold exclusive latch
-// before truncating a file
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSTRUNCATEFILE, "ossTruncateFile" )
 INT32 ossTruncateFile ( OSSFILE *pFile, const INT64 fileLen )
 {
@@ -1902,9 +1822,6 @@ INT32 ossTruncateFile ( OSSFILE *pFile, const INT64 fileLen )
       rc = SDB_OK ;
    }
 #elif defined (_WINDOWS)
-   // in windows we have to seek to the offset and call SetEndOfFile, we need to
-   // be careful in multithreading env. Threads may call the function at same
-   // time so the seek position could be changed during setendoffile.
    rc = ossSeek ( pFile, fileLen, OSS_SEEK_SET ) ;
    PD_RC_CHECK ( rc, PDERROR, "Failed to seek to offset %lld, errno = %d",
                  fileLen, ossGetLastError() ) ;
@@ -1945,29 +1862,21 @@ error :
 INT32 ossExtendFile ( OSSFILE *pFile,
                       const INT64 incrementSize )
 {
-   // OSS_EXTEND_DELTA is for local only, let's def and undef
 #ifdef  OSS_EXTEND_DELTA
 #undef  OSS_EXTEND_DELTA
 #endif
 #define OSS_EXTEND_DELTA      (4194304)      // 4MB
 
-   // declare variables at top
    INT32    rc         = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_OSSEXTFILE );
    INT32    loop       = 0 ;
    INT32    remainder  = 0 ;
    CHAR    *pBuffer    = NULL ;
 
-   // sanity check, only take effect in debug build
    SDB_ASSERT ( pFile, "input file is NULL" ) ;
 
-   // seek to end of the file
    rc = ossSeek( pFile, 0, OSS_SEEK_END ) ;
-   // verify return code, jump to error if condition fails
-   // check pd.hpp for SDB_VALIDATE_GOTOERROR def
 
-   // do NOT return in middle of function, always jump to error and done to
-   // perform final clean up
    SDB_VALIDATE_GOTOERROR ( SDB_OK == rc, rc,
                             "Failed to seek to end of file" ) ;
 
@@ -1975,16 +1884,13 @@ INT32 ossExtendFile ( OSSFILE *pFile,
    remainder  = incrementSize % ( OSS_EXTEND_DELTA ) ;
    pBuffer    = (CHAR*) SDB_OSS_MALLOC ( OSS_EXTEND_DELTA ) ;
 
-   // always check allocation result
    SDB_VALIDATE_GOTOERROR ( pBuffer, SDB_OOM,
                             "Failed to allocate memory" ) ;
    ossMemset( pBuffer, 0, OSS_EXTEND_DELTA ) ;
 
-   // do the main loop for extend
    for ( INT32 i = 0; i < loop ; i++ )
    {
       rc = ossWriteN ( pFile, pBuffer, OSS_EXTEND_DELTA ) ;
-      // do validation
       PD_RC_CHECK ( rc, PDERROR, "Failed to extend file, errno = %d",
                     ossGetLastError() ) ;
    }
@@ -1992,12 +1898,10 @@ INT32 ossExtendFile ( OSSFILE *pFile,
    if ( 0 != remainder )
    {
       rc = ossWriteN( pFile, pBuffer, remainder ) ;
-      // do validation
       PD_RC_CHECK ( rc, PDERROR, "Failed to extend file, errno = %d",
                     ossGetLastError() ) ;
    }
 done :
-   // final clean up here, if pBuffer is allocated, we need to free
    if ( pBuffer )
    {
       SDB_OSS_FREE ( pBuffer ) ;
@@ -2005,7 +1909,6 @@ done :
    PD_TRACE_EXITRC ( SDB_OSSEXTFILE, rc );
    return rc;
 error :
-   // if anything need to be performed in error condition, do it here
    goto done ;
 }
 
@@ -2013,11 +1916,9 @@ INT32 ossExtentBySparse( OSSFILE *pFile,
                          UINT64 incrementSize,
                          UINT32 onceWrite )
 {
-   // declare variables at top
    INT32    rc         = SDB_OK ;
    CHAR    *pBuffer    = NULL ;
 
-   // sanity check, only take effect in debug build
    SDB_ASSERT ( pFile, "input file is NULL" ) ;
 
    if ( onceWrite > incrementSize )
@@ -2025,13 +1926,8 @@ INT32 ossExtentBySparse( OSSFILE *pFile,
       onceWrite = incrementSize ;
    }
 
-   // seek to end of the file
    rc = ossSeek( pFile, 0, OSS_SEEK_END ) ;
-   // verify return code, jump to error if condition fails
-   // check pd.hpp for SDB_VALIDATE_GOTOERROR def
 
-   // do NOT return in middle of function, always jump to error and done to
-   // perform final clean up
    SDB_VALIDATE_GOTOERROR ( SDB_OK == rc, rc,
                             "Failed to seek to end of file" ) ;
 
@@ -2074,7 +1970,6 @@ CHAR  *ossGetRealPath( const CHAR  *pPath,
                        CHAR        *resolvedPath,
                        UINT32       length )
 {
-   // sanity check, only take effect in debug build
    PD_TRACE_ENTRY ( SDB_OSSGETREALPATH );
    SDB_ASSERT ( pPath , "pPath is NULL" ) ;
    SDB_ASSERT ( resolvedPath, "resolvedPath is NULL" ) ;
@@ -2088,48 +1983,35 @@ CHAR  *ossGetRealPath( const CHAR  *pPath,
 
    while ( TRUE )
    {
-      // if we had changed the first / to '\0',
-      // that means the input path(assume it is "/a/b/c") does not exist,
-      // and 'realpath' can not deal with this situation in linux.
-      // so let's return "\0a/b/c" out of the loop
       if ( '\0' == pathBuffer[0] )
       {
          ret = pathBuffer ;
          break ;
       }
-      // try to get real path
       ret =
 #if defined (_LINUX)
          realpath ( pathBuffer, tempBuffer ) ;
 #elif defined (_WINDOWS)
          _fullpath ( tempBuffer, pathBuffer, sizeof(tempBuffer) ) ;
 #endif
-      // if we are able to build real path, let's just return
       if ( ret )
       {
          ossStrncpy ( resolvedPath, tempBuffer, length ) ;
          break ;
       }
-      // search from right for the next /
       CHAR *pNewPos = ossStrrchr ( pathBuffer, OSS_FILE_SEP_CHAR ) ;
-      // if we can find /, let's set it to '\0' and continue get realpath
       if ( pNewPos )
       {
          *pNewPos = '\0' ;
       }
       else
       {
-         // if we cannot find any /, and we still not able to build real path,
-         // that means the input relative path is like "a/b/c", let's replenish
-         // the first path of absolute path, and then replenish the rest
          ossStrncpy( resolvedPath, tempBuffer, length ) ;
          ret = pathBuffer ;
          break ;
       }
-      // when we get here that means we find the previous /
       if ( pPos )
       {
-         // if we have previously set / to '\0', let's restore the /
          *pPos = OSS_FILE_SEP_CHAR ;
       }
       pPos = pNewPos ;
@@ -2177,15 +2059,12 @@ INT32 ossGetFSType ( const CHAR  *pFileName, OSS_FS_TYPE  *ossFSType )
    struct stat   sb ;
    struct statfs sfs ;
 #endif
-    // sanity check, only take effect in debug build
     SDB_ASSERT ( pFileName, "pFileName is NULL" ) ;
 
 #if defined (_WINDOWS)
 
-   // only root , like C:\ or \\MyServer\MyShare
    if ( (pFileName[1] != ':') )
    {
-       // handle errors
        pdLog( PDERROR, __FUNC__, __FILE__, __LINE__,
                 "Failed to find  the root directory in : %s, Error: %d",
                 pFileName, err ) ;
@@ -2204,14 +2083,12 @@ INT32 ossGetFSType ( const CHAR  *pFileName, OSS_FS_TYPE  *ossFSType )
                                   ossStrlen( NewFileName ) + 1) )
    {
        err = ossGetLastError () ;
-       // handle errors
        pdLog( PDERROR, __FUNC__, __FILE__, __LINE__,
               "Failed to convert  file name to unicode: %s, Error: %d",
               pFileName, err ) ;
        goto error;
    }
 
-   // if file doesn't exist , it goes to error
    if (  INVALID_FILE_ATTRIBUTES == GetFileAttributes( FileNameUnicode )
                         && ERROR_FILE_NOT_FOUND ==  ossGetLastError () )
    {
@@ -2230,7 +2107,6 @@ INT32 ossGetFSType ( const CHAR  *pFileName, OSS_FS_TYPE  *ossFSType )
    if ( 0 == err )
    {
       err = ossGetLastError() ;
-      // handle errors
       pdLog( PDERROR, __FUNC__, __FILE__, __LINE__,
              "Failed to GetVolumeInformation() : %s, Error: %d",
              pFileName, err ) ;
@@ -2238,14 +2114,12 @@ INT32 ossGetFSType ( const CHAR  *pFileName, OSS_FS_TYPE  *ossFSType )
    }
    else
    {
-      // convert "NTFS" to wchar and do check
       if( 0 == MultiByteToWideChar ( CP_ACP, 0,
                                      "NTFS", -1,
                                      NTFSName,
                                      ossStrlen( "NTFS" ) + 1) )
       {
           err = ossGetLastError () ;
-          // handle errors
           pdLog( PDERROR, __FUNC__, __FILE__, __LINE__,
                  "Failed to convert  'NTFS' to unicode: %s", pFileName ) ;
           goto error;
@@ -2253,7 +2127,6 @@ INT32 ossGetFSType ( const CHAR  *pFileName, OSS_FS_TYPE  *ossFSType )
 
       if ( 0 != (err = wcscmp(fileSystemName, NTFSName)) )
       {
-         // handle errors
          pdLog( PDERROR, __FUNC__, __FILE__, __LINE__,
                 "Not supported file system : %s, Error: %d",
                 pFileName, err ) ;
@@ -2270,7 +2143,6 @@ INT32 ossGetFSType ( const CHAR  *pFileName, OSS_FS_TYPE  *ossFSType )
    if ( -1 == err )
    {
       err = ossGetLastError() ;
-      // handle errors
       pdLog( PDERROR, __FUNC__, __FILE__, __LINE__,
              "Failed to stat() : %s, Error: %d",
              pFileName, err ) ;
@@ -2281,7 +2153,6 @@ INT32 ossGetFSType ( const CHAR  *pFileName, OSS_FS_TYPE  *ossFSType )
    if ( -1 == err )
    {
       err = ossGetLastError() ;
-      // handle errors
       pdLog( PDERROR, __FUNC__, __FILE__, __LINE__,
              "Failed to statfs() : %s, Error: %d",
              pFileName, err ) ;
@@ -2311,12 +2182,10 @@ INT32 ossGetFSType ( const CHAR  *pFileName, OSS_FS_TYPE  *ossFSType )
    }
 #endif
 done :
-   // final clean up here, if pBuffer is allocated, we need to free
    PD_TRACE_EXITRC ( SDB_OSSGETFSTYPE, rc );
    return rc ;
 
 error :
-   // if anything need to be performed in error condition, do it here
    *ossFSType = OSS_FS_TYPE_UNKNOWN ;
    goto done ;
 }
@@ -2621,7 +2490,6 @@ INT32 ossGetFileUserInfo( const CHAR * filename, OSSUID & uid, OSSGID & gid )
    if ( -1 == rc )
    {
       INT32 err = ossGetLastError() ;
-      // handle errors
       PD_LOG( PDERROR, "Failed to stat() : %s, Error: %d", filename, err ) ;
       switch(err)
       {
@@ -2642,7 +2510,6 @@ INT32 ossGetFileUserInfo( const CHAR * filename, OSSUID & uid, OSSGID & gid )
       gid = sb.st_gid ;
    }
 #else
-   // nothing
 #endif // _LINUX
    return rc ;
 }

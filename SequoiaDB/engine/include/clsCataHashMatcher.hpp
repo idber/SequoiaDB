@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsCataHashMatcher.hpp
 
@@ -36,8 +35,8 @@
 #include <vector>
 #include <string>
 #include "ossTypes.h"
-#include "ossMemPool.hpp"
 #include "clsCatalogPredicate.hpp"
+#include "utilMap.hpp"
 
 namespace engine
 {
@@ -47,8 +46,8 @@ namespace engine
    */
    class clsCataHashPredTree : public SDBObject
    {
-   typedef std::vector< clsCataHashPredTree * >          VEC_CLSCATAHASHPREDSET ;
-   typedef ossPoolMap< std::string, bson::BSONElement>   MAP_CLSCATAHASHPREDFIELDS ;
+   typedef std::vector< clsCataHashPredTree * >             VEC_CLSCATAHASHPREDSET ;
+   typedef _utilMap< std::string, bson::BSONElement, 10 >   MAP_CLSCATAHASHPREDFIELDS ;
    public:
       clsCataHashPredTree( bson::BSONObj shardingKey );
 
@@ -78,7 +77,6 @@ namespace engine
                      BOOLEAN &result );
 
    private:
-      // forbid copy constructor
       clsCataHashPredTree( clsCataHashPredTree &right ){}
    private:
       VEC_CLSCATAHASHPREDSET        _children;
@@ -106,7 +104,6 @@ namespace engine
       }CLS_CATA_PREDICATE_OBJ_TYPE ;
 
    public:
-      // note: don't delete shardingkey before delete clsCataHashMatcher
       clsCataHashMatcher( const bson::BSONObj &shardingKey );
 
       virtual ~clsCataHashMatcher(){};
@@ -120,8 +117,7 @@ namespace engine
 
    private:
       INT32 parseAnObj( const bson::BSONObj &matcher,
-                        clsCataHashPredTree &predicateSet,
-                        BOOLEAN *pForceEnd = NULL );
+                        clsCataHashPredTree &predicateSet );
 
       INT32 parseCmpOp( const bson::BSONElement &beField,
                         clsCataHashPredTree &predicateSet );

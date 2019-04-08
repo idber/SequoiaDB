@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = mthMatchLogicNode.hpp
 
@@ -59,7 +58,7 @@ namespace engine
          virtual ~_mthMatchLogicNode() ;
 
       public: /* from parent */
-         virtual INT32 init( const CHAR *fieldName,
+         virtual INT32 init( const CHAR *fieldName, 
                              const BSONElement &element ) ;
          virtual void clear() ;
          virtual void setWeight( UINT32 weight ) ;
@@ -69,7 +68,7 @@ namespace engine
          virtual BSONObj toParamBson ( const rtnParamList &parameters ) ;
 
       protected:
-         virtual INT32 _init( const CHAR *fieldName,
+         virtual INT32 _init( const CHAR *fieldName, 
                               const BSONElement &element ) ;
          virtual void _clear() ;
 
@@ -87,10 +86,11 @@ namespace engine
       public:
          virtual INT32 getType() ;
          virtual const CHAR* getOperatorStr() ;
-         virtual INT32 execute( const BSONObj &obj,
+         virtual INT32 execute( const BSONObj &obj, 
                                 _mthMatchTreeContext &context,
                                 BOOLEAN &result ) ;
          virtual BOOLEAN isTotalConverted() ;
+         virtual void release() ;
          virtual void evalEstimation ( const optCollectionStat *pCollectionStat,
                                        double &selectivity, UINT32 &cpuCost ) ;
    } ;
@@ -105,13 +105,14 @@ namespace engine
       public:
          virtual INT32 getType() ;
          virtual const CHAR* getOperatorStr() ;
-         virtual INT32 execute( const BSONObj &obj,
+         virtual INT32 execute( const BSONObj &obj, 
                                 _mthMatchTreeContext &context,
                                 BOOLEAN &result ) ;
          virtual INT32 calcPredicate( rtnPredicateSet &predicateSet,
                                       const rtnParamList * paramList ) ;
          virtual INT32 extraEqualityMatches( BSONObjBuilder &builder,
                                              const rtnParamList *parameters ) ;
+         virtual void release() ;
          virtual void evalEstimation ( const optCollectionStat *pCollectionStat,
                                        double &selectivity, UINT32 &cpuCost ) ;
    } ;
@@ -126,7 +127,7 @@ namespace engine
       public:
          virtual INT32 getType() ;
          virtual const CHAR* getOperatorStr() ;
-         virtual INT32 execute( const BSONObj &obj,
+         virtual INT32 execute( const BSONObj &obj, 
                                 _mthMatchTreeContext &context,
                                 BOOLEAN &result ) ;
          virtual INT32 calcPredicate( rtnPredicateSet &predicateSet,
@@ -134,6 +135,7 @@ namespace engine
          virtual INT32 extraEqualityMatches( BSONObjBuilder &builder,
                                              const rtnParamList *parameters ) ;
          virtual BOOLEAN isTotalConverted() ;
+         virtual void release() ;
          virtual void evalEstimation ( const optCollectionStat *pCollectionStat,
                                        double &selectivity, UINT32 &cpuCost ) ;
    } ;

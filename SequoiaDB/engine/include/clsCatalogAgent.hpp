@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsCatalogAgent.hpp
 
@@ -36,7 +35,7 @@
 
 #include "core.hpp"
 #include <string>
-#include "ossMemPool.hpp"
+#include <map>
 #include <vector>
 #include "oss.hpp"
 #include "clsBase.hpp"
@@ -48,10 +47,7 @@
 #include "../bson/ordering.h"
 #include "msgCatalogDef.h"
 #include "utilCompression.hpp"
-#include "ossMemPool.hpp"
-#include "dms.hpp"
-#include "utilUniqueID.hpp"
-#include "clsAutoIncItem.hpp"
+#include "utilSet.hpp"
 
 using namespace bson ;
 
@@ -96,7 +92,6 @@ namespace engine
    } ;
    typedef _clsCataItemKey clsCataItemKey ;
 
-   // the range is [lowBound, upBound)
    class _clsCatalogItem : public SDBObject
    {
       public:
@@ -121,7 +116,6 @@ namespace engine
 
          const string&  getGroupName() const { return _groupName ; }
          const string&  getSubClName() const { return _subCLName ; }
-         void renameSubClName( const string& subCLName ) ;
 
       private:
          BSONObj           _lowBound ;
@@ -148,7 +142,7 @@ namespace engine
          _clsCataOrder ( const Ordering &order ) ;
          ~_clsCataOrder () ;
 
-         const Ordering* getOrdering () const ;
+         Ordering* getOrdering () ;
 
       private:
          Ordering          _ordering ;
@@ -171,14 +165,12 @@ namespace engine
       friend class _clsCatalogAgent ;
 
       public:
-      typedef ossPoolMap<clsCataItemKey, clsCatalogItem*>   MAP_CAT_ITEM ;
-      typedef MAP_CAT_ITEM::iterator                        MAP_CAT_ITEM_IT ;
-      typedef MAP_CAT_ITEM_IT                               POSITION ;
+      typedef std::map<clsCataItemKey, clsCatalogItem*>  MAP_CAT_ITEM ;
+      typedef MAP_CAT_ITEM::iterator                     MAP_CAT_ITEM_IT ;
+      typedef MAP_CAT_ITEM_IT                            POSITION ;
 
       public:
-         _clsCatalogSet ( const CHAR * name,
-                          BOOLEAN saveName = TRUE,
-                          UINT64 clUniqueID = UTIL_UNIQUEID_NULL ) ;
+         _clsCatalogSet ( const CHAR * name, BOOLEAN saveName = TRUE ) ;
          ~_clsCatalogSet () ;
 
          void setSKSite( _clsShardingKeySite *pSite ) { _pSite = pSite ; }
@@ -190,12 +182,10 @@ namespace engine
          UINT32            getPartitionBit() const { return _square ; }
          bool              ensureShardingIndex() const { return _ensureShardingIndex ; }
          const CHAR        *name () const ;
-         const string&     nameStr() const ;
-         utilCLUniqueID    clUniqueID () const ;
          VEC_GROUP_ID      *getAllGroupID () ;
          UINT32            getAllGroupID ( VEC_GROUP_ID &vecGroup ) const ;
          UINT32            groupCount () const ;
-         const Ordering*   getOrdering () const ;
+         Ordering*         getOrdering () ;
          const BSONObj&    getShardingKey () const  ;
          BSONObj           OwnedShardingKey () const ;
          BOOLEAN           isWholeRange () const ;
@@ -256,8 +246,6 @@ namespace engine
 
          INT32 delSubCL ( const CHAR *subCLName ) ;
 
-         INT32 renameSubCL ( const CHAR *subCLName, const CHAR* newSubCLName ) ;
-
          INT32 getSubCLBounds ( const string &subCLName,
                                 BSONObj &lowBound,
                                 BSONObj &upBound ) const ;
@@ -266,14 +254,9 @@ namespace engine
          UINT32 getShardingKeySiteID() const { return _skSiteID ; }
 
          UTIL_COMPRESSOR_TYPE getCompressType() const { return _compressType ; }
-
-         INT64    getMaxSize() const { return _maxSize ; }
-         INT64    getMaxRecNum() const { return _maxRecNum ; }
-         BOOLEAN  getOverWrite() const { return _overwrite ; }
-
-         const clsAutoIncSet*    getAutoIncSet() const ;
-         clsAutoIncSet*          getAutoIncSet() ;
-
+         INT64 getMaxSize() const { return _maxSize ; }
+         INT64 getMaxRecNum() const { return _maxRecNum ; }
+         BOOLEAN getOverWrite() const { return _overwrite; }
       protected:
          _clsCatalogSet    *next () ;
          INT32             next ( _clsCatalogSet * next ) ;
@@ -315,7 +298,6 @@ namespace engine
          UINT16            _shardingType ;
          bool              _ensureShardingIndex ;
          std::string       _name ;
-         UINT64            _clUniqueID ;
 
          _clsCatalogSet    *_next ;
          clsCatalogItem    *_lastItem ;
@@ -332,32 +314,23 @@ namespace engine
          BOOLEAN           _saveName ;
          UINT32            _attribute ;
          std::multimap<UINT32, std::string> _subCLList ;
-
-         clsAutoIncSet     _autoIncSet ;
-
          BOOLEAN           _isMainCL ;
-         std::string       _mainCLName ;
+         std::string       _mainCLName;
          UINT32            _internalV ;
          UINT32            _maxID ;
-         /// sharding key site id, 0: invalid
          UINT32            _skSiteID ;
          _clsShardingKeySite *_pSite ;
          UTIL_COMPRESSOR_TYPE _compressType ;
          INT64             _maxSize ;
          INT64             _maxRecNum ;
          BOOLEAN           _overwrite ;
-
    };
    typedef class _clsCatalogSet clsCatalogSet ;
 
    class _clsCatalogAgent : public SDBObject
    {
-      // map< hash value of cl name, catalog info >
-      typedef ossPoolMap<UINT32, _clsCatalogSet*>           CAT_MAP ;
-      typedef CAT_MAP::iterator                             CAT_MAP_IT ;
-      // map< unique id of cl, catalog info >
-      typedef ossPoolMap<utilCLUniqueID, _clsCatalogSet*>   ID_CAT_MAP ;
-      typedef ID_CAT_MAP::iterator                          ID_CAT_MAP_IT ;
+      typedef std::map<UINT32, _clsCatalogSet*>       CAT_MAP ;
+      typedef CAT_MAP::iterator                       CAT_MAP_IT ;
 
       public:
          _clsCatalogAgent () ;
@@ -366,23 +339,19 @@ namespace engine
       public:
          INT32   catVersion () ;
          INT32   collectionVersion ( const CHAR* name ) ;
-         INT32   collectionW ( const CHAR* name ) ;
-         INT32   collectionInfo ( const CHAR* name , INT32 &version, UINT32 &w ) ;
+         INT32   collectionW ( const CHAR * name ) ;
+         INT32   collectionInfo ( const CHAR * name , INT32 &version, UINT32 &w ) ;
          void    getAllNames( std::vector<string> &names ) ;
 
-         clsCatalogSet* collectionSet ( const CHAR* name,
-                                        utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ) ;
+         _clsCatalogSet *collectionSet ( const CHAR * name ) ;
 
          INT32   updateCatalog ( INT32 version, UINT32 groupID,
                                  const CHAR* objdata, UINT32 length,
                                  _clsCatalogSet **ppSet = NULL ) ;
-
-         INT32   clear ( const CHAR* name,
-                         CHAR* mainCL = NULL ) ;
-         INT32   clearBySpaceName ( const CHAR* csName,
-                                    vector< string > *pSubCLs = NULL,
-                                    ossPoolSet< string > * pMainCLs = NULL ) ;
-         /// caller need to hold the write lock
+         INT32   clear ( const CHAR* name, CHAR * mainCL = NULL ) ;
+         INT32   clearBySpaceName ( const CHAR* name,
+                                    vector< string > *pRelatedCLs = NULL,
+                                    _utilSet< string > * pMainCLs = NULL ) ;
          INT32   clearAll () ;
 
          INT32   lock_r ( INT32 millisec = -1 ) ;
@@ -391,13 +360,10 @@ namespace engine
          INT32   release_w () ;
 
       protected:
-         _clsCatalogSet* _addCollectionSet ( const CHAR * name,
-                                             utilCLUniqueID clUniqueID =
-                                                   UTIL_UNIQUEID_NULL ) ;
+         _clsCatalogSet * _addCollectionSet ( const CHAR * name ) ;
 
       private:
          CAT_MAP                       _mapCatalog ;
-         ID_CAT_MAP                    _mapIDCatalog ;
          INT32                         _catVersion ;
          ossRWMutex                    _rwMutex ;
    };
@@ -418,7 +384,6 @@ namespace engine
 
       private:
          UINT32                  _id ;
-         /// UINT64 ==> ID:32 + Ref:32
          map< BSONObj, UINT64 >  _mapKey2ID ;
          ossSpinXLatch           _mutex ;
    } ;
@@ -459,7 +424,7 @@ namespace engine
          INT32  groupVersion () const { return _groupVersion ; }
          std::string groupName() const { return _groupName ; }
 
-         const VEC_NODE_INFO* getNodes () const ;
+         const VEC_NODE_INFO* getNodes () ;
          clsNodeItem*         nodeItem ( UINT32 nodeID ) ;
          clsNodeItem*         nodeItemByPos( UINT32 pos ) ;
          INT32                nodePos  ( UINT32 nodeID ) ;
@@ -503,13 +468,8 @@ namespace engine
 
          void   cancelPrimary () ;
 
-         void   updateNodeStat( UINT16 nodeID,
-                                NET_NODE_STATUS status,
-                                UINT64 *pTime = NULL ) ;
+         void   updateNodeStat( UINT16 nodeID, NET_NODE_STATUS status ) ;
          void   clearNodesStat() ;
-
-         void   inheritStat( const _clsGroupItem *pItem,
-                             UINT32 falutTimeout = NET_NODE_FAULT_TIMEOUT ) ;
 
       protected:
          void   _clear () ;
@@ -529,10 +489,10 @@ namespace engine
 
    class _clsNodeMgrAgent : public SDBObject
    {
-      typedef ossPoolMap<UINT32, clsGroupItem*> GROUP_MAP ;
+      typedef std::map<UINT32, clsGroupItem*>   GROUP_MAP ;
       typedef GROUP_MAP::iterator               GROUP_MAP_IT ;
 
-      typedef ossPoolMap<std::string, UINT32>   GROUP_NAME_MAP ;
+      typedef std::map<std::string, UINT32>     GROUP_NAME_MAP ;
       typedef GROUP_NAME_MAP::iterator          GROUP_NAME_MAP_IT ;
 
       public:
@@ -555,7 +515,6 @@ namespace engine
          clsGroupItem* groupItem ( UINT32 id ) ;
          clsGroupItem* groupItem ( const CHAR* name ) ;
 
-         /// caller need to hold the write lock
          INT32       clearAll () ;
          INT32       clearGroup ( UINT32 id ) ;
 
@@ -580,11 +539,9 @@ namespace engine
    typedef _clsNodeMgrAgent nodeMgrAgent ;
 
 
-   /// cls catalog agent tool fucntions :
    INT32    clsPartition( const BSONObj &keyObj, UINT32 partitionBit, UINT32 internalV ) ;
    INT32    clsPartition( const bson::OID &oid, UINT32 sequence, UINT32 partitionBit ) ;
 
-   /// global function
    clsShardingKeySite* clsGetShardingKeySite() ;
 
 }

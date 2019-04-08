@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = mthMatchNode.cpp
 
@@ -44,7 +43,6 @@ using namespace bson ;
 namespace engine
 {
 
-   // compare to sort operators
    BOOLEAN mthCompareNode( _mthMatchNode * left, _mthMatchNode * right )
    {
       if ( left->getWeight() < right->getWeight() )
@@ -208,7 +206,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "append value failed:value=%s,rc=%d",
                       start, rc ) ;
 
-         // abc.$10.def    p->.$
          rc = ossStrToInt ( p + 2, &dollarIndex ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to parse number:p=%s,rc=%d",
                       p, rc ) ;
@@ -216,7 +213,6 @@ namespace engine
          rc = getDollarResult( dollarIndex, realValue ) ;
          PD_RC_CHECK( rc, PDERROR, "getDollarResult failed:rc=%d", rc ) ;
 
-         // "."
          rc = result.append( p, 1 ) ;
          PD_RC_CHECK( rc, PDERROR, "append value failed:value=%s,rc=%d",
                       p, rc ) ;
@@ -392,7 +388,6 @@ namespace engine
       {
          for ( ; i < _dollarList.size() ; i++ )
          {
-            //(temp>>32)&0xFFFFFFFF) // num = (temp&0xFFFFFFFF) ;
             INT32 dollarNum = ( _dollarList[i] >> 32 ) & 0xFFFFFFFF ;
             INT32 objIndex  = _dollarList[i] & 0xFFFFFFFF ;
 
@@ -439,7 +434,6 @@ namespace engine
       return FALSE ;
    }
 
-   //********************** _mthMatchNodeIterator ***************************
    _mthMatchNodeIterator::_mthMatchNodeIterator( _mthMatchNode *node )
    {
       _node  = node ;
@@ -477,7 +471,6 @@ namespace engine
       return NULL ;
    }
 
-   //********************** _mthNodeConfig **************************
    const mthNodeConfig *mthGetDefaultNodeConfigPtr ()
    {
       static mthNodeConfig defaultConfig ;
@@ -490,7 +483,6 @@ namespace engine
       return (*mthGetDefaultNodeConfigPtr()) ;
    }
 
-   //********************** _mthMatchConfig *************************
    _mthMatchConfig::_mthMatchConfig ()
    {
       _matchConfig = mthGetDefaultNodeConfigPtr() ;
@@ -529,7 +521,6 @@ namespace engine
    {
    }
 
-   //********************** _mthMatchNode ***************************
    _mthMatchNode::_mthMatchNode( _mthNodeAllocator *allocator,
                                  const mthNodeConfig *config )
                  :_mthMatchConfig( config ), _allocator( allocator ),
@@ -550,57 +541,34 @@ namespace engine
       void *p = NULL ;
       if ( size > 0 )
       {
-         // In order to know if the memory is allocated by malloc() when
-         // deleting the object, reserve space for a flag at the head of the
-         // allocated space.
-         size_t reserveSize = size + MTH_MEM_TYPE_SIZE ;
-         if ( allocator )
+         if ( NULL != allocator )
          {
-            p = allocator->allocate( reserveSize ) ;
+            p = allocator->allocate( size ) ;
          }
 
          if ( NULL == p )
          {
-            p = SDB_OSS_MALLOC( reserveSize ) ;
-            if ( NULL == p )
-            {
-               goto error ;
-            }
-            *(INT32 *)p = MTH_MEM_BY_DFT_ALLOCATOR ;
+            p = SDB_OSS_MALLOC( size ) ;
          }
-         else
-         {
-            *(INT32 *)p = MTH_MEM_BY_USER_ALLOCATOR ;
-         }
-         // Seek address which can actually be used by the user.
-         p = (CHAR *)p + MTH_MEM_TYPE_SIZE ;
       }
 
-   done:
       return p ;
-   error:
-      goto done ;
    }
 
    void _mthMatchNode::operator delete( void *p )
    {
-      if ( p )
-      {
-         void *beginAddr = (void *)( (CHAR *)p - MTH_MEM_TYPE_SIZE ) ;
-         // Only release memory allocted by SDB_OSS_MALLOC().
-         // Objects allocated by instances of _utilAllocator(allocator is not
-         // NULL in new) will not be released seperately, as they are allocated
-         // in a stack. They space is released when the allocator is destroyed.
-         if ( MTH_MEM_BY_DFT_ALLOCATOR == *(INT32 *)beginAddr )
-         {
-            SDB_OSS_FREE( beginAddr ) ;
-         }
-      }
+      SDB_OSS_FREE(p) ;
    }
 
    void _mthMatchNode::operator delete( void *p, _mthNodeAllocator *allocator )
    {
-      _mthMatchNode::operator delete( p ) ;
+      if ( NULL != allocator && allocator->isAllocatedByme( p ) )
+      {
+      }
+      else
+      {
+         SDB_OSS_FREE(p) ;
+      }
    }
 
    string _mthMatchNode::toString()
@@ -633,7 +601,6 @@ namespace engine
       goto done ;
    }
 
-   //just clear parameter itself
    void _mthMatchNode::clear()
    {
       _parent          = NULL ;
@@ -710,7 +677,8 @@ namespace engine
 
    void _mthMatchNode::sortByWeight()
    {
-      for ( UINT32 i = 0; i < _children.size() ; i++ )
+      UINT32 i = 0 ;
+      for ( ; i < _children.size() ; i++ )
       {
          _mthMatchNode *child = _children[ i ] ;
          child->sortByWeight() ;
@@ -720,8 +688,7 @@ namespace engine
       {
          std::sort( _children.begin(), _children.end(), mthCompareNode ) ;
 
-         // rewrite _idx_in_parent
-         for ( UINT32 i = 0; i < _children.size() ; i++ )
+         for ( ; i < _children.size() ; i++ )
          {
             _mthMatchNode *child = _children[ i ] ;
             child->_idx_in_parent = i ;
@@ -731,7 +698,6 @@ namespace engine
 
    BOOLEAN _mthMatchNode::hasDollarFieldName()
    {
-      //default is false
       return FALSE ;
    }
 

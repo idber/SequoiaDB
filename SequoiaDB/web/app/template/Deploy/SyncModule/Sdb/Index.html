@@ -5,14 +5,14 @@
          <div ng-controller="Deploy.Sdb.Sync.Preview.Ctrl" class="pull-left" ng-container="{width:400}">
             <div style="height:30px;font-size:110%;font-weight:bold;">{{autoLanguage("同步信息")}}</div>
             <div class="borderBox" style="padding:10px;font-size:90%;overflow-y:auto;" ng-container="{offsetY:-30}">
-               <div style="font-weight:bold;margin-bottom:10px;">{{autoLanguage("服务信息")}}</div>
+               <div style="font-weight:bold;margin-bottom:10px;">{{autoLanguage("业务信息")}}</div>
                <table class="table loosen border" style="margin-bottom:15px;">
                   <tr>
                      <td style="width:120px;">{{autoLanguage("同步集群")}}</td>
                      <td>{{ClusterName}}</td>
                   </tr>
                   <tr>
-                     <td>{{autoLanguage("同步服务")}}</td>
+                     <td>{{autoLanguage("同步业务")}}</td>
                      <td>{{ModuleName}}</td>
                   </tr>
                   <tr>
@@ -22,7 +22,7 @@
                      <td ng-if="SyncStatus == 2"><b style="color:#D9534F;">{{autoLanguage("同步失败")}}</b></td>
                   </tr>
                </table>
-               <div style="font-weight:bold;margin-bottom:10px;">{{autoLanguage("服务配置")}}</div>
+               <div style="font-weight:bold;margin-bottom:10px;">{{autoLanguage("业务配置")}}</div>
                <table class="table loosen border">
                   <tr>
                      <td style="width:100px;background-color:#F1F4F5;"></td>
@@ -83,7 +83,7 @@
                <div class="Ellipsis" table-key="type">
                   <span ng-if="nodeAttr['type'] == 1" style="color:#00CC66;">{{autoLanguage("删除")}}</span>
                   <span ng-if="nodeAttr['type'] == 2" style="color:#D9534F;">{{autoLanguage("新增")}}</span>
-                  <span ng-if="nodeAttr['type'] == 3" style="color:#CC9900;">{{autoLanguage("变化")}}</span>
+                  <span ng-if="nodeAttr['type'] == 3" style="color:#CC9900;">{{autoLanguage("修改")}}</span>
                </div>
                <div class="Ellipsis" table-key="nodeInfo.1.hostName">
                   <a class="linkButton" ng-click="ShowNodeConf( nodeAttr['nodeInfo'], nodeAttr['type'] )">{{nodeAttr['nodeInfo'][1]['hostName']}}</a>

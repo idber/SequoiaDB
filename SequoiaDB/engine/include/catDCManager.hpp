@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = catDCManager.hpp
 
@@ -90,13 +89,11 @@ namespace engine
       BOOLEAN isWritedCommand() const { return _isWritedCmd ; }
 
    public :
-      // functions of _catEventHandler
       virtual const CHAR *getHandlerName () { return "catDCManager" ; }
       virtual INT32 onBeginCommand ( MsgHeader *pReqMsg ) ;
       virtual INT32 onEndCommand ( MsgHeader *pReqMsg, INT32 result ) ;
       virtual INT32 onSendReply ( MsgOpReply *pReply, INT32 result ) ;
 
-   // message process functions
    protected:
       INT32 processCommandMsg( const NET_HANDLE &handle, MsgHeader *pMsg,
                                BOOLEAN writable ) ;
@@ -104,7 +101,6 @@ namespace engine
                                   const CHAR *pQuery,
                                   rtnContextBuf &ctxBuff ) ;
 
-   // inner process
    protected:
       INT32 processCmdCreateImage( const NET_HANDLE &handle,
                                    _clsDCMgr *pDCMgr,
@@ -162,7 +158,6 @@ namespace engine
       INT32   _checkGroupsValid( map< string, string > &mapGroups,
                                  nodeMgrAgent *pNodeAgent ) ;
 
-   // tool fuctions
    private:
       INT16 _majoritySize() ;
       INT32 _updateGlobalInfo() ;
@@ -179,7 +174,6 @@ namespace engine
       _clsDCBaseInfo             *_pDCBaseInfo ;
       _catDCLogMgr               *_pLogMgr ;
 
-      // for commands
       BOOLEAN                    _isWritedCmd ;
       DPS_LSN                    _lsn ;
       _dpsMessageBlock           _mb ;

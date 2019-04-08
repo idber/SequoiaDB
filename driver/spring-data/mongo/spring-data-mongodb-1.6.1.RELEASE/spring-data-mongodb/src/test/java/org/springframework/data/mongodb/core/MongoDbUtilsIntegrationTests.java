@@ -74,7 +74,6 @@ public class MongoDbUtilsIntegrationTests {
 
 		factory.destroy();
 
-		// Remove test database
 
 		template.execute(new DbCallback<Void>() {
 			public Void doInDB(DB db) throws MongoException, DataAccessException {
@@ -90,7 +89,6 @@ public class MongoDbUtilsIntegrationTests {
 	@Test
 	public void authenticatesCorrectlyInMultithreadedEnvironment() throws Exception {
 
-		// Create sample user
 		template.execute(new DbCallback<Void>() {
 			public Void doInDB(DB db) throws MongoException, DataAccessException {
 				db.addUser("admin", "admin".toCharArray());
@@ -131,7 +129,6 @@ public class MongoDbUtilsIntegrationTests {
 	@Test
 	public void authenticatesCorrectlyWithAuthenticationDB() throws Exception {
 
-		// Create sample user
 		template.execute(new DbCallback<Void>() {
 			public Void doInDB(DB db) throws MongoException, DataAccessException {
 				db.getSisterDB("admin").addUser("admin", "admin".toCharArray());

@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsDef.hpp
 
@@ -69,7 +68,6 @@ namespace engine
    #define CLS_BEATID_BEGIN                     ( 1 )
    #define CLS_BEATID_INVALID                   ( 0 )
 
-   //full sync node timeout
    #define CLS_FS_NORES_TIMEOUT                 (10000)  // 10 secs
    #define CLS_DST_SESSION_NO_MSG_TIME          (300000) // 5 mins
    #define CLS_SRC_SESSION_NO_MSG_TIME          (10000)  // 10 secs
@@ -315,8 +313,6 @@ namespace engine
       DPS_LSN_OFFSET endLsn ;
       _pmdEDUCB *eduCB ;
 
-      /// local write has been completed.
-      /// synced starts from one.
       _clsSyncSession():endLsn(DPS_INVALID_LSN_OFFSET), eduCB( NULL)
       {}
 
@@ -364,9 +360,6 @@ namespace engine
 
       BOOLEAN isValid() const
       {
-         // 1. already full sync
-         // 2. sharing-break
-         // 3. same sync req more than 20 times
          if ( DPS_INVALID_LSN_OFFSET == offset ||
               !valid ||
               sameReqTimes > CLS_SAME_SYNC_LSN_MAX_TIMES )

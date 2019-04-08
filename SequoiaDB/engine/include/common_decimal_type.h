@@ -1,19 +1,34 @@
-/*******************************************************************************
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+/*    Copyright 2012 SequoiaDB Inc.
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+ 
+/*
+ * Copyright 2009-2012 10gen, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*******************************************************************************/
 #ifndef BSON_COMMON_DECIMAL_TYPE_H_
 #define BSON_COMMON_DECIMAL_TYPE_H_
 
@@ -53,8 +68,9 @@
 #define SDB_EXTERN_C_END
 #endif
 
+SDB_EXTERN_C_START
 
-#define SDB_DECIMAL_SIGN_MASK       0xC000
+#define DECIMAL_SIGN_MASK           0xC000
 #define SDB_DECIMAL_POS             0x0000
 #define SDB_DECIMAL_NEG             0x4000
 #define SDB_DECIMAL_SPECIAL_SIGN    0xC000
@@ -63,30 +79,27 @@
 #define SDB_DECIMAL_SPECIAL_MIN     0x0001
 #define SDB_DECIMAL_SPECIAL_MAX     0x0002
 
-#define SDB_DECIMAL_DSCALE_MASK     0x3FFF
+#define DECIMAL_DSCALE_MASK         0x3FFF
 
 
 #define SDB_DECIMAL_DBL_DIG        ( DBL_DIG )
 
-//sign + dscale
-//   sign  = dscale & 0xC000
-//   scale = dscale & 0x3FFF
 
 
 /*
  * Hardcoded precision limit - arbitrary, but must be small enough that
  * dscale values will fit in 14 bits.
  */
-#define SDB_DECIMAL_MAX_PRECISION         1000
-#define SDB_DECIMAL_MAX_DISPLAY_SCALE     SDB_DECIMAL_MAX_PRECISION
-#define SDB_DECIMAL_MIN_DISPLAY_SCALE     0
-#define SDB_DECIMAL_MIN_SIG_DIGITS        16
+#define DECIMAL_MAX_PRECISION       1000
+#define DECIMAL_MAX_DISPLAY_SCALE   DECIMAL_MAX_PRECISION
+#define DECIMAL_MIN_DISPLAY_SCALE   0
+#define DECIMAL_MIN_SIG_DIGITS      16
 
-#define SDB_DECIMAL_NBASE                 10000
-#define SDB_DECIMAL_HALF_NBASE            5000
-#define SDB_DECIMAL_DEC_DIGITS            4     /* decimal digits per NBASE digit */
-#define SDB_DECIMAL_MUL_GUARD_DIGITS      2     /* these are measured in NBASE digits */
-#define SDB_DECIMAL_DIV_GUARD_DIGITS      4
+#define DECIMAL_NBASE               10000
+#define DECIMAL_HALF_NBASE          5000
+#define DECIMAL_DEC_DIGITS          4     /* decimal digits per NBASE digit */
+#define DECIMAL_MUL_GUARD_DIGITS    2     /* these are measured in NBASE digits */
+#define DECIMAL_DIV_GUARD_DIGITS    4
 
 typedef struct {
    int typemod;    /* precision & scale define:  
@@ -101,7 +114,7 @@ typedef struct {
    short *digits;  /* real decimal data */
 } bson_decimal ;
 
-#define SDB_DECIMAL_DEFAULT_VALUE \
+#define DECIMAL_DEFAULT_VALUE \
    { \
       -1,               /* typemode */ \
       0,                /* ndigits */ \
@@ -113,8 +126,7 @@ typedef struct {
       NULL              /* digits */\
    }
 
-//storage detail define in bson.h  (BSON_DECIMAL)
-#define SDB_DECIMAL_HEADER_SIZE     12  /*size + typemod + dscale + weight*/
+#define DECIMAL_HEADER_SIZE  12  /*size + typemod + dscale + weight*/
 
 #pragma pack(1)
 typedef struct 
@@ -122,22 +134,19 @@ typedef struct
   int    size;    //total size of this value
 
   int    typemod; //precision + scale
-                  //   precision = (typmod >> 16) & 0xffff
-                  //   scale     = typmod & 0xffff
 
   short  dscale;  //sign + dscale
-                  //   sign  = dscale & 0xC000
-                  //   scale = dscale & 0x3FFF
 
   short  weight;  //weight of this decimal (NBASE=10000)
 
-  //short  digitis[0]; //real data
-} __sdb_decimal ;
+} __decimal ;
 
 #pragma pack()
 
+SDB_EXTERN_C_END
 
-#endif // BSON_COMMON_DECIMAL_TYPE_H_
+
+#endif
 
 
 

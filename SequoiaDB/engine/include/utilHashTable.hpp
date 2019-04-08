@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = utilHashTable.hpp
 
@@ -247,7 +246,6 @@ namespace engine
 
          OSS_INLINE static UINT32 _getMurmur3HashCode ( UINT32 keyCode )
          {
-            // Murmur3 hash code
             keyCode ^= keyCode >> 16 ;
             keyCode *= 0x85ebca6b ;
             keyCode ^= keyCode >> 13 ;
@@ -294,8 +292,6 @@ namespace engine
             _list.clearList ( TRUE ) ;
          }
 
-         // Get item matched with given key from bucket
-         // NOTE: should be called with shared lock
          utilHashTableItem *getItem ( const utilHashTableKey &key )
          {
             utilHashTableItem *pCurItem = (utilHashTableItem *)_list.getHead() ;
@@ -310,8 +306,6 @@ namespace engine
             return pCurItem ;
          }
 
-         // Add item into bucket
-         // NOTE: should be called with exclusively lock
          BOOLEAN addItem ( utilHashTableItem *pItem )
          {
             SDB_ASSERT( pItem != NULL, "pItem is invalid" ) ;
@@ -327,16 +321,12 @@ namespace engine
             return TRUE ;
          }
 
-         // Remove item from bucket
-         // NOTE: should be called with exclusive lock
          BOOLEAN removeItem ( utilHashTableItem *pItem )
          {
             SDB_ASSERT( pItem != NULL, "pItem is invalid" ) ;
             return _list.removeItem( pItem ) ;
          }
 
-         // Get head of bucket
-         // NOTE: should be called with lock
          OSS_INLINE utilHashTableItem *getHead ()
          {
             return (utilHashTableItem *)_list.getHead() ;
@@ -439,7 +429,6 @@ namespace engine
             UINT32 roundedBucketNum = 0 ;
             if ( bucketNum > 0 )
             {
-               // Bucket number should be power of 2, between 128 and 4096
                for ( roundedBucketNum = UTIL_HASH_TABLE_DFT_BUCKET_NUM ;
                      roundedBucketNum < UTIL_HASH_TABLE_MAX_BUCKET_NUM ;
                      roundedBucketNum <<= 1 )
@@ -580,7 +569,6 @@ namespace engine
          }
 
       protected :
-         // Hooks
          virtual void _afterAddItem ( UINT32 bucketID,
                                       utilHashTableItem *pItem )
          {

@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2016 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = expExport.cpp
 
@@ -62,8 +61,8 @@ namespace exprt
       }
       else
       {
-         if( !json2bson( _cl.select.c_str(), NULL, CJSON_RIGOROUS_PARSE,
-                         FALSE, TRUE, &select ) )
+         if( !json2bson( _cl.select.c_str(), NULL,
+                         CJSON_RIGOROUS_PARSE, FALSE, &select ) )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG( PDERROR, "Invalid format of select : %s", 
@@ -78,8 +77,8 @@ namespace exprt
       }
       else
       {
-         if( !json2bson( _cl.filter.c_str(), NULL, CJSON_RIGOROUS_PARSE,
-                         FALSE, TRUE, &condition ) )
+         if( !json2bson( _cl.filter.c_str(), NULL,
+                         CJSON_RIGOROUS_PARSE, FALSE, &condition ) )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG( PDERROR, "Invalid format of filter : %s", 
@@ -94,8 +93,8 @@ namespace exprt
       }
       else
       {
-         if( !json2bson( _cl.sort.c_str(), NULL, CJSON_RIGOROUS_PARSE,
-                         FALSE, TRUE, &sort ) )
+         if( !json2bson( _cl.sort.c_str(), NULL,
+                         CJSON_RIGOROUS_PARSE, FALSE, &sort ) )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG( PDERROR, "Invalid format of sort : %s", 
@@ -165,8 +164,6 @@ namespace exprt
          {
             PD_LOG( PDERROR, "Failed to convert the record, rc = %d",  rc ) ;
             ++failCount ;
-            // TODO: may continue to export when option 'errorstop' is false,
-            //       not handle yet
             goto error ;
          }
 
@@ -175,8 +172,6 @@ namespace exprt
          {
             PD_LOG( PDERROR, "Failed to output the record, rc = %d", rc ) ;
             ++_failCount ;
-            // TODO: may continue to export when option 'errorstop' is false,
-            //       not handle yet
             goto error ;
          }
          ++_exportedCount ;
@@ -219,7 +214,6 @@ namespace exprt
       const CHAR *buf = NULL ;
       UINT32 size = 0 ;
 
-      // 1. query and get cursor
       rc = _query( hCL, hCusor ) ;
       if ( SDB_OK != rc )
       {
@@ -228,7 +222,6 @@ namespace exprt
          goto error ;
       }
 
-      // 2. open to output
       rc = _out.open() ;
       if ( SDB_OK != rc )
       {
@@ -236,7 +229,6 @@ namespace exprt
          goto error ;
       }
 
-      // 3. init the covertor
       rc = _convertor.init() ;
       if ( SDB_OK != rc )
       {
@@ -244,7 +236,6 @@ namespace exprt
          goto error ;
       }
 
-      // 4. output the head-line
       rc = _convertor.head( buf, size ) ;
       if ( SDB_OK != rc )
       {
@@ -270,7 +261,6 @@ namespace exprt
          }
       }
 
-      // 5. iterate to export each record
       rc = _exportRecords( hCusor, exportedCount, failCount ) ;
       if ( SDB_OK != rc )
       {
@@ -278,7 +268,6 @@ namespace exprt
          goto error ;
       }
 
-      // 6. output the tail, do nothing normally
       rc = _convertor.tail( buf, size ) ;
       if ( SDB_OK != rc )
       {
@@ -406,18 +395,12 @@ namespace exprt
             PD_LOG( PDINFO, "Failed to export collection %s.%s, rc = %d", 
                     it->csName.c_str(), it->clName.c_str(), rc ) ;
             ++_failCLCount ;
-            // TODO: may continue to export when option 'errorstop' is false,
-            //       not handle yet
             goto error ;
          }
          ++_exportedCLCount ;
       }
       
    done :
-      //if ( _exportedCLCount > 0 || _exportedRecordCount > 0 )
-      //{
-      //   rc = SDB_OK ;
-      //}
       return rc ;
    error :
       goto done ;
@@ -462,7 +445,6 @@ namespace exprt
       INT32 rc = SDB_OK ;
       sdbConnectionHandle hConn = SDB_INVALID_HANDLE ;
 
-      // 1. connect to db
       rc = _connectDB(hConn) ;
       if ( SDB_OK != rc )
       {
@@ -473,7 +455,6 @@ namespace exprt
       PD_LOG ( PDINFO, "Connect to %s:%s", 
                _options.hostName().c_str(), _options.svcName().c_str() );
 
-      // 2. parse the options to get collection-list to will be exported
       rc = _clSet.parse(hConn) ;
       if ( SDB_OK != rc )
       {
@@ -481,7 +462,6 @@ namespace exprt
          goto error ;
       }
 
-      // 3.1. only writes options to conf-file
       if ( _options.hasGenConf() )
       {
          rc = _options.writeToConf( _clSet ) ;
@@ -494,7 +474,6 @@ namespace exprt
          goto done ;
       }
 
-      // 3.2. do the exporting work
       rc = _export( hConn ) ;
       if ( SDB_OK != rc )
       {
@@ -515,8 +494,6 @@ namespace exprt
 
    void expRoutine::printStatistics()
    {
-      // TODO: may print the failed count of collections and records
-      //       when option 'errorstop' is supported
       if ( !_options.hasGenConf() )
       {
          if ( 0 == _failCLCount && 0 == _failRecordCount )

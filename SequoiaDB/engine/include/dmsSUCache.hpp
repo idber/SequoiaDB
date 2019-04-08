@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dmsSUCache.hpp
 
@@ -51,14 +50,12 @@ namespace engine
    #define DMS_CACHE_TYPE_PLAN ( 1 )
    #define DMS_CACHE_TYPE_NUM  ( 2 )
 
-   typedef class _utilSUCache<DMS_MME_SLOTS>          dmsSUCache ;
-   typedef class _IUtilSUCacheHolder<DMS_MME_SLOTS>   IDmsSUCacheHolder ;
-   typedef class _utilStackBitmap<DMS_MME_SLOTS>      dmsSUCacheBitmap ;
+   typedef class _utilSUCache<UTIL_SU_CACHE_DFT_SIZE> dmsSUCache ;
+   typedef class _IUtilSUCacheHolder<DMS_MME_SLOTS> IDmsSUCacheHolder ;
 
    /*
       _dmsStatCache define
     */
-   /// _dmsStatCache stores statistics of collections and indexes
    class _dmsStatCache : public dmsSUCache
    {
       public :
@@ -71,7 +68,6 @@ namespace engine
    /*
       _dmsCachedPlanMgr define
     */
-   /// _dmsCachedPlanMgr stores bitmap indexes of cached plans of collections
    class _dmsCachedPlanMgr : public dmsSUCache
    {
       public :
@@ -158,8 +154,8 @@ namespace engine
       protected :
          UINT32 _bucketModulo ;
          utilBitmap _cacheBitmap ;
-         dmsSUCacheBitmap _paramInvalidBitmap ;
-         dmsSUCacheBitmap _mainCLInvalidBitmap ;
+         _utilStackBitmap<DMS_MME_SLOTS> _paramInvalidBitmap ;
+         _utilStackBitmap<DMS_MME_SLOTS> _mainCLInvalidBitmap ;
    } ;
 
    typedef class _dmsCachedPlanMgr dmsCachedPlanMgr ;

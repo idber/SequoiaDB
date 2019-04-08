@@ -1,6 +1,6 @@
 (function () {
    var sacApp = window.SdbSacManagerModule;
-   sacApp.service( 'SdbFunction', function( $rootScope, $window, $timeout ) {
+   sacApp.service( 'SdbFunction', function( $rootScope, $window ) {
       var g = this;
      
       //获取json的键列表
@@ -361,14 +361,7 @@
          var length = listOfResizeFun.length ;
          for( var i = 0; i < length; ++i )
          {
-            (function( i ){
-               $timeout( function(){
-                  if ( isObject( listOfResizeFun[i] ) )
-                  {
-                     listOfResizeFun[i]['fun']() ;
-                  }
-               } ) ;
-            })( i ) ;
+            listOfResizeFun[i]['fun']() ;
          }
       } ) ;
 

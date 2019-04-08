@@ -31,7 +31,7 @@ namespace bson {
 #else
         ctime_r(&t, buf);
 #endif
-        buf[ strlen( buf ) - 1 ] = 0; // don't want the \n
+        buf[24] = 0; // don't want the \n
     }
 
     inline string time_t_to_String(time_t t = time(0) ) {
@@ -41,7 +41,7 @@ namespace bson {
 #else
         ctime_r(&t, buf);
 #endif
-        buf[ strlen( buf ) - 1 ] = 0; // don't want the \n
+        buf[24] = 0; // don't want the \n
         return buf;
     }
 
@@ -82,8 +82,6 @@ namespace bson {
         }
     };
 
-    // Like strlen, but only scans up to n bytes.
-    // Returns -1 if no '0' found.
     inline int strnlen( const char *s, int n ) {
         for( int i = 0; i < n; ++i )
             if ( !s[ i ] )

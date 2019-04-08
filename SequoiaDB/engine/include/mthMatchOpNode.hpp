@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = mthMatchOpNode.hpp
 
@@ -42,6 +41,7 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "ossUtil.hpp"
+#include "utilList.hpp"
 #include <set>
 #include <boost/shared_ptr.hpp>
 #include "../bson/bson.hpp"
@@ -71,8 +71,11 @@ namespace engine
          string toString() ;
 
          void* operator new ( size_t size, _mthNodeAllocator *allocator ) ;
-         void  operator delete ( void *p, _mthNodeAllocator *allocator ) ;
-         void  operator delete ( void *p ) ;
+         void operator delete ( void *p ) ;
+         void operator delete ( void *p, _mthNodeAllocator *allocator ) ;
+
+
+         virtual void release() = 0 ;
 
       public:
          virtual void clear() ;
@@ -105,6 +108,7 @@ namespace engine
          virtual ~_mthMatchFuncABS() ;
 
       public:
+         virtual void release() ;
          virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
          virtual void clear() ;
          virtual INT32 getType() ;
@@ -122,6 +126,7 @@ namespace engine
          virtual ~_mthMatchFuncCEILING() ;
 
       public:
+         virtual void release() ;
          virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
          virtual INT32 getType() ;
          virtual const CHAR* getName() ;
@@ -134,6 +139,7 @@ namespace engine
          virtual ~_mthMatchFuncFLOOR() ;
 
       public:
+         virtual void release() ;
          virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
          virtual INT32 getType() ;
          virtual const CHAR* getName() ;
@@ -146,6 +152,7 @@ namespace engine
          virtual ~_mthMatchFuncLOWER() ;
 
       public:
+         virtual void release() ;
          virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
          virtual INT32 getType() ;
          virtual const CHAR* getName() ;
@@ -158,6 +165,7 @@ namespace engine
          virtual ~_mthMatchFuncUPPER() ;
 
       public:
+         virtual void release() ;
          virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
          virtual INT32 getType() ;
          virtual const CHAR* getName() ;
@@ -170,6 +178,7 @@ namespace engine
          virtual ~_mthMatchFuncLTRIM() ;
 
       public:
+         virtual void release() ;
          virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
          virtual INT32 getType() ;
          virtual const CHAR* getName() ;
@@ -182,6 +191,7 @@ namespace engine
          virtual ~_mthMatchFuncRTRIM() ;
 
       public:
+         virtual void release() ;
          virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
          virtual INT32 getType() ;
          virtual const CHAR* getName() ;
@@ -194,6 +204,7 @@ namespace engine
          virtual ~_mthMatchFuncTRIM() ;
 
       public:
+         virtual void release() ;
          virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
          virtual INT32 getType() ;
          virtual const CHAR* getName() ;
@@ -206,6 +217,7 @@ namespace engine
          virtual ~_mthMatchFuncSTRLEN() ;
 
       public:
+         virtual void release() ;
          virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
          virtual INT32 getType() ;
          virtual const CHAR* getName() ;
@@ -218,6 +230,7 @@ namespace engine
          virtual ~_mthMatchFuncSUBSTR() ;
 
       public:
+         virtual void release() ;
          virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
          virtual INT32 getType() ;
          virtual const CHAR* getName() ;
@@ -239,6 +252,7 @@ namespace engine
          virtual ~_mthMatchFuncMOD() ;
 
       public:
+         virtual void release() ;
          virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
          virtual INT32 getType() ;
          virtual const CHAR* getName() ;
@@ -258,6 +272,7 @@ namespace engine
          virtual ~_mthMatchFuncADD() ;
 
       public:
+         virtual void release() ;
          virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
          virtual INT32 getType() ;
          virtual const CHAR* getName() ;
@@ -277,6 +292,7 @@ namespace engine
          virtual ~_mthMatchFuncSUBTRACT() ;
 
       public:
+         virtual void release() ;
          virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
          virtual INT32 getType() ;
          virtual const CHAR* getName() ;
@@ -296,6 +312,7 @@ namespace engine
          virtual ~_mthMatchFuncMULTIPLY() ;
 
       public:
+         virtual void release() ;
          virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
          virtual INT32 getType() ;
          virtual const CHAR* getName() ;
@@ -315,6 +332,7 @@ namespace engine
          virtual ~_mthMatchFuncDIVIDE() ;
 
       public:
+         virtual void release() ;
          virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
          virtual INT32 getType() ;
          virtual const CHAR* getName() ;
@@ -334,6 +352,7 @@ namespace engine
          virtual ~_mthMatchFuncCAST() ;
 
       public:
+         virtual void release() ;
          virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
          virtual INT32 getType() ;
          virtual const CHAR* getName() ;
@@ -354,6 +373,7 @@ namespace engine
          virtual ~_mthMatchFuncSLICE() ;
 
       public:
+         virtual void release() ;
          virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
          virtual INT32 getType() ;
          virtual const CHAR* getName() ;
@@ -377,6 +397,7 @@ namespace engine
          virtual ~_mthMatchFuncSIZE() ;
 
       public:
+         virtual void release() ;
          virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
          virtual INT32 getType() ;
          virtual const CHAR* getName() ;
@@ -396,6 +417,7 @@ namespace engine
          virtual ~_mthMatchFuncTYPE() ;
 
       public:
+         virtual void release() ;
          virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
          virtual INT32 getType() ;
          virtual const CHAR* getName() ;
@@ -420,6 +442,7 @@ namespace engine
          INT32 getLen() ;
 
       public:
+         virtual void release() ;
          virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
          virtual INT32 getType() ;
          virtual const CHAR* getName() ;
@@ -445,6 +468,7 @@ namespace engine
          void getElement( BSONElement &ele ) ;
 
       public:
+         virtual void release() ;
          virtual INT32 call( const BSONElement &in, BSONObj &out ) ;
          virtual INT32 getType() ;
          virtual const CHAR* getName() ;
@@ -457,7 +481,7 @@ namespace engine
       private:
    } ;
 
-   typedef ossPoolList< _mthMatchFunc* > MTH_FUNC_LIST ;
+   typedef _utilList< _mthMatchFunc* > MTH_FUNC_LIST ;
 
    class _mthMatchOpNode : public _mthMatchNode
    {
@@ -507,12 +531,10 @@ namespace engine
 
          OSS_INLINE virtual void setFuzzyOpType ( EN_MATCH_OP_FUNC_TYPE nodeType )
          {
-            // Do nothing
          }
 
         OSS_INLINE virtual void setFuzzyIndex ( INT8 fuzzyIndex )
         {
-           // Do nothing
         }
 
         OSS_INLINE virtual void setParamIndex ( INT8 paramIndex )
@@ -593,7 +615,6 @@ namespace engine
 
          OSS_INLINE BOOLEAN _canSelfParameterize () const
          {
-            // No functions, no $field, no $x, no $return, no $expand
             return ( _funcList.size() == 0 &&
                      !_isCompareField &&
                      !_hasDollarFieldName &&
@@ -623,14 +644,11 @@ namespace engine
          BOOLEAN _doneByPred ;
    } ;
 
-   // Type of fuzzy operators
    #define MTH_FUZZY_TYPE_EXCLUSIVE    ( -1 )
    #define MTH_FUZZY_TYPE_INCLUSIVE    ( -2 )
-   // It is fuzzy now, but the original type is exclusive or inclusive
    #define MTH_FUZZY_TYPE_FUZZY_EXC    ( -3 )
    #define MTH_FUZZY_TYPE_FUZZY_INC    ( -4 )
 
-   // In the parameters, TRUE means inclusive, FALSE means exclusive
    extern BSONObj _mthFuzzyIncOptr ;
    extern BSONObj _mthFuzzyExcOptr ;
 
@@ -727,8 +745,6 @@ namespace engine
                                      const rtnParamList &parameters ) ;
 
       protected :
-         // If < 0, it is type of operator
-         // If >= 0, it is index of parameter
          INT8 _fuzzyOpType ;
    } ;
 
@@ -747,6 +763,7 @@ namespace engine
          virtual BOOLEAN isTotalConverted() ;
          virtual INT32 extraEqualityMatches( BSONObjBuilder &builder,
                                              const rtnParamList *parameters ) ;
+         virtual void release() ;
 
       protected:
          virtual INT32 _valueMatch( const BSONElement &left,
@@ -776,6 +793,7 @@ namespace engine
          virtual INT32 execute( const BSONObj &obj,
                                 _mthMatchTreeContext &context,
                                 BOOLEAN &result ) ;
+         virtual void release() ;
 
       protected :
          virtual void _evalEstimation ( const optCollectionStat *pCollectionStat,
@@ -788,6 +806,9 @@ namespace engine
          _mthMatchOpNodeLT( _mthNodeAllocator *allocator,
                             const mthNodeConfig *config ) ;
          virtual ~_mthMatchOpNodeLT() ;
+
+      public:
+         virtual void release() ;
 
       protected:
          virtual void _evalEstimation ( const optCollectionStat *pCollectionStat,
@@ -852,6 +873,9 @@ namespace engine
          _mthMatchOpNodeGT( _mthNodeAllocator *allocator,
                             const mthNodeConfig *config ) ;
          virtual ~_mthMatchOpNodeGT() ;
+
+      public:
+         virtual void release() ;
 
       protected:
          virtual void _evalEstimation ( const optCollectionStat *pCollectionStat,
@@ -925,6 +949,7 @@ namespace engine
          virtual const CHAR *getOperatorStr() ;
          virtual UINT32 getWeight() ;
          virtual BOOLEAN isTotalConverted() ;
+         virtual void release() ;
 
       protected:
          virtual INT32 _init( const CHAR *fieldName,
@@ -962,6 +987,7 @@ namespace engine
          virtual const CHAR *getOperatorStr() ;
          virtual UINT32 getWeight() ;
          virtual BOOLEAN isTotalConverted() ;
+         virtual void release() ;
 
       protected:
          virtual INT32 _valueMatch( const BSONElement &left,
@@ -986,6 +1012,7 @@ namespace engine
          virtual BOOLEAN isTotalConverted() ;
          virtual INT32 extraEqualityMatches( BSONObjBuilder &builder,
                                              const rtnParamList *parameters ) ;
+         virtual void release() ;
 
       protected:
          virtual INT32 _valueMatch( const BSONElement &left,
@@ -1018,6 +1045,7 @@ namespace engine
          virtual const CHAR *getOperatorStr() ;
          UINT32 getWeight() ;
          virtual BOOLEAN isTotalConverted() ;
+         virtual void release() ;
 
       protected:
          virtual INT32 _valueMatch( const BSONElement &left,
@@ -1028,9 +1056,7 @@ namespace engine
 
          OSS_INLINE virtual BOOLEAN _flagAcceptUndefined ()
          {
-            // For { $exists : 1 } return FALSE if undefined
-            // For { $exists : 0 } return TRUE if undefined
-            return _toMatch.trueValue() ? FALSE : TRUE ;
+            return TRUE ;
          }
    } ;
 
@@ -1047,6 +1073,7 @@ namespace engine
          virtual const CHAR *getOperatorStr() ;
          UINT32 getWeight() ;
          virtual BOOLEAN isTotalConverted() ;
+         virtual void release() ;
 
       protected:
          virtual INT32 _init( const CHAR *fieldName,
@@ -1078,6 +1105,7 @@ namespace engine
          virtual const CHAR *getOperatorStr() ;
          virtual UINT32 getWeight() ;
          virtual BOOLEAN isTotalConverted() ;
+         virtual void release() ;
 
       protected:
          virtual INT32 _init( const CHAR *fieldName,
@@ -1105,6 +1133,7 @@ namespace engine
          virtual const CHAR *getOperatorStr() ;
          virtual UINT32 getWeight() ;
          virtual BOOLEAN isTotalConverted() ;
+         virtual void release() ;
 
       protected:
          virtual INT32 _valueMatch( const BSONElement &left,
@@ -1115,9 +1144,7 @@ namespace engine
 
          OSS_INLINE virtual BOOLEAN _flagAcceptUndefined ()
          {
-            // For { $isnull : 1 } return TRUE if undefined
-            // For { $isnull : 0 } return FALSE if undefined
-            return _toMatch.trueValue() ? TRUE : FALSE ;
+            return TRUE ;
          }
    } ;
 
@@ -1134,6 +1161,7 @@ namespace engine
          virtual const CHAR *getOperatorStr() ;
          virtual UINT32 getWeight() ;
          virtual BOOLEAN isTotalConverted() ;
+         virtual void release() ;
 
          virtual INT32 calcPredicate( rtnPredicateSet &predicateSet,
                                       const rtnParamList * paramList ) ;
@@ -1165,6 +1193,7 @@ namespace engine
          virtual const CHAR *getOperatorStr() ;
          virtual UINT32 getWeight() ;
          virtual BOOLEAN isTotalConverted() ;
+         virtual void release() ;
 
       protected:
          virtual INT32 _init( const CHAR *fieldName,
@@ -1190,11 +1219,9 @@ namespace engine
          virtual ~_mthMatchOpNodeRegex() ;
 
       public:
-         //forbiddened
          virtual INT32 init( const CHAR *fieldName,
                              const BSONElement &element ) ;
 
-         //use this to init _mthMatchOpNodeRegex.(not graceful here)
          INT32 init( const CHAR *fieldName, const CHAR *regex,
                      const CHAR *options ) ;
 
@@ -1203,6 +1230,7 @@ namespace engine
          virtual const CHAR *getOperatorStr() ;
          virtual BOOLEAN isTotalConverted() ;
          virtual UINT32 getWeight() ;
+         virtual void release() ;
 
       public:
          BOOLEAN matches( const BSONElement &ele ) ;

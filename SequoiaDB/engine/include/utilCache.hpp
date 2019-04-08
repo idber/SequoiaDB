@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = utilCache.hpp
 
@@ -38,11 +37,11 @@
 #include "oss.hpp"
 #include "ossLatch.hpp"
 #include "ossRWMutex.hpp"
+#include "utilMap.hpp"
 #include "ossEvent.hpp"
-#include "ossUtil.hpp"
 #include "sdbInterface.hpp"
 #include <vector>
-#include "ossMemPool.hpp"
+#include <list>
 
 using namespace std ;
 
@@ -53,7 +52,6 @@ namespace engine
    #define UTIL_PAGE_SLOT_BEGIN_SIZE            ( 256 )  /// BYTE
    #define UTIL_PAGE_SLOT_SIZE                  ( 22 )   /// 512M
 
-   /// totalSize / maxCacheSize
    #define UTIL_CACHE_RATIO                     ( 20 )   /// >=20%
 
    /*
@@ -430,7 +428,6 @@ namespace engine
 
          UINT32   avgNullTimes() ;
 
-         /// Get the detail info of the specified bucket
          void     getCacheStat( UINT32 bucketID,
                                 utilCacheStat &stat ) const ;
 
@@ -568,7 +565,7 @@ namespace engine
    class _utilCacheBucket : public SDBObject
    {
       public:
-         typedef ossPoolMap< INT32, utilCachePage >      MAP_BLK_PAGE ;
+         typedef std::map< INT32, utilCachePage >        MAP_BLK_PAGE ;
 
          _utilCacheBucket( UINT32 blkID ) ;
          ~_utilCacheBucket() ;
@@ -693,7 +690,6 @@ namespace engine
          BOOLEAN           _usePage ;
          BOOLEAN           _hasDiscard ;
 
-         /// should value in cache unit
          INT32             _pageID ;
          utilCachePage*    _pPage ;
          utilCacheBucket*  _pBucket ;
@@ -822,7 +818,7 @@ namespace engine
    */
    class _utilCacheUnit : public SDBObject
    {
-      typedef ossPoolMap< INT32, utilCachePage* >     MAP_ID_2_PAGE_PRT ;
+      typedef std::map< INT32, utilCachePage* >       MAP_ID_2_PAGE_PRT ;
       typedef MAP_ID_2_PAGE_PRT::iterator             MAP_ID_2_PAGE_PRT_IT ;
       typedef MAP_ID_2_PAGE_PRT::const_iterator       MAP_ID_2_PAGE_PRT_CIT ;
 

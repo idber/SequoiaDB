@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = seAdptOptionsMgr.hpp
 
@@ -43,7 +42,6 @@
 
 namespace seadapter
 {
-   // Manage the configurations of the search engine adapter
    class _seAdptOptionsMgr : public engine::_pmdCfgRecord
    {
    public:
@@ -55,13 +53,11 @@ namespace seadapter
       void setSvcName( const CHAR *svcName ) ;
       const CHAR* getCfgFileName() const { return _cfgFileName ; }
       const CHAR* getSvcName() const { return _serviceName ; }
-      const CHAR* getDBHost() const { return _dbHost ; }
-      const CHAR* getDBService() const { return _dbService ; }
-      const CHAR* getSEHost() const { return _seHost ; }
-      const CHAR* getSEService() const { return _seService ; }
+      const CHAR* getDbHost() const { return _dbHost ; }
+      const CHAR* getDbService() const { return _dbService ; }
+      const CHAR* getSeHost() const { return _seHost ; }
+      const CHAR* getSeService() const { return _seService ; }
       PDLEVEL     getDiagLevel() const ;
-      INT32       getTimeout() const ;
-      UINT32      getBulkBuffSize() const ;
 
    protected:
       virtual INT32 doDataExchange( engine::pmdCfgExchange *pEX ) ;
@@ -73,9 +69,7 @@ namespace seadapter
       CHAR     _dbService[ OSS_MAX_SERVICENAME + 1 ] ;
       CHAR     _seHost[ OSS_MAX_PATHSIZE + 1 ] ;
       CHAR     _seService[ OSS_MAX_SERVICENAME + 1 ] ;
-      UINT16   _diagLevel ;
-      INT32    _timeout ;
-      UINT32   _bulkBuffSize ;
+      INT32    _diagLevel ;
    } ;
    typedef _seAdptOptionsMgr seAdptOptionsMgr ;
 }

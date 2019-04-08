@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dpsTransCB.cpp
 
@@ -36,18 +35,17 @@
 *******************************************************************************/
 
 #include "dpsTransCB.hpp"
-#include "dpsTransLockMgr.hpp"
+#include "dpsTransLock.hpp"
 #include "pdTrace.hpp"
 #include "dpsTrace.hpp"
 #include "pmdEDU.hpp"
 #include "pmdEDUMgr.hpp"
 #include "pmd.hpp"
+#include "pmdCB.hpp"
 #include "pmdDef.hpp"
 #include "dpsLogRecord.hpp"
 #include "dpsMessageBlock.hpp"
 #include "dpsLogRecordDef.hpp"
-#include "dpsTransLockCallback.hpp"
-#include "dpsTransVersionCtrl.hpp"
 #include "pmdStartup.hpp"
 
 namespace engine
@@ -57,14 +55,12 @@ namespace engine
    :_TransIDL48Cur( 1 )
    {
       _TransIDH16          = 0;
-      _isOn                = FALSE ;
-      _doRollback          = FALSE ;
-      _isNeedSyncTrans     = TRUE ;
-      _maxUsedSize         = 0 ;
-      _logFileTotalSize    = 0 ;
-      _accquiredSpace      = 0 ;
-      _transLockMgr        = NULL ;      
-      _oldVCB              = NULL;
+      _isOn                = FALSE;
+      _doRollback          = FALSE;
+      _isNeedSyncTrans     = TRUE;
+      _maxUsedSize         = 0;
+      _logFileTotalSize    = 0;
+      _accquiredSpace      = 0;
    }
 
    dpsTransCB::~dpsTransCB()
@@ -84,53 +80,12 @@ namespace engine
    INT32 dpsTransCB::init ()
    {
       INT32 rc = SDB_OK ;
-      DPS_LSN_OFFSET startLsnOffset = DPS_INVALID_LSN_OFFSET ;
 
       _isOn = pmdGetOptionCB()->transactionOn() ;
       _rollbackEvent.signal() ;
 
-      // register event handle
       pmdGetKRCB()->regEventHandler( this ) ;
 
-      // only enable/setup old version CB if transaction is turned on
-      // Each session decide when to setup/use the old copy based on 
-      // isolation level (TRANS_ISOLATION_RC)
-      if( _isOn )
-      {
-         _transLockMgr = SDB_OSS_NEW dpsTransLockManager() ;
-         if ( !_transLockMgr )
-         {
-            rc = SDB_OOM ;
-            goto error ;
-         }
-
-         // Initialize trans lock manager
-         //   . allocate memory and under layer structures for the LRBs,
-         //     LRB Headers, LRB Header Hash buckets
-         rc = _transLockMgr->init( pmdGetOptionCB()->transLRBInit(),
-                                   pmdGetOptionCB()->transLRBTotal() ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "Failed to initialize lock manager, rc: %d",
-                    rc ) ;
-            goto error ;
-         }
-
-         _oldVCB = SDB_OSS_NEW oldVersionCB() ;
-         if ( !_oldVCB )
-         {
-            rc = SDB_OOM ;
-            goto error ;
-         }
-         rc = _oldVCB->init() ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to init OldVersionCB, rc: %d", rc ) ;
-            goto error ;
-         }
-      }
-
-      // if enabled dps
       if ( pmdGetKRCB()->isCBValue( SDB_CB_DPS ) &&
            !pmdGetKRCB()->isRestore() )
       {
@@ -140,24 +95,11 @@ namespace engine
 
          if ( logFileNum >= 5 )
          {
-            // reserved 2 log-file: because size of rollback-log is bigger than operation-log
             UINT64 reservedSize = logFileSize * 2 ;
 
-            // (1).the max-size of operation-log(update) is 2*DMS_RECORD_MAX_SZ,
-            // (2).the max-size of unavailable space in cross-file is
-            // 2*DMS_RECORD_MAX_SZ*(logFileNum -2),
-            // the available size is: availableSize =
-            // _logFileTotalSize - (2) - reservedSize;
-            // the availableSize can used for operation-log and rollback-log,
-            // so the size of operation-log is:
-            // _maxUsedSize = availableSize / 2;
             _maxUsedSize = ( _logFileTotalSize - reservedSize
                                  - 2 * DMS_RECORD_MAX_SZ * ( logFileNum - 2 ) ) / 2 ;
 
-            // if the logFileSize is 32M, the caculation method is:
-            // if the transaction-operation-log  caused X(MB) of log-file,
-            // the rollback-log will caused up to 2X( 1X for normal rollback-log
-            // and 1X for cross-file-space )
             UINT64 temp = ( _logFileTotalSize - reservedSize ) / 3 ;
             if ( _maxUsedSize > temp || 0 == _maxUsedSize )
             {
@@ -169,14 +111,11 @@ namespace engine
             _maxUsedSize = 0 ;
          }
 
-         rc = sdbGetDPSCB()->readOldestBeginLsnOffset( startLsnOffset ) ;
-         PD_RC_CHECK( rc, PDERROR, "Read oldest begin lsn offset failed:rc=%d",
-                      rc ) ;
-         PD_LOG( PDEVENT, "oldest begin lsn offset=%llu", startLsnOffset ) ;
-         if ( _isOn && startLsnOffset != DPS_INVALID_LSN_OFFSET &&
+         DPS_LSN startLSN = sdbGetDPSCB()->getStartLsn() ;
+         if ( _isOn && startLSN.offset != DPS_INVALID_LSN_OFFSET &&
               SDB_ROLE_STANDALONE != pmdGetDBRole() )
          {
-            rc = syncTransInfoFromLocal( startLsnOffset ) ;
+            rc = syncTransInfoFromLocal( startLSN.offset ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Failed to sync trans info from local, rc: %d",
@@ -186,7 +125,6 @@ namespace engine
          }
          setIsNeedSyncTrans( FALSE ) ;
 
-         // if have trans info, need log
          if ( getTransMap()->size() > 0 )
          {
             PD_LOG( PDEVENT, "Restored trans info, have %d trans not "
@@ -213,27 +151,13 @@ namespace engine
 
    INT32 dpsTransCB::fini ()
    {
-      // unregister event handle
       pmdGetKRCB()->unregEventHandler( this ) ;
-
-      if ( _transLockMgr )
-      {
-         _transLockMgr->fini() ;
-         SDB_OSS_DEL _transLockMgr ;
-         _transLockMgr = NULL ;
-      }
-
-      if ( _oldVCB )
-      {
-         _oldVCB->fini() ;
-         SDB_OSS_DEL _oldVCB ;
-         _oldVCB = NULL ;
-      }
       return SDB_OK ;
    }
 
    void dpsTransCB::onConfigChange()
    {
+      dpsLockBucket::setLockTimeout( pmdGetOptionCB()->transTimeout() * 1000 ) ;
    }
 
    DPS_TRANS_ID dpsTransCB::allocTransID()
@@ -242,7 +166,7 @@ namespace engine
       while ( 0 == temp )
       {
          temp = _TransIDL48Cur.inc();
-         temp = DPS_TRANS_GET_SN( temp ) | _TransIDH16 |
+         temp = ( temp & DPS_TRANSID_SN_BIT ) | _TransIDH16 |
                 DPS_TRANSID_FIRSTOP_BIT;
       }
       return temp ;
@@ -256,7 +180,6 @@ namespace engine
    void dpsTransCB::onPrimaryChange( BOOLEAN primary,
                                      SDB_EVENT_OCCUR_TYPE occurType )
    {
-      // change to primary, start trans rollback
       if ( primary )
       {
          if ( SDB_EVT_OCCUR_BEFORE == occurType )
@@ -269,7 +192,6 @@ namespace engine
             startRollbackTask() ;
          }
       }
-      // change to secondary, stop trans rollback
       else
       {
          if ( SDB_EVT_OCCUR_AFTER == occurType )
@@ -287,7 +209,7 @@ namespace engine
 
    DPS_TRANS_ID dpsTransCB::getTransID( DPS_TRANS_ID rollbackID )
    {
-      return DPS_TRANS_GET_ID( rollbackID ) ;
+      return rollbackID & DPS_TRANSID_VALID_BIT ;
    }
 
    BOOLEAN dpsTransCB::isRollback( DPS_TRANS_ID transID )
@@ -301,12 +223,16 @@ namespace engine
 
    BOOLEAN dpsTransCB::isFirstOp( DPS_TRANS_ID transID )
    {
-      return DPS_TRANS_IS_FIRSTOP( transID ) ? TRUE : FALSE ;
+      if ( transID & DPS_TRANSID_FIRSTOP_BIT )
+      {
+         return TRUE;
+      }
+      return FALSE;
    }
 
    void dpsTransCB::clearFirstOpTag( DPS_TRANS_ID &transID )
    {
-      DPS_TRANS_CLEAR_FIRSTOP( transID ) ;
+      transID = transID & ( ~DPS_TRANSID_FIRSTOP_BIT );
    }
 
    INT32 dpsTransCB::startRollbackTask()
@@ -349,7 +275,7 @@ namespace engine
       return _rollbackEvent.wait( millicSec ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_SVTRANSINFO, "dpsTransCB::updateTransInfo" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DPSTRANSCB_SVTRANSINFO, "dpsTransCB::saveTransInfo" )
    void dpsTransCB::updateTransInfo( DPS_TRANS_ID transID,
                                      DPS_LSN_OFFSET lsnOffset )
    {
@@ -363,7 +289,6 @@ namespace engine
       if ( pmdGetKRCB()->isCBValue( SDB_CB_CLS ) &&
            pmdIsPrimary() )
       {
-         // in primary, transaction-info save in EDUCB
          goto done ;
       }
       else
@@ -373,7 +298,6 @@ namespace engine
 
          if ( DPS_INVALID_LSN_OFFSET == lsnOffset )
          {
-            // invalid-lsn means the transaction is complete
             _TransMap.erase( transID ) ;
          }
          else
@@ -394,7 +318,6 @@ namespace engine
       ossScopedLock _lock( &_MapMutex );
       if ( _TransMap.find( transID ) == _TransMap.end() )
       {
-         // it is means transaction is synchronous by log if transID is exist
          _TransMap[ transID ] = lsnOffset;
       }
    }
@@ -485,8 +408,6 @@ namespace engine
             if ( DPS_INVALID_LSN_OFFSET == lsnOffset ||
                  !itr.valid() )
             {
-               // In the old version, commit log have not pre trans lsn and
-               // first trans lsn. So, we can't rollback trans info
                ret = FALSE ;
                goto done ;
             }
@@ -507,15 +428,12 @@ namespace engine
             itr = record.find( DPS_LOG_PUBLIC_RELATED_TRANS ) ;
             if ( !itr.valid() )
             {
-               // In the old version, rollback log have not related trans lsn,
-               // so, we can't rollback trans info correctly
                ret = FALSE ;
                goto done ;
             }
             relatedLsn = *( ( DPS_LSN_OFFSET*)itr.value() ) ;
             if ( DPS_INVALID_LSN_OFFSET == lsnOffset )
             {
-               // In the last rollback trans lsn, pre trans lsn is invalid
                addBeginLsn( relatedLsn, transID ) ;
             }
             lsnOffset = relatedLsn ;
@@ -684,264 +602,153 @@ namespace engine
       PD_TRACE_EXIT ( SDB_DPSTRANSCB_TERMALLTRANS );
    }
 
-
    INT32 dpsTransCB::transLockGetX( _pmdEDUCB *eduCB, UINT32 logicCSID,
                                     UINT16 collectionID,
-                                    const dmsRecordID *recordID,
-                                    _IContext *pContext,
-                                    dpsTransRetInfo * pdpsTxResInfo,
-                                    _dpsITransLockCallback * callback )
+                                    const dmsRecordID *recordID )
    {
       if ( !_isOn )
       {
          return SDB_OK ;
       }
       dpsTransLockId lockId( logicCSID, collectionID, recordID );
-      return _transLockMgr->acquire( eduCB->getTransExecutor(),
-                                     lockId, DPS_TRANSLOCK_X,
-                                     pContext, pdpsTxResInfo, 
-                                     callback );
+      return _TransLock.acquireX( eduCB, lockId );
    }
-
-
-   INT32 dpsTransCB::transLockGetU( _pmdEDUCB *eduCB, UINT32 logicCSID,
-                                    UINT16 collectionID,
-                                    const dmsRecordID *recordID,
-                                    _IContext *pContext,
-                                    dpsTransRetInfo * pdpsTxResInfo,
-                                    _dpsITransLockCallback * callback )
-   {
-      if ( !_isOn )
-      {
-         return SDB_OK ;
-      }
-      dpsTransLockId lockId( logicCSID, collectionID, recordID );
-      return _transLockMgr->acquire( eduCB->getTransExecutor(),
-                                     lockId, DPS_TRANSLOCK_U,
-                                     pContext, pdpsTxResInfo,
-                                     callback ) ;
-   }
-
 
    INT32 dpsTransCB::transLockGetS( _pmdEDUCB *eduCB, UINT32 logicCSID,
                                     UINT16 collectionID,
-                                    const dmsRecordID *recordID,
-                                    _IContext *pContext,
-                                    dpsTransRetInfo * pdpsTxResInfo,
-                                    _dpsITransLockCallback * callback )
+                                    const dmsRecordID *recordID )
    {
       if ( !_isOn )
       {
          return SDB_OK ;
       }
       dpsTransLockId lockId( logicCSID, collectionID, recordID );
-      return _transLockMgr->acquire( eduCB->getTransExecutor(),
-                                     lockId, DPS_TRANSLOCK_S,
-                                     pContext, pdpsTxResInfo, 
-                                     callback );
+      return _TransLock.acquireS( eduCB, lockId );
    }
-
 
    INT32 dpsTransCB::transLockGetIX( _pmdEDUCB *eduCB, UINT32 logicCSID,
-                                     UINT16 collectionID,
-                                     _IContext *pContext,
-                                     dpsTransRetInfo * pdpsTxResInfo )
+                                     UINT16 collectionID )
    {
       if ( !_isOn )
       {
          return SDB_OK ;
       }
       dpsTransLockId lockId( logicCSID, collectionID, NULL );
-      return _transLockMgr->acquire( eduCB->getTransExecutor(),
-                                     lockId, DPS_TRANSLOCK_IX,
-                                     pContext, pdpsTxResInfo );
+      return _TransLock.acquireIX( eduCB, lockId );
    }
-
 
    INT32 dpsTransCB::transLockGetIS( _pmdEDUCB *eduCB, UINT32 logicCSID,
-                                     UINT16 collectionID,
-                                     _IContext *pContext,
-                                     dpsTransRetInfo * pdpsTxResInfo )
+                                     UINT16 collectionID )
    {
       if ( !_isOn )
       {
          return SDB_OK ;
       }
       dpsTransLockId lockId( logicCSID, collectionID, NULL );
-      return _transLockMgr->acquire( eduCB->getTransExecutor(),
-                                    lockId, DPS_TRANSLOCK_IS,
-                                    pContext, pdpsTxResInfo );
+      return _TransLock.acquireIS( eduCB, lockId );
    }
-
 
    void dpsTransCB::transLockRelease( _pmdEDUCB *eduCB, UINT32 logicCSID,
                                       UINT16 collectionID,
-                                      const dmsRecordID *recordID,
-                                      _dpsITransLockCallback * callback )
+                                      const dmsRecordID *recordID )
    {
-      if ( 0 == eduCB->getTransExecutor()->getLockCount() )
+      if ( !_isOn )
       {
          return ;
       }
       dpsTransLockId lockId( logicCSID, collectionID, recordID );
-
-      return _transLockMgr->release( eduCB->getTransExecutor(),
-                                     lockId, FALSE, callback );
+      return _TransLock.release( eduCB, lockId );
    }
 
-   void dpsTransCB::transLockReleaseAll( _pmdEDUCB *eduCB,
-                                         _dpsITransLockCallback * callback )
+   void dpsTransCB::transLockReleaseAll( _pmdEDUCB *eduCB )
    {
-      if ( 0 == eduCB->getTransExecutor()->getLockCount() )
+      if ( !_isOn )
       {
          return ;
       }
-      else
-      {
-         _transLockMgr->releaseAll( eduCB->getTransExecutor(), callback );
-      }
+      return _TransLock.releaseAll( eduCB );
    }
 
-   BOOLEAN dpsTransCB::isTransOn() const
+   BOOLEAN dpsTransCB::isTransOn()
    {
       return _isOn ;
    }
 
    INT32 dpsTransCB::transLockTestS( _pmdEDUCB *eduCB, UINT32 logicCSID,
                                      UINT16 collectionID,
-                                     const dmsRecordID *recordID,
-                                     dpsTransRetInfo * pdpsTxResInfo,
-                                     _dpsITransLockCallback * callback )
+                                     const dmsRecordID *recordID )
    {
       if ( !_isOn )
       {
          return SDB_OK ;
       }
       dpsTransLockId lockId( logicCSID, collectionID, recordID );
-      return _transLockMgr->testAcquire( eduCB->getTransExecutor(),
-                                        lockId, DPS_TRANSLOCK_S,
-                                        pdpsTxResInfo,
-                                        callback );
-   }
-
-   INT32 dpsTransCB::transLockTestIS( _pmdEDUCB *eduCB, UINT32 logicCSID,
-                                      UINT16 collectionID,
-                                      const dmsRecordID *recordID,
-                                      dpsTransRetInfo * pdpsTxResInfo )
-   {
-      if ( !_isOn )
-      {
-         return SDB_OK ;
-      }
-      dpsTransLockId lockId( logicCSID, collectionID, NULL );
-      return _transLockMgr->testAcquire( eduCB->getTransExecutor(),
-                                        lockId, DPS_TRANSLOCK_IS,
-                                        pdpsTxResInfo );
+      return _TransLock.testS( eduCB, lockId );
    }
 
    INT32 dpsTransCB::transLockTestX( _pmdEDUCB *eduCB, UINT32 logicCSID,
                                      UINT16 collectionID,
-                                     const dmsRecordID *recordID,
-                                     dpsTransRetInfo * pdpsTxResInfo,
-                                     _dpsITransLockCallback * callback )
+                                     const dmsRecordID *recordID )
    {
       if ( !_isOn )
       {
          return SDB_OK ;
       }
       dpsTransLockId lockId( logicCSID, collectionID, recordID );
-      return _transLockMgr->testAcquire( eduCB->getTransExecutor(),
-                                        lockId, DPS_TRANSLOCK_X,
-                                        pdpsTxResInfo,
-                                        callback ) ;
+      return _TransLock.testX( eduCB, lockId );
    }
-
-
-   INT32 dpsTransCB::transLockTestU( _pmdEDUCB *eduCB, UINT32 logicCSID,
-                                     UINT16 collectionID,
-                                     const dmsRecordID *recordID,
-                                     dpsTransRetInfo * pdpsTxResInfo,
-                                     _dpsITransLockCallback * callback )
-   {
-      if ( !_isOn )
-      {
-         return SDB_OK ;
-      }
-      dpsTransLockId lockId( logicCSID, collectionID, recordID );
-      return _transLockMgr->testAcquire( eduCB->getTransExecutor(),
-                                        lockId, DPS_TRANSLOCK_U,
-                                        pdpsTxResInfo,
-                                        callback ) ;
-   }
-
-
-   INT32 dpsTransCB::transLockTestIX( _pmdEDUCB *eduCB, UINT32 logicCSID,
-                                      UINT16 collectionID,
-                                      const dmsRecordID *recordID,
-                                      dpsTransRetInfo * pdpsTxResInfo )
-   {
-      if ( !_isOn )
-      {
-         return SDB_OK ;
-      }
-      dpsTransLockId lockId( logicCSID, collectionID, NULL );
-      return _transLockMgr->testAcquire( eduCB->getTransExecutor(),
-                                        lockId, DPS_TRANSLOCK_IX,
-                                        pdpsTxResInfo );
-   }
-
 
    INT32 dpsTransCB::transLockTryX( _pmdEDUCB *eduCB, UINT32 logicCSID,
                                     UINT16 collectionID,
-                                    const dmsRecordID *recordID,
-                                    dpsTransRetInfo * pdpsTxResInfo,
-                                    _dpsITransLockCallback * callback )
+                                    const dmsRecordID *recordID )
    {
       if ( !_isOn )
       {
          return SDB_OK ;
       }
       dpsTransLockId lockId( logicCSID, collectionID, recordID );
-      return _transLockMgr->tryAcquire( eduCB->getTransExecutor(),
-                                       lockId, DPS_TRANSLOCK_X,
-                                       pdpsTxResInfo, callback );
+      return _TransLock.tryX( eduCB, lockId );
    }
-
-   INT32 dpsTransCB::transLockTryU( _pmdEDUCB *eduCB, UINT32 logicCSID,
-                                    UINT16 collectionID,
-                                    const dmsRecordID *recordID,
-                                    dpsTransRetInfo * pdpsTxResInfo,
-                                    _dpsITransLockCallback * callback )
-   {
-      if ( !_isOn )
-      {
-         return SDB_OK ;
-      }
-      dpsTransLockId lockId( logicCSID, collectionID, recordID );
-      return _transLockMgr->tryAcquire( eduCB->getTransExecutor(),
-                                       lockId, DPS_TRANSLOCK_U,
-                                       pdpsTxResInfo,
-                                       callback );
-   }
-
 
    INT32 dpsTransCB::transLockTryS( _pmdEDUCB *eduCB, UINT32 logicCSID,
                                     UINT16 collectionID,
-                                    const dmsRecordID *recordID,
-                                    dpsTransRetInfo * pdpsTxResInfo,
-                                    _dpsITransLockCallback * callback )
+                                    const dmsRecordID *recordID )
    {
       if ( !_isOn )
       {
          return SDB_OK ;
       }
       dpsTransLockId lockId( logicCSID, collectionID, recordID );
-      return _transLockMgr->tryAcquire( eduCB->getTransExecutor(),
-                                       lockId, DPS_TRANSLOCK_S,
-                                       pdpsTxResInfo,
-                                       callback ) ;
+      return _TransLock.tryS( eduCB, lockId );
    }
 
+   INT32 dpsTransCB::tryOrAppendX( _pmdEDUCB *eduCB, UINT32 logicCSID,
+                                   UINT16 collectionID,
+                                   const dmsRecordID *recordID )
+   {
+      if ( !_isOn )
+      {
+         return SDB_OK ;
+      }
+      SDB_ASSERT( collectionID!=DMS_INVALID_MBID, "invalid collectionID" ) ;
+      SDB_ASSERT( recordID, "recordID can't be NULL" ) ;
+      dpsTransLockId lockId( logicCSID, collectionID, recordID );
+      return _TransLock.tryOrAppendX( eduCB, lockId );
+   }
+
+   INT32 dpsTransCB::waitLock( _pmdEDUCB * eduCB, UINT32 logicCSID,
+                              UINT16 collectionID,
+                              const dmsRecordID *recordID )
+   {
+      if ( !_isOn )
+      {
+         return SDB_OK ;
+      }
+      SDB_ASSERT( collectionID!=DMS_INVALID_MBID, "invalid collectionID" ) ;
+      SDB_ASSERT( recordID, "recordID can't be NULL" ) ;
+      dpsTransLockId lockId( logicCSID, collectionID, recordID );
+      return _TransLock.wait( eduCB, lockId );
+   }
 
    BOOLEAN dpsTransCB::hasWait( UINT32 logicCSID, UINT16 collectionID,
                                 const dmsRecordID *recordID)
@@ -953,7 +760,7 @@ namespace engine
       SDB_ASSERT( collectionID!=DMS_INVALID_MBID, "invalid collectionID" ) ;
       SDB_ASSERT( recordID, "recordID can't be NULL" ) ;
       dpsTransLockId lockId( logicCSID, collectionID, recordID );
-      return _transLockMgr->hasWait( lockId );
+      return _TransLock.hasWait( lockId );
    }
 
    INT32 dpsTransCB::reservedLogSpace( UINT32 length, _pmdEDUCB *cb )
@@ -1060,13 +867,6 @@ namespace engine
    done:
       return remainSize ;
    }
-
-
-   dpsTransLockManager * dpsTransCB::getLockMgrHandle()
-   {
-      return ( _transLockMgr->isInitialized() ? (  _transLockMgr ) : NULL ) ; 
-   }
-
 
    /*
       get global trans cb

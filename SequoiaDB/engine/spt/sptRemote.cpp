@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptRemote.cpp
 
@@ -181,7 +180,6 @@ do                                                                          \
       }
       connection = (sdbConnectionStruct *) handle ;
 
-      // build message
       rc = clientBuildQueryMsgCpp ( &( connection->_pSendBuffer ),
                                     &( connection->_sendBufferSize ),
                                     pString, flag, reqID,
@@ -191,7 +189,6 @@ do                                                                          \
       PD_RC_CHECK( rc, PDERROR, "Failed to build query msg, rc = %d", rc ) ;
 
 
-      // send and recv msg
       rc = _sendAndRecv( handle,
                          ( const MsgHeader* )connection->_pSendBuffer,
                          ( MsgHeader** )&( connection->_pReceiveBuffer ),
@@ -202,7 +199,6 @@ do                                                                          \
 
       if ( needRecv )
       {
-         // extract message
          rc = _extract( (MsgHeader *)connection->_pReceiveBuffer,
                         connection->_receiveBufferSize,
                         &contextID, extracted,
@@ -225,12 +221,10 @@ do                                                                          \
             }
          }
 
-         // check whether the return message is what we want or not
          CHECK_RET_MSGHEADER( connection->_pSendBuffer,
                               connection->_pReceiveBuffer,
                               handle ) ;
 
-         // try to get retObj
          rc = _getRetBuffer( connection->_pReceiveBuffer, ppRetBuffer ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get retObjArray, rc = %d", rc ) ;
       }
@@ -255,7 +249,6 @@ do                                                                          \
       BOOLEAN hasLock   = FALSE ;
       sdbConnectionStruct *connection = (sdbConnectionStruct*)handle ;
 
-      // check arguments
       if( NULL == connection->_sock )
       {
          rc = SDB_NOT_CONNECTED ;
@@ -270,11 +263,9 @@ do                                                                          \
       ossMutexLock( &connection->_sockMutex ) ;
       hasLock = TRUE ;
 
-      // send
       rc = _sendMsg ( handle, sendMsg, endianConvert ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to send msg, rc: %d", rc ) ;
 
-      // recv
       if ( TRUE == needRecv )
       {
          rc = _recvMsg ( handle, recvMsg, size, endianConvert ) ;
@@ -335,7 +326,6 @@ do                                                                          \
 
       while ( TRUE )
       {
-         // get length first
          rc = clientRecv ( connection->_sock, 
                            ((CHAR*)&recvLength) + totalReceivedLen,
                            sizeof( recvLength ) - totalReceivedLen,
@@ -352,7 +342,6 @@ do                                                                          \
       #if defined (_AIX)
          #define TCP_QUICKACK TCP_NODELAYACK
       #endif
-      // quick ack
       {
          INT32 i = 1 ;
          setsockopt( clientGetRawSocket ( connection->_sock ),
@@ -365,13 +354,11 @@ do                                                                          \
       rc = _reallocBuffer ( ppBuffer, msgLength , realLength+1 ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to realloc buffer, rc: %d", rc) ;
 
-      // use the original recvLength before convert
       *(SINT32*)(*ppBuffer) = recvLength ;
       totalReceivedLen = 0 ;
       receivedLen = 0 ;
       while ( TRUE )
       {
-         // get residual message
          rc = clientRecv ( connection->_sock,
                            &( *ppBuffer )[sizeof( realLength ) + totalReceivedLen],
                            realLength - sizeof( realLength ) - totalReceivedLen,
@@ -485,7 +472,6 @@ do                                                                          \
 
          dataOff = ossRoundUpToMultipleX( sizeof(MsgOpReply), 4 ) ;
          dataSize = msg->messageLength - dataOff ;
-         /// save error info
          if ( dataSize > 0 )
          {
             pErrorBuf = ( const CHAR* )msg + dataOff ;
@@ -517,7 +503,6 @@ do                                                                          \
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to get ppRetBuffer, rc: %d", rc) ;
 
-      // init retBuffer
       if ( offset < msgReply->header.messageLength )
       {
          *ppRetBuffer = &pRetMsg[offset] ;

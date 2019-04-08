@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = qgmBuilder.cpp
 
@@ -208,7 +207,7 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMBUILDER_BUILD2, "_qgmBuilder::build" )
+   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMBUILDER_BUILD2, "_qgmBuilder::build2" )
    INT32 _qgmBuilder::build( _qgmOptiTreeNode *logicalTree,
                              _qgmPlan *&physicalTree )
    {
@@ -831,7 +830,6 @@ namespace engine
          goto error ;
       }
 
-      /// condition has been taken over by pyh, so here need to reset to null
       s->_condition = NULL ;
    done:
       PD_TRACE_EXITRC( SDB__QGMBUILDER__ADDPHYSCAN, rc ) ;
@@ -852,7 +850,7 @@ namespace engine
       pScan = SDB_OSS_NEW qgmPlMthMatcherScan( s->_collection.value,
                                                s->_selector,
                                                orderby,
-                                               s->getHint(),
+                                               BSONObj(),
                                                s->_skip,
                                                s->_limit,
                                                s->_alias,
@@ -870,7 +868,6 @@ namespace engine
          goto error ;
       }
 
-      /// condition has been taken over by pScan, so here need to reset null
       s->_condition = NULL ;
    done:
       PD_TRACE_EXITRC( SDB__QGMBUILDER__ADDMTHMATHERSCAN, rc ) ;
@@ -951,8 +948,6 @@ namespace engine
          goto error ;
       }
 
-      /// we push condition of filter into phyf.
-      /// it's mem will be managed by phyf.
       s->_condition = NULL ;
    done:
       PD_TRACE_EXITRC( SDB__QGMBUILDER__CRTPHYFILTER, rc ) ;
@@ -991,8 +986,6 @@ namespace engine
          goto error ;
       }
 
-      /// we push condition of filter into phyf.
-      /// it's mem will be managed by phyf.
       s->_condition = NULL ;
       phy = pFilter ;
    done:
@@ -1259,7 +1252,6 @@ namespace engine
          goto error ;
       }
 
-      /// build set
       {
          BSONObjBuilder builder( 128 ) ;
          BSONObjBuilder sub( builder.subobjStart( "$set" ) ) ;
@@ -1783,7 +1775,6 @@ namespace engine
             goto error ;
          }
 
-         /// build object
          for ( UINT32 i = 0 ; i < columns.size() ; ++i )
          {
             rc = qgmParseValue( values[i], builder,
@@ -1821,7 +1812,6 @@ namespace engine
          qgmOpField field ;
          field.type = type ;
          node->_selector.push_back( field ) ;
-         /// do nothing.
       }
       else if ( SQL_GRAMMAR::DBATTR == type )
       {
@@ -2027,7 +2017,6 @@ namespace engine
                }
             }
 
-            /// parse on.
             if ( ++itr != root->children.end() )
             {
                rc = _buildCondition( itr, join->_condition ) ;
@@ -2106,7 +2095,6 @@ namespace engine
 
          if ( NULL != alias )
          {
-            /// we do not set collection's alias, it is not used.
             rc = _table->getField( alias, len, select->_alias ) ;
             if ( SDB_OK != rc )
             {
@@ -2485,7 +2473,6 @@ namespace engine
             goto error ;
          }
 
-         ///default is asc.
          field.type = SQL_GRAMMAR::ASC ;
          if ( !isFromOne( field, order, FALSE ) )
          {
@@ -2828,7 +2815,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__QGMBUILDER__ADDSELECTORFROMEXPR ) ;
       qgmOpField opField ;
-      /// destructed when goto error or destruction of qgmSelectorExpr
       _qgmSelectorExprNode *exprRoot = NULL ;
 
       exprRoot = new (std::nothrow) _qgmSelectorExprNode() ;
@@ -2880,7 +2866,6 @@ namespace engine
 
       if ( isMathOp( type ) )
       {
-         /// destructed in exprNode's destruction
          _qgmSelectorExprNode *right = NULL ;
          _qgmSelectorExprNode *left = NULL ;
 
@@ -2941,7 +2926,6 @@ namespace engine
 
          if ( !builder.appendAsNumber( "", field.toString() ) )
          {
-            /// try decimal
             if ( !builder.appendDecimal( "", field.toString() ) )
             {
                PD_LOG( PDERROR, "Failed to cast [%s] to digital",

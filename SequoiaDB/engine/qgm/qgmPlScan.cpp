@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = qgmPlScan.cpp
 
@@ -163,7 +162,6 @@ namespace engine
       {
          rc = _executeOnCoord( eduCB ) ;
       }
-      /// not coord or rc is SDB_COORD_UNKNOWN_OP_REQ
       if ( SDB_COORD_UNKNOWN_OP_REQ == rc ||
            SDB_ROLE_COORD != _dbRole )
       {
@@ -222,7 +220,6 @@ namespace engine
 
          PD_LOG ( PDDEBUG, "Command: %s", pCommand->name () ) ;
 
-         //run command
          rc = rtnRunCommand( pCommand, serviceType,
                              eduCB, _dmsCB, _rtnCB,
                              NULL, 1, &_contextID ) ;
@@ -233,7 +230,6 @@ namespace engine
       }
       else
       {
-         // close prefetch
          rc = rtnQuery ( pCLName, selector, _condition,
                          _orderby, _hint, 0, eduCB, _skip, _return,
                          _dmsCB, _rtnCB, _contextID, NULL, FALSE ) ;
@@ -275,7 +271,6 @@ namespace engine
          goto error ;
       }
 
-      /// build message
       rc = msgBuildQueryMsg ( &qMsg, &bufSize,
                               _collection.toString().c_str(),
                               FLG_QUERY_WITH_RETURNDATA, 0,
@@ -358,7 +353,6 @@ namespace engine
       }
       else
       {
-         /// do nothing.
       }
 
    done:

@@ -182,8 +182,6 @@ public class QueryMapperUnitTests {
 	@Test
 	public void handlesNativelyBuiltQueryCorrectly() {
 
-//		DBObject query = new QueryBuilder().or(new BasicDBObject("foo", "bar")).get();
-//		mapper.getMappedObject(query, null);
 	}
 
 	/**

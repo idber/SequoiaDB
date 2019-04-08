@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = qgmPlScan.hpp
 
@@ -51,11 +50,8 @@ namespace engine
    class _qgmPlScan : public _qgmPlan
    {
    public:
-      //  element in orderby  does not include the collection name.
       _qgmPlScan( const qgmDbAttr &collection,
 
-                  // element should be:
-                  // field:alias
                   const qgmOPFieldVec &selector,
                   const BSONObj &orderby,
                   const BSONObj &hint,
@@ -100,7 +96,6 @@ namespace engine
       INT64 _skip ;
       INT64 _return ;
 
-      /// if it is a data
       SDB_DMSCB *_dmsCB ;
       SDB_RTNCB *_rtnCB ;
 

@@ -61,9 +61,7 @@ public class PersonExample {
 
 		LOGGER.debug("Found: " + p);
 
-		// sdbOps.updateFirst(new Query(where("firstName").is("Sven")), new Update().set("age", 24));
 
-		// sdbOps.updateFirst(new Query(where("firstName").is("Sven")), update("age", 24));
 
 		p = sdbOps.findById(p.getId(), PersonWithIdPropertyOfTypeString.class);
 		LOGGER.debug("Updated: " + p);
@@ -74,7 +72,6 @@ public class PersonExample {
 			LOGGER.debug(element.toString());
 		}
 
-		// sdbOps.remove( query(whereId().is(p.getId())), p.getClass());
 
 		sdbOps.remove(p);
 

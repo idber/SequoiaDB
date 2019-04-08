@@ -144,7 +144,8 @@ var isPluginPath = function( fileName )
       return false ;
    }
 
-   if( window.PluginModule.indexOf( files[2] ) < 0 )
+   if( files[2] != 'Data' &&
+       files[2] != 'Monitor' )
    {
       return false ;
    }
@@ -239,48 +240,6 @@ var sprintf = function( format )
 	return newStr ;
 } ;
 
-//是不是函数
-function isFunction( obj )
-{
-   return typeof( obj ) == 'function' ;
-}
-
-//是不是未定义
-function isUndefined( val )
-{
-   return typeof( val ) == 'undefined' ;
-}
-
-//是不是字符串
-function isString( str )
-{
-   return typeof( str ) == 'string' ;
-}
-
-//是不是数字
-function isNumber( val )
-{
-   return typeof( val ) == 'number' ;
-}
-
-//是不是布尔
-function isBoolean( val )
-{
-   return typeof( val ) == 'boolean' ;
-}
-
-//是不是对象
-function isObject( obj )
-{
-   return typeof( obj ) == 'object' && obj !== null ;
-}
-
-//是不是空
-function isNull( obj )
-{
-   return obj === null ;
-}
-
 //判断是否空
 function isEmpty( val )
 {
@@ -303,80 +262,6 @@ function isEmpty( val )
       return false ;
    }
    return false ;
-}
-
-//判断是不是数组
-function isArray( object )
-{
-   if( typeof( object ) == 'undefined' )
-      return false ;
-   if( object === null )
-      return false ;
-   //判断length属性是否是可枚举的 对于数组 将得到false
-   return object && typeof( object ) === 'object' && typeof( object.length ) === 'number' &&
-            typeof( object.splice ) === 'function' && !( object.propertyIsEnumerable( 'length' ) ) ;
-}
-
-//设置变量值，变量仅为undefined才赋值
-function initVar( variable, initValue )
-{
-   if ( isUndefined( variable ) )
-   {
-      return initValue ;
-   }
-   
-   return variable ;
-}
-
-/*
-找到数组中指定索引匹配的值，修改该项的指定的值
-   arr: 数组
-   indexName:  索引名
-   indexValue: 索引值
-   setting:    设置的值
-   isAll:      是否全部修改
-*/
-function setArrayItemValue( arr, indexName, indexValue, setting, isAll )
-{
-   for( var i in arr )
-   {
-      var itemName = arr[i][indexName] ;
-
-      if ( itemName === indexValue )
-      {
-         for( var k in setting )
-         {
-            arr[i][k] = setting[k] ;
-         }
-
-         if ( !isAll )
-         {
-            break ;
-         }
-      }
-   }
-
-   return arr ;
-}
-
-/*
-找到数组中指定索引匹配的值，获取该项
-   arr: 数组
-   indexName:  索引名
-   indexValue: 索引值
-*/
-function getArrayItem( arr, indexName, indexValue )
-{
-   for( var i in arr )
-   {
-      var itemName = arr[i][indexName] ;
-
-      if ( itemName === indexValue )
-      {
-         return arr[i] ;
-      }
-   }
-   return null ;
 }
 
 //保留多少位小数
@@ -482,6 +367,17 @@ function trim( str )
       return str.replace( /(^\s*)|(\s*$)/g, '' ) ;
    }
    return str ;
+}
+
+//判断是不是数组
+function isArray( object ) {
+   if( typeof( object ) == 'undefined' )
+      return false ;
+   if( object === null )
+      return false ;
+   //判断length属性是否是可枚举的 对于数组 将得到false
+   return object && typeof( object ) === 'object' && typeof( object.length ) === 'number' &&
+            typeof( object.splice ) === 'function' && !( object.propertyIsEnumerable( 'length' ) ) ;
 }
 
 //自动判断类型并转换
@@ -1856,28 +1752,6 @@ function sizeConvert( num )
 	return rn ;
 }
 
-/*
-   自动换算容量
-   num 单位 字节
-*/
-function sizeConvert2( num )
-{
-	var rn = '1 KB' ;
-	if( num >= 1024 && num < 1048576 )
-	{
-		rn = twoDecimalPlaces( num / 1024 ) + ' KB' ;
-	}
-	else if ( num >= 1048576 && num < 1073741824 )
-	{
-		rn = twoDecimalPlaces( num / 1048576 ) + ' MB' ;
-	}
-	else if ( num >= 1073741824 )
-	{
-		rn = twoDecimalPlaces( num / 1073741824 ) + ' GB' ;
-	}
-	return rn ;
-}
-
 //检测端口
 function checkPort( str )
 {
@@ -2102,36 +1976,26 @@ function deleteJson( json, keys )
    return newJson ;
 }
 
-//任意值转字符串
-function convertValueString( value )
-{
-   var type = typeof( value ) ;
-
-   if( type == "string" )
-   {
-      return value ;
-   }
-   else if( type == "number" )
-   {
-      return '' + value ;
-   }
-   else if( type == "boolean" )
-   {
-      return value ? 'true' : 'false' ;
-   }
-   else if( type == "undefined" )
-   {
-      return '' ;
-   }
-
-   return value ;
-}
-
 //设置json的值都为字符串
 function convertJsonValueString( json )
 {
    $.each( json, function( key, value ){
-      json[key] = convertValueString( value ) ;
+      if( typeof( value ) == "string" )
+      {
+         return true ;
+      }
+      else if( typeof( value ) == "number" )
+      {
+         json[key] = '' + value ;
+      }
+      else if( typeof( value ) == "boolean" )
+      {
+         json[key] = value ? 'true' : 'false' ;
+      }
+      else
+      {
+         json[key] = value ;
+      }
    } ) ;
    return json ;
 }
@@ -2517,546 +2381,4 @@ function parseJson2( str, isParseJson, errJson )
 	}
 
 	return jsonArr ;
-}
-
-//配置参数模板转换(一个)
-function configConvertTemplateByOne( templateInfo, setLevel )
-{
-   var skipLevel = false ;
-
-   if ( isNaN( setLevel ) )
-   {
-      skipLevel = true ;
-   }
-
-   if( typeof( templateInfo['Name'] ) == 'string' )
-   {
-      if( skipLevel == false && setLevel != templateInfo['Level'] )
-      {
-         return null ;
-      }
-
-      var newTemplateInfo = {
-         'name':     templateInfo['Name'],
-         'showName': true,
-         'value':    '',
-         'webName':  templateInfo['WebName'],
-         'disabled': false,
-         'desc':     templateInfo['Desc'],
-         'type':     '',
-         'valid':    ''
-      } ;
-
-      if( templateInfo['Display'] == 'select box' )
-      {
-         newTemplateInfo['type'] = 'select' ;
-         newTemplateInfo['valid'] = [ { 'key': '', 'value': '' } ] ;
-         var validArr = templateInfo['Valid'].split( ',' ) ;
-         $.each( validArr, function( index2 ){
-            newTemplateInfo['valid'].push( { 'key': validArr[index2], 'value': validArr[index2] } ) ;
-         } ) ;
-      }
-      else if( templateInfo['Display'] == 'edit box' )
-      {
-         if( templateInfo['Type'] == 'int' )
-         {
-            newTemplateInfo['type'] = 'int' ;
-            newTemplateInfo['valid'] = {} ;
-            var pos1 = templateInfo['Valid'].indexOf( '-' ) ;
-            if( templateInfo['Valid'] !== '' && pos1 !== -1 )
-			   {
-               var minValue ;
-               var maxValue ;
-               var pos2 = templateInfo['Valid'].indexOf( '-', pos1 + 1 ) ;
-               if( pos2 == -1 )
-               {
-                  var splitValue = templateInfo['Valid'].split( '-' ) ;
-                  minValue = splitValue[0] ;
-                  maxValue = splitValue[1] ;
-               }
-               else
-               {
-                  minValue = templateInfo['Valid'].substr( 0, pos2 ) ;
-                  maxValue = templateInfo['Valid'].substr( pos2 + 1 ) ;
-               }
-               if( isNaN( minValue ) == false )
-               {
-                  newTemplateInfo['valid']['min'] = parseInt( minValue ) ;
-               }
-               if( isNaN( maxValue ) == false )
-               {
-                  newTemplateInfo['valid']['max'] = parseInt( maxValue ) ;
-               }
-            }
-            newTemplateInfo['valid']['empty'] = true ;
-            if ( !isNaN( templateInfo['Default'] ) )
-            {
-               newTemplateInfo['valid']['white'] = parseInt( templateInfo['Default'] ) ;
-            }
-         }
-         else if( templateInfo['Type'] == 'double' )
-         {
-            newTemplateInfo['type'] = 'double' ;
-            newTemplateInfo['valid'] = {} ;
-            var pos1 = templateInfo['Valid'].indexOf( '-' ) ;
-            if( templateInfo['Valid'] !== '' && pos1 !== -1 )
-			   {
-               var minValue ;
-				   var maxValue ;
-               var pos2 = templateInfo['Valid'].indexOf( '-', pos1 + 1 ) ;
-               if( pos2 == -1 )
-               {
-				      var splitValue = templateInfo['Valid'].split( '-' ) ;
-				      minValue = splitValue[0] ;
-				      maxValue = splitValue[1] ;
-               }
-               else
-               {
-                  minValue = templateInfo['Valid'].substr( 0, pos2 ) ;
-                  maxValue = templateInfo['Valid'].substr( pos2 + 1 ) ;
-               }
-               if( isNaN( minValue ) == false )
-               {
-                  newTemplateInfo['valid']['min'] = parseFloat( minValue ) ;
-               }
-               if( isNaN( maxValue ) == false )
-               {
-                  newTemplateInfo['valid']['max'] = parseFloat( maxValue ) ;
-               }
-			   }
-            newTemplateInfo['valid']['empty'] = true ;
-         }
-         else if( templateInfo['Type'] === 'port' )
-		   {
-            newTemplateInfo['type'] = 'port' ;
-            newTemplateInfo['valid'] = {} ;
-            if( templateInfo['Valid'] !== '' && templateInfo['Valid'].indexOf('-') !== -1 )
-			   {
-				   var splitValue = templateInfo['Valid'].split( '-' ) ;
-				   var minValue = splitValue[0] ;
-				   var maxValue = splitValue[1] ;
-				   if( isNaN( minValue ) == false )
-               {
-                  newTemplateInfo['valid']['min'] = parseInt( minValue ) ;
-               }
-               if( isNaN( maxValue ) == false )
-               {
-                  newTemplateInfo['valid']['max'] = parseInt( maxValue ) ;
-               }
-			   }
-            else
-            {
-               newTemplateInfo['valid']['empty'] = true ;
-            }
-		   }
-         else if( templateInfo['Type'] === 'string' )
-		   {
-            newTemplateInfo['type'] = 'string' ;
-            newTemplateInfo['valid'] = {} ;
-            if( templateInfo['Valid'] !== '' && templateInfo['Valid'].indexOf('-') !== -1 )
-			   {
-				   var splitValue = templateInfo['Valid'].split( '-' ) ;
-				   var minValue = splitValue[0] ;
-				   var maxValue = splitValue[1] ;
-				   if( isNaN( minValue ) == false )
-               {
-                  newTemplateInfo['valid']['min'] = parseInt( minValue ) ;
-               }
-               if( isNaN( maxValue ) == false )
-               {
-                  newTemplateInfo['valid']['max'] = parseInt( maxValue ) ;
-               }
-			   }
-		   }
-      }
-      else if( templateInfo['Display'] == 'text box' )
-      {
-         newTemplateInfo['type'] = 'text' ;
-         if( templateInfo['Type'] == 'path' )
-         {
-            newTemplateInfo['valid'] = {
-               'min': 1
-            } ;
-         }
-      }
-
-      if( templateInfo['Display'] == 'hidden' )
-      {
-         return null ;
-      }
-
-      return newTemplateInfo ;
-   }
-
-   return templateInfo ;
-}
-
-//配置参数模板转换
-function configConvertTemplate( templateList, level ){
-   var setLevel = 0 ;
-   if( typeof( level ) != 'undefined' )
-   {
-      setLevel = level ;
-   }
-   var newTemplateList = [] ;
-   $.each( templateList, function( index, templateInfo ){
-
-      if ( templateInfo['hidden'] == 'true' )
-      {
-         return true ;
-      }
-
-      var tmp = configConvertTemplateByOne( templateInfo, setLevel ) ;
-      if( tmp == null )
-      {
-         return true ;
-      }
-
-      newTemplateList.push( tmp ) ;
-
-   } ) ;
-
-   return newTemplateList ;
-}
-
-//pg_setting转表单
-function pgSettingConvertTemplate( template, extend )
-{
-   var newTemplateList = [] ;
-
-   $.each( template, function( index, info ){
-
-      if ( info['context'] == 'internal' || info['name'] == 'port' || info['name'] == 'listen_addresses' )
-      {
-         return true ;
-      }
-
-      var newTemplateInfo = {
-         'name':     info['name'],
-         'showName': true,
-         'value':    '',
-         'webName':  info['short_desc'],
-         'disabled': false,
-         'desc':     info['extra_desc'],
-         'type':     '',
-         'valid':    ''
-      } ;
-
-      if ( info['source'] == 'configuration file' || extend === true )
-      {
-         newTemplateInfo['value'] = info['setting'] ;
-      }
-
-      switch( info['vartype'] )
-      {
-      case 'bool':
-         newTemplateInfo['type'] = 'select' ;
-         newTemplateInfo['valid'] = [ { 'key': '', 'value': '' } ] ;
-         newTemplateInfo['valid'].push( { 'key': 'on',  'value': 'on' } ) ;
-         newTemplateInfo['valid'].push( { 'key': 'off', 'value': 'off' } ) ;
-         break ;
-      case 'enum':
-         enumvals = info['enumvals'] ;
-         enumvals = enumvals.substring( 1, enumvals.length - 1 ) ;
-         enumvals = enumvals.split( ',' ) ;
-
-         newTemplateInfo['type'] = 'select' ;
-         newTemplateInfo['valid'] = [ { 'key': '', 'value': '' } ] ;
-
-         $.each( enumvals, function( i, val ){
-            newTemplateInfo['valid'].push( { 'key': val,  'value': val } ) ;
-         } ) ;
-         break ;
-      case 'integer':
-         newTemplateInfo['type'] = 'int' ;
-         newTemplateInfo['valid'] = {} ;
-
-         if ( isNaN( info['min_val'] ) == false )
-         {
-            newTemplateInfo['valid']['min'] = parseInt( info['min_val'] ) ;
-         }
-         if ( isNaN( info['max_val'] ) == false )
-         {
-            newTemplateInfo['valid']['max'] = parseInt( info['max_val'] ) ;
-         }
-         newTemplateInfo['valid']['empty'] = true ;
-         break ;
-      case 'real':
-         newTemplateInfo['type'] = 'double' ;
-         newTemplateInfo['valid'] = {} ;
-
-         if ( isNaN( info['min_val'] ) == false )
-         {
-            newTemplateInfo['valid']['min'] = parseFloat( info['min_val'] ) ;
-         }
-         if ( isNaN( info['max_val'] ) == false )
-         {
-            newTemplateInfo['valid']['max'] = parseFloat( info['max_val'] ) ;
-         }
-         newTemplateInfo['valid']['empty'] = true ;
-         break ;
-      case 'string':
-         newTemplateInfo['type'] = 'string' ;
-         newTemplateInfo['valid'] = { 'empty': true } ;
-         break ;
-      } ;
-
-      newTemplateList.push( newTemplateInfo ) ;
-   } ) ;
-
-   return newTemplateList ;
-}
-
-/*
-比较2个对象是否相同
-filter 选填   过滤的字段列表。默认 []
-flags  选填   true: 表示忽略filter的字段; false: 表示只比较filter的字段。 默认 true
-*/
-function objectEqual( o1, o2, filter, flags )
-{
-   var props1 = Object.getOwnPropertyNames( o1 ) ;
-   var props2 = Object.getOwnPropertyNames( o2 ) ;
-
-   if ( !isArray( filter ) )
-   {
-      filter = [] ;
-   }
-
-   if ( props1.length != props2.length )
-   {
-      return false ;
-   }
-
-   for ( var i = 0, max = props1.length; i < max; ++i )
-   {
-      var propName = props1[i] ;
-
-      if ( filter.indexOf( propName ) >= 0 && flags !== false )
-      {
-         continue ;
-      }
-      else if ( filter.indexOf( propName ) < 0 && flags == false )
-      {
-         continue ;
-      }
-
-      if ( o1[propName] !== o2[propName] )
-      {
-         return false ;
-      }
-   }
-
-   return true ;
-}
-
-//字符串的整数（含十六进制和八进制）转换成十进制
-function convertDecimal( val )
-{
-   if ( typeof( val ) == 'string' )
-   {
-      if( val.length > 2 && val.charAt( 0 ) == '0' &&
-         ( val.charAt( 1 ) == 'x' || val.charAt( 1 ) == 'X' ) )
-      {
-         //判断十六进制
-         return parseInt( trim( val ) ) ;
-      }
-      else if ( val.length > 1 && val.charAt( 0 ) == '0' )
-      {
-         //判断八进制
-         return parseInt( trim( val ), 8 ) ;
-      }
-      else
-      {
-         return parseInt( trim( val ) ) ;
-      }
-   }
-   return val ;
-}
-
-//对比两个数值，仅支持整数和字符串的整数（含十六进制和八进制）
-function integerEqual( v1, v2 )
-{
-   v1 = convertDecimal( v1 ) ;
-   v2 = convertDecimal( v2 ) ;
-   return v1 == v2 ;
-}
-
-//找出2个对象不相同的字段
-function diffObject( o1, o2 )
-{
-   var list = [] ;
-   var props1 = Object.getOwnPropertyNames( o1 ) ;
-   var props2 = Object.getOwnPropertyNames( o2 ) ;
-
-   for ( var i = 0, max = props1.length; i < max; ++i )
-   {
-      var propName = props1[i] ;
-
-      if ( o1[propName] !== o2[propName] )
-      {
-         list.push( propName ) ;
-      }
-   }
-
-   for ( var i = 0, max = props2.length; i < max; ++i )
-   {
-      var propName = props2[i] ;
-
-      if ( list.indexOf( propName ) >= 0 )
-      {
-         continue ;
-      }
-
-      if ( o1[propName] !== o2[propName] )
-      {
-         list.push( propName ) ;
-      }
-   }
-
-   return list ;
-}
-
-//清除对象
-function clearObject( obj )
-{
-   for( var key in obj )
-   {
-      delete obj[key] ;
-   }
-}
-
-//清除数组
-function clearArray( arr )
-{
-   arr.splice( 0, arr.length ) ;
-}
-
-/*
-过滤对象某些字段
-filter 选填   过滤的字段列表。默认 []
-flags  选填   true: 表示过滤掉filter的字段; false: 表示只留filter的字段。 默认 true
-canEmpty 选填 true: 值可以为空; false: 值为空则跳过。默认 true
-*/
-function filterObject( obj, filter, flags, canEmpty )
-{
-   var newObj = {} ;
-
-   for( var key in obj )
-   {
-      if ( filter.indexOf( key ) >= 0 && flags !== false )
-      {
-         continue ;
-      }
-      else if ( filter.indexOf( key ) < 0 && flags == false )
-      {
-         continue ;
-      }
-
-      var type = typeof( obj[key] ) ;
-
-      if ( canEmpty === false && ( type == 'undefined' || ( type == 'string' && obj[key].length ==0 ) || obj[key] === null ) )
-      {
-         continue ;
-      }
-
-      newObj[key] = obj[key] ;
-   }
-   return newObj ;
-}
-
-function string2csv( str )
-{
-   return str.replace( new RegExp( '"', 'g' ), '""' ) ;
-}
-
-//对象转csv
-function object2csv( obj, fields )
-{
-   var tmp = '' ;
-   var isFirst = true ;
-
-   for( var index in fields )
-   {
-      var key = fields[index] ;
-      var type = typeof( obj[key] ) ;
-
-      if ( isFirst )
-      {
-         isFirst = false ;
-      }
-      else
-      {
-         tmp += ',' ;
-      }
-
-      switch( type )
-      {
-      case 'number':
-         tmp += obj[key] + '' ;
-         break ;
-      case 'string':
-         if ( obj[key].length > 0 )
-         {
-            tmp += '"' + string2csv( obj[key] ) + '"' ;
-         }
-         break ;
-      case 'boolean':
-         tmp += ( obj[key] ? true : false ) ;
-         break ;
-      case 'object':
-         if ( obj[key] === null )
-         {
-            tmp += 'null' ;
-         }
-         break ;
-      case 'undefined':
-         break ;
-      default:
-         tmp += obj[key] ;
-         break ;
-      }
-   }
-
-   return tmp ;
-}
-
-//判断对象是否含有某个key
-function hasKey( obj, key )
-{
-   return (key in obj) ;
-}
-
-//判断是不是相同值
-function isSameValueByStrBool( v1, v2 )
-{
-   var t1 = typeof( v1 ) ;
-   var t2 = typeof( v2 ) ;
-
-   if( t1 == 'string' )
-   {
-      var tmp = v1.toLowerCase() ;
-      if ( tmp == 'true' )
-      {
-         v1 = true ;
-      }
-      else if ( tmp == 'false' )
-      {
-         v1 = false ;
-      }
-   }
-
-   if( t2 == 'string' )
-   {
-      var tmp = v2.toLowerCase() ;
-      if ( tmp == 'true' )
-      {
-         v2 = true ;
-      }
-      else if ( tmp == 'false' )
-      {
-         v2 = false ;
-      }
-   }
-
-   return v1 == v2 ;
 }

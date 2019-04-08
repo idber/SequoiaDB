@@ -81,7 +81,7 @@ class SdbFastCursor implements SdbCursor {
         @Override
         public void run() {
             try {
-                while (!isClosed.get() && !hasThreadException.get()) {
+                while (!isClosed.get() || hasThreadException.get()) {
                     if (cursor.hasNextRaw()) {
                         byte[] obj = cursor.getNextRaw();
                         while (!rawObjs.offer(obj, 1, TimeUnit.MILLISECONDS)) {
@@ -106,7 +106,7 @@ class SdbFastCursor implements SdbCursor {
         @Override
         public void run() {
             try {
-                while (!isClosed.get() && !hasThreadException.get()) {
+                while (!isClosed.get() || hasThreadException.get()) {
                     byte[] raw = rawObjs.poll(1, TimeUnit.MILLISECONDS);
                     if (raw == null) {
                         if (queryEOC.get() && rawObjs.size() == 0) {

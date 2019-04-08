@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = catContextData.hpp
 
@@ -60,8 +59,6 @@ namespace engine
 
       virtual INT32 _rollbackInternal ( _pmdEDUCB *cb, INT16 w )
       { return SDB_OK ; }
-      virtual INT32 _clearInternal(  _pmdEDUCB *cb, INT16 w  )
-      { return SDB_OK ; }
 
    protected :
       std::vector<UINT32> _groupList ;
@@ -84,9 +81,9 @@ namespace engine
 
       virtual INT32 _rollbackInternal ( _pmdEDUCB *cb, INT16 w ) ;
 
-      void _addTask ( _catCtxTaskBase *pCtx, BOOLEAN pushExec ) ;
+      void _addTask ( _catCtxDataTask *pCtx, BOOLEAN pushExec ) ;
 
-      INT32 _pushExecTask ( _catCtxTaskBase *pCtx ) ;
+      INT32 _pushExecTask ( _catCtxDataTask *pCtx ) ;
 
    protected :
       _catSubTasks _subTasks ;
@@ -201,78 +198,6 @@ namespace engine
    typedef class _catCtxDropCS catCtxDropCS ;
 
    /*
-      _catCtxRenameCS define
-    */
-   class _catCtxRenameCS : public _catCtxDataBase
-   {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
-
-      public :
-         _catCtxRenameCS ( INT64 contextID, UINT64 eduID ) ;
-
-         virtual ~_catCtxRenameCS () ;
-
-         virtual std::string name () const
-         {
-            return "CAT_RENAME_CS" ;
-         }
-
-         virtual RTN_CONTEXT_TYPE getType () const
-         {
-            return RTN_CONTEXT_CAT_RENAME_CS ;
-         }
-
-      protected :
-         virtual INT32 _parseQuery ( _pmdEDUCB *cb ) ;
-
-         virtual INT32 _checkInternal ( _pmdEDUCB *cb ) ;
-
-         virtual INT32 _executeInternal ( _pmdEDUCB *cb, INT16 w ) ;
-
-      protected :
-         std::string _newCSName ;
-         BSONObj _boCollectionspace ;
-   } ;
-
-   typedef class _catCtxRenameCS catCtxRenameCS ;
-
-   /*
-      _catCtxAlterCS define
-    */
-   class _catCtxAlterCS : public _catCtxDataMultiTaskBase
-   {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
-
-      public :
-         _catCtxAlterCS ( INT64 contextID, UINT64 eduID ) ;
-
-         virtual ~_catCtxAlterCS () ;
-
-         virtual std::string name () const
-         {
-            return "CAT_ALTER_CS" ;
-         }
-
-         virtual RTN_CONTEXT_TYPE getType () const
-         {
-            return RTN_CONTEXT_CAT_ALTER_CS ;
-         }
-
-      protected :
-         INT32 _parseQuery ( _pmdEDUCB * cb ) ;
-         INT32 _checkInternal ( _pmdEDUCB * cb ) ;
-         INT32 _addAlterTask ( const string & collectionSpace,
-                               const rtnAlterTask * task,
-                               catCtxAlterCSTask ** catTask,
-                               BOOLEAN pushExec ) ;
-
-         INT32 _checkAlterTask ( const rtnAlterTask * task, _pmdEDUCB * cb ) ;
-
-      protected :
-         rtnAlterJob _alterJob ;
-   } ;
-
-   /*
     * _catCtxCreateCL define
     */
    class _catCtxCreateCL : public _catCtxDataBase
@@ -332,13 +257,6 @@ namespace engine
                                     INT32 assignType,
                                     _pmdEDUCB * cb,
                                     std::vector<UINT32> & groupIDList ) ;
-
-   private :
-      utilCLUniqueID                _clUniqueID ;
-      catCollectionInfo             _clInfo ;
-      std::map<std::string, UINT32> _splitList ;
-      UINT32                        _fieldMask ;
-      vector<BSONObj>               _autoIncOptArr ;
    } ;
 
    typedef class _catCtxCreateCL catCtxCreateCL ;
@@ -389,41 +307,6 @@ namespace engine
    typedef class _catCtxDropCL catCtxDropCL ;
 
    /*
-      _catCtxRenameCL define
-    */
-   class _catCtxRenameCL : public _catCtxDataBase
-   {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
-
-      public :
-         _catCtxRenameCL ( INT64 contextID, UINT64 eduID ) ;
-
-         virtual ~_catCtxRenameCL () ;
-
-         virtual std::string name () const
-         {
-            return "CAT_RENAME_CL" ;
-         }
-
-         virtual RTN_CONTEXT_TYPE getType () const
-         {
-            return RTN_CONTEXT_CAT_RENAME_CL ;
-         }
-
-      protected :
-         virtual INT32 _parseQuery ( _pmdEDUCB *cb ) ;
-
-         virtual INT32 _checkInternal ( _pmdEDUCB *cb ) ;
-
-         virtual INT32 _executeInternal ( _pmdEDUCB *cb, INT16 w ) ;
-
-      protected :
-         std::string _newCLFullName ;
-   } ;
-
-   typedef class _catCtxRenameCL catCtxRenameCL ;
-
-   /*
     * _catCtxAlterCL define
     */
    class _catCtxAlterCL : public _catCtxIndexMultiTask
@@ -450,38 +333,27 @@ namespace engine
       virtual INT32 _checkInternal ( _pmdEDUCB *cb ) ;
 
       virtual INT32 _executeInternal ( _pmdEDUCB *cb, INT16 w ) ;
-      virtual INT32 _clearInternal(_pmdEDUCB * cb,INT16 w) ;
+
+      virtual INT32 _rollbackInternal ( _pmdEDUCB *cb, INT16 w )
+      { return SDB_OK ; }
 
    protected :
-      INT32 _checkAlterTask ( const rtnAlterTask * task, _pmdEDUCB * cb ) ;
-      INT32 _executeAlterTask ( const rtnAlterTask * task, _pmdEDUCB * cb, INT16 w ) ;
-      INT32 _clearAlterTask ( const rtnAlterTask * task, _pmdEDUCB * cb, INT16 w ) ;
-      INT32 _addAlterTask ( const string & collection,
-                          const rtnAlterTask * task,
-                          catCtxAlterCLTask ** catTask,
-                          BOOLEAN pushExec ) ;
-      INT32 _addAlterSubCLTask ( catCtxAlterCLTask * catTask,
-                               pmdEDUCB * cb,
-                               catCtxLockMgr & lockMgr,
-                               std::set< std::string > & collectionSet,
-                               std::vector< UINT32 > & groupList ) ;
-      INT32 _addSequenceTask( const string & collection,
-                          const rtnAlterTask * task,
-                          catCtxTaskBase ** catAutoIncTask ) ;
-      INT32 _addCreateSeqenceTask( const string & collection,
-                                   const rtnAlterTask * task,
-                                   catCtxTaskBase ** catAutoIncTask ) ;
-      INT32 _addDropSeqenceTask( const string & collection,
-                                 const rtnAlterTask * task,
-                                 catCtxTaskBase ** catAutoIncTask ) ;
-      INT32 _addAlterSeqenceTask( const string & collection,
-                                  const rtnAlterTask * task,
-                                  catCtxTaskBase ** catAutoIncTask ) ;
+      INT32 _checkAlterCL ( _pmdEDUCB *cb ) ;
 
-      virtual INT32 _makeReply ( rtnContextBuf &buffObj ) ;
+      INT32 _checkAlterCLJob ( _pmdEDUCB *cb ) ;
+
+      INT32 _executeAlterCL ( _pmdEDUCB *cb, INT16 w ) ;
+
+      INT32 _executeAlterCLJob ( _pmdEDUCB *cb, INT16 w ) ;
+
+      INT32 _buildAlterFields ( clsCatalogSet &cataSet,
+                                UINT32 mask,
+                                const catCollectionInfo &alterInfo,
+                                BSONObj &alterObj ) ;
 
    protected :
-      rtnAlterJob _alterJob ;
+      BSONObj _alterFields ;
+      _rtnAlterJob _alterJob ;
    } ;
 
    typedef class _catCtxAlterCL catCtxAlterCL ;

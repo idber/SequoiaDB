@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = optAccessPlanHelper.cpp
 
@@ -81,7 +80,6 @@ namespace engine
      _estCPUCost( OPT_MTH_OPTR_DEFAULT_SELECTIVITY ),
      _keepSearchPaths( keepSearchPaths )
    {
-      // Adjust with cache level
       setMthEnableParameterized( mthConfig._enableParameterized &&
                                  ( cacheLevel >= OPT_PLAN_PARAMETERIZED ) ) ;
       setMthEnableFuzzyOptr( mthConfig._enableFuzzyOptr &&
@@ -100,7 +98,7 @@ namespace engine
       _predicateSet.clear() ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTAPHELP_SETMTH, "_optAccessPlanHelper::setMatchTree" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTAPHELP_SETMTH, "_optAccessPlanHelper::setMatcher" )
    void _optAccessPlanHelper::setMatchTree ( _mthMatchTree *matchTree )
    {
       PD_TRACE_ENTRY( SDB__OPTAPHELP_SETMTH ) ;
@@ -165,7 +163,7 @@ namespace engine
       PD_TRACE_EXIT( SDB__OPTAPHELP__EVALEST ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTAPHELP_GENSIMMTH, "_optAccessPlanHelper::normalizeQuery" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTAPHELP_GENSIMMTH, "_optAccessPlanHelper::generateSimpleMatcher" )
    INT32 _optAccessPlanHelper::normalizeQuery ( const BSONObj &query,
                                                 BSONObjBuilder &normalBuilder,
                                                 rtnParamList &parameters,
@@ -175,10 +173,8 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__OPTAPHELP_GENSIMMTH ) ;
 
-      // No need to be copied
       _query = query ;
 
-      // Normalize the query with simple parser
       rc = _normalizer.normalize( query, normalBuilder, parameters ) ;
       invalidMatcher = _normalizer.isInvalidMatcher() ;
       PD_RC_CHECK( rc, invalidMatcher ? PDERROR : PDDEBUG,

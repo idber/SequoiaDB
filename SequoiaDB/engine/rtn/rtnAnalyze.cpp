@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnAnalyze.cpp
 
@@ -43,6 +42,7 @@
 #include "pmdCB.hpp"
 #include "dmsStorageUnit.hpp"
 #include "dpsOp2Record.hpp"
+#include "utilMap.hpp"
 #include "rtnInternalSorting.hpp"
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
@@ -51,28 +51,6 @@ namespace engine
 {
 
    #define RTN_ANALYZE_SORT_BUF_SIZE ( 32 * 1024 * 1024 )
-
-   /**
-    * @brief Just compact all resources for internal sorting.
-    */
-   struct _rtnInternalSortArea
-   {
-      _rtnInternalSortArea()
-      : _tupleDirectory( UTIL_BUFF_MODE_SERIAL, RTN_SORT_TUPLE_DIR_MIN_SZ,
-                         &_monitor ),
-        _tupleBuff( UTIL_BUFF_MODE_SCATTER, RTN_SORT_TUPLE_MIN_SZ, &_monitor )
-      {
-      }
-
-      INT32 init( UINT64 limit )
-      {
-         return _monitor.init( limit ) ;
-      }
-
-      utilBuffMonitor _monitor ;
-      utilCommBuff _tupleDirectory ;
-      utilCommBuff _tupleBuff ;
-   } ;
 
    static INT32 _rtnAnalyzeAll ( const rtnAnalyzeParam &param,
                                  pmdEDUCB *cb,
@@ -143,7 +121,7 @@ namespace engine
 
    static INT32 _rtnAnalyzeCSStats ( const monCSSimple *pMonCS,
                                      const rtnAnalyzeParam &param,
-                                     _rtnInternalSortArea *sortArea,
+                                     CHAR *pSortBuf,
                                      pmdEDUCB *cb,
                                      _SDB_DMSCB *dmsCB,
                                      _SDB_RTNCB *rtnCB,
@@ -152,7 +130,7 @@ namespace engine
    static INT32 _rtnAnalyzeCLStats ( const monCSSimple *pMonCS,
                                      const monCLSimple *pMonCL,
                                      const rtnAnalyzeParam &param,
-                                     _rtnInternalSortArea *sortArea,
+                                     CHAR *pSortBuf,
                                      pmdEDUCB *cb,
                                      _SDB_DMSCB *dmsCB,
                                      _SDB_RTNCB *rtnCB,
@@ -172,7 +150,7 @@ namespace engine
                                        const monIndex *pMonIX,
                                        const rtnAnalyzeParam &param,
                                        BOOLEAN needUpdateCL,
-                                       _rtnInternalSortArea *sortArea,
+                                       CHAR *pSortBuf,
                                        pmdEDUCB *cb,
                                        _SDB_DMSCB *dmsCB,
                                        _SDB_RTNCB *rtnCB,
@@ -184,7 +162,7 @@ namespace engine
                                            const rtnAnalyzeParam &param,
                                            BOOLEAN needUpdateCL,
                                            BOOLEAN clearPlans,
-                                           _rtnInternalSortArea *sortArea,
+                                           CHAR *pSortBuf,
                                            pmdEDUCB *cb,
                                            _SDB_DMSCB *dmsCB,
                                            _SDB_RTNCB *rtnCB,
@@ -202,7 +180,7 @@ namespace engine
                                   UINT32 sampleRecords,
                                   UINT64 totalRecords,
                                   BOOLEAN fullScan,
-                                  _rtnInternalSortArea *sortArea,
+                                  CHAR *pSortBuf,
                                   pmdEDUCB *cb ) ;
 
    static INT32 _rtnPostAnalyzeAll ( const rtnAnalyzeParam & param,
@@ -225,6 +203,7 @@ namespace engine
                       _dpsLogWrapper *dpsCB )
    {
       INT32 rc = SDB_OK ;
+
       PD_TRACE_ENTRY( SDB_RTNANALYZE ) ;
 
       if ( SDB_ROLE_DATA != pmdGetDBRole() &&
@@ -327,7 +306,6 @@ namespace engine
       SDB_ASSERT( NULL != dmsCB, "dmsCB is invalid" ) ;
 
       MON_CS_SIM_LIST monCSList ;
-      BOOLEAN lockDms = FALSE ;
 
       PD_LOG( PDINFO, "Analyze full node, mode [%d]", param._mode ) ;
 
@@ -336,32 +314,18 @@ namespace engine
                 "Do not support generating default statistics on all "
                 "collection spaces" ) ;
 
-      // reload mode and clear mode do not write dps log, so they don't need to
-      // check writable
-      if ( param._mode != SDB_ANALYZE_MODE_RELOAD &&
-           param._mode != SDB_ANALYZE_MODE_CLEAR )
-      {
-         rc = dmsCB->writable ( cb ) ;
-         PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
-         lockDms = TRUE ;
-      }
-
       if ( param._mode == SDB_ANALYZE_MODE_RELOAD )
       {
-         // Dump all information here, reload statistics is a quick process
          dmsCB->dumpInfo( monCSList, FALSE, TRUE, TRUE ) ;
       }
       else
       {
-         // Dump all information later, analyze is a long process
          dmsCB->dumpInfo( monCSList, FALSE, FALSE, FALSE ) ;
       }
 
       if ( monCSList.empty() &&
            param._mode != SDB_ANALYZE_MODE_CLEAR )
       {
-         // No collection space is found, need to do nothing except for clear
-         // mode which need to clear cached plans as well
          INT32 tmpRC = _rtnPostAnalyzeAll( param, rtnCB, dpsCB ) ;
          if ( SDB_OK != tmpRC )
          {
@@ -379,7 +343,6 @@ namespace engine
       }
       else if ( param._mode == SDB_ANALYZE_MODE_CLEAR )
       {
-         // Clear cached plans and statistics
          dmsCB->clearSUCaches( monCSList,
                                DMS_EVENT_MASK_PLAN | DMS_EVENT_MASK_STAT ) ;
       }
@@ -394,11 +357,6 @@ namespace engine
                    "rc: %d", rc ) ;
 
    done :
-      if ( lockDms )
-      {
-         dmsCB->writeDown( cb ) ;
-         lockDms = FALSE ;
-      }
       PD_TRACE_EXITRC( SDB__RTNANALYZEALL, rc ) ;
       return rc ;
 
@@ -422,7 +380,7 @@ namespace engine
       SDB_ASSERT( NULL != dmsCB, "dmsCB is invalid" ) ;
 
       BOOLEAN suLocked = FALSE ;
-      BOOLEAN lockDms = FALSE ;
+
       monCSSimple monCS ;
       dmsStorageUnitID suID = DMS_INVALID_CS ;
       dmsStorageUnit *pSU = NULL ;
@@ -441,16 +399,6 @@ namespace engine
       PD_CHECK( !dmsIsSysCSName( pCSName ), SDB_INVALIDARG, error, PDERROR,
                 "Could not analyze SYS collection space [%s]", pCSName ) ;
 
-      // reload mode and clear mode do not write dps log, so they don't need to
-      // check writable
-      if ( param._mode != SDB_ANALYZE_MODE_RELOAD &&
-           param._mode != SDB_ANALYZE_MODE_CLEAR )
-      {
-         rc = dmsCB->writable ( cb ) ;
-         PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
-         lockDms = TRUE ;
-      }
-
       if ( param._mode == SDB_ANALYZE_MODE_CLEAR )
       {
          csLockType = EXCLUSIVE ;
@@ -462,8 +410,6 @@ namespace engine
       {
          if ( SDB_DMS_CS_NOTEXIST == rc )
          {
-            // Collection space doesn't have storage unit, but might contain
-            // main-collections
             INT32 tmpRC = _rtnPostAnalyzeCS( pCSName, param, rtnCB, dpsCB ) ;
             if ( SDB_OK != tmpRC )
             {
@@ -480,24 +426,19 @@ namespace engine
 
       suLocked = TRUE ;
 
-      // Check if statistics cache is ready for collection space
       pStatCache = pSU->getStatCache() ;
       PD_CHECK( pStatCache, SDB_INVALIDARG, error, PDERROR,
                 "No statistics manger in storage unit [%s]", pCSName ) ;
 
       if ( param._mode == SDB_ANALYZE_MODE_RELOAD )
       {
-         // Dump index list with collections, since reload statistics process
-         // will be quick
          pSU->dumpInfo( monCS, FALSE, TRUE, TRUE ) ;
       }
       else if ( param._mode == SDB_ANALYZE_MODE_CLEAR )
       {
-         // Do nothing
       }
       else
       {
-         // Dump index list later, since analyze process will be long time
          pSU->dumpInfo( monCS, FALSE, TRUE, FALSE ) ;
       }
 
@@ -510,7 +451,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to reload statistics for "
                       "collection space [%s], rc: %d", pCSName, rc ) ;
 
-         // Make sure main-collection plans are removed
          rtnCB->getAPM()->invalidateSUPlans( pCSName ) ;
       }
       else if ( param._mode == SDB_ANALYZE_MODE_CLEAR )
@@ -521,7 +461,6 @@ namespace engine
          dmsCB->suUnlock( suID, csLockType ) ;
          suLocked = FALSE ;
 
-         // Make sure main-collection plans are removed
          rtnCB->getAPM()->invalidateSUPlans( pCSName ) ;
       }
       else
@@ -529,12 +468,10 @@ namespace engine
          dmsCB->suUnlock( suID, csLockType ) ;
          suLocked = FALSE ;
 
-         rc = _rtnAnalyzeCSStats( &monCS, param, NULL,
-                                  cb, dmsCB, rtnCB, dpsCB ) ;
+         rc = _rtnAnalyzeCSStats( &monCS, param, NULL, cb, dmsCB, rtnCB, dpsCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to analyze collection space [%s], "
                       "rc: %d", pCSName, rc ) ;
 
-         // Make sure main-collection plans are removed
          rtnCB->getAPM()->invalidateSUPlans( pCSName ) ;
       }
 
@@ -547,11 +484,7 @@ namespace engine
       {
          dmsCB->suUnlock( suID, csLockType ) ;
       }
-      if ( lockDms )
-      {
-         dmsCB->writeDown( cb ) ;
-         lockDms = FALSE ;
-      }
+
       PD_TRACE_EXITRC( SDB__RTNANALYZECS, rc ) ;
       return rc ;
 
@@ -604,7 +537,6 @@ namespace engine
       PD_CHECK( !dmsIsSysCLName( pCLName ), SDB_INVALIDARG, error, PDERROR,
                 "Could not analyze SYS collection [%s]", pCLFullName ) ;
 
-      // Check if statistics cache is ready for collection space
       pStatCache = pSU->getStatCache() ;
       PD_CHECK( pStatCache, SDB_INVALIDARG, error, PDERROR,
                 "No statistics manger in storage unit [%s]", pCSName ) ;
@@ -626,7 +558,6 @@ namespace engine
          dmsEventCLItem clItem( pCLName, mbContext->mbID(),
                                 mbContext->clLID() ) ;
 
-         // Get index list here, reload statistics will be a quick process
          pSU->dumpInfo( monCL, mbContext, TRUE ) ;
 
          rc = _rtnReloadCLStats( &monCS, &monCL, pStatCache,
@@ -634,7 +565,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to reload statistics for "
                       "collection [%s], rc: %d", pCLFullName, rc ) ;
 
-         // Clear cached plans based on old statistics
          pSU->getEventHolder()->onClearCLCaches( DMS_EVENT_MASK_PLAN, clItem ) ;
       }
       else if ( param._mode == SDB_ANALYZE_MODE_CLEAR )
@@ -642,16 +572,13 @@ namespace engine
          dmsEventCLItem clItem( pCLName, mbContext->mbID(),
                                 mbContext->clLID() ) ;
 
-         // Clear cached plans and statistics
          pSU->getEventHolder()->onClearCLCaches( DMS_EVENT_MASK_PLAN |
                                                  DMS_EVENT_MASK_STAT, clItem ) ;
       }
       else
       {
-         // Get index list later, analyze process will be long time
          pSU->dumpInfo( monCL, mbContext, FALSE ) ;
 
-         // Unlock first
          pSU->data()->releaseMBContext( mbContext ) ;
          dmsCB->suUnlock( suID, SHARED ) ;
          pSU = NULL ;
@@ -662,6 +589,9 @@ namespace engine
                                   cb, dmsCB, rtnCB, dpsCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to analyze statistics for "
                       "collection [%s], rc: %d", pCLFullName, rc ) ;
+
+         rc = rtnAnalyzeDpsLog( NULL, pCLFullName, NULL, dpsCB ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to write analyze log, rc: %d", rc ) ;
       }
 
    done :
@@ -734,22 +664,18 @@ namespace engine
       PD_CHECK( !dmsIsSysCLName( pCLName ), SDB_INVALIDARG, error, PDERROR,
                 "Could not analyze SYS collection [%s]", pCLFullName ) ;
 
-      // Check if statistics cache is ready for collection space
       pStatCache = pSU->getStatCache() ;
       PD_CHECK( pStatCache, SDB_INVALIDARG, error, PDERROR,
                 "No statistics manger in storage unit [%s]", pCSName ) ;
 
-      // Dump CS information
       pSU->dumpInfo( monCS, FALSE, FALSE, FALSE ) ;
 
-      // Reload and clear mode acquire exclusive lock
       if ( param._mode == SDB_ANALYZE_MODE_RELOAD ||
            param._mode == SDB_ANALYZE_MODE_CLEAR )
       {
          clLockType = EXCLUSIVE ;
       }
 
-      // Get mbContext
       rc = pSU->data()->getMBContext( &mbContext, pCLName, clLockType ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get collection [%s], rc: %d",
                    pCLFullName, rc ) ;
@@ -770,7 +696,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to reload statistics for "
                       "index [%s %s], rc: %d", pCLFullName, pIndexName, rc ) ;
 
-         // Clear cached plans based on old statistics
          pSU->getEventHolder()->onClearCLCaches( DMS_EVENT_MASK_PLAN, clItem ) ;
       }
       else if ( param._mode == SDB_ANALYZE_MODE_CLEAR )
@@ -778,7 +703,6 @@ namespace engine
          dmsEventCLItem clItem( pCLName, mbContext->mbID(),
                                 mbContext->clLID() ) ;
 
-         // Clear cached plans and statistics
          pSU->getEventHolder()->onClearCLCaches( DMS_EVENT_MASK_PLAN |
                                                  DMS_EVENT_MASK_STAT, clItem ) ;
       }
@@ -794,7 +718,6 @@ namespace engine
                _rtnGetSampleRecords( mbContext->mbStat()->_totalRecords, param ) ;
          localParam._sampleByNum = FALSE ;
 
-         // Unlock first
          pSU->data()->releaseMBContext( mbContext ) ;
          dmsCB->suUnlock( suID, SHARED ) ;
          pSU = NULL ;
@@ -806,6 +729,9 @@ namespace engine
                                     cb, dmsCB, rtnCB, dpsCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to analyze statistics for "
                       "index [%s %s], rc: %d", pCLFullName, pIndexName, rc ) ;
+
+         rc = rtnAnalyzeDpsLog( NULL, pCLFullName, pIndexName, dpsCB ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to write analyze log, rc: %d", rc ) ;
       }
 
    done :
@@ -872,8 +798,6 @@ namespace engine
             continue ;
          }
 
-         // Need check logical IDs again, since we unlock the objects
-         // after dumping objects
          rc = _rtnReplaceCSStats( pMonCS, pStatCache, needCheck, dmsCB ) ;
          if ( SDB_OK != rc )
          {
@@ -927,12 +851,10 @@ namespace engine
 
       suLocked = TRUE ;
 
-      // Check if statistics cache is ready for collection space
       pStatCache = pSU->getStatCache() ;
       PD_CHECK( pStatCache, SDB_INVALIDARG, error, PDERROR,
                 "No statistics manger in storage unit [%s]", pCSName ) ;
 
-      // Clear current statistics caches
       pSU->getEventHolder()->onClearSUCaches( DMS_EVENT_MASK_STAT ) ;
 
       if ( pInputStatCache )
@@ -950,7 +872,6 @@ namespace engine
          pStatCache->setStatus( UTIL_SU_CACHE_UNIT_STATUS_CACHED ) ;
       }
 
-      // Clear current plan caches based on old statistics
       pSU->getEventHolder()->onClearSUCaches( DMS_EVENT_MASK_PLAN ) ;
 
    done :
@@ -995,8 +916,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to load index statistics for "
                    "collection space [%s], rc: %d", pCSName, rc ) ;
 
-      // Need check logical IDs again, since we unlock the objects
-      // after dumping objects
       rc = _rtnReplaceCSStats( pMonCS, &statMap, needCheck, dmsCB ) ;
       if ( SDB_OK != rc )
       {
@@ -1084,7 +1003,6 @@ namespace engine
       pCollectionStat =
             (dmsCollectionStat *)pStatCache->getCacheUnit( pMonCL->_blockID ) ;
 
-      // The collection statistics is empty, try reload first
       if ( NULL == pCollectionStat )
       {
          rc = pStatSUMgr->loadCollectionStat( pMonCS, pMonCL, pStatCache,
@@ -1126,9 +1044,13 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__RTNANALYZEALLSTATS ) ;
 
-      _rtnInternalSortArea sortArea ;
-      rc = sortArea.init( RTN_ANALYZE_SORT_BUF_SIZE ) ;
-      PD_RC_CHECK( rc, PDERROR, "Initialize sort area failed[%d]", rc ) ;
+      BOOLEAN allocatedBuf = FALSE ;
+      CHAR *pSortBuf = NULL ;
+
+      pSortBuf = ( CHAR * )SDB_OSS_MALLOC( RTN_ANALYZE_SORT_BUF_SIZE ) ;
+      PD_CHECK( pSortBuf, SDB_OOM, error, PDERROR,
+                "Failed to allocate sort buffer" ) ;
+      allocatedBuf = TRUE ;
 
       for ( MON_CS_SIM_LIST::iterator iterCS = monCSList.begin() ;
             iterCS != monCSList.end() ;
@@ -1146,7 +1068,6 @@ namespace engine
             goto error ;
          }
 
-         // Dump collection list
          rc = dmsCB->verifySUAndLock( &suItem, &pSU, SHARED, OSS_ONE_SEC ) ;
          if ( SDB_OK != rc )
          {
@@ -1159,7 +1080,7 @@ namespace engine
          dmsCB->suUnlock( suItem._suID, SHARED ) ;
          pSU = NULL ;
 
-         rc = _rtnAnalyzeCSStats( &monCS, param, &sortArea,
+         rc = _rtnAnalyzeCSStats( &monCS, param, pSortBuf,
                                   cb, dmsCB, rtnCB, dpsCB ) ;
          if ( SDB_APP_INTERRUPT == rc )
          {
@@ -1176,6 +1097,11 @@ namespace engine
       }
 
    done :
+      if ( allocatedBuf && pSortBuf )
+      {
+         SDB_OSS_FREE( pSortBuf ) ;
+         pSortBuf = NULL ;
+      }
       PD_TRACE_EXITRC( SDB__RTNANALYZEALLSTATS, rc ) ;
       return rc ;
    error :
@@ -1185,7 +1111,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNANALYZECSSTATS, "_rtnAnalyzeCSStats" )
    INT32 _rtnAnalyzeCSStats ( const monCSSimple *pMonCS,
                               const rtnAnalyzeParam &param,
-                              _rtnInternalSortArea *sortArea,
+                              CHAR *pSortBuf,
                               pmdEDUCB *cb,
                               _SDB_DMSCB *dmsCB,
                               _SDB_RTNCB *rtnCB,
@@ -1197,18 +1123,19 @@ namespace engine
 
       SDB_ASSERT( pMonCS, "pMonCS is invalid" ) ;
 
-      _rtnInternalSortArea sortAreaTmp ;
+      BOOLEAN allocatedBuf = FALSE ;
 
       if ( pMonCS->_clList.empty() )
       {
          goto done ;
       }
 
-      if ( !sortArea )
+      if ( NULL == pSortBuf )
       {
-         sortArea = &sortAreaTmp ;
-         rc = sortArea->init( RTN_ANALYZE_SORT_BUF_SIZE ) ;
-         PD_RC_CHECK( rc, PDERROR, "Initialize sort area failed[%d]", rc ) ;
+         pSortBuf = ( CHAR * )SDB_OSS_MALLOC( RTN_ANALYZE_SORT_BUF_SIZE ) ;
+         PD_CHECK( pSortBuf, SDB_OOM, error, PDERROR,
+                   "Failed to allocate sort buffer" ) ;
+         allocatedBuf = TRUE ;
       }
 
       for ( MON_CL_SIM_VEC::const_iterator iterCL = pMonCS->_clList.begin() ;
@@ -1224,7 +1151,7 @@ namespace engine
             goto error ;
          }
 
-         rc = _rtnAnalyzeCLStats( pMonCS, pMonCL, param, sortArea,
+         rc = _rtnAnalyzeCLStats( pMonCS, pMonCL, param, pSortBuf,
                                   cb, dmsCB, rtnCB, dpsCB ) ;
          if ( SDB_DMS_CS_NOTEXIST == rc ||
               SDB_APP_INTERRUPT == rc )
@@ -1242,6 +1169,11 @@ namespace engine
       }
 
    done :
+      if ( allocatedBuf && pSortBuf )
+      {
+         SDB_OSS_FREE( pSortBuf ) ;
+         pSortBuf = NULL ;
+      }
       PD_TRACE_EXITRC( SDB__RTNANALYZECSSTATS, rc ) ;
       return rc ;
    error :
@@ -1252,13 +1184,13 @@ namespace engine
    INT32 _rtnAnalyzeCLStats ( const monCSSimple *pMonCS,
                               const monCLSimple *pMonCL,
                               const rtnAnalyzeParam &param,
-                              _rtnInternalSortArea *sortArea,
+                              CHAR *pSortBuf,
                               pmdEDUCB *cb,
                               _SDB_DMSCB *dmsCB,
                               _SDB_RTNCB *rtnCB,
                               _dpsLogWrapper *dpsCB )
    {
-       INT32 rc = SDB_OK ;
+      INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__RTNANALYZECLSTATS ) ;
 
@@ -1273,12 +1205,12 @@ namespace engine
       dmsStorageUnit *pSU = NULL ;
       dmsMBContext *mbContext = NULL ;
 
-      _rtnInternalSortArea sortAreaTmp ;
+      BOOLEAN writable = FALSE ;
+      BOOLEAN allocatedBuf = FALSE ;
 
       rtnAnalyzeParam localParam( param ) ;
 
       MON_IDX_LIST monIdxList ;
-      BOOLEAN writable = FALSE ;
 
       rc = dmsCB->writable( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
@@ -1310,10 +1242,8 @@ namespace engine
                 pMonCL->_blockID, pMonCL->_logicalID,
                 mbContext->mbID(), mbContext->clLID() ) ;
 
-      // Dump index list
       pSU->getIndexes( mbContext, monIdxList ) ;
 
-      // Analyze collection
       localParam._sampleRecords =
             _rtnGetSampleRecords( mbContext->mbStat()->_totalRecords, param ) ;
       localParam._sampleByNum = TRUE ;
@@ -1336,11 +1266,12 @@ namespace engine
          goto done ;
       }
 
-      if ( !sortArea && localParam._sampleRecords > 0 )
+      if ( NULL == pSortBuf && localParam._sampleRecords > 0 )
       {
-         sortArea = &sortAreaTmp ;
-         rc = sortArea->init( RTN_ANALYZE_SORT_BUF_SIZE ) ;
-         PD_RC_CHECK( rc, PDERROR, "Initialize sort area failed[%d]", rc ) ;
+         pSortBuf = ( CHAR * )SDB_OSS_MALLOC( RTN_ANALYZE_SORT_BUF_SIZE ) ;
+         PD_CHECK( pSortBuf, SDB_OOM, error, PDERROR,
+                   "Failed to allocate sort buffer" ) ;
+         allocatedBuf = TRUE ;
       }
 
       for ( MON_IDX_LIST::const_iterator iterIdx = monIdxList.begin() ;
@@ -1357,7 +1288,7 @@ namespace engine
          }
 
          rc = _rtnAnalyzeIndexStat( pMonCS, pMonCL, pMonIX,
-                                    localParam, FALSE, sortArea,
+                                    localParam, FALSE, pSortBuf,
                                     cb, dmsCB, rtnCB, dpsCB ) ;
          if ( SDB_DMS_CS_NOTEXIST == rc ||
               SDB_DMS_NOTEXIST == rc ||
@@ -1375,11 +1306,12 @@ namespace engine
          }
       }
 
-      // Notify backup nodes to clear old cached statistics
-      rc = rtnAnalyzeDpsLog( NULL, pCLFullName, NULL, dpsCB ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to write analyze log, rc: %d", rc ) ;
-
    done :
+      if ( allocatedBuf && pSortBuf )
+      {
+         SDB_OSS_FREE( pSortBuf ) ;
+         pSortBuf = NULL ;
+      }
       if ( pSU && mbContext )
       {
          pSU->data()->releaseMBContext( mbContext ) ;
@@ -1428,7 +1360,6 @@ namespace engine
       PD_CHECK( pStatCache, SDB_INVALIDARG, error, PDERROR,
                 "No statistics manger in storage unit [%s]", pCSName ) ;
 
-      // Do not set the version, set it when lock collection exclusive
       pCollectionStat = SDB_OSS_NEW dmsCollectionStat( pCSName, pCLName,
                                                        pSU->LogicalCSID(),
                                                        mbContext->mbID(),
@@ -1452,7 +1383,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to lock collection [%s.%s], rc: %d",
                    pCSName, pCLName, rc ) ;
 
-      // The collection is locked exclusive, set the version
       pCollectionStat->setCreateTime( ossGetCurrentMilliseconds() ) ;
 
       PD_CHECK( pStatCache->addCacheUnit( pCollectionStat, TRUE, FALSE ),
@@ -1460,8 +1390,6 @@ namespace engine
                 "Failed to add collection statistics [%s.%s]",
                 pCSName, pCLName ) ;
 
-      // The collection statistics is inserted into statistics cache,
-      // let the cache manage it
       pTmpCLStat = pCollectionStat ;
       pCollectionStat = NULL ;
 
@@ -1475,7 +1403,6 @@ namespace engine
          dmsEventCLItem clItem( pCLName, mbContext->mbID(),
                                 mbContext->clLID() ) ;
 
-         // Clear cached plans based on old statistics
          pSU->getEventHolder()->onClearCLCaches( DMS_EVENT_MASK_PLAN, clItem ) ;
       }
 
@@ -1494,7 +1421,7 @@ namespace engine
                                 const monIndex *pMonIX,
                                 const rtnAnalyzeParam &param,
                                 BOOLEAN needUpdateCL,
-                                _rtnInternalSortArea *sortArea,
+                                CHAR *pSortBuf,
                                 pmdEDUCB *cb,
                                 _SDB_DMSCB *dmsCB,
                                 _SDB_RTNCB *rtnCB,
@@ -1518,8 +1445,8 @@ namespace engine
       dmsMBContext *mbContext = NULL ;
       dmsExtentID indexExtID = DMS_INVALID_EXTENT ;
 
-      _rtnInternalSortArea sortAreaTmp ;
       BOOLEAN writable = FALSE ;
+      BOOLEAN allocatedBuf = FALSE ;
 
       rc = dmsCB->writable( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
@@ -1579,16 +1506,17 @@ namespace engine
                    indexCB.getLogicalID(),
                    indexCB.getDef().toString( FALSE, TRUE ).c_str() ) ;
 
-         if ( !sortArea )
+         if ( NULL == pSortBuf )
          {
-            sortArea = &sortAreaTmp ;
-            rc = sortArea->init( RTN_ANALYZE_SORT_BUF_SIZE ) ;
-            PD_RC_CHECK( rc, PDERROR, "Initialize sort area failed[%d]", rc ) ;
+            pSortBuf = ( CHAR * )SDB_OSS_MALLOC( RTN_ANALYZE_SORT_BUF_SIZE ) ;
+            PD_CHECK( pSortBuf, SDB_OOM, error, PDERROR,
+                      "Failed to allocate sort buffer" ) ;
+            allocatedBuf = TRUE ;
          }
 
          rc = _rtnAnalyzeIndexInternal( pSU, mbContext, &indexCB,
-                                        param, needUpdateCL, TRUE,
-                                        sortArea, cb, dmsCB, rtnCB, dpsCB ) ;
+                                        param, needUpdateCL, TRUE, pSortBuf,
+                                        cb, dmsCB, rtnCB, dpsCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to analyze index [%s.%s %s], "
                       "rc: %d", pCSName, pCLName, pIXName, rc ) ;
       }
@@ -1599,11 +1527,12 @@ namespace engine
          goto error ;
       }
 
-      // Notify backup nodes to clear old cached statistics
-      rc = rtnAnalyzeDpsLog( NULL, pCLFullName, pIXName, dpsCB ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to write analyze log, rc: %d", rc ) ;
-
    done :
+      if ( allocatedBuf && pSortBuf )
+      {
+         SDB_OSS_FREE( pSortBuf ) ;
+         pSortBuf = NULL ;
+      }
       if ( pSU && mbContext )
       {
          pSU->data()->releaseMBContext( mbContext ) ;
@@ -1630,7 +1559,7 @@ namespace engine
                                     const rtnAnalyzeParam &param,
                                     BOOLEAN needUpdateCL,
                                     BOOLEAN clearPlans,
-                                    _rtnInternalSortArea *sortArea,
+                                    CHAR *pSortBuf,
                                     pmdEDUCB *cb,
                                     _SDB_DMSCB *dmsCB,
                                     _SDB_RTNCB *rtnCB,
@@ -1663,16 +1592,13 @@ namespace engine
 
       if ( needUpdateCL )
       {
-         // Re-analyze collection statistics if needed
          rc = _rtnAnalyzeCLInternal( pSU, mbContext, param, FALSE, cb,
                                      dmsCB, rtnCB, dpsCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to analyze collection [%s.%s], "
                       "rc: %d", pCSName, pCLName, rc ) ;
 
-         // Make statistics of other indexes are loaded
          rtnReloadCLStats( pSU, mbContext, cb, dmsCB ) ;
 
-         // Lock shared to allow parallel reading during analyze index
          rc = mbContext->mbLock( SHARED ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to lock collection [%s.%s], rc: %d",
                       pCSName, pCLName, rc ) ;
@@ -1700,7 +1626,7 @@ namespace engine
                                  TRUE : FALSE ) ;
             rc = _rtnBuildMCVSet( pIndexStat, pSU, mbContext, indexCB,
                                   param._sampleRecords, totalRecords, fullScan,
-                                  sortArea, cb ) ;
+                                  pSortBuf, cb ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to build MCV set, rc: %d", rc ) ;
          }
          else
@@ -1725,7 +1651,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to lock collection [%s.%s], rc: %d",
                    pCSName, pCLName, rc ) ;
 
-      // The collection is locked exclusive, set the version
       pIndexStat->setCreateTime( ossGetCurrentMilliseconds() ) ;
 
       PD_CHECK( pStatCache->addCacheSubUnit( pIndexStat, TRUE, FALSE ),
@@ -1733,8 +1658,6 @@ namespace engine
                 "Failed to add index statistics [%s.%s %s]",
                 pCSName, pCLName, pIXName ) ;
 
-      // The collection statistics is inserted into statistics cache,
-      // let the cache manage it
       pTmpIdxStat = pIndexStat ;
       pIndexStat = NULL ;
 
@@ -1747,7 +1670,6 @@ namespace engine
          dmsEventCLItem clItem( pCLName, mbContext->mbID(),
                                 mbContext->clLID() ) ;
 
-         // Clear cached plans based on old statistics
          pSU->getEventHolder()->onClearCLCaches( DMS_EVENT_MASK_PLAN, clItem ) ;
       }
 
@@ -1768,7 +1690,6 @@ namespace engine
            param._mode == SDB_ANALYZE_MODE_RELOAD ||
            param._mode == SDB_ANALYZE_MODE_CLEAR )
       {
-         // Samples are not needed in these modes
          sampleRecords = 0 ;
       }
       else
@@ -1815,7 +1736,7 @@ namespace engine
                            UINT32 sampleRecords,
                            UINT64 totalRecords,
                            BOOLEAN fullScan,
-                           _rtnInternalSortArea *sortArea,
+                           CHAR *pSortBuf,
                            pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
@@ -1825,7 +1746,7 @@ namespace engine
       SDB_ASSERT( pSU, "pSU is invalid" ) ;
       SDB_ASSERT( mbContext, "mbContext is invalid" ) ;
       SDB_ASSERT( indexCB, "indexCB is invalid" ) ;
-      SDB_ASSERT( sortArea, "Sort area is invalid" ) ;
+      SDB_ASSERT( pSortBuf, "pSortBuf is invalid" ) ;
 
       const CHAR *pCSName = pSU->CSName() ;
       const CHAR *pCLName = mbContext->mb()->_collectionName ;
@@ -1838,12 +1759,8 @@ namespace engine
       double fraction = 0.0 ;
 
       _rtnSortTuple *tuple = NULL ;
-
-      sortArea->_tupleDirectory.clear() ;
-      sortArea->_tupleBuff.clear() ;
-
-      _rtnInternalSorting sorter( boOrder, &(sortArea->_tupleDirectory),
-                                  &(sortArea->_tupleBuff), -1 ) ;
+      _rtnInternalSorting sorter( boOrder, pSortBuf,
+                                  RTN_ANALYZE_SORT_BUF_SIZE, -1 ) ;
 
       rc = rtnGetIndexSamples( pSU, indexCB, cb, sampleRecords, totalRecords,
                                fullScan, sorter, levels, pages ) ;
@@ -1886,7 +1803,6 @@ namespace engine
          {
             if ( 0 != prevKey.woCompare( curKey, dummy, FALSE ) )
             {
-               // A different key, push the previous one into MCV set
                fraction = (double) prevCount / (double) sortCount ;
                rc = pIndexStat->pushMCVSet( prevKey, fraction ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to insert MCV value, rc: %d",
@@ -1898,7 +1814,6 @@ namespace engine
          prevCount ++ ;
       }
 
-      // Push the last one into MCV set
       fraction = (double) prevCount / (double) sortCount ;
       rc = pIndexStat->pushMCVSet( prevKey, fraction ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to insert MCV value, rc: %d", rc ) ;
@@ -1932,7 +1847,6 @@ namespace engine
          }
          else if ( NULL == pCSName && NULL == pCLFullName )
          {
-            // Reload all statistics
             pCLFullName = "SYS" ;
          }
 
@@ -1965,13 +1879,11 @@ namespace engine
 
       SDB_ASSERT( rtnCB, "rtnCB is invalid" ) ;
 
-      // Make sure main-collection plans are removed
       rtnCB->getAPM()->invalidateAllPlans() ;
 
       if ( param._mode != SDB_ANALYZE_MODE_RELOAD &&
            param._mode != SDB_ANALYZE_MODE_CLEAR )
       {
-         // Notify backup nodes to clear old cached statistics
          rc = rtnAnalyzeDpsLog( NULL, NULL, NULL, dpsCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to write analyze log, rc: %d", rc ) ;
       }
@@ -1997,13 +1909,11 @@ namespace engine
       SDB_ASSERT( pCSName, "pCSName is invalid" ) ;
       SDB_ASSERT( rtnCB, "rtnCB is invalid" ) ;
 
-      // Make sure main-collection plans are removed
       rtnCB->getAPM()->invalidateSUPlans( pCSName ) ;
 
       if ( param._mode != SDB_ANALYZE_MODE_RELOAD &&
            param._mode != SDB_ANALYZE_MODE_CLEAR )
       {
-         // Notify backup nodes to clear old cached statistics
          rc = rtnAnalyzeDpsLog( pCSName, NULL, NULL, dpsCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to write analyze log, rc: %d", rc ) ;
       }

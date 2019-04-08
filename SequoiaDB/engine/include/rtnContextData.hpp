@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnContextData.hpp
 
@@ -47,7 +46,7 @@
 namespace engine
 {
    class _rtnIXScanner ;
-   class _dpsITransLockCallback ;
+
    /*
       _rtnContextData define
    */
@@ -99,19 +98,15 @@ namespace engine
          virtual RTN_CONTEXT_TYPE getType () const ;
          virtual _dmsStorageUnit* getSU () { return _su ; }
          virtual BOOLEAN          isWrite() const ;
-         virtual BOOLEAN          needRollback() const ;
 
       protected:
          INT32 _queryModify( _pmdEDUCB* eduCB,
                              const dmsRecordID& recordID,
                              ossValuePtr recordDataPtr,
-                             BSONObj& obj,
-                             IDmsOprHandler* pHandler,
-                             const dmsTransRecordInfo *pInfo ) ;
+                             BSONObj& obj ) ;
          virtual INT32     _prepareData( _pmdEDUCB *cb ) ;
          virtual BOOLEAN   _canPrefetch () const
          {
-            // If contain modifier, do not use prefetch
             return ( _queryModifier ? FALSE : TRUE ) ;
          }
          virtual void      _toString( stringstream &ss ) ;
@@ -135,12 +130,10 @@ namespace engine
          INT32    _openTBScan ( _dmsStorageUnit *su,
                                 _dmsMBContext *mbContext,
                                 _pmdEDUCB *cb,
-                                const rtnReturnOptions &returnOptions,
                                 const BSONObj *blockObj ) ;
          INT32    _openIXScan ( _dmsStorageUnit *su,
                                 _dmsMBContext *mbContext,
                                 _pmdEDUCB *cb,
-                                const rtnReturnOptions &returnOptions,
                                 const BSONObj *blockObj,
                                 INT32 direction ) ;
 
@@ -155,26 +148,20 @@ namespace engine
          optAccessPlanRuntime       _planRuntime ;
          optScanType                _scanType ;
 
-         // rest number of records to expect, -1 means select all
          SINT64                     _numToReturn ;
-         // rest number of records need to skip
          SINT64                     _numToSkip ;
-         // Original return options, number of skip, etc.
          rtnReturnOptions           _returnOptions ;
 
-         // TBSCAN
          dmsExtentID                _extentID ;
          dmsExtentID                _lastExtLID ;
          BOOLEAN                    _segmentScan ;
          std::vector< dmsExtentID > _segments ;
-         // Index scan
          _rtnIXScanner              *_scanner ;
          std::vector< BSONObj >     _indexBlocks ;
          std::vector< dmsRecordID > _indexRIDs ;
          BOOLEAN                    _indexBlockScan ;
          INT32                      _direction ;
 
-         // query modify
          rtnQueryModifier*          _queryModifier ;
    } ;
 

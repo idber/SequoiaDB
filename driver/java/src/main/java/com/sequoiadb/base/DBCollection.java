@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 SequoiaDB Inc.
+ * Copyright 2017 SequoiaDB Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +20,9 @@ import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.message.request.*;
 import com.sequoiadb.message.response.SdbReply;
+
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.bson.types.BasicBSONList;
 import org.bson.types.ObjectId;
 import org.bson.util.JSON;
 
@@ -40,13 +40,11 @@ public class DBCollection {
     private Set<String> mainKeys;
     private boolean ensureOID;
 
-    /** The flag represent whether insert continue(no errors were reported)
-     * when hitting index key duplicate error
+    /**
+     * This flags represent that bulkInsert will continue when
+     * duplicate key exist(the duplicate record will be ignored).
      */
     public static final int FLG_INSERT_CONTONDUP = 0x00000001;
-
-    /** The flag represent whether insert return the "_id" field of the record for user */
-    public static final int FLG_INSERT_RETURN_OID = 0x00000002;
 
     /**
      * The sharding key in update rule is not filtered,
@@ -111,10 +109,8 @@ public class DBCollection {
     public void setMainKeys(String[] keys) throws BaseException {
         if (keys == null)
             throw new BaseException(SDBError.SDB_INVALIDARG, "keys is null");
-        // remove the main keys set in the last time
         mainKeys.clear();
 
-        // add the new main keys
         if (keys.length == 0) {
             return;
         }
@@ -140,60 +136,30 @@ public class DBCollection {
     }
 
     /**
-     * Insert a document into current collection.
-     *
-     * @param insertor The bson object to be inserted, can't be null.
-     * @param flags The flag to control the behavior of inserting. The
-     *              value of flags default to be 0, and it can choose
-     *              the follow values:
-     *              <ul>
-     *                  <li>0: default value.</li>
-     *                  <li>FLG_INSERT_CONTONDUP: if the record hit index key duplicate error,
-     *                                            database will skip them and go on inserting.</li>
-     *                  <li>FLG_INSERT_RETURN_OID: return the value of "_id" field in the record.</li>
-     *              </ul>
-     * @return The result of inserting, can be the follow values:
-     *              <ul>
-     *                   <li> null: when there is no result to return.</li>
-     *                   <li> bson which contains the "_id" field: when flag "FLG_INSERT_RETURN_OID" is set, return the
-     *                   value of "_id" field of the inserted record.
-     *                   e.g.: { "_id": { "$oid": "5c456e8eb17ab30cfbf1d5d1" } } </li>
-     *              </ul>
-     * @throws BaseException If error happens.
-     */
-    public BSONObject insert(BSONObject insertor, int flags) throws BaseException {
-        BSONObject result = null;
-        if (insertor == null) {
-            throw new BaseException(SDBError.SDB_INVALIDARG);
-        }
-        // send to engine
-        InsertRequest request = new InsertRequest(collectionFullName, insertor, flags);
-        SdbReply response = sequoiadb.requestAndResponse(request);
-        sequoiadb.throwIfError(response, insertor);
-        sequoiadb.upsertCache(collectionFullName);
-        // return result
-        if ((flags & FLG_INSERT_RETURN_OID) != 0)
-        {
-            Object oid = request.getOIDValue();
-            if (oid != null) {
-                result = new BasicBSONObject();
-                result.put(SdbConstants.OID, oid);
-            }
-        }
-        return result;
-    }
-
-    /**
      * Insert a document into current collection, if the document
      * does not contain field "_id", it will be added.
      *
-     * @param insertor The insertor.
+     * @param insertor The Bson object of insertor, can't be null
      * @return the value of the filed "_id"
      * @throws BaseException If error happens.
      */
     public Object insert(BSONObject insertor) throws BaseException {
-        BSONObject result = insert(insertor, FLG_INSERT_RETURN_OID);
-        return result.get(SdbConstants.OID);
+        if (insertor == null) {
+            throw new BaseException(SDBError.SDB_INVALIDARG);
+        }
+
+        Object retObj = insertor.get(SdbConstants.OID);
+        if (retObj == null) {
+            ObjectId objId = ObjectId.get();
+            insertor.put(SdbConstants.OID, objId);
+            retObj = objId;
+        }
+
+        InsertRequest request = new InsertRequest(collectionFullName, insertor);
+        SdbReply response = sequoiadb.requestAndResponse(request);
+        sequoiadb.throwIfError(response, insertor);
+        sequoiadb.upsertCache(collectionFullName);
+        return retObj;
     }
 
     /**
@@ -216,76 +182,25 @@ public class DBCollection {
      * Insert a bulk of bson objects into current collection.
      *
      * @param insertor The Bson object of insertor list, can't be null
-     * @param flags The flag to control the behavior of inserting. The
-     *              value of flags default to be 0, and it can choose
-     *              the follow values:
-     *              <ul>
-     *                  <li>0: default value.</li>
-     *                  <li>FLG_INSERT_CONTONDUP: if the record hit index key duplicate error,
-     *                                            database will skip them and go on inserting.</li>
-     *                  <li>FLG_INSERT_RETURN_OID: return the value of "_id" field in the record.
-     *                                             When set this flag, ensureOID() will be set to true.</li>
-     *              </ul>
-     * @return The result of inserting, can be the follow values:
-     *          <ul>
-     *               <li> null: when there is no result to return.</li>
-     *               <li> bson which contains the "_id" field:
-     *               when flag "FLG_INSERT_RETURN_OID" is set, return all the
-     *               values of "_id" field in a bson array.
-     *               e.g.: { "_id": [ { "$oid": "5c456e8eb17ab30cfbf1d5d1" },
-     *               { "$oid": "5c456e8eb17ab30cfbf1d5d2" } ] }</li>
-     *           </ul>
+     * @param flag     available value is FLG_INSERT_CONTONDUP or 0.
+     *                 if flag = FLG_INSERT_CONTONDUP, bulkInsert will continue when Duplicate
+     *                 key exist.(the duplicate record will be ignored);
+     *                 if flag = 0, bulkInsert will interrupt when Duplicate key exist.
      * @throws BaseException If error happens.
-     * @since 3.0.2
+     * @since 2.9
      */
-    public BSONObject insertRecords(List<BSONObject> insertor, int flags) throws BaseException {
-        BSONObject result = null;
+    public void insert(List<BSONObject> insertor, int flag) throws BaseException {
+        if (flag != 0 && flag != FLG_INSERT_CONTONDUP) {
+            throw new BaseException(SDBError.SDB_INVALIDARG);
+        }
         if (insertor == null || insertor.size() == 0) {
             throw new BaseException(SDBError.SDB_INVALIDARG);
         }
-        // try to ensure oid
-        if ((flags & FLG_INSERT_RETURN_OID) != 0) {
-            if (!isOIDEnsured()) {
-                ensureOID(true);
-            }
-        }
-        // build and send message
-        InsertRequest request = new InsertRequest(collectionFullName, insertor, flags, ensureOID);
+
+        InsertRequest request = new InsertRequest(collectionFullName, insertor, flag, ensureOID);
         SdbReply response = sequoiadb.requestAndResponse(request);
         sequoiadb.throwIfError(response);
         sequoiadb.upsertCache(collectionFullName);
-        // return result
-        if ((flags & FLG_INSERT_RETURN_OID) != 0)
-        {
-            Object oid = request.getOIDValue();
-            if (oid != null) {
-                result = new BasicBSONObject();
-                result.put(SdbConstants.OID, oid);
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Insert a bulk of bson objects into current collection.
-     *
-     * @param insertor The Bson object of insertor list, can't be null
-     * @param flags The flag to control the behavior of inserting. The
-     *              value of flags default to be 0, and it can choose
-     *              the follow values:
-     *              <ul>
-     *                  <li>0: default value</li>
-     *                  <li>FLG_INSERT_CONTONDUP: if the record hit index key duplicate error,
-     *                                            database will skip them and go on inserting.</li>
-     *              </ul>
-     * @throws BaseException If error happens.
-     * @since 3.0.2
-     */
-    public void insert(List<BSONObject> insertor, int flags) throws BaseException {
-        if (flags != 0) {
-            flags = DBQuery.eraseSingleFlag(flags, FLG_INSERT_RETURN_OID);
-        }
-        insertRecords(insertor, flags);
     }
 
     /**
@@ -318,7 +233,6 @@ public class DBCollection {
      */
     public /*! @cond x*/ <T> /*! @endcond */ void save(T type, Boolean ignoreNullValue,
                                                        int flag) throws BaseException {
-        // transform java object to bson object
         BSONObject obj;
         try {
             obj = BasicBSONObject.typeToBson(type, ignoreNullValue);
@@ -327,7 +241,6 @@ public class DBCollection {
         }
         BSONObject matcher = new BasicBSONObject();
         BSONObject modifer = new BasicBSONObject();
-        // if user don't specify main keys, use default one "_id"
         if (mainKeys.isEmpty()) {
             Object id = obj.get(SdbConstants.OID);
             if (id == null || (id instanceof ObjectId && ((ObjectId) id).isNew())) {
@@ -335,21 +248,17 @@ public class DBCollection {
                     ((ObjectId) id).notNew();
                 insert(obj);
             } else {
-                // build condtion
                 matcher.put(SdbConstants.OID, id);
-                // build rule
                 modifer.put("$set", obj);
                 upsert(matcher, modifer, null, null, flag);
             }
         } else { // if user specify main keys, use these main keys
             Iterator<String> it = mainKeys.iterator();
-            // build condition
             while (it.hasNext()) {
                 String key = it.next();
                 if (obj.containsField(key))
                     matcher.put(key, obj.get(key));
             }
-            // build rule
             if (!matcher.isEmpty()) {
                 modifer.put("$set", obj);
                 upsert(matcher, modifer, null, null, flag);
@@ -413,7 +322,6 @@ public class DBCollection {
                                                        int flag) throws BaseException {
         if (type == null || type.size() == 0)
             throw new BaseException(SDBError.SDB_INVALIDARG, "type is empty or null");
-        // transform java object to bson object
         List<BSONObject> objs = new ArrayList<BSONObject>();
         try {
             Iterator<T> it = type.iterator();
@@ -427,7 +335,6 @@ public class DBCollection {
         BSONObject modifer = new BasicBSONObject();
         BSONObject obj = null;
         Iterator<BSONObject> ite = objs.iterator();
-        // if user don't specify main keys, use default one "_id"
         if (mainKeys.isEmpty()) {
             while (ite != null && ite.hasNext()) {
                 obj = ite.next();
@@ -437,9 +344,7 @@ public class DBCollection {
                         ((ObjectId) id).notNew();
                     insert(obj);
                 } else {
-                    // build condtion
                     matcher.put(SdbConstants.OID, id);
-                    // build rule
                     modifer.put("$set", obj);
                     upsert(matcher, modifer, null, null, flag);
                 }
@@ -448,14 +353,12 @@ public class DBCollection {
             while (ite != null && ite.hasNext()) {
                 obj = ite.next();
                 Iterator<String> i = mainKeys.iterator();
-                // build condition
                 while (i.hasNext()) {
                     String key = i.next();
                     if (obj.containsField(key))
                         matcher.put(key, obj.get(key));
                 }
                 if (!matcher.isEmpty()) {
-                    // build rule
                     modifer.put("$set", obj);
                     upsert(matcher, modifer, null, null, flag);
                 } else {
@@ -742,8 +645,7 @@ public class DBCollection {
      *                    using index "ageIndex" to scan data(index scan);
      *                    {"":null} means table scan. when hint is null,
      *                    database automatically match the optimal index to scan data.
-     * @param setOnInsert When "setOnInsert" is not a null or an empty object,
-     *                     it assigns the specified values to the fields when insert.
+     * @param setOnInsert The setOnInsert assigns the specified values to the fileds when insert
      * @throws BaseException If error happens.
      */
     public void upsert(BSONObject matcher, BSONObject modifier, BSONObject hint,
@@ -762,8 +664,7 @@ public class DBCollection {
      *                    using index "ageIndex" to scan data(index scan);
      *                    {"":null} means table scan. when hint is null,
      *                    database automatically match the optimal index to scan data.
-     * @param setOnInsert When "setOnInsert" is not a null or an empty object,
-     *                     it assigns the specified values to the fields when insert.
+     * @param setOnInsert The setOnInsert assigns the specified values to the fileds when insert
      * @param flag        the upsert flag, default to be 0. Please see the definition
      *                    of follow flags for more detail.
      *                    <ul>
@@ -832,7 +733,8 @@ public class DBCollection {
         if (null != options) {
             innerHint.put(SdbConstants.FIELD_NAME_OPTIONS, options);
         }
-        return _query(matcher, selector, orderBy, innerHint, skipRows,
+
+        return query(matcher, selector, orderBy, innerHint, skipRows,
                 returnRows, flag);
     }
 
@@ -899,7 +801,6 @@ public class DBCollection {
      *                 <li>DBQuery.FLG_QUERY_FORCE_HINT
      *                 <li>DBQuery.FLG_QUERY_PARALLED
      *                 <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
-     *                 <li>DBQuery.FLG_QUERY_FOR_UPDATE
      *                 </ul>
      * @return a DBCursor instance of the result or null if no any matched document
      * @throws BaseException If error happens.
@@ -945,7 +846,6 @@ public class DBCollection {
      *                 <li>DBQuery.FLG_QUERY_FORCE_HINT
      *                 <li>DBQuery.FLG_QUERY_PARALLED
      *                 <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
-     *                 <li>DBQuery.FLG_QUERY_FOR_UPDATE
      *                 </ul>
      * @return a DBCursor instance of the result or null if no any matched document
      * @throws BaseException If error happens.
@@ -1053,22 +953,11 @@ public class DBCollection {
      *                   <li>DBQuery.FLG_QUERY_FORCE_HINT
      *                   <li>DBQuery.FLG_QUERY_PARALLED
      *                   <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
-     *                   <li>DBQuery.FLG_QUERY_FOR_UPDATE
      *                   </ul>
      * @return a DBCursor instance of the result or null if no any matched document
      * @throws BaseException If error happens.
      */
     public DBCursor query(BSONObject matcher, BSONObject selector,
-                          BSONObject orderBy, BSONObject hint,
-                          long skipRows, long returnRows,
-                          int flags) throws BaseException {
-        if (flags != 0) {
-            flags = DBQuery.eraseSingleFlag(flags, DBQuery.FLG_QUERY_EXPLAIN);
-        }
-        return _query(matcher, selector, orderBy, hint,skipRows, returnRows, flags);
-    }
-
-    private DBCursor _query(BSONObject matcher, BSONObject selector,
                           BSONObject orderBy, BSONObject hint,
                           long skipRows, long returnRows,
                           int flags) throws BaseException {
@@ -1125,7 +1014,6 @@ public class DBCollection {
      *                 <li>DBQuery.FLG_QUERY_FORCE_HINT
      *                 <li>DBQuery.FLG_QUERY_PARALLED
      *                 <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
-     *                 <li>DBQuery.FLG_QUERY_FOR_UPDATE
      *                 </ul>
      * @return the matched document or null if no such document
      * @throws BaseException If error happens.
@@ -1203,6 +1091,7 @@ public class DBCollection {
             newHint.putAll(hint);
         }
         newHint.put(SdbConstants.FIELD_NAME_MODIFY, modify);
+
         flag |= DBQuery.FLG_QUERY_MODIFY;
         return query(matcher, selector, orderBy, newHint,
                 skipRows, returnRows, flag);
@@ -1234,7 +1123,6 @@ public class DBCollection {
      *                   <li>DBQuery.FLG_QUERY_PARALLED
      *                   <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
      *                   <li>DBQuery.FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE
-     *                   <li>DBQuery.FLG_QUERY_FOR_UPDATE
      *                   </ul>
      * @param returnNew  When true, returns the updated document rather than the original
      * @return a DBCursor instance of the result or null if no any matched document
@@ -1272,7 +1160,6 @@ public class DBCollection {
      *                   <li>DBQuery.FLG_QUERY_FORCE_HINT
      *                   <li>DBQuery.FLG_QUERY_PARALLED
      *                   <li>DBQuery.FLG_QUERY_WITH_RETURNDATA
-     *                   <li>DBQuery.FLG_QUERY_FOR_UPDATE
      *                   </ul>
      * @return a DBCursor instance of the result or null if no any matched document
      * @throws BaseException If error happens.
@@ -1292,7 +1179,6 @@ public class DBCollection {
      *             is null
      * @return DBCursor of indexes
      * @throws BaseException If error happens.
-     * @deprecated use "getIndexInfo" or "getIndexes" API instead.
      */
     public DBCursor getIndex(String name) throws BaseException {
         if (name == null) {
@@ -1319,68 +1205,6 @@ public class DBCollection {
         }
         sequoiadb.upsertCache(collectionFullName);
         return new DBCursor(response, sequoiadb);
-    }
-
-    /**
-     * Get the information of specified index in current collection.
-     *
-     * @param name The index name.
-     * @return The information of the specified index.
-     * @throws BaseException If error happens or the specified index does not exist.
-     */
-    public BSONObject getIndexInfo(String name) throws BaseException {
-        BSONObject retObj ;
-        if (name == null || name.isEmpty()) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "index name can not be null or empty");
-        }
-
-        BSONObject condition = new BasicBSONObject();
-        condition.put(SdbConstants.IXM_INDEXDEF + "." + SdbConstants.IXM_NAME, name);
-
-        BSONObject obj = new BasicBSONObject();
-        obj.put(SdbConstants.FIELD_COLLECTION, collectionFullName);
-
-        AdminRequest request = new AdminRequest(AdminCommand.GET_INDEXES, condition, obj);
-        SdbReply response = sequoiadb.requestAndResponse(request);
-        if (response.getFlag() != 0) {
-            sequoiadb.throwIfError(response);
-        }
-        sequoiadb.upsertCache(collectionFullName);
-        DBCursor cursor = new DBCursor(response, sequoiadb);
-        try {
-            if (cursor.hasNext()) {
-                retObj = cursor.getNext();
-                return retObj;
-            } else {
-                throw new BaseException(SDBError.SDB_IXM_NOTEXIST,
-                        "the specified index[" + name + "] does not exist");
-            }
-        } finally {
-            cursor.close();
-        }
-    }
-
-    /**
-     * Test the specified index exist or not.
-     *
-     * @param name The index name.
-     * @return True for exist while false for not exist..
-     */
-    public boolean isIndexExist(String name) {
-        if (name == null || name.isEmpty()) {
-            return false;
-        }
-        BSONObject indexObj;
-        try {
-            indexObj = getIndexInfo(name);
-        } catch (Exception e) {
-            return false;
-        }
-        if (indexObj != null)
-        {
-            return true;
-        }
-        return false;
     }
 
     /**
@@ -1483,6 +1307,44 @@ public class DBCollection {
         }
         createIndex(name, k, isUnique, enforced,
                 SdbConstants.IXM_SORT_BUFFER_DEFAULT_SIZE);
+    }
+
+    /**
+     * Create the id index.
+     *
+     * @param options can be empty or specify option. e.g. {SortBufferSize:64}
+     * @throws BaseException If error happens.
+     */
+    public void createIdIndex(BSONObject options) throws BaseException {
+        BSONObject tmp = new BasicBSONObject();
+        tmp.put(SdbConstants.FIELD_NAME_NAME,
+                SdbConstants.SDB_ALTER_CRT_ID_INDEX);
+        if (options == null || options.isEmpty()) {
+            tmp.put(SdbConstants.FIELD_NAME_ARGS, null);
+        } else {
+            tmp.put(SdbConstants.FIELD_NAME_ARGS, options);
+        }
+
+
+        BSONObject innerOptions = new BasicBSONObject();
+        innerOptions.put(SdbConstants.FIELD_NAME_ALTER, tmp);
+        alterCollection(innerOptions);
+    }
+
+    /**
+     * Drop the id index.
+     *
+     * @throws BaseException If error happens.
+     */
+    public void dropIdIndex() throws BaseException {
+        BSONObject tmp = new BasicBSONObject();
+        tmp.put(SdbConstants.FIELD_NAME_NAME,
+                SdbConstants.SDB_ALTER_DROP_ID_INDEX);
+        tmp.put(SdbConstants.FIELD_NAME_ARGS, null);
+
+        BSONObject options = new BasicBSONObject();
+        options.put(SdbConstants.FIELD_NAME_ALTER, tmp);
+        alterCollection(options);
     }
 
     /**
@@ -1705,12 +1567,14 @@ public class DBCollection {
                     ", splitEndCondition = " + splitEndCondition;
             sequoiadb.throwIfError(response, msg);
         }
-        BSONObject result;
+
         DBCursor cursor = new DBCursor(response, sequoiadb);
+        if (!cursor.hasNext()) {
+            throw new BaseException(SDBError.SDB_CAT_TASK_NOTFOUND);
+        }
+
+        BSONObject result;
         try {
-            if (!cursor.hasNext()) {
-                throw new BaseException(SDBError.SDB_CAT_TASK_NOTFOUND);
-            }
             result = cursor.getNext();
         } finally {
             cursor.close();
@@ -1758,12 +1622,14 @@ public class DBCollection {
                     ", percent = " + percent;
             sequoiadb.throwIfError(response, msg);
         }
-        BSONObject result;
+
         DBCursor cursor = new DBCursor(response, sequoiadb);
+        if (!cursor.hasNext()) {
+            throw new BaseException(SDBError.SDB_CAT_TASK_NOTFOUND);
+        }
+
+        BSONObject result;
         try {
-            if (!cursor.hasNext()) {
-                throw new BaseException(SDBError.SDB_CAT_TASK_NOTFOUND);
-            }
             result = cursor.getNext();
         } finally {
             cursor.close();
@@ -1918,18 +1784,6 @@ public class DBCollection {
         sequoiadb.upsertCache(collectionFullName);
     }
 
-    private void alterInternal(String taskName, BSONObject options, boolean allowNullArgs) throws BaseException {
-        if (null == options && !allowNullArgs) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "options is null");
-        }
-        BSONObject argumentObj = new BasicBSONObject();
-        argumentObj.put(SdbConstants.FIELD_NAME_NAME, taskName);
-        argumentObj.put(SdbConstants.FIELD_NAME_ARGS, options);
-        BSONObject alterObject = new BasicBSONObject();
-        alterObject.put(SdbConstants.FIELD_NAME_ALTER, argumentObj);
-        alterCollection(alterObject);
-    }
-
     /**
      * Alter the attributes of current collection.
      * Can't alter attributes about split in partition collection; After altering a collection to
@@ -1941,12 +1795,7 @@ public class DBCollection {
      *                <li>ShardingKey   : Assign the sharding key
      *                <li>ShardingType        : Assign the sharding type
      *                <li>Partition        : When the ShardingType is "hash", need to assign Partition, it's the bucket number for hash, the range is [2^3,2^20].
-     *                <li>CompressionType  : The compression type of data, could be "snappy" or "lzw"
-     *                <li>EnsureShardingIndex : Assign to true to build sharding index
-     *                <li>StrictDataMode : Using strict date mode in numeric operations or not
      *                e.g. {RepliSize:0, ShardingKey:{a:1}, ShardingType:"hash", Partition:1024}
-     *                <li>AutoIncrement : Assign attributes of an autoincrement field or batch autoincrement fields.
-     *                e.g. {AutoIncrement:{Field:"a",MaxValue:2000}},{AutoIncrement:[{Field:"a",MaxValue:2000},{Field:"a",MaxValue:4000}]}
      *                </ul>
      * @throws BaseException If error happens.
      */
@@ -1961,8 +1810,7 @@ public class DBCollection {
             newObj.put(SdbConstants.FIELD_NAME_OPTIONS, options);
         } else {
             Object tmpAlter = options.get(SdbConstants.FIELD_NAME_ALTER);
-            if (tmpAlter instanceof BasicBSONObject ||
-                tmpAlter instanceof BasicBSONList) {
+            if (tmpAlter instanceof BasicBSONObject) {
                 newObj.put(SdbConstants.FIELD_NAME_ALTER, tmpAlter);
             } else {
                 throw new BaseException(SDBError.SDB_INVALIDARG, options.toString());
@@ -1981,175 +1829,13 @@ public class DBCollection {
                     throw new BaseException(SDBError.SDB_INVALIDARG, options.toString());
                 }
             }
+
         }
 
         AdminRequest request = new AdminRequest(AdminCommand.ALTER_COLLECTION, newObj);
         SdbReply response = sequoiadb.requestAndResponse(request);
         sequoiadb.throwIfError(response, options);
         sequoiadb.upsertCache(collectionFullName);
-    }
-    
-    /**
-     * Create auto-increment for current collection.
-     *
-     * @param options The options for creating auto-increment are as below:
-     *                <ul>
-     *                <li>Field : Auto-increment field name
-     *                <li>Increment : The interval between consecutive values
-     *                <li>StartValue : The first value for auto-increment
-     *                <li>MinValue : The minimum value
-     *                <li>MaxValue : The maximum value
-     *                <li>CacheSize : The number of values that are cached in catalog node
-     *                <li>AcquireSize : The number of values that are acquired by coord node
-     *                <li>Cycled : Whether generate the next value after reaching the maximum or minimum
-     *                <li>Generated : Whether generate value if the field has already exist. It can be "default", "always" or "strict". 
-     *                     <li>default : Generate the value by default if field is not exist. It is default value either.
-     *                     <li>always : Always Generate the value, ignore the existent field.
-     *                     <li>strict : Like 'default' behavior, but additionally check the type of field. If not number, return error.
-     *                e.g. {Field:"ID", StartValue:100, Generated:"always"}
-     *                </ul>
-     * @throws BaseException If error happens.
-     */
-    public void createAutoIncrement(BSONObject options) {
-        if (options == null || options.isEmpty()) {
-            throw new BaseException(SDBError.SDB_INVALIDARG);
-        }
-        List<BSONObject> optionsList = new ArrayList<BSONObject>();
-        optionsList.add(options);
-        createAutoIncrement(optionsList);
-    }
-
-    /**
-     * Create one or more auto-increment for current collection.
-     *
-     * @param options The options of the auto-increment(s)
-     * @throws BaseException If error happens.
-     */
-    public void createAutoIncrement(List<BSONObject> options) {
-        if (options == null || options.size() == 0) {
-            throw new BaseException(SDBError.SDB_INVALIDARG);
-        }
-        BSONObject obj = new BasicBSONObject(SdbConstants.FIELD_NAME_AUTOINCREMENT, options);
-        alterInternal(SdbConstants.SDB_ALTER_CL_CRT_AUTOINC_FLD, obj, false);
-    }
-
-    /**
-     * Drop auto-increment of current collection.
-     *
-     * @param fieldName The auto-increment field name
-     * @throws BaseException If error happens.
-     */
-    public void dropAutoIncrement(String fieldName) {
-        if (fieldName == null || fieldName.length() == 0) {
-            throw new BaseException(SDBError.SDB_INVALIDARG);
-        }
-        BSONObject obj = new BasicBSONObject(SdbConstants.FIELD_NAME_AUTOINC_FIELD, fieldName);
-        alterInternal(SdbConstants.SDB_ALTER_CL_DROP_AUTOINC_FLD, obj, false);
-    }
-
-    /**
-     * Drop one or more auto-increment of current collection.
-     *
-     * @param fieldNames The auto-increment field name(s)
-     * @throws BaseException If error happens.
-     */
-    public void dropAutoIncrement(List<String> fieldNames) {
-        if (fieldNames == null || fieldNames.size() == 0) {
-            throw new BaseException(SDBError.SDB_INVALIDARG);
-        }
-        BSONObject obj = new BasicBSONObject(SdbConstants.FIELD_NAME_AUTOINC_FIELD, fieldNames);
-        alterInternal(SdbConstants.SDB_ALTER_CL_DROP_AUTOINC_FLD, obj, false);
-    }
-
-    /**
-     * Create the id index.
-     *
-     * @param options can be empty or specify option. e.g. {SortBufferSize:64}
-     * @throws BaseException If error happens.
-     */
-    public void createIdIndex(BSONObject options) throws BaseException {
-        alterInternal(SdbConstants.SDB_ALTER_CRT_ID_INDEX, options, true);
-    }
-
-    /**
-     * Drop the id index.
-     *
-     * @throws BaseException If error happens.
-     */
-    public void dropIdIndex() throws BaseException {
-        alterInternal(SdbConstants.SDB_ALTER_DROP_ID_INDEX, null, true);
-    }
-
-    /**
-     * Alter the attributes of current collection to enable sharding
-     *
-     * @param options The options for altering current collection are as below:
-     *                <ul>
-     *                <li>ShardingKey   : Assign the sharding key
-     *                <li>ShardingType  : Assign the sharding type
-     *                <li>Partition     : When the ShardingType is "hash", need to assign Partition, it's the bucket number for hash, the range is [2^3,2^20].
-     *                <li>EnsureShardingIndex : Assign to true to build sharding index
-     *                </ul>
-     * @throws BaseException If error happens.
-     */
-    public void enableSharding(BSONObject options) throws BaseException {
-        alterInternal(SdbConstants.SDB_ALTER_ENABLE_SHARDING, options, false);
-    }
-
-    /**
-     * Alter the attributes of current collection to disable sharding
-     *
-     * @throws BaseException If error happens.
-     */
-    public void disableSharding() throws BaseException {
-        alterInternal(SdbConstants.SDB_ALTER_DISABLE_SHARDING, null, true);
-    }
-
-    /**
-     * Alter the attributes of current collection to enable compression
-     *
-     * @param options The options for altering current collection are as below:
-     *                <ul>
-     *                <li>CompressionType  : The compression type of data, could be "snappy" or "lzw"
-     *                </ul>
-     * @throws BaseException If error happens.
-     */
-    public void enableCompression(BSONObject options) throws BaseException {
-        alterInternal(SdbConstants.SDB_ALTER_ENABLE_COMPRESSION, options, true);
-    }
-
-    /**
-     * Alter the attributes of current collection to disable compression
-     *
-     * @throws BaseException If error happens.
-     */
-    public void disableCompression() throws BaseException {
-        alterInternal(SdbConstants.SDB_ALTER_DISABLE_COMPRESSION, null, true);
-    }
-
-    /**
-     * Alter the attributes of current collection
-     * Can't alter attributes about split in partition collection; After altering a collection to
-     * be a partition collection, need to split this collection manually.
-     *
-     * @param options The options for altering current collection are as below:
-     *                <ul>
-     *                <li>ReplSize     : Assign how many replica nodes need to be synchronized when a write request(insert, update, etc) is executed
-     *                <li>ShardingKey   : Assign the sharding key
-     *                <li>ShardingType        : Assign the sharding type
-     *                <li>Partition        : When the ShardingType is "hash", need to assign Partition, it's the bucket number for hash, the range is [2^3,2^20].
-     *                <li>CompressionType  : The compression type of data, could be "snappy" or "lzw"
-     *                <li>EnsureShardingIndex : Assign to true to build sharding index
-     *                <li>StrictDataMode : Using strict date mode in numeric operations or not
-     *                e.g. {RepliSize:0, ShardingKey:{a:1}, ShardingType:"hash", Partition:1024}
-     *                <li>AutoIncrement : Assign attributes of an autoincrement field or batch autoincrement fields.
-     *                                    e.g. {AutoIncrement:{Field:"a",MaxValue:2000}},
-     *                                    {AutoIncrement:[{Field:"a",MaxValue:2000},{Field:"a",MaxValue:4000}]}
-     *                </ul>
-     * @throws BaseException If error happens.
-     */
-    public void setAttributes(BSONObject options) throws BaseException {
-        alterInternal(SdbConstants.SDB_ALTER_SET_ATTRIBUTES, options, false);
     }
 
     private void _update(int flag, BSONObject matcher, BSONObject modifier,
@@ -2216,7 +1902,6 @@ public class DBCollection {
     public DBLob createLob(ObjectId id) throws BaseException {
         DBLobImpl lob = new DBLobImpl(this);
         lob.open(id, DBLobImpl.SDB_LOB_CREATEONLY);
-        // upsert cache
         sequoiadb.upsertCache(collectionFullName);
         return lob;
     }
@@ -2238,7 +1923,6 @@ public class DBCollection {
 
         DBLobImpl lob = new DBLobImpl(this);
         lob.open(id, mode);
-        // upsert cache
         sequoiadb.upsertCache(collectionFullName);
         return lob;
     }
@@ -2318,7 +2002,7 @@ public class DBCollection {
      * @throws BaseException If error happens.
      */
     public void pop(BSONObject options) throws BaseException {
-        if (options == null) {
+        if (null == options) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "options is null");
         }
 
@@ -2331,7 +2015,7 @@ public class DBCollection {
             throw new BaseException(SDBError.SDB_INVALIDARG, options.toString());
         }
         Object directObj = options.get(SdbConstants.FIELD_NAME_DIRECTION);
-        if (directObj == null) {
+        if (null == directObj) {
             newObj.put(SdbConstants.FIELD_NAME_DIRECTION, 1);
         } else if (directObj instanceof Integer) {
             newObj.put(SdbConstants.FIELD_NAME_DIRECTION, directObj);

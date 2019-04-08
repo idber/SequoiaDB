@@ -34,7 +34,7 @@
       <div style="height:30px;margin:10px 0;">
          <button class="topBtn" ng-class="{true:'disabled'}[StartNode['config']['select'].length == 0]" ng-click="OpenStartNodeWindow()">{{autoLanguage("启动节点")}}</button>&nbsp;
          <button class="topBtn" ng-class="{true:'disabled'}[StopNode['config']['select'].length == 0]" ng-click="OpenStopNodeWindow()">{{autoLanguage("停止节点")}}</button>&nbsp;
-         <button class="topBtn" ng-click="GotoSync()">{{autoLanguage("同步服务")}}</button>&nbsp;
+         <button class="topBtn" ng-click="GotoSync()">{{autoLanguage("同步业务")}}</button>&nbsp;
       </div>
 
       <div ng-windows="info as StartNode.config" windows-callback="StartNode.callback">

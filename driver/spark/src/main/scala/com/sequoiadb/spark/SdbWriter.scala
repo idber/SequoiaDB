@@ -52,10 +52,8 @@ private[spark] class SdbWriter(config: SdbConfig) extends Serializable with Logg
             while (it.hasNext) {
                 val row = it.next()
                 val obj = convert(row)
-                if (obj != null) {
-                    bulk.add(obj)
-                    count += 1
-                }
+                bulk.add(obj)
+                count += 1
 
                 if (bulk.size() > config.bulkSize) {
                     cl.bulkInsert(bulk, flag)
@@ -75,31 +73,14 @@ private[spark] class SdbWriter(config: SdbConfig) extends Serializable with Logg
     }
 
     def write(it: Iterator[Row], schema: StructType): Unit = {
-        logInfo(s"begin to write rows to ${config.collectionSpace}.${config.collection}," +
-            s"${SdbConfig.IgnoreNullField}=${config.ignoreNullField}," +
-            s"${SdbConfig.IgnoreDuplicateKey}=${config.ignoreDuplicateKey}")
-        write(it, (v: Row) => {
-            val obj = BSONConverter.rowToBson(v, schema)
-            if (config.ignoreNullField) {
-                BSONConverter.removeNullFields(obj)
-            } else {
-                obj
-            }
-        })
+        logInfo(s"begin to write rows to ${config.collectionSpace}.${config.collection}")
+        write(it, (v: Row) => BSONConverter.rowToBson(v, schema))
         logInfo(s"finish writing rows to ${config.collectionSpace}.${config.collection}")
     }
 
     def write(it: Iterator[BSONObject]): Unit = {
-        logInfo(s"begin to write BSONObject to ${config.collectionSpace}.${config.collection}," +
-            s"${SdbConfig.IgnoreNullField}=${config.ignoreNullField}," +
-            s"${SdbConfig.IgnoreDuplicateKey}=${config.ignoreDuplicateKey}")
-        write(it, (v: BSONObject) => {
-            if (config.ignoreNullField) {
-                BSONConverter.removeNullFields(v)
-            } else {
-                v
-            }
-        })
+        logInfo(s"begin to write BSONObject to ${config.collectionSpace}.${config.collection}")
+        write(it, (v: BSONObject) => v)
         logInfo(s"finish writing rows to ${config.collectionSpace}.${config.collection}")
     }
 }

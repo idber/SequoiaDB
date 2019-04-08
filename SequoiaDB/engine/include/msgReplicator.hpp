@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = msgReplicator.hpp
 
@@ -169,7 +168,6 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
       DPS_LSN_OFFSET          oldestTransLsn;
       _MsgReplSyncRes()
       {
-          /// not contains the length of data
          header.header.messageLength = sizeof( _MsgReplSyncRes ) ;
          header.header.opCode = MSG_CLS_SYNC_RES ;
          header.header.routeID.value = MSG_INVALID_ROUTEID ;
@@ -245,10 +243,6 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
       CLS_FS_TYPE_BETWEEN_SETS,
    } ;
 
-   /// msg : | --- MsgClsFSBegin --- | --- [ bson ] --- |
-   /// bson:
-   ///   for fullsync: { validcls: [ { fullname:"xx.xx", commitflag:[x,y,z], commitlsn:[X,Y,Z] }, ... ] }
-   ///   for split: no-bson
    class _MsgClsFSBegin : public SDBObject
    {
    public :
@@ -268,12 +262,6 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
    } ;
    typedef class _MsgClsFSBegin MsgClsFSBegin ;
 
-   /// msg: | -- MsgClsFSBeginRes -- | -- [bson] -- |
-   /// bson:
-   ///   for fullsyc: { csnames: [ {csname:'xx', pagesize:x, logpagesize:y},... ],
-   ///                  fullnames:[ {fullname:'yy'},... ],
-   ///                  validcls:[ {fullname:'zz'}, ... ] }
-   ///   for split: no-bson
    class _MsgClsFSBeginRes : public SDBObject
    {
    public :
@@ -354,8 +342,6 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
    } ;
    typedef class _MsgClsFSEndRes MsgClsFSEndRes ;
 
-   /// msg: | -- _MsgClsFSRequire -- | -- bson -- |
-   /// bson: {cs:"xxx", collection:"xxx", keyobj:{"":value1,"":value2}, needdata:1/0}
    class _MsgClsFSMetaReq : public SDBObject
    {
    public :
@@ -371,8 +357,6 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
    } ;
    typedef class _MsgClsFSMetaReq MsgClsFSMetaReq ;
 
-   /// msg: | -- _MsgClsFSRequireRes -- | -- bson -- |
-   /// bson: {cs:"xxx",  csmeta:xxx}
    class _MsgClsFSMetaRes : public SDBObject
    {
    public :
@@ -404,8 +388,6 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
    } ;
    typedef class _MsgClsFSIndexReq MsgClsFSIndexReq ;
 
-   /// msg: | -- MsgClsFSIndexRes -- | -- bson -- |
-   /// bson: {nomore:xx, indexes:[index:xxx]}
    class _MsgClsFSIndexRes : public SDBObject
    {
    public :
@@ -451,11 +433,6 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
    #define CLS_FS_EOF -1
    #define CLS_FS_NOT_EOF 0
 
-   /// msg: | -- _MsgClsFSNotify -- | -- data -- |
-   /// data: if DOC: | record bson | record bson |...|
-   ///       if LOG: | log | log |...|
-   ///       if LOB: | oid | MsgLobTuple | data | ... | oid | MsgLobTuple | data |
-   ///       if LOB and eof == CLS_FS_EOF : | bson |
    class _MsgClsFSNotifyRes : public SDBObject
    {
    public :

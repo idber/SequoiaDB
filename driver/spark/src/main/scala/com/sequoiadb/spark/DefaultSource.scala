@@ -101,13 +101,7 @@ class DefaultSource extends DataSourceRegister
                     }
                     ensureCollection(sdb, config.collectionSpace, config.collection, Option(config))
                     true
-                case SaveMode.Ignore =>
-                    if (isCollectionExist(sdb, config.collectionSpace, config.collection)) {
-                        false
-                    } else {
-                        ensureCollection(sdb, config.collectionSpace, config.collection, Option(config))
-                        true
-                    }
+                case SaveMode.Ignore => false
                 case _ => false
             }
         } finally {

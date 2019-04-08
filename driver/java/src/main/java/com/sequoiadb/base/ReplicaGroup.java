@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 SequoiaDB Inc.
+ * Copyright 2017 SequoiaDB Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,8 @@ import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 
 /**
@@ -115,13 +117,11 @@ public class ReplicaGroup {
      * @throws BaseException If error happens.
      */
     public Node getMaster() throws BaseException {
-        // get information of nodes from catalog
         BSONObject groupInfoObj = sequoiadb.getDetailById(id);
         if (groupInfoObj == null) {
             throw new BaseException(SDBError.SDB_CLS_GRP_NOT_EXIST,
                     String.format("no information of group id[%d]", id));
         }
-        // check the nodes in current group
         Object nodesInfoArr = groupInfoObj.get(SdbConstants.FIELD_NAME_GROUP);
         if (nodesInfoArr == null || !(nodesInfoArr instanceof BasicBSONList)) {
             throw new BaseException(SDBError.SDB_SYS,
@@ -132,7 +132,6 @@ public class ReplicaGroup {
         if (nodesInfoList.isEmpty()) {
             throw new BaseException(SDBError.SDB_CLS_EMPTY_GROUP);
         }
-        // check and extract the information of primary node
         Object primaryNodeObj = groupInfoObj.get(SdbConstants.FIELD_NAME_PRIMARY);
         if (primaryNodeObj == null) {
             throw new BaseException(SDBError.SDB_RTN_NO_PRIMARY_FOUND);
@@ -154,7 +153,6 @@ public class ReplicaGroup {
                 break;
             }
         }
-        // try to get the meta information of primary node.
         if (primaryData == null) {
             throw new BaseException(SDBError.SDB_SYS, "no information about the primary node in node array");
         }
@@ -190,10 +188,7 @@ public class ReplicaGroup {
      * Get the slave node in the specified positions,
      * when have no slave node in the specified positions, return master node.
      *
-     * @param positions The positions of nodes.
-     *                  The position of a node is depended on the index of the node
-     *                  defined in catalog. But the beginning position of a node is start
-     *                  from 1 instead of 0, so it can be 1-7.
+     * @param positions The positions of nodes, can be 1-7.
      * @return the slave node
      * @throws BaseException If error happens.
      */
@@ -210,21 +205,9 @@ public class ReplicaGroup {
         }
     }
 
-    /**
-     * Get the slave node in the specified positions,
-     * when have no slave node in the specified positions, return master node.
-     *
-     * @param positions the collection of nodes' positions.
-     *                  The position of a node is depended on the index of the node
-     *                  defined in catalog. But the beginning position of a node is start
-     *                  from 1 instead of 0, so it can be 1-7.
-     * @return the slave node
-     * @throws BaseException
-     */
-    public Node getSlave(Collection<Integer> positions) throws BaseException {
+    private Node getSlave(List<Integer> positions) throws BaseException {
         boolean needGeneratePosition = false;
         List<Integer> validPositions = new ArrayList<Integer>();
-        // check arguments
         if (positions == null || positions.size() == 0) {
             needGeneratePosition = true;
         } else {
@@ -243,13 +226,11 @@ public class ReplicaGroup {
                                 validPositions.size()));
             }
         }
-        // get information of nodes from catalog
         BSONObject groupInfoObj = sequoiadb.getDetailById(id);
         if (groupInfoObj == null) {
             throw new BaseException(SDBError.SDB_CLS_GRP_NOT_EXIST,
                     String.format("no information of group id[%d]", id));
         }
-        // check the nodes in current group
         Object nodesInfoArr = groupInfoObj.get(SdbConstants.FIELD_NAME_GROUP);
         if (nodesInfoArr == null || !(nodesInfoArr instanceof BasicBSONList)) {
             throw new BaseException(SDBError.SDB_SYS,
@@ -260,7 +241,6 @@ public class ReplicaGroup {
         if (nodesInfoList.isEmpty()) {
             throw new BaseException(SDBError.SDB_CLS_EMPTY_GROUP);
         }
-        // check whether there has primary or not
         Object primaryNodeId = groupInfoObj.get(SdbConstants.FIELD_NAME_PRIMARY);
         boolean hasPrimary = true;
         if (primaryNodeId == null) {
@@ -270,8 +250,6 @@ public class ReplicaGroup {
         } else if (primaryNodeId.equals(Integer.valueOf(-1))) {
             hasPrimary = false;
         }
-        // try to mark the position of primary node in the nodes list,
-        // the value of position is [1, 7]
         int primaryNodePosition = 0;
         for (int i = 0; i < nodesInfoList.size(); i++) {
             BSONObject nodeInfo = (BSONObject) nodesInfoList.get(i);
@@ -286,7 +264,6 @@ public class ReplicaGroup {
         if (hasPrimary && primaryNodePosition == 0) {
             throw new BaseException(SDBError.SDB_SYS, "have no primary node in nodes list");
         }
-        // try to generate positions
         int nodeCount = nodesInfoList.size();
         if (needGeneratePosition) {
             for (int i = 0; i < nodeCount; i++) {
@@ -296,15 +273,11 @@ public class ReplicaGroup {
                 validPositions.add(i + 1);
             }
         }
-        // get a node position to create Node
         int nodeIndex = -1;
         BSONObject nodeInfoObj = null;
-        // we must use "nodeCount" to compare first, since "validPositions" may be generate by us when
-        // "needGeneratePosition" is true.
         if (nodeCount == 1) {
             nodeInfoObj = (BSONObject) nodesInfoList.get(0);
         } else if (validPositions.size() == 1) {
-            // position is start from 1, so we need to decrease 1
             nodeIndex = (validPositions.get(0) - 1) % nodeCount;
             nodeInfoObj = (BSONObject) nodesInfoList.get(nodeIndex);
         } else {
@@ -391,18 +364,15 @@ public class ReplicaGroup {
      * @throws com.sequoiadb.exception.BaseException
      */
     public Node getNode(String nodeName) throws BaseException {
-        // check arguemnt
         if (nodeName == null || nodeName.isEmpty()) {
             throw new BaseException(SDBError.SDB_INVALIDARG, nodeName);
         }
-        // get node hostname and port
         String[] nodeMetaInfoArray = nodeName.split(":");
         if (nodeMetaInfoArray.length != 2) {
             throw new BaseException(SDBError.SDB_INVALIDARG, nodeName);
         }
         String inputHostName = nodeMetaInfoArray[0];
         int inputPort = Integer.parseInt((nodeMetaInfoArray[1]));
-        // get node object
         Node node = getNodeByMetaInfo(inputHostName, inputPort);
         if (node != null) {
             return node;
@@ -432,25 +402,19 @@ public class ReplicaGroup {
      *
      * @param hostName  host name
      * @param port      port
-     * @param options configuration for this operation,
-     *                can not be null or empty, can be the follow options:
-     *                <ul>
-     *                <li>KeepData : Whether to keep the original data of the new
-     *                               node. This option has no default value. User
-     *                               should specify its value explicitly.</li>
-     *                </ul>
+     * @param configure configuration for this operation
      * @return the attach Node object
      * @throws BaseException If error happens.
      */
     public Node attachNode(String hostName, int port,
-                           BSONObject options) throws BaseException {
+                           BSONObject configure) throws BaseException {
         BSONObject config = new BasicBSONObject();
         config.put(SdbConstants.FIELD_NAME_GROUPNAME, name);
         config.put(SdbConstants.FIELD_NAME_HOST, hostName);
         config.put(SdbConstants.PMD_OPTION_SVCNAME, Integer.toString(port));
         config.put(SdbConstants.FIELD_NAME_ONLY_ATTACH, true);
-        if (options != null) {
-            for (String key : options.keySet()) {
+        if (configure != null) {
+            for (String key : configure.keySet()) {
                 if (key.equals(SdbConstants.FIELD_NAME_GROUPNAME)
                         || key.equals(SdbConstants.FIELD_NAME_HOST)
                         || key.equals(SdbConstants.PMD_OPTION_SVCNAME)
@@ -458,13 +422,13 @@ public class ReplicaGroup {
                     continue;
                 }
 
-                config.put(key, options.get(key));
+                config.put(key, configure.get(key));
             }
         }
 
         AdminRequest request = new AdminRequest(AdminCommand.CREATE_NODE, config);
         SdbReply response = sequoiadb.requestAndResponse(request);
-        String msg = "node = " + hostName + ":" + port + ", options = " + options;
+        String msg = "node = " + hostName + ":" + port + ", configure = " + configure;
         sequoiadb.throwIfError(response, msg);
         return getNode(hostName, port);
     }
@@ -474,27 +438,19 @@ public class ReplicaGroup {
      *
      * @param hostName  host name
      * @param port      port
-     * @param options configuration for this operation,
-     *                can not be null or empty, can be the follow options:
-     *                <ul>
-     *                <li>KeepData : Whether to keep the original data of the
-     *                               detached node. This option has no default
-     *                               value. User should specify its value explicitly.</li>
-     *                <li>Enforced : Whether to detach the node forcibly, default
-     *                               to be false.</li>
-     *                </ul>
+     * @param configure configuration for this operation
      * @throws BaseException If error happens.
      */
     public void detachNode(String hostName, int port,
-                           BSONObject options) throws BaseException {
+                           BSONObject configure) throws BaseException {
         BSONObject config = new BasicBSONObject();
         config.put(SdbConstants.FIELD_NAME_GROUPNAME, name);
         config.put(SdbConstants.FIELD_NAME_HOST, hostName);
         config.put(SdbConstants.PMD_OPTION_SVCNAME,
                 Integer.toString(port));
         config.put(SdbConstants.FIELD_NAME_ONLY_DETACH, true);
-        if (options != null) {
-            for (String key : options.keySet()) {
+        if (configure != null) {
+            for (String key : configure.keySet()) {
                 if (key.equals(SdbConstants.FIELD_NAME_GROUPNAME)
                         || key.equals(SdbConstants.FIELD_NAME_HOST)
                         || key.equals(SdbConstants.PMD_OPTION_SVCNAME)
@@ -502,13 +458,13 @@ public class ReplicaGroup {
                     continue;
                 }
 
-                config.put(key, options.get(key));
+                config.put(key, configure.get(key));
             }
         }
 
         AdminRequest request = new AdminRequest(AdminCommand.REMOVE_NODE, config);
         SdbReply response = sequoiadb.requestAndResponse(request);
-        String msg = "node = " + hostName + ":" + port + ", options = " + options;
+        String msg = "node = " + hostName + ":" + port + ", configure = " + configure;
         sequoiadb.throwIfError(response, msg);
     }
 
@@ -656,18 +612,15 @@ public class ReplicaGroup {
     }
 
     private Node getNodeByMetaInfo(final String inputHostName, final int inputPort) {
-        // check
         if (inputHostName == null || inputHostName.isEmpty() || inputPort < 0 || inputPort > 65535) {
             throw new BaseException(SDBError.SDB_INVALIDARG,
                     String.format("invalid node info[%s:%d]", inputHostName, inputPort));
         }
-        // get group info from catalog
         BSONObject groupInfoObj = sequoiadb.getDetailById(id);
         if (groupInfoObj == null) {
             throw new BaseException(SDBError.SDB_CLS_GRP_NOT_EXIST,
                     String.format("no information of group id[%d]", id));
         }
-        // extract nodes info
         Object nodesInfoArr = groupInfoObj.get(SdbConstants.FIELD_NAME_GROUP);
         if (nodesInfoArr == null || !(nodesInfoArr instanceof BasicBSONList)) {
             throw new BaseException(SDBError.SDB_SYS,
@@ -678,7 +631,6 @@ public class ReplicaGroup {
         if (nodesInfoList.size() == 0) {
             return null;
         }
-        // try to build node object
         Object nodeIdFromCatalog = null;
         String hostNameFromCatalog = null;
         int portFromCatalog = -1;
@@ -690,7 +642,6 @@ public class ReplicaGroup {
             if (nodeIdFromCatalog == null || hostNameFromCatalog == null) {
                 throw new BaseException(SDBError.SDB_SYS, "invalid node's information");
             }
-            // compare
             if (hostNameFromCatalog.equals(inputHostName) && portFromCatalog == inputPort) {
                 return new Node(inputHostName, inputPort,
                         Integer.parseInt(nodeIdFromCatalog.toString()), this);

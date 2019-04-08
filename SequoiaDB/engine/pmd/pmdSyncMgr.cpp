@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pmdSyncMgr.cpp
 
@@ -201,9 +200,7 @@ namespace engine
          if ( pUnit->canSync( force ) )
          {
             _unitList.erase( it ) ;
-            /// lock the unit
             pUnit->lock() ;
-            /// dec idle agent
             --_idleAgent ;
             break ; 
          }
@@ -229,9 +226,7 @@ namespace engine
       {
          _unitList.push_back( pUnit ) ;
       }
-      /// release the unit
       pUnit->unlock() ;
-      /// inc idla agent
       ++_idleAgent ;
       PD_TRACE_EXIT( SDB__PMDSYNCMGR_PUSHBACKUNIT ) ;
    }
@@ -259,10 +254,8 @@ namespace engine
 
       if ( readyNum > 0 )
       {
-         /// wake up the agent
          _wakeUpEvent.signalAll() ;
 
-         /// start agent
          while ( _curAgent < PMD_MIN_SYNC_JOB ||
                  ( readyNum / 10 > _idleAgent &&
                    _curAgent < _maxSyncJob ) )
@@ -379,13 +372,11 @@ namespace engine
          {
             pEDUMgr->waitEDU( eduCB() ) ;
 
-            /// sync unit
             pUnit = _pMgr->dispatchUnit() ;
             if ( pUnit )
             {
                timeout = 0 ;
                _doUnit( pUnit ) ;
-               /// push back
                _pMgr->pushBackUnit( pUnit ) ;
             }
             else
@@ -402,7 +393,6 @@ namespace engine
 
                if ( timeout >= (UINT32)_timeout )
                {
-                  /// over _timeout millsecs, donothing, qiut the job
                   break ;
                }
             }
@@ -447,11 +437,10 @@ namespace engine
       if ( !pJob )
       {
          rc = SDB_OOM ;
-         PD_LOG( PDERROR, "Alloc sync job failed" ) ;
+         PD_LOG( PDERROR, "Alloc cache job failed" ) ;
          goto error ;
       }
       rc = rtnGetJobMgr()->startJob( pJob, RTN_JOB_MUTEX_NONE, pEDUID  ) ;
-      /// neither failed or succeed, the pJob will release in job manager
 
    done:
       PD_TRACE_EXITRC( SDB__PMDSTARTSYNCJOB, rc ) ;

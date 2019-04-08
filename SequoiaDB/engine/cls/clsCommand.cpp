@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsCommand.cpp
 
@@ -38,8 +37,6 @@
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
 #include "rtn.hpp"
-#include "rtnContextAlter.hpp"
-#include "msgMessageFormat.hpp"
 
 using namespace bson ;
 
@@ -101,7 +98,6 @@ namespace engine
          BSONElement beSource     = boRequest.getField ( CAT_SOURCE_NAME ) ;
          BSONElement bePercent    = boRequest.getField ( CAT_SPLITPERCENT_NAME ) ;
 
-         // validate collection name and read
          PD_CHECK ( !beName.eoo() && beName.type() == String,
                     SDB_INVALIDARG, error, PDERROR,
                     "Invalid collection name: %s", beName.toString().c_str() ) ;
@@ -114,7 +110,6 @@ namespace engine
          ossStrncpy ( _szCollection, pCollectionName,
                          DMS_COLLECTION_SPACE_NAME_SZ +
                           DMS_COLLECTION_NAME_SZ + 1 ) ;
-         // validate target name and read
          PD_CHECK ( !beTarget.eoo() && beTarget.type() == String,
                     SDB_INVALIDARG, error, PDERROR,
                     "Invalid target group name: %s",
@@ -125,7 +120,6 @@ namespace engine
                     "target group name is too long: %s",
                     pTargetName ) ;
          ossStrncpy ( _szTargetName, pTargetName, OP_MAXNAMELENGTH ) ;
-         // validate source name and read
          PD_CHECK ( !beSource.eoo() && beSource.type() == String,
                     SDB_INVALIDARG, error, PDERROR,
                     "Invalid source group name: %s",
@@ -136,13 +130,11 @@ namespace engine
                     "source group name is too long: %s",
                     pSourceName ) ;
          ossStrncpy ( _szSourceName, pSourceName, OP_MAXNAMELENGTH ) ;
-         // read split key
          PD_CHECK ( !beSplitKey.eoo() && beSplitKey.type() == Object,
                     SDB_INVALIDARG, error, PDERROR,
                     "Invalid split key: %s",
                     beSplitKey.toString().c_str() ) ;
          _splitKey = beSplitKey.embeddedObject () ;
-         // percent
          _percent = bePercent.numberDouble() ;
       }
       catch ( std::exception &e )
@@ -301,7 +293,7 @@ namespace engine
                     FIELD_NAME_SUBCLNAME, rc ) ;
             goto error ;
          }
-
+         
       }
       catch( std::exception &e )
       {
@@ -321,7 +313,6 @@ namespace engine
                                     _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                                     INT16 w, INT64 *pContextID )
    {
-      /// need to update sub collection catalog info
       INT32 rc = sdbGetShardCB()->syncUpdateCatalog( _subCLName ) ;
       if ( rc )
       {
@@ -331,10 +322,8 @@ namespace engine
          pCatAgent->release_w() ;
       }
 
-      // Clear cached main-collection plans
       rtnCB->getAPM()->invalidateCLPlans( _collectionName ) ;
 
-      // Tell secondary nodes to clear catalog and plan caches
       sdbGetClsCB()->invalidateCache ( _collectionName,
                                        DPS_LOG_INVALIDCATA_TYPE_CATA |
                                        DPS_LOG_INVALIDCATA_TYPE_PLAN ) ;
@@ -365,7 +354,6 @@ namespace engine
                                       _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                                       INT16 w, INT64 *pContextID )
    {
-      /// need to update sub collection catalog info
       catAgent *pCatAgent = sdbGetShardCB()->getCataAgent() ;
       INT32 rc = sdbGetShardCB()->syncUpdateCatalog( _subCLName ) ;
       if ( rc )
@@ -375,15 +363,12 @@ namespace engine
          pCatAgent->release_w() ;
       }
 
-      /// clear main catalog info
       pCatAgent->lock_w() ;
       pCatAgent->clear( _collectionName ) ;
       pCatAgent->release_w() ;
 
-      // Clear cached main-collection plans
       rtnCB->getAPM()->invalidateCLPlans( _collectionName ) ;
 
-      // Tell secondary nodes to clear catalog and plan caches
       sdbGetClsCB()->invalidateCache( _collectionName,
                                       DPS_LOG_INVALIDCATA_TYPE_CATA |
                                       DPS_LOG_INVALIDCATA_TYPE_PLAN ) ;
@@ -454,7 +439,7 @@ namespace engine
       return CMD_SPACE_NODE_DATA | CMD_SPACE_NODE_CATA  ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREELECT_INIT, "_rtnReelect::init" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNREELECT_INIT, "_rtnReelect::init" )
    INT32 _rtnReelect::init ( INT32 flags, INT64 numToSkip,
                              INT64 numToReturn,
                              const CHAR *pMatcherBuff,
@@ -463,7 +448,7 @@ namespace engine
                              const CHAR *pHintBuff )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSREELECT_INIT ) ;
+      PD_TRACE_ENTRY( SDB__RTNREELECT_INIT ) ;
       BSONObj obj ;
       try
       {
@@ -501,19 +486,19 @@ namespace engine
          goto error ;
       }
    done:
-      PD_TRACE_EXITRC( SDB__CLSREELECT_INIT, rc ) ;
+      PD_TRACE_EXITRC( SDB__RTNREELECT_INIT, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREELECT_DOIT, "_rtnReelect::doit" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNREELECT_DOIT, "_rtnReelect::doit" )
    INT32 _rtnReelect::doit( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                             _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                             INT16 w, INT64 *pContextID )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSREELECT_DOIT ) ;
+      PD_TRACE_ENTRY( SDB__RTNREELECT_DOIT ) ;
       replCB *repl = sdbGetReplCB() ;
 
       rc = repl->reelect( _level, _timeout, cb ) ;
@@ -523,7 +508,7 @@ namespace engine
          goto error ;
       }
    done:
-      PD_TRACE_EXITRC( SDB__CLSREELECT_DOIT, rc ) ;
+      PD_TRACE_EXITRC( SDB__RTNREELECT_DOIT, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -540,7 +525,7 @@ namespace engine
       return CMD_SPACE_SERVICE_LOCAL ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSFORCESTEPUP_INIT, "_rtnForceStepUp::init" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNFORCESTEPUP_INIT, "_rtnForceStepUp::init" )
    INT32 _rtnForceStepUp::init( INT32 flags, INT64 numToSkip,
                                 INT64 numToReturn,
                                 const CHAR *pMatcherBuff,
@@ -549,7 +534,7 @@ namespace engine
                                 const CHAR *pHintBuff )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSFORCESTEPUP_INIT ) ;
+      PD_TRACE_ENTRY( SDB__RTNFORCESTEPUP_INIT ) ;
       BSONObj options ;
       try
       {
@@ -567,19 +552,19 @@ namespace engine
          goto error ;
       }
    done:
-      PD_TRACE_EXITRC( SDB__CLSFORCESTEPUP_INIT, rc ) ;
+      PD_TRACE_EXITRC( SDB__RTNFORCESTEPUP_INIT, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSFORCESTEPUP_DOIT, "_rtnForceStepUp::doit" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNFORCESTEPUP_DOIT, "_rtnForceStepUp::doit" )
    INT32 _rtnForceStepUp::doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                                  _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                                  INT16 w, INT64 *pContextID )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSFORCESTEPUP_DOIT ) ;
+      PD_TRACE_ENTRY( SDB__RTNFORCESTEPUP_DOIT ) ;
       replCB *repl = sdbGetReplCB() ;
       rc = repl->stepUp( _seconds, cb ) ;
       if ( SDB_OK != rc )
@@ -588,7 +573,7 @@ namespace engine
          goto error ;
       }
    done:
-      PD_TRACE_EXITRC( SDB__CLSFORCESTEPUP_DOIT, rc ) ;
+      PD_TRACE_EXITRC( SDB__RTNFORCESTEPUP_DOIT, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -709,7 +694,6 @@ namespace engine
          }
       }
 
-      /// when is active or disable readonly
       if ( pClsCB->isPrimary() &&
            ( 0 == ossStrcasecmp( CMD_VALUE_NAME_DISABLE_READONLY,
                                  _pAction ) ||
@@ -721,415 +705,6 @@ namespace engine
    done:
       return rc ;
    error:
-      goto done ;
-   }
-
-   /*
-      _rtnAlterCommand implement
-    */
-   _rtnAlterCommand::_rtnAlterCommand ()
-   : _rtnCommand(),
-     _rtnAlterJobHolder()
-   {
-   }
-
-   _rtnAlterCommand::~_rtnAlterCommand ()
-   {
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION( SDB__CLSALTERCMD_INIT, "_rtnAlterCommand::init" )
-   INT32 _rtnAlterCommand::init ( INT32 flags,
-                                  INT64 numToSkip,
-                                  INT64 numToReturn,
-                                  const CHAR * pMatcherBuff,
-                                  const CHAR * pSelectBuff,
-                                  const CHAR * pOrderByBuff,
-                                  const CHAR * pHintBuff )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSALTERCMD_INIT ) ;
-
-      try
-      {
-         BSONObj alterObject( pMatcherBuff ) ;
-
-         rc = createAlterJob() ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to create alter job, rc: %d", rc ) ;
-
-         rc = _alterJob->initialize( NULL, _getObjectType(), alterObject ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to initialize alter job, rc: %d", rc ) ;
-      }
-      catch ( exception & e )
-      {
-         PD_LOG( PDERROR, "unexpected error happened: %s", e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-   done :
-      PD_TRACE_EXITRC( SDB__CLSALTERCMD_INIT, rc ) ;
-      return rc ;
-
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION( SDB__CLSALTERCMD_DOIT, "_rtnAlterCommand::doit" )
-   INT32 _rtnAlterCommand::doit ( _pmdEDUCB * cb,
-                                  _SDB_DMSCB * dmsCB,
-                                  _SDB_RTNCB * rtnCB,
-                                  _dpsLogWrapper * dpsCB,
-                                  INT16 w,
-                                  INT64 * pContextID )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSALTERCMD_DOIT ) ;
-
-      const CHAR * objectName = _alterJob->getObjectName() ;
-      const rtnAlterOptions * options = _alterJob->getOptions() ;
-      const RTN_ALTER_TASK_LIST & alterTasks = _alterJob->getAlterTasks() ;
-
-      if ( alterTasks.empty() )
-      {
-         goto done ;
-      }
-
-      if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
-      {
-         for ( RTN_ALTER_TASK_LIST::const_iterator iter = alterTasks.begin() ;
-               iter != alterTasks.end() ;
-               ++ iter )
-         {
-            const rtnAlterTask * task = ( *iter ) ;
-
-            if ( task->testFlags( RTN_ALTER_TASK_FLAG_SHARDONLY ) )
-            {
-               PD_LOG( PDWARNING, "Failed to execute task [%s]: the request should "
-                       "from SHARD port", task->getActionName() ) ;
-               if ( options->isIgnoreException() )
-               {
-                  continue ;
-               }
-               else
-               {
-                  rc = SDB_RTN_CMD_NO_SERVICE_AUTH ;
-                  goto error ;
-               }
-            }
-
-            rc = _executeTask ( objectName, task, options, cb,  dmsCB, rtnCB,
-                                dpsCB, w ) ;
-            if ( SDB_OK != rc )
-            {
-               PD_LOG( PDERROR, "Failed to run alter task [%s], rc: %d",
-                       task->getActionName(), rc ) ;
-               if ( options->isIgnoreException() )
-               {
-                  rc = SDB_OK ;
-                  continue ;
-               }
-               else
-               {
-                  goto error ;
-               }
-            }
-         }
-
-         if ( SDB_OK != _alterJob->getParseRC() )
-         {
-            // Report the parse error
-            rc = _alterJob->getParseRC() ;
-            goto error ;
-         }
-
-         /// AUDIT
-         PD_AUDIT_COMMAND( AUDIT_DDL, name(), _getAuditType(), objectName, rc,
-                           "Option:%s", _alterJob->getJobObject().toString().c_str() ) ;
-      }
-      else
-      {
-         const rtnAlterTask * task = NULL ;
-         PD_CHECK( 1 == alterTasks.size(), SDB_OPTION_NOT_SUPPORT,
-                   error, PDERROR, "Failed to execute alter job: "
-                   "should have only one task" ) ;
-
-         task = alterTasks.front() ;
-         if ( task->testFlags( RTN_ALTER_TASK_FLAG_3PHASE ) )
-         {
-            rc = _openContext( cb, rtnCB, pContextID ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to open context, alter "
-                         "collection space, rc: %d", rc ) ;
-         }
-         else
-         {
-            rc = _executeTask( objectName, task, options, cb, dmsCB, rtnCB, dpsCB, w ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to execute alter task [%s] on [%s], "
-                         "rc: %d", task->getActionName(), objectName, rc ) ;
-         }
-
-         if ( CMD_ALTER_COLLECTION == type() )
-         {
-            catAgent *pCatAgent = sdbGetShardCB()->getCataAgent() ;
-            pCatAgent->lock_w () ;
-            pCatAgent->clear ( collectionFullName() ) ;
-            pCatAgent->release_w () ;
-
-            sdbGetClsCB()->invalidateCata( collectionFullName() ) ;
-         }
-      }
-
-   done :
-      PD_TRACE_EXITRC( SDB__CLSALTERCMD_DOIT, rc ) ;
-      return rc ;
-
-   error :
-      if ( -1 != *pContextID )
-      {
-         rtnCB->contextDelete( *pContextID, cb ) ;
-         *pContextID = -1 ;
-      }
-      goto done ;
-   }
-
-   /*
-      _rtnAlterCollectionSpace implement
-    */
-   IMPLEMENT_CMD_AUTO_REGISTER( _rtnAlterCollectionSpace )
-
-   _rtnAlterCollectionSpace::_rtnAlterCollectionSpace ()
-   : _rtnAlterCommand()
-   {
-   }
-
-   _rtnAlterCollectionSpace::~_rtnAlterCollectionSpace ()
-   {
-   }
-
-
-   // PD_TRACE_DECLARE_FUNCTION( SDB__CLSALTERCOLLECTIONSPACE__EXECTASK, "_rtnAlterCollectionSpace::_executeTask" )
-   INT32 _rtnAlterCollectionSpace::_executeTask ( const CHAR * collectionSpace,
-                                                  const rtnAlterTask * task,
-                                                  const rtnAlterOptions * options,
-                                                  _pmdEDUCB * cb,
-                                                  _SDB_DMSCB * dmsCB,
-                                                  _SDB_RTNCB * rtnCB,
-                                                  _dpsLogWrapper * dpsCB,
-                                                  INT16 w )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSALTERCOLLECTIONSPACE__EXECTASK ) ;
-
-      SDB_ASSERT( NULL != collectionSpace, "collection space is invalid" ) ;
-      SDB_ASSERT( NULL != task, "task is invalid" ) ;
-
-      switch ( task->getActionType() )
-      {
-         case RTN_ALTER_CS_SET_ATTRIBUTES :
-         {
-            PD_CHECK( !task->testArgumentMask( UTIL_CS_CAPPED_FIELD |
-                                               UTIL_CS_PAGESIZE_FIELD ),
-                      SDB_DMS_CS_NOT_EMPTY, error, PDERROR,
-                      "Failed to check collection space, the collection space "
-                      "is not empty" ) ;
-            PD_CHECK( !task->testArgumentMask( UTIL_CS_DOMAIN_FIELD ),
-                      SDB_RTN_CMD_NO_SERVICE_AUTH, error, PDERROR,
-                      "Failed to check collection space, should execute the "
-                      "command from SHARD port" ) ;
-            rc = rtnAlterCSSetAttributes( collectionSpace, task, options,
-                                          cb, dpsCB ) ;
-            break ;
-         }
-         case RTN_ALTER_CS_SET_DOMAIN :
-         case RTN_ALTER_CS_REMOVE_DOMAIN :
-         {
-            rc = SDB_RTN_CMD_NO_SERVICE_AUTH ;
-            PD_LOG( PDERROR, "Failed to check collection space, should "
-                    "execute the command from SHARD port" ) ;
-            break ;
-         }
-         case RTN_ALTER_CS_ENABLE_CAPPED :
-         case RTN_ALTER_CS_DISABLE_CAPPED :
-         {
-            rc = SDB_DMS_CS_NOT_EMPTY ;
-            PD_LOG( PDERROR, "Failed to check collection space, the collection "
-                    "space is not empty" ) ;
-            break ;
-         }
-         default :
-         {
-            rc = SDB_INVALIDARG ;
-            break ;
-         }
-      }
-
-      PD_RC_CHECK( rc, PDERROR, "Failed to execute task [%s] on collection space [%s], "
-                   "rc: %d", task->getActionName(), collectionSpace, rc ) ;
-
-      rc = rtnAlter2DPSLog( collectionSpace, task, options, dpsCB ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to write DPS log, rc: %d", rc ) ;
-
-   done :
-      PD_TRACE_EXITRC( SDB__CLSALTERCOLLECTIONSPACE__EXECTASK, rc ) ;
-      return rc ;
-
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION( SDB__CLSALTERCOLLECTIONSPACE__OPENCONTEXT, "_rtnAlterCollectionSpace::_openContext" )
-   INT32 _rtnAlterCollectionSpace::_openContext ( _pmdEDUCB * cb,
-                                                  _SDB_RTNCB * rtnCB,
-                                                  INT64 * pContextID )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSALTERCOLLECTIONSPACE__OPENCONTEXT ) ;
-
-      rtnContextAlterCS * context = NULL ;
-      rc = rtnCB->contextNew( RTN_CONTEXT_ALTERCS, (rtnContext **)( &context ),
-                              *pContextID, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to create context, rc: %d", rc ) ;
-
-      rc = context->open( (*this), cb, 1 ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open context, alter "
-                   "collection space, rc: %d", rc ) ;
-
-   done :
-      PD_TRACE_EXITRC( SDB__CLSALTERCOLLECTIONSPACE__OPENCONTEXT, rc ) ;
-      return rc ;
-
-   error :
-      goto done ;
-   }
-
-   /*
-      _rtnAlterCollection implement
-    */
-   IMPLEMENT_CMD_AUTO_REGISTER( _rtnAlterCollection )
-
-   _rtnAlterCollection::_rtnAlterCollection ()
-   : _rtnAlterCommand()
-   {
-   }
-
-   _rtnAlterCollection::~_rtnAlterCollection()
-   {
-
-   }
-
-   const CHAR *_rtnAlterCollection::collectionFullName()
-   {
-      return ( NULL != _alterJob &&
-               RTN_ALTER_COLLECTION == _alterJob->getObjectType() ) ?
-             _alterJob->getObjectName() : NULL ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION( SDB__CLSALTERCOLLECTION__EXECTASK, "_rtnAlterCollection::_executeTask" )
-   INT32 _rtnAlterCollection::_executeTask ( const CHAR * collection,
-                                             const rtnAlterTask * task,
-                                             const rtnAlterOptions * options,
-                                             _pmdEDUCB * cb,
-                                             _SDB_DMSCB * dmsCB,
-                                             _SDB_RTNCB * rtnCB,
-                                             _dpsLogWrapper * dpsCB,
-                                             INT16 w )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSALTERCOLLECTION__EXECTASK ) ;
-
-      SDB_ASSERT( NULL != collection, "collection is invalid" ) ;
-      SDB_ASSERT( NULL != task, "task is invalid" ) ;
-
-      switch ( task->getActionType() )
-      {
-         case RTN_ALTER_CL_CREATE_ID_INDEX :
-         {
-            rc = rtnCreateIDIndex( collection, task, options, cb, dpsCB ) ;
-            break ;
-         }
-         case RTN_ALTER_CL_DROP_ID_INDEX :
-         {
-            rc = rtnDropIDIndex( collection, task, options, cb, dpsCB ) ;
-            break ;
-         }
-         case RTN_ALTER_CL_ENABLE_SHARDING :
-         {
-            rc = rtnEnableSharding( collection, task, options, cb, dpsCB ) ;
-            break ;
-         }
-         case RTN_ALTER_CL_DISABLE_SHARDING :
-         {
-            rc = rtnDisableSharding( collection, task, options, cb, dpsCB ) ;
-            break ;
-         }
-         case RTN_ALTER_CL_ENABLE_COMPRESS :
-         {
-            rc = rtnEnableCompress( collection, task, options, cb, dpsCB ) ;
-            break ;
-         }
-         case RTN_ALTER_CL_DISABLE_COMPRESS :
-         {
-            rc = rtnDisableCompress( collection, task, options, cb, dpsCB ) ;
-            break ;
-         }
-         case RTN_ALTER_CL_SET_ATTRIBUTES :
-         {
-            rc = rtnAlterCLSetAttributes( collection, task, options, cb, dpsCB ) ;
-            break ;
-         }
-         case RTN_ALTER_CL_CREATE_AUTOINC_FLD :
-         case RTN_ALTER_CL_DROP_AUTOINC_FLD :
-         {
-            // do nothing
-            goto done;
-         }
-         default :
-         {
-            rc = SDB_INVALIDARG ;
-            break ;
-         }
-      }
-
-      PD_RC_CHECK( rc, PDERROR, "Failed to execute task [%s] on collection [%s], "
-                   "rc: %d", task->getActionName(), collection, rc ) ;
-
-      rc = rtnAlter2DPSLog( collection, task, options, dpsCB ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to write DPS log, rc: %d", rc ) ;
-
-   done :
-      PD_TRACE_EXITRC( SDB__CLSALTERCOLLECTION__EXECTASK, rc ) ;
-      return rc ;
-
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION( SDB__CLSALTERCOLLECTION__OPENCONTEXT, "_rtnAlterCollection::_openContext" )
-   INT32 _rtnAlterCollection::_openContext ( _pmdEDUCB * cb,
-                                             _SDB_RTNCB * rtnCB,
-                                             INT64 * pContextID )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__CLSALTERCOLLECTION__OPENCONTEXT ) ;
-
-      rtnContextAlterCL * context = NULL ;
-      rc = rtnCB->contextNew( RTN_CONTEXT_ALTERCL, (rtnContext **)( &context ),
-                              *pContextID, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to create context, rc: %d", rc ) ;
-
-      rc = context->open( (*this), cb, 1 ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to open context, alter "
-                   "collection space, rc: %d", rc ) ;
-
-   done :
-      PD_TRACE_EXITRC( SDB__CLSALTERCOLLECTION__OPENCONTEXT, rc ) ;
-      return rc ;
-
-   error :
       goto done ;
    }
 }

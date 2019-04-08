@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnCB.cpp
 
@@ -92,8 +91,21 @@ namespace engine
 
       sdbGetDMSCB()->setIxmKeySorterCreator( creator ) ;
 
-      // The error of initialization of APM could be ignore
-      // Only data and catalog nodes could initialize plan cache
+      if ( SDB_ROLE_DATA == pmdGetDBRole() )
+      {
+         _remoteMessenger = SDB_OSS_NEW rtnRemoteMessenger() ;
+         if ( !_remoteMessenger )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Allocate memory for remote messenger failed, "
+                    "size[ %d ]", sizeof( rtnRemoteMessenger ) ) ;
+            goto error ;
+         }
+         rc = _remoteMessenger->init() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to initialize remote messenger, "
+                      "rc: %d", rc ) ;
+      }
+
       _accessPlanManager.init(
             ( SDB_ROLE_DATA == pmdGetDBRole() ||
               SDB_ROLE_CATALOG == pmdGetDBRole() ||
@@ -108,20 +120,34 @@ namespace engine
    done:
       return rc ;
    error:
+      if ( _remoteMessenger )
+      {
+         SDB_OSS_DEL _remoteMessenger ;
+         _remoteMessenger = NULL ;
+      }
       goto done ;
    }
 
    INT32 _SDB_RTNCB::active ()
    {
-      return SDB_OK ;
+      INT32 rc = SDB_OK ;
+
+      if ( SDB_ROLE_DATA == pmdGetDBRole() )
+      {
+         SDB_ASSERT( _remoteMessenger, "Remote messenger should not be NULL" ) ;
+         rc = _remoteMessenger->active() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to active remote messenger, "
+                      "rc: %d", rc) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    INT32 _SDB_RTNCB::deactive ()
    {
-      if ( _remoteMessenger )
-      {
-         _remoteMessenger->deactive() ;
-      }
       return SDB_OK ;
    }
 
@@ -198,7 +224,6 @@ namespace engine
          INT32 reference = pContext->getReference() ;
          pContext->waitForPrefetch() ;
 
-         /// wait for sync
          if ( pContext->isWrite() && pContext->getDPSCB() &&
               pContext->getW() > 1 )
          {
@@ -220,9 +245,7 @@ namespace engine
                                    _pmdEDUCB * pEDUCB )
    {
       SDB_ASSERT ( context, "context pointer can't be NULL" ) ;
-      monSvcTaskInfo *pTaskInfo = NULL ;
 
-      // if hit max signed 64 bit integer?
       if ( _contextIdGenerator.fetch() < 0 )
       {
          return SDB_SYS ;
@@ -246,51 +269,10 @@ namespace engine
       pEDUCB->contextInsert( _contextId ) ;
       contextID = _contextId ;
 
-      pTaskInfo = pEDUCB->getMonAppCB()->getSvcTaskInfo() ;
-      if ( pTaskInfo )
-      {
-         pTaskInfo->monContextInc( 1 ) ;
-      }
-
       PD_LOG ( PDDEBUG, "Create new context(contextID=%lld, type: %d[%s])",
                contextID, type, getContextTypeDesp(type) ) ;
 
       return SDB_OK ;
-   }
-
-   INT32 _SDB_RTNCB::prepareRemoteMessenger()
-   {
-      INT32 rc = SDB_OK ;
-
-      // Remote messenger should be enabled on data node to support text search.
-      if ( SDB_ROLE_DATA == pmdGetDBRole() )
-      {
-         _remoteMessenger = SDB_OSS_NEW rtnRemoteMessenger() ;
-         if ( !_remoteMessenger )
-         {
-            rc = SDB_OOM ;
-            PD_LOG( PDERROR, "Allocate memory for remote messenger failed, "
-                    "size[ %d ]", sizeof( rtnRemoteMessenger ) ) ;
-            goto error ;
-         }
-         rc = _remoteMessenger->init() ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to initialize remote messenger, "
-                      "rc: %d", rc ) ;
-      }
-
-      rc = _remoteMessenger->active() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to active remote messenger, "
-                   "rc: %d", rc) ;
-
-   done:
-      return rc ;
-   error:
-      if ( _remoteMessenger )
-      {
-         SDB_OSS_DEL _remoteMessenger ;
-         _remoteMessenger = NULL ;
-      }
-      goto done ;
    }
 
    /*

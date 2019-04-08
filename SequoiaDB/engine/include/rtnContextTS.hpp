@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnContextTS.hpp
 
@@ -44,7 +43,6 @@
 
 namespace engine
 {
-   // Context for text search data.
    class _rtnContextTS : public rtnContextMain
    {
       DECLARE_RTN_CTX_AUTO_REGISTER()
@@ -63,8 +61,7 @@ namespace engine
       protected:
          virtual BOOLEAN _requireExplicitSorting () const ;
          virtual INT32   _prepareAllSubCtxDataByOrder( _pmdEDUCB *cb ) ;
-         virtual INT32   _getNonEmptyNormalSubCtx( _pmdEDUCB *cb,
-                                                   rtnSubContext*& subCtx ) ;
+         virtual INT32   _getNonEmptyNormalSubCtx( _pmdEDUCB *cb, rtnSubContext*& subCtx ) ;
          virtual INT32   _saveEmptyOrderedSubCtx( rtnSubContext* subCtx ) ;
          virtual INT32   _saveEmptyNormalSubCtx( rtnSubContext* subCtx ) ;
          virtual INT32   _saveNonEmptyNormalSubCtx( rtnSubContext* subCtx ) ;
@@ -74,6 +71,8 @@ namespace engine
          }
 
       private:
+         INT32 _prepareRemoteSession( _pmdEDUCB *eduCB ) ;
+         INT32 _getMoreFromRemote( pmdEDUCB *eduCB ) ;
          INT32 _prepareNextSubContext( pmdEDUCB *eduCB,
                                        BOOLEAN getMore = TRUE ) ;
          INT32 _prepareSubCtxData( pmdEDUCB *cb, INT32 maxNumToReturn ) ;
@@ -82,9 +81,11 @@ namespace engine
       private:
          pmdEDUCB*            _eduCB ;
          rtnQueryOptions      _options ;
+         pmdRemoteSessionSite *_remoteSessionSite ;
+         pmdRemoteSession     *_remoteSession ;
+         SINT64               _subCtxID ;    // Context to fetch data from local
          UINT64               _remoteSessionID ;
          rtnSubCLContext      *_subContext ;
-         INT64                _remoteCtxID ;
    } ;
    typedef _rtnContextTS rtnContextTS ;
 }

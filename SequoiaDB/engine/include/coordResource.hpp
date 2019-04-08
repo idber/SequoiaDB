@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordResource.hpp
 
@@ -39,8 +38,6 @@
 
 #include "coordDef.hpp"
 #include "pmdOptionsMgr.hpp"
-#include "coordOmCache.hpp"
-#include "ossMemPool.hpp"
 #include "../bson/bson.h"
 
 using namespace bson ;
@@ -50,8 +47,6 @@ namespace engine
 
    class _pmdEDUCB ;
    class _netRouteAgent ;
-   class _IOmProxy ;
-   class _coordSequenceAgent ;
 
    /*
       _coordResource define
@@ -66,19 +61,19 @@ namespace engine
          }
       } ;
 
-      typedef ossPoolMap< UINT32, CoordGroupInfoPtr > MAP_GROUP_INFO ;
+      typedef std::map< UINT32, CoordGroupInfoPtr >   MAP_GROUP_INFO ;
       typedef MAP_GROUP_INFO::iterator                MAP_GROUP_INFO_IT ;
 
-      typedef ossPoolMap<std::string, UINT32>         MAP_GROUP_NAME ;
+      typedef std::map<std::string, UINT32>           MAP_GROUP_NAME ;
       typedef MAP_GROUP_NAME::iterator                MAP_GROUP_NAME_IT ;
 
-      typedef ossPoolMap<const CHAR*, CoordCataInfoPtr, cmp_str>  MAP_CATA_INFO ;
+      typedef std::map<const CHAR*, CoordCataInfoPtr, cmp_str> MAP_CATA_INFO ;
 #if defined (_WINDOWS)
       typedef MAP_CATA_INFO::iterator                 MAP_CATA_INFO_IT ;
       typedef MAP_CATA_INFO::const_iterator           MAP_CATA_INFO_CIT ;
 #else
-      typedef ossPoolMap<const CHAR*, CoordCataInfoPtr>::iterator       MAP_CATA_INFO_IT ;
-      typedef ossPoolMap<const CHAR*, CoordCataInfoPtr>::const_iterator MAP_CATA_INFO_CIT ;
+      typedef std::map<const CHAR*, CoordCataInfoPtr>::iterator         MAP_CATA_INFO_IT ;
+      typedef std::map<const CHAR*, CoordCataInfoPtr>::const_iterator   MAP_CATA_INFO_CIT ;
 #endif // _WINDOWS
 
       public:
@@ -91,15 +86,8 @@ namespace engine
 
          void        invalidateCataInfo() ;
          void        invalidateGroupInfo( UINT64 identify = 0 ) ;
-         void        invalidateStrategy() ;
 
-         _netRouteAgent*   getRouteAgent() ;
-         _IOmProxy*        getOmProxy() ;
-         _coordOmStrategyAgent* getOmStrategyAgent() ;
-         OSS_INLINE _coordSequenceAgent* getSequenceAgent()
-         {
-            return _pSequenceAgent ;
-         }
+         _netRouteAgent* getRouteAgent() ;
 
       public:
 
@@ -162,10 +150,6 @@ namespace engine
          BOOLEAN     addCataNodeAddrWhenEmpty( const CHAR *pHostName,
                                                const CHAR *pSvcName ) ;
 
-         CoordGroupInfoPtr    getOmGroupInfo() ;
-         INT32                updateOmGroupInfo( CoordGroupInfoPtr &groupPtr,
-                                                 _pmdEDUCB *cb ) ;
-
       public:
 
          void        addCataInfo( CoordCataInfoPtr &cataPtr ) ;
@@ -187,14 +171,9 @@ namespace engine
                                           CoordCataInfoPtr &cataPtr,
                                           _pmdEDUCB *cb ) ;
 
-         void        updateNodeStat( const MsgRouteID &nodeID, INT32 rc ) ;
-
       protected:
-         void        setCataGroupInfo( CoordGroupInfoPtr &groupPtr,
-                                       BOOLEAN inheritStat = FALSE ) ;
-         void        setOmGroupInfo( CoordGroupInfoPtr &groupPtr ) ;
-         void        addGroupInfo( CoordGroupInfoPtr &groupPtr,
-                                   BOOLEAN inheritStat = FALSE ) ;
+         void        setCataGroupInfo( CoordGroupInfoPtr &groupPtr ) ;
+         void        addGroupInfo( CoordGroupInfoPtr &groupPtr ) ;
 
          UINT32      checkAndRemoveCataInfoBySub( const CHAR *collectionName ) ;
 
@@ -224,15 +203,12 @@ namespace engine
                                        MSG_ROUTE_SERVICE_TYPE type,
                                        CoordGroupInfoPtr &groupPtr ) ;
 
-         void        _addAddrNode( const MsgRouteID &id,
-                                   const CHAR *pHostName,
-                                   const CHAR *pSvcName,
-                                   INT32 serviceType,
-                                   CoordVecNodeInfo &vecAddr ) ;
+         void        _addCataAddrNode( const MsgRouteID &id,
+                                       const CHAR *pHostName,
+                                       const CHAR *pSvcName,
+                                       CoordVecNodeInfo &vecAddr ) ;
 
-         void        _initAddressFromPair( const vector< pmdAddrPair > &vecAddrPair,
-                                           INT32 serviceType,
-                                           CoordVecNodeInfo &vecAddr ) ;
+         void        _initAddressFromOption( CoordVecNodeInfo &vecAddr ) ;
 
          INT32       _updateCataInfo( const BSONObj &obj,
                                       const CHAR *collectionName,
@@ -243,21 +219,16 @@ namespace engine
                                            const CHAR *collectionName,
                                            CoordCataInfoPtr &cataPtr ) ;
 
-         BSONObj     _buildOmGroupInfo() ;
-
       private:
          MAP_GROUP_INFO                   _mapGroupInfo ;
          MAP_GROUP_NAME                   _mapGroupName ;
          ossSpinSLatch                    _nodeMutex ;
 
          CoordGroupInfoPtr                _cataGroupInfo ;
-         CoordGroupInfoPtr                _omGroupInfo ;
 
          UINT64                           _upGrpIndentify ;
          CoordVecNodeInfo                 _cataNodeAddrList ;
          BOOLEAN                          _cataAddrChanged ;
-
-         CoordVecNodeInfo                 _omNodeAddrList ;
 
          MAP_CATA_INFO                    _mapCataInfo ;
          ossSpinSLatch                    _cataMutex ;
@@ -266,10 +237,6 @@ namespace engine
          pmdOptionsCB                     *_pOptionsCB ;
          CoordGroupInfoPtr                _emptyGroupPtr ;
 
-         _IOmProxy                        *_pOmProxy ;
-         _coordOmStrategyAgent            *_pOmStrategyAgent ;
-
-         _coordSequenceAgent              *_pSequenceAgent ;
    } ;
    typedef _coordResource coordResource ;
 

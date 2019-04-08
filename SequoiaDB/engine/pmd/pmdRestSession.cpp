@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pmdRestSession.cpp
 
@@ -47,8 +46,6 @@
 #include "../bson/bson.h"
 #include "authCB.hpp"
 #include "utilStr.hpp"
-//#include "ossUtil.h"
-//#include "pd.hpp"
 #include "msg.h"
 #include "omDef.hpp"
 
@@ -57,8 +54,7 @@ using namespace bson ;
 namespace engine
 {
    void _sendOpError2Web ( INT32 rc, restAdaptor *pAdptor,
-                           restResponse &response, pmdRestSession *pRestSession,
-                           pmdEDUCB* pEduCB )
+                           pmdRestSession *pRestSession, pmdEDUCB* pEduCB )
    {
       SDB_ASSERT( ( NULL != pAdptor ) && ( NULL != pRestSession )
                   && ( NULL != pEduCB ), "pAdptor or pRestSession or pEduCB"
@@ -66,9 +62,8 @@ namespace engine
 
       BSONObj _errorInfo = utilGetErrorBson( rc, pEduCB->getInfo(
                                              EDU_INFO_ERROR ) ) ;
-
-      response.setOPResult( rc, _errorInfo ) ;
-      pAdptor->sendRest( pRestSession->socket(), &response ) ;
+      pAdptor->setOPResult( pRestSession, rc, _errorInfo ) ;
+      pAdptor->sendResponse( pRestSession, HTTP_OK ) ;
    }
 
    #define PMD_REST_SESSION_SNIFF_TIMEOUT    ( 10 * OSS_ONE_SEC )
@@ -93,7 +88,6 @@ namespace engine
          utilStrTrim( *it ) ;
          const char *strSubFlag = ( *it ).c_str() ;
 
-         // treat it as string flag
          if ( 0 == ossStrcmp( strSubFlag,
                               REST_VALUE_FLAG_UPDATE_KEEP_SK ) )
          {
@@ -125,7 +119,6 @@ namespace engine
             continue ;
          }
 
-         // treat it as number
          rc = utilStr2Num( strSubFlag, subFlag );
          if ( rc )
          {
@@ -222,11 +215,14 @@ namespace engine
 
    INT32 _pmdRestSession::run()
    {
-      INT32 rc               = SDB_OK ;
-      restAdaptor *pAdptor   = sdbGetPMDController()->getRestAdptor() ;
-      pmdEDUMgr *pEDUMgr     = NULL ;
-      monDBCB *mondbcb       = pmdGetKRCB()->getMonDBCB () ;
-      string sessionID ;
+      INT32 rc                         = SDB_OK ;
+      restAdaptor *pAdptor             = sdbGetPMDController()->getRestAdptor() ;
+      pmdEDUMgr *pEDUMgr               = NULL ;
+      const CHAR *pSessionID           = NULL ;
+      HTTP_PARSE_COMMON httpCommon     = COM_GETFILE ;
+      CHAR *pFilePath                  = NULL ;
+      INT32 bodySize                   = 0 ;
+      monDBCB *mondbcb                 = pmdGetKRCB()->getMonDBCB () ;
 
       if ( !_pEDUCB )
       {
@@ -238,29 +234,10 @@ namespace engine
 
       while ( !_pEDUCB->isDisconnected() && !_socket.isClosed() )
       {
-         restRequest request( _pEDUCB ) ;
-         restResponse response( _pEDUCB ) ;
-
          _pEDUCB->resetInterrupt() ;
          _pEDUCB->resetInfo( EDU_INFO_ERROR ) ;
          _pEDUCB->resetLsn() ;
-         _pEDUCB->updateTransConf() ;
 
-         rc = request.init() ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to init request, rc:%d", rc ) ;
-            goto error ;
-         }
-
-         rc = response.init() ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Failed to init response, rc:%d", rc ) ;
-            goto error ;
-         }
-
-         // sniff wether has data
          rc = sniffData( _pSessionInfo ? OSS_ONE_SEC :
                          PMD_REST_SESSION_SNIFF_TIMEOUT ) ;
          if ( SDB_TIMEOUT == rc )
@@ -283,114 +260,63 @@ namespace engine
             break ;
          }
 
-#ifdef SDB_ENTERPRISE
-
-#ifdef SDB_SSL
-         if ( _isAwaitingHandshake() )
-         {
-            if ( pmdGetOptionCB()->useSSL() )
-            {
-               CHAR buff[ 4 ] = { 0 } ;
-               INT32 recvLen  = 0 ;
-
-               rc = _socket.recv( buff, sizeof( buff ), recvLen,
-                                  PMD_REST_SESSION_SNIFF_TIMEOUT,
-                                  MSG_PEEK, TRUE, TRUE ) ;
-               if ( rc < 0 )
-               {
-                  break;
-               }
-
-               // https handshake
-               // 22 is the SSL handshake message type
-               if ( 22 == buff[0] )
-               {
-                  rc = _socket.doSSLHandshake ( NULL, 0 ) ;
-                  if ( rc )
-                  {
-                     break ;
-                  }
-
-                  _setHandshakeReceived() ;
-
-                  continue;
-               }
-            }
-
-             _setHandshakeReceived() ;
-         }
-#endif
-
-#endif /* SDB_ENTERPRISE */
-         // recv rest header
-         rc = pAdptor->recvHeader( socket(), &request ) ;
+         rc = pAdptor->recvRequestHeader( this ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Session[%s] failed to recv rest header, "
                     "rc: %d", sessionName(), rc ) ;
             if ( SDB_REST_EHS == rc )
             {
-               response.setResponse( HTTP_BADREQ ) ;
-               pAdptor->sendRest( socket(), &response ) ;
+               pAdptor->sendResponse( this, HTTP_BADREQ ) ;
             }
             else if ( SDB_APP_FORCED != rc )
             {
-               _sendOpError2Web( rc, pAdptor, response, this, _pEDUCB ) ;
+               _sendOpError2Web( rc, pAdptor, this, _pEDUCB ) ;
             }
             break ;
          }
-
-         request.buildResponse( response ) ;
-
-         // session is not exist
          if ( !_pSessionInfo )
          {
-            // find session id
-            sessionID = request.getHeader( OM_REST_HEAD_SESSIONID ) ;
-            // if 'SessionID' exist, attach the sessionInfo
-            if ( FALSE == sessionID.empty() )
+            pAdptor->getHttpHeader( this, OM_REST_HEAD_SESSIONID,
+                                    &pSessionID ) ;
+            if ( pSessionID )
             {
-               PD_LOG( PDINFO, "Rest session: %s", sessionID.c_str() ) ;
+               PD_LOG( PDINFO, "Rest session: %s", pSessionID ) ;
                _pSessionInfo = sdbGetPMDController()->attachSessionInfo(
-                                  sessionID ) ;
+                                  pSessionID ) ;
             }
 
-            // if session exist, restore
             if ( _pSessionInfo )
             {
                _client.setAuthed( TRUE ) ;
                restoreSession() ;
             }
          }
-         // recv body
-         rc = pAdptor->recvBody( socket(), &request ) ;
+         rc = pAdptor->recvRequestBody( this, httpCommon, &pFilePath,
+                                        bodySize ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Session[%s] failed to recv rest body, "
                     "rc: %d", sessionName(), rc ) ;
             if ( SDB_REST_EHS == rc )
             {
-               response.setResponse( HTTP_BADREQ ) ;
-               pAdptor->sendRest( socket(), &response ) ;
+               pAdptor->sendResponse( this, HTTP_BADREQ ) ;
             }
             else if ( SDB_APP_FORCED != rc )
             {
-               _sendOpError2Web( rc, pAdptor, response, this, _pEDUCB ) ;
+               _sendOpError2Web( rc, pAdptor, this, _pEDUCB ) ;
             }
             break ;
          }
 
-         // update active time
          if ( _pSessionInfo )
          {
             _pSessionInfo->active() ;
          }
 
-         // increase process event count
          _pEDUCB->incEventCount() ;
          mondbcb->addReceiveNum() ;
 
-         // activate edu
          if ( SDB_OK != ( rc = pEDUMgr->activateEDU( _pEDUCB ) ) )
          {
             PD_LOG( PDERROR, "Session[%s] activate edu failed, rc: %d",
@@ -398,20 +324,17 @@ namespace engine
             break ;
          }
 
-         // process msg
-         rc = _processMsg( request, response ) ;
+         rc = _processMsg( httpCommon, pFilePath ) ;
          if ( rc )
          {
             break ;
          }
 
-         if ( FALSE == request.isKeepAlive() ||
-              FALSE == response.isKeepAlive() )
+         if ( FALSE == pAdptor->isKeepAlive( this ) )
          {
             break ;
          }
 
-         // wait edu
          if ( SDB_OK != ( rc = pEDUMgr->waitEDU( _pEDUCB ) ) )
          {
             PD_LOG( PDERROR, "Session[%s] wait edu failed, rc: %d",
@@ -419,10 +342,19 @@ namespace engine
             break ;
          }
 
+         if ( pFilePath )
+         {
+            releaseBuff( pFilePath ) ;
+            pFilePath = NULL ;
+         }
          rc = SDB_OK ;
       } // end while
 
    done:
+      if ( pFilePath )
+      {
+         releaseBuff( pFilePath ) ;
+      }
       disconnect() ;
       return rc ;
    error:
@@ -431,16 +363,14 @@ namespace engine
 
 
    INT32 _pmdRestSession::_translateMSG( restAdaptor *pAdaptor,
-                                         restRequest &request,
                                          MsgHeader **msg )
    {
       SDB_ASSERT( NULL != msg, "msg can't be null" ) ;
 
       INT32 rc = SDB_OK ;
-      rc = _pRestTransfer->trans( pAdaptor, request, msg ) ;
+      rc = _pRestTransfer->trans( pAdaptor, msg ) ;
       if ( SDB_OK != rc )
       {
-         //PD_LOG( PDERROR, "transfer rest message failed:rc=%d", rc ) ;
          goto error ;
       }
 
@@ -486,39 +416,39 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDRESTSN_PROMSG, "_pmdRestSession::_processMsg" )
-   INT32 _pmdRestSession::_processMsg( restRequest &request,
-                                       restResponse &response )
+   INT32 _pmdRestSession::_processMsg( HTTP_PARSE_COMMON command,
+                                       const CHAR *pFilePath )
    {
       PD_TRACE_ENTRY( SDB_PMDRESTSN_PROMSG );
       INT32 rc = SDB_OK ;
       restAdaptor *pAdaptor = sdbGetPMDController()->getRestAdptor() ;
-      string subCommand ;
-
-      subCommand = request.getQuery( OM_REST_FIELD_COMMAND ) ;
-      if ( OM_LOGOUT_REQ == subCommand )
+      const CHAR *pSubCommand = NULL ;
+      pAdaptor->getQuery( this, OM_REST_FIELD_COMMAND, &pSubCommand ) ;
+      if ( NULL != pSubCommand )
       {
-         if ( isAuthOK() )
+         if ( ossStrcasecmp( pSubCommand, OM_LOGOUT_REQ ) == 0 )
          {
-            doLogout() ;
-            pAdaptor->sendRest( socket(), &response ) ;
-            goto done ;
-         }
-         else
-         {
-            rc = SDB_PMD_SESSION_NOT_EXIST ;
-            PD_LOG_MSG( PDERROR, "session does not exist:rc=%d", rc ) ;
-            _sendOpError2Web( rc, pAdaptor, response, this, _pEDUCB ) ;
-            goto done ;
+            if ( isAuthOK() )
+            {
+               doLogout() ;
+               pAdaptor->sendResponse( this, HTTP_OK ) ;
+               goto done ;
+            }
+            else
+            {
+               rc = SDB_PMD_SESSION_NOT_EXIST ;
+               PD_LOG_MSG( PDERROR, "session is not exist:rc=%d", rc ) ;
+               _sendOpError2Web( rc, pAdaptor, this, _pEDUCB ) ;
+               goto done ;
+            }
          }
       }
 
-      rc = _processBusinessMsg( pAdaptor, request, response ) ;
+      rc = _processBusinessMsg( pAdaptor ) ;
       if ( SDB_UNKNOWN_MESSAGE == rc )
       {
-         // in this case we should send response(SDB_UNKNOWN_MESSAGE) to
-         // the client
          PD_LOG_MSG( PDERROR, "translate message failed:rc=%d", rc ) ;
-         _sendOpError2Web( rc, pAdaptor, response, this, _pEDUCB ) ;
+         _sendOpError2Web( rc, pAdaptor, this, _pEDUCB ) ;
       }
 
    done:
@@ -526,21 +456,20 @@ namespace engine
       return rc ;
    }
 
-   INT32 _pmdRestSession::_checkAuth( restRequest *request )
+   INT32 _pmdRestSession::_checkAuth( restAdaptor *pAdaptor )
    {
       INT32 rc = SDB_OK ;
-
-      if ( request->isHeaderExist( OM_REST_HEAD_SDBUSER ) &&
-           request->isHeaderExist( OM_REST_HEAD_SDBPASSWD ) )
+      const CHAR *pUserName = NULL ;
+      const CHAR *pPasswd   = NULL ;
+      pAdaptor->getHttpHeader( this, OM_REST_HEAD_SDBUSER, &pUserName ) ;
+      pAdaptor->getHttpHeader( this, OM_REST_HEAD_SDBPASSWD, &pPasswd ) ;
+      if ( NULL != pUserName && NULL != pPasswd )
       {
-         string userName = request->getHeader( OM_REST_HEAD_SDBUSER ) ;
-         string passwd   = request->getHeader( OM_REST_HEAD_SDBPASSWD ) ;
-
-         BSONObj bsonAuth = BSON( SDB_AUTH_USER << userName <<
-                                  SDB_AUTH_PASSWD << passwd ) ;
+         BSONObj bsonAuth = BSON( SDB_AUTH_USER << pUserName
+                                  << SDB_AUTH_PASSWD << pPasswd ) ;
          if ( !getClient()->isAuthed() )
          {
-            rc = getClient()->authenticate( userName.c_str(), passwd.c_str() ) ;
+            rc = getClient()->authenticate( pUserName, pPasswd ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG_MSG( PDERROR, "authenticate failed:rc=%d", rc ) ;
@@ -554,140 +483,115 @@ namespace engine
       goto done ;
    }
 
-   INT32 _pmdRestSession::_processBusinessMsg( restAdaptor *pAdaptor,
-                                               restRequest &request,
-                                               restResponse &response )
+   INT32 _pmdRestSession::_processBusinessMsg( restAdaptor *pAdaptor )
    {
       INT32 rc        = SDB_OK ;
-      INT32 rtnCode   = SDB_OK ;
       INT64 contextID = -1 ;
       rtnContextBuf contextBuff ;
       BOOLEAN needReplay = FALSE ;
-      BOOLEAN needRollback = FALSE ;
       MsgHeader *msg = NULL ;
-
-      rc = _translateMSG( pAdaptor, request, &msg ) ;
+      rc = _translateMSG( pAdaptor, &msg ) ;
       if ( SDB_OK != rc )
       {
          if ( SDB_UNKNOWN_MESSAGE != rc )
          {
             PD_LOG( PDERROR, "translate message failed:rc=%d", rc ) ;
-            _sendOpError2Web( rc, pAdaptor, response, this, _pEDUCB ) ;
+            _sendOpError2Web( rc, pAdaptor, this, _pEDUCB ) ;
          }
 
-         // if SDB_UNKNOWN_MESSAGE == rc, we should try _processOMRestMsg
          goto error ;
       }
 
-      rc = _checkAuth( &request ) ;
+      rc = _checkAuth( pAdaptor ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "check auth failed:rc=%d", rc ) ;
-         _sendOpError2Web( rc, pAdaptor, response, this, eduCB() ) ;
+         _sendOpError2Web( rc, pAdaptor, this, eduCB() ) ;
          goto error ;
       }
 
-      rtnCode = getProcessor()->processMsg( msg, contextBuff, contextID,
-                                            needReplay, needRollback ) ;
-      if ( rtnCode )
+      rc = getProcessor()->processMsg( msg, contextBuff, contextID,
+                                       needReplay ) ;
+      if ( SDB_OK != rc )
       {
-         BSONObj tmp ;
          BSONObjBuilder builder ;
-
-         if ( contextBuff.recordNum() > 0 )
+         if ( contextBuff.recordNum() != 0 )
          {
             BSONObj errorInfo( contextBuff.data() ) ;
-
             if ( !errorInfo.hasField( OM_REST_RES_RETCODE ) )
             {
-               builder.append( OM_REST_RES_RETCODE, rtnCode ) ;
+               builder.append( OM_REST_RES_RETCODE, rc ) ;
             }
-
             builder.appendElements( errorInfo ) ;
          }
          else
          {
-            BSONObj errorInfo = utilGetErrorBson( rtnCode,
+            BSONObj errorInfo = utilGetErrorBson( rc,
                                           _pEDUCB->getInfo( EDU_INFO_ERROR ) ) ;
             builder.appendElements( errorInfo ) ;
          }
 
-         tmp = builder.obj() ;
-
-         response.setOPResult( rtnCode, tmp ) ;
-
-         rc = pAdaptor->sendRest( socket(), &response ) ;
-         if ( rc )
+         BSONObj tmp = builder.obj() ;
+         pAdaptor->setOPResult( this, rc, tmp ) ;
+      }
+      else
+      {
+         if ( -1 != contextID && contextBuff.recordNum() > 0 )
          {
-            PD_LOG( PDERROR, "failed to send response: rc=%d", rc ) ;
-            goto error ;
+            pAdaptor->setChunkModal( this ) ;
          }
 
-         goto error ;
-      }
-
-      _dealWithLoginReq( rtnCode, request, response ) ;
-
-      {
-         BSONObj tmp = BSON( OM_REST_RES_RETCODE << rtnCode ) ;
-
-         response.setOPResult( rtnCode, tmp ) ;
-      }
-
-      if ( contextBuff.recordNum() > 0 )
-      {
-         rc = pAdaptor->setResBody( socket(), &response,
-                                    contextBuff.data(),
-                                    contextBuff.size(),
-                                    contextBuff.recordNum() ) ;
-         if ( rc )
+         BSONObj tmp = BSON( OM_REST_RES_RETCODE << rc ) ;
+         pAdaptor->setOPResult( this, rc, tmp ) ;
+         if ( contextBuff.recordNum() > 0 )
          {
-            PD_LOG( PDERROR, "failed to send response: rc=%d", rc ) ;
-            goto error ;
+            pAdaptor->appendHttpBody( this, contextBuff.data(),
+                                      contextBuff.size(),
+                                      contextBuff.recordNum() ) ;
          }
-      }
 
-      if ( -1 != contextID )
-      {
-         rtnContext *pContext = _pRTNCB->contextFind( contextID ) ;
-
-         while ( NULL != pContext )
+         if ( -1 != contextID )
          {
-            rc = pContext->getMore( -1, contextBuff, _pEDUCB ) ;
-            if ( rc )
+            rtnContext *pContext = _pRTNCB->contextFind( contextID ) ;
+            while ( NULL != pContext )
             {
-               _pRTNCB->contextDelete( contextID, _pEDUCB ) ;
-               contextID = -1 ;
-               if ( SDB_DMS_EOC != rc )
+               rtnContextBuf tmpContextBuff ;
+               rc = pContext->getMore( -1, tmpContextBuff, _pEDUCB ) ;
+               if ( SDB_OK == rc )
                {
-                  PD_LOG_MSG( PDERROR, "getmore failed:rc=%d", rc ) ;
-                  _sendOpError2Web( rc, pAdaptor, response,
-                                    this, _pEDUCB ) ;
-                  goto error ;
+                  rc = pAdaptor->appendHttpBody( this, tmpContextBuff.data(),
+                                                 tmpContextBuff.size(),
+                                                 tmpContextBuff.recordNum() ) ;
+                  if ( SDB_OK != rc )
+                  {
+                     PD_LOG_MSG( PDERROR, "append http body failed:rc=%d",
+                                 rc ) ;
+                     _sendOpError2Web( rc, pAdaptor, this, _pEDUCB ) ;
+                     goto error ;
+                  }
                }
+               else
+               {
+                  _pRTNCB->contextDelete( contextID, _pEDUCB ) ;
+                  contextID = -1 ;
+                  if ( SDB_DMS_EOC != rc )
+                  {
+                     PD_LOG_MSG( PDERROR, "getmore failed:rc=%d", rc ) ;
+                     _sendOpError2Web( rc, pAdaptor, this, _pEDUCB ) ;
+                     goto error ;
+                  }
 
-               rc = SDB_OK ;
-               break ;
-            }
-
-            rc = pAdaptor->setResBody( socket(), &response,
-                                       contextBuff.data(),
-                                       contextBuff.size(),
-                                       contextBuff.recordNum() ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "failed to send response: rc=%d", rc ) ;
-               goto error ;
+                  rc = SDB_OK ;
+                  break ;
+               }
             }
          }
       }
 
-      rc = pAdaptor->setResBodyEnd( socket(), &response ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "failed to send response: rc=%d", rc ) ;
-         goto error ;
-      }
+      _dealWithLoginReq( rc ) ;
+      pAdaptor->sendResponse( this, HTTP_OK ) ;
+
+      rc = SDB_OK ;
 
    done:
       if ( -1 != contextID )
@@ -705,32 +609,34 @@ namespace engine
       goto done ;
    }
 
-   INT32 _pmdRestSession::_dealWithLoginReq( INT32 result, restRequest &request,
-                                             restResponse &response )
+   INT32 _pmdRestSession::_dealWithLoginReq( INT32 result )
    {
       INT32 rc = SDB_OK ;
-      string subCommand ;
+      const CHAR *pSubCommand = NULL ;
+      restAdaptor *pAdaptor   = sdbGetPMDController()->getRestAdptor() ;
 
       if ( SDB_OK != result )
       {
          goto done ;
       }
 
-      subCommand = request.getQuery( OM_REST_FIELD_COMMAND ) ;
-      if ( OM_LOGIN_REQ == subCommand )
+      pAdaptor->getQuery( this, OM_REST_FIELD_COMMAND, &pSubCommand ) ;
+      if ( NULL != pSubCommand )
       {
-         string user = request.getQuery( OM_REST_FIELD_LOGIN_NAME ) ;
-         string sessionId ;
-
-         rc = doLogin( user, socket()->getLocalIP() ) ;
-         if ( SDB_OK != rc )
+         if ( ossStrcasecmp( pSubCommand, OM_LOGIN_REQ ) == 0 )
          {
-            PD_LOG( PDERROR, "login failed:rc=%d", rc ) ;
+            const CHAR* pUser = NULL ;
+            pAdaptor->getQuery( this, OM_REST_FIELD_LOGIN_NAME , &pUser ) ;
+            SDB_ASSERT( ( NULL != pUser ), "" ) ;
+            rc = doLogin( pUser, socket()->getLocalIP() ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "login failed:rc=%d", rc ) ;
+            }
+            pAdaptor->appendHttpHeader( this, OM_REST_HEAD_SESSIONID,
+                                        getSessionID() ) ;
+
          }
-
-         sessionId = getSessionID() ;
-
-         response.putHeader( OM_REST_HEAD_SESSIONID, sessionId ) ;
       }
 
    done:
@@ -750,7 +656,6 @@ namespace engine
 
    void _pmdRestSession::_onDetach()
    {
-      // save session info
       if ( _pSessionInfo )
       {
          saveSession() ;
@@ -952,7 +857,6 @@ namespace engine
          { CMD_NAME_LIST_TASKS,  &RestToMSGTransfer::_convertListTasks },
          { REST_CMD_NAME_LISTINDEXES,
                                  &RestToMSGTransfer::_convertListIndexes },
-//         { CMD_NAME_LIST_CL_IN_DOMAIN, &RestToMSGTransfer::_convertQuery },
          { CMD_NAME_SNAPSHOT_CONTEXTS,
                                  &RestToMSGTransfer::_convertSnapshotContext },
          { CMD_NAME_SNAPSHOT_CONTEXTS_CURRENT,
@@ -975,18 +879,12 @@ namespace engine
                                  &RestToMSGTransfer::_convertSnapshotAccessPlans },
          { CMD_NAME_SNAPSHOT_HEALTH,
                                  &RestToMSGTransfer::_convertSnapshotHealth },
-         { CMD_NAME_SNAPSHOT_CONFIGS,
-                                 &RestToMSGTransfer::_convertSnapshotConfigs },
          { CMD_NAME_LIST_LOBS,   &RestToMSGTransfer::_convertListLobs },
          { OM_LOGIN_REQ,         &RestToMSGTransfer::_convertLogin },
          { REST_CMD_NAME_EXEC,   &RestToMSGTransfer::_convertExec },
          { CMD_NAME_FORCE_SESSION,
                                  &RestToMSGTransfer::_convertForceSession },
-         { CMD_NAME_ANALYZE,     &RestToMSGTransfer::_convertAnalyze },
-         { CMD_NAME_UPDATE_CONFIG,
-                                 &RestToMSGTransfer::_convertUpdateConfig },
-         { CMD_NAME_DELETE_CONFIG,
-                                 &RestToMSGTransfer::_convertDeleteConfig }
+         { CMD_NAME_ANALYZE,     &RestToMSGTransfer::_convertAnalyze }
       } ;
 
       len = sizeof( s_commandArray ) / sizeof( restCommand2Func ) ;
@@ -999,21 +897,18 @@ namespace engine
       return rc ;
    }
 
-   INT32 RestToMSGTransfer::trans( restAdaptor *pAdaptor, restRequest &request,
-                                   MsgHeader **msg )
+   INT32 RestToMSGTransfer::trans( restAdaptor *pAdaptor, MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
-      string subCommand ;
+      const CHAR *pSubCommand = NULL ;
       _iterator iter ;
 
-      subCommand = request.getQuery( OM_REST_FIELD_COMMAND ) ;
-      if ( subCommand.empty() )
+      pAdaptor->getQuery( _restSession, OM_REST_FIELD_COMMAND, &pSubCommand ) ;
+      if ( NULL == pSubCommand )
       {
          rc = SDB_UNKNOWN_MESSAGE ;
          if ( !pmdGetKRCB()->isCBValue( SDB_CB_OMSVC ) )
          {
-            // we will have another flow if it's OMSVC. we can't say it's
-            // a error now
             PD_LOG_MSG( PDERROR, "can't resolve field:field=%s",
                         OM_REST_FIELD_COMMAND ) ;
          }
@@ -1021,20 +916,18 @@ namespace engine
          goto error ;
       }
 
-      iter = _mapTransFunc.find( subCommand ) ;
+      iter = _mapTransFunc.find( pSubCommand ) ;
       if ( iter != _mapTransFunc.end() )
       {
          restTransFunc func = iter->second ;
-         rc = (this->*func)( pAdaptor, request, msg ) ;
+         rc = (this->*func)( pAdaptor, msg ) ;
       }
       else
       {
          if ( !pmdGetKRCB()->isCBValue( SDB_CB_OMSVC ) )
          {
-            // we will have another flow if it's OMSVC. we can't say it's
-            // a error now
             PD_LOG_MSG( PDERROR, "unsupported command:command=%s",
-                        subCommand.c_str() ) ;
+                        pSubCommand ) ;
          }
          rc = SDB_UNKNOWN_MESSAGE ;
       }
@@ -1046,24 +939,23 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertCreateCS( restAdaptor *pAdaptor,
-                                              restRequest &request,
                                               MsgHeader **msg )
    {
       INT32 rc              = SDB_OK ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_CREATE_COLLECTIONSPACE ;
-      string option ;
-      string collectionSpace ;
-      BSONObj optionObj ;
+      const CHAR *pOption   = NULL ;
+      const CHAR *pCollectionSpace = NULL ;
+      BSONObj option ;
       BSONObj query ;
 
-      collectionSpace = request.getQuery( FIELD_NAME_NAME ) ;
-      if ( collectionSpace.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pCollectionSpace ) ;
+      if ( NULL == pCollectionSpace )
       {
-         //try another key name
-         collectionSpace = request.getQuery( REST_KEY_NAME_COLLECTIONSPACE ) ;
-         if ( collectionSpace.empty() )
+         pAdaptor->getQuery( _restSession, REST_KEY_NAME_COLLECTIONSPACE,
+                             &pCollectionSpace ) ;
+         if ( NULL == pCollectionSpace )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG_MSG( PDERROR, "get collectionspace's %s[or %s] failed",
@@ -1072,23 +964,23 @@ namespace engine
          }
       }
 
-      option = request.getQuery( FIELD_NAME_OPTIONS ) ;
-      if ( FALSE == option.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_OPTIONS, &pOption ) ;
+      if ( NULL != pOption )
       {
-         rc = fromjson( option.c_str(), optionObj, 0 ) ;
+         rc = fromjson( pOption, option, 0 ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
-                        FIELD_NAME_OPTIONS, option.c_str() ) ;
+                        FIELD_NAME_OPTIONS, pOption ) ;
             goto error ;
          }
       }
 
       {
          BSONObjBuilder builder ;
-         builder.append( FIELD_NAME_NAME, collectionSpace ) ;
+         builder.append( FIELD_NAME_NAME, pCollectionSpace ) ;
          {
-            BSONObjIterator it ( optionObj ) ;
+            BSONObjIterator it ( option ) ;
             while ( it.more() )
             {
                builder.append( it.next() ) ;
@@ -1116,23 +1008,23 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertCreateCL( restAdaptor *pAdaptor,
-                                              restRequest &request,
                                               MsgHeader **msg )
    {
       INT32 rc              = SDB_OK ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_CREATE_COLLECTION ;
-      string option ;
-      string collection ;
-      BSONObj optionObj ;
+      const CHAR *pOption   = NULL ;
+      const CHAR *pCollection = NULL ;
+      BSONObj option ;
       BSONObj query ;
 
-      collection = request.getQuery( FIELD_NAME_NAME ) ;
-      if ( collection.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pCollection ) ;
+      if ( NULL == pCollection )
       {
-         collection = request.getQuery( REST_KEY_NAME_COLLECTION ) ;
-         if ( collection.empty() )
+         pAdaptor->getQuery( _restSession, REST_KEY_NAME_COLLECTION,
+                             &pCollection ) ;
+         if ( NULL == pCollection )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG_MSG( PDERROR, "get collection's %s[or %s] failed",
@@ -1141,23 +1033,23 @@ namespace engine
          }
       }
 
-      option = request.getQuery( FIELD_NAME_OPTIONS ) ;
-      if ( FALSE == option.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_OPTIONS, &pOption ) ;
+      if ( NULL != pOption )
       {
-         rc = fromjson( option.c_str(), optionObj, 0 ) ;
+         rc = fromjson( pOption, option, 0 ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
-                        FIELD_NAME_OPTIONS, option.c_str() ) ;
+                        FIELD_NAME_OPTIONS, pOption ) ;
             goto error ;
          }
       }
 
       {
          BSONObjBuilder builder ;
-         builder.append( FIELD_NAME_NAME, collection ) ;
+         builder.append( FIELD_NAME_NAME, pCollection ) ;
          {
-            BSONObjIterator it ( optionObj ) ;
+            BSONObjIterator it ( option ) ;
             while ( it.more() )
             {
                builder.append( it.next() ) ;
@@ -1185,21 +1077,21 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertDropCS( restAdaptor *pAdaptor,
-                                            restRequest &request,
                                             MsgHeader **msg )
    {
       INT32 rc              = SDB_OK ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_DROP_COLLECTIONSPACE ;
-      string collectionSpace ;
+      const CHAR *pCollectionSpace = NULL ;
       BSONObj query ;
 
-      collectionSpace = request.getQuery( FIELD_NAME_NAME ) ;
-      if ( collectionSpace.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pCollectionSpace ) ;
+      if ( NULL == pCollectionSpace )
       {
-         collectionSpace = request.getQuery( REST_KEY_NAME_COLLECTIONSPACE ) ;
-         if ( collectionSpace.empty() )
+         pAdaptor->getQuery( _restSession, REST_KEY_NAME_COLLECTIONSPACE,
+                             &pCollectionSpace ) ;
+         if ( NULL == pCollectionSpace )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG_MSG( PDERROR, "get collectionspace's %s[or %s] failed",
@@ -1208,7 +1100,7 @@ namespace engine
          }
       }
 
-      query = BSON( FIELD_NAME_NAME << collectionSpace ) ;
+      query = BSON( FIELD_NAME_NAME << pCollectionSpace ) ;
       rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &query,
                              NULL, NULL, NULL ) ;
       if ( SDB_OK != rc )
@@ -1227,21 +1119,21 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertDropCL( restAdaptor *pAdaptor,
-                                            restRequest &request,
                                             MsgHeader **msg )
    {
       INT32 rc              = SDB_OK ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_DROP_COLLECTION ;
-      string collection ;
+      const CHAR *pCollection = NULL ;
       BSONObj query ;
 
-      collection = request.getQuery( FIELD_NAME_NAME ) ;
-      if ( collection.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pCollection ) ;
+      if ( NULL == pCollection )
       {
-         collection = request.getQuery( REST_KEY_NAME_COLLECTION ) ;
-         if ( collection.empty() )
+         pAdaptor->getQuery( _restSession, REST_KEY_NAME_COLLECTION,
+                             &pCollection ) ;
+         if ( NULL == pCollection )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG_MSG( PDERROR, "get collection's %s[or %s] failed",
@@ -1250,7 +1142,7 @@ namespace engine
          }
       }
 
-      query = BSON( FIELD_NAME_NAME  << collection ) ;
+      query = BSON( FIELD_NAME_NAME  << pCollection ) ;
       rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &query,
                              NULL, NULL, NULL ) ;
       if ( SDB_OK != rc )
@@ -1269,8 +1161,7 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertQueryBasic( restAdaptor* pAdaptor,
-                                                restRequest &request,
-                                                string &collectionName,
+                                                const CHAR** collectionName,
                                                 BSONObj& match,
                                                 BSONObj& selector,
                                                 BSONObj& order,
@@ -1279,26 +1170,27 @@ namespace engine
                                                 SINT64* skip,
                                                 SINT64* returnRow )
    {
-      INT32 rc = SDB_OK ;
-      string orderStr ;
-      string hintStr ;
-      string matchStr ;
-      string selectorStr ;
-      string flagStr ;
-      string skipStr ;
-      string returnRowStr ;
-      string tableName ;
+      INT32 rc              = SDB_OK ;
+      const CHAR *pTable    = NULL ;
+      const CHAR *pOrder    = NULL ;
+      const CHAR *pHint     = NULL ;
+      const CHAR *pMatch    = NULL ;
+      const CHAR *pSelector = NULL ;
+      const CHAR *pFlag     = NULL ;
+      const CHAR *pSkip     = NULL ;
+      const CHAR *pReturnRow = NULL ;
 
       SDB_ASSERT( pAdaptor, "pAdaptor can't be null") ;
+      SDB_ASSERT( collectionName, "collectionName can't be null") ;
       SDB_ASSERT( flag, "flag can't be null") ;
       SDB_ASSERT( skip, "skip can't be null") ;
       SDB_ASSERT( returnRow, "returnRow can't be null") ;
 
-      tableName = request.getQuery( FIELD_NAME_NAME ) ;
-      if ( tableName.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pTable ) ;
+      if ( NULL == pTable )
       {
-         tableName = request.getQuery( REST_KEY_NAME_COLLECTION ) ;
-         if ( tableName.empty() )
+         pAdaptor->getQuery( _restSession, REST_KEY_NAME_COLLECTION, &pTable ) ;
+         if ( NULL == pTable )
          {
             PD_LOG_MSG( PDERROR, "get field failed:field=%s[or %s]",
                      FIELD_NAME_NAME, REST_KEY_NAME_COLLECTION ) ;
@@ -1306,98 +1198,96 @@ namespace engine
             goto error ;
          }
       }
-      collectionName = tableName ;
+      *collectionName = pTable ;
 
-      matchStr = request.getQuery( FIELD_NAME_FILTER ) ;
-      if ( matchStr.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_FILTER, &pMatch ) ;
+      if ( NULL == pMatch )
       {
-         matchStr = request.getQuery( REST_KEY_NAME_MATCHER ) ;
+         pAdaptor->getQuery( _restSession, REST_KEY_NAME_MATCHER, &pMatch ) ;
       }
 
-      selectorStr = request.getQuery( FIELD_NAME_SELECTOR ) ;
-
-      orderStr = request.getQuery( FIELD_NAME_SORT ) ;
-      if ( orderStr.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_SELECTOR, &pSelector ) ;
+      pAdaptor->getQuery( _restSession, FIELD_NAME_SORT, &pOrder ) ;
+      if ( NULL == pOrder )
       {
-         orderStr = request.getQuery( REST_KEY_NAME_ORDERBY ) ;
+         pAdaptor->getQuery( _restSession, REST_KEY_NAME_ORDERBY, &pOrder ) ;
       }
 
-      hintStr = request.getQuery( FIELD_NAME_HINT ) ;
-      flagStr = request.getQuery( REST_KEY_NAME_FLAG ) ;
-      skipStr = request.getQuery( FIELD_NAME_SKIP ) ;
-
-      returnRowStr = request.getQuery( FIELD_NAME_RETURN_NUM ) ;
-      if ( returnRowStr.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_HINT, &pHint ) ;
+      pAdaptor->getQuery( _restSession, REST_KEY_NAME_FLAG, &pFlag ) ;
+      pAdaptor->getQuery( _restSession, FIELD_NAME_SKIP, &pSkip ) ;
+      pAdaptor->getQuery( _restSession, FIELD_NAME_RETURN_NUM, &pReturnRow ) ;
+      if ( NULL == pReturnRow )
       {
-         returnRowStr = request.getQuery( REST_KEY_NAME_LIMIT ) ;
+         pAdaptor->getQuery( _restSession, REST_KEY_NAME_LIMIT, &pReturnRow ) ;
       }
 
-      if ( FALSE == matchStr.empty() )
+      if ( NULL != pMatch )
       {
-         rc = fromjson( matchStr.c_str(), match, 0 ) ;
+         rc = fromjson( pMatch, match, 0 ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG_MSG( PDERROR, "field's format error:field=%s[or %s], "
                         "value=%s", FIELD_NAME_FILTER,
-                        REST_KEY_NAME_MATCHER, matchStr.c_str() ) ;
+                        REST_KEY_NAME_MATCHER, pMatch ) ;
             goto error ;
          }
       }
 
-      if ( FALSE == selectorStr.empty() )
+      if ( NULL != pSelector )
       {
-         rc = fromjson( selectorStr.c_str(), selector, 0 ) ;
+         rc = fromjson( pSelector, selector, 0 ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
-                        FIELD_NAME_SELECTOR, selectorStr.c_str() ) ;
+                        FIELD_NAME_SELECTOR, pSelector ) ;
             goto error ;
          }
       }
 
-      if ( FALSE == orderStr.empty() )
+      if ( NULL != pOrder )
       {
-         rc = fromjson( orderStr.c_str(), order, 0 ) ;
+         rc = fromjson( pOrder, order, 0 ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG_MSG( PDERROR, "field's format error:field=%s[or %s], "
                         "value=%s", FIELD_NAME_SORT, REST_KEY_NAME_ORDERBY,
-                        orderStr.c_str() ) ;
+                        pOrder ) ;
             goto error ;
          }
       }
 
-      if ( FALSE == hintStr.empty() )
+      if ( NULL != pHint )
       {
-         rc = fromjson( hintStr.c_str(), hint, 0 ) ;
+         rc = fromjson( pHint, hint, 0 ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
-                        FIELD_NAME_HINT, hintStr.c_str() ) ;
+                        FIELD_NAME_HINT, pHint ) ;
             goto error ;
          }
       }
 
-      if ( FALSE == flagStr.empty() )
+      if ( NULL != pFlag )
       {
-         rc = utilMsgFlag( flagStr, *flag ) ;
+         rc = utilMsgFlag( pFlag, *flag ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG_MSG( PDERROR, "field's format error:field=%s,"
-                        "value=%s", REST_KEY_NAME_FLAG, flagStr.c_str() ) ;
+                        "value=%s", REST_KEY_NAME_FLAG, pFlag ) ;
             goto error ;
          }
          *flag = *flag | FLG_QUERY_WITH_RETURNDATA ;
       }
 
-      if ( FALSE == skipStr.empty() )
+      if ( NULL != pSkip )
       {
-         *skip = ossAtoll( skipStr.c_str() ) ;
+         *skip = ossAtoll( pSkip ) ;
       }
 
-      if ( FALSE == returnRowStr.empty() )
+      if ( NULL != pReturnRow )
       {
-         *returnRow = ossAtoll( returnRowStr.c_str() ) ;
+         *returnRow = ossAtoll( pReturnRow ) ;
       }
 
    done:
@@ -1407,13 +1297,12 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertQuery( restAdaptor *pAdaptor,
-                                           restRequest &request,
                                            MsgHeader **msg )
    {
       INT32 rc              = SDB_OK ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
-      string table ;
+      const CHAR *pTable    = NULL ;
 
       {
          BSONObj order ;
@@ -1424,15 +1313,15 @@ namespace engine
          SINT64 skip = 0 ;
          SINT64 returnRow = -1 ;
 
-         rc = _convertQueryBasic( pAdaptor, request, table, match, selector,
-                                  order, hint, &flag, &skip, &returnRow ) ;
+         rc = _convertQueryBasic( pAdaptor, &pTable, match, selector, order, hint,
+                                  &flag, &skip, &returnRow ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG_MSG( PDERROR, "convert basic queryMsg failed:rc=%d", rc ) ;
             goto error ;
          }
 
-         rc = msgBuildQueryMsg( &pBuff, &buffSize, table.c_str(), flag, 0, skip,
+         rc = msgBuildQueryMsg( &pBuff, &buffSize, pTable, flag, 0, skip,
                                 returnRow, &match, &selector, &order, &hint ) ;
          if ( SDB_OK != rc )
          {
@@ -1450,27 +1339,25 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertQueryUpdate( restAdaptor *pAdaptor,
-                                                 restRequest &request,
                                                  MsgHeader **msg )
    {
-      return _convertQueryModify( pAdaptor, request, msg, TRUE ) ;
+      return _convertQueryModify( pAdaptor, msg, TRUE ) ;
    }
 
    INT32 RestToMSGTransfer::_convertQueryRemove( restAdaptor *pAdaptor,
-                                                 restRequest &request,
                                                  MsgHeader **msg )
    {
-      return _convertQueryModify( pAdaptor, request, msg, FALSE ) ;
+      return _convertQueryModify( pAdaptor, msg, FALSE ) ;
    }
 
    INT32 RestToMSGTransfer::_convertQueryModify( restAdaptor *pAdaptor,
-                                                 restRequest &request,
                                                  MsgHeader **msg,
                                                  BOOLEAN isUpdate )
    {
       INT32 rc              = SDB_OK ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
+      const CHAR *pTable    = NULL ;
       INT32 flag            = 0 ;
       SINT64 skip           = 0 ;
       SINT64 returnRow      = -1 ;
@@ -1479,10 +1366,9 @@ namespace engine
       BSONObj match ;
       BSONObj selector ;
       BSONObj newHint ;
-      string table ;
 
-      rc = _convertQueryBasic( pAdaptor, request, table, match, selector,
-                               order, hint, &flag, &skip, &returnRow ) ;
+      rc = _convertQueryBasic( pAdaptor, &pTable, match, selector, order, hint,
+                               &flag, &skip, &returnRow ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG_MSG( PDERROR, "convert basic queryMsg failed:rc=%d", rc ) ;
@@ -1495,16 +1381,15 @@ namespace engine
          BSONObjBuilder modifyBuilder ;
          BSONObj modify ;
 
-         // create $Modify
          if ( isUpdate )
          {
-            string updateStr ;
-            string returnNewStr ;
+            const CHAR* pUpdate = NULL ;
+            const CHAR* pReturnNew = NULL ;
             BSONObj update ;
             BOOLEAN returnNew = FALSE ;
 
-            updateStr = request.getQuery( REST_KEY_NAME_UPDATOR ) ;
-            if ( updateStr.empty() )
+            pAdaptor->getQuery( _restSession, REST_KEY_NAME_UPDATOR, &pUpdate ) ;
+            if ( NULL == pUpdate )
             {
                PD_LOG_MSG( PDERROR, "get field failed:field=%s",
                            REST_KEY_NAME_UPDATOR ) ;
@@ -1512,31 +1397,29 @@ namespace engine
                goto error ;
             }
 
-            rc = fromjson( updateStr.c_str(), update, 0 ) ;
+            rc = fromjson( pUpdate, update, 0 ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
-                           FIELD_NAME_OP_UPDATE, updateStr.c_str() ) ;
+                           FIELD_NAME_OP_UPDATE, pUpdate ) ;
                goto error ;
             }
 
-            returnNewStr = request.getQuery( FIELD_NAME_RETURNNEW ) ;
-            if ( FALSE == returnNewStr.empty() )
+            pAdaptor->getQuery( _restSession, FIELD_NAME_RETURNNEW, &pReturnNew ) ;
+            if ( NULL != pReturnNew )
             {
-               // true
-               if ( 0 == ossStrcasecmp( returnNewStr.c_str(), "true") )
+               if ( 0 == ossStrcasecmp(pReturnNew, "true") )
                {
                   returnNew = TRUE ;
                }
-               // false
-               else if ( 0 == ossStrcasecmp( returnNewStr.c_str(), "false") )
+               else if ( 0 == ossStrcasecmp(pReturnNew, "false") )
                {
                   returnNew = FALSE ;
                }
                else
                {
                   PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
-                           FIELD_NAME_RETURNNEW, returnNewStr.c_str() ) ;
+                           FIELD_NAME_RETURNNEW, pReturnNew ) ;
                   rc = SDB_INVALIDARG ;
                   goto error ;
                }
@@ -1553,7 +1436,6 @@ namespace engine
          }
          modify = modifyBuilder.obj() ;
 
-         // create new hint with $Modify
          if ( !hint.isEmpty() )
          {
             newHintBuilder.appendElements( hint ) ;
@@ -1570,7 +1452,7 @@ namespace engine
 
       flag |= FLG_QUERY_MODIFY ;
 
-      rc = msgBuildQueryMsg( &pBuff, &buffSize, table.c_str(), flag, 0, skip,
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pTable, flag, 0, skip,
                              returnRow, &match, &selector, &order, &newHint ) ;
       if ( SDB_OK != rc )
       {
@@ -1587,23 +1469,23 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertInsert( restAdaptor *pAdaptor,
-                                            restRequest &request,
                                             MsgHeader **msg )
    {
       INT32 rc              = SDB_OK ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
+      const CHAR *pFlag     = NULL ;
       SINT32 flag           = 0 ;
-      string flagStr ;
-      string collectionName ;
-      string insertorStr ;
+      const CHAR *pCollection = NULL ;
+      const CHAR *pInsertor   = NULL ;
       BSONObj insertor ;
 
-      collectionName = request.getQuery( FIELD_NAME_NAME ) ;
-      if ( collectionName.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pCollection ) ;
+      if ( NULL == pCollection )
       {
-         collectionName = request.getQuery( REST_KEY_NAME_COLLECTION ) ;
-         if ( collectionName.empty() )
+         pAdaptor->getQuery( _restSession, REST_KEY_NAME_COLLECTION,
+                             &pCollection ) ;
+         if ( NULL == pCollection )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG_MSG( PDERROR, "get collection's %s[or %s] failed",
@@ -1612,14 +1494,14 @@ namespace engine
          }
       }
 
-      flagStr = request.getQuery( REST_KEY_NAME_FLAG ) ;
-      if ( FALSE == flagStr.empty() )
+      pAdaptor->getQuery( _restSession, REST_KEY_NAME_FLAG, &pFlag ) ;
+      if ( NULL != pFlag )
       {
-         flag = ossAtoi( flagStr.c_str() ) ;
+         flag = ossAtoi( pFlag ) ;
       }
 
-      insertorStr = request.getQuery( REST_KEY_NAME_INSERTOR ) ;
-      if ( insertorStr.empty() )
+      pAdaptor->getQuery( _restSession, REST_KEY_NAME_INSERTOR, &pInsertor ) ;
+      if ( NULL == pInsertor )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get collection's %s failed",
@@ -1627,16 +1509,16 @@ namespace engine
          goto error ;
       }
 
-      rc = fromjson( insertorStr.c_str(), insertor, 0 ) ;
+      rc = fromjson( pInsertor, insertor, 0 ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG_MSG( PDERROR, "field's format error:field=%s,value=%s",
-                     REST_KEY_NAME_INSERTOR, insertorStr.c_str() ) ;
+                     REST_KEY_NAME_INSERTOR, pInsertor ) ;
          goto error ;
       }
 
-      rc = msgBuildInsertMsg( &pBuff, &buffSize, collectionName.c_str(), flag,
-                              0, &insertor );
+      rc = msgBuildInsertMsg( &pBuff, &buffSize, pCollection, flag, 0,
+                              &insertor );
       if ( SDB_OK != rc )
       {
          PD_LOG_MSG( PDERROR, "build insertMsg failed:rc=%d", rc ) ;
@@ -1652,42 +1534,40 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertUpsert( restAdaptor *pAdaptor,
-                                            restRequest &request,
                                             MsgHeader **msg )
    {
-      return _convertUpdateBase( pAdaptor, request, msg, TRUE ) ;
+      return _convertUpdateBase( pAdaptor, msg, TRUE ) ;
    }
 
    INT32 RestToMSGTransfer::_convertUpdate( restAdaptor *pAdaptor,
-                                            restRequest &request,
                                             MsgHeader **msg )
    {
-      return _convertUpdateBase( pAdaptor, request, msg, FALSE ) ;
+      return _convertUpdateBase( pAdaptor, msg, FALSE ) ;
    }
 
    INT32 RestToMSGTransfer::_convertUpdateBase( restAdaptor *pAdaptor,
-                                                restRequest &request,
                                                 MsgHeader **msg,
                                                 BOOLEAN isUpsert )
    {
       INT32 rc              = SDB_OK ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
+      const CHAR *pFlag     = NULL ;
       SINT32 flag           = 0 ;
-      string collectionName ;
-      string updatorStr ;
-      string matchStr ;
-      string hintStr ;
-      string flagStr ;
+      const CHAR *pCollection = NULL ;
+      const CHAR *pUpdator    = NULL ;
+      const CHAR *pMatcher    = NULL ;
+      const CHAR *pHint       = NULL ;
       BSONObj updator ;
       BSONObj matcher ;
       BSONObj hint ;
 
-      collectionName = request.getQuery( FIELD_NAME_NAME ) ;
-      if ( collectionName.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pCollection ) ;
+      if ( NULL == pCollection )
       {
-         collectionName = request.getQuery( REST_KEY_NAME_COLLECTION ) ;
-         if ( collectionName.empty() )
+         pAdaptor->getQuery( _restSession, REST_KEY_NAME_COLLECTION,
+                             &pCollection ) ;
+         if ( NULL == pCollection )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG_MSG( PDERROR, "get collection's %s[or %s] failed",
@@ -1696,38 +1576,38 @@ namespace engine
          }
       }
 
-      flagStr = request.getQuery( REST_KEY_NAME_FLAG ) ;
-      if ( FALSE == flagStr.empty() )
+      pAdaptor->getQuery( _restSession, REST_KEY_NAME_FLAG, &pFlag ) ;
+      if ( NULL != pFlag )
       {
-         rc = utilMsgFlag( flagStr, flag ) ;
+         rc = utilMsgFlag( pFlag, flag ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG_MSG( PDERROR, "field's format error:field=%s,"
-                        "value=%s", REST_KEY_NAME_FLAG, flagStr.c_str() ) ;
+                        "value=%s", REST_KEY_NAME_FLAG, pFlag ) ;
             goto error ;
          }
       }
 
-      matchStr = request.getQuery( FIELD_NAME_FILTER ) ;
-      if ( matchStr.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_FILTER, &pMatcher ) ;
+      if ( NULL == pMatcher )
       {
-         matchStr = request.getQuery( REST_KEY_NAME_MATCHER ) ;
+         pAdaptor->getQuery( _restSession, REST_KEY_NAME_MATCHER, &pMatcher ) ;
       }
 
-      if ( FALSE == matchStr.empty() )
+      if ( NULL != pMatcher )
       {
-         rc = fromjson( matchStr.c_str(), matcher, 0 ) ;
+         rc = fromjson( pMatcher, matcher, 0 ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG_MSG( PDERROR, "field's format error:field=%s[or %s],"
                         "value=%s", FIELD_NAME_FILTER,
-                        REST_KEY_NAME_MATCHER, matchStr.c_str() ) ;
+                        REST_KEY_NAME_MATCHER, pMatcher ) ;
             goto error ;
          }
       }
 
-      updatorStr = request.getQuery( REST_KEY_NAME_UPDATOR ) ;
-      if ( updatorStr.empty() )
+      pAdaptor->getQuery( _restSession, REST_KEY_NAME_UPDATOR, &pUpdator ) ;
+      if ( NULL == pUpdator )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get collection's %s failed",
@@ -1735,40 +1615,39 @@ namespace engine
          goto error ;
       }
 
-      rc = fromjson( updatorStr.c_str(), updator, 0 ) ;
+      rc = fromjson( pUpdator, updator, 0 ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG_MSG( PDERROR, "field's format error:field=%s,value=%s",
-                     REST_KEY_NAME_UPDATOR, updatorStr.c_str() ) ;
+                     REST_KEY_NAME_UPDATOR, pUpdator ) ;
          goto error ;
       }
 
-      hintStr = request.getQuery( FIELD_NAME_HINT ) ;
-      if ( FALSE == hintStr.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_HINT, &pHint ) ;
+      if ( NULL != pHint )
       {
-         rc = fromjson( hintStr.c_str(), hint, 0 ) ;
+         rc = fromjson( pHint, hint, 0 ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG_MSG( PDERROR, "field's format error:field=%s,value=%s",
-                        FIELD_NAME_HINT, hintStr.c_str() ) ;
+                        FIELD_NAME_HINT, pHint ) ;
             goto error ;
          }
       }
 
       if ( isUpsert )
       {
-         string setOnInsertStr ;
+         const CHAR* pSetOnInsert = NULL ;
          BSONObj setOnInsert ;
 
-         setOnInsertStr = request.getQuery( REST_KEY_NAME_SET_ON_INSERT ) ;
-         if ( FALSE == setOnInsertStr.empty() )
+         pAdaptor->getQuery( _restSession, REST_KEY_NAME_SET_ON_INSERT, &pSetOnInsert ) ;
+         if ( NULL != pSetOnInsert )
          {
-            rc = fromjson( setOnInsertStr.c_str(), setOnInsert, 0 ) ;
+            rc = fromjson( pSetOnInsert, setOnInsert, 0 ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG_MSG( PDERROR, "field's format error:field=%s,value=%s",
-                           REST_KEY_NAME_SET_ON_INSERT,
-                           setOnInsertStr.c_str() ) ;
+                           REST_KEY_NAME_SET_ON_INSERT, pSetOnInsert ) ;
                goto error ;
             }
 
@@ -1794,8 +1673,8 @@ namespace engine
          flag |= FLG_UPDATE_UPSERT ;
       }
 
-      rc = msgBuildUpdateMsg( &pBuff, &buffSize, collectionName.c_str(), flag,
-                              0, &matcher, &updator, &hint ) ;
+      rc = msgBuildUpdateMsg( &pBuff, &buffSize, pCollection, flag, 0,
+                              &matcher, &updator, &hint ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG_MSG( PDERROR, "build updateMsg failed:rc=%d", rc ) ;
@@ -1811,25 +1690,25 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertDelete( restAdaptor *pAdaptor,
-                                            restRequest &request,
                                             MsgHeader **msg )
    {
       INT32 rc              = SDB_OK ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
+      const CHAR *pFlag     = NULL ;
       SINT32 flag           = 0 ;
-      string collectionName ;
-      string deletorStr ;
-      string hintStr ;
-      string flagStr ;
+      const CHAR *pCollection = NULL ;
+      const CHAR *pDeletor    = NULL ;
+      const CHAR *pHint       = NULL ;
       BSONObj deletor ;
       BSONObj hint ;
 
-      collectionName = request.getQuery( FIELD_NAME_NAME ) ;
-      if ( collectionName.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pCollection ) ;
+      if ( NULL == pCollection )
       {
-         collectionName = request.getQuery( REST_KEY_NAME_COLLECTION ) ;
-         if ( collectionName.empty() )
+         pAdaptor->getQuery( _restSession, REST_KEY_NAME_COLLECTION,
+                             &pCollection ) ;
+         if ( NULL == pCollection )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG_MSG( PDERROR, "get collection's %s[or %s] failed",
@@ -1838,44 +1717,44 @@ namespace engine
          }
       }
 
-      flagStr = request.getQuery( REST_KEY_NAME_FLAG ) ;
-      if ( FALSE == flagStr.empty() )
+      pAdaptor->getQuery( _restSession, REST_KEY_NAME_FLAG, &pFlag ) ;
+      if ( NULL != pFlag )
       {
-         flag = ossAtoi( flagStr.c_str() ) ;
+         flag = ossAtoi( pFlag ) ;
       }
 
-      deletorStr = request.getQuery( REST_KEY_NAME_DELETOR ) ;
-      if ( deletorStr.empty() )
+      pAdaptor->getQuery( _restSession, REST_KEY_NAME_DELETOR, &pDeletor ) ;
+      if ( NULL == pDeletor )
       {
-         deletorStr = request.getQuery( REST_KEY_NAME_MATCHER ) ;
+         pAdaptor->getQuery( _restSession, REST_KEY_NAME_MATCHER, &pDeletor ) ;
       }
 
-      if ( FALSE == deletorStr.empty() )
+      if ( NULL != pDeletor )
       {
-         rc = fromjson( deletorStr.c_str(), deletor, 0 ) ;
+         rc = fromjson( pDeletor, deletor, 0 ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG_MSG( PDERROR, "field's format error:field=%s[or %s],"
                         "value=%s", REST_KEY_NAME_DELETOR,
-                        REST_KEY_NAME_MATCHER, deletorStr.c_str() ) ;
+                        REST_KEY_NAME_MATCHER, pDeletor ) ;
             goto error ;
          }
       }
 
-      hintStr = request.getQuery( FIELD_NAME_HINT ) ;
-      if ( FALSE == hintStr.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_HINT, &pHint ) ;
+      if ( NULL != pHint )
       {
-         rc = fromjson( hintStr.c_str(), hint, 0 ) ;
+         rc = fromjson( pHint, hint, 0 ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG_MSG( PDERROR, "field's format error:field=%s,value=%s",
-                        FIELD_NAME_HINT, hintStr.c_str() ) ;
+                        FIELD_NAME_HINT, pHint ) ;
             goto error ;
          }
       }
 
-      rc = msgBuildDeleteMsg( &pBuff, &buffSize, collectionName.c_str(), flag,
-                              0, &deletor, &hint ) ;
+      rc = msgBuildDeleteMsg( &pBuff, &buffSize, pCollection, flag, 0,
+                              &deletor, &hint ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG_MSG( PDERROR, "build deleteMsg failed:rc=%d", rc ) ;
@@ -1891,23 +1770,23 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertAlterCollection( restAdaptor *pAdaptor,
-                                                     restRequest &request,
                                                      MsgHeader **msg )
    {
       INT32 rc              = SDB_OK ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_ALTER_COLLECTION ;
-      string optionStr ;
-      string collectionName ;
+      const CHAR *pOption   = NULL ;
+      const CHAR *pCollection = NULL ;
       BSONObj option ;
       BSONObj query ;
 
-      collectionName = request.getQuery( FIELD_NAME_NAME ) ;
-      if ( collectionName.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pCollection ) ;
+      if ( NULL == pCollection )
       {
-         collectionName = request.getQuery( REST_KEY_NAME_COLLECTION ) ;
-         if ( collectionName.empty() )
+         pAdaptor->getQuery( _restSession, REST_KEY_NAME_COLLECTION,
+                             &pCollection ) ;
+         if ( NULL == pCollection )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG_MSG( PDERROR, "get collection's %s[or %s] failed",
@@ -1916,8 +1795,8 @@ namespace engine
          }
       }
 
-      optionStr = request.getQuery( FIELD_NAME_OPTIONS ) ;
-      if ( optionStr.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_OPTIONS, &pOption ) ;
+      if ( NULL == pOption )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get alter collection's %s failed",
@@ -1925,16 +1804,16 @@ namespace engine
          goto error ;
       }
 
-      rc = fromjson( optionStr.c_str(), option, 0 ) ;
+      rc = fromjson( pOption, option, 0 ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
-                     FIELD_NAME_OPTIONS, optionStr.c_str() ) ;
+                     FIELD_NAME_OPTIONS, pOption ) ;
          goto error ;
       }
 
-      query = BSON( FIELD_NAME_NAME << collectionName <<
-                   FIELD_NAME_OPTIONS << option ) ;
+      query = BSON( FIELD_NAME_NAME << pCollection
+                    << FIELD_NAME_OPTIONS << option ) ;
       rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &query,
                              NULL, NULL, NULL ) ;
       if ( SDB_OK != rc )
@@ -1953,29 +1832,28 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertCreateIndex( restAdaptor *pAdaptor,
-                                                 restRequest &request,
                                                  MsgHeader **msg )
    {
       INT32 rc                = SDB_OK ;
       CHAR *pBuff             = NULL ;
       INT32 buffSize          = 0 ;
       const CHAR *pCommand    = CMD_ADMIN_PREFIX CMD_NAME_CREATE_INDEX ;
-      string collectionName ;
-      string indexName ;
-      string indexDef ;
-      string unique ;
-      string enforced ;
-      string sortBufferSizeStr ;
-      BSONObj indexDefObj ;
+      const CHAR *pIndexName  = NULL ;
+      const CHAR *pIndexDef   = NULL ;
+      const CHAR *pUnique     = NULL ;
+      const CHAR *pEnforced   = NULL ;
+      const CHAR *pSortBufferSize = NULL ;
+      const CHAR *pCollection = NULL ;
 
-      // bson must use the original type of bool
+      BSONObj indexDef ;
+
       bool isUnique   = false ;
       bool isEnforced = false ;
       INT32 sortBufferSize = SDB_INDEX_SORT_BUFFER_DEFAULT_SIZE ;
 
-      // collection name
-      collectionName = request.getQuery( REST_KEY_NAME_COLLECTION ) ;
-      if ( collectionName.empty() )
+      pAdaptor->getQuery( _restSession, REST_KEY_NAME_COLLECTION,
+                          &pCollection ) ;
+      if ( NULL == pCollection )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get rest field failed:field=%s",
@@ -1983,9 +1861,8 @@ namespace engine
          goto error ;
       }
 
-      // index name
-      indexName = request.getQuery( FIELD_NAME_INDEXNAME ) ;
-      if ( indexName.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_INDEXNAME, &pIndexName ) ;
+      if ( NULL == pIndexName )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get rest field failed:field=%s",
@@ -1993,9 +1870,8 @@ namespace engine
          goto error ;
       }
 
-      // index define
-      indexDef = request.getQuery( IXM_FIELD_NAME_INDEX_DEF ) ;
-      if ( indexDef.empty() )
+      pAdaptor->getQuery( _restSession, IXM_FIELD_NAME_INDEX_DEF, &pIndexDef ) ;
+      if ( NULL == pIndexDef )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get rest field failed:field=%s",
@@ -2003,23 +1879,22 @@ namespace engine
          goto error ;
       }
 
-      rc = fromjson( indexDef.c_str(), indexDefObj, 0 ) ;
+      rc = fromjson( pIndexDef, indexDef, 0 ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
-                     IXM_FIELD_NAME_INDEX_DEF, indexDef.c_str() ) ;
+                     IXM_FIELD_NAME_INDEX_DEF, pIndexDef ) ;
          goto error ;
       }
 
-      // unique
-      unique = request.getQuery( IXM_FIELD_NAME_UNIQUE ) ;
-      if ( FALSE == unique.empty() )
+      pAdaptor->getQuery( _restSession, IXM_FIELD_NAME_UNIQUE, &pUnique ) ;
+      if ( NULL != pUnique )
       {
-         if ( ossStrcasecmp( unique.c_str(), "true" ) == 0 )
+         if ( ossStrcasecmp( pUnique, "true" ) == 0 )
          {
             isUnique = true ;
          }
-         else if ( ossStrcasecmp( unique.c_str(), "false" ) == 0 )
+         else if ( ossStrcasecmp( pUnique, "false" ) == 0 )
          {
             isUnique = false ;
          }
@@ -2027,20 +1902,19 @@ namespace engine
          {
             rc = SDB_INVALIDARG ;
             PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
-                        IXM_FIELD_NAME_UNIQUE, unique.c_str() ) ;
+                        IXM_FIELD_NAME_UNIQUE, pUnique ) ;
             goto error ;
          }
       }
 
-      // enforced
-      enforced = request.getQuery( IXM_FIELD_NAME_ENFORCED ) ;
-      if ( FALSE == enforced.empty() )
+      pAdaptor->getQuery( _restSession, IXM_FIELD_NAME_ENFORCED, &pEnforced ) ;
+      if ( NULL != pEnforced )
       {
-         if ( ossStrcasecmp( enforced.c_str(), "true" ) == 0 )
+         if ( ossStrcasecmp( pEnforced, "true" ) == 0 )
          {
             isEnforced = true ;
          }
-         else if ( ossStrcasecmp( enforced.c_str(), "false" ) == 0 )
+         else if ( ossStrcasecmp( pEnforced, "false" ) == 0 )
          {
             isEnforced = false ;
          }
@@ -2048,22 +1922,20 @@ namespace engine
          {
             rc = SDB_INVALIDARG ;
             PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
-                        IXM_FIELD_NAME_ENFORCED, enforced.c_str() ) ;
+                        IXM_FIELD_NAME_ENFORCED, pEnforced ) ;
             goto error ;
          }
       }
 
-      // SortBufferSize
-      sortBufferSizeStr = request.getQuery( IXM_FIELD_NAME_SORT_BUFFER_SIZE ) ;
-      if ( FALSE == sortBufferSizeStr.empty() )
+      pAdaptor->getQuery( _restSession, IXM_FIELD_NAME_SORT_BUFFER_SIZE, &pSortBufferSize ) ;
+      if ( NULL != pSortBufferSize )
       {
-         sortBufferSize = ossAtoi ( sortBufferSizeStr.c_str() ) ;
+         sortBufferSize = ossAtoi ( pSortBufferSize ) ;
          if ( sortBufferSize < 0 )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG_MSG( PDERROR, "field's value error:field=%s, value=%s",
-                        IXM_FIELD_NAME_SORT_BUFFER_SIZE,
-                        sortBufferSizeStr.c_str() ) ;
+                        IXM_FIELD_NAME_SORT_BUFFER_SIZE, pSortBufferSize ) ;
             goto error ;
          }
       }
@@ -2072,15 +1944,13 @@ namespace engine
          BSONObj index ;
          BSONObj query ;
          BSONObj hint ;
+         index = BSON( IXM_FIELD_NAME_KEY << indexDef
+                       << IXM_FIELD_NAME_NAME << pIndexName
+                       << IXM_FIELD_NAME_UNIQUE << isUnique
+                       << IXM_FIELD_NAME_ENFORCED << isEnforced ) ;
 
-         index = BSON( IXM_FIELD_NAME_KEY << indexDefObj <<
-                       IXM_FIELD_NAME_NAME << indexName <<
-                       IXM_FIELD_NAME_UNIQUE << isUnique <<
-                       IXM_FIELD_NAME_ENFORCED << isEnforced ) ;
-
-         query = BSON( FIELD_NAME_COLLECTION << collectionName <<
-                       FIELD_NAME_INDEX << index ) ;
-
+         query = BSON( FIELD_NAME_COLLECTION << pCollection
+                       << FIELD_NAME_INDEX << index ) ;
          hint = BSON( IXM_FIELD_NAME_SORT_BUFFER_SIZE << sortBufferSize ) ;
 
          rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1,
@@ -2102,19 +1972,18 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertDropIndex( restAdaptor *pAdaptor,
-                                               restRequest &request,
                                                MsgHeader **msg )
    {
       INT32 rc                = SDB_OK ;
       CHAR *pBuff             = NULL ;
       INT32 buffSize          = 0 ;
       const CHAR *pCommand    = CMD_ADMIN_PREFIX CMD_NAME_DROP_INDEX ;
-      string indexName ;
-      string collectionName ;
+      const CHAR *pIndexName  = NULL ;
+      const CHAR *pCollection = NULL ;
 
-      // collection name
-      collectionName = request.getQuery( REST_KEY_NAME_COLLECTION ) ;
-      if ( collectionName.empty() )
+      pAdaptor->getQuery( _restSession, REST_KEY_NAME_COLLECTION,
+                          &pCollection ) ;
+      if ( NULL == pCollection )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get rest field failed:field=%s",
@@ -2122,9 +1991,8 @@ namespace engine
          goto error ;
       }
 
-      // index name
-      indexName = request.getQuery( FIELD_NAME_INDEXNAME ) ;
-      if ( indexName.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_INDEXNAME, &pIndexName ) ;
+      if ( NULL == pIndexName )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get rest field failed:field=%s",
@@ -2135,8 +2003,8 @@ namespace engine
       {
          BSONObj index ;
          BSONObj query ;
-         index = BSON( "" << indexName ) ;
-         query = BSON( FIELD_NAME_COLLECTION << collectionName
+         index = BSON( "" << pIndexName ) ;
+         query = BSON( FIELD_NAME_COLLECTION << pCollection
                        << FIELD_NAME_INDEX << index ) ;
 
          rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1,
@@ -2158,33 +2026,32 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertSplit( restAdaptor *pAdaptor,
-                                           restRequest &request,
                                            MsgHeader **msg )
    {
       INT32 rc              = SDB_OK ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SPLIT ;
+      const CHAR *pSource   = NULL ;
+      const CHAR *pTarget   = NULL ;
+      const CHAR *pAsync    = NULL ;
+      const CHAR *pCollection    = NULL ;
+      const CHAR *pSplitQuery    = NULL ;
+      const CHAR *pSplitEndQuery = NULL ;
+      const CHAR *pPercent = NULL ;
       BOOLEAN isUsePercent = FALSE ;
       INT32 percent        = 0 ;
       bool bAsync   = false ;
-      string collectionName ;
-      string sourceStr ;
-      string targetStr ;
-      string percentStr ;
-      string splitQueryStr ;
-      string splitEndQueryStr ;
-      string asyncStr ;
       BSONObj splitQuery ;
       BSONObj splitEndQuery ;
       BSONObj query ;
 
-      //1.FIELD_NAME_NAME & FIELD_NAME_SOURCE & FIELD_NAME_TARGET must exist
-      collectionName = request.getQuery( FIELD_NAME_NAME ) ;
-      if ( collectionName.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pCollection ) ;
+      if ( NULL == pCollection )
       {
-         collectionName = request.getQuery( REST_KEY_NAME_COLLECTION ) ;
-         if ( collectionName.empty() )
+         pAdaptor->getQuery( _restSession, REST_KEY_NAME_COLLECTION,
+                             &pCollection ) ;
+         if ( NULL == pCollection )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG_MSG( PDERROR, "get collection's %s[or %s] failed",
@@ -2193,31 +2060,32 @@ namespace engine
          }
       }
 
-      sourceStr = request.getQuery( FIELD_NAME_SOURCE ) ;
-      if ( sourceStr.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_SOURCE, &pSource ) ;
+      if ( NULL == pSource )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get split's %s failed", FIELD_NAME_SOURCE ) ;
          goto error ;
       }
 
-      targetStr = request.getQuery( FIELD_NAME_TARGET ) ;
-      if ( targetStr.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_TARGET, &pTarget ) ;
+      if ( NULL == pTarget )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get split's %s failed", FIELD_NAME_TARGET ) ;
          goto error ;
       }
 
-      //2.FIELD_NAME_SPLITENDQUERY or FIELD_NAME_SPLITPERCENT must exist one
-      percentStr = request.getQuery( FIELD_NAME_SPLITPERCENT ) ;
-      if ( percentStr.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_SPLITPERCENT, &pPercent ) ;
+      if ( NULL == pPercent )
       {
-         splitQueryStr = request.getQuery( FIELD_NAME_SPLITQUERY ) ;
-         if ( splitQueryStr.empty() )
+         pAdaptor->getQuery( _restSession, FIELD_NAME_SPLITQUERY,
+                             &pSplitQuery ) ;
+         if ( NULL == pSplitQuery )
          {
-            splitQueryStr = request.getQuery( REST_KEY_NAME_LOWBOUND ) ;
-            if ( splitQueryStr.empty() )
+            pAdaptor->getQuery( _restSession, REST_KEY_NAME_LOWBOUND,
+                                &pSplitQuery ) ;
+            if ( NULL == pSplitQuery )
             {
                rc = SDB_INVALIDARG ;
                PD_LOG_MSG( PDERROR, "get split's %s[or %s] failed",
@@ -2226,28 +2094,30 @@ namespace engine
             }
          }
 
-         rc = fromjson( splitQueryStr.c_str(), splitQuery, 0 ) ;
+         rc = fromjson( pSplitQuery, splitQuery, 0 ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG_MSG( PDERROR, "field's format error:field=%s[or %s],"
                         "value=%s", FIELD_NAME_SPLITQUERY,
-                        REST_KEY_NAME_LOWBOUND, splitQueryStr.c_str() ) ;
+                        REST_KEY_NAME_LOWBOUND, pSplitQuery ) ;
             goto error ;
          }
 
-         splitEndQueryStr = request.getQuery( FIELD_NAME_SPLITENDQUERY ) ;
-         if ( splitEndQueryStr.empty() )
+         pAdaptor->getQuery( _restSession, FIELD_NAME_SPLITENDQUERY,
+                             &pSplitEndQuery ) ;
+         if ( NULL == pSplitEndQuery )
          {
-            splitEndQueryStr = request.getQuery( REST_KEY_NAME_UPBOUND ) ;
+            pAdaptor->getQuery( _restSession, REST_KEY_NAME_UPBOUND,
+                                &pSplitEndQuery ) ;
          }
 
-         if ( FALSE == splitEndQueryStr.empty() )
+         if ( NULL != pSplitEndQuery )
          {
-            rc = fromjson( splitEndQueryStr.c_str(), splitEndQuery, 0 ) ;
+            rc = fromjson( pSplitEndQuery, splitEndQuery, 0 ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG_MSG( PDERROR, "field's format error:field=%s,value=%s",
-                           FIELD_NAME_SPLITENDQUERY, splitEndQueryStr.c_str() ) ;
+                           FIELD_NAME_SPLITENDQUERY, pSplitEndQuery ) ;
                goto error ;
             }
          }
@@ -2255,13 +2125,13 @@ namespace engine
       else
       {
          isUsePercent = TRUE ;
-         percent      = ossAtoi( percentStr.c_str() ) ;
+         percent      = ossAtoi( pPercent ) ;
       }
 
-      asyncStr = request.getQuery( FIELD_NAME_ASYNC ) ;
-      if ( FALSE == asyncStr.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_ASYNC, &pAsync ) ;
+      if ( NULL != pAsync )
       {
-         if ( ossStrcasecmp( asyncStr.c_str(), "TRUE" ) == 0 )
+         if ( ossStrcasecmp( pAsync, "TRUE" ) == 0 )
          {
             bAsync = true ;
          }
@@ -2269,15 +2139,15 @@ namespace engine
 
       if ( isUsePercent )
       {
-         query = BSON( FIELD_NAME_NAME << collectionName << FIELD_NAME_SOURCE
-                       << sourceStr << FIELD_NAME_TARGET << targetStr
+         query = BSON( FIELD_NAME_NAME << pCollection << FIELD_NAME_SOURCE
+                       << pSource << FIELD_NAME_TARGET << pTarget
                        << FIELD_NAME_SPLITPERCENT << ( FLOAT64 )percent
                        << FIELD_NAME_ASYNC << bAsync ) ;
       }
       else
       {
-         query = BSON( FIELD_NAME_NAME << collectionName << FIELD_NAME_SOURCE
-                       << sourceStr << FIELD_NAME_TARGET << targetStr
+         query = BSON( FIELD_NAME_NAME << pCollection << FIELD_NAME_SOURCE
+                       << pSource << FIELD_NAME_TARGET << pTarget
                        << FIELD_NAME_SPLITQUERY << splitQuery
                        << FIELD_NAME_SPLITENDQUERY << splitEndQuery
                        << FIELD_NAME_ASYNC << bAsync ) ;
@@ -2301,19 +2171,17 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertTruncateCollection( restAdaptor *pAdaptor,
-                                                        restRequest &request,
                                                         MsgHeader **msg )
    {
       INT32 rc                = SDB_OK ;
       INT32 buffSize          = 0 ;
       CHAR *pBuff             = NULL ;
+      const CHAR *pCollection = NULL ;
       const CHAR *pCommand    = CMD_ADMIN_PREFIX CMD_NAME_TRUNCATE ;
-      string collectionName ;
       BSONObj query ;
 
-      // collection full name
-      collectionName = request.getQuery( FIELD_NAME_NAME ) ;
-      if ( collectionName.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pCollection ) ;
+      if ( NULL == pCollection )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get collection's %s failed",
@@ -2324,7 +2192,7 @@ namespace engine
       try
       {
          BSONObjBuilder ob ;
-         ob.append ( FIELD_NAME_COLLECTION, collectionName ) ;
+         ob.append ( FIELD_NAME_COLLECTION, pCollection ) ;
          query = ob.obj () ;
       }
       catch ( std::exception &e )
@@ -2352,27 +2220,26 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_coverAttachCollection( restAdaptor *pAdaptor,
-                                                    restRequest &request,
                                                     MsgHeader **msg )
    {
       INT32 rc                = SDB_OK ;
       CHAR *pBuff             = NULL ;
       INT32 buffSize          = 0 ;
       const CHAR *pCommand    = CMD_ADMIN_PREFIX CMD_NAME_LINK_CL ;
-      string lowboundStr ;
-      string upboundStr ;
-      string collectionName ;
-      string subCLName ;
+      const CHAR *pLowbound   = NULL ;
+      const CHAR *pUpbound    = NULL ;
+      const CHAR *pCollection = NULL ;
+      const CHAR *pSubCLName  = NULL ;
       BSONObj lowbound ;
       BSONObj upbound ;
       BSONObj query ;
 
-      // collection name
-      collectionName = request.getQuery( FIELD_NAME_NAME ) ;
-      if ( collectionName.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pCollection ) ;
+      if ( NULL == pCollection )
       {
-         collectionName = request.getQuery( REST_KEY_NAME_COLLECTION ) ;
-         if ( collectionName.empty() )
+         pAdaptor->getQuery( _restSession, REST_KEY_NAME_COLLECTION,
+                             &pCollection ) ;
+         if ( NULL == pCollection )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG_MSG( PDERROR, "get collection's %s[or %s] failed",
@@ -2381,9 +2248,8 @@ namespace engine
          }
       }
 
-      // subcl name
-      subCLName = request.getQuery( REST_KEY_NAME_SUBCLNAME ) ;
-      if ( subCLName.empty() )
+      pAdaptor->getQuery( _restSession, REST_KEY_NAME_SUBCLNAME, &pSubCLName ) ;
+      if ( NULL == pSubCLName )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get rest field[%s] failed",
@@ -2391,9 +2257,8 @@ namespace engine
          goto error ;
       }
 
-      // lowbound
-      lowboundStr = request.getQuery( REST_KEY_NAME_LOWBOUND ) ;
-      if ( lowboundStr.empty() )
+      pAdaptor->getQuery( _restSession, REST_KEY_NAME_LOWBOUND, &pLowbound ) ;
+      if ( NULL == pLowbound )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get rest field[%s] failed",
@@ -2401,17 +2266,16 @@ namespace engine
          goto error ;
       }
 
-      rc = fromjson( lowboundStr.c_str(), lowbound, 0 ) ;
+      rc = fromjson( pLowbound, lowbound, 0 ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
-                     REST_KEY_NAME_LOWBOUND, lowboundStr.c_str() ) ;
+                     REST_KEY_NAME_LOWBOUND, pLowbound ) ;
          goto error ;
       }
 
-      // upbound
-      upboundStr = request.getQuery( REST_KEY_NAME_UPBOUND ) ;
-      if ( upboundStr.empty() )
+      pAdaptor->getQuery( _restSession, REST_KEY_NAME_UPBOUND, &pUpbound ) ;
+      if ( NULL == pUpbound )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get rest field[%s] failed",
@@ -2419,16 +2283,16 @@ namespace engine
          goto error ;
       }
 
-      rc = fromjson( upboundStr.c_str(), upbound, 0 ) ;
+      rc = fromjson( pUpbound, upbound, 0 ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
-                     REST_KEY_NAME_UPBOUND, upboundStr.c_str() ) ;
+                     REST_KEY_NAME_UPBOUND, pUpbound ) ;
          goto error ;
       }
 
-      query = BSON( FIELD_NAME_NAME << collectionName
-                    << FIELD_NAME_SUBCLNAME << subCLName
+      query = BSON( FIELD_NAME_NAME << pCollection
+                    << FIELD_NAME_SUBCLNAME << pSubCLName
                     << FIELD_NAME_LOWBOUND << lowbound
                     << FIELD_NAME_UPBOUND << upbound ) ;
 
@@ -2450,19 +2314,19 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_coverDetachCollection( restAdaptor *pAdaptor,
-                                                    restRequest &request,
                                                     MsgHeader **msg )
    {
       INT32 rc                = SDB_OK ;
       INT32 buffSize          = 0 ;
       CHAR *pBuff             = NULL ;
       const CHAR *pCommand    = CMD_ADMIN_PREFIX CMD_NAME_UNLINK_CL ;
-      string collectionName ;
-      string subCLName ;
+      const CHAR *pCollection = NULL ;
+      const CHAR *pSubCLName  = NULL ;
       BSONObj query ;
 
-      collectionName = request.getQuery( REST_KEY_NAME_COLLECTION ) ;
-      if ( collectionName.empty() )
+      pAdaptor->getQuery( _restSession, REST_KEY_NAME_COLLECTION,
+                          &pCollection ) ;
+      if ( NULL == pCollection )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get collection's %s failed",
@@ -2470,9 +2334,8 @@ namespace engine
          goto error ;
       }
 
-      // subcl name
-      subCLName = request.getQuery( REST_KEY_NAME_SUBCLNAME ) ;
-      if ( subCLName.empty() )
+      pAdaptor->getQuery( _restSession, REST_KEY_NAME_SUBCLNAME, &pSubCLName ) ;
+      if ( NULL == pSubCLName )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get rest field[%s] failed",
@@ -2483,8 +2346,8 @@ namespace engine
       try
       {
          BSONObjBuilder ob ;
-         ob.append ( FIELD_NAME_NAME, collectionName ) ;
-         ob.append ( FIELD_NAME_SUBCLNAME, subCLName ) ;
+         ob.append ( FIELD_NAME_NAME, pCollection ) ;
+         ob.append ( FIELD_NAME_SUBCLNAME, pSubCLName ) ;
          query = ob.obj () ;
       }
       catch ( std::exception &e )
@@ -2512,7 +2375,6 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertListGroups( restAdaptor *pAdaptor,
-                                                restRequest &request,
                                                 MsgHeader **msg )
    {
       INT32 rc              = SDB_OK ;
@@ -2538,19 +2400,17 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertStartGroup( restAdaptor *pAdaptor,
-                                                restRequest &request,
                                                 MsgHeader **msg )
    {
       INT32 rc             = SDB_OK ;
       INT32 buffSize       = 0 ;
       CHAR *pBuff          = NULL ;
+      const CHAR *pName    = NULL ;
       const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_ACTIVE_GROUP ;
-      string name ;
       BSONObj query ;
 
-      // Name
-      name = request.getQuery( FIELD_NAME_NAME ) ;
-      if ( name.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pName ) ;
+      if ( NULL == pName )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get rest field failed:field=%s",
@@ -2561,7 +2421,7 @@ namespace engine
       try
       {
          BSONObjBuilder ob ;
-         ob.append ( FIELD_NAME_GROUPNAME, name ) ;
+         ob.append ( FIELD_NAME_GROUPNAME, pName ) ;
          query = ob.obj() ;
       }
       catch( std::exception &e )
@@ -2589,19 +2449,17 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertStopGroup( restAdaptor *pAdaptor,
-                                               restRequest &request,
                                                MsgHeader **msg )
    {
       INT32 rc             = SDB_OK ;
       INT32 buffSize       = 0 ;
       CHAR *pBuff          = NULL ;
+      const CHAR *pName    = NULL ;
       const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_SHUTDOWN_GROUP ;
-      string name ;
       BSONObj query ;
 
-      // Name
-      name = request.getQuery( FIELD_NAME_NAME ) ;
-      if ( name.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pName ) ;
+      if ( NULL == pName )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get rest field failed:field=%s",
@@ -2612,7 +2470,7 @@ namespace engine
       try
       {
          BSONObjBuilder ob ;
-         ob.append ( FIELD_NAME_GROUPNAME, name ) ;
+         ob.append ( FIELD_NAME_GROUPNAME, pName ) ;
          query = ob.obj() ;
       }
       catch( std::exception &e )
@@ -2640,20 +2498,18 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertStartNode( restAdaptor *pAdaptor,
-                                               restRequest &request,
                                                MsgHeader **msg )
    {
       INT32 rc              = SDB_OK ;
       INT32 buffSize        = 0 ;
       CHAR *pBuff           = NULL ;
+      const CHAR *pHostName = NULL ;
+      const CHAR *pSvcname  = NULL ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_STARTUP_NODE ;
-      string hostname ;
-      string svcname ;
       BSONObj query ;
 
-      // HostName
-      hostname = request.getQuery( FIELD_NAME_HOST ) ;
-      if ( hostname.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_HOST, &pHostName ) ;
+      if ( NULL == pHostName )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get rest field failed:field=%s",
@@ -2661,9 +2517,8 @@ namespace engine
          goto error ;
       }
 
-      // svcname
-      svcname = request.getQuery( OM_CONF_DETAIL_SVCNAME ) ;
-      if ( svcname.empty() )
+      pAdaptor->getQuery( _restSession, OM_CONF_DETAIL_SVCNAME, &pSvcname ) ;
+      if ( NULL == pSvcname )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get rest field failed:field=%s",
@@ -2674,8 +2529,8 @@ namespace engine
       try
       {
          BSONObjBuilder ob ;
-         ob.append ( FIELD_NAME_HOST, hostname ) ;
-         ob.append ( OM_CONF_DETAIL_SVCNAME, svcname ) ;
+         ob.append ( FIELD_NAME_HOST, pHostName ) ;
+         ob.append ( OM_CONF_DETAIL_SVCNAME, pSvcname ) ;
          query = ob.obj() ;
       }
       catch( std::exception &e )
@@ -2703,20 +2558,18 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertStopNode( restAdaptor *pAdaptor,
-                                              restRequest &request,
                                               MsgHeader **msg )
    {
       INT32 rc              = SDB_OK ;
       INT32 buffSize        = 0 ;
       CHAR *pBuff           = NULL ;
+      const CHAR *pHostName = NULL ;
+      const CHAR *pSvcname  = NULL ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SHUTDOWN_NODE ;
-      string hostname ;
-      string svcname ;
       BSONObj query ;
 
-      // HostName
-      hostname = request.getQuery( FIELD_NAME_HOST ) ;
-      if ( hostname.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_HOST, &pHostName ) ;
+      if ( NULL == pHostName )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get rest field failed:field=%s",
@@ -2724,9 +2577,8 @@ namespace engine
          goto error ;
       }
 
-      // svcname
-      svcname = request.getQuery( OM_CONF_DETAIL_SVCNAME ) ;
-      if ( svcname.empty() )
+      pAdaptor->getQuery( _restSession, OM_CONF_DETAIL_SVCNAME, &pSvcname ) ;
+      if ( NULL == pSvcname )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get rest field failed:field=%s",
@@ -2737,8 +2589,8 @@ namespace engine
       try
       {
          BSONObjBuilder ob ;
-         ob.append ( FIELD_NAME_HOST, hostname ) ;
-         ob.append ( OM_CONF_DETAIL_SVCNAME, svcname ) ;
+         ob.append ( FIELD_NAME_HOST, pHostName ) ;
+         ob.append ( OM_CONF_DETAIL_SVCNAME, pSvcname ) ;
          query = ob.obj() ;
       }
       catch( std::exception &e )
@@ -2766,24 +2618,24 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertGetCount( restAdaptor *pAdaptor,
-                                              restRequest &request,
                                               MsgHeader **msg )
    {
       INT32 rc              = SDB_OK ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_GET_COUNT ;
-      string collectionName ;
-      string matchStr ;
-      string hintStr ;
+      const CHAR *pCollection = NULL ;
+      const CHAR *pMatcher    = NULL ;
+      const CHAR *pHint       = NULL ;
       BSONObj matcher ;
       BSONObj hint ;
 
-      collectionName = request.getQuery( FIELD_NAME_NAME ) ;
-      if ( collectionName.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pCollection ) ;
+      if ( NULL == pCollection )
       {
-         collectionName = request.getQuery( REST_KEY_NAME_COLLECTION ) ;
-         if ( collectionName.empty() )
+         pAdaptor->getQuery( _restSession, REST_KEY_NAME_COLLECTION,
+                             &pCollection ) ;
+         if ( NULL == pCollection )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG_MSG( PDERROR, "get collection's %s[or %s] failed",
@@ -2792,39 +2644,39 @@ namespace engine
          }
       }
 
-      matchStr = request.getQuery( FIELD_NAME_FILTER ) ;
-      if ( matchStr.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_FILTER, &pMatcher ) ;
+      if ( NULL == pMatcher )
       {
-         matchStr = request.getQuery( REST_KEY_NAME_MATCHER ) ;
+         pAdaptor->getQuery( _restSession, REST_KEY_NAME_MATCHER, &pMatcher ) ;
       }
 
-      if ( FALSE == matchStr.empty() )
+      if ( NULL != pMatcher )
       {
-         rc = fromjson( matchStr.c_str(), matcher, 0 ) ;
+         rc = fromjson( pMatcher, matcher, 0 ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG_MSG( PDERROR, "field's format error:field=%s[or %s],"
                         "value=%s", FIELD_NAME_FILTER, REST_KEY_NAME_MATCHER,
-                        matchStr.c_str() ) ;
+                        pMatcher ) ;
             goto error ;
          }
       }
 
-      hintStr = request.getQuery( FIELD_NAME_HINT ) ;
-      if ( FALSE == hintStr.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_HINT, &pHint ) ;
+      if ( NULL != pHint )
       {
-         rc = fromjson( hintStr.c_str(), hint, 0 ) ;
+         rc = fromjson( pHint, hint, 0 ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG_MSG( PDERROR, "field's format error:field=%s,value=%s",
-                        FIELD_NAME_HINT, hintStr.c_str() ) ;
+                        FIELD_NAME_HINT, pHint ) ;
             goto error ;
          }
       }
 
       {
          BSONObjBuilder builder ;
-         builder.append( FIELD_NAME_COLLECTION, collectionName ) ;
+         builder.append( FIELD_NAME_COLLECTION, pCollection ) ;
          if ( !hint.isEmpty() )
          {
             builder.append( FIELD_NAME_HINT, hint ) ;
@@ -2851,20 +2703,69 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertListBase( restAdaptor *pAdaptor,
-                                              restRequest &request,
                                               BSONObj &match, BSONObj &selector,
                                               BSONObj &order )
    {
-      BSONObj hint ;
-      SINT64  skip ;
-      SINT64  returnRow ;
-      return _convertSnapshotBase( pAdaptor, request, match, selector,
-                                   order, hint, &skip, &returnRow ) ;
+      INT32 rc = SDB_OK ;
+      const CHAR *pOrder    = NULL ;
+      const CHAR *pMatch    = NULL ;
+      const CHAR *pSelector = NULL ;
+
+      pAdaptor->getQuery( _restSession, FIELD_NAME_FILTER, &pMatch ) ;
+      if ( NULL == pMatch )
+      {
+         pAdaptor->getQuery( _restSession, REST_KEY_NAME_MATCHER, &pMatch ) ;
+      }
+      pAdaptor->getQuery( _restSession, FIELD_NAME_SELECTOR, &pSelector ) ;
+      pAdaptor->getQuery( _restSession, FIELD_NAME_SORT, &pOrder ) ;
+      if ( NULL == pOrder )
+      {
+         pAdaptor->getQuery( _restSession, REST_KEY_NAME_ORDERBY, &pOrder ) ;
+      }
+
+      if ( NULL != pMatch )
+      {
+         rc = fromjson( pMatch, match, 0 ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG_MSG( PDERROR, "field's format error:field=%s[or %s], "
+                        "value=%s", FIELD_NAME_FILTER, REST_KEY_NAME_MATCHER,
+                        pMatch ) ;
+            goto error ;
+         }
+      }
+
+      if ( NULL != pSelector )
+      {
+         rc = fromjson( pSelector, selector, 0 ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
+                        FIELD_NAME_SELECTOR, pSelector ) ;
+            goto error ;
+         }
+      }
+
+      if ( NULL != pOrder )
+      {
+         rc = fromjson( pOrder, order, 0 ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG_MSG( PDERROR, "field's format error:field=%s[or %s], "
+                        "value=%s", FIELD_NAME_SORT, REST_KEY_NAME_ORDERBY,
+                        pOrder ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    INT32 RestToMSGTransfer::_convertListContexts( restAdaptor *pAdaptor,
-                                                  restRequest &request,
-                                                  MsgHeader **msg )
+                                                 MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
       BSONObj selector ;
@@ -2874,7 +2775,7 @@ namespace engine
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_LIST_CONTEXTS ;
 
-      rc = _convertListBase( pAdaptor, request, match, selector, order ) ;
+      rc = _convertListBase( pAdaptor, match, selector, order ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "convert list failed:rc=%d", rc ) ;
@@ -2899,7 +2800,6 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertListContextsCurrent( restAdaptor *pAdaptor,
-                                                         restRequest &request,
                                                          MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
@@ -2910,7 +2810,7 @@ namespace engine
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_LIST_CONTEXTS_CURRENT ;
 
-      rc = _convertListBase( pAdaptor, request, match, selector, order ) ;
+      rc = _convertListBase( pAdaptor, match, selector, order ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "convert list failed:rc=%d", rc ) ;
@@ -2935,7 +2835,6 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertListSessions( restAdaptor *pAdaptor,
-                                                  restRequest &request,
                                                   MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
@@ -2946,7 +2845,7 @@ namespace engine
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_LIST_SESSIONS ;
 
-      rc = _convertListBase( pAdaptor, request, match, selector, order ) ;
+      rc = _convertListBase( pAdaptor, match, selector, order ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "convert list failed:rc=%d", rc ) ;
@@ -2971,7 +2870,6 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertListSessionsCurrent( restAdaptor *pAdaptor,
-                                                         restRequest &request,
                                                          MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
@@ -2982,7 +2880,7 @@ namespace engine
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_LIST_SESSIONS_CURRENT ;
 
-      rc = _convertListBase( pAdaptor, request, match, selector, order ) ;
+      rc = _convertListBase( pAdaptor, match, selector, order ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "convert list failed:rc=%d", rc ) ;
@@ -3007,7 +2905,6 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertListCollections( restAdaptor *pAdaptor,
-                                                     restRequest &request,
                                                      MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
@@ -3018,7 +2915,7 @@ namespace engine
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_LIST_COLLECTIONS ;
 
-      rc = _convertListBase( pAdaptor, request, match, selector, order ) ;
+      rc = _convertListBase( pAdaptor, match, selector, order ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "convert list failed:rc=%d", rc ) ;
@@ -3043,7 +2940,6 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertListCollectionSpaces( restAdaptor *pAdaptor,
-                                                          restRequest &request,
                                                           MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
@@ -3054,7 +2950,7 @@ namespace engine
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_LIST_COLLECTIONSPACES ;
 
-      rc = _convertListBase( pAdaptor, request, match, selector, order ) ;
+      rc = _convertListBase( pAdaptor, match, selector, order ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "convert list failed:rc=%d", rc ) ;
@@ -3079,7 +2975,6 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertListStorageUnits( restAdaptor *pAdaptor,
-                                                      restRequest &request,
                                                       MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
@@ -3090,7 +2985,7 @@ namespace engine
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_LIST_STORAGEUNITS ;
 
-      rc = _convertListBase( pAdaptor, request, match, selector, order ) ;
+      rc = _convertListBase( pAdaptor, match, selector, order ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "convert list failed:rc=%d", rc ) ;
@@ -3115,19 +3010,18 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertCreateProcedure( restAdaptor *pAdaptor,
-                                                     restRequest &request,
                                                      MsgHeader **msg )
    {
       INT32 rc             = SDB_OK ;
       INT32 buffSize       = 0 ;
       CHAR *pBuff          = NULL ;
       const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_CRT_PROCEDURE ;
-      string jsCode ;
+      const CHAR *pJsCode  = NULL ;
       BSONObj query ;
 
-      // code
-      jsCode = request.getQuery( REST_KEY_NAME_CODE ) ;
-      if ( jsCode.empty() )
+      pAdaptor->getQuery( _restSession, REST_KEY_NAME_CODE,
+                          &pJsCode ) ;
+      if ( NULL == pJsCode )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get rest field failed:field=%s",
@@ -3138,7 +3032,7 @@ namespace engine
       try
       {
          BSONObjBuilder ob ;
-         ob.appendCode ( FIELD_NAME_FUNC, jsCode ) ;
+         ob.appendCode ( FIELD_NAME_FUNC, pJsCode ) ;
          ob.append ( FMP_FUNC_TYPE, FMP_FUNC_TYPE_JS ) ;
          query = ob.obj() ;
       }
@@ -3167,19 +3061,18 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertRemoveProcedure( restAdaptor *pAdaptor,
-                                                     restRequest &request,
                                                      MsgHeader **msg )
    {
       INT32 rc              = SDB_OK ;
       INT32 buffSize        = 0 ;
       CHAR *pBuff           = NULL ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_RM_PROCEDURE ;
-      string funcName ;
+      const CHAR *pFuncName = NULL ;
       BSONObj query ;
 
-      // function
-      funcName = request.getQuery( REST_KEY_NAME_FUNCTION ) ;
-      if ( funcName.empty() )
+      pAdaptor->getQuery( _restSession, REST_KEY_NAME_FUNCTION,
+                          &pFuncName ) ;
+      if ( NULL == pFuncName )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get rest field failed:field=%s",
@@ -3190,7 +3083,7 @@ namespace engine
       try
       {
          BSONObjBuilder ob ;
-         ob.append ( FIELD_NAME_FUNC, funcName ) ;
+         ob.append ( FIELD_NAME_FUNC, pFuncName ) ;
          query = ob.obj() ;
       }
       catch( std::exception &e )
@@ -3218,7 +3111,6 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertListProcedures( restAdaptor *pAdaptor,
-                                                    restRequest &request,
                                                     MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
@@ -3227,37 +3119,32 @@ namespace engine
       SINT64 returnRow = -1 ;
       CHAR *pBuff = NULL ;
       const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_LIST_PROCEDURES ;
-      string skipStr ;
-      string returnRowStr ;
+      const CHAR *pSkip = NULL ;
+      const CHAR *pReturnRow = NULL ;
       BSONObj selector ;
       BSONObj order ;
       BSONObj match ;
 
-      rc = _convertListBase( pAdaptor, request, match, selector, order ) ;
+      rc = _convertListBase( pAdaptor, match, selector, order ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "convert list failed:rc=%d", rc ) ;
          goto error ;
       }
-
-      //Skip
-      skipStr = request.getQuery( FIELD_NAME_SKIP ) ;
-
-      //ReturnNum(Limit)
-      returnRowStr = request.getQuery( FIELD_NAME_RETURN_NUM ) ;
-      if ( returnRowStr.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_SKIP, &pSkip ) ;
+      pAdaptor->getQuery( _restSession, FIELD_NAME_RETURN_NUM, &pReturnRow ) ;
+      if ( NULL == pReturnRow )
       {
-         returnRowStr = request.getQuery( REST_KEY_NAME_LIMIT ) ;
+         pAdaptor->getQuery( _restSession, REST_KEY_NAME_LIMIT, &pReturnRow ) ;
+      }
+      if ( NULL != pSkip )
+      {
+         skip = ossAtoll( pSkip ) ;
       }
 
-      if ( FALSE == skipStr.empty() )
+      if ( NULL != pReturnRow )
       {
-         skip = ossAtoll( skipStr.c_str() ) ;
-      }
-
-      if ( FALSE == returnRowStr.empty() )
-      {
-         returnRow = ossAtoll( returnRowStr.c_str() ) ;
+         returnRow = ossAtoll( pReturnRow ) ;
       }
 
       rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, skip,
@@ -3279,21 +3166,19 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertAlterDomain( restAdaptor *pAdaptor,
-                                                 restRequest &request,
                                                  MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
       INT32 buffSize = 0 ;
       CHAR *pBuff = NULL ;
+      const CHAR *pName = NULL ;
+      const CHAR *pOptions = NULL ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_ALTER_DOMAIN ;
-      string name ;
-      string optionsStr ;
       BSONObj query ;
       BSONObj options ;
 
-      // name
-      name = request.getQuery( FIELD_NAME_NAME ) ;
-      if( name.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pName ) ;
+      if( NULL == pName )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get rest field failed:field=%s",
@@ -3301,9 +3186,8 @@ namespace engine
          goto error ;
       }
 
-      // options
-      optionsStr = request.getQuery( FIELD_NAME_OPTIONS ) ;
-      if ( optionsStr.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_OPTIONS, &pOptions ) ;
+      if ( NULL == pOptions )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get rest field failed:field=%s",
@@ -3311,18 +3195,18 @@ namespace engine
          goto error ;
       }
 
-      rc = fromjson( optionsStr.c_str(), options, 0 ) ;
+      rc = fromjson( pOptions, options, 0 ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
-                     FIELD_NAME_OPTIONS, optionsStr.c_str() ) ;
+                     FIELD_NAME_OPTIONS, pOptions ) ;
          goto error ;
       }
 
       try
       {
          BSONObjBuilder ob ;
-         ob.append ( FIELD_NAME_NAME, name ) ;
+         ob.append ( FIELD_NAME_NAME, pName ) ;
          ob.append ( FIELD_NAME_OPTIONS, options ) ;
          query = ob.obj () ;
       }
@@ -3351,7 +3235,6 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertListDomains( restAdaptor *pAdaptor,
-                                                 restRequest &request,
                                                  MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
@@ -3362,7 +3245,7 @@ namespace engine
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_LIST_DOMAINS ;
 
-      rc = _convertListBase( pAdaptor, request, match, selector, order ) ;
+      rc = _convertListBase( pAdaptor, match, selector, order ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "convert list failed:rc=%d", rc ) ;
@@ -3387,21 +3270,19 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertCreateDomain( restAdaptor *pAdaptor,
-                                                  restRequest &request,
                                                   MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
       INT32 buffSize        = 0 ;
       CHAR *pBuff           = NULL ;
+      const CHAR *pName     = NULL ;
+      const CHAR *pOptions  = NULL ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_CREATE_DOMAIN ;
-      string name ;
-      string optionsStr ;
       BSONObj query ;
       BSONObj options ;
 
-      // name
-      name = request.getQuery( FIELD_NAME_NAME ) ;
-      if ( name.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pName ) ;
+      if ( NULL == pName )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get rest field failed:field=%s",
@@ -3409,15 +3290,14 @@ namespace engine
          goto error ;
       }
 
-      //options
-      optionsStr = request.getQuery( FIELD_NAME_OPTIONS ) ;
-      if( FALSE == optionsStr.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_OPTIONS, &pOptions ) ;
+      if( NULL != pOptions )
       {
-         rc = fromjson( optionsStr.c_str(), options, 0 ) ;
+         rc = fromjson( pOptions, options, 0 ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG_MSG( PDERROR, "field's format error:field=%s, "
-                        "value=%s", FIELD_NAME_OPTIONS, optionsStr.c_str() ) ;
+                        "value=%s", FIELD_NAME_OPTIONS, pOptions ) ;
             goto error ;
          }
       }
@@ -3425,8 +3305,8 @@ namespace engine
       try
       {
          BSONObjBuilder ob ;
-         ob.append ( FIELD_NAME_NAME, name ) ;
-         if( FALSE == optionsStr.empty() )
+         ob.append ( FIELD_NAME_NAME, pName ) ;
+         if( pOptions != NULL )
          {
             ob.append ( FIELD_NAME_OPTIONS, options ) ;
          }
@@ -3457,19 +3337,18 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertDropDomain( restAdaptor *pAdaptor,
-                                                restRequest &request,
                                                 MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_DROP_DOMAIN ;
-      string name ;
+      const CHAR *pName     = NULL ;
       BSONObj query ;
 
-      // name
-      name = request.getQuery( FIELD_NAME_NAME ) ;
-      if ( name.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_NAME,
+                          &pName ) ;
+      if ( NULL == pName )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get rest field failed:field=%s",
@@ -3477,7 +3356,7 @@ namespace engine
          goto error ;
       }
 
-      query = BSON( FIELD_NAME_NAME << name ) ;
+      query = BSON( FIELD_NAME_NAME << pName ) ;
       rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1,
                              &query, NULL, NULL, NULL ) ;
       if ( SDB_OK != rc )
@@ -3496,7 +3375,6 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertListTasks( restAdaptor *pAdaptor,
-                                               restRequest &request,
                                                MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
@@ -3507,7 +3385,7 @@ namespace engine
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_LIST_TASKS ;
 
-      rc = _convertListBase( pAdaptor, request, match, selector, order ) ;
+      rc = _convertListBase( pAdaptor, match, selector, order ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "convert list failed:rc=%d", rc ) ;
@@ -3532,21 +3410,20 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertListIndexes( restAdaptor *pAdaptor,
-                                                 restRequest &request,
                                                  MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
       BSONObj hint ;
+      const CHAR *pTable    = NULL ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_GET_INDEXES ;
-      string table ;
 
-      table = request.getQuery( FIELD_NAME_NAME ) ;
-      if ( table.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pTable ) ;
+      if ( NULL == pTable )
       {
-         table = request.getQuery( REST_KEY_NAME_COLLECTION ) ;
-         if ( table.empty() )
+         pAdaptor->getQuery( _restSession, REST_KEY_NAME_COLLECTION, &pTable ) ;
+         if ( NULL == pTable )
          {
             PD_LOG_MSG( PDERROR, "get field failed:field=%s[or %s]",
                      FIELD_NAME_NAME, REST_KEY_NAME_COLLECTION ) ;
@@ -3555,7 +3432,7 @@ namespace engine
          }
       }
 
-      hint = BSON( FIELD_NAME_COLLECTION << table ) ;
+      hint = BSON( FIELD_NAME_COLLECTION << pTable ) ;
 
       rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, NULL,
                              NULL, NULL, &hint ) ;
@@ -3575,7 +3452,6 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertListCSInDomain( restAdaptor *pAdaptor,
-                                                    restRequest &request,
                                                     MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
@@ -3586,7 +3462,7 @@ namespace engine
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_LIST_CS_IN_DOMAIN ;
 
-      rc = _convertListBase( pAdaptor, request, match, selector, order ) ;
+      rc = _convertListBase( pAdaptor, match, selector, order ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "convert list failed:rc=%d", rc ) ;
@@ -3611,7 +3487,6 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertListCLInDomain( restAdaptor *pAdaptor,
-                                                    restRequest &request,
                                                     MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
@@ -3622,7 +3497,7 @@ namespace engine
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_LIST_CL_IN_DOMAIN ;
 
-      rc = _convertListBase( pAdaptor, request, match, selector, order ) ;
+      rc = _convertListBase( pAdaptor, match, selector, order ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "convert list failed:rc=%d", rc ) ;
@@ -3647,7 +3522,6 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertListLobs( restAdaptor *pAdaptor,
-                                              restRequest &request,
                                               MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
@@ -3655,13 +3529,13 @@ namespace engine
       CHAR *pBuff          = NULL ;
       INT32 buffSize       = 0 ;
       const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_LIST_LOBS ;
-      string clName ;
+      const CHAR *clName   = NULL ;
 
-      clName = request.getQuery( FIELD_NAME_NAME ) ;
-      if ( clName.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &clName ) ;
+      if ( NULL == clName )
       {
-         clName = request.getQuery( REST_KEY_NAME_COLLECTION ) ;
-         if ( clName.empty() )
+         pAdaptor->getQuery( _restSession, REST_KEY_NAME_COLLECTION, &clName ) ;
+         if ( NULL == clName )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG_MSG( PDERROR, "get collection's %s failed",
@@ -3688,169 +3562,30 @@ namespace engine
       goto done ;
    }
 
-//   INT32 RestToMSGTransfer::_convertListLobsPieces( restAdaptor *pAdaptor,
-//                                                    MsgHeader **msg )
-//   {
-//      INT32 rc = SDB_OK ;
-//      BSONObj match ;
-//      CHAR *pBuff          = NULL ;
-//      INT32 buffSize       = 0 ;
-//      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_LIST_LOBS ;
-//      const CHAR *clName   = NULL ;
 
-//      pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &clName ) ;
-//      if ( NULL == clName )
-//      {
-//         rc = SDB_INVALIDARG ;
-//         PD_LOG_MSG( PDERROR, "get collection's %s failed",
-//                     FIELD_NAME_NAME ) ;
-//         goto error ;
-//      }
 
-//      match = BSON( FIELD_NAME_COLLECTION << clName
-//                    << FIELD_NAME_LOB_LIST_PIECES_MODE << TRUE ) ;
-//      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &match,
-//                             NULL, NULL, NULL ) ;
-//      if ( SDB_OK != rc )
-//      {
-//         PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
-//                     pCommand, rc ) ;
-//         goto error ;
-//      }
 
-//      *msg = ( MsgHeader * )pBuff ;
 
-//   done:
-//      return rc ;
-//   error:
-//      goto done ;
-//   }
-
-   INT32 RestToMSGTransfer::_convertSnapshotBase( restAdaptor *pAdaptor,
-                                                  restRequest &request,
-                                                  BSONObj &match, BSONObj &selector,
-                                                  BSONObj &order,
-                                                  BSONObj &hint,
-                                                  SINT64* skip,
-                                                  SINT64* returnRow )
-   {
-      INT32 rc = SDB_OK ;
-      string matchStr ;
-      string selectorStr ;
-      string orderStr ;
-      string hintStr ;
-      string skipStr ;
-      string returnRowStr ;
-
-      matchStr = request.getQuery( FIELD_NAME_FILTER ) ;
-      if ( matchStr.empty() )
-      {
-         matchStr = request.getQuery( REST_KEY_NAME_MATCHER ) ;
-      }
-
-      selectorStr = request.getQuery( FIELD_NAME_SELECTOR ) ;
-
-      orderStr = request.getQuery( FIELD_NAME_SORT ) ;
-      if ( orderStr.empty() )
-      {
-         orderStr = request.getQuery( REST_KEY_NAME_ORDERBY ) ;
-      }
-      hintStr = request.getQuery( FIELD_NAME_HINT ) ;
-      skipStr = request.getQuery( FIELD_NAME_SKIP ) ;
-
-      returnRowStr = request.getQuery( FIELD_NAME_RETURN_NUM ) ;
-      if ( returnRowStr.empty() )
-      {
-         returnRowStr = request.getQuery( REST_KEY_NAME_LIMIT ) ;
-      }
-
-      if ( FALSE == matchStr.empty() )
-      {
-         rc = fromjson( matchStr.c_str(), match, 0 ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG_MSG( PDERROR, "field's format error:field=%s[or %s], "
-                        "value=%s", FIELD_NAME_FILTER, REST_KEY_NAME_MATCHER,
-                        matchStr.c_str() ) ;
-            goto error ;
-         }
-      }
-
-      if ( FALSE == selectorStr.empty() )
-      {
-         rc = fromjson( selectorStr.c_str(), selector, 0 ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
-                        FIELD_NAME_SELECTOR, selectorStr.c_str() ) ;
-            goto error ;
-         }
-      }
-
-      if ( FALSE == orderStr.empty() )
-      {
-         rc = fromjson( orderStr.c_str(), order, 0 ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG_MSG( PDERROR, "field's format error:field=%s[or %s], "
-                        "value=%s", FIELD_NAME_SORT, REST_KEY_NAME_ORDERBY,
-                        orderStr.c_str() ) ;
-            goto error ;
-         }
-      }
-
-      if ( FALSE == hintStr.empty() )
-      {
-         rc = fromjson( hintStr.c_str(), hint, 0 ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
-                        FIELD_NAME_HINT, hintStr.c_str() ) ;
-            goto error ;
-         }
-      }
-
-      if ( FALSE == skipStr.empty() )
-      {
-         *skip = ossAtoll( skipStr.c_str() ) ;
-      }
-
-      if ( FALSE == returnRowStr.empty() )
-      {
-         *returnRow = ossAtoll( returnRowStr.c_str() ) ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
 
    INT32 RestToMSGTransfer::_convertSnapshotContext( restAdaptor *pAdaptor,
-                                                     restRequest &request,
                                                      MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
       BSONObj selector ;
       BSONObj order ;
       BSONObj match ;
-      BSONObj hint ;
-      SINT64 skip = 0 ;
-      SINT64 returnRow = -1 ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_CONTEXTS ;
 
-      rc = _convertSnapshotBase( pAdaptor, request, match, selector, order,
-                                 hint, &skip, &returnRow ) ;
+      rc = _convertListBase( pAdaptor, match, selector, order ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "convert snapshot failed:rc=%d", rc ) ;
          goto error ;
       }
 
-      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0,
-                             skip, returnRow, &match,
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &match,
                              &selector, &order, NULL ) ;
       if ( SDB_OK != rc )
       {
@@ -3869,31 +3604,25 @@ namespace engine
 
    INT32 RestToMSGTransfer::_convertSnapshotContextCurrent(
                                                      restAdaptor *pAdaptor,
-                                                     restRequest &request,
                                                      MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
       BSONObj selector ;
       BSONObj order ;
       BSONObj match ;
-      BSONObj hint ;
-      SINT64 skip = 0 ;
-      SINT64 returnRow = -1 ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX
                               CMD_NAME_SNAPSHOT_CONTEXTS_CURRENT ;
 
-      rc = _convertSnapshotBase( pAdaptor, request, match, selector, order,
-                                 hint, &skip, &returnRow ) ;
+      rc = _convertListBase( pAdaptor, match, selector, order ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "convert snapshot failed:rc=%d", rc ) ;
          goto error ;
       }
 
-      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0,
-                             skip, returnRow, &match,
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &match,
                              &selector, &order, NULL ) ;
       if ( SDB_OK != rc )
       {
@@ -3911,30 +3640,24 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertSnapshotSessions( restAdaptor *pAdaptor,
-                                                      restRequest &request,
                                                       MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
       BSONObj selector ;
       BSONObj order ;
       BSONObj match ;
-      BSONObj hint ;
-      SINT64 skip = 0 ;
-      SINT64 returnRow = -1 ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_SESSIONS ;
 
-      rc = _convertSnapshotBase( pAdaptor, request, match, selector, order,
-                                 hint, &skip, &returnRow ) ;
+      rc = _convertListBase( pAdaptor, match, selector, order ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "convert snapshot failed:rc=%d", rc ) ;
          goto error ;
       }
 
-      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0,
-                             skip, returnRow, &match,
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &match,
                              &selector, &order, NULL ) ;
       if ( SDB_OK != rc )
       {
@@ -3953,31 +3676,25 @@ namespace engine
 
    INT32 RestToMSGTransfer::_convertSnapshotSessionsCurrent(
                                                         restAdaptor *pAdaptor,
-                                                        restRequest &request,
                                                         MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
       BSONObj selector ;
       BSONObj order ;
       BSONObj match ;
-      BSONObj hint ;
-      SINT64 skip = 0 ;
-      SINT64 returnRow = -1 ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX
                               CMD_NAME_SNAPSHOT_SESSIONS_CURRENT ;
 
-      rc = _convertSnapshotBase( pAdaptor, request, match, selector, order,
-                                 hint, &skip, &returnRow ) ;
+      rc = _convertListBase( pAdaptor, match, selector, order ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "convert snapshot failed:rc=%d", rc ) ;
          goto error ;
       }
 
-      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0,
-                             skip, returnRow, &match,
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &match,
                              &selector, &order, NULL ) ;
       if ( SDB_OK != rc )
       {
@@ -3995,30 +3712,24 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertSnapshotCollections( restAdaptor *pAdaptor,
-                                                         restRequest &request,
                                                          MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
       BSONObj selector ;
       BSONObj order ;
       BSONObj match ;
-      BSONObj hint ;
-      SINT64 skip = 0 ;
-      SINT64 returnRow = -1 ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_COLLECTIONS ;
 
-      rc = _convertSnapshotBase( pAdaptor, request, match, selector, order,
-                                 hint, &skip, &returnRow ) ;
+      rc = _convertListBase( pAdaptor, match, selector, order ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "convert snapshot failed:rc=%d", rc ) ;
          goto error ;
       }
 
-      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0,
-                             skip, returnRow, &match,
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &match,
                              &selector, &order, NULL ) ;
       if ( SDB_OK != rc )
       {
@@ -4037,31 +3748,25 @@ namespace engine
 
    INT32 RestToMSGTransfer::_convertSnapshotCollectionSpaces(
                                                          restAdaptor *pAdaptor,
-                                                         restRequest &request,
                                                          MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
       BSONObj selector ;
       BSONObj order ;
       BSONObj match ;
-      BSONObj hint ;
-      SINT64 skip = 0 ;
-      SINT64 returnRow = -1 ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX
                               CMD_NAME_SNAPSHOT_COLLECTIONSPACES ;
 
-      rc = _convertSnapshotBase( pAdaptor, request, match, selector, order,
-                                 hint, &skip, &returnRow ) ;
+      rc = _convertListBase( pAdaptor, match, selector, order ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "convert snapshot failed:rc=%d", rc ) ;
          goto error ;
       }
 
-      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0,
-                             skip, returnRow, &match,
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &match,
                              &selector, &order, NULL ) ;
       if ( SDB_OK != rc )
       {
@@ -4079,30 +3784,24 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertSnapshotDatabase( restAdaptor *pAdaptor,
-                                                      restRequest &request,
                                                       MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
       BSONObj selector ;
       BSONObj order ;
       BSONObj match ;
-      BSONObj hint ;
-      SINT64 skip = 0 ;
-      SINT64 returnRow = -1 ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_DATABASE ;
 
-      rc = _convertSnapshotBase( pAdaptor, request, match, selector, order,
-                                 hint, &skip, &returnRow ) ;
+      rc = _convertListBase( pAdaptor, match, selector, order ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "convert snapshot failed:rc=%d", rc ) ;
          goto error ;
       }
 
-      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0,
-                             skip, returnRow, &match,
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &match,
                              &selector, &order, NULL ) ;
       if ( SDB_OK != rc )
       {
@@ -4120,30 +3819,24 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertSnapshotSystem( restAdaptor *pAdaptor,
-                                                    restRequest &request,
                                                     MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
       BSONObj selector ;
       BSONObj order ;
       BSONObj match ;
-      BSONObj hint ;
-      SINT64 skip = 0 ;
-      SINT64 returnRow = -1 ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_SYSTEM ;
 
-      rc = _convertSnapshotBase( pAdaptor, request, match, selector, order,
-                                 hint, &skip, &returnRow ) ;
+      rc = _convertListBase( pAdaptor, match, selector, order ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "convert snapshot failed:rc=%d", rc ) ;
          goto error ;
       }
 
-      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0,
-                             skip, returnRow, &match,
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &match,
                              &selector, &order, NULL ) ;
       if ( SDB_OK != rc )
       {
@@ -4161,30 +3854,24 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertSnapshotCata( restAdaptor *pAdaptor,
-                                                  restRequest &request,
                                                   MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
       BSONObj selector ;
       BSONObj order ;
       BSONObj match ;
-      BSONObj hint ;
-      SINT64 skip = 0 ;
-      SINT64 returnRow = -1 ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_CATA ;
 
-      rc = _convertSnapshotBase( pAdaptor, request, match, selector, order,
-                                 hint, &skip, &returnRow ) ;
+      rc = _convertListBase( pAdaptor, match, selector, order ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "convert snapshot failed:rc=%d", rc ) ;
          goto error ;
       }
 
-      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0,
-                             skip, returnRow, &match,
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &match,
                              &selector, &order, NULL ) ;
       if ( SDB_OK != rc )
       {
@@ -4202,30 +3889,24 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertSnapshotAccessPlans ( restAdaptor * pAdaptor,
-                                                          restRequest &request,
                                                           MsgHeader ** msg )
    {
       INT32 rc = SDB_OK ;
       BSONObj selector ;
       BSONObj order ;
       BSONObj match ;
-      BSONObj hint ;
-      SINT64 skip = 0 ;
-      SINT64 returnRow = -1 ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_ACCESSPLANS ;
 
-      rc = _convertSnapshotBase( pAdaptor, request, match, selector, order,
-                                 hint, &skip, &returnRow ) ;
+      rc = _convertListBase( pAdaptor, match, selector, order ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "convert snapshot failed:rc=%d", rc ) ;
          goto error ;
       }
 
-      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0,
-                             skip, returnRow, &match,
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &match,
                              &selector, &order, NULL ) ;
       if ( SDB_OK != rc )
       {
@@ -4243,72 +3924,25 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertSnapshotHealth ( restAdaptor * pAdaptor,
-                                                     restRequest &request,
                                                      MsgHeader ** msg )
    {
       INT32 rc = SDB_OK ;
       BSONObj selector ;
       BSONObj order ;
       BSONObj match ;
-      BSONObj hint ;
-      SINT64 skip = 0 ;
-      SINT64 returnRow = -1 ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
       const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_HEALTH ;
 
-      rc = _convertSnapshotBase( pAdaptor, request, match, selector, order,
-                                 hint, &skip, &returnRow ) ;
+      rc = _convertListBase( pAdaptor, match, selector, order ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "convert snapshot failed:rc=%d", rc ) ;
          goto error ;
       }
 
-      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0,
-                             skip, returnRow, &match,
+      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &match,
                              &selector, &order, NULL ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
-                     pCommand, rc ) ;
-         goto error ;
-      }
-
-      *msg = ( MsgHeader * )pBuff ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 RestToMSGTransfer::_convertSnapshotConfigs ( restAdaptor * pAdaptor,
-                                                      restRequest &request,
-                                                      MsgHeader ** msg )
-   {
-      INT32 rc = SDB_OK ;
-      BSONObj selector ;
-      BSONObj order ;
-      BSONObj match ;
-      BSONObj hint ;
-      SINT64 skip = 0 ;
-      SINT64 returnRow = -1 ;
-      CHAR *pBuff           = NULL ;
-      INT32 buffSize        = 0 ;
-      const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_CONFIGS ;
-
-      rc = _convertSnapshotBase( pAdaptor, request, match, selector, order,
-                                 hint, &skip, &returnRow ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "convert snapshot failed:rc=%d", rc ) ;
-         goto error ;
-      }
-
-      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0,
-                             skip, returnRow, &match,
-                             &selector, &order, &hint ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
@@ -4368,16 +4002,15 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertExec( restAdaptor *pAdaptor,
-                                          restRequest &request,
                                           MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
+      const CHAR *pSql     = NULL ;
       CHAR *pBuff          = NULL ;
       INT32 buffSize       = 0 ;
-      string sql ;
 
-      sql = request.getQuery( REST_KEY_NAME_SQL ) ;
-      if ( sql.empty() )
+      pAdaptor->getQuery( _restSession, REST_KEY_NAME_SQL, &pSql ) ;
+      if ( NULL == pSql )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get exec's field failed:field=%s",
@@ -4385,7 +4018,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _buildExecMsg( &pBuff, &buffSize, sql.c_str(), 0 ) ;
+      rc = _buildExecMsg( &pBuff, &buffSize, pSql, 0 ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG_MSG( PDERROR, "build exec command failed:rc=%d", rc ) ;
@@ -4401,38 +4034,36 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertForceSession( restAdaptor *pAdaptor,
-                                                  restRequest &request,
                                                   MsgHeader **msg )
    {
       INT32 rc = SDB_OK ;
       INT32 buffSize = 0 ;
       SINT64 sessionId = 0 ;
       CHAR *pBuff = NULL ;
+      const CHAR *pOption    = NULL ;
+      const CHAR *pSessionId = NULL ;
       const CHAR *pCommand   = CMD_ADMIN_PREFIX CMD_NAME_FORCE_SESSION ;
-      string sessionIdStr ;
-      string optionsStr ;
       BSONObj query ;
       BSONObj options ;
 
-      sessionIdStr = request.getQuery( FIELD_NAME_SESSIONID ) ;
-      if( sessionIdStr.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_SESSIONID, &pSessionId ) ;
+      if( NULL == pSessionId )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get exec's field failed:field=%s",
                      FIELD_NAME_SESSIONID ) ;
          goto error ;
       }
+      sessionId = ossAtoll( pSessionId ) ;
 
-      sessionId = ossAtoll( sessionIdStr.c_str() ) ;
-
-      optionsStr = request.getQuery( FIELD_NAME_OPTIONS ) ;
-      if( FALSE == optionsStr.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_OPTIONS, &pOption ) ;
+      if( NULL != pOption )
       {
-         rc = fromjson( optionsStr.c_str(), options, 0 ) ;
+         rc = fromjson( pOption, options, 0 ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
-                        FIELD_NAME_OPTIONS, optionsStr.c_str() ) ;
+                        FIELD_NAME_OPTIONS, pOption ) ;
             goto error ;
          }
       }
@@ -4476,53 +4107,23 @@ namespace engine
       goto done ;
    }
 
-//   INT32 RestToMSGTransfer::_convertSnapshotListLobs( restAdaptor *pAdaptor,
-//                                                     MsgHeader **msg )
-//   {
-//      INT32 rc = SDB_OK ;
-//      BSONObj selector ;
-//      BSONObj order ;
-//      BSONObj match ;
-//      CHAR *pBuff           = NULL ;
-//      INT32 buffSize        = 0 ;
-//      const CHAR *pCommand  = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_CONTEXTS ;
 
-//      rc = _convertListBase( pAdaptor, match, selector, order ) ;
-//      if ( SDB_OK != rc )
-//      {
-//         PD_LOG( PDERROR, "convert snapshot failed:rc=%d", rc ) ;
-//         goto error ;
-//      }
 
-//      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &match,
-//                             &selector, &order, NULL ) ;
-//      if ( SDB_OK != rc )
-//      {
-//         PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
-//                     pCommand, rc ) ;
-//         goto error ;
-//      }
 
-//      *msg = ( MsgHeader * )pBuff ;
 
-//   done:
-//      return rc ;
-//   error:
-//      goto done ;
-//   }
 
    INT32 RestToMSGTransfer::_convertLogin( restAdaptor *pAdaptor,
-                                           restRequest &request,
                                            MsgHeader **msg )
    {
       INT32 rc              = SDB_OK ;
       CHAR *pBuff           = NULL ;
       INT32 buffSize        = 0 ;
-      string user ;
-      string password ;
+      const CHAR *pUser     = NULL ;
+      const CHAR *pPasswd   = NULL ;
 
-      user = request.getQuery( OM_REST_FIELD_LOGIN_NAME ) ;
-      if ( user.empty() )
+      pAdaptor->getQuery( _restSession, OM_REST_FIELD_LOGIN_NAME,
+                          &pUser ) ;
+      if ( NULL == pUser )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get login name failed:field=%s",
@@ -4530,8 +4131,9 @@ namespace engine
          goto error ;
       }
 
-      password = request.getQuery( OM_REST_FIELD_LOGIN_PASSWD ) ;
-      if ( password.empty() )
+      pAdaptor->getQuery( _restSession, OM_REST_FIELD_LOGIN_PASSWD,
+                          &pPasswd ) ;
+      if ( NULL == pPasswd )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG_MSG( PDERROR, "get passwd failed:field=%s",
@@ -4539,8 +4141,7 @@ namespace engine
          goto error ;
       }
 
-      rc = msgBuildAuthMsg( &pBuff, &buffSize, user.c_str(), password.c_str(),
-                            0 ) ;
+      rc = msgBuildAuthMsg( &pBuff, &buffSize, pUser, pPasswd, 0 ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG_MSG( PDERROR, "buildAuthMsg failed:rc=%d", rc ) ;
@@ -4556,25 +4157,25 @@ namespace engine
    }
 
    INT32 RestToMSGTransfer::_convertAnalyze ( restAdaptor * pAdaptor,
-                                              restRequest &request,
                                               MsgHeader ** msg )
    {
       INT32 rc = SDB_OK ;
+
       INT32 buffSize = 0 ;
       CHAR *pBuff = NULL ;
-      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_ANALYZE ;
-      string optionsStr ;
+      const CHAR *pOption    = NULL ;
+      const CHAR *pCommand   = CMD_ADMIN_PREFIX CMD_NAME_ANALYZE ;
       BSONObj query ;
       BSONObj options ;
 
-      optionsStr = request.getQuery( FIELD_NAME_OPTIONS ) ;
-      if( FALSE == optionsStr.empty() )
+      pAdaptor->getQuery( _restSession, FIELD_NAME_OPTIONS, &pOption ) ;
+      if( NULL != pOption )
       {
-         rc = fromjson( optionsStr.c_str(), options, 0 ) ;
+         rc = fromjson( pOption, options, 0 ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
-                        FIELD_NAME_OPTIONS, optionsStr.c_str() ) ;
+                        FIELD_NAME_OPTIONS, pOption ) ;
             goto error ;
          }
       }
@@ -4584,147 +4185,6 @@ namespace engine
          BSONObjBuilder builder ;
          builder.appendElements( options ) ;
          query = builder.obj() ;
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG_MSG( PDERROR, "Failed to create BSON object: %s", e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1,
-                             &query, NULL, NULL, NULL ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
-                     pCommand, rc ) ;
-         goto error ;
-      }
-
-      *msg = ( MsgHeader * )pBuff ;
-
-   done:
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   INT32 RestToMSGTransfer::_convertUpdateConfig ( restAdaptor * pAdaptor,
-                                                   restRequest &request,
-                                                   MsgHeader ** msg )
-   {
-      INT32 rc = SDB_OK ;
-      INT32 buffSize = 0 ;
-      CHAR *pBuff = NULL ;
-      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_UPDATE_CONFIG ;
-      string configsStr ;
-      string optionsStr ;
-      BSONObj query ;
-      BSONObj configs ;
-      BSONObj options ;
-
-      configsStr = request.getQuery( FIELD_NAME_CONFIGS ) ;
-      if( FALSE == configsStr.empty() )
-      {
-         rc = fromjson( configsStr.c_str(), configs, 0 ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
-                        FIELD_NAME_CONFIGS, configsStr.c_str() ) ;
-            goto error ;
-         }
-      }
-
-      optionsStr = request.getQuery( FIELD_NAME_OPTIONS ) ;
-      if( FALSE == optionsStr.empty() )
-      {
-         rc = fromjson( optionsStr.c_str(), options, 0 ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
-                        FIELD_NAME_OPTIONS, optionsStr.c_str() ) ;
-            goto error ;
-         }
-      }
-
-      try
-      {
-         BSONObjBuilder queryBuilder ;
-         queryBuilder.appendElements( options ) ;
-         queryBuilder.append( FIELD_NAME_CONFIGS, configs ) ;
-         query = queryBuilder.obj() ;
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG_MSG( PDERROR, "Failed to create BSON object: %s", e.what() ) ;
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1,
-                             &query, NULL, NULL, NULL ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d",
-                     pCommand, rc ) ;
-         goto error ;
-      }
-
-      *msg = ( MsgHeader * )pBuff ;
-
-   done:
-      return rc ;
-
-   error:
-      goto done ;
-   }
-
-   INT32 RestToMSGTransfer::_convertDeleteConfig ( restAdaptor * pAdaptor,
-                                                   restRequest &request,
-                                                   MsgHeader ** msg )
-   {
-      INT32 rc = SDB_OK ;
-
-      INT32 buffSize = 0 ;
-      CHAR *pBuff = NULL ;
-      const CHAR *pCommand = CMD_ADMIN_PREFIX CMD_NAME_DELETE_CONFIG ;
-      string configsStr ;
-      string optionsStr ;
-      BSONObj query ;
-      BSONObj configs ;
-      BSONObj options ;
-
-      configsStr = request.getQuery( FIELD_NAME_CONFIGS ) ;
-      if( FALSE == configsStr.empty() )
-      {
-         rc = fromjson( configsStr.c_str(), configs, 0 ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
-                        FIELD_NAME_CONFIGS, configsStr.c_str() ) ;
-            goto error ;
-         }
-      }
-
-      optionsStr = request.getQuery( FIELD_NAME_OPTIONS ) ;
-      if( FALSE == optionsStr.empty() )
-      {
-         rc = fromjson( optionsStr.c_str(), options, 0 ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG_MSG( PDERROR, "field's format error:field=%s, value=%s",
-                        FIELD_NAME_OPTIONS, optionsStr.c_str() ) ;
-            goto error ;
-         }
-      }
-
-      try
-      {
-         BSONObjBuilder queryBuilder ;
-         queryBuilder.appendElements( options ) ;
-         queryBuilder.append( FIELD_NAME_CONFIGS, configs ) ;
-         query = queryBuilder.obj() ;
       }
       catch( std::exception &e )
       {

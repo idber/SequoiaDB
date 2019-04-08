@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = netFrame.hpp
 
@@ -113,7 +112,6 @@ namespace engine
       friend class _netEventHandler ;
 
       public:
-         /// handler will not be freed by frame
          _netFrame( _netMsgHandler *handler, _netRoute *pRoute ) ;
 
          ~_netFrame() ;
@@ -144,7 +142,6 @@ namespace engine
          UINT32   getEvSuitSize() ;
 
       public:
-         // return 0 if error happened
          static UINT32 getCurrentLocalAddress() ;
          static UINT32 getLocalAddress() ;
 
@@ -161,10 +158,6 @@ namespace engine
          INT32    listen( const CHAR *hostName,
                           const CHAR *serviceName ) ;
 
-         /// if call this func with same params for twice,
-         /// will create two connections.
-         /// the connection will be maintained until the
-         /// disconnect happens.
          INT32 syncConnect( const CHAR *hostName,
                             const CHAR *serviceName,
                             const _MsgRouteID &id ) ;
@@ -202,7 +195,6 @@ namespace engine
                           MsgHeader *header,
                           const netIOVec &iov ) ;
 
-         /// frame will not release handler for ever
          INT32 addTimer( UINT32 millsec, _netTimeoutHandler *handler,
                          UINT32 &timerid );
 
@@ -275,7 +267,6 @@ namespace engine
 
          netInnerTimeHandle               _innerTimeHandle ;
 
-         /// communicate shedule config info
          UINT32                           _maxSockPerNode ;    /// 0 for unlimited
          UINT32                           _maxSockPerThread ;  /// 0 for unlimited
          UINT32                           _maxThreadNum ;      /// 0 for unlimited

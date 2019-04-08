@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pmdAsyncSessionAgent.cpp
 
@@ -77,56 +76,36 @@ namespace engine
       pmdEDUEvent event ;
       pmdBuffInfo *pBuffInfo = NULL ;
       MsgHeader *pMsg = NULL ;
-      INT64 timeDiff = 0 ;
+      INT32 timeDiff = 0 ;
       pmdKRCB *krcb    = pmdGetKRCB() ;
       monDBCB *mondbcb = krcb->getMonDBCB () ;
-      NET_HANDLE netHandle = 0 ;
-      UINT32 poolType = 0 ;
 
       pmdAsyncSessionScope assitScope( pSession, cb ) ;
 
-      while ( TRUE )
+      while ( !cb->isDisconnected() )
       {
-         if ( !cb->isDisconnected() )
-         {
-            cb->resetInterrupt() ;
-         }
-         else
-         {
-            pSession->close() ;
-         }
+         cb->resetInterrupt() ;
          cb->resetInfo( EDU_INFO_ERROR ) ;
          cb->resetLsn() ;
-         cb->updateTransConf() ;
 
          if ( cb->waitEvent( event, OSS_ONE_SEC, TRUE ) )
-         {
-            /// reset again to avoid set interrupt self
-            if ( !cb->isDisconnected() )
-            {
-               cb->resetInterrupt() ;
-            }
+         { 
+            cb->resetInterrupt() ;
             if ( PMD_EDU_EVENT_TERM == event._eventType )
             {
                PD_LOG ( PDDEBUG, "EDU[%lld, %s] is terminated", cb->getID(),
                         getEDUName( cb->getType() ) ) ;
             }
-            //Dispatch event msg to session
             else if ( PMD_EDU_EVENT_MSG == event._eventType )
             {
                mondbcb->addReceiveNum() ;
 
-               PMD_UNMAKE_SESSION_USERDATA( event._userData,
-                                            netHandle,
-                                            poolType ) ;
-
-               if ( PMD_SESSION_MSG_INPOOL == poolType )
+               if ( 0 == event._userData )
                {
                   pBuffInfo = ( pmdBuffInfo* )( event._Data ) ;
                   pMsg = ( MsgHeader* )( pBuffInfo->pBuffer ) ;
 
-                  timeDiff = (INT64)( ossGetCurrentMicroseconds() -
-                                      pBuffInfo->addTime ) ;
+                  timeDiff = (INT32)(time( NULL ) - pBuffInfo->addTime) ;
                }
                else
                {
@@ -135,25 +114,22 @@ namespace engine
                   timeDiff = 0 ;
                }
 
-               // if msg in the buff time over 2 seconds
-               if ( timeDiff > 2000000 )
+               if ( timeDiff > 2 )
                {
                   PD_LOG( PDINFO, "Session[%s] msg[opCode:[%d]%d, requestID: "
-                          "%lld, TID: %d, Len: %d] stay over %lld usecs",
+                          "%lld, TID: %d, Len: %d] stay over %d seconds",
                           pSession->sessionName(), IS_REPLY_TYPE(pMsg->opCode),
                           GET_REQUEST_TYPE(pMsg->opCode), pMsg->requestID,
                           pMsg->TID, pMsg->messageLength, timeDiff ) ;
                }
 
-               pSession->onDispatchMsgBegin( netHandle, pMsg ) ;
-               pSession->dispatchMsg ( netHandle, pMsg, &timeDiff ) ;
-               pSession->onDispatchMsgEnd( timeDiff ) ;
+               pSession->dispatchMsg ( pSession->netHandle(), pMsg,
+                                       &timeDiff ) ;
 
-               // if msg processed time over 20 seconds
-               if ( timeDiff > 20000000 )
+               if ( timeDiff > 20 )
                {
                   PD_LOG( PDINFO, "Session[%s] msg[opCode:[%d]%d, requestID: "
-                          "%lld, TID: %d, Len: %d] processed over %lld usecs",
+                          "%lld, TID: %d, Len: %d] processed over %d seconds",
                           pSession->sessionName(), IS_REPLY_TYPE(pMsg->opCode),
                           GET_REQUEST_TYPE(pMsg->opCode), pMsg->requestID,
                           pMsg->TID, pMsg->messageLength, timeDiff ) ;
@@ -169,17 +145,12 @@ namespace engine
                pSession->dispatch ( &event ) ;
             }
 
-            //Relase memory
             pmdEduEventRelase( event, cb ) ;
             event.reset () ;
          }
-         else if ( !cb->isDisconnected() )
-         {
-            pSession->onTimer( 0, OSS_ONE_SEC ) ;
-         }
          else
          {
-            break ;
+            pSession->onTimer( 0, OSS_ONE_SEC ) ;
          }
       }
 
@@ -187,7 +158,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   /// Register
    PMD_DEFINE_ENTRYPOINT( EDU_TYPE_SHARDAGENT, FALSE,
                           pmdAsyncSessionAgentEntryPoint,
                           "ShardAgent" ) ;

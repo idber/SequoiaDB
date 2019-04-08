@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = msgCatalogDef.hpp
 
@@ -61,17 +60,9 @@
 
 #define CAT_COLLECTION_SPACE_NAME         FIELD_NAME_NAME
 #define CAT_COLLECTION_NAME               FIELD_NAME_NAME
-#define CAT_CS_UNIQUEID                   FIELD_NAME_UNIQUEID
-#define CAT_CL_UNIQUEID                   FIELD_NAME_UNIQUEID
-#define CAT_CS_CLUNIQUEHWM                "CLUniqueHWM"
 #define CAT_PAGE_SIZE_NAME                FIELD_NAME_PAGE_SIZE
 #define CAT_COLLECTION                    FIELD_NAME_COLLECTION
 #define CAT_COLLECTIONSPACE               FIELD_NAME_COLLECTIONSPACE
-
-#define CAT_COLLECTION_SPACE_OLDNAME      FIELD_NAME_OLDNAME
-#define CAT_COLLECTION_SPACE_NEWNAME      FIELD_NAME_NEWNAME
-#define CAT_COLLECTION_OLDNAME            FIELD_NAME_OLDNAME
-#define CAT_COLLECTION_NEWNAME            FIELD_NAME_NEWNAME
 
 #define CAT_CATALOGNAME_NAME              FIELD_NAME_NAME
 #define CAT_CATALOG_W_NAME                FIELD_NAME_W
@@ -98,14 +89,6 @@
 #define CAT_SHARDING_TYPE_HASH            FIELD_NAME_SHARDTYPE_HASH
 #define CAT_SHARDING_TYPE_RANGE           FIELD_NAME_SHARDTYPE_RANGE
 #define CAT_SHARDING_PARTITION            FIELD_NAME_PARTITION
-#define CAT_AUTOINCREMENT                 FIELD_NAME_AUTOINCREMENT
-#define CAT_AUTOINC_FIELD                 FIELD_NAME_AUTOINC_FIELD
-#define CAT_AUTOINC_SEQ                   FIELD_NAME_AUTOINC_SEQ
-#define CAT_AUTOINC_SEQ_ID                FIELD_NAME_AUTOINC_SEQ_ID
-#define CAT_AUTOINC_GENERATED             FIELD_NAME_GENERATED
-#define CAT_GENERATED_ALWAYS              VALUE_NAME_ALWAYS
-#define CAT_GENERATED_STRICT              VALUE_NAME_STRICT
-#define CAT_GENERATED_DEFAULT             VALUE_NAME_DEFAULT
 
 #define CAT_INVALID_GROUPID               INVALID_GROUPID
 #define CAT_CATALOG_GROUPID               CATALOG_GROUPID

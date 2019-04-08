@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = utilStr.hpp
 
@@ -48,24 +47,16 @@
 #define OCT_PRE          "0"
 #define OCT_PRE_SIZE     ( sizeof( OCT_PRE ) -1 )
 
-#define UTIL_STR2NUM_DEC   0x00000001  // decimal system
-#define UTIL_STR2NUM_OCT   0x00000010  // octal system
-#define UTIL_STR2NUM_HEX   0x00000100  // hexadecimal system
-#define UTIL_STR2NUM_ALL   0x11111111
-
 using namespace std ;
 
 namespace engine
 {
-   /// skip spaces at begin.
    INT32 utilStrTrimBegin( const CHAR *src, const CHAR *&begin ) ;
    std::string &utilStrLtrim ( std::string &s ) ;
 
-   /// remove spaces at end.
    INT32 utilStrTrimEnd( CHAR *src ) ;
    std::string &utilStrRtrim ( std::string &s ) ;
 
-   /// trim spaces at begin or end .
    INT32 utilStrTrim( CHAR *src, const CHAR *&begin ) ;
    std::string &utilStrTrim ( std::string &s ) ;
 
@@ -78,8 +69,6 @@ namespace engine
 
       return str.compare( 0, substr.size(), substr ) == 0 ? TRUE : FALSE ;
    }
-
-   BOOLEAN utilStrStartsWithIgnoreCase( const string& str, const string& substr ) ;
 
    OSS_INLINE BOOLEAN utilStrEndsWith( const string& str, const string& substr )
    {
@@ -107,9 +96,7 @@ namespace engine
    INT32 utilSplitStr( const string &input, vector<string> &listServices,
                        const string &seperators ) ;
 
-   INT32 utilStr2Num( const CHAR *str, INT32 &num,
-                      INT32 typeMask = UTIL_STR2NUM_ALL ) ;
-   /// non-reentrant
+   INT32 utilStr2Num( const CHAR *str, INT32 &num ) ;
    INT32 utilStr2TimeT( const CHAR *str,
                         time_t &tm,
                         UINT64 *usec = NULL ) ;
@@ -123,7 +110,6 @@ namespace engine
 
    const CHAR* utilAscTime( time_t tTime, CHAR *pBuff, UINT32 size ) ;
 
-   /// non-reentrant
    BOOLEAN isValidIPV4( const CHAR *ip ) ;
 
    string utilTimeSpanStr( UINT64 seconds ) ;

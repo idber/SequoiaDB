@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2015 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = impSharding.cpp
 
@@ -100,13 +99,11 @@ namespace import
          inQueue->wait_and_pop(records);
          if (NULL == records)
          {
-            // stop signal
             break;
          }
 
          if (records->empty())
          {
-            // empty signal
             _emptyShardingGroups(groups, outQueue);
             freeRecordArray(&records);
             PD_LOG(PDINFO, "empty sharding groups");
@@ -146,7 +143,6 @@ namespace import
             it = subGroups->find(groupId);
             if (it != subGroups->end())
             {
-               // find the group
                RecordArray* array = it->second;
 
                SDB_ASSERT(!array->full(), "record array can't be full");
@@ -161,7 +157,6 @@ namespace import
             }
             else
             {
-               // add new group
                RecordArray* array = NULL;
 
                rc = getRecordArray(options->batchSize(), &array);
@@ -199,8 +194,6 @@ namespace import
             }
 
             shardingCount++;
-            // clear this record in array,
-            // otherwise the bson will be freed by freeRecordArray
             records->pop(i);
          }
 
@@ -290,7 +283,6 @@ namespace import
           !_options->enableSharding() ||
           _options->batchSize() <= 1)
       {
-         // no need to do anything
          _inited = TRUE;
          goto done;
       }
@@ -356,7 +348,6 @@ namespace import
       {
          RecordArray* empty = NULL;
 
-         // push empty RecordArray as stop signal
          _inQueue->push(empty);
 
          rc = _worker->waitStop();

@@ -22,7 +22,6 @@
 
       //初始化
       var extendNodeList = [] ;
-      var template = [] ;
       //帮助信息 弹窗
       $scope.HelperWindow = {
          'config': {},
@@ -44,18 +43,7 @@
                extendNodeList = result[0]['Config'] ;
                SdbSwap.groupDefer.resolve( 'ExtendNodeList', extendNodeList ) ;
                SdbSwap.nodeDefer.resolve( 'ExtendNodeList', extendNodeList ) ;
-               
-               template = [] ;
-               $.each( result[0]['Property'], function( index, info ){
-                  if ( info['hidden'] == 'true' )
-                  {
-                     return true ;
-                  }
-                  template.push( info ) ;
-               } ) ;
-
-               SdbSwap.templateDefer.resolve( 'Template', template ) ;
-               
+               SdbSwap.templateDefer.resolve( 'Template', result[0]['Property'] ) ;
             },
             'failed': function( errorInfo ){
                _IndexPublic.createRetryModel( $scope, errorInfo, function(){
@@ -99,7 +87,7 @@
       }
 
       var extendSdb = function( config ){
-         var data = { 'cmd': 'extend business', 'Force': true, 'ConfigInfo': JSON.stringify( config ) } ;
+         var data = { 'cmd': 'extend business', 'ConfigInfo': JSON.stringify( config ) } ;
          SdbRest.OmOperation( data, {
             'success': function( taskInfo ){
                $rootScope.tempData( 'Deploy', 'ModuleTaskID', taskInfo[0]['TaskID'] ) ;
@@ -113,23 +101,6 @@
                } ) ;
             }
          } ) ;
-      }
-
-      var isFilterDefaultItem = function( key, value ) {
-         var result = false ;
-         var unSkipList = [ 'HostName', 'dbpath', 'role', 'svcname', 'datagroupname' ] ;
-         if ( unSkipList.indexOf( key ) >= 0 )
-         {
-            return false ;
-         }
-         $.each( template, function( index, item ){
-            if ( item['Name'] == key )
-            {
-               result = ( item['Default'] == value ) ;
-               return false ;
-            }
-         } ) ;
-         return result ;
       }
 
       //跳转到下一步
@@ -150,7 +121,7 @@
          $.each( oldExtendNodeList, function( index, nodeInfo ){
             var nodeConf = {} ;
             $.each( nodeInfo, function( key, value ){
-               if( ( ( value.length > 0 && isFilterDefaultItem( key, value ) == false ) || key == 'datagroupname' ) && key != '_other' )
+               if( ( value.length > 0 || key == 'datagroupname' ) && key != '_other' )
                {
                   nodeConf[key] = value ;
                }
@@ -783,9 +754,9 @@
 
       var initEditNodeInput = function(){
          $scope.SetNodeConfWindow['config']['HostName'] = '' ;
-         $scope.SetNodeConfWindow['config']['form1']['inputList'] = _Deploy.ConvertTemplate( template, 0, false, false, true ) ;
+         $scope.SetNodeConfWindow['config']['form1']['inputList'] = _Deploy.ConvertTemplate( template, 0 ) ;
          $scope.SetNodeConfWindow['config']['form1']['inputList'][0]['valid'] = {} ;
-         $scope.SetNodeConfWindow['config']['form2']['inputList'] = _Deploy.ConvertTemplate( template, 1, false, false, true ) ;
+         $scope.SetNodeConfWindow['config']['form2']['inputList'] = _Deploy.ConvertTemplate( template, 1 ) ;
          $scope.SetNodeConfWindow['config']['form3']['inputList'] = [
             {
                "name": "other",

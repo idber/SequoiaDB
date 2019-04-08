@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = monDump.hpp
 
@@ -113,10 +112,6 @@ namespace engine
 
    INT32 monDumpLastOpInfo( BSONObjBuilder &ob, const monAppCB &moncb ) ;
 
-   void  monDumpSvcTaskInfo( BSONObjBuilder &ob,
-                             const monSvcTaskInfo *pInfo,
-                             BOOLEAN exceptIDName = FALSE ) ;
-
    /*
       _monTransFetcher define
    */
@@ -146,7 +141,7 @@ namespace engine
       private:
          TRANS_EDU_LIST             _eduList ;
          monTransInfo               _curTransInfo ;
-         VEC_TRANSLOCKCUR::iterator _pos ;
+         DpsTransCBLockList::iterator _pos ;
          BSONObj                    _curEduInfo ;
          BOOLEAN                    _dumpCurrent ;
          BOOLEAN                    _detail ;
@@ -189,7 +184,7 @@ namespace engine
          UINT32                     _addInfoMask ;
          BOOLEAN                    _hitEnd ;
 
-         std::map<UINT64, pmdEDUCB::SET_CONTEXT >  _contextList ;
+         std::map<UINT64, std::set<SINT64> >          _contextList ;
          std::map<UINT64, std::set<monContextFull> >  _contextInfoList ;
    } ;
    typedef _monContextFetcher monContextFetcher ;
@@ -580,99 +575,6 @@ namespace engine
    } ;
 
    typedef _monAccessPlansFetch monAccessPlansFetch ;
-
-   /*
-      _monHealthFetch define
-   */
-   class _monConfigsFetch : public rtnFetchBase
-   {
-      DECLARE_FETCH_AUTO_REGISTER()
-
-      public:
-         _monConfigsFetch() ;
-         virtual ~_monConfigsFetch() ;
-
-         virtual INT32        init( pmdEDUCB *cb,
-                                    BOOLEAN isCurrent,
-                                    BOOLEAN isDetail,
-                                    UINT32 addInfoMask,
-                                    const BSONObj obj = BSONObj() ) ;
-
-         virtual const CHAR*  getName() const ;
-
-      public:
-         virtual BOOLEAN   isHitEnd() const ;
-         virtual INT32     fetch( BSONObj &obj ) ;
-
-      private:
-         UINT32                  _addInfoMask ;
-         BOOLEAN                 _hitEnd ;
-         BOOLEAN                 _isLocalMode ;
-         BOOLEAN                 _isExpand ;
-
-   } ;
-   typedef _monConfigsFetch monConfigsFetch ;
-
-   /*
-      _monVCLSessionInfoFetch define
-   */
-   class _monVCLSessionInfoFetch : public rtnFetchBase
-   {
-      DECLARE_FETCH_AUTO_REGISTER()
-
-      public:
-         _monVCLSessionInfoFetch() ;
-         virtual ~_monVCLSessionInfoFetch() ;
-
-         virtual INT32        init( pmdEDUCB *cb,
-                                    BOOLEAN isCurrent,
-                                    BOOLEAN isDetail,
-                                    UINT32 addInfoMask,
-                                    const BSONObj obj = BSONObj() ) ;
-
-         virtual const CHAR*  getName() const ;
-
-      public:
-         virtual BOOLEAN   isHitEnd() const ;
-         virtual INT32     fetch( BSONObj &obj ) ;
-
-      private:
-         BOOLEAN                 _hitEnd ;
-         BSONObj                 _info ;
-   } ;
-   typedef _monVCLSessionInfoFetch monVCLSessionInfoFetch ;
-
-   /*
-      _monSvcTasksFetch define
-   */
-   class _monSvcTasksFetch : public rtnFetchBase
-   {
-      DECLARE_FETCH_AUTO_REGISTER()
-
-      public:
-         _monSvcTasksFetch() ;
-         virtual ~_monSvcTasksFetch() ;
-
-         virtual INT32        init( pmdEDUCB *cb,
-                                    BOOLEAN isCurrent,
-                                    BOOLEAN isDetail,
-                                    UINT32 addInfoMask,
-                                    const BSONObj obj = BSONObj() ) ;
-
-         virtual const CHAR*  getName() const ;
-
-      public:
-         virtual BOOLEAN   isHitEnd() const ;
-         virtual INT32     fetch( BSONObj &obj ) ;
-
-      private:
-         UINT32                  _addInfoMask ;
-         BOOLEAN                 _hitEnd ;
-         BOOLEAN                 _isDetail ;
-
-         MAP_SVCTASKINFO_PTR     _mapSvcTask ;
-   } ;
-   typedef _monSvcTasksFetch monSvcTasksFetch ;
 
 }
 

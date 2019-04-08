@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omagentBackgroundCmd.hpp
 
@@ -41,20 +40,6 @@ using namespace std ;
 
 namespace engine
 {
-   /*
-      _omaAsyncCommand
-   */
-   class _omaAsyncCommand : public _omaCommand
-   {
-   public:
-      _omaAsyncCommand() ;
-      virtual ~_omaAsyncCommand() ;
-
-   protected:
-      virtual void _aggrFlowArray( const BSONObj& array1,
-                                   const BSONObj& array2,
-                                   BSONArray& out ) ;
-   } ;
 
    /*
       _omaAddHost
@@ -694,16 +679,16 @@ namespace engine
    */
    class _omaDeployPackage : public _omaCommand
    {
-      DECLARE_OACMD_AUTO_REGISTER() ;
+
+   DECLARE_OACMD_AUTO_REGISTER() ;
 
    public:
       _omaDeployPackage() ;
       virtual ~_omaDeployPackage() ;
 
+   public:
       virtual const CHAR* name() { return OMA_CMD_DEOLOY_PACKAGE ; }
-
       virtual INT32 init( const CHAR *pInstallInfo ) ;
-
       virtual INT32 convertResult( const BSONObj& itemInfo,
                                    BSONObj& taskInfo ) ;
 
@@ -713,37 +698,6 @@ namespace engine
 
    private:
       INT64 _taskID ;
-   } ;
-
-   /*
-      restart Business
-   */
-   class _omaRestartBusiness : public _omaAsyncCommand
-   {
-      DECLARE_OACMD_AUTO_REGISTER()
-
-   public:
-      _omaRestartBusiness() ;
-      ~_omaRestartBusiness() ;
-
-      const CHAR* name () { return OMA_CMD_RESTART_BUSINESS ; }
-
-      INT32 init ( const CHAR *pInterruptInfo ) ;
-
-      INT32 setRuningStatus( const BSONObj& itemInfo,
-                             BSONObj& taskInfo ) ;
-
-      INT32 convertResult( const BSONObj& itemInfo,
-                           BSONObj& taskInfo ) ;
-
-   private:
-      void _matchNode( const string &businessType,
-                       const BSONObj &itemInfo,
-                       const BSONObj &taskResultInfo,
-                       BOOLEAN &isNode,
-                       INT32 &updateProgress,
-                       BSONObj &updateFlow,
-                       BSONObj &updateInfo ) ;
    } ;
 
    /*

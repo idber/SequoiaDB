@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnBackgroundJobBase.cpp
 
@@ -73,8 +72,7 @@ namespace engine
 
       {
          ossScopedLock lock ( &_latch, SHARED ) ;
-         ossPoolMap<EDUID, _rtnBaseJob*>::iterator it =
-            _mapJobs.find( eduID ) ;
+         std::map<EDUID, _rtnBaseJob*>::iterator it = _mapJobs.find( eduID ) ;
          if ( it != _mapJobs.end() )
          {
             PD_TRACE_EXIT ( SDB__RTNJOBMGR_FINDJOB ) ;
@@ -85,8 +83,7 @@ namespace engine
       INT32 res = SDB_OK ;
       {
          ossScopedLock lock ( &_latch, EXCLUSIVE ) ;
-         ossPoolMap<EDUID, INT32>::iterator itRes =
-            _mapResult.find( eduID ) ;
+         std::map<EDUID, INT32>::iterator itRes = _mapResult.find( eduID ) ;
          if ( itRes != _mapResult.end() )
          {
             res = itRes->second ;
@@ -114,11 +111,10 @@ namespace engine
 
       ossScopedLock lock ( &_latch, EXCLUSIVE ) ;
 
-      // if mutex, need to stop
       if ( RTN_JOB_MUTEX_NONE != type )
       {
          _rtnBaseJob *itJob = NULL ;
-         ossPoolMap<EDUID, _rtnBaseJob*>::iterator it = _mapJobs.begin() ;
+         std::map<EDUID, _rtnBaseJob*>::iterator it = _mapJobs.begin() ;
          while ( it != _mapJobs.end() )
          {
             itJob = it->second ;
@@ -138,7 +134,6 @@ namespace engine
                   if ( pEDUID )
                   {
                      *pEDUID = it->first ;
-                     //_mapResult[newEDUID] = SDB_OK ;
                   }
                   SDB_OSS_DEL pJob ;
                   pJob = NULL ;
@@ -147,18 +142,12 @@ namespace engine
                else
                {
                   _stopJob ( it->first ) ;
-                  // need to get remove latch to ensure job not delete
                   _latchRemove.get() ;
-                  // need to release _latch for the case job to start job
                   _latch.release() ;
-                  // wait job detach
                   itJob->waitDetach () ;
                   ossSleep( 2 ) ;
-                  // need to get _latch
                   _latch.get() ;
-                  // need to release remove latch for job to delete
                   _latchRemove.release() ;
-                  // need to re-value for it
                   it = _mapJobs.begin() ;
                   continue ;
                }
@@ -173,7 +162,6 @@ namespace engine
          goto error ;
       }
 
-      // start new edu
       rc = _eduMgr->startEDU( EDU_TYPE_BACKGROUND_JOB, (void*)pJob,
                               &newEDUID, pJob->name() ) ;
       if ( SDB_OK != rc )
@@ -183,19 +171,15 @@ namespace engine
          goto error ;
       }
 
-      // wait edu attach in
       while( SDB_OK != pJob->waitAttach( OSS_ONE_SEC ) )
       {
          if ( !_eduMgr->getEDUByID( newEDUID ) )
          {
-            /// The edu has terminate due to some exception
             rc = SDB_SYS ;
             goto error ;
          }
       }
-      // add to map
       _mapJobs[newEDUID] = pJob ;
-      //_mapResult[newEDUID] = SDB_OK ;
 
       if ( pEDUID )
       {
@@ -234,8 +218,7 @@ namespace engine
          _mapResult[ eduID ] = result ;
       }
 
-      ossPoolMap<EDUID, _rtnBaseJob*>::iterator it =
-         _mapJobs.find ( eduID ) ;
+      std::map<EDUID, _rtnBaseJob*>::iterator it = _mapJobs.find ( eduID ) ;
       if ( it == _mapJobs.end() )
       {
          rc = SDB_RTN_JOB_NOT_EXIST ;
@@ -248,7 +231,6 @@ namespace engine
 
       _latch.release() ;
 
-      // free memory
       if ( pJob )
       {
          ossScopedLock lock( &_latchRemove, EXCLUSIVE ) ;
@@ -278,27 +260,14 @@ namespace engine
       _pEDUCB = cb ;
       _evtOut.reset() ;
       _evtIn.signal() ;
-
-      _onAttach() ;
-
       return SDB_OK ;
    }
 
    INT32 _rtnBaseJob::attachOut ()
    {
-      _onDetach() ;
-
       _evtOut.signal() ;
       _pEDUCB = NULL ;
       return SDB_OK ;      
-   }
-
-   void _rtnBaseJob::_onAttach()
-   {
-   }
-
-   void _rtnBaseJob::_onDetach()
-   {
    }
 
    INT32 _rtnBaseJob::waitAttach ( INT64 millsec )

@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = optStatUnit.cpp
 
@@ -46,8 +45,6 @@
 #include "ixmExtent.hpp"
 #include "optCommon.hpp"
 
-using namespace bson ;
-
 namespace engine
 {
 
@@ -61,7 +58,7 @@ namespace engine
       _optStatListKey implement
     */
    _optStatListKey::_optStatListKey ()
-   : ossPoolList<const rtnKeyBoundary *> (),
+   : _utilList<const rtnKeyBoundary *> (),
      _dmsStatKey( TRUE )
    {
    }
@@ -90,9 +87,6 @@ namespace engine
          }
          else if ( !inclusive && cmpFlag != 0 )
          {
-            // Result is equal but not included, adjust with cmpFlag
-            // cmpFlag is -1, left is bigger than right
-            // cmpFlag is 1, left is smaller than right
             res = cmpFlag > 0 ? -1 : 1 ;
             break ;
          }
@@ -100,7 +94,6 @@ namespace engine
 
       if ( 0 == res )
       {
-         // Compared elements are equal, adjust with incFlag
          if ( iterRight.more() )
          {
             res = _equalButRightMore( incFlag ) ;
@@ -149,7 +142,6 @@ namespace engine
 
             if ( cmpFlag > 0 && res <= 0 )
             {
-               // bigger is expected, but got smaller value
                if ( inclusive && res < 0 )
                {
                   return FALSE ;
@@ -161,7 +153,6 @@ namespace engine
             }
             else if ( cmpFlag < 0 && res >= 0 )
             {
-               // smaller is expected, but got bigger value
                if ( inclusive && res > 0 )
                {
                   return FALSE ;
@@ -173,7 +164,6 @@ namespace engine
             }
             else if ( cmpFlag == 0 && res != 0 )
             {
-               // equal is expected, but got non-equal value
                return FALSE ;
             }
          }
@@ -244,15 +234,11 @@ namespace engine
 
       if ( !_included && 0 == res && cmpFlag != 0 )
       {
-         // Result is equal but not included, adjust with cmpFlag
-         // cmpFlag is -1, left is bigger than right
-         // cmpFlag is 1, left is smaller than right
          res = cmpFlag > 0 ? -1 : 1 ;
       }
 
       if ( 0 == res )
       {
-         // Compared elements are equal, adjust with incFlag
          if ( iterRight.more() )
          {
             res = _equalButRightMore( incFlag ) ;
@@ -286,17 +272,14 @@ namespace engine
          INT32 res = woCompare( beRight, FALSE ) ;
          if ( cmpFlag > 0 && res <= 0 )
          {
-            // bigger is expected, but got smaller value
             return FALSE ;
          }
          else if ( cmpFlag < 0 && res >= 0 )
          {
-            // smaller is expected, but got bigger value
             return FALSE ;
          }
          else if ( cmpFlag == 0 && res != 0 )
          {
-            // equal is expected, but got non-equal value
             return FALSE ;
          }
       }
@@ -367,7 +350,6 @@ namespace engine
             selectivity = OPT_ROUND_SELECTIVITY( selectivity ) ;
          }
 
-         // Cache the selectivity to avoid duplicated evaluations
          predicate.setSelectivity( selectivity, isAllRange ) ;
       }
 
@@ -379,7 +361,6 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTSTATUNIT__EVALKEYPAIR, "_optStatUnit::_evalKeyPair" )
    INT32 _optStatUnit::_evalKeyPair ( const dmsIndexStat *pIndexStat,
                                       rtnStatPredList::iterator &predIter,
-                                      rtnStatPredList::iterator &endIter,
                                       optStatListKey &startKeys,
                                       optStatListKey &stopKeys,
                                       BOOLEAN isEqual,
@@ -393,25 +374,22 @@ namespace engine
       PD_TRACE_ENTRY( SDB__OPTSTATUNIT__EVALKEYPAIR ) ;
 
       rtnStatPredList::iterator curPred = predIter ;
-
-      if ( curPred == endIter )
+      rtnStatPredList::iterator nextPred = ++ predIter ;
+      if ( curPred == nextPred )
       {
          if ( isEqual && startKeys.size() == pIndexStat->getNumKeys() )
          {
-            rc = pIndexStat->evalETOperator( startKeys, predSelectivity,
-                                             scanSelectivity ) ;
+            rc = pIndexStat->evalETOperator( startKeys, predSelectivity, scanSelectivity ) ;
          }
          else
          {
             rc = pIndexStat->evalRangeOperator( startKeys, stopKeys,
-                                                predSelectivity,
-                                                scanSelectivity ) ;
+                                                predSelectivity, scanSelectivity ) ;
          }
       }
       else
       {
          rtnPredicate *pPredicate = *curPred ;
-         rtnStatPredList::iterator nextPred = ++ predIter ;
 
          BOOLEAN startIncluded = startKeys.isIncluded() ;
          BOOLEAN stopIncluded = stopKeys.isIncluded() ;
@@ -427,8 +405,6 @@ namespace engine
                BOOLEAN subIsEqual = isEqual && iterSSKey->isEquality() ;
                double subScanSel = 1.0, subPredSel = 1.0 ;
 
-               // [$minKey, $minKey], [$minKey, $undefined), [$maxKey, $maxKey]
-               // which could be ignored
                if ( ( iterSSKey->_startKey._bound.type() == MinKey &&
                       ( iterSSKey->_stopKey._bound.type() == MinKey ||
                       ( iterSSKey->_stopKey._bound.type() == Undefined &&
@@ -442,7 +418,7 @@ namespace engine
                startKeys.pushKeyBound( &(iterSSKey->_startKey) ) ;
                stopKeys.pushKeyBound( &(iterSSKey->_stopKey) ) ;
 
-               rc = _evalKeyPair( pIndexStat, nextPred, endIter,
+               rc = _evalKeyPair( pIndexStat, nextPred,
                                   startKeys, stopKeys,
                                   subIsEqual, subPredSel, subScanSel ) ;
                if ( SDB_OK != rc )
@@ -468,7 +444,7 @@ namespace engine
             startKeys.pushKeyBound( &minKeyBound ) ;
             stopKeys.pushKeyBound( &maxKeyBound ) ;
 
-            rc = _evalKeyPair( pIndexStat, nextPred, endIter, startKeys, stopKeys,
+            rc = _evalKeyPair( pIndexStat, nextPred, startKeys, stopKeys,
                                FALSE, predSelectivity, scanSelectivity ) ;
 
             startKeys.popElement( startIncluded ) ;
@@ -496,7 +472,7 @@ namespace engine
       _keyPattern = _keyPattern.getOwned() ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTIDXSTAT_EVALPREDLIST, "_optIndexStat::evalPredicateList" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTIDXSTAT_EVALPREDLIST, "_optStatUnit::evalPredicateList" )
    double _optIndexStat::evalPredicateList ( const CHAR *pFirstFieldName,
                                              rtnStatPredList &predList,
                                              BOOLEAN mixCmp,
@@ -517,9 +493,8 @@ namespace engine
       else if ( isValid() )
       {
          rtnStatPredList::iterator predIter = predList.begin() ;
-         rtnStatPredList::iterator endIter = predList.end() ;
          optStatListKey startKeys, stopKeys ;
-         rc = _evalKeyPair( _pIndexStat, predIter, endIter, startKeys, stopKeys,
+         rc = _evalKeyPair( _pIndexStat, predIter, startKeys, stopKeys,
                             TRUE, predSelectivity, scanSelectivity ) ;
       }
 
@@ -545,7 +520,7 @@ namespace engine
       return predSelectivity ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTIDXSTAT_EVALKEYPAIR, "_optIndexStat::evalKeyPair" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__OPTIDXSTAT_EVALKEYPAIR, "_optStatUnit::evalKeyPair" )
    double _optIndexStat::evalKeyPair ( const CHAR *pFieldName,
                                        dmsStatKey &startKey,
                                        dmsStatKey &stopKey,
@@ -575,7 +550,6 @@ namespace engine
 
       if ( SDB_OK != rc )
       {
-         // Simply evaluate one
          predSelectivity = _collectionStat.evalKeyPair( pFieldName,
                                                         startKey, stopKey,
                                                         isEqual, majorType,
@@ -608,7 +582,6 @@ namespace engine
    {
       if ( statCache )
       {
-         // For statistics cache, mbID is ID of cache unit
          _pCollectionStat = (const dmsCollectionStat *)
                             statCache->getCacheUnit( mbContext->mbID() ) ;
       }
@@ -686,9 +659,8 @@ namespace engine
          }
 
          rtnStatPredList::iterator predIter = predicateList.begin() ;
-         rtnStatPredList::iterator endIter = predicateList.end() ;
          optStatListKey startKeys, stopKeys ;
-         INT32 rc = _optStatUnit::_evalKeyPair( pIndexStat, predIter, endIter,
+         INT32 rc = _optStatUnit::_evalKeyPair( pIndexStat, predIter,
                                                 startKeys, stopKeys,
                                                 TRUE, selectivity,
                                                 scanSelectivity ) ;
@@ -700,7 +672,6 @@ namespace engine
          }
       }
 
-      // Need to evaluate one by one
       selectivity = 1.0 ;
       for ( RTN_PREDICATE_MAP::iterator iterPred = predicates.begin() ;
             iterPred != predicates.end();
@@ -737,13 +708,11 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__OPTCLSTAT_EVALKEYPAIR ) ;
 
-      // Use the first field only
       const BSONElement &beStart = startKey.firstElement() ;
       const BSONElement &beStop = stopKey.firstElement() ;
       BOOLEAN startIncluded = startKey.isIncluded() ;
       BOOLEAN stopIncluded = stopKey.isIncluded() ;
 
-      // Try to use the field statistics first
       const dmsIndexStat *pIndexStat = getFieldStat( pFieldName ) ;
       if ( pIndexStat )
       {
@@ -754,7 +723,6 @@ namespace engine
          }
          else
          {
-            // First key only
             optStatElementKey startEleKey( beStart, startIncluded ) ;
             optStatElementKey stopEleKey( beStop, stopIncluded ) ;
             rc = pIndexStat->evalRangeOperator( startEleKey, stopEleKey,
@@ -762,7 +730,6 @@ namespace engine
          }
       }
 
-      // Failed to use field statistics, evaluate by default
       if ( SDB_OK != rc )
       {
          if ( isEqual )
@@ -792,7 +759,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__OPTCLSTAT_EVALETOPTR ) ;
 
-      // Try to use the field statistics first
       const dmsIndexStat *pIndexStat = getFieldStat( pFieldName ) ;
       if ( pIndexStat && pIndexStat->isValidForEstimate() )
       {
@@ -809,7 +775,6 @@ namespace engine
 
       if ( SDB_OK != rc )
       {
-         // Failed to use field statistics, evaluate by default
          selectivity = _evalETOperator( beValue ) ;
       }
 
@@ -837,7 +802,6 @@ namespace engine
 
       if ( SDB_OK != rc )
       {
-         // Failed to use field statistics, evaluate by default
          selectivity = _evalGTOperator( beValue, included ) ;
       }
 
@@ -865,7 +829,6 @@ namespace engine
 
       if ( SDB_OK != rc )
       {
-         // Failed to use field statistics, evaluate by default
          selectivity = _evalLTOperator( beValue, included ) ;
       }
 
@@ -890,7 +853,6 @@ namespace engine
              startKey.type() == Undefined ) &&
            stopKey.type() == MaxKey )
       {
-         // Cover all values
          selectivity = 1.0 ;
       }
       else if ( ( startKey.type() == MinKey &&
@@ -898,8 +860,6 @@ namespace engine
                     ( stopKey.type() == Undefined && !stopIncluded ) ) ) ||
                 ( startKey.type() == MaxKey && stopKey.type() == MaxKey ) )
       {
-         // [$minKey, $minKey], [$minKey, $undefined), [$maxKey, $maxKey]
-         // which could be ignored
          selectivity = 0.0 ;
       }
       else if ( startKey.type() == MinKey ||
@@ -974,7 +934,6 @@ namespace engine
       }
       else if ( getTotalRecords() > 0 )
       {
-         // Assume that each records have different values
          selectivity = OSS_MIN( OPT_PRED_EQ_DEF_SELECTIVITY,
                                 1.0 / (double)getTotalRecords() ) ;
       }
@@ -1002,17 +961,14 @@ namespace engine
             {
                if ( startIncluded && stopIncluded )
                {
-                  // [ true, false ] is all range
                   selectivity = 1.0 ;
                }
                else if ( startIncluded || stopIncluded )
                {
-                  // Either true or false
                   selectivity = 0.5 ;
                }
                else
                {
-                  // No matched
                   selectivity = 0.0 ;
                }
                break ;
@@ -1064,7 +1020,6 @@ namespace engine
       }
       else
       {
-         // Start key and stop key are different types
          selectivity = OPT_PRED_DEF_SELECTIVITY ;
       }
 
@@ -1089,12 +1044,10 @@ namespace engine
             {
                if ( startIncluded )
                {
-                  // >= true
                   selectivity = 0.5 ;
                }
                else
                {
-                  // > true
                   selectivity = 0.0 ;
                }
             }
@@ -1102,12 +1055,10 @@ namespace engine
             {
                if ( startIncluded )
                {
-                  // >= false
                   selectivity = 1.0 ;
                }
                else
                {
-                  // > false
                   selectivity = 0.5 ;
                }
             }
@@ -1169,12 +1120,10 @@ namespace engine
             {
                if ( stopIncluded )
                {
-                  // <= true
                   selectivity = 1.0 ;
                }
                else
                {
-                  // < true
                   selectivity = 0.5 ;
                }
             }
@@ -1182,12 +1131,10 @@ namespace engine
             {
                if ( stopIncluded )
                {
-                  // <= false
                   selectivity = 0.5 ;
                }
                else
                {
-                  // < false
                   selectivity = 0.0 ;
                }
             }
@@ -1266,8 +1213,6 @@ namespace engine
 
          if ( pIndexStat->getNumKeys() < predicates.size() )
          {
-            // The index could not cover all predicates, it is not the best
-            // matched index
             continue ;
          }
 
@@ -1291,16 +1236,12 @@ namespace engine
 
          if ( matchedCount == predicates.size() )
          {
-            // The index covers all predicates, which is a candidate of the best
-            // matched index
             if ( matchedCount == pIndexStat->getNumKeys() )
             {
-               // The number of keys are matched, it is the best one
                pBestIndexStat = pIndexStat ;
                goto done ;
             }
 
-            // The number of keys are different, find the smaller one
             if ( pBestIndexStat )
             {
                if ( pIndexStat->getNumKeys() < pBestIndexStat->getNumKeys() )
@@ -1328,7 +1269,6 @@ namespace engine
    {
       if ( 0 == valueSize )
       {
-         // Empty string
          return 0.0 ;
       }
 
@@ -1336,7 +1276,6 @@ namespace engine
       double scalar = 0.0 ;
       double denom = base ;
 
-      // Convert initial characters to fraction
       while ( valueSize-- > 0 )
       {
          UINT8 ch = (UINT8) *( pValue++ ) ;

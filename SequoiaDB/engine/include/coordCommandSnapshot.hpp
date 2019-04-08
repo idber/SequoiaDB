@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordCommandSnapshot.hpp
 
@@ -173,7 +172,6 @@ namespace engine
       public:
          _coordCMDSnapshotDataBaseIntr() ;
          virtual ~_coordCMDSnapshotDataBaseIntr() ;
-         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
    } ;
    typedef _coordCMDSnapshotDataBaseIntr coordCMDSnapshotDataBaseIntr ;
 
@@ -407,10 +405,6 @@ namespace engine
          virtual INT32 _preProcess( rtnQueryOptions &queryOpt,
                                     string &clName,
                                     BSONObj &outSelector ) ;
-
-         virtual INT32 _processVCS( rtnQueryOptions &queryOpt,
-                                    const CHAR *pName,
-                                    rtnContext *pContext ) ;
    } ;
    typedef _coordCMDSnapshotCata coordCMDSnapshotCata ;
 
@@ -456,77 +450,6 @@ namespace engine
    } ;
 
    typedef _coordCMDSnapshotAccessPlansIntr coordCMDSnapshotAccessPlansIntr ;
-
-   /*
-      _coordCMDSnapshotConfigs define
-   */
-   class _coordCMDSnapshotConfigs: public _coordCMDMonBase
-   {
-      COORD_DECLARE_CMD_AUTO_REGISTER() ;
-      public:
-         _coordCMDSnapshotConfigs() ;
-         virtual ~_coordCMDSnapshotConfigs() ;
-      private:
-         virtual const CHAR *getIntrCMDName() ;
-         virtual const CHAR *getInnerAggrContent() ;
-   } ;
-   typedef _coordCMDSnapshotConfigs coordCMDSnapshotConfigs ;
-
-   /*
-      _coordCMDSnapshotConfigIntr define
-   */
-   class _coordCMDSnapshotConfigsIntr : public _coordCMDSnapshotIntrBase
-   {
-      COORD_DECLARE_CMD_AUTO_REGISTER() ;
-      public:
-         _coordCMDSnapshotConfigsIntr() ;
-         virtual ~_coordCMDSnapshotConfigsIntr() ;
-         virtual void _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
-   } ;
-   typedef _coordCMDSnapshotConfigsIntr coordCMDSnapshotConfigsIntr ;
-
-   /*
-      _coordCMDSnapshotSvcTasks define
-   */
-   class _coordCMDSnapshotSvcTasks : public _coordCMDMonBase
-   {
-      COORD_DECLARE_CMD_AUTO_REGISTER() ;
-      public:
-         _coordCMDSnapshotSvcTasks() ;
-         virtual ~_coordCMDSnapshotSvcTasks() ;
-      private:
-         virtual const CHAR *getIntrCMDName() ;
-         virtual const CHAR *getInnerAggrContent() ;
-   } ;
-   typedef _coordCMDSnapshotSvcTasks coordCMDSnapshotSvcTasks ;
-
-   /*
-      _coordCMDSnapshotSvcTasksIntr define
-   */
-   class _coordCMDSnapshotSvcTasksIntr : public _coordCMDSnapshotIntrBase
-   {
-      COORD_DECLARE_CMD_AUTO_REGISTER() ;
-      public:
-         _coordCMDSnapshotSvcTasksIntr() ;
-         virtual ~_coordCMDSnapshotSvcTasksIntr() ;
-   } ;
-   typedef _coordCMDSnapshotSvcTasksIntr coordCMDSnapshotSvcTasksIntr ;
-
-    /*
-       _coordCMDSnapshotSequences define
-    */
-    class _coordCMDSnapshotSequences : public _coordCMDQueryBase
-    {
-       COORD_DECLARE_CMD_AUTO_REGISTER() ;
-       public:
-          _coordCMDSnapshotSequences() ;
-          virtual ~_coordCMDSnapshotSequences() ;
-       protected:
-          virtual INT32 _preProcess( rtnQueryOptions &queryOpt,
-                                     string &clName,
-                                     BSONObj &outSelector ) ;
-    } ;
-    typedef _coordCMDSnapshotSequences coordCMDSnapshotSequences ;
 
 }
 #endif // COORD_COMMAND_SNAPSHOT_HPP__

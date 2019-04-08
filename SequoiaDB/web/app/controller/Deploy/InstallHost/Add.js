@@ -67,7 +67,7 @@
          SdbRest.OmOperation( data, {
             'success': function( taskInfo ){
                $rootScope.tempData( 'Deploy', 'HostTaskID', taskInfo[0]['TaskID'] ) ;
-               $location.path( '/Deploy/Task/Host' ).search( { 'r': new Date().getTime() } ) ;
+               $location.path( '/Deploy/InstallHost' ).search( { 'r': new Date().getTime() } ) ;
             },
             'failed': function( errorInfo ){
                _IndexPublic.createRetryModel( $scope, errorInfo, function(){
@@ -127,7 +127,7 @@
             $scope.Components.Confirm.type = 3 ;
             $scope.Components.Confirm.context = $scope.autoLanguage( '至少选择一台主机，才可以进入下一步操作。' ) ;
             $scope.Components.Confirm.isShow = true ;
-            $scope.Components.Confirm.noClose = true ;
+            $scope.Components.Confirm.okText = $scope.autoLanguage( '好的' ) ;
          }
       }
 
@@ -156,20 +156,9 @@
                      hostInfo['CanNotUseNum'] = 0 ;
                      hostInfo['DiskWarning']  = 0 ;
 
-                     var useHostNum = 0 ;
-                     var tmpUseNum = 0 ;
-                     var useSumSize = 0 ;
                      var filterDiskList = [] ;
                      var diskNameList = {} ;
                      $.each( hostInfo['Disk'], function( index2, diskInfo ){
-                        if( diskInfo['CanUse'] == true && diskInfo['IsLocal'] == true )
-                        {
-                           ++tmpUseNum ;
-                        }
-                     } ) ;
-
-                     $.each( hostInfo['Disk'], function( index2, diskInfo ){
-                        //防止重复挂载盘
                         if( diskNameList[diskInfo['Name']] === 0 || diskNameList[diskInfo['Name']] === 1 )
                         {
                            diskNameList[diskInfo['Name']] = 1 ;
@@ -178,52 +167,40 @@
                         {
                            diskNameList[diskInfo['Name']] = 0 ;
                         }
-
-                        if ( diskInfo['Mount'] == '/' && tmpUseNum > 1 )
-                        {
-                           //多个符合条件的挂载盘，默认不选根路径
-                           diskInfo['IsUse'] = false ;
-                        }
-                        else if( diskNameList[diskInfo['Name']] === 1 )
-                        {
-                           diskInfo['IsUse'] = false ;
-                        }
-                        else if ( diskInfo['CanUse'] == true && diskInfo['IsLocal'] == true )
-                        {
-                           useSumSize += diskInfo['Size'] ;
-                           ++useHostNum ;
-                        }
-                        filterDiskList.push( diskInfo ) ;
-                     } ) ;
-
-                     //可用磁盘的基准值大小
-                     var baseSize = ( useSumSize / useHostNum ) * 0.2 ;
-
-                     $.each( filterDiskList, function( index2, diskInfo ){
                         if( diskInfo['CanUse'] == true )
                         {
-                           if( diskInfo['IsLocal'] == true && diskInfo['IsUse'] !== false )
+                           if( diskInfo['IsLocal'] == true )
                            {
-                              if ( diskInfo['Size'] < baseSize )
-                              {
-                                 filterDiskList[index2]['IsUse'] = false ;
-                              }
-                              else
-                              {
-                                 filterDiskList[index2]['IsUse'] = true ;
-                                 ++hostInfo['IsUseNum'] ;
-
-                                 //至少有一个磁盘选中，主机可以用
-                                 hostInfo['CanUse'] = true ;
-                              }
+                              diskInfo['IsUse'] = true ;
+                              hostInfo['CanUse'] = true ;
+                              ++hostInfo['IsUseNum'] ;
                            }
+                           filterDiskList.push( diskInfo ) ;
                         }
                         else
                         {
                            ++hostInfo['CanNotUseNum'] ;
+                           filterDiskList.push( diskInfo ) ;
                         }
                      } ) ;
-
+                     $.each( filterDiskList, function( index2, diskInfo ){
+                        if( diskNameList[diskInfo['Name']] === 1 )
+                        {
+                           if( diskInfo['CanUse'] == true && diskInfo['IsLocal'] == true )
+                           {
+                              //磁盘出现大于1次
+                              diskInfo['IsUse'] = false ;
+                              if( hostInfo['IsUseNum'] > 0 )
+                              {
+                                 --hostInfo['IsUseNum'] ;
+                              }
+                              if( hostInfo['IsUseNum'] == 0 )
+                              {
+                                 hostInfo['CanUse'] = false ;
+                              }
+                           }
+                        }
+                     } ) ;
                      hostInfo['Disk'] = filterDiskList ;
                      hostInfo['DiskWarning'] = sprintf( $scope.autoLanguage( '有?个磁盘剩余容量不足。' ), hostInfo['CanNotUseNum'] ) ;
                      hostInfo['IsUse'] = hostInfo['CanUse'] ;

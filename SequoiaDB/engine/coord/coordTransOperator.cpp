@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordTransOperator.cpp
 
@@ -70,28 +69,40 @@ namespace engine
                                           coordProcessResult &result )
    {
       INT32 rc = SDB_OK ;
+      ROUTE_RC_MAP newNodeMap ;
+
+      rc = buildTransSession( options._groupLst, cb, newNodeMap ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to build transaction session on data node, "
+                 "rc: %d", rc ) ;
+         goto error ;
+      }
 
       if ( cb->isTransaction() )
       {
-         // need add transaction info for the send msg
          _prepareForTrans( cb, inMsg.msg() ) ;
       }
 
-      /// when data is old version
-      if ( _remoteHandler.isVersion0() && _isTrans( cb, inMsg.msg() ) )
+      rc = coordOperator::doOnGroups( inMsg, options, cb, result ) ;
+      if ( cb->isTransaction() && ( rc || result.nokSize() > 0 ) )
       {
-         ROUTE_RC_MAP newNodeMap ;
-         // build trans session on new data groups
-         rc = buildTransSession( options._groupLst, cb, newNodeMap ) ;
-         if ( rc )
+         SET_NODEID nodes ;
+         MsgRouteID nodeID ;
+         ROUTE_RC_MAP::iterator itRCMap = newNodeMap.begin() ;
+         while( itRCMap != newNodeMap.end() )
          {
-            PD_LOG( PDERROR, "Failed to build transaction session on "
-                    "data nodes, rc: %d", rc ) ;
-            goto error ;
+            nodeID.value = itRCMap->first ;
+            if ( result._sucGroupLst.find( nodeID.columns.groupID ) ==
+                 result._sucGroupLst.end() )
+            {
+               nodes.insert( nodeID.value ) ;
+            }
+            ++itRCMap ;
          }
+         releaseTransSession( nodes, cb ) ;
       }
 
-      rc = coordOperator::doOnGroups( inMsg, options, cb, result ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Do command[%d] on data groups failed, rc: %d",
@@ -152,21 +163,18 @@ namespace engine
          pSub = pSession->addSubSession( *itSet ) ;
          pSub->setReqMsg( ( MsgHeader* )&msgReq, PMD_EDU_MEM_NONE ) ;
 
-         /// delete trans node
-         _groupSession.getPropSite()->delTransNode( pSub->getNodeID() ) ;
+         cb->delTransNode( pSub->getNodeID() ) ;
 
          rc = pSession->sendMsg( pSub ) ;
          if ( rc )
          {
             PD_LOG( PDWARNING, "Release node[%s] failed, rc: %d",
                     routeID2String( *itSet ).c_str(), rc ) ;
-            /// remove the sub session
             pSession->resetSubSession( *itSet ) ;
          }
          ++itSet ;
       }
 
-      /// get reply
       rc = pSession->waitReply1( TRUE ) ;
       if ( rc )
       {
@@ -189,7 +197,6 @@ namespace engine
          }
       }
 
-      /// clear all sub session
       pSession->resetAllSubSession() ;
 
       return rc ;
@@ -199,19 +206,27 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       SET_NODEID nodes ;
+      DpsTransNodeMap *pTransMap = cb->getTransNodeLst() ;
+      DpsTransNodeMap::iterator it ;
 
-      _groupSession.getPropSite()->dumpTransNode( nodes ) ;
-
-      if ( 0 == nodes.size() )
+      if ( NULL == pTransMap )
       {
          goto done ;
       }
 
+      it = pTransMap->begin() ;
+      while( it != pTransMap->end() )
+      {
+         nodes.insert( it->second.value ) ;
+         ++it ;
+      }
+
       cb->startRollback() ;
+
       rc = releaseTransSession( nodes, cb ) ;
 
    done:
-      _groupSession.getPropSite()->endTrans( cb ) ;
+      cb->delTransaction() ;
       cb->stopRollback() ;
       return rc ;
    }
@@ -230,8 +245,9 @@ namespace engine
       {
          coordSendOptions options( TRUE ) ;
          coordProcessResult result ;
-         coordSessionPropSite *pPropSite = _groupSession.getPropSite() ;
 
+         DpsTransNodeMap *pTransNodeLst = cb->getTransNodeLst() ;
+         DpsTransNodeMap::iterator iterTrans ;
          CoordGroupList::const_iterator iterGroup ;
          MsgOpTransBegin msgReq ;
          coordSendMsgIn inMsg( (MsgHeader*)&msgReq ) ;
@@ -244,9 +260,9 @@ namespace engine
          iterGroup = groupLst.begin() ;
          while(  iterGroup != groupLst.end() )
          {
-            if ( !pPropSite->hasTransNode( iterGroup->first ) )
+            iterTrans = pTransNodeLst->find( iterGroup->first );
+            if ( pTransNodeLst->end() == iterTrans )
             {
-               /// not found, need to being the trans
                options._groupLst[ iterGroup->first ] = iterGroup->second ;
             }
             ++iterGroup ;
@@ -255,7 +271,6 @@ namespace engine
          newNodeMap.clear() ;
          result._pOkRC = &newNodeMap ;
          rc = coordOperator::doOnGroups( inMsg, options, cb, result ) ;
-         // add ok route id to trans node id
          if ( newNodeMap.size() > 0 )
          {
             MsgRouteID nodeID ;
@@ -263,7 +278,7 @@ namespace engine
             while( itRC != newNodeMap.end() )
             {
                nodeID.value = itRC->first ;
-               pPropSite->addTransNode( nodeID ) ;
+               cb->addTransNode( nodeID ) ;
                ++itRC ;
             }
          }
@@ -278,7 +293,6 @@ namespace engine
    done :
       return rc ;
    error :
-      /// will rollback all suc node and the node before session
       goto done ;
    }
 
@@ -300,8 +314,17 @@ namespace engine
                                     INT64 &contextID,
                                     rtnContextBuf *buf )
    {
+      INT32 rc    = SDB_OK ;
       contextID   = -1 ;
-      return _groupSession.getPropSite()->beginTrans( cb ) ;
+
+      rc = cb->createTransaction() ;
+      PD_RC_CHECK( rc, PDERROR, "Create transaction failed, rc: %d",
+                   rc ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    /*
@@ -380,7 +403,6 @@ namespace engine
          goto error ;
       }
 
-      // execute on data nodes
       rc = executeOnDataGroup( (MsgHeader*)pMsgReq, cb, contextID, buf ) ;
       if ( rc )
       {
@@ -416,7 +438,6 @@ namespace engine
          goto error ;
       }
 
-      // execute on data nodes
       rc = executeOnDataGroup( (MsgHeader*)pMsgReq, cb, contextID, buf ) ;
       if ( rc )
       {
@@ -440,7 +461,6 @@ namespace engine
                                        INT64 &contextID,
                                        rtnContextBuf *buf )
    {
-      // do nothing, rollback will do in session
       return SDB_OK ;
    }
 
@@ -469,19 +489,15 @@ namespace engine
       pmdSubSession *pSub = NULL ;
       pmdSubSessionItr itr ;
 
+      DpsTransNodeMap *pNodeMap = cb->getTransNodeLst() ;
+      DpsTransNodeMap::iterator iterMap = pNodeMap->begin() ;
       ROUTE_RC_MAP nokRC ;
-      _coordSessionPropSite::MAP_TRANS_NODES_CIT cit ;
-      const _coordSessionPropSite::MAP_TRANS_NODES *pNodeMap = NULL ;
 
-      pNodeMap = _groupSession.getPropSite()->getTransNodeMap() ;
-      cit = pNodeMap->begin() ;
-
-      /// clear
       _groupSession.resetSubSession() ;
 
-      while( cit != pNodeMap->end() )
+      while( iterMap != pNodeMap->end() )
       {
-         pSub = pSession->addSubSession( cit->second.value ) ;
+         pSub = pSession->addSubSession( iterMap->second.value ) ;
          pSub->setReqMsg( pMsg, PMD_EDU_MEM_NONE ) ;
 
          rcTmp = pSession->sendMsg( pSub ) ;
@@ -490,11 +506,11 @@ namespace engine
             rc = rc ? rc : rcTmp ;
             PD_LOG ( PDWARNING, "Failed to send commit request to the "
                      "node[%s], rc: %d",
-                     routeID2String( cit->second ).c_str(),
+                     routeID2String( iterMap->second ).c_str(),
                      rcTmp ) ;
-            nokRC[ cit->second.value ] = rcTmp ;
+            nokRC[ iterMap->second.value ] = rcTmp ;
          }
-         ++cit ;
+         ++iterMap ;
       }
 
       rcTmp = pSession->waitReply1( TRUE ) ;
@@ -592,7 +608,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), MSG_BS_TRANS_COMMIT_REQ,
                           "TransactionID: 0x%016x(%llu)",
                           cb->getTransID(),
@@ -604,13 +619,11 @@ namespace engine
          goto error ;
       }
 
-      // complete, delete transaction
-      _groupSession.getPropSite()->endTrans( cb ) ;
+      cb->delTransaction() ;
 
    done:
       return rc ;
    error:
-      // rollback in session
       goto done ;
    }
 
@@ -646,7 +659,6 @@ namespace engine
          goto done ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), MSG_BS_TRANS_ROLLBACK_REQ,
                           "TransactionID: 0x%016x(%llu)",
                           cb->getTransID(),

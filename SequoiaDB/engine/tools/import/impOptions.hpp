@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2015 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = impOptions.hpp
 
@@ -76,14 +75,12 @@ namespace import
       BOOLEAN hasHelpfull();
 
       /* general */
-      inline const string& cipherfile()   const { return _cipherfile; }
       inline const string& hostname() const { return _hostname; }
       inline const string& svcname() const { return _svcname; }
       inline const string& hostsString() const { return _hostsString; }
       inline vector<Host>& hosts() { return _hosts; }
       inline const string& user() const { return _user; }
       inline const string& password() const { return _password; }
-      inline const string& token() const { return _token; }
       inline const string& csname() const { return _csName; }
       inline const string& clname() const { return _clName; }
       inline BOOLEAN errorStop() const { return _errorStop; }
@@ -106,9 +103,6 @@ namespace import
       inline BOOLEAN linePriority() const { return _linePriority; }
       inline const string& recordDelimiter() const { return _recordDelimiter; }
       inline BOOLEAN force() const { return _force; }
-
-      /* json */
-      inline BOOLEAN isUnicode() const { return _isUnicode; }
 
       /* csv */
       inline const string& stringDelimiter() const { return _stringDelimiter; }
@@ -142,8 +136,6 @@ namespace import
       string         _hostsString;
       vector<Host>   _hosts;
       string         _password;
-      string         _cipherfile;
-      string         _token;
       string         _csName;
       string         _clName;
       BOOLEAN        _errorStop;
@@ -167,9 +159,6 @@ namespace import
       string         _recordDelimiterIn;
       string         _recordDelimiter;
       BOOLEAN        _force;
-
-      /* json */
-      BOOLEAN        _isUnicode ;
 
       /* csv */
       string         _stringDelimiterIn;

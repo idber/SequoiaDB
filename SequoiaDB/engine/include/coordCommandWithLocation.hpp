@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordCommandWithLocation.hpp
 
@@ -188,40 +187,6 @@ namespace engine
          virtual UINT32  _getControlMask() const ;
    } ;
    typedef _coordReloadConf coordReloadConf ;
-
-   /*
-      _coordUpdateConf define
-   */
-   class _coordUpdateConf : public _coordCmdWithLocation
-   {
-      COORD_DECLARE_CMD_AUTO_REGISTER() ;
-      public:
-         _coordUpdateConf() ;
-         virtual ~_coordUpdateConf() ;
-      private:
-         virtual BOOLEAN _useContext() { return FALSE ; }
-         virtual INT32   _onLocalMode( INT32 flag ) ;
-         virtual void    _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
-         virtual UINT32  _getControlMask() const ;
-   } ;
-   typedef _coordUpdateConf coordUpdateConf ;
-
-   /*
-      _coordDeleteConf define
-   */
-   class _coordDeleteConf : public _coordCmdWithLocation
-   {
-      COORD_DECLARE_CMD_AUTO_REGISTER() ;
-      public:
-         _coordDeleteConf() ;
-         virtual ~_coordDeleteConf() ;
-      private:
-         virtual BOOLEAN _useContext() { return FALSE ; }
-         virtual INT32   _onLocalMode( INT32 flag ) ;
-         virtual void    _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
-         virtual UINT32  _getControlMask() const ;
-   } ;
-   typedef _coordDeleteConf coordDeleteConf ;
 
    /*
       _coordCMDAnalyze define

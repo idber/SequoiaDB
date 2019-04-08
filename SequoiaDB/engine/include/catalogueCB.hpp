@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = catalogueCB.hpp
 
@@ -49,7 +48,6 @@
 #include "catMainController.hpp"
 #include "catCatalogManager.hpp"
 #include "catNodeManager.hpp"
-#include "catGTSManager.hpp"
 #include "catDCManager.hpp"
 #include "sdbInterface.hpp"
 #include "catLevelLock.hpp"
@@ -142,10 +140,6 @@ namespace engine
          {
             return &_catMainCtrl ;
          }
-         catGTSManager* getCatGTSMgr()
-         {
-            return &_catGTSMgr ;
-         }
          catCatalogueManager* getCatlogueMgr()
          {
             return &_catlogueMgr ;
@@ -177,10 +171,6 @@ namespace engine
                            UINT32 replyDataLen = 0,
                            BOOLEAN needSync = TRUE ) ;
 
-         void     incPacketLevel() { ++_inPacketLevel ; }
-         void     decPacketLevel() { --_inPacketLevel ; }
-         UINT32   getPacketLevel() const { return _inPacketLevel ; }
-
          void fillErrReply ( const MsgOpReply *pReply, MsgOpReply *pErrReply,
                              INT32 rc ) ;
 
@@ -200,7 +190,6 @@ namespace engine
          catMainController    _catMainCtrl ;
          catCatalogueManager  _catlogueMgr ;
          catNodeManager       _catNodeMgr ;
-         catGTSManager        _catGTSMgr ;
          catDCManager         _catDCMgr ;
          catLevelLockMgr      _levelLockMgr ;
 
@@ -208,8 +197,6 @@ namespace engine
          BOOLEAN              _isActived ;
 
          VEC_EVENT_HANDLER    _vecEventHandler ;
-
-         UINT32               _inPacketLevel ;
    } ;
 
    /*

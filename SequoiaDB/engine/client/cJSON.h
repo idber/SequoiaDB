@@ -1,5 +1,5 @@
 /*******************************************************************************
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -141,10 +141,8 @@ typedef struct _cJsonMachine {
    CJSON_PARSE_MODE parseMode ;
    /* parse json level */
    UINT32 level ;
-   /* whether to check the end of json */
+   /* whether check the end of json */
    BOOLEAN isCheckEnd ;
-   /* whether to escape Unicode encoding */
-   BOOLEAN isUnicode ;
    /* struct CJSON root node */
    CJSON *pItem ;
    /* the current memory block */
@@ -197,8 +195,7 @@ SDB_EXPORT void cJsonSetPrintfLog( void (*pFun)( const CHAR *pFunc,
 SDB_EXPORT CJSON_MACHINE* cJsonCreate() ;
 SDB_EXPORT void cJsonInit( CJSON_MACHINE *pMachine,
                            CJSON_PARSE_MODE mode,
-                           BOOLEAN isCheckEnd,
-                           BOOLEAN isUnicode ) ;
+                           BOOLEAN isCheckEnd ) ;
 SDB_EXPORT BOOLEAN cJsonParse( const CHAR *pStr, CJSON_MACHINE *pMachine ) ;
 SDB_EXPORT void cJsonRelease( CJSON_MACHINE *pMachine ) ;
 

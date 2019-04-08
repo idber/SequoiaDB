@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnSorting.hpp
 
@@ -43,7 +42,6 @@
 #include "rtnSortDef.hpp"
 #include "rtnMergeSorting.hpp"
 #include "dmsTmpBlkUnit.hpp"
-#include "utilCommBuff.hpp"
 
 using namespace bson ;
 
@@ -71,7 +69,6 @@ namespace engine
 
       INT32 sort( _pmdEDUCB *cb ) ;
 
-      /// do not ensure that the key and obj is get owned.
       INT32 fetch( BSONObj &key, const CHAR** obj,
                    INT32* objLen, _pmdEDUCB *cb ) ;
 
@@ -93,12 +90,8 @@ namespace engine
    private:
       _dmsTmpBlkUnit _unit ;
       BSONObj _orderby ;
-
-      // Buffer used by internal/merge sorting.
-      utilBuffMonitor _buffMonitor ;
-      utilCommBuff *_bucketBuff ; // For internal sorting only.
-      utilCommBuff *_objBuff ;
-
+      CHAR *_sortBuf ;
+      UINT64 _totalBufSize ;
       RTN_SORT_STEP _step ;
       _pmdEDUCB *_cb ;
       _rtnInternalSorting *_internalBlk ;

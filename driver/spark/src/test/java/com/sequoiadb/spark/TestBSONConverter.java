@@ -22,7 +22,6 @@ import org.apache.spark.sql.types.*;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.*;
-import org.bson.util.JSON;
 import org.junit.Test;
 import scala.collection.JavaConversions;
 import scala.collection.mutable.ArrayBuffer;
@@ -37,8 +36,6 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class TestBSONConverter {
     private static final BooleanType$ SparkBooleanType = BooleanType$.MODULE$;
@@ -330,7 +327,7 @@ public class TestBSONConverter {
         assertEquals(SparkDateType, BSONConverter.compatibleType(SparkDateType, SparkNullType));
         assertEquals(SparkStringType, BSONConverter.compatibleType(SparkDateType, SparkStringType));
         assertEquals(SparkDateType, BSONConverter.compatibleType(SparkDateType, SparkDateType));
-        assertEquals(SparkTimestampType, BSONConverter.compatibleType(SparkDateType, SparkTimestampType));
+        assertEquals(SparkStringType, BSONConverter.compatibleType(SparkDateType, SparkTimestampType));
         assertEquals(SparkStringType, BSONConverter.compatibleType(SparkDateType, SparkBinaryType));
     }
 
@@ -346,7 +343,7 @@ public class TestBSONConverter {
             BSONConverter.compatibleType(SparkTimestampType, SparkDecimalType.SYSTEM_DEFAULT()));
         assertEquals(SparkTimestampType, BSONConverter.compatibleType(SparkTimestampType, SparkNullType));
         assertEquals(SparkStringType, BSONConverter.compatibleType(SparkTimestampType, SparkStringType));
-        assertEquals(SparkTimestampType, BSONConverter.compatibleType(SparkTimestampType, SparkDateType));
+        assertEquals(SparkStringType, BSONConverter.compatibleType(SparkTimestampType, SparkDateType));
         assertEquals(SparkTimestampType, BSONConverter.compatibleType(SparkTimestampType, SparkTimestampType));
         assertEquals(SparkStringType, BSONConverter.compatibleType(SparkTimestampType, SparkBinaryType));
     }
@@ -490,67 +487,5 @@ public class TestBSONConverter {
         BSONObject obj2 = BSONConverter.rowToBson(row, schema);
 
         assertEquals(expectedObj, obj2);
-    }
-
-    @Test
-    public void testRemoveNullFields() {
-        BSONObject obj = new BasicBSONObject();
-        obj.put("f1", "v1");
-        obj.put("f2", "v2");
-
-        BSONObject result = BSONConverter.removeNullFields(obj);
-        assertTrue(result.containsField("f1"));
-        assertTrue(result.containsField("f2"));
-
-        BSONObject obj2 = new BasicBSONObject();
-        obj2.put("f1", "v1");
-        obj2.put("f2", null);
-
-        BSONObject result2 = BSONConverter.removeNullFields(obj2);
-        assertTrue(result2.containsField("f1"));
-        assertFalse(result2.containsField("f2"));
-
-        BSONObject obj3 = new BasicBSONObject();
-        obj3.put("f1", "v1");
-        obj3.put("f2", "v2");
-        obj3.put("f3", new BasicBSONObject("o1", null));
-
-        BSONObject result3 = BSONConverter.removeNullFields(obj3);
-        assertTrue(result3.containsField("f1"));
-        assertTrue(result3.containsField("f2"));
-        assertFalse(result3.containsField("f3"));
-
-        BasicBSONList array = new BasicBSONList();
-        array.add(0, null);
-        array.add(1, 10);
-
-        BSONObject obj4 = new BasicBSONObject();
-        obj4.put("f1", "v1");
-        obj4.put("f2", "v2");
-        obj4.put("f3", array);
-
-        BSONObject result4 = BSONConverter.removeNullFields(obj4);
-        assertTrue(result4.containsField("f1"));
-        assertTrue(result4.containsField("f2"));
-        assertTrue(result4.containsField("f3"));
-        assertEquals(((BasicBSONList)result4.get("f3")).size(), 1);
-        assertTrue(((BasicBSONList)result4.get("f3")).containsField("0"));
-        assertEquals(((BasicBSONList)result4.get("f3")).get(0), 10);
-
-        BSONObject obj5 = (BSONObject) JSON.parse("" +
-                "{\"a\": 1, " +
-                "\"b\": null, " +
-                "\"c\": { \"x\": 1, \"y\": null }, " +
-                "\"d\": [ \"1\", null, { \"f1\": null, \"f2\": 2 }, [ null, 2 ] ] }");
-
-        BSONObject result5 = BSONConverter.removeNullFields(obj5);
-        assertTrue(result5.containsField("a"));
-        assertFalse(result3.containsField("b"));
-        assertTrue(result5.containsField("c"));
-        assertTrue(result5.containsField("d"));
-        assertEquals(((BasicBSONObject)result5.get("c")).size(), 1);
-        assertEquals(((BasicBSONList)result5.get("d")).size(), 3);
-        assertTrue(((BasicBSONList)result5.get("d")).get(1) instanceof BSONObject);
-        assertTrue(((BasicBSONList)result5.get("d")).get(2) instanceof BasicBSONList);
     }
 }

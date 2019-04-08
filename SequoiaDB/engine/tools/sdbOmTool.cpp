@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sdbOmTool.cpp
 
@@ -52,15 +51,9 @@
 #include <vector>
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
-#include "boost/filesystem.hpp"
-#include "boost/filesystem/operations.hpp"
-#include "boost/filesystem/path.hpp"
-
 
 
 using namespace std ;
-namespace fs = boost::filesystem ;
-
 
 namespace engine
 {
@@ -125,7 +118,6 @@ namespace engine
    #define OM_TOOL_MODE_ADD_STR        "addhost"
    #define OM_TOOL_MODE_DEL_STR        "delhost"
 
-   // initialize options
    void init ( po::options_description &desc )
    {
       COMMANDS_ADD_PARAM_OPTIONS_BEGIN ( desc )
@@ -259,7 +251,6 @@ namespace engine
 
          if ( 2 != columns.size() && 3 != columns.size() )
          {
-            // unreconigze format, ignore
             item._ip = *itr ;
             vecItems.push_back( item ) ;
             continue ;
@@ -267,14 +258,11 @@ namespace engine
 
          if ( !isValidIPV4( columns.at( 0 ).c_str() ) )
          {
-            // unreconigze format, ignore
             item._ip = *itr ;
             vecItems.push_back( item ) ;
             continue ;
          }
 
-         /// xxx.xxx.xxx.xxx xxxx
-         /// xxx.xxx.xxx.xxx xxxx.xxxx xxxx
          item._ip = columns[ 0 ] ;
          if ( columns.size() == 3 )
          {
@@ -334,7 +322,6 @@ namespace engine
       }
       isOpen = TRUE ;
 
-      // read file
       rc = ossReadN( &file, fileSize, pBuff, hasRead ) ;
       if ( rc )
       {
@@ -351,7 +338,6 @@ namespace engine
          goto error ;
       }
 
-      // remove last empty
       if ( vecItems.size() > 0 )
       {
          VEC_HOST_ITEM::iterator itr = vecItems.end() - 1 ;
@@ -380,118 +366,35 @@ namespace engine
    INT32 writeHostsFile( VEC_HOST_ITEM &vecItems, string &err )
    {
       INT32 rc = SDB_OK ;
-      const CHAR *pFilePath = NULL ;
-      std::string tmpFile ;
+      std::string tmpFile = HOSTS_FILE ;
+      tmpFile += ".tmp" ;
       OSSFILE file ;
       stringstream ss ;
-      fs::perms permissions = fs::no_perms ;
 
-      // 1. first create the file if not exist
-      pFilePath = HOSTS_FILE ;
-      if ( SDB_OK != ossAccess( pFilePath ) )
+      if ( SDB_OK != ossAccess( HOSTS_FILE ) )
       {
-         rc = ossOpen ( pFilePath, OSS_READWRITE|OSS_SHAREWRITE|OSS_REPLACE,
-                        OSS_RU|OSS_WU|OSS_RG|OSS_RO, file ) ;
+         rc = ossOpen ( HOSTS_FILE, OSS_READWRITE|OSS_SHAREWRITE|OSS_REPLACE,
+                     OSS_RU|OSS_WU|OSS_RG|OSS_RO, file ) ;
          if ( rc )
          {
-            ss << "open file[" << pFilePath << "] failed: " << rc ;
+            ss << "open file[" <<  HOSTS_FILE << "] failed: " << rc ;
             goto error ;
          }
-         ossClose( file ) ;
-      }
-      // get the permissions for hosts file
-      try
-      {
-         fs::path hostsFilePath ( pFilePath ) ;
-         fs::file_status fileStatus = fs::status( hostsFilePath ) ;
-         if ( fileStatus.type() == fs::file_not_found )
-         {
-            rc = SDB_FNE ;
-            ss << "get file[" << pFilePath << "]'s status failed, rc = " << rc ;
-            goto error ;
-         }
-         else if ( fileStatus.type() == fs::type_unknown )
-         {
-            rc = SDB_IO ;
-            ss << "get file[" << pFilePath 
-               << "]'s status failed, the attributes cannot be determind" ;
-            goto error ;
-         }
-         permissions = fileStatus.permissions() ;
-      }
-      catch ( fs::filesystem_error& e )
-      {
-         if ( e.code() == boost::system::errc::permission_denied ||
-              e.code() == boost::system::errc::operation_not_permitted )
-         {
-            rc = SDB_PERM ;
-            ss << "no permission to access file[" << pFilePath << "], rc = " 
-               << rc ;
-         }
-         else
-         {
-            rc = SDB_IO ;
-            ss << "get file[" << pFilePath << "]'s permission failed, errno: "
-               << e.code().value() << ", rc = " << rc ;
-         }
-         goto error ;
-      }
-      catch ( std::exception &e )
-      {
-         rc = SDB_SYS ;
-         ss << "get file[" << pFilePath << "]'s permission failed, error: "
-            << e.what() << ", rc = " << rc ;
-         goto error ;
       }
 
-      // 2. remove the tmp file
-      tmpFile = tmpFile + HOSTS_FILE + ".tmp" ;
-      pFilePath = tmpFile.c_str() ;
-      if ( SDB_OK == ossAccess( pFilePath ) )
+      if ( SDB_OK == ossAccess( tmpFile.c_str() ) )
       {
-         ossDelete( pFilePath ) ;
+         ossDelete( tmpFile.c_str() ) ;
       }
 
-      // 3. Create the tmp file and change it's permissions
-      rc = ossOpen ( pFilePath, OSS_READWRITE|OSS_SHAREWRITE|OSS_REPLACE,
+      rc = ossOpen ( tmpFile.c_str(), OSS_READWRITE|OSS_SHAREWRITE|OSS_REPLACE,
                      OSS_RU|OSS_WU|OSS_RG|OSS_RO, file ) ;
       if ( rc )
       {
-         ss << "open file[" << pFilePath << "] failed: " << rc ;
-         goto error ;
-      }
-      /// set permission
-      try
-      {      
-         fs::path tmpHostsFilePath ( pFilePath ) ;
-         fs::permissions( tmpHostsFilePath, permissions ) ;
-      }
-      catch ( fs::filesystem_error& e )
-      {
-         if ( e.code() == boost::system::errc::permission_denied ||
-              e.code() == boost::system::errc::operation_not_permitted )
-         {
-            rc = SDB_PERM ;
-            ss << "no permission to access file[" << pFilePath << "], rc = " 
-               << rc ;
-         }
-         else
-         {
-            rc = SDB_IO ;
-            ss << "set file[" << pFilePath << "]'s permission failed, error: "
-               << e.what() << ", rc = " << rc ;
-         }
-         goto error ;
-      }
-      catch ( std::exception &e )
-      {
-         rc = SDB_SYS ;
-         ss << "set file[" << pFilePath << "]'s permission failed, error: "
-            << e.what() << ", rc = " << rc ;
+         ss << "open file[" <<  tmpFile.c_str() << "] failed: " << rc ;
          goto error ;
       }
 
-      // 3. write data
       {
          VEC_HOST_ITEM::iterator it = vecItems.begin() ;
          UINT32 count = 0 ;
@@ -509,7 +412,7 @@ namespace engine
             if ( rc )
             {
                ossClose( file ) ;
-               ss << "write context[" << text << "] to file[" << pFilePath
+               ss << "write context[" << text << "] to file[" << tmpFile.c_str()
                   << "] failed: " << rc ;
                goto error ;
             }
@@ -518,7 +421,6 @@ namespace engine
 
       ossClose( file ) ;
 
-      // 4. backup the file
       {
          string backupFile = string( HOSTS_FILE ) + ".bak" ;
          if ( SDB_OK == ossAccess( backupFile.c_str() ) )
@@ -535,12 +437,11 @@ namespace engine
          }
       }
 
-      // 5. commit the file
-      rc = ossRenamePath( pFilePath, HOSTS_FILE ) ;
+      rc = ossRenamePath( tmpFile.c_str(), HOSTS_FILE ) ;
       if ( SDB_OK != rc )
       {
-         ss << "commit file:" << pFilePath << " to file:" << HOSTS_FILE << 
-               " failed" ;
+         ss << "commit file:" << tmpFile << " to file:" << HOSTS_FILE << 
+            " failed" ;
          goto error ;
       }
 
@@ -598,7 +499,6 @@ namespace engine
          vecItems.push_back( info ) ;
       }
 
-      // write
       rc = writeHostsFile( vecItems, err ) ;
       if ( rc )
       {
@@ -639,7 +539,6 @@ namespace engine
          }
       }
 
-      // write
       rc = writeHostsFile( vecItems, err ) ;
       if ( rc )
       {
@@ -690,7 +589,6 @@ namespace engine
       po::options_description desc ( "Command options" ) ;
       init ( desc ) ;
 
-      // validate arguments
       rc = resolveOTArgs ( desc, argc, argv, mode, hostName, ip ) ;
       if( rc )
       {

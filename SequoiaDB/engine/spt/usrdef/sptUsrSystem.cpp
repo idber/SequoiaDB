@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptUsrSystem.cpp
 
@@ -365,7 +364,6 @@ namespace engine
       string err ;
       VEC_HOST_ITEM vecItems ;
 
-      // hostname
       rc = arg.getString( 0, hostname ) ;
       if ( rc == SDB_OUT_OF_BOUND )
       {
@@ -384,7 +382,6 @@ namespace engine
          goto error ;
       }
 
-      // ip
       rc = arg.getString( 1, ip ) ;
       if ( rc == SDB_OUT_OF_BOUND )
       {
@@ -403,7 +400,6 @@ namespace engine
          goto error ;
       }
 
-      // isReplace
       if ( arg.argc() > 2 )
       {
          rc = arg.getNative( 2, (void*)&isReplace, SPT_NATIVE_INT32 ) ;
@@ -435,7 +431,6 @@ namespace engine
       string err ;
       VEC_HOST_ITEM vecItems ;
 
-      // hostname
       rc = arg.getString( 0, hostname ) ;
       if ( rc == SDB_OUT_OF_BOUND )
       {
@@ -821,7 +816,6 @@ namespace engine
       BSONObj          retObj ;
       BOOLEAN          showDetail = FALSE ;
       string           err ;
-      // get optionObj
       if( arg.argc() > 0 )
       {
          rc = arg.getBsonobj( 0, optionObj ) ;
@@ -854,7 +848,6 @@ namespace engine
       INT32 rc           = SDB_OK ;
       BSONObj            optionObj ;
       string             err ;
-      // check argument
       if ( 1 < arg.argc() )
       {
          rc = SDB_INVALIDARG ;
@@ -892,7 +885,6 @@ namespace engine
       INT32 rc          = SDB_OK ;
       BSONObj           userObj ;
       string            err ;
-      // check argument and build cmd
       rc = arg.getBsonobj( 0, userObj ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
@@ -923,7 +915,6 @@ namespace engine
       INT32 rc        = SDB_OK ;
       BSONObj         groupObj ;
       string          err ;
-      // check argument and build cmd
       rc = arg.getBsonobj( 0, groupObj ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
@@ -954,7 +945,6 @@ namespace engine
       INT32 rc          = SDB_OK ;
       BSONObj           optionObj ;
       string            err ;
-      // check argument and build cmd
       rc = arg.getBsonobj( 0, optionObj ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
@@ -985,7 +975,6 @@ namespace engine
       INT32 rc          = SDB_OK ;
       BSONObj           optionObj ;
       string            err ;
-      // check argument and build cmd
       rc = arg.getBsonobj( 0, optionObj ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
@@ -1016,7 +1005,6 @@ namespace engine
       INT32 rc          = SDB_OK ;
       string            name ;
       string            err ;
-      // check argument
       rc = arg.getString( 0, name ) ;
       if( SDB_OUT_OF_BOUND == rc )
       {
@@ -1048,7 +1036,6 @@ namespace engine
       BSONObj            optionObj ;
       BSONObj            retObj ;
       string             err ;
-      // check argument
       if ( 1 < arg.argc() )
       {
          rc = SDB_INVALIDARG ;
@@ -1085,7 +1072,6 @@ namespace engine
       BSONObj            retObj ;
       BSONObj            optionObj ;
       string             err ;
-      // check argument
       if ( 1 < arg.argc() )
       {
          rc = SDB_INVALIDARG ;
@@ -1123,7 +1109,6 @@ namespace engine
       BSONObj            retObj ;
       BSONObj            optionObj ;
       string             err ;
-      // check argument
       if ( 1 < arg.argc() )
       {
          rc = SDB_INVALIDARG ;
@@ -1215,7 +1200,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       BSONObj retObj ;
       string err ;
-      // check argument
       if ( 1 <= arg.argc() )
       {
          rc = SDB_INVALIDARG ;
@@ -1243,7 +1227,6 @@ namespace engine
       INT32 rc           = SDB_OK ;
       BSONObj            configsObj ;
       string             err ;
-      // get argument
       rc = arg.getBsonobj( 0, configsObj ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {
@@ -1278,7 +1261,6 @@ namespace engine
       string             options ;
       string             retStr ;
       string             err ;
-      // check argument
       rc = arg.getString( 0, serviceName ) ;
       if ( SDB_OUT_OF_BOUND == rc )
       {

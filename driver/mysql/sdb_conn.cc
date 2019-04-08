@@ -1,17 +1,3 @@
-/* Copyright (c) 2018, SequoiaDB and/or its affiliates. All rights reserved.
-
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; version 2 of the License.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
 
 #ifndef MYSQL_SERVER
    #define MYSQL_SERVER
@@ -54,7 +40,7 @@ my_thread_id sdb_conn::get_tid()
 
 int sdb_conn::connect()
 {
-   int rc = SDB_ERR_OK ;
+   int rc = 0 ;
    if ( !connection.isValid() )
    {
       std::map<std::string, sdb_cl_auto_ptr>::iterator iter ;
@@ -86,12 +72,12 @@ error:
 
 int sdb_conn::begin_transaction()
 {
-   int rc = SDB_ERR_OK ;
+   int rc = 0 ;
    int retry_times = 2 ;
    while ( !transactionon )
    {
       rc = connection.transactionBegin() ;
-      if ( SDB_ERR_OK == rc )
+      if ( 0 == rc )
       {
          transactionon = true ;
          break ;
@@ -115,7 +101,7 @@ error:
 
 int sdb_conn::commit_transaction()
 {
-   int rc = SDB_ERR_OK ;
+   int rc = 0 ;
    if ( transactionon )
    {
       transactionon = false ;
@@ -141,7 +127,7 @@ int sdb_conn::rollback_transaction()
 {
    if ( transactionon )
    {
-      int rc = SDB_ERR_OK ;
+      int rc = 0 ;
       transactionon = false ;
       rc = connection.transactionRollback() ;
       if ( IS_SDB_NET_ERR( rc ) )
@@ -171,28 +157,21 @@ int sdb_conn::get_cl( char *cs_name, char *cl_name,
 
    {
    //TODO: improve performence
-   std::pair <std::multimap<std::string, sdb_cl_auto_ptr>::iterator,
-              std::multimap<std::string, sdb_cl_auto_ptr>::iterator > ret ;
    sdb_rw_lock_r r_lock( &rw_mutex ) ;
-   ret = cl_list.equal_range( str_tmp );
-   iter = ret.first ;
-   while( iter != ret.second )
+   iter = cl_list.find( str_tmp ) ;
+   if ( iter != cl_list.end() )
    {
-      if ( iter->second.ref() == 1 )
+      cl_ptr = iter->second ;
+      if ( create )
       {
-         cl_ptr = iter->second ;
-         if ( create )
+         rc = cl_ptr->init( this, cs_name, cl_name,
+                            create, options ) ;
+         if ( rc != SDB_ERR_OK )
          {
-            rc = cl_ptr->init( this, cs_name, cl_name,
-                               create, options ) ;
-            if ( rc != SDB_ERR_OK )
-            {
-               goto error ;
-            }
+            goto error ;
          }
-         goto done ;
       }
-      ++iter ;
+      goto done ;
    }
    }
 
@@ -223,9 +202,9 @@ int sdb_conn::create_cl( char *cs_name, char *cl_name,
                          sdb_cl_auto_ptr &cl_ptr,
                          const bson::BSONObj &options )
 {
-   int rc = SDB_ERR_OK;
+   int rc = 0 ;
    rc = this->get_cl( cs_name, cl_name, cl_ptr, TRUE, options ) ;
-   if( rc != SDB_ERR_OK )
+   if( rc != 0 )
    {
       goto error ;
    }
@@ -249,24 +228,20 @@ void sdb_conn::clear_cl( char *cs_name, char *cl_name )
 
    {
    sdb_rw_lock_w w_lock( &rw_mutex ) ;
-   std::pair <std::multimap<std::string, sdb_cl_auto_ptr>::iterator,
-              std::multimap<std::string, sdb_cl_auto_ptr>::iterator > ret ;
-   ret = cl_list.equal_range( str_tmp );
-   iter = ret.first ;
-   while( iter != ret.second )
+   iter = cl_list.find( str_tmp ) ;
+   if ( cl_list.end() == iter || iter->second.ref() > 1 )
    {
-      if ( iter->second.ref() <= 1 )
-      {
-         cl_list.erase( iter++ ) ;
-         continue ;
-      }
-      ++iter ;
+      goto done ;
    }
+   cl_list.erase( iter ) ;
    }
+done:
+   return ;
 }
 
 void sdb_conn::clear_all_cl()
 {
+   int rc = SDB_ERR_OK ;
    std::map<std::string, sdb_cl_auto_ptr>::iterator iter ;
    sdb_rw_lock_w w_lock( &rw_mutex ) ;
    iter = cl_list.begin() ;
@@ -275,6 +250,14 @@ void sdb_conn::clear_all_cl()
       assert( iter->second.ref() == 1 ) ;
       cl_list.erase( iter++ ) ;
    }
+done:
+   return ;
+}
+
+int sdb_conn::get_cl_num()
+{
+   sdb_rw_lock_r r_lock( &rw_mutex ) ;
+   return cl_list.size() ;
 }
 
 bool sdb_conn::is_idle()
@@ -291,120 +274,6 @@ bool sdb_conn::is_idle()
       ++iter ;
    }
    return TRUE ;
-}
-
-int sdb_conn::create_global_domain( const char *domain_name )
-{
-   int rc = SDB_ERR_OK ;
-   sdbclient::sdbDomain domain ;
-   sdbclient::sdbCursor cursor ;
-   bson::BSONObj obj_tmp ;
-   bson::BSONArrayBuilder rg_list ;
-   bson::BSONObjBuilder obj_builder ;
-   BOOLEAN has_rg = FALSE ;
-
-   rc = connection.getDomain( domain_name, domain ) ;
-   if ( SDB_ERR_OK == rc )
-   {
-      goto done ;
-   }
-   if ( SDB_CAT_DOMAIN_NOT_EXIST != rc )
-   {
-      goto error ;
-   }
-
-   rc = connection.listReplicaGroups( cursor ) ;
-   if (  rc != SDB_ERR_OK )
-   {
-      goto error ;
-   }
-   while( SDB_ERR_OK == ( rc = cursor.next( obj_tmp ) ) )
-   {
-      bson::BSONElement rg_name ;
-      bson::BSONElement rg_id ;
-      rg_id = obj_tmp.getField( "GroupID" ) ;
-      rg_name = obj_tmp.getField( "GroupName" ) ;
-      if ( rg_id.isNumber() && rg_name.type() == bson::String
-           && rg_id.numberInt() >= 1000 )
-      {
-         has_rg = TRUE ;
-         rg_list.append( rg_name.valuestr() ) ;
-      }
-   }
-
-   if ( !has_rg )
-   {
-      rc = SDB_SYS ;
-      goto error ;
-   }
-
-   obj_builder.appendArray( "Groups", rg_list.arr() ) ;
-   obj_builder.append( "AutoSplit", true ) ;
-
-   rc = connection.createDomain( domain_name, obj_builder.obj(), domain ) ;
-   if ( SDB_CAT_DOMAIN_EXIST == rc )
-   {
-      rc = SDB_ERR_OK ;
-   }
-   if ( rc != SDB_ERR_OK )
-   {
-      goto error ;
-   }
-
-done:
-   return rc ;
-error:
-   if ( IS_SDB_NET_ERR( rc ) )
-   {
-      connect() ;
-   }
-   convert_sdb_code( rc ) ;
-   goto done ;
-}
-
-int sdb_conn::create_global_domain_cs( const char *domain_name, char *cs_name )
-{
-   int rc = SDB_ERR_OK ;
-   sdbclient::sdbCollectionSpace cs ;
-   bson::BSONObj options ;
-
-   rc = create_global_domain( domain_name ) ;
-   if ( rc != SDB_ERR_OK )
-   {
-      goto error ;
-   }
-
-   // cs may in cache, so don't exec getCollectionSpace
-   /*rc = connection.getCollectionSpace( cs_name, cs ) ;
-   if ( SDB_ERR_OK  == rc )
-   {
-      goto done ;
-   }
-   if ( SDB_DMS_CS_NOTEXIST != rc )
-   {
-      goto error ;
-   }*/
-
-   options = BSON( "Domain" << domain_name ) ;
-   rc = connection.createCollectionSpace( cs_name, options, cs ) ;
-   if ( SDB_DMS_CS_EXIST == rc )
-   {
-      rc = SDB_ERR_OK ;
-   }
-   if ( rc != SDB_ERR_OK )
-   {
-      goto error ;
-   }
-
-done:
-   return rc ;
-error:
-   if ( IS_SDB_NET_ERR( rc ) )
-   {
-      connect() ;
-   }
-   convert_sdb_code( rc ) ;
-   goto done ;   
 }
 
 sdb_conn_ref_ptr::sdb_conn_ref_ptr( sdb_conn * connection )

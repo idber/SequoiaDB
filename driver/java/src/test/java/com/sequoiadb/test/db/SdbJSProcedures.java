@@ -24,7 +24,6 @@ public class SdbJSProcedures {
 
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
     }
 
@@ -35,13 +34,11 @@ public class SdbJSProcedures {
 
     @Before
     public void setUp() throws Exception {
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } else
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        // cl
         cl = cs.createCollection(Constants.TEST_CL_NAME_1);
     }
 
@@ -59,7 +56,6 @@ public class SdbJSProcedures {
     @Test
     public void JSProcedures() {
         System.out.println("Running test1...");
-        // check whether it is in the standalone environment
         try {
             sdb.listReplicaGroups();
         } catch (BaseException e) {
@@ -147,7 +143,6 @@ public class SdbJSProcedures {
     @Test
     public void EvalJS() {
         System.out.println("Running test2...");
-        // check whether it is in the standalone environment
         try {
             sdb.listReplicaGroups();
         } catch (BaseException e) {
@@ -176,21 +171,17 @@ public class SdbJSProcedures {
 		/* eval js and check the return value */
         String code1 = "sum_in_java(1, 2)";
         SptEvalResult evalResult1 = null;
-        // eval
         evalResult1 = sdb.evalJS(code1);
-        // check the return data
         cursor = null;
         cursor = evalResult1.getCursor();
         assertTrue(cursor != null);
         while (cursor.hasNext()) {
             System.out.println("In evalResult, cursor data is: " + cursor.getNext());
         }
-        // check the return type
         SptReturnType retType = null;
         retType = evalResult1.getReturnType();
         assertTrue(retType != null);
         assertTrue(retType == SptReturnType.TYPE_NUMBER);
-        // check the return error message
         BSONObject errObj = evalResult1.getErrMsg();
         assertTrue(errObj == null);
 

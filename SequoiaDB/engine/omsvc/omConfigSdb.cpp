@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omConfigSdb.cpp
 
@@ -464,7 +463,6 @@ namespace engine
          INT32 roleDiskNum2 = _host.count( byDiskAndSdbRole( disk2->diskName, _role ) ) ;
          if ( roleDiskNum1 != roleDiskNum2 )
          {
-            //role count less, the better
             if ( roleDiskNum1 < roleDiskNum2 )
             {
                return 1 ;
@@ -479,7 +477,6 @@ namespace engine
          INT32 diskNum2 = _host.count( byDisk( disk2->diskName ) ) ;
          if ( diskNum1 != diskNum2 )
          {
-            //total count less, the better
             if ( diskNum1 < diskNum2 )
             {
                return 1 ;
@@ -552,7 +549,6 @@ namespace engine
             builder.append( OM_CONF_DETAIL_SVCNAME, node->getServiceName() ) ;
             builder.append( OM_CONF_DETAIL_ROLE, node->getRole() ) ;
 
-            // append public properties
             for ( OmConfProperties::ConstIterator it = _properties.begin() ;
                   it != _properties.end() ; it++ )
             {
@@ -827,43 +823,21 @@ namespace engine
                            const string& businessType, const string& role,
                            const string& serviceName, string& dbPath )
    {
+      INT32 i = 0 ;
       INT32 rc = SDB_OK ;
-      INT32 i  = 0 ;
-      BOOLEAN isRootPath = FALSE ;
-      string deployPath ;
-
-      if ( OSS_FILE_SEP == diskPath )
-      {
-         isRootPath = TRUE ;
-         deployPath = host.getDeployPath( businessType ) ;
-      }
 
       do 
       {
          stringstream ss ;
-
-         if ( isRootPath && deployPath.length() > 0 )
-         {
-            ss << deployPath ;
-         }
-         else
-         {
-            ss << diskPath ;
-         }
-
+         ss << diskPath ;
          if ( OSS_FILE_SEP_CHAR != diskPath.at( diskPath.length() -1 ) )
          {
             ss << OSS_FILE_SEP ;
          }
-
-         if ( FALSE == isRootPath )
-         {
-            ss << businessType << OSS_FILE_SEP ;
-         }
-
-         ss << OM_DBPATH_PREFIX_DATABASE << OSS_FILE_SEP <<
-               role                      << OSS_FILE_SEP <<
-               serviceName ;
+         ss << businessType << OSS_FILE_SEP
+            << OM_DBPATH_PREFIX_DATABASE << OSS_FILE_SEP
+            << role << OSS_FILE_SEP
+            << serviceName ;
          if ( 0 != i )
          {
             ss << "_" << i ;
@@ -939,7 +913,6 @@ namespace engine
          }
       }
 
-      // check whole business nodes
       {
          const OmNodes& nodes = _business->getNodes() ;
 
@@ -1448,7 +1421,6 @@ namespace engine
          for( OmNodes::ConstIterator it = nodes.begin(); it != nodes.end();
               ++it )
          {
-            //skip the existing node
             if( i < nodeNum )
             {
                ++i ;
@@ -1462,7 +1434,6 @@ namespace engine
             builder.append( OM_CONF_DETAIL_SVCNAME, node->getServiceName() ) ;
             builder.append( OM_CONF_DETAIL_ROLE, node->getRole() ) ;
 
-            // append public properties
             for ( OmConfProperties::ConstIterator it = _properties.begin() ;
                   it != _properties.end() ; it++ )
             {

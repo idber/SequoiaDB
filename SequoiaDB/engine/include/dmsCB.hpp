@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dmsCB.hpp
 
@@ -54,8 +53,10 @@
 #include "ossEvent.hpp"
 #include "sdbInterface.hpp"
 #include "dmsIxmKeySorter.hpp"
+#include "utilMap.hpp"
 #include "dmsStorageJob.hpp"
-#include "ossMemPool.hpp"
+#include <map>
+#include <set>
 
 
 using namespace std ;
@@ -65,13 +66,9 @@ namespace engine
    class _pmdEDUCB ;
    class _dmsStorageUnit ;
 
-   // for each collection space, there is one CSCB associate with it
    class _SDB_DMS_CSCB : public SDBObject
    {
    public:
-      //ossSpinSLatch _mutex ;
-      // maximum sequence id for the collection space
-      // currently 1 sequence per collection space
       UINT32 _topSequence ;
       CHAR   _name [ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] ;
       _dmsStorageUnit *_su ;
@@ -88,7 +85,7 @@ namespace engine
    typedef class _SDB_DMS_CSCB SDB_DMS_CSCB ;
 
 
-   #define DMS_MAX_CS_NUM 16384
+   #define DMS_MAX_CS_NUM 4096
    #define DMS_INVALID_CS DMS_INVALID_SUID
 
    /*
@@ -147,33 +144,26 @@ namespace engine
             return std::strcmp(a,b)<0 ;
          }
       } ;
-      ossPoolMap<const CHAR*, dmsStorageUnitID, cmp_cscb> _cscbNameMap ;
-      ossPoolMap<utilCSUniqueID, dmsStorageUnitID>  _cscbIDMap ;
+      std::map<const CHAR*, dmsStorageUnitID, cmp_cscb> _cscbNameMap ;
       std::vector<SDB_DMS_CSCB*>          _cscbVec ;
-      std::vector<SDB_DMS_CSCB*>          _tmpCscbVec ;
-      std::vector<BYTE>                   _tmpCscbStatusVec ;
+      std::vector<SDB_DMS_CSCB*>          _delCscbVec ;
       std::vector<ossRWMutex*>            _latchVec ;
       std::vector<dmsStorageUnitID>       _freeList ;
-      // collection spaces mutex in create and drop operations
       std::vector< ossSpinRecursiveXLatch* >  _vecCSMutex ;
 
 #if defined (_WINDOWS)
-      typedef ossPoolMap<const CHAR*,
+      typedef std::map<const CHAR*,
                        dmsStorageUnitID,
                        cmp_cscb>::const_iterator CSCB_MAP_CONST_ITER ;
-      typedef ossPoolMap<const CHAR*,
+      typedef std::map<const CHAR*,
                        dmsStorageUnitID,
                        cmp_cscb>::iterator CSCB_MAP_ITER ;
 #elif defined (_LINUX)
-      typedef ossPoolMap<const CHAR*,
+      typedef std::map<const CHAR*,
                        dmsStorageUnitID>::const_iterator CSCB_MAP_CONST_ITER ;
-      typedef ossPoolMap<const CHAR*,
+      typedef std::map<const CHAR*,
                        dmsStorageUnitID>::iterator CSCB_MAP_ITER ;
 #endif
-      typedef ossPoolMap<utilCSUniqueID,
-                       dmsStorageUnitID>::const_iterator CSCB_ID_MAP_CONST_ITER ;
-      typedef ossPoolMap<utilCSUniqueID,
-                       dmsStorageUnitID>::iterator CSCB_ID_MAP_ITER ;
 
       /*
        * Queue of collections which are waitting for dictionaies creation.
@@ -196,9 +186,6 @@ namespace engine
       UINT8                   _dmsCBState;
       UINT32                  _logicalSUID ;
 
-      // how many cs which unique id = 0, except system cs
-      UINT32                  _nullCSUniqueIDCnt ;
-
       dmsTempSUMgr            _tempSUMgr ;
       dmsStatSUMgr            _statSUMgr ;
 
@@ -209,63 +196,25 @@ namespace engine
    private:
       void  _logCSCBNameMap () ;
 
-      INT32 _CSCBNameInsert ( const CHAR *pName,
-                              UINT32 topSequence,
+      INT32 _CSCBNameInsert ( const CHAR *pName, UINT32 topSequence,
                               _dmsStorageUnit *su,
                               dmsStorageUnitID &suID ) ;
 
       INT32 _CSCBNameLookup ( const CHAR *pName,
                               SDB_DMS_CSCB **cscb,
-                              dmsStorageUnitID *pSuID = NULL,
+                              dmsStorageUnitID *suID = NULL,
                               BOOLEAN exceptDeleting = TRUE ) ;
-      INT32 _CSCBIdLookup ( utilCSUniqueID csUniqueID,
-                            SDB_DMS_CSCB **cscb,
-                            dmsStorageUnitID *pSuID = NULL,
-                            BOOLEAN exceptDeleting = TRUE ) ;
-      INT32 _CSCBLookup ( const CHAR *pName,
-                          utilCSUniqueID csUniqueID,
-                          SDB_DMS_CSCB **cscb,
-                          dmsStorageUnitID *pSuID = NULL,
-                          BOOLEAN exceptDeleting = TRUE ) ;
 
       INT32 _CSCBNameLookupAndLock ( const CHAR *pName,
                                      dmsStorageUnitID &suID,
                                      SDB_DMS_CSCB **cscb,
                                      OSS_LATCH_MODE lockType = SHARED,
                                      INT32 millisec = -1 ) ;
-      INT32 _CSCBIdLookupAndLock ( utilCSUniqueID csUniqueID,
-                                   dmsStorageUnitID &suID,
-                                   SDB_DMS_CSCB **cscb,
-                                   OSS_LATCH_MODE lockType = SHARED,
-                                   INT32 millisec = -1 ) ;
-
       void _CSCBRelease ( dmsStorageUnitID suID,
                           OSS_LATCH_MODE lockType = SHARED ) ;
-
-      INT32 _moveCSCB2TmpList( const CHAR *pName, BYTE status ) ;
-
-      INT32 _restoreCSCBFromTmpList( const CHAR *pName ) ;
-
-      INT32 _CSCBRename( const CHAR *pName,
-                         const CHAR *pNewName,
-                         _pmdEDUCB *cb,
-                         SDB_DPSCB *dpsCB ) ;
-
-      INT32 _CSCBRenameP1( const CHAR *pName,
-                           const CHAR *pNewName,
-                           _pmdEDUCB *cb,
-                           SDB_DPSCB *dpsCB ) ;
-
-      INT32 _CSCBRenameP1Cancel( const CHAR *pName,
-                                     const CHAR *pNewName,
-                                     _pmdEDUCB *cb,
-                                     SDB_DPSCB *dpsCB ) ;
-
-      INT32 _CSCBRenameP2( const CHAR *pName,
-                           const CHAR *pNewName,
-                           _pmdEDUCB *cb,
-                           SDB_DPSCB *dpsCB ) ;
-
+      INT32 _CSCBNameRemove ( const CHAR *pName, _pmdEDUCB *cb,
+                              SDB_DPSCB *dpsCB, BOOLEAN onlyEmpty,
+                              SDB_DMS_CSCB *&pCSCB ) ;
       INT32 _CSCBNameRemoveP1 ( const CHAR *pName,
                                 _pmdEDUCB *cb,
                                 SDB_DPSCB *dpsCB ) ;
@@ -276,29 +225,16 @@ namespace engine
                                 _pmdEDUCB *cb,
                                 SDB_DPSCB *dpsCB,
                                 SDB_DMS_CSCB *&pCSCB ) ;
-
       void _CSCBNameMapCleanup () ;
+
+      INT32 _CSCBRename( const CHAR *pName,
+                         const CHAR *pNewName,
+                         _pmdEDUCB *cb,
+                         SDB_DPSCB *dpsCB ) ;
 
       INT32 _delCollectionSpace ( const CHAR *pName, _pmdEDUCB *cb,
                                   SDB_DPSCB *dpsCB, BOOLEAN removeFile,
                                   BOOLEAN onlyEmpty ) ;
-
-      INT32 _delCollectionSpaceP1 ( const CHAR *pName, _pmdEDUCB *cb,
-                                    SDB_DPSCB *dpsCB,
-                                    BOOLEAN removeFile = TRUE ) ;
-
-      INT32 _delCollectionSpaceP1Cancel ( const CHAR *pName, _pmdEDUCB *cb,
-                                          SDB_DPSCB *dpsCB );
-
-      INT32 _delCollectionSpaceP2 ( const CHAR *pName, _pmdEDUCB *cb,
-                                    SDB_DPSCB *dpsCB,
-                                    BOOLEAN removeFile = TRUE ) ;
-
-      void _getCSList( vector<std::string> &csNameVec ) ;
-
-      void _nullCSUniqueIDCntInc() ;
-
-      void _nullCSUniqueIDCntDec() ;
 
    public:
       _SDB_DMSCB() ;
@@ -313,16 +249,10 @@ namespace engine
       virtual INT32  fini () ;
       virtual void   onConfigChange() ;
 
-      INT32 nameToSUAndLock ( const CHAR *pName,
-                              dmsStorageUnitID &suID,
+      INT32 nameToSUAndLock ( const CHAR *pName, dmsStorageUnitID &suID,
                               _dmsStorageUnit **su,
                               OSS_LATCH_MODE lockType = SHARED,
                               INT32 millisec = -1 ) ;
-      INT32 idToSUAndLock ( utilCSUniqueID csUniqueID,
-                            dmsStorageUnitID &suID,
-                            _dmsStorageUnit **su,
-                            OSS_LATCH_MODE lockType = SHARED,
-                            INT32 millisec = -1 ) ;
 
       INT32 verifySUAndLock ( const dmsEventSUItem *pSUItem,
                               _dmsStorageUnit **ppSU,
@@ -332,20 +262,6 @@ namespace engine
       _dmsStorageUnit *suLock ( dmsStorageUnitID suID ) ;
       void suUnlock ( dmsStorageUnitID suID,
                       OSS_LATCH_MODE lockType = SHARED ) ;
-
-      INT32 changeCSUniqueID( _dmsStorageUnit* su,
-                              utilCSUniqueID csUniqueID,
-                              pmdEDUCB* cb,
-                              SDB_DPSCB* dpsCB,
-                              BOOLEAN setOnlyIfNull = TRUE ) ;
-
-      INT32 changeUniqueID( const CHAR* csname,
-                            utilCSUniqueID csUniqueID,
-                            const BSONObj& clInfoObj,
-                            pmdEDUCB* cb,
-                            SDB_DPSCB* dpsCB,
-                            BOOLEAN setOnlyIfNull = TRUE,
-                            BOOLEAN resetOtherCl = FALSE ) ;
 
       INT32 addCollectionSpace ( const CHAR *pName, UINT32 topSequence,
                                  _dmsStorageUnit *su, _pmdEDUCB *cb,
@@ -360,18 +276,6 @@ namespace engine
                                    const CHAR *pNewName,
                                    _pmdEDUCB *cb,
                                    SDB_DPSCB *dpsCB ) ;
-      INT32 renameCollectionSpaceP1( const CHAR *pName,
-                                     const CHAR *pNewName,
-                                     _pmdEDUCB *cb,
-                                     SDB_DPSCB *dpsCB ) ;
-      INT32 renameCollectionSpaceP1Cancel( const CHAR *pName,
-                                           const CHAR *pNewName,
-                                           _pmdEDUCB *cb,
-                                           SDB_DPSCB *dpsCB ) ;
-      INT32 renameCollectionSpaceP2( const CHAR *pName,
-                                     const CHAR *pNewName,
-                                     _pmdEDUCB *cb,
-                                     SDB_DPSCB *dpsCB ) ;
 
       void dumpInfo ( MON_CL_SIM_LIST &collectionList,
                       BOOLEAN sys = FALSE ) ;
@@ -391,8 +295,6 @@ namespace engine
 
       void dumpPageMapCSInfo( MON_CSNAME_VEC &vecCS ) ;
 
-      UINT32 nullCSUniqueIDCnt() const ;
-
       dmsTempSUMgr *getTempSUMgr () ;
 
       dmsStatSUMgr *getStatSUMgr () ;
@@ -406,7 +308,7 @@ namespace engine
       void changeSUCaches ( const MON_CS_SIM_LIST &monCSList, UINT32 mask ) ;
 
       INT32 dropCollectionSpaceP1 ( const CHAR *pName, _pmdEDUCB *cb,
-                                    SDB_DPSCB *dpsCB ) ;
+                                    SDB_DPSCB *dpsCB );
 
       INT32 dropCollectionSpaceP1Cancel ( const CHAR *pName, _pmdEDUCB *cb,
                                           SDB_DPSCB *dpsCB );

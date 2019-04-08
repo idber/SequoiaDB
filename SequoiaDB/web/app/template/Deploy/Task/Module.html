@@ -1,4 +1,4 @@
-<div ng-controller="Deploy.Task.Install.Ctrl" ng-container="{}">
+﻿<div ng-controller="Deploy.Task.Install.Ctrl" ng-container="{}">
    <div style="border-bottom:1px solid #eee;" step-chart="stepList" ng-show="DeployType != 'Task'"></div>
    <div style="padding:10px 15px;" ng-container="{'true':ContainerBox[0],'false':ContainerBox[1]}[DeployType != 'Task']">
       
@@ -28,7 +28,7 @@
                      <td>{{TaskInfo['Info']['ClusterName']}}</td>
                   </tr>
                   <tr ng-if="TaskInfo['Info']['BusinessName'].length > 0">
-                     <td>{{autoLanguage("服务名")}}</td>
+                     <td>{{autoLanguage("业务名")}}</td>
                      <td>{{TaskInfo['Info']['BusinessName']}}</td>
                   </tr>
                   <tr>
@@ -36,7 +36,7 @@
                      <td>{{TaskInfo['TaskName']}}</td>
                   </tr>
                   <tr>
-                     <td>{{autoLanguage("服务类型")}}</td>
+                     <td>{{autoLanguage("业务类型")}}</td>
                      <td>{{ModuleType}}</td>
                   </tr>
                   <tr>
@@ -119,7 +119,7 @@
                   <div class="Ellipsis" table-key="Flow">{{installInfo['Flow'][installInfo['Flow'].length-1]}}</div>
                </div>
 
-               <div ng-container="{offsetY:-50,marginTop:10}" ng-if="(TaskInfo['TaskName'] == 'ADD_BUSINESS' || TaskInfo['TaskName'] == 'REMOVE_BUSINESS') && ModuleType == 'sequoiasql-postgresql' || ModuleType == 'sequoiasql-mysql'" ng-table="TaskTable['options']" table-title="TaskTable['title']" table-content="installInfo in NewTaskInfo['ResultInfo']">
+               <div ng-container="{offsetY:-50,marginTop:10}" ng-if="(TaskInfo['TaskName'] == 'ADD_BUSINESS' || TaskInfo['TaskName'] == 'REMOVE_BUSINESS') && ModuleType == 'sequoiasql-oltp'" ng-table="TaskTable['options']" table-title="TaskTable['title']" table-content="installInfo in NewTaskInfo['ResultInfo']">
                   <div table-key="Status">
                      <img src="./images/loading2.gif" style="width:22px;height:22px;" ng-if="installInfo['Status'] == 1 || installInfo['Status'] == 0" />
                      <i class="fa fa-undo" style="font-size:22px;color:#F9A937;" ng-if="installInfo['Status'] == 2"></i>

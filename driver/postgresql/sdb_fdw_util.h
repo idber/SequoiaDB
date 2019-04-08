@@ -8,11 +8,6 @@
 #include "nodes/relation.h"
 #include "sdb_fdw.h"
 
-#define SDB_FIELD_COMMA              ","
-#define SDB_FIELD_COMMA_CHR          ','
-#define SDB_FIELD_SEMICOLON          ":"
-#define SDB_FIELD_SEMICOLON_CHR      ':'
-
 
 typedef enum
 {
@@ -45,14 +40,6 @@ bool sdbMatchClauseToIndexcol( RelOptInfo *rel, Oid tableID,
                                sdbIndexInfo *index, int indexcol,
                                RestrictInfo *rinfo ) ;
 
-bool isSortCanPushDown( PlannerInfo *root, Index foreignTableIndex ) ;
-
-INT32 sdbGenerateSortCondition ( Index foreignTableIndex, Oid foreign_id,
-                                 List *sort_paths, sdbbson *condition ) ;
-
-void sdbPreprocessLimit(PlannerInfo *root, INT64 *offset, INT64 *limit);
-
-//int sdbGetIndexInfo( SdbExecState *sdbState, sdbIndexInfo *indexInfo ) ;
 
 int sdbGetIndexInfos( SdbExecState *sdbState, sdbIndexInfo *indexInfo,
                       int maxNum, int *indexNum ) ;
@@ -62,12 +49,7 @@ sdbConnectionHandle sdbGetConnectionHandle( const char **serverList,
                                             int serverNum,
                                             const char *usr,
                                             const char *passwd,
-                                            int useCipher,
-                                            const char *token,
-                                            const char *cipherfile,
                                             const char *preference_instance,
-                                            const char *preference_instance_mode,
-                                            int session_timeout,
                                             const char *transaction ) ;
 
 sdbCollectionHandle sdbGetSdbCollection( sdbConnectionHandle connectionHandle,
@@ -76,8 +58,8 @@ sdbCollectionHandle sdbGetSdbCollection( sdbConnectionHandle connectionHandle,
 
 SdbConnectionPool *sdbGetConnectionPool() ;
 
-int sdbSetConnectionPreference( sdbConnectionHandle hConnection, CHAR *preference_instance,
-                                const CHAR *preference_instance_mode, INT32 session_timeout ) ;
+int sdbSetConnectionPreference( sdbConnectionHandle hConnection,
+                                const CHAR *preference_instance ) ;
 
 BOOLEAN sdbIsInterrupt() ;
 
@@ -104,7 +86,6 @@ void sdbPrintBson( sdbbson *bson, int log_level, const char *label ) ;
 
 void debugClauseInfo( PlannerInfo *root, RelOptInfo *baserel, Oid tableID ) ;
 
-Var *getRealVar( Expr *arg ) ;
 
 /* record cache */
 typedef struct

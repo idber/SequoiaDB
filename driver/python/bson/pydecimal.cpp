@@ -26,13 +26,11 @@ __METHOD_IMPLEMENT(create)
    PyObject *decObject = NULL ;
    if (!PyArg_ParseTuple(args, ""))
    {
-      // do nothing
    }
 
    decimal = new (std::nothrow) bson::bsonDecimal() ;
    if ( NULL == decimal )
    {
-      // LOG ERROR
       rc = SDB_OOM ;
       goto error ;
    }

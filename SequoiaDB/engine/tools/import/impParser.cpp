@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2015 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = impParser.cpp
 
@@ -92,7 +91,6 @@ namespace import
       RecordReader recordReader;
 
       INT32 bufferSize = options->bufferSize() * 1024 * 1024;
-      // 1 byte to ensure it's safe to terminate string
       buffer = (CHAR*)SDB_OSS_MALLOC(bufferSize + 1);
       if (NULL == buffer)
       {
@@ -126,7 +124,6 @@ namespace import
             InputStream::releaseInstance(input);
             input = NULL;
          }
-         // maybe multiple files
          if (fileId < (INT32)options->files().size())
          {
             inputString = options->files()[fileId];
@@ -160,13 +157,6 @@ namespace import
                          input, &scanner,
                          options->recordDelimiter().length());
 
-      if (FORMAT_CSV == options->inputFormat() &&
-          options->hasHeaderLine() &&
-          options->fields().empty())
-      {
-         parser->reset() ;
-      }
-
       while(!self->_stopped)
       {
          CHAR* record = NULL;
@@ -194,7 +184,6 @@ namespace import
                      << std::endl;
 
                   PD_LOG(PDINFO, "%s", ss.str().c_str());
-                  // maybe multiple files
                   goto begin;
                }
                break;
@@ -239,7 +228,6 @@ namespace import
             {
                if (!options->fields().empty())
                {
-                  // fields is defined, so ignore the headerline
                   continue;
                }
 
@@ -268,7 +256,6 @@ namespace import
                   csvParser->printFieldsDef();
                }
 
-               // headerline can't be parsed as record
                continue;
             }
          }
@@ -328,8 +315,6 @@ namespace import
 
             if (monitor->recordsMem() > options->recordsMem())
             {
-               // records' memory is beyond the threshold,
-               // so wait a moment
                INT64 recordsMem = monitor->recordsMem();
                INT64 recordsNum = monitor->recordsNum();
                PD_LOG(PDEVENT, "records memory is beyond the threshold,\n"
@@ -339,9 +324,6 @@ namespace import
                       options->recordsMem() / (1024 * 1024),
                       recordsNum, recordsMem / recordsNum);
 
-               // push an empty array to queue as a signal,
-               // to tell sharding to empty it's sharding groups,
-               // so that sharding can avoid deadly waiting for group FULL 
                RecordArray* array = NULL;
                rc = getRecordArray(0, &array);
                if (SDB_OK != rc)

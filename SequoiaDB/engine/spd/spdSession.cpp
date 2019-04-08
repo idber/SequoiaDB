@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = spdSession.cpp
 
@@ -41,6 +40,7 @@
 #include "spdFuncDownloader.hpp"
 #include "pmdEDU.hpp"
 #include "pmd.hpp"
+#include "pmdCB.hpp"
 #include "spdFMPMgr.hpp"
 #include "spdFMP.hpp"
 #include "fmpDef.hpp"
@@ -137,7 +137,6 @@ namespace engine
       }
       else if ( !fetchFromLocal )
       {
-         /// use a static bsonobj.
          rc = _fmp->write( BSON( FMP_CONTROL_FIELD <<
                                  FMP_CONTROL_STEP_FETCH ) ) ;
          if ( SDB_OK != rc )
@@ -182,8 +181,6 @@ namespace engine
        BSONObj cnMsg ;
        INT32 funcType = FMP_FUNC_TYPE_INVALID ;
 
-       /// 1. begin: {FMP_CONTROL_FIELD : FMP_CONTROL_STEP_BEGIN,
-       //             FMP_FUNC_TYPE : FMP_FUNC_TYPE_XX }
        {
        BSONObjBuilder builder ;
        BSONObj resMsg ;
@@ -221,8 +218,6 @@ namespace engine
        funcType = type.Int() ;
        }
 
-       /// 2. eval exsit func :{ funcobj }
-       /// do not add cn field coz we do not want to copy obj again.
        {
        BSONObj func ;
        BSONObj resMsg ;
@@ -267,8 +262,6 @@ namespace engine
        }
        }
 
-       /// 3.eval : { FMP_CONTROL_FIELD : FMP_CONTROL_STEP_EVAL,
-       //             funcobj.elements }
        {
        BSONObjBuilder builder ;
        BSONObj resMsg ;
@@ -291,13 +284,11 @@ namespace engine
        SPD_GET_RES( resMsg ) ;
        PD_LOG( PDDEBUG, "eval res:%s", resMsg.toString().c_str() ) ;
 
-       /// 4. prepare result
        _resmsg = resMsg ;
        {
        BSONObjBuilder builder ;
        BSONElement resType = _resmsg.getField( FMP_RES_TYPE ) ;
        SDB_ASSERT( NumberInt == resType.type(), "impossible" ) ;
-       /// if it is not a record set, fetch from local.
        _resType = resType.Int() ;
 
        if ( FMP_RES_TYPE_VOID != _resType &&
@@ -306,12 +297,6 @@ namespace engine
           BSONElement value = _resmsg.getField( FMP_RES_VALUE ) ;
           SDB_ASSERT( !value.eoo(), "impossible" ) ;
           builder.append( value ) ;
-          if( FMP_RES_TYPE_SPECIALOBJ == _resType )
-          {
-             BSONElement className = _resmsg.getField( FMP_RES_CLASSNAME ) ;
-             SDB_ASSERT( !className.eoo(), "impossible" ) ;
-             builder.append( className ) ;
-          }
           _resmsg = builder.obj() ;
        }
        }
@@ -337,7 +322,6 @@ namespace engine
        }
        else if ( ele.eoo() )
        {
-          /// default is ok
        }
        else if ( NumberInt != ele.type() )
        {

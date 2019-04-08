@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = seAdptMgr.hpp
 
@@ -43,10 +42,9 @@
 #include "seAdptOptionsMgr.hpp"
 #include "pmdAsyncSession.hpp"
 #include "pmdAsyncHandler.hpp"
-#include "utilESCltFactory.hpp"
+#include "utilESCltMgr.hpp"
 #include "seAdptMsgHandler.hpp"
 #include "seAdptIdxMetaMgr.hpp"
-#include "seAdptDBAssist.hpp"
 
 using namespace engine ;
 
@@ -103,8 +101,6 @@ namespace seadapter
          return 0 ;
       }
 
-      // Called by the thread of EDU_TYPE_SE_SERVICE, when a new connection
-      // comes.
       virtual pmdAsyncSession* _createSession( SDB_SESSION_TYPE sessionType,
                                                INT32 startType,
                                                UINT64 sessionID,
@@ -113,9 +109,10 @@ namespace seadapter
    typedef _seSvcSessionMgr seSvcSessionMgr ;
 
    typedef pair<const UINT64, seIndexMeta>      TASK_SESSION_ITEM ;
-   // Manager of seAdptIndexSession.
    class _seIndexSessionMgr : public pmdAsycSessionMgr
    {
+      typedef map<UINT64, seIndexMeta>          TASK_SESSION_MAP ;
+      typedef TASK_SESSION_MAP::iterator        TASK_SESSION_MAP_ITR ;
    public:
       _seIndexSessionMgr( _seAdptCB *pAdptCB ) ;
       virtual ~_seIndexSessionMgr() ;
@@ -131,16 +128,8 @@ namespace seadapter
 
       virtual void onSessionDestoryed( pmdAsyncSession *pSession ) ;
 
-      /**
-       * @brief Refresh indexing tasks. It will start all index job whose
-       * metadata flag is pending.
-       */
-      INT32 refreshTasks() ;
-
-      void  stopAllIndexer( const NET_HANDLE &handle ) ;
-
-      INT32 setOptionMgr( const seAdptOptionsMgr *optionMgr ) ;
-      const seAdptOptionsMgr *getOptionMgr() const { return _optionMgr ; }
+      INT32 refreshTasks( BSONObj &obj ) ;
+      void  stopAllIndexer() ;
 
    protected:
       virtual SDB_SESSION_TYPE _prepareCreate( UINT64 sessionID,
@@ -159,10 +148,13 @@ namespace seadapter
          return ossPack32To64( PMD_BASE_HANDLE_ID, _innerSessionID ) ;
       }
 
+      TASK_SESSION_ITEM* _findTask( const seIndexMeta *idxMeta ) ;
+
    private:
-      _seAdptCB               *_pAdptCB ;
-      const seAdptOptionsMgr  *_optionMgr ;
-      UINT32                   _innerSessionID ;
+      _seAdptCB            *_pAdptCB ;
+      TASK_SESSION_MAP     _taskSessionMap ;
+      UINT32               _indexSessionTimer ;
+      UINT32               _innerSessionID ;
    } ;
    typedef _seIndexSessionMgr seIndexSessionMgr ;
 
@@ -199,15 +191,16 @@ namespace seadapter
       virtual void onTimer( UINT64 timerID, UINT32 interval ) ;
 
       seAdptOptionsMgr*    getOptions() ;
-      utilESCltFactory*    getSeCltFactory() ;
+      utilESCltMgr*        getSeCltMgr() ;
       seSvcSessionMgr*     getSeAgentMgr() ;
       seIndexSessionMgr*   getIdxSessionMgr() ;
-      seIdxMetaMgr*        getIdxMetaMgr() { return &_idxMetaMgr ; }
-      seAdptDBAssist*      getDBAssist() { return &_dbAssist; }
+      netRouteAgent*       getIdxRouteAgent() ;
+      seIdxMetaMgr*        getIdxMetaCache() { return &_idxMetaCache ; }
 
       INT32 startInnerSession( SEADPT_SESSION_TYPE type,
                                UINT64 sessionID, void *data = NULL ) ;
       void  cleanInnerSession( INT32 type ) ;
+      INT32 sendToDataNode( MsgHeader *msg ) ;
       BOOLEAN isDataNodePrimary() { return _peerPrimary ; }
       void setDataNodePrimary( BOOLEAN isPrimary )
       {
@@ -216,15 +209,13 @@ namespace seadapter
 
       const CHAR *getDataNodeGrpName() { return _peerGroupName ; }
 
-      void resetIdxVersion() ;
-
-      INT32 updateCataInfo( INT64 millsec ) ;
-
+      INT32 syncUpdateCLVersion( const CHAR *collectionName, INT64 millsec,
+                                 pmdEDUCB *cb, INT32 &version ) ;
    private:
       INT32 _startSvcListener() ;
       INT32 _initSdbAddr() ;
+      INT32 _initSearchEngineAddr() ;
       INT32 _sendRegisterMsg() ;
-      INT32 _detectES() ;
       INT32 _resumeRegister() ;
       INT32 _startEDU( INT32 type, EDU_STATUS waitStatus,
                        void *args, BOOLEAN regSys ) ;
@@ -238,17 +229,22 @@ namespace seadapter
       INT32 _onRemoteDisconnect( NET_HANDLE handle, MsgHeader *msg ) ;
       INT32 _setTimers() ;
       void  _killTimer( UINT32 timerID ) ;
+      INT32 _onCatalogResMsg( NET_HANDLE handle, MsgHeader *msg ) ;
+      INT32 _sendCataQueryReq( const BSONObj &query, const BSONObj &selector,
+                               UINT64 requestID, _pmdEDUCB *cb ) ;
+      INT32 _updateIndexInfo( BSONObj &obj, BOOLEAN &updated ) ;
+      INT32 _parseIndexInfo( const BSONElement *ele, seIndexMeta &idxMeta ) ;
 
-      INT32 _updateIndexInfo( const NET_HANDLE &handle, BSONObj &obj ) ;
-
-      BOOLEAN _isESOnline() ;
+      void _genESIdxName( UINT32 csLID, UINT32 clLID, INT32 idxLID,
+                          CHAR *esIdxName, UINT32 buffSize ) ;
+      void _genESIdxName( seIndexMeta &idxMeta ) ;
 
    private:
       indexMsgHandler         _indexMsgHandler ;
       pmdAsyncMsgHandler      _svcMsgHandler ;
       pmdAsyncTimerHandler    _indexTimerHandler ;
       pmdAsyncTimerHandler    _svcTimerHandler ;
-      seAdptDBAssist          _dbAssist ;
+      netRouteAgent           _indexNetRtAgent ;  // net route agent for indexer
       netRouteAgent           _svcRtAgent ;
       seIndexSessionMgr       _idxSessionMgr ;
       seSvcSessionMgr         _svcSessionMgr ;
@@ -256,35 +252,32 @@ namespace seadapter
       CHAR                    _serviceName[ OSS_MAX_SERVICENAME + 1 ] ;
 
       ossEvent                _attachEvent ;
+      MsgRouteID              _dataNodeID ;
+      MsgRouteID              _cataNodeID ;
       BOOLEAN                 _peerPrimary ;    // If the connected data node is
-                                                // primary. If not, no document
-                                                // index should be done. The
-                                                // role of the node may change,
-                                                // so need to update this member
-                                                // accorrdingly.
       CHAR                    _peerGroupName[ OSS_MAX_GROUPNAME_SIZE + 1 ] ;
 
-      utilESCltFactory        _seCltFactory ;
+      utilESCltMgr            _seCltMgr ;
       MsgRouteID              _selfRouteID ;
       ossSpinSLatch           _seLatch ;
       VECINNERPARAM           _vecInnerSessionParam ;
       UINT32                  _regTimerID ;        // For register adapter on data node.
       UINT32                  _idxUpdateTimerID ;  // For text index information update.
       UINT32                  _oneSecTimerID ;     // For session check by session managers.
-      UINT32                  _esDetectTimerID ;
-      ossEvent                _registerEvent ;
+      INT32                   _clVersion ;
+      ossSpinSLatch           _verUpdateLock ;
+      ossEvent                _cataEvent ;
 
       INT64                   _localIdxVer ;
-      seIdxMetaMgr            _idxMetaMgr ;
+      seIdxMetaMgr            _idxMetaCache ;
       MsgHeader              *_regMsgBuff ;
-      utilESClt              *_esClt ;          // Used to check ES status.
-      BOOLEAN                 _indexerOn ;
    } ;
    typedef _seAdptCB seAdptCB ;
 
    seAdptCB* sdbGetSeAdapterCB() ;
    seAdptOptionsMgr* sdbGetSeAdptOptions() ;
-   utilESCltFactory* sdbGetSeCltFactory() ;
+   seSvcSessionMgr* sdbGetSeAgentCB() ;
+   utilESCltMgr* sdbGetSeCltMgr() ;
 }
 
 #endif /* SE_ADPTMGR_HPP_ */

@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordCommandList.hpp
 
@@ -44,7 +43,6 @@
 #include "coordQueryOperator.hpp"
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
-#include "catGTSDef.hpp"
 
 using namespace bson ;
 
@@ -96,7 +94,16 @@ namespace engine
       ctrlParam._emptyFilterSel = NODE_SEL_PRIMARY ;
 
       ctrlParam._useSpecialNode = TRUE ;
-      _groupSession.getPropSite()->dumpTransNode( ctrlParam._specialNodes ) ;
+      DpsTransNodeMap *pMap = cb->getTransNodeLst() ;
+      if ( pMap )
+      {
+         DpsTransNodeMap::iterator it = pMap->begin() ;
+         while( it != pMap->end() )
+         {
+            ctrlParam._specialNodes.insert( it->second.value ) ;
+            ++it ;
+         }
+      }
    }
 
    /*
@@ -348,46 +355,6 @@ namespace engine
    }
 
    /*
-      _coordCMDListSequences implement
-   */
-   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDListSequences,
-                                      CMD_NAME_LIST_SEQUENCES,
-                                      TRUE ) ;
-   _coordCMDListSequences::_coordCMDListSequences()
-   {
-   }
-
-   _coordCMDListSequences::~_coordCMDListSequences()
-   {
-   }
-
-   INT32 _coordCMDListSequences::_preProcess( rtnQueryOptions &queryOpt,
-                                               string & clName,
-                                               BSONObj &outSelector )
-   {
-      BSONObjBuilder builder ;
-      clName = GTS_SEQUENCE_COLLECTION_NAME ;
-      builder.appendNull( CAT_SEQUENCE_NAME ) ;
-      outSelector = queryOpt.getSelector() ;
-      queryOpt.setSelector( builder.obj() ) ;
-      return SDB_OK ;
-   }
-
-   /*
-      _coordCMDListSequencesIntr implement
-   */
-   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDListSequencesIntr,
-                                      CMD_NAME_LIST_SEQUENCES_INTR,
-                                      TRUE ) ;
-   _coordCMDListSequencesIntr::_coordCMDListSequencesIntr()
-   {
-   }
-
-   _coordCMDListSequencesIntr::~_coordCMDListSequencesIntr()
-   {
-   }
-
-   /*
       _coordCMDListContexts implement
    */
    COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDListContexts,
@@ -559,16 +526,10 @@ namespace engine
    {
       BSONObjBuilder builder ;
       clName = AUTH_USR_COLLECTION ;
-
-      BSONObjBuilder passBuilder( builder.subobjStart( SDB_AUTH_PASSWD ) ) ;
-      passBuilder.append( "$include", 0 ) ;
-      passBuilder.done() ;
-
-      BSONObjBuilder idBuilder( builder.subobjStart( DMS_ID_KEY_NAME ) ) ;
-      idBuilder.append( "$include", 0 ) ;
-      idBuilder.done() ;
-
-      outSelector = queryOpt.getSelector() ;
+      if ( queryOpt.isSelectorEmpty() )
+      {
+         builder.appendNull( FIELD_NAME_USER ) ;
+      }
       queryOpt.setSelector( builder.obj() ) ;
       return SDB_OK ;
    }
@@ -764,14 +725,13 @@ namespace engine
       queryOptions.setCLFullName( CAT_COLLECTION_SPACE_COLLECTION ) ;
 
       rc = queryOnCataAndPushToVec( queryOptions, cb, replyFromCata,
-                                    buf ) ;
+                                    buf ) ; 
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to execute query on catalog:%d", rc ) ;
          goto error ;
       }
 
-      /// build result
       rc = _rebuildListResult( replyFromCata, cb, contextID ) ;
       if ( SDB_OK != rc )
       {
@@ -792,7 +752,7 @@ namespace engine
 
    INT32 _coordCMDListCLInDomain::_rebuildListResult(
                                     const vector<BSONObj> &infoFromCata,
-                                    pmdEDUCB *cb,
+                                    pmdEDUCB *cb,                       
                                     SINT64 &contextID )
    {
       INT32 rc = SDB_OK ;
@@ -952,7 +912,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "List lobs[%s] on groups failed, rc: %d",
                    queryConf._realCLName.c_str(), rc ) ;
 
-      // set context id
       contextID = context->contextID() ;
 
    done:
@@ -963,46 +922,6 @@ namespace engine
          pRtncb->contextDelete( context->contextID(), cb ) ;
       }
       goto done ;
-   }
-
-   /*
-      _coordCMDListSvcTasks implement
-   */
-   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDListSvcTasks,
-                                      CMD_NAME_LIST_SVCTASKS,
-                                      TRUE ) ;
-
-   _coordCMDListSvcTasks::_coordCMDListSvcTasks()
-   {
-   }
-
-   _coordCMDListSvcTasks::~_coordCMDListSvcTasks()
-   {
-   }
-
-   const CHAR* _coordCMDListSvcTasks::getIntrCMDName()
-   {
-      return CMD_ADMIN_PREFIX CMD_NAME_LIST_SVCTASKS_INTR ;
-   }
-
-   const CHAR* _coordCMDListSvcTasks::getInnerAggrContent()
-   {
-      return COORD_EMPTY_AGGR_CONTEXT ;
-   }
-
-   /*
-      _coordCMDListSvcTasksIntr implement
-   */
-   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDListSvcTasksIntr,
-                                      CMD_NAME_LIST_SVCTASKS_INTR,
-                                      TRUE ) ;
-
-   _coordCMDListSvcTasksIntr::_coordCMDListSvcTasksIntr()
-   {
-   }
-
-   _coordCMDListSvcTasksIntr::~_coordCMDListSvcTasksIntr()
-   {
    }
 
 }

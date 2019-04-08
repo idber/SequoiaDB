@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dmsStatUnit.cpp
 
@@ -40,8 +39,6 @@
 #include "pdTrace.hpp"
 #include "dmsTrace.hpp"
 #include "msgDef.hpp"
-
-using namespace bson ;
 
 namespace engine
 {
@@ -73,7 +70,6 @@ namespace engine
    #define DMS_STAT_IDX_TYPE_SET_FRAC         DMS_STAT_FIELD_FRAC_NAME
 
    #define DMS_STAT_CHECKHOLE_THRESHOLD       ( 10 )
-
 
    /*
       _dmsStatValues implement
@@ -124,7 +120,7 @@ namespace engine
       {
          return SDB_OOM ;
       }
-      _pValues[ _size ] = boValue.getOwned() ;
+      _pValues[ _size ] = boValue.copy() ;
       _size ++ ;
       return SDB_OK ;
    }
@@ -134,18 +130,10 @@ namespace engine
    {
       isEqual = FALSE ;
 
-      INT32 low = 0, high = _size - 1, mid = 0 ;
+      INT32 low = 0, high = _size - 1, mid ;
       INT32 index = -1 ;
       BSONObj boEmpty ;
 
-      // The output idx means:
-      // 1. idx is 0
-      //    1. isEqual is true, value == _pValues[0]
-      //    2. isEqual is false, value < _pValues[0]
-      // 2. idx is 1 to _size - 1
-      //    1. isEqual is true, value == _pValues[idx]
-      //    2. isEqual is false, _pValues[idx-1]< value < _pValues[idx]
-      // 3. idx is _size: _pValues[_size - 1] < value
 
       if ( 0 == _size )
       {
@@ -276,8 +264,6 @@ namespace engine
 
       if ( pStartKey )
       {
-         // Expect start key < value[idx]
-         // The first element is compared in earlier range comparison
          if ( !pStartKey->compareAllValues( 1, -1, _pValues[idx] ) )
          {
             return FALSE ;
@@ -285,8 +271,6 @@ namespace engine
       }
       if ( pStopKey )
       {
-         // Expect stop key > value[idx]
-         // The first element is compared in earlier range comparison
          if ( !pStopKey->compareAllValues( 1, 1, _pValues[idx] ) )
          {
             return FALSE ;
@@ -397,14 +381,12 @@ namespace engine
                   pStartKey || pStopKey, SDB_INVALIDARG, error, PDWARNING,
                   "Numbers of keys are not matched" ) ;
 
-      // Only check holes when number of keys are larger than 1
       if ( _numKeys > 1 && ( ( pStartKey && pStartKey->size() > 1 ) ||
                              ( pStopKey && pStopKey->size() > 1 ) ) )
       {
          checkHoles = TRUE ;
       }
 
-      // Get the index of start key
       if ( pStartKey )
       {
          startIncluded = pStartKey->isIncluded() ;
@@ -416,13 +398,11 @@ namespace engine
       }
       else
       {
-         // $lt operator, include all smaller MCV items
          startIdx = 0 ;
          startIncluded = TRUE ;
          startEqual = FALSE ;
       }
 
-      // Get the index of stop key
       if ( pStopKey )
       {
          stopIncluded = pStopKey->isIncluded() ;
@@ -434,13 +414,11 @@ namespace engine
       }
       else
       {
-         // $gt operator, include all greater MCV items
          stopIdx = getSize() ;
          stopIncluded = TRUE ;
          stopEqual = FALSE ;
       }
 
-      // Don't need to check holes if the range is too large
       if ( checkHoles && ( stopIdx - startIdx > DMS_STAT_CHECKHOLE_THRESHOLD ) )
       {
          checkHoles = FALSE ;
@@ -448,10 +426,8 @@ namespace engine
 
       if ( startIdx != stopIdx )
       {
-         // Check startIdx
          if ( startIncluded || !startEqual )
          {
-            // The start key <= value case, add the first selected MCV item
             tmpScanSel += getFracInt( startIdx ) ;
             if ( checkHoles && ( ( startIncluded && startEqual ) ||
                                  _inRange( (UINT32)startIdx, pStartKey, pStopKey ) ) )
@@ -461,10 +437,8 @@ namespace engine
             rangeCount ++ ;
          }
 
-         // Check startIdx + 1 to stopIdx - 1
          for ( INT32 idx = startIdx + 1 ; idx < stopIdx ; idx ++ )
          {
-            // Every ranges between selected MCV items are needed
             tmpScanSel += getFracInt( idx ) ;
             if ( checkHoles && _inRange( idx, pStartKey, pStopKey ) )
             {
@@ -473,11 +447,8 @@ namespace engine
             rangeCount ++ ;
          }
 
-         // Check stopIdx
          if ( stopIncluded && stopEqual && stopIdx < (INT32)getSize() )
          {
-            // The stop key is equal to the last selected MCV item, add
-            // the last selected MCV item
             tmpScanSel += getFracInt( stopIdx ) ;
             if ( checkHoles )
             {
@@ -488,13 +459,9 @@ namespace engine
       }
       else
       {
-         // start idx is equal to stop idx, which means the start key and stop
-         // key are equal to the same MCV item
-         if ( startIncluded && startEqual && stopIncluded && stopEqual &&
+         if ( stopIncluded && startEqual && stopIncluded && stopEqual &&
               startIdx < (INT32)getSize() )
          {
-            // The stop key is equal to the selected MCV item, which should
-            // be included
             tmpScanSel = getFracInt( startIdx ) ;
             if ( checkHoles )
             {
@@ -600,7 +567,6 @@ namespace engine
       {
          BSONElement beItem ;
 
-         // Required fields
 
          beItem = boStat.getField( DMS_STAT_COLLECTION_SPACE ) ;
          PD_CHECK( String == beItem.type(),
@@ -685,6 +651,8 @@ namespace engine
     */
    _dmsIndexStat::_dmsIndexStat ()
    : _dmsStatUnit (),
+     _pCSName( NULL ),
+     _pCLName( NULL ),
      _indexLogicalID( DMS_INVALID_EXTENT ),
      _pFirstField( NULL ),
      _numKeys( 0 ),
@@ -696,9 +664,6 @@ namespace engine
      _undefFrac( 0 ),
      _mcvSet()
    {
-      ossMemset( _pCSName, 0, sizeof( _pCSName ) ) ;
-      ossMemset( _pCLName, 0, sizeof( _pCLName ) ) ;
-
       setIndexName( NULL ) ;
    }
 
@@ -707,6 +672,8 @@ namespace engine
                                   UINT16 mbID, UINT32 clLID,
                                   UINT64 createTime )
    : _dmsStatUnit( suLID, mbID, clLID, createTime ),
+     _pCSName( pCSName ),
+     _pCLName( pCLName ),
      _indexLogicalID( DMS_INVALID_EXTENT ),
      _pFirstField( NULL ),
      _numKeys( 0 ),
@@ -718,11 +685,6 @@ namespace engine
      _undefFrac( 0 ),
      _mcvSet()
    {
-      ossMemset( _pCSName, 0, sizeof( _pCSName ) ) ;
-      ossMemset( _pCLName, 0, sizeof( _pCLName ) ) ;
-
-      setCSName( pCSName ) ;
-      setCLName( pCLName ) ;
       setIndexName( pIndexName ) ;
    }
 
@@ -767,7 +729,6 @@ namespace engine
             case Undefined :
                break ;
             default :
-               // Ignore non-supported types
                goto done ;
          }
 
@@ -779,10 +740,8 @@ namespace engine
 
       boFullValue = keyBuilder.obj() ;
 
-      // Round to 0 ~ 1.0 and scaled to 10000x
       fraction = DMS_STAT_ROUND_SELECTIVITY( fraction ) *
                  DMS_STAT_FRACTION_SCALE ;
-      // Round to integer
       scaledFraction = (UINT16)DMS_STAT_ROUND_INT( fraction ) ;
       rc = _mcvSet.pushBack( boFullValue, scaledFraction ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to insert mcv value [%s], rc: %d",
@@ -822,7 +781,6 @@ namespace engine
 
       BOOLEAN hitMCV = FALSE ;
 
-      // Special case for unique index, could be one of the totalRecords
       if ( _isUnique && key.size() == _numKeys )
       {
          predSelectivity = 1.0 / (double)_totalRecords ;
@@ -838,7 +796,6 @@ namespace engine
 
       if ( !hitMCV )
       {
-         // The value is not in MCV set, evaluate in the rest of values
          if ( _distinctValues == _mcvSet.getSize() )
          {
             predSelectivity = ( 1.0 - _mcvSet.getTotalFrac() ) *
@@ -912,8 +869,6 @@ namespace engine
 
       if ( !hitMCV )
       {
-         // The values do not include any MCV items, try to evaluate from
-         // the rest of values
          predSelectivity = ( 1.0 - _mcvSet.getTotalFrac() ) *
                            DMS_STAT_PRED_RANGE_DEF_SELECTIVITY ;
          scanSelectivity = predSelectivity ;
@@ -935,7 +890,6 @@ namespace engine
 
       BSONElement beItem ;
 
-      // Required fields
 
       beItem = boStat.getField( DMS_STAT_IDX_INDEX ) ;
       PD_CHECK( String == beItem.type(), SDB_INVALIDARG, error, PDWARNING,
@@ -963,7 +917,6 @@ namespace engine
                 "Field [%s] is not matched", DMS_STAT_IDX_LEVELS ) ;
       setIndexLevels( (UINT32)beItem.numberInt() ) ;
 
-      // Optional fields
 
       beItem = boStat.getField( DMS_STAT_IDX_NULL_FRAC ) ;
       if ( beItem.isNumber() )
@@ -1004,7 +957,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_DMSIDXSTAT__POSTINIT ) ;
 
-      // Initialize the distinct value number if it's not found
       if ( 0 == _distinctValues )
       {
          if ( _isUnique )
@@ -1074,7 +1026,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_DMSIDXSTAT__INITKEYPTN ) ;
 
-      _keyPattern = boKeyPattern.getOwned() ;
+      _keyPattern = boKeyPattern.copy() ;
       _numKeys = _keyPattern.nFields() ;
 
       PD_CHECK( _numKeys > 0, SDB_INVALIDARG, error, PDWARNING,
@@ -1176,8 +1128,8 @@ namespace engine
      _totalDataSize( DMS_STAT_DEF_DATA_SIZE * DMS_STAT_DEF_TOTAL_RECORDS ),
      _avgNumFields( DMS_STAT_DEF_AVG_NUM_FIELDS )
    {
-      ossMemset( _pCSName, 0, sizeof( _pCSName ) ) ;
-      ossMemset( _pCLName, 0, sizeof( _pCLName ) ) ;
+      setCSName( NULL ) ;
+      setCLName( NULL ) ;
    }
 
    _dmsCollectionStat::_dmsCollectionStat ( const CHAR *pCSName,
@@ -1191,9 +1143,6 @@ namespace engine
      _totalDataSize( DMS_STAT_DEF_DATA_SIZE * DMS_STAT_DEF_TOTAL_RECORDS ),
      _avgNumFields( DMS_STAT_DEF_AVG_NUM_FIELDS )
    {
-      ossMemset( _pCSName, 0, sizeof( _pCSName ) ) ;
-      ossMemset( _pCLName, 0, sizeof( _pCLName ) ) ;
-
       setCSName( pCSName ) ;
       setCLName( pCLName ) ;
    }
@@ -1228,7 +1177,6 @@ namespace engine
                  pTempStat->getCreateTime() < pIndexStat->getCreateTime() )
             {
                _indexStats.erase( iter ) ;
-               // Update field statistics before delete it
                _findNewFieldStat( pTempStat ) ;
                SAFE_OSS_DELETE( pTempStat ) ;
 
@@ -1244,7 +1192,6 @@ namespace engine
 
          if ( added )
          {
-            // The name pointer should be fixed
             pIndexStat->setCSName( _pCSName ) ;
             pIndexStat->setCLName( _pCLName ) ;
             _addFieldStat( pIndexStat, ignoreCrtTime ) ;
@@ -1336,11 +1283,7 @@ namespace engine
                   _removeFieldStat( pDeletingStat ) ;
                }
             }
-            else
-            {
-               // Erase item only, no need to delete statistics
-               _fieldStats.erase( iter ) ;
-            }
+            _fieldStats.erase( iter ) ;
             deleted = TRUE ;
          }
       }
@@ -1395,7 +1338,6 @@ namespace engine
 
       BSONElement beItem ;
 
-      // Required fields
 
       beItem = boStat.getField( DMS_STAT_CL_TOTAL_DATA_PAGES ) ;
       PD_CHECK( beItem.isNumber(),
@@ -1409,7 +1351,6 @@ namespace engine
                 "Field [%s] is not matched", DMS_STAT_CL_TOTAL_DATA_SIZE ) ;
       setTotalDataSize( (UINT64)beItem.numberLong() ) ;
 
-      // Optional fields
 
       beItem = boStat.getField( DMS_STAT_CL_AVG_NUM_FIELDS ) ;
       if ( beItem.isNumber() )
@@ -1437,7 +1378,7 @@ namespace engine
       PD_TRACE_EXIT( SDB_DMSCLSTAT__TOBSON ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSCLSTAT__ADDFLDSTAT, "_dmsCollectionStat::_addFieldStat" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSCLSTAT__ADDFLDSTAT, "_dmsCollectionStat::addFieldStat" )
    void _dmsCollectionStat::_addFieldStat ( dmsIndexStat *pIndexStat,
                                             BOOLEAN ignoreCrtTime )
    {
@@ -1456,14 +1397,12 @@ namespace engine
 
             if ( pIndexStat->getNumKeys() < pTempStat->getNumKeys() )
             {
-               _fieldStats.erase( iter ) ;
                _fieldStats.insert( fieldStatValue ) ;
             }
             else if ( pTempStat->getNumKeys() == pIndexStat->getNumKeys() &&
                       ( ignoreCrtTime ||
                         pTempStat->getCreateTime() < pIndexStat->getCreateTime() ) )
             {
-               _fieldStats.erase( iter ) ;
                _fieldStats.insert( fieldStatValue ) ;
             }
          }
@@ -1476,7 +1415,7 @@ namespace engine
       PD_TRACE_EXIT( SDB_DMSCLSTAT__ADDFLDSTAT ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSCLSTAT__RMFLDSTAT, "_dmsCollectionStat::_removeFieldStat" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSCLSTAT__RMFLDSTAT, "_dmsCollectionStat::removeFieldStat" )
    void _dmsCollectionStat::_removeFieldStat ( dmsIndexStat *pDeletingStat )
    {
       PD_TRACE_ENTRY( SDB_DMSCLSTAT__RMFLDSTAT ) ;
@@ -1520,7 +1459,7 @@ namespace engine
                   pNewFieldStat = pTempFieldStat ;
                }
                else if ( pTempFieldStat->getNumKeys() == pNewFieldStat->getNumKeys() &&
-                         pTempFieldStat->getCreateTime() > pNewFieldStat->getCreateTime() )
+                         pTempFieldStat->getCreateTime() < pNewFieldStat->getCreateTime() )
                {
                   pNewFieldStat = pTempFieldStat ;
                }

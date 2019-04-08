@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsCatalogPredicats.cpp
 
@@ -69,8 +68,6 @@ namespace engine
          goto done ;
       }
 
-      // if the child is universe set and the logic type is "$or",
-      // then upgrade to universe set
       if ( CLS_CATA_LOGIC_OR == _logicType )
       {
          upgradeToUniverse() ;
@@ -86,7 +83,6 @@ namespace engine
    void clsCatalogPredicateTree::clear()
    {
       PD_TRACE_ENTRY ( SDB_CLSCATAPREDICATETREE_CLEAR ) ;
-      // clear the children
       clsCatalogPredicateTree *pTmp = NULL ;
       while ( !_children.empty() )
       {
@@ -95,7 +91,6 @@ namespace engine
          SDB_OSS_DEL( pTmp ) ;
       }
 
-      // clear the predicateSet
       _predicateSet.clear() ;
 
       PD_TRACE_EXIT ( SDB_CLSCATAPREDICATETREE_CLEAR );
@@ -114,8 +109,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CLSCATAPREDICATETREE_ADDPREDICATE ) ;
 
-      // We don't know the setting of enableMixCmp in data groups, we need a
-      // larger range to cover all cases, so use mix-compare mode
       rc = _predicateSet.addPredicate( pFieldName, beField, opType, FALSE,
                                        TRUE, FALSE, -1, -1 ) ;
 
@@ -210,13 +203,11 @@ namespace engine
          buf << _logicType << ": " ;
       }
 
-      // predicate
       if ( _predicateSet.predicates().size() > 0 )
       {
          buf << _predicateSet.toString() ;
       }
 
-      // sub
       for ( UINT32 i = 0 ; i < _children.size() ; ++i )
       {
          buf << _children[ i ]->toString() ;
@@ -291,12 +282,10 @@ namespace engine
 
          if ( compareLU <= 0 )
          {
-            // compare low bound
             rsCmp = rtnKeyCompare( lowBound, pStopKey->_bound ) ;
             rsCmp *= director ;
             if ( rsCmp > 0 || ( rsCmp == 0 && !pStopKey->_inclusive ) )
             {
-               // low bound > stop key, goto next start stop key
                ++ssKeyPos ;
                goto retry ;
             }
@@ -312,12 +301,10 @@ namespace engine
 
          if ( 0 <= compareLU )
          {
-            // compare up bound
             rsCmp = rtnKeyCompare( upBound, pStartKey->_bound ) ;
             rsCmp *= director ;
             if ( rsCmp < 0 || ( rsCmp == 0 && !pStartKey->_inclusive ) )
             {
-               // up bound < start key, goto next start stop key
                ++ssKeyPos ;
                goto retry ;
             }
@@ -329,7 +316,6 @@ namespace engine
          }
       }
 
-      // in the range
       result = TRUE ;
 
    done:
@@ -397,7 +383,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       BOOLEAN rsTmp = TRUE ;
 
-      // PD_TRACE_ENTRY ( SDB_CLSCATAPREDICATETREE_MATCHES ) ;
       const map<string, rtnPredicate> &predicates = _predicateSet.predicates() ;
       if ( isUniverse() )
       {
@@ -423,10 +408,6 @@ namespace engine
                   goto check_children ;
                }
 
-               // the size of _startStopKeys must be "0" or "1":
-               // "0": it is means the matcher is empty set.
-               // "1": it is normal set include universe set.
-               // other: it is $ne
                if ( iterMap->second._startStopKeys.size() != 1 )
                {
                   rsTmp = TRUE ;
@@ -438,7 +419,6 @@ namespace engine
                BSONElement upBound ;
                INT32 rsCmp = 0 ;
 
-               // lowBound <= upBound
                if ( beShardingKey.numberInt() >= 0 )
                {
                   if ( iterLB.more() )
@@ -584,7 +564,6 @@ namespace engine
 
    done:
       result = rsTmp;
-      // PD_TRACE_EXITRC ( SDB_CLSCATAPREDICATETREE_MATCHES, rc ) ;
       return rc;
    error:
       goto done;

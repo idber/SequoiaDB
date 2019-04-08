@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = utilNodeOpr.cpp
 
@@ -138,7 +137,6 @@ namespace engine
       ossSnprintf ( _pipeWName, OSS_NPIPE_MAX_NAME_LEN,
                     ENGINE_NPIPE_PREFIX"%s",
                     svcname ) ;
-      // create
       rc = ossCreateNamedPipe( _pipeRName, UTIL_NODE_PIPE_BUFFSZ,
                                UTIL_NODE_PIPE_BUFFSZ,
                                OSS_NPIPE_DUPLEX | OSS_NPIPE_BLOCK_WITH_TIMEOUT,
@@ -158,11 +156,9 @@ namespace engine
                     ENGINE_NPIPE_PREFIX_BW"%s_%d",
                     svcname, ossGetCurrentProcessID() ) ;
 
-      // clear when exist 
       ossCleanNamedPipeByName( _pipeRName ) ;
       ossCleanNamedPipeByName( _pipeWName ) ;
 
-      // clear other dirty pipe
       {
          vector< string > names ;
          OSSPID pid = OSS_INVALID_PID ;
@@ -173,7 +169,6 @@ namespace engine
          }
       }
 
-      // create
       rc = ossCreateNamedPipe( _pipeRName, UTIL_NODE_PIPE_BUFFSZ, 0,
                                OSS_NPIPE_DUPLEX |
                                OSS_NPIPE_BLOCK_WITH_TIMEOUT |
@@ -261,7 +256,6 @@ namespace engine
       ossSnprintf ( _pipeWName, OSS_NPIPE_MAX_NAME_LEN,
                     ENGINE_NPIPE_PREFIX"%s",
                     svcname ) ;
-      // open
       rc = ossOpenNamedPipe( _pipeRName,
                              OSS_NPIPE_DUPLEX | OSS_NPIPE_BLOCK_WITH_TIMEOUT,
                              UTIL_NODE_OPEN_PIPE_TIMEOUT, _pipeRHandle ) ;
@@ -279,7 +273,6 @@ namespace engine
                     ENGINE_NPIPE_PREFIX_BW"%s_%d",
                     svcname, pid ) ;
 
-      // open
       rc = ossOpenNamedPipe( _pipeWName,
                              OSS_NPIPE_DUPLEX |
                              OSS_NPIPE_BLOCK_WITH_TIMEOUT |
@@ -391,7 +384,6 @@ namespace engine
          goto done ;
       }
 #if defined ( _WINDOWS )
-      // connect
       rc = ossConnectNamedPipe( _pipeRHandle,
                                 OSS_NPIPE_DUPLEX,
                                 UTIL_NODE_PIPE_TIMEOUT ) ;
@@ -405,7 +397,6 @@ namespace engine
          goto error ;
       }
 #else
-      // connect
       rc = ossConnectNamedPipe( _pipeRHandle,
                                 OSS_NPIPE_DUPLEX,
                                 UTIL_NODE_PIPE_TIMEOUT ) ;
@@ -567,7 +558,6 @@ namespace engine
       info._groupName   = "" ;
       info._startTime   = 0 ;
 
-      // group id
       rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
                                ENGINE_NPIPE_MSG_GID,
                                sizeof( ENGINE_NPIPE_MSG_GID ),
@@ -579,7 +569,6 @@ namespace engine
          goto error ;
       }
 
-      // node id
       rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
                                ENGINE_NPIPE_MSG_NID,
                                sizeof( ENGINE_NPIPE_MSG_NID ),
@@ -591,7 +580,6 @@ namespace engine
          goto error ;
       }
 
-      // primary
       rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
                                ENGINE_NPIPE_MSG_PRIMARY,
                                sizeof( ENGINE_NPIPE_MSG_PRIMARY ),
@@ -603,7 +591,6 @@ namespace engine
          goto error ;
       }
 
-      // group name
       rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
                                ENGINE_NPIPE_MSG_GNAME,
                                sizeof( ENGINE_NPIPE_MSG_GNAME ),
@@ -616,7 +603,6 @@ namespace engine
       }
       info._groupName = groupName ;
 
-      // dbpath
       rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
                                ENGINE_NPIPE_MSG_PATH,
                                sizeof( ENGINE_NPIPE_MSG_PATH ),
@@ -629,7 +615,6 @@ namespace engine
       }
       info._dbPath = dbPath ;
 
-      // start time
       rc = _utilWriteReadPipe( info._svcname.c_str(), info._pid,
                                ENGINE_NPIPE_MSG_STARTTIME,
                                sizeof( ENGINE_NPIPE_MSG_STARTTIME ),
@@ -705,14 +690,12 @@ namespace engine
             continue ;
          }
 
-         // analysize node info
          pStr = NULL ;
          matchNum = 0 ;
          beginType = SDB_TYPE_DB ;
          pSvcBegin = NULL ;
          pSvcEnd = NULL ;
 
-         // 1. svcname
          pSvcBegin = ossStrchr( commandLine, '(' ) ;
          if ( !pSvcBegin )
          {
@@ -731,7 +714,6 @@ namespace engine
             continue ;
          }
 
-         // 2. type
          while ( beginType < SDB_TYPE_MAX )
          {
             pStr = ossStrstr( commandLine,
@@ -759,7 +741,6 @@ namespace engine
             continue ;
          }
 
-         // 3. pid
          findNode._pid = ossAtoi( pDirent->d_name ) ;
          if ( pidFilter != OSS_INVALID_PID &&
               pidFilter != findNode._pid )
@@ -767,7 +748,6 @@ namespace engine
             continue ;
          }
 
-         // 4. role
          findNode._role = SDB_ROLE_MAX ;
          if ( ' ' == *( pSvcEnd + 1 ) )
          {
@@ -801,7 +781,6 @@ namespace engine
          *pSvcEnd = ')' ;
          findNode._orgname = commandLine ;
 
-         // get extra info
          utilGetNodeExtraInfo( findNode ) ;
 
          if ( SDB_TYPE_OMA == findNode._type )
@@ -817,7 +796,6 @@ namespace engine
             }
          }
 
-         // find it
          nodes.push_back( findNode ) ;
 
          if ( pidFilter != OSS_INVALID_PID ||
@@ -854,18 +832,14 @@ namespace engine
 
       for ( UINT32 i = 0 ; i < names.size() ; ++i )
       {
-         // windows: sequoiadb_engine_11790(svcname)
-         // get svcname
          findNode._svcname = names[ i ].substr( prefixLen ) ;
 
-         // 1. svcname
          if ( svcnameFilter && 0 != *svcnameFilter &&
               0 != ossStrcmp( findNode._svcname.c_str(), svcnameFilter ) )
          {
             continue ;
          }
 
-         // 2. type
          rc = _utilWriteReadPipe( findNode._svcname.c_str(), 0,
                                   ENGINE_NPIPE_MSG_TYPE,
                                   sizeof( ENGINE_NPIPE_MSG_TYPE ),
@@ -881,7 +855,6 @@ namespace engine
             continue ;
          }
 
-         // 3. pid
          rc = _utilWriteReadPipe( findNode._svcname.c_str(), 0,
                                   ENGINE_NPIPE_MSG_PID,
                                   sizeof( ENGINE_NPIPE_MSG_PID ),
@@ -897,7 +870,6 @@ namespace engine
             continue ;
          }
 
-         // 4. role
          rc = _utilWriteReadPipe( findNode._svcname.c_str(), findNode._pid,
                                   ENGINE_NPIPE_MSG_ROLE,
                                   sizeof( ENGINE_NPIPE_MSG_ROLE ),
@@ -913,9 +885,7 @@ namespace engine
             continue ;
          }
 
-         // find it
          findNode._orgname = names[ i ] ;
-         // get extra info
          utilGetNodeExtraInfo( findNode ) ;
 
          if ( SDB_TYPE_OMA == findNode._type )
@@ -931,7 +901,6 @@ namespace engine
             }
          }
 
-         // push to vector
          nodes.push_back( findNode ) ;
 
          if ( pidFilter != OSS_INVALID_PID ||
@@ -1000,11 +969,9 @@ namespace engine
             continue ;
          }
 
-         // get dbpath
          node._dbPath = "" ;
          utilGetDBPathByConfigPath( confPath, node._dbPath ) ;
 
-         // find it
          nodes.push_back( node ) ;
       }
 
@@ -1047,12 +1014,10 @@ namespace engine
          if ( pid != OSS_INVALID_PID && !ossIsProcessRunning( pid ) )
          {
             PD_LOG( PDERROR, "Process[%d] has exist", pid ) ;
-            // process exist
             rc = SDB_SYS ;
             goto error ;
          }
 
-         // sleep one seconds
          ossSleep( OSS_ONE_SEC ) ;
       }
       rc = SDB_TIMEOUT ;
@@ -1063,9 +1028,18 @@ namespace engine
       goto done ;
    }
 
-   INT32 utilAsyncStopNode( utilNodeInfo &node )
+   INT32 utilStopNode( utilNodeInfo & node, INT32 timeout, BOOLEAN force )
    {
       INT32 rc = SDB_OK ;
+
+      if ( timeout < 0 )
+      {
+         timeout = 0x7FFFFFFF ;
+      }
+      else if ( timeout == 0 )
+      {
+         timeout = 1 ;
+      }
 
 #if defined( _LINUX )
       rc = ossTerminateProcess( node._pid, FALSE ) ;
@@ -1083,42 +1057,8 @@ namespace engine
       }
       else if ( rc )
       {
-         rc = SDB_CLS_NODE_NOT_EXIST ;
+         rc = SDB_OK ;
          goto done ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 utilStopNode( utilNodeInfo & node, INT32 timeout,
-                       BOOLEAN force, BOOLEAN skipKill )
-   {
-      INT32 rc = SDB_OK ;
-
-      if ( timeout < 0 )
-      {
-         timeout = 0x7FFFFFFF ;
-      }
-      else if ( timeout == 0 )
-      {
-         timeout = 1 ;
-      }
-
-      if ( !skipKill )
-      {
-         rc = utilAsyncStopNode( node ) ;
-         if ( rc )
-         {
-            if ( SDB_CLS_NODE_NOT_EXIST == rc )
-            {
-               rc = SDB_OK ;
-               goto done ;
-            }
-            goto error ;
-         }
       }
 
       while ( timeout > 0 )

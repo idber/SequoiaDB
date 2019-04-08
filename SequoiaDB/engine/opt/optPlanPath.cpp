@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = optPlanPath.cpp
 
@@ -77,8 +76,8 @@ namespace engine
 
       if ( _pRootNode && _ownedPath )
       {
-         _pRootNode->deleteChildNodes() ;
-         SDB_OSS_DEL _pRootNode ;
+         _pRootNode->deleteChildNodes( _pAllocator ) ;
+         _pRootNode->release( _pAllocator ) ;
       }
       _pRootNode = NULL ;
       _ownedPath = TRUE ;
@@ -283,7 +282,6 @@ namespace engine
          goto done ;
       }
 
-      // Sort is required
       if ( !options.isOrderByEmpty() &&
            !_pScanNode->isSorted() )
       {
@@ -403,7 +401,6 @@ namespace engine
          }
       }
 
-      // Set scan node
       if ( NULL != lastDstNode )
       {
          rc = _setScanNode( lastDstNode ) ;
@@ -630,11 +627,9 @@ namespace engine
 
       ossTime userTime, sysTime ;
 
-      /// get some info before explain
       _beginMon = *cb->getMonAppCB() ;
       ossGetCurrentTime( _beginTime ) ;
 
-      /// get begin cpu time info
       ossGetCPUUsage( cb->getThreadHandle(), userTime, sysTime ) ;
       _beginUsrCpu = userTime.seconds + (FLOAT64)userTime.microsec / 1000000 ;
       _beginSysCpu = sysTime.seconds + (FLOAT64)sysTime.microsec / 1000000 ;
@@ -661,7 +656,6 @@ namespace engine
       ossGetCurrentTime( _endTime ) ;
       _endMon = *cb->getMonAppCB() ;
 
-      /// get end cpu time info
       ossGetCPUUsage( cb->getThreadHandle(), userTime, sysTime ) ;
       _endUsrCpu = userTime.seconds + (FLOAT64)userTime.microsec / 1000000 ;
       _endSysCpu = sysTime.seconds + (FLOAT64)sysTime.microsec / 1000000 ;
@@ -679,7 +673,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_OPTEXPPATH_TOBSONEXPINFO ) ;
 
-      // ReturnNum
       if ( OSS_BIT_TEST( mask, OPT_EXPINFO_MASK_RETURN_NUM ) )
       {
          if ( NULL != _pRootNode )
@@ -694,7 +687,6 @@ namespace engine
          }
       }
 
-      // ElapsedTime
       if ( OSS_BIT_TEST( mask, OPT_EXPINFO_MASK_ELAPSED_TIME ) )
       {
          UINT64 beginTime = _beginTime.time * 1000000 + _beginTime.microtm  ;
@@ -703,7 +695,6 @@ namespace engine
                          FLOAT64( ( endTime - beginTime ) / 1000000.0 ) ) ;
       }
 
-      // IndexRead
       if ( OSS_BIT_TEST( mask, OPT_EXPINFO_MASK_INDEX_READ ) )
       {
          builder.appendNumber( OPT_FIELD_INDEX_READ,
@@ -711,7 +702,6 @@ namespace engine
                                         _beginMon.totalIndexRead ) ) ;
       }
 
-      // DataRead
       if ( OSS_BIT_TEST( mask, OPT_EXPINFO_MASK_DATA_READ ) )
       {
          builder.appendNumber( OPT_FIELD_DATA_READ,
@@ -719,13 +709,11 @@ namespace engine
                                         _beginMon.totalDataRead ) ) ;
       }
 
-      // UserCPU
       if ( OSS_BIT_TEST( mask, OPT_EXPINFO_MASK_USERCPU ) )
       {
          builder.append( OPT_FIELD_USERCPU, _endUsrCpu - _beginUsrCpu ) ;
       }
 
-      // SysCPU
       if ( OSS_BIT_TEST( mask, OPT_EXPINFO_MASK_SYSCPU ) )
       {
          builder.append( OPT_FIELD_SYSCPU, _endSysCpu - _beginSysCpu ) ;
@@ -980,7 +968,7 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTEXPSCANPATH__SETSCANNODE, "_optExplainScanPath::_setScanNode" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTEXPSCANPATH__SETSCANNODE, "_optExplainPath::_setScanNode" )
    INT32 _optExplainScanPath::_setScanNode ( optPlanNode * pNode )
    {
       INT32 rc = SDB_OK ;

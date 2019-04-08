@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dpsLogRecord.cpp
 
@@ -77,7 +76,6 @@ namespace engine
 
    _dpsLogRecord::~_dpsLogRecord ()
    {
-//      clear() ;
    }
 
    _dpsLogRecord &_dpsLogRecord::operator=( const _dpsLogRecord &record )
@@ -157,9 +155,6 @@ namespace engine
          goto done ;
       }
 
-      // Complete element must contain 5 bytes at least: TAG(1) + Valuesize(4).
-      // TLV must end with 0(1 byte).
-      // So totalSize - 5 to avoid read the invalid bytes
       rc = loadBody( iter.value(), iter.len() - DPS_RECORD_ELE_HEADER_LEN ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse row-record(rc=%d)!", rc ) ;
       }
@@ -195,7 +190,6 @@ namespace engine
          }
          else if ( DPS_INVALID_TAG == tag )
          {
-            /// the length might be changed. DPS_INVALID_TAG is a stop flag.
             break ;
          }
          else if ( (UINT32)( totalSize - loadSize ) < valueSize )
@@ -245,8 +239,6 @@ namespace engine
 
       location = pData + sizeof( dpsLogRecordHeader ) ;
 
-      /// may be byte-aligned.the length of each field is
-      /// at least greater than 5.
       totalSize = _head._length
                   - sizeof( dpsLogRecordHeader )
                   - DPS_RECORD_ELE_HEADER_LEN ;
@@ -266,8 +258,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DPSLGRECD_FIND );
       _dpsLogRecord::iterator itr( this ) ;
 
-      /// rewrite this func when we have a big number of data.
-      /// now it is only 10 at most.
       for ( UINT32 i = 0; i < DPS_MERGE_BLOCK_MAX_DATA; i++ )
       {
          if ( DPS_INVALID_TAG == _dataHeader[i].tag)
@@ -281,7 +271,6 @@ namespace engine
          }
          else
          {
-            /// continue ;
          }
       }
       PD_TRACE_EXIT( SDB__DPSLGRECD_FIND) ;
@@ -323,7 +312,6 @@ namespace engine
       UINT32 len           = 0 ;
       UINT32 hexDumpOption = 0 ;
 
-      // for hex dump
       if ( DPS_DMP_OPT_HEX & options )
       {
          hexDumpOption |= OSS_HEXDUMP_INCLUDE_ADDR ;
@@ -334,7 +322,6 @@ namespace engine
 
          if ( 0 != _write )
          {
-            /// start ptr is not &_header.
             ossHexDumpBuffer ( _data[0]-sizeof(dpsLogRecordHeader)-
                                DPS_RECORD_ELE_HEADER_LEN,
                                _head._length, outBuf, outSize, NULL,
@@ -351,7 +338,6 @@ namespace engine
          ++len ;
       }
 
-      // for verbose dump
       if ( DPS_DMP_OPT_FORMATTED & options )
       {
          dpsLogRecord::iterator itrTransID, itrTransLsn, itrTransRel ;
@@ -624,7 +610,7 @@ namespace engine
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  " Type   : %s(%d)"OSS_NEWLINE,
                                  "CS CREATE", LOG_TYPE_CS_CRT ) ;
-            dpsLogRecord::iterator itrCS, itrID, itrPageSize ;
+            dpsLogRecord::iterator itrCS, itrPageSize ;
             itrCS = this->find( DPS_LOG_CSCRT_CSNAME ) ;
             if ( !itrCS.valid() )
             {
@@ -638,14 +624,6 @@ namespace engine
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  " CSName : %s"OSS_NEWLINE,
                                  itrCS.value() ) ;
-
-            itrID = this->find( DPS_LOG_CSCRT_CSUNIQUEID ) ;
-            if ( itrID.valid() )
-            {
-               len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " UniqueID : %u"OSS_NEWLINE,
-                                    *( (utilCSUniqueID *)itrID.value() ) ) ;
-            }
 
             itrPageSize = this->find( DPS_LOG_CSCRT_PAGESIZE ) ;
             if ( !itrPageSize.valid() )
@@ -739,14 +717,6 @@ namespace engine
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  " CLName : %s"OSS_NEWLINE,
                                  itrCL.value() ) ;
-
-            itrCL = this->find( DPS_LOG_CLCRT_CLUNIQUEID ) ;
-            if ( itrCL.valid() )
-            {
-               len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " UniqueID : %llu"OSS_NEWLINE,
-                                    *( (utilCLUniqueID *)itrCL.value() ) ) ;
-            }
 
             itrCL = this->find( DPS_LOG_CLCRT_ATTRIBUTE ) ;
             if ( itrCL.valid() )
@@ -1334,137 +1304,8 @@ namespace engine
 
             break ;
          }
-         case LOG_TYPE_ALTER :
-         {
-            len += ossSnprintf( outBuf + len, outSize - len,
-                                " Type   : %s(%d)"OSS_NEWLINE,
-                                "ALTER", LOG_TYPE_ALTER ) ;
-
-            dpsLogRecord::iterator itr ;
-            itr = this->find( DPS_LOG_PUBLIC_FULLNAME ) ;
-            if ( !itr.valid() )
-            {
-               len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
-                                    "Failed to find fullname in record" ) ;
-               PD_LOG( PDERROR, "Failed to find fullname in record" ) ;
-               goto done ;
-            }
-            len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " FullName : %s"OSS_NEWLINE,
-                                 itr.value() ) ;
-
-            itr = this->find( DPS_LOG_ALTER_OBJECT_TYPE ) ;
-            if ( !itr.valid() )
-            {
-               len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
-                                    "Failed to find alter object type in record" ) ;
-               PD_LOG( PDERROR, "Failed to find alter object type in record" ) ;
-               goto done ;
-            }
-
-            {
-               INT32 type = *( INT32 * )( itr.value() ) ;
-               len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " Type    : %d"OSS_NEWLINE,
-                                    type ) ;
-            }
-
-            itr = this->find( DPS_LOG_ALTER_OBJECT ) ;
-            if ( !itr.valid() )
-            {
-               len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
-                                    "Failed to find alter object in record" ) ;
-               PD_LOG( PDERROR, "Failed to find alter object in record" ) ;
-               goto done ;
-            }
-
-            try
-            {
-               BSONObj obj( itr.value() ) ;
-               len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " Alter : %s"OSS_NEWLINE,
-                                    obj.toString().c_str() ) ;
-            }
-            catch ( std::exception &e )
-            {
-               len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s: %s"OSS_NEWLINE,
-                                    "Invalid alter record", e.what() ) ;
-               goto done ;
-            }
-
-            break ;
-         }
-         case LOG_TYPE_ADDUNIQUEID :
-         {
-            len += ossSnprintf( outBuf + len, outSize - len,
-                                " Type   : %s(%d)"OSS_NEWLINE,
-                                "ADD UNIQUEID", LOG_TYPE_ADDUNIQUEID ) ;
-
-            dpsLogRecord::iterator itr ;
-            itr = this->find( DPS_LOG_ADDUNIQUEID_CSNAME ) ;
-            if ( !itr.valid() )
-            {
-               len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
-                                    "Failed to find cs name in record" ) ;
-               PD_LOG( PDERROR, "Failed to find cs name in record" ) ;
-               goto done ;
-            }
-            len += ossSnprintf ( outBuf + len, outSize - len,
-                                 " CSName : %s"OSS_NEWLINE,
-                                 itr.value() ) ;
-
-            itr = this->find( DPS_LOG_ADDUNIQUEID_CSUNIQUEID ) ;
-            if ( !itr.valid() )
-            {
-               len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
-                                    "Failed to find cs unique id in record" ) ;
-               PD_LOG( PDERROR, "Failed to find cs unique id in record" ) ;
-               goto done ;
-            }
-
-            {
-               utilCSUniqueID csUniqueID = *(utilCSUniqueID *)( itr.value() ) ;
-               len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " CS UniqueID : %u"OSS_NEWLINE,
-                                    csUniqueID ) ;
-            }
-
-            itr = this->find( DPS_LOG_ADDUNIQUEID_CLINFO ) ;
-            if ( !itr.valid() )
-            {
-               len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s"OSS_NEWLINE,
-                                    "Failed to find cl info in record" ) ;
-               PD_LOG( PDERROR, "Failed to find cl info in record" ) ;
-               goto done ;
-            }
-
-            try
-            {
-               BSONObj clInfoObj( itr.value() ) ;
-               len += ossSnprintf ( outBuf + len, outSize - len,
-                                    " CLInfo :%s"OSS_NEWLINE,
-                                    clInfoObj.toString( TRUE ).c_str() ) ;
-            }
-            catch ( std::exception &e )
-            {
-               len += ossSnprintf ( outBuf + len, outSize - len,
-                                    "*ERROR* : %s: %s"OSS_NEWLINE,
-                                    "Invalid add unique id record", e.what() ) ;
-               goto done ;
-            }
-
-            break ;
-         }
          default:
          {
-            // something goes wrong here, but let's just continue
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  " Type   : %s"OSS_NEWLINE,
                                  "UNKNOWN" ) ;

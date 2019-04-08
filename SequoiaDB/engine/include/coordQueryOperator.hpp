@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordQueryOperator.hpp
 
@@ -37,7 +36,7 @@
 #ifndef COORD_QUERY_OPERATOR_HPP__
 #define COORD_QUERY_OPERATOR_HPP__
 
-#include "coordTransOperator.hpp"
+#include "coordOperator.hpp"
 #include "coordContext.hpp"
 
 using namespace bson ;
@@ -55,30 +54,24 @@ namespace engine
 
       BOOLEAN     _openEmptyContext ;  // open context without sel & orderby ...
       BOOLEAN     _allCataGroups ;     // send to all catalog info groups,
-                                       // don't use query to filter
-      BOOLEAN     _preRead ;           // enable pre-read for coord context
 
       coordQueryConf()
       {
-         // don't change the default value
          _updateAndGetCata = FALSE ;
          _openEmptyContext = FALSE ;
          _allCataGroups    = FALSE ;
-         _preRead          = TRUE ;
       }
    } ;
 
    /*
       _coordQueryOperator define
    */
-   class _coordQueryOperator : public _coordTransOperator
+   class _coordQueryOperator : public _coordOperator
    {
       public:
          _coordQueryOperator( BOOLEAN readOnly = TRUE ) ;
          virtual ~_coordQueryOperator() ;
 
-         virtual BOOLEAN needRollback() const ;
- 
          virtual INT32 execute( MsgHeader *pMsg,
                                 pmdEDUCB *cb,
                                 INT64 &contextID,
@@ -102,11 +95,6 @@ namespace engine
                                              rtnContextBuf *buf = NULL ) ;
 
       protected:
-
-         virtual void         _prepareForTrans( pmdEDUCB *cb, MsgHeader *pMsg ) ;
-
-         virtual BOOLEAN      _isTrans( pmdEDUCB *cb, MsgHeader *pMsg ) ;
-
          INT32                _queryOrDoOnCL( MsgHeader *pMsg,
                                               pmdEDUCB *cb,
                                               rtnContextCoord **pContext,
@@ -177,8 +165,7 @@ namespace engine
          rtnContextCoord            *_pContext ;
          INT32                      _processRet ;
          vector<CHAR*>              _vecBlock ;
-
-         BOOLEAN                    _needRollback ;
+         BOOLEAN                    _readOnly ;
 
    } ;
    typedef _coordQueryOperator coordQueryOperator ;

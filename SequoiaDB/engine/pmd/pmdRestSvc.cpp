@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pmdRestSvc.cpp
 
@@ -72,7 +71,6 @@ namespace engine
       {
          SOCKET s ;
          rc = pListerner->accept ( &s, NULL, NULL ) ;
-         // if we don't get anything for a period of time, let's loop
          if ( SDB_TIMEOUT == rc )
          {
             rc = SDB_OK ;
@@ -105,7 +103,6 @@ namespace engine
             }
             continue ;
          }
-         // if we receive error due to database down, we finish
          if ( rc && PMD_IS_DB_DOWN() )
          {
             rc = SDB_OK ;
@@ -127,7 +124,6 @@ namespace engine
 
          cb->incEventCount() ;
 
-         // assign the socket to the arg
          void *pData = NULL ;
          *((SOCKET *) &pData) = s ;
 
@@ -147,8 +143,6 @@ namespace engine
             continue ;
          }
 
-         // now we have a tcp socket for a new connection, let's get an agent
-         // Note the new new socket sent passing to startEDU
          rc = eduMgr->startEDU ( EDU_TYPE_RESTAGENT, pData, &agentEDU ) ;
 
          if ( rc )
@@ -156,7 +150,6 @@ namespace engine
             PD_LOG( ( rc == SDB_QUIESCED ? PDWARNING : PDERROR ),
                     "Failed to start edu, rc: %d", rc ) ;
 
-            // close remote connection if we can't create new thread
             ossSocket newsock ( &s ) ;
             newsock.close () ;
             mondbcb->connDec();
@@ -170,7 +163,6 @@ namespace engine
       goto done ;
    }
 
-   /// Register
    PMD_DEFINE_ENTRYPOINT( EDU_TYPE_RESTLISTENER, TRUE,
                           pmdRestSvcEntryPoint,
                           "RestListener" ) ;
@@ -224,7 +216,6 @@ namespace engine
       return rc ;
    }
 
-   /// Register
    PMD_DEFINE_ENTRYPOINT( EDU_TYPE_RESTAGENT, FALSE,
                           pmdRestAgentEntryPoint,
                           "RestAgent" ) ;

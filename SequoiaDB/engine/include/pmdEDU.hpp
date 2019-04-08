@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pmdEDU.hpp
 
@@ -52,25 +51,20 @@
 #include "dpsDef.hpp"
 #include "monCB.hpp"
 #include "monEDU.hpp"
-#include "utilUniqueID.hpp"
-#include "ossMemPool.hpp"
 
 #if defined ( SDB_ENGINE )
 #include "dpsLogDef.hpp"
 #include "dpsTransCB.hpp"
 #include "dpsTransLockDef.hpp"
-#include "pmdTransExecutor.hpp"
 #endif // SDB_ENGINE
 
+#include <set>
 #include <string>
 
 using namespace std ;
 
 namespace engine
 {
-
-   typedef ossPoolMap<UINT32, MsgRouteID>  DpsTransNodeMap ;
-
    /*
       CONST VALUE DEFINE
    */
@@ -111,10 +105,10 @@ namespace engine
       typedef std::multimap<UINT32,CHAR*>    CATCH_MAP ;
       typedef CATCH_MAP::iterator            CATCH_MAP_IT ;
 
-      typedef ossPoolMap<CHAR*,UINT32> ALLOC_MAP ;
+      typedef std::map<CHAR*,UINT32>         ALLOC_MAP ;
       typedef ALLOC_MAP::iterator            ALLOC_MAP_IT ;
 
-      typedef ossPoolSet<INT64>        SET_CONTEXT ;
+      typedef std::set<INT64>                SET_CONTEXT ;
 
    public:
          /*
@@ -172,10 +166,6 @@ namespace engine
 
          virtual void      releaseAlignedBuff() ;
 
-         virtual CHAR*     getBuffer( UINT32 len ) ;
-
-         virtual void      releaseBuffer() ;
-
          /*
             Operation Related
          */
@@ -210,7 +200,6 @@ namespace engine
 
       EDU_STATUS  getStatus () const { return _status ; }
       INT32       getType () const { return _eduType ; }
-      BOOLEAN     isLocked() const { return _isLocked ; }
 
       _pmdEDUMgr* getEDUMgr() { return _eduMgr ; }
 
@@ -241,8 +230,6 @@ namespace engine
       void        resetDisconnect () ;
       BOOLEAN     isOnlySelfWhenInterrupt() const ;
 
-      void        updateTransConf() ;
-
       INT32       printInfo ( EDU_INFO_TYPE type, const CHAR *format, ... ) ;
       const CHAR* getInfo ( EDU_INFO_TYPE type ) ;
       void        resetInfo ( EDU_INFO_TYPE type ) ;
@@ -260,18 +247,15 @@ namespace engine
 
       void postEvent ( pmdEDUEvent const &data )
       {
-         // no need latch since _queue is already latched
          _queue.push ( data ) ;
       }
 
       BOOLEAN waitEvent ( pmdEDUEvent &data, INT64 millsec,
                           BOOLEAN resetStat = FALSE )
       {
-         // no need latch since _queue is already latched
-         // if millsec not 0, that means we want timeout
-         // otherwise it's infinite wait
 
          BOOLEAN waitMsg   = FALSE ;
+         writingDB( FALSE ) ;
 
          if ( resetStat && PMD_EDU_IDLE != _status )
          {
@@ -363,30 +347,41 @@ namespace engine
       UINT64 getCurRequestID() const { return _curRequestID ; }
       UINT64 incCurRequestID() { return ++_curRequestID ; }
 
-      // transaction related
       void     setRelatedTransLSN( DPS_LSN_OFFSET relatedLSN )
       {
          _relatedTransLSN = relatedLSN ;
       }
       DPS_LSN_OFFSET getRelatedTransLSN() const { return _relatedTransLSN ; }
-      BOOLEAN  isTransaction() const ;
+      dpsTransCBLockInfo *getTransLock( const dpsTransLockId &lockId );
+      void     addLockInfo( const dpsTransLockId &lockId,
+                            DPS_TRANSLOCK_TYPE lockType ) ;
+      void     delLockInfo( const dpsTransLockId &lockId ) ;
+      DpsTransCBLockList *getLockList() ;
+      void     clearLockList() ;
+      INT32    createTransaction() ;
+      void     delTransaction() ;
+      void     addTransNode( const MsgRouteID &routeID ) ;
+      void     delTransNode( const MsgRouteID &routeID ) ;
+      void     getTransNodeRouteID( UINT32 groupID, MsgRouteID &routeID ) ;
+      DpsTransNodeMap *getTransNodeLst() ;
+      BOOLEAN  isTransaction() ;
+      BOOLEAN  isTransNode( MsgRouteID &routeID ) ;
       void     startRollback() { _isDoRollback = TRUE ; }
       void     stopRollback() { _isDoRollback = FALSE ; }
       BOOLEAN  isInRollback() const { return _isDoRollback ; }
       void     setTransRC( INT32 rc ) { _transRC = rc ; }
       INT32    getTransRC() const { return _transRC ; }
       void     clearTransInfo() ;
+      void     setWaitLock( const dpsTransLockId &lockId ) ;
+      void     clearWaitLock() ;
 
       void     dumpTransInfo( monTransInfo &transInfo ) ;
-
-      pmdTransExecutor*    getTransExecutor() ;
 
    #endif // SDB_ENGINE
 
    protected:
       void     setStatus ( EDU_STATUS status ) { _status = status ; }
       void     setID ( EDUID id ) { _eduID = id ; }
-      void     setLock( BOOLEAN lock ) { _isLocked = lock ; }
 
       CHAR*    _getBuffInfo ( EDU_INFO_TYPE type, UINT32 &size ) ;
       BOOLEAN  _allocFromCatch( UINT32 len, CHAR **ppBuff, UINT32 *buffLen ) ;
@@ -407,8 +402,6 @@ namespace engine
 
       void        initMonAppCB() ;
 
-      void        initTransConf() ;
-
    private :
       _pmdEDUMgr     *_eduMgr ;
       ossSpinSLatch  _mutex ;
@@ -416,12 +409,10 @@ namespace engine
 
       EDU_STATUS     _status ;
       INT32          _eduType ;
-      BOOLEAN        _isLocked ;
 
       string         _userName ;
       string         _passWord ;
 
-      // buffer related
       CHAR           *_pCompressBuff ;
       UINT32         _compressBuffLen ;
       CHAR           *_pUncompressBuff ;
@@ -432,7 +423,6 @@ namespace engine
       INT64          _totalCatchSize ;
       INT64          _totalMemSize ;
 
-      // thread specific error message buffer, aka SQLCA
       CHAR              *_pErrorBuff ;
    #if defined ( _WINDOWS )
       HANDLE            _threadHdl ;
@@ -453,11 +443,12 @@ namespace engine
       ossEvent                _event ;   // for cls replSet notify
       UINT64                  _curRequestID ;
 
-      // transaction related variables
       DPS_LSN_OFFSET          _relatedTransLSN ;
+      ossSpinXLatch           _transLockLstMutex ;
+      DpsTransCBLockList      _transLockLst ;
+      DpsTransNodeMap         *_pTransNodeMap ;
       INT32                   _transRC ;
-
-      pmdTransExecutor        _transExecutor ;
+      dpsTransLockId          _waitLock ;
    #endif // SDB_ENGINE
 
       /*
@@ -483,12 +474,8 @@ namespace engine
       BOOLEAN                 _isInterruptSelf ;
       BOOLEAN                 _writingDB ;
       UINT64                  _writingID ;
-      /// aligned memory.
       void                    *_alignedMem ;
       UINT32                   _alignedMemSize ;
-      /// buffer memory
-      CHAR                    *_pBuffer ;
-      UINT32                  _buffSize ;
 
       SET_CONTEXT             _contextList ;
 

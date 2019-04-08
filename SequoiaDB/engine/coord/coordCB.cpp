@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordCB.cpp
 
@@ -39,7 +38,6 @@
 #include "pmd.hpp"
 #include "pmdController.hpp"
 #include "pmdStartup.hpp"
-#include "coordOmStrategyJob.hpp"
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
 
@@ -70,8 +68,6 @@ namespace engine
    {
       _shdServiceName[0]  = 0 ;
       _selfNodeID.value   = MSG_INVALID_ROUTEID ;
-      _inPacketLevel = 0 ;
-      _pendingContextID = -1 ;
       ossMemset( (void*)&_replyHeader, 0, sizeof(_replyHeader) ) ;
    }
 
@@ -94,11 +90,6 @@ namespace engine
       return _pAgent ;
    }
 
-   pmdRemoteSessionMgr* _CoordCB::getRSManager()
-   {
-      return &_remoteSessionMgr ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDCB_INIT, "_CoordCB::init" )
    INT32 _CoordCB::init ()
    {
@@ -113,15 +104,14 @@ namespace engine
       pmdOptionsCB *optCB = pmdGetOptionCB() ;
       const CHAR* hostName = pmdGetKRCB()->getHostName() ;
 
-      // 1. create objs: netAgent and handler
-      _pTimerHandler = SDB_OSS_NEW pmdRemoteTimerHandler() ;
+      _pTimerHandler = SDB_OSS_NEW _coordTimerHandler() ;
       if ( !_pTimerHandler )
       {
          PD_LOG( PDERROR, "Failed to alloc memory for timer handler" ) ;
          rc = SDB_OOM ;
          goto error ;
       }
-      _pMsgHandler = SDB_OSS_NEW pmdRemoteMsgHandler( &_remoteSessionMgr ) ;
+      _pMsgHandler = SDB_OSS_NEW _coordMsgHandler( &_remoteSessionMgr ) ;
       if ( !_pMsgHandler )
       {
          PD_LOG( PDERROR, "Failed to alloc memory for message handler" ) ;
@@ -137,7 +127,6 @@ namespace engine
       }
       _pAgent->getFrame()->setBeatInfo( optCB->getOprTimeout() ) ;
 
-      // 2. init param
       rc = _resource.init( _pAgent, optCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Init resource failed, rc: %d", rc ) ;
 
@@ -151,10 +140,8 @@ namespace engine
       rc = _remoteSessionMgr.init( _pAgent, &_sitePropMgr ) ;
       PD_RC_CHECK ( rc, PDERROR, "Init session manager failed, rc: %d", rc ) ;
 
-      // set remote session manager to pmdController
       sdbGetPMDController()->setRSManager( &_remoteSessionMgr ) ;
 
-      // 3. create listen socket
       nodeID.columns.serviceID = _shardServiceID ;
       _pAgent->updateRoute( nodeID, hostName, _shdServiceName ) ;
       rc = _pAgent->listen( nodeID ) ;
@@ -163,13 +150,10 @@ namespace engine
       PD_LOG ( PDEVENT, "Create sharding listen[ServiceName:%s] succeed",
                _shdServiceName ) ;
 
-      // 4. set bussiness OK, do not need wait register successfully
       pmdGetKRCB()->setBusinessOK( TRUE ) ;
 
-      // 5. set startup ok
       pmdGetStartup().ok( TRUE ) ;
 
-      // 6. set group name
       pmdGetKRCB()->setGroupName( COORD_GROUPNAME ) ;
 
    done:
@@ -189,11 +173,9 @@ namespace engine
       EDUID eduID = PMD_INVALID_EDUID ;
       CoordVecNodeInfo catalogAddrList ;
 
-      // set to primary
       pmdSetPrimary( TRUE ) ;
       sdbGetPMDController()->registerNet( _pAgent->getFrame() ) ;
 
-      // 1. start coord net work
       rc = pEDUMgr->startEDU ( EDU_TYPE_COORDNETWORK, (void*)_pAgent,
                                &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start coord network edu, rc: %d",
@@ -201,7 +183,6 @@ namespace engine
       rc = pEDUMgr->waitUntil( eduID, PMD_EDU_RUNNING ) ;
       PD_RC_CHECK( rc, PDERROR, "Wait CoordNet active failed, rc: %d", rc ) ;
 
-      // 2. start coord manager
       _attachEvent.reset() ;
       rc = pEDUMgr->startEDU ( EDU_TYPE_COORDMGR, (_pmdObjBase*)this,
                                &eduID ) ;
@@ -211,8 +192,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to wait coord manager edu "
                    "attach, rc: %d", rc ) ;
 
-      // 3. set timer, and send register msg
-      // if this coord is created before all catalog, don't need to register
+
       _resource.getCataNodeAddrList( catalogAddrList ) ;
       if ( !catalogAddrList.empty() )
       {
@@ -228,13 +208,6 @@ namespace engine
          _sendRegisterMsg () ;
       }
 
-      // 4. start om strategy sync job
-      rc = coordStartOmStrategyJob( NULL ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
-
    done:
       PD_TRACE_EXITRC ( SDB__COORDCB_ACTIVE, rc );
       return rc ;
@@ -246,11 +219,8 @@ namespace engine
    {
       if ( _pAgent )
       {
-         // 1. unreg net from controller
          sdbGetPMDController()->unregNet( _pAgent->getFrame() ) ;
-         // 2. close listen
          _pAgent->closeListen() ;
-         // 3. stop io
          _pAgent->stop() ;
       }
 
@@ -311,8 +281,6 @@ namespace engine
       _pMsgHandler->detach() ;
       _pTimerHandler->detach() ;
       _remoteSessionMgr.unregEUD( cb ) ;
-
-      _pEDUCB = NULL ;
    }
 
    UINT32 _CoordCB::setTimer( UINT32 milliSec )
@@ -335,7 +303,6 @@ namespace engine
 
    void _CoordCB::onTimer( UINT64 timerID, UINT32 interval )
    {
-      //Judge the timer is myself, if not, dispatch to sub object
       if ( timerID == _regTimerID )
       {
          _sendRegisterMsg () ;
@@ -355,7 +322,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__COORDCB__REPLY ) ;
 
-      // check message length
       if ( (UINT32)( pReply->header.messageLength ) !=
            sizeof( MsgOpReply ) + replyDataLen )
       {
@@ -366,7 +332,18 @@ namespace engine
          goto error ;
       }
 
-      // Send message
+      if ( pReply->flags &&
+           pReply->header.messageLength == sizeof( MsgOpReply ) )
+      {
+         BSONObj errInfo ;
+         errInfo = utilGetErrorBson( pReply->flags,
+                                     _pEDUCB->getInfo( EDU_INFO_ERROR ) ) ;
+         pReplyData = errInfo.objdata() ;
+         replyDataLen = ( INT32 ) errInfo.objsize() ;
+         pReply->numReturned = 1 ;
+         pReply->header.messageLength += replyDataLen ;
+      }
+
       if ( replyDataLen > 0 )
       {
          rc = _pAgent->syncSend ( handle, (MsgHeader *)pReply,
@@ -412,7 +389,6 @@ namespace engine
       CoordGroupInfoPtr cataGroupPtr ;
 
 retry :
-      // sanity check
       if ( !_pAgent )
       {
          rc = SDB_SYS ;
@@ -420,7 +396,6 @@ retry :
          goto error ;
       }
 
-      // get info of cata group
       cataGroupPtr = _resource.getCataGroupInfo() ;
       if ( 0 == cataGroupPtr->nodeCount() )
       {
@@ -440,7 +415,6 @@ retry :
          }
       }
 
-      // get catalog primary node
       nodeID = cataGroupPtr->primary( MSG_ROUTE_CAT_SERVICE ) ;
       if ( MSG_INVALID_ROUTEID == nodeID.value )
       {
@@ -464,7 +438,6 @@ retry :
          }
       }
 
-      // send to catalog primary node
       rc = _pAgent->syncSend ( nodeID, (void*)pMsg, pHandle ) ;
       if ( rc != SDB_OK )
       {
@@ -499,7 +472,6 @@ retry :
       BSONObj regObj = regAssit.buildRequestObj () ;
       length = regObj.objsize () + sizeof ( MsgCatRegisterReq ) ;
 
-      // free by end of the function
       buff = (CHAR *)SDB_OSS_MALLOC ( length ) ;
       if ( buff == NULL )
       {
@@ -530,7 +502,7 @@ retry :
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDCB__ONCATREGRES, "_CoordCB::_onCatRegisterRes" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__COORDCB__ONCATREGRES, "_clsMgr::_onCatRegisterRes" )
    INT32 _CoordCB::_onCatRegisterRes ( const NET_HANDLE &handle,
                                        MsgHeader *pMsg )
    {
@@ -542,7 +514,6 @@ retry :
       MsgRouteID routeID ;
       clsRegAssit regAssit ;
 
-      // have register succeed
       if ( _regTimerID == CLS_INVALID_TIMERID )
       {
          goto done ;
@@ -559,26 +530,21 @@ retry :
       }
       if ( SDB_CAT_AUTH_FAILED == rc )
       {
-         // This coord is not belong to coord group, so just kill
-         // register timer, and keep it runing.
          killTimer ( _regTimerID ) ;
          _regTimerID = CLS_INVALID_TIMERID ;
          goto done ;
       }
       PD_RC_CHECK ( rc, PDSEVERE, "Node register failed, rc: %d", rc ) ;
 
-      // get nodeid
       rc = regAssit.extractResponseMsg ( pMsg ) ;
       PD_RC_CHECK( rc, PDERROR, "Node register response error, rc: %d", rc ) ;
       groupID = regAssit.getGroupID () ;
       nodeID = regAssit.getNodeID () ;
       hostname = regAssit.getHostname () ;
 
-      // Kill register timer
       killTimer ( _regTimerID ) ;
       _regTimerID = CLS_INVALID_TIMERID ;
 
-      // Update the net route agent the local id
       _selfNodeID.columns.groupID = groupID ;
       _selfNodeID.columns.nodeID = nodeID ;
       PD_LOG ( PDEVENT, "Register succeed, groupID:%u, nodeID:%u",
@@ -591,12 +557,10 @@ retry :
        */
       pmdGetKRCB()->setHostName( hostname ) ;
 
-      // set local id
       routeID.value = _selfNodeID.value ;
       routeID.columns.serviceID = _shardServiceID ;
       _pAgent->setLocalID ( routeID ) ;
 
-      // set global id
       pmdSetNodeID( _selfNodeID ) ;
       pmdGetKRCB()->callRegisterEventHandler( _selfNodeID ) ;
 
@@ -617,7 +581,6 @@ retry :
 
    void _CoordCB::_onMsgBegin( MsgHeader *pMsg )
    {
-      // set reply header ( except flags, length )
       _replyHeader.numReturned          = 0 ;
       _replyHeader.startFrom            = 0 ;
       _replyHeader.header.opCode        = MAKE_REPLY_TYPE( pMsg->opCode ) ;
@@ -657,59 +620,47 @@ retry :
       rtnContextBuf buffObj ;
       INT64 contextID = -1 ;
 
-      if ( MSG_PACKET == pMsg->opCode )
+      _onMsgBegin( pMsg ) ;
+      switch ( pMsg->opCode )
       {
-         rc = _processPacketMsg( handle, pMsg, contextID, buffObj ) ;
-      }
-      else
-      {
-         _onMsgBegin( pMsg ) ;
-         switch ( pMsg->opCode )
-         {
-            case MSG_BS_QUERY_REQ:
-               rc = _processQueryMsg( pMsg, buffObj, contextID );
-               break;
-            case MSG_BS_GETMORE_REQ :
-               rc = _processGetMoreMsg( pMsg, buffObj, contextID ) ;
-               break ;
-            case MSG_BS_KILL_CONTEXT_REQ:
-               rc = _processKillContext( pMsg ) ;
-               break;
-            case MSG_COM_SESSION_INIT_REQ :
-               rc = _processSessionInit( pMsg ) ;
-               break;
-            case MSG_BS_INTERRUPTE :
-               rc = _processInterruptMsg( handle, pMsg ) ;
-               break ;
-            case MSG_BS_DISCONNECT :
-               rc = _processDisconnectMsg( handle, pMsg ) ;
-               break ;
-            case MSG_COM_REMOTE_DISC :
-               rc = _processRemoteDisc( handle, pMsg ) ;
-               break ;
-            case MSG_CLS_GINFO_UPDATED :
-               rc = _processUpdateGrpInfo() ;
-               break ;
-            case MSG_CAT_GRP_CHANGE_NTY :
-               rc = _processCatGrpChgNty() ;
-               break ;
-            case MSG_BS_MSG_REQ :
-               rc = _processMsgReq( pMsg ) ;
-               break ;
-            // for authentication message through sharding port, we simply return
-            // OK, maybe we will has authentication in sharding port later
-            case MSG_AUTH_VERIFY_REQ :
-            case MSG_AUTH_CRTUSR_REQ :
-            case MSG_AUTH_DELUSR_REQ :
-               rc = SDB_OK ;
-               break ;
-            case MSG_BS_INTERRUPTE_SELF :
-               rc = SDB_OK ;
-               break ;
-            default :
-               rc = SDB_CLS_UNKNOW_MSG ;
-               break ;
-         }
+         case MSG_BS_QUERY_REQ:
+            rc = _processQueryMsg( pMsg, contextID );
+            break;
+         case MSG_BS_GETMORE_REQ :
+            rc = _processGetMoreMsg( pMsg, buffObj, contextID ) ;
+            break ;
+         case MSG_BS_KILL_CONTEXT_REQ:
+            rc = _processKillContext( pMsg ) ;
+            break;
+         case MSG_COM_SESSION_INIT_REQ :
+            rc = _processSessionInit( pMsg ) ;
+            break;
+         case MSG_BS_INTERRUPTE :
+            rc = _processInterruptMsg( handle, pMsg ) ;
+            break ;
+         case MSG_BS_DISCONNECT :
+            rc = _processDisconnectMsg( handle, pMsg ) ;
+            break ;
+         case MSG_COM_REMOTE_DISC :
+            rc = _processRemoteDisc( handle, pMsg ) ;
+            break ;
+         case MSG_CLS_GINFO_UPDATED :
+            rc = _processUpdateGrpInfo() ;
+            break ;
+         case MSG_CAT_GRP_CHANGE_NTY :
+            rc = _processCatGrpChgNty() ;
+            break ;
+         case MSG_BS_MSG_REQ :
+            rc = _processMsgReq( pMsg ) ;
+            break ;
+         case MSG_AUTH_VERIFY_REQ :
+         case MSG_AUTH_CRTUSR_REQ :
+         case MSG_AUTH_DELUSR_REQ :
+            rc = SDB_OK ;
+            break ;
+         default :
+            rc = SDB_CLS_UNKNOW_MSG ;
+            break ;
       }
 
       if ( rc && SDB_DMS_EOC != rc )
@@ -722,42 +673,28 @@ retry :
                  pMsg->routeID.columns.serviceID, rc ) ;
       }
 
-      /// add context
-      if(  MSG_BS_QUERY_REQ == pMsg->opCode && contextID != -1 )
+      _replyHeader.header.messageLength = sizeof( MsgOpReply ) + buffObj.size();
+      _replyHeader.flags                = rc ;
+      _replyHeader.contextID            = contextID ;
+      if ( buffObj.size() > 0 )
       {
-         _addContext( handle, pMsg->TID, contextID );
+         _replyHeader.startFrom         = (INT32)buffObj.getStartFrom() ;
+         _replyHeader.numReturned       = buffObj.recordNum() ;
       }
-
       if ( _needReply )
       {
-         if ( rc && 0 == buffObj.size() )
+         rc = _reply( handle, &_replyHeader, buffObj.data(),
+                         buffObj.size() ) ;
+         if ( rc == SDB_OK )
          {
-            _errorInfo = utilGetErrorBson( rc, _pEDUCB->getInfo(
-                                           EDU_INFO_ERROR ) ) ;
-            buffObj = rtnContextBuf( _errorInfo ) ;
-         }
-
-         if ( _inPacketLevel > 0 )
-         {
-            _pendingContextID = contextID ;
-            _pendingBuff = buffObj ;
+            if(  MSG_BS_QUERY_REQ == pMsg->opCode && contextID != -1 )
+            {
+               _addContext( handle, pMsg->TID, contextID );
+            }
          }
          else
          {
-            /// send reply
-            _replyHeader.header.messageLength = sizeof( MsgOpReply ) +
-                                                buffObj.size();
-            _replyHeader.flags                = rc ;
-            _replyHeader.contextID            = contextID ;
-            _replyHeader.startFrom            = (INT32)buffObj.getStartFrom() ;
-            _replyHeader.numReturned          = buffObj.recordNum() ;
-
-            rc = _reply( handle, &_replyHeader, buffObj.data(),
-                         buffObj.size() ) ;
-            if ( rc )
-            {
-               PD_LOG ( PDERROR, "failed to send reply, rc: %d", rc ) ;
-            }
+            PD_LOG ( PDERROR, "failed to send reply, rc: %d", rc ) ;
          }
       }
 
@@ -774,34 +711,30 @@ retry :
       PD_TRACE_ENTRY ( SDB__COORDCB__GETMOREMSG ) ;
       INT32 rc         = SDB_OK ;
       INT32 numToRead  = 0 ;
-      BOOLEAN rtnDel   = TRUE ;
 
-      /// extract msg
       rc = msgExtractGetMore( (CHAR*)pMsg, &numToRead, &contextID ) ;
       PD_RC_CHECK ( rc, PDERROR, "Extract GETMORE msg failed[rc:%d]", rc ) ;
 
-      /// execute get more
       MON_SAVE_OP_DETAIL( _pEDUCB->getMonAppCB(), pMsg->opCode,
                           "ContextID:%lld, NumToRead:%d",
                           contextID, numToRead ) ;
 
       rc = rtnGetMore ( contextID, numToRead, buffObj, _pEDUCB, _pRtnCB ) ;
-      if ( rc )
+      if ( SDB_OK != rc )
       {
-         rtnDel = FALSE ;
+         _delContextByID( contextID, FALSE );
          if ( SDB_DMS_EOC != rc )
          {
             PD_LOG ( PDERROR, "Failed to get more, rc: %d", rc ) ;
+            goto error ;
          }
-         goto error ;
+         goto done ;
       }
 
    done :
       PD_TRACE_EXITRC ( SDB__COORDCB__GETMOREMSG, rc ) ;
       return rc ;
    error :
-      _delContextByID( contextID, rtnDel ) ;
-      contextID = -1 ;
       goto done ;
    }
 
@@ -883,7 +816,6 @@ retry :
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__COORDCB__QUERYMSG, "_CoordCB::_processQueryMsg" )
    INT32 _CoordCB::_processQueryMsg( MsgHeader *pMsg,
-                                     rtnContextBuf &buffObj,
                                      INT64 &contextID )
    {
       PD_TRACE_ENTRY ( SDB__COORDCB__QUERYMSG ) ;
@@ -900,14 +832,12 @@ retry :
       INT16 w                 = 1 ;
       _rtnCommand *pCommand   = NULL ;
 
-      /// extract msg
       rc = msgExtractQuery ( (CHAR *)pMsg, &flags, &pCollectionName,
                              &numToSkip, &numToReturn, &pQueryBuff,
                              &pFieldSelector, &pOrderByBuffer, &pHintBuffer ) ;
       PD_RC_CHECK ( rc, PDERROR, "Extract query msg failed[rc:%d]", rc ) ;
 
 
-      /// not allow query
       if ( !rtnIsCommand ( pCollectionName ) )
       {
          PD_LOG( PDERROR, "Receive unknown msg[opCode:(%d)%d, len: %d, "
@@ -921,7 +851,6 @@ retry :
          goto error ;
       }
 
-      /// ready command
       rc = rtnParserCommand( pCollectionName, &pCommand ) ;
       PD_RC_CHECK ( rc, PDERROR, "Parse command[%s] failed[rc:%d]",
                     pCollectionName, rc ) ;
@@ -940,7 +869,6 @@ retry :
       {
          if ( SDB_RTN_CMD_NO_NODE_AUTH == rc )
          {
-            // ignore the error, just return empty data
             rc = SDB_OK ;
             goto done ;
          }
@@ -957,7 +885,6 @@ retry :
          goto error ;
       }
 
-      /// add monitor info
       _pCollectionName = NULL ;
       _cmdCollectionName.clear() ;
       if ( NULL != pCommand->collectionFullName() )
@@ -977,7 +904,6 @@ retry :
                            BSONObj(pHintBuffer).toString().c_str(),
                            numToSkip, numToReturn, flags, flags ) ;
 
-      /// run command
       if ( CMD_INVALIDATE_CACHE == pCommand->type() )
       {
          getResource()->invalidateCataInfo() ;
@@ -1010,7 +936,6 @@ retry :
       PD_TRACE_ENTRY ( SDB__COORDCB__SESSIONINIT ) ;
       MsgComSessionInitReq *pMsgReq = (MsgComSessionInitReq*)pMsg ;
 
-      /// check wether the route id is right
       MsgRouteID localRouteID = _pAgent->localID() ;
       if ( pMsgReq->dstRouteID.value != localRouteID.value )
       {
@@ -1021,6 +946,8 @@ retry :
                   routeID2String( localRouteID ).c_str() ) ;
       }
 
+      _replyHeader.header.messageLength = sizeof( MsgOpReply ) ;
+      _replyHeader.flags                = rc ;
       PD_TRACE_EXITRC ( SDB__COORDCB__SESSIONINIT, rc ) ;
       return rc ;
    }
@@ -1030,9 +957,7 @@ retry :
    {
       PD_LOG( PDEVENT, "Recieve interrupt msg[handle: %u, tid: %u]",
               handle, header->TID ) ;
-      // release the ' handle + tid ' all context
       _delContext( handle, header->TID ) ;
-      // not reply
       return SDB_OK ;
    }
 
@@ -1041,9 +966,7 @@ retry :
    {
       PD_LOG( PDEVENT, "Recieve disconnect msg[handle: %u, tid: %u]",
               handle, header->TID ) ;
-      // release the ' handle + tid ' all context
       _delContext( handle, header->TID ) ;
-      // not reply
       return SDB_OK ;
    }
 
@@ -1090,45 +1013,6 @@ retry :
       return rc ;
    }
 
-   INT32 _CoordCB::_processPacketMsg( const NET_HANDLE &handle,
-                                      MsgHeader *header,
-                                      INT64 &contextID,
-                                      rtnContextBuf &buf )
-   {
-      INT32 rc = SDB_OK ;
-      INT32 pos = 0 ;
-      MsgHeader *pTmpMsg = NULL ;
-
-      ++_inPacketLevel ;
-
-      pos += sizeof( MsgHeader ) ;
-      while( pos < header->messageLength )
-      {
-         pTmpMsg = ( MsgHeader* )( ( CHAR*)header + pos ) ;
-
-         rc = _processMsg( handle, pTmpMsg ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-         pos += pTmpMsg->messageLength ;
-      }
-
-   done:
-      --_inPacketLevel ;
-      if ( 0 == _inPacketLevel )
-      {
-         contextID = _pendingContextID ;
-         _pendingContextID = -1 ;
-         buf = _pendingBuff ;
-         _pendingBuff = rtnContextBuf() ;
-      }
-
-      return rc ;
-   error:
-      goto done ;
-   }
-
    //PD_TRACE_DECLARE_FUNCTION ( SDB__COORDCB__DELCTXHDL, "_CoordCB::_delContextByHandle" )
    void _CoordCB::_delContextByHandle( const UINT32 &handle )
    {
@@ -1148,9 +1032,8 @@ retry :
             ++iterMap ;
             continue ;
          }
-         // rtn delete
          _pRtnCB->contextDelete( iterMap->first, _pEDUCB );
-         _contextLst.erase( iterMap++ ) ;
+         iterMap =  _contextLst.erase( iterMap ) ;
       }
 
       PD_TRACE_EXIT ( SDB__COORDCB__DELCTXHDL );
@@ -1175,9 +1058,8 @@ retry :
             ++iterMap ;
             continue ;
          }
-         // rtn delete
          _pRtnCB->contextDelete( iterMap->first, _pEDUCB ) ;
-         _contextLst.erase( iterMap++ ) ;
+         iterMap = _contextLst.erase( iterMap ) ;
       }
 
       PD_TRACE_EXIT ( SDB__COORDCB__DELCTX );
@@ -1206,15 +1088,12 @@ retry :
    }
 
    void _CoordCB::_addContext( const UINT32 &handle, UINT32 tid,
-                               INT64 contextID )
+                              INT64 contextID )
    {
-      if ( -1 != contextID )
-      {
-         PD_LOG( PDDEBUG, "add context( handle=%u, contextID=%lld )",
-                 handle, contextID );
-         ossScopedLock lock( &_contextLatch ) ;
-         _contextLst[ contextID ] = ossPack32To64( handle, tid ) ;
-      }
+      PD_LOG( PDDEBUG, "add context( handle=%u, contextID=%lld )",
+              handle, contextID );
+      ossScopedLock lock( &_contextLatch ) ;
+      _contextLst[ contextID ] = ossPack32To64( handle, tid ) ;
    }
 
    /*

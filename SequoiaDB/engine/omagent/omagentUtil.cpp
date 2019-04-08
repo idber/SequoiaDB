@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omagentUtil.cpp
 
@@ -73,8 +72,6 @@ namespace engine
             PD_LOG ( PDERROR, "Failed to allocate %d bytes send buffer",
                      newSize ) ;
             rc = SDB_OOM ;
-            // realloc does NOT free original memory if it fails, so we have to
-            // assign pointer to original
             *ppBuffer = pOrigMem ;
             goto error ;
          }
@@ -168,7 +165,6 @@ namespace engine
          goto error ;
       }
       result = TRUE ;
-      // close the socket
       sock.close() ;
 
    done:
@@ -178,7 +174,6 @@ namespace engine
 
    }
 
-   // get bson field
    INT32 omaGetIntElement ( const BSONObj &obj, const CHAR *fieldName,
                             INT32 &value )
    {
@@ -325,7 +320,6 @@ namespace engine
       string cmdline ;
       UINT32 exit = 0 ;
 
-      // verify the configuration file
       rc = ossAccess ( pCfgPath ) ;
       if ( rc )
       {
@@ -338,11 +332,8 @@ namespace engine
       cmdline += SDBCM_OPTION_PREFIX PMD_OPTION_CONFPATH ;
       cmdline += " " ;
       cmdline += pCfgPath ;
-#if defined( _LINUX )
       cmdline += " " ;
       cmdline += SDBCM_OPTION_PREFIX PMD_OPTION_IGNOREULIMIT ;
-#endif
-
       if ( useCurUser )
       {
          cmdline += " " ;
@@ -356,7 +347,6 @@ namespace engine
                   cmdline.c_str(), rc ) ;
          goto error ;
       }
-      // verify the executing result
       if ( exit == SDB_OK  )
       {
          UTIL_VEC_NODES nodes ;
@@ -437,8 +427,6 @@ namespace engine
                   rc ) ;
          goto error ;
       }
-      // call exec to run the command with arguments,
-      // do NOT wait until program finish
       rc = ossExec ( pArgumentBuffer, pArgumentBuffer, NULL,
                      OSS_EXEC_SSAVE, pid, result, NULL, NULL ) ;
       if ( rc )
@@ -448,7 +436,6 @@ namespace engine
          goto error ;
       }
 
-      // verify the executing result
       if ( result.termcode != OSS_EXIT_NORMAL )
       {
          rc = SDBCM_FAIL ;
@@ -518,7 +505,6 @@ namespace engine
 
    string omPickNodeOutString( const string &out, const CHAR *pSvcname )
    {
-      // %s: %u bytes out==>%s<==
       string nodeStr = out ;
       CHAR finder[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       const CHAR *pStr = out.c_str() ;

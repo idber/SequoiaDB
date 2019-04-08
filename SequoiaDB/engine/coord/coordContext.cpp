@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordContext.cpp
 
@@ -67,8 +66,6 @@ namespace engine
 
       _pSite            = NULL ;
       _pSession         = NULL ;
-
-      _isModify         = FALSE ;
    }
 
    _rtnContextCoord::~_rtnContextCoord ()
@@ -82,11 +79,11 @@ namespace engine
       }
    }
 
-   INT64 _rtnContextCoord::getWaitTime() const
+   INT64 _rtnContextCoord::getSessionMilliTimeout () const
    {
-      if ( _pSession )
+      if ( NULL != _pSession )
       {
-         return _pSession->getTotalWaitTime() ;
+         return _pSession->getMilliTimeout() ;
       }
       return 0 ;
    }
@@ -170,11 +167,9 @@ namespace engine
       if ( cb )
       {
          tid = cb->getTID() ;
-         // get all pre-read reply
          _getPrepareNodesData( cb, TRUE ) ;
       }
 
-      // push all ordered context to prepare map
       SUB_ORDERED_CTX_MAP::iterator itSub = _orderedContextMap.begin() ;
       while ( _orderedContextMap.end() != itSub )
       {
@@ -197,7 +192,6 @@ namespace engine
       }
       _emptyContextMap.clear() ;
 
-      // kill sub context
       if ( cb && !cb->isInterrupted() )
       {
          MsgOpKillContexts killMsg ;
@@ -217,7 +211,6 @@ namespace engine
             contextID = pSubContext->contextID() ;
             if ( -1 == contextID )
             {
-               // Ignore invalid context ID
                ++it ;
                continue ;
             }
@@ -228,10 +221,6 @@ namespace engine
                     contextID, routeID2String( routeID ).c_str() ) ;
 
             pSub = _pSession->addSubSession( routeID.value ) ;
-            // If other msg is sent before, and no reply has been received.
-            // At this time, the kill context msg will not be sent.
-            // So we need to clearSend() before sending kill context msg.
-            pSub->resetForResend() ;
             pSub->setReqMsg( (MsgHeader*)&killMsg, PMD_EDU_MEM_NONE ) ;
             _pSession->sendMsg( pSub ) ;
 
@@ -240,12 +229,10 @@ namespace engine
 
          if ( _prepareContextMap.size() > 0 )
          {
-            /// recv reply
-            _pSession->waitReply1( TRUE ) ;
+            _pSession->waitReply1( TRUE, NULL, FALSE ) ;
          }
       }
 
-      // release all context
       it = _prepareContextMap.begin() ;
       while ( it != _prepareContextMap.end() )
       {
@@ -293,7 +280,7 @@ namespace engine
       {
          timeout = pPropSite->getOperationTimeout() ;
       }
-      _pSession = _pSite->addSession( timeout, &_handler ) ;
+      _pSession = _pSite->addSession( timeout, NULL ) ;
       if ( !_pSession )
       {
          PD_LOG( PDERROR, "Create remote session failed in session[%s]",
@@ -340,11 +327,6 @@ namespace engine
       goto done ;
    }
 
-   void _rtnContextCoord::setModify( BOOLEAN modify )
-   {
-      _isModify = modify ;
-   }
-
    INT32 _rtnContextCoord::reopen ()
    {
       if ( _isOpened )
@@ -384,7 +366,7 @@ namespace engine
          if ( -1 == emptyIter->second->contextID() )
          {
             SDB_OSS_DEL emptyIter->second ;
-            _emptyContextMap.erase( emptyIter++ ) ;
+            emptyIter = _emptyContextMap.erase( emptyIter ) ;
             continue ;
          }
 
@@ -411,7 +393,7 @@ namespace engine
 
          _prepareContextMap.insert( EMPTY_CONTEXT_MAP::value_type(
                                     emptyIter->first, emptyIter->second ) ) ;
-         _emptyContextMap.erase( emptyIter++ ) ;
+         emptyIter = _emptyContextMap.erase( emptyIter ) ;
       }
 
    done:
@@ -475,7 +457,6 @@ namespace engine
             }
             else
             {
-               // release data
                SDB_OSS_FREE( (CHAR*)pReply ) ;
                pReply = NULL ;
             }
@@ -504,6 +485,7 @@ namespace engine
       }
       return rc ;
    error:
+      _pSession->resetAllSubSession() ;
       goto done ;
    }
 
@@ -592,9 +574,6 @@ namespace engine
          goto error ;
       }
 
-      // after appendData success, the data-pointer is manage by subContext.
-      // if the data-pointer will be delete by others, the clearData should be
-      // called first.
       pSubContext->appendData( pReply ) ;
 
       rc = _processSubContext( pSubContext, skipData ) ;
@@ -665,8 +644,8 @@ namespace engine
       goto done ;
    }
 
-   INT32 _rtnContextCoord::_createSubContext( MsgRouteID routeID,
-                                              SINT64 contextID )
+   INT32 _rtnContextCoord::createSubContext( MsgRouteID routeID,
+                                             SINT64 contextID )
    {
       INT32 rc = SDB_OK ;
       EMPTY_CONTEXT_MAP::iterator iter ;
@@ -734,13 +713,12 @@ namespace engine
          isEmpty = TRUE ;
       }
 
-      rc = _createSubContext( pReply->header.routeID, pReply->contextID ) ;
+      rc = createSubContext( pReply->header.routeID, pReply->contextID ) ;
       if ( rc )
       {
          goto error ;
       }
 
-      // query with return data
       if ( pReply->numReturned > 0 )
       {
          EMPTY_CONTEXT_MAP::iterator it ;
@@ -828,7 +806,7 @@ namespace engine
    {
       return _prepareSubCtxData( cb ) ;
    }
-
+   
    INT32 _rtnContextCoord::_saveEmptyOrderedSubCtx( rtnSubContext* subCtx )
    {
       INT32 rc = SDB_OK ;
@@ -895,10 +873,7 @@ namespace engine
       SDB_ASSERT( NULL != subCtx, "subCtx can't be NULL" ) ;
       SDB_ASSERT( subCtx->recordNum() == 0, "sub ctx is not empty" ) ;
 
-      // move empty sub ctx from _orderedContextMap to _emptyContextMap
 
-      // generally, subctx is first element of _orderedContextMap
-      // so don't worry about performance
       for ( SUB_ORDERED_CTX_MAP::iterator iter = _orderedContextMap.begin() ;
             iter != _orderedContextMap.end() ;
             ++iter )
@@ -913,7 +888,6 @@ namespace engine
       rc = _saveEmptyOrderedSubCtx( subCtx ) ;
       if ( SDB_OK != rc )
       {
-         // rtnContextMain will delete subCtx
          goto error ;
       }
 
@@ -928,8 +902,6 @@ namespace engine
       SDB_ASSERT( NULL != subCtx, "subCtx can't be NULL" ) ;
       SDB_ASSERT( subCtx->recordNum() > 0, "sub ctx is empty" ) ;
 
-      // sub ctx is in _orderedContextMap,
-      // no need to do anything
       return SDB_OK ;
    }
 
@@ -1188,7 +1160,10 @@ namespace engine
    _rtnContextCoordExplain::_rtnContextCoordExplain ( INT64 contextID, UINT64 eduID,
                                                       BOOLEAN preRead )
    : _rtnContextCoord( contextID, eduID, preRead ),
-     _explainCoordPath( getPlanAllocator() )
+     _rtnExplainMainBase( &_explainCoordPath ),
+     _explainCoordPath( &_planAllocator ),
+     _startSessionTimeout( 0 ),
+     _endSessionTimeout( 0 )
    {
    }
 
@@ -1253,9 +1228,6 @@ namespace engine
 
          coordContext->optimizeReturnOptions( pQueryMsg, targetGroupNum ) ;
 
-         // Reset local skip and limit values
-         // NOTE: no need to reset _queryOptions which is the options passed to
-         //       COORD rather than options executed on COORD
          _numToSkip = coordContext->getNumToSkip() ;
          _numToReturn = coordContext->getNumToReturn() ;
 
@@ -1367,7 +1339,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to register explain processor, "
                    "rc: %d", rc ) ;
 
-      // Reset selector
       if ( options.testFlag( FLG_QUERY_STRINGOUT ) )
       {
          needResetSubQuery = TRUE ;
@@ -1378,7 +1349,6 @@ namespace engine
                                needResetSubQuery ) ;
       }
 
-      // Will not process selector in coord context
       if ( !needResetSubQuery )
       {
          subOptions.setSelector( BSONObj() ) ;
@@ -1395,6 +1365,7 @@ namespace engine
 
       if ( _needRun )
       {
+         _startSessionTimeout = queryContext->getSessionMilliTimeout() * 1000 ;
          queryContext->setEnableMonContext( TRUE ) ;
       }
 
@@ -1427,7 +1398,6 @@ namespace engine
 
       if ( _needRun )
       {
-         // Calculate wait time
          rtnContextCoord * coordContext = NULL ;
          ossTickDelta waitTime ;
 
@@ -1435,7 +1405,8 @@ namespace engine
          PD_CHECK( NULL != coordContext, SDB_SYS, error, PDERROR,
                    "Failed to get coord context" ) ;
 
-         waitTime.fromUINT64( getWaitTime() * 1000 ) ;
+         _endSessionTimeout = coordContext->getSessionMilliTimeout() * 1000 ;
+         waitTime.fromUINT64( _startSessionTimeout - _endSessionTimeout ) ;
          _explainCoordPath.getContextMonitor().setWaitTime( waitTime ) ;
       }
 
@@ -1502,7 +1473,7 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CTXCOORDEXP__PARSELOCFILTER, "_rtnContextCoordExplain::_parseLocationOption" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CTXCOORDEXP__PARSELOCFILTER, "_rtnContextCoordExplain::_parseLocationFilter" )
    INT32 _rtnContextCoordExplain::_parseLocationOption ( const BSONObj & explainOptions,
                                                          BOOLEAN & hasOption )
    {
@@ -1528,7 +1499,6 @@ namespace engine
       {
          hasOption = FALSE ;
 
-         // Get location option
          ele = explainOptions.getField( FIELD_NAME_LOCATION ) ;
          if ( Object == ele.type() )
          {
@@ -1539,8 +1509,6 @@ namespace engine
          {
             if ( explainOptions.hasField( FIELD_NAME_SUB_COLLECTIONS ) )
             {
-               // The COORD doesn't need "SubCollections" option,
-               // but it need to make sure "Detail" option is enabled
                hasOption = TRUE ;
             }
             goto done ;

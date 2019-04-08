@@ -1019,7 +1019,6 @@ public class TestLob extends SingleCSCLTestCase {
 
         assertEquals(bytes3.length, bytes2.length);
         for (int i = 0; i < bytes3.length; i++) {
-            // skip bytes by seek may not be 0, so don't compare
             if (bytes3[i] != 0) {
                 assertEquals(bytes3[i], bytes2[i]);
             }
@@ -1041,7 +1040,6 @@ public class TestLob extends SingleCSCLTestCase {
 
             assertEquals(bytes5.length, bytes4.length);
             for (int i = 0; i < bytes5.length; i++) {
-                // skip bytes by seek may not be 0, so don't compare
                 if (bytes5[i] != 0) {
                     assertEquals(bytes5[i], bytes4[i]);
                 }

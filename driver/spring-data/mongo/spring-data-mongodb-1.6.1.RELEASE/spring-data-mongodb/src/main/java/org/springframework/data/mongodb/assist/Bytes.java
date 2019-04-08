@@ -43,7 +43,6 @@ public class Bytes extends BSON {
     static final int CONNECTIONS_PER_HOST = Integer.parseInt( System.getProperty( "MONGO.POOLSIZE" , "10" ) );
 
 
-    // --- network protocol options
 
     /**
      * Tailable means cursor is not closed when the last data is retrieved.
@@ -151,9 +150,6 @@ public class Bytes extends BSON {
     public static byte getType( Object o ){
         if ( o == null )
             return NULL;
-//
-//        if ( o instanceof DBPointer )
-//            return REF;
 
         if (o instanceof Integer
                 || o instanceof Short
@@ -193,8 +189,6 @@ public class Bytes extends BSON {
         if ( o instanceof java.util.regex.Pattern )
             return REGEX;
 
-//        if ( o instanceof DBObject || o instanceof DBRefBase )
-//            return OBJECT;
         if ( o instanceof DBObject )
             return OBJECT;
 

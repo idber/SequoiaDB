@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2015 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = impRecordParser.hpp
 
@@ -45,11 +44,9 @@ namespace import
 {
    #define IMP_MAX_BSON_SIZE (1024 * 1024 * 16)
 
-   // abstract class
    class RecordParser: public SDBObject
    {
    private:
-      // disallow copy and assign
       RecordParser(const RecordParser&);
       void operator=(const RecordParser&);
 
@@ -62,7 +59,6 @@ namespace import
    public:
       virtual ~RecordParser() {}
       virtual INT32 parseRecord(const CHAR* data, INT32 length, bson& obj) = 0;
-      virtual void  reset() {}
 
    protected:
       string   _fieldDelimiter;
@@ -78,15 +74,13 @@ namespace import
 
    class JSONRecordParser: public RecordParser
    {
+   private:
+      CJSON_MACHINE *_pMachine ;
    public:
-      JSONRecordParser( BOOLEAN isUnicode );
+      JSONRecordParser();
       ~JSONRecordParser();
       INT32 init() ;
       INT32 parseRecord(const CHAR* data, INT32 length, bson& obj);
-
-   private:
-      CJSON_MACHINE *_pMachine ;
-      BOOLEAN _isUnicode ;
    };
 }
 

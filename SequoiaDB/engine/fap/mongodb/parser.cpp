@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = parser.cpp
 
@@ -48,7 +47,6 @@ void msgParser::extractMsg( const CHAR *in, const INT32 inLen )
 
    if ( NULL != _dataStart )
    {
-      //_reset() ;
       _offset = 0 ;
       _currentOp = OP_INVALID ;
       _dataPacket.clear() ;
@@ -59,13 +57,11 @@ void msgParser::extractMsg( const CHAR *in, const INT32 inLen )
 
    readInt( sizeof( INT32 ), (CHAR *)&_dataPacket.msgLen ) ;
    readInt( sizeof( INT32 ), (CHAR *)&_dataPacket.requestId ) ;
-   // skip responseTo
    _dataPacket.responseTo = 0 ;
    skipBytes( sizeof( _dataPacket.responseTo ) ) ;
 
    readInt( sizeof( SINT16 ), (CHAR *)&_dataPacket.opCode ) ;
 
-   // skip flags and version
    skipBytes( sizeof( CHAR ) * 2 ) ;
    _dataPacket.flags = 0 ;
    _dataPacket.version = 0 ;
@@ -94,20 +90,17 @@ void msgParser::extractMsg( const CHAR *in, const INT32 inLen )
    if ( NULL != ( ptr = ossStrstr( dbName, ".system.indexes" ) ) )
    {
       _dataPacket.optionMask |= OPTION_IDX ;
-      //_dataPacket.fullName = AUTH_USR_COLLECTION ;
       _dataPacket.csName = std::string( dbName ).substr( 0, ptr - dbName ) ;
    }
    else if ( NULL != ( ptr = ossStrstr( dbName, ".system.users" ) ) )
    {
       _dataPacket.optionMask |= OPTION_USR ;
       _dataPacket.csName = std::string( dbName ).substr( 0, ptr - dbName ) ;
-      //_dataPacket.fullName = AUTH_USR_COLLECTION ;
    }
    else if ( NULL != ( ptr = ossStrstr( dbName, ".system.namespaces" ) ) )
    {
       _dataPacket.optionMask |= OPTION_CLS ;
       _dataPacket.csName = std::string( dbName ).substr( 0, ptr - dbName ) ;
-      //_dataPacket.fullName = CAT_COLLECTION_INFO_COLLECTION ;
    }
 
 

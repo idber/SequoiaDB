@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = catMainController.hpp
 
@@ -50,7 +49,7 @@
 #include "catCatalogManager.hpp"
 #include "catNodeManager.hpp"
 #include "catEventHandler.hpp"
-#include "ossMemPool.hpp"
+#include "utilMap.hpp"
 
 #include <vector>
 
@@ -66,8 +65,6 @@ namespace engine
    {
       CAT_DELAY_REPLY_UNKNOWN = 0,
 
-      // Wait synchronization of transaction ending LSN
-      // between Catalog replicas
       CAT_DELAY_REPLY_SYNC,
    } ;
 
@@ -81,7 +78,7 @@ namespace engine
                              public _netTimeoutHandler,
                              public _catEventHandler
    {
-   typedef ossPoolMap< SINT64, UINT64>    CONTEXT_LIST ;
+   typedef _utilMap< SINT64, UINT64, 20 >    CONTEXT_LIST ;
    typedef std::vector< pmdEDUEvent >        VEC_EVENT ;
 
 
@@ -123,7 +120,6 @@ namespace engine
                                       MsgHeader* msg ) ;
 
       INT32 _processMsg ( const NET_HANDLE &handle, MsgHeader *pMsg ) ;
-      INT32 _processPacketMsg( const NET_HANDLE &handle, MsgHeader *pMsg ) ;
 
       void _delayEvent ( pmdEDUEvent &event ) ;
 
@@ -135,12 +131,10 @@ namespace engine
 
       void _deleteDelayedOperation ( UINT32 handle ) ;
 
-   // event process functions
    protected:
       INT32 _onActiveEvent( pmdEDUEvent *event ) ;
       INT32 _onDeactiveEvent( pmdEDUEvent *event ) ;
 
-   // msg process functions
    protected :
       INT32 _processGetMoreMsg ( const NET_HANDLE &handle, MsgHeader *pMsg ) ;
       INT32 _processQueryMsg( const NET_HANDLE &handle, MsgHeader *pMsg ) ;
@@ -174,7 +168,6 @@ namespace engine
       void _delContext( const UINT32 &handle, UINT32 tid ) ;
 
    public :
-      // functions of _catEventHandler
       virtual const CHAR *getHandlerName () { return "catMainController" ; }
 
       virtual INT32 onBeginCommand ( MsgHeader *pReqMsg ) ;
@@ -184,7 +177,6 @@ namespace engine
       virtual INT32 onSendReply ( MsgOpReply *pReply, INT32 result ) ;
 
    public :
-      // functions of wait sync
       virtual INT32 waitSync( const NET_HANDLE &handle, MsgOpReply *pReply,
                               void *pReplyData, UINT32 replyDataLen ) ;
 
@@ -229,7 +221,6 @@ namespace engine
 
       ossEvent          _changeEvent ;
 
-      // for cata delayed event
       VEC_EVENT         _vecEvent ;
       UINT32            _checkEventTimerID ;
       pmdEDUEvent       _lastDelayEvent ;

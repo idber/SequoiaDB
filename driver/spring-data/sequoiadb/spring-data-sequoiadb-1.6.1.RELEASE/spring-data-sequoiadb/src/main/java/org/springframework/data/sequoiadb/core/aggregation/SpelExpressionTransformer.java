@@ -54,7 +54,6 @@ import org.springframework.util.NumberUtils;
  */
 class SpelExpressionTransformer implements AggregationExpressionTransformer {
 
-	// TODO: remove explicit usage of a configuration once SPR-11031 gets fixed
 	private static final SpelParserConfiguration CONFIG = new SpelParserConfiguration(false, false);
 	private static final SpelExpressionParser PARSER = new SpelExpressionParser(CONFIG);
 	private final List<ExpressionNodeConversion<? extends ExpressionNode>> conversions;
@@ -246,7 +245,6 @@ class SpelExpressionTransformer implements AggregationExpressionTransformer {
 				return convertUnaryMinusOp(context, leftResult);
 			}
 
-			// we deliberately ignore the RHS result
 			transform(currentNode.getRight(), currentNode, operationObject, context);
 
 			return operationObject;
@@ -263,11 +261,9 @@ class SpelExpressionTransformer implements AggregationExpressionTransformer {
 
 			if (context.parentIsSameOperation()) {
 
-				// same operator applied in a row e.g. 1 + 2 + 3 carry on with the operation and render as $add: [1, 2 ,3]
 				nextDbObject = context.getPreviousOperationObject();
 			} else if (!currentNode.isUnaryOperator()) {
 
-				// different operator -> add context object for next level to list if arguments of previous expression
 				context.addToPreviousOperation(nextDbObject);
 			}
 
@@ -351,7 +347,6 @@ class SpelExpressionTransformer implements AggregationExpressionTransformer {
 				return null;
 			}
 
-			// just take the first item
 			return transform(currentNode.getChild(0), currentNode, null, context);
 		}
 
@@ -424,7 +419,6 @@ class SpelExpressionTransformer implements AggregationExpressionTransformer {
 			if (context.hasPreviousOperation()) {
 
 				if (node.isUnaryMinus(context.getParentNode())) {
-					// unary minus operator
 					return NumberUtils.convertNumberToTargetClass(((Number) value).doubleValue() * -1,
 							(Class<Number>) value.getClass()); // retain type, e.g. int to -int
 				}
@@ -497,7 +491,6 @@ class SpelExpressionTransformer implements AggregationExpressionTransformer {
 			ExpressionNode currentNode = context.getCurrentNode();
 
 			if (currentNode.hasfirstChildNotOfType(Indexer.class)) {
-				// we have a property path expression like: foo.bar -> render as reference
 				return context.addToPreviousOrReturn(context.getFieldReference().toString());
 			}
 

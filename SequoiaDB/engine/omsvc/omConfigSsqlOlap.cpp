@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omConfigSsqlOlap.cpp
 
@@ -517,13 +516,11 @@ namespace engine
             return true ;
          }
 
-         // a host can only deploy one OLAP business
          if ( host->count( byOtherSsqlOlap( _businessName ) ) > 0 )
          {
             return true ;
          }
 
-         // a host can only deploy one node of the same role
          if ( host->count( bySsqlOlapRole( _role ) ) > 0 )
          {
             return true ;
@@ -570,7 +567,6 @@ namespace engine
          INT32 diskNum2 = _host.count( byDisk( disk2->diskName ) ) ;
          if ( diskNum1 != diskNum2 )
          {
-            //total count less, the better
             if ( diskNum1 < diskNum2 )
             {
                return 1 ;
@@ -635,7 +631,6 @@ namespace engine
          goto error ;
       }
 
-      // build master & standby nodes
       rc = _createMasterNode( deployStandby ) ;
       if ( SDB_OK != rc )
       {
@@ -643,7 +638,6 @@ namespace engine
          goto error ;
       }
 
-      // build segment nodes
       rc = _createSegmentNodes( segmentNum ) ;
       if ( SDB_OK != rc )
       {
@@ -738,7 +732,6 @@ namespace engine
 
          builder.append( OM_SSQL_OLAP_CONF_SEGMENT_HOSTS, segHostsBuilder.arr() ) ;
 
-         // append public properties
          for ( OmConfProperties::ConstIterator it = _properties.begin() ;
                it != _properties.end() ; it++ )
          {
@@ -760,8 +753,6 @@ namespace engine
       goto done ;
    }
 
-   // master can't be deployed in the same host as standby
-   // standby must use the same port and data dir as master
    INT32 OmSsqlOlapConfigBuilder::_createMasterNode( bool deployStandby )
    {
       INT32 rc = SDB_OK ;
@@ -775,7 +766,6 @@ namespace engine
       OmSsqlOlapNode* masterNode = NULL ;
       OmSsqlOlapNode* standbyNode = NULL ;
 
-      // choose host for master
       masterHost = _cluster.chooseHost( 
                      getBestHostForSsqlOlap(),
                      excludeHost( _businessInfo.businessName,
@@ -795,7 +785,6 @@ namespace engine
          set<string> hostsName ;
          hostsName.insert( masterHost->getHostName() ) ;
 
-         // choose host for standby
          standbyHost = _cluster.chooseHost(
                         getBestHostForSsqlOlap(),
                         excludeHost( _businessInfo.businessName,
@@ -932,7 +921,6 @@ namespace engine
       goto done ;
    }
 
-   // segment nodes can't be deployed in the same host
    INT32 OmSsqlOlapConfigBuilder::_createSegmentNodes( INT32 segmentNum )
    {
       INT32 rc = SDB_OK ;
@@ -1609,7 +1597,6 @@ namespace engine
 
          if ( hostName != masterHostName && hostName != standbyHostName )
          {
-            // only one segment in this host, no master or standby
 
             if ( host->isPathUsed( installDir ) )
             {
@@ -1736,7 +1723,6 @@ namespace engine
          goto error ;
       }
 
-      // master
       {
          BSONObjBuilder builder ;
          builder.append( OM_BSON_FIELD_HOST_NAME, masterHostName ) ;
@@ -1746,7 +1732,6 @@ namespace engine
          newConfigArray.append( builder.obj() ) ;
       }
 
-      // standby
       if ( "" != standbyHostName )
       {
          BSONObjBuilder builder ;
@@ -1757,7 +1742,6 @@ namespace engine
          newConfigArray.append( builder.obj() ) ;
       }
 
-      // segment
       for ( set<string>::iterator it = hostNames.begin() ; it != hostNames.end() ; it++ )
       {
          string segmentHostName = *it ;
@@ -1777,7 +1761,6 @@ namespace engine
          newConfigArray.append( builder.obj() ) ;
       }
 
-      // new config
       {
          BSONObjBuilder builder ;
          BSONObjIterator it( bsonConfig ) ;

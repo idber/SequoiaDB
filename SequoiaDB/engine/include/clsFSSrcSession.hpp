@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsFSSrcSession.hpp
 
@@ -81,9 +80,7 @@ namespace engine
 
          virtual void    onRecieve ( const NET_HANDLE netHandle,
                                      MsgHeader * msg ) ;
-         // called by net io thread
          virtual BOOLEAN timeout ( UINT32 interval ) ;
-         // called by self thread
          virtual void    onTimer ( UINT64 timerID, UINT32 interval ) ;
 
       public:
@@ -109,7 +106,6 @@ namespace engine
          virtual void   _onAttach () ;
          virtual void   _onDetach () ;
 
-      //message function
       protected:
          INT32 handleFSMeta( NET_HANDLE handle, MsgHeader* header ) ;
          INT32 handleFSIndex( NET_HANDLE handle, MsgHeader* header ) ;
@@ -124,7 +120,6 @@ namespace engine
          void              _constructIndex( BSONObj &obj ) ;
          void              _constructMeta( BSONObj &obj, const CHAR *cs,
                                            const CHAR *collection,
-                                           utilCLUniqueID clUniqueID,
                                            _dmsStorageUnit *su ) ;
          INT32             _getCSName( const BSONObj &obj, CHAR *cs, UINT32 len ) ;
          INT32             _getCollection( const BSONObj &obj, CHAR *collection,
@@ -206,7 +201,6 @@ namespace engine
       virtual INT32 notifyLSN ( UINT32 suLID, UINT32 clLID, dmsExtentID extLID,
                                 const DPS_LSN_OFFSET &offset ) ;
 
-   //message function
    protected:
       INT32 handleBegin( NET_HANDLE handle, MsgHeader* header ) ;
       INT32 handleEnd( NET_HANDLE handle, MsgHeader* header ) ;
@@ -229,10 +223,10 @@ namespace engine
                                MAP_SU_STATUS &validCLs ) ;
       void  _processValidCLs(  MAP_SU_STATUS &validCLs ) ;
       INT32 _constructBeginRspData( BSONObj &obj, MAP_SU_STATUS &validCLs ) ;
-      BOOLEAN _hasExternalData() const ;
 
    private:
       _dpsMessageBlock           _lsnSearchMB ;
+
    } ;
    typedef class _clsFSSrcSession clsFSSrcSession ;
 
@@ -278,7 +272,6 @@ namespace engine
          virtual void   _onAttach () ;
          virtual void   _onDetach () ;
 
-      //message function
       protected:
          INT32 handleBegin( NET_HANDLE handle, MsgHeader* header ) ;
          INT32 handleEnd( NET_HANDLE handle, MsgHeader* header ) ;

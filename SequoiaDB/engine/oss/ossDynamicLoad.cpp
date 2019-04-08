@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = ossDynamicLoad.hpp
 
@@ -62,7 +61,6 @@ _flags(dlOpenMode)
 }
 
 PD_TRACE_DECLARE_FUNCTION ( SDB_OSSMODULEHANDLE_INIT, "_ossModuleHandle::init" ) ;
-// load module
 INT32 _ossModuleHandle::init ()
 {
    INT32 rc = SDB_OK ;
@@ -82,7 +80,6 @@ INT32 _ossModuleHandle::init ()
    }
    PD_TRACE3 ( SDB_OSSMODULEHANDLE_INIT, PD_PACK_STRING(_moduleName),
                PD_PACK_STRING(_libPath), PD_PACK_UINT(_flags) ) ;
-   // copy module name to local and remove everything after (
    ossStrncpy ( strModule, _moduleName, sizeof(strModule) ) ;
    p = ossStrchr ( strModule, '(' ) ;
    if ( p )
@@ -91,7 +88,6 @@ INT32 _ossModuleHandle::init ()
    }
    rc = patchModuleName( strModule, _moduleName, sizeof(_moduleName) );
    PD_RC_CHECK ( rc, PDERROR, "Failed to patch module name, rc = %d", rc ) ;
-   // if the path is provided, let's make sure it exists
    if ( _libPath[0] )
    {
       INT32 pathLen = 0 ;
@@ -106,10 +102,8 @@ INT32 _ossModuleHandle::init ()
                     _libPath, rc ) ;
       ossStrncat ( strPath, _libPath, sizeof(strPath) ) ;
       pathLen = ossStrlen ( strPath ) ;
-      // to add / at end of path
       if ( strPath[pathLen-1] != OSS_FILE_SEP_CHAR )
       {
-         // make sure we have sufficient size
          if ( pathLen >= OSS_MAX_PATHSIZE )
          {
             PD_LOG ( PDERROR, "library path is too long: %s",
@@ -117,12 +111,10 @@ INT32 _ossModuleHandle::init ()
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-         // append path with / and set next char to 0
          strPath[pathLen-1] = OSS_FILE_SEP_CHAR ;
          strPath[pathLen]   = '\0' ;
       }
    }
-   // append module name
    if ( ossStrlen ( strPath ) + ossStrlen ( _moduleName ) >= sizeof(strPath) )
    {
       PD_LOG ( PDERROR, "path + module name is too long: %s:%s",
@@ -132,7 +124,6 @@ INT32 _ossModuleHandle::init ()
    }
    ossStrncat ( strPath, _moduleName, OSS_MAX_PATHSIZE ) ;
 #if defined (_LINUX)
-   // try to open and load
    handle = dlopen ( strPath, _flags | RTLD_NOW ) ;
    if ( !handle )
    {
@@ -141,13 +132,10 @@ INT32 _ossModuleHandle::init ()
       rc = SDB_SYS ;
       goto error ;
    }
-   // when we successfully opened library, let's initialize members
    _isInitialized = TRUE ;
    _moduleHandle = handle ;
-   // clear errors
    dlerror() ;
 #elif defined (_WINDOWS)
-   // avoid popup a window if the dll was not found
    errorMode = SetErrorMode ( SEM_NOOPENFILEERRORBOX |
                               SEM_FAILCRITICALERRORS ) ;
    _moduleHandle = LoadLibrary ( (LPCTSTR)strPath ) ;
@@ -268,12 +256,10 @@ INT32 _ossModuleHandle::patchModuleName( const CHAR* name,
    INT32 tailLen = ossStrlen(LIB_END_STR) ;
 
    ossMemset( patchedName, 0, size ) ;
-   // patch begin
 #ifdef _LINUX
    ptr = ossStrstr( name, LIB_START_STR ) ;
    if ( ptr != name )
    {
-      /// not exist, add prefix
       ossStrncpy( patchedName, LIB_START_STR, size - 1 ) ;
    }
 #endif //_LINUX
@@ -282,7 +268,6 @@ INT32 _ossModuleHandle::patchModuleName( const CHAR* name,
    ptr = ossStrrchr( name, '.' ) ;
    if ( ptr != NULL )
    {
-      // make sure module name end with ".so" or ".dll"
 #ifdef _WINDOWS
       if ( 'd' != *(ptr + 1) || 'l' != *(ptr + 2) && 'l' != *(ptr + 3) )
       {

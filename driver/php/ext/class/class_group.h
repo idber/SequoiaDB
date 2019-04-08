@@ -1,5 +1,5 @@
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -21,14 +21,12 @@
 
 PHP_METHOD( SequoiaGroup, __construct ) ;
 
-//group
 PHP_METHOD( SequoiaGroup, isCatalog ) ;
 PHP_METHOD( SequoiaGroup, getName ) ;
 PHP_METHOD( SequoiaGroup, start ) ;
 PHP_METHOD( SequoiaGroup, stop ) ;
 PHP_METHOD( SequoiaGroup, reelect ) ;
 
-//node
 PHP_METHOD( SequoiaGroup, getNodeNum ) ;
 PHP_METHOD( SequoiaGroup, getDetail ) ;
 PHP_METHOD( SequoiaGroup, getMaster ) ;

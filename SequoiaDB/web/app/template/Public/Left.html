@@ -22,7 +22,7 @@
          <div class="list" ng-container="{offsetY:-17}">
             <ul>
                <li ng-repeat="menu in Left.navMenu[ showModuleIndex ].list track by $index" ng-if="menu.list.length > 0">
-                  <div class="Ellipsis">{{menu.title}}</div>
+                  <div>{{menu.title}}</div>
                   <ul>
                      <li class="Ellipsis" ng-repeat="list in menu.list track by $index" ng-class="{active:(showModuleIndex==cursorIndex[0] && cursorIndex[1]==$parent.$index && cursorIndex[2]==$index)}">
                         <a style="cursor:pointer;" ng-if="list.type!='spark'" ng-click="gotoModule(showModuleIndex,$parent.$parent.$index,$index)">{{list.name}}</a>

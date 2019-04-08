@@ -1,5 +1,5 @@
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -43,25 +43,21 @@
 #define PHP_FE_END {NULL,NULL,NULL}
 #endif
 
-//name size
 #define PHP_NAME_SIZE 128
 #define PHP_NAME_LEN  (PHP_NAME_SIZE-1)
 
 #define PHP_FULL_NAME_SIZE 256
 #define PHP_FULL_NAME_LEN  (PHP_FULL_NAME_SIZE-1)
 
-//php array type
 #define PHP_NOT_ARRAY         0
 #define PHP_ASSOCIATIVE_ARRAY 1
 #define PHP_INDEX_ARRAY       2
 
-//php number type
 #define PHP_NOT_NUMBER 0
 #define PHP_IS_INT32   1
 #define PHP_IS_INT64   2
 #define PHP_IS_DOUBLE  3
 
-//PHP dollar cmd type
 #define PHP_DATE        0
 #define PHP_TIMESTAMP   1
 #define PHP_REGEX       2
@@ -82,19 +78,16 @@
 #define PHP_LONG int
 
 struct phpDate {
-   //millisecond
    INT64 milli ;
 } ;
 
 struct phpTimestamp {
-   //second
    INT32 second ;
    INT32 micros ;
 } ;
 
 /* ========== PHP Return ========== */
 
-//php7 not need isCopy
 #define PHP_RETVAL_STRING( str, isCopy )\
 {\
    RETVAL_STRING( str, isCopy ) ;\
@@ -118,7 +111,6 @@ struct phpTimestamp {
 
 /* ========== PHP Class ========== */
 
-//declare php class member variable null
 #define PHP_DECLARE_PROPERTY_NULL( pEntry, name )\
 {\
    zend_declare_property_null( pEntry,\
@@ -142,7 +134,6 @@ struct phpTimestamp {
                                  ZEND_ACC_PUBLIC TSRMLS_CC ) ;\
 }
 
-//declare php class member variable int
 #define PHP_DECLARE_PROPERTY_LONG( pEntry, name, value )\
 {\
    zend_declare_property_long( pEntry,\
@@ -151,19 +142,16 @@ struct phpTimestamp {
                                ZEND_ACC_PROTECTED TSRMLS_CC ) ;\
 }
 
-//declare php int constants
 #define PHP_REGISTER_LONG_CONSTANT( name, value )\
 {\
    REGISTER_LONG_CONSTANT ( name, value, CONST_CS | CONST_PERSISTENT ) ;\
 }
 
-//declare php class
 #define PHP_REGISTER_INTERNAL( entryIn, enrtyOut)\
 {\
    enrtyOut = zend_register_internal_class( &entryIn TSRMLS_CC ) ;\
 }
 
-//declare php class
 #define PHP_REGISTER_INTERNAL_EX( entryIn1, entryIn2, name, entryOut )\
 {\
    entryOut = zend_register_internal_class_ex( &entryIn1,\
@@ -171,14 +159,12 @@ struct phpTimestamp {
                                                name TSRMLS_CC ) ;\
 }
 
-//new class
 #define PHP_NEW_CLASS( pZval, classEntry )\
 {\
    MAKE_STD_ZVAL( pZval ) ;\
    object_init_ex( pZval, classEntry ) ;\
 }
 
-//save parent class
 #define PHP_SAVE_PARENT_CLASS( thisObj, parentClass )\
 {\
    zend_update_property( Z_OBJCE_P( thisObj ),\
@@ -187,7 +173,6 @@ struct phpTimestamp {
                          parentClass TSRMLS_CC ) ;\
 }
 
-//new class, save handle, save parent class
 #define PHP_BUILD_CLASS( isSequoiaDB, thisObj, classEntry, handle, resourceId )\
 {\
    zval *pNewClass = NULL ;\
@@ -206,7 +191,6 @@ struct phpTimestamp {
    RETVAL_ZVAL( pNewClass, 0, 0 ) ;\
 }
 
-//new class, save int64 string
 #define PHP_BUILD_INT64( isSequoiaDB, thisObj, classEntry, number )\
 {\
    zval *pNewClass = NULL ;\
@@ -224,7 +208,6 @@ struct phpTimestamp {
    RETVAL_ZVAL( pNewClass, 0, 0 ) ;\
 }
 
-//return int or SequoiaInt64
 #define PHP_RETURN_INT_OR_LONG( isSequoiaDB, thisObj, classEntry, number )\
 {\
    if( number < PHP_INT32_MIN || number > PHP_INT32_MAX )\
@@ -240,7 +223,6 @@ struct phpTimestamp {
    }\
 }
 
-//set class variable string
 /*
 #define PHP_SET_VAR_STRING( thisClass, name, value, isDup )\
 {\
@@ -248,7 +230,6 @@ struct phpTimestamp {
 }
 */
 
-//save class variable int
 #define PHP_SAVE_VAR_INT( thisObj, name, value )\
 {\
    zend_update_property_long( Z_OBJCE_P( thisObj ),\
@@ -257,7 +238,6 @@ struct phpTimestamp {
                               value TSRMLS_CC ) ;\
 }
 
-//save class variable string
 #define PHP_SAVE_VAR_STRING( thisObj, name, value )\
 {\
    zend_update_property_string( Z_OBJCE_P( thisObj ),\
@@ -266,7 +246,6 @@ struct phpTimestamp {
                                 value TSRMLS_CC ) ;\
 }
 
-//read class variable
 #define PHP_READ_VAR( thisObj, name, value )\
 {\
    value = zend_read_property( Z_OBJCE_P( thisObj ),\
@@ -277,13 +256,10 @@ struct phpTimestamp {
 
 /* ========== PHP Function ========== */
 
-//get php function parameters
 #define PHP_GET_PARAMETERS( format, ... ) \
 zend_parse_parameters ( ZEND_NUM_ARGS() TSRMLS_CC, format, ##__VA_ARGS__ )
 
-//SequoiaDB class and other class
 
-//set php class public errno
 #define PHP_SET_ERROR( isSequoiaDB, thisObj, errno )\
 {\
    zval *pSequoiaDB = NULL ;\
@@ -301,29 +277,11 @@ zend_parse_parameters ( ZEND_NUM_ARGS() TSRMLS_CC, format, ##__VA_ARGS__ )
                               errno TSRMLS_CC ) ;\
 }
 
-//set php class public errno is SDB_OK
 #define PHP_SET_ERRNO_OK( isSequoiaDB, thisObj )\
 {\
-   sdbConnectionHandle connection = SDB_INVALID_HANDLE ;\
-\
-   if ( isSequoiaDB )\
-   {\
-      PHP_READ_HANDLE( thisObj, connection, sdbConnectionHandle,\
-                       SDB_HANDLE_NAME, connectionDesc ) ;\
-   }\
-   else\
-   {\
-      zval *pSequoiadb = NULL ;\
-\
-      PHP_READ_VAR( thisObj, "_SequoiaDB", pSequoiadb ) ;\
-      PHP_READ_HANDLE( pSequoiadb, connection, sdbConnectionHandle,\
-                       SDB_HANDLE_NAME, connectionDesc ) ;\
-   }\
-   sdbCleanLastErrorObj( connection ) ;\
    PHP_SET_ERROR( isSequoiaDB, thisObj, SDB_OK ) ;\
 }
 
-//php function return json or array errno
 #define PHP_RETURN_AUTO_ERROR( isSequoiaDB, thisObj, errno )\
 {\
    zval *pSequoiaDB = NULL ;\
@@ -346,7 +304,7 @@ zend_parse_parameters ( ZEND_NUM_ARGS() TSRMLS_CC, format, ##__VA_ARGS__ )
    {\
       if( errno == SDB_OK )\
       {\
-         PHP_RETURN_STRING( "{\"errno\":0}", 1 ) ;\
+         PHP_RETURN_STRING( "{\"error\":0}", 1 ) ;\
       }\
       else\
       {\
@@ -354,19 +312,79 @@ zend_parse_parameters ( ZEND_NUM_ARGS() TSRMLS_CC, format, ##__VA_ARGS__ )
          if( !pErrorMsg )\
          {\
             PHP_SET_ERROR( isSequoiaDB, thisObj, SDB_OOM ) ;\
-            PHP_RETVAL_STRING( "{\"errno\":-2}", 1 ) ;\
+            PHP_RETVAL_STRING( "{\"error\":-2}", 1 ) ;\
          }\
          else\
          {\
             ossMemset( pErrorMsg, 0, 64 ) ;\
-            ossSnprintf( pErrorMsg, 64, "{\"errno\":%d}", errno ) ;\
+            ossSnprintf( pErrorMsg, 64, "{\"error\":%d}", errno ) ;\
             PHP_RETVAL_STRING( pErrorMsg, 0 ) ;\
          }\
       }\
    }\
 }
 
-//php function return json or array record
+#define PHP_RETURN_AUTO_ERROR_ID( isSequoiaDB, thisObj, errno, id )\
+{\
+   zval *pSequoiaDB = NULL ;\
+   zval *pReturnModel = NULL ;\
+   CHAR pId[25] = { 0 } ;\
+   ossMemset( pId, 0, 25 ) ;\
+   if( isSequoiaDB )\
+   {\
+      pSequoiaDB = thisObj ;\
+   }\
+   else\
+   {\
+      PHP_READ_VAR( thisObj, "_SequoiaDB", pSequoiaDB ) ;\
+   }\
+   PHP_READ_VAR( pSequoiaDB, "_return_model", pReturnModel ) ;\
+   if( Z_LVAL_P( pReturnModel ) == 1 )\
+   {\
+      array_init( return_value ) ;\
+      add_assoc_long( return_value, "errno", errno ) ;\
+      if( errno == SDB_OK )\
+      {\
+         bson_oid_to_string( bson_iterator_oid( &id ), pId ) ;\
+         add_assoc_string( return_value, "_id", pId, 1 ) ;\
+      }\
+   }\
+   else\
+   {\
+      if( errno == SDB_OK )\
+      {\
+         CHAR *pSuccessMsg = (CHAR *)emalloc( 128 ) ;\
+         if( !pSuccessMsg )\
+         {\
+            PHP_SET_ERROR( isSequoiaDB, thisObj, SDB_OOM ) ;\
+            PHP_RETVAL_STRING( "{\"error\":-2}", 1 ) ;\
+         }\
+         else\
+         {\
+            bson_oid_to_string( bson_iterator_oid( &id ), pId ) ;\
+            ossMemset( pSuccessMsg, 0, 128 ) ;\
+            ossSnprintf( pSuccessMsg, 128, "{\"error\":%d,\"_id\":\"%s\"}", errno, pId ) ;\
+            PHP_RETVAL_STRING( pSuccessMsg, 0 ) ;\
+         }\
+      }\
+      else\
+      {\
+         CHAR *pErrorMsg = (CHAR *)emalloc( 64 ) ;\
+         if( !pErrorMsg )\
+         {\
+            PHP_SET_ERROR( isSequoiaDB, thisObj, SDB_OOM ) ;\
+            PHP_RETVAL_STRING( "{\"error\":-2}", 1 ) ;\
+         }\
+         else\
+         {\
+            ossMemset( pErrorMsg, 0, 64 ) ;\
+            ossSnprintf( pErrorMsg, 64, "{\"error\":%d}", errno ) ;\
+            PHP_RETVAL_STRING( pErrorMsg, 0 ) ;\
+         }\
+      }\
+   }\
+}
+
 #define PHP_RETURN_AUTO_RECORD( isSequoiaDB, thisObj, isEmpty, record )\
 {\
    CHAR *pJson = NULL ;\
@@ -416,7 +434,6 @@ zend_parse_parameters ( ZEND_NUM_ARGS() TSRMLS_CC, format, ##__VA_ARGS__ )
    }\
 }
 
-//php function return task id
 #define PHP_RETURN_AUTO_ERROR_TASKID( isSequoiaDB, thisObj, errno, taskId )\
 {\
    CHAR *pStr = NULL ;\
@@ -462,12 +479,12 @@ zend_parse_parameters ( ZEND_NUM_ARGS() TSRMLS_CC, format, ##__VA_ARGS__ )
          if( !pSuccessMsg )\
          {\
             PHP_SET_ERROR( isSequoiaDB, thisObj, SDB_OOM ) ;\
-            PHP_RETVAL_STRING( "{\"errno\":-2}", 1 ) ;\
+            PHP_RETVAL_STRING( "{\"error\":-2}", 1 ) ;\
          }\
          else\
          {\
             ossMemset( pSuccessMsg, 0, 128 ) ;\
-            ossSnprintf( pSuccessMsg, 128, "{\"errno\":%d,\"taskID\":%lld}", errno, (UINT64)taskId ) ;\
+            ossSnprintf( pSuccessMsg, 128, "{\"error\":%d,\"taskID\":%lld}", errno, (UINT64)taskId ) ;\
             PHP_RETVAL_STRING( pSuccessMsg, 0 ) ;\
          }\
       }\
@@ -477,19 +494,18 @@ zend_parse_parameters ( ZEND_NUM_ARGS() TSRMLS_CC, format, ##__VA_ARGS__ )
          if( !pErrorMsg )\
          {\
             PHP_SET_ERROR( isSequoiaDB, thisObj, SDB_OOM ) ;\
-            PHP_RETVAL_STRING( "{\"errno\":-2}", 1 ) ;\
+            PHP_RETVAL_STRING( "{\"error\":-2}", 1 ) ;\
          }\
          else\
          {\
             ossMemset( pErrorMsg, 0, 64 ) ;\
-            ossSnprintf( pErrorMsg, 64, "{\"errno\":%d}", errno ) ;\
+            ossSnprintf( pErrorMsg, 64, "{\"error\":%d}", errno ) ;\
             PHP_RETVAL_STRING( pErrorMsg, 0 ) ;\
          }\
       }\
    }\
 }
 
-//php function return driver options
 #define PHP_RETURN_OPTIONS( thisObj )\
 {\
    zval *pReturnModel = NULL ;\

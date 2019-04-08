@@ -1,18 +1,3 @@
-/*******************************************************************************
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-   http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-*******************************************************************************/
 // File open option define
 const SDB_FILE_CREATEONLY =    0x00000001 ;
 const SDB_FILE_REPLACE =       0x00000002 ;
@@ -22,14 +7,6 @@ const SDB_FILE_SHAREWROTE =    SDB_FILE_SHAREREAD | 0x00000020 ;
 const SDB_FILE_READONLY =      0x00000004 | SDB_FILE_SHAREREAD ;
 const SDB_FILE_WRITEONLY =     0x00000008 ;
 const SDB_FILE_READWRITE =     0x00000004 | SDB_FILE_WRITEONLY ;
-var SDB_PRINT_JSON_FORMAT        = true ;
-
-function jsonFormat(pretty) {
-   if (pretty == undefined){
-      pretty = true;
-   }
-   SDB_PRINT_JSON_FORMAT = pretty;
-}
 
 // BSONObj
 BSONObj.prototype.toObj = function() {
@@ -37,21 +14,13 @@ BSONObj.prototype.toObj = function() {
 }
 
 BSONObj.prototype.toString = function() {
-   if ( typeof(SDB_PRINT_JSON_FORMAT) == "undefined" ||
-        SDB_PRINT_JSON_FORMAT )
+   try
    {
-      try
-      {
-         var obj = this.toObj();
-         var str = JSON.stringify ( obj, undefined, 2 ) ;
-         return str ;
-      }
-      catch ( e )
-      {
-         return this.toJson() ;
-      }
+      var obj = this.toObj() ;
+      var str = JSON.stringify( obj, undefined, 2 ) ;
+      return str ;
    }
-   else
+   catch( e )
    {
       return this.toJson() ;
    }
@@ -223,35 +192,6 @@ Oma.prototype.getOmaConfigs = function( confFile ) {
       recvObj = this._runCommand( "oma get oma configs" ) ;
    }
    return recvObj ;
-}
-
-Oma.prototype.getIniConfigs = function( confFile, options ) {
-   var recvObj ;
-   var newOptions = options ;
-
-   if ( undefined == newOptions )
-   {
-      newOptions = {} ;
-   }
-
-   newOptions["confFile"] = confFile ;
-
-   recvObj = this._runCommand( "oma get ini configs", newOptions ) ;
-
-   return recvObj ;
-}
-
-Oma.prototype.setIniConfigs = function( configs, confFile, options ) {
-   var newOptions = options ;
-
-   if ( undefined == newOptions )
-   {
-      newOptions = {} ;
-   }
-
-   newOptions["confFile"] = confFile ;
-
-   this._runCommand( "oma set ini configs", newOptions, configs ) ;
 }
 
 Oma.prototype.setOmaConfigs = function( configsObj, confFile, isReload ) {
@@ -471,56 +411,42 @@ Oma.prototype.startAllNodes = function( businessName ) {
                                      'mode': 'local' } ).toArray() ;
    }
 
-   var svcname = [] ;
+   var arrObj = [] ;
+   var obj ;
+   var isSuccess = true ;
+   var total = localNodes.length ;
+   var success = 0 ;
+
 
    for( var index in localNodes )
    {
       obj = JSON.parse( localNodes[ index ] ) ;
-      svcname.push( obj['svcname'] ) ;
-   }
-
-   var total = svcname.length
-   var failed = 0 ;
-   var failedList = [] ;
-   var failedInfo = {} ;
-
-   var result = this._nodesOperation( 'start', svcname ) ;
-
-   if ( result['errno'] && Array.isArray( result['ErrNodes'] ) )
-   {
-      for( var i in result['ErrNodes'] )
+      try
       {
-         failedList.push( result['ErrNodes'][i]['svcname'] ) ;
-
-         failedInfo[result['ErrNodes'][i]['svcname']] = result['ErrNodes'][i] ;
+         print( "Start sequoiadb(" + obj.svcname + "): " ) ;
+         this.startNode( obj.svcname ) ;
+         println( "Success" ) ;
+         success++ ;
       }
-
-      failed = failedList.length ;
-   }
-
-   for( var i in svcname )
-   {
-      print( "Start sequoiadb(" + svcname[i] + ") " ) ;
-
-      if ( failedList.indexOf( svcname[i] ) < 0 )
+      catch( e )
       {
-         println( "success" ) ;
-      }
-      else
-      {
-         println( "failed, errno: " + failedInfo[svcname[i]]["errno"] +
-                  ", description: " + failedInfo[svcname[i]]["description"] +
-                  ", detail: " + failedInfo[svcname[i]]["detail"] ) ;
+         println( "Failed, errno: " + e + ", description: " + getErr( e )
+                  + ", detail: " + getLastErrMsg() ) ;
+         if ( SDB_NETWORK == e || SDB_NETWORK_CLOSE == e )
+         {
+            println( "Total: " + total +
+                     "; Success: " + success +
+                     "; Failed: " + ( total - success ) ) ;
+            throw e ;
+         }
+         isSuccess = false ;
       }
    }
-
-   println( "Total: " + total + "; Success: " + ( total - failed ) + "; Failed: " + failed ) ;
-
-   if ( result['errno'] )
+   println( "Total: " + total + "; Success: " + success + "; Failed: " + ( total - success ) ) ;
+   if ( false == isSuccess )
    {
-      setLastErrObj( result ) ;
-      setLastErrMsg( result['description'] ) ;
-      throw result['errno'] ;
+      setLastErrMsg( "Failed to start all nodes" ) ;
+      throw SDB_SYS ;
    }
 }
 
@@ -539,127 +465,42 @@ Oma.prototype.stopAllNodes = function( businessName ) {
                                      'mode': 'run' } ).toArray() ;
    }
 
-   var svcname = [] ;
+   var arrObj = [] ;
+   var obj ;
+   var isSuccess = true ;
+   var total = localNodes.length ;
+   var success = 0 ;
 
    for( var index in localNodes )
    {
       obj = JSON.parse( localNodes[ index ] ) ;
-      svcname.push( obj['svcname'] ) ;
-   }
-
-   var total = svcname.length
-   var failed = 0 ;
-   var failedList = [] ;
-
-   var result = this._nodesOperation( 'stop', svcname ) ;
-
-   if ( result['errno'] && Array.isArray( result['ErrNodes'] ) )
-   {
-      for( var i in result['ErrNodes'] )
+      try
       {
-         failedList.push( result['ErrNodes'][i]['svcname'] ) ;
+         print( "Stop sequoiadb(" + obj.svcname + "): " ) ;
+         this.stopNode( obj.svcname ) ;
+         println( "Success" ) ;
+         success++ ;
       }
-
-      failed = failedList.length ;
-   }
-
-   for( var i in svcname )
-   {
-      print( "Stop sequoiadb(" + svcname[i] + ") " ) ;
-
-      if ( failedList.indexOf( svcname[i] ) < 0 )
+      catch( e )
       {
-         println( "success" ) ;
-      }
-      else
-      {
-         println( "failed" ) ;
+         println( "Failed, errno: " + e + ", description: " + getErr( e )
+                  + ", detail: " + getLastErrMsg() ) ;
+         if ( SDB_NETWORK == e || SDB_NETWORK_CLOSE == e )
+         {
+            println( "Total: " + total +
+                     "; Success: " + success +
+                     "; Failed: " + ( total - success ) ) ;
+            throw e ;
+         }
+         isSuccess = false ;
       }
    }
 
-   println( "Total: " + total + "; Success: " + ( total - failed ) + "; Failed: " + failed ) ;
-
-   if ( result['errno'] )
+   println( "Total: " + total + "; Success: " + success + "; Failed: " + ( total - success ) ) ;
+   if ( false == isSuccess )
    {
-      setLastErrObj( result ) ;
-      setLastErrMsg( result['description'] ) ;
-      throw result['errno'] ;
-   }
-}
-
-Oma.prototype._checkSvcname = function( svcname ) {
-   var type = typeof( svcname ) ;
-
-   if ( 'undefined' == type )
-   {
-      setLastErrMsg( "svcname must be config" ) ;
-      throw SDB_OUT_OF_BOUND ;
-   }
-   else if ( 'number' == type && Math.round( svcname ) === svcname )
-   {
-      if ( svcname <= 0 || svcname > 65535 )
-      {
-         setLastErrMsg( "The port range of svcname is (0, 65535]" ) ;
-         throw SDB_INVALIDARG ;
-      }
-   }
-   else if ( 'string' == type )
-   {
-   }
-   else
-   {
-      setLastErrMsg( "svcname must be string or integer or array" ) ;
-      throw SDB_INVALIDARG ;
-   }
-}
-
-Oma.prototype._nodesOperation = function( cmd, svcname ) {
-   var command = "oma " + cmd + " nodes" ;
-   var options = {} ;
-
-   if ( [ 'start', 'stop' ].indexOf( cmd ) < 0 )
-   {
-      setLastErrMsg( "Invalid command" ) ;
-      throw SDB_INVALIDARG ;
-   }
-
-   if ( Array.isArray( svcname ) )
-   {
-      for( var i in svcname )
-      {
-         this._checkSvcname( svcname[i] ) ;
-      }
-
-      options['svcname'] = svcname ;
-   }
-   else
-   {
-      this._checkSvcname( svcname ) ;
-      options['svcname'] = [ svcname ] ;
-   }
-
-   return this._runCommand( command, options ).toObj() ;
-}
-
-Oma.prototype.startNodes = function( svcname ) {
-   var result = this._nodesOperation( 'start', svcname ) ;
-
-   if ( result['errno'] )
-   {
-      setLastErrObj( result ) ;
-      setLastErrMsg( result['description'] ) ;
-      throw result['errno'] ;
-   }
-}
-
-Oma.prototype.stopNodes = function( svcname ) {
-   var result = this._nodesOperation( 'stop', svcname ) ;
-
-   if ( result['errno'] )
-   {
-      setLastErrObj( result ) ;
-      setLastErrMsg( result['description'] ) ;
-      throw result['errno'] ;
+      setLastErrMsg( "Failed to start all nodes" ) ;
+      throw SDB_SYS ;
    }
 }
 

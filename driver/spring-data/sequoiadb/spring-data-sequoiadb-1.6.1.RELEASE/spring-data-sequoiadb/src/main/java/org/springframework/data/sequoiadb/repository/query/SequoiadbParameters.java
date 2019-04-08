@@ -100,7 +100,6 @@ public class SequoiadbParameters extends Parameters<SequoiadbParameters, Sequoia
 
 		SequoiadbParameter sequoiadbParameter = new SequoiadbParameter(parameter);
 
-		// Detect manually annotated @Near Point and reject multiple annotated ones
 		if (this.nearIndex == null && sequoiadbParameter.isManuallyAnnotatedNearParameter()) {
 			this.nearIndex = sequoiadbParameter.getIndex();
 		} else if (sequoiadbParameter.isManuallyAnnotatedNearParameter()) {

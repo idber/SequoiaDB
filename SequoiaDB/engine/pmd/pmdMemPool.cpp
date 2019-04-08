@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pmdMemPool.hpp
 
@@ -111,7 +110,6 @@ namespace engine
       {
          goto error ;
       }
-      // _checkAndStartJob( TRUE ) ;
 
    done:
       return rc ;
@@ -177,9 +175,7 @@ namespace engine
       {
          _unitList.push_back( pUnit ) ;
       }
-      /// release the page cleaner
       pUnit->unlockPageCleaner() ;
-      /// inc idla agent
       ++_idleAgent ;
 
       PD_TRACE_EXIT( SDB__PMDBUFFPOOL_PUSHUNIT ) ;
@@ -208,9 +204,7 @@ namespace engine
          if ( pUnit->canSync( force ) || pUnit->canRecycle( force ) )
          {
             _unitList.erase( it ) ;
-            /// lock the unit
             pUnit->lockPageCleaner() ;
-            /// dec idle agent
             --_idleAgent ;
             break ; 
          }
@@ -270,10 +264,8 @@ namespace engine
 
       if ( readyNum > 0 )
       {
-         /// wake up the agent
          _wakeUpEvent.signalAll() ;
 
-         /// start agent
          while ( _curAgent < PMD_MIN_CACHE_JOB ||
                  ( readyNum / 4 > _idleAgent &&
                    _curAgent < _maxCacheJob ) )
@@ -361,7 +353,6 @@ namespace engine
          {
             pEDUMgr->waitEDU( eduCB() ) ;
 
-            /// sync unit
             pUnit = _pBuffPool->dispatchUnit() ;
             if ( pUnit )
             {
@@ -372,7 +363,6 @@ namespace engine
                {
                   pUnit->dumpStatInfo() ;
                }
-               /// push back
                _pBuffPool->pushBackUnit( pUnit ) ;
             }
             else
@@ -390,7 +380,6 @@ namespace engine
 
                if ( timeout >= (UINT32)_timeout )
                {
-                  /// over _timeout millsecs, donothing, qiut the job
                   break ;
                }
             }
@@ -447,7 +436,6 @@ namespace engine
          goto error ;
       }
       rc = rtnGetJobMgr()->startJob( pJob, RTN_JOB_MUTEX_NONE, pEDUID  ) ;
-      /// neither failed or succeed, the pJob will release in job manager
 
    done:
       PD_TRACE_EXITRC( SDB__PMD_STARTCACHEJOB, rc ) ;

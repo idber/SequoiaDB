@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sdbcmart.cpp
 
@@ -68,6 +67,7 @@ namespace engine
        ( PMD_COMMANDS_STRING (PMD_OPTION_HELP, ",h"), "help" ) \
        ( PMD_OPTION_VERSION, "version" ) \
        ( PMD_OPTION_AS_PROC, "as process, not service" ) \
+       ( PMD_COMMANDS_STRING( PMD_OPTION_IGNOREULIMIT, ",i"), "skip checking ulimit" )\
 
 #else
    #define COMMANDS_OPTIONS \
@@ -140,7 +140,6 @@ namespace engine
          COMMANDS_HIDE_OPTIONS
       PMD_ADD_PARAM_OPTIONS_END
 
-      /// 1.validate arguments
       rc = utilReadCommandLine( argc, argv, all, vm, FALSE ) ;
       if ( rc )
       {
@@ -151,7 +150,6 @@ namespace engine
       if ( vm.count( PMD_OPTION_HELP ) )
       {
          displayArg( desc ) ;
-         //rc = SDB_PMD_HELP_ONLY ;
          goto done ;
       }
       if ( vm.count( PMD_OPTION_HELPFULL ) )
@@ -162,7 +160,6 @@ namespace engine
       if ( vm.count( PMD_OPTION_VERSION ) )
       {
          ossPrintVersion( "Sdb CM Start version" ) ;
-         //rc = SDB_PMD_VERSION_ONLY ;
          goto done ;
       }
 #if defined( _WINDOWS )
@@ -178,8 +175,6 @@ namespace engine
          procShortName = SDBSDBCMPROG ;
       }
 
-      /// 2.check ulimit
-#if defined( _LINUX )
       if ( !vm.count( PMD_OPTION_IGNOREULIMIT ) )
       {
          rc = utilSetAndCheckUlimit() ;
@@ -192,15 +187,12 @@ namespace engine
             goto error ;
          }
       }
-#endif
 
-      /// 3.check user info before create dir or files
       if ( !vm.count( PMD_OPTION_CURUSER ) )
       {
          UTIL_CHECK_AND_CHG_USER() ;
       }
 
-      /// 4.build dialog info
       rc = ossGetEWD ( progName, OSS_MAX_PATHSIZE ) ;
       if ( rc )
       {
@@ -215,7 +207,6 @@ namespace engine
          ossPrintf( "Failed to build dialog path: %d"OSS_NEWLINE, rc ) ;
          goto error ;
       }
-      // make sure the dir exist
       rc = ossMkdir( dialogFile ) ;
       if ( rc && SDB_FE != rc )
       {
@@ -230,7 +221,6 @@ namespace engine
          ossPrintf( "Failed to build dialog file: %d"OSS_NEWLINE, rc ) ;
          goto error ;
       }
-      // enable pd log
       sdbEnablePD( dialogFile ) ;
       setPDLevel( PDINFO ) ;
 
@@ -246,18 +236,15 @@ namespace engine
 
       if ( !asStandalone )
       {
-         // first to check whether the process exist
          ossEnumProcesses( procs, procShortName.c_str(), TRUE, TRUE ) ;
          if ( procs.size() > 0 )
          {
-            // find it
             ossPrintf( "Success: sdbcmd is already started (%d)"OSS_NEWLINE,
                        (*procs.begin())._pid ) ;
             goto done ;
          }
       }
 
-      /// 5.start progress
       rc = startSdbcm ( argvs, pid, asProc ) ;
       if ( rc )
       {
@@ -289,7 +276,6 @@ namespace engine
          }
       }
 
-      /// 6.wait bussiness ok
       rc = utilWaitNodeOK( cmInfo, NULL,
                            asStandalone ? pid : OSS_INVALID_PID,
                            SDB_TYPE_OMA, PMD_SDBCM_WAIT_TIMEOUT,

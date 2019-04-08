@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsShardMgr.cpp
 
@@ -92,7 +91,6 @@ namespace engine
 
       hosts.clear() ;
 
-      // detect if we want to send to catalog primary
       if ( primary &&
            SDB_OK == pItem->getNodeInfo( tmpPrimary,
                                          hostItem._nodeID,
@@ -105,7 +103,6 @@ namespace engine
       {
          hosts.push_back( hostItem ) ;
       }
-      // if we want to broadcast, we push everything in catalog list
       else
       {
          for ( UINT32 pos = 0 ; pos < pItem->nodeCount() ; ++pos )
@@ -154,51 +151,23 @@ namespace engine
                                          const CHAR * pMainCLName,
                                          UINT64 & opID )
    {
-      ossScopedLock lock( &_latch ) ;
+      _latch.get() ;
 
-      /// first increase _clCount. Because waitForOpr will use _clCount without
-      /// latch. If don't increase first, the case will occur:
-      /// 1. split thread has run to opID = pmdAcquireGlobalID() ;
-      /// 2. write thread run to pmdAcquireGlobalID(), then run to waitForOpr::
-      ///    if ( isWrite && _clCount > 0 )
-      /// 3. the split thread will not wait write thread, so some data will lost
-      ++_clCount ;
-
-      // operator ID is not given, acquire one for it
-      // Must be acquired inside latch, which could avoid other operators to
-      // acquire operator ID and pass the checking between acquiring and
-      // registering
       if ( 0 == opID )
       {
          opID = pmdAcquireGlobalID() ;
       }
 
-      if ( !pName || !*pName )
-      {
-         _regWholeInternal( opID ) ;
-      }
-      else
+      if ( NULL != pName && '\0' != pName[0] )
       {
          _registerCLInternal( pName, opID ) ;
-
-         if ( NULL != pMainCLName && '\0' != pMainCLName[0] )
-         {
-            _registerCLInternal( pMainCLName, opID ) ;
-         }
       }
-
-      /// last decrease _clCount
-      --_clCount ;
-
-   }
-
-   void _clsFreezingWindow::_regWholeInternal( UINT64 opID )
-   {
-      if ( _setWholeID.empty() )
+      if ( NULL != pMainCLName && '\0' != pMainCLName[0] )
       {
-         ++_clCount ;
+         _registerCLInternal( pMainCLName, opID ) ;
       }
-      _setWholeID.insert( opID ) ;
+
+      _latch.release() ;
    }
 
    void _clsFreezingWindow::_registerCLInternal ( const CHAR * pName,
@@ -225,13 +194,9 @@ namespace engine
                                            const CHAR * pMainCLName,
                                            UINT64 opID )
    {
-      ossScopedLock lock( &_latch ) ;
+      _latch.get() ;
 
-      if ( !pName || !*pName )
-      {
-         _unregWholeInternal( opID ) ;
-      }
-      else
+      if ( NULL != pName && '\0' != pName[0] )
       {
          _unregisterCLInternal( pName, opID ) ;
       }
@@ -240,25 +205,8 @@ namespace engine
          _unregisterCLInternal( pMainCLName, opID ) ;
       }
 
+      _latch.release() ;
       _event.signalAll() ;
-   }
-
-   void _clsFreezingWindow::unregisterAll()
-   {
-      ossScopedLock lock( &_latch ) ;
-
-      _setWholeID.clear() ;
-      _mapWindow.clear() ;
-      _clCount = 0 ;
-   }
-
-   void _clsFreezingWindow::_unregWholeInternal( UINT64 opID )
-   {
-      _setWholeID.erase( opID ) ;
-      if ( _setWholeID.empty() )
-      {
-         --_clCount ;
-      }
    }
 
    void _clsFreezingWindow::_unregisterCLInternal ( const CHAR * pName,
@@ -278,53 +226,32 @@ namespace engine
       }
    }
 
-   void _clsFreezingWindow::_blockCheck( const _clsFreezingWindow::OP_SET &setID,
-                                         UINT64 testOPID,
-                                         BOOLEAN &result,
-                                         BOOLEAN &forceEnd )
-   {
-      OP_SET::const_iterator cit = setID.begin() ;
-
-      while ( cit != setID.end () )
-      {
-         if ( *cit == testOPID )
-         {
-            // Self
-            result = FALSE ;
-            forceEnd = TRUE ;
-            break ;
-         }
-         else if ( *cit < testOPID )
-         {
-            // Should not break, we need to test if testOpID matches
-            // the remaining blocking op IDs which may be the blocking op
-            // itself
-            result = TRUE ;
-         }
-         ++cit ;
-      }
-   }
-
    BOOLEAN _clsFreezingWindow::needBlockOpr( const CHAR *pName,
                                              UINT64 testOpID )
    {
       MAP_WINDOW::iterator it ;
       BOOLEAN needBlock = FALSE ;
-      BOOLEAN forceEnd = FALSE ;
 
       _latch.get() ;
 
-      /// whole block check
-      if ( !_setWholeID.empty() )
-      {
-         _blockCheck( _setWholeID, testOpID, needBlock, forceEnd ) ;
-      }
-
-      if ( !forceEnd &&
-           !_mapWindow.empty() &&
+      if ( !_mapWindow.empty() &&
            _mapWindow.end() != ( it = _mapWindow.find( pName ) ) )
       {
-         _blockCheck( it->second, testOpID, needBlock, forceEnd ) ;
+         OP_SET::iterator opIt = it->second.begin() ;
+
+         while ( opIt != it->second.end () )
+         {
+            if ( *opIt == testOpID )
+            {
+               needBlock = FALSE ;
+               break ;
+            }
+            else if ( *opIt < testOpID )
+            {
+               needBlock = TRUE ;
+            }
+            opIt ++ ;
+         }
       }
 
       _latch.release() ;
@@ -388,8 +315,8 @@ namespace engine
 
       _catVerion = 0 ;
       _nodeID.value = 0 ;
+      _seAdptID.value = INVALID_NODE_ID ;
       _upCatHandle = NET_INVALID_HANDLE ;
-      _remoteEndpointHandle = NET_INVALID_HANDLE ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR_DECONSTRUCTOR, "_clsShardMgr::~_clsShardMgr" )
@@ -403,7 +330,6 @@ namespace engine
       SAFE_DELETE ( _pFreezingWindow ) ;
       SAFE_DELETE ( _pDCMgr ) ;
 
-      //release event
       MAP_CAT_EVENT_IT it = _mapSyncCatEvent.begin () ;
       while ( it != _mapSyncCatEvent.end() )
       {
@@ -434,11 +360,9 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSSHDMGR_INIT );
       UINT32 catGID = CATALOG_GROUPID ;
-      // Make sure the node IDs are invalid
       UINT16 catNID = DATA_NODE_ID_END + 1 ;
       MsgRouteID id ;
       pmdOptionsCB *optCB = pmdGetOptionCB() ;
-      // catAddrs is pointing to option control block
       vector< _pmdAddrPair > catAddrs = optCB->catAddrs() ;
       _netFrame *pNetFrame = NULL ;
 
@@ -450,12 +374,10 @@ namespace engine
          goto error ;
       }
       pNetFrame = _pNetRtAgent->getFrame() ;
-      /// register shard net agent to net monitor for catalog connections
       pNetFrame->setBeatInfo( pmdGetOptionCB()->getOprTimeout() ) ;
       sdbGetPMDController()->registerNet( pNetFrame,
                                           MSG_ROUTE_CAT_SERVICE ) ;
 
-      // init param, get configured catalog address
       for ( UINT32 i = 0 ; i < catAddrs.size() ; ++i )
       {
          if ( 0 == catAddrs[i]._host[ 0 ] )
@@ -534,21 +456,14 @@ namespace engine
    {
       if ( primary && SDB_EVT_OCCUR_BEFORE == type )
       {
-         // clear catalog info
          _pCatAgent->lock_w() ;
          _pCatAgent->clearAll() ;
          _pCatAgent->release_w() ;
 
-         // Clear statistics
          pmdGetKRCB()->getDMSCB()->clearSUCaches( DMS_EVENT_MASK_ALL ) ;
       }
       else if ( primary && SDB_EVT_OCCUR_AFTER == type )
       {
-         /// TODO: For multi datacenter, when node change primary can't
-         /// write dps log.
-         /// So this will cause stat cache is not the same between new
-         /// primary node and other secondary nodes
-         // sdbGetClsCB()->invalidateStatistics() ;
       }
    }
 
@@ -618,7 +533,6 @@ namespace engine
       BOOLEAN hasUpdateGroup = FALSE ;
 
    retry:
-      // if we are sending to catalog group
       if ( CATALOG_GROUPID == groupID )
       {
          ossScopedLock lock ( &_shardLatch, SHARED ) ;
@@ -626,7 +540,6 @@ namespace engine
                                MSG_ROUTE_CAT_SERVICE,
                                hosts ) ;
       }
-      // if we are sending to user group
       else
       {
          clsGroupItem *item = NULL ;
@@ -640,7 +553,6 @@ namespace engine
          }
       }
 
-      /// if we didn't find anything and we have not tried to refresh catalog
       if ( SDB_CLS_NODE_NOT_EXIST == rc && !hasUpdateGroup )
       {
          goto update_group ;
@@ -649,36 +561,28 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to find nodes for sync send, "
                    "group id = %d, rc = %d", groupID, rc ) ;
 
-      // now let's send the information
       {
          UINT32 msgLength = 0 ;
          INT32 receivedLen = 0 ;
          INT32 sentLen = 0 ;
          CHAR* buff = NULL ;
          UINT16 port = 0 ;
-         // randomly pickup a starting position
          UINT32 pos = ossRand() % hosts.size() ;
 
          for ( UINT32 i = 0 ; i < hosts.size() ; ++i )
          {
-            // convert from service port to real port
             _hostAndPort &tmpInfo = hosts[pos] ;
             pos = ( pos + 1 ) % hosts.size() ;
             rc = ossGetPort( tmpInfo._svc.c_str(), port ) ;
             PD_RC_CHECK( rc, PDERROR, "Invalid svcname: %s",
                          tmpInfo._svc.c_str() ) ;
 
-            // use millisecond
-            // establish a socket connection, will be closed by end of
-            // the scope
             ossSocket tmpSocket ( tmpInfo._host.c_str(), port, millisec ) ;
             rc = tmpSocket.initSocket() ;
             PD_RC_CHECK( rc, PDERROR, "Init socket %s:%d failed, rc:%d",
                          tmpInfo._host.c_str(), port, rc ) ;
 
             rc = tmpSocket.connect() ;
-            // if we are not able to connect to a node, let's skip and retry
-            // next one
             if ( rc )
             {
                PD_LOG( PDWARNING, "Connect to %s:%d failed, rc:%d",
@@ -687,8 +591,6 @@ namespace engine
                continue ;
             }
 
-            // send msg, if we can connect to the node but failed to send
-            // let's skip and retry
             rc = tmpSocket.send( (const CHAR *)msg, msg->messageLength,
                                  sentLen, millisec ) ;
             if ( rc )
@@ -699,7 +601,6 @@ namespace engine
                continue ;
             }
 
-            // recieve msg, do not loop and retry
             rc = tmpSocket.recv( (CHAR*)&msgLength, sizeof(INT32), receivedLen,
                                  millisec ) ;
             PD_RC_CHECK( rc, PDERROR, "Recieve msg length failed, rc: %d",
@@ -711,7 +612,6 @@ namespace engine
                rc = SDB_SYS ;
                goto error ;
             }
-            // buff is freed outside the function
             buff = (CHAR*)SDB_OSS_MALLOC( msgLength + 1 ) ;
             if ( !buff )
             {
@@ -721,9 +621,6 @@ namespace engine
                goto error ;
             }
             *(INT32*)buff = msgLength ;
-            // do not loop and retry, simply return error message when we failed to
-            // recv, including timeout, because this is internal communication and
-            // we should control the timeout value
             rc = tmpSocket.recv( &buff[sizeof(INT32)], msgLength-sizeof(INT32),
                                  receivedLen,
                                  millisec ) ;
@@ -733,27 +630,22 @@ namespace engine
                PD_LOG ( PDERROR, "Recieve response message failed, rc: %d", rc ) ;
                goto error ;
             }
-            // Once we received something, we just break out the loop
-            // so no memory leak here
             *ppRecvMsg = (MsgHeader*)buff ;
             break ;
          }
       }
 
-      /// send all node failed
       if ( rc && !hasUpdateGroup )
       {
          goto update_group ;
       }
 
    done:
-      /// update node status
       if ( CATALOG_GROUPID == groupID )
       {
          ossScopedLock lock ( &_shardLatch, SHARED ) ;
          _clsUpdateNodeStatus( &_cataGrpItem, hosts ) ;
       }
-      // if we are sending to user group
       else
       {
          clsGroupItem *item = NULL ;
@@ -773,7 +665,6 @@ namespace engine
       if ( !hasUpdateGroup )
       {
          hasUpdateGroup = TRUE ;
-         // need to update
          if ( CATALOG_GROUPID == groupID )
          {
             rc = updateCatGroup( millisec ) ;
@@ -812,7 +703,6 @@ namespace engine
       _shardLatch.get_shared() ;
       hasLock = TRUE ;
 
-      // sanity check
       if ( !_pNetRtAgent || 0 == _cataGrpItem.nodeCount() )
       {
          rc = SDB_SYS ;
@@ -821,7 +711,6 @@ namespace engine
          goto error ;
       }
 
-      // if we know the catalog primary node, let's try to send
       tmpPos = _cataGrpItem.getPrimaryPos() ;
       if ( SDB_OK == _cataGrpItem.getNodeID( tmpPos, nodeID,
                                              MSG_ROUTE_CAT_SERVICE ) &&
@@ -837,7 +726,6 @@ namespace engine
             PD_LOG ( PDWARNING, "Send message to primary catalog[%s:%s, "
                      "NodeID:%u] failed[rc:%d]", hostName.c_str(),
                      svcName.c_str(), nodeID.columns.nodeID, rc ) ;
-            /// update node status
             _cataGrpItem.updateNodeStat( nodeID.columns.nodeID,
                                          netResult2Status( rc ) ) ;
          }
@@ -847,7 +735,6 @@ namespace engine
          }
       }
 
-      // we want send to any one normal node
       {
          tmpPos = ossRand() % _cataGrpItem.nodeCount() ;
          rc = SDB_CLS_NODE_NOT_EXIST ;
@@ -872,7 +759,6 @@ namespace engine
                   PD_LOG ( PDWARNING, "Send message to catlog[%s:%s, "
                            "NodeID: %u] failed[rc:%d]", hostName.c_str(),
                            svcName.c_str(), nodeID.columns.nodeID, rc ) ;
-                  /// updata node status
                   _cataGrpItem.updateNodeStat( nodeID.columns.nodeID,
                                                netResult2Status( rc ) ) ;
                }
@@ -883,7 +769,6 @@ namespace engine
 
       _shardLatch.release_shared() ;
       hasLock = FALSE ;
-      /// send to all failed, update catalog and retry
       if ( canUpCataGrp && !hasUpdateGrp )
       {
          hasUpdateGrp = TRUE ;
@@ -907,7 +792,6 @@ namespace engine
       goto done ;
    }
 
-   // update cached catalog group information
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR_UPDCATGRP, "_clsShardMgr::updateCatGroup" )
    INT32 _clsShardMgr::updateCatGroup ( INT64 millsec )
    {
@@ -916,12 +800,10 @@ namespace engine
       UINT32 times = 0 ;
 
       _shardLatch.get_shared() ;
-      /// clear all node status
       _cataGrpItem.clearNodesStat() ;
 
       _shardLatch.release_shared() ;
 
-      // build catalog group request
       MsgCatCatGroupReq req ;
       req.header.opCode = MSG_CAT_CATGRP_REQ ;
       req.id.value = 0 ;
@@ -929,14 +811,12 @@ namespace engine
 
       if ( millsec > 0 )
       {
-         // use request id to store tid
          req.header.requestID = (UINT64)ossGetCurrentThreadID() ;
          _upCatEvent.reset() ;
       }
 
    retry:
       ++times ;
-      //send to a catalog
       rc = sendToCatlog( ( MsgHeader*)&req, &_upCatHandle, 0, FALSE ) ;
       if ( rc )
       {
@@ -962,7 +842,6 @@ namespace engine
                goto retry ;
             }
             PD_LOG( PDERROR, "Update catalog group info failed, rc: %d", rc ) ;
-            /// don't goto error
          }
       }
 
@@ -973,26 +852,20 @@ namespace engine
       goto done ;
    }
 
-   // drop all data cs
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR_CLRALLDATA, "_clsShardMgr::clearAllData" )
    INT32 _clsShardMgr::clearAllData ()
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSSHDMGR_CLRALLDATA );
       _SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
-      MON_CS_LIST csList ;
+      std::set<_monCollectionSpace> csList ;
 
       PD_LOG ( PDEVENT, "Clear all dms data" ) ;
 
-      //dump all collectionspace
       dmsCB->dumpInfo( csList, TRUE ) ;
-      MON_CS_LIST::const_iterator it = csList.begin() ;
-      // for now we don't need to latch dms, since it's only used by
-      // full sync, and in that case there's no application able to modify
-      // collection space information
+      std::set<_monCollectionSpace>::const_iterator it = csList.begin() ;
       while ( it != csList.end() )
       {
-         // drop all collection spaces
          const _monCollectionSpace &cs = *it ;
          rc = rtnDropCollectionSpaceCommand ( cs._name, NULL, dmsCB, NULL,
                                               TRUE ) ;
@@ -1010,16 +883,9 @@ namespace engine
       return rc ;
    }
 
-   INT32 _clsShardMgr::syncUpdateCatalog ( const CHAR *pCollectionName,
-                                           const INT64 millsec )
-   {
-      return syncUpdateCatalog( UTIL_UNIQUEID_NULL, pCollectionName,
-                                millsec ) ;
-   }
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR_SYNCUPDCAT, "_clsShardMgr::syncUpdateCatalog" )
-   INT32 _clsShardMgr::syncUpdateCatalog ( utilCLUniqueID clUniqueID,
-                                           const CHAR *pCollectionName,
-                                           const INT64 millsec )
+   INT32 _clsShardMgr::syncUpdateCatalog ( const CHAR *pCollectionName,
+                                           INT64 millsec )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSSHDMGR_SYNCUPDCAT );
@@ -1040,10 +906,7 @@ namespace engine
       ++retryTimes ;
       needRetry = FALSE ;
       _catLatch.get() ;
-      // look for sync event from cache
-      // memory will be released in this function, when there's no thread
-      // wait for the event
-      pEventInfo = _findCatSyncEvent( pCollectionName, clUniqueID, TRUE ) ;
+      pEventInfo = _findCatSyncEvent( pCollectionName, TRUE ) ;
       if ( !pEventInfo )
       {
          _catLatch.release () ;
@@ -1053,12 +916,10 @@ namespace engine
          goto error ;
       }
 
-      // First judge the request is send or not
       if ( FALSE == pEventInfo->send )
       {
-         // if the event has not been sent, let's send to catalog
-         rc = _sendCatalogReq ( pCollectionName, clUniqueID, 0,
-                                &(pEventInfo->netHandle), millsec ) ;
+         rc = _sendCatalogReq ( pCollectionName, 0, &(pEventInfo->netHandle),
+                                millsec ) ;
          if ( SDB_OK == rc )
          {
             pEventInfo->send = TRUE ;
@@ -1070,28 +931,21 @@ namespace engine
       }
       else
       {
-         // if the event is already sent, let's increase the wait counter
-         // note this counter must be protected within catLatch
          pEventInfo->waitNum++ ;
       }
       _catLatch.release () ;
 
-      // we wait for the event if we didn't send anything, or the sent
-      // complete successfully
       if ( SDB_OK == rc )
       {
-         // wait until event is acknowledged
          INT32 result = SDB_OK ;
          rc = pEventInfo->event.wait ( millsec, &result ) ;
          if ( SDB_OK == rc )
          {
-            /// result > 0, means not primary but has already update primary
             rc = result <= 0 ? result : SDB_CLS_NOT_PRIMARY ;
          }
 
          if ( SDB_NET_CANNOT_CONNECT == rc )
          {
-            /// the node is crashed, sleep some seconds
             PD_LOG( PDWARNING, "Catalog group primary node is crashed but "
                     "other nodes not aware, sleep %d seconds",
                     NET_NODE_FAULTUP_MIN_TIME ) ;
@@ -1113,12 +967,9 @@ namespace engine
          {
             PD_LOG( PDERROR, "Update catalog[%s] failed, rc: %d",
                     pCollectionName, rc ) ;
-            /// don't goto error
          }
 
-         // if send=TRUE, must reset send flag
          _catLatch.get () ;
-         // decrease the wait number, this must be protected within catLatch
          pEventInfo->waitNum-- ;
 
          if ( send )
@@ -1126,28 +977,18 @@ namespace engine
             pEventInfo->send = FALSE ;
          }
 
-         // clear event info if there's no thread wait for it
          if ( 0 == pEventInfo->waitNum )
          {
             pEventInfo->event.reset () ;
 
-            //release the event info
             SDB_OSS_DEL pEventInfo ;
             pEventInfo = NULL ;
-            if ( UTIL_IS_VALID_CLUNIQUEID( clUniqueID ) )
-            {
-               _mapSyncCLIDEvent.erase ( clUniqueID ) ;
-            }
-            else
-            {
-               _mapSyncCatEvent.erase ( pCollectionName ) ;
-            }
+            _mapSyncCatEvent.erase ( pCollectionName ) ;
          }
 
          _catLatch.release () ;
       }
 
-      /// if need retry, update catalog and retry
       if ( needRetry && retryTimes < CLS_CATA_RETRY_MAX_TIMES )
       {
          if ( hasUpCataGrp || SDB_OK == updateCatGroup( millsec ) )
@@ -1163,7 +1004,6 @@ namespace engine
       goto done ;
    }
 
-   // Update information for any group
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR_SYNCUPDGPINFO, "_clsShardMgr::syncUpdateGroupInfo" )
    INT32 _clsShardMgr::syncUpdateGroupInfo ( UINT32 groupID, INT64 millsec )
    {
@@ -1180,9 +1020,6 @@ namespace engine
       needRetry = FALSE ;
       _catLatch.get() ;
 
-      // let's try to create or find existing sync event for a given group
-      // memory will be released in this function if there's no other threads
-      // wait for the event
       pEventInfo = _findNMSyncEvent( groupID, TRUE ) ;
       if ( !pEventInfo )
       {
@@ -1193,13 +1030,10 @@ namespace engine
          goto error ;
       }
 
-      //First judge the request is send or not
       if ( FALSE == pEventInfo->send )
       {
-         // send group request to catalog ONLY if it's not been sent yet
          rc = _sendGroupReq( groupID, 0, &(pEventInfo->netHandle),
                              millsec ) ;
-         // if it's successfully sent, let's mark and wait
          if ( SDB_OK == rc )
          {
             pEventInfo->send = TRUE ;
@@ -1216,8 +1050,6 @@ namespace engine
 
       _catLatch.release () ;
 
-      // wait only when someone else is already sent the request
-      // or the sent from current thread success
       if ( SDB_OK == rc )
       {
          INT32 result = SDB_OK ;
@@ -1225,13 +1057,11 @@ namespace engine
 
          if ( SDB_OK == rc )
          {
-            /// result > 0, means not primary but has already update primary
             rc = result <= 0 ? result : SDB_CLS_NOT_PRIMARY ;
          }
 
          if ( SDB_NET_CANNOT_CONNECT == rc )
          {
-            /// the node is crashed, sleep some seconds
             PD_LOG( PDWARNING, "Catalog group primary node is crashed but "
                     "other nodes not aware, sleep %d seconds",
                     NET_NODE_FAULTUP_MIN_TIME ) ;
@@ -1253,10 +1083,8 @@ namespace engine
          {
             PD_LOG( PDERROR, "Update group info[%d] failed, rc: %d",
                     groupID, rc ) ;
-            /// don't goto error
          }
 
-         // if send=TRUE, must reset send flag
          _catLatch.get () ;
          pEventInfo->waitNum-- ;
 
@@ -1265,13 +1093,10 @@ namespace engine
             pEventInfo->send = FALSE ;
          }
 
-         // clear memory resource when there's no other threads
-         // wait for the event
          if ( 0 == pEventInfo->waitNum )
          {
             pEventInfo->event.reset () ;
 
-            //release the event info
             SDB_OSS_DEL pEventInfo ;
             pEventInfo = NULL ;
             _mapSyncNMEvent.erase ( groupID ) ;
@@ -1280,7 +1105,6 @@ namespace engine
          _catLatch.release () ;
       }
 
-      /// if need retry, update catalog and retry
       if ( needRetry && retryTimes < CLS_CATA_RETRY_MAX_TIMES )
       {
          if ( hasUpCataGrp || SDB_OK == updateCatGroup( millsec ) )
@@ -1296,7 +1120,6 @@ namespace engine
       goto done ;
    }
 
-   // set or unset a given node id as catalog primary
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR_UPDPRM, "_clsShardMgr::updatePrimary" )
    INT32 _clsShardMgr::updatePrimary ( const NodeID & id, BOOLEAN primary )
    {
@@ -1365,7 +1188,6 @@ namespace engine
       _MsgCatGroupReq msg ;
       msg.header.opCode = MSG_CAT_NODEGRP_REQ ;
 
-      // set to default request id if we didn't specify any
       if ( 0 == requestID )
       {
          requestID = ++_requestID ;
@@ -1407,7 +1229,6 @@ namespace engine
          requestID = ++_requestID ;
       }
 
-      // pBuffer is freed by end of the function
       rc = msgBuildQueryMsg ( &pBuffer, &buffSize, "CAT", 0, requestID, 0,
                               -1, &query, NULL, NULL, NULL ) ;
       if ( SDB_OK != rc )
@@ -1420,11 +1241,9 @@ namespace engine
       msg->opCode = queryType ;
       msg->TID = 0 ;
       msg->routeID.value = 0 ;
-      //send message
       rc = sendToCatlog ( msg, pHandle, millsec, TRUE ) ;
       if ( rc )
       {
-         // we don't want the error flush diaglog when catalog is offline
          PD_LOG ( PDDEBUG, "Failed to send message to catalog, rc = %d", rc ) ;
          goto error ;
       }
@@ -1443,7 +1262,6 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__SNDCATREQ, "_clsShardMgr::_sendCatalogReq" )
    INT32 _clsShardMgr::_sendCatalogReq ( const CHAR *pCollectionName,
-                                         utilCLUniqueID clUniqueID,
                                          UINT64 requestID,
                                          NET_HANDLE *pHandle,
                                          INT64 millsec )
@@ -1451,7 +1269,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSSHDMGR__SNDCATREQ );
       BSONObj query ;
-      // sanity check
       if ( !pCollectionName )
       {
          rc = SDB_INVALIDARG ;
@@ -1459,17 +1276,9 @@ namespace engine
          goto error ;
       }
 
-      // build BSON object
       try
       {
-         if ( ! UTIL_IS_VALID_CLUNIQUEID( clUniqueID ) )
-         {
-            query = BSON ( CAT_COLLECTION_NAME << pCollectionName ) ;
-         }
-         else
-         {
-            query = BSON ( CAT_CL_UNIQUEID << (INT64)clUniqueID ) ;
-         }
+         query = BSON ( CAT_COLLECTION_NAME << pCollectionName ) ;
       }
       catch ( std::exception &e )
       {
@@ -1479,13 +1288,10 @@ namespace engine
          goto error ;
       }
 
-      // attempt to send to catalog
       rc = _sendCataQueryReq( MSG_CAT_QUERY_CATALOG_REQ, query, requestID,
                               pHandle, millsec ) ;
       if ( SDB_OK != rc )
       {
-         // use debug level since we don't want this message flush
-         // diaglog when catalog is offline
          PD_LOG ( PDDEBUG, "send catelog req[name: %s, requestID: %lld, "
                   "rc: %d]", pCollectionName, requestID, rc ) ;
          goto error ;
@@ -1499,15 +1305,12 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__SENDCSINFOREQ, "_clsShardMgr::_sendCSInfoReq" )
-   INT32 _clsShardMgr::_sendCSInfoReq( const CHAR * pCSName,
-                                       utilCSUniqueID csUniqueID,
-                                       UINT64 requestID,
+   INT32 _clsShardMgr::_sendCSInfoReq( const CHAR * pCSName, UINT64 requestID,
                                        NET_HANDLE *pHandle, INT64 millsec )
    {
       INT32 rc = SDB_OK ;
       BSONObj query ;
       PD_TRACE_ENTRY ( SDB__CLSSHDMGR__SENDCSINFOREQ ) ;
-      // sanity check
       if ( !pCSName )
       {
          rc = SDB_INVALIDARG ;
@@ -1515,21 +1318,9 @@ namespace engine
          goto error ;
       }
 
-      // build query
       try
       {
-         if ( ! UTIL_IS_VALID_CSUNIQUEID( csUniqueID ) )
-         {
-            query = BSON ( CAT_COLLECTION_SPACE_NAME << pCSName ) ;
-         }
-         else
-         {
-            // During the upgrade process, it may happen that data is new,
-            // while catalog is still old. In this case, if data only sends id,
-            // catalog will not be able to handle it.
-            query = BSON ( CAT_COLLECTION_SPACE_NAME << pCSName <<
-                           CAT_CS_UNIQUEID << (INT64)csUniqueID ) ;
-         }
+         query = BSON ( CAT_COLLECTION_SPACE_NAME << pCSName ) ;
       }
       catch ( std::exception &e )
       {
@@ -1539,16 +1330,12 @@ namespace engine
          goto error ;
       }
 
-      // send catalog query request to catalog
       rc = _sendCataQueryReq( MSG_CAT_QUERY_SPACEINFO_REQ, query, requestID,
                               pHandle, millsec ) ;
       if ( SDB_OK != rc )
       {
-         // we use debug level here since we don't want this message
-         // flush diaglog if catalog is offline
-         PD_LOG ( PDDEBUG,
-                  "send collection space req[name: %s, id: %u,requestID: "
-                  "%lld, rc: %d]", pCSName, csUniqueID, requestID, rc ) ;
+         PD_LOG ( PDDEBUG, "send collection space req[name: %s, requestID: "
+                  "%lld, rc: %d]", pCSName, requestID, rc ) ;
          goto error ;
       }
 
@@ -1559,7 +1346,6 @@ namespace engine
       goto done ;
    }
 
-   // get catalog group response information
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__ONCATGPRES, "_clsShardMgr::_onCatCatGroupRes" )
    INT32 _clsShardMgr::_onCatCatGroupRes ( NET_HANDLE handle, MsgHeader * msg )
    {
@@ -1572,7 +1358,6 @@ namespace engine
       map<UINT64, _netRouteNode> mapNodes ;
       MsgCatCatGroupRes *res = (MsgCatCatGroupRes*)msg ;
 
-      // sanity check, make sure the response is OKAY
       if ( SDB_OK != MSG_GET_INNER_REPLY_RC(msg) )
       {
          PD_LOG ( PDERROR, "Update catalog group info failed[rc: %d]",
@@ -1581,7 +1366,6 @@ namespace engine
          goto error ;
       }
 
-      // parse the returned result
       rc = msgParseCatGroupRes ( res, version, groupName, mapNodes, &primary ) ;
       if ( SDB_OK != rc )
       {
@@ -1590,14 +1374,12 @@ namespace engine
       }
       primaryNode.columns.groupID = CATALOG_GROUPID ;
 
-      //update to shard net agent
       if ( 0 == version || version != _catVerion )
       {
          _shardLatch.get () ;
 
          pmdOptionsCB *optCB = pmdGetOptionCB() ;
          string oldCfg, newCfg ;
-         // remember the old info
          optCB->toString( oldCfg ) ;
          MAP_ROUTE_NODE oldCatNodes = _mapNodes ;
          NodeID oldID ;
@@ -1606,7 +1388,6 @@ namespace engine
          _mapNodes.clear() ;
          optCB->clearCatAddr() ;
          map<UINT64, _netRouteNode>::iterator it = mapNodes.begin() ;
-         // iterate for each nodes in catalog list
          while ( it != mapNodes.end() )
          {
             clsNodeItem &nodeItem = it->second ;
@@ -1619,24 +1400,19 @@ namespace engine
             ++it ;
          }
 
-         /// update catalog group info
          _cataGrpItem.updateNodes( mapNodes ) ;
 
-         /// update catalog net info
          it = _mapNodes.begin() ;
          while ( it != _mapNodes.end() )
          {
             clsNodeItem &nodeItem = it->second ;
-            // try to find old catalog information by id
             if ( SDB_OK == _findCatNodeID ( oldCatNodes, nodeItem._host,
                                             nodeItem._service[
                                             MSG_ROUTE_CAT_SERVICE],
                                             oldID ) )
             {
-               // if any field changed
                if ( oldID.value != nodeItem._id.value )
                {
-                  // update network runtime component
                   _pNetRtAgent->updateRoute ( oldID, nodeItem._id ) ;
                   PD_LOG ( PDDEBUG, "Update catalog node[%u:%u] to [%u:%u]",
                            oldID.columns.groupID, oldID.columns.nodeID,
@@ -1646,8 +1422,6 @@ namespace engine
             }
             else
             {
-               // if another to find by old id, let's simply update using the
-               // new info
                _pNetRtAgent->updateRoute ( nodeItem._id,
                                            nodeItem._host,
                                            nodeItem._service[
@@ -1658,23 +1432,23 @@ namespace engine
                         nodeItem._host,
                         nodeItem._service[MSG_ROUTE_CAT_SERVICE].c_str() ) ;
             }
-            // note we do not remove oldID that no longer appears in new config
-            // total refresh must be done by restarting database
             ++it ;
          }
-         // convert new optcb to string
          optCB->toString( newCfg ) ;
-         // if old and new are different, let's flush
          if ( oldCfg != newCfg )
          {
-            // refresh to config file
             optCB->reflush2File() ;
          }
 
          _shardLatch.release () ;
       }
 
-      //update primary
+      if ( CATALOG_GROUPID == nodeID().columns.groupID )
+      {
+         replCB *pRepl = sdbGetReplCB() ;
+         primary = pRepl->getPrimary().columns.nodeID ;
+      }
+
       if ( primary != 0 )
       {
          primaryNode.columns.serviceID = MSG_ROUTE_CAT_SERVICE ;
@@ -1693,7 +1467,6 @@ namespace engine
       }
 
    done:
-      // signal all threads that's wait for catalog update
       _upCatEvent.signalAll( rc ) ;
       PD_TRACE_EXITRC ( SDB__CLSSHDMGR__ONCATGPRES, rc );
       return rc ;
@@ -1701,7 +1474,6 @@ namespace engine
       goto done ;
    }
 
-   // event of data group update
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__ONCATGRPRES, "_clsShardMgr::_onCatGroupRes" )
    INT32 _clsShardMgr::_onCatGroupRes ( NET_HANDLE handle, MsgHeader * msg )
    {
@@ -1714,27 +1486,16 @@ namespace engine
 
       ossScopedLock lock ( &_catLatch ) ;
 
-      // find a request, we don't create new memory if such event doesn't exist
-      // for async call we use 0 as requestID, so we may not get this event
-      // in this case if we get success result we have to get the event based on
-      // group id
       pEventInfo = _findNMSyncEvent( msg->requestID ) ;
 
       if ( SDB_OK != MSG_GET_INNER_REPLY_RC(msg) )
       {
-         // for error handling
-         // 1) group not exist -> we have to clear local cache
-         // 2) not primary -> ignore or resend request
-         // 3) others report error
          rc = MSG_GET_INNER_REPLY_RC(msg) ;
-         // if we are able to find the event
          if ( pEventInfo )
          {
-            // let's check if response shows unable to find group
             if ( SDB_CLS_GRP_NOT_EXIST == rc ||
                  SDB_DMS_EOC == rc )
             {
-               // in that case, let's clear local group cache information
                _pNodeMgrAgent->lock_w() ;
                _pNodeMgrAgent->clearGroup( pEventInfo->groupID ) ;
                _pNodeMgrAgent->release_w() ;
@@ -1745,7 +1506,6 @@ namespace engine
                INT32 rcTmp = updatePrimaryByReply( msg ) ;
                if ( SDB_NET_CANNOT_CONNECT == rcTmp )
                {
-                  /// the node is crashed
                   pEventInfo->event.signalAll ( rcTmp ) ;
                }
                else if ( SDB_OK == rcTmp )
@@ -1760,7 +1520,6 @@ namespace engine
             }
             else
             {
-               // error handling
                PD_LOG ( PDERROR, "Update group[%d] failed[rc:%d]",
                         pEventInfo->groupID, rc ) ;
                pEventInfo->event.signalAll( rc ) ;
@@ -1769,7 +1528,6 @@ namespace engine
       }
       else
       {
-         // if successful returned
          _pNodeMgrAgent->lock_w() ;
          const CHAR* objdata = MSG_GET_INNER_REPLY_DATA(msg) ;
          UINT32 length = msg->messageLength -
@@ -1780,22 +1538,15 @@ namespace engine
          PD_LOG ( ( SDB_OK == rc ? PDEVENT : PDERROR ),
                   "Update group[groupID:%u, rc: %d]", groupID, rc ) ;
 
-         //udpate node info to netAgent
          clsGroupItem* groupItem = NULL ;
          if ( SDB_OK == rc )
          {
             groupItem = _pNodeMgrAgent->groupItem( groupID ) ;
-            // if the event does not exist, we look for the event based
-            // on group id
-            // this may happen in async request where requestID = 0
-            // in this case the previous call will not be able to get anything
-            // so we have to get the wait event here
             if ( !pEventInfo )
             {
                pEventInfo = _findNMSyncEvent( groupID, FALSE ) ;
             }
          }
-         // if we do have group information in cache, let's update them
          if ( groupItem )
          {
             UINT32 indexPos = 0 ;
@@ -1814,7 +1565,6 @@ namespace engine
          }
          _pNodeMgrAgent->release_w() ;
 
-         // if we have event registered, let's signal to all waiters
          if ( pEventInfo )
          {
             pEventInfo->event.signalAll( rc ) ;
@@ -1848,14 +1598,9 @@ namespace engine
       {
          rc = SDB_CLS_UPDATE_CAT_FAILED ;
 
-         //need to found event info by request id
-         // note this request id could be 0 if it's async call
-         // in that case we'll get pEventInfo=NULL
-         // and that is absolutely expected
          pEventInfo = _findCatSyncEvent ( msg->requestID ) ;
          if ( pEventInfo )
          {
-            //the catalog info is delete, so will delete the local item
             if ( SDB_DMS_EOC == res->flags ||
                  SDB_DMS_NOTEXIST == res->flags )
             {
@@ -1864,13 +1609,11 @@ namespace engine
                _pCatAgent->release_w () ;
                pEventInfo->event.signalAll ( SDB_DMS_NOTEXIST ) ;
             }
-            //not primary node, should update catalog group info, and send again
             else if ( SDB_CLS_NOT_PRIMARY == res->flags )
             {
                INT32 rcTmp = updatePrimaryByReply( msg ) ;
                if ( SDB_NET_CANNOT_CONNECT == rcTmp )
                {
-                  /// the node is crashed
                   pEventInfo->event.signalAll ( rcTmp ) ;
                }
                else if ( SDB_OK == rcTmp )
@@ -1883,7 +1626,6 @@ namespace engine
                }
                rc = SDB_OK ;
             }
-            //update catalog failed
             else
             {
                PD_LOG ( PDERROR, "Update catalog[%s] failed[response: %d]",
@@ -1898,9 +1640,7 @@ namespace engine
          INT32 version = 0 ;
          UINT32 groupCount = 0 ;
          const CHAR *pCLType = "normal" ;
-         utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
          string collectionName ;
-
          rc = msgExtractReply ( (CHAR *)msg, &flag, &contextID, &startFrom,
                                 &numReturned, objList ) ;
          if ( SDB_OK != rc )
@@ -1919,8 +1659,7 @@ namespace engine
          {
             version = catSet->getVersion() ;
             groupCount = catSet->groupCount() ;
-            collectionName = catSet->nameStr() ;
-            clUniqueID = catSet->clUniqueID() ;
+            collectionName = catSet->name() ;
             if ( catSet->isMainCL() )
             {
                pCLType = "main" ;
@@ -1937,33 +1676,14 @@ namespace engine
             goto error ;
          }
 
-         PD_LOG ( PDEVENT,
-                  "Update catalog[name: %s, id: %llu, version:%u, type: %s, "
+         PD_LOG ( PDEVENT, "Update catalog[name: %s, version:%u, type: %s, "
                   "group count: %d, rc: %d]", collectionName.c_str(),
-                  clUniqueID, version, pCLType, groupCount, rc ) ;
+                  version, pCLType, groupCount, rc ) ;
 
-         //signal collection info event, since the previous pEVentInfo
-         //could be NULL ( if it's async call, requestID is 0 ), we'll have
-         //to check for pEventInfo here again
-         pEventInfo = _findCatSyncEvent( collectionName.c_str(), clUniqueID ) ;
-         if ( !pEventInfo )
-         {
-            // we have already looked up by name and id, find out nothing
-            goto done ;
-         }
-         if ( pEventInfo->requestID == msg->requestID )
-         {
-            pEventInfo->event.signalAll ( rc ) ;
-            goto done ;
-         }
-
-         if ( ! UTIL_IS_VALID_CLUNIQUEID( clUniqueID ) )
-         {
-            // we have already looked up by name, so just goto done.
-            goto done ;
-         }
-         pEventInfo = _findCatSyncEvent( collectionName.c_str() ) ;
-         if ( pEventInfo && pEventInfo->requestID == msg->requestID )
+         BSONElement ele = objList[0].getField ( CAT_COLLECTION_NAME ) ;
+         clsEventItem *pEventInfo = _findCatSyncEvent( ele.str().c_str(),
+                                                       FALSE ) ;
+         if ( pEventInfo )
          {
             pEventInfo->event.signalAll ( rc ) ;
          }
@@ -1977,50 +1697,27 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__FNDCATSYNCEV, "_clsShardMgr::_findCatSyncEvent" )
    clsEventItem *_clsShardMgr::_findCatSyncEvent ( const CHAR * pCollectionName,
-                                                   utilCLUniqueID clUniqueID,
                                                    BOOLEAN bCreate )
    {
       PD_TRACE_ENTRY ( SDB__CLSSHDMGR__FNDCATSYNCEV );
       SDB_ASSERT ( pCollectionName , "Collection name can't be NULL" ) ;
 
       clsEventItem *pEventInfo = NULL ;
-      MAP_CLID_EVENT_IT it1 ;
-      MAP_CAT_EVENT_IT it2 ;
-
-      /// search from id-map, if find out nothing, then search from name-map
-      if ( UTIL_IS_VALID_CLUNIQUEID( clUniqueID ) )
+      MAP_CAT_EVENT_IT it = _mapSyncCatEvent.find ( pCollectionName ) ;
+      if ( it != _mapSyncCatEvent.end() )
       {
-         it1 = _mapSyncCLIDEvent.find ( clUniqueID ) ;
-         if ( it1 != _mapSyncCLIDEvent.end() )
-         {
-            pEventInfo = it1->second ;
-            goto done ;
-         }
-      }
-
-      it2 = _mapSyncCatEvent.find ( pCollectionName ) ;
-      if ( it2 != _mapSyncCatEvent.end() )
-      {
-         pEventInfo = it2->second ;
+         pEventInfo = it->second ;
          goto done ;
       }
 
-      /// If it has clUniqueID, insert new event item to id-map.
-      /// If it hasn't clUniqueID, insert to name-map. Just only insert one map.
-      if ( bCreate )
+      if ( !bCreate )
       {
-         pEventInfo = SDB_OSS_NEW _clsEventItem ;
-         pEventInfo->name = pCollectionName ;
-         pEventInfo->clUniqueID = clUniqueID ;
-         if ( UTIL_IS_VALID_CLUNIQUEID( clUniqueID) )
-         {
-            _mapSyncCLIDEvent[ clUniqueID ] = pEventInfo ;
-         }
-         else
-         {
-            _mapSyncCatEvent[ pCollectionName ] = pEventInfo ;
-         }
+         goto done ;
       }
+
+      pEventInfo = SDB_OSS_NEW _clsEventItem ;
+      pEventInfo->name = pCollectionName ;
+      _mapSyncCatEvent[pCollectionName] = pEventInfo ;
 
    done:
       PD_TRACE_EXIT ( SDB__CLSSHDMGR__FNDCATSYNCEV );
@@ -2032,10 +1729,7 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__CLSSHDMGR__FNDCATSYNCEVN );
       clsEventItem *pEventInfo = NULL ;
-      MAP_CAT_EVENT_IT it ;
-      MAP_CLID_EVENT_IT idit ;
-
-      it = _mapSyncCatEvent.begin() ;
+      MAP_CAT_EVENT_IT it = _mapSyncCatEvent.begin() ;
       while ( it != _mapSyncCatEvent.end() )
       {
          pEventInfo = it->second ;
@@ -2045,18 +1739,6 @@ namespace engine
          }
          ++it ;
       }
-
-      idit = _mapSyncCLIDEvent.begin() ;
-      while ( idit != _mapSyncCLIDEvent.end() )
-      {
-         pEventInfo = idit->second ;
-         if ( pEventInfo->requestID == requestID )
-         {
-            goto done ;
-         }
-         ++idit ;
-      }
-
       pEventInfo = NULL ;
    done :
       PD_TRACE_EXIT ( SDB__CLSSHDMGR__FNDCATSYNCEVN );
@@ -2081,10 +1763,8 @@ namespace engine
          goto done ;
       }
 
-      //create new event info
       pEventInfo = SDB_OSS_NEW _clsEventItem ;
       pEventInfo->groupID = groupID ;
-      //add to map
       _mapSyncNMEvent[groupID] = pEventInfo ;
 
    done:
@@ -2148,7 +1828,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSSHDMGR_GETANDLOCKCATSET );
-      // sanity check
       SDB_ASSERT ( ppSet && name,
                    "ppSet and name can't be NULL" ) ;
 
@@ -2156,18 +1835,12 @@ namespace engine
       {
          _pCatAgent->lock_r() ;
          *ppSet = _pCatAgent->collectionSet( name ) ;
-         // if we can't find the name and request to update catalog
-         // we'll call syncUpdateCatalog and refind again
          if ( !(*ppSet) && noWithUpdate )
          {
             _pCatAgent->release_r() ;
-            // request to update catalog
             rc = syncUpdateCatalog( name, waitMillSec ) ;
             if ( rc )
             {
-               // if we can't find the collection and not able to update
-               // catalog, we'll return the error of synUpdateCatalog
-               // call
                PD_LOG ( PDERROR, "Failed to sync update catalog, rc = %d",
                         rc ) ;
                goto error ;
@@ -2176,11 +1849,9 @@ namespace engine
             {
                *pUpdated = TRUE ;
             }
-            // we don't want to update again
             noWithUpdate = FALSE ;
             continue ;
          }
-         // if still not able to find it
          if ( !(*ppSet) )
          {
             _pCatAgent->release_r() ;
@@ -2218,12 +1889,9 @@ namespace engine
       {
          _pNodeMgrAgent->lock_r() ;
          *ppItem = _pNodeMgrAgent->groupItem( id ) ;
-         // can we find the group from local cache?
          if ( !(*ppItem) && noWithUpdate )
          {
             _pNodeMgrAgent->release_r() ;
-            // if we can't find such group and is okay to update cache
-            // we'll update cache from catalog
             rc = syncUpdateGroupInfo( id, waitMillSec ) ;
             if ( rc )
             {
@@ -2235,11 +1903,9 @@ namespace engine
             {
                *pUpdated = TRUE ;
             }
-            // only update it once
             noWithUpdate = FALSE ;
             continue ;
          }
-         // if we are not able to find one, let's return group not found
          if ( !(*ppItem) )
          {
             _pNodeMgrAgent->release_r() ;
@@ -2263,17 +1929,10 @@ namespace engine
       return SDB_OK ;
    }
 
-   /*
-    if csUniqueID != 0, means it is a input parameter
-    if csUniqueID == 0, means it is a output parameter
-    */
    INT32 _clsShardMgr::rGetCSInfo( const CHAR * csName,
-                                   utilCSUniqueID &csUniqueID,
-                                   UINT32 *pageSize,
-                                   UINT32 *lobPageSize,
-                                   DMS_STORAGE_TYPE *type,
-                                   BSONObj *clInfo,
-                                   string *newCSName,
+                                   UINT32 &pageSize,
+                                   UINT32 &lobPageSize,
+                                   DMS_STORAGE_TYPE &type,
                                    INT64 waitMillSec )
    {
       INT32 rc = SDB_OK ;
@@ -2291,7 +1950,6 @@ namespace engine
          goto error ;
       }
 
-      // memory will be freed by end of the function
       item = SDB_OSS_NEW clsCSEventItem() ;
       if ( NULL == item )
       {
@@ -2309,8 +1967,7 @@ namespace engine
    retry:
       ++retryTimes ;
       needRetry = FALSE ;
-      // send request
-      rc = _sendCSInfoReq( csName, csUniqueID, requestID, &(item->netHandle),
+      rc = _sendCSInfoReq( csName, requestID, &(item->netHandle),
                            waitMillSec ) ;
       if ( rc )
       {
@@ -2318,18 +1975,15 @@ namespace engine
          goto error ;
       }
 
-      // wait for response
       result = SDB_OK ;
       rc = item->event.wait( waitMillSec, &result ) ;
       if ( SDB_OK == rc )
       {
-         /// result > 0, means not primary but has already update primary
          rc = result <= 0 ? result : SDB_CLS_NOT_PRIMARY ;
       }
 
       if ( SDB_NET_CANNOT_CONNECT == rc )
       {
-         /// the node is crashed, sleep some seconds
          PD_LOG( PDWARNING, "Catalog group primary node is crashed but "
                  "other nodes not aware, sleep %d seconds",
                  NET_NODE_FAULTUP_MIN_TIME ) ;
@@ -2348,7 +2002,6 @@ namespace engine
          hasUpCataGrp = result > 0 ? TRUE : FALSE ;
       }
 
-      /// if need retry, update catalog and retry
       if ( needRetry && retryTimes < CLS_CATA_RETRY_MAX_TIMES )
       {
          if ( hasUpCataGrp || SDB_OK == updateCatGroup( waitMillSec ) )
@@ -2357,33 +2010,12 @@ namespace engine
          }
       }
 
-      // sanity chekc for result
       PD_RC_CHECK( rc, PDWARNING, "Get collection space[%s] info failed, "
                    "rc: %d", csName, rc ) ;
-      if ( newCSName )
-      {
-         *newCSName = item->csName ;
-      }
-      if ( UTIL_UNIQUEID_NULL == csUniqueID )
-      {
-         csUniqueID = item->csUniqueID ;
-      }
-      if ( pageSize )
-      {
-         *pageSize = item->pageSize ;
-      }
-      if ( lobPageSize )
-      {
-         *lobPageSize = item->lobPageSize ;
-      }
-      if ( type )
-      {
-         *type = item->type ;
-      }
-      if ( clInfo )
-      {
-         *clInfo = item->clInfo.getOwned() ;
-      }
+
+      pageSize = item->pageSize ;
+      lobPageSize = item->lobPageSize ;
+      type = item->type ;
 
    done:
       _catLatch.get() ;
@@ -2423,7 +2055,6 @@ namespace engine
 
       while( retryTimes++ < maxRetryTimes )
       {
-         /// send message
          rc = syncSend( ( MsgHeader* )pBuff, CATALOG_GROUPID, TRUE,
                         &pRecvMsg ) ;
          if ( rc )
@@ -2436,7 +2067,6 @@ namespace engine
             }
          }
 
-         /// extrace reply
          pReply = ( MsgOpReply* )pRecvMsg ;
          rc = pReply->flags ;
          SDB_ASSERT( pReply->contextID == -1, "Context id must be -1" ) ;
@@ -2448,7 +2078,6 @@ namespace engine
 
             if ( SDB_NET_CANNOT_CONNECT == rcTmp )
             {
-               /// the node is crashed, sleep some seconds
                PD_LOG( PDWARNING, "Catalog group primary node is crashed "
                        "but other nodes not aware, sleep %d seconds",
                        NET_NODE_FAULTUP_MIN_TIME ) ;
@@ -2502,7 +2131,6 @@ namespace engine
             goto error ;
          }
 
-         /// quit
          break ;
       }
 
@@ -2540,12 +2168,9 @@ namespace engine
 
       ossScopedLock lock ( &_catLatch ) ;
 
-      // based on the requestid, try to find the event
-      // there's no async operation for querycs, so we must have request id here
       it = _mapSyncCSEvent.find( msg->requestID ) ;
       if ( it == _mapSyncCSEvent.end() )
       {
-         // not found, timeout
          goto done ;
       }
 
@@ -2555,13 +2180,11 @@ namespace engine
       {
          rc = res->flags ;
 
-         //not primary node, should send again
          if ( SDB_CLS_NOT_PRIMARY == res->flags )
          {
             INT32 rcTmp = updatePrimaryByReply( msg ) ;
             if ( SDB_NET_CANNOT_CONNECT == rcTmp )
             {
-               /// the node is crashed
                csItem->event.signalAll ( rcTmp ) ;
             }
             else if ( SDB_OK == rcTmp )
@@ -2584,7 +2207,6 @@ namespace engine
       }
       else
       {
-         // if the response is okay, let's extract reply
          rc = msgExtractReply ( (CHAR *)msg, &flag, &contextID, &startFrom,
                                 &numReturned, objList ) ;
          if ( SDB_OK != rc )
@@ -2596,7 +2218,6 @@ namespace engine
          SDB_ASSERT ( numReturned == 1 && objList.size() == 1,
                       "Collection space item num must be 1" ) ;
 
-         //signal collection info event
          ele = objList[0].getField ( CAT_PAGE_SIZE_NAME ) ;
          if ( ele.isNumber() )
          {
@@ -2626,36 +2247,6 @@ namespace engine
          else
          {
             csItem->type = DMS_STORAGE_NORMAL ;
-         }
-
-         ele = objList[0].getField( CAT_COLLECTION_SPACE_NAME ) ;
-         if ( ele.type() == String )
-         {
-            csItem->csName = ele.str() ;
-         }
-
-         ele = objList[0].getField( CAT_CS_UNIQUEID ) ;
-         if ( ele.eoo() )
-         {
-            // it is ok, catalog hasn't been upgraded to new version.
-            csItem->csUniqueID = UTIL_UNIQUEID_NULL ;
-         }
-         else if ( ele.isNumber() )
-         {
-            csItem->csUniqueID = ( utilCSUniqueID ) ele.numberInt() ;
-         }
-         else
-         {
-            csItem->csUniqueID = UTIL_UNIQUEID_NULL ;
-         }
-
-         // eg:
-         // { "Collection": [ { "Name": "bar1", "UniqueID": 2667174690817 } ,
-         //                   { "Name": "bar2", "UniqueID": 2667174690818 } ] }
-         ele = objList[0].getField( CAT_COLLECTION ) ;
-         if ( Array == ele.type() )
-         {
-            csItem->clInfo = ele.embeddedObject().getOwned() ;
          }
       }
 
@@ -2713,60 +2304,118 @@ namespace engine
          _upCatEvent.signalAll( SDB_NETWORK_CLOSE ) ;
       }
 
-      if ( handle == _remoteEndpointHandle )
-      {
-         rtnRemoteMessenger *
-            messenger = pmdGetKRCB()->getRTNCB()->getRemoteMessenger() ;
-         SDB_ASSERT( messenger, "Remote messenger is NULL" ) ;
-         messenger->onDisconnect() ;
-         _remoteEndpointHandle = NET_INVALID_HANDLE ;
-      }
-
       return SDB_OK ;
    }
 
-   // In one case we need to handle the auth request message for shard session,
-   // that is when it's from search engine adapter. We do not really
-   // authenticate, but to get the adapter service information from the message.
-   // For any other auth request, just return OK.
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__ONAUTHREQMSG, "_clsShardMgr::_onAuthReqMsg" )
    INT32 _clsShardMgr::_onAuthReqMsg( NET_HANDLE handle, MsgHeader * msg )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSSHDMGR__ONAUTHREQMSG ) ;
+      BSONObj bodyObj ;
+      BSONElement ele ;
+      const CHAR *peerHost = NULL ;
+      const CHAR *peerSvc = NULL ;
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      rtnRemoteMessenger *messenger = rtnCB->getRemoteMessenger() ;
       BSONObj myInfoObj ;
+      BSONObjBuilder builder ;
       MsgAuthReply *reply = NULL ;
       INT32 replySize = 0 ;
+      UINT32 tmpPos = CLS_RG_NODE_POS_INVALID ;
+      MsgRouteID cataRouteID ;
+      string cataHost ;
+      string cataSvc ;
+      MSG_ROUTE_SERVICE_TYPE svcType = MSG_ROUTE_CAT_SERVICE ;
+      CHAR groupName[ OSS_MAX_GROUPNAME_SIZE + 1 ] = { 0 } ;
 
-      // If the adapter handler is valid, there is some valid connection between
-      // this node and the adapter. In this case, no new connections with a
-      // different handle is allowed.
-      // If it's the current valid connection, it's the adapter to try to
-      // register again. This will happen when the catalogue primary changed,
-      // and the adapter wants to know the new primary node.
-      if ( NET_INVALID_HANDLE != _remoteEndpointHandle &&
-           handle != _remoteEndpointHandle )
+      SDB_ASSERT( messenger, "Remote messenger should not be NULL" ) ;
+      rc = extractAuthMsg( msg, bodyObj ) ;
+      PD_RC_CHECK( rc, PDERROR, "Extract auth message failed[ %d ]", rc ) ;
+
+      try
       {
-         // Another different adapter. Reject!
-         rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "Remote endpoint is ready now. Reject new "
-                          "registration" ) ;
-         goto error ;
+         BSONElement ele ;
+         peerHost = bodyObj.getStringField( FIELD_NAME_HOST ) ;
+         peerSvc = bodyObj.getStringField( FIELD_NAME_SERVICE_NAME ) ;
+
+         ele = bodyObj.getField( FIELD_NAME_GROUPID ) ;
+         if ( !ele.isNumber() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Group id field type error, type[ %d ]",
+                    ele.type() ) ;
+            goto error ;
+         }
+         _seAdptID.columns.groupID = ele.numberLong() ;
+
+         ele = bodyObj.getField( FIELD_NAME_NODEID ) ;
+         if ( NumberInt != ele.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Node id field type error, type[ %d ]",
+                    ele.type() ) ;
+            goto error ;
+         }
+         _seAdptID.columns.nodeID = ele.numberInt() ;
+
+         ele = bodyObj.getField( FIELD_NAME_SERVICE_TYPE ) ;
+         if ( NumberInt != ele.type() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Service type field type error, type[ %d ]",
+                    ele.type() ) ;
+            goto error ;
+         }
+         _seAdptID.columns.serviceID = ele.numberInt() ;
+
+         if ( MSG_INVALID_ROUTEID == _seAdptID.value )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Route id is invalid" ) ;
+            goto error ;
+         }
+
+         rc = messenger->setTarget( _seAdptID, peerHost, peerSvc ) ;
+         PD_RC_CHECK( rc, PDERROR, "Add remote target failed[ %d ]", rc ) ;
+
+         rc = messenger->setLocalID( _nodeID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Set local id failed[ %d ]", rc ) ;
+
+         rc = _pNetRtAgent->updateRoute( _seAdptID, peerHost, peerSvc ) ;
+         if ( rc && SDB_NET_UPDATE_EXISTING_NODE != rc )
+         {
+            PD_LOG( PDERROR, "Update route failed[ %d ], host[ %s ], "
+                    "service[ %s ]", rc, peerHost, peerSvc ) ;
+            goto error ;
+         }
+
+         builder.appendBool( FIELD_NAME_IS_PRIMARY, pmdIsPrimary() ) ;
+         pmdGetKRCB()->getGroupName( groupName, OSS_MAX_GROUPNAME_SIZE + 1 ) ;
+         builder.append( FIELD_NAME_GROUPNAME, groupName ) ;
+
+         tmpPos = _cataGrpItem.getPrimaryPos() ;
+         rc = _cataGrpItem.getNodeInfo( tmpPos, cataRouteID, cataHost,
+                                        cataSvc, svcType ) ;
+         PD_RC_CHECK( rc, PDERROR, "Get catalog node info failed[ %d ]", rc ) ;
+         {
+            BSONObjBuilder subBuilder(
+               builder.subobjStart( FIELD_NAME_CATALOGINFO ) ) ;
+            subBuilder.append( FIELD_NAME_HOST, cataHost ) ;
+            subBuilder.append( FIELD_NAME_SERVICE_NAME, cataSvc ) ;
+            subBuilder.append( FIELD_NAME_GROUPID, cataRouteID.columns.groupID ) ;
+            subBuilder.append( FIELD_NAME_NODEID, cataRouteID.columns.nodeID ) ;
+            subBuilder.append( FIELD_NAME_SERVICE, cataRouteID.columns.serviceID ) ;
+            subBuilder.done() ;
+         }
+
+         myInfoObj = builder.done() ;
       }
-
-      rc = _genAuthReplyInfo( myInfoObj ) ;
-      PD_RC_CHECK( rc, PDERROR, "Generate auth reply information failed[%d]",
-                   rc ) ;
-
-      if ( NET_INVALID_HANDLE == _remoteEndpointHandle )
+      catch ( std::exception &e )
       {
-         BSONObj bodyObj ;
-         rc = extractAuthMsg( msg, bodyObj ) ;
-         PD_RC_CHECK( rc, PDERROR, "Extract auth message failed[%d]", rc ) ;
-         rc = _updateRemoteEndpointInfo( handle, bodyObj ) ;
-         PD_RC_CHECK( rc, PDERROR, "Update remote endpoint information by "
-                                   "registration information failed[%d]",
-                      rc ) ;
+         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
       }
 
    done:
@@ -2791,18 +2440,14 @@ namespace engine
          reply->header.requestID = msg->requestID ;
          reply->flags = rc ;
          reply->startFrom = 0 ;
-         if ( SDB_OK == rc && !myInfoObj.isEmpty() )
+         reply->numReturned = rc ? -1 : 1 ;
+         if ( SDB_OK == rc )
          {
-            reply->numReturned = 1 ;
             ossMemcpy( (CHAR *)reply + sizeof( MsgAuthReply ),
                        myInfoObj.objdata(), myInfoObj.objsize() ) ;
          }
-         else
-         {
-            reply->numReturned = 0 ;
-         }
 
-         rc = _sendToRemoteEndpoint( handle, (MsgHeader *)reply ) ;
+         rc = _sendToSeAdpt( handle, (MsgHeader *)reply ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Send message to search engine adapter "
@@ -2864,11 +2509,6 @@ namespace engine
          goto error ;
       }
 
-      // If the versions are not identical, dump the text indices information,
-      // and send back to search engine adapter, together with the new version.
-      // As after every restart, the version is set to -1 both on engine and
-      // adapter, but actually there may have some text indices. So we increase
-      // the local version by 1, to force dump the index information.
       localVersion = rtnCB->getTextIdxVersion() ;
       if ( RTN_INIT_TEXT_INDEX_VERSION == localVersion )
       {
@@ -2882,11 +2522,8 @@ namespace engine
          localVersion = rtnCB->getTextIdxVersion() ;
       }
 
-      // Dump text indices information into textIdxInfo. Local version will
-      // always be in it. If version not the same, all text indices information
-      // will also be in it.
       rc = _dumpTextIdxInfo( localVersion, textIdxInfo,
-                             ( localVersion == peerVersion ) ) ;
+                             (localVersion == peerVersion) ) ;
       PD_RC_CHECK( rc, PDERROR, "Dump text indices information failed[ %d ]",
                    rc ) ;
 
@@ -2920,7 +2557,7 @@ namespace engine
                        textIdxInfo.objdata(), textIdxInfo.objsize() ) ;
          }
 
-         rc = _sendToRemoteEndpoint( handle, (MsgHeader *)reply ) ;
+         rc = _sendToSeAdpt( handle, (MsgHeader *)reply ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Send message to search engine adapter "
@@ -2945,28 +2582,27 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSSHDMGR__BUILDTEXTIDXOBJ ) ;
-      string cappedCLName = string( idxInfo->_extDataName )
-                            + "." + string( idxInfo->_extDataName ) ;
+
+      CHAR cappedCLName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+
+      rtnExtDataProcessor::getExtDataNames( csInfo->_name, clInfo->_clname,
+                                            idxInfo->getIndexName(), NULL, 0,
+                                            cappedCLName,
+                                            DMS_COLLECTION_FULL_NAME_SZ + 1 ) ;
 
       try
       {
          builder.append( FIELD_NAME_COLLECTION, clInfo->_name ) ;
-         builder.append( CLS_NAME_CAPPED_COLLECTION, cappedCLName.c_str() ) ;
+         builder.append( CLS_NAME_CAPPED_COLLECTION, cappedCLName ) ;
          builder.appendObject( FIELD_NAME_INDEX,
                                idxInfo->_indexDef.objdata(),
                                idxInfo->_indexDef.objsize() ) ;
 
-         // Append cl unique id and logical ids of cl and index.
-         // They are used by the adapter to identify different indices with the
-         // same meta data.
-         // (1) If cs or cl has been recreated with the same name, the cl unique
-         //     id will be different.
-         // (2) If collection is truncated, it's logical id will change.
-         // (3) If index has been recreated, the index logical id will be
-         //     different.
-         builder.append( FIELD_NAME_UNIQUEID, (INT64)clInfo->_clUniqueID ) ;
-         builder.append( FIELD_NAME_LOGICAL_ID, clInfo->_logicalID ) ;
-         builder.append( FIELD_NAME_INDEXLID, idxInfo->_indexLID ) ;
+         BSONArrayBuilder lidObjs( builder.subarrayStart( FIELD_NAME_LOGICAL_ID ) ) ;
+         lidObjs.append( csInfo->_logicalID ) ;
+         lidObjs.append( clInfo->_logicalID ) ;
+         lidObjs.append( idxInfo->_indexLID ) ;
+         lidObjs.done() ;
 
          builder.done() ;
 
@@ -3041,20 +2677,16 @@ namespace engine
       BSONObj infoObj ;
       BSONObjBuilder builder ;
       BOOLEAN isPrimary = pmdIsPrimary() ;
-      INT32 totalTextIdxNum = 0 ;
 
       try
       {
          builder.appendBool( FIELD_NAME_IS_PRIMARY, isPrimary ) ;
          builder.append( FIELD_NAME_VERSION, localVersion ) ;
 
-         // Dump text indices information both on primary and slave nodes.
-         // The adapters need to cache them for searching.
          if ( !onlyVersion )
          {
             BSONArrayBuilder indexObjs( builder.subarrayStart( FIELD_NAME_INDEXES ) ) ;
 
-            // Dump all index information and filter text index ones.
             dmsCB->dumpInfo( csList, FALSE, TRUE, TRUE ) ;
             for ( csItr = csList.begin(); csItr != csList.end(); ++csItr )
             {
@@ -3069,43 +2701,27 @@ namespace engine
                      rcTmp = idxItr->getIndexType( idxType ) ;
                      if ( rcTmp )
                      {
-                        // Only warning, and process the remaining ones.
                         PD_LOG( PDERROR, "Get type of index failed[ %d ], cs[ %s ],"
                                 " cl[ %s ], index[ %s ]", rcTmp, csItr->_name,
                                 clItr->_name, idxItr->getIndexName() ) ;
                         continue ;
                      }
-                     // Only dump text indices in normal status.
-                     if ( IXM_EXTENT_TYPE_TEXT == idxType )
+                     if ( IXM_INDEX_FLAG_NORMAL == idxItr->_indexFlag &&
+                          IXM_EXTENT_TYPE_TEXT == idxType )
                      {
-                        // The engine and the adapter use text version to know
-                        // changes of text indices. On engine side, the version
-                        // is increased during rebuilding, before the index is
-                        // marked as NORMAL. In that case, the adapter should
-                        // request for the information again in next round. So
-                        // we send the total text index number. Adapter should
-                        // check it to know whether all text index information
-                        // has been sent.
-                        ++totalTextIdxNum ;
-                        if ( IXM_INDEX_FLAG_NORMAL == idxItr->_indexFlag )
+                        BSONObjBuilder subBuilder( indexObjs.subobjStart() ) ;
+                        rc = _buildTextIdxObj( &*csItr, &*clItr, &*idxItr,
+                                               subBuilder ) ;
+                        if ( rc )
                         {
-                           BSONObjBuilder subBuilder( indexObjs.subobjStart() ) ;
-                           rc = _buildTextIdxObj( &*csItr, &*clItr, &*idxItr,
-                                                  subBuilder ) ;
-                           if ( rc )
-                           {
-                              PD_LOG( PDERROR, "Build text index object failed[ %d ]",
-                                      rc ) ;
-                              // do not goto error, continue with the remainning
-                              // indices
-                           }
+                           PD_LOG( PDERROR, "Build text index object failed[ %d ]",
+                                   rc ) ;
                         }
                      }
                   }
                }
             }
             indexObjs.done() ;
-            builder.append( FIELD_NAME_TOTAL_COUNT, totalTextIdxNum ) ;
          }
 
          obj = builder.obj() ;
@@ -3127,11 +2743,11 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__SENDTOREMOTEENDPOINT, "_clsShardMgr::_sendToRemoteEndpoint" )
-   INT32 _clsShardMgr::_sendToRemoteEndpoint( NET_HANDLE handle, MsgHeader *msg )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__SENDTOSEADPT, "_clsShardMgr::_sendToSeAdpt" )
+   INT32 _clsShardMgr::_sendToSeAdpt( NET_HANDLE handle, MsgHeader *msg )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSSHDMGR__SENDTOREMOTEENDPOINT ) ;
+      PD_TRACE_ENTRY( SDB__CLSSHDMGR__SENDTOSEADPT ) ;
       BOOLEAN hasLock = FALSE ;
 
       _shardLatch.get_shared() ;
@@ -3146,167 +2762,7 @@ namespace engine
       {
          _shardLatch.release_shared() ;
       }
-      PD_TRACE_EXITRC( SDB__CLSSHDMGR__SENDTOREMOTEENDPOINT, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__UPDATEREMOTEENDPOINTINFO, "_clsShardMgr::_updateRemoteEndpointInfo" )
-   INT32 _clsShardMgr::_updateRemoteEndpointInfo( NET_HANDLE handle,
-                                                  const BSONObj &regInfo )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSSHDMGR__UPDATEREMOTEENDPOINTINFO ) ;
-      MsgRouteID remoteID ;
-      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
-      rtnRemoteMessenger *messenger = NULL ;
-
-      // The remote messenger will be initialized and activated when the adapter
-      // registers for the first time.
-      messenger = rtnCB->getRemoteMessenger() ;
-      if ( !messenger )
-      {
-         rc = rtnCB->prepareRemoteMessenger() ;
-         PD_RC_CHECK( rc, PDERROR, "Prepare remote messenger failed[%d]", rc ) ;
-         messenger = rtnCB->getRemoteMessenger() ;
-      }
-
-      try
-      {
-         // Add the route of search engine adapter into rtnCB's net route agent.
-         const CHAR *peerHost = regInfo.getStringField( FIELD_NAME_HOST ) ;
-         const CHAR *peerSvc =
-               regInfo.getStringField( FIELD_NAME_SERVICE_NAME ) ;
-
-         BSONElement ele = regInfo.getField( FIELD_NAME_GROUPID ) ;
-         if ( !ele.isNumber() )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Group id field type error, type[%d]",
-                    ele.type() ) ;
-            goto error ;
-         }
-         remoteID.columns.groupID = ele.numberLong() ;
-
-         ele = regInfo.getField( FIELD_NAME_NODEID ) ;
-         if ( NumberInt != ele.type() )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Node id field type error, type[%d]",
-                    ele.type() ) ;
-            goto error ;
-         }
-         remoteID.columns.nodeID = ele.numberInt() ;
-
-         ele = regInfo.getField( FIELD_NAME_SERVICE_TYPE ) ;
-         if ( NumberInt != ele.type() )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Service type field type error, type[%d]",
-                    ele.type() ) ;
-            goto error ;
-         }
-         remoteID.columns.serviceID = ele.numberInt() ;
-
-         if ( MSG_INVALID_ROUTEID == remoteID.value )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Route id is invalid" ) ;
-            goto error ;
-         }
-
-         // Update both the route agent of rtn and shard.
-         rc = messenger->setTarget( remoteID, peerHost, peerSvc ) ;
-         PD_RC_CHECK( rc, PDERROR, "Add remote target failed[%d]", rc ) ;
-
-         // Set the local id of route agent in rtn.
-         rc = messenger->setLocalID( _nodeID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Set local id failed[%d]", rc ) ;
-
-         rc = _pNetRtAgent->updateRoute( remoteID, peerHost, peerSvc ) ;
-         if ( rc && SDB_NET_UPDATE_EXISTING_NODE != rc )
-         {
-            PD_LOG( PDERROR, "Update route failed[%d], host[%s], "
-                             "service[%s]", rc, peerHost, peerSvc ) ;
-            goto error ;
-         }
-         _remoteEndpointHandle = handle ;
-      }
-      catch ( std::exception &e )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__CLSSHDMGR__UPDATEREMOTEENDPOINTINFO, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__GENAUTHREPLYINFO, "_clsShardMgr::_genAuthReplyInfo" )
-   INT32 _clsShardMgr::_genAuthReplyInfo( BSONObj &replyInfo )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__CLSSHDMGR__GENAUTHREPLYINFO ) ;
-      BSONObjBuilder builder ;
-      UINT32 tmpPos = CLS_RG_NODE_POS_INVALID ;
-      MsgRouteID cataRouteID ;
-      string cataHost ;
-      string cataSvc ;
-      MSG_ROUTE_SERVICE_TYPE svcType = MSG_ROUTE_CAT_SERVICE ;
-      CHAR groupName[ OSS_MAX_GROUPNAME_SIZE + 1 ] = { 0 } ;
-
-      pmdGetKRCB()->getGroupName( groupName, OSS_MAX_GROUPNAME_SIZE + 1 ) ;
-      if ( 0 == ossStrlen( groupName ) )
-      {
-         rc = SDB_REPL_GROUP_NOT_ACTIVE ;
-         goto error ;
-      }
-
-      try
-      {
-         // Need to reply with following information:
-         // Whether master node?
-         // Group name( used as type of index in ES )
-         // Catalog information( Currently only send the catalog primary node
-         // information ). The search engine adapter needs the catalog
-         // information to get collection version when query.
-         builder.appendBool( FIELD_NAME_IS_PRIMARY, pmdIsPrimary() ) ;
-         builder.append( FIELD_NAME_GROUPNAME, groupName ) ;
-
-         tmpPos = _cataGrpItem.getPrimaryPos() ;
-         rc = _cataGrpItem.getNodeInfo( tmpPos, cataRouteID, cataHost,
-                                        cataSvc, svcType ) ;
-         PD_RC_CHECK( rc, PDERROR, "Get catalog node info failed[%d]", rc ) ;
-         {
-            BSONObjBuilder subBuilder(
-                  builder.subobjStart( FIELD_NAME_CATALOGINFO ) ) ;
-            subBuilder.append( FIELD_NAME_HOST, cataHost ) ;
-            subBuilder.append( FIELD_NAME_SERVICE_NAME, cataSvc ) ;
-            subBuilder.append( FIELD_NAME_GROUPID,
-                               cataRouteID.columns.groupID ) ;
-            subBuilder.append( FIELD_NAME_NODEID,
-                               cataRouteID.columns.nodeID ) ;
-            subBuilder.append( FIELD_NAME_SERVICE,
-                               cataRouteID.columns.serviceID ) ;
-            subBuilder.done() ;
-         }
-
-         replyInfo = builder.obj() ;
-      }
-      catch ( std::exception &e )
-      {
-         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__CLSSHDMGR__GENAUTHREPLYINFO, rc ) ;
+      PD_TRACE_EXITRC( SDB__CLSSHDMGR__SENDTOSEADPT, rc ) ;
       return rc ;
    error:
       goto done ;

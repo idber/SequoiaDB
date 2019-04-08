@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordCommandDC.cpp
 
@@ -71,13 +70,11 @@ namespace engine
       CoordGroupList allgroups ;
       const CHAR *pAction = NULL ;
 
-      // fill default-reply
       contextID                        = -1 ;
 
       MsgOpQuery *pAttachMsg           = (MsgOpQuery *)pMsg ;
       pAttachMsg->header.opCode        = MSG_CAT_ALTER_IMAGE_REQ ;
 
-      // extrace query msg
       {
          CHAR *pQuery = NULL ;
          rc = msgExtractQuery( (CHAR*)pMsg, NULL, NULL, NULL, NULL,
@@ -107,7 +104,6 @@ namespace engine
          }
       }
 
-      // 1. execute on catalog
       rc = executeOnCataGroup( pMsg, cb, &datagroups, NULL, TRUE,
                                NULL, buf ) ;
       if ( rc )
@@ -117,7 +113,6 @@ namespace engine
          goto error ;
       }
 
-      // update all groups
       rc = _pResource->updateGroupList( allgroups, cb, NULL,
                                         FALSE, TRUE, TRUE ) ;
       if ( rc )
@@ -126,7 +121,6 @@ namespace engine
          rc = SDB_OK ;
       }
 
-      // 2. execute on the special groups or special nodes, ignore error
       pAttachMsg->header.opCode        = MSG_BS_QUERY_REQ ;
       if ( 0 == ossStrcasecmp( CMD_VALUE_NAME_ENABLE_READONLY, pAction ) ||
            0 == ossStrcasecmp( CMD_VALUE_NAME_DISABLE_READONLY, pAction ) ||

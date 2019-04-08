@@ -47,18 +47,5 @@ public class testMultiThreadCreateGetDropCS {
     @Test
     public void tesThreadCreateGetDropCS() {
         int THREAD_COUNT = 10;
-//		Thread[] testThread = new Thread[THREAD_COUNT];
-//		for ( int i = 0 ; i < THREAD_COUNT ; i ++ ) {
-//			testThread[i] = new Thread(new MultiThreadCreateGetDropCS());
-//			testThread[i].start();
-//		}
-//		for (int i = 0; i < THREAD_COUNT; i++) {
-//			try {
-//				testThread[i].join();
-//			} catch (InterruptedException e) {
-//				e.printStackTrace();
-//			}
-//		}
-//		assertFalse(sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1));
     }
 }

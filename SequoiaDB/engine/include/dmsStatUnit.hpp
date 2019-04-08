@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dmsStatsUnit.hpp
 
@@ -44,8 +43,8 @@
 #include "dms.hpp"
 #include "ixm.hpp"
 #include "utilMap.hpp"
+#include "utilList.hpp"
 #include "utilSUCache.hpp"
-#include "utilString.hpp"
 #include "../bson/bson.h"
 #include <cmath>
 
@@ -54,7 +53,6 @@ using namespace bson ;
 
 namespace engine
 {
-   // Fields to create indexes of SYSSTAT collections
    #define DMS_STAT_COLLECTION_SPACE           "CollectionSpace"
    #define DMS_STAT_COLLECTION                 "Collection"
 
@@ -69,10 +67,8 @@ namespace engine
    #define DMS_STAT_DEF_TOTAL_RECORDS          ( 10 )
    #define DMS_STAT_DEF_DATA_SIZE              ( 400 )
 
-   // Default selectivity of a range predicate
    #define DMS_STAT_PRED_RANGE_DEF_SELECTIVITY ( 0.05 )
 
-   // Default selectivity of a $et predicate
    #define DMS_STAT_PRED_EQ_DEF_SELECTIVITY    ( 0.005 )
 
    #define DMS_STAT_ROUND( x, min, max ) \
@@ -124,27 +120,16 @@ namespace engine
       protected :
          OSS_INLINE INT32 _equalButLeftMore ( INT32 incFlag )
          {
-            // The compared elements are equal, but left has more elements,
-            // normally it is left > right
-            // But if incFlag is -1 which means a virtual $minKey is appended
-            // left, so right > left
             return incFlag < 0 ? -1 : 1 ;
          }
 
          OSS_INLINE INT32 _equalButRightMore ( INT32 incFlag )
          {
-            // The compared elements are equal, but right has more elements,
-            // normally it is left < right
-            // But if incFlag is 1 which means a virtual $maxKey is appended to
-            // left, so left > right
             return incFlag > 0 ? 1 : -1 ;
          }
 
          OSS_INLINE INT32 _equalDefault ( INT32 incFlag )
          {
-            // The compared elements are equal
-            // If $maxKey is appended to left, left > right
-            // If $minKey is appended to left, left < right
             return incFlag > 0 ? 1 : ( incFlag < 0 ? -1 : 0 ) ;
          }
 
@@ -180,7 +165,7 @@ namespace engine
          {
             if ( idx < _size )
             {
-               _pValues[ idx ] = boValue.getOwned() ;
+               _pValues[ idx ] = boValue.copy() ;
             }
          }
 
@@ -288,7 +273,6 @@ namespace engine
       public :
          _dmsStatUnit () ;
 
-         // For statistics cache, mbID is ID of unit
          _dmsStatUnit ( UINT32 suLID, UINT16 mbID, UINT32 clLID,
                         UINT64 createTime ) ;
 
@@ -304,13 +288,11 @@ namespace engine
 
          OSS_INLINE UINT16 getMBID () const
          {
-            // For statistics cache, mbID is ID of unit
             return getUnitID() ;
          }
 
          OSS_INLINE void setMBID( UINT16 mbID )
          {
-            // For statistics cache, mbID is ID of unit
             _setUnitID( mbID ) ;
          }
 
@@ -368,10 +350,8 @@ namespace engine
          virtual void _toBSON ( BSONObjBuilder &builder ) const = 0 ;
 
       protected :
-         // Number of records in the sample
          UINT64   _sampleRecords ;
 
-         // Number of records in the collection when collecting this statistics
          UINT64   _totalRecords ;
 
          UINT32   _suLogicalID ;
@@ -383,8 +363,6 @@ namespace engine
     */
    class _dmsIndexStat : public _dmsStatUnit
    {
-      typedef _utilString<128>   idxNameString ;
-
       public :
          _dmsIndexStat () ;
 
@@ -394,38 +372,24 @@ namespace engine
 
          virtual ~_dmsIndexStat () ;
 
-         OSS_INLINE virtual void setCSName ( const CHAR *pCSName )
-         {
-            if ( pCSName && *pCSName )
-            {
-               ossStrncpy( _pCSName, pCSName, DMS_COLLECTION_SPACE_NAME_SZ ) ;
-            }
-            else
-            {
-               _pCSName[ 0 ] = '\0' ;
-            }
-         }
-
          OSS_INLINE virtual const CHAR *getCSName () const
          {
             return _pCSName ;
          }
 
-         OSS_INLINE virtual void setCLName ( const CHAR *pCLName )
+         OSS_INLINE virtual void setCSName ( const CHAR *pCSName )
          {
-            if ( pCLName && *pCLName )
-            {
-               ossStrncpy( _pCLName, pCLName, DMS_COLLECTION_NAME_SZ ) ;
-            }
-            else
-            {
-               _pCLName[ 0 ] = '\0' ;
-            }
+            _pCSName = pCSName ;
          }
 
          OSS_INLINE virtual const CHAR *getCLName () const
          {
             return _pCLName ;
+         }
+
+         OSS_INLINE virtual void setCLName ( const CHAR *pCLName )
+         {
+            _pCLName = pCLName ;
          }
 
          OSS_INLINE virtual UINT8 getUnitType () const
@@ -443,18 +407,19 @@ namespace engine
 
          OSS_INLINE const CHAR *getIndexName () const
          {
-            return _pIndexName.str() ;
+            return _pIndexName ;
          }
 
          OSS_INLINE void setIndexName ( const CHAR *pIndexName )
          {
             if ( pIndexName )
             {
-               _pIndexName.append( pIndexName ) ;
+               ossStrncpy( _pIndexName, pIndexName, IXM_INDEX_NAME_SIZE ) ;
+               _pIndexName[ IXM_INDEX_NAME_SIZE ] = '\0' ;
             }
             else
             {
-               _pIndexName.clear() ;
+               _pIndexName[ 0 ] = '\0' ;
             }
          }
 
@@ -586,35 +551,25 @@ namespace engine
                                double &predSelectivity, double &scanSelectivity ) const ;
 
       protected :
-         // Name of collection space
-         CHAR     _pCSName [ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] ;
+         const CHAR *      _pCSName ;
+         const CHAR *      _pCLName ;
 
-         // Name of collection ( short name )
-         CHAR     _pCLName [ DMS_COLLECTION_NAME_SZ + 1 ] ;
-
-         idxNameString     _pIndexName ;
+         CHAR              _pIndexName [ IXM_INDEX_NAME_SIZE + 1 ] ;
 
          dmsExtentID       _indexLogicalID ;
 
-         // Definition of the index
          BSONObj           _keyPattern ;
 
-         // First field in the index
          const CHAR *      _pFirstField ;
 
-         // Number of keys in the index
          UINT32            _numKeys ;
 
-         // Number of index pages
          UINT32            _indexPages ;
 
-         // Number of index levels
          UINT32            _indexLevels ;
 
-         // Is a unique index
          BOOLEAN           _isUnique ;
 
-         // Number of distinct values in the index
          UINT64            _distinctValues ;
 
          UINT16            _nullFrac ;
@@ -651,9 +606,10 @@ namespace engine
 
          OSS_INLINE virtual void setCSName ( const CHAR *pCSName )
          {
-            if ( pCSName && *pCSName )
+            if ( pCSName )
             {
                ossStrncpy( _pCSName, pCSName, DMS_COLLECTION_SPACE_NAME_SZ ) ;
+               _pCSName[ DMS_COLLECTION_SPACE_NAME_SZ ] = '\0' ;
             }
             else
             {
@@ -668,9 +624,10 @@ namespace engine
 
          OSS_INLINE virtual void setCLName ( const CHAR *pCLName )
          {
-            if ( pCLName && *pCLName )
+            if ( pCLName )
             {
                ossStrncpy( _pCLName, pCLName, DMS_COLLECTION_NAME_SZ ) ;
+               _pCLName[ DMS_COLLECTION_NAME_SZ ] = '\0' ;
             }
             else
             {
@@ -766,10 +723,8 @@ namespace engine
          void _findNewFieldStat ( dmsIndexStat *pDeletingStat ) ;
 
       protected :
-         // Name of collection space
          CHAR     _pCSName [ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] ;
 
-         // Name of collection ( short name )
          CHAR     _pCLName [ DMS_COLLECTION_NAME_SZ + 1 ] ;
 
          UINT32            _totalDataPages ;

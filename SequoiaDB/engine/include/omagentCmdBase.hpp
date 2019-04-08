@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omagentCmdBase.hpp
 
@@ -89,6 +88,9 @@ namespace engine
 
          virtual INT32 final( BSONObj &rval, BSONObj &retObj ) ;
 
+         virtual INT32 convertResult( const BSONObj& retObj,
+                                      BSONObj& newRetObj ) ;
+
          virtual INT32 setJsFile ( const CHAR *fileName ) ;
          
          virtual INT32 addJsFile ( const CHAR *filename,
@@ -98,14 +100,6 @@ namespace engine
                                    const CHAR *other = NULL ) ;
 
          virtual INT32 getExcuteJsContent ( string &content ) ;
-
-      public:
-         // async task command callback
-         virtual INT32 setRuningStatus( const BSONObj& itemInfo,
-                                        BSONObj& taskInfo ) ;
-
-         virtual INT32 convertResult( const BSONObj& retObj,
-                                      BSONObj& newRetObj ) ;
 
       protected:
          CHAR                            _jsFileName[ OSS_MAX_PATHSIZE + 1 ] ;

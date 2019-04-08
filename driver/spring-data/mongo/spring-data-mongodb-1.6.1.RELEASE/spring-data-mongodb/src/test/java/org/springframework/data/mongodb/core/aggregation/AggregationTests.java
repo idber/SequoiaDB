@@ -88,7 +88,6 @@ public class AggregationTests {
 	@Before
 	public void setUp() {
 
-//		queryMongoVersionIfNecessary();
 		cleanDb();
 		initSampleDataIfNecessary();
 	}
@@ -260,7 +259,6 @@ public class AggregationTests {
 	@Test
 	public void complexAggregationFrameworkUsageLargestAndSmallestCitiesByState() {
 		/*
-		 //complex mongodb aggregation framework example from http://docs.mongodb.org/manual/tutorial/aggregation-examples/#largest-and-smallest-cities-by-state
 		db.zipInfo.aggregate( 
 			{
 			   $group: {
@@ -368,7 +366,6 @@ public class AggregationTests {
 	@Test
 	public void findStatesWithPopulationOver10MillionAggregationExample() {
 		/*
-		 //complex mongodb aggregation framework example from 
 		 http://docs.mongodb.org/manual/tutorial/aggregation-examples/#largest-and-smallest-cities-by-state
 		 
 		 db.zipcodes.aggregate( 
@@ -1004,12 +1001,10 @@ public class AggregationTests {
 		assertThat(dbo.get("millis"), is((Object) dateTime.getMillisOfSecond()));
 		assertThat(dbo.get("year"), is((Object) dateTime.getYear()));
 		assertThat(dbo.get("month"), is((Object) dateTime.getMonthOfYear()));
-		// dateTime.getWeekOfWeekyear()) returns 6 since for MongoDB the week starts on sunday and not on monday.
 		assertThat(dbo.get("week"), is((Object) 5));
 		assertThat(dbo.get("dayOfYear"), is((Object) dateTime.getDayOfYear()));
 		assertThat(dbo.get("dayOfMonth"), is((Object) dateTime.getDayOfMonth()));
 
-		// dateTime.getDayOfWeek()
 		assertThat(dbo.get("dayOfWeek"), is((Object) 6));
 		assertThat(dbo.get("dayOfYearPlus1Day"), is((Object) dateTime.plusDays(1).getDayOfYear()));
 		assertThat(dbo.get("dayOfYearPlus1DayManually"), is((Object) dateTime.plusDays(1).getDayOfYear()));

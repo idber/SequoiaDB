@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omTransferProcessor.cpp
 
@@ -132,8 +131,7 @@ namespace engine
    INT32 _omTransferProcessor::processMsg( MsgHeader *msg,
                                            rtnContextBuf &contextBuff,
                                            INT64 &contextID,
-                                           BOOLEAN &needReply,
-                                           BOOLEAN &needRollback )
+                                           BOOLEAN &needReply )
    {
       pmdKRCB *pKrcb       = pmdGetKRCB();
       SDB_RTNCB *pRtncb    = pKrcb->getRTNCB();
@@ -141,6 +139,8 @@ namespace engine
       omSdbConnector *conn = NULL ;
       MsgHeader *result    = NULL ;
       rtnContext *pContext = NULL ;
+      omManager *om = sdbGetOMManager() ;
+      MsgRouteID routeID ;
       _omContextTransfer *pTmpContext = NULL ;
 
       contextID = -1 ;
@@ -156,6 +156,7 @@ namespace engine
 
       while ( iter != _nodeList.end() )
       {
+         routeID = om->updateAgentInfo( iter->hostName, iter->service ) ;
          rc = _sendMsg2Target( *iter, msg, &conn, &result ) ;
          if ( SDB_OK == rc )
          {
@@ -169,19 +170,16 @@ namespace engine
 
       if ( SDB_OK != rc )
       {
-         //this sugguest all node is failure.
          PD_LOG( PDERROR, "all nodes is failure." ) ;
          goto error ;
       }
 
-      // create context
       rc = pRtncb->contextNew( RTN_CONTEXT_OM_TRANSFER,
                                &pContext, contextID, eduCB() ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to allocate context(rc=%d)",
                    rc ) ;
 
       pTmpContext = ( _omContextTransfer *)pContext ;
-      //  conn & result will delete in destructor _omContextTransfer
       rc = pTmpContext->open( conn, result ) ;
       if ( SDB_OK != rc )
       {
@@ -212,11 +210,6 @@ namespace engine
          }
       }
       goto done ;
-   }
-
-   INT32 _omTransferProcessor::doRollback()
-   {
-      return SDB_OK ;
    }
 
    SDB_PROCESSOR_TYPE _omTransferProcessor::processorType() const

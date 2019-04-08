@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dmsStorageLobData.cpp
 
@@ -73,7 +72,7 @@ namespace engine
 
    _dmsStorageLobData::~_dmsStorageLobData()
    {
-      close() ;
+      close() ;   
    }
 
    void _dmsStorageLobData::enableSparse( BOOLEAN sparse )
@@ -127,7 +126,6 @@ namespace engine
             goto error ;
          }
          pHeader = ( dmsStorageUnitHeader*)pBuff ;
-         /// get header
          rc = _getFileHeader( *pHeader, cb ) ;
          if ( rc )
          {
@@ -138,7 +136,6 @@ namespace engine
          utilCatPath( tmpPathFile, OSS_MAX_PATHSIZE, suFileName ) ;
 
 #ifdef _WINDOWS
-         /// modify header
          ossStrncpy( pHeader->_name, csName, DMS_SU_NAME_SZ ) ;
          pHeader->_name[ DMS_SU_NAME_SZ ] = 0 ;
 
@@ -148,9 +145,7 @@ namespace engine
             PD_LOG( PDERROR, "Write file header failed, rc: %d", rc ) ;
             goto error ;
          }
-         /// close
          close() ;
-         /// rename
          rc = ossRenamePath( _fullPath, tmpPathFile ) ;
          if ( rc )
          {
@@ -158,7 +153,6 @@ namespace engine
                     _fullPath, tmpPathFile, rc ) ;
             goto error ;
          }
-         /// reopen
          _fileName = suFileName ;
          ossStrcpy( _fullPath, tmpPathFile ) ;
          {
@@ -183,7 +177,6 @@ namespace engine
             }
          }
 #else
-         /// rename filename
          rc = ossRenamePath( _fullPath, tmpPathFile ) ;
          if ( rc )
          {
@@ -195,7 +188,6 @@ namespace engine
          _fileName = suFileName ;
          ossStrcpy( _fullPath, tmpPathFile ) ;
 
-         /// modify header
          ossStrncpy( pHeader->_name, csName, DMS_SU_NAME_SZ ) ;
          pHeader->_name[ DMS_SU_NAME_SZ ] = 0 ;
 
@@ -227,7 +219,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_DMSSTORAGELOBDATA_OPEN ) ;
-      UINT32 mode = OSS_READWRITE | OSS_SHAREREAD ;
+      UINT32 mode = OSS_READWRITE | OSS_SHAREREAD ; 
       SDB_ASSERT( path, "path can't be NULL" ) ;
       INT64 fileSize = 0 ;
       INT64 rightSize = 0 ;
@@ -283,7 +275,7 @@ namespace engine
          {
             PD_LOG ( PDERROR, "lobd file is empty: %s", _fileName.c_str() ) ;
             rc = SDB_DMS_INVALID_SU ;
-            goto error ;
+            goto error ;   
          }
          rc = _initFileHeader( info, cb ) ;
          if ( SDB_OK != rc )
@@ -292,7 +284,6 @@ namespace engine
                     _fileName.c_str(), rc ) ;
             goto error ;
          }
-         // then we get the size again to make sure it's what we need
          rc = ossGetFileSize( &_file, &fileSize ) ;
          if ( SDB_OK != rc )
          {
@@ -320,13 +311,11 @@ namespace engine
          goto error ;
       }
 
-      /// make sure the file size is multiple of segments
       if ( 0 != ( _fileSz - sizeof( dmsStorageUnitHeader ) ) % getSegmentSize() )
       {
          PD_LOG ( PDWARNING, "Unexpected length[%llu] of file: %s", _fileSz,
                   _fileName.c_str() ) ;
 
-         /// need to truncate the file
          rightSize = ( ( _fileSz - sizeof( dmsStorageUnitHeader ) ) /
                        getSegmentSize() ) * getSegmentSize() +
                        sizeof( dmsStorageUnitHeader ) ;
@@ -339,7 +328,6 @@ namespace engine
          }
          PD_LOG( PDEVENT, "Truncate file[%s] to size[%llu] succeed",
                  _fileName.c_str(), rightSize ) ;
-         // then we get the size again to make sure it's what we need
          rc = ossGetFileSize( &_file, &_fileSz ) ;
          if ( rc )
          {
@@ -351,7 +339,6 @@ namespace engine
 
       rightSize = (INT64)totalDataPages * _pageSz +
                   sizeof( dmsStorageUnitHeader ) ;
-      /// make sure the file is correct with meta data
       if ( _fileSz > rightSize )
       {
          PD_LOG( PDWARNING, "File[%s] size[%llu] is grater than storage "
@@ -392,7 +379,6 @@ namespace engine
 
       if ( reGetSize )
       {
-         // then we get the size again to make sure it's what we need
          rc = ossGetFileSize( &_file, &_fileSz ) ;
          if ( rc )
          {
@@ -507,7 +493,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to write data, page:%d, rc:%d",
                  pageID, rc ) ;
-         goto error ;
+         goto error ; 
       }
 
       buffer.done() ;
@@ -580,7 +566,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "Failed to write data, offset:%lld, len:%d, rc:%d",
                  offset, len, rc ) ;
-         goto error ;
+         goto error ; 
       }
 
       buffer.done() ;
@@ -768,8 +754,8 @@ namespace engine
          {
             break ;
          }
-
-      } while (  TRUE ) ;
+     
+      } while (  TRUE ) ; 
    done:
       PD_TRACE_EXITRC( SDB_DMSSTORAGELOBDATA_EXTEND, rc ) ;
       return rc ;
@@ -786,7 +772,6 @@ namespace engine
       SDB_ASSERT( 0 == len % OSS_FILE_DIRECT_IO_ALIGNMENT, "impossible" ) ;
       OSSFILE file ;
       UINT32 mode = OSS_READWRITE | OSS_SHAREREAD  ;
-      /// free in done.
       CHAR *extendBuf = NULL ;
       UINT32 bufSize = DMS_LOBD_EXTEND_LEN ;
 
@@ -860,7 +845,6 @@ namespace engine
             }
             else
             {
-               /// we only need to write some bytes at the end of file.
                bufSize = OSS_FILE_DIRECT_IO_ALIGNMENT ;
                extendSize = OSS_FILE_DIRECT_IO_ALIGNMENT ;
             }
@@ -1043,7 +1027,6 @@ namespace engine
                goto error ;
             }
          }
-         /// rename the file
          rc = ossRenamePath( _fullPath, tmpFile ) ;
          if ( rc )
          {
@@ -1083,7 +1066,6 @@ namespace engine
 
       pHeader = ( dmsStorageUnitHeader* )pBuff ;
       pHeader->reset() ;
-      /// Init
       ossStrncpy( pHeader->_eyeCatcher, DMS_LOBD_EYECATCHER,
                   DMS_LOBD_EYECATCHER_LEN ) ;
       pHeader->_version = DMS_LOB_CUR_VERSION ;
@@ -1096,7 +1078,6 @@ namespace engine
       pHeader->_pageNum  = 0 ;
       pHeader->_secretValue = info._secretValue ;
 
-      /// extend and write
       rc = extend( sizeof( dmsStorageUnitHeader ) ) ;
       if ( rc )
       {
@@ -1287,7 +1268,7 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSSTORAGELOBDATA_FLUSH, "_dmsStorageLobData::flush" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSSTORAGELOBDATA_FLUSH, "_dmsStorageLobData::flush" ) 
    INT32 _dmsStorageLobData::flush()
    {
       INT32 rc = SDB_OK ;

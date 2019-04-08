@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsReplayer.hpp
 
@@ -57,78 +56,12 @@ namespace engine
    class _clsBucket ;
 
    /*
-      CLS_PARALLA_TYPE define
-   */
-   enum CLS_PARALLA_TYPE
-   {
-      CLS_PARALLA_NULL     = 0,
-      CLS_PARALLA_REC,
-      CLS_PARALLA_CL
-   } ;
-
-   /*
-      _clsCLParallaInfo define
-   */
-   class _clsCLParallaInfo : public SDBObject
-   {
-      public:
-         _clsCLParallaInfo() ;
-         ~_clsCLParallaInfo() ;
-
-         BOOLEAN           checkParalla( UINT16 type,
-                                         DPS_LSN_OFFSET curLSN,
-                                         _clsBucket *pBucket ) const ;
-
-         void              updateParalla( CLS_PARALLA_TYPE parallaType,
-                                          UINT16 type,
-                                          DPS_LSN_OFFSET curLSN ) ;
-
-         CLS_PARALLA_TYPE  getLastParallaType() const ;
-
-         BOOLEAN           isParallaTypeSwitch( CLS_PARALLA_TYPE type ) const ;
-
-         INT32             waitLastLSN( _clsBucket *pBucket ) ;
-
-      protected:
-         DPS_LSN_OFFSET       _max( DPS_LSN_OFFSET lsn1,
-                                    DPS_LSN_OFFSET lsn2 ) const
-         {
-            DPS_LSN_OFFSET maxLSN = lsn1 ;
-            if ( DPS_INVALID_LSN_OFFSET == maxLSN ||
-                 ( DPS_INVALID_LSN_OFFSET != lsn2 && lsn2 > maxLSN ) )
-            {
-               maxLSN = lsn2 ;
-            }
-            return maxLSN ;
-         }
-
-         void                 _clearID() ;
-
-      protected:
-         DPS_LSN_OFFSET       _lastInsertLSN ;
-         DPS_LSN_OFFSET       _lastDelLSN ;
-         DPS_LSN_OFFSET       _lastUpdateLSN ;
-
-         UINT64               _lastInsertID ;
-         UINT64               _lastDelID ;
-         UINT64               _lastUpdateID ;
-
-         CLS_PARALLA_TYPE     _lastParallaType ;
-         UINT64               _idValue ;
-
-   } ;
-   typedef _clsCLParallaInfo clsCLParallaInfo ;
-
-
-   /*
       _clsReplayer define
    */
    class _clsReplayer : public SDBObject
    {
-      typedef map<utilCLUniqueID, clsCLParallaInfo>   MAP_CL_PARALLAINFO ;
-
    public:
-      _clsReplayer( BOOLEAN useDps = FALSE, BOOLEAN isReplSync = FALSE ) ;
+      _clsReplayer( BOOLEAN useDps = FALSE ) ;
       ~_clsReplayer() ;
 
       void enableDPS () ;
@@ -141,12 +74,10 @@ namespace engine
       INT32 replayByBucket( dpsLogRecordHeader *recordHeader,
                             _pmdEDUCB *eduCB, _clsBucket *pBucket ) ;
 
-      INT32 replayCrtCS( const CHAR *cs, utilCSUniqueID csUniqueID,
-                         INT32 pageSize, INT32 lobPageSize,
+      INT32 replayCrtCS( const CHAR *cs, INT32 pageSize, INT32 lobPageSize,
                          DMS_STORAGE_TYPE type, _pmdEDUCB *eduCB ) ;
 
       INT32 replayCrtCollection( const CHAR *collection,
-                                 utilCLUniqueID clUniqueID,
                                  UINT32 attributes,
                                  _pmdEDUCB *eduCB,
                                  UTIL_COMPRESSOR_TYPE compType,
@@ -171,18 +102,10 @@ namespace engine
                             const CHAR *data,
                             _pmdEDUCB *eduCB ) ;
 
-   protected:
-      clsCLParallaInfo*    _getOrCreateInfo( utilCLUniqueID clUID ) ;
-      void                 _clearParallaInfo() ;
-
    private:
       _SDB_DMSCB              *_dmsCB ;
       _dpsLogWrapper          *_dpsCB ;
       monDBCB                 *_monDBCB ;
-
-      BOOLEAN                 _isReplSync ;
-
-      MAP_CL_PARALLAINFO      _mapParallaInfo ;
 
    } ;
    typedef class _clsReplayer clsReplayer ;

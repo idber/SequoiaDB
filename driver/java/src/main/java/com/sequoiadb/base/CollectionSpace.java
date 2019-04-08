@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 SequoiaDB Inc.
+ * Copyright 2017 SequoiaDB Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import com.sequoiadb.message.request.AdminRequest;
 import com.sequoiadb.message.response.SdbReply;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.bson.types.BasicBSONList;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -67,20 +67,18 @@ public class CollectionSpace {
      * @return the object of the specified collection, or an exception when the collection does not exist.
      * @throws BaseException If error happens.
      */
-    public DBCollection getCollection(String collectionName) throws BaseException {
-        // get cl from cache
+    public DBCollection getCollection(String collectionName)
+            throws BaseException {
         String collectionFullName = name + "." + collectionName;
         if (sequoiadb.fetchCache(collectionFullName)) {
             return new DBCollection(sequoiadb, this, collectionName);
         }
-        // create cl and then update cache
-        BSONObject obj = new BasicBSONObject();
-        obj.put(SdbConstants.FIELD_NAME_NAME, collectionFullName);
-        AdminRequest request = new AdminRequest(AdminCommand.TEST_CL, obj);
-        SdbReply response = sequoiadb.requestAndResponse(request);
-        sequoiadb.throwIfError(response);
-        sequoiadb.upsertCache(collectionFullName);
-        return new DBCollection(sequoiadb, this, collectionName);
+
+        if (isCollectionExist(collectionName)) {
+            return new DBCollection(sequoiadb, this, collectionName);
+        } else {
+            throw new BaseException(SDBError.SDB_DMS_NOTEXIST, collectionName);
+        }
     }
 
     /**
@@ -147,13 +145,20 @@ public class CollectionSpace {
      * Create collection by options.
      *
      * @param collectionName The collection name
-     * @param options        The {@see <a href=http://doc.sequoiadb.com/cn/index-cat_id-1432190821-edition_id-300>options</a>}
-     *                        for creating collection or null for not specified any options.
-     * @return the newly created object of collection.
-     * @throws BaseException If error happens.
+     * @param options        The options for creating collection, including
+     *                       "ShardingKey", "ReplSize", "IsMainCL" and "Compressed" informations,
+     *                       no options, if null
+     * @return the newly created object of collection
+     * @throws BaseException Tf error happens.
      */
-    public DBCollection createCollection(String collectionName, BSONObject options) {
+    public DBCollection createCollection(String collectionName,
+                                         BSONObject options) {
+        if (isCollectionExist(collectionName)) {
+            throw new BaseException(SDBError.SDB_DMS_EXIST, collectionName);
+        }
+
         String collectionFullName = name + "." + collectionName;
+
         BSONObject obj = new BasicBSONObject();
         obj.put(SdbConstants.FIELD_NAME_NAME, collectionFullName);
         if (options != null) {
@@ -186,7 +191,12 @@ public class CollectionSpace {
      * @throws BaseException If error happens.
      */
     public void dropCollection(String collectionName) throws BaseException {
+        if (!isCollectionExist(collectionName)) {
+            throw new BaseException(SDBError.SDB_DMS_NOTEXIST, collectionName);
+        }
+
         String collectionFullName = name + "." + collectionName;
+
         BSONObject obj = new BasicBSONObject();
         obj.put(SdbConstants.FIELD_NAME_NAME, collectionFullName);
 
@@ -194,145 +204,5 @@ public class CollectionSpace {
         SdbReply response = sequoiadb.requestAndResponse(request);
         sequoiadb.throwIfError(response, collectionName);
         sequoiadb.removeCache(collectionFullName);
-    }
-
-    private void alterInternal(String taskName, BSONObject options, boolean allowNullArgs) throws BaseException {
-        if (null == options && !allowNullArgs) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "options is null");
-        }
-        BSONObject argumentObj = new BasicBSONObject();
-        argumentObj.put(SdbConstants.FIELD_NAME_NAME, taskName);
-        argumentObj.put(SdbConstants.FIELD_NAME_ARGS, options);
-        BSONObject alterObject = new BasicBSONObject();
-        alterObject.put(SdbConstants.FIELD_NAME_ALTER, argumentObj);
-        alterCollectionSpace(alterObject);
-    }
-
-    /**
-     * Alter the current collection space.
-     *
-     * @param options The options of the collection space:
-     *                <ul>
-     *                <li>Domain : the domain of collection space.
-     *                <li>PageSize : page size of collection space.
-     *                <li>LobPageSize : LOB page size of collection space.
-     *                </ul>
-     * @throws BaseException If error happens.
-     */
-    public void alterCollectionSpace(BSONObject options) throws BaseException {
-        if (null == options) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "options is null");
-        }
-
-        BSONObject newObj = new BasicBSONObject();
-        if (!options.containsField(SdbConstants.FIELD_NAME_ALTER)) {
-            newObj.put(SdbConstants.FIELD_NAME_NAME, name);
-            newObj.put(SdbConstants.FIELD_NAME_OPTIONS, options);
-        } else {
-            Object tmpAlter = options.get(SdbConstants.FIELD_NAME_ALTER);
-            if (tmpAlter instanceof BasicBSONObject ||
-                tmpAlter instanceof BasicBSONList) {
-                newObj.put(SdbConstants.FIELD_NAME_ALTER, tmpAlter);
-            } else {
-                throw new BaseException(SDBError.SDB_INVALIDARG, options.toString());
-            }
-            newObj.put(SdbConstants.FIELD_NAME_ALTER_TYPE, SdbConstants.SDB_ALTER_CS);
-            newObj.put(SdbConstants.FIELD_NAME_VERSION, SdbConstants.SDB_ALTER_VERSION);
-            newObj.put(SdbConstants.FIELD_NAME_NAME, name);
-
-            if (options.containsField(SdbConstants.FIELD_NAME_OPTIONS)) {
-                Object tmpOptions = options.get(SdbConstants.FIELD_NAME_OPTIONS);
-                if (tmpOptions instanceof BasicBSONObject) {
-                    newObj.put(SdbConstants.FIELD_NAME_OPTIONS, tmpOptions);
-                } else {
-                    throw new BaseException(SDBError.SDB_INVALIDARG, options.toString());
-                }
-            }
-        }
-
-        AdminRequest request = new AdminRequest(AdminCommand.ALTER_CS, newObj);
-        SdbReply response = sequoiadb.requestAndResponse(request);
-        sequoiadb.throwIfError(response);
-    }
-
-    /**
-     * Alter the current collection space to set domain
-     *
-     * @param options The options of the collection space:
-     *                <ul>
-     *                <li>Domain : the domain of collection space.
-     *                </ul>
-     * @throws BaseException If error happens.
-     */
-    public void setDomain(BSONObject options) throws BaseException {
-        alterInternal(SdbConstants.SDB_ALTER_SET_DOMAIN, options, false);
-    }
-
-    /**
-     * Alter the current collection space to remove domain
-     *
-     * @throws BaseException If error happens.
-     */
-    public void removeDomain() throws BaseException {
-        alterInternal(SdbConstants.SDB_ALTER_REMOVE_DOMAIN, null, true);
-    }
-
-    /**
-     * Alter the current collection space to enable capped
-     *
-     * @throws BaseException If error happens.
-     */
-    public void enableCapped() throws BaseException {
-        alterInternal(SdbConstants.SDB_ALTER_ENABLE_CAPPED, null, true);
-    }
-
-    /**
-     * Alter the current collection space to disable capped
-     *
-     * @throws BaseException If error happens.
-     */
-    public void disableCapped() throws BaseException {
-        alterInternal(SdbConstants.SDB_ALTER_DISABLE_CAPPED, null, true);
-    }
-
-    /**
-     * Alter the current collection space to set attributes.
-     *
-     * @param options The options of the collection space:
-     *                <ul>
-     *                <li>Domain : the domain of collection space.
-     *                <li>PageSize : page size of collection space.
-     *                <li>LobPageSize : LOB page size of collection space.
-     *                </ul>
-     * @throws BaseException If error happens.
-     */
-    public void setAttributes(BSONObject options) throws BaseException {
-        alterInternal(SdbConstants.SDB_ALTER_SET_ATTRIBUTES, options, false);
-    }
-
-   /**
-     * @param oldName The old collection name
-     * @param newName The new collection name
-     * @throws BaseException If error happens.
-     * 
-     */
-    public void renameCollection(String oldName, String newName) throws BaseException {
-        if (oldName == null || oldName.length() == 0) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "The old name of collection is null or empty");
-        }
-        if (newName == null || newName.length() == 0) {
-            throw new BaseException(SDBError.SDB_INVALIDARG, "The new name of collection is null or empty");
-        }
-
-        BSONObject matcher = new BasicBSONObject();
-        matcher.put(SdbConstants.FIELD_NAME_CELLECTIONSPACE, name);
-        matcher.put(SdbConstants.FIELD_NAME_OLDNAME, oldName);
-        matcher.put(SdbConstants.FIELD_NAME_NEWNAME, newName);
-
-        AdminRequest request = new AdminRequest(AdminCommand.RENAME_CL, matcher);
-        SdbReply response = sequoiadb.requestAndResponse(request);
-        sequoiadb.throwIfError(response);
-        sequoiadb.removeCache(name+"."+oldName);
-        sequoiadb.upsertCache(name+"."+newName);
     }
 }

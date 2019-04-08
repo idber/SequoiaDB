@@ -52,8 +52,6 @@ public class QueryTests {
 		System.out.println("q2 is: " + q2.getQueryObject().toString());
 
 
-//		String expected = "{ \"name\" : \"Thomas\" , \"age\" : { \"$lt\" : 80 } }";
-//		Assert.assertEquals(expected, q.getQueryObject().toString());
 	}
 
 	@Test
@@ -65,16 +63,13 @@ public class QueryTests {
 
 	@Test
 	public void testQueryWithNot() {
-//		Query q = new Query(where("name").is("Thomas").and("age").not().mod(10, 0));
 		Query q = new Query(where("name").is("Thomas").notOperator(where("age").mod(10, 0)));
-//		String expected = "{ \"name\" : \"Thomas\" , \"age\" : { \"$not\" : { \"$mod\" : [ 10 , 0 ] } } }";
 		String expected = "{ \"name\" : \"Thomas\" , \"$not\" : [ { \"age\" : { \"$mod\" : [ 10 , 0 ] } } ] }";
 		Assert.assertEquals(expected, q.getQueryObject().toString());
 	}
 
 	@Test
 	public void testInvalidQueryWithNotIs() {
-//			new Query(where("name").not().is("Thomas"));
         System.out.println(new Query(new Criteria().notOperator(where("name").is("Thomas"))).getQueryObject().toString());
 	}
 
@@ -103,10 +98,8 @@ public class QueryTests {
 
 	@Test
 	public void testQueryWithLimit() {
-//		Query q = new Query(where("name").gte("M").lte("T").and("age").not().gt(22));
 		Query q = new Query(where("name").gte("M").lte("T").notOperator(where("age").gt(22)));
 		q.limit(50);
-//		String expected = "{ \"name\" : { \"$gte\" : \"M\" , \"$lte\" : \"T\" } , \"age\" : { \"$not\" : { \"$gt\" : 22 } } }";
 		String expected = "{ \"name\" : { \"$gte\" : \"M\" , \"$lte\" : \"T\" } , \"$not\" : [ { \"age\" : { \"$gt\" : 22 } } ] }";
 		Assert.assertEquals(expected, q.getQueryObject().toString());
 		Assert.assertEquals(50, q.getLimit());
@@ -114,14 +107,11 @@ public class QueryTests {
 
 	@Test
 	public void testQueryWithFieldsAndSlice() {
-//		Query q = new Query(where("name").gte("M").lte("T").and("age").not().gt(22));
 		Query q = new Query(where("name").gte("M").lte("T").notOperator(where("age").gt(22)));
 		q.fields().include("address", 0).include("name", 1);
 
-//		String expected = "{ \"name\" : { \"$gte\" : \"M\" , \"$lte\" : \"T\" } , \"age\" : { \"$not\" : { \"$gt\" : 22 } } }";
 		String expected = "{ \"name\" : { \"$gte\" : \"M\" , \"$lte\" : \"T\" } , \"$not\" : [ { \"age\" : { \"$gt\" : 22 } } ] }";
 		Assert.assertEquals(expected, q.getQueryObject().toString());
-//		String expectedFields = "{ \"address\" : 0 , \"name\" : 1 , \"orders\" : { \"$slice\" : 10 } }";
 		String expectedFields = "{ \"address\" : { \"$include\" : 0 } , \"name\" : { \"$include\" : 1 } }";
 		Assert.assertEquals(expectedFields, q.getFieldsObject().toString());
 	}
@@ -132,15 +122,11 @@ public class QueryTests {
 	@Test
 	public void testQueryWithFieldsElemMatchAndPositionalOperator() {
 
-//		Query query = query(where("name").gte("M").lte("T").and("age").not().gt(22));
 		Query query = query(where("name").gte("M").lte("T").notOperator(where("age").gt(22)));
-//		query.fields().elemMatch("products", where("name").is("milk")).position("comments", 2);
 		query.fields().elemMatch("products", where("name").is("milk"));
 
-//		String expected = "{ \"name\" : { \"$gte\" : \"M\" , \"$lte\" : \"T\" } , \"age\" : { \"$not\" : { \"$gt\" : 22 } } }";
 		String expected = "{ \"name\" : { \"$gte\" : \"M\" , \"$lte\" : \"T\" } , \"$not\" : [ { \"age\" : { \"$gt\" : 22 } } ] }";
 		assertThat(query.getQueryObject().toString(), is(expected));
-//		String expectedFields = "{ \"products\" : { \"$elemMatch\" : { \"name\" : \"milk\" } } , \"comments.$\" : 2 }";
 		String expectedFields = "{ \"products\" : { \"$elemMatch\" : { \"name\" : \"milk\" } } }";
 		assertThat(query.getFieldsObject().toString(), is(expectedFields));
 	}

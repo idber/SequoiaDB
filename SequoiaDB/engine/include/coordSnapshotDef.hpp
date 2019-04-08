@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordSnapshotDef.hpp
 
@@ -132,7 +131,6 @@
 
 #define COORD_SNAPSHOTCL_INPUT         "{$project:{\
                                                 Name:1,\
-                                                UniqueID:1,\
                                                 GroupName:\"$Details.$[0].GroupName\",\
                                                 ID:\"$Details.$[0].ID\",\
                                                 LogicalID:\"$Details.$[0].LogicalID\",\
@@ -150,7 +148,6 @@
                                        }\n\
                                        {$project:{\
                                                 Name:1,\
-                                                UniqueID:1,\
                                                 GroupName:1,\
                                                 Details:{ID:1,LogicalID:1,Sequence:1,\
                                                          Indexes:1,Status:1,TotalRecords:1,TotalDataPages:1,\
@@ -162,21 +159,18 @@
                                                 _id:{Name:\"$Name\",\
                                                      GroupName:\"$GroupName\"},\
                                                 Name:{$first:\"$Name\"},\
-                                                UniqueID:{$first:\"$UniqueID\"},\
                                                 Group:{$push:\"$Details\"},\
                                                 GroupName:{$first:\"$GroupName\"}\
                                                 }\
                                        }\n\
                                        {$project:{\
                                                 Name:1,\
-                                                UniqueID:1,\
                                                 Details:{GroupName:1,Group:1}\
                                                 }\
                                        }\n\
                                        {$group:{\
                                                 _id:\"$Name\",\
                                                 Name:{$first:\"$Name\"},\
-                                                UniqueID:{$first:\"$UniqueID\"},\
                                                 Details:{$push:\"$Details\"}\
                                                 }\
                                        }\n\
@@ -186,7 +180,6 @@
 #define COORD_SNAPSHOTCS_INPUT         "{$group:{\
                                                 _id:\"$Name\",\
                                                 Name:{$first:\"$Name\"},\
-                                                UniqueID:{$first:\"$UniqueID\"},\
                                                 PageSize:{$first:\"$PageSize\"},\
                                                 LobPageSize:{$first:\"$LobPageSize\"},\
                                                 TotalSize:{$sum:\"$TotalSize\"},\
@@ -216,25 +209,5 @@
 
 #define COORD_SNAPSHOTCONTEXTSCUR_INPUT   COORD_SNAPSHOTCONTEXTS_INPUT
 
-#define COORD_SNAPSHOTSVCTASKS_INPUT   "{$group:{\
-                                             _id:{TaskID:\"$TaskID\"},\
-                                             TaskName:{$first:\"$TaskName\"},\
-                                             TaskID:{$first:\"$TaskID\"},\
-                                             Time:{$sum:\"$Time\"},\
-                                             TotalContexts:{$sum:\"$TotalContexts\"},\
-                                             TotalDataRead:{$sum:\"$TotalDataRead\"},\
-                                             TotalIndexRead:{$sum:\"$TotalIndexRead\"},\
-                                             TotalDataWrite:{$sum:\"$TotalDataWrite\"},\
-                                             TotalIndexWrite:{$sum:\"$TotalIndexWrite\"},\
-                                             TotalUpdate:{$sum:\"$TotalUpdate\"},\
-                                             TotalDelete:{$sum:\"$TotalDelete\"},\
-                                             TotalInsert:{$sum:\"$TotalInsert\"},\
-                                             TotalSelect:{$sum:\"$TotalSelect\"},\
-                                             TotalRead:{$sum:\"$TotalRead\"},\
-                                             TotalWrite:{$sum:\"$TotalWrite\"}\
-                                             }\
-                                        }\n\
-                                        {$match:{$and:[{TaskName:{$exists:1}},\
-                                                       {TaskName:{$ne:null}}]}}"
 
 #endif // COORD_SNAPSHOT_DEF_HPP__

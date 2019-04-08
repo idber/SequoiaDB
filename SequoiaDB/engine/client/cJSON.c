@@ -1,5 +1,5 @@
 /*******************************************************************************
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -163,8 +163,6 @@ static const CHAR* parseValue( const CHAR *pStr,
 static CHAR* parseString( const CHAR *pStr,
                           INT32 length,
                           const CJSON_MACHINE *pMachine ) ;
-static BOOLEAN parseHex( const CHAR *pStr, UINT32 *code ) ;
-static INT32 utf16ToUtf8( const CHAR *pStr, INT32 length, CHAR **pOut ) ;
 static const CHAR* parseNumber( const CHAR *pStr,
                                 INT32 *pValInt,
                                 FLOAT64 *pValDouble,
@@ -535,7 +533,6 @@ static const CHAR* tokenObjKey( CJSON *pItem,
 {
    if( *pStr == CHAR_COMMA )
    {
-      // { xx : xx, , <--- is error
       CJSON_PRINTF_LOG( "Syntax Error: extra ','" ) ;
       goto error ;
    }
@@ -682,7 +679,6 @@ static const CHAR* tokenArrValue( CJSON *pItem,
 {
    if( *pStr == CHAR_COMMA )
    {
-      // [ xx , , <--- is error
       CJSON_PRINTF_LOG( "Syntax Error: extra ','" ) ;
       goto error ;
    }
@@ -774,22 +770,18 @@ static const CHAR* readKey( CJSON *pItem,
    INT32 keyLen  = 0 ;
    const CHAR *pStrStart = NULL ;
 
-   // step: 1
    if( *pStr == CHAR_QUOTE )
    {
-      // 'xxxx
       type = TYPE_STRING_QUOTE ;
       ++pStr ;
    }
    else if( *pStr == CHAR_DOUBLE_QUOTES )
    {
-      // "xxxx
       type = TYPE_STRING_DOUBLE_QUOTES ;
       ++pStr ;
    }
    pStrStart = pStr ;
 
-   // step: 2
    pStr = parseCommand( pStr, type, &keyAttr, &keyType ) ;
    if( pStr == NULL )
    {
@@ -803,14 +795,11 @@ static const CHAR* readKey( CJSON *pItem,
       ++pStr ;
    }
 
-   // step: 3
    if( keyAttr == SYMBOL_NONE )
    {
-      // xxx
       if( *pStrStart == CHAR_DOLLAR &&
           pMachine->parseMode == CJSON_RIGOROUS_PARSE )
       {
-         // $???
          CJSON_PRINTF_LOG( "Rigorous mode, can's use\
  an undefined command: %.*s", keyLen, pStrStart ) ;
          goto error ;
@@ -824,11 +813,9 @@ static const CHAR* readKey( CJSON *pItem,
    }
    else
    {
-      // $xxx
       if( keyAttr == SYMBOL_DATATYPE ||
           keyAttr == SYMBOL_UNCERTAIN )
       {
-         // $<type>
          pItem->keyType = keyType ;
       }
       pItem->pKey = parseString( pStrStart, keyLen, pMachine ) ;
@@ -871,7 +858,6 @@ static const CHAR* readValue( CJSON *pItem,
       pTmpStr = parseFun( pTmpStr, pMachine, &pReadInfo ) ;
       if( pTmpStr == NULL )
       {
-         //CJSON_PRINTF_LOG( "Failed to call parse function" ) ;
          goto error ;
       }
       if( cJsonReadInfoExecState( pReadInfo ) == CJSON_EXEC_IGNORE )
@@ -1461,10 +1447,23 @@ error:
    goto done ;
 }
 
+static const UINT8 _firstByteMark[7] = {
+   0x00,
+   0x00,
+   0xC0,
+   0xE0,
+   0xF0,
+   0xF8,
+   0xFC
+} ;
 static CHAR* parseString( const CHAR *pStr,
                           INT32 length,
                           const CJSON_MACHINE *pMachine )
 {
+   UINT8 uc  = 0 ;
+   UINT8 uc2 = 0 ;
+   INT32 len = 0 ;
+   UINT32 ucTmp = 0 ;
    CHAR *pOut = NULL ;
    CHAR *pNewStr = NULL ;
 
@@ -1489,9 +1488,12 @@ static CHAR* parseString( const CHAR *pStr,
       }
       else
       {
-         INT32 sequenceLength = 2 ;
-
-         switch( pStr[1] )
+         ++pStr ;
+         if( length > 0 )
+         {
+            --length ;
+         }
+         switch( *pStr )
          {
          case 'b':
          {
@@ -1525,218 +1527,89 @@ static CHAR* parseString( const CHAR *pStr,
          }
          case 'u':    /* transcode utf16 to utf8. */
          {
-            if ( pMachine->isUnicode )
+            /* get the unicode char. */
+            sscanf( pStr + 1, "%4x", &ucTmp ) ;
+            uc = (UINT8)ucTmp ;
+            pStr += 4 ;
+            length -= 4 ;
+
+            if( ( uc >= 0xDC00 && uc <= 0xDFFF ) || uc == 0 )
             {
-               sequenceLength = utf16ToUtf8( pStr, length, &pOut ) ;
-               if( 0 == sequenceLength )
-               {
-                  sequenceLength = 2 ;
-                  *pOut = pStr[0] ;
-                  ++pOut ;
-                  *pOut = pStr[1] ;
-                  ++pOut ;
-               }
-            }
-            else
-            {
-               *pOut = pStr[0] ;
-               ++pOut ;
-               *pOut = pStr[1] ;
-               ++pOut ;
+               break ;
             }
 
+            if( uc >= 0xD800 && uc <= 0xDBFF )
+            {
+               if( pStr[1] != '\\' || pStr[2] != 'u' )
+               {
+                  break ;
+               }
+               sscanf( pStr + 3, "%4x", &ucTmp ) ;
+               uc2 = (UINT8)ucTmp ;
+               pStr += 6 ;
+               length -= 6 ;
+               if( uc2 < 0xDC00 || uc2 > 0xDFFF )
+               {
+                  break ;
+               }
+               uc = 0x10000 | ( ( uc & 0x3FF ) << 10 ) | ( uc2 & 0x3FF ) ;
+            }
+
+            len = 4 ;
+            if( uc < 0x80 )
+            {
+               len = 1 ;
+            }
+            else if( uc < 0x800 )
+            {
+               len = 2 ;
+            }
+            else if( uc < 0x10000 )
+            {
+               len = 3 ;
+            }
+            pOut += len ;
+            switch( len )
+            {
+            case 4:
+            {
+               *--pOut = ( ( uc | 0x80 ) & 0xBF ) ;
+               uc >>= 6 ;
+            }
+            case 3:
+            {
+               *--pOut = ( ( uc | 0x80 ) & 0xBF ) ;
+               uc >>= 6 ;
+            }
+            case 2:
+            {
+               *--pOut = ( ( uc | 0x80 ) & 0xBF ) ;
+               uc >>= 6 ;
+            }
+            case 1:
+            {
+               *--pOut = ( uc | _firstByteMark[len] ) ;
+            }
+            }
+            pOut += len ;
             break ;
          }
          default:
          {
-            *pOut = pStr[1] ;
+            *pOut = *pStr ;
             ++pOut ;
             break ;
          }
          }
-         pStr += sequenceLength ;
-         length -= sequenceLength ;
+         ++pStr ;
+         --length ;
       }
    }
-
    *pOut = 0 ;
-
 done:
    return pNewStr ;
 error:
    pNewStr = NULL ;
-   goto done ;
-}
-
-/* parse hexadecimal number */
-static BOOLEAN parseHex( const CHAR *pStr, UINT32 *code )
-{
-   INT32 i = 0 ;
-   UINT32 h = 0 ;
-
-   for ( i = 0; i < 4; ++i )
-   {
-      /* parse digit */
-      if ( ( pStr[i] >= '0' ) && ( pStr[i] <= '9' ) )
-      {
-         h += (UINT32) pStr[i] - '0' ;
-      }
-      else if ( ( pStr[i] >= 'A' ) && ( pStr[i] <= 'F' ) )
-      {
-         h += (UINT32) 10 + pStr[i] - 'A' ;
-      }
-      else if ( ( pStr[i] >= 'a' ) && ( pStr[i] <= 'f' ) )
-      {
-         h += (UINT32) 10 + pStr[i] - 'a' ;
-      }
-      else
-      {
-         return FALSE ;
-      }
-
-      if( i < 3 )
-      {
-         h = h << 4 ;
-      }
-   }
-
-   *code = h ;
-
-   return TRUE ;
-}
-
-/* converts a UTF-16 literal to UTF-8
- * A literal can be one or two sequences of the form \uXXXX */
-static INT32 utf16ToUtf8( const CHAR *pStr, INT32 length, CHAR **pOut )
-{
-   BYTE firstByteMark = 0 ;
-   INT32 utf8Length = 0 ;
-   INT32 utf8Position = 0 ;
-   INT32 sequenceLength = 0 ;
-   UINT32 firstCode = 0 ;
-   UINT64 codepoint = 0 ;
-   const CHAR *firstSequence = pStr;
-
-   if ( length < 6 )
-   {
-      /* input ends unexpectedly */
-      goto error ;
-   }
-
-   /* get the first utf16 sequence */
-   if ( parseHex( firstSequence + 2, &firstCode ) == FALSE )
-   {
-      goto error ;
-   }
-
-   /* check that the code is valid */
-   if ( ( ( firstCode >= 0xDC00 ) && ( firstCode <= 0xDFFF ) ) )
-   {
-      goto error ;
-   }
-
-   sequenceLength = 6 ;
-
-   /* UTF16 surrogate pair */
-   if ( ( firstCode >= 0xD800 ) && ( firstCode <= 0xDBFF ) )
-   {
-      UINT32 secondCode = 0;
-      const CHAR *secondSequence = firstSequence + 6 ;
-
-      length -= sequenceLength ;
-      if ( length < 6 )
-      {
-         /* input ends unexpectedly */
-         goto error ;
-      }
-
-      if ( ( secondSequence[0] != '\\' ) || ( secondSequence[1] != 'u' ) )
-      {
-         /* missing second half of the surrogate pair */
-         goto error ;
-      }
-
-      /* get the second utf16 sequence */
-      if ( parseHex( secondSequence + 2, &secondCode ) )
-      {
-         goto error ;
-      }
-
-      /* check that the code is valid */
-      if ( ( secondCode < 0xDC00 ) || ( secondCode > 0xDFFF ) )
-      {
-         /* invalid second half of the surrogate pair */
-         goto error ;
-      }
-
-      sequenceLength += 6 ;
-
-      /* calculate the unicode codepoint from the surrogate pair */
-      codepoint = 0x10000 +
-               ( ( ( firstCode & 0x3FF ) << 10 ) | ( secondCode & 0x3FF ) ) ;
-   }
-   else
-   {
-      codepoint = firstCode ;
-   }
-
-   /* encode as UTF-8
-   * takes at maximum 4 bytes to encode:
-   * 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx */
-   if ( codepoint < 0x80 )
-   {
-      /* normal ascii, encoding 0xxxxxxx */
-      utf8Length = 1 ;
-   }
-   else if ( codepoint < 0x800 )
-   {
-      /* two bytes, encoding 110xxxxx 10xxxxxx */
-      utf8Length = 2 ;
-      firstByteMark = 0xC0 ; /* 11000000 */
-   }
-   else if ( codepoint < 0x10000 )
-   {
-      /* three bytes, encoding 1110xxxx 10xxxxxx 10xxxxxx */
-      utf8Length = 3 ;
-      firstByteMark = 0xE0 ; /* 11100000 */
-   }
-   else if (codepoint <= 0x10FFFF)
-   {
-      /* four bytes, encoding 1110xxxx 10xxxxxx 10xxxxxx 10xxxxxx */
-      utf8Length = 4 ;
-      firstByteMark = 0xF0 ; /* 11110000 */
-   }
-   else
-   {
-      /* invalid unicode codepoint */
-      goto error ;
-   }
-
-   /* encode as utf8 */
-   
-   for ( utf8Position = utf8Length - 1; utf8Position > 0; --utf8Position )
-   {
-      /* 10xxxxxx */
-      (*pOut)[utf8Position] = (CHAR)( ( codepoint | 0x80 ) & 0xBF ) ;
-      codepoint >>= 6 ;
-   }
-
-   /* encode first byte */
-   if ( utf8Length > 1 )
-   {
-      (*pOut)[0] = (CHAR)( ( codepoint | firstByteMark ) & 0xFF ) ;
-   }
-   else
-   {
-      (*pOut)[0] = (CHAR)( codepoint & 0x7F ) ;
-   }
-
-   *pOut += utf8Length ;
-
-done:
-    return sequenceLength ;
-error:
-   sequenceLength = 0 ;
    goto done ;
 }
 
@@ -1762,63 +1635,51 @@ static const CHAR* parseNumber( const CHAR *pStr,
    INT64 n2 = 0 ;
    CJSON_VALUE_TYPE numType = CJSON_INT32 ;
 
-   //step 1
    if( *pStr == '#' )
    {
-      //#xxx
       ++pStr ;
       ++len ;
    }
    if( *pStr == '-' )
    {
-      //-xxx
       sign = -1 ;
       ++pStr ;
       ++len ;
    }
    else if( *pStr == '+' )
    {
-      //+xxx
       sign = 1 ;
       ++pStr ;
       ++len ;
    }
 
-   //step 2
    while( *pStr == '0' )
    {
-      //0xxxxx
       ++pStr ;
       ++len ;
    }
 
-   //step 3
    while( *pStr >= '0' && *pStr <= '9' )
    {
-      //<number>xxxx
       INT32 num = *pStr - '0' ;
       if( numType == CJSON_INT32 )
       {
          if( n1 > CJSON_INT32_MAX )
          {
-            //n1 * 10 is greater than the int range
             numType = CJSON_INT64 ;
          }
          else if( n1 < CJSON_INT32_MIN )
          {
-            //n1 * 10 is less than the int range
             numType = CJSON_INT64 ;
          }
          else if( n1 == CJSON_INT32_MAX || n1 == CJSON_INT32_MIN )
          {
             if( sign == 1 && num > 7 )
             {
-               //n1 * 10 + num is greater than the max int
                numType = CJSON_INT64 ;
             }
             else if( sign == -1 && num > 8 )
             {
-               //n1 * 10 - num is less then the min int
                numType = CJSON_INT64 ;
             }
          }
@@ -1827,24 +1688,20 @@ static const CHAR* parseNumber( const CHAR *pStr,
       {
          if( n2 > CJSON_INT64_MAX )
          {
-            //n2 * 10 is greater than the long long range
             numType = CJSON_DECIMAL ;
          }
          else if( n2 < CJSON_INT64_MIN )
          {
-            //n2 * 10 is less than the long long range
             numType = CJSON_DECIMAL ;
          }
          else if( n2 == CJSON_INT64_MAX || n2 == CJSON_INT64_MIN )
          {
             if( sign == 1 && num > 7 )
             {
-               //n2 * 10 + num is greater than the max long long
                numType = CJSON_DECIMAL ;
             }
             else if( sign == -1 && num > 8 )
             {
-               //n2 * 10 - num is less then the min long long
                numType = CJSON_DECIMAL ;
             }
          }
@@ -1856,10 +1713,8 @@ static const CHAR* parseNumber( const CHAR *pStr,
       ++len ;
    }
 
-   //step 4
    if( *pStr == '.' && pStr[1] >= '0' && pStr[1] <= '9' ) 
    {
-      //<number>.xxx
       numType = CJSON_DOUBLE ;
       ++pStr ;
       ++len ;
@@ -1874,11 +1729,9 @@ static const CHAR* parseNumber( const CHAR *pStr,
       n = n + sign * decimal / pow( 10.0, scale ) ;
    }
 
-   //step 5
    if( *pStr == 'e' || *pStr == 'E' )
    {
       numType = CJSON_DOUBLE ;
-      //<number>[e/E]xxx
       ++pStr ;
       ++len ;
       if( *pStr == '+' )
@@ -1900,10 +1753,8 @@ static const CHAR* parseNumber( const CHAR *pStr,
       }
    }
 
-   //step 6
    if ( numType == CJSON_DOUBLE )
    {
-      // number = +/- number.fraction * 10^+/- exponent
       n = n * pow( 10.0, ( subscale * signsubscale * 1.0 ) ) ;
    }
    *pValDouble = n ;
@@ -1944,17 +1795,21 @@ static const CHAR* parseCommand( const CHAR *pStr,
       {
          break ;
       }
-
       if( *pStr == CHAR_SLASH && isSlash == FALSE && type != TYPE_STRING_NONE )
       {
          isSlash = TRUE ;
+         ++length ;
+         ++pStr ;
+         continue ;
       }
-
+      else if( isSlash == TRUE )
+      {
+         isSlash = FALSE ;
+      }
       if( type != TYPE_STRING_NONE && *pStr == CHAR_COLON )
       {
          pColon = pStr ;
       }
-
       if( y < _commandSize )
       {
          if( !isCHeck && _command[y].sameCharNum == x )
@@ -1984,12 +1839,6 @@ static const CHAR* parseCommand( const CHAR *pStr,
       {
          ++length ;
          ++pStr ;
-         if( isSlash == TRUE )
-         {
-            ++length ;
-            ++pStr ;
-            isSlash = FALSE ;
-         }
       }
    }
    if( *pStr == 0 )
@@ -2080,7 +1929,6 @@ static const CHAR* parseArgImpl( const CHAR *pStr,
 
    if( *pStr == CHAR_DOUBLE_QUOTES || *pStr == CHAR_QUOTE )
    {
-      // "xxxx  or  'xxxx
       BOOLEAN isSlash = FALSE ;
       STRING_TYPE stringType = TYPE_STRING_NONE ;
       const CHAR *pStrStart = NULL ;
@@ -2137,7 +1985,6 @@ static const CHAR* parseArgImpl( const CHAR *pStr,
             *pStr == '-' ||
             *pStr == '#' )
    {
-      // <number>
       valType = CJSON_NUMBER ;
       pStr = parseNumber( pStr, &valInt, &valDouble, &valInt64, &valType, &length ) ;
       pStr = skip( pStr ) ;
@@ -2150,7 +1997,6 @@ static const CHAR* parseArgImpl( const CHAR *pStr,
    else
    {
       const CHAR *pStrStart = pStr ;
-      //true false null
       if( pStrStart[0] == 't' &&
           pStrStart[1] == 'r' &&
           pStrStart[2] == 'u' &&
@@ -2465,7 +2311,6 @@ static const CHAR* parseArgs( const CHAR *pStr,
          }
          else if( *pStr == CHAR_RIGHT_ROUND_BRACKET )
          {
-            // do nothing
          }
          else
          {
@@ -2578,7 +2423,6 @@ static BOOLEAN checkCustomType( CJSON *pItem,
          {
             if( pMachine->parseMode == CJSON_RIGOROUS_PARSE )
             {
-               //$命令同级下存在其他普通字段
                CJSON_PRINTF_LOG( "The %s and the %s can not coexist",
                                  pKey,
                                  pItem->pKey ) ;
@@ -2593,7 +2437,6 @@ static BOOLEAN checkCustomType( CJSON *pItem,
                 assistType != CJSON_NONE &&
                 assistType != CJSON_OPTIONS )
             {
-               //$regex和非$options的辅助字段
                if( pMachine->parseMode == CJSON_RIGOROUS_PARSE )
                {
                   CJSON_PRINTF_LOG( "The %s and the %s can not coexist",
@@ -2607,7 +2450,6 @@ static BOOLEAN checkCustomType( CJSON *pItem,
                      assistType != CJSON_NONE &&
                      assistType != CJSON_TYPE )
             {
-               //$binary和非$type的辅助字段
                if( pMachine->parseMode == CJSON_RIGOROUS_PARSE )
                {
                   CJSON_PRINTF_LOG( "The %s and the %s can not coexist",
@@ -2621,7 +2463,6 @@ static BOOLEAN checkCustomType( CJSON *pItem,
                      assistType != CJSON_NONE &&
                      assistType != CJSON_PRECISION )
             {
-               //$decimal和非$precision的辅助字段
                if( pMachine->parseMode == CJSON_RIGOROUS_PARSE )
                {
                   CJSON_PRINTF_LOG( "The %s and the %s can not coexist",
@@ -2635,7 +2476,6 @@ static BOOLEAN checkCustomType( CJSON *pItem,
          }
          else
          {
-            //同一级下,有多个类型字段
             if( pMachine->parseMode == CJSON_RIGOROUS_PARSE )
             {
                CJSON_PRINTF_LOG( "The %s and the %s can not coexist",
@@ -2658,7 +2498,6 @@ static BOOLEAN checkCustomType( CJSON *pItem,
                 customType != CJSON_NONE &&
                 customType != CJSON_REGEX )
             {
-               //$options和非$regex的类型字段
                if( pMachine->parseMode == CJSON_RIGOROUS_PARSE )
                {
                   CJSON_PRINTF_LOG( "The %s and the %s can not coexist",
@@ -2672,7 +2511,6 @@ static BOOLEAN checkCustomType( CJSON *pItem,
                      customType != CJSON_NONE &&
                      customType != CJSON_BINARY )
             {
-               //$type和非$binary的类型字段
                if( pMachine->parseMode == CJSON_RIGOROUS_PARSE )
                {
                   CJSON_PRINTF_LOG( "The %s and the %s can not coexist",
@@ -2686,7 +2524,6 @@ static BOOLEAN checkCustomType( CJSON *pItem,
                      customType != CJSON_NONE &&
                      customType != CJSON_DECIMAL )
             {
-               //$type和非$binary的类型字段
                if( pMachine->parseMode == CJSON_RIGOROUS_PARSE )
                {
                   CJSON_PRINTF_LOG( "The %s and the %s can not coexist",
@@ -2700,7 +2537,6 @@ static BOOLEAN checkCustomType( CJSON *pItem,
          }
          else
          {
-            //同一级下,有多个辅助字段
             if( pMachine->parseMode == CJSON_RIGOROUS_PARSE )
             {
                CJSON_PRINTF_LOG( "The %s and the %s can not coexist",
@@ -2718,7 +2554,6 @@ static BOOLEAN checkCustomType( CJSON *pItem,
          {
             if( pMachine->parseMode == CJSON_RIGOROUS_PARSE )
             {
-               //$命令同级下存在其他普通字段
                CJSON_PRINTF_LOG( "The %s and the %s can not coexist",
                                  pKey,
                                  pItem->pKey ) ;
@@ -3075,7 +2910,6 @@ SDB_EXPORT CJSON_MACHINE* cJsonCreate()
       ossMemset( pMachine, 0, sizeof( CJSON_MACHINE ) ) ;
       pMachine->state = STATE_READY ;
       pMachine->parseMode = CJSON_LOOSE_PARSE ;
-      pMachine->isUnicode = TRUE ;
       pMachine->level = 0 ;
       pMachine->isCheckEnd = FALSE ;
    }
@@ -3084,15 +2918,13 @@ SDB_EXPORT CJSON_MACHINE* cJsonCreate()
 
 SDB_EXPORT void cJsonInit( CJSON_MACHINE *pMachine,
                            CJSON_PARSE_MODE mode,
-                           BOOLEAN isCheckEnd,
-                           BOOLEAN isUnicode )
+                           BOOLEAN isCheckEnd )
 {
    CJSON_MEMORY_BLOCK *pBlock = NULL ;
    pMachine->state = STATE_READY ;
    pMachine->parseMode = mode ;
    pMachine->level = 0 ;
    pMachine->isCheckEnd = isCheckEnd ;
-   pMachine->isUnicode = isUnicode ;
    pMachine->pItem = NULL ;
    pMachine->pMemBlock = pMachine->pFirstMemBlock ;
    pBlock = pMachine->pMemBlock ;

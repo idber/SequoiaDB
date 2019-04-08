@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omagentTask.hpp
 
@@ -96,11 +95,8 @@ namespace engine
          void _setRetErr( INT32 errNum ) ;
 
       private:
-         // add host raw info
          BSONObj                           _addHostRawInfo ;
-         // add host info
          vector<AddHostInfo>               _addHostInfo ;
-         // result
          map< INT32, AddHostResultInfo >   _addHostResult ;
 
          ossSpinSLatch                     _taskLatch ;
@@ -141,11 +137,8 @@ namespace engine
          void _setRetErr( INT32 errNum ) ;
 
       private:
-         // remove host raw info
          BSONObj                            _removeHostRawInfo ;
-         // remove host info
          vector<RemoveHostInfo>             _removeHostInfo ;
-         // result
          map< INT32, RemoveHostResultInfo > _removeHostResult ;
 
          ossSpinSLatch                      _taskLatch ;
@@ -218,13 +211,11 @@ namespace engine
       private:
          BSONObj                                _instDBBusRawInfo ;
          vector< pair<string, string> >         _resultOrder ;
-         // install and result info
          vector<InstDBBusInfo>                  _standalone ;
          vector<InstDBBusInfo>                  _catalog ;
          vector<InstDBBusInfo>                  _coord ;
-         map< string, vector<InstDBBusInfo> >   _mapGroups ;
+         map< string, vector<InstDBBusInfo> >   _mapGroups ;                        
          
-         // temporary coord info
          string                                 _tmpCoordSvcName ;
          BSONObj                                _tmpCoordCfgObj ;
 
@@ -240,7 +231,6 @@ namespace engine
          INT32                                  _errno ;
          CHAR                                   _detail[OMA_BUFF_SIZE + 1] ;
 
-         // groups have been created
          set<string>                       _existGroups ;
          
    } ;
@@ -291,22 +281,17 @@ namespace engine
          INT32 _removeDataRG() ;
 
       private:
-         BOOLEAN _force ;
-
          BSONObj                           _removeDBBusRawInfo ;
          BOOLEAN                           _isStandalone ;
          vector< pair<string, string> >    _resultOrder ;
-         // uninstall and result info
          vector<RemoveDBBusInfo>           _standalone ;
          vector<RemoveDBBusInfo>           _catalog ;
          vector<RemoveDBBusInfo>           _coord ;
          vector<RemoveDBBusInfo>           _data ;
 
       private:
-         // temporary coord info
          string                            _tmpCoordSvcName ;
          BSONObj                           _tmpCoordCfgObj ;
-         // auth info
          BSONObj                           _authInfo ;
          
       private:
@@ -363,11 +348,8 @@ namespace engine
          void    _setResultToFail() ;
 
       protected:
-         // znode raw info
          BSONObj                           _ZNRawInfo ;
-         // znode info
          vector<ZNInfo>                    _ZNInfo ;
-         // result
          map< INT32, ZNResultInfo >        _ZNResult ;
          
          BOOLEAN                           _isTaskFail ;

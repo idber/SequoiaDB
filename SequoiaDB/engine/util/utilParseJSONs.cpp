@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = utilParseJSONs.cpp
 
@@ -46,7 +45,6 @@ INT32 _utilJSONParser::initialize ( _utilParserParamet *parserPara )
 {
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB__UTILJSONPS__INIT );
-   //check error
    if ( parserPara->blockNum <= 0 )
    {
       rc = SDB_INVALIDARG ;
@@ -77,7 +75,6 @@ INT32 _utilJSONParser::initialize ( _utilParserParamet *parserPara )
    }
    _curBuffer = _buffer ;
    ossMemset ( _buffer, 0, _bufferSize ) ;
-   //IO
    if ( UTIL_GET_IO == _accessModel )
    {
       utilAccessParametLocalIO accessData ;
@@ -166,7 +163,6 @@ INT32 _utilJSONParser::getNextRecord ( UINT32 &startOffset,
             if ( isReadSize > _blockSize && isReadSize < _bufferSize )
             {
                _pBlock = 0 ;
-               //is read size use block number
                useBlockNum = ( (UINT32)( isReadSize / _blockSize ) ) ;
                if ( isReadSize % _blockSize > 0 )
                {
@@ -196,7 +192,6 @@ INT32 _utilJSONParser::getNextRecord ( UINT32 &startOffset,
                   continue ;
                }
                newReadSize = _blockSize - ( isReadSize % _blockSize ) ;
-               //ossMemset ( _buffer + isReadSize, 0, newReadSize ) ;
             }
             else
             {
@@ -221,7 +216,6 @@ size %d, clear bucket data", _bufferSize ) ;
                   ++_pBlock ;
                   continue ;
                }
-               //ossMemset ( _buffer + isReadSize, 0, newReadSize ) ;
             }
          }
          else
@@ -232,7 +226,6 @@ size %d, clear bucket data", _bufferSize ) ;
             }
             newReadSize = _blockSize ;
             pReadBuffer = _buffer + _pBlock * _blockSize ;
-            //ossMemset ( pReadBuffer, 0, _blockSize ) ;
          }
          rc = _pAccessData->readNextBuffer ( pReadBuffer, newReadSize ) ;
          if ( rc )

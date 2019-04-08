@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnQueryOptions.hpp
 
@@ -81,7 +80,6 @@ namespace engine
 
          virtual INT32 getOwned () ;
 
-         /// Selector
          OSS_INLINE void setSelector ( const BSONObj &selector )
          {
             _selector = selector ;
@@ -112,7 +110,6 @@ namespace engine
             return ossHash( _selector.objdata(), _selector.objsize() ) ;
          }
 
-         /// Skip
          OSS_INLINE void setSkip ( INT64 skip )
          {
             _skip = skip > 0 ? skip : 0 ;
@@ -123,7 +120,6 @@ namespace engine
             return _skip ;
          }
 
-         /// Limit
          OSS_INLINE void setLimit ( INT64 limit )
          {
             _limit = limit ;
@@ -134,7 +130,6 @@ namespace engine
             return _limit ;
          }
 
-         /// Flag
          OSS_INLINE void resetFlag ( INT32 flag )
          {
             _flag = flag ;
@@ -209,7 +204,6 @@ namespace engine
 
          string toString () const ;
 
-         /// Query
          OSS_INLINE void setQuery ( const BSONObj & query )
          {
             _query = query ;
@@ -240,7 +234,6 @@ namespace engine
             return _query.isEmpty() ;
          }
 
-         /// OrderBy
          OSS_INLINE void setOrderBy ( const BSONObj & orderBy )
          {
             _orderBy = orderBy ;
@@ -276,7 +269,6 @@ namespace engine
             return ossHash( _orderBy.objdata(), _orderBy.objsize() ) ;
          }
 
-         /// Hint
          OSS_INLINE void setHint ( const BSONObj & hint )
          {
             _hint = hint ;
@@ -312,7 +304,6 @@ namespace engine
             return ossHash( _hint.objdata(), _hint.objsize() ) ;
          }
 
-         /// Collection name
          void setCLFullName ( const CHAR *clFullName ) ;
 
          OSS_INLINE const CHAR * getCLFullName () const
@@ -320,7 +311,6 @@ namespace engine
             return _fullName ;
          }
 
-         /// Main-Collection name
          void setMainCLName ( const CHAR *mainCLName ) ;
 
          OSS_INLINE const CHAR * getMainCLName () const

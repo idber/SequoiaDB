@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnLobPieces.cpp
 
@@ -92,7 +91,6 @@ namespace engine
       }
 #endif
 
-      // binary search
       while ( lower <= upper )
       {
          INT32 middle = ( lower + upper ) / 2 ;
@@ -119,7 +117,6 @@ namespace engine
       return index ;
    }
 
-   // find the nearest least p.first where piece >= p.first
    INT32 _rtnLobPiecesInfo::_findNearestLeast( UINT32 piece ) const
    {
       INT32 middle = LOB_PIECES_INVALID_INDEX ;
@@ -139,7 +136,6 @@ namespace engine
       }
 #endif
 
-      // binary search
       while ( lower <= upper )
       {
          middle = ( lower + upper ) / 2 ;
@@ -164,7 +160,6 @@ namespace engine
 
       SDB_ASSERT( middle >= 0 && middle <= (INT32)_sections.size() - 1, "invalid index" ) ;
 
-      // move to the least section
       {
          const _rtnLobPieces& p = _sections[ middle ] ;
          if ( piece > p.first )
@@ -237,7 +232,6 @@ namespace engine
             SDB_ASSERT( piece >= p.first, "incorrect index" ) ;
             if ( p.contains( piece ) ) // inside
             {
-               // nothing to do
             }
             else if ( p.last + 1 == piece ) // close to the right border
             {
@@ -247,8 +241,6 @@ namespace engine
                   _rtnLobPieces& next = _sections[ index + 1 ] ;
                   if ( piece + 1 == next.first )
                   {
-                     // beside the left border of next section
-                     // merge 2 sections
                      p.last = next.last ;
                      _sections.erase( _sections.begin() + index + 1 ) ;
                   }
@@ -339,7 +331,6 @@ namespace engine
          index = _findPiece( piece ) ;
          if ( LOB_PIECES_INVALID_INDEX == index )
          {
-            // no this piece
             goto done ;
          }
          else
@@ -362,7 +353,6 @@ namespace engine
             }
             else // inside
             {
-               // split into 2 pieces
                _sections.insert( _sections.begin() + index + 1, _rtnLobPieces( piece + 1, p.last ) ) ;
                p.last = piece - 1 ;
             }

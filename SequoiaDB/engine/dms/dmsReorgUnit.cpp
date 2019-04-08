@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dmsReorgUnit.cpp
 
@@ -65,10 +64,6 @@ namespace engine
       close() ;
    }
 
-   // for new reorg file request, we allocate buffer, initialize header and
-   // write into the file
-   // for opening existing file, we allocate buffer, read the header and
-   // validate eyecatcher and size
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSROUNIT__INIT, "_dmsReorgUnit::_init" )
    INT32 _dmsReorgUnit::_init( BOOLEAN createNew )
    {
@@ -79,7 +74,6 @@ namespace engine
       _headSize = ossRoundUpToMultipleX ( sizeof ( _reorgUnitHead ),
                                           DMS_REORG_UNIT_HEAD_SIZE_UNIT ) ;
 
-      // free at end of the function
       CHAR *pBuffer = (CHAR*)SDB_OSS_MALLOC( _headSize ) ;
       if ( !pBuffer )
       {
@@ -96,7 +90,6 @@ namespace engine
       {
          _readOnly = FALSE ;
 
-         // initialize header
          ossMemcpy ( unitHead->_eyeCatcher, DMS_REORG_UNIT_EYECATCHER,
                      DMS_REORG_UNIT_EYECATCHER_LEN ) ;
          unitHead->_headerSize = _headSize ;
@@ -122,7 +115,6 @@ namespace engine
             goto error ;
          }
 
-         // validate
          if ( ossMemcmp ( unitHead->_eyeCatcher, DMS_REORG_UNIT_EYECATCHER,
                           DMS_REORG_UNIT_EYECATCHER_LEN ) ||
               unitHead->_headerSize != _headSize ||
@@ -181,10 +173,6 @@ namespace engine
       ossStrncpy ( _fileName, pFileName, OSS_MAX_PATHSIZE ) ;
       _pageSize = pageSize ;
 
-      // if this is creating new reorg, then we only allow creating a brandnew
-      // file, that means if there's existing file, we will return error
-      // if this is open existing request, then we do NOT attempt to create a
-      // new file
       rc = ossOpen ( _fileName, OSS_READWRITE|
                      (createNew?OSS_CREATEONLY:OSS_DEFAULT),
                      OSS_RU|OSS_WU, _file ) ;
@@ -318,7 +306,6 @@ namespace engine
          goto error ;
       }
 
-      /// not release the memory
       _currentExtentSize = 0 ;
 
    done :
@@ -356,7 +343,6 @@ namespace engine
       dmsExtent *currentExtent     = (dmsExtent*)_pCurrentExtent ;
       dmsRecordData recordData ;
 
-      // sanity size check
       if ( obj.objsize() + DMS_RECORD_METADATA_SZ >
            DMS_RECORD_MAX_SZ )
       {
@@ -365,10 +351,9 @@ namespace engine
       }
 
       recordData.setData( obj.objdata(), obj.objsize(),
-                          UTIL_COMPRESSOR_INVALID, TRUE ) ;
+                          FALSE, TRUE ) ;
       dmsrecordSize = recordData.len() ;
 
-      // compression
       if ( compressorEntry->ready() )
       {
          const CHAR *compressedData    = NULL ;
@@ -378,21 +363,16 @@ namespace engine
                            recordData.data(), recordData.len(),
                            &compressedData, &compressedDataSize,
                            compressRatio ) ;
-         // Compression is valid and ratio is less the threshold
          if ( SDB_OK == rc &&
               compressedDataSize + sizeof(UINT32) < recordData.orgLen() &&
-              compressRatio < UTIL_COMPRESSOR_DFT_MIN_RATIO )
+              compressRatio < DMS_COMPRESS_RATIO_THRESHOLD )
          {
-            // 4 bytes len + compressed record
             dmsrecordSize = compressedDataSize + sizeof(UINT32) ;
-            // set the compression data
             recordData.setData( compressedData, compressedDataSize,
-                                compressorEntry->getCompressorType(),
-                                FALSE ) ;
+                                TRUE, FALSE ) ;
          }
          else if ( rc )
          {
-            // In any case of error, leave it, and use the original data.
             if ( SDB_UTIL_COMPRESS_ABORT == rc )
             {
                PD_LOG( PDINFO, "Record compression aborted. "
@@ -421,7 +401,6 @@ namespace engine
             expandSize = expandSize < DMS_BEST_UP_EXTENT_SZ ?
                          DMS_BEST_UP_EXTENT_SZ : expandSize ;
          }
-         // allocate memory
          rc = _allocateExtent ( expandSize ) ;
          if ( rc )
          {
@@ -433,8 +412,6 @@ namespace engine
       }
       if ( dmsrecordSize > (UINT32)currentExtent->_freeSpace )
       {
-         // if the current page is not large enough for the record,
-         // let's flush and get another page
          rc = _flushExtent() ;
          if ( rc )
          {
@@ -453,7 +430,6 @@ namespace engine
          dmsrecordSize = (UINT32)currentExtent->_freeSpace ;
       }
 
-      // set record header
       pRecord->setNormal() ;
       pRecord->resetAttr() ;
       pRecord->setMyOffset( recordOffset ) ;
@@ -462,11 +438,9 @@ namespace engine
       pRecord->setNextOffset( DMS_INVALID_OFFSET ) ;
       pRecord->setPrevOffset( DMS_INVALID_OFFSET ) ;
 
-      // set extent header
       currentExtent->_recCount++ ;
       currentExtent->_freeSpace -= dmsrecordSize ;
 
-      // set previous record next pointer
       offset = currentExtent->_lastRecordOffset ;
       if ( DMS_INVALID_OFFSET != offset )
       {
@@ -475,7 +449,6 @@ namespace engine
          pRecord->setPrevOffset( offset ) ;
       }
       currentExtent->_lastRecordOffset = recordOffset ;
-      // then check extent header for first record
       offset = currentExtent->_firstRecordOffset ;
       if ( DMS_INVALID_OFFSET == offset )
       {
@@ -553,7 +526,6 @@ namespace engine
          goto error ;
       }
 
-      // validate header
       if ( DMS_EXTENT_EYECATCHER0 != extent->_eyeCatcher[0] ||
            DMS_EXTENT_EYECATCHER1 != extent->_eyeCatcher[1] )
       {
@@ -562,7 +534,6 @@ namespace engine
          goto error ;
       }
 
-      // read body
       restSize = extent->_blockSize * _pageSize - sizeof(dmsExtent) ;
       rc = ossReadN( &_file, restSize, &pBuffer[sizeof(dmsExtent)], read ) ;
       if ( rc )

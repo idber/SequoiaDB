@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = ossVer.h
 
@@ -46,9 +45,8 @@
 #define SDB_ENGINE_VERSION_0           0
 #define SDB_ENGINE_VERSION_1           1
 #define SDB_ENGINE_VERSION_2           2
-#define SDB_ENGINE_VERSION_3           3
 
-#define SDB_ENGINE_VERISON_CURRENT     SDB_ENGINE_VERSION_3
+#define SDB_ENGINE_VERISON_CURRENT     SDB_ENGINE_VERSION_2
 
 /*
  *    SequoiaDB Engine Subversion
@@ -68,28 +66,17 @@
 #define SDB_ENGINE_SUBVERSION_13       13
 #define SDB_ENGINE_SUBVERSION_14       14
 
-#define SDB_ENGINE_SUBVERSION_CURRENT  SDB_ENGINE_SUBVERSION_2
+#define SDB_ENGINE_SUBVERSION_CURRENT  SDB_ENGINE_SUBVERSION_9
 
 /*
       SequoiaDB Engine Fix version
 */
 #define SDB_ENGINE_FIXVERSION_1        1
-#define SDB_ENGINE_FIXVERSION_2        2
 
-// #define SDB_ENGINE_FIXVERSION_CURRENT  SDB_ENGINE_FIXVERSION_2
 
 /*
       Build time
 */
-#ifdef SDB_ENTERPRISE
-
-   #ifdef _DEBUG
-      #define SDB_ENGINE_BUILD_TIME    SDB_ENGINE_BUILD_CURRENT"(Enterprise-Debug)"
-   #else
-      #define SDB_ENGINE_BUILD_TIME    SDB_ENGINE_BUILD_CURRENT"(Enterprise)"
-   #endif // _DEBUG
-
-#else
 
    #ifdef _DEBUG
       #define SDB_ENGINE_BUILD_TIME    SDB_ENGINE_BUILD_CURRENT"(Debug)"
@@ -97,7 +84,6 @@
       #define SDB_ENGINE_BUILD_TIME    SDB_ENGINE_BUILD_CURRENT
    #endif // _DEBUG
 
-#endif // SDB_ENTERPRISE
 
 /*
  *    Get the version, subversion and release version.
@@ -107,8 +93,6 @@ void ossGetVersion ( INT32 *version,
                      INT32 *fixVersion,
                      INT32 *release,
                      const CHAR **ppBuild ) ;
-
-void ossGetSimpleVersion( CHAR *pBuff, UINT32 bufLen ) ;
 
 void ossPrintVersion( const CHAR *prompt ) ;
 

@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnExtDataProcessor.hpp
 
@@ -37,33 +36,21 @@
 
 *******************************************************************************/
 #include "rtnExtDataProcessor.hpp"
+#include "pmd.hpp"
 #include "rtn.hpp"
 #include "rtnTrace.hpp"
-#include "dmsStorageDataCapped.hpp"
 
-// Currently we set the size limit of capped collection to 30GB. This may change
-// in the future.
 #define RTN_CAPPED_CL_MAXSIZE       ( 30 * 1024 * 1024 * 1024LL )
 #define RTN_CAPPED_CL_MAXRECNUM     0
 #define RTN_FIELD_NAME_RID          "_rid"
-#define RTN_FIELD_NAME_RID_NEW      "_ridNew"
 #define RTN_FIELD_NAME_SOURCE       "_source"
 
 namespace engine
 {
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR__RTNEXTDATAPROCESSOR, "_rtnExtDataProcessor::_rtnExtDataProcessor" )
    _rtnExtDataProcessor::_rtnExtDataProcessor()
    {
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR__RTNEXTDATAPROCESSOR ) ;
-      _stat = RTN_EXT_PROCESSOR_INVALID ;
-      _su = NULL ;
-      _id = RTN_EXT_PROCESSOR_INVALID_ID ;
       ossMemset( _cappedCSName, 0, DMS_COLLECTION_SPACE_NAME_SZ + 1 ) ;
       ossMemset( _cappedCLName, 0, DMS_COLLECTION_NAME_SZ + 1 ) ;
-      _needUpdateLSN = FALSE ;
-      _needOprRec = FALSE ;
-      _freeSpace = 0 ;
-      PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSOR__RTNEXTDATAPROCESSOR ) ;
    }
 
    _rtnExtDataProcessor::~_rtnExtDataProcessor()
@@ -71,374 +58,241 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR_INIT, "_rtnExtDataProcessor::init" )
-   INT32 _rtnExtDataProcessor::init( INT32 id, const CHAR *csName,
-                                     const CHAR *clName,
-                                     const CHAR *idxName,
-                                     const CHAR *targetName,
-                                     const BSONObj &idxKeyDef )
+   INT32 _rtnExtDataProcessor::init( const CHAR *csName, const CHAR *clName,
+                                     const CHAR *idxName )
    {
-      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR_INIT ) ;
 
-      SDB_ASSERT( csName && clName && idxName && targetName,
-                  "Names should not be NULL") ;
+      _meta.init( csName, clName, idxName ) ;
 
-      rc = _meta.init( csName, clName, idxName, targetName, idxKeyDef ) ;
-      PD_RC_CHECK( rc, PDERROR, "Processor meta init failed[ %d ]", rc ) ;
+      getExtDataNames( csName, clName, idxName, _cappedCSName,
+                       DMS_COLLECTION_SPACE_NAME_SZ + 1,
+                       _cappedCLName, DMS_COLLECTION_NAME_SZ + 1 ) ;
 
-      rc = setTargetNames( targetName ) ;
-      PD_RC_CHECK( rc, PDERROR, "Set target names failed[ %d ]", rc ) ;
-      _id = id ;
-      _stat = RTN_EXT_PROCESSOR_CREATING ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSOR_INIT, rc ) ;
-      return rc ;
-   error:
-      reset() ;
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR_RESET, "_rtnExtDataProcessor::reset" )
-   void _rtnExtDataProcessor::reset( BOOLEAN resetMeta )
-   {
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR_RESET ) ;
-      _stat = RTN_EXT_PROCESSOR_INVALID ;
-      _su = NULL ;
-      _needUpdateLSN = FALSE ;
-      _keySet.clear() ;
-      _keySetNew.clear() ;
-      _needOprRec = FALSE ;
-      _freeSpace = 0 ;
-
-      if ( resetMeta )
-      {
-         _id = RTN_EXT_PROCESSOR_INVALID_ID ;
-         _meta.reset() ;
-         ossMemset( _cappedCSName, 0, DMS_COLLECTION_SPACE_NAME_SZ + 1 ) ;
-         ossMemset( _cappedCLName, 0, DMS_COLLECTION_NAME_SZ + 1 ) ;
-      }
-      PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSOR_RESET ) ;
-   }
-
-   INT32 _rtnExtDataProcessor::getID()
-   {
-      return _id ;
-   }
-
-   rtnExtProcessorStat _rtnExtDataProcessor::stat() const
-   {
-      return _stat ;
-   }
-
-   INT32 _rtnExtDataProcessor::active()
-   {
-      _stat = RTN_EXT_PROCESSOR_NORMAL ;
-
+      PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSOR_INIT ) ;
       return SDB_OK ;
    }
 
-   BOOLEAN _rtnExtDataProcessor::isActive() const
-   {
-      return ( RTN_EXT_PROCESSOR_NORMAL == _stat ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR_UPDATEMETA, "_rtnExtDataProcessor::updateMeta" )
-   void _rtnExtDataProcessor::updateMeta( const CHAR *csName,
-                                          const CHAR *clName,
-                                          const CHAR *idxName )
-   {
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR_UPDATEMETA ) ;
-      if ( csName && ( ossStrcmp( csName, _meta._csName.c_str() ) != 0 ) )
-      {
-         _meta._csName = csName ;
-      }
-
-      if ( clName && ( ossStrcmp( clName, _meta._clName.c_str() ) != 0 ) )
-      {
-         _meta._clName = clName ;
-      }
-
-      if ( idxName && ( ossStrcmp( idxName, _meta._idxName.c_str() ) != 0 ) )
-      {
-         _meta._idxName = idxName ;
-      }
-      PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSOR_UPDATEMETA ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR_SETTARGETNAMES, "_rtnExtDataProcessor::setTargetNames" )
-   INT32 _rtnExtDataProcessor::setTargetNames( const CHAR *extName )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR_PREPAREINSERT, "_rtnExtDataProcessor::prepareInsert" )
+   INT32 _rtnExtDataProcessor::prepareInsert( const ixmIndexCB &indexCB,
+                                              const BSONObj &inputObj,
+                                              BSONObj &recordObj )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR_SETTARGETNAMES ) ;
-      SDB_ASSERT( extName, "cs name is NULL" ) ;
-
-      if ( ossStrlen( extName ) > DMS_COLLECTION_SPACE_NAME_SZ )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "External name too long: %s", extName ) ;
-         goto error ;
-      }
-
-      ossStrncpy( _cappedCSName, extName, DMS_COLLECTION_SPACE_NAME_SZ + 1 ) ;
-      ossSnprintf( _cappedCLName, DMS_COLLECTION_FULL_NAME_SZ + 1,
-                   "%s.%s", extName, extName ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSOR_SETTARGETNAMES, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR_CHECK, "_rtnExtDataProcessor::check" )
-   INT32 _rtnExtDataProcessor::check( DMS_EXTOPR_TYPE type,
-                                      const BSONObj *object,
-                                      const BSONObj *objectNew )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR_CHECK ) ;
-
-      // Only check for insert/delete/update when object is not empty.
-      if ( type > DMS_EXTOPR_TYPE_UPDATE || !object )
-      {
-         goto done ;
-      }
-
-      _keySet.clear() ;
-      _keySetNew.clear() ;
-      _needOprRec = FALSE ;
+      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR_PREPAREINSERT ) ;
+      BSONObjSet keySet ;
+      OID oid ;
 
       try
       {
-         // Get the key set
-         BSONElement arrayEle ;
-         BOOLEAN canContinue = TRUE ;
-         ixmIndexKeyGen keygen( _meta._idxKeyDef, GEN_OBJ_KEEP_FIELD_NAME ) ;
-         rc = keygen.getKeys( *object, _keySet, &arrayEle, TRUE, TRUE ) ;
-         // Records may contain multiple arrays.
-         // If it's the old record, it should not have been indexed on ES. In
-         // that case, if keys can be gotten from new record, the new record
-         // should be indexed.
-         // If it's the new record, it should not be indexed. We ignore the
-         // multiple array of the old record, error will be returned when
-         // parsing the new record below.
-         if ( rc )
+         BSONElement ele ;
+         ixmIndexKeyGen keygen( &indexCB, GEN_OBJ_KEEP_FIELD_NAME ) ;
+         rc = keygen.getKeys( inputObj, keySet, NULL, TRUE, FALSE, TRUE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Generate key from object failed[ %d ]",
+                      rc ) ;
+
+         SDB_ASSERT( keySet.size() <= 1, "Key set size should be 1" ) ;
+         if ( 0 == keySet.size() )
          {
-            canContinue = ( SDB_IXM_MULTIPLE_ARRAY == rc &&
-                            ( DMS_EXTOPR_TYPE_UPDATE == type ||
-                              DMS_EXTOPR_TYPE_DELETE == type ) ) ;
+            goto done ;
          }
 
-         if ( !canContinue )
+         ele = inputObj.getField( DMS_ID_KEY_NAME ) ;
+         if ( EOO == ele.type() )
          {
-            PD_LOG( PDERROR, "Generate key from object[%] failed[%d]",
-                    object->toString().c_str(), rc ) ;
+            PD_LOG( PDERROR, "Text index can not be used if record has no _id "
+                    "field" ) ;
+            rc = SDB_SYS ;
             goto error ;
          }
 
-         rc = SDB_OK ;
+         oid = ele.OID() ;
 
-         // Record with array in its index key will never be indexed on
-         // Elasticsearch, and no record for it will be inserted into capped
-         // collection.
-         if ( DMS_EXTOPR_TYPE_UPDATE != type )
          {
-            // Array for insert and delete, skip.
-            if ( _keySet.size() > 1 )
-            {
-               _keySet.clear() ;
-               goto done ;
-            }
-            _needOprRec = ( _keySet.size() > 0 ) ;
-         }
-         else
-         {
-            SDB_ASSERT( objectNew, "New object is NULL" ) ;
-            // If it's update, need to get the new key set.
-            rc = keygen.getKeys( *objectNew, _keySetNew,
-                                 NULL, TRUE, TRUE ) ;
-            PD_RC_CHECK( rc, PDERROR, "Generate key from object[ %s ] "
-                         "failed[ %d ]", objectNew->toString().c_str(), rc ) ;
-
-            {
-               BSONObjSet::iterator origItr = _keySet.begin() ;
-               BSONObjSet::iterator newItr = _keySetNew.begin() ;
-
-               // There are only two scenarios that we do not insert operation
-               // record:
-               // 1. Both old and new records have no index field.
-               // 2. Both old and new records have index field(s) but they are the
-               //    same.
-               while ( origItr != _keySet.end() && newItr != _keySetNew.end() )
-               {
-                  if ( !( *origItr == *newItr ) )
-                  {
-                     break ;
-                  }
-                  ++origItr ;
-                  ++newItr ;
-               }
-
-               if ( ( origItr == _keySet.end() ) &&
-                    ( newItr == _keySetNew.end() )  )
-               {
-                  _needOprRec = FALSE ;
-               }
-               else
-               {
-                  _needOprRec = TRUE ;
-               }
-            }
-
-            // New record contains array. It will not be inserted. If there is
-            // old record, it will be deleted on ES.
-            if ( _keySetNew.size() > 1 )
-            {
-               _keySetNew.clear() ;
-            }
+            BSONObjSet::iterator it = keySet.begin();
+            BSONObj object( *it ) ;
+            rc = _prepareRecord( _cappedCLName, RTN_EXT_INSERT,
+                                 &oid, &object, recordObj ) ;
+            PD_RC_CHECK( rc, PDERROR, "Add operation record failed[ %d ]",
+                         rc ) ;
          }
       }
       catch ( std::exception &e )
       {
          rc = SDB_SYS ;
-         PD_LOG( PDERROR ,"Unexpected exception occurred: %s", e.what() ) ;
+         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
          goto error ;
       }
 
+      _lock() ;
+
    done:
-      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSOR_CHECK, rc ) ;
+      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSOR_PREPAREINSERT, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR_PROCESSINSERT, "_rtnExtDataProcessor::processInsert" )
-   INT32 _rtnExtDataProcessor::processInsert( const BSONObj &inputObj,
-                                              pmdEDUCB *cb, SDB_DPSCB *dpsCB )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR_PREPAREDELETE, "_rtnExtDataProcessor::prepareDelete" )
+   INT32 _rtnExtDataProcessor::prepareDelete( const ixmIndexCB &indexCB,
+                                              const BSONObj &inputObj,
+                                              BSONObj &recordObj )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR_PROCESSINSERT ) ;
-      BSONObj recordObj ;
-      INT32 insertNum = 0 ;
-      INT32 ignoreNum = 0 ;
-      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR_PREPAREDELETE ) ;
+      OID oid ;
+      BSONObjSet keySet ;
 
-      rc = _prepareInsert( inputObj, recordObj ) ;
-      PD_RC_CHECK( rc, PDERROR, "Prepare data for insert record[ %s ] "
-                   "failed[ %d ]", inputObj.toString().c_str(), rc ) ;
-
-      if ( recordObj.isEmpty() )
+      try
       {
-         goto done ;
+         BSONElement ele ;
+         ixmIndexKeyGen keygen( &indexCB, GEN_OBJ_KEEP_FIELD_NAME ) ;
+         rc = keygen.getKeys( inputObj, keySet, NULL, TRUE, FALSE, TRUE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Generate key from object failed[ %d ]",
+                      rc ) ;
+
+         SDB_ASSERT( keySet.size() <= 1, "Key set size should be 1" ) ;
+         if ( 0 == keySet.size() )
+         {
+            goto done ;
+         }
+
+         ele = inputObj.getField( DMS_ID_KEY_NAME ) ;
+         if ( EOO == ele.type() )
+         {
+            PD_LOG( PDERROR, "Text index can not be used if record has no _id "
+                  "field" ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+         oid = ele.OID() ;
+
+         rc = _prepareRecord( _cappedCLName, RTN_EXT_DELETE,
+                              &oid, NULL, recordObj ) ;
+         PD_RC_CHECK( rc, PDERROR, "Add operation record failed[ %d ]",
+                      rc ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+         goto error ;
       }
 
-      rc = _spaceCheck( recordObj.objsize() ) ;
-      PD_RC_CHECK( rc, PDERROR, "Space check failed[ %d ]", rc ) ;
-
-      rc = rtnInsert( _cappedCLName, recordObj, 1, 0,
-                      cb, dmsCB, dpsCB, 1, &insertNum, &ignoreNum ) ;
-      PD_RC_CHECK( rc, PDERROR, "Insert record insert collection[ %s ] "
-                   "failed[ %d ]", _cappedCLName, rc ) ;
-
-      _needUpdateLSN = TRUE ;
+      _lock() ;
 
    done:
-      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSOR_PROCESSINSERT, rc ) ;
+      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSOR_PREPAREDELETE, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR_PROCESSDELETE, "_rtnExtDataProcessor::processDelete" )
-   INT32 _rtnExtDataProcessor::processDelete( const BSONObj &inputObj,
-                                              pmdEDUCB *cb, SDB_DPSCB *dpsCB )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR_PROCESSDELETE ) ;
-      BSONObj recordObj ;
-      INT32 insertNum = 0 ;
-      INT32 ignoreNum = 0 ;
-      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
-
-      rc = _prepareDelete( inputObj, recordObj ) ;
-      PD_RC_CHECK( rc, PDERROR, "Prepare data for delete record[ %s ] "
-                   "failed[ %d ]", inputObj.toString().c_str(), rc ) ;
-
-      if ( recordObj.isEmpty() )
-      {
-         goto done ;
-      }
-
-      rc = _spaceCheck( recordObj.objsize() ) ;
-      PD_RC_CHECK( rc, PDERROR, "Space check failed[ %d ]", rc ) ;
-
-      rc = rtnInsert( _cappedCLName, recordObj, 1, 0,
-                      cb, dmsCB, dpsCB, 1, &insertNum, &ignoreNum ) ;
-      PD_RC_CHECK( rc, PDERROR, "Insert record insert collection[ %s ] "
-                   "failed[ %d ]", _cappedCLName, rc ) ;
-
-      _needUpdateLSN = TRUE ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSOR_PROCESSDELETE, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR_PROCESSUPDATE, "_rtnExtDataProcessor::processUpdate" )
-   INT32 _rtnExtDataProcessor::processUpdate( const BSONObj &originalObj,
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR_PREPAREUPDATE, "_rtnExtDataProcessor::prepareUpdate" )
+   INT32 _rtnExtDataProcessor::prepareUpdate( const ixmIndexCB &indexCB,
+                                              const BSONObj &originalObj,
                                               const BSONObj &newObj,
-                                              pmdEDUCB *cb, SDB_DPSCB *dpsCB )
+                                              BSONObj &recordObj )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR_PROCESSUPDATE ) ;
-      BSONObj recordObj ;
-      INT32 insertNum = 0 ;
-      INT32 ignoreNum = 0 ;
-      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR_PREPAREUPDATE ) ;
+      BSONObjSet keySetOri ;
+      BSONObjSet keySetNew ;
+      OID oid ;
 
-      rc = _prepareUpdate( originalObj, newObj, recordObj ) ;
-      PD_RC_CHECK( rc, PDERROR, "Prepare data for update record from[ %s ] "
-                   "to[ %s ] failed[ %d ]", originalObj.toString().c_str(),
-                   newObj.toString().c_str(), rc ) ;
-
-      if ( recordObj.isEmpty() )
+      try
       {
-         goto done ;
+         BSONElement ele ;
+
+         ixmIndexKeyGen keygen( &indexCB, GEN_OBJ_KEEP_FIELD_NAME ) ;
+         rc = keygen.getKeys( originalObj, keySetOri, NULL,
+                              TRUE, FALSE, TRUE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Generate key from object[ %s ] "
+                      "failed[ %d ]", originalObj.toString().c_str(), rc ) ;
+         rc = keygen.getKeys( newObj, keySetNew, NULL, TRUE, FALSE, TRUE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Generate key from object[ %s ] "
+                      "failed[ %d ]", newObj.toString().c_str(), rc ) ;
+
+         if ( 0 == keySetNew.size() )
+         {
+            rc = prepareDelete( indexCB, originalObj, recordObj ) ;
+            PD_RC_CHECK( rc, PDERROR, "Prepare for delete failed[ %d ]", rc ) ;
+            goto done ;
+         }
+
+         {
+            BSONObjSet::iterator origItr = keySetOri.begin() ;
+            BSONObjSet::iterator newItr = keySetNew.begin() ;
+
+            while ( origItr != keySetOri.end() && newItr != keySetNew.end() )
+            {
+               if ( !( *origItr == *newItr ) )
+               {
+                  break ;
+               }
+               origItr++ ;
+               newItr++ ;
+            }
+
+            if ( ( origItr == keySetOri.end() ) && ( newItr == keySetNew.end() ) )
+            {
+               goto done ;
+            }
+         }
+
+         ele = newObj.getField( DMS_ID_KEY_NAME ) ;
+         if ( EOO == ele.type() )
+         {
+            PD_LOG( PDERROR, "Text index can not be used if record has no _id "
+                  "field" ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+         oid = ele.OID() ;
+         SDB_ASSERT( 1 == keySetNew.size(), "Key set size should be 1" ) ;
+         {
+            BSONObjSet::iterator it = keySetNew.begin();
+            BSONObj object( *it ) ;
+            rc = _prepareRecord( _cappedCLName, RTN_EXT_UPDATE,
+                                 &oid, &object, recordObj ) ;
+            PD_RC_CHECK( rc, PDERROR, "Add operation record failed[ %d ]",
+                         rc ) ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
+         goto error ;
       }
 
-      rc = _spaceCheck( recordObj.objsize() ) ;
-      PD_RC_CHECK( rc, PDERROR, "Space check failed[ %d ]", rc ) ;
-
-      rc = rtnInsert( _cappedCLName, recordObj, 1, 0,
-                      cb, dmsCB, dpsCB, 1, &insertNum, &ignoreNum ) ;
-      PD_RC_CHECK( rc, PDERROR, "Insert record insert collection[ %s ] "
-                   "failed[ %d ]", _cappedCLName, rc ) ;
-
-      _needUpdateLSN = TRUE ;
+      _lock() ;
 
    done:
-      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSOR_PROCESSUPDATE, rc ) ;
+      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSOR_PREPAREUPDATE, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR_PROCESSTRUNCATE, "_rtnExtDataProcessor::processTruncate" )
-   INT32 _rtnExtDataProcessor::processTruncate( pmdEDUCB *cb, SDB_DPSCB *dpsCB )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR_DOWRITE, "_rtnExtDataProcessor::doWrite" )
+   INT32 _rtnExtDataProcessor::doWrite( pmdEDUCB *cb, BSONObj &record,
+                                        SDB_DPSCB *dpsCB )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR_PROCESSTRUNCATE ) ;
+      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR_DOWRITE ) ;
+      INT32 insertNum = 0 ;
+      INT32 ignoreNum = 0 ;
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
 
-      rc = rtnTruncCollectionCommand( _cappedCLName, cb, dmsCB, dpsCB ) ;
-      PD_RC_CHECK( rc, PDERROR, "Truncate capped collection[%s] failed[%d]",
-                   _cappedCLName,  rc ) ;
+      rc = rtnInsert( _cappedCLName, record, 1, 0,
+                      cb, dmsCB, dpsCB, 1, &insertNum, &ignoreNum ) ;
+      PD_RC_CHECK( rc, PDERROR, "Insert record failed[ %d ]", rc ) ;
 
    done:
-      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSOR_PROCESSTRUNCATE, rc ) ;
+      _unlock() ;
+      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSOR_DOWRITE, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -456,6 +310,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Phase 1 of dropping collection space[ %s ] "
                    "failed[ %d ]", _cappedCSName, rc ) ;
       rtnCB->incTextIdxVersion() ;
+      _lock() ;
 
    done:
       PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSOR_DODROPP1, rc ) ;
@@ -470,15 +325,14 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR_DODROPP1CANCEL ) ;
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
-      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
 
       rc = rtnDropCollectionSpaceP1Cancel( _cappedCSName, cb, dmsCB,
                                            dpsCB, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Cancel dropping collection space[ %s ] in "
                    "phase 1 failed[ %d ]", _cappedCSName, rc ) ;
-      rtnCB->incTextIdxVersion() ;
 
    done:
+      _unlock() ;
       PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSOR_DODROPP1CANCEL, rc ) ;
       return rc ;
    error:
@@ -492,14 +346,13 @@ namespace engine
       PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR_DODROPP2 ) ;
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
 
-      reset( FALSE ) ;
-
       rc = rtnDropCollectionSpaceP2( _cappedCSName, cb, dmsCB,
                                      dpsCB, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Phase 1 of dropping collection space[ %s ] "
                    "failed[ %d ]", _cappedCSName, rc ) ;
 
    done:
+      _unlock() ;
       PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSOR_DODROPP2, rc ) ;
       return rc ;
    error:
@@ -508,12 +361,11 @@ namespace engine
 
    INT32 _rtnExtDataProcessor::doLoad()
    {
-      // TODO:YSD
       return SDB_OK ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR_DOUNLOAD, "_rtnExtDataProcessor::doUnload" )
-   INT32 _rtnExtDataProcessor::doUnload( _pmdEDUCB *cb )
+   INT32 _rtnExtDataProcessor::doUnload( _pmdEDUCB *cb, SDB_DPSCB *dpsCB )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR_DOUNLOAD ) ;
@@ -533,6 +385,7 @@ namespace engine
       }
 
    done:
+      _unlock() ;
       PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSOR_DOUNLOAD, rc ) ;
       return rc ;
    error:
@@ -547,11 +400,7 @@ namespace engine
       pmdKRCB *krcb = pmdGetKRCB() ;
       SDB_DB_STATUS dbStatus = krcb->getDBStatus() ;
       SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
-      dmsStorageUnitID suID = DMS_INVALID_SUID ;
 
-      // In case of rebuilding, we don't know whether the capped collections are
-      // valid or not. So we directly drop and re-create the capped collection
-      // again.
       if ( SDB_DB_REBUILDING == dbStatus )
       {
          rc = rtnDropCollectionSpaceCommand( _cappedCSName, cb,
@@ -574,68 +423,35 @@ namespace engine
 
       rc = _prepareCSAndCL( _cappedCSName, _cappedCLName, cb, dpsCB ) ;
       PD_RC_CHECK( rc, PDERROR, "Create capped collection[ %s.%s ] "
-                   "failed[ %d ]", _cappedCSName, _cappedCLName, rc ) ;
+                   "failed[ %d ]",
+                   _cappedCSName, _cappedCLName, rc ) ;
 
    done:
-      if ( DMS_INVALID_SUID != suID )
-      {
-         dmsCB->suUnlock( suID, SHARED ) ;
-      }
       PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSOR_DOREBUILD, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
-   // Update the commit LSN information for the capped collection.
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR_DONE, "_rtnExtDataProcessor::done" )
-   INT32 _rtnExtDataProcessor::done( pmdEDUCB *cb )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR_UPDATEMETA, "_rtnExtDataProcessor::updateMeta" )
+   INT32 _rtnExtDataProcessor::updateMeta(const rtnExtProcessorMeta & meta)
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR_DONE ) ;
-      dmsMBContext *context = NULL ;
-
-      if ( _needUpdateLSN )
-      {
-         SDB_ASSERT( _su, "Storage unit is NULL") ;
-         rc = _su->data()->getMBContext( &context, _getExtCLShortName(), -1 ) ;
-         PD_RC_CHECK( rc, PDERROR, "Get mbcontext for collection[ %s ] "
-                                   "failed[ %d ]", _cappedCLName, rc ) ;
-
-         SDB_ASSERT( context, "mbContext should not be NULL" ) ;
-
-         context->mbStat()->updateLastLSN( cb->getEndLsn(), DMS_FILE_DATA ) ;
-      }
-      _keySet.clear() ;
-      _keySetNew.clear() ;
-
+      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR_UPDATEMETA ) ;
+      rc = init( meta._csName.c_str(), meta._clName.c_str(),
+                 meta._idxName.c_str() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Init processor failed[ %d ]", rc ) ;
    done:
-      if ( context )
-      {
-         _su->data()->releaseMBContext( context ) ;
-      }
-
-      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSOR_DONE, rc ) ;
+      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSOR_UPDATEMETA, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR_ABORT, "_rtnExtDataProcessor::abort" )
-   INT32 _rtnExtDataProcessor::abort()
-   {
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR_ABORT ) ;
-      _needUpdateLSN = FALSE ;
-      _keySet.clear() ;
-      _keySetNew.clear() ;
-      PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSOR_ABORT ) ;
-      return SDB_OK ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR__ISOWNEDBY, "_rtnExtDataProcessor::isOwnedBy" )
    BOOLEAN _rtnExtDataProcessor::isOwnedBy( const CHAR *csName,
                                             const CHAR *clName,
-                                            const CHAR *idxName ) const
+                                            const CHAR *idxName )
    {
       PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR__ISOWNEDBY ) ;
       BOOLEAN result = FALSE ;
@@ -662,57 +478,87 @@ namespace engine
       return result ;
    }
 
-   BOOLEAN _rtnExtDataProcessor::isOwnedByExt( const CHAR *targetName ) const
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR_GETEXTDATANAMES, "_rtnExtDataProcessor::getExtDataNames" )
+   void _rtnExtDataProcessor::getExtDataNames( const CHAR *csName,
+                                               const CHAR *clName,
+                                               const CHAR *idxName,
+                                               CHAR *extCSName,
+                                               UINT32 csNameBufSize,
+                                               CHAR *extCLName,
+                                               UINT32 clNameBufSize )
    {
-      return ( 0 == ossStrcmp( targetName, _meta._targetName.c_str() ) ) ;
+      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR_GETEXTDATANAMES ) ;
+      SDB_ASSERT( csName && clName && idxName, "Name is NULL" ) ;
+      string srcStr = string( csName ) + string( clName ) + string( idxName ) ;
+      UINT32 hashVal = ossHash( srcStr.c_str() ) ;
+      if ( extCSName && csNameBufSize > 0 )
+      {
+         ossSnprintf( extCSName, csNameBufSize,
+                      SYS_PREFIX"_%u", hashVal ) ;
+      }
+
+      if ( extCLName && clNameBufSize )
+      {
+         ossSnprintf( extCLName, clNameBufSize,
+                      SYS_PREFIX"_%u."SYS_PREFIX"_%u", hashVal, hashVal ) ;
+      }
+      PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSOR_GETEXTDATANAMES ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR__PREPARERECORD, "_rtnExtDataProcessor::_prepareRecord" )
-   INT32 _rtnExtDataProcessor::_prepareRecord( _rtnExtOprType oprType,
-                                               const BSONElement &idEle,
+   INT32 _rtnExtDataProcessor::_prepareRecord( const CHAR *name,
+                                               _rtnExtOprType oprType,
+                                               const bson::OID *dataOID,
                                                const BSONObj *dataObj,
-                                               BSONObj &recordObj,
-                                               const BSONElement *newIdEle )
+                                               BSONObj &recordObj )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR__PREPARERECORD ) ;
       BSONObjBuilder objBuilder ;
+      BOOLEAN oidRequired = FALSE ;
+      BOOLEAN dataRequired = FALSE ;
 
-      if ( RTN_EXT_INVALID == oprType )
+      switch ( oprType )
       {
+         case RTN_EXT_INSERT:  // insert
+         case RTN_EXT_UPDATE:  // update
+            oidRequired = TRUE ;
+            dataRequired = TRUE ;
+            break ;
+         case RTN_EXT_DELETE:  // delete
+            oidRequired = TRUE ;
+            dataRequired = FALSE ;
+            break ;
+         default:
+            PD_LOG( PDERROR, "Invalid operation type[ %d ]", oprType ) ;
+            rc = SDB_SYS ;
+            goto error ;
+      }
+
+      if ( oidRequired && ( !dataOID || !dataOID->isSet() ) )
+      {
+         PD_LOG( PDERROR, "_id should be specified for current operation" ) ;
          rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Invalid operation type[ %d ]", oprType ) ;
+         goto error ;
+      }
+
+      if ( dataRequired && !dataObj )
+      {
+         PD_LOG( PDERROR, "Data object is NULL for operation" ) ;
+         rc = SDB_SYS ;
          goto error ;
       }
 
       try
       {
-         // 1. Append operation type.
          objBuilder.append( FIELD_NAME_TYPE, oprType ) ;
-         // 2. Append the _id as _rid.
-         objBuilder.appendAs( idEle, RTN_FIELD_NAME_RID ) ;
-         // 3. Insert new _id if the _id field has been modified.
-         if ( RTN_EXT_UPDATE_WITH_ID == oprType )
+         if ( oidRequired )
          {
-            if ( !newIdEle )
-            {
-               rc = SDB_SYS ;
-               PD_LOG( PDERROR, "New _id is invalid" ) ;
-               goto error ;
-            }
-            objBuilder.appendAs( *newIdEle, RTN_FIELD_NAME_RID_NEW ) ;
+            objBuilder.append( RTN_FIELD_NAME_RID, dataOID->str().c_str() ) ;
          }
-         // 4. Append data if necessarry.
-         if ( RTN_EXT_INSERT == oprType || RTN_EXT_UPDATE == oprType ||
-              RTN_EXT_UPDATE_WITH_ID == oprType )
+
+         if ( dataRequired )
          {
-            if ( !dataObj )
-            {
-               rc = SDB_SYS ;
-               PD_LOG( PDERROR, "Data object is NULL for operation type[ %d ]",
-                       oprType ) ;
-               goto error ;
-            }
             objBuilder.append( RTN_FIELD_NAME_SOURCE, *dataObj ) ;
          }
 
@@ -732,6 +578,16 @@ namespace engine
       goto done ;
    }
 
+   void _rtnExtDataProcessor::_lock()
+   {
+      _latch.get() ;
+   }
+
+   void _rtnExtDataProcessor::_unlock()
+   {
+      _latch.release() ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR__PREPARECSANDCL, "_rtnExtDataProcessor::_prepareCSAndCL" )
    INT32 _rtnExtDataProcessor::_prepareCSAndCL( const CHAR *csName,
                                                 const CHAR *clName,
@@ -746,9 +602,8 @@ namespace engine
       BSONObjBuilder builder ;
       BSONObj extOptions ;
 
-      rc = rtnCreateCollectionSpaceCommand( csName, cb, dmsCB, dpsCB,
-                                            UTIL_UNIQUEID_NULL,
-                                            DMS_PAGE_SIZE_DFT,
+      rc = rtnCreateCollectionSpaceCommand( csName, cb, dmsCB,
+                                            dpsCB, DMS_PAGE_SIZE_DFT,
                                             DMS_DO_NOT_CREATE_LOB,
                                             DMS_STORAGE_CAPPED, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Create capped collection space failed[ %d ]",
@@ -760,7 +615,6 @@ namespace engine
       {
          builder.append( FIELD_NAME_SIZE, RTN_CAPPED_CL_MAXSIZE ) ;
          builder.append( FIELD_NAME_MAX, RTN_CAPPED_CL_MAXRECNUM ) ;
-         // Set the OverWrite option as false.
          builder.appendBool( FIELD_NAME_OVERWRITE, FALSE ) ;
          extOptions = builder.done() ;
       }
@@ -773,7 +627,7 @@ namespace engine
 
       rc = rtnCreateCollectionCommand( clName,
                                        DMS_MB_ATTR_NOIDINDEX | DMS_MB_ATTR_CAPPED,
-                                       cb, dmsCB, dpsCB, UTIL_UNIQUEID_NULL,
+                                       cb, dmsCB, dpsCB,
                                        UTIL_COMPRESSOR_INVALID, 0,
                                        TRUE, &extOptions ) ;
       PD_RC_CHECK( rc, PDERROR, "Create capped collection[ %s ] failed[ %d ]",
@@ -797,718 +651,168 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR_PREPAREINSERT, "_rtnExtDataProcessor::_prepareInsert" )
-   INT32 _rtnExtDataProcessor::_prepareInsert( const BSONObj &inputObj,
-                                               BSONObj &recordObj )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR_PREPAREINSERT ) ;
-
-      if ( !_needOprRec )
-      {
-         goto done ;
-      }
-
-      try
-      {
-         BSONElement ele ;
-         if ( 0 == _keySet.size() )
-         {
-            // No index key in the record, skip.
-            goto done ;
-         }
-
-         // Get the _id from the insert object.
-         ele = inputObj.getField( DMS_ID_KEY_NAME ) ;
-         if ( ele.eoo() )
-         {
-            PD_LOG( PDERROR, "Text index can not be used if record has no _id "
-                    "field" ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-
-         {
-            BSONObjSet::iterator it = _keySet.begin();
-            BSONObj object( *it ) ;
-            rc = _prepareRecord( RTN_EXT_INSERT, ele, &object, recordObj ) ;
-            PD_RC_CHECK( rc, PDERROR, "Add operation record failed[ %d ]",
-                         rc ) ;
-         }
-      }
-      catch ( std::exception &e )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSOR_PREPAREINSERT, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR_PREPAREDELETE, "_rtnExtDataProcessor::_prepareDelete" )
-   INT32 _rtnExtDataProcessor::_prepareDelete( const BSONObj &inputObj,
-                                               BSONObj &recordObj )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR_PREPAREDELETE ) ;
-
-      if ( !_needOprRec )
-      {
-         goto done ;
-      }
-
-      try
-      {
-         BSONElement ele ;
-         if ( 0 == _keySet.size() )
-         {
-            // No index key in the record, skip.
-            goto done ;
-         }
-
-         ele = inputObj.getField( DMS_ID_KEY_NAME ) ;
-         if ( EOO == ele.type() )
-         {
-            PD_LOG( PDERROR, "Text index can not be used if record has no _id "
-                  "field" ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-
-         rc = _prepareRecord( RTN_EXT_DELETE, ele, NULL, recordObj ) ;
-         PD_RC_CHECK( rc, PDERROR, "Add operation record failed[ %d ]",
-                      rc ) ;
-      }
-      catch ( std::exception &e )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSOR_PREPAREDELETE, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR_PREPAREUPDATE, "_rtnExtDataProcessor::_prepareUpdate" )
-   INT32 _rtnExtDataProcessor::_prepareUpdate( const BSONObj &originalObj,
-                                               const BSONObj &newObj,
-                                               BSONObj &recordObj )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR_PREPAREUPDATE ) ;
-
-      try
-      {
-         BOOLEAN idModified = FALSE ;
-         BSONElement idEle = originalObj.getField( DMS_ID_KEY_NAME ) ;
-         BSONElement idEleNew = newObj.getField( DMS_ID_KEY_NAME ) ;
-         if ( idEle.eoo() || idEleNew.eoo() )
-         {
-            PD_LOG( PDERROR, "Text index can not be used if record has no "
-                             "_id field" ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-
-         if ( !idEle.valuesEqual( idEleNew ) )
-         {
-            idModified = TRUE ;
-            _needOprRec = TRUE ;
-         }
-
-         if ( !_needOprRec )
-         {
-            goto done ;
-         }
-
-         if ( 0 == _keySetNew.size() )
-         {
-            rc = _prepareDelete( originalObj, recordObj ) ;
-            PD_RC_CHECK( rc, PDERROR, "Prepare for delete failed[ %d ]", rc ) ;
-            goto done ;
-         }
-         SDB_ASSERT( 1 == _keySetNew.size(), "Key set size should be 1" ) ;
-
-         {
-            BSONObjSet::iterator it = _keySetNew.begin() ;
-            BSONObj object( *it ) ;
-            if ( idModified )
-            {
-               rc = _prepareRecord( RTN_EXT_UPDATE_WITH_ID, idEle,
-                                    &object, recordObj, &idEleNew ) ;
-            }
-            else
-            {
-               rc = _prepareRecord( RTN_EXT_UPDATE, idEleNew,
-                                    &object, recordObj ) ;
-            }
-            PD_RC_CHECK( rc, PDERROR, "Add operation record failed[ %d ]",
-                         rc ) ;
-         }
-      }
-      catch ( std::exception &e )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSOR_PREPAREUPDATE, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR__GETEXTCLSHORTNAME, "_rtnExtDataProcessor::_getExtCLShortName" )
-   const CHAR* _rtnExtDataProcessor::_getExtCLShortName() const
-   {
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR__GETEXTCLSHORTNAME ) ;
-      UINT32 curPos = 0 ;
-      UINT32 fullLen = (UINT32)ossStrlen( _cappedCLName ) ;
-      const CHAR *clShortName = NULL ;
-
-      if ( 0 == fullLen )
-      {
-         clShortName = NULL ;
-         goto done ;
-      }
-
-      while ( ( curPos < fullLen ) && ( '.' != _cappedCLName[curPos] ) )
-      {
-         curPos++ ;
-      }
-
-      if ( ( curPos == fullLen ) || ( curPos == fullLen - 1 ) )
-      {
-         clShortName = NULL ;
-         goto done ;
-      }
-
-      clShortName = _cappedCLName + curPos + 1 ;
-
-   done:
-      PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSOR__GETEXTCLSHORTNAME ) ;
-      return clShortName ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR__SPACECHECK, "_rtnExtDataProcessor::_spaceCheck" )
-   INT32 _rtnExtDataProcessor::_spaceCheck( UINT32 size )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR__SPACECHECK ) ;
-      if ( _freeSpace < size )
-      {
-         // If cached size is not enough, let's sync the information. The capped
-         // collection may have been popped by the search engine adapter.
-         rc = _updateSpaceInfo( _freeSpace ) ;
-         PD_RC_CHECK( rc, PDERROR, "Update space information for collection"
-                                   "[ %s ] failed[ %d ]",
-                      _cappedCLName, rc ) ;
-
-         // If space still not enough after update, report error.
-         if ( _freeSpace < size )
-         {
-            rc = SDB_OSS_UP_TO_LIMIT ;
-            PD_LOG( PDERROR, "Space not enough, request size[ %u ]", size ) ;
-            goto error ;
-         }
-      }
-
-      _freeSpace -= ossRoundUpToMultipleX( size, 4 ) ;
-
-   done:
-      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSOR__SPACECHECK, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSOR__UPDATESPACEINFO, "_rtnExtDataProcessor::_updateSpaceInfo" )
-   INT32 _rtnExtDataProcessor::_updateSpaceInfo( UINT64 &freeSpace )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSOR__UPDATESPACEINFO ) ;
-      const dmsMBStatInfo *mbStat = NULL ;
-      UINT64 remainSize = 0 ;
-      UINT32 remainExtentNum = 0 ;
-      dmsMBContext *context = NULL ;
-
-      if ( !_su )
-      {
-         SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
-         dmsStorageUnitID suID = DMS_INVALID_CS ;
-         // Delay set in open text index case.
-         rc = dmsCB->nameToSUAndLock( _cappedCSName, suID, &_su ) ;
-         PD_RC_CHECK( rc, PDERROR, "Lock collection space[ %s ] failed[ %d ]",
-                      _cappedCSName, rc ) ;
-         dmsCB->suUnlock( suID, SHARED ) ;
-      }
-      rc = _su->data()->getMBContext( &context, _getExtCLShortName(), -1 ) ;
-      PD_RC_CHECK( rc, PDERROR, "Get mbcontext for collection[ %s ] "
-                                "failed[ %d ]", _cappedCLName, rc ) ;
-
-      mbStat = context->mbStat() ;
-
-      remainSize = RTN_CAPPED_CL_MAXSIZE -
-            ( mbStat->_totalDataPages << _su->data()->pageSize() ) ;
-
-      remainExtentNum = remainSize / DMS_CAP_EXTENT_SZ ;
-      remainSize -= ( remainExtentNum * DMS_EXTENT_METADATA_SZ ) ;
-
-      freeSpace = mbStat->_totalDataFreeSpace + remainSize ;
-
-   done:
-      if ( context )
-      {
-         _su->data()->releaseMBContext( context ) ;
-      }
-      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSOR__UPDATESPACEINFO, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
    _rtnExtDataProcessorMgr::_rtnExtDataProcessorMgr()
-   : _number( 0 ),
-     _pendingProcessor( NULL )
    {
    }
 
    _rtnExtDataProcessorMgr::~_rtnExtDataProcessorMgr()
    {
+      for ( PROCESSOR_MAP_ITR itr = _processorMap.begin();
+            itr != _processorMap.end(); ++itr )
+      {
+         SDB_OSS_DEL itr->second ;
+      }
    }
 
-   // activate - To make the processor visible to others.
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR_CREATEPROCESSOR, "_rtnExtDataProcessorMgr::createProcessor" )
-   INT32 _rtnExtDataProcessorMgr::createProcessor( const CHAR *csName,
-                                                   const CHAR *clName,
-                                                   const CHAR *idxName,
-                                                   const CHAR *extName,
-                                                   const BSONObj &idxKeyDef,
-                                                   rtnExtDataProcessor *&processor,
-                                                   BOOLEAN activate )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR_ADDPROCESSOR, "_rtnExtDataProcessorMgr::addProcessor" )
+   INT32 _rtnExtDataProcessorMgr::addProcessor( const CHAR *csName,
+                                                const CHAR *clName,
+                                                const CHAR *idxName,
+                                                rtnExtDataProcessor** processor )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR_CREATEPROCESSOR ) ;
+      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR_ADDPROCESSOR ) ;
       rtnExtDataProcessor *processorLocal = NULL ;
-      INT32 foundID = RTN_EXT_PROCESSOR_INVALID_ID ;
 
-      ossScopedLock lock( &_mutex, EXCLUSIVE ) ;
+      UINT32 key = _genProcessorKey( csName, clName, idxName ) ;
 
-      // Loop and find a free processor. Check for the same external data at the
-      // same time.
-      for ( INT32 id = 0 ; id < RTN_EXT_PROCESSOR_MAX_NUM; ++id )
+      processorLocal = SDB_OSS_NEW rtnExtDataProcessor() ;
+      if ( !processorLocal )
       {
-         if ( _processors[id].isOwnedByExt( extName ) )
-         {
-            rc = SDB_IXM_EXIST ;
-            PD_LOG( PDERROR, "External data with the same name exists. Maybe "
-                             "same text index has been created" ) ;
-            goto error ;
-         }
-
-         if ( !processorLocal &&
-              ( RTN_EXT_PROCESSOR_INVALID == _processors[id].stat() ) )
-         {
-            foundID = id ;
-            processorLocal = &_processors[foundID] ;
-         }
+         rc = SDB_OOM ;
+         PD_LOG( PDERROR, "Allocate external data processor failed" ) ;
+         goto error ;
       }
 
-      rc = processorLocal->init( foundID, csName, clName,
-                                 idxName, extName, idxKeyDef ) ;
-      PD_RC_CHECK( rc, PDERROR, "Init external data processor failed[ %d ]",
-                   rc ) ;
-      _pendingProcessor = processorLocal ;
+      rc = processorLocal->init( csName, clName, idxName ) ;
+      PD_RC_CHECK( rc, PDERROR, "Init external data processor for "
+                   "collection[ %s.%s ] and index[ %s ] failed[ %d ]",
+                   csName, clName, idxName, rc ) ;
 
-      if ( activate )
       {
-         rc = activateProcessor( processorLocal->getID(), TRUE ) ;
-         PD_RC_CHECK( rc, PDERROR, "Activate processor failed[ %d ]", rc ) ;
-         _pendingProcessor = NULL ;
+         ossScopedRWLock lock( &_mutex, EXCLUSIVE ) ;
+         _processorMap.insert( std::pair<UINT32, rtnExtDataProcessor *>
+                               ( key, processorLocal ) ) ;
       }
 
-      processor = processorLocal ;
-      _number++ ;
+      if ( processor )
+      {
+         *processor = processorLocal ;
+      }
 
    done:
-      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSORMGR_CREATEPROCESSOR, rc ) ;
+      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSORMGR_ADDPROCESSOR, rc ) ;
       return rc ;
    error:
       if ( processorLocal )
       {
-         processorLocal->reset() ;
+         SDB_OSS_DEL processorLocal ;
       }
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR_ACTIVATEPROCESSOR, "_rtnExtDataProcessorMgr::activateProcessor" )
-   INT32 _rtnExtDataProcessorMgr::activateProcessor( INT32 id,
-                                                     BOOLEAN inProtection )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR_GETPROCESSORS, "_rtnExtDataProcessorMgr::getProcessors" )
+   void _rtnExtDataProcessorMgr::getProcessors( const CHAR *csName,
+                                                vector<rtnExtDataProcessor *> &processorVec )
    {
-      INT32 rc = SDB_OK;
-      PD_TRACE_ENTRY(SDB__RTNEXTDATAPROCESSORMGR_ACTIVATEPROCESSOR);
-
-      if ( !inProtection )
+      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR_GETPROCESSORS ) ;
+      ossScopedRWLock lock( &_mutex, SHARED ) ;
+      for ( PROCESSOR_MAP_ITR itr = _processorMap.begin();
+            itr != _processorMap.end(); ++itr )
       {
-         _mutex.get() ;
+         if ( itr->second->isOwnedBy( csName ) )
+         {
+            processorVec.push_back( itr->second ) ;
+         }
       }
-      if ( !_pendingProcessor || (id != _pendingProcessor->getID()) )
+      PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSORMGR_GETPROCESSORS ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR_GETPROCESSORS2, "_rtnExtDataProcessorMgr::getProcessors2" )
+   void _rtnExtDataProcessorMgr::getProcessors( const CHAR *csName,
+                                                const CHAR *clName,
+                                                vector<rtnExtDataProcessor *> &processorVec )
+   {
+      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR_GETPROCESSORS2 ) ;
+      ossScopedRWLock lock( &_mutex, SHARED ) ;
+      for ( PROCESSOR_MAP_ITR itr = _processorMap.begin();
+            itr != _processorMap.end(); ++itr )
+      {
+         if ( itr->second->isOwnedBy( csName, clName ) )
+         {
+            processorVec.push_back( itr->second ) ;
+         }
+      }
+      PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSORMGR_GETPROCESSORS2 ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR_GETPROCESSOR, "_rtnExtDataProcessorMgr::getProcessor" )
+   INT32 _rtnExtDataProcessorMgr::getProcessor( const CHAR *csName,
+                                                const CHAR *clName,
+                                                const CHAR *idxName,
+                                                rtnExtDataProcessor **processor )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR_GETPROCESSOR ) ;
+      PROCESSOR_MAP_ITR itr ;
+      UINT32 key = 0 ;
+
+      if ( !csName || !clName || !idxName )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "Invalid processor id to activate: %lld", id ) ;
+         PD_LOG( PDERROR, "cs/cl/index name invalid to get processor" ) ;
          goto error ;
       }
+      key = _genProcessorKey( csName, clName, idxName ) ;
 
-      if ( RTN_EXT_PROCESSOR_NORMAL != _pendingProcessor->stat() )
+      *processor = NULL ;
       {
-         rc = _pendingProcessor->active() ;
-         PD_RC_CHECK( rc, PDERROR, "Active processor failed[ %d ]", rc ) ;
-         _pendingProcessor = NULL ;
+         ossScopedRWLock lock( &_mutex, SHARED ) ;
+         std::pair<PROCESSOR_MAP_ITR, PROCESSOR_MAP_ITR> range =
+            _processorMap.equal_range( key ) ;
+         for ( PROCESSOR_MAP_ITR itr = range.first; itr != range.second; ++itr )
+         {
+            if ( itr->second->isOwnedBy( csName, clName, idxName ) )
+            {
+               *processor = itr->second ;
+               break ;
+            }
+         }
       }
 
    done:
-      if ( !inProtection )
-      {
-         _mutex.release() ;
-      }
-      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSORMGR_ACTIVATEPROCESSOR, rc ) ;
+      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSORMGR_GETPROCESSOR, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
-   UINT32 _rtnExtDataProcessorMgr::number()
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR_DELPROCESSOR, "_rtnExtDataProcessorMgr::delProcessor" )
+   void _rtnExtDataProcessorMgr::delProcessor( rtnExtDataProcessor **processor )
    {
-      ossScopedLock lock( &_mutex, SHARED ) ;
-      return _number ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR_GETPROCESSORSBYCS, "_rtnExtDataProcessorMgr::getProcessorsByCS" )
-   INT32 _rtnExtDataProcessorMgr::getProcessorsByCS( const CHAR *csName,
-                                                     INT32 lockType,
-                                                     vector<rtnExtDataProcessor *> &processors )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR_GETPROCESSORSBYCS ) ;
-
-      BOOLEAN locked = ( SHARED == lockType || EXCLUSIVE == lockType ) ;
-      vector<INT32> lockedIDs ;
-      rtnExtDataProcessor *processor = NULL ;
-
-      ossScopedLock lock( &_mutex, SHARED ) ;
-
-      // One cs may contain multiple text indices, according with multiple
-      // processors. We need to lock all of them, to avoid partial failure.
-      // As the processors may be used by others, so we give up if any one of
-      // the processors can not be locked in one second. All processors who have
-      // been locked need to be unlocked.
-      for ( INT32 i = 0; i < RTN_EXT_PROCESSOR_MAX_NUM; ++i )
+      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR_DELPROCESSOR ) ;
+      ossScopedRWLock _lock( &_mutex, EXCLUSIVE ) ;
+      for ( PROCESSOR_MAP_ITR itr = _processorMap.begin();
+            itr != _processorMap.end(); ++itr )
       {
-         processor = &_processors[i] ;
-         if ( processor->isOwnedBy( csName ) && processor->isActive() )
+         if ( itr->second == *processor )
          {
-            ossRWMutex *mutex = &_processorLocks[i] ;
-            if ( SHARED == lockType )
-            {
-               rc = mutex->lock_r( OSS_ONE_SEC ) ;
-            }
-            else if ( EXCLUSIVE == lockType )
-            {
-               rc = mutex->lock_w( OSS_ONE_SEC ) ;
-            }
-            else
-            {
-               processors.push_back( processor ) ;
-               continue ;
-            }
-
-            // In case of error, all processors which have been locked need to
-            // be released.
-            if ( rc )
-            {
-               goto error ;
-            }
-
-            if ( locked )
-            {
-               lockedIDs.push_back( i ) ;
-            }
-            processors.push_back( processor ) ;
-         }
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSORMGR_GETPROCESSORSBYCS, rc ) ;
-      return rc ;
-   error:
-      processors.clear() ;
-      if ( locked )
-      {
-         for ( vector<INT32>::iterator itr = lockedIDs.begin();
-               itr != lockedIDs.end(); ++itr )
-         {
-            if ( SHARED == lockType )
-            {
-               _processorLocks[*itr].release_r() ;
-            }
-            else
-            {
-               _processorLocks[*itr].release_w() ;
-            }
-         }
-      }
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR_GETPROCESSORSBYCL, "_rtnExtDataProcessorMgr::getProcessorsByCL" )
-   INT32 _rtnExtDataProcessorMgr::getProcessorsByCL( const CHAR *csName,
-                                                     const CHAR *clName,
-                                                     INT32 lockType,
-                                                     std::vector<rtnExtDataProcessor *> &processors )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR_GETPROCESSORSBYCL ) ;
-
-      BOOLEAN locked = ( SHARED == lockType || EXCLUSIVE == lockType ) ;
-      vector<INT32> lockedIDs ;
-      rtnExtDataProcessor *processor = NULL ;
-
-      ossScopedLock lock( &_mutex, SHARED ) ;
-
-      for ( INT32 i = 0; i < RTN_EXT_PROCESSOR_MAX_NUM; ++i )
-      {
-         processor = &_processors[i] ;
-         if ( processor->isOwnedBy( csName, clName )
-              && processor->isActive() )
-         {
-            ossRWMutex *mutex = &_processorLocks[i] ;
-            if ( SHARED == lockType )
-            {
-               rc = mutex->lock_r( OSS_ONE_SEC ) ;
-            }
-            else if ( EXCLUSIVE == lockType )
-            {
-               rc = mutex->lock_w( OSS_ONE_SEC ) ;
-            }
-            else
-            {
-               processors.push_back( processor ) ;
-               continue ;
-            }
-
-            if ( rc )
-            {
-               goto error ;
-            }
-
-            if ( locked )
-            {
-               lockedIDs.push_back( i ) ;
-            }
-            processors.push_back( processor ) ;
-         }
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__RTNEXTDATAPROCESSORMGR_GETPROCESSORSBYCL, rc ) ;
-      return rc ;
-   error:
-      processors.clear() ;
-      if ( locked )
-      {
-         for ( vector<INT32>::iterator itr = lockedIDs.begin();
-               itr != lockedIDs.end(); ++itr )
-         {
-            if ( SHARED == lockType )
-            {
-               _processorLocks[*itr].release_r() ;
-            }
-            else
-            {
-                _processorLocks[*itr].release_w() ;
-            }
-         }
-      }
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR_GETPROCESSORBYIDX, "_rtnExtDataProcessorMgr::getProcessorByIdx" )
-   INT32 _rtnExtDataProcessorMgr::getProcessorByIdx( const CHAR *csName,
-                                                     const CHAR *clName,
-                                                     const CHAR *idxName,
-                                                     INT32 lockType,
-                                                     rtnExtDataProcessor *&processor )
-   {
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR_GETPROCESSORBYIDX ) ;
-
-      processor = NULL ;
-
-      ossScopedLock lock( &_mutex, SHARED ) ;
-
-      for ( INT32 i = 0; i < RTN_EXT_PROCESSOR_MAX_NUM; ++i )
-      {
-         if ( _processors[i].isOwnedBy( csName, clName, idxName )
-              && _processors[i].isActive() )
-         {
-            ossRWMutex *mutex = &_processorLocks[i] ;
-            if ( SHARED == lockType )
-            {
-               mutex->lock_r() ;
-            }
-            else if ( EXCLUSIVE == lockType )
-            {
-               mutex->lock_w() ;
-            }
-            processor = &_processors[i]  ;
+            _processorMap.erase( itr ) ;
+            *processor = NULL ;
             break ;
          }
       }
-
-      PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSORMGR_GETPROCESSORBYIDX ) ;
-      return SDB_OK ;
+      PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSORMGR_DELPROCESSOR ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR_GETPROCESSORBYEXTNAME, "_rtnExtDataProcessorMgr::getProcessorByExtName" )
-   INT32 _rtnExtDataProcessorMgr::getProcessorByExtName( const CHAR *extName,
-                                                         INT32 lockType,
-                                                         rtnExtDataProcessor *&processor )
+   UINT32 _rtnExtDataProcessorMgr::_genProcessorKey( const CHAR *csName,
+                                                     const CHAR *clName,
+                                                     const CHAR *idxName )
    {
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR_GETPROCESSORBYEXTNAME ) ;
+      SDB_ASSERT( csName && clName && idxName, "Names can not be NULL" ) ;
 
-      processor = NULL  ;
-
-      ossScopedLock lock( &_mutex, SHARED ) ;
-
-      for ( INT32 i = 0; i < RTN_EXT_PROCESSOR_MAX_NUM; ++i )
-      {
-         if ( _processors[i].isOwnedByExt( extName )
-              && _processors[i].isActive() )
-         {
-            ossRWMutex *mutex = &_processorLocks[i] ;
-            if ( SHARED == lockType )
-            {
-               mutex->lock_r() ;
-            }
-            else if ( EXCLUSIVE == lockType )
-            {
-               mutex->lock_w() ;
-            }
-            processor = &_processors[i] ;
-            break ;
-         }
-      }
-
-      PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSORMGR_GETPROCESSORBYEXTNAME ) ;
-      return SDB_OK ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR_UNLOCKPROCESSORS, "_rtnExtDataProcessorMgr::unlockProcessors" )
-   void _rtnExtDataProcessorMgr::unlockProcessors( std::vector<rtnExtDataProcessor *> &processors,
-                                                   INT32 lockType )
-   {
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR_UNLOCKPROCESSORS ) ;
-      if ( SHARED != lockType && EXCLUSIVE != lockType )
-      {
-         return ;
-      }
-
-      {
-         ossScopedLock lock( &_mutex, SHARED ) ;
-         for ( std::vector<rtnExtDataProcessor *>::iterator itr = processors.begin() ;
-               itr != processors.end(); ++itr )
-         {
-            ossRWMutex *mutex = &_processorLocks[ (*itr)->getID() ] ;
-            if ( SHARED == lockType )
-            {
-               mutex->release_r() ;
-            }
-            else
-            {
-               mutex->release_w() ;
-            }
-         }
-      }
-      PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSORMGR_UNLOCKPROCESSORS ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR_DESTROYPROCESSORS, "_rtnExtDataProcessorMgr::destroyProcessors" )
-   void _rtnExtDataProcessorMgr::destroyProcessors( vector<rtnExtDataProcessor*> &processors,
-                                                    INT32 lockType )
-   {
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR_DESTROYPROCESSORS ) ;
-      ossScopedLock _lock( &_mutex, EXCLUSIVE ) ;
-
-      for ( vector<rtnExtDataProcessor*>::iterator itr = processors.begin();
-            itr != processors.end(); ++itr )
-      {
-         INT32 id = (*itr)->getID() ;
-         if ( id < 0 || id >= RTN_EXT_PROCESSOR_MAX_NUM )
-         {
-            PD_LOG( PDWARNING, "Invalid processor id[%d] for destroy", id ) ;
-            continue ;
-         }
-         _processors[id].reset() ;
-         --_number ;
-         if ( SHARED == lockType )
-         {
-            _processorLocks[id].release_r() ;
-         }
-         else if ( EXCLUSIVE == lockType )
-         {
-            _processorLocks[id].release_w() ;
-         }
-      }
-      PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSORMGR_DESTROYPROCESSORS ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR_RENAMECS, "_rtnExtDataProcessorMgr::renameCS" )
-   INT32 _rtnExtDataProcessorMgr::renameCS( const CHAR *name,
-                                            const CHAR *newName )
-   {
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR_RENAMECS ) ;
-      ossScopedLock _lock( &_mutex, EXCLUSIVE ) ;
-
-      for ( INT32 i = 0; i < RTN_EXT_PROCESSOR_MAX_NUM; ++i )
-      {
-         if ( _processors[i].isOwnedBy( name ) )
-         {
-            _processors[i].updateMeta( newName ) ;
-         }
-      }
-
-      PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSORMGR_RENAMECS ) ;
-      return SDB_OK ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNEXTDATAPROCESSORMGR_RENAMECL, "_rtnExtDataProcessorMgr::renameCL" )
-   INT32 _rtnExtDataProcessorMgr::renameCL( const CHAR *csName,
-                                            const CHAR *clName,
-                                            const CHAR *newCLName )
-   {
-      PD_TRACE_ENTRY( SDB__RTNEXTDATAPROCESSORMGR_RENAMECL ) ;
-      ossScopedLock _lock( &_mutex, EXCLUSIVE ) ;
-
-      for ( INT32 i = 0; i < RTN_EXT_PROCESSOR_MAX_NUM; ++i )
-      {
-         if ( _processors[i].isOwnedBy( csName, clName ) )
-         {
-            _processors[i].updateMeta( csName, newCLName ) ;
-         }
-      }
-
-      PD_TRACE_EXIT( SDB__RTNEXTDATAPROCESSORMGR_RENAMECL ) ;
-      return SDB_OK ;
+      string srcStr = string( csName ) + string( clName ) + string( idxName ) ;
+      return ossHash( srcStr.c_str() ) ;
    }
 
    rtnExtDataProcessorMgr* rtnGetExtDataProcessorMgr()

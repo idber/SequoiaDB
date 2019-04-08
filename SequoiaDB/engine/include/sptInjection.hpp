@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptInjection.hpp
 
@@ -300,36 +299,8 @@ namespace engine
    #define JS_ADD_GLOBAL_FUNC_WITHATTR( jsFuncName, funcName, attr ) \
            JS_ADD_STATIC_FUNC_WITHATTR( jsFuncName, funcName, attr )
 
-   #define JS_SET_CVT_TO_BOOL_FUNC( funcName ) \
-           setCVTToBoolFunc( funcName ) ;
-
-   #define JS_SET_CVT_TO_INT_FUNC( funcName ) \
-           setCVTToIntFunc( funcName ) ;
-
-   #define JS_SET_CVT_TO_DOUBLE_FUNC( funcName ) \
-           setCVTToDoubleFunc( funcName ) ;
-
-   #define JS_SET_CVT_TO_STRING_FUNC( funcName ) \
-           setCVTToStringFunc( funcName ) ;
-
-   #define JS_SET_CVT_TO_BSON_FUNC( funcName ) \
-           setCVTToBSONFunc( funcName ) ;
-
-   #define JS_SET_SPECIAL_FIELD_NAME( fieldName ) \
-           setSpecialFieldName( fieldName ) ;
-
-   #define JS_SET_JSOBJ_TO_BSON_FUNC( funcName ) \
-           setFMPToBSONFunc( funcName ) ;
-
-   #define JS_SET_JSOBJ_TO_CURSOR_FUNC( funcName ) \
-           setFMPToCursorFunc( funcName ) ;
-
-   #define JS_SET_BSON_TO_JSOBJ_FUNC( funcName ) \
-           setBSONToJSObjFunc( funcName ) ;
-
    #define JS_MAPPING_END() }
-
-
+                      
 }
 
 #endif

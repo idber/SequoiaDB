@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnCommandList.cpp
 
@@ -70,7 +69,6 @@ namespace engine
 
    BOOLEAN _rtnListCollections::_isCurrent() const
    {
-      /// for include system
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          return TRUE ;
@@ -117,7 +115,6 @@ namespace engine
 
    BOOLEAN _rtnListCollectionsInner::_isCurrent() const
    {
-      /// for include system
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          return TRUE ;
@@ -158,7 +155,6 @@ namespace engine
 
    BOOLEAN _rtnListCollectionspaces::_isCurrent() const
    {
-      /// for include system
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          return TRUE ;
@@ -205,7 +201,6 @@ namespace engine
 
    BOOLEAN _rtnListCollectionspacesInner::_isCurrent() const
    {
-      /// for include system
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          return TRUE ;
@@ -556,7 +551,6 @@ namespace engine
 
    BOOLEAN _rtnListStorageUnits::_isCurrent() const
    {
-      /// for include system
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          return TRUE ;
@@ -602,7 +596,6 @@ namespace engine
 
    BOOLEAN _rtnListStorageUnitsInner::_isCurrent() const
    {
-      /// for include system
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          return TRUE ;
@@ -876,83 +869,6 @@ namespace engine
    UINT32 _rtnListTransCurrentInner::_addInfoMask() const
    {
       return MON_MASK_NODE_NAME | MON_MASK_GROUP_NAME ;
-   }
-
-   IMPLEMENT_CMD_AUTO_REGISTER(_rtnListSvcTasks)
-   /*
-      _rtnListSvcTasks implement
-   */
-   _rtnListSvcTasks::_rtnListSvcTasks()
-   {
-   }
-
-   _rtnListSvcTasks::~_rtnListSvcTasks()
-   {
-   }
-
-   const CHAR *_rtnListSvcTasks::name ()
-   {
-      return CMD_NAME_LIST_SVCTASKS ;
-   }
-   RTN_COMMAND_TYPE _rtnListSvcTasks::type ()
-   {
-      return CMD_LIST_SVCTASKS ;
-   }
-
-   INT32 _rtnListSvcTasks::_getFetchType() const
-   {
-      return RTN_FETCH_SVCTASKS ;
-   }
-
-   BOOLEAN _rtnListSvcTasks::_isCurrent() const
-   {
-      return FALSE ;
-   }
-
-   UINT32 _rtnListSvcTasks::_addInfoMask() const
-   {
-      return MON_MASK_NODE_NAME ;
-   }
-
-   const CHAR* _rtnListSvcTasks::getIntrCMDName()
-   {
-      return CMD_NAME_LIST_SVCTASKS_INTR ;
-   }
-
-   IMPLEMENT_CMD_AUTO_REGISTER(_rtnListSvcTasksInner)
-   /*
-      _rtnListSvcTasksInner implement
-   */
-   _rtnListSvcTasksInner::_rtnListSvcTasksInner()
-   {
-   }
-
-   _rtnListSvcTasksInner::~_rtnListSvcTasksInner()
-   {
-   }
-
-   const CHAR *_rtnListSvcTasksInner::name ()
-   {
-      return CMD_NAME_LIST_SVCTASKS_INTR ;
-   }
-   RTN_COMMAND_TYPE _rtnListSvcTasksInner::type ()
-   {
-      return CMD_LIST_SVCTASKS ;
-   }
-
-   INT32 _rtnListSvcTasksInner::_getFetchType() const
-   {
-      return RTN_FETCH_SVCTASKS ;
-   }
-
-   BOOLEAN _rtnListSvcTasksInner::_isCurrent() const
-   {
-      return FALSE ;
-   }
-
-   UINT32 _rtnListSvcTasksInner::_addInfoMask() const
-   {
-      return MON_MASK_NODE_NAME ;
    }
 
 }

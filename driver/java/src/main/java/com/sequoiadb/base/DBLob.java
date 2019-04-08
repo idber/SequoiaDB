@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 SequoiaDB Inc.
+ * Copyright 2017 SequoiaDB Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -182,12 +182,5 @@ public interface DBLob extends Closeable {
      * @throws BaseException If error happens.
      */
     void close() throws BaseException;
-
-    /**
-     * Check whether current offset has reached to the max size of the current lob.
-     *
-     * @return Return true if yes while false for not.
-     */
-    boolean isEof();
 }
 

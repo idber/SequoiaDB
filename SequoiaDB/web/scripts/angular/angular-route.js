@@ -29,7 +29,8 @@ function isPluginHtmlPath( fileName )
       return false ;
    }
 
-   if( window.PluginModule.indexOf( files[2] ) < 0 )
+   if( files[2] != 'Data' &&
+         files[2] != 'Monitor' )
    {
       return false ;
    }

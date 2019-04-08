@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = utilBsongen.cpp
 
@@ -116,11 +115,9 @@ error:
    goto done ;
 }
 
-//generate a random double.
 FLOAT64 randDouble ()
 {
    UINT32 dv = 0 ;
-   // make sure we don't divide by 0
    while ( !dv )
    {
       dv = ossRand() ;
@@ -130,7 +127,6 @@ FLOAT64 randDouble ()
 }
 
 
-//generate a BSONObj
 PD_TRACE_DECLARE_FUNCTION ( SDB_BSONGEN_GENOBJ, "genObject" )
 INT32 genObject ( UINT32 maxFieldNum,
                   UINT32 maxFieldNameLength,
@@ -157,7 +153,6 @@ INT32 genObject ( UINT32 maxFieldNum,
       idCreated = TRUE ;
    }
 
-   //remember existed field name.
    std::set<UINT32> fdset;
    std::set<UINT32>::iterator it;
 
@@ -169,7 +164,6 @@ INT32 genObject ( UINT32 maxFieldNum,
 
    if ( BSONGEN_DFT_FIELD_LEN < maxFieldNameLength )
    {
-      // free at end of the function
       pFieldName = (CHAR*)SDB_OSS_MALLOC ( maxFieldNameLength + 1 ) ;
       if ( !pFieldName )
       {
@@ -180,7 +174,6 @@ INT32 genObject ( UINT32 maxFieldNum,
 
    do
    {
-      //generate random field count.
       num = ossRand() % maxFieldNum ;
    } while ( 0 == curLevel && 0 == num ) ;
 
@@ -198,7 +191,6 @@ INT32 genObject ( UINT32 maxFieldNum,
          fieldNameLen = genFieldName(pFieldName,maxFieldNameLength) ;
       }
 
-      //ensure field name is unique.
       UINT32 hashVal = ossHash ( pFieldName, fieldNameLen ) ;
       it = fdset.find ( hashVal ) ;
       if ( it == fdset.end () )
@@ -207,7 +199,6 @@ INT32 genObject ( UINT32 maxFieldNum,
       }
       else
       {
-         //this field name is existed,generate again.
          continue;
       }
 
@@ -230,7 +221,6 @@ INT32 genObject ( UINT32 maxFieldNum,
       {
          if ( BSONGEN_DFT_FIELD_LEN < maxFieldNameLength )
          {
-            // freed after append
             pStr = (CHAR*)SDB_OSS_MALLOC ( maxFieldNameLength + 1 ) ;
             if ( !pStr )
             {
@@ -355,7 +345,6 @@ INT32 genArray ( BSONArrayBuilder &builder,
    CHAR str [ BSONGEN_DFT_STRING_LEN + 1 ] = {0};
    CHAR *pStr                              = &str[0] ;
 
-   //generate array length random.
    arrayLength                             = ossRand() % maxArrayLength ;
 
    while ( arrayLength > 0 )
@@ -370,7 +359,6 @@ INT32 genArray ( BSONArrayBuilder &builder,
       {
          if ( BSONGEN_DFT_FIELD_LEN < maxFieldNameLength )
          {
-            // free after append
             pStr = (CHAR*)SDB_OSS_MALLOC ( maxFieldNameLength + 1 ) ;
             if ( !pStr )
             {
@@ -392,7 +380,6 @@ INT32 genArray ( BSONArrayBuilder &builder,
       {
          if ( maxDepth < 1 )
             continue ;
-         //embed object
          BSONObj obj ;
          rc = genObject ( maxArrayLength,
                           maxFieldNameLength,
@@ -406,7 +393,6 @@ INT32 genArray ( BSONArrayBuilder &builder,
       {
          if ( maxDepth < 1 )
             continue;
-         //embed array
          BSONArrayBuilder  ba ;
          rc = genArray ( ba,
                          maxArrayLength,
@@ -461,8 +447,6 @@ error :
    goto done ;
 }
 
-//generate random cstring
-//return string length
 UINT32 genString ( CHAR *str, UINT32 maxStringLength )
 {
    UINT32 len = 0 ;
@@ -479,13 +463,10 @@ UINT32 genString ( CHAR *str, UINT32 maxStringLength )
    return len ;
 }
 
-//generate random field name
-//return string length
 UINT32 genFieldName ( CHAR *str, UINT32 maxFieldNameLength )
 {
    UINT32 len = 0 ;
 
-   //insure  field name length is not zero.
    len = ( ossRand() % ( maxFieldNameLength - 1 ) )  + 1;
 
    for ( UINT32 i = 0; i < len; i++ )

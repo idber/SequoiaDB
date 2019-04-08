@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2016 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = expCL.hpp
 
@@ -81,9 +80,6 @@ namespace exprt
          return name ;
       }
 
-      // format of rawStr should be :
-      // "<csName>.<clName> <field-list>"
-      // "<csName>.<clName>" must be specified while "<field-list>" may not be
       INT32 parseCLFields( const string &rawStr ) ;
 
       expCL &swap( expCL &other )
@@ -125,7 +121,6 @@ namespace exprt
                              const set<expCL> &includeCollection,
                              const set<string> &excludeCS,
                              const set<expCL> &excludeCollection ) ;
-      // should be call after parsing
       INT32 _parsePost() ;
    private :
       expOptions     &_options ;

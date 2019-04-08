@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptInvoker.hpp
 
@@ -44,7 +43,7 @@
 #include "sptReturnVal.hpp"
 #include "sptCommon.hpp"
 #include "../bson/bson.hpp"
-#include <set>
+
 
 namespace engine
 {
@@ -109,7 +108,7 @@ namespace engine
          return rc ;
       error:
          _reportError( cx, rc, detail ) ;
-         goto done ;
+         goto done ;         
       }
 
       template<typename Func>
@@ -207,7 +206,6 @@ namespace engine
                                SPT_PROP_PERMANENT )->setValue(
                                sdbGetGlobalID() ) ;
 
-         /// set properties
          if ( !rval.getSelfProperties().empty() )
          {
             rc = setProperty( cx, jsObj, rval.getSelfProperties() ) ;
@@ -292,7 +290,6 @@ namespace engine
             jsval vp[ 3 ] = { JSVAL_VOID, JSVAL_VOID, valID } ;
             _sptSPArguments args( cx, 1, &vp[0] ) ;
 
-            /// when the property is exist, ignored
             JSObject *prototype = JS_GetPrototype( cx, obj ) ;
             if ( prototype )
             {
@@ -316,19 +313,17 @@ namespace engine
 
                if ( hasRet && found )
                {
-                  //goto done ;
+                  goto done ;
                }
             }
 
             if ( JSVAL_IS_STRING ( valID ) )
             {
                string idstr ;
-               std::set< string > funcSet ;
                args.getString( 0, idstr ) ;
-               sptGetObjFactory()->getObjFuncNames( cx, obj, funcSet, TRUE ) ;
-               if( funcSet.end() != funcSet.find( idstr ) )
+
+               if ( T::__desc.getFuncMap().isMemberFunc( idstr.c_str() ) )
                {
-                  /// member function will be called.
                   goto done ;
                }
             }
@@ -348,7 +343,6 @@ namespace engine
             }
             else if ( !processed )
             {
-               /// don't processed
                goto done ;
             }
             else if ( !callFunc.empty() )
@@ -379,7 +373,6 @@ namespace engine
          }
          else
          {
-            /// not surpported yet
             goto done ;
          }
 
@@ -395,13 +388,11 @@ namespace engine
 
       static INT32 setProperty( JSContext *cx,
                                 JSObject *obj,
-                                const SPT_PROPERTIES &properties,
-                                JSObject *callerObj = NULL ) ;
+                                const SPT_PROPERTIES &properties ) ;
 
       static INT32 setArrayElems( JSContext *cx,
                                   JSObject *obj,
-                                  const SPT_PROPERTIES &properties,
-                                  JSObject *callerObj = NULL ) ;
+                                  const SPT_PROPERTIES &properties ) ;
 
    private:
       static INT32 _getValFromProperty( JSContext *cx,
@@ -418,7 +409,7 @@ namespace engine
                                 const bson::BSONObj &detail ) ;
 
       static UINT32 _getOpCode( JSContext *cx ) ;
-
+ 
    } ;
    typedef class _sptInvoker sptInvoker ;
 }

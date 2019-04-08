@@ -39,7 +39,6 @@ Tools:
 	sdbperfcol      -- SequoiaDB performance collection
 	sdbwsart        -- SequoiaDB web service start
 	sdbwstop        -- SequoiaDB web service stop
-	sequoiafs       -- SequoiaFS file system
 
 
 Drivers:

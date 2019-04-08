@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptUsrSdbTool.cpp
 
@@ -216,7 +215,6 @@ namespace engine
 
             utilBuildFullPath( rootPath, SDBCM_CONF_PATH_FILE,
                                OSS_MAX_PATHSIZE, confFile ) ;
-            // file exist
             if ( 0 == ossAccess( confFile ) )
             {
                utilGetCMService( rootPath, hostName, node._svcname, TRUE ) ;
@@ -258,7 +256,6 @@ namespace engine
          }
       }
 
-      // filter
       for ( UINT32 k = 0 ; k < nodes.size() ; ++k )
       {
          BSONObj obj = _nodeInfo2Bson( nodes[ k ],
@@ -273,7 +270,6 @@ namespace engine
          }
       }
 
-      // if no -p, and list all/list cm, need to show sdbcmd
       if ( optionParam._svcnames.size() == 0 &&
            ( SDB_TYPE_OMA == optionParam._typeFilter ||
              -1 == optionParam._typeFilter ) &&
@@ -294,7 +290,6 @@ namespace engine
          }
       }
 
-      // set result
       rval.getReturnVal().setValue( vecObj ) ;
 
    done:
@@ -489,7 +484,6 @@ namespace engine
       BSONObj obj ;
       CHAR confFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 
-      // not cm
       if ( type != SDB_TYPE_OMA )
       {
          pmdOptionsCB conf ;
@@ -541,19 +535,16 @@ namespace engine
       {
          BOOLEAN subMatch = FALSE ;
          BSONElement e = itFilter.next() ;
-         // $and
          if ( 0 == ossStrcmp( e.fieldName(), "$and" ) &&
               Array == e.type() )
          {
             subMatch = _match( obj, e.embeddedObject(), SPT_MATCH_AND ) ;
          }
-         // $or
          else if ( 0 == ossStrcmp( e.fieldName(), "$or" ) &&
                    Array == e.type() )
          {
             subMatch = _match( obj, e.embeddedObject(), SPT_MATCH_OR ) ;
          }
-         // $not
          else if ( 0 == ossStrcmp( e.fieldName(), "$not" ) &&
                    Array == e.type() )
          {

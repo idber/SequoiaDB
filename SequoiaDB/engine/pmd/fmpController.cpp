@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = fmpController.cpp
 
@@ -106,8 +105,8 @@ INT32 _fmpController::run()
    _inBufSize = FMP_DEFAULT_BUF_SIZE ;
 
 #if defined (_WINDOWS)
-   _in.hFile = (HANDLE)(_fileno( stdin )) ;
-   _out.hFile = (HANDLE)_fileno( stdout ) ;
+   _in.hFile = (HANDLE)(fileno( stdin )) ;
+   _out.hFile = (HANDLE)fileno( stdout ) ;
 #else
    _in.fd = fileno( stdin ) ;
    _out.fd = fileno( stdout ) ;
@@ -145,8 +144,6 @@ INT32 _fmpController::_runLoop()
       ele = obj.getField( FMP_CONTROL_FIELD ) ;
       if ( ele.eoo() )
       {
-         /// we considered it be download.
-         /// so func is no need to be copy in spdCB.
          step = FMP_CONTROL_STEP_DOWNLOAD ;
       }
       else if ( NumberInt != ele.type() )
@@ -164,7 +161,6 @@ INT32 _fmpController::_runLoop()
       if ( FMP_CONTROL_STEP_QUIT == step )
       {
          _clear() ;
-         /// should not do anything after send ok msg.
          rc = _writeMsg( OK_RES ) ;
          if ( SDB_OK != rc )
          {
@@ -186,7 +182,6 @@ INT32 _fmpController::_runLoop()
       }
       else
       {
-         /// do noting.
       }
 
       if ( !FMP_VALID_STEP(step) )
@@ -331,7 +326,6 @@ INT32 _fmpController::_handleOneLoop( const BSONObj &obj,
       {
          PD_LOG( PDWARNING, "Failed to init global db: %s",
                  res.toString( FALSE, TRUE ).c_str() ) ;
-         // continue run
       }
 
       rc = _vm->eval( obj, res ) ;
@@ -484,7 +478,6 @@ INT32 _fmpController::_writeMsg( const BSONObj &msg )
    SINT64 written = 0 ;
    BOOLEAN writeHead = TRUE ;
 
-   /// to distinguish our own msg or printf.
    SINT64 objsize = sizeof( magicNumber ) ;
    const CHAR *buf = (const CHAR*)magicNumber ;
 

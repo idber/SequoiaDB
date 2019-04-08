@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = utilBitmap.hpp
 
@@ -45,26 +44,22 @@
 namespace engine
 {
 
-   // UINT8 as one unit in bitmap
    #define UTIL_BITMAP_UNIT_SIZE       ( 8 )
 
-   // Modulo to index the unit in bitmap
-   #define UTIL_BITMAP_UNIT_MODULO     ( ( UTIL_BITMAP_UNIT_SIZE ) - 1 )
+   #define UTIL_BITMAP_UNIT_MODULO     ( 7 )
 
-   // log2(unit size) in a bitmap unit
    #define UTIL_BITMAP_UNIT_LOG2SIZE   ( 3 )
 
-   // Search table for each bit in a bitmap unit
    static UINT8 _utilBitmapIndex[ UTIL_BITMAP_UNIT_SIZE ] =
    {
-       0x80,   /// 10000000
-       0x40,   /// 01000000
-       0x20,   /// 00100000
-       0x10,   /// 00010000
-       0x08,   /// 00001000
-       0x04,   /// 00000100
-       0x02,   /// 00000010
-       0x01    /// 00000001
+       0x01,
+       0x02,
+       0x04,
+       0x08,
+       0x10,
+       0x20,
+       0x40,
+       0x80
    } ;
 
    /*
@@ -170,13 +165,11 @@ namespace engine
       protected :
          OSS_INLINE UINT32 _calcUnitIndex ( UINT32 index ) const
          {
-            // Find the index to the unit in bitmap
             return index >> UTIL_BITMAP_UNIT_LOG2SIZE ;
          }
 
          OSS_INLINE UINT8 _calcBitIndex ( UINT32 index ) const
          {
-            // Find the index to the bit in one unit
             return index & UTIL_BITMAP_UNIT_MODULO ;
          }
 
@@ -213,7 +206,7 @@ namespace engine
          }
 
       protected :
-         OSS_INLINE void _allocateBitmap ( UINT32 size )
+         OSS_INLINE virtual void _allocateBitmap ( UINT32 size )
          {
             if ( size > 0 )
             {
@@ -230,7 +223,7 @@ namespace engine
             resetBitmap() ;
          }
 
-         OSS_INLINE void _freeBitmap ()
+         OSS_INLINE virtual void _freeBitmap ()
          {
             SAFE_OSS_FREE( _bitmap ) ;
             _size = 0 ;
@@ -243,17 +236,16 @@ namespace engine
    /*
       _utilStackBitmap define and implement
     */
-   template < UINT32 SIZE >
+   template < UINT32 BITMAPSIZE >
    class _utilStackBitmap : public _utilBitmapBase
    {
       public :
          _utilStackBitmap ()
          : _utilBitmapBase()
          {
-            _size = SIZE ;
-            _bitmapSize = ( SIZE + UTIL_BITMAP_UNIT_MODULO ) /
-                          UTIL_BITMAP_UNIT_SIZE ;
-            if ( _bitmapSize > 0 )
+            _size = BITMAPSIZE * UTIL_BITMAP_UNIT_SIZE ;
+            _bitmapSize = BITMAPSIZE ;
+            if ( BITMAPSIZE > 0 )
             {
                _bitmap = &( _bitmapBuf[0] ) ;
             }
@@ -267,8 +259,7 @@ namespace engine
          }
 
       protected :
-         UINT8 _bitmapBuf[ ( SIZE + UTIL_BITMAP_UNIT_MODULO ) /
-                           UTIL_BITMAP_UNIT_SIZE ] ;
+         UINT8 _bitmapBuf[ BITMAPSIZE ] ;
    } ;
 
 }

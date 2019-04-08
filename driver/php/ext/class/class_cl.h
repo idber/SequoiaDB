@@ -1,5 +1,5 @@
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -21,26 +21,16 @@
 
 PHP_METHOD( SequoiaCL, __construct ) ;
 
-//cl
 PHP_METHOD( SequoiaCL, drop ) ;
 PHP_METHOD( SequoiaCL, alter ) ;
-PHP_METHOD( SequoiaCL, enableSharding ) ;
-PHP_METHOD( SequoiaCL, disableSharding ) ;
-PHP_METHOD( SequoiaCL, enableCompression ) ;
-PHP_METHOD( SequoiaCL, disableCompression ) ;
-PHP_METHOD( SequoiaCL, setAttributes ) ;
 PHP_METHOD( SequoiaCL, split ) ;
 PHP_METHOD( SequoiaCL, splitAsync ) ;
 PHP_METHOD( SequoiaCL, getFullName ) ;
 PHP_METHOD( SequoiaCL, getCSName ) ;
-//e.g. Rename getCollectionName
 PHP_METHOD( SequoiaCL, getName ) ;
 PHP_METHOD( SequoiaCL, attachCL ) ;
 PHP_METHOD( SequoiaCL, detachCL ) ;
-PHP_METHOD( SequoiaCL, createAutoIncrement ) ;
-PHP_METHOD( SequoiaCL, dropAutoIncrement ) ;
 
-//record
 PHP_METHOD( SequoiaCL, insert ) ;
 PHP_METHOD( SequoiaCL, bulkInsert ) ;
 PHP_METHOD( SequoiaCL, remove ) ;
@@ -53,21 +43,14 @@ PHP_METHOD( SequoiaCL, explain ) ;
 PHP_METHOD( SequoiaCL, count ) ;
 PHP_METHOD( SequoiaCL, aggregate ) ;
 
-//不需要实现
-//PHP_METHOD( SequoiaCL, getDataBlocks ) ;
-//PHP_METHOD( SequoiaCL, getQueryMeta ) ;
 
-//index
 PHP_METHOD( SequoiaCL, createIndex ) ;
 PHP_METHOD( SequoiaCL, dropIndex ) ;
 PHP_METHOD( SequoiaCL, getIndex ) ;
-PHP_METHOD( SequoiaCL, getIndexes ) ;
-PHP_METHOD( SequoiaCL, getIndexInfo ) ;
 PHP_METHOD( SequoiaCL, createIdIndex ) ;
 PHP_METHOD( SequoiaCL, dropIdIndex ) ;
 
 
-//lob
 PHP_METHOD( SequoiaCL, openLob ) ;
 PHP_METHOD( SequoiaCL, removeLob ) ;
 PHP_METHOD( SequoiaCL, truncateLob ) ;

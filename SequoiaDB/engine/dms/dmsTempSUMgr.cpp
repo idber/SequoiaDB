@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dmsTempSUMgr.cpp
 
@@ -71,11 +70,8 @@ namespace engine
       CHAR tempName[15] = {0} ;
       UINT16 collectionID = DMS_INVALID_MBID ;
 
-      // exclusive lock temp cb. this function should be called during process
-      // initialization, so it shouldn't be called in parallel by agents
       DMSSYSSUMGR_XLOCK
 
-      // first to load collection space
       rc = rtnCollectionSpaceLock( SDB_DMSTEMP_NAME, _dmsCB, TRUE,
                                    &_su, suID ) ;
       if ( SDB_OK == rc )
@@ -83,7 +79,6 @@ namespace engine
          _dmsCB->suUnlock( suID ) ;
          suID = DMS_INVALID_CS ;
          _su = NULL ;
-         // remove the temp collection space
          _dmsCB->dropCollectionSpace( SDB_DMSTEMP_NAME, NULL, NULL ) ;
       }
       else if ( SDB_DMS_CS_NOTEXIST != rc )
@@ -91,10 +86,8 @@ namespace engine
          PD_LOG( PDERROR, "Lock temp collection space failed, rc: %d", rc ) ;
       }
 
-      // create new systemp collection space
       rc = rtnCreateCollectionSpaceCommand ( SDB_DMSTEMP_NAME, NULL, _dmsCB,
-                                             NULL, UTIL_UNIQUEID_NULL,
-                                             DMS_PAGE_SIZE_MAX,
+                                             NULL, DMS_PAGE_SIZE_MAX,
                                              DMS_DO_NOT_CREATE_LOB,
                                              DMS_STORAGE_NORMAL, TRUE ) ;
       if ( rc )
@@ -113,14 +106,11 @@ namespace engine
          goto error ;
       }
 
-      // now we should either have existing SYSTEMP or a new one, let's
-      // initialize 4096 temp tables
       for ( INT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
       {
          ossSnprintf ( tempName, sizeof(tempName), DMS_TEMP_NAME_PATTERN,
                        SDB_DMSTEMP_NAME, i ) ;
          rc = _su->data()->addCollection ( tempName, &collectionID,
-                                           UTIL_UNIQUEID_NULL,
                                            DMS_MB_ATTR_NOIDINDEX, NULL,
                                            NULL, 0, TRUE ) ;
          if ( rc )
@@ -150,10 +140,6 @@ namespace engine
       goto done ;
    }
 
-   // release a temp id, this function will first make sure the given tempID
-   // exist in occupiedCollections (shared latch), and then will truncate the
-   // collection+index (no latch), and remove the entry and add it
-   // back to freeCollection (exclusive latch).
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSTMPSUMGR_RELEASE, "_dmsTempSUMgr::release" )
    INT32 _dmsTempSUMgr::release ( dmsMBContext *&context )
    {
@@ -176,7 +162,6 @@ namespace engine
       }
       _mutex.release() ;
 
-      // release mb context
       _su->data()->releaseMBContext( context ) ;
 
       PD_TRACE_EXITRC ( SDB__DMSTMPSUMGR_RELEASE, rc );

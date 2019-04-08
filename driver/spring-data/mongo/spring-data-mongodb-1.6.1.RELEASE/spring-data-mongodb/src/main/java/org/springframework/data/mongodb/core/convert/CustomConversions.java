@@ -98,7 +98,6 @@ public class CustomConversions {
 
 		List<Object> toRegister = new ArrayList<Object>();
 
-		// Add user provided converters to make sure they can override the defaults
 		toRegister.addAll(converters);
 		toRegister.add(CustomToStringConverter.INSTANCE);
 		toRegister.add(BigDecimalToStringConverter.INSTANCE);

@@ -42,16 +42,6 @@ public class DBCursor implements Cursor, Iterable<DBObject> {
     private final ArrayList<DBObject> _all = new ArrayList<DBObject>();
     private QueryResultIterator _resultIterator;
 
-//    /**
-//     * Initializes a new database cursor
-//     * @param collection collection to use
-//     * @param q query to perform
-//     * @param k keys to return from the query
-//     * @param preference the Read Preference for this query
-//     */
-//    public DBCursor( DBCollection collection , DBObject q , DBObject k, ReadPreference preference ){
-//        throw new UnsupportedOperationException("not supported!");
-//    }
 
     DBCursor(QueryResultIterator resultIterator) {
         _resultIterator = resultIterator;
@@ -146,7 +136,6 @@ public class DBCursor implements Cursor, Iterable<DBObject> {
         throw new UnsupportedOperationException("not supported!");
     }
 
-    // ---- querty modifiers --------
 
     /**
      * Sorts this cursor's elements.
@@ -365,7 +354,6 @@ public class DBCursor implements Cursor, Iterable<DBObject> {
         return _num;
     }
 
-    // ----- iterator api -----
 
     /**
      * Checks if there is another object available

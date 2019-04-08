@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsFSDstSession.hpp
 
@@ -48,7 +47,6 @@
 #include <vector>
 #include "../bson/bsonobj.h"
 #include "clsTask.hpp"
-#include "ossMemPool.hpp"
 
 using namespace std ;
 using namespace bson ;
@@ -66,22 +64,18 @@ namespace engine
       INT32 pageSize ;
       INT32 lobPageSize ;
       DMS_STORAGE_TYPE type ;
-      utilCSUniqueID csUniqueID ;
 
-      _clsCSInfoTuple( INT32 ps, INT32 lps, DMS_STORAGE_TYPE sType,
-                       utilCSUniqueID csid )
+      _clsCSInfoTuple( INT32 ps, INT32 lps, DMS_STORAGE_TYPE sType )
       :pageSize( ps ),
        lobPageSize( lps ),
-       type( sType ),
-       csUniqueID( csid )
+       type( sType )
       {
       }
 
       _clsCSInfoTuple()
       :pageSize( 0 ),
        lobPageSize( 0 ),
-       type( DMS_STORAGE_NORMAL ),
-       csUniqueID( UTIL_UNIQUEID_NULL )
+       type( DMS_STORAGE_NORMAL )
       {
       }
    } ;
@@ -110,7 +104,7 @@ namespace engine
          virtual BSONObj _keyObjB () = 0 ;
          virtual BSONObj _keyObjE () = 0 ;
          virtual INT32   _needData () const = 0 ;
-         virtual CLS_FS_TYPE _dataSessionType () const = 0 ;
+         virtual INT32   _dataSessionType () const = 0 ;
          virtual BOOLEAN _isReady () = 0 ;
          /*
             return FALSE, will not continue to run after
@@ -118,7 +112,6 @@ namespace engine
          */
          virtual BOOLEAN _onNotify ( MsgClsFSNotifyRes *pMsg ) = 0 ;
 
-      //message function
       protected:
          INT32 handleMetaRes( NET_HANDLE handle, MsgHeader* header ) ;
          INT32 handleIndexRes( NET_HANDLE handle, MsgHeader* header ) ;
@@ -142,7 +135,6 @@ namespace engine
          INT32          _extractMeta( const CHAR *objdata,
                                       string &cs,
                                       string &collection,
-                                      utilCLUniqueID &clUniqueID,
                                       UINT32 &pageSize,
                                       UINT32 &attributes,
                                       INT32 &lobPageSize,
@@ -156,7 +148,7 @@ namespace engine
 
          UINT32         _addCollection ( const CHAR *pCollectionName ) ;
          UINT32         _removeCollection ( const CHAR *pCollectionName ) ;
-         vector<string> _removeCS ( const CHAR *pCSName ) ;
+         UINT32         _removeCS ( const CHAR *pCSName ) ;
          UINT32         _removeValidCLs( const vector<string> &validCLs ) ;
 
       private:
@@ -178,7 +170,6 @@ namespace engine
          UINT64               _requestID ;
          DPS_LSN              _expectLSN ;
          UINT64               _lastOprLSN ;
-         /// when we begin to get lob, we do not want to sync doc any more.
          BOOLEAN              _needMoreDoc ;
 
    };
@@ -198,7 +189,7 @@ namespace engine
    */
    class _clsFSDstSession : public _clsDataDstBaseSession
    {
-   typedef ossPoolMap<string, clsCSInfoTuple>   CS_INFO_TUPLES ;
+   typedef std::map<string, clsCSInfoTuple>     CS_INFO_TUPLES ;
 
    DECLARE_OBJ_MSG_MAP()
 
@@ -232,7 +223,7 @@ namespace engine
       virtual INT32     _needData () const ;
       virtual BSONObj   _keyObjB () ;
       virtual BSONObj   _keyObjE () ;
-      virtual CLS_FS_TYPE _dataSessionType () const ;
+      virtual INT32     _dataSessionType () const ;
       virtual BOOLEAN   _isReady () ;
       virtual BOOLEAN   _onNotify ( MsgClsFSNotifyRes *pMsg ) ;
 
@@ -261,14 +252,9 @@ namespace engine
       {
          STEP_NONE      = 0,
          STEP_SYNC_DATA ,     // after sync data from peer node, and need to
-                              // sync the last log from peer node
          STEP_POST_SYNC ,     // after sync the last log from peer node, and
-                              // need to notify meta change to catalog
          STEP_META ,          // when cleanup notify to catalog and catalog
-                              // split the catalog and response, begin to
-                              // update catalog in local, and check it
          STEP_END_NTY ,       // notify the peer node to update catalog and
-                              // check it
          STEP_FINISH,         // notify catalog get all data, will to clean
          STEP_CLEANUP ,       // notify the peer node to clean up data
          STEP_REMOVE,         // remove notify to catalog
@@ -281,7 +267,6 @@ namespace engine
          virtual EDU_TYPES eduType () const ;
          virtual BOOLEAN canAttachMeta() const ;
 
-      //message fuction
       protected:
          INT32 handleTaskNotifyRes ( NET_HANDLE handle, MsgHeader* header ) ;
          INT32 handleBeginRes( NET_HANDLE handle, MsgHeader* header ) ;
@@ -296,7 +281,7 @@ namespace engine
          virtual BSONObj   _keyObjE () ;
          virtual void      _onAttach () ;
          virtual void      _onDetach () ;
-         virtual CLS_FS_TYPE _dataSessionType () const ;
+         virtual INT32     _dataSessionType () const ;
          virtual BOOLEAN   _isReady () ;
          virtual BOOLEAN   _onNotify ( MsgClsFSNotifyRes *pMsg ) ;
 

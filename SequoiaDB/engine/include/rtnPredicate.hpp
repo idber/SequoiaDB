@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnPredicate.hpp
 
@@ -45,20 +44,15 @@
 #include "pd.hpp"
 #include <string>
 #include <vector>
-#include "ossMemPool.hpp"
-
+#include <map>
+#include <set>
 using namespace bson ;
 using namespace std ;
-
 namespace engine
 {
 
-   // Each query could have no more than 16 parameters
    #define RTN_MAX_PARAM_NUM                    ( 16 )
 
-   /*
-      _rtnParamList define
-   */
    class _rtnParamList : public SDBObject
    {
       protected :
@@ -134,9 +128,6 @@ namespace engine
    BSONObj rtnKeyGetMinForCmp ( INT32 bsonType, BOOLEAN mixCmp ) ;
    BSONObj rtnKeyGetMaxForCmp ( INT32 bsonType, BOOLEAN mixCmp ) ;
 
-   // bound of a field, say {c1:5}
-   // bound doesn't include upper/lower information, it only have the
-   // BSONElement indicating the boundary and whether if it's inclusive
    class rtnKeyBoundary : public SDBObject
    {
    public :
@@ -151,25 +142,19 @@ namespace engine
          _inclusive = inclusive ;
          _parameterized = FALSE ;
       }
-
+      BSONElement _bound ;
+      BOOLEAN _inclusive ;
+      BOOLEAN _parameterized ;
       BOOLEAN operator==( const rtnKeyBoundary &r ) const
       {
          return _inclusive == r._inclusive &&
                 _bound.woCompare ( r._bound ) == 0 ;
       }
-      void reverseInclusive ()
+      void flipInclusive ()
       {
          _inclusive = !_inclusive ;
       }
-
-      BSONElement _bound ;
-      BOOLEAN _inclusive ;
-      BOOLEAN _parameterized ;
    } ;
-
-   /*
-      RTN_SSK_VALUE_POS define
-   */
    enum RTN_SSK_VALUE_POS
    {
       RTN_SSK_VALUE_POS_LT = -2,
@@ -179,16 +164,12 @@ namespace engine
       RTN_SSK_VALUE_POS_GT,
    } ;
 
-   // return TRUE if the pos is at edge
    OSS_INLINE BOOLEAN rtnSSKPosAtEdge ( RTN_SSK_VALUE_POS pos )
    {
       return pos == RTN_SSK_VALUE_POS_LET ||
              pos == RTN_SSK_VALUE_POS_GET ;
    }
 
-   /*
-      RTN_SSK_RANGE_POS define
-   */
    enum RTN_SSK_RANGE_POS
    {
       RTN_SSK_RANGE_POS_LT = -3,
@@ -206,17 +187,14 @@ namespace engine
              pos == RTN_SSK_RANGE_POS_RET ;
    }
 
-   // bson::MinKey - 1
    #define RTN_KEY_MAJOR_DEFAULT ( -2 )
 
-   // range of a start/stop key
    class rtnStartStopKey : public SDBObject
    {
    public :
       rtnKeyBoundary _startKey ;
       rtnKeyBoundary _stopKey ;
 
-      // equality = 1 means this is == key, otherwise it's ranged query key
       mutable INT8 _equality ;
 
       INT32 _majorType ;
@@ -257,23 +235,9 @@ namespace engine
          _majorType = RTN_KEY_MAJOR_DEFAULT ; ;
       }
       string toString() const ;
-      // convert rtnStartStopKey to bson element
-      // { "a": { <start key BSONElement>, "i": true },
-      //   "o": { <stop key BSONElement } }
-      // Note if the key is inclusive, we'll have "i", otherwise "i" will not be
-      // displayed
       BSONObj toBson () const ;
-      // convert from BSONObj, return TRUE if success, otherwise return FALSE
-      // for bad object
       BOOLEAN fromBson ( BSONObj &ob ) ;
-      // reset to min/max key
       void reset () ;
-      // RTN_SSK_VALUE_POS_LT: ele is less than startKey
-      // RTN_SSK_VALUE_POS_LET: ele is equal to startKey
-      // RTN_SSK_VALUE_POS_WITHIN: ele is greater than startKey and less than
-      // stopKey
-      // RTN_SSK_VALUE_POS_GET: ele is equal to stopKey
-      // RTN_SSK_VALUE_POS_GT: ele is greater than stopKey
       RTN_SSK_VALUE_POS compare ( BSONElement &ele, INT32 dir ) const ;
 
       RTN_SSK_RANGE_POS compare ( rtnStartStopKey &key, INT32 dir ) const ;
@@ -281,21 +245,16 @@ namespace engine
 
    typedef vector< rtnStartStopKey > RTN_SSKEY_LIST ;
 
-   // if we want to find the max bound of start keys, we want to return the one
-   // list of start/stop key that doesn't intersect with each other on one field
    class rtnPredicate : public SDBObject
    {
    private:
       BOOLEAN _isInitialized ;
       vector<BSONObj> _objData ;
 
-      // _equalFlag == 1 means is equal operation
       INT8 _equalFlag ;
 
-      // _allEqualFlag == 1 means all start-stop key-pairs are equal operation
       INT8 _allEqualFlag ;
 
-      // Evaluate for optimizer
       BOOLEAN _evaluated ;
       BOOLEAN _allRange ;
       double _selectivity ;
@@ -303,7 +262,6 @@ namespace engine
       INT8 _paramIndex ;
       INT8 _fuzzyIndex ;
 
-      // this is used when creating new bsonobject in the class
       BSONObj addObj ( const BSONObj &o )
       {
          _objData.push_back(o) ;
@@ -325,21 +283,16 @@ namespace engine
       {
          _startStopKeys.clear() ;
       }
-
-      // intersection operation for two keysets
       const rtnPredicate &operator&= (rtnPredicate &right) ;
-      // union operation for two keysets
       const rtnPredicate &operator|= (const rtnPredicate &right) ;
-      // exclude operation for two keysets
       const rtnPredicate &operator-= (const rtnPredicate &right) ;
       const rtnPredicate &operator= (const rtnPredicate &right) ;
-
+      BOOLEAN operator<= ( const rtnPredicate &r ) const ;
       void reverse ( rtnPredicate &result ) const ;
-
-      BOOLEAN isInit() const { return _isInitialized ; }
-
-      // return the start key from the lowest range
-      // eoo means invalid
+      BOOLEAN isInit()
+      {
+         return _isInitialized ;
+      }
       BSONElement min() const
       {
          if ( !isEmpty() )
@@ -348,8 +301,6 @@ namespace engine
          }
          return BSONElement() ;
       }
-      // return the stop key from the largest range
-      // eoo means invalid
       BSONElement max() const
       {
          if ( !isEmpty() )
@@ -358,7 +309,6 @@ namespace engine
          }
          return BSONElement() ;
       }
-      // return the inclusiveness from the startkey from the lowest range
       BOOLEAN minInclusive() const
       {
          if ( !isEmpty() )
@@ -367,7 +317,6 @@ namespace engine
          }
          return FALSE ;
       }
-      // return the inclusiveness from the stopkey from the largest range
       BOOLEAN maxInclusive() const
       {
          if ( !isEmpty() )
@@ -403,7 +352,6 @@ namespace engine
                   break ;
                }
             }
-            // All equal operators
             _allEqualFlag = ( equalCount == _startStopKeys.size() ) ? 1 : 0 ;
          }
          return _allEqualFlag == 1 ;
@@ -412,8 +360,6 @@ namespace engine
       {
          return _startStopKeys.empty() ;
       }
-      // isGeneric = TRUE means the predicate will match everything in the
-      // collection, which means the predicate doesn't do any filtering
       BOOLEAN isGeneric() const
       {
          return !isEmpty() && _startStopKeys.size() == 1 &&
@@ -451,7 +397,6 @@ namespace engine
                                BOOLEAN markDone = TRUE ) ;
 
    protected :
-      // Helper functions for create predicate
       INT32 _initIN ( const BSONElement &e, BOOLEAN isNot,
                       BOOLEAN mixCmp, BOOLEAN expandRegex ) ;
       INT32 _initRegEx ( const BSONElement &e, BOOLEAN isNot ) ;
@@ -471,13 +416,11 @@ namespace engine
       INT32 _initMinRange ( BOOLEAN startIncluded ) ;
    } ;
 
-   typedef vector< rtnPredicate >                     RTN_PREDICATE_LIST ;
-   typedef vector< RTN_PREDICATE_LIST >               RTN_PARAM_PREDICATE_LIST ;
-   typedef ossPoolMap< string, rtnPredicate >         RTN_PREDICATE_MAP ;
-   typedef ossPoolMap< string, RTN_PREDICATE_LIST >   RTN_PARAM_PREDICATE_MAP ;
+   typedef vector< rtnPredicate > RTN_PREDICATE_LIST ;
+   typedef vector< RTN_PREDICATE_LIST > RTN_PARAM_PREDICATE_LIST ;
+   typedef map< string, rtnPredicate > RTN_PREDICATE_MAP ;
+   typedef map< string, RTN_PREDICATE_LIST > RTN_PARAM_PREDICATE_MAP ;
 
-   // This set is created when receiving a query. It contains user search
-   // condition predicates from user input for all fields
    class _rtnPredicateSet : public SDBObject
    {
    public:
@@ -485,7 +428,7 @@ namespace engine
       const RTN_PREDICATE_LIST &paramPredicate ( const CHAR *fieldName ) const ;
       const RTN_PREDICATE_MAP &predicates() const { return _predicates ; }
       RTN_PREDICATE_MAP &predicates() { return _predicates ; }
-
+      INT32 matchLevelForIndex ( const BSONObj &keyPattern ) const ;
       INT32 addPredicate ( const CHAR *fieldName, const BSONElement &e,
                            INT32 opType, BOOLEAN isNot, BOOLEAN mixCmp,
                            BOOLEAN addToParam, INT8 paramIndex,
@@ -501,20 +444,13 @@ namespace engine
       BSONObj toBson() const ;
 
    private:
-      RTN_PREDICATE_MAP       _predicates ;
+      RTN_PREDICATE_MAP _predicates ;
       RTN_PARAM_PREDICATE_MAP _paramPredicates ;
    } ;
    typedef class _rtnPredicateSet rtnPredicateSet ;
 
    class _ixmIndexCB ;
    class _rtnPredicateListIterator ;
-   // This list is created when optimizer confirming to use a specific index, it
-   // will be created by using rtnPredicateSet ( which defined by the input
-   // query ) and ixmIndexCB ( which defined by the index ). This List will be
-   // created using the input query based on the index definition, including a
-   // list by the order of index def, which represents the matching condition
-   // for the given index
-   // each index key on disk will be sent to matchesKey function to match
    class _rtnPredicateList : public SDBObject
    {
    public :
@@ -524,23 +460,17 @@ namespace engine
 
          void clear () ;
 
-         // Build the fixed predicate list
          INT32 initialize ( const rtnPredicateSet &predSet,
                             const BSONObj &keyPattern,
                             INT32 direction,
                             UINT32 &addedLevel ) ;
 
-         // Build the predicate list with parameters, and generate
-         // parameterized predicate list to bind parameters quickly for
-         // similar queries in the future
          INT32 initialize ( const rtnPredicateSet &predSet,
                             const BSONObj &keyPattern,
                             INT32 direction,
                             rtnParamList &parameters,
                             RTN_PARAM_PREDICATE_LIST &paramPredList ) ;
 
-         // Build the predicate list from parameterized predicate list with
-         // current parameters
          INT32 initialize ( const RTN_PARAM_PREDICATE_LIST &paramPredList,
                             const BSONObj &keyPattern,
                             INT32 direction,
@@ -604,7 +534,6 @@ namespace engine
       LESS,
       GREATER
    } ;
-   // this class is used to iterate an ordered predicate list
    class _rtnPredicateListIterator : public SDBObject
    {
    private :
@@ -613,8 +542,6 @@ namespace engine
       vector <BOOLEAN> _inc ;
       vector <INT32>   _currentKey ;
       vector <INT32>   _prevKey ;
-      // this variable is passed to ixm. When this variable is TRUE, it means we
-      // are going to jump over the current key
       BOOLEAN _after ;
    public :
       _rtnPredicateListIterator ( const rtnPredicateList &predList ) ;
@@ -623,7 +550,6 @@ namespace engine
       const vector<BOOLEAN> &inc() const { return _inc ; }
       void reset() ;
       BOOLEAN after() { return _after ; }
-      INT32 syncState( const _rtnPredicateListIterator *source ) ;
    private :
       rtnPredicateCompareResult
             validateCurrentStartStopKey ( INT32 keyIdx,

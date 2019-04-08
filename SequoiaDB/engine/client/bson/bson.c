@@ -1,4 +1,18 @@
 /* bson.c */
+/*    Copyright 2012 SequoiaDB Inc.
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 /*    Copyright 2009, 2010 10gen Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,8 +47,6 @@
 #include <Windows.h>
 #include <WinBase.h>
 #endif
-
-#define BSON_TIMESTAMP_MAX_INC 1000000
 
 static int jsCompatibility = 0;
 const int initialBufferSize = 0;
@@ -213,7 +225,6 @@ static void _initOid( void )
     unsigned long long n = 0 ;
     unsigned short pid = 0 ;
     srand ( (unsigned int)time(NULL) ) ;
-    // generate a system id
 #if defined (_WIN32)
     {
        unsigned int a=0, b=0 ;
@@ -226,7 +237,6 @@ static void _initOid( void )
     pid = (unsigned short) getpid () ;
     n = (((unsigned long long)random())<<32) | random() ;
 #endif
-    // fold in pid to bson_ourMachineAndPid
     memcpy ( &bson_ourMachineAndPid, &n, sizeof(struct bson_machine_pid) ) ;
     bson_ourMachineAndPid._pid = pid ;
 }
@@ -235,7 +245,6 @@ SDB_EXPORT void bson_oid_gen( bson_oid_t *oid ) {
     static int incr = 0;
     int i;
     int t = time( NULL );
-    // initialize system machine and pid for first time entry
     static ossOnce initOnce = OSS_ONCE_INIT ;
     ossOnceRun( &initOnce, _initOid );
     if( oid_inc_func )
@@ -247,7 +256,6 @@ SDB_EXPORT void bson_oid_gen( bson_oid_t *oid ) {
     else
         i = __sync_fetch_and_add(&incr, 1);
 #endif
-        //i = incr++;
     memset ( oid, 0, sizeof(bson_oid_t) ) ;
     {
        unsigned char *source = (unsigned char *)&t ;
@@ -265,9 +273,6 @@ SDB_EXPORT void bson_oid_gen( bson_oid_t *oid ) {
 #endif
        memcpy ( &oid->ints[1], &bson_ourMachineAndPid,
                 sizeof(bson_ourMachineAndPid) ) ;
-       //memcpy ( ((unsigned char*)&oid->ints[1]) + sizeof(bson_ourMachineAndPid),
-       //         &i, 3 ) ;
-       // apply i to last 3 bytes
        source = (unsigned char *)&i ;
        dest = (unsigned char*)&oid->ints[2] ;
 #if defined (SDB_BIG_ENDIAN)
@@ -325,7 +330,6 @@ static int strlen_a ( const char *data )
    }
    while ( data && *data )
    {
-      //the JSON standard does not need to be escaped single quotation marks
       if ( data[0] == '\"' ||
            data[0] == '\\' ||
            data[0] == '\b' ||
@@ -510,7 +514,6 @@ SDB_EXPORT int bson_sprint_iterator ( char **pbuf, int *left, bson_iterator *i,
          LocalTime ( &timer, &psr ) ;
          if ( (psr.tm_year + 1900) >= 0 && (psr.tm_year + 1900) <= 9999 )
          {
-            // [ 0000-01-01, 9999-12-31 ]
             sprintf ( temp, "{ \"$date\": \"%04d-%02d-%02d\" }", psr.tm_year + 1900, psr.tm_mon + 1, psr.tm_mday ) ;
          }
          else
@@ -531,8 +534,6 @@ SDB_EXPORT int bson_sprint_iterator ( char **pbuf, int *left, bson_iterator *i,
          sprintf ( temp, "\", \"$type\": \"%u\" }", (unsigned char)bson_iterator_bin_type ( i ) ) ;
          bson_sprint_raw_concat ( pbuf, left, "{ \"$binary\": \"", 0 ) ;
          CHECK_LEFT ( left )
-         //bson_sprint_hex_concat ( pbuf, left, bson_iterator_bin_data ( i ),
-         //                         bson_iterator_bin_len ( i ) ) ;
          bin_size = bson_iterator_bin_len ( i ) ;
          if( bin_size > 0 )
          {
@@ -649,34 +650,33 @@ SDB_EXPORT int bson_sprint_iterator ( char **pbuf, int *left, bson_iterator *i,
       }
       case BSON_DECIMAL:
       {
-         bson_decimal decimal = SDB_DECIMAL_DEFAULT_VALUE ;
+         bson_decimal decimal = DECIMAL_DEFAULT_VALUE ;
          char *temp  = NULL ;
          int tmpSize = 0 ;
          int tmpRC   = 0 ;
 
          bson_iterator_decimal( i, &decimal ) ;
-         sdb_decimal_to_jsonstr_len( decimal.sign, decimal.weight,
-                                     decimal.dscale,
-                                     decimal.typemod, &tmpSize ) ;
+         decimal_to_jsonstr_len( decimal.sign, decimal.weight, decimal.dscale,
+                                 decimal.typemod, &tmpSize ) ;
 
          temp = (char *)malloc( tmpSize ) ;
          if ( !temp )
          {
-            sdb_decimal_free( &decimal ) ;
+            decimal_free( &decimal ) ;
             return 0 ;
          }
 
          memset( temp, 0, tmpSize ) ;
-         tmpRC = sdb_decimal_to_jsonstr( &decimal, temp, tmpSize ) ;
+         tmpRC = decimal_to_jsonstr( &decimal, temp, tmpSize ) ;
          if ( 0 != tmpRC )
          {
-            sdb_decimal_free( &decimal ) ;
+            decimal_free( &decimal ) ;
             free( temp ) ;
             return 0 ;
          }
 
          bson_sprint_raw_concat ( pbuf, left, temp, 0 ) ;
-         sdb_decimal_free( &decimal ) ;
+         decimal_free( &decimal ) ;
          free( temp ) ;
          CHECK_LEFT ( left )
          break;
@@ -808,7 +808,7 @@ int bson_sprint_decimal_length_iterator ( const bson_iterator *i )
    bson_iterator_decimal_weight( i, &weight ) ;
    bson_iterator_decimal_typemod( i, &typemod ) ;
 
-   sdb_decimal_to_jsonstr_len( sign, weight, scale, typemod, &size ) ;
+   decimal_to_jsonstr_len( sign, weight, scale, typemod, &size ) ;
 
    return size ;
 }
@@ -880,9 +880,6 @@ SDB_EXPORT int bson_sprint_length_iterator ( bson_iterator *i )
       }
       else
       {
-         // show as{ "a": { "$numberLong": "-9223372036854775808" } }
-         // so, we need at least 42 bytes
-         // for { "$numberLong": "-9223372036854775808" }
          total += 64 ;
       }
       break ;
@@ -945,7 +942,6 @@ SDB_EXPORT int bson_sprint_length_raw ( const char *data, int isobj ) {
         key = bson_iterator_key( &i );
         if ( isobj )
         {
-            // "<key>"<SPC>:<SPC>
             total += 5 + strlen( key );
         }
         k = bson_sprint_length_iterator ( &i ) ;
@@ -960,7 +956,6 @@ SDB_EXPORT int bson_sprint_length_raw ( const char *data, int isobj ) {
 
 SDB_EXPORT int bson_sprint_length( const bson *b ) {
     if ( ! b ) return 0 ;
-    // additional '\0' is in bson_sprint_length_raw
     return bson_sprint_length_raw( b->data, 1 ) ;
 }
 
@@ -1270,22 +1265,22 @@ SDB_EXPORT int bson_iterator_int( const bson_iterator *i ) {
     case BSON_DECIMAL:
     {
         int result = 0 ;
-        bson_decimal decimal = SDB_DECIMAL_DEFAULT_VALUE ;
-        result = sdb_decimal_from_bsonvalue( bson_iterator_value( i ), &decimal ) ;
+        bson_decimal decimal = DECIMAL_DEFAULT_VALUE ;
+        result = decimal_from_bsonvalue( bson_iterator_value( i ), &decimal ) ;
         if ( 0 != result )
         {
-            sdb_decimal_free( &decimal ) ;
+            decimal_free( &decimal ) ;
             return BSON_ERROR ;
         }
 
-        result = sdb_decimal_to_int( &decimal ) ;
+        result = decimal_to_int( &decimal ) ;
         if ( 0 != result )
         {
-            sdb_decimal_free( &decimal ) ;
+            decimal_free( &decimal ) ;
             return BSON_ERROR ;
         }
 
-        sdb_decimal_free( &decimal ) ;
+        decimal_free( &decimal ) ;
         return BSON_OK ;
     }
     default:
@@ -1304,10 +1299,10 @@ SDB_EXPORT double bson_iterator_double( const bson_iterator *i ) {
     case BSON_DECIMAL:
     {
         double result = 0.0 ;
-        bson_decimal decimal = SDB_DECIMAL_DEFAULT_VALUE ;
-        sdb_decimal_from_bsonvalue( bson_iterator_value( i ), &decimal ) ;
-        result = sdb_decimal_to_double( &decimal ) ;
-        sdb_decimal_free( &decimal ) ;
+        bson_decimal decimal = DECIMAL_DEFAULT_VALUE ;
+        decimal_from_bsonvalue( bson_iterator_value( i ), &decimal ) ;
+        result = decimal_to_double( &decimal ) ;
+        decimal_free( &decimal ) ;
         return result ;
     }
     default:
@@ -1318,7 +1313,6 @@ SDB_EXPORT double bson_iterator_double( const bson_iterator *i ) {
 SDB_EXPORT int bson_iterator_decimal_weight( const bson_iterator *i,
                                              int *weight )
 {
-   //define in common_decimal.h __sdb_decimal
    const char *value = NULL ;
    short tmpWeight   = 0 ;
    if ( bson_iterator_type( i ) != BSON_DECIMAL )
@@ -1341,7 +1335,6 @@ SDB_EXPORT int bson_iterator_decimal_weight( const bson_iterator *i,
 SDB_EXPORT int bson_iterator_decimal_size( const bson_iterator *i,
                                            int *size )
 {
-   //define in common_decimal.h __sdb_decimal
    const char *value = NULL ;
    if ( bson_iterator_type( i ) != BSON_DECIMAL )
    {
@@ -1357,7 +1350,6 @@ SDB_EXPORT int bson_iterator_decimal_size( const bson_iterator *i,
 SDB_EXPORT int bson_iterator_decimal_typemod( const bson_iterator *i,
                                               int *typemod )
 {
-   //define in common_decimal.h __sdb_decimal
    const char *value = NULL ;
    if ( bson_iterator_type( i ) != BSON_DECIMAL )
    {
@@ -1376,7 +1368,6 @@ SDB_EXPORT int bson_iterator_decimal_typemod( const bson_iterator *i,
 SDB_EXPORT int bson_iterator_decimal_scale( const bson_iterator *i,
                                             int *sign, int *scale )
 {
-   //define in common_decimal.h __sdb_decimal
    const char *value = NULL ;
    short tmpScale    = 0 ;
    if ( bson_iterator_type( i ) != BSON_DECIMAL )
@@ -1390,8 +1381,8 @@ SDB_EXPORT int bson_iterator_decimal_scale( const bson_iterator *i,
    value += 4 ;   // typemod
    bson_little_endian16( &tmpScale, value ) ;
 
-   *sign  = tmpScale & SDB_DECIMAL_SIGN_MASK ;
-   *scale = tmpScale & SDB_DECIMAL_DSCALE_MASK ;
+   *sign  = tmpScale & DECIMAL_SIGN_MASK ;
+   *scale = tmpScale & DECIMAL_DSCALE_MASK ;
 
    return BSON_OK ;
 }
@@ -1402,26 +1393,26 @@ SDB_EXPORT int bson_iterator_decimal( const bson_iterator *i,
    bson_type type ;
    int rc = 0 ;
 
-   sdb_decimal_free( decimal ) ;
+   decimal_free( decimal ) ;
    type = bson_iterator_type( i ) ;
    if ( BSON_INT == type )
    {
       int tmp = bson_iterator_int_raw( i ) ;
-      rc = sdb_decimal_from_int( tmp, decimal ) ;
+      rc = decimal_from_int( tmp, decimal ) ;
    }
    else if ( BSON_LONG == type )
    {
       int64_t tmp = bson_iterator_long_raw( i ) ;
-      rc = sdb_decimal_from_long( tmp, decimal ) ;
+      rc = decimal_from_long( tmp, decimal ) ;
    }
    else if ( BSON_DOUBLE == type )
    {
       double tmp = bson_iterator_double_raw( i ) ;
-      rc = sdb_decimal_from_double( tmp , decimal ) ;
+      rc = decimal_from_double( tmp , decimal ) ;
    }
    else if ( BSON_DECIMAL == type )
    {
-      rc = sdb_decimal_from_bsonvalue( bson_iterator_value( i ), decimal ) ;
+      rc = decimal_from_bsonvalue( bson_iterator_value( i ), decimal ) ;
    }
    else
    {
@@ -1449,10 +1440,10 @@ SDB_EXPORT int64_t bson_iterator_long( const bson_iterator *i ) {
     case BSON_DECIMAL:
     {
         int64_t result = 0 ;
-        bson_decimal decimal = SDB_DECIMAL_DEFAULT_VALUE ;
-        sdb_decimal_from_bsonvalue( bson_iterator_value( i ), &decimal ) ;
-        result = sdb_decimal_to_long( &decimal ) ;
-        sdb_decimal_free( &decimal ) ;
+        bson_decimal decimal = DECIMAL_DEFAULT_VALUE ;
+        decimal_from_bsonvalue( bson_iterator_value( i ), &decimal ) ;
+        result = decimal_to_long( &decimal ) ;
+        decimal_free( &decimal ) ;
         return result ;
     }
     default:
@@ -1495,10 +1486,10 @@ SDB_EXPORT bson_bool_t bson_iterator_bool( const bson_iterator *i ) {
     case BSON_DECIMAL:
     {
         bson_bool_t result = 0 ;
-        bson_decimal decimal = SDB_DECIMAL_DEFAULT_VALUE ;
-        sdb_decimal_from_bsonvalue( bson_iterator_value( i ), &decimal ) ;
-        result = sdb_decimal_is_zero( &decimal ) ;
-        sdb_decimal_free( &decimal ) ;
+        bson_decimal decimal = DECIMAL_DEFAULT_VALUE ;
+        decimal_from_bsonvalue( bson_iterator_value( i ), &decimal ) ;
+        result = decimal_is_zero( &decimal ) ;
+        decimal_free( &decimal ) ;
         return !result ;
     }
     case BSON_EOO:
@@ -1748,11 +1739,9 @@ static int bson_append_estart( bson *b, int type, const char *name, const int da
         bson_builder_error( b );
         return BSON_ERROR;
     }
-    // check nested array's field
     if ( _bson_is_nested_array( b ) ) {
        char c = '0' ;
        if ( len == 2 ) {
-          // check whether the field name is "x" (x is 0/1/2/3/...) or not
           c = (char)(name[0]) ;
           if ( c < '0' || c > '9' ) {
              bson_builder_error( b );
@@ -1773,7 +1762,6 @@ static int bson_append_estart( bson *b, int type, const char *name, const int da
              }
           }
        } else {
-          // name is "", return error
           bson_builder_error( b );
           return BSON_ERROR ;
        }
@@ -1805,11 +1793,10 @@ SDB_EXPORT int bson_append_long( bson *b, const char *name, const int64_t i ) {
 SDB_EXPORT int bson_append_decimal( bson *b, const char *name,
                                     const bson_decimal *decimal )
 {
-   //define in common_decimal.h __sdb_decimal
    int i = 0 ;
-   int size = SDB_DECIMAL_HEADER_SIZE + decimal->ndigits * sizeof( short ) ;
+   int size = DECIMAL_HEADER_SIZE + decimal->ndigits * sizeof( short ) ;
    int typemod  = decimal->typemod ;
-   short dscale = ( decimal->dscale & SDB_DECIMAL_DSCALE_MASK ) | decimal->sign ;
+   short dscale = ( decimal->dscale & DECIMAL_DSCALE_MASK ) | decimal->sign ;
    short weight = decimal->weight ;
    if ( bson_append_estart( b , BSON_DECIMAL, name, size ) == BSON_ERROR )
         return BSON_ERROR;
@@ -1830,16 +1817,16 @@ SDB_EXPORT int bson_append_decimal3( bson *b, const char *name,
                                      const char *value )
 {
    int rc = 0 ;
-   bson_decimal decimal = SDB_DECIMAL_DEFAULT_VALUE ;
+   bson_decimal decimal = DECIMAL_DEFAULT_VALUE ;
 
-   rc = sdb_decimal_from_str( value, &decimal ) ;
+   rc = decimal_from_str( value, &decimal ) ;
    if ( 0 != rc )
    {
       return BSON_ERROR ;
    }
 
    rc = bson_append_decimal( b, name, &decimal ) ;
-   sdb_decimal_free( &decimal ) ;
+   decimal_free( &decimal ) ;
 
    return rc ;
 }
@@ -1850,21 +1837,21 @@ SDB_EXPORT int bson_append_decimal2( bson *b, const char *name,
                                      int scale )
 {
    int rc = 0 ;
-   bson_decimal decimal = SDB_DECIMAL_DEFAULT_VALUE ;
-   rc = sdb_decimal_init1( &decimal, precision, scale ) ;
+   bson_decimal decimal = DECIMAL_DEFAULT_VALUE ;
+   rc = decimal_init1( &decimal, precision, scale ) ;
    if ( 0 != rc )
    {
       return BSON_ERROR ;
    }
 
-   rc = sdb_decimal_from_str( value, &decimal ) ;
+   rc = decimal_from_str( value, &decimal ) ;
    if ( 0 != rc )
    {
       return BSON_ERROR ;
    }
 
    rc = bson_append_decimal( b, name, &decimal ) ;
-   sdb_decimal_free( &decimal ) ;
+   decimal_free( &decimal ) ;
 
    return rc ;
 }
@@ -1922,7 +1909,6 @@ int bson_append_string_base( bson *b, const char *name,
     return BSON_OK;
 }
 
-// for sdbimprt only
 int bson_append_string_not_utf8( bson *b, const char *name, const char *value, int len ) {
 
     int sl = len + 1;
@@ -1930,19 +1916,16 @@ int bson_append_string_not_utf8( bson *b, const char *name, const char *value, i
     if ( bson_check_string( b, ( const char * )value, sl - 1 ) == BSON_ERROR ) {
         int i;
 
-        // allow not-utf8 string
         if ( !( b->err & BSON_NOT_UTF8 ) ) {
             return BSON_ERROR;
         }
 
-        // disallow '\0' in string
         for ( i = 0; i < len; i++ ) {
             if ( '\0' == value[i] ) {
                 return BSON_ERROR;
             }
         }
 
-        // erase BSON_NOT_UTF8
         b->err &= ~BSON_NOT_UTF8;
     }
 
@@ -2095,28 +2078,19 @@ SDB_EXPORT int bson_append_elements( bson *dst, const bson *src ) {
 }
 
 SDB_EXPORT int bson_append_timestamp( bson *b, const char *name, bson_timestamp_t *ts ) {
-    return bson_append_timestamp2( b, name, ts->t, ts->i );
+    if ( bson_append_estart( b, BSON_TIMESTAMP, name, 8 ) == BSON_ERROR ) return BSON_ERROR;
+
+    bson_append32( b , &( ts->i ) );
+    bson_append32( b , &( ts->t ) );
+
+    return BSON_OK;
 }
 
 SDB_EXPORT int bson_append_timestamp2( bson *b, const char *name, int time, int increment ) {
     if ( bson_append_estart( b, BSON_TIMESTAMP, name, 8 ) == BSON_ERROR ) return BSON_ERROR;
-    if ( increment >= 0 && increment < BSON_TIMESTAMP_MAX_INC )
-    {
-        bson_append32( b , &increment );
-        bson_append32( b , &time );
-    }
-    else
-    {
-        int sec = time + increment / BSON_TIMESTAMP_MAX_INC;
-        int us  = increment % BSON_TIMESTAMP_MAX_INC;
-        if ( us < 0 )
-        {
-            sec -= 1;
-            us += BSON_TIMESTAMP_MAX_INC;
-        }
-        bson_append32( b , &us );
-        bson_append32( b , &sec );
-    }
+
+    bson_append32( b , &increment );
+    bson_append32( b , &time );
     return BSON_OK;
 }
 
@@ -2132,7 +2106,6 @@ SDB_EXPORT int bson_append_time_t( bson *b, const char *name, time_t secs ) {
 
 SDB_EXPORT int bson_append_start_object( bson *b, const char *name ) {
     if ( bson_append_estart( b, BSON_OBJECT, name, 5 ) == BSON_ERROR ) return BSON_ERROR;
-    // make sure the bson doesn't have too many embedded layers
     if ( b->stackPos >= BSON_MAX_STACK_SIZE-1 ) return BSON_ERROR ;
     b->stack[ b->stackPos ] = b->cur - b->data;
     b->stackType[ b->stackPos ] = (char)BSON_OBJECT ;
@@ -2143,7 +2116,6 @@ SDB_EXPORT int bson_append_start_object( bson *b, const char *name ) {
 
 SDB_EXPORT int bson_append_start_array( bson *b, const char *name ) {
     if ( bson_append_estart( b, BSON_ARRAY, name, 5 ) == BSON_ERROR ) return BSON_ERROR;
-    // make sure the bson doesn't have too many embedded layers
     if ( b->stackPos >= BSON_MAX_STACK_SIZE-1 ) return BSON_ERROR ;
     b->stack[ b->stackPos ] = b->cur - b->data;
     b->stackType[ b->stackPos ] = (char)BSON_ARRAY ;
@@ -2324,9 +2296,6 @@ void LocalTime ( time_t *Time, struct tm *TM )
 #if defined (__linux__ ) || defined (_AIX)
    localtime_r( Time, TM ) ;
 #elif defined (_WIN32)
-   // The Time represents the seconds elapsed since midnight (00:00:00),
-   // January 1, 1970, UTC. This value is usually obtained from the time
-   // function.
    localtime_s( TM, Time ) ;
 #endif
 }

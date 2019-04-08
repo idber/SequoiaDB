@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dpsLogRecordDef.hpp
 
@@ -47,15 +46,13 @@ namespace engine
    {
       DPS_LOG_PUBLIC_INVALID = 0,
       DPS_LOG_PUBLIC_BEGIN = 200,
-      DPS_LOG_PUBLIC_FULLNAME = 201,         // cl full name
+      DPS_LOG_PUBLIC_FULLNAME = 201,
       DPS_LOG_PUBLIC_TRANSID = 202,
       DPS_LOG_PUBLIC_PRETRANS = 203,
       DPS_LOG_PUBLIC_RELATED_TRANS = 204,    // only for rollback trans,
-                                             // mapping to really trans lsn
       DPS_LOG_PUBLIC_FIRSTTRANS = 205
    } ;
 
-/// number in public can not be used in definition !
 
    enum DPS_LOG_INSERT
    {
@@ -88,8 +85,7 @@ namespace engine
       DPS_LOG_CSCRT_CSNAME = 1,
       DPS_LOG_CSCRT_PAGESIZE = 2,
       DPS_LOG_CSCRT_LOBPAGESZ = 3,
-      DPS_LOG_CSCRT_CSTYPE = 4,
-      DPS_LOG_CSCRT_CSUNIQUEID = 5
+      DPS_LOG_CSCRT_CSTYPE = 4
    } ;
 
    enum DPS_LOG_CSDEL
@@ -99,7 +95,7 @@ namespace engine
 
    enum DPS_LOG_CSRENAME
    {
-      DPS_LOG_CSRENAME_CSNAME = 1,
+      DPS_LOG_CSRENAME_CSNAME       = 1,
       DPS_LOG_CSRENAME_NEWNAME      = 2
    } ;
 
@@ -107,8 +103,7 @@ namespace engine
    {
       DPS_LOG_CLCRT_ATTRIBUTE = 1,
       DPS_LOG_CLCRT_COMPRESS_TYPE = 2,
-      DPS_LOG_CLCRT_EXT_OPTIONS = 3,
-      DPS_LOG_CLCRT_CLUNIQUEID
+      DPS_LOG_CLCRT_EXT_OPTIONS = 3
    } ;
 
    enum DPS_LOG_CLDEL
@@ -128,9 +123,9 @@ namespace engine
 
    enum DPS_LOG_CLRENAME
    {
-      DPS_LOG_CLRENAME_CSNAME = 1 ,
-      DPS_LOG_CLRENAME_CLOLDNAME = 2 ,
-      DPS_LOG_CLRENAME_CLNEWNAME = 3
+      DPS_LOG_CLRENAME_CSNAME =1,
+      DPS_LOG_CLRENAME_CLOLDNAME =2,
+      DPS_LOG_CLRENAME_CLNEWNAME =3,
    } ;
 
    enum DPS_LOG_CLTRUNC
@@ -177,20 +172,8 @@ namespace engine
       DPS_LOG_ANALYZE_IXNAME,
       DPS_LOG_ANALYZE_MODE
    } ;
-
-   enum DPS_LOG_ALTERCS
-   {
-      DPS_LOG_ALTER_OBJECT_TYPE = 1,
-      DPS_LOG_ALTER_OBJECT
-   } ;
-
-   enum DPS_LOG_ADDUNIQUEID
-   {
-      DPS_LOG_ADDUNIQUEID_CSNAME = 1,
-      DPS_LOG_ADDUNIQUEID_CSUNIQUEID,
-      DPS_LOG_ADDUNIQUEID_CLINFO
-   } ;
-
 }
 
+
 #endif
+

@@ -23,7 +23,7 @@
                      <td>{{TaskInfo['Info']['ClusterName']}}</td>
                   </tr>
                   <tr ng-if="TaskInfo['Info']['BusinessName'].length > 0">
-                     <td>{{autoLanguage("服务名")}}</td>
+                     <td>{{autoLanguage("业务名")}}</td>
                      <td>{{TaskInfo['Info']['BusinessName']}}</td>
                   </tr>
                   <tr>
@@ -81,7 +81,6 @@
       </div>
       <div style="text-align:center;" ng-container="{height:30,marginTop:20}">
          <button class="btn btn-default" ng-if="DeployType == 'Deploy' || DeployType == 'Host'" ng-click="GotoAddHost()"><i class="fa fa-chevron-left"></i> {{autoLanguage("上一步")}}</button>
-         <button class="btn btn-default" ng-if="DeployType == 'Package'" ng-click="GotoPackage()"><i class="fa fa-chevron-left"></i> {{autoLanguage("上一步")}}</button>
          <button class="btn btn-default" ng-if="DeployType == 'Task'" ng-click="GotoDeploy2()"><i class="fa fa-chevron-left"></i> {{autoLanguage("返回")}}</button>
          &nbsp;&nbsp;&nbsp;
          <button class="btn" ng-if="DeployType == 'Deploy'" ng-class="{'true':'btn-primary','false':'btn-danger'}[IsFinish]" ng-click="GotoNext()">

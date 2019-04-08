@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dpsReplicaLogMgr.hpp
 
@@ -44,13 +43,11 @@
 #include "dpsLogPage.hpp"
 #include "ossLatch.hpp"
 #include "dpsMergeBlock.hpp"
-#include "dpsTransCB.hpp"
 #include "ossAtomic.hpp"
 #include "dpsLogFileMgr.hpp"
 #include "ossUtil.hpp"
 #include "ossEvent.hpp"
 #include "ossQueue.hpp"
-#include "dpsMetaFile.hpp"
 
 #include <vector>
 using namespace std ;
@@ -58,10 +55,7 @@ using namespace std ;
 namespace engine
 {
 
-   // we ALWAYS search for MEM first, because we may have LSN stay in buffer
-   // but not on disk
    #define  DPS_SEARCH_MEM       0x01
-   // indicating also search in file
    #define  DPS_SEARCH_FILE      0x10
    #define  DPS_SEARCH_ALL       (DPS_SEARCH_MEM|DPS_SEARCH_FILE)
 
@@ -95,10 +89,6 @@ namespace engine
       dpsTransCB                 *_transCB ;
       vector< dpsEventHandler* > _vecEventHandler ;
       BOOLEAN                    _incVersion ;
-
-      _dpsMetaFile               _metaFile ;
-
-      UINT64                     _pageFlushCount ;
 
    public:
       _dpsReplicaLogMgr();
@@ -192,9 +182,7 @@ namespace engine
 
       INT32 merge( _dpsMergeBlock &block ) ;
 
-      // first step: allocate pages and product lsn
       INT32 preparePages ( dpsMergeInfo &info ) ;
-      // secondary step: write data to pages
       void  writeData ( dpsMergeInfo &info ) ;
 
       INT32 search( const DPS_LSN &minLsn, _dpsMessageBlock *mb,
@@ -204,13 +192,10 @@ namespace engine
       INT32 tearDown();
       INT32 flushAll() ;
 
-      /// committedLsn should be allocated by user
       INT32 commit( BOOLEAN deeply, DPS_LSN *committedLsn ) ;
 
       INT32 checkSyncControl( UINT32 reqLen, _pmdEDUCB *cb ) ;
 
-      /// any other interfaces should not be called
-      /// when this interface is beging called.
       INT32 move( const DPS_LSN_OFFSET &offset,
                   const DPS_LSN_VER &version ) ;
 
@@ -258,11 +243,8 @@ namespace engine
 
       DPS_LSN_OFFSET calcFirstPhysicalLSNOfFile( UINT32 logicalFileId )
       {
-         // file id start from 0
          return ((UINT64)logicalFileId) * getLogFileSz () ;
       }
-
-      INT32 readOldestBeginLsnOffset( DPS_LSN_OFFSET &offset ) ;
 
    private:
       void _allocate( UINT32 len,
@@ -286,8 +268,6 @@ namespace engine
                           const DPS_LSN_VER &version ) ;
       INT32 _restore () ;
 
-      INT32 _restoreMeta() ;
-
       UINT32 _decPageID ( UINT32 pageID )
       {
          return pageID ? pageID - 1 : _pageNum - 1 ;
@@ -297,8 +277,6 @@ namespace engine
          ++pageID ;
          return pageID >= _pageNum ? 0 : pageID ;
       }
-
-      void _flushOldestTransBeginLSN() ;
    };
    typedef class _dpsReplicaLogMgr dpsReplicaLogMgr;
 }

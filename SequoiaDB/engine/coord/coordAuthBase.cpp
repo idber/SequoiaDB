@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordAuthBase.cpp
 
@@ -59,14 +58,13 @@ namespace engine
                                   BOOLEAN sWhenNoPrimary,
                                   INT64 &contextID,
                                   const CHAR **ppUserName,
-                                  const CHAR **ppPass,
-                                  BSONObj *pOptions )
+                                  const CHAR **ppPass )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_AUTHBASE_FORWARD ) ;
 
       BSONObj authObj ;
-      BSONElement user, pass, eOptions ;
+      BSONElement user, pass ;
       pmdSubSession *pSub = NULL ;
       coordGroupSel *pSel = _groupSession.getGroupSel() ;
       coordGroupSessionCtrl *pCtrl = _groupSession.getGroupCtrl() ;
@@ -84,7 +82,6 @@ namespace engine
 
       user = authObj.getField( SDB_AUTH_USER ) ;
       pass = authObj.getField( SDB_AUTH_PASSWD ) ;
-      eOptions = authObj.getField( FIELD_NAME_OPTIONS ) ;
 
       if ( ppUserName )
       {
@@ -106,17 +103,6 @@ namespace engine
          else
          {
             *ppPass = "" ;
-         }
-      }
-      if ( pOptions )
-      {
-         if ( Object == eOptions.type() )
-         {
-            *pOptions = eOptions.embeddedObject() ;
-         }
-         else
-         {
-            *pOptions = BSONObj() ;
          }
       }
 
@@ -144,7 +130,6 @@ namespace engine
          goto error ;
       }
 
-      /// wait reply
       rc = pRemote->waitReply1( TRUE ) ;
       if ( rc )
       {
@@ -175,52 +160,12 @@ namespace engine
          goto error ;
       }
 
-      if ( msgIsInnerOpReply( pReply ) )
-      {
-         _onSucReply( (const MsgOpReply*)pReply ) ;
-      }
-
     done:
       _groupSession.resetSubSession() ;
       PD_TRACE_EXITRC ( COORD_AUTHBASE_FORWARD, rc ) ;
       return rc ;
    error:
       goto done ;
-   }
-
-   void _coordAuthBase::_onSucReply( const MsgOpReply *pReply )
-   {
-   }
-
-   void _coordAuthBase::updateSessionByOptions( const BSONObj &options )
-   {
-      INT32 rc = SDB_OK ;
-      UINT32 mask = 0 ;
-      UINT32 configMask = 0 ;
-
-      try
-      {
-         BSONElement e = options.getField( FIELD_NAME_AUDIT_MASK ) ;
-         if ( String == e.type() )
-         {
-            rc = pdString2AuditMask( e.valuestr(), mask, TRUE, &configMask ) ;
-            if ( rc )
-            {
-               PD_LOG( PDWARNING, "User's audit config[%s] is invalid, rc: %d",
-                       e.valuestr(), rc ) ;
-               /// ignore
-            }
-            else
-            {
-               pdUpdateCurAuditMask( AUDIT_LEVEL_USER, mask, configMask ) ;
-            }
-         }
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
-         /// ignore
-      }
    }
 
 }

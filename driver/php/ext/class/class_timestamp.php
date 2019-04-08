@@ -1,6 +1,6 @@
 <?php
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -51,12 +51,6 @@ class SequoiaTimestamp
     * @code
     * $timeObj = new SequoiaTimestamp( 946656000 ) ;
     * $arr = array( 'time' => $timeObj ) ; // json ==> { "time": { "$timestamp": "2000-01-01-00.00.00.000000" } }
-    * @endcode
-    *
-    * integer(millisecond) and integer(increase). ( Available/Support on 3.0.1 or newer version. )
-    * @code
-    * $timeObj = new SequoiaTimestamp( 946656000, 1234 ) ;
-    * $arr = array( 'time' => $timeObj ) ; // json ==> { "time": { "$timestamp": "2000-01-01-00.00.00.001234" } }
     * @endcode
    */
    public function __construct( string|integer $timestamp ){}

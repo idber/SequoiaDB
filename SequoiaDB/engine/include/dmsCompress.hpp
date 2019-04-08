@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dmsCompress.hpp
 
@@ -65,16 +64,9 @@ namespace engine
 
       void setCompressor( utilCompressor *compressor ) ;
       void setDictionary( const utilDictHandle dictionary ) ;
-      void setFlags ( UINT8 flags ) ;
 
       OSS_INLINE utilCompressor* getCompressor() { return _compressor ; }
       OSS_INLINE const utilDictHandle getDictionary() { return _dictionary ; }
-      OSS_INLINE const utilDictHandle getDictionary( utilCompressor * compressor )
-      {
-         return ( NULL != compressor && compressor->needDictionay() ) ?
-                _dictionary : UTIL_INVALID_DICT ;
-      }
-      OSS_INLINE UINT8 getFlags () const { return _flags ; }
 
       /*
        * Whether the compressor is ready. Only then it's true the compression/
@@ -82,18 +74,11 @@ namespace engine
        */
       OSS_INLINE BOOLEAN ready() { return ( NULL != _compressor ) ; }
 
-      OSS_INLINE UTIL_COMPRESSOR_TYPE getCompressorType () const
-      {
-         return NULL == _compressor ? UTIL_COMPRESSOR_INVALID :
-                                      _compressor->getType() ;
-      }
-
       void reset() ;
 
    private:
       utilCompressor *_compressor ;    /* Global compressor address */
       utilDictHandle _dictionary ;     /* For dictionary compression */
-      UINT8          _flags ;
       ossRWMutex _lock ;
    } ;
    typedef _dmsCompressorEntry dmsCompressorEntry ;
@@ -156,7 +141,7 @@ namespace engine
       ppData: output data pointer, not need release
    */
    INT32 dmsUncompress ( _pmdEDUCB *cb, _dmsCompressorEntry *compressorEntry,
-                         UINT8 compressType, const CHAR *pInputData, INT32 inputSize,
+                         const CHAR *pInputData, INT32 inputSize,
                          const CHAR **ppData, INT32 *pDataSize ) ;
 }
 

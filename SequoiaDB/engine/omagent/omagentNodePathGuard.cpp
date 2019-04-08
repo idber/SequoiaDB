@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omagentNodeMgr.cpp
 
@@ -52,49 +51,39 @@ namespace engine {
       const CHAR *dbpath = options->getDbPath() ;
       UINT32 pathLen = ossStrlen( dbpath ) ;
 
-      /// dbpath
       _nodePaths.push_back( dbpath ) ;
-      /// indexpath
       if ( 0 != ossStrncmp( dbpath, options->getIndexPath(), pathLen ) )
       {
          _nodePaths.push_back( options->getIndexPath() ) ;
       }
-      /// lobpath
       if ( 0 != ossStrncmp( dbpath, options->getLobPath(), pathLen ) )
       {
          _nodePaths.push_back( options->getLobPath() ) ;
       }
-      /// lobmetapath
       if ( 0 != ossStrncmp( dbpath, options->getLobMetaPath(), pathLen ) )
       {
          _nodePaths.push_back( options->getLobMetaPath() ) ;
       }
-      /// dialog path
       if ( 0 != ossStrncmp( dbpath, options->getDiagLogPath(), pathLen ) )
       {
          _nodePaths.push_back( options->getDiagLogPath() ) ;
       }
-      /// auditlog path
       if ( 0 != ossStrncmp( dbpath, options->getAuditLogPath(), pathLen ) )
       {
          _nodePaths.push_back( options->getAuditLogPath() ) ;
       }
-      /// repl-log path
       if ( 0 != ossStrncmp( dbpath, options->getReplLogPath(), pathLen ) )
       {
          _nodePaths.push_back( options->getReplLogPath() ) ;
       }
-      /// backup path
       if ( 0 != ossStrncmp( dbpath, options->getBkupPath(), pathLen ) )
       {
          _nodePaths.push_back( options->getBkupPath() ) ;
       }
-      /// temp path
       if ( 0 != ossStrncmp( dbpath, options->getTmpPath(), pathLen ) )
       {
          _nodePaths.push_back( options->getTmpPath() ) ;
       }
-      /// archivelog path
       if ( 0 != ossStrncmp( dbpath, options->getArchivePath(), pathLen ) )
       {
          _nodePaths.push_back( options->getArchivePath() ) ;
@@ -106,7 +95,6 @@ namespace engine {
       BOOLEAN ret = FALSE ;
       std::vector< std::string > *paths = NULL ;
 
-      /// name is same
       if ( 0 == ossStrcmp( name(), pOther->name() ) )
       {
          goto done ;
@@ -143,7 +131,6 @@ namespace engine {
    {
       INT32 rc = SDB_OK ;
 
-      /// dbpath
       rc = _checkExistedFiles( options->getDbPath(), "*.data", 1 ) ;
       if ( rc )
       {
@@ -154,32 +141,27 @@ namespace engine {
       {
          goto error ;
       }
-      /// indexpath
       rc = _checkExistedFiles( options->getIndexPath(), "*.idx", 1 ) ;
       if ( rc )
       {
          goto error ;
       }
-      /// lob meta path
       rc = _checkExistedFiles( options->getLobMetaPath(), "*.lobm", 1 ) ;
       if ( rc )
       {
          goto error ;
       }
-      /// lob data path
       rc = _checkExistedFiles( options->getLobPath(), "*.lobd", 1 ) ;
       if ( rc )
       {
          goto error ;
       }
-      /// repl path
       rc = _checkExistedFiles( options->getReplLogPath(),
                                "sequoiadbLog.*", 1 ) ;
       if ( rc )
       {
          goto error ;
       }
-      /// archivelog path
       rc = _checkExistedFiles( options->getArchivePath(),
                                "archivelog.*", 1 );
       if ( rc )
@@ -205,7 +187,6 @@ namespace engine {
 
       INT32 rc = SDB_OK ;
 
-      /// if dir is exist, need to check which has files
       rc = ossAccess( path ) ;
       if ( SDB_OK == rc )
       {

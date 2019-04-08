@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dpsLogWrapper.cpp
 
@@ -140,7 +139,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DPSLGWRAPP_UNREGEVENTHANDLER ) ;
 
       SDB_ASSERT( pHandler, "Handle can't be NULL" ) ;
-      SDB_ASSERT( pmdGetThreadEDUCB() &&
+      SDB_ASSERT( pmdGetThreadEDUCB() && 
                   EDU_TYPE_MAIN == pmdGetThreadEDUCB()->getType(),
                   "Must unregister in main thread" ) ;
 
@@ -169,7 +168,6 @@ namespace engine
       pmdEDUMgr *pEDUMgr = pmdGetKRCB()->getEDUMgr() ;
       EDUID eduID = PMD_INVALID_EDUID ;
 
-      // dps log writer
       rc = pEDUMgr->startEDU( EDU_TYPE_LOGGW, (void*)this, &eduID ) ;
       if ( rc )
       {
@@ -177,7 +175,6 @@ namespace engine
          goto error ;
       }
 
-      // dps trans rollback task
       rc = pEDUMgr->startEDU( EDU_TYPE_DPSROLLBACK, NULL, &eduID ) ;
       if ( rc )
       {
@@ -185,7 +182,6 @@ namespace engine
          goto error ;
       }
 
-      // dps log archiving
       if ( pmdGetKRCB()->getOptionCB()->archiveOn() )
       {
          rc = pEDUMgr->startEDU( EDU_TYPE_LOGARCHIVEMGR, (void*)this, &eduID ) ;
@@ -277,17 +273,14 @@ namespace engine
             maxSize = (UINT32)maxSize > length ? maxSize - length : 0 ;
          }
 
-         /// max num check
          if ( 0 == maxNum )
          {
             break ;
          }
-         /// max size check
          if ( 0 == maxSize )
          {
             break ;
          }
-         /// max time check
          if ( maxTime > 0 && time( NULL ) - bTime >= (UINT32)maxTime )
          {
             break ;
@@ -314,11 +307,6 @@ namespace engine
          return lsn ;
       }
       return _buf.getStartLsn ( logBufOnly ) ;
-   }
-
-   INT32 _dpsLogWrapper::readOldestBeginLsnOffset( DPS_LSN_OFFSET &offset )
-   {
-      return _buf.readOldestBeginLsnOffset( offset ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGWRAPP_GETCURRENTLSN, "_dpsLogWrapper::getCurrentLsn" )
@@ -381,7 +369,6 @@ namespace engine
    INT32 _dpsLogWrapper::move( const DPS_LSN_OFFSET &offset,
                                const DPS_LSN_VER &version )
    {
-      /// make sure the version is correct
       if ( DPS_INVALID_LSN_OFFSET != offset &&
            DPS_INVALID_LSN_VERSION == version )
       {
@@ -402,7 +389,6 @@ namespace engine
 
       IExecutor *cb = info.getEDUCB() ;
 
-      /// insert lsn
       if ( cb )
       {
          if ( info.hasDummy() )
@@ -412,7 +398,6 @@ namespace engine
          cb->insertLsn( info.getMergeBlock().record().head()._lsn ) ;
       }
 
-      /// notify
       if ( _vecEventHandler.size() > 0 && info.isNeedNotify() )
       {
          DPS_LSN_OFFSET offset = DPS_INVALID_LSN_OFFSET ;
@@ -431,7 +416,6 @@ namespace engine
          }
       }
 
-      // it is transaction operations
       if ( info.isTransEnabled() && cb &&
            DPS_INVALID_TRANS_ID != cb->getTransID() )
       {
@@ -445,7 +429,6 @@ namespace engine
          }
       }
 
-      // reset
       info.resetInfoEx() ;
 
       PD_TRACE_EXIT( SDB__DPSLGWRAPP_WRITEDATA ) ;
@@ -475,7 +458,6 @@ namespace engine
       return rc ;
    }
 
-   // record a row
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGWRAPP_RECDROW, "_dpsLogWrapper::recordRow" )
    INT32 _dpsLogWrapper::recordRow( const CHAR *row, UINT32 len )
    {
@@ -524,7 +506,6 @@ namespace engine
       ossTimestamp t ;
       ossGetCurrentTime( t ) ;
       _lastSyncTime = t.time * 1000 + t.microtm / 1000 ;
-      /// clear write info
       _writeReordNum = 0 ;
 
       return _buf.commit( deeply, committedLsn ) ;
@@ -567,7 +548,6 @@ namespace engine
 
       if ( !_buf.hasDirty() )
       {
-         /// nothing
       }
       else if ( _syncRecordNum > 0 && _writeReordNum >= _syncRecordNum )
       {
@@ -578,7 +558,6 @@ namespace engine
       }
       else if ( pmdGetTickSpanTime( _lastWriteTick ) < DPS_NO_WRITE_TIME )
       {
-         /// nothing
       }
       else if ( _syncInterval > 0 )
       {

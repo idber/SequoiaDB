@@ -9,7 +9,7 @@
       var deplpyModule = $rootScope.tempData( 'Deploy', 'Module' ) ;
       SdbSwap.clusterName  = $rootScope.tempData( 'Deploy', 'ClusterName' ) ;
       SdbSwap.hostList = $rootScope.tempData( 'Deploy', 'HostList' ) ;
-      if( deployModel == null || SdbSwap.clusterName == null || deplpyModule == null || SdbSwap.hostList == null )
+      if( deployModel == null || SdbSwap.clusterName == null || deplpyModule == null )
       {
          $location.path( '/Deploy/Index' ).search( { 'r': new Date().getTime() } ) ;
          return ;
@@ -38,30 +38,17 @@
                "webName": $scope.autoLanguage( '安装包名' ),
                "type": "select",
                "required": true,
-               "value": 'sequoiasql-postgresql',
+               "value": 'sequoiasql-oltp',
                "valid": [
-                  { 'key': 'SequoiaSQL-PostgreSQL', 'value': 'sequoiasql-postgresql' },
-                  { 'key': 'SequoiaSQL-MySQL', 'value': 'sequoiasql-mysql' }
-               ],
-               "onChange": function( name, key, value ){
-                  if( value == 'sequoiasql-mysql' )
-                  {
-                     $scope.Form['inputList'][2]['value'] = '/opt/sequoiasql/mysql/' ;
-                  }
-                  else
-                  {
-                     $scope.Form['inputList'][2]['value'] = '/opt/sequoiasql/postgresql/' ;
-                  }
-
-                  SdbSignal.commit( "GetCheck", [  $scope.Form['inputList'][5]['value'], value ] ) ;
-               }
+                  { 'key': 'sequoiasql-oltp', 'value': 'sequoiasql-oltp' }
+               ]
             },
             {
                "name": "InstallPath",
                "webName": $scope.autoLanguage( '安装路径' ),
                "type": "string",
                "required": true,
-               "value": '/opt/sequoiasql/postgresql/',
+               "value": '/opt/sequoiasqloltp/',
                "valid": {
                   "min": 1
                }
@@ -74,7 +61,8 @@
                "value": "root",
                "valid": {
                   "min": 1
-               }
+               },
+               'disabled': true
             },
             {
                "name": "Passwd",
@@ -94,7 +82,7 @@
                ],
                "onChange": function( name, key, value ){
                   //切换强制安装修改选中主机
-                  SdbSignal.commit( "GetCheck", [ value, $scope.Form['inputList'][1]['value'] ] ) ;
+                  SdbSignal.commit( "GetEnforced", value ) ;
                }
             }
          ]
@@ -115,7 +103,7 @@
          SdbRest.OmOperation( data, {
             'success': function( taskInfo ){
                $rootScope.tempData( 'Deploy', 'HostTaskID', taskInfo[0]['TaskID'] ) ;
-               $location.path( '/Deploy/Task/Host' ).search( { 'r': new Date().getTime() } ) ;
+               $location.path( '/Deploy/InstallHost' ).search( { 'r': new Date().getTime() } ) ;
             },
             'failed': function( errorInfo ){
                _IndexPublic.createRetryModel( $scope, errorInfo, function(){
@@ -178,9 +166,9 @@
             if( packageInfo['HostInfo']['HostInfo'].length == 0 )
             {
                $scope.Components.Confirm.type = 3 ;
-               $scope.Components.Confirm.context = $scope.autoLanguage( '至少选择一台主机，才可以进入下一步操作。' ) ;
+               $scope.Components.Confirm.context = $scope.autoLanguage( '至少选择一台的主机，才可以进入下一步操作。' ) ;
                $scope.Components.Confirm.isShow = true ;
-               $scope.Components.Confirm.noClose = true ;
+               $scope.Components.Confirm.okText = $scope.autoLanguage( '好的' ) ;
                return ;
             }
             deployPackage( packageInfo ) ;
@@ -231,7 +219,7 @@
                   hostInfo['Package'] = hostInfo['Package'] + ',' + packageInfo['Name'] ;
                }
             } ) ;
-            if( hostInfo['Package'].indexOf( 'sequoiasql-postgresql' ) > 0 )
+            if( hostInfo['Package'].indexOf( 'sequoiasql-oltp' ) > 0 )
             {
                hostInfo['Checked'] = false ;
             }
@@ -241,9 +229,9 @@
 
       }
 
-      //检测主机是否可以部署包
-      SdbSignal.on( 'GetCheck', function( result ){
-         if( result[0] == true )
+      //切换强制安装修改选中主机
+      SdbSignal.on( 'GetEnforced', function( value ){
+         if( value == true )
          {
             $.each( SdbSwap.hostList, function( index, hostInfo ){
                hostInfo['Checked'] = true ;
@@ -252,18 +240,15 @@
          else
          {
             $.each( SdbSwap.hostList, function( index, hostInfo ){
-               if( hostInfo['Package'].indexOf( result[1] ) < 0 )
-               {
-                  hostInfo['Checked'] = true ;
-               }
-               else
+               if( hostInfo['Package'].indexOf( 'sequoiasql-oltp' ) > 0 )
                {
                   hostInfo['Checked'] = false ;
                }
             } ) ;
          }
       } ) ;
-      
+
+
       //修改主机信息 弹窗
       $scope.ChangeHostInfoWindow = {
          'config': {},
@@ -296,7 +281,8 @@
                   "value": hostInfo['User'],
                   "valid": {
                      "min": 1
-                  }
+                  },
+                  'disabled': true
                },
                {
                   "name": "Passwd",

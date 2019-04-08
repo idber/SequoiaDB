@@ -21,7 +21,6 @@ public class SdbHiveOutputFormat implements HiveOutputFormat<LongWritable, BSONW
 
 	public static final Log LOG = LogFactory.getLog(SdbHiveOutputFormat.class.getName());
 	
-//	@Override
 	public RecordWriter getHiveRecordWriter(JobConf jobConf, Path finalOutPath,
 			Class<? extends Writable> valueClass, boolean isCompressed,
 			Properties tableProperties, Progressable progress)
@@ -34,13 +33,6 @@ public class SdbHiveOutputFormat implements HiveOutputFormat<LongWritable, BSONW
 		String userName = ConfigurationUtil.getUserName (jobConf);
 		String passwd = ConfigurationUtil.getPasswd (jobConf);
 		
-//		if( ConfigurationUtil.getCsName(jobConf) == null && ConfigurationUtil.getClName(jobConf) == null ){
-//			spaceName = ConfigurationUtil.getHiveDataBaseName(jobConf);
-//			colName = ConfigurationUtil.getHiveTableName(jobConf);
-//		}else{
-//			spaceName = ConfigurationUtil.getCsName(jobConf);
-//			colName = ConfigurationUtil.getClName(jobConf);
-//		}
 		
 		
 		
@@ -67,7 +59,6 @@ public class SdbHiveOutputFormat implements HiveOutputFormat<LongWritable, BSONW
 	@Override
 	public void checkOutputSpecs(FileSystem arg0, JobConf arg1)
 			throws IOException {
-		// TODO Auto-generated method stub
 
 	}
 

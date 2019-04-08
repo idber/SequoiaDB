@@ -1,5 +1,5 @@
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -27,7 +27,6 @@
 
 #endif
 
-//resource name
 #define SDB_HANDLE_NAME "SequoiaDB Handle"
 #define SDB_CS_HANDLE_NAME "SequoiaDB Collection Space Handle"
 #define SDB_CL_HANDLE_NAME "SequoiaDB Collection Handle"
@@ -40,7 +39,6 @@
 #define SDB_TIMESTAMP_HANDLE_NAME  "SequoiaDB Timestamp Handle"
 #define SDB_DECIMAL_HANDLE_NAME  "SequoiaDB Decimal Handle"
 
-//resource destroy
 void php_sdb_destroy( zend_resource *pRsrc TSRMLS_DC ) ;
 void php_cs_destroy( zend_resource *pRsrc TSRMLS_DC ) ;
 void php_cl_destroy( zend_resource *pRsrc TSRMLS_DC ) ;

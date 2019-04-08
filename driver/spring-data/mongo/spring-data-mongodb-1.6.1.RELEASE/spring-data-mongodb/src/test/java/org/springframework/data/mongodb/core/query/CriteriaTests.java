@@ -38,35 +38,30 @@ public class CriteriaTests {
 
 	@Test
 	public void testFuncOperators() {
-	    // $abs
 		Criteria criteria = new Criteria("a").abs().et(1);
 		String actualStr = criteria.getCriteriaObject().toString();
 		String expectStr = "{ \"a\" : { \"$abs\" : 1 , \"$et\" : 1 } }";
 		System.out.println(actualStr);
 		assertEquals(expectStr, actualStr);
 
-		// $ceiling
         criteria = new Criteria("a").is(1).and("b").ceiling().et(10);
         actualStr = criteria.getCriteriaObject().toString();
         expectStr = "{ \"a\" : 1 , \"b\" : { \"$ceiling\" : 1 , \"$et\" : 10 } }";
         System.out.println(actualStr);
         assertEquals(expectStr, actualStr);
 
-        // $floor $mod $add
         criteria = new Criteria("a").floor().mod(10).add(100).gt(1000);
         actualStr = criteria.getCriteriaObject().toString();
         expectStr = "{ \"a\" : { \"$floor\" : 1 , \"$mod\" : 10 , \"$add\" : 100 , \"$gt\" : 1000 } }";
         System.out.println(actualStr);
         assertEquals(expectStr, actualStr);
 
-		// $subtract $multiply $divide $substr $strlen $lower
         criteria = new Criteria("a").subtract(10).multiply(10).divide(1.2).substr(0,5).strlen().lower().gt(1000);
         actualStr = criteria.getCriteriaObject().toString();
         expectStr = "{ \"a\" : { \"$subtract\" : 10 , \"$multiply\" : 10 , \"$divide\" : 1.2 , \"$substr\" : [ 0 , 5 ] , \"$strlen\" : 1 , \"$lower\" : 1 , \"$gt\" : 1000 } }";
         System.out.println(actualStr);
         assertEquals(expectStr, actualStr);
 
-        // $upper $ltrim $rtrim $trim $cast $size $type $slice
         criteria = new Criteria("a").upper().ltrim().rtrim().trim().cast(1).size().type(2).slice(0, 10).gt(1000);
         actualStr = criteria.getCriteriaObject().toString();
         expectStr = "{ \"a\" : { \"$upper\" : 1 , \"$ltrim\" : 1 , \"$rtrim\" : 1 , \"$trim\" : 1 , \"$cast\" : 1 , \"$size\" : 1 , \"$type\" : 2 , \"$slice\" : [ 0 , 10 ] , \"$gt\" : 1000 } }";
@@ -74,7 +69,6 @@ public class CriteriaTests {
         assertEquals(expectStr, actualStr);
 	}
 
-    // compare
     @Test
     public void testCompareOperators() {
         Criteria criteria = new Criteria("a").gt("a")
@@ -96,7 +90,6 @@ public class CriteriaTests {
     @Test
     public void testLogicalOperators()
     {
-        // or
         Criteria criteria =
                 new Criteria().orOperator(Criteria.where("age").is(20), Criteria.where("price").lt(10)).and("name").is("Tom");
         String actualStr = criteria.getCriteriaObject().toString();
@@ -104,7 +97,6 @@ public class CriteriaTests {
         System.out.println(actualStr);
         assertEquals(expectStr, actualStr);
 
-        // and
         criteria =
                 new Criteria("name").is("Tom").andOperator(Criteria.where("age").is(20), Criteria.where("price").lt(10));
         actualStr = criteria.getCriteriaObject().toString();
@@ -112,8 +104,6 @@ public class CriteriaTests {
         System.out.println(actualStr);
         assertEquals(expectStr, actualStr);
 
-        // not
-        // case 1:
         Date date1 = new Date(2010 -1900, 0,1);
         Date date2 = new Date(2020 -1900, 0,1);
         BSONTimestamp time1 = new BSONTimestamp((int)(date1.getTime() / 1000), (int)(date1.getTime() % 1000) * 1000);
@@ -125,7 +115,6 @@ public class CriteriaTests {
         expectStr = "{ \"name\" : \"Tom\" , \"$not\" : [ { \"date\" : { \"$gt\" : { \"$date\" : \"2010-01-01\" } , \"$lt\" : { \"$date\" : \"2020-01-01\" } } } , { \"time\" : { \"$gt\" : { \"$ts\" : 1262275200 , \"$inc\" : 0 } , \"$lt\" : { \"$ts\" : 1577808000 , \"$inc\" : 0 } } } ] }";
         System.out.println(actualStr);
         assertEquals(expectStr, actualStr);
-        // case 2:
         criteria = new Criteria()
                 .notOperator(new Criteria().andOperator(Criteria.where("date").gt(date1), Criteria.where("date").lt(date2)),
                         Criteria.where("time").gt(time1).lt(time2));
@@ -134,7 +123,6 @@ public class CriteriaTests {
         System.out.println(actualStr);
         assertEquals(expectStr, actualStr);
 
-        // case 3:
         BasicDBObject notObj = new BasicDBObject();
         BasicDBList notList = new BasicDBList();
         BasicDBObject andObj = new BasicDBObject();
@@ -153,7 +141,6 @@ public class CriteriaTests {
 
     }
 
-    // elements
     @Test
     public void testElementsOperators()
     {
@@ -170,14 +157,12 @@ public class CriteriaTests {
     @Test
     public void testOperatingOperators()
     {
-        // $mod
         Criteria criteria = new Criteria("a").mod(100,10);
         String actualStr = criteria.getCriteriaObject().toString();
         String expectStr = "{ \"a\" : { \"$mod\" : [ 100 , 10 ] } }";
         System.out.println(actualStr);
         assertEquals(expectStr, actualStr);
 
-        // $regex
         criteria = new Criteria("a").regex("dh.*fj","i");
         actualStr = criteria.getCriteriaObject().toString();
         expectStr = "{ \"a\" : { \"$regex\" : \"dh.*fj\" , \"$options\" : \"i\" } }";
@@ -188,28 +173,24 @@ public class CriteriaTests {
     @Test
     public void testArrayOperators()
     {
-        // $all
         Criteria criteria = new Criteria("a").all("a", "b", "c");
         String actualStr = criteria.getCriteriaObject().toString();
         String expectStr = "{ \"a\" : { \"$all\" : [ \"a\" , \"b\" , \"c\" ] } }";
         System.out.println(actualStr);
         assertEquals(expectStr, actualStr);
 
-        // $elemMatch
         criteria = new Criteria("a").elemMatch(Criteria.where("name").is("Jack").and("phone").is("123"));
         actualStr = criteria.getCriteriaObject().toString();
         expectStr = "{ \"a\" : { \"$elemMatch\" : { \"name\" : \"Jack\" , \"phone\" : \"123\" } } }";
         System.out.println(actualStr);
         assertEquals(expectStr, actualStr);
 
-        // $expand
         criteria = new Criteria("a").expand();
         actualStr = criteria.getCriteriaObject().toString();
         expectStr = "{ \"a\" : { \"$expand\" : 1 } }";
         System.out.println(actualStr);
         assertEquals(expectStr, actualStr);
 
-        // $returnMatch
         criteria = new Criteria("a").returnMatch(0,10).and("b").returnMatch(2);
         actualStr = criteria.getCriteriaObject().toString();
         expectStr = "{ \"a\" : { \"$returnMatch\" : [ 0 , 10 ] } , \"b\" : { \"$returnMatch\" : 2 } }";
@@ -224,9 +205,7 @@ public class CriteriaTests {
     {
         Criteria criteria = new Criteria();
         String actualStr = criteria.getCriteriaObject().toString();
-//        String expectStr =
         System.out.println(actualStr);
-//        assertEquals(expectStr, actualStr);
     }
 
 
@@ -249,7 +228,6 @@ public class CriteriaTests {
 				criteria.getCriteriaObject().toString());
 	}
 
-	/////////////////////////////////////////////////////////////////
 	@Test
 	public void testSimpleCriteria() {
 		Criteria c = new Criteria("name").is("Bubba");
@@ -296,7 +274,6 @@ public class CriteriaTests {
 	/**
 	 * @see DATAMONGO-507
 	 */
-//	@Test(expected = IllegalArgumentException.class)
 	@Test()
 	public void shouldThrowExceptionWhenTryingToNegateAndOperation() {
 
@@ -309,17 +286,11 @@ public class CriteriaTests {
 	/**
 	 * @see DATAMONGO-507
 	 */
-//	@Test(expected = IllegalArgumentException.class)
 	@Test
 	public void shouldThrowExceptionWhenTryingToNegateOrOperation() {
 
-//		System.out.println(
-//		new Criteria()
-//				.not()
-//				.orOperator(Criteria.where("delete").is(true).and("_id").is(42)));
 
 		Criteria criteria = new Criteria()
-//				.not()
 				.orOperator(Criteria.where("delete").is(true).and("_id").is(42));
 		System.out.println(criteria.getCriteriaObject().toString());
 	}
@@ -327,7 +298,6 @@ public class CriteriaTests {
 	/**
 	 * @see DATAMONGO-507
 	 */
-//	@Test(expected = IllegalArgumentException.class)
 	@Test
 	public void shouldThrowExceptionWhenTryingToNegateNorOperation() {
 		new Criteria() //
@@ -340,12 +310,10 @@ public class CriteriaTests {
 	@Test
 	public void shouldNegateFollowingSimpleExpression() {
 
-//		Criteria c = Criteria.where("age").not().gt(18).and("status").is("student");
         Criteria c = new Criteria().notOperator(Criteria.where("age").gt(18)).and("status").is("student");
 		DBObject co = c.getCriteriaObject();
 
 		assertThat(co, is(notNullValue()));
-//		assertThat(co.toString(), is("{ \"age\" : { \"$not\" : { \"$gt\" : 18 } } , \"status\" : \"student\" }"));
 		assertThat(co.toString(), is("{ \"$not\" : [ { \"age\" : { \"$gt\" : 18 } } ] , \"status\" : \"student\" }"));
 	}
 
@@ -388,13 +356,11 @@ public class CriteriaTests {
 	@Test
 	public void getCriteriaObjectShouldRespectNotWhenNoKeyPresent() {
 
-		//DBObject dbo = new Criteria().lt("foo").not().getCriteriaObject();
         DBObject dbo = new Criteria().notOperator(new Criteria("a").lt("foo")).getCriteriaObject();
         DBObject target = new BasicDBObject();
         BasicDBList list = new BasicDBList();
         list.put("0", new BasicDBObject("a", new BasicDBObject("$lt", "foo")));
         target.put("$not", list);
-//		assertThat(dbo, equalTo(new BasicDBObjectBuilder().add("$not", new BasicDBObject("$lt", "foo")).get()));
 		assertThat(dbo, equalTo(target));
 	}
 }

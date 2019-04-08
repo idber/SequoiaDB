@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsStorageCheckJob.cpp
 
@@ -70,8 +69,6 @@ namespace engine
          shardCB* pShdMgr = sdbGetShardCB() ;
          pmdEDUEvent event ;
 
-         // If checkInterval is 0 (disable checking), sleep for one hour and
-         // check again whether there is a change
          UINT32 secInterval = checkInterval > 0 ?
                               checkInterval * STORAGE_CHECK_UNIT_INTERVAL :
                               STORAGE_CHECK_UNIT_INTERVAL ;
@@ -86,17 +83,14 @@ namespace engine
          cb->waitEvent( event, secInterval ) ;
          pEduMgr->activateEDU( cb ) ;
 
-         // Check stop signal first
          if ( PMD_IS_DB_DOWN() ||
               cb->isForced() )
          {
             break ;
          }
 
-         // Get interval(hour) in runtime
          checkInterval = pmdGetKRCB()->getOptionCB()->getDmsChkInterval() ;
 
-         // Only check for primary node when checking enabled (interval > 0)
          if ( !krcb->isPrimary() ||
               !pShdMgr ||
               checkInterval == 0 )
@@ -113,7 +107,7 @@ namespace engine
 
          pDmsCB->dumpInfo( csList, FALSE ) ;
 
-         MON_CS_LIST::const_iterator iterCS = csList.begin() ;
+         std::set<_monCollectionSpace>::const_iterator iterCS = csList.begin() ;
          for ( ; iterCS != csList.end(); ++iterCS )
          {
             INT32 rc = SDB_OK ;
@@ -121,7 +115,9 @@ namespace engine
             SDB_RTNCB *pRtnCB = krcb->getRTNCB() ;
 
             const _monCollectionSpace &cs = *iterCS ;
-            utilCSUniqueID csUniqueID = cs._csUniqueID ;
+            UINT32 pageSize = DMS_PAGE_SIZE_DFT ;
+            UINT32 lobPageSize = DMS_DEFAULT_LOB_PAGE_SZ ;
+            DMS_STORAGE_TYPE type = DMS_STORAGE_NORMAL ;
             dmsStorageUnitID suID = DMS_INVALID_SUID ;
             dmsStorageUnit *su = NULL ;
             SINT64 contextID = -1 ;
@@ -132,21 +128,13 @@ namespace engine
                     "clsStorageCheckJob: checking space [%s]",
                     cs._name ) ;
 
-            // Check stop signal
             if ( PMD_IS_DB_DOWN() ||
                  cb->isForced() )
             {
                break ;
             }
 
-            // only check cs which has valid unique id
-            if ( ! UTIL_IS_VALID_CSUNIQUEID( csUniqueID ) )
-            {
-               continue ;
-            }
-
-            // Lock space first
-            rc = pDmsCB->idToSUAndLock( csUniqueID, suID, &su, SHARED ) ;
+            rc = pDmsCB->nameToSUAndLock( cs._name, suID, &su, SHARED ) ;
 
             if ( SDB_OK != rc )
             {
@@ -163,7 +151,7 @@ namespace engine
                continue ;
             }
 
-            rc = pShdMgr->rGetCSInfo( cs._name, csUniqueID ) ;
+            rc = pShdMgr->rGetCSInfo( cs._name, pageSize, lobPageSize, type ) ;
 
             pDmsCB->suUnlock( suID, SHARED ) ;
             suID = DMS_INVALID_SUID ;
@@ -176,13 +164,12 @@ namespace engine
 
             PD_LOG( PDWARNING,
                     "clsStorageCheckJob: "
-                    "space[name: %s, id: %u] doesn't exist in catalog but exists in "
+                    "space [%s] doesn't exist in catalog but exists in "
                     "storage, remove it from storage",
-                    cs._name, csUniqueID ) ;
+                    cs._name ) ;
 
             do
             {
-               // Create a DelCS context to drop the collection space
                rc = pRtnCB->contextNew( RTN_CONTEXT_DELCS,
                                         (rtnContext **)&pDelContext,
                                         contextID, cb ) ;
@@ -195,20 +182,18 @@ namespace engine
                   break ;
                }
 
-               // Open the context, execute phase 1
                rc = pDelContext->open( cs._name, cb ) ;
                if ( SDB_OK != rc )
                {
                   PD_LOG( PDWARNING,
-                          "clsStorageCheckJob: failed to "
-                          "open DelCS context[name: %s, id: %u], rc: %d",
-                          cs._name, csUniqueID, rc ) ;
+                          "clsStorageCheckJob: "
+                          "failed to open DelCS context [%s], rc: %d",
+                          cs._name, rc ) ;
                   break ;
                }
 
-               // Now, check the catalog again, if someone re-create the
-               // collection space, kill the context
-               rc = pShdMgr->rGetCSInfo( cs._name, csUniqueID ) ;
+               rc = pShdMgr->rGetCSInfo( cs._name, pageSize,
+                                         lobPageSize, type ) ;
                if ( SDB_DMS_CS_NOTEXIST != rc )
                {
                   PD_LOG( PDWARNING,
@@ -219,7 +204,6 @@ namespace engine
                   break ;
                }
 
-               // Continue to process the phase 2 of context
                rc = pDelContext->getMore( -1, buffObj, cb ) ;
                if ( SDB_DMS_EOC == rc )
                {
@@ -230,7 +214,6 @@ namespace engine
                }
                else if ( SDB_OK != rc )
                {
-                  // context deleted inside rtnGetMore
                   PD_LOG( PDWARNING,
                           "clsStorageCheckJob: "
                           "failed to execute DelCS context [%s], rc: %d",
@@ -238,7 +221,6 @@ namespace engine
                }
             } while ( FALSE ) ;
 
-            // At last, delete the context
             if ( -1 != contextID )
             {
                pRtnCB->contextDelete( contextID, cb ) ;

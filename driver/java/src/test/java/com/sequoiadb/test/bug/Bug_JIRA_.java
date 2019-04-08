@@ -29,15 +29,12 @@ public class Bug_JIRA_ {
 
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } else
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        // cl
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
@@ -60,7 +57,7 @@ public class Bug_JIRA_ {
 
     @Test
     public void jira2065_Decimal_toBigDecimal() {
-        thrown.expect(UnsupportedOperationException.class);
+        thrown.expect(BaseException.class);
         BSONDecimal bsonDecimal = new BSONDecimal("MIN", 20, 10);
         BigDecimal bigDecimal = bsonDecimal.toBigDecimal();
     }

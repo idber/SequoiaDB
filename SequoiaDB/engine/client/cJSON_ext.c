@@ -1,5 +1,5 @@
 /*******************************************************************************
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ static const CHAR* readMinKey( const CHAR *pStr,
 static const CHAR* readNumberLong( const CHAR *pStr,
                                    const CJSON_MACHINE *pMachine,
                                    CJSON_READ_INFO **ppReadInfo ) ;
-static void _appendFunction( void ) ;
+static void _appendFunction() ;
 
 CHAR *_pEmptyString = "" ;
 
@@ -76,7 +76,7 @@ SDB_EXPORT void cJsonExtAppendFunction()
    ossOnceRun( &initOnce, _appendFunction ) ;
 }
 
-static void _appendFunction( void )
+static void _appendFunction()
 {
    cJsonExtendAppend( CJSON_MATCH_FUNC,
                       readBinary,
@@ -283,8 +283,6 @@ static void getCurrentTime( time_t *pTimestamp, INT32 *pMicrotm )
 #if defined (_LINUX) || defined (_AIX)
    struct timeval tv ;
 
-   // obtain the current time, expressed as seconds and microseconds since
-   // the Epoch
    if ( -1 == gettimeofday( &tv, NULL ) )
    {
        *pTimestamp = 0 ;
@@ -301,15 +299,11 @@ static void getCurrentTime( time_t *pTimestamp, INT32 *pMicrotm )
 
    GetSystemTimeAsFileTime( &fileTime ) ;
 
-   //convert FILETIME into ULARGER_INTEGER
    uLargeIntegerTime.LowPart  = fileTime.dwLowDateTime ;
    uLargeIntegerTime.HighPart = fileTime.dwHighDateTime ;
 
-   // FILETIME contains a 64-bit value representing the number of
-   // 100-nanosecond intervals since January 1, 1601 (UTC).
    uLargeIntegerTime.QuadPart -= ( DELTA_EPOCH_IN_MICROSECS * 10 ) ;
 
-   // 1 FILETIME = 100 ns
    *pTimestamp = ( uLargeIntegerTime.QuadPart / OSS_TEN_MILLION ) ;
    *pMicrotm   = ( uLargeIntegerTime.QuadPart % OSS_TEN_MILLION ) / 10 ;
 #endif
@@ -319,9 +313,6 @@ static void local_time( time_t *pTime, struct tm *pTm )
 #if defined (_LINUX ) || defined (_AIX)
    localtime_r( pTime, pTm ) ;
 #elif defined (_WINDOWS)
-   // The Time represents the seconds elapsed since midnight (00:00:00),
-   // January 1, 1970, UTC. This value is usually obtained from the time
-   // function.
    localtime_s( pTm, pTime ) ;
 #endif
 }
@@ -513,7 +504,6 @@ static const CHAR* readDate( const CHAR *pStr,
    }
    else if( argNum == 1 )
    {
-      // try to convert the string to a number
       if( arg.valType == CJSON_STRING )
       {
          INT32 valInt      = 0 ;
@@ -528,7 +518,6 @@ static const CHAR* readDate( const CHAR *pStr,
                                &valInt64,
                                &type ) == TRUE )
          {
-            // SdbDate( "123456" )
             if( type == CJSON_INT32 )
             {
                cJsonItemValueInt32( pDateItem, valInt ) ;
@@ -549,7 +538,6 @@ static const CHAR* readDate( const CHAR *pStr,
          }
          else
          {
-            // SdbDate( "YYYY-MM-DD" )
             cJsonItemValueString( pDateItem, arg.pValStr, arg.length ) ;
          }
       }

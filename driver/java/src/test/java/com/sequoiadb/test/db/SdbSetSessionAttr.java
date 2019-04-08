@@ -27,13 +27,10 @@ public class SdbSetSessionAttr {
 	public static void setConnBeforeClass() throws Exception{
 		isCluster = Constants.isCluster();
 		try{
-			// sdb
 			sdb = new Sequoiadb(Constants.COOR_NODE_CONN,"","");
-			// todo:
 			BSONObject conf = new BasicBSONObject();
 			conf.put("PreferedInstance", 3);
 			sdb.setSessionAttr(conf);
-			// create another node
 			shard = sdb.getShard("group1");
 			node = shard.createNode("ubuntu-dev1", Constants.SERVER3,
 					                Constants.DATAPATH3,
@@ -61,14 +58,12 @@ public class SdbSetSessionAttr {
 	
 	@Before
 	public void setUp() throws Exception {
-		// cs
 		if(sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)){
 			sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
 			cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
 		}
 		else
 			cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-		// cl
 		BSONObject conf = new BasicBSONObject();
 		conf.put("ReplSize", 0);
 		cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
@@ -83,15 +78,12 @@ public class SdbSetSessionAttr {
 	public void setSessionAttr(){
 		if(!isCluster)
 			return;
-		// insert one record
 		BSONObject record = new BasicBSONObject();
 		record.put("a", 1);
 		cl.insert(record);
-		// todo:
 		BSONObject conf = new BasicBSONObject();
 		conf.put("PreferedReplica", "s");
 		sdb.setSessionAttr(conf);
-		// check
 		long num1 = 0;
 		long num2 = 0;
 	    final int num = 10;
@@ -118,7 +110,6 @@ public class SdbSetSessionAttr {
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
         isCluster = Constants.isCluster();
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
     }
 
@@ -129,13 +120,11 @@ public class SdbSetSessionAttr {
 
     @Before
     public void setUp() throws Exception {
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } else
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        // cl
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
@@ -163,7 +152,6 @@ public class SdbSetSessionAttr {
             System.out.println("r2 is " + r2);
             conf.put("PreferedInstance", in[r2]);
         }
-        // test
         try {
             sdb.setSessionAttr(conf);
         } catch (BaseException e) {
@@ -186,7 +174,6 @@ public class SdbSetSessionAttr {
         arr.put("1", "S");
         conf.put("PreferedInstance", arr);
         conf.put("PreferedInstanceMode", "ordered");
-        // test
         try {
             sdb.setSessionAttr(conf);
         } catch (BaseException e) {
@@ -205,7 +192,6 @@ public class SdbSetSessionAttr {
             return;
         BSONObject conf = new BasicBSONObject();
         conf.put("Timeout", -1);
-        // test
         try {
             sdb.setSessionAttr(conf);
         } catch (BaseException e) {
@@ -218,7 +204,6 @@ public class SdbSetSessionAttr {
     public void getSessionAttr_test() {
         if (!isCluster)
             return;
-        // test
         try {
             BSONObject result = sdb.getSessionAttr();
             System.out.println(result.toString());
@@ -232,7 +217,6 @@ public class SdbSetSessionAttr {
     public void getSessionAttr_data_test() {
         if (isCluster)
             return;
-        // test
         try {
             BSONObject result = sdb.getSessionAttr();
             assertTrue( null == result );

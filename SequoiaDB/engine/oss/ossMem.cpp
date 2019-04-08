@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = ossMem.cpp
 
@@ -36,7 +35,6 @@
 #include "ossMem.hpp"
 #include "ossMem.c"
 
-// in C++, we keep track of memory allocation
 #if defined (__cplusplus) && defined (SDB_ENGINE)
 
 #include "ossLatch.hpp"
@@ -74,7 +72,6 @@ void ossMemUnTrack ( void *p )
 }
 
 #define OSSMEMTRACEDUMPBUFSZ 1024
-// dump memory trace info for specific address into memtrace file
 static UINT64 ossMemTraceDump ( void *p, ossPrimitiveFileOp &trapFile )
 {
    CHAR lineBuffer [ OSSMEMTRACEDUMPBUFSZ + 1 ] = {0} ;
@@ -100,39 +97,29 @@ static UINT64 ossMemTraceDump ( void *p, ossPrimitiveFileOp &trapFile )
    return (*(UINT64*)(pAddr+OSS_MEM_HEAD_SIZEOFFSET)) ;
 }
 
-// dump memory trace info into memtrace file
 void ossMemTrace ( const CHAR *pPath )
 {
    ossPrimitiveFileOp trapFile ;
    CHAR fileName [ OSS_MAX_PATHSIZE + 1 ] = {0} ;
    UINT64 totalSize                       = 0 ;
-   // skip if not initialized
    if ( !ossMemTrackCBInit )
    {
-      // do NOT goto error since we didn't go into critical section yet
       return ;
    }
-   // enter critical section
    gMemTrackCB._memTrackMutex.get() ;
 
-   // sanity check
    if ( OSS_MAX_PATHSIZE <
         ossStrlen ( pPath ) + ossStrlen ( OSS_PRIMITIVE_FILE_SEP ) +
         ossStrlen ( SDB_OSS_MEMDUMPNAME ) )
    {
-      // do NOT dump PD info since we should not reference pd component from
-      // here
       goto error ;
    }
-   // build mem trace file name
    ossMemset ( fileName, 0, sizeof ( fileName ) ) ;
    ossSnprintf ( fileName, sizeof(fileName), "%s%s%s",
                  pPath, OSS_PRIMITIVE_FILE_SEP, SDB_OSS_MEMDUMPNAME ) ;
-   // open memtrace file
 
    trapFile.Open ( fileName ) ;
 
-   // dump into trap file
    if ( trapFile.isValid () )
    {
       trapFile.seekToEnd () ;
@@ -145,7 +132,6 @@ void ossMemTrace ( const CHAR *pPath )
          void *p = *it ;
          totalSize += ossMemTraceDump ( p, trapFile ) ;
       }
-      // record total allocated memory size
       ossMemset ( fileName, 0, sizeof ( fileName ) ) ;
       ossSnprintf ( fileName, sizeof(fileName),
                     " -------- Totally Allocated %lld Bytes --------\n",

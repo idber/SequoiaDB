@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsShardSession.hpp
 
@@ -60,19 +59,11 @@ namespace engine
       string   _username ;
       string   _passwd ;
 
-      UINT32   _auditMask ;
-      UINT32   _auditConfigMask ;
-
-      BSONObj  _objSchedInfo ;
-
       _clsIdentifyInfo()
       {
          _id = 0 ;
          _tid = 0 ;
          _eduid = 0 ;
-
-         _auditMask = 0 ;
-         _auditConfigMask = 0 ;
       }
    } ;
    typedef _clsIdentifyInfo clsIdentifyInfo ;
@@ -82,7 +73,7 @@ namespace engine
       DECLARE_OBJ_MSG_MAP()
 
       public:
-         _clsShdSession ( UINT64 sessionID, _schedTaskInfo *pTaskInfo ) ;
+         _clsShdSession ( UINT64 sessionID ) ;
          virtual ~_clsShdSession ( ) ;
 
          virtual const CHAR*      sessionName() const ;
@@ -95,10 +86,6 @@ namespace engine
                                      MsgHeader * msg ) ;
          virtual BOOLEAN timeout ( UINT32 interval ) ;
 
-         virtual void    onDispatchMsgBegin( const NET_HANDLE netHandle,
-                                             const MsgHeader *pHeader ) ;
-         virtual void    onDispatchMsgEnd( INT64 costUsecs ) ;
-
          BOOLEAN isSetLogout() const ;
          BOOLEAN isDelayLogin() const ;
          void    setLogout() ;
@@ -108,17 +95,12 @@ namespace engine
          INT32 _checkWriteStatus() ;
          INT32 _checkPrimaryWhenRead( INT32 flag, INT32 reqFlag ) ;
 
-         /// do multi things to reduce times of getting lock
          INT32 _checkCLStatusAndGetSth( const CHAR *name,
                                         INT32 version,
                                         BOOLEAN *isMainCL = NULL,
                                         INT16 *w = NULL,
-                                        CHAR *mainCLName = NULL,
-                                        utilCLUniqueID *clUniqueID = NULL ) ;
+                                        CHAR *mainCLName = NULL ) ;
 
-         /// valid: replSize == NULL and clientW != NULL
-         ///        replSize != NULL and clientW == NULL
-         ///        replSize != NULL and clientW != NULL
          INT32 _calculateW( const INT16 *replSize,
                             const INT16 *clientW,
                             INT16 &w ) ;
@@ -136,7 +118,6 @@ namespace engine
                                       const CHAR *clFullName,
                                       const CHAR *pParent ) ;
 
-      //message functions
       protected:
          INT32 _onOPMsg ( NET_HANDLE handle, MsgHeader *msg ) ;
          INT32 _onUpdateReqMsg ( NET_HANDLE handle, MsgHeader *msg,
@@ -145,12 +126,11 @@ namespace engine
                                  INT32 &insertedNum, INT32 &ignoredNum ) ;
          INT32 _onDeleteReqMsg ( NET_HANDLE handle, MsgHeader *msg,
                                  INT64 &delNum ) ;
-         INT32 _onQueryReqMsg ( NET_HANDLE handle, MsgHeader *msg,
+         INT32 _onQueryReqMsg ( NET_HANDLE handle, MsgHeader *msg, 
                                 rtnContextBuf &buffObj, INT32 &startingPos,
-                                INT64 &contextID, BOOLEAN &needRollback ) ;
+                                INT64 &contextID ) ;
          INT32 _onGetMoreReqMsg ( MsgHeader *msg, rtnContextBuf &buffObj,
-                                  INT32 &startingPos, INT64 &contextID,
-                                  BOOLEAN &needRollback ) ;
+                                  INT32 &startingPos, INT64 &contextID ) ;
          INT32 _onKillContextsReqMsg ( NET_HANDLE handle, MsgHeader *msg ) ;
          INT32 _onMsgReq ( NET_HANDLE handle, MsgHeader *msg ) ;
          INT32 _onInterruptMsg ( NET_HANDLE handle, MsgHeader *msg ) ;
@@ -165,9 +145,6 @@ namespace engine
                                       INT32 &ignoredNum ) ;
          INT32 _onTransDeleteReqMsg ( NET_HANDLE handle, MsgHeader *msg,
                                       INT64 &delNum ) ;
-         INT32 _onTransQueryReqMsg ( NET_HANDLE handle, MsgHeader *msg,
-                                     rtnContextBuf &buffObj, INT32 &startingPos,
-                                     INT64 &contextID, BOOLEAN &needRollback ) ;
          INT32 _onSessionInitReqMsg ( MsgHeader *msg ) ;
 
          INT32 _onCatalogChangeNtyMsg( MsgHeader *msg ) ;
@@ -190,13 +167,6 @@ namespace engine
          INT32 _onCloseLobReq( MsgHeader *msg ) ;
 
          INT32 _onRemoveLobReq( MsgHeader *msg ) ;
-
-         INT32 _onPacketMsg( NET_HANDLE handle,
-                             MsgHeader *msg,
-                             INT64 &contextID,
-                             rtnContextBuf &buf,
-                             INT32 &startFrom,
-                             INT32 &opCode ) ;
 
       private:
          INT32 _getShardingKey( const CHAR* clName,
@@ -237,6 +207,7 @@ namespace engine
                              const CHAR *pOrderBy,
                              const CHAR *pHint,
                              INT16 w,
+                             INT32 version,
                              SINT64 &contextID );
 
          INT32 _getOnMainCL( const CHAR *pCommand,
@@ -264,17 +235,12 @@ namespace engine
                                    const CHAR *pQuery,
                                    INT16 w,
                                    SINT64 &contextID,
-                                   BOOLEAN syscall = FALSE ) ;
+                                   BOOLEAN syscall = FALSE );
 
          INT32 _dropMainCL( const CHAR *pCollection,
                            INT16 w,
-                           SINT64 &contextID ) ;
-
-         INT32 _renameMainCL( const CHAR *pCollection,
-                              INT16 w,
-                              SINT64 &contextID ) ;
-
-         INT32 _updateVCS( const CHAR *fullName, const BSONObj &updator ) ;
+                           INT32 version,
+                           SINT64 &contextID );
 
          INT32 _getSubCLList( const BSONObj &matcher,
                               const CHAR *pCollectionName,
@@ -307,9 +273,6 @@ namespace engine
 
          void  _login() ;
 
-         INT32 _testCollectionBeforeCreate( const CHAR* clName,
-                                            utilCLUniqueID clUniqueID ) ;
-
       protected:
          _clsReplicateSet       *_pReplSet ;
          _clsShardMgr           *_pShdMgr ;
@@ -318,7 +281,6 @@ namespace engine
          _SDB_DMSCB             *_pDmsCB ;
          _SDB_RTNCB             *_pRtnCB ;
          _dpsLogWrapper         *_pDpsCB ;
-         _schedTaskInfo         *_pTaskInfo ;
 
          MsgOpReply             _replyHeader ;
          MsgRouteID             _primaryID ;
@@ -336,13 +298,7 @@ namespace engine
          BOOLEAN                _delayLogin ;
          string                 _username ;
          string                 _passwd ;
-         BSONObj                _objDelayInfo ;
-
-         UINT32                 _inPacketLevel ;
-         INT64                  _pendingContextID ;
-         INT32                  _pendingStartFrom ;
-         rtnContextBuf          _pendingBuff ;
-   } ;
+   };
 
 }
 

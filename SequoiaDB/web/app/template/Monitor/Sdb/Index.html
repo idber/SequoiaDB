@@ -51,9 +51,9 @@
                   </table>
                </div>
             </div>
-            <!--服务信息-->
+            <!--业务信息-->
             <div style="float:left;min-width:430px;" ng-container="{width:'68%',offsetX:-10,offsetY:-10,marginLeft:10}">
-               <div style="padding:0 10px 10px 0;font-weight:bold;">{{autoLanguage("服务信息")}}</div>
+               <div style="padding:0 10px 10px 0;font-weight:bold;">{{autoLanguage("业务信息")}}</div>
                <div style="padding:10px;border:1px solid #ddd;overflow-y:auto;color:#666;position:relative;" ng-container="{offsetY:-27}">
                   <div style="float:left;width:210px;">
                      <table class="table loosen" style="width:210px;">
@@ -86,7 +86,8 @@
                            <td style="font-weight:bold;">{{autoLanguage("会话数")}}</td>
                            <td>
                               <div class="Ellipsis">
-                                 <a class="linkButton" ng-click="GotoSessions()">{{moduleInfo['sessions']}}</a>
+                                 <a class="linkButton" ng-if="SysConfig['Edition'] == 'Enterprise'" ng-click="GotoSessions()">{{moduleInfo['sessions']}}</a>
+                                 <span ng-if="SysConfig['Edition'] != 'Enterprise'">{{moduleInfo['sessions']}}</span>
                               </div>
                            </td>
                         </tr>
@@ -94,8 +95,8 @@
                            <td style="font-weight:bold;">{{autoLanguage("域数")}}</td>
                            <td>
                               <div class="Ellipsis">
-                                 <a class="linkButton" ng-if="ModuleMode != 'standalone'" ng-click="GotoDomains()">{{moduleInfo['domains']}}</a>
-                                 <span ng-if=" ModuleMode == 'standalone'">{{moduleInfo['domains']}}</span>
+                                 <a class="linkButton" ng-if="SysConfig['Edition'] == 'Enterprise' && ModuleMode != 'standalone'" ng-click="GotoDomains()">{{moduleInfo['domains']}}</a>
+                                 <span ng-if="SysConfig['Edition'] != 'Enterprise' || ModuleMode == 'standalone'">{{moduleInfo['domains']}}</span>
                               </div>
                            </td>
                         </tr>
@@ -103,8 +104,8 @@
                            <td style="font-weight:bold;">{{autoLanguage("分区组数")}}</td>
                            <td>
                               <div class="Ellipsis">
-                                 <a class="linkButton" ng-if="ModuleMode != 'standalone'" ng-click="GotoGroups()">{{moduleInfo['groups']}}</a>
-                                 <span ng-if="ModuleMode == 'standalone'">{{moduleInfo['groups']}}</span>
+                                 <a class="linkButton" ng-if="SysConfig['Edition'] == 'Enterprise' && ModuleMode != 'standalone'" ng-click="GotoGroups()">{{moduleInfo['groups']}}</a>
+                                 <span ng-if="SysConfig['Edition'] != 'Enterprise' || ModuleMode == 'standalone'">{{moduleInfo['groups']}}</span>
                               </div>
                            </td>
                         </tr>
@@ -112,8 +113,8 @@
                            <td style="font-weight:bold;">{{autoLanguage("节点数")}}</td>
                            <td>
                               <div class="Ellipsis">
-                                 <a class="linkButton" ng-if="ModuleMode != 'standalone'" ng-click="GotoNodeList()">{{moduleInfo['nodes']}}</a>
-                                 <span ng-if="ModuleMode == 'standalone'">{{moduleInfo['nodes']}}</span>
+                                 <a class="linkButton" ng-if="SysConfig['Edition'] == 'Enterprise' && ModuleMode != 'standalone'" ng-click="GotoNodeList()">{{moduleInfo['nodes']}}</a>
+                                 <span ng-if="SysConfig['Edition'] != 'Enterprise' || ModuleMode == 'standalone'">{{moduleInfo['nodes']}}</span>
                               </div>
                            </td>
                         </tr>
@@ -121,7 +122,8 @@
                            <td style="font-weight:bold;">{{autoLanguage("集合数")}}</td>
                            <td>
                               <div class="Ellipsis">
-                                 <a class="linkButton" ng-click="GotoDatabase()">{{moduleInfo['cl']}}</a>
+                                 <a class="linkButton" ng-if="SysConfig['Edition'] == 'Enterprise'" ng-click="GotoDatabase()">{{moduleInfo['cl']}}</a>
+                                 <span ng-if="SysConfig['Edition'] != 'Enterprise'">{{moduleInfo['cl']}}</span>
                               </div>
                            </td>
                         </tr>
@@ -129,7 +131,8 @@
                            <td style="font-weight:bold;">{{autoLanguage("记录数")}}</td>
                            <td>
                               <div class="Ellipsis">
-                                 <a class="linkButton" ng-click="GotoDatabase()">{{moduleInfo['records']}}</a>
+                                 <a class="linkButton" ng-if="SysConfig['Edition'] == 'Enterprise'" ng-click="GotoDatabase()">{{moduleInfo['records']}}</a>
+                                 <span ng-if="SysConfig['Edition'] != 'Enterprise'">{{moduleInfo['records']}}</span>
                               </div>
                            </td>
                         </tr>
@@ -137,7 +140,8 @@
                            <td style="font-weight:bold;">{{autoLanguage("Lob数")}}</td>
                            <td>
                               <div class="Ellipsis">
-                                 <a class="linkButton" ng-click="GotoDatabase()">{{moduleInfo['lobs']}}</a>
+                                 <a class="linkButton" ng-if="SysConfig['Edition'] == 'Enterprise'" ng-click="GotoDatabase()">{{moduleInfo['lobs']}}</a>
+                                 <span ng-if="SysConfig['Edition'] != 'Enterprise'">{{moduleInfo['lobs']}}</span>
                               </div>
                            </td>
                         </tr>
@@ -145,6 +149,12 @@
                   </div>
                   <!--图表选择-->
                   <div style="min-height:150px;max-width:900px;float:left;" ng-container="{offsetX:-230,height:'90%'}">
+                     <div style="padding-right:15px;float:right;">
+                        <button class="btn btn-default btn-lg" dropdown-menu="DropdownMenu">
+                           {{chartName}}
+                           <span class="caret caret-bottom"></span>
+                        </button>
+                     </div>
                      <div style="max-width:940px;max-height:350px;" ng-container="{}" create-chart="charts.Module"></div>
                   </div>
                   <div class="clear-float"></div>
@@ -155,7 +165,7 @@
          <div style="position:relative;border:1px solid #C8D2DC;overflow-y:auto;" scroll-bottom ng-container="{marginTop:10,height:'30%',offsetY:-10}">
             <div class="alarm alarm-success" ng-if="ErrResult.length == 0 && DBStatus">
                <i class="fa fa-check-circle" style="font-size:120%;padding-right:15px;"></i>
-               {{sprintf(autoLanguage( '? [success] - 服务: ?，正常运行中。' ), Time, ModuleName)}}
+               {{sprintf(autoLanguage( '? [success] - 业务: ?，正常运行中。' ), Time, ModuleName)}}
             </div>
             <div ng-repeat="line in ErrResult track by $index" ng-if="ErrResult.length > 0 && DBStatus">
                <div class="alarm alarm-danger" ng-if="line['type'] == 'error'" >

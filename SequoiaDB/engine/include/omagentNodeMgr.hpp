@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omagentNodeMgr.hpp
 
@@ -129,43 +128,11 @@ namespace engine
    } ;
    typedef _startNodeJob startNodeJob ;
 
-   /*
-      _stopNodeJob define
-   */
-   class _stopNodeJob : public _rtnBaseJob
-   {
-   public:
-      _stopNodeJob( const string &svcname, NODE_START_TYPE type,
-                    _omAgentNodeMgr *pNodeMgr ) ;
-      virtual ~_stopNodeJob() ;
-
-      const string& getSvcName() const { return _svcName ; }
-
-   public:
-      virtual RTN_JOB_TYPE type () const ;
-      virtual const CHAR* name () const ;
-      virtual BOOLEAN muteXOn ( const _rtnBaseJob *pOther ) ;
-      virtual INT32 doit () ;
-
-   private:
-      string               _svcName ;
-      NODE_START_TYPE      _type ;
-      _omAgentNodeMgr      *_pNodeMgr ;
-      string               _jobName ;
-   } ;
-   typedef _stopNodeJob stopNodeJob ;
-
-   INT32 runStartNodeJob ( const string &svcname,
-                           NODE_START_TYPE startType,
-                           _omAgentNodeMgr *pNodeMgr,
-                           EDUID *pEDUID = NULL,
-                           BOOLEAN returnResult = FALSE ) ;
-
-   INT32 runStopNodeJob( const string &svcname,
-                         NODE_START_TYPE type,
-                         _omAgentNodeMgr *pNodeMgr,
-                         EDUID *pEDUID = NULL,
-                         BOOLEAN returnResult = FALSE ) ;
+   INT32 startStartNodeJOb ( const string &svcname,
+                             NODE_START_TYPE startType,
+                             _omAgentNodeMgr *pNodeMgr,
+                             EDUID *pEDUID = NULL,
+                             BOOLEAN returnResult = FALSE ) ;
 
    /*
       _cmSyncJob define
@@ -228,7 +195,6 @@ namespace engine
          */
          void     watchManualNodes() ;
 
-         // remote process functions
          INT32    addANode( const CHAR *arg1, const CHAR *arg2,
                             string *omsvc = NULL ) ;
          INT32    rmANode( const CHAR *arg1, const CHAR *arg2,

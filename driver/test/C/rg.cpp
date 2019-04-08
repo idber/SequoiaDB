@@ -1,4 +1,3 @@
-// TODO: need to change pNodeHostName, pNodeSvcName
 #include <stdio.h>
 #include <gtest/gtest.h>
 #include "client.h"
@@ -21,10 +20,8 @@ BOOLEAN create_rg_flag     = FALSE ;
 BOOLEAN create_node_flag   = FALSE ;
 BOOLEAN create_node_flag2  = FALSE ;
 
-//const CHAR *pHostName      = "192.168.20.166" ;
 const CHAR *pHostName      = HOST ;
 const CHAR *pSvcName       = SERVER ;
-//const CHAR *pSvcName       = "11810" ;
 const CHAR *pUser          = USER ;
 const CHAR *pPassword      = PASSWD ;
 
@@ -48,16 +45,12 @@ class replicaGroupTest : public testing::Test
       replicaGroupTest() {}
 
    public:
-      // run before all the testcase
       static void SetUpTestCase() ;
 
-      // run before all the testcase
       static void TearDownTestCase() ;
 
-      // run before every testcase
       virtual void SetUp() ;
 
-      // run before every testcase
       virtual void TearDown() ;
 } ;
 
@@ -66,7 +59,6 @@ void replicaGroupTest::SetUpTestCase()
    INT32 rc = SDB_OK ;
    bson option ;
 
-   // connect
    rc = sdbConnect( pHostName, pSvcName, pUser, pPassword, &db ) ;
    if ( SDB_OK != rc )
    {
@@ -77,7 +69,6 @@ void replicaGroupTest::SetUpTestCase()
    {
       connect_flag = TRUE ;
    }
-   // check whether it's in cluster
    if ( TRUE == isCluster( db ) )
    {
       is_cluster = TRUE ;
@@ -87,7 +78,6 @@ void replicaGroupTest::SetUpTestCase()
       return ;
    }
    
-   // create rg
    rc = sdbCreateReplicaGroup( db, pGroupName, &rg ) ;
    if ( SDB_OK != rc )
    {
@@ -100,7 +90,6 @@ void replicaGroupTest::SetUpTestCase()
    {
       create_rg_flag = TRUE ;
    }
-   // create node
    bson_init( &option ) ;
    bson_append_int( &option, "logfilenum", 1 ) ;
    bson_finish( &option ) ;
@@ -113,7 +102,6 @@ void replicaGroupTest::SetUpTestCase()
       cout << tmp_buf << endl ;
       return ;
    }
-   // start node
    rc = sdbStartReplicaGroup( rg ) ;
    if ( SDB_OK != rc )
    {
@@ -149,12 +137,10 @@ void replicaGroupTest::SetUp()
    INT32 rc = SDB_OK ;
    bson option ;
    
-   // check in cluster or not
    if ( FALSE == is_cluster )
       return ;
 
    create_node_flag2 = FALSE ;
-   // create node
    bson_init( &option ) ;
    bson_append_int( &option, "logfilenum", 1 ) ;
    bson_finish( &option ) ;
@@ -167,7 +153,6 @@ void replicaGroupTest::SetUp()
       cout << tmp_buf << endl ;
       return ;
    }
-   // start node
    rc = sdbStartReplicaGroup( rg ) ;
    if ( SDB_OK != rc )
    {
@@ -186,7 +171,6 @@ void replicaGroupTest::TearDown()
 {
    INT32 rc = SDB_OK ;
 
-   // check in cluster or not
    if ( FALSE == is_cluster )
       return ;
 
@@ -211,7 +195,6 @@ INT32 _tmain( INT32 argc, CHAR* argv[] )
 
 TEST_F( replicaGroupTest, init_test )
 {
-   // check in cluster or not
    if ( FALSE == is_cluster )
       return ;
    ASSERT_EQ( TRUE, connect_flag ) << "Error: Failed to connect to database" ;
@@ -222,7 +205,6 @@ TEST_F( replicaGroupTest, init_test )
 
 TEST_F( replicaGroupTest, getRGName )
 {
-   // check in cluster or not
    if ( FALSE == is_cluster )
       return ;
    ASSERT_EQ( TRUE, connect_flag ) << "Error: Failed to connect to database" ;
@@ -247,7 +229,6 @@ TEST_F( replicaGroupTest, getRGName )
 
 TEST_F( replicaGroupTest, detachNode )
 {
-   // check in cluster or not
    if ( FALSE == is_cluster )
    {
       cout << "Warning: it's not a cluster environment." << endl ;
@@ -260,22 +241,18 @@ TEST_F( replicaGroupTest, detachNode )
 
    INT32 rc = SDB_OK ;
    sdbNodeHandle node ;
-   // detach node 
    rc = sdbDetachNode( rg, pNodeHostName2, pNodeSvcName2, NULL ) ;
    ASSERT_EQ( SDB_OK, rc ) << "Failed to detach data node from group " <<
       pGroupName << ", rc = " << rc ;
 
-   // check
    rc = sdbGetNodeByHost( rg, pNodeHostName2, pNodeSvcName2, &node ) ;
    ASSERT_EQ( SDB_CLS_NODE_NOT_EXIST, rc ) << "What we expect is "
       "SDB_CLS_NODE_NOT_EXIST, but rc = " << rc ;
 
-   // attach node
    rc = sdbAttachNode( rg, pNodeHostName2, pNodeSvcName2, NULL ) ;
    ASSERT_EQ( SDB_OK, rc ) << "Failed to attach data node to group " <<
       pGroupName << ", rc = " << rc ;
   
-   // check 
    rc = sdbGetNodeByHost( rg, pNodeHostName2, pNodeSvcName2, &node ) ;
    ASSERT_EQ( SDB_OK, rc ) << "Failed to get data node from group " <<
       pGroupName << ", rc = " << rc ;

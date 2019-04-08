@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = spdFMP.cpp
 
@@ -187,7 +186,6 @@ namespace engine
             setDiscarded() ;
             goto error ;
          }
-//         PD_LOG( PDDEBUG, "write to fmp len: %lld", written ) ;
          writeLen -= written ;
          writeBuf += written ;
       }
@@ -215,7 +213,6 @@ namespace engine
                           ", kill process[%d]", rc, _id ) ;
          ossTerminateProcess( _id, TRUE ) ;
       }
-      /// parse res obj if necessary in future.
 
       ossCloseNamedPipe( _in ) ;
       ossCloseNamedPipe( _out ) ;
@@ -260,7 +257,6 @@ namespace engine
          goto error ;
       }
 
-      /// parse res obj if necessary in future.
    done:
       return rc ;
    error:
@@ -294,7 +290,6 @@ namespace engine
       extracted = FALSE ;
       SDB_ASSERT( 0 <= _expect, "impossible" ) ;
 
-      /// magic has already been found.
       if ( sizeof( SPD_MAGIC ) == _expect )
       {
 found:
@@ -330,20 +325,15 @@ found:
 
                if ( sizeof( SPD_MAGIC ) == _itr )
                {
-                  /// only a bson msg.
                   msg = tmp ;
                   extracted = TRUE ;
                }
                else
                {
-                  /// not only a bson msg.
                   _readBuf[_itr - 4] = '\0' ;
                   BSONElement retCode = tmp.getField( FMP_RES_CODE ) ;
                   BSONElement errMsg = tmp.getField( FMP_ERR_MSG ) ;
 
-                  /// some code like 'print' may return msg more than a bsonobj.
-                  /// we must parse it's return code. if it is ok, we ignore
-                  /// print. else we put it into errmsg.
                   if ( !retCode.eoo() && NumberInt != retCode.type() )
                   {
                      rc = SDB_SYS ;
@@ -374,7 +364,6 @@ found:
                   }
                   else
                   {
-                     /// retCode is eoo.
                      msg = tmp ;
                   }
 

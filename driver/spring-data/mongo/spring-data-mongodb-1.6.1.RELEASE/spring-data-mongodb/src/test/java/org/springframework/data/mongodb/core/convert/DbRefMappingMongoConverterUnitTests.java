@@ -337,12 +337,10 @@ public class DbRefMappingMongoConverterUnitTests {
 		assertThat(result.dbRefToPlainObject, is(notNullValue()));
 		assertProxyIsResolved(result.dbRefToPlainObject, false);
 
-		// calling Object#toString does not initialize the proxy.
 		String proxyString = result.dbRefToPlainObject.toString();
 		assertThat(proxyString, is("lazyDbRefTarget" + ":" + id + "$LazyLoadingProxy"));
 		assertProxyIsResolved(result.dbRefToPlainObject, false);
 
-		// calling another method not declared on object triggers proxy initialization.
 		assertThat(result.dbRefToPlainObject.getValue(), is(value));
 		assertProxyIsResolved(result.dbRefToPlainObject, true);
 	}

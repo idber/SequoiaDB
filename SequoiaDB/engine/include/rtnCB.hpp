@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnCB.hpp
 
@@ -53,7 +52,7 @@
 #include "utilConcurrentMap.hpp"
 #include "optAPM.hpp"
 #include <map>
-#include "ossMemPool.hpp"
+#include <set>
 #include "rtnRemoteMessenger.hpp"
 
 #define RTN_INIT_TEXT_INDEX_VERSION    -1
@@ -75,13 +74,8 @@ namespace engine
 
       _rtnLobAccessManager _lobAccessManager ;
 
-      // The following members are used for communication with search engine
-      // adapter when do text searching. Search engine adapter use the shard
-      // plane to get data from data node, and data node use this new plane to
-      // send text search request to adapter.
       rtnRemoteMessenger   *_remoteMessenger ;
       ossSpinSLatch        _mutex ;        // Lock for protection of accessing
-                                          // index information.
       ossAtomicSigned64    _textIdxVersion ;
 
    public:
@@ -106,14 +100,12 @@ namespace engine
 
       rtnContext *contextFind ( SINT64 contextID, _pmdEDUCB *cb = NULL ) ;
 
-      INT32 prepareRemoteMessenger() ;
-
       OSS_INLINE INT32 contextNum ()
       {
          return _contextMap.size() ;
       }
 
-      OSS_INLINE void contextDump ( std::map<UINT64, ossPoolSet<SINT64> > &contextList,
+      OSS_INLINE void contextDump ( std::map<UINT64, std::set<SINT64> > &contextList,
                                     EDUID filterEDUID = PMD_INVALID_EDUID )
       {
          FOR_EACH_CMAP_ELEMENT_S( RTN_CTX_MAP, _contextMap )

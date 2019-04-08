@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = aggrBuilder.hpp
 
@@ -78,11 +77,8 @@ namespace engine
       virtual INT32  deactive () ;
       virtual INT32  fini () ;
 
-      INT32 build( const BSONObj &objs,
-                   INT32 objNum,
-                   const CHAR *pCLName,
-                   const BSONObj &hint,
-                   _pmdEDUCB *cb,
+      INT32 build( const BSONObj &objs, INT32 objNum,
+                   const CHAR *pCLName, _pmdEDUCB *cb,
                    SINT64 &contextID  ) ;
 
    private:
@@ -91,8 +87,7 @@ namespace engine
                        _qgmOptiTreeNode *&root,
                        _qgmPtrTable * pPtrTable,
                        _qgmParamTable *pParamTable,
-                       const CHAR *pCollectionName,
-                       const BSONObj &hint );
+                       const CHAR *pCollectionName );
 
       INT32 createContext( _qgmPlanContainer *container,
                            _pmdEDUCB *cb, SINT64 &contextID );
@@ -120,15 +115,11 @@ namespace engine
                                INT32 objNum,
                                const CHAR *pInnerCmd,
                                const BSONObj &selector,
-                               const BSONObj &hint,
-                               INT64 skip,
-                               INT64 limit,
                                _pmdEDUCB *cb,
                                SINT64 &contextID ) ;
 
          INT32    parseUserAggr( const BSONObj &hint,
-                                 vector< BSONObj > &vecObj,
-                                 BSONObj &newHint ) ;
+                                 vector< BSONObj > &vecObj ) ;
 
          INT32    parseMatcher( const BSONObj &query,
                                 BSONObj &nodesMatcher,

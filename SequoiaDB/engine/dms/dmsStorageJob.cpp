@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dmsStorageJob.cpp
 
@@ -181,7 +180,6 @@ namespace engine
 
          _ntyEvent.signalAll() ;
 
-         /// start agent
          while ( _curAgent < DMS_MIN_MAPPING_JOB ||
                  ( count / 10 > _idleAgent &&
                    _curAgent < DMS_MAX_MAPPING_JOB ) )
@@ -327,7 +325,6 @@ namespace engine
 
                if ( timeout >= (UINT32)_timeout )
                {
-                  /// over _timeout millsecs, donothing, qiut the job
                   break ;
                }
             }
@@ -364,13 +361,11 @@ namespace engine
       pPageMap = pMapUnit->beginNonEmpty( slot ) ;
       while( pPageMap )
       {
-         /// get mb context
          rc = su->data()->getMBContext( &mbContext, slot,
                                         DMS_INVALID_CLID, -1 ) ;
          if ( SDB_OK == rc )
          {
             _doACollection( su, mbContext, pPageMap ) ;
-            /// release mb context
             su->data()->releaseMBContext( mbContext ) ;
          }
 
@@ -397,7 +392,6 @@ namespace engine
 
       while( curPageNum > 0 && !pPageMap->isEmpty() )
       {
-         /// lock
          rc = mbContext->mbLock( EXCLUSIVE ) ;
          if ( rc )
          {
@@ -417,7 +411,6 @@ namespace engine
             eduCB()->incEventCount( 1 ) ;
             --curPageNum ;
          }
-         /// unlock
          mbContext->mbUnlock() ;
       }
 
@@ -463,7 +456,6 @@ namespace engine
          goto error ;
       }
       rc = rtnGetJobMgr()->startJob( pJob, RTN_JOB_MUTEX_NONE, pEDUID  ) ;
-      /// neither failed or succeed, the pJob will release in job manager
 
    done:
       return rc ;

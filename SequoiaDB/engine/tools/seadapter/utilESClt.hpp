@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = utilESClt.hpp
 
@@ -55,23 +54,20 @@
 #define UTIL_SE_MAX_URL_SIZE              2048
 #define UTIL_ES_DFT_SCROLL_SIZE           1000
 #define UTIL_SE_MAX_TYPE_SZ               255
-#define UTIL_SE_DFT_TIMEOUT               10000
 #define UTIL_SE_BULK_DFT_FILTERPATH       "filter_path=errors,took,items.index._id,items.index.status"
 using std::string ;
 
 namespace seadapter
 {
-   // Client class for ElasticSearch.
    class _utilESClt : public SDBObject
    {
       public:
          _utilESClt();
          ~_utilESClt();
 
-         // Init connection with specified uri.
-         INT32 init( const string &uri, BOOLEAN readOnly = FALSE,
-                     INT32 timeout = UTIL_SE_DFT_TIMEOUT ) ;
+         INT32 init( const string &uri, BOOLEAN readOnly = FALSE ) ;
          BOOLEAN isActive() ;
+         INT32 active() ;
          INT32 getSEInfo( BSONObj &infoObj ) ;
          INT32 indexExist( const CHAR *index, BOOLEAN &exist ) ;
          INT32 createIndex( const CHAR *index, const CHAR *data = NULL ) ;
@@ -80,22 +76,16 @@ namespace seadapter
                               const CHAR *id, const CHAR *jsonData ) ;
          INT32 updateDocument( const CHAR *index, const CHAR *type,
                                const CHAR *id, const CHAR *newData ) ;
-         // INT32 upsertDocument( const CHAR *index, const CHAR *type,
-         //                       const CHAR *id, const CHAR *newData ) ;
          INT32 deleteDocument( const CHAR *index, const CHAR *type,
                                const CHAR *id ) ;
 
-         // Request the document by index/type/id. At most one document should be
-         // returned as id dose not duplicate.
          INT32 getDocument( const CHAR *index, const CHAR *type, const CHAR *id,
                             BSONObj &result, BOOLEAN withMeta = TRUE ) ;
 
-         // Request documents by index, type, and a K/V pair as query condition.
          INT32 getDocument( const CHAR *index, const CHAR *type,
                             const CHAR *key, const CHAR *value,
                             utilCommObjBuff &objBuff, BOOLEAN withMeta = TRUE ) ;
 
-         // Request documents by index, type, and a query string.
          INT32 getDocument( const CHAR *index, const CHAR *type,
                             const CHAR *query, utilCommObjBuff &objBuff,
                             BOOLEAN withMeta = TRUE ) ;
@@ -108,8 +98,6 @@ namespace seadapter
          INT32 deleteAllByType( const CHAR *index, const CHAR *type ) ;
          INT32 getDocCount( const CHAR *index, const CHAR *type,
                             UINT64 &count ) ;
-         // To make all documents searchable now. Normally they are searchable 1s
-         // after insertion.
          INT32 refresh( const CHAR *index ) ;
 
          INT32 initScroll( string& scrollId,
@@ -125,8 +113,6 @@ namespace seadapter
 
          INT32 bulk( const CHAR *index, const CHAR *type, const CHAR *data,
                      const CHAR *filterPath = UTIL_SE_BULK_DFT_FILTERPATH) ;
-
-         const CHAR* getLastErrMsg() const ;
 
       private:
          OSS_INLINE INT32 _processReply( INT32 returnCode, const CHAR *reply,
@@ -145,15 +131,11 @@ namespace seadapter
          INT32 _removeDocMeta( const BSONObj &fullObj, BSONObj &newObj ) ;
 
       private:
-         utilHttp    _http;
-         BOOLEAN     _readOnly;
-         const CHAR *_errMsg ;
+         utilHttp _http;
+         BOOLEAN _readOnly;
    };
    typedef _utilESClt utilESClt ;
 
-   // Process the return information of http request. If the original return
-   // code is not SDB_OK, return the original return code.
-   // Otherwise, convert the result from json string to BSONObj.
    OSS_INLINE INT32 _utilESClt::_processReply( INT32 returnCode,
                                                const CHAR *reply,
                                                INT32 replyLen,
@@ -164,11 +146,6 @@ namespace seadapter
 
       if ( SDB_OK == returnCode )
       {
-         if ( _errMsg )
-         {
-            _errMsg = NULL ;
-         }
-         // Request process successfully. Let's get the result in BSONObj format.
          if ( transform && reply && replyLen > 0 )
          {
             rc = fromjson( reply, resultObj ) ;
@@ -180,7 +157,6 @@ namespace seadapter
       else
       {
          rc = returnCode ;
-         _errMsg = reply ;
          if ( reply && replyLen > 0 )
          {
             PD_LOG( PDERROR, "Request processed failed[ %d ], respond "

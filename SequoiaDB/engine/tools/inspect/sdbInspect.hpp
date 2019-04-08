@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sdbConsistencyInspect.hpp
 
@@ -39,17 +38,13 @@
 #ifndef CONSISTENCY_INSPECT_HPP__
 #define CONSISTENCY_INSPECT_HPP__
 
-// system
 #include <iostream>
-// local project
 #include "pmdOptionsMgr.hpp"
 #include "dms.hpp"
 #include "client.hpp"
-// third party
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
 
-// macro for debug
 #ifdef _DEBUG
    #define OUTPUT_FUNCTION( str, funcName, rc ) \
       std::cout << str << funcName << " rc = " << rc << std::endl
@@ -66,43 +61,35 @@
       }                                   \
    }while( FALSE )
 
-// macros
 #define CI_INSPECT_ERROR         0x10001000
 #define CI_INSPECT_CL_NOT_FOUND  0x10001001
 
-#define CI_USERNAME_SIZE         SDB_MAX_USERNAME_LENGTH
-#define CI_PASSWD_SIZE           SDB_MAX_PASSWORD_LENGTH
-
-#define CI_BUFFER_BLOCK          1024
-#define CI_HEADER_SIZE           65536
-#define CI_TAIL_SIZE             65536
-#define CI_GROUPNAME_SIZE        OSS_MAX_GROUPNAME_SIZE
-
-#define CI_HOSTNAME_SIZE         255
-#define CI_SERVICENAME_SIZE      63
-#define CI_VIEWOPTION_SIZE       63
-#define CI_CS_NAME_SIZE          DMS_COLLECTION_SPACE_NAME_SZ
-#define CI_CL_NAME_SIZE          DMS_COLLECTION_NAME_SZ
-#define CI_ADDRESS_SIZE          ( CI_HOSTNAME_SIZE + CI_SERVICENAME_SIZE + 1 )
-#define CI_CL_FULLNAME_SIZE      ( CI_CS_NAME_SIZE + CI_CL_NAME_SIZE + 1 )
-#define CI_AUTH_SIZE             ( CI_USERNAME_SIZE + CI_PASSWD_SIZE + 1 )
-#define CI_TOKEN_SIZE            CI_PASSWD_SIZE
-#define CI_CIPHERFILE_SIZE       OSS_MAX_PATHSIZE
+#define CI_USERNAME_SIZE OSS_MAX_PATHSIZE
+#define CI_PASSWD_SIZE   OSS_MAX_PATHSIZE
+#define CI_BUFFER_BLOCK      1024
+#define CI_HEADER_SIZE       65536
+#define CI_TAIL_SIZE         65536
+#define CI_GROUPNAME_SIZE    OSS_MAX_GROUPNAME_SIZE
+#define CI_HOSTNAME_SIZE     255
+#define CI_SERVICENAME_SIZE  63
+#define CI_VIEWOPTION_SIZE   63
+#define CI_CS_NAME_SIZE      DMS_COLLECTION_SPACE_NAME_SZ
+#define CI_CL_NAME_SIZE      DMS_COLLECTION_NAME_SZ
+#define CI_ADDRESS_SIZE      ( CI_HOSTNAME_SIZE + CI_SERVICENAME_SIZE + 1 )
+#define CI_CL_FULLNAME_SIZE  ( CI_CS_NAME_SIZE + CI_CL_NAME_SIZE + 1 )
+#define CI_AUTH_SIZE         ( CI_USERNAME_SIZE + CI_PASSWD_SIZE + 1 )
 
 CHAR g_username[ CI_USERNAME_SIZE + 1 ] = { 0 } ;
 CHAR g_password[ CI_PASSWD_SIZE + 1 ] = { 0 } ;
 
 #define CI_FILE_NAME       "inspect.bin"
-#define CI_TMP_FILE_SUFFIX ".tmp.%d"
+#define CI_TMP_FILE        "inspect.bin.tmp.%d"
 #define CI_FILE_REPORT     ".report"
 #define CI_START_TMP_FILE  "inspect.start.tmp"
-// action option
 #define CI_ACTION_INSPECT  "inspect"
 #define CI_ACTION_REPORT   "report"
-// view option
 #define CI_VIEW_GROUP      "group"
 #define CI_VIEW_CL         "collection"
-// Coord option
 #define CI_COORD_DEFVAL    "localhost:11810"
 
 #define CI_HEADER_EYECATCHER "SDBCI"
@@ -126,14 +113,11 @@ CHAR g_password[ CI_PASSWD_SIZE + 1 ] = { 0 } ;
 */
 #define TAIL_PADDING_SIZE ( CI_TAIL_SIZE - sizeof(INT32) * 2 )
 
-// the length of ciGroupHeader
 #define CI_GROUP_HEADER_SIZE ( ( CI_GROUPNAME_SIZE + 1 ) + \
                                  sizeof( INT32 )         + \
                                  sizeof( UINT32 ) * 2 )
-// the length of ciClHeader
 #define CI_CL_HEADER_SIZE ( ( CI_CL_FULLNAME_SIZE + 1 ) * 2 + sizeof( UINT32 ) )
 
-// the length of ciNode
 #define CI_NODE_SIZE ( ( CI_HOSTNAME_SIZE + 1 )    + \
                        ( CI_SERVICENAME_SIZE + 1 ) + \
                          sizeof( INT32 ) * 3 )
@@ -148,10 +132,8 @@ do                            \
    }                          \
 } while (FALSE);
 
-// max node count of group
 #define MAX_NODE_COUNT 7
 
-// option for ciState
 #define LSHIFT(x) ( 1 << x )
 #define ALL_THE_SAME_BIT 7
 
@@ -332,12 +314,10 @@ struct _ciGroup
    {
       while (NULL != _next)
       {
-         // separate next node from the list
          _ciGroup* ptr = _next ;
          _next = _next->_next ;
          ptr->_next = NULL ;
 
-         // delete the separate node
          delete ptr ;
          ptr = NULL ;
       }
@@ -383,12 +363,10 @@ struct _ciNode
 
       while (NULL != _next)
       {
-         // separate next node from the list
          _ciNode* ptr = _next ;
          _next = _next->_next ;
          ptr->_next = NULL ;
 
-         // delete the separate node
          delete ptr ;
          ptr = NULL ;
       }
@@ -412,12 +390,10 @@ struct _ciCollection
    {
       while (NULL != _next)
       {
-         // separate next node from the list
          _ciCollection* ptr = _next ;
          _next = _next->_next ;
          ptr->_next = NULL ;
 
-         // delete the separate node
          delete ptr ;
          ptr = NULL ;
       }
@@ -437,12 +413,10 @@ struct _ciRecord
    {
       while (NULL != _next)
       {
-         // separate next node from the list
          _ciRecord* ptr = _next ;
          _next = _next->_next ;
          ptr->_next = NULL ;
 
-         // delete the separate node
          delete ptr ;
          ptr = NULL ;
       }
@@ -465,7 +439,6 @@ struct _ciCursor
    {
       if ( NULL != _db )
       {
-         //delete _db ;
          _db = NULL ;
       }
 
@@ -477,12 +450,10 @@ struct _ciCursor
 
       while (NULL != _next)
       {
-         // separate next node from the list
          _ciCursor* ptr = _next ;
          _next = _next->_next ;
          ptr->_next = NULL ;
 
-         // delete the separate node
          delete ptr ;
          ptr = NULL ;
       }
@@ -508,12 +479,10 @@ struct _ciOffset
    {
       while (NULL != _next)
       {
-         // separate next node from the list
          _ciOffset* ptr = _next ;
          _next = _next->_next ;
          ptr->_next = NULL ;
 
-         // delete the separate node
          delete ptr ;
          ptr = NULL ;
       }
@@ -543,11 +512,6 @@ typedef _ciTail ciTail ;
 
 struct _ciState
 {
-   //    0   1   1   0   1   1   0   0             bits of state
-   //    1   2   3   4   5   6   7   -             index if node 
-   //  if 8th of state is 1, means that all node has current record, and every
-   //  cursor should get next record. or the min bson( of "oid" ) need get next
-   //  record.
    CHAR _state ;
    void set( INT32 index )
    {
@@ -568,23 +532,18 @@ struct _ciState
 } ;
 typedef _ciState ciState ;
 
-//////////////////////////////////////////////////////////////////////////
-// sdbCi
-#define CONSISTENCY_INSPECT_HELP         "help"
-#define CONSISTENCY_INSPECT_VER          "version"
-#define CONSISTENCY_INSPECT_ACTION       "action"
-#define CONSISTENCY_INSPECT_COORD        "coord"
-#define CONSISTENCY_INSPECT_LOOP         "loop"
-#define CONSISTENCY_INSPECT_GROUP        "group"
-#define CONSISTENCY_INSPECT_CS           "collectionspace"
-#define CONSISTENCY_INSPECT_CL           "collection"
-#define CONSISTENCY_INSPECT_FILE         "file"
-#define CONSISTENCY_INSPECT_OUTPUT       "output"
-#define CONSISTENCY_INSPECT_VIEW         "view"
-#define CONSISTENCY_INSPECT_AUTH         "auth"
-#define CONSISTENCY_INSPECT_CIPHER       "cipher"
-#define CONSISTENCY_INSPECT_TOKEN        "token"
-#define CONSISTENCY_INSPECT_CIPHERFILE   "cipherfile"
+#define CONSISTENCY_INSPECT_HELP      "help"
+#define CONSISTENCY_INSPECT_VER       "version"
+#define CONSISTENCY_INSPECT_ACTION    "action"
+#define CONSISTENCY_INSPECT_COORD     "coord"
+#define CONSISTENCY_INSPECT_LOOP      "loop"
+#define CONSISTENCY_INSPECT_GROUP     "group"
+#define CONSISTENCY_INSPECT_CS        "collectionspace"
+#define CONSISTENCY_INSPECT_CL        "collection"
+#define CONSISTENCY_INSPECT_FILE      "file"
+#define CONSISTENCY_INSPECT_OUTPUT    "output"
+#define CONSISTENCY_INSPECT_VIEW      "view"
+#define CONSISTENCY_INSPECT_AUTH      "auth"
 
 #define INSPECT_ADD_OPTIONS_BEGIN( desc ) desc.add_options()
 #define INSPECT_ADD_OPTIONS_END ;
@@ -603,10 +562,8 @@ typedef _ciState ciState ;
    ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_CL, ",l" ), boost::program_options::value< std::string >(), "specify the collection to be inspected") \
    ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_FILE, ",f" ), boost::program_options::value< std::string >(), "specify the file existed, when specified, other option will be ignored except options that \"-o\" and \"-f\" sepcified " ) \
    ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_OUTPUT, ",o" ), boost::program_options::value< std::string >(), "specify the output file" ) \
-   ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_VIEW, ",w" ), boost::program_options::value< std::string >(), "specify the way to view the report, \"group\" or \"collection\" is avaliable, \"group\" is set default" ) \
-   ( CONSISTENCY_INSPECT_TOKEN, boost::program_options::value< std::string >(), "specify the password encryption token" ) \
-   ( CONSISTENCY_INSPECT_CIPHER, boost::program_options::value< std::string >(), "specify input password using a cipherfile" ) \
-   ( CONSISTENCY_INSPECT_CIPHERFILE, boost::program_options::value< std::string >(), "user specified cipherfile, default ./passwd" )
+   ( INSPECT_COMMANDS_STRING( CONSISTENCY_INSPECT_VIEW, ",w" ), boost::program_options::value< std::string >(), "specify the way to view the report, \"group\" or \"collection\" is avaliable, \"group\" is set default" )
+
 
 class _sdbCi : public engine::_pmdCfgRecord
 {
@@ -642,9 +599,6 @@ private:
    ciHeader _header ;
    CHAR     _coordAddr[ CI_ADDRESS_SIZE + 1 ] ;
    CHAR     _auth[ CI_AUTH_SIZE + 1 ] ;
-   BOOLEAN  _cipher ;
-   CHAR     _token[ CI_TOKEN_SIZE + 1 ] ;
-   CHAR     _cipherfile[ CI_CIPHERFILE_SIZE + 1 ] ;
 } ;
 typedef _sdbCi sdbCi ;
 

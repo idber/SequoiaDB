@@ -1,6 +1,6 @@
 /*******************************************************************************
 
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -201,11 +201,6 @@ function exception_handle( exp, msg )
 function strTrim ( str )
 {
    return str.replace(/(^\s*)|(\s*$)/g, "") ;
-}
-
-function strReplaceAll( str, findStr, replaceStr )
-{
-   return str.split( findStr ).join( replaceStr ) ;
 }
 
 /* *****************************************************************************
@@ -1779,59 +1774,124 @@ usage:
     Ssh.chmod(path, mode, recursive)            // throw SdbError if failed
     Ssh.chown(path, user, group, recursive);    // throw SdbError if failed
 ******************************************************************************/
-Ssh.prototype._exist = function Ssh_exist(cmd) {
-    
+Ssh.prototype.isPathExist = function Ssh_isPathExist(path) {
     if (SYS_TYPE != SYS_LINUX) {
         throw new SdbError(SDB_SYS, "unsupported system");
     }
-    
-    var ret = "" ;
-    try {
-        ret = this.exec( cmd ) ;
-    } catch( e ) {
-        throw new SdbError( e, "execute command[" + cmd + "] failed in host " + this.getPeerIP() ) ;
-    }
-    if ( typeof(ret) == "string" && ret.indexOf("true") != -1 )
-    {
-        return true ;
-    }
-    else if ( typeof(ret) == "string" && ret.indexOf("false") != -1 )
-    {
-        return false ;
-    }
-    else
-    {
-        var msg = "execute command[" + cmd + "] in host " + this.getPeerIP() + 
-                  " and return unexpected result[" + ret + "]" ;
+
+    var shell = "ls " + path;
+    try { this.exec(shell); } catch(e) {}
+
+    if (this.getLastRet() == 0) {
+        return true;
+    } else {
+        var msg = this.getLastOut();
+        if ( msg.indexOf("No such file or directory") != -1 ||
+             msg.indexOf("没有那个文件或目录") != -1 )
+        {
+            setLastError(SDB_OK);
+            setLastErrMsg("");
+            return false;
+        }
+
+        var cr = msg.lastIndexOf("\n");
+        if (cr != -1) {
+            msg = msg.substring(0, cr);
+        }
         throw new SdbError(SDB_SYS, msg);
     }
-}
-
-Ssh.prototype.isPathExist = function Ssh_isPathExist(path) {
-    var cmd = "if [ -e " + path + " ]; then echo true; else echo false; fi;" ;
-    return this._exist( cmd ) ;
 };
 
 Ssh.prototype.isFile = function Ssh_isFile(path) {
-    var cmd = "if [ -f " + path + " ]; then echo \"true\"; else echo \"false\"; fi;" ;
-    return this._exist( cmd ) ;
-};
-
-Ssh.prototype.isDirectory = function Ssh_isDirectory(path) {
-    var cmd = "if [ -d " + path + " ]; then echo \"true\"; else echo \"false\"; fi;" ;
-    return this._exist( cmd ) ;
-};
-
-Ssh.prototype.isEmptyDirectory = function Ssh_isEmptyDirectory(path) {	
     if (SYS_TYPE != SYS_LINUX) {
         throw new SdbError(SDB_SYS, "unsupported system");
     }
-    // we must judge the given path is a directory or not
+
+    if (!this.isPathExist(path)) {
+        throw new SdbError(SDB_SYS, "No such file or directory");
+    }
+
+    var shell = "ls " + path + "/";
+    try { this.exec(shell); } catch(e) {}
+
+    if (this.getLastRet() == 0) {
+        return false; // directory
+    } else {
+        var msg = this.getLastOut();
+        if (msg.indexOf("Not a directory") != -1) {
+            setLastError(SDB_OK);
+            setLastErrMsg("");
+            return true;
+        }
+
+        var cr = msg.lastIndexOf("\n");
+        if (cr != -1) {
+            msg = msg.substring(0, cr);
+        }
+        throw new SdbError(SDB_SYS, msg);
+    }
+};
+
+Ssh.prototype.isDirectory = function Ssh_isDirectory(path) {
+    if (SYS_TYPE != SYS_LINUX) {
+        throw new SdbError(SDB_SYS, "unsupported system");
+    }
+
+    if (!this.isPathExist(path)) {
+        throw new SdbError(SDB_SYS, "No such file or directory");
+    }
+
+    var shell = "ls " + path + "/";
+    try { this.exec(shell); } catch(e) {}
+
+    if (this.getLastRet() == 0) {
+        return true; // directory
+    } else {
+        var msg = this.getLastOut();
+        if (msg.indexOf("Not a directory") != -1) {
+            setLastError(SDB_OK);
+            setLastErrMsg("");
+            return false;
+        }
+
+        var cr = msg.lastIndexOf("\n");
+        if (cr != -1) {
+            msg = msg.substring(0, cr);
+        }
+        throw new SdbError(SDB_SYS, msg);
+    }
+};
+
+Ssh.prototype.isEmptyDirectory = function Ssh_isEmptyDirectory(path) {
+    if (SYS_TYPE != SYS_LINUX) {
+        throw new SdbError(SDB_SYS, "unsupported system");
+    }
+
     if (!this.isDirectory(path)) {
         return false;
     }
-    var cmd = "if [ \"$(ls -A " + path + ")\" ]; then echo \"false\"; else echo \"true\"; fi;" ;
-    return this._exist( cmd ) ;
+
+    var shell = "ls " + path + "/*";
+    try { this.exec(shell); } catch(e) {}
+
+    if (this.getLastRet() == 0) {
+        return false;
+    } else {
+        var msg = this.getLastOut();
+        if ( msg.indexOf("No such file or directory") != -1 ||
+             msg.indexOf("没有那个文件或目录") != -1 )
+        {
+            setLastError(SDB_OK);
+            setLastErrMsg("");
+            return true;
+        }
+
+        var cr = msg.lastIndexOf("\n");
+        if (cr != -1) {
+            msg = msg.substring(0, cr);
+        }
+        throw new SdbError(SDB_SYS, msg);
+    }
 };
 
 Ssh.prototype.mkdir = function Ssh_mkdir(path) {

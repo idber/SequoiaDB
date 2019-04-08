@@ -1,5 +1,5 @@
 /*******************************************************************************
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -30,10 +30,8 @@ INT32 clientConnect ( const CHAR *pHostName,
 
 void clientDisconnect ( Socket** sock ) ;
 
-// timeout for microsecond (1/1000000 sec )
 INT32 clientSend ( Socket* sock, const CHAR *pMsg, INT32 len,
                    INT32 *pSentLen, INT32 timeout ) ;
-// timeout for microsecond ( 1/1000000 sec )
 INT32 clientRecv ( Socket* sock, CHAR *pMsg, INT32 len, 
                    INT32 *pReceivedLen, INT32 timeout ) ;
 

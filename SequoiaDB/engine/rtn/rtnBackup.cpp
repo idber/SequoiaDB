@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnInsert.cpp
 
@@ -84,7 +83,6 @@ namespace engine
       const CHAR *pCompType   = VALUE_NAME_SNAPPY ;
       UTIL_COMPRESSOR_TYPE compType = UTIL_COMPRESSOR_INVALID ;
 
-      // option config
       rc = rtnGetBooleanElement( option, FIELD_NAME_ISSUBDIR, isSubDir ) ;
       if ( SDB_FIELD_NOT_EXIST == rc )
       {
@@ -161,7 +159,6 @@ namespace engine
          maxDataFileSize = BAR_DFT_DATAFILE_SIZE ;
       }
 
-      // make path
       if ( isSubDir && path )
       {
          bkpath = rtnFullPathName( pmdGetOptionCB()->getBkupPath(), path ) ;
@@ -235,7 +232,6 @@ namespace engine
       PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s], rc: %d",
                    FIELD_NAME_DETAIL, rc ) ;
 
-      // option config
       rc = rtnGetBooleanElement( hint, FIELD_NAME_ISSUBDIR, isSubDir ) ;
       if ( SDB_FIELD_NOT_EXIST == rc )
       {
@@ -252,7 +248,6 @@ namespace engine
       PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s], rc: %d",
                    FIELD_NAME_PREFIX, rc ) ;
 
-      // make path
       if ( isSubDir && pPath )
       {
          bkpath = rtnFullPathName( pmdGetOptionCB()->getBkupPath(), pPath ) ;
@@ -269,7 +264,6 @@ namespace engine
       rc = bkMgr.init( bkpath.c_str(), backupName, prefix ) ;
       PD_RC_CHECK( rc, PDWARNING, "Init backup manager failed, rc: %d", rc ) ;
 
-      // list
       rc = bkMgr.list( vecBackup, detail ) ;
       PD_RC_CHECK( rc, PDWARNING, "List backup failed, rc: %d", rc ) ;
 
@@ -301,7 +295,6 @@ namespace engine
 
       barBackupMgr bkMgr( krcb->getGroupName() ) ;
 
-      // option config
       rc = rtnGetBooleanElement( option, FIELD_NAME_ISSUBDIR, isSubDir ) ;
       if ( SDB_FIELD_NOT_EXIST == rc )
       {
@@ -326,7 +319,6 @@ namespace engine
       PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s], rc: %d",
                    FIELD_NAME_ID, rc ) ;
 
-      // make path
       if ( isSubDir && path )
       {
          bkpath = rtnFullPathName( pmdGetOptionCB()->getBkupPath(), path ) ;

@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = ossQueue.hpp
 
@@ -45,14 +44,13 @@
 #include <boost/thread.hpp>
 #include <boost/thread/thread_time.hpp>
 #include <boost/thread/cv_status.hpp>
-
-template<typename Data, class Container = std::deque<Data> >
+template<typename Data>
 class ossQueue : public SDBObject
 {
 private :
-   std::queue<Data,Container> _queue ;
-   mutable boost::mutex       _mutex ;
-   boost::condition_variable  _cond ;
+   std::queue<Data> _queue ;
+   mutable boost::mutex _mutex ;
+   boost::condition_variable _cond ;
 public :
    UINT32 size ()
    {
@@ -101,7 +99,6 @@ public :
       boost::chrono::milliseconds timeout
          = boost::chrono::milliseconds(millsec) ;
       boost::mutex::scoped_lock lock ( _mutex ) ;
-      // if timed_wait return false, that means we failed by timeout
       while ( _queue.empty () )
          if ( boost::cv_status::timeout == _cond.wait_for( lock, timeout ) )
             return FALSE ;
@@ -110,6 +107,5 @@ public :
       return TRUE ;
    }
 } ;
-//typedef class ossQueue ossQueue ;
 
 #endif

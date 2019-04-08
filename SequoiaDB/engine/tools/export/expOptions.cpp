@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2016 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = expOptions.cpp
 
@@ -35,7 +34,6 @@
 #include "utilParam.hpp"
 #include "ossUtil.h"
 #include "pd.hpp"
-#include "utilPasswdTool.hpp"
 #include <iostream>
 
 namespace exprt
@@ -46,7 +44,6 @@ namespace exprt
    #define W_OK         2
    #endif
 
-   // general
    #define OPTION_HELP              "help"
    #define OPTION_VERSION           "version"
    #define OPTION_HOSTNAME          "hostname"
@@ -62,11 +59,7 @@ namespace exprt
    #define OPTION_SSL               "ssl"
    #define OPTION_FLOATFMT          "floatfmt"
    #define OPTION_REPLACE           "replace"
-   #define OPTION_CIPHERFILE        "cipherfile"
-   #define OPTION_CIPHER            "cipher"
-   #define OPTION_TOKEN             "token"
 
-   // single collection
    #define OPTION_COLLECTSPACE      "csname"
    #define OPTION_COLLECTION        "clname"
    #define OPTION_SELECT            "select"
@@ -76,15 +69,12 @@ namespace exprt
    #define OPTION_SKIP              "skip"
    #define OPTION_LIMIT             "limit"
 
-   // multi collection
    #define OPTION_CSCL              "cscl"
    #define OPTION_EXCLUDECSCL       "excludecscl"
    #define OPTION_DIRNAME           "dir"
 
-   //json
    #define OPTION_STRICT            "strict"
 
-   // csv
    #define OPTION_DELCHAR           "delchar"
    #define OPTION_DELFIELD          "delfield"
    #define OPTION_INCLUDE           "included"
@@ -93,22 +83,17 @@ namespace exprt
    #define OPTION_FORCE             "force"
    #define OPTION_KICKNULL          "kicknull"
      
-   // conf
    #define OPTION_CONF              "conf"
    #define OPTION_GENCONF           "genconf"
    #define OPTION_GENFIELDS         "genfields"
 
 
-   // general
    #define EXPLAIN_HELP             "help information"
    #define EXPLAIN_VERSION          "version"
    #define EXPLAIN_HOSTNAME         "host name, default: localhost"
    #define EXPLAIN_SVCNAME          "service name, default: 11810"
    #define EXPLAIN_USER             "username"
    #define EXPLAIN_PASSWORD         "password"
-   #define EXPLAIN_CIPHER           "input password using a cipherfile"
-   #define EXPLAIN_TOKEN            "password encryption token"
-   #define EXPLAIN_CIPHERFILE       "cipherfile location, default ./passwd"
    #define EXPLAIN_FILELIMIT        "the limit of max size for one file, in K/k/M/m/G/g, default: 16G"
    #define EXPLAIN_DELRECORD        "record delimiter, default: '\\n' "
    #define EXPLAIN_TYPE             "type of file to output, default: csv (json,csv)"
@@ -123,10 +108,8 @@ namespace exprt
                                     "format %[+][.precision](f|e|E|g|G) ( float only )"
    #define EXPLAIN_REPLACE          "whether to overwrite the output file"
 
-   //json
    #define EXPLAIN_STRICT           "strict export of data types, default: false"
 
-   // csv
    #define EXPLAIN_DELCHAR          "string delimiter, default: '\"'"
    #define EXPLAIN_DELFIELD         "field delimiter, default: ',' "
    #define EXPLAIN_INCLUDE          "whether to include field names as csv head-line, default: true "
@@ -136,7 +119,6 @@ namespace exprt
                                     "the fields(except '_id') of first record in collection will be taken by default"
    #define EXPLAIN_KICKNULL         "whether kick null value, default: false"
 
-   // single collection
    #define EXPLAIN_COLLECTSPACE     "collection space name"
    #define EXPLAIN_COLLECTION       "collection name"
    #define EXPLAIN_SELECT           "the select rule(e.g. --select '{ age:\"\", address:{$trim:1} }')"
@@ -146,19 +128,16 @@ namespace exprt
    #define EXPLAIN_SKIP             "set the number of skip records, default: 0"
    #define EXPLAIN_LIMIT            "set the number of return records, default: -1 ( all return )"
 
-   // multi collection
    #define EXPLAIN_CSCL             "collection full name or collection space name to export, seperated by ','"
    #define EXPLAIN_EXCLUDECSCL      "collection full name or collection space name to exclude, seperated by ','"
    #define EXPLAIN_DIRNAME          "output dir path for collections"
 
-   // conf
    #define EXPLAIN_CONF             "the name of configure file"
    #define EXPLAIN_GENCONF          "the name of configure file to generate"
    #define EXPLAIN_GENFIELDS        "whether to generate option \"fields\" for each collection, default: true"
    
    #define DEFAULT_HOSTNAME         "localhost"
    #define DEFAULT_SVCNAME          "11810"
-   #define DEFAULT_CIPHERFILE       "passwd"
    #define DEFAULT_DELCHAR_CHAR     "\""
    #define DEFAULT_DELFIELD_CHAR    ","
    #define DEFAULT_FILELIMIT        ( 16LL * 1024 * 1024 * 1024 ) // 16G
@@ -166,7 +145,6 @@ namespace exprt
    #define FILELIMIT_MAX            ( 16LL * 1024 * 1024 * 1024 * 1024 ) // 16T
 
    #define _TYPE(T) po::value< T >()
-   #define _IMPLICIT_TYPE(T,V) implicit_value<T>(V)
 
    #define EXP_GENERAL_OPTIONS \
       ( OPTION_HELP",h",               /* no arg */      EXPLAIN_HELP ) \
@@ -174,10 +152,7 @@ namespace exprt
       ( OPTION_HOSTNAME",s",           _TYPE(string),    EXPLAIN_HOSTNAME ) \
       ( OPTION_SVCNAME",p",            _TYPE(string),    EXPLAIN_SVCNAME ) \
       ( OPTION_USER",u",               _TYPE(string),    EXPLAIN_USER ) \
-      ( OPTION_PASSWORD",w", _IMPLICIT_TYPE(string, ""), EXPLAIN_PASSWORD ) \
-      ( OPTION_CIPHER,                 _TYPE(bool),      EXPLAIN_CIPHER ) \
-      ( OPTION_TOKEN,                  _TYPE(string),    EXPLAIN_TOKEN ) \
-      ( OPTION_CIPHERFILE,             _TYPE(string),    EXPLAIN_CIPHERFILE ) \
+      ( OPTION_PASSWORD",w",           _TYPE(string),    EXPLAIN_PASSWORD ) \
       ( OPTION_DELRECORD",r",          _TYPE(string),    EXPLAIN_DELRECORD ) \
       ( OPTION_FILELIMIT,              _TYPE(string),    EXPLAIN_FILELIMIT ) \
       ( OPTION_TYPE,                   _TYPE(string),    EXPLAIN_TYPE ) \
@@ -323,7 +298,6 @@ namespace exprt
                               _confParsed    (FALSE),
                               _hostName      (DEFAULT_HOSTNAME),
                               _svcName       (DEFAULT_SVCNAME),
-                              _cipherfile    (DEFAULT_CIPHERFILE),
                               _delRecord     ("\n"),
                               _typeName      (formatNames[FORMAT_CSV]),
                               _type          (FORMAT_CSV),
@@ -400,7 +374,6 @@ namespace exprt
       INT32 rc = SDB_OK ;
       string writeBuf ;
 
-      // general options
       WRITE_STR_OPTION( writeBuf, OPTION_HOSTNAME, _hostName, TRUE ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_SVCNAME, _svcName , TRUE ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_USER, _user, TRUE ) ;
@@ -410,10 +383,8 @@ namespace exprt
       WRITE_STR_OPTION( writeBuf, OPTION_FLOATFMT, _floatFmt, TRUE ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_REPLACE, "", _has( OPTION_REPLACE ) ) ;
 
-      // json options
       WRITE_BOOL_OPTION( writeBuf, OPTION_STRICT, _strict, _has(OPTION_STRICT) ) ;
 
-      // csv options
       WRITE_STR_OPTION( writeBuf, OPTION_DELCHAR, _delChar, TRUE ) ; 
       WRITE_STR_OPTION( writeBuf, OPTION_DELFIELD, _delField, TRUE ) ; 
       WRITE_BOOL_OPTION( writeBuf, OPTION_INCLUDE, _headLine, TRUE ) ;
@@ -423,7 +394,6 @@ namespace exprt
       WRITE_BOOL_OPTION( writeBuf, OPTION_KICKNULL, _kickNull, TRUE ) ;
       WRITE_BOOL_OPTION( writeBuf, OPTION_WITHID, _withId, FALSE ) ;
 
-      // single collection options
       WRITE_STR_OPTION( writeBuf, OPTION_COLLECTSPACE, _csName, _has(OPTION_COLLECTSPACE) ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_COLLECTION, _clName, _has(OPTION_COLLECTION) ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_SELECT, _select, _has(OPTION_SELECT) ); 
@@ -433,11 +403,9 @@ namespace exprt
       WRITE_INT64_OPTION( writeBuf, OPTION_SKIP, _skip,_has(OPTION_SKIP));
       WRITE_INT64_OPTION( writeBuf, OPTION_LIMIT, _limit,_has(OPTION_LIMIT));
 
-      // multi collection options
       WRITE_STR_OPTION( writeBuf, OPTION_CSCL, _cscl, _has(OPTION_CSCL) ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_EXCLUDECSCL, _excludeCscl, _has(OPTION_EXCLUDECSCL) ) ;
       WRITE_STR_OPTION( writeBuf, OPTION_DIRNAME, _dir,_has(OPTION_DIRNAME) ) ;
-      // fields
       if ( _genFields )
       {
          for ( expCLSet::const_iterator i = clSet.begin(); clSet.end() != i;++i)
@@ -453,7 +421,6 @@ namespace exprt
          }
       }
       
-      // write conf
       rc = utilWriteConfigFile( _genConf.c_str(), writeBuf.c_str(), TRUE ) ;
       if ( SDB_FE == rc )
       {
@@ -607,7 +574,6 @@ namespace exprt
       return i ;
    }
 
-/*
    static INT32 getDel( const string &rawChar, CHAR &chr ) 
    {
       INT32 rc = SDB_OK ;
@@ -649,7 +615,6 @@ namespace exprt
       rc = SDB_INVALIDARG ;
       goto done ;
    }
-*/
 
    static INT32 _convertAsciiChar( const string& in, string& out )
    {
@@ -670,21 +635,18 @@ namespace exprt
             str++ ;
             len-- ;
 
-            // escape ascii char
             if ( isdigit( nextCh ) )
             {
                INT64 c = 0 ;
-               INT64 newC = 0 ;
 
                while ( len > 0 && isdigit( *str ) )
                {
-                  newC = c * 10 + ( *str - '0' ) ;
-                  // the max ascii is 127
-                  if ( newC < 0 || newC > 127 )
+                  c = c * 10 + ( *str - '0' ) ;
+                  if ( c < 0 || c > 127 )
                   {
-                     break ;
+                     rc = SDB_INVALIDARG ;
+                     goto error ;
                   }
-                  c = newC ;
                   str++ ;
                   len-- ;
                }
@@ -729,7 +691,6 @@ namespace exprt
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-         // detect 0x
          else if ( '0' == ch )
          {
             CHAR nextCh = *( str + 1 ) ;
@@ -739,42 +700,38 @@ namespace exprt
             if ( 'x' == nextCh )
             {
                INT64 c = 0 ;
-               INT64 newC = 0 ;
 
-               if ( IS_HEX( *( str + 1 ) ) )
+               str++ ;
+               len-- ;
+
+               if ( !isxdigit( *str ) )
                {
-                  str++ ;
-                  len-- ;
+                  rc = SDB_INVALIDARG ;
+                  goto error ;
+               }
 
-                  while ( len > 0 && IS_HEX( *str ) )
+               while ( len > 0 && isxdigit( *str ) )
+               {
+                  if ( '0' == *str && len > 1 && 'x' == *( str + 1 ) )
                   {
-                     if ( '0' == *str && len > 1 && 'x' == *( str + 1 ) )
-                     {
-                        break ;
-                     }
-
-                     newC = c * 16 + hexValue( *str ) ;
-
-                     // the max ascii is 127
-                     if ( newC < 0 || newC > 127 )
-                     {
-                        break ;
-                     }
-                     c = newC ;
-                     str++ ;
-                     len-- ;
+                     break ;
                   }
 
-                  ss << ( CHAR )c ;
-                  hasHex = true ;
+                  c = c * 16 + hexValue( *str ) ;
 
-                  continue ;
+                  if ( c < 0 || c > 127 )
+                  {
+                     rc = SDB_INVALIDARG ;
+                     goto error ;
+                  }
+                  str++ ;
+                  len-- ;
                }
-               else
-               {
-                  str-- ;
-                  len++ ;
-               }
+
+               ss << ( CHAR )c ;
+               hasHex = true ;
+
+               continue ;
             }
             else
             {
@@ -806,7 +763,6 @@ namespace exprt
       goto done ;
    }
 
-   // check and set the delimiter options
    INT32 expOptions::_setDelOptions() 
    {
       INT32 rc = SDB_OK ;
@@ -889,7 +845,6 @@ namespace exprt
       goto done ;
    }
 
-   // check and set the configure-file options
    INT32 expOptions::_setConfOptions() 
    {
       INT32 rc = SDB_OK ;
@@ -989,12 +944,10 @@ namespace exprt
       goto done ;
    }
 
-   // check and set the single collection options
    INT32 expOptions::_setCollectionOptions() 
    {
       INT32 rc = SDB_OK ;
 
-      // -c,-l must be specified together
       if ( ( !_has(OPTION_COLLECTSPACE) && _has(OPTION_COLLECTION) ) ||
            ( _has(OPTION_COLLECTSPACE) && !_has(OPTION_COLLECTION) ) )
       {
@@ -1006,7 +959,6 @@ namespace exprt
          goto error ;
       }
 
-      // -c/-l cant be used mixing with --cscl/--excludecscl
       if ( _has(OPTION_COLLECTSPACE) &&
            ( _has(OPTION_CSCL) || _has(OPTION_EXCLUDECSCL) ) )
       {
@@ -1021,7 +973,6 @@ namespace exprt
          goto error ;
       }
 
-      // --select cant be used with --fields
       if ( _has(OPTION_SELECT) && _has(OPTION_FIELDS) )
       {
          cerr << "option \"" << OPTION_SELECT << "\" and "
@@ -1104,55 +1055,13 @@ namespace exprt
       {
          _svcName = _get<string>(OPTION_SVCNAME) ;
       }
-      if ( _has(OPTION_CIPHERFILE) )
-      {
-         _cipherfile = _get<string>(OPTION_CIPHERFILE) ;
+      if ( _has(OPTION_USER) )      
+      { 
+         _user = _get<string>(OPTION_USER) ; 
       }
-      if ( _has(OPTION_TOKEN) )
-      {
-         _token = _get<string>(OPTION_TOKEN) ;
-      }
-      if ( _has(OPTION_USER) )
-      {
-         _user = _get<string>(OPTION_USER) ;
-
-         if ( _has(OPTION_PASSWORD) )
-         {
-            string passwd = _get<string>(OPTION_PASSWORD) ;
-            if ( "" == passwd )
-            {
-               passwd = utilPasswordTool::interactivePasswdInput() ;
-            }
-            _password = passwd ;
-         }
-         else
-         {
-            utilPasswordTool passwdTool ;
-
-            if ( _has(OPTION_CIPHER) && _get<bool>(OPTION_CIPHER) )
-            {
-               string connectionUserName ;
-
-               rc = passwdTool.getPasswdByCipherFile( _user, _token,
-                                                      _cipherfile,
-                                                      connectionUserName,
-                                                      _password ) ;
-               if ( SDB_OK != rc )
-               {
-                  cerr << "get user password failed" << endl ;
-                  PD_LOG( PDERROR, "get user password failed" ) ;
-                  goto error ;
-               }
-               _user = connectionUserName ;
-            }
-            else
-            {
-               if ( _has(OPTION_TOKEN) || _has(OPTION_CIPHERFILE) )
-               {
-                  cout << "to use cipherfile, provide --cipher" << endl ;
-               }
-            }
-         }
+      if ( _has(OPTION_PASSWORD) )  
+      { 
+         _password = _get<string>(OPTION_PASSWORD) ;
       }
       if ( _has(OPTION_SSL) )
       {  

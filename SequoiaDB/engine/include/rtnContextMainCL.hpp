@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnContextMainCL.hpp
 
@@ -43,7 +42,7 @@
 #include "rtnQueryOptions.hpp"
 #include "rtnContextMain.hpp"
 #include "rtnContextExplain.hpp"
-#include "ossMemPool.hpp"
+#include "utilMap.hpp"
 
 namespace engine
 {
@@ -77,17 +76,6 @@ namespace engine
 
    private:
       rtnContextBuf        _buffer ;
-      // Why do we need this _startPos?
-      // Because of the difference between the truncation of this context and
-      // the rtnContextBuf we use above.
-      // The context buffer is read only(except the truncation operation). So
-      // when pop of this context is called, the buffer dose not actually pop
-      // out the objects. It just move its iterator forward. As for truncation,
-      // the buffer will always count from the BEGINNING(including those who
-      // have been popped). But this is not the case in this context. So we
-      // handle this difference by using this member, to make truncation working
-      // properly.
-      INT32                _startPos ;
       INT32                _remainNum ;
    };
    typedef class _rtnSubCLContext rtnSubCLContext ;
@@ -97,7 +85,7 @@ namespace engine
    */
    class _rtnContextMainCL : public _rtnContextMain
    {
-      typedef ossPoolMap< INT64, _rtnSubCLContext*>    SUBCL_CTX_MAP ;
+   typedef _utilMap< INT64, _rtnSubCLContext*, 20 >    SUBCL_CTX_MAP ;
       DECLARE_RTN_CTX_AUTO_REGISTER()
    public:
       _rtnContextMainCL( INT64 contextID, UINT64 eduID ) ;
@@ -122,9 +110,6 @@ namespace engine
          return !_options.isOrderByEmpty() && !_includeShardingOrder ;
       }
 
-      virtual BOOLEAN          isWrite() const { return _isWrite ; }
-      virtual BOOLEAN          needRollback() const { return _isWrite ; }
-
    protected:
       virtual void _toString( stringstream &ss ) ;
       INT32   _prepareAllSubCtxDataByOrder( _pmdEDUCB *cb ) ;
@@ -137,10 +122,6 @@ namespace engine
 
       BOOLEAN _requireExplicitSorting () const
       {
-         // 1. order is required
-         //    1. sort is not empty
-         //    2. sort keys are not included in sharding keys
-         // 2. has more than one sub-collections
          return ( _orderedContextMap.size() > 0 || _subContextMap.size() > 1 ) &&
                 requireOrder() ;
       }
@@ -162,8 +143,7 @@ namespace engine
    private:
       SUBCL_CTX_MAP              _subContextMap ;
       BOOLEAN                    _includeShardingOrder ;
-      ossPoolList< std::string > _subs ;
-      BOOLEAN                    _isWrite ;
+      std::list< std::string >   _subs ;
    };
    typedef class _rtnContextMainCL rtnContextMainCL;
 
@@ -222,11 +202,6 @@ namespace engine
 
          INT32 _buildSimpleExplain ( rtnContext * explainContext,
                                      BOOLEAN & hasMore ) ;
-
-         virtual optExplainMergePathBase* getExplainMergePath()
-         {
-            return &_explainMergePath ;
-         }
 
       protected :
          std::vector< std::string > _subCollections ;

@@ -1,39 +1,3 @@
-/*******************************************************************************
-
-
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
-
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
-
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-   Source File Name = rtnDictCreatorJob.cpp
-
-   Descriptive Name = Rtn Dictionary Creating Job.
-
-   When/how to use:
-
-   Dependencies: N/A
-
-   Restrictions: N/A
-
-   Change Activity:
-   defect Date        Who Description
-   ====== =========== === ==============================================
-          07/12/2015  YSD Initial Draft
-
-   Last Changed =
-
-*******************************************************************************/
 #include "dms.hpp"
 #include "dmsCB.hpp"
 #include "dmsScanner.hpp"
@@ -113,7 +77,6 @@ namespace engine
 
       while ( !PMD_IS_DB_DOWN() && !cb->isForced() )
       {
-         BOOLEAN retry = FALSE ;
          /*
           * Before any one is found in the queue, the status of this thread is
           * wait. Once found, it will be changed to running.
@@ -141,8 +104,9 @@ namespace engine
           * time, and try again in the next round. If everything goes fine,
           * remove it from the list, and never check it again.
           */
-         rc = _checkAndCreateDictForCL( job, retry ) ;
-         if ( SDB_OK == rc && retry )
+         rc = _checkAndCreateDictForCL( job ) ;
+         if ( ( SDB_OK != rc ) && ( SDB_DMS_CS_NOTEXIST != rc )
+              && ( SDB_DMS_NOTEXIST != rc ) && ( SDB_SYS != rc ) )
          {
             dmsCB->pushDictJob( job ) ;
          }
@@ -326,8 +290,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTN_DICTCREATORJOB__CHECKANDCREATEDICTFORCL, "_rtnDictCreatorJob::_checkAndCreateDictForCL" )
-   INT32 _rtnDictCreatorJob::_checkAndCreateDictForCL( dmsDictJob job,
-                                                       BOOLEAN &retry )
+   INT32 _rtnDictCreatorJob::_checkAndCreateDictForCL( dmsDictJob job )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTN_DICTCREATORJOB__CHECKANDCREATEDICTFORCL ) ;
@@ -342,9 +305,6 @@ namespace engine
       ossTimestamp begin ;
       ossTimestamp end ;
 
-      retry = FALSE ;
-
-      // Check writable before su lock
       rc = dmsCB->writable( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
       writable = TRUE ;
@@ -355,12 +315,24 @@ namespace engine
       su = dmsCB->suLock( job._suID ) ;
       if ( ( NULL == su ) || ( su->LogicalCSID() != job._suLID ) )
       {
-         goto done ;
+         rc = SDB_DMS_CS_NOTEXIST ;
+         goto error ;
       }
 
       rc = su->data()->getMBContext( &mbContext, job._clID,
-                                     job._clLID, DMS_INVALID_CLID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Get mb context failed[%d]", rc ) ;
+                                     DMS_INVALID_CLID, DMS_INVALID_CLID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get mb[%u] context, rc: %d",
+                   job._clID, rc ) ;
+      if ( mbContext->clLID() != job._clLID )
+      {
+         /*
+          * The corresponding collection has been dropped.
+          */
+         rc = SDB_DMS_NOTEXIST ;
+         goto error ;
+      }
+      PD_RC_CHECK( rc, PDERROR, "Failed to get mb context, rc: %d, mb ID: %d",
+                   rc, job._clID ) ;
 
       if ( DMS_INVALID_EXTENT !=  mbContext->mb()->_dictExtentID )
       {
@@ -393,17 +365,16 @@ namespace engine
       if ( UTIL_COMPRESSOR_LZW != mbContext->mb()->_compressorType )
       {
          /*
-          * The mbID has been reused or compression type is altered, and the
-          * current collection's CompressionType is not configured for
-          * dictionary
+          * The mbID has been reused, and the current collection's
+          * CompressionType is not configured.
           */
          goto done ;
       }
 
       if ( !_conditionMatch( su, job._clID ) )
       {
-         retry = TRUE ;
-         goto done ;
+         rc = RTN_DICT_CREATE_COND_NOT_MATCH ;
+         goto error ;
       }
 
       ossGetCurrentTime( begin ) ;
@@ -468,14 +439,6 @@ namespace engine
       PD_TRACE_EXITRC( SDB__RTN_DICTCREATORJOB__CHECKANDCREATEDICTFORCL, rc ) ;
       return rc ;
    error:
-      // For other errors, let's try again later.
-      if ( SDB_DMS_CS_NOTEXIST != rc && SDB_DMS_NOTEXIST != rc )
-      {
-         PD_LOG( PDWARNING, "Create compression dictionary failed[%d]. "
-                            "Will try again later", rc ) ;
-         rc = SDB_OK ;
-         retry = TRUE ;
-      }
       goto done ;
    }
 }

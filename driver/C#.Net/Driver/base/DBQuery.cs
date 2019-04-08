@@ -1,20 +1,4 @@
-﻿/*
- * Copyright 2018 SequoiaDB Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
-*/
-
-using SequoiaDB.Bson;
+﻿using SequoiaDB.Bson;
 using System.Collections.Generic;
 
 /** \namespace SequoiaDB
@@ -72,25 +56,10 @@ namespace SequoiaDB
          */
         public const int FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE = 0x00008000;
 
-    /**
-     * When the transaction is turned on and the transaction isolation level is "RC", the transaction lock will be
-     * released after the record is read by default. However, when setting this flag, the transaction lock will not
-     * released until the transaction is committed or rollback. When the transaction is turned off or
-     * the transaction isolation level is "RU", the flag does not work.
-     */
-        /** \memberof FLG_QUERY_FOR_UPDATE 0x00010000
-         *  \brief  When the transaction is turned on and the transaction isolation level is "RC", 
-                    the transaction lock will be released after the record is read by default.
-                    However, when setting this flag, the transaction lock will not released until 
-                    the transaction is committed or rollback. When the transaction is turned off or
-                    the transaction isolation level is "RU", the flag does not work.
-         */
-        public const int FLG_QUERY_FOR_UPDATE = 0x00010000;
 
-        internal readonly static int[][] flagsMap = new int[0][]{
-           // add mapping flags as below, if necessary:
-           // new int[] {oldFlag, newFlag}, ...
-           //new int[] {FLG_QUERY_WITH_RETURNDATA, FLG_QUERY_WITH_RETURNDATA},
+        internal static readonly Dictionary<int, int> flagsDir = new Dictionary<int, int>() {
+            // add mapping flags as below, if necessary:
+            //{FLG_QUERY_FORCE_HINT, NEW_FLG_QUERY_FORCE_HINT}
         };
 
        /** \property Matcher
@@ -145,47 +114,20 @@ namespace SequoiaDB
             set { flag = value; }
         }
 
-        internal static int RegulateFlags(int flags)
+        internal static int RegulateFlag(int flags)
         {
-            if (flagsMap.Length > 0)
+            int erasedFlags = flags;
+            int mergedFlags = 0;
+
+            foreach(KeyValuePair<int,int> item in flagsDir)
             {
-                int newFlags = flags;
-                foreach (int[] flagMap in flagsMap)
+                if ((0 != (erasedFlags & item.Key)) && (item.Key != item.Value))
                 {
-                    if (flagMap[0] != flagMap[1] && (flags & flagMap[0]) != 0)
-                    {
-                        newFlags &= ~flagMap[0];
-                        newFlags |= flagMap[1];
-                    }
-                }
-                return newFlags;
-            }
-            else
-            {
-                return flags;
-            }
-        }
-
-        internal static int EraseFlags(int flags, params int[] erasedFlags)
-        {
-            if (erasedFlags == null || erasedFlags.Length == 0) {
-                return flags;
-            }
-            int newFlags = flags;
-            foreach(int flag in erasedFlags) {
-                if ((newFlags & flag) != 0) {
-                    newFlags &= ~flag;
+                    erasedFlags &= ~item.Key;
+                    mergedFlags |= item.Value;
                 }
             }
-            return newFlags;
-        }
-
-        internal static int eraseSingleFlag(int flags, int erasedFlag) {
-            int newFlags = flags;
-            if ((newFlags & erasedFlag) != 0) {
-                newFlags &= ~erasedFlag;
-            }
-            return newFlags;
+            return erasedFlags | mergedFlags;
         }
 
    }

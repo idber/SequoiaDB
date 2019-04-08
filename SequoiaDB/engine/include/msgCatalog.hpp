@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = msgCatalog.hpp
 
@@ -117,10 +116,6 @@ namespace engine
    } ; */
    typedef MsgOpReply                  MsgCatRegisterRsp ;
 
-   /// download group info
-   /// may be :| -- _MsgCatGroupReq -- | -- char *name -- |
-   //  or : | -- _MsgCatGroupReq -- |
-   //  check msg len.
    class _MsgCatGroupReq : public SDBObject
    {
    public :
@@ -140,11 +135,6 @@ namespace engine
    } ;
    typedef _MsgCatGroupReq       MsgCatGroupReq ;
 
-   /// {"GroupID":2000, "Role":0,"Version":0, "PrimaryNode":1
-   ///  "Group":[{"NodeID":"001", "Host":"vmsrv1","Service":
-   ///                                            [{"Type":0, "Name":"repl1"},
-   ///                                             {"Type":1, "Name":"Shard1"},
-   ///                                             {"Type":2, "Name":"cat1"}]}]}
    /* class _MsgCatGroupResV0 : public SDBObject
    {
    public :
@@ -181,7 +171,6 @@ namespace engine
                                 INT32 serviceType ) ;
    const CHAR* getShardServiceName ( const bson::BSONElement &beService ) ;
 
-   //down catalog group info
    typedef MsgCatGroupReq        MsgCatCatGroupReq ;
    typedef MsgOpReply            MsgCatCatGroupRes ;
 
@@ -189,9 +178,7 @@ namespace engine
    {
    public :
       MsgHeader      header;
-//      DPS_LSN        newPrimaryLsn ;
       MsgRouteID     newPrimary ;
-//      DPS_LSN        oldPrimaryLsn ;
       MsgRouteID     oldPrimary ;
       _MsgCatPrimaryChange()
       {
@@ -229,12 +216,6 @@ namespace engine
 
    typedef MsgOpQuery   MsgCatQueryCatReq;
 
-   // the reply take a catalogue record which is a bson-obj:
-   // {  name: "SpaceName.CollectionName", Version: 1,
-   //    ShardingKey: { Key1: 1, Key2: -1 },
-   //    CataInfo:
-   //       [ { GroupID: 1000, LowBound:{"":MinKey,"":MaxKey }, UpBound:{"":Key1Value,"":Key2Value} },
-   //         { GroupID: 1001, LowBound:{"":Key1Value,"":Key2Value}, UpBound:{"":MaxKey,"":MinKey } } ]
    typedef MsgOpReply   MsgCatQueryCatRsp;
 
    enum SDB_CAT_GROUP_STATUS

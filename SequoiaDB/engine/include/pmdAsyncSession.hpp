@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pmdAsyncSession.hpp
 
@@ -45,9 +44,8 @@
 #include "ossEvent.hpp"
 #include "sdbInterface.hpp"
 #include "pmdInnerClient.hpp"
-#include "schedTaskMgr.hpp"
 
-#include "ossMemPool.hpp"
+#include <map>
 #include <deque>
 
 namespace engine
@@ -74,18 +72,6 @@ namespace engine
       PMD_SESSION_PASSIVE  = 2   //passive
    };
 
-   #define PMD_SESSION_MSG_INPOOL   ( 0 )
-   #define PMD_SESSION_MSG_UNPOOL   ( 1 )
-
-   #define PMD_MAKE_SESSION_USERDATA( netHandle, poolType ) \
-      ( ( UINT64 )( netHandle ) | ( (UINT64)(poolType) << 63 ) )
-
-   #define PMD_UNMAKE_SESSION_USERDATA( userData, netHandle, poolType ) \
-      do { \
-         netHandle = ( UINT64 )( userData ) & ~( (UINT64)1 << 63 ) ; \
-         poolType = ( UINT64 )( userData ) >> 63 ; \
-      } while( 0 )
-
    class _pmdAsycSessionMgr ;
 
    /*
@@ -97,7 +83,7 @@ namespace engine
       CHAR     *pBuffer ;
       UINT32   size ;
       INT32    useFlag ;
-      UINT64   addTime ;   /// uses
+      time_t   addTime ;
 
       BOOLEAN isAlloc () { return useFlag == PMD_BUFF_ALLOC ? TRUE : FALSE ; }
       BOOLEAN isUsing () { return useFlag == PMD_BUFF_USING ? TRUE : FALSE ; }
@@ -120,7 +106,7 @@ namespace engine
          ossSpinXLatch* getLatch() { return &_Latch ; }
          UINT32         getBasedHandleNum()
          {
-            return _basedHandleNum.fetch() ;
+            return _basedHandleNum.peek() ;
          }
          NET_HANDLE     getHandle() const { return _netHandle ; }
 
@@ -161,9 +147,6 @@ namespace engine
          virtual INT32           getServiceType() const ;
          virtual IClient*        getClient() { return &_client ; }
 
-         virtual void*           getSchedItemPtr() ;
-         virtual void            setSchedItemVer( INT32 ver ) ;
-
          virtual EDU_TYPES       eduType () const = 0 ;
          virtual const CHAR*     className() const = 0 ;
 
@@ -171,17 +154,10 @@ namespace engine
                                      MsgHeader * msg ) ;
          virtual BOOLEAN timeout ( UINT32 interval ) ;
 
-         virtual void    onDispatchMsgBegin( const NET_HANDLE netHandle,
-                                             const MsgHeader *pHeader )
-         {
-         }
-         virtual void    onDispatchMsgEnd( INT64 costUsecs )
-         {
-         }
-
          virtual void clear() ;
          virtual BOOLEAN canAttachMeta() const { return TRUE ; }
 
+         void* copyMsg ( const CHAR *msg, UINT32 length ) ;
          INT32 waitAttach ( INT64 millisec = -1 ) ;
          INT32 waitDetach ( INT64 millisec = -1 ) ;
          INT32 attachIn ( pmdEDUCB *cb ) ;
@@ -189,12 +165,6 @@ namespace engine
 
          BOOLEAN isAttached () const ;
          BOOLEAN isDetached () const ;
-
-         BOOLEAN isClosed() const ;
-         void    close() ;
-
-         void  getAuditConfig( UINT32 &auditMask, UINT32 &auditConfigMask ) ;
-         void  setAuditConfig( UINT32 auditMask, UINT32 auditConfigMask ) ;
 
       public:
          UINT64      sessionID () const ;
@@ -204,19 +174,11 @@ namespace engine
          BOOLEAN     isStartActive() ;
          pmdSessionMeta* getMeta() { return _pMeta ; }
 
-         UINT32         getPendingMsgNum() ;
-         UINT32         incPendingMsgNum() ;
-         UINT32         decPendingmsgNum() ;
-
-         BOOLEAN        hasHold() ;
-
-         const schedInfo*  getSchedInfo() const ;
-
          BOOLEAN        isBufferFull() const ;
          BOOLEAN        isBufferEmpty() const ;
 
-         void           setIdentifyInfo( UINT32 ip, UINT16 port,
-                                         UINT32 tid, UINT64 eduID ) ;
+         void        setIdentifyInfo( UINT32 ip, UINT16 port,
+                                      UINT32 tid, UINT64 eduID ) ;
 
       private:
          void        startType ( INT32 startType ) ;
@@ -229,13 +191,9 @@ namespace engine
          pmdBuffInfo*   frontBuffer () ;
          void           popBuffer () ;
          INT32          pushBuffer ( CHAR *pBuffer, UINT32 size ) ;
-         void*          copyMsg ( const CHAR *msg, UINT32 length ) ;
 
          UINT32         _incBuffPos ( UINT32 pos ) ;
          UINT32         _decBuffPos ( UINT32 pos ) ;
-
-         void           _holdIn() ;
-         void           _holdOut() ;
 
       protected:
          void  _makeName () ;
@@ -262,8 +220,6 @@ namespace engine
          _pmdAsycSessionMgr   *_pSessionMgr ;
          pmdInnerClient       _client ;
 
-         schedItem            _info ;
-
       private:
          ossEvent             _evtIn ;
          ossEvent             _evtOut ;
@@ -275,18 +231,9 @@ namespace engine
          UINT32               _buffEnd ;
          UINT32               _buffCount ;
 
-         /// identify info
          UINT64               _identifyID ;
          UINT32               _identifyTID ;
          UINT64               _identifyEDUID ;
-
-         /// session audit config
-         UINT32               _auditMask ;
-         UINT32               _auditConfigMask ;
-
-         ossAtomic32          _pendingMsgNum ;
-         ossAtomic32          _holdCount ;
-         BOOLEAN              _isClosed ;
 
    };
    typedef _pmdAsyncSession pmdAsyncSession ;
@@ -297,11 +244,11 @@ namespace engine
    class _pmdAsycSessionMgr : public SDBObject
    {
       public:
-      typedef ossPoolMap<UINT64, _pmdAsyncSession*>  MAPSESSION ;
-      typedef MAPSESSION::iterator                         MAPSESSION_IT ;
+      typedef std::map<UINT64, _pmdAsyncSession*>     MAPSESSION ;
+      typedef MAPSESSION::iterator                    MAPSESSION_IT ;
 
-      typedef ossPoolMap<NET_HANDLE, pmdSessionMeta*>  MAPMETA ;
-      typedef MAPMETA::iterator                              MAPMETA_IT ;
+      typedef std::map<NET_HANDLE, pmdSessionMeta*>   MAPMETA ;
+      typedef MAPMETA::iterator                       MAPMETA_IT ;
 
       typedef std::deque<_pmdAsyncSession*>           DEQSESSION ;
 
@@ -321,30 +268,18 @@ namespace engine
 
          virtual void         onTimer( UINT32 interval ) ;
 
-         INT32                dispatchMsg( const NET_HANDLE &handle,
-                                           const MsgHeader *pMsg,
-                                           pmdEDUMemTypes memType,
-                                           BOOLEAN decPending,
-                                           BOOLEAN *hasDispatched = NULL ) ;
 
-         INT32                getSessionObj( UINT64 sessionID,
-                                             BOOLEAN withHold,
-                                             BOOLEAN bCreate,
-                                             INT32 startType,
-                                             const NET_HANDLE &handle,
-                                             INT32 opCode,
-                                             void *data,
-                                             pmdAsyncSession **ppSession,
-                                             BOOLEAN *pIsPending = NULL ) ;
+         /*
+            The following function:
+            Note: The caller thread must be the net thread
+         */
+         INT32          pushMessage ( pmdAsyncSession *pSession,
+                                      const MsgHeader *header,
+                                      const NET_HANDLE &handle ) ;
 
-         void                 holdOut( pmdAsyncSession *pSession ) ;
-
-         INT32          getSession( UINT64 sessionID,
-                                    BOOLEAN withHold,
-                                    INT32 startType,
-                                    const NET_HANDLE &handle,
-                                    BOOLEAN bCreate,
-                                    INT32 opCode,
+         INT32          getSession( UINT64 sessionID, INT32 startType,
+                                    const NET_HANDLE handle,
+                                    BOOLEAN bCreate, INT32 opCode,
                                     void *data,
                                     pmdAsyncSession **ppSession ) ;
 
@@ -364,7 +299,6 @@ namespace engine
 
          /*
             Session distory callback functions
-            Has hold the metaLatch
          */
          virtual void   onSessionDisconnect( pmdAsyncSession *pSession ) {}
          virtual void   onNoneSessionDisconnect( UINT64 sessionID ) {}
@@ -399,17 +333,11 @@ namespace engine
          virtual void         _onSessionNew( pmdAsyncSession *pSession ) {}
 
       protected:
-         /*
-            Caller must hold the metaLatch
-         */
          INT32          _attachSessionMeta( pmdAsyncSession *pSession,
                                             const NET_HANDLE handle ) ;
 
          INT32          _startSessionEDU( pmdAsyncSession * pSession ) ;
 
-         /*
-            Caller must hold the metaLatch
-         */
          INT32          _releaseSession_i ( pmdAsyncSession *pSession,
                                             BOOLEAN postQuit,
                                             BOOLEAN delay ) ;
@@ -418,11 +346,6 @@ namespace engine
          INT32          _reply( const NET_HANDLE &handle, INT32 rc,
                                 const MsgHeader *pReqMsg ) ;
 
-         INT32          _pushMessage ( pmdAsyncSession *pSession,
-                                       const MsgHeader *header,
-                                       pmdEDUMemTypes memType,
-                                       const NET_HANDLE &handle ) ;
-
       protected:
          void           _checkSession( UINT32 interval ) ;
          void           _checkSessionMeta( UINT32 interval ) ;
@@ -430,14 +353,10 @@ namespace engine
 
       protected:
          MAPSESSION                 _mapSession ;
-         MAPSESSION                 _mapPendingSession ;
          MAPMETA                    _mapMeta ;
          DEQSESSION                 _deqCacheSessions ;
          UINT32                     _cacheSessionNum ;
 
-         ossSpinXLatch              _metaLatch ;
-
-         // Delay delete sessions
          DEQSESSION                 _deqDeletingSessions ;
          ossSpinXLatch              _deqDeletingMutex ;
 
@@ -449,7 +368,6 @@ namespace engine
          UINT32                     _sessionTimerID ;
          UINT32                     _timerInterval ;
 
-         // for _quit edu by edu mgr, not by session mgr
          UINT32                     _forceChecktimer ;
          std::deque< UINT64 >       _forceSessions ;
          ossSpinXLatch              _forceLatch ;

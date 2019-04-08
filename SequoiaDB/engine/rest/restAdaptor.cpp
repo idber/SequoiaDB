@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = restAdaptor.cpp
 
@@ -28,14 +27,15 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          04/28/2014  JWH Initial Draft
-          05/03/2015  JWH Refactor
+          12/1/2014  ly  Initial Draft
 
    Last Changed =
 
 *******************************************************************************/
 
+#include "core.hpp"
 #include "restAdaptor.hpp"
+#include "http_parser.hpp"
 #include "ossMem.h"
 #include "ossUtil.h"
 #include "../util/fromjson.hpp"
@@ -45,16 +45,13 @@
 #include "rtnContext.hpp"
 #include "../util/url.h"
 
-/* response body cache max size */
-#define RESPONSE_MAX_CACHE_SIZE  (64*1024*1024)
-
 /* once recv size */
 #define REST_ONCE_RECV_SIZE       1024
 
 /* http char */
 #define REST_STRING_CR            13
 #define REST_STRING_LF            10
-#define REST_STRING_HTTP          "HTTP/1.1"
+#define REST_STRING_HTTP          "HTTP/1.1 "
 #define REST_STRING_COLON         ":"
 
 /* http header key */
@@ -83,7 +80,6 @@
 #define REST_STRING_TEXT_OCTET_STREAM  "application/octet-stream"
 #define REST_STRING_CONLEN_SIZE   "0"
 #define REST_STRING_CHUNKED       "chunked"
-#define REST_STRING_IDENTITY      "identity"
 
 /* http defalut file */
 #define REST_STRING_INDEX         "/index.html"
@@ -101,6 +97,10 @@
 #define REST_RESULT_STRING_OK     "{ \"errno\": 0, \"description\": \"OK\" }"
 
 #define REST_FUN_STRING( str ) str,ossStrlen( str )
+
+/* string size */
+#define REST_STRING_TRANSFER_SIZE (sizeof( REST_STRING_TRANSFER ) - 1)
+#define REST_STRING_CHUNKED_SIZE (sizeof( REST_STRING_CHUNKED ) - 1)
 
 /* chunk modal end */
 #define REST_STRING_CHUNKED_END "0\r\n\r\n"
@@ -122,1513 +122,217 @@ static const CHAR *fileExtension[] = {
 
 namespace engine
 {
+   INT32 restAdaptor::on_message_begin( void *pData )
+   {
+      return 0 ;
+   }
 
-   restAdaptor::restAdaptor() : _maxHttpHeaderSize( 0 ),
-                                _maxHttpBodySize( 0 ),
-                                _timeout( 0 )
+   INT32 restAdaptor::on_headers_complete( void *pData )
+   {
+      http_parser *pParser = (http_parser *)pData ;
+      httpConnection *pHttpCon = (httpConnection *)pParser->data ;
+
+      if ( pHttpCon->_pTempKey && pHttpCon->_pTempValue )
+      {
+         pHttpCon->_pTempKey[pHttpCon->_tempKeyLen] = 0 ;
+         pHttpCon->_pTempValue[pHttpCon->_tempValueLen] = 0 ;
+         pHttpCon->_requestHeaders.insert(
+               std::make_pair( pHttpCon->_pTempKey, pHttpCon->_pTempValue ) ) ;
+         pHttpCon->_pTempKey = NULL ;
+         pHttpCon->_pTempValue = NULL ;
+         pHttpCon->_tempKeyLen = 0 ;
+         pHttpCon->_tempValueLen = 0 ;
+      }
+      http_parser_pause( pParser, 1 ) ;
+      return 0 ;
+   }
+
+   INT32 restAdaptor::on_message_complete( void *pData )
+   {
+      return 0 ;
+   }
+
+   INT32 restAdaptor::on_url( void *pData,
+                              const CHAR* at, size_t length )
+   {
+      http_parser *pParser = (http_parser *)pData ;
+      httpConnection *pHttpCon = (httpConnection *)pParser->data ;
+      UINT32 i = 0 ;
+      CHAR *pPath = NULL ;
+
+      pHttpCon->_pPath = at ;
+      for( ; i < length && at[i] != '?'; ++i ) ;
+
+      pPath = pHttpCon->_pHeaderBuf +
+         ( at - pHttpCon->_pHeaderBuf ) ;
+      pPath[i] = 0 ;
+
+
+      if( i + 1 < length )
+      {
+         ++i ;
+         pHttpCon->_pQuery = pPath + i ;
+         pHttpCon->_querySize = length - i ;
+      }
+      else
+      {
+         pHttpCon->_pQuery = NULL ;
+         pHttpCon->_querySize = 0 ;
+      }
+      return 0 ;
+   }
+
+   INT32 restAdaptor::on_header_field( void *pData,
+                                       const CHAR* at, size_t length )
+   {
+      http_parser *pParser = (http_parser *)pData ;
+      httpConnection *pHttpCon = (httpConnection *)pParser->data ;
+
+      if ( pHttpCon->_isKey )
+      {
+         if ( pHttpCon->_pTempKey && pHttpCon->_pTempValue )
+         {
+            pHttpCon->_pTempKey[pHttpCon->_tempKeyLen] = 0 ;
+            pHttpCon->_pTempValue[pHttpCon->_tempValueLen] = 0 ;
+            pHttpCon->_requestHeaders.insert(
+                  std::make_pair( pHttpCon->_pTempKey,pHttpCon->_pTempValue ) );
+            pHttpCon->_pTempKey = NULL ;
+            pHttpCon->_pTempValue = NULL ;
+            pHttpCon->_tempKeyLen = 0 ;
+            pHttpCon->_tempValueLen = 0 ;
+         }
+
+         pHttpCon->_tempKeyLen = length ;
+         pHttpCon->_pTempKey = pHttpCon->_pHeaderBuf +
+               ( at - pHttpCon->_pHeaderBuf ) ;
+         pHttpCon->_isKey = FALSE ;
+      }
+      else
+      {
+         if(  pHttpCon->_pTempKey == NULL )
+         {
+            return 1 ;
+         }
+         pHttpCon->_tempKeyLen += length ;
+      }
+      return 0 ;
+   }
+
+   INT32 restAdaptor::on_header_value( void *pData,
+                                       const CHAR* at, size_t length )
+   {
+      http_parser *pParser = (http_parser *)pData ;
+      httpConnection *pHttpCon = (httpConnection *)pParser->data ;
+
+      if ( !pHttpCon->_isKey )
+      {
+         if ( pHttpCon->_pTempKey == NULL )
+         {
+            return 1 ;
+         }
+         pHttpCon->_pTempKey[ pHttpCon->_tempKeyLen + 1 ] = 0 ;
+
+         pHttpCon->_tempValueLen = length ;
+         pHttpCon->_pTempValue = pHttpCon->_pHeaderBuf +
+               ( at - pHttpCon->_pHeaderBuf ) ;
+         pHttpCon->_isKey = TRUE ;
+      }
+      else
+      {
+         if(  pHttpCon->_pTempValue == NULL )
+         {
+            return 1 ;
+         }
+         pHttpCon->_tempValueLen += length ;
+      }
+      return 0 ;
+   }
+
+   INT32 restAdaptor::on_body( void *pData,
+                               const CHAR* at, size_t length )
+   {
+      return 0 ;
+   }
+
+   restAdaptor::restAdaptor() : _maxHttpHeaderSize(0),
+                                _maxHttpBodySize(0),
+                                _timeout(0),
+                                _pSettings(NULL)
    {
    }
 
    restAdaptor::~restAdaptor()
    {
+      if ( _pSettings )
+      {
+         SDB_OSS_FREE( _pSettings ) ;
+         _pSettings = NULL ;
+      }
    }
 
-   void restAdaptor::init( INT32 maxHttpHeaderSize, INT32 maxHttpBodySize,
-                           INT32 timeout )
-   {
-      _maxHttpHeaderSize = maxHttpHeaderSize ;
-      _maxHttpBodySize = maxHttpBodySize ;
-      _timeout = timeout ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RESTADAPTOR_RECVHEADER, "restAdaptor::recvHeader" )
-   INT32 restAdaptor::recvHeader( ossSocket *sock, restBase *pRest )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_RESTADAPTOR_RECVHEADER ) ;
-      SDB_ASSERT( sock, "sock is NULL" ) ;
-      SDB_ASSERT( pRest, "pRest is NULL" ) ;
-      INT32 recvSize = 0 ;
-      CHAR *buffer   = pRest->_headerBuf ;
-      http_parser *pParser = &(pRest->_httpParser) ;
-
-      pRest->_write = FALSE ;
-
-      pParser->data = pRest ;
-
-      if ( NULL == buffer )
-      {
-         rc = pRest->_malloc( _maxHttpHeaderSize + 1, &pRest->_headerBuf ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Unable to allocate %d bytes memory, rc=%d",
-                     _maxHttpHeaderSize + 1, rc ) ;
-            goto error ;
-         }
-
-         buffer = pRest->_headerBuf ;
-         buffer[_maxHttpHeaderSize] = '\0' ;
-      }
-
-      while( TRUE )
-      {
-         INT32 tmpRecvSize = 0 ;
-         INT32 offset = 0 ;
-
-         rc = _recvData( sock, buffer + recvSize,
-                         _maxHttpHeaderSize - recvSize,
-                         FALSE, &tmpRecvSize ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to recv, rc=%d", rc ) ;
-            goto error ;
-         }
-
-         buffer[ recvSize + tmpRecvSize ] = '\0' ;
-
-         if ( _isEndOfHeader( pRest, buffer + recvSize, tmpRecvSize, offset ) )
-         {
-            if ( offset > 0 )
-            {
-               INT32 bodySize = tmpRecvSize - offset ;
-
-               recvSize += offset ;
-
-               pRest->_tmpBodySize = bodySize ;
-               pRest->_tmpBodyBuf = buffer + recvSize ;
-            }
-            else
-            {
-               recvSize += tmpRecvSize ;
-            }
-
-            pRest->_headerSize = recvSize ;
-
-            break ;
-         }
-
-         recvSize += tmpRecvSize ;
-         if ( recvSize >= _maxHttpHeaderSize )
-         {
-            rc = SDB_REST_RECV_SIZE ;
-            PD_LOG ( PDERROR, "http header size %d greater than %d",
-                     recvSize, _maxHttpHeaderSize ) ;
-            goto error ;
-         }
-      }
-
-      http_parser_init( pParser, HTTP_BOTH ) ;
-
-      if ( (UINT32)recvSize != http_parser_execute( pParser, &pRest->_settings,
-                                                    buffer, (UINT32)recvSize ) )
-      {
-         if ( HTTP_PARSER_ERRNO( pParser ) != 28 )
-         {
-            rc = SDB_REST_EHS ;
-            PD_LOG ( PDERROR, "Failed to parse http, %s, rc=%d",
-                     http_errno_description( HTTP_PARSER_ERRNO( pParser ) ),
-                     rc ) ;
-            goto error ;
-         }
-      }
-
-      if ( pRest->type() == SDB_REST_REQUEST )
-      {
-         restRequest *request = (restRequest *)pRest ;
-
-         request->_method = pParser->method ;
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB_RESTADAPTOR_RECVHEADER, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RESTADAPTOR_RECVBODY, "restAdaptor::recvBody" )
-   INT32 restAdaptor::recvBody( ossSocket *sock, restBase *pRest )
+   PD_TRACE_DECLARE_FUNCTION( SDB__RESTADP_PARQUERY, "restAdaptor::_parse_http_query" )
+   INT32 restAdaptor::_parse_http_query( httpConnection *pHttpConnection,
+                                         CHAR *pBuffer, INT32 length,
+                                         CHAR *pDecodeBuff, INT32 decodeLen )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_RESTADAPTOR_RECVBODY ) ;
-      SDB_ASSERT( sock, "socket is NULL" ) ;
-      SDB_ASSERT( pRest, "pRest is NULL" ) ;
-      string chunk ;
-
-      chunk = pRest->getHeader( REST_STRING_TRANSFER ) ;
-      if ( chunk.empty() )
-      {
-         rc = _recvRestBody( sock, pRest ) ;
-      }
-      else if( SDB_REST_RESPONSE == pRest->type() &&
-               REST_STRING_CHUNKED == chunk )
-      {
-         rc = _recvRestChunk( sock, pRest ) ;
-      }
-      else if( SDB_REST_RESPONSE == pRest->type() &&
-               REST_STRING_IDENTITY == chunk )
-      {
-         rc = _recvRestIdentity( sock, pRest ) ;
-      }
-      else
-      {
-         rc = SDB_REST_EHS ;
-      }
-
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to recv rest body: rc=%d", rc ) ;
-         goto error ;
-      }
-
-      if ( SDB_REST_REQUEST == pRest->type() && pRest->_bodySize > 0 )
-      {
-         restRequest *request = (restRequest *)pRest ;
-
-         rc = request->_parse_http_query( pRest->_bodyBuf, pRest->_bodySize ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "failed to parse request body: rc=%d", rc ) ;
-            goto error ;
-         }
-
-         request->_parseDataType() ;
-      }
-
-  done:
-      PD_TRACE_EXITRC ( SDB_RESTADAPTOR_RECVBODY, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 restAdaptor::sendRest( ossSocket *sock, restBase *pRest )
-   {
-      INT32 rc = SDB_OK ;
-
-      rc = sendHeader( sock, pRest ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
-
-      rc = sendBody( sock, pRest ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RESTADAPTOR_SENDHEADER, "restAdaptor::sendHeader" )
-   INT32 restAdaptor::sendHeader( ossSocket *sock, restBase *pRest )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_RESTADAPTOR_SENDHEADER ) ;
-      SDB_ASSERT( sock, "socket is NULL" ) ;
-      SDB_ASSERT( pRest, "pRest is NULL" ) ;
-      CHAR CRLF[3] = { REST_STRING_CR, REST_STRING_LF, 0 } ;
-      string restHeader = pRest->_generateHeader() ;
-      REST_COLNAME_MAP_IT it ;
-
-      if ( pRest->getBodySize() > 0 &&
-           pRest->isHeaderExist( REST_STRING_CONLEN ) == FALSE )
-      {
-         CHAR bodySizeTmp[256] = { 0 } ;
-
-         ossSnprintf( bodySizeTmp, 256, "%d", pRest->getBodySize() ) ;
-
-         pRest->putHeader( REST_STRING_CONLEN, bodySizeTmp ) ;
-      }
-
-      rc = _sendData( sock, restHeader.c_str(), restHeader.length() ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
-         goto error ;
-      }
-
-      //CRLF
-      rc = _sendData( sock, REST_FUN_STRING( CRLF ) ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
-         goto error ;
-      }
-
-      for( it = pRest->_headerList.begin();
-            it != pRest->_headerList.end(); ++it )
-      {
-         string key = it->first ;
-         string val = it->second ;
-
-         //key
-         rc = _sendData( sock, key.c_str(), key.length() ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
-            goto error ;
-         }
-
-         //:
-         rc = _sendData( sock, REST_FUN_STRING( REST_STRING_COLON ) ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
-            goto error ;
-         }
-
-         //value
-         rc = _sendData( sock, val.c_str(), val.length() ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
-            goto error ;
-         }
-
-         //CRLF
-         rc = _sendData( sock, REST_FUN_STRING( CRLF ) ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
-            goto error ;
-         }
-      }
-
-      //CRLF
-      rc = _sendData( sock, REST_FUN_STRING( CRLF ) ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB_RESTADAPTOR_SENDHEADER, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RESTADAPTOR_SENDBODY, "restAdaptor::sendBody" )
-   INT32 restAdaptor::sendBody( ossSocket *sock, restBase *pRest )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_RESTADAPTOR_SENDBODY ) ;
-      SDB_ASSERT( sock, "socket is NULL" ) ;
-      SDB_ASSERT( pRest, "pRest is NULL" ) ;
-      std::vector<string>::iterator it ;
-
-      if ( pRest->_bodyContent.size() > 0 )
-      {
-         for( it = pRest->_bodyContent.begin();
-              it != pRest->_bodyContent.end(); ++it )
-         {
-            string context = *it ;
-
-            rc = _sendData( sock, context.c_str(), context.length() ) ;
-            if ( rc )
-            {
-               PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
-               goto error ;
-            }
-         }
-      }
-      else if ( pRest->_bodyBuf && pRest->_bodySize > 0 )
-      {
-         rc = _sendData( sock, pRest->_bodyBuf, pRest->_bodySize ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
-            goto error ;
-         }
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB_RESTADAPTOR_SENDBODY, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RESTADAPTOR_SENDCHUNK, "restAdaptor::sendChunk" )
-   INT32 restAdaptor::sendChunk( ossSocket *sock, const CHAR *pBuffer,
-                                 INT32 length, INT32 number,
-                                 BOOLEAN isObjBuffer )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_RESTADAPTOR_SENDCHUNK ) ;
-      SDB_ASSERT( sock, "socket is NULL" ) ;
-
-      if( isObjBuffer )
-      {
-         BSONObj record ;
-         string str ;
-         _rtnObjBuff rtnObj( pBuffer, length, number ) ;
-
-         while( TRUE )
-         {
-            rc = rtnObj.nextObj( record ) ;
-            if ( SDB_DMS_EOC == rc )
-            {
-               rc = SDB_OK ;
-               break ;
-            }
-            else if ( SDB_SYS == rc )
-            {
-               PD_LOG ( PDERROR, "Failed to get nextObj:rc=%d", rc ) ;
-               goto error ;
-            }
-            
-            str = record.toString( FALSE, TRUE ) ;
-
-            rc = _sendChunkData( sock, str.c_str(), str.length() ) ;
-            if( rc )
-            {
-               PD_LOG ( PDERROR, "Failed to send chunk data, rc=%d", rc ) ;
-               goto error ;
-            }
-         }
-      }
-      else
-      {
-         rc = _sendChunkData( sock, pBuffer, length ) ;
-         if( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to send chunk data, rc=%d", rc ) ;
-            goto error ;
-         }
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB_RESTADAPTOR_SENDCHUNK, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RESTADAPTOR_SETRESBODY, "restAdaptor::setResBody" )
-   INT32 restAdaptor::setResBody( ossSocket *sock, restResponse *response,
-                                  const CHAR *pBuffer, INT32 length,
-                                  INT32 number, BOOLEAN isObjBuffer )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_RESTADAPTOR_SETRESBODY ) ;
-      SDB_ASSERT( sock, "socket is NULL" ) ;
-      SDB_ASSERT( response, "response is NULL" ) ;
-
-      if ( !response->isChunkModal() )
-      {
-         if ( response->getBodySize() + length > RESPONSE_MAX_CACHE_SIZE )
-         {
-            response->setChunkModal() ;
-
-            //send http header
-            rc = sendHeader( sock, response ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "failed to send rest header: rc=%d", rc ) ;
-               goto error ;
-            }
-
-            //send http body
-            rc = _sendBodyWithChunk( sock, response ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "failed to send body with chunk: rc=%d", rc ) ;
-               goto error ;
-            }
-
-            rc = setResBody( sock, response, pBuffer, length,
-                             number, isObjBuffer ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "failed to send response: rc=%d", rc ) ;
-               goto error ;
-            }
-         }
-         else
-         {
-            rc = response->appendBody( pBuffer, length, number, isObjBuffer ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "failed to append response body: rc=%d", rc ) ;
-               goto error ;
-            }
-         }
-      }
-      else
-      {
-         rc = sendChunk( sock, pBuffer, length, number, isObjBuffer ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to send chunk, rc=%d", rc ) ;
-            goto error ;
-         }
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB_RESTADAPTOR_SETRESBODY, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 restAdaptor::setResBodyEnd( ossSocket *sock, restResponse *response )
-   {
-      if ( !response->isChunkModal() )
-      {
-         return sendRest( sock, response ) ;
-      }
-      else
-      {
-         return sendChunk( sock, NULL, 0, 0, FALSE ) ;
-      }
-   }
-
-   INT32 restAdaptor::_sendBodyWithChunk( ossSocket *sock,
-                                          restResponse *response )
-   {
-      INT32 rc = SDB_OK ;
-      std::vector<string>::iterator it ;
-
-      for( it = response->_bodyContent.begin();
-           it != response->_bodyContent.end(); ++it )
-      {
-         string context = *it ;
-
-         rc = _sendChunkData( sock, context.c_str(), context.length() ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
-            goto error ;
-         }
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   BOOLEAN restAdaptor::_isEndOfHeader( restBase *pRest, CHAR *buffer,
-                                        INT32 size, INT32 &offset )
-   {
-      BOOLEAN rc = TRUE ;
-
-      for ( INT32 i = 0; i < size; ++i )
-      {
-         if ( REST_STRING_CR == buffer[i] )
-         {
-            switch( pRest->_CRLFNum )
-            {
-            case 2: // x  \r \n \r
-               pRest->_CRLFNum = 3 ;
-               break ;
-            case 0: // x  x  x  \r
-            case 1: // x  x  \r \r
-            case 3: // \r \n \r \r
-            default:
-               pRest->_CRLFNum = 1 ;
-               break ;
-            }
-         }
-         else if ( REST_STRING_LF == buffer[i] )
-         {
-            switch( pRest->_CRLFNum )
-            {
-            case 1: // x  x  \r \n
-               pRest->_CRLFNum = 2 ;
-               break ;
-            case 3: // \r \n \r \n
-               pRest->_CRLFNum = 4 ;
-               break ;
-            case 2: // x  \r \n \n
-            case 0: // x  x  x  \n
-            default:
-               pRest->_CRLFNum = 0 ;
-               break ;
-            }
-         }
-         else
-         {
-            pRest->_CRLFNum = 0 ;
-         }
-
-         if ( pRest->_CRLFNum == 4 )
-         {
-            pRest->_CRLFNum = 0 ;
-            rc = TRUE ;
-            if ( i + 1 == size )
-            {
-               offset = 0 ;
-            }
-            else
-            {
-               offset = i + 1 ;
-            }
-            goto done ;
-         }
-      }
-
-      rc = FALSE ;
-
-   done:
-      return rc ;
-   }
-
-   BOOLEAN restAdaptor::_isEndOfChunk( restBase *pRest, CHAR *buffer,
-                                       INT32 size )
-   {
-      BOOLEAN rc = TRUE ;
-
-      for ( INT32 i = 0; i < size; ++i )
-      {
-         if ( '0' == buffer[i] )
-         {
-            pRest->_ZCRLF = 1 ;
-         }
-         else if ( REST_STRING_CR == buffer[i] && 1 == pRest->_ZCRLF )
-         {
-           pRest->_ZCRLF = 2 ;
-         }
-         else if ( REST_STRING_LF == buffer[i] && 2 == pRest->_ZCRLF )
-         {
-            pRest->_ZCRLF = 3 ;
-         }
-         else
-         {
-            pRest->_ZCRLF = 0 ;
-         }
-
-         if ( pRest->_ZCRLF == 3 )
-         {
-            pRest->_ZCRLF = 0 ;
-            rc = TRUE ;
-            goto done ;
-         }
-      }
-
-      rc = FALSE ;
-
-   done:
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RESTADAPTOR__RECVRESTBODY, "restAdaptor::_recvRestBody" )
-   INT32 restAdaptor::_recvRestBody( ossSocket *sock, restBase *pRest )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_RESTADAPTOR__RECVRESTBODY ) ;
-      SDB_ASSERT( sock, "socket is NULL" ) ;
-      SDB_ASSERT( pRest, "pRest is NULL" ) ;
-      INT32 bodySize = 0 ;
-      INT32 curRecvSize  = 0 ;
-      INT32 receivedSize = 0 ;
-      CHAR *pBuffer = NULL ;
-      string contentLength ;
-
-      contentLength = pRest->getHeader( REST_STRING_CONLEN ) ;
-
-      //if http body size > 0,than Content-Length must exist
-      if ( FALSE == contentLength.empty() )
-      {
-         bodySize = ossAtoi( contentLength.c_str() ) ;
-         if ( bodySize > 0 )
-         {
-            BOOLEAN isFullSpace = FALSE ;
-
-            if ( bodySize > _maxHttpBodySize )
-            {
-               isFullSpace = TRUE ;
-
-               if ( SDB_REST_REQUEST == pRest->type() )
-               {
-                  rc = SDB_REST_RECV_SIZE ;
-                  PD_LOG ( PDERROR, "http body size %d greater than %d",
-                           bodySize, _maxHttpBodySize ) ;
-                  goto error ;
-               }
-               else if ( SDB_REST_RESPONSE == pRest->type() )
-               {
-                  bodySize = _maxHttpBodySize ;
-               }
-            }
-
-            if ( NULL == pRest->_bodyBuf )
-            {
-               rc = pRest->_malloc( bodySize + 1, &pRest->_bodyBuf ) ;
-               if ( rc )
-               {
-                  PD_LOG ( PDERROR, "Unable to allocate %d bytes memory, rc=%d",
-                           bodySize, rc ) ;
-                  goto error ;
-               }
-            }
-
-            pBuffer = pRest->_bodyBuf ;
-            pBuffer[bodySize] = 0 ;
-
-            pRest->_bodySize = bodySize ;
-            pRest->_bodyBufSize = bodySize ;
-
-            if ( pRest->_tmpBodyBuf )
-            {
-               ossMemcpy( pRest->_bodyBuf, pRest->_tmpBodyBuf,
-                          pRest->_tmpBodySize ) ;
-
-               receivedSize = pRest->_tmpBodySize ;
-
-               pRest->_tmpBodyBuf = NULL ;
-               pRest->_tmpBodySize = 0 ;
-            }
-
-            if ( bodySize - receivedSize > 0 )
-            {
-               rc = _recvData( sock, pBuffer + receivedSize,
-                               bodySize - receivedSize, TRUE, &curRecvSize ) ;
-               if ( rc )
-               {
-                  PD_LOG ( PDERROR, "Failed to recv, rc=%d", rc ) ;
-                  goto error ;
-               }
-            }
-
-            if ( isFullSpace )
-            {
-               rc = SDB_REST_RECV_SIZE ;
-            }
-         }
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB_RESTADAPTOR__RECVRESTBODY, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RESTADAPTOR__RECVRESTCHUNK, "restAdaptor::_recvRestChunk" )
-   INT32 restAdaptor::_recvRestChunk( ossSocket *sock, restBase *pRest )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_RESTADAPTOR__RECVRESTCHUNK ) ;
-      SDB_ASSERT( sock, "socket is NULL" ) ;
-      SDB_ASSERT( pRest, "pRest is NULL" ) ;
-      INT32 receivedSize = 0 ;
-      INT32 curRecvSize = 0 ;
-      INT32 bufSize = pRest->_bodyBufSize ;
-      CHAR *pBuffer = pRest->_bodyBuf ;
-
-      //allocate space
-      if ( NULL == pRest->_bodyBuf )
-      {
-         bufSize = _maxHttpBodySize ;
-
-         rc = pRest->_malloc( bufSize + 1, &pRest->_bodyBuf ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Unable to allocate %d bytes memory, rc=%d",
-                     bufSize, rc ) ;
-            goto error ;
-         }
-
-         pRest->_bodyBufSize = bufSize ;
-      }
-
-      pBuffer = pRest->_bodyBuf ;
-      pBuffer[bufSize] = 0 ;
-
-      //replicate the multiple body received
-      if ( pRest->_tmpBodyBuf )
-      {
-         ossMemcpy( pRest->_bodyBuf, pRest->_tmpBodyBuf,
-                    pRest->_tmpBodySize ) ;
-
-         receivedSize = pRest->_tmpBodySize ;
-
-         pRest->_tmpBodyBuf = NULL ;
-         pRest->_tmpBodySize = 0 ;
-      }
-
-      pRest->_bodySize += receivedSize ;
-
-      while( TRUE )
-      {
-         rc = _recvData( sock, pBuffer + receivedSize,
-                         bufSize - receivedSize, FALSE, &curRecvSize ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to recv, rc=%d", rc ) ;
-            goto error ;
-         }
-
-         pRest->_bodySize += curRecvSize ;
-
-         if( _isEndOfChunk( pRest, pBuffer + receivedSize, curRecvSize ) )
-         {
-            break ;
-         }
-
-         receivedSize += curRecvSize ;
-
-         if ( bufSize == receivedSize )
-         {
-            rc = SDB_REST_RECV_SIZE ;
-            break ;
-         }
-
-         SDB_ASSERT( receivedSize > bufSize, "memory-access errors" ) ;
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB_RESTADAPTOR__RECVRESTCHUNK, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RESTADAPTOR__RECVRESTIDENTITY, "restAdaptor::_recvRestIdentity" )
-   INT32 restAdaptor::_recvRestIdentity( ossSocket *sock, restBase *pRest )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_RESTADAPTOR__RECVRESTIDENTITY ) ;
-      SDB_ASSERT( sock, "socket is NULL" ) ;
-      SDB_ASSERT( pRest, "pRest is NULL" ) ;
-      INT32 receivedSize = 0 ;
-      INT32 curRecvSize = 0 ;
-      INT32 bufSize = pRest->_bodyBufSize ;
-      CHAR *pBuffer = pRest->_bodyBuf ;
-
-      //allocate space
-      if ( NULL == pRest->_bodyBuf )
-      {
-         bufSize = _maxHttpBodySize ;
-
-         rc = pRest->_malloc( bufSize + 1, &pRest->_bodyBuf ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Unable to allocate %d bytes memory, rc=%d",
-                     bufSize, rc ) ;
-            goto error ;
-         }
-
-         pRest->_bodyBufSize = bufSize ;
-      }
-
-      pBuffer = pRest->_bodyBuf ;
-      pBuffer[bufSize] = 0 ;
-
-      //replicate the multiple body received
-      if ( pRest->_tmpBodyBuf )
-      {
-         ossMemcpy( pRest->_bodyBuf, pRest->_tmpBodyBuf,
-                    pRest->_tmpBodySize ) ;
-
-         receivedSize = pRest->_tmpBodySize ;
-
-         pRest->_tmpBodyBuf = NULL ;
-         pRest->_tmpBodySize = 0 ;
-      }
-
-      pRest->_bodySize += receivedSize ;
-
-      while( TRUE )
-      {
-         rc = _recvData( sock, pBuffer + receivedSize,
-                         bufSize - receivedSize, FALSE, &curRecvSize ) ;
-         if ( rc )
-         {
-            rc = SDB_OK ;
-            break ;
-         }
-
-         pRest->_bodySize += curRecvSize ;
-
-         receivedSize += curRecvSize ;
-
-         if ( bufSize == receivedSize )
-         {
-            rc = SDB_REST_RECV_SIZE ;
-            break ;
-         }
-
-         SDB_ASSERT( receivedSize > bufSize, "memory-access errors" ) ;
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB_RESTADAPTOR__RECVRESTIDENTITY, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RESTADAPTOR__SENDCHUNKDATA, "restAdaptor::_sendChunkData" )
-   INT32 restAdaptor::_sendChunkData( ossSocket *sock, const CHAR *pBuffer,
-                                      INT32 length )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_RESTADAPTOR__SENDCHUNKDATA ) ;
-      SDB_ASSERT( sock, "socket is NULL" ) ;
-
-      if ( pBuffer )
-      {
-         CHAR CRLF[3] = { REST_STRING_CR, REST_STRING_LF, 0 } ;
-         CHAR chunkSize[255] = { 0 } ;
-
-         ossSnprintf( chunkSize, 255, "%x\r\n", length ) ;
-
-         // chunk size
-         rc = _sendData( sock, REST_FUN_STRING( chunkSize ) ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
-            goto error ;
-         }
-
-         // chunk body
-         rc = _sendData( sock, pBuffer, length ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
-            goto error ;
-         }
-
-         // CRLF
-         rc = _sendData( sock, REST_FUN_STRING( CRLF ) ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
-            goto error ;
-         }
-      }
-      else
-      {
-         // 0 CRLF CRLF
-         rc = _sendData( sock, REST_STRING_CHUNKED_END,
-                         REST_STRING_CHUNKED_END_SIZE ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
-            goto error ;
-         }
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB_RESTADAPTOR__SENDCHUNKDATA, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RESTADAPTOR__SENDDATA, "restAdaptor::_sendData" )
-   INT32 restAdaptor::_sendData( ossSocket *sock, const CHAR* pData, INT32 size,
-                                 BOOLEAN block, INT32 *pSentLen )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_RESTADAPTOR__SENDDATA ) ;
-      SDB_ASSERT( sock, "socket is NULL" ) ;
-      SDB_ASSERT( pData, "data is NULL" ) ;
-      INT32 sentSize = 0 ;
-      INT32 totalSentSize = 0 ;
-
-      while( TRUE )
-      {
-         rc = sock->send ( &pData[totalSentSize], size-totalSentSize,
-                           sentSize, _timeout, 0, block ) ;
-         totalSentSize += sentSize ;
-         if ( _timeout < 0 && SDB_TIMEOUT == rc )
-         {
-            continue ;
-         }
-         break ;
-      }
-
-      if ( pSentLen )
-      {
-         *pSentLen = totalSentSize ;
-      }
-
-      PD_TRACE_EXITRC ( SDB_RESTADAPTOR__SENDDATA, rc ) ;
-      return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RESTADAPTOR__RECVDATA, "restAdaptor::_recvData" )
-   INT32 restAdaptor::_recvData( ossSocket *sock, CHAR* pData, INT32 size,
-                                 BOOLEAN block, INT32 *pRecvLen )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_RESTADAPTOR__RECVDATA ) ;
-      SDB_ASSERT( sock, "socket is NULL" ) ;
-      SDB_ASSERT( pData, "data is NULL" ) ;
-      INT32 receivedSize = 0 ;
-      INT32 totalReceivedSize = 0 ;
-
-      while( TRUE )
-      {
-         rc = sock->recv( &pData[totalReceivedSize], size - totalReceivedSize,
-                          receivedSize, _timeout, 0, block ) ;
-         totalReceivedSize += receivedSize ;
-         if ( _timeout < 0 && SDB_TIMEOUT == rc )
-         {
-            continue ;
-         }
-         break ;
-      }
-
-      if ( pRecvLen )
-      {
-         *pRecvLen = totalReceivedSize ;
-      }
-
-      PD_TRACE_EXITRC ( SDB_RESTADAPTOR__RECVDATA, rc ) ;
-      return rc ;
-   }
-
-   restBase::restBase( IExecutor *cb ) : _dataType( HTTP_FILE_DEFAULT ),
-                                         _isSetKey( FALSE ),
-                                         _isSetVal( FALSE ),
-                                         _write( TRUE ),
-                                         _CRLFNum( 0 ),
-                                         _ZCRLF( 0 ),
-                                         _headerSize( 0 ),
-                                         _bodySize( 0 ),
-                                         _bodyBufSize( 0 ),
-                                         _tmpBodySize( 0 ),
-                                         _headerBuf( NULL ),
-                                         _bodyBuf( NULL ),
-                                         _tmpBodyBuf( NULL ),
-                                         _cb( cb )
-   {
-   }
-
-   restBase::~restBase()
-   {
-   }
-
-   /* read */
-   string restBase::getHeader( const string &key )
-   {
-      REST_COLNAME_MAP_IT it ;
-      string value ;
-
-      it = _headerList.find( key ) ;
-      if ( it != _headerList.end() )
-      {
-         value = it->second ;
-      }
-
-      return value ;
-   }
-
-   BOOLEAN restBase::isHeaderExist( const string &key )
-   {
-      REST_COLNAME_MAP_IT it = _headerList.find( key ) ;
-
-      return ( it != _headerList.end() ) ;
-   }
-
-   HTTP_DATA_TYPE restBase::getDataType()
-   {
-      return _dataType ;
-   }
-
-   BOOLEAN restBase::isKeepAlive()
-   {
-      BOOLEAN isKeepAlive = FALSE ;
-      string value ;
-
-      value = getHeader( REST_STRING_CONNECTION ) ;
-
-      if( REST_STRING_KEEP_ALIVE == value )
-      {
-         isKeepAlive = TRUE ;
-      }
-
-      return isKeepAlive ;
-   }
-
-   /* write */
-   void restBase::putHeader( const string &key, string value )
-   {
-      SDB_ASSERT( _write, "rest is read only" ) ;
-      REST_COLNAME_MAP_IT it ;
-
-      it = _headerList.find( key ) ;
-      if ( it == _headerList.end() )
-      {
-         _headerList.insert( std::make_pair( key, value ) ) ;
-      }
-      else
-      {
-         it->second = value ;
-      }
-   }
-
-   INT32 restBase::appendBody( const CHAR *pBuffer, INT32 length,
-                               INT32 number, BOOLEAN isObjBuffer )
-   {
-      INT32 rc = SDB_OK ;
-      SDB_ASSERT( _write, "rest is read only" ) ;
-      SDB_ASSERT( pBuffer, "pBuffer is NULL" ) ;
-
-      if( isObjBuffer )
-      {
-         _rtnObjBuff rtnObj( pBuffer, length, number ) ;
-         BSONObj record ;
-         string json ;
-
-         while( TRUE )
-         {
-            rc = rtnObj.nextObj( record ) ;
-            if ( SDB_DMS_EOC == rc )
-            {
-               rc = SDB_OK ;
-               break ;
-            }
-            else if ( SDB_SYS == rc )
-            {
-               PD_LOG ( PDERROR, "Failed to get nextObj:rc=%d", rc ) ;
-               goto error ;
-            }
-
-            json = record.toString( FALSE, TRUE ) ;
-
-            _bodyContent.push_back( json ) ;
-
-            _bodySize += json.length() ;
-         }
-      }
-      else
-      {
-         string content( pBuffer, length ) ;
-
-         _bodyContent.push_back( content ) ;
-
-         _bodySize += content.length() ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 restBase::_malloc( INT32 size, CHAR **buffer )
-   {
-      INT32 rc = SDB_OK ;
-      SDB_ASSERT( _cb, "EDUCB can't be NULL" ) ;
-      SDB_ASSERT( buffer, "buffer can't be NULL" ) ;
-
-      if ( !_cb )
-      {
-         rc = SDB_SYS ;
-         goto error ;
-      }
-
-      rc = _cb->allocBuff( (UINT32)size, buffer, NULL ) ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   void restBase::_releaseBuff( CHAR *buffer )
-   {
-      SDB_ASSERT( _cb, "EDUCB can't be NULL" ) ;
-      SDB_ASSERT( buffer, "buffer can't be NULL" ) ;
-
-      if ( _cb )
-      {
-         _cb->releaseBuff( buffer ) ;
-      }
-   }
-
-   INT32 restBase::on_message_begin( void *pData )
-   {
-      return 0 ;
-   }
-
-   INT32 restBase::on_message_complete( void *pData )
-   {
-      return 0 ;
-   }
-
-   INT32 restBase::on_header_field( void *pData, const CHAR* at, size_t length )
-   {
-      http_parser *pParser = (http_parser *)pData ;
-      restBase *pRest = (restBase *)pParser->data ;
-
-      if ( pRest->_isSetKey && pRest->_isSetVal )
-      {
-         pRest->_headerList.insert(
-               std::make_pair( pRest->_tmpKey, pRest->_tmpVal ) ) ;
-
-         pRest->_tmpKey = "" ;
-         pRest->_tmpVal = "" ;
-         pRest->_isSetKey = FALSE ;
-         pRest->_isSetVal = FALSE ;
-      }
-
-      if ( FALSE == pRest->_isSetKey )
-      {
-         pRest->_tmpKey = string( at, length ) ;
-         pRest->_isSetKey = TRUE ;
-      }
-      else
-      {
-         pRest->_tmpKey += string( at, length ) ;
-      }
-
-      return 0 ;
-   }
-
-   INT32 restBase::on_header_value( void *pData, const CHAR* at, size_t length )
-   {
-      http_parser *pParser = (http_parser *)pData ;
-      restBase *pRest = (restBase *)pParser->data ;
-
-      if ( FALSE == pRest->_isSetVal )
-      {
-         pRest->_tmpVal = string( at, length ) ;
-         pRest->_isSetVal = TRUE ;
-      }
-      else
-      {
-         pRest->_tmpVal += string( at, length ) ;
-      }
-
-      return 0 ;
-   }
-
-   INT32 restBase::on_headers_complete( void *pData )
-   {
-      http_parser *pParser = (http_parser *)pData ;
-      restBase *pRest = (restBase *)pParser->data ;
-
-      if ( pRest->_isSetKey && pRest->_isSetVal )
-      {
-         pRest->_headerList.insert(
-               std::make_pair( pRest->_tmpKey, pRest->_tmpVal ) ) ;
-
-         pRest->_tmpKey = "" ;
-         pRest->_tmpVal = "" ;
-         pRest->_isSetKey = FALSE ;
-         pRest->_isSetVal = FALSE ;
-      }
-
-      http_parser_pause( pParser, 1 ) ;
-
-      return 0 ;
-   }
-
-   INT32 restBase::on_body( void *pData, const CHAR* at, size_t length )
-   {
-      return 0 ;
-   }
-
-   /*
-   restRequest
-   */
-   restRequest::restRequest( IExecutor *cb ) : restBase( cb ),
-                                               _method( 1 ),
-                                               _command( COM_GETFILE )
-   {
-   }
-
-   restRequest::~restRequest()
-   {
-   }
-
-   INT32 restRequest::init()
-   {
-      INT32 rc = SDB_OK ;
-
-      ossMemset( &_settings, 0, sizeof( http_parser_settings ) ) ;
-
-      _settings.on_message_begin    = restBase::on_message_begin ;
-      _settings.on_url              = restRequest::on_url ;
-      _settings.on_header_field     = restBase::on_header_field ;
-      _settings.on_header_value     = restBase::on_header_value ;
-      _settings.on_headers_complete = restBase::on_headers_complete ;
-      _settings.on_body             = restBase::on_body ;
-      _settings.on_message_complete = restBase::on_message_complete ;
-
-      return rc ;
-   }
-
-   /* write */
-   void restRequest::setUrlPath( string path )
-   {
-      SDB_ASSERT( _write, "rest is read only" ) ;
-
-      _path = path ;
-   }
-
-   void restRequest::setDataType( HTTP_DATA_TYPE type )
-   {
-      SDB_ASSERT( _write, "rest is read only" ) ;
-
-      _dataType = type ;
-   }
-
-   void restRequest::buildResponse( restResponse &response )
-   {
-      response.putHeader( REST_STRING_CONNECTION, REST_STRING_CLOSE ) ;
-      response.putHeader( REST_STRING_CACHE_CONTROL, REST_STRING_NO_STORE ) ;
-      response.putHeader( REST_STRING_PRAGMA, REST_STRING_NO_CACHE ) ;
-      response.putHeader( REST_STRING_CONTENT_TYPE, REST_STRING_TEXT_HTML ) ;
-
-      response.setDataType( this->getDataType() ) ;
-
-      if ( this->isKeepAlive() )
-      {
-         response.setKeepAlive() ;
-      }
-   }
-
-   HTTP_PARSE_COMMAND restRequest::getCommand()
-   {
-      return _command ;
-   }
-
-   string restRequest::getRequestPath()
-   {
-      return _path ;
-   }
-
-   string restRequest::getQuery( const string &key )
-   {
-      REST_COLNAME_MAP_IT it ;
-      string value ;
-
-      it = _queryList.find( key ) ;
-      if ( it != _queryList.end() )
-      {
-         value = it->second ;
-      }
-
-      return value ;
-   }
-
-   BOOLEAN restRequest::isQueryArgExist( const string &key )
-   {
-      REST_COLNAME_MAP_IT it = _queryList.find( key ) ;
-
-      return ( it != _queryList.end() ) ;
-   }
-
-   INT32 restRequest::on_url( void *pData, const CHAR* at, size_t length )
-   {
-      INT32 rc = SDB_OK ;
-      UINT32 pathLength = 0 ;
-      http_parser *pParser = (http_parser *)pData ;
-      restRequest *request = (restRequest *)pParser->data ;
-
-      for( UINT32 i = 0; i < length; ++i )
-      {
-         if ( '?' == at[i] )
-         {
-            pathLength = i ;
-            break ;
-         }
-      }
-
-      if( 0 == pathLength )
-      {
-         pathLength = (UINT32)length ;
-      }
-
-      request->_path = string( at, pathLength ) ;
-
-      if( pathLength < (UINT32)length )
-      {
-         rc = request->_parse_http_query( at + pathLength + 1,
-                                          length - pathLength - 1 ) ;
-         if ( rc )
-         {
-            return rc ;
-         }
-      }
-
-      request->_parseDataType() ;
-
-      return 0 ;
-   }
-
-   INT32 restRequest::_parse_http_query( const CHAR *pBuffer, INT32 length )
-   {
-      INT32 rc = SDB_OK ;
-      const CHAR *pKeyBuf   = pBuffer ;
-      const CHAR *pValueBuf = NULL ;
-      string key ;
-      string value ;
+      PD_TRACE_ENTRY( SDB__RESTADP_PARQUERY ) ;
+      INT32 keyLen      = 0 ;
+      INT32 valueLen    = 0 ;
+      INT32 keyOffset   = 0 ;
+      INT32 valueOffset = 0 ;
+      INT32 useLen      = 0 ;
+      INT32 tempDecodeLen = 0 ;
+      CHAR *pKeyBuf = NULL ;
+      CHAR *pValueBuf = NULL ;
+      CHAR *pDecodeKeyBuf = NULL ;
+      CHAR *pDecodeValueBuf = NULL ;
 
       for ( INT32 i = 0; i < length; ++i )
       {
-         if ( pBuffer[i] == '=' && key.empty() )
+         if ( pBuffer[i] == '=' && pValueBuf == NULL )
          {
-            INT32 keyLength = pBuffer + i - pKeyBuf ;
-
-            if( keyLength > 0 )
-            {
-               INT32 tempDecodeLen = urlDecodeSize( pKeyBuf, keyLength ) ;
-               CHAR *pDecodeBuf = NULL ;
-
-               rc = _malloc( tempDecodeLen + 1, &pDecodeBuf ) ;
-               if ( rc )
-               {
-                  PD_LOG ( PDERROR, "Unable to allocate %d bytes memory, "
-                                    "rc=%d",
-                           tempDecodeLen, rc ) ;
-                  goto error ;
-               }
-
-               pDecodeBuf[tempDecodeLen] = 0 ;
-
-               urlDecode( pKeyBuf, keyLength, &pDecodeBuf, tempDecodeLen ) ;
-
-               key = string( pDecodeBuf, tempDecodeLen ) ;
-
-               _releaseBuff( pDecodeBuf ) ;
-            }
-            else
-            {
-               key = "" ;
-            }
-
-            pValueBuf = pBuffer + i + 1 ;
+            valueOffset = i + 1 ;
+            pValueBuf = pBuffer + valueOffset ;
          }
-
-         if ( pBuffer[i] == '&' || ( i + 1 >= length ) )
+         else if ( pBuffer[i] == '&' || ( i + 1 == length ) )
          {
-            INT32 valueLength = pBuffer + i - pValueBuf ;
-
-            if ( i + 1 >= length )
+            pKeyBuf = pBuffer + keyOffset ;
+            keyLen = valueOffset - keyOffset - 1 ;
+            valueLen = i - valueOffset ;
+            if( i + 1 == length )
             {
-               ++valueLength ;
+               ++valueLen ;
             }
-
-            if( key.length() > 0 && valueLength > 0 )
+            pDecodeKeyBuf = pDecodeBuff + useLen ;
+            tempDecodeLen = urlDecodeSize( pKeyBuf, keyLen ) ;
+            urlDecode( pKeyBuf, keyLen,
+                       &pDecodeKeyBuf, tempDecodeLen ) ;
+            useLen += tempDecodeLen ;
+            pDecodeBuff[useLen] = 0 ;
+            ++useLen ;
+            if( pValueBuf )
             {
-               INT32 tempDecodeLen = urlDecodeSize( pValueBuf, valueLength ) ;
-               CHAR *pDecodeBuf = NULL ;
-
-               rc = _malloc( tempDecodeLen + 1, &pDecodeBuf ) ;
-               if ( rc )
-               {
-                  PD_LOG ( PDERROR, "Unable to allocate %d bytes memory, "
-                                    "rc=%d",
-                           tempDecodeLen, rc ) ;
-                  goto error ;
-               }
-
-               pDecodeBuf[tempDecodeLen] = 0 ;
-
-               urlDecode( pValueBuf, valueLength,
-                          &pDecodeBuf, tempDecodeLen ) ;
-
-               value = string( pDecodeBuf, tempDecodeLen ) ;
-
-               _releaseBuff( pDecodeBuf ) ;
+               pDecodeValueBuf = pDecodeBuff + useLen ;
+               tempDecodeLen = urlDecodeSize( pValueBuf, valueLen ) ;
+               urlDecode( pValueBuf, valueLen,
+                          &pDecodeValueBuf, tempDecodeLen ) ;
+               useLen += tempDecodeLen ;
+               pDecodeBuff[useLen] = 0 ;
+               ++useLen ;
             }
-            else
-            {
-               value = "" ;
-            }
-
-            pKeyBuf = pBuffer + i + 1 ;
-
-            if ( FALSE == key.empty() )
-            {
-               _queryList.insert( std::make_pair( key, value ) ) ;
-               key = "" ;
-               value = "" ;
-            }
+            pHttpConnection->_requestQuery.insert(
+                     std::make_pair( pDecodeKeyBuf, pDecodeValueBuf ) ) ;
+            pValueBuf = NULL ;
+            pDecodeValueBuf = NULL ;
+            keyOffset = i + 1 ;
          }
       }
-
-   done:
+      PD_TRACE_EXITRC ( SDB__RESTADP_PARQUERY, rc ) ;
       return rc ;
-   error:
-      goto done ;
    }
 
-   string restRequest::_generateHeader()
-   {
-      string header = http_method_str( (enum http_method)_method ) ;
-
-      header += " " + _path + " "REST_STRING_HTTP ;
-
-      return header ;
-   }
-
-   void restRequest::_parseDataType()
-   {
-      const CHAR *pFileName = NULL ;
-      const CHAR *pExtension = NULL ;
-
-      if( FALSE == _path.empty() )
-      {
-         pFileName = _getResourceFileName( _path.c_str() ) ;
-      }
-
-      if ( pFileName )
-      {
-         pExtension = _getFileExtension( pFileName ) ;
-         if ( NULL == pExtension )
-         {
-            _command = COM_CMD ;
-            _dataType = HTTP_FILE_HTML ;
-         }
-         else
-         {
-            INT32 extenSize = ossStrlen( pExtension ) ;
-
-            _command = COM_GETFILE ;
-            _dataType = HTTP_FILE_UNKNOW ;
-
-            for( UINT32 i = 0; i < REST_STRING_FILE_EX_SIZE; ++i )
-            {
-               if ( 0 == ossStrncasecmp( pExtension,
-                                         fileExtension[i], extenSize ) )
-               {
-                  _dataType = (HTTP_DATA_TYPE)i ;
-                  break ;
-               }
-            }
-
-            if( HTTP_FILE_JSP == _dataType ||
-                HTTP_FILE_PHP == _dataType ||
-                HTTP_FILE_ASP == _dataType )
-            {
-               _command = COM_CMD ;
-               _dataType = HTTP_FILE_HTML ;
-            }
-         }
-      }
-      else
-      {
-         if ( _queryList.size() > 0 )
-         {
-            _command = COM_CMD ;
-            _dataType = HTTP_FILE_HTML ;
-         }
-         else
-         {
-            _command = COM_GETFILE ;
-            _dataType = HTTP_FILE_DEFAULT ;
-         }
-      }
-   }
-
-   OSS_INLINE const CHAR *restRequest::_getResourceFileName( const CHAR *pPath )
+   OSS_INLINE const CHAR *restAdaptor::_getResourceFileName( const CHAR *pPath )
    {
       INT32 pathLen = ossStrlen( pPath ) ;
       for ( INT32 i = pathLen - 1; i >= 0; --i )
@@ -1648,7 +352,8 @@ namespace engine
       return NULL ;
    }
 
-   OSS_INLINE const CHAR *restRequest::_getFileExtension( const CHAR *pFileName )
+   OSS_INLINE const CHAR *restAdaptor::_getFileExtension(
+         const CHAR *pFileName )
    {
       INT32 fileNameLen = ossStrlen( pFileName ) ;
       for ( INT32 i = fileNameLen - 1; i >= 0; --i )
@@ -1668,169 +373,1168 @@ namespace engine
       return NULL ;
    }
 
-   /*
-   restResponse
-   */
-   restResponse::restResponse( IExecutor *cb ) : restBase( cb ),
-                                                 _isChunk( FALSE ),
-                                                 _rspCode( HTTP_OK )
+   OSS_INLINE BOOLEAN restAdaptor::_checkEndOfHeader( httpConnection * pHttpCon,
+                                                      CHAR *pBuffer,
+                                                      INT32 bufferSize,
+                                                      INT32 &bodyOffset )
    {
-   }
+      BOOLEAN rc = TRUE ;
+      for ( INT32 i = 0; i < bufferSize; ++i )
+      {
+         if ( pBuffer[i] == REST_STRING_CR )
+         {
+            switch( pHttpCon->_CRLFNum )
+            {
+            case 2: // x  \r \n \r
+               pHttpCon->_CRLFNum = 3 ;
+               break ;
+            case 0: // x  x  x  \r
+            case 1: // x  x  \r \r
+            case 3: // \r \n \r \r
+            default:
+               pHttpCon->_CRLFNum = 1 ;
+               break ;
+            }
+         }
+         else if ( pBuffer[i] == REST_STRING_LF )
+         {
+            switch( pHttpCon->_CRLFNum )
+            {
+            case 1: // x  x  \r \n
+               pHttpCon->_CRLFNum = 2 ;
+               break ;
+            case 3: // \r \n \r \n
+               pHttpCon->_CRLFNum = 4 ;
+               break ;
+            case 2: // x  \r \n \n
+            case 0: // x  x  x  \n
+            default:
+               pHttpCon->_CRLFNum = 0 ;
+               break ;
+            }
+         }
+         else
+         {
+            pHttpCon->_CRLFNum = 0 ;
+         }
 
-   restResponse::~restResponse()
-   {
-   }
+         if ( pHttpCon->_CRLFNum == 4 )
+         {
+            rc = TRUE ;
+            if ( i + 1 == bufferSize )
+            {
+               bodyOffset = 0 ;
+            }
+            else
+            {
+               bodyOffset = i + 1 ;
+            }
+            goto done ;
+         }
+      }
+      rc = FALSE ;
 
-   INT32 restResponse::init()
-   {
-      INT32 rc = SDB_OK ;
-
-      ossMemset( &_settings, 0, sizeof( http_parser_settings ) ) ;
-
-      _settings.on_message_begin    = restBase::on_message_begin ;
-      _settings.on_header_field     = restBase::on_header_field ;
-      _settings.on_header_value     = restBase::on_header_value ;
-      _settings.on_headers_complete = restBase::on_headers_complete ;
-      _settings.on_body             = restBase::on_body ;
-      _settings.on_message_complete = restBase::on_message_complete ;
-
+   done:
       return rc ;
    }
 
-   void restResponse::setDataType( HTTP_DATA_TYPE type )
+   PD_TRACE_DECLARE_FUNCTION( SDB__RESTADP_CONVERTMSG, "restAdaptor::_convertMsg" )
+   INT32 restAdaptor::_convertMsg( pmdRestSession *pSession,
+                                   HTTP_PARSE_COMMON &common,
+                                   CHAR **ppMsg,
+                                   INT32 &msgSize )
    {
-      SDB_ASSERT( _write, "rest is read only" ) ;
-      string fileType ;
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RESTADP_CONVERTMSG );
+      SDB_ASSERT ( pSession, "pSession is NULL" ) ;
+      SDB_ASSERT ( ppMsg, "pMsg is NULL" ) ;
+      UINT32 pathSize = 0 ;
+      UINT32 extenSize = 0 ;
+      const CHAR *pFileName = NULL ;
+      const CHAR *pExtension = NULL ;
+      CHAR *pMsg = NULL ;
+      httpConnection *pHttpCon = pSession->getRestConn() ;
 
-      switch( type )
+      if( pHttpCon->_pPath )
       {
-      case HTTP_FILE_PNG:
-         fileType = REST_STRING_TEXT_PNG ;
-         break ;
-      case HTTP_FILE_BMP:
-         fileType = REST_STRING_TEXT_BMP ;
-         break ;
-      case HTTP_FILE_JPG:
-         fileType = REST_STRING_TEXT_JPG ;
-         break ;
-      case HTTP_FILE_GIF:
-         fileType = REST_STRING_TEXT_GIF ;
-         break ;
-      case HTTP_FILE_SVG:
-         fileType = REST_STRING_TEXT_SVG ;
-         break ;
-      case HTTP_FILE_WOFF:
-         fileType = REST_STRING_TEXT_WOFF ;
-         break ;
-      case HTTP_FILE_EOT:
-         fileType = REST_STRING_TEXT_EOT ;
-         break ;
-      case HTTP_FILE_OTF:
-      case HTTP_FILE_TTF:
-         fileType = REST_STRING_TEXT_OCTET_STREAM ;
-         break ;
-      case HTTP_FILE_JS:
-         fileType = REST_STRING_TEXT_JS ;
-         break ;
-      case HTTP_FILE_CSS:
-         fileType = REST_STRING_TEXT_CSS ;
-         break ;
-      case HTTP_FILE_HTML:
-      case HTTP_FILE_DEFAULT:
-      case HTTP_FILE_UNKNOW:
-      default:
-         fileType = REST_STRING_TEXT_HTML ;
-         break ;
+         pFileName = _getResourceFileName( pHttpCon->_pPath ) ;
       }
 
-      putHeader( REST_STRING_CONTENT_TYPE, fileType ) ;
-   }
-
-   void restResponse::putHeader( const string &key, string value )
-   {
-      SDB_ASSERT( _write, "rest is read only" ) ;
-
-      if( REST_STRING_TRANSFER == key &&
-          REST_STRING_CHUNKED == value )
+      if ( pFileName )
       {
-         _isChunk = TRUE ;
-      }
+         pExtension = _getFileExtension( pFileName ) ;
+         if ( NULL == pExtension )
+         {
+            common = COM_CMD ;
+            pHttpCon->_fileType = HTTP_FILE_HTML ;
+         }
+         else
+         {
+            common = COM_GETFILE ;
+            pHttpCon->_fileType = HTTP_FILE_UNKNOW ;
+            extenSize = ossStrlen( pExtension ) ;
 
-      restBase::putHeader( key, value ) ;
-   }
+            for( UINT32 i = 0; i < REST_STRING_FILE_EX_SIZE; ++i )
+            {
+               if ( 0 == ossStrncasecmp( pExtension,
+                                         fileExtension[i], extenSize ) )
+               {
+                  pHttpCon->_fileType = (HTTP_FILE_TYPE)i ;
+                  break ;
+               }
+            }
 
-   INT32 restResponse::appendBody( const CHAR *pBuffer, INT32 length,
-                                   INT32 number, BOOLEAN isObjBuffer )
-   {
-      SDB_ASSERT( !_isChunk, "chunk mode can not call appendBody" ) ;
-
-      if( isObjBuffer && _bodyContent.size() == 0 )
-      {
-         string result = REST_RESULT_STRING_OK ;
-
-         _bodyContent.push_back( result ) ;
-
-         _bodySize += result.length() ;
-      }
-
-      return restBase::appendBody( pBuffer, length, number, isObjBuffer ) ;
-   }
-
-   void restResponse::setResponse( HTTP_RESPONSE_CODE rspCode )
-   {
-      SDB_ASSERT( _write, "rest is read only" ) ;
-
-      _rspCode = rspCode ;
-   }
-
-   void restResponse::setOPResult( INT32 result, const BSONObj &info )
-   {
-      SDB_ASSERT( _write, "rest is read only" ) ;
-      string json = info.toString( FALSE, TRUE ) ;
-
-      if( _bodyContent.size() == 0 )
-      {
-         _bodyContent.push_back( json ) ;
+            if( HTTP_FILE_JSP == pHttpCon->_fileType ||
+                HTTP_FILE_PHP == pHttpCon->_fileType ||
+                HTTP_FILE_ASP == pHttpCon->_fileType )
+            {
+               common = COM_CMD ;
+               pHttpCon->_fileType = HTTP_FILE_HTML ;
+            }
+         }
       }
       else
       {
-         _bodySize -= _bodyContent[0].length() ;
-
-         _bodyContent[0] = json ;
+         if ( pHttpCon->_requestQuery.size() > 0 )
+         {
+            common = COM_CMD ;
+            pHttpCon->_fileType = HTTP_FILE_HTML ;
+         }
+         else
+         {
+            common = COM_GETFILE ;
+            pHttpCon->_fileType = HTTP_FILE_DEFAULT ;
+         }
       }
 
-      _bodySize += json.length() ;
+      if( pHttpCon->_pPath )
+      {
+         pathSize = ossStrlen( pHttpCon->_pPath ) ;
+         rc = pSession->allocBuff( pathSize + 1, &pMsg, NULL ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Unable to allocate %u bytes memory, rc=%d",
+                     pathSize, rc ) ;
+            goto error ;
+         }
+         ossMemcpy( pMsg, pHttpCon->_pPath, pathSize ) ;
+         pMsg[pathSize] = 0 ;
+      }
+      else
+      {
+         pathSize = 1 ;
+         rc = pSession->allocBuff( pathSize + 1, &pMsg, NULL ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Unable to allocate %u bytes memory, rc=%d",
+                     pathSize, rc ) ;
+            goto error ;
+         }
+         pMsg[0] = '/' ;
+         pMsg[1] = 0 ;
+      }
+
+      *ppMsg = pMsg ;
+      msgSize = pathSize ;
+
+   done:
+      PD_TRACE_EXITRC ( SDB__RESTADP_CONVERTMSG, rc ) ;
+      return rc ;
+   error:
+      goto done ;
    }
 
-   void restResponse::setKeepAlive()
+   PD_TRACE_DECLARE_FUNCTION( SDB__RESTADP_INIT, "restAdaptor::init" )
+   INT32 restAdaptor::init( INT32 maxHttpHeaderSize,
+                            INT32 maxHttpBodySize,
+                            INT32 timeout )
    {
-      SDB_ASSERT( _write, "rest is read only" ) ;
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RESTADP_INIT );
 
-      _headerList[ REST_STRING_CONNECTION ] = REST_STRING_KEEP_ALIVE ;
+      http_parser_settings *pSettings = NULL ;
+
+      pSettings = (http_parser_settings *)SDB_OSS_MALLOC(
+            sizeof( http_parser_settings ) ) ;
+      if ( !pSettings )
+      {
+         rc = SDB_OOM ;
+         PD_LOG ( PDERROR, "Unable to allocate %d bytes memory",
+                  sizeof( http_parser_settings ) ) ;
+         goto error ;
+      }
+
+      ossMemset( pSettings, 0, sizeof( http_parser_settings ) ) ;
+      pSettings->on_message_begin    = restAdaptor::on_message_begin ;
+      pSettings->on_url              = restAdaptor::on_url ;
+      pSettings->on_header_field     = restAdaptor::on_header_field ;
+      pSettings->on_header_value     = restAdaptor::on_header_value ;
+      pSettings->on_headers_complete = restAdaptor::on_headers_complete ;
+      pSettings->on_body             = restAdaptor::on_body ;
+      pSettings->on_message_complete = restAdaptor::on_message_complete ;
+
+      _maxHttpHeaderSize = maxHttpHeaderSize ;
+      _maxHttpBodySize = maxHttpBodySize ;
+      _timeout = timeout ;
+      _pSettings = pSettings ;
+
+   done:
+      PD_TRACE_EXITRC ( SDB__RESTADP_INIT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
    }
 
-   void restResponse::setConnectionClose()
+   PD_TRACE_DECLARE_FUNCTION( SDB__RESTADP_PARAINIT, "restAdaptor::_paraInit" )
+   void restAdaptor::_paraInit( httpConnection *pHttpCon )
    {
-      SDB_ASSERT( _write, "rest is read only" ) ;
+      PD_TRACE_ENTRY( SDB__RESTADP_PARAINIT ) ;
+      pHttpCon->_tempKeyLen       = 0 ;
+      pHttpCon->_tempValueLen     = 0 ;
+      pHttpCon->_CRLFNum          = 0 ;
+      pHttpCon->_headerSize       = 0 ;
+      pHttpCon->_bodySize         = 0 ;
+      pHttpCon->_partSize         = 0 ;
+      pHttpCon->_firstRecordSize  = ( sizeof(REST_RESULT_STRING_OK) - 1 ) ;
+      pHttpCon->_responseSize     = 0 ;
+      pHttpCon->_isChunk          = FALSE ;
+      pHttpCon->_isSendHttpHeader = FALSE ;
+      pHttpCon->_isKey            = TRUE ;
+      pHttpCon->_pSourceHeaderBuf = NULL ;
+      pHttpCon->_pHeaderBuf       = NULL ;
+      pHttpCon->_pPartBody        = NULL ;
+      pHttpCon->_pBodyBuf         = NULL ;
+      pHttpCon->_pSendBuffer      = NULL ;
+      pHttpCon->_pTempKey         = NULL ;
+      pHttpCon->_pTempValue       = NULL ;
+      pHttpCon->_pPath            = NULL ;
+      httpResponse httpRe ;
 
-      _headerList[ REST_STRING_CONNECTION ] = REST_STRING_CLOSE ;
+      pHttpCon->_requestHeaders.clear() ;
+      pHttpCon->_requestQuery.clear() ;
+      pHttpCon->_responseHeaders.clear() ;
+      pHttpCon->_responseHeaders.insert(
+            std::make_pair( REST_STRING_CONNECTION, REST_STRING_CLOSE ) );
+      pHttpCon->_responseHeaders.insert(
+            std::make_pair( REST_STRING_CACHE_CONTROL, REST_STRING_NO_STORE ) );
+      pHttpCon->_responseHeaders.insert(
+            std::make_pair( REST_STRING_PRAGMA, REST_STRING_NO_CACHE ) ) ;
+      pHttpCon->_responseHeaders.insert(
+            std::make_pair( REST_STRING_CONTENT_TYPE, REST_STRING_TEXT_HTML ) );
+      pHttpCon->_responseBody.clear() ;
+      httpRe.pBuffer = REST_RESULT_STRING_OK ;
+      httpRe.len = sizeof( REST_RESULT_STRING_OK ) - 1 ;
+      pHttpCon->_responseBody.push_back( httpRe ) ;
+      PD_TRACE_EXIT( SDB__RESTADP_PARAINIT ) ;
    }
 
-   void restResponse::setChunkModal()
+   PD_TRACE_DECLARE_FUNCTION( SDB__RESTADP_RECVREQHE, "restAdaptor::recvRequestHeader" )
+   INT32 restAdaptor::recvRequestHeader( pmdRestSession *pSession )
    {
-      SDB_ASSERT( _write, "rest is read only" ) ;
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RESTADP_RECVREQHE ) ;
+      SDB_ASSERT ( pSession, "pSession is NULL" ) ;
+      httpConnection *pHttpCon = pSession->getRestConn() ;
+      CHAR *pBuffer = pSession->getFixBuff() ;
+      INT32 bufSize = pSession->getFixBuffSize() ;
+      http_parser *pParser = &(pHttpCon->_httpParser) ;
+      CHAR *pUrl = NULL ;
+      INT32 curRecvSize  = 0 ;
+      INT32 receivedSize = 0 ;
+      INT32 bodyOffset = 0 ;
+      INT32 urlSize = 0 ;
+      UINT32 recvSize = 0 ;
 
-      putHeader( REST_STRING_TRANSFER, REST_STRING_CHUNKED ) ;
+      _paraInit( pHttpCon ) ;
+
+      _maxHttpHeaderSize = _maxHttpHeaderSize > bufSize ?
+            bufSize : _maxHttpHeaderSize ;
+
+      pHttpCon->_pHeaderBuf = pBuffer ;
+
+      while( true )
+      {
+         recvSize = _maxHttpHeaderSize - receivedSize - 1 ;
+         rc = pSession->recvData( pBuffer + receivedSize,
+                                  recvSize,
+                                  _timeout,
+                                  FALSE,
+                                  &curRecvSize,
+                                  0 ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to recv, rc=%d", rc ) ;
+            goto error ;
+         }
+
+         pBuffer[ receivedSize + curRecvSize + 1 ] = '\0' ;
+
+         if ( _checkEndOfHeader( pHttpCon, pBuffer + receivedSize,
+                                 curRecvSize, bodyOffset ) )
+         {
+            if ( bodyOffset > 0 )
+            {
+               pHttpCon->_partSize  = curRecvSize - bodyOffset ;
+               pHttpCon->_pPartBody = pBuffer + receivedSize + bodyOffset ;
+               receivedSize += bodyOffset ;
+            }
+            else
+            {
+               receivedSize += curRecvSize ;
+            }
+            pHttpCon->_headerSize = receivedSize ;
+
+            rc = pSession->allocBuff( pHttpCon->_headerSize + 1,
+                                      &pHttpCon->_pSourceHeaderBuf, NULL ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Unable to allocate %d bytes memory, rc=%d",
+                        pHttpCon->_headerSize + 1, rc ) ;
+               goto error ;
+            }
+
+            ossMemcpy( pHttpCon->_pSourceHeaderBuf, pHttpCon->_pHeaderBuf,
+                       pHttpCon->_headerSize ) ;
+            pHttpCon->_pSourceHeaderBuf[pHttpCon->_headerSize] = 0 ;
+
+            break ;
+         }
+         else
+         {
+            receivedSize += curRecvSize ;
+            if ( receivedSize >= _maxHttpHeaderSize )
+            {
+               rc = SDB_REST_RECV_SIZE ;
+               PD_LOG ( PDERROR, "http header size %d greater than %d",
+                        receivedSize,
+                        _maxHttpHeaderSize ) ;
+               goto error ;
+            }
+         }
+      }
+
+      http_parser_init( pParser, HTTP_BOTH ) ;
+      if( http_parser_execute( pParser, (http_parser_settings *)_pSettings,
+                               pBuffer, (UINT32)receivedSize )
+                != (UINT32)receivedSize )
+      {
+         if ( HTTP_PARSER_ERRNO( pParser ) != 28 )
+         {
+            rc = SDB_REST_EHS ;
+            PD_LOG ( PDERROR, "Failed to parse http, %s, rc=%d",
+                     http_errno_description( HTTP_PARSER_ERRNO( pParser ) ),
+                     rc ) ;
+            goto error ;
+         }
+      }
+
+      if( pHttpCon->_pQuery != NULL )
+      {
+         urlSize = urlDecodeSize( pHttpCon->_pQuery, pHttpCon->_querySize ) ;
+         rc = pSession->allocBuff( urlSize + 1, &pUrl, NULL ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Unable to allocate %d bytes memory, rc=%d",
+                     urlSize + 1, rc ) ;
+            goto error ;
+         }
+         pUrl[ urlSize ] = 0 ;
+         _parse_http_query( pHttpCon,
+                            pHttpCon->_pQuery,
+                            pHttpCon->_querySize,
+                            pUrl,
+                            urlSize ) ;
+      }
+   done:
+      PD_TRACE_EXITRC( SDB__RESTADP_RECVREQHE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
    }
 
-   string restResponse::_generateHeader()
+   PD_TRACE_DECLARE_FUNCTION( SDB__RESTADP_RECVREQBO, "restAdaptor::recvRequestBody" )
+   INT32 restAdaptor::recvRequestBody( pmdRestSession *pSession,
+                                       HTTP_PARSE_COMMON &common,
+                                       CHAR **ppPath,
+                                       INT32 &pathSize )
    {
-      // HTTP/1.1 200 OK
-      string header = REST_STRING_HTTP" " ;
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RESTADP_RECVREQBO ) ;
+      SDB_ASSERT ( pSession, "pSession is NULL" ) ;
+      SDB_ASSERT ( ppPath, "ppPath is NULL" ) ;
+      httpConnection *pHttpCon = pSession->getRestConn() ;
+      CHAR *pBuffer = NULL ;
+      const CHAR *pContentLength = NULL ;
+      CHAR *pUrl = NULL ;
+      INT32 bodySize = 0 ;
+      INT32 curRecvSize  = 0 ;
+      INT32 receivedSize = 0 ;
+      INT32 urlSize = 0 ;
 
-      header += responseHeader[ _rspCode ] ;
+      rc = getHttpHeader( pSession, REST_STRING_CONLEN, &pContentLength ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to get http header, rc=%d", rc ) ;
+         goto error ;
+      }
 
-      return header ;
+      if ( pContentLength )
+      {
+         bodySize = ossAtoi( pContentLength ) ;
+         if ( bodySize > 0 )
+         {
+            if ( bodySize > _maxHttpBodySize )
+            {
+               rc = SDB_REST_RECV_SIZE ;
+               PD_LOG ( PDERROR, "http body size %d greater than %d",
+                        bodySize,
+                        _maxHttpBodySize ) ;
+               goto error ;
+            }
+
+            rc = pSession->allocBuff( bodySize + 1,
+                                      &(pHttpCon->_pBodyBuf),
+                                      NULL ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Unable to allocate %d bytes memory, rc=%d",
+                        bodySize, rc ) ;
+               goto error ;
+            }
+            pBuffer = pHttpCon->_pBodyBuf ;
+            pBuffer[bodySize] = 0 ;
+
+            pHttpCon->_bodySize = bodySize ;
+
+            if ( pHttpCon->_pPartBody )
+            {
+               ossMemcpy( pHttpCon->_pBodyBuf,
+                          pHttpCon->_pPartBody,
+                          pHttpCon->_partSize ) ;
+               receivedSize = pHttpCon->_partSize ;
+            }
+
+            rc = pSession->recvData( pBuffer + receivedSize,
+                                     bodySize - receivedSize,
+                                     _timeout,
+                                     TRUE,
+                                     &curRecvSize,
+                                     0 ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to recv, rc=%d", rc ) ;
+               goto error ;
+            }
+            receivedSize += curRecvSize ;
+
+            urlSize = urlDecodeSize( pBuffer, receivedSize ) ;
+            rc = pSession->allocBuff( urlSize + 1, &pUrl, NULL ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Unable to allocate %d bytes memory, rc=%d",
+                        urlSize + 1, rc ) ;
+               goto error ;
+            }
+            pUrl[ urlSize ] = 0 ;
+            _parse_http_query( pHttpCon, pBuffer, receivedSize,
+                               pUrl, urlSize ) ;
+         }
+      }
+
+      rc = _convertMsg( pSession, common, ppPath, pathSize ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to build msg, rc=%d", rc ) ;
+         goto error ;
+      }
+      pHttpCon->_common = common ;
+   done:
+      PD_TRACE_EXITRC( SDB__RESTADP_RECVREQBO, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   PD_TRACE_DECLARE_FUNCTION( SDB__RESTADP_SETOPR, "restAdaptor::setOPResult" )
+   INT32 restAdaptor::setOPResult( pmdRestSession *pSession,
+                                   INT32 result,
+                                   const BSONObj &info )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RESTADP_SETOPR ) ;
+      SDB_ASSERT ( pSession, "pSession is NULL" ) ;
+      httpConnection *pHttpCon = pSession->getRestConn() ;
+
+      if( COM_GETFILE != pHttpCon->_common )
+      {
+         std::string str = info.toString( FALSE, TRUE ) ;
+         INT32 bufferSize = ossStrlen( str.c_str() ) ;
+         if( TRUE == pHttpCon->_isChunk )
+         {
+            if( FALSE == pHttpCon->_isSendHttpHeader )
+            {
+               pHttpCon->_isSendHttpHeader = TRUE ;
+               rc = _setResponseType( pSession ) ;
+               if( rc )
+               {
+                  PD_LOG ( PDERROR, "Failed to set respone type, rc=%d",
+                           rc ) ;
+                  goto error ;
+               }
+               rc = _sendHttpHeader( pSession, HTTP_OK ) ;
+               if ( rc )
+               {
+                  PD_LOG ( PDERROR, "Failed to send http header, rc=%d", rc ) ;
+                  goto error ;
+               }
+            }
+            rc = _sendHttpChunk( pSession, str.c_str(), bufferSize ) ;
+            if( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to send http chunk, rc=%d", rc ) ;
+               goto error ;
+            }
+         }
+         else
+         {
+            CHAR *pBuffer = NULL ;
+            httpResponse httpRe ;
+            rc = pSession->allocBuff( bufferSize + 1, &pBuffer, NULL ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Unable to allocate %d bytes memory, rc=%d",
+                        bufferSize + 1, rc ) ;
+               goto error ;
+            }
+            ossMemcpy( pBuffer, str.c_str(), bufferSize ) ;
+            pBuffer[ bufferSize ] = 0 ;
+            pHttpCon->_firstRecordSize = bufferSize ;
+            httpRe.pBuffer = pBuffer ;
+            httpRe.len = bufferSize ;
+            pHttpCon->_responseBody[0] = httpRe ;
+         }
+      }
+   done:
+      PD_TRACE_EXITRC( SDB__RESTADP_SETOPR, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   PD_TRACE_DECLARE_FUNCTION( SDB__RESTADP_SENDRE, "restAdaptor::sendResponse" )
+   INT32 restAdaptor::sendResponse( pmdRestSession *pSession,
+                                    HTTP_RESPONSE_CODE rspCode )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RESTADP_SENDRE ) ;
+      SDB_ASSERT ( pSession, "pSession is NULL" ) ;
+      CHAR httpBodySize[256] = { 0 } ;
+      httpConnection *pHttpCon = pSession->getRestConn() ;
+      std::vector<httpResponse>::iterator it ;
+      httpResponse httpRe ;
+
+      if( TRUE == pHttpCon->_isChunk )
+      {
+         rc = pSession->sendData( REST_STRING_CHUNKED_END,
+                                  REST_STRING_CHUNKED_END_SIZE,
+                                  _timeout ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
+            goto error ;
+         }
+      }
+      else
+      {
+         if( HTTP_OK == rspCode )
+         {
+            ossSnprintf( httpBodySize, 255, "%d",
+                         pHttpCon->_firstRecordSize + pHttpCon->_responseSize );
+            rc = appendHttpHeader( pSession, REST_STRING_CONLEN, httpBodySize );
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to call append http header, rc=%d",
+                        rc ) ;
+               goto error ;
+            }
+            rc = _setResponseType( pSession ) ;
+            if( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to set respone type, rc=%d",
+                        rc ) ;
+               goto error ;
+            }
+         }
+         else
+         {
+            ossSnprintf( httpBodySize, 255, "0" ) ;
+            rc = appendHttpHeader( pSession, REST_STRING_CONLEN, httpBodySize );
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to call append http header, rc=%d",
+                        rc ) ;
+               goto error ;
+            }
+         }
+         rc = _sendHttpHeader( pSession, rspCode ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to send http header, rc=%d", rc ) ;
+            goto error ;
+         }
+
+         if( HTTP_OK == rspCode )
+         {
+            for( it = pHttpCon->_responseBody.begin();
+                 it != pHttpCon->_responseBody.end(); ++it )
+            {
+               httpRe = (*(it)) ;
+               rc = pSession->sendData( httpRe.pBuffer, httpRe.len,
+                                        _timeout ) ;
+               if ( rc )
+               {
+                  PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
+                  goto error ;
+               }
+            }
+         }
+      }
+   done:
+      PD_TRACE_EXITRC( SDB__RESTADP_SENDRE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   PD_TRACE_DECLARE_FUNCTION( SDB__RESTADP_APPENDHEADER, "restAdaptor::appendHttpHeader" )
+   INT32 restAdaptor::appendHttpHeader( pmdRestSession *pSession,
+                                        const CHAR *pKey,
+                                        const CHAR *pValue )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RESTADP_APPENDHEADER ) ;
+      SDB_ASSERT ( pSession, "pSession is NULL" ) ;
+      INT32 keySize = ossStrlen( pKey ) ;
+      INT32 valueSize = ossStrlen( pValue ) ;
+      INT32 newHeaderSize = keySize + valueSize + 2 ;
+      CHAR *pNewHeaderBuf = NULL ;
+      CHAR *pNewKey = NULL ;
+      CHAR *pNewValue = NULL ;
+      httpConnection *pHttpCon = pSession->getRestConn() ;
+      COLNAME_MAP_IT it ;
+
+      if( REST_STRING_TRANSFER_SIZE == ossStrlen( pKey ) && 
+          0 == ossStrncmp( pKey, REST_STRING_TRANSFER,
+                           REST_STRING_TRANSFER_SIZE ) &&
+          REST_STRING_CHUNKED_SIZE == ossStrlen( pValue ) &&
+          0 == ossStrncmp( pValue, REST_STRING_CHUNKED,
+                           REST_STRING_CHUNKED_SIZE ) )
+      {
+         pHttpCon->_isChunk = TRUE ;
+      }
+
+      it = pHttpCon->_responseHeaders.find( pKey ) ;
+      if ( it == pHttpCon->_responseHeaders.end() )
+      {
+         rc = pSession->allocBuff( newHeaderSize, &pNewHeaderBuf, NULL ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Unable to allocate %d bytes memory, rc=%d",
+                     newHeaderSize, rc ) ;
+            goto error ;
+         }
+
+         pNewKey = pNewHeaderBuf ;
+         pNewValue = pNewHeaderBuf + keySize + 1 ;
+         ossStrncpy( pNewKey, pKey, keySize ) ;
+         ossStrncpy( pNewValue, pValue, valueSize ) ;
+         pNewKey[ keySize ] = 0 ;
+         pNewValue[ valueSize ] = 0 ;
+         pHttpCon->_responseHeaders.insert(
+               std::make_pair( pNewKey, pNewValue ) ) ;
+      }
+      else
+      {
+         rc = pSession->allocBuff( valueSize + 1, &pNewValue, NULL ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Unable to allocate %d bytes memory, rc=%d",
+                     valueSize, rc ) ;
+            goto error ;
+         }
+         ossStrncpy( pNewValue, pValue, valueSize ) ;
+         pNewValue[ valueSize ] = 0 ;
+         it->second = pNewValue ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RESTADP_APPENDHEADER, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   void restAdaptor::_getQuery( httpConnection *pHttpCon,
+                                 const CHAR *pKey,
+                                 const CHAR **ppValue )
+   {
+      SDB_ASSERT ( pHttpCon, "pSession is NULL" ) ;
+      SDB_ASSERT ( pKey, "pKey is NULL" ) ;
+      SDB_ASSERT ( ppValue, "ppValue is NULL" ) ;
+      COLNAME_MAP_IT it ;
+
+      it = pHttpCon->_requestQuery.find( pKey ) ;
+      if ( it == pHttpCon->_requestQuery.end() )
+      {
+         *ppValue = NULL ;
+      }
+      else if( NULL == it->second )
+      {
+         *ppValue = REST_STRING_EMPTY ;
+      }
+      else
+      {
+         *ppValue = it->second ;
+      }
+   }
+
+   PD_TRACE_DECLARE_FUNCTION( SDB__RESTADP_GETHEADER, "restAdaptor::getHttpHeader" )
+   INT32 restAdaptor::getHttpHeader( pmdRestSession *pSession,
+                                     const CHAR *pKey,
+                                     const CHAR **ppValue )
+   {
+      INT32 rc = SDB_OK ;
+      SDB_ASSERT ( pSession, "pSession is NULL" ) ;
+      SDB_ASSERT ( pKey, "pKey is NULL" ) ;
+      SDB_ASSERT ( ppValue, "ppValue is NULL" ) ;
+      PD_TRACE_ENTRY( SDB__RESTADP_GETHEADER ) ;
+      httpConnection *pHttpCon = pSession->getRestConn() ;
+      COLNAME_MAP_IT it ;
+
+      it = pHttpCon->_requestHeaders.find( pKey ) ;
+      if ( it == pHttpCon->_requestHeaders.end() )
+      {
+         *ppValue = NULL ;
+      }
+      else
+      {
+         *ppValue = it->second ;
+      }
+      PD_TRACE_EXITRC( SDB__RESTADP_GETHEADER, rc ) ;
+      return rc ;
+   }
+
+   const CHAR *restAdaptor::getRequestHeader( pmdRestSession *pSession )
+   {
+      httpConnection *pHttpCon = pSession->getRestConn() ;
+      SDB_ASSERT ( pSession, "pSession is NULL" ) ;
+      return pHttpCon->_pSourceHeaderBuf ;
+   }
+
+   INT32 restAdaptor::getRequestHeaderSize( pmdRestSession *pSession )
+   {
+      httpConnection *pHttpCon = pSession->getRestConn() ;
+      SDB_ASSERT ( pSession, "pSession is NULL" ) ;
+      return pHttpCon->_headerSize ;
+   }
+
+   const CHAR *restAdaptor::getRequestBody( pmdRestSession *pSession )
+   {
+      httpConnection *pHttpCon = pSession->getRestConn() ;
+      SDB_ASSERT ( pSession, "pSession is NULL" ) ;
+      return pHttpCon->_pBodyBuf ;
+   }
+
+   INT32 restAdaptor::getRequestBodySize( pmdRestSession *pSession )
+   {
+      httpConnection *pHttpCon = pSession->getRestConn() ;
+      SDB_ASSERT ( pSession, "pSession is NULL" ) ;
+      return pHttpCon->_bodySize ;
+   }
+
+   BOOLEAN restAdaptor::isKeepAlive( pmdRestSession *pSession )
+   {
+      BOOLEAN isKeepAlive = FALSE ;
+      const CHAR *pValue = NULL ;
+
+      getHttpHeader( pSession, REST_STRING_CONNECTION, &pValue ) ;
+      if( pValue &&
+          ossStrncasecmp( pValue, REST_STRING_KEEP_ALIVE,
+                          sizeof( REST_STRING_KEEP_ALIVE ) - 1 ) == 0 )
+      {
+         isKeepAlive = TRUE ;
+      }
+
+      return isKeepAlive ;
+   }
+
+   PD_TRACE_DECLARE_FUNCTION( SDB__RESTADP_SENDHTTPHEADER, "restAdaptor::_sendHttpHeader" )
+   INT32 restAdaptor::_sendHttpHeader( pmdRestSession *pSession,
+                                       HTTP_RESPONSE_CODE rspCode )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RESTADP_SENDHTTPHEADER ) ;
+      httpConnection *pHttpCon = pSession->getRestConn() ;
+      CHAR CRLF[3] = { REST_STRING_CR, REST_STRING_LF, 0 } ;
+      COLNAME_MAP_IT it ;
+
+      rc = pSession->sendData( REST_FUN_STRING( REST_STRING_HTTP ),
+                               _timeout ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
+         goto error ;
+      }
+      rc = pSession->sendData( REST_FUN_STRING( responseHeader[ rspCode ] ),
+                               _timeout ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
+         goto error ;
+      }
+      rc = pSession->sendData( REST_FUN_STRING( CRLF ),
+                               _timeout ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
+         goto error ;
+      }
+
+      for( it = pHttpCon->_responseHeaders.begin();
+            it != pHttpCon->_responseHeaders.end(); ++it )
+      {
+         rc = pSession->sendData( REST_FUN_STRING( it->first ),
+                                  _timeout ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
+            goto error ;
+         }
+         rc = pSession->sendData( REST_FUN_STRING( REST_STRING_COLON ),
+                                  _timeout ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
+            goto error ;
+         }
+         rc = pSession->sendData( REST_FUN_STRING( it->second ),
+                                  _timeout ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
+            goto error ;
+         }
+         rc = pSession->sendData( REST_FUN_STRING( CRLF ),
+                                  _timeout ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
+            goto error ;
+         }
+      }
+      rc = pSession->sendData( REST_FUN_STRING( CRLF ),
+                               _timeout ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
+         goto error ;
+      }
+   done:
+      PD_TRACE_EXITRC( SDB__RESTADP_SENDHTTPHEADER, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 restAdaptor::_setResponseType( pmdRestSession *pSession )
+   {
+      INT32 rc = SDB_OK ;
+      SDB_ASSERT ( pSession, "pSession is NULL" ) ;
+      httpConnection *pHttpCon = pSession->getRestConn() ;
+      const CHAR *pFileType = NULL ;
+
+      if( COM_GETFILE == pHttpCon->_common )
+      {
+         switch( pHttpCon->_fileType )
+         {
+         case HTTP_FILE_PNG:
+            pFileType = REST_STRING_TEXT_PNG ;
+            break ;
+         case HTTP_FILE_BMP:
+            pFileType = REST_STRING_TEXT_BMP ;
+            break ;
+         case HTTP_FILE_JPG:
+            pFileType = REST_STRING_TEXT_JPG ;
+            break ;
+         case HTTP_FILE_GIF:
+            pFileType = REST_STRING_TEXT_GIF ;
+            break ;
+         case HTTP_FILE_SVG:
+            pFileType = REST_STRING_TEXT_SVG ;
+            break ;
+         case HTTP_FILE_WOFF:
+            pFileType = REST_STRING_TEXT_WOFF ;
+            break ;
+         case HTTP_FILE_EOT:
+            pFileType = REST_STRING_TEXT_EOT ;
+            break ;
+         case HTTP_FILE_OTF:
+         case HTTP_FILE_TTF:
+            pFileType = REST_STRING_TEXT_OCTET_STREAM ;
+            break ;
+         case HTTP_FILE_JS:
+            pFileType = REST_STRING_TEXT_JS ;
+            break ;
+         case HTTP_FILE_CSS:
+            pFileType = REST_STRING_TEXT_CSS ;
+            break ;
+         case HTTP_FILE_HTML:
+         case HTTP_FILE_DEFAULT:
+         case HTTP_FILE_UNKNOW:
+         default:
+            pFileType = REST_STRING_TEXT_HTML ;
+            break ;
+         }
+         rc = appendHttpHeader( pSession, REST_STRING_CONTENT_TYPE,
+                                pFileType ) ;
+         if( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to call append http header, rc=%d",
+                     rc ) ;
+            goto error ;
+         }
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 restAdaptor::_sendHttpChunk( pmdRestSession *pSession,
+                                      const CHAR *pBuffer,
+                                      INT32 length )
+   {
+      INT32 rc = SDB_OK ;
+      CHAR CRLF[3] = { REST_STRING_CR, REST_STRING_LF, 0 } ;
+      CHAR chunkSize[255] = { 0 } ;
+
+      ossSnprintf( chunkSize, 255, "%x\r\n", length ) ;
+      rc = pSession->sendData( REST_FUN_STRING( chunkSize ), _timeout ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
+         goto error ;
+      }
+      rc = pSession->sendData( pBuffer, length, _timeout ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
+         goto error ;
+      }
+      rc = pSession->sendData( REST_FUN_STRING( CRLF ), _timeout ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   PD_TRACE_DECLARE_FUNCTION( SDB__RESTADP_APPENDBODY, "restAdaptor::appendHttpBody" )
+   INT32 restAdaptor::appendHttpBody( pmdRestSession *pSession,
+                                      const CHAR *pBuffer,
+                                      INT32 length,
+                                      INT32 number, BOOLEAN isObjBuffer )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RESTADP_APPENDBODY ) ;
+      SDB_ASSERT ( pSession, "pSession is NULL" ) ;
+      SDB_ASSERT ( pBuffer, "pBuffer is NULL" ) ;
+      httpConnection *pHttpCon = pSession->getRestConn() ;
+      httpResponse httpRe ;
+
+      if( TRUE == pHttpCon->_isChunk )
+      {
+         if( FALSE == pHttpCon->_isSendHttpHeader )
+         {
+            pHttpCon->_isSendHttpHeader = TRUE ;
+            rc = _setResponseType( pSession ) ;
+            if( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to set respone type, rc=%d",
+                        rc ) ;
+               goto error ;
+            }
+            rc = _sendHttpHeader( pSession, HTTP_OK ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to send http header, rc=%d", rc ) ;
+               goto error ;
+            }
+         }
+
+         if( isObjBuffer )
+         {
+            INT32 jsonSize = 0 ;
+            BSONObj record ;
+            std::string str ;
+            _rtnObjBuff rtnObj( pBuffer, length, number ) ;
+
+            while( TRUE )
+            {
+               rc = rtnObj.nextObj( record ) ;
+               if ( SDB_DMS_EOC == rc )
+               {
+                  rc = SDB_OK ;
+                  break ;
+               }
+               else if ( SDB_SYS == rc )
+               {
+                  PD_LOG ( PDERROR, "Failed to get nextObj:rc=%d", rc ) ;
+                  goto error ;
+               }
+               
+               str = record.toString( FALSE, TRUE ) ;
+               jsonSize = ossStrlen( str.c_str() ) ;
+               rc = _sendHttpChunk( pSession, str.c_str(), jsonSize ) ;
+               if( rc )
+               {
+                  PD_LOG ( PDERROR, "Failed to send http chunk, rc=%d", rc ) ;
+                  goto error ;
+               }
+            }
+         }
+         else
+         {
+            rc = _sendHttpChunk( pSession, pBuffer, length ) ;
+            if( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to send http chunk, rc=%d", rc ) ;
+               goto error ;
+            }
+         }
+      }
+      else
+      {
+         if( isObjBuffer )
+         {
+            CHAR *pJson = NULL ;
+            INT32 jsonSize = 0 ;
+            BSONObj record ;
+            std::string str ;
+            _rtnObjBuff rtnObj( pBuffer, length, number ) ;
+
+            while( TRUE )
+            {
+               rc = rtnObj.nextObj( record ) ;
+               if ( SDB_DMS_EOC == rc )
+               {
+                  rc = SDB_OK ;
+                  break ;
+               }
+               else if ( SDB_SYS == rc )
+               {
+                  PD_LOG ( PDERROR, "Failed to get nextObj:rc=%d", rc ) ;
+                  goto error ;
+               }
+
+               str = record.toString( FALSE, TRUE ) ;
+               jsonSize = ossStrlen( str.c_str() ) ;
+               rc = pSession->allocBuff( jsonSize + 1, &pJson, NULL ) ;
+               if ( rc )
+               {
+                  PD_LOG ( PDERROR, "Unable to allocate %d bytes memory, rc=%d",
+                           jsonSize + 1, rc ) ;
+                  goto error ;
+               }
+               ossMemcpy( pJson, str.c_str(), jsonSize ) ;
+               pJson[ jsonSize ] = 0 ;
+               pHttpCon->_responseSize += jsonSize ;
+               httpRe.pBuffer = pJson ;
+               httpRe.len = jsonSize ;
+               pHttpCon->_responseBody.push_back( httpRe ) ;
+               pBuffer = NULL ;
+               jsonSize = 0 ;
+            }
+         }
+         else
+         {
+            CHAR *pFileText = NULL ;
+            rc = pSession->allocBuff( length + 1, &pFileText, NULL ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Unable to allocate %d bytes memory, rc=%d",
+                        length + 1, rc ) ;
+               goto error ;
+            }
+            ossMemcpy( pFileText, pBuffer, length ) ;
+            pFileText[ length ] = 0 ;
+            pHttpCon->_firstRecordSize = length ;
+            httpRe.pBuffer = pFileText ;
+            httpRe.len = length ;
+            pHttpCon->_responseBody[0] = httpRe ;
+         }
+      }
+   done:
+      PD_TRACE_EXITRC( SDB__RESTADP_APPENDBODY, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 restAdaptor::setChunkModal( pmdRestSession *pSession )
+   {
+      INT32 rc = SDB_OK ;
+      SDB_ASSERT ( pSession, "pSession is NULL" ) ;
+      rc = appendHttpHeader( pSession,
+                             REST_STRING_TRANSFER,
+                             REST_STRING_CHUNKED ) ;
+      if( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to set chunk modal, rc=%d", rc ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   HTTP_FILE_TYPE restAdaptor::getFileType( pmdRestSession *pSession )
+   {
+      SDB_ASSERT ( pSession, "pSession is NULL" ) ;
+      httpConnection *pHttpCon = pSession->getRestConn() ;
+      return pHttpCon->_fileType ;
+   }
+
+   PD_TRACE_DECLARE_FUNCTION( SDB__RESTADP_GETQUERY, "restAdaptor::getQuery" )
+   void restAdaptor::getQuery( pmdRestSession *pSession,
+                               const CHAR *pKey,
+                               const CHAR **ppValue )
+   {
+      PD_TRACE_ENTRY( SDB__RESTADP_GETQUERY ) ;
+      SDB_ASSERT ( pSession, "pSession is NULL" ) ;
+      SDB_ASSERT ( pKey, "pKey is NULL" ) ;
+      SDB_ASSERT ( ppValue, "ppValue is NULL" ) ;
+      httpConnection *pHttpCon = pSession->getRestConn() ;
+      _getQuery( pHttpCon, pKey, ppValue ) ;
+      PD_TRACE_EXIT( SDB__RESTADP_GETQUERY ) ;
+   }
+
+   PD_TRACE_DECLARE_FUNCTION( SDB__RESTADP_CLEARHTTPBODY, "restAdaptor::clearHtttpBody" )
+   void restAdaptor::clearHtttpBody( pmdRestSession *pSession )
+   {
+      PD_TRACE_ENTRY( SDB__RESTADP_CLEARHTTPBODY ) ;
+      SDB_ASSERT ( pSession, "pSession is NULL" ) ;
+      httpConnection *pHttpCon = pSession->getRestConn() ;
+      httpResponse httpRe ;
+      pHttpCon->_responseBody.clear() ;
+      httpRe.pBuffer = REST_RESULT_STRING_OK ;
+      httpRe.len = sizeof( REST_RESULT_STRING_OK ) - 1 ;
+      pHttpCon->_responseBody.push_back( httpRe ) ;
+      PD_TRACE_EXIT( SDB__RESTADP_CLEARHTTPBODY ) ;
    }
 }
-

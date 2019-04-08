@@ -25,8 +25,6 @@
 #endif
 #include <limits>
 #include <cmath>
-//#include "bsonobjiterator.h"
-//#include "bson-inl.h"
 #include "bsonmisc.h"
 #include "bsonnoncopyable.h"
 #include "bsonDecimal.h"
@@ -37,7 +35,6 @@ using namespace std;
 namespace bson {
 
 #if defined(_WIN32)
-// warning: 'this' : used in base member initializer list
 #pragma warning( disable : 4355 )
 #endif
 
@@ -101,7 +98,6 @@ namespace bson {
             _b.appendNum((unsigned)0);
             _b.skip(4); /*leave room for size field and ref-count*/
 
-            // Reserve space for the EOO byte. This means _done() can't fail.
             _b.reserveBytes(1);
         }
 
@@ -112,7 +108,6 @@ namespace bson {
         BSONObjBuilder( BufBuilder &baseBuilder ) : _b( baseBuilder ), _buf( 0 ),
           _offset( baseBuilder.len() ), _s( this ) , _tracker(0) , _doneCalled(false) {
             _b.skip( 4 );
-            // Reserve space for the EOO byte. This means _done() can't fail.
             _b.reserveBytes(1);
         }
 
@@ -121,7 +116,6 @@ namespace bson {
           _s( this ) , _tracker( (BSONSizeTracker*)(&tracker) ) , _doneCalled(false) {
             _b.appendNum((unsigned)0); // ref-count
             _b.skip(4);
-            // Reserve space for the EOO byte. This means _done() can't fail.
             _b.reserveBytes(1);
         }
 
@@ -134,8 +128,6 @@ namespace bson {
         /** add all the fields from the object specified to this object */
         BSONObjBuilder& appendElements(BSONObj x);
 
-        //add all the fields(without fieldName) from the object
-        //specified to this object
         BSONObjBuilder& appendElementsWithoutName(BSONObj x);
 
         /** add all the fields from the object specified to this object if they
@@ -145,7 +137,6 @@ namespace bson {
         /** append element to the object we are building */
         BSONObjBuilder& append( const BSONElement& e) {
             assert( !e.eoo() ); // do not append eoo, that would corrupt us.
-                            // the builder auto appends when done() is called.
             _b.appendBuf((void*) e.rawdata(), e.size());
             return *this;
         }
@@ -154,7 +145,6 @@ namespace bson {
         BSONObjBuilder& appendAs(const BSONElement& e,
           const StringData& fieldName) {
             assert( !e.eoo() ); // do not append eoo, that would corrupt us.
-                              // the builder auto appends when done() is called.
             _b.appendNum((char) e.type());
             _b.appendStr(fieldName);
             _b.appendBuf((void *) e.value(), e.valuesize());
@@ -336,7 +326,6 @@ namespace bson {
             digits  = decimal.getDigits() ;
             size    = decimal.getSize() ;
 
-            //define in common_decimal.h __sdb_decimal
             _b.appendNum( (char) NumberDecimal ) ;
             _b.appendStr( fieldName ) ;
             _b.appendNum( size ) ;         // size
@@ -511,7 +500,6 @@ namespace bson {
             return *this;
         }
 
-        // Append an element that is less than all other keys.
         BSONObjBuilder& appendMinKey( const StringData& fieldName ) {
             _b.appendNum( (char) MinKey );
             _b.appendStr( fieldName );
@@ -525,15 +513,12 @@ namespace bson {
             return *this;
         }
 
-        // Append an element that is greater than all other keys.
         BSONObjBuilder& appendMaxKey( const StringData& fieldName ) {
             _b.appendNum( (char) MaxKey );
             _b.appendStr( fieldName );
             return *this;
         }
 
-        // Append a Timestamp field -- will be updated to next OpTime on db
-        // insert.
         BSONObjBuilder& appendTimestamp( const StringData& fieldName ) {
             _b.appendNum( (char) Timestamp );
             _b.appendStr( fieldName );
@@ -559,15 +544,10 @@ namespace bson {
         }
 
         /**
-         * Append a timestamp value to a bson.
-         *
-         * @param b the bson to append to.
-         * @param fieldName the key for the timestampe value.
-         * @param time milliseconds since epoch(but stored in seconds).
-         * @param inc microseconds in range of [0us, 999999us].
-         *
-         * @return the current instance of BSONObjBuilder.
-         */
+        Timestamps are a special BSON datatype that is used internally for
+        replication. Append a timestamp element to the object being ebuilt.
+        @param time - in millis (but stored in seconds)
+        */
         BSONObjBuilder& appendTimestamp( const StringData& fieldName ,
           long long time , unsigned int inc );
 
@@ -696,8 +676,6 @@ namespace bson {
             return BSONObj(_done());
         }
 
-        // Like 'done' above, but does not construct a BSONObj
-        // to return to the caller.
         void doneFast() {
             (void)_done();
         }
@@ -747,8 +725,6 @@ namespace bson {
         /** Stream oriented way to add field names and values. */
         BSONObjBuilder& operator<<( GENOIDLabeler ) { return genOID(); }
 
-        // prevent implicit string conversions which would allow bad things
-        // like BSON( BSON( "foo" << 1 ) << 2 )
         struct ForceExplicitString {
             ForceExplicitString( const string &str ) : str_( str ) {}
             string str_;
@@ -868,11 +844,9 @@ namespace bson {
             return *this;
         }
 
-        // These two just use next position
         BufBuilder &subobjStart() { return _b.subobjStart( num() ); }
         BufBuilder &subarrayStart() { return _b.subarrayStart( num() ); }
 
-        // These fill missing entries up to pos. if pos is < next pos is ignored
         BufBuilder &subobjStart(int pos) {
             fill(pos);
             return _b.subobjStart( num() );
@@ -882,8 +856,6 @@ namespace bson {
             return _b.subarrayStart( num() );
         }
 
-        // These should only be used where you really need interface compatability with BSONObjBuilder
-        // Currently they are only used by update.cpp and it should probably stay that way
         BufBuilder &subobjStart( const StringData& name ) {
             fill( name );
             return _b.subobjStart( num() );
@@ -968,7 +940,6 @@ namespace bson {
     }
 
 
-    // $or helper: OR(BSON("x" << GT << 7), BSON("y" << LT 6));
     inline BSONObj OR(const BSONObj& a, const BSONObj& b)
         { return BSON( "$or" << BSON_ARRAY(a << b) ); }
     inline BSONObj OR(const BSONObj& a, const BSONObj& b, const BSONObj& c)

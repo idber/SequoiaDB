@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptUsrRemote.cpp
 
@@ -89,7 +88,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       INT32 retCode = SDB_OK ;
       CHAR* retBuf = NULL ;
-      // get hostname
       if ( arg.argc() >= 1 )
       {
          rc = arg.getString( 0, _hostname ) ;
@@ -101,7 +99,6 @@ namespace engine
          }
       }
 
-      // get svcname
       if ( arg.argc() >= 2 )
       {
          rc = arg.getString( 1, _svcname ) ;
@@ -191,7 +188,6 @@ namespace engine
       BSONObj recvObj ;
       string command ;
 
-      // get command
       rc = arg.getString( 0, command ) ;
       if ( rc == SDB_OUT_OF_BOUND )
       {
@@ -213,7 +209,6 @@ namespace engine
          goto error ;
       }
 
-      // get optionObj
       if ( arg.argc() >= 2 )
       {
          rc = arg.getBsonobj( 1, optionObj ) ;
@@ -225,7 +220,6 @@ namespace engine
          }
       }
 
-      // get matchObj
       if ( arg.argc() >= 3 )
       {
          rc = arg.getBsonobj( 2, matchObj ) ;
@@ -237,7 +231,6 @@ namespace engine
          }
       }
 
-      // get valueObj
       if ( arg.argc() >= 4 )
       {
          rc = arg.getBsonobj( 3, valueObj ) ;
@@ -249,7 +242,6 @@ namespace engine
          }
       }
 
-      // get argument needRecv
       if ( arg.argc() >= 5 )
       {
          rc = arg.getNative( 4, &needRecv, SPT_NATIVE_INT32 ) ;
@@ -286,7 +278,6 @@ namespace engine
       CHAR *retBuffer = NULL ;
       BSONObjBuilder builder ;
 
-      // merge arg
       rc = _mergeArg( optionObj, matchObj, valueObj, builder ) ;
       if ( SDB_OK != rc )
       {
@@ -295,7 +286,6 @@ namespace engine
          goto error ;
       }
 
-      // run command and get retrun BSONObj
       rc = _assit.runCommand( command, builder.obj().objdata(),
                               &retBuffer, retCode, needRecv ) ;
       if ( SDB_OK != rc )
@@ -305,10 +295,8 @@ namespace engine
          goto error ;
       }
 
-      // if need recv, need to build recvObj ;
       if ( needRecv )
       {
-         // build recvObj
          SDB_ASSERT( retBuffer, "retBuffer can't be null" ) ;
          rc = _initBSONObj( retObj, retBuffer ) ;
          if( SDB_OK != rc )
@@ -317,7 +305,6 @@ namespace engine
             goto error ;
          }
 
-         // check remote result
          if ( SDB_OK != retCode )
          {
             rc = retCode ;

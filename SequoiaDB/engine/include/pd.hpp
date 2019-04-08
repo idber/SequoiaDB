@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+   http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = pd.hpp
 
@@ -40,7 +39,6 @@
 #include "pdErr.hpp"
 
 #define PD_DFT_FILE_NUM             (20)
-#define PD_MIN_FILE_NUM             (-1)
 #define PD_DFT_FILE_SZ              (100)
 #define PD_DFT_DIAGLOG              "sdbdiag.log"
 #define PD_DFT_AUDIT                "sdbaudit.log"
@@ -123,7 +121,6 @@
                  fmt, ##__VA_ARGS__) ;                      \
    } while ( 0 )                                            \
 
-#define SDB_INTERNAL_DEBUG    0
 
 enum PDLEVEL
 {
@@ -183,8 +180,6 @@ enum AUDIT_TYPE
    AUDIT_SYSTEM         = 3,     /// System Info
 
    AUDIT_DML            = 8,     /// Insert, Update, Delete operation, but
-                                 /// not include detail records. If you need
-                                 /// to audit detail info, use AUDIT_INSERT...
    AUDIT_DDL            = 9,     /// Create/Drop Collection, and so on
    AUDIT_DCL            = 10,    /// Create User, Drop User and so on
    AUDIT_DQL            = 11,    /// Query, Explain
@@ -232,19 +227,9 @@ enum AUDIT_OBJ_TYPE
 } ;
 const CHAR* pdAuditObjType2String( AUDIT_OBJ_TYPE objtype ) ;
 
-/*
-   AUDIT_LEVEL define
-*/
-enum AUDIT_LEVEL
-{
-   AUDIT_LEVEL_USER  = 1,
-   AUDIT_LEVEL_CS,
-   AUDIT_LEVEL_CL
-} ;
-
 #define PD_AUDIT(type, username, ipAddr, port, action, objtype, objname, result, fmt, ...) \
    do { \
-      if ( pdIsAuditTypeEnabled( type ) ) \
+      if ( getCurAuditMask() & pdAuditType2Mask( type ) ) \
       { \
          try { \
             pdAudit(type, username, ipAddr, port, action, objtype, \
@@ -322,38 +307,15 @@ enum AUDIT_LEVEL
          PD_AUDIT(type,pUserName,fromIP,fromPort,tmp,objtype,objname,result,fmt, ##__VA_ARGS__) ;\
    }while( 0 )
 
-UINT32      pdAuditType2Mask( AUDIT_TYPE auditType ) ;
+UINT32 pdAuditType2Mask( AUDIT_TYPE auditType ) ;
 const CHAR* pdGetAuditTypeDesp( AUDIT_TYPE auditType ) ;
+INT32  pdString2AuditMask( const CHAR *pStr, UINT32 &mask ) ;
 
-INT32       pdString2AuditMask( const CHAR *pStr,
-                                UINT32 &mask,
-                                BOOLEAN allowNot,
-                                UINT32 *pConfigMask = NULL ) ;
-
-AUDIT_LEVEL pdGetAuditTypeMinLevel( AUDIT_TYPE auditType ) ;
-
-/*
-   Audit mask config functions
-*/
-void        pdInitCurAuditMask( UINT32 mask ) ;
-void        pdUpdateCurAuditMask( AUDIT_LEVEL level,
-                                  UINT32 mask,
-                                  UINT32 configMask ) ;
-
-void        pdClearCurAuditMask( AUDIT_LEVEL level ) ;
-void        pdClearCurUpBoundAuditMask( AUDIT_LEVEL level ) ;
-void        pdClearCurAllAuditMask() ;
-
-void        pdGetCurAuditMask( AUDIT_LEVEL level,
-                               UINT32 &mask,
-                               UINT32 &configMask ) ;
-
-UINT32      pdGetCurAuditVersion() ;
-
-BOOLEAN     pdIsAuditTypeEnabled( AUDIT_TYPE auditType ) ;
-
-UINT32&     pdGetAuditMask() ;
-UINT32      pdSetAuditMask( UINT32 newMask ) ;
+UINT32&     getAuditMask() ;
+UINT32      setAuditMask( UINT32 newMask ) ;
+UINT32&     getCurAuditMask() ;
+UINT32      setCurAuditMask( UINT32 newMask ) ;
+void        initCurAuditMask( UINT32 newMask ) ;
 
 const CHAR* getAuditName() ;
 const CHAR* getAuditPath() ;

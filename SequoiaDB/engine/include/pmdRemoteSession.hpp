@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pmdRemoteSession.hpp
 
@@ -41,9 +40,11 @@
 #include "sdbInterface.hpp"
 #include "netRouteAgent.hpp"
 
-#include "ossMemPool.hpp"
+#include <map>
+#include <set>
 #include <vector>
 #include "../bson/bson.h"
+#include "utilList.hpp"
 
 using namespace bson ;
 using namespace std ;
@@ -87,25 +88,16 @@ namespace engine
                                        const MsgHeader *pReq,
                                        BOOLEAN isFirst ) = 0 ;
 
-         virtual INT32  onSend( _pmdRemoteSession *pSession,
-                                _pmdSubSession *pSub )
+         virtual INT32  onExpiredReply ( _pmdEDUCB * cb,
+                                         const MsgHeader * pReply )
          {
             return SDB_OK ;
          }
 
-         virtual INT32  onExpiredReply ( _pmdRemoteSessionSite *pSite,
-                                         const MsgHeader *pReply )
+         virtual INT32  processExpiredContext ()
          {
             return SDB_OK ;
          }
-
-         virtual void   onHandleClose( _pmdRemoteSessionSite *pSite,
-                                       NET_HANDLE handle,
-                                       const MsgHeader *pReply )
-         {
-         }
-
-         virtual void   setUserData( UINT64 data ) {}
    } ;
    typedef _IRemoteSessionHandler IRemoteSessionHandler ;
 
@@ -126,7 +118,6 @@ namespace engine
    } ;
    typedef _IRemoteMgrHandle IRemoteMgrHandle ;
 
-   #define PMD_SUBSESSION_UDF_DATA_LEN          ( 24 )
    /*
       _pmdSubSession define
    */
@@ -141,7 +132,6 @@ namespace engine
 
          _pmdRemoteSession* parent() { return _parent ; }
 
-         // Req Msg
          void        setReqMsg( MsgHeader *pReqMsg,
                                 pmdEDUMemTypes memType = PMD_EDU_MEM_NONE ) ;
          void        setReqMsgMemType( pmdEDUMemTypes memType ) { _memType = memType ; }
@@ -149,44 +139,33 @@ namespace engine
          pmdEDUMemTypes getReqMemType() const { return _memType ; }
          void        clearRequestInfo() ;
 
-         // IOVec
          netIOVec*   getIODatas() { return &_ioDatas ; }
          void        clearIODatas() { _ioDatas.clear() ; }
          void        addIODatas( const netIOVec &ioVec ) ;
          void        addIOData( const netIOV &io ) ;
          UINT32      getIODataLen() ;
 
-         // Reply
          MsgHeader*  getRspMsg( BOOLEAN owned = FALSE ) ;
          void        clearReplyInfo() ;
 
-         // Other
          UINT64      getNodeIDUInt() const { return _nodeID.value ; }
          MsgRouteID  getNodeID() const { return _nodeID ; }
          UINT64      getReqID() const { return _reqID ; }
-
          void        setUserData( UINT64 userData ) { _userData = userData ; }
          UINT64      getUserData() const { return _userData ; }
 
-         CHAR*       getUDFData() { return _udfData ; }
-
-         // Process
          void        setProcessInfo( INT32 processResult ) ;
          BOOLEAN     isProcessed() const { return _isProcessed ; }
          INT32       getProcessRet() const { return _processResult ; }
          void        clearProcessInfo() ;
 
-         // Status
          BOOLEAN     isDisconnect() const { return _isDisconnect ; }
          BOOLEAN     isSend() const { return _isSend ; }
          BOOLEAN     hasReply() const { return _event._Data ? TRUE : FALSE ; }
          BOOLEAN     hasStop() const { return _hasStop ; }
          void        clearSend() { _isSend = FALSE ; }
          NET_HANDLE  getHandle() const { return _handle ; }
-         INT32       getOrgReqOpCode() const { return _reqOpCode ; }
-         INT32       getOrgRspOpCode() const { return _orgRspOpCode ; }
 
-         // control
          void        resetForResend() ;
 
       protected:
@@ -211,16 +190,12 @@ namespace engine
          MsgHeader                  *_pReqMsg ;
          pmdEDUMemTypes             _memType ;
          netIOVec                   _ioDatas ;
-         INT32                      _reqOpCode ;
-         INT32                      _orgRspOpCode ;
 
          pmdEDUEvent                _event ;
          BOOLEAN                    _isProcessed ;
          INT32                      _processResult ;
 
          UINT64                     _userData ;
-         CHAR                       _udfData[ PMD_SUBSESSION_UDF_DATA_LEN ] ;
-
          BOOLEAN                    _needToDel ;
          BOOLEAN                    _hasStop ;
          NET_HANDLE                 _handle ;
@@ -228,16 +203,18 @@ namespace engine
    } ;
    typedef _pmdSubSession pmdSubSession ;
 
-   typedef ossPoolMap< UINT64, pmdSubSession >     MAP_SUB_SESSION ;
+   typedef map< UINT64, pmdSubSession >            MAP_SUB_SESSION ;
    typedef MAP_SUB_SESSION::iterator               MAP_SUB_SESSION_IT ;
 
-   typedef ossPoolMap< UINT64, pmdSubSession* >    MAP_SUB_SESSIONPTR ;
+   typedef map< UINT64, pmdSubSession* >           MAP_SUB_SESSIONPTR ;
    typedef MAP_SUB_SESSIONPTR::iterator            MAP_SUB_SESSIONPTR_IT ;
 
    typedef vector< pmdSubSession* >                VEC_SUB_SESSIONPTR ;
 
-   typedef ossPoolSet< UINT64 >                    SET_NODEID ;
-   typedef ossPoolMap< UINT64, NET_HANDLE >        MAP_NODE2NET ;
+   typedef set< UINT64 >                           SET_NODEID ;
+   typedef map< UINT64, NET_HANDLE >               MAP_NODE2NET ;
+
+   typedef _utilList< std::pair< UINT64, INT64 > > CONTEXT_ID_MAP ;
 
    /*
       PMD_SUB_SESSION_FILTER define
@@ -312,7 +289,6 @@ namespace engine
          void           delSubSession( UINT64 nodeID ) ;
          void           clearSubSession() ;
 
-         void           reConnectSubSession( UINT64 nodeID ) ;
          void           resetSubSession( UINT64 nodeID ) ;
          void           resetAllSubSession() ;
          /*
@@ -328,7 +304,6 @@ namespace engine
          BOOLEAN        isAllReply() ;
 
          INT64          getMilliTimeout () const ;
-         INT64          getTotalWaitTime() const ;
 
       public:
          /*
@@ -368,7 +343,8 @@ namespace engine
          INT32    sendMsg( pmdSubSession *pSub ) ;
 
          INT32    waitReply1( BOOLEAN waitAll = FALSE,
-                              MAP_SUB_SESSIONPTR *pSubs = NULL ) ;
+                              MAP_SUB_SESSIONPTR *pSubs = NULL,
+                              BOOLEAN needTimeout = TRUE ) ;
          INT32    waitReply( BOOLEAN waitAll = FALSE,
                              VEC_SUB_SESSIONPTR *pSubs = NULL ) ;
 
@@ -405,8 +381,6 @@ namespace engine
          BOOLEAN                       _sessionChange ;
          UINT64                        _sessionID ;
          INT64                         _milliTimeout ; // ms
-         INT64                         _milliTimeoutHard ;  // ms
-         INT64                         _totalWaitTime ;  // ms
          UINT64                        _userData ;
 
    } ;
@@ -421,14 +395,10 @@ namespace engine
       friend class _pmdRemoteSessionMgr ;
       friend class _pmdRemoteSession ;
 
-      typedef ossPoolMap< UINT64, pmdRemoteSession >  MAP_REMOTE_SESSION ;
+      typedef map< UINT64, pmdRemoteSession >         MAP_REMOTE_SESSION ;
       typedef MAP_REMOTE_SESSION::iterator            MAP_REMOTE_SESSION_IT ;
 
-      /// High(32): SchedVersion + Low(32) : SessionVersion
-      typedef ossPoolMap< UINT64, UINT64 >            MAP_NODE_2_VERSION ;
-      typedef MAP_NODE_2_VERSION::iterator            MAP_NODE_2_VERSION_IT ;
-
-      typedef ossPoolSet< UINT16 >                    SET_NODES ;
+      typedef set< UINT16 >                           SET_NODES ;
 
       struct posAndNode
       {
@@ -458,9 +428,6 @@ namespace engine
          const MAP_NODE2NET& getAllNodesMap() { return _mapNode2Net ; }
          const MAP_NODE2NET* getAddNodesMapPtr() { return &_mapNode2Net ; }
          UINT32   getAllNodeID( SET_NODEID &setNodes ) ;
-
-         BOOLEAN  getNodeVer( UINT64 nodeID, UINT64 &ver ) const ;
-         void     setNodeVer( UINT64 nodeID, UINT64 ver ) ;
 
       public:
 
@@ -493,7 +460,6 @@ namespace engine
          _pmdEDUCB            *_pEDUCB ;
          netRouteAgent        *_pAgent ;
 
-         // last for free entry
          posAndNode           _assitNodeBuff[ PMD_SITE_NODEID_BUFF_SIZE + 1 ] ;
          SET_NODES            _assitNodes ;
          ossSpinSLatch        *_pLatch ;
@@ -504,8 +470,6 @@ namespace engine
          INT32                _curPos ;
 
          UINT64               _userData ;
-
-         MAP_NODE_2_VERSION   _mapNode2Ver ;
    } ;
    typedef _pmdRemoteSessionSite pmdRemoteSessionSite ;
 
@@ -514,8 +478,8 @@ namespace engine
    */
    class _pmdRemoteSessionMgr : public SDBObject
    {
-      typedef ossPoolMap< UINT32, pmdRemoteSessionSite >    MAP_TID_2_EDU ;
-      typedef MAP_TID_2_EDU::iterator                       MAP_TID_2_EDU_IT ;
+      typedef map< UINT32, pmdRemoteSessionSite >     MAP_TID_2_EDU ;
+      typedef MAP_TID_2_EDU::iterator                 MAP_TID_2_EDU_IT ;
 
       public:
          _pmdRemoteSessionMgr() ;
@@ -525,12 +489,8 @@ namespace engine
                            IRemoteMgrHandle *pHandle = NULL ) ;
          INT32       fini() ;
 
-         netRouteAgent*          getAgent() ;
-
          pmdRemoteSessionSite*   registerEDU( _pmdEDUCB *cb ) ;
          void                    unregEUD( _pmdEDUCB *cb ) ;
-
-         void                    setAllSiteSchedVer( INT32 ver ) ;
 
          pmdRemoteSessionSite*   getSite( _pmdEDUCB *cb ) ;
          pmdRemoteSessionSite*   getSite( UINT32 tid ) ;

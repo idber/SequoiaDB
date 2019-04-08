@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dmsRecord.hpp
 
@@ -43,17 +42,12 @@
 #include "../bson/bson.h"
 #include "oss.hpp"
 #include "ossUtil.hpp"
-#include "utilCompressor.hpp"
 
 namespace engine
 {
-   // 2^24 = 16MB, shouldn't be changed without completely redesign the
-   // dmsRecord structure this size includes metadata header
 
    #define DMS_RECORD_MAX_SZ           0x01000000
 
-   // since DPS may need extra space for header, let's make sure the max size of
-   // user record ( the ones need to log ) cannot exceed 16M-4K
 
    #define DMS_RECORD_USER_MAX_SZ      (DMS_RECORD_MAX_SZ-4096)
 
@@ -68,13 +62,12 @@ namespace engine
             reset() ;
          }
          _dmsRecordData( const CHAR *data, UINT32 len,
-                         UINT8 compressType = UTIL_COMPRESSOR_INVALID,
+                         BOOLEAN isCompress = FALSE,
                          BOOLEAN isOrgData = TRUE )
          {
             _data = data ;
             _len = len ;
-
-            _compressType = compressType ;
+            _isCompress = isCompress ;
 
             if ( isOrgData )
             {
@@ -99,11 +92,10 @@ namespace engine
          const CHAR* orgData() const { return _orgData ; }
          UINT32 orgLen() const { return _orgLen ; }
 
-         BOOLEAN isCompressed() const { return UTIL_COMPRESSOR_INVALID != _compressType ; }
-         UINT8 getCompressType () const { return _compressType ; }
+         BOOLEAN isCompressed() const { return _isCompress ; }
          FLOAT32 getCompressRatio() const
          {
-            if ( isCompressed() && _len > 0 && _orgLen > 0 )
+            if ( _isCompress && _len > 0 && _orgLen > 0 )
             {
                return ( (FLOAT32)_len ) / (FLOAT32)_orgLen ;
             }
@@ -111,13 +103,12 @@ namespace engine
          }
 
          void setData( const CHAR *data, UINT32 len,
-                       UINT8 compressType = UTIL_COMPRESSOR_INVALID,
+                       BOOLEAN compressed = FALSE,
                        BOOLEAN isOrgData = TRUE )
          {
             _data = data ;
             _len = len ;
-
-            _compressType = compressType ;
+            _isCompress = compressed ;
 
             if ( isOrgData )
             {
@@ -130,12 +121,16 @@ namespace engine
             _orgData = orgData ;
             _orgLen = orgLen ;
          }
+         void setCompress( BOOLEAN compressed )
+         {
+            _isCompress = compressed ;
+         }
 
          void reset()
          {
             _data = NULL ;
             _len = 0 ;
-            _compressType = UTIL_COMPRESSOR_INVALID ;
+            _isCompress = FALSE ;
             _orgData = NULL ;
             _orgLen = 0 ;
          }
@@ -149,7 +144,7 @@ namespace engine
          const CHAR     *_data ;
          UINT32         _len ;
 
-         UINT8          _compressType ;
+         BOOLEAN        _isCompress ;
 
          const CHAR     *_orgData ;
          UINT32         _orgLen ;
@@ -160,18 +155,14 @@ namespace engine
    /*
       Record Flag define:
    */
-   // 0~3 bit for STATE
    #define DMS_RECORD_FLAG_NORMAL            0x00
-   #define DMS_RECORD_FLAG_OVERFLOWF         0x01 // Overflow from record
-   #define DMS_RECORD_FLAG_OVERFLOWT         0x02 // Overflow to record
+   #define DMS_RECORD_FLAG_OVERFLOWF         0x01
+   #define DMS_RECORD_FLAG_OVERFLOWT         0x02
    #define DMS_RECORD_FLAG_DELETED           0x04
-   // 4~7 bit for ATTR
    #define DMS_RECORD_FLAG_COMPRESSED        0x10
-   // some one wait X-lock, the last one who get X-lock will delete the record
    #define DMS_RECORD_FLAG_DELETING          0x80
 
    #define DMS_RECORD_METADATA_SZ   sizeof(_dmsRecord)
-
    /*
       _dmsRecord defined
    */
@@ -254,7 +245,6 @@ namespace engine
          }
          return dmsRecordID() ;
       }
-
       UINT32 getSize() const
       {
 #if defined (SDB_BIG_ENDIAN)
@@ -263,19 +253,9 @@ namespace engine
          return (((*((const UINT32*)this))>>8)+1) ;
 #endif // SDB_BIG_ENDIAN
       }
-
-      UINT8 getCompressType () const
-      {
-#if defined (SDB_BIG_ENDIAN)
-         return ( (const UINT8 *)this + DMS_RECORD_METADATA_SZ )[ 0 ] ;
-#else
-         return ( (const UINT8 *)this + DMS_RECORD_METADATA_SZ )[ 3 ] ;
-#endif // SDB_BIG_ENDIAN
-      }
-
       UINT32 getDataLength() const
       {
-         return ( *(const UINT32 *)( (const CHAR*)this + DMS_RECORD_METADATA_SZ ) ) & 0x00FFFFFF ;
+         return *(const UINT32*)((const CHAR*)this+DMS_RECORD_METADATA_SZ) ;
       }
       /*
          Get disk data only, if compressed, not uncompressed
@@ -312,7 +292,7 @@ namespace engine
       }
       void setAttr( BYTE attr )
       {
-         _head._recordHead[ 0 ] |= (BYTE)(attr&0xF0) ;
+         _head._recordHead[ 0 ] = (BYTE)((attr&0xF0)|getState()) ;
       }
       void unsetAttr( BYTE attr )
       {
@@ -367,18 +347,6 @@ namespace engine
       (*((UINT32*)this) = (UINT32)getFlag() | ((UINT32)((size)-1)<<8)) ;
 #endif
       }
-
-      void setCompressType ( UINT8 type )
-      {
-         *(UINT32 *)( (CHAR *)this + DMS_RECORD_METADATA_SZ ) |=
-            ( ( (UINT32)type << 24 ) & 0xFF000000 ) ;
-//#if defined (SDB_BIG_ENDIAN)
-//         ( (UINT8 *)this + DMS_RECORD_METADATA_SZ )[ 0 ] = type ;
-//#else
-//         ( (UINT8 *)this + DMS_RECORD_METADATA_SZ )[ 3 ] = type ;
-//#endif // SDB_BIG_ENDIAN
-      }
-
       /*
          Copy the data to disk directly
       */
@@ -391,10 +359,7 @@ namespace engine
          if ( data.isCompressed() )
          {
             setCompressed() ;
-            UINT32 * temp = (UINT32 *)( (CHAR *)this + DMS_RECORD_METADATA_SZ ) ;
-            (*temp) = data.len() ;
-            (*temp) |= ( ( (UINT32)data.getCompressType() << 24 ) &
-                           0xFF000000 ) ;
+            *(UINT32*)((CHAR*)this+DMS_RECORD_METADATA_SZ) = data.len() ;
             ossMemcpy( (CHAR*)this+DMS_RECORD_METADATA_SZ+sizeof(UINT32),
                        data.data(), data.len() ) ;
          }
@@ -408,7 +373,6 @@ namespace engine
    } ;
    typedef _dmsRecord dmsRecord ;
 
-   // Extract Data
    #define DMS_RECORD_EXTRACTDATA( pRecord, retPtr, compressorEntry )   \
    do {                                                                 \
          if ( !pRecord->isCompressed() )                                \
@@ -418,8 +382,7 @@ namespace engine
          else                                                           \
          {                                                              \
             INT32 uncompLen = 0 ;                                       \
-            UINT8 compressType = pRecord->getCompressType() ;           \
-            rc = dmsUncompress( cb, compressorEntry, compressType,      \
+            rc = dmsUncompress( cb, compressorEntry,                    \
                                 pRecord->getData(),                     \
                                 pRecord->getDataLength(),               \
                                 (const CHAR**)&(retPtr), &uncompLen ) ; \
@@ -432,23 +395,14 @@ namespace engine
          }                                                              \
       } while ( FALSE )
 
-   // Capped collectionr record header.
    class _dmsCappedRecord : public SDBObject
    {
-      // Caution: This structure will use dmsRecord structure for data and
-      // attribute setting. DO NOT modify the members!
    public:
       union
       {
          CHAR     _recordHead[4] ;
          UINT32   _flag_and_size ;
       }           _head ;
-      // Record number which have been inserted into this extent. It's used to
-      // calculate record number being popped in pop operation, avoid scanning
-      // the whole extent.
-      // Note: It includes records which have been popped out forward, but
-      // excludes those which have been popped out backward. In a valid record,
-      // it should always be greater than 0.
       UINT32      _recNo ;
       INT64       _logicalID ;
 
@@ -523,11 +477,6 @@ namespace engine
          return ((const dmsRecord*)this)->isCompressed() ;
       }
 
-      UINT8 getCompressType () const
-      {
-         return ((const dmsRecord *)this)->getCompressType() ;
-      }
-
       BYTE getState() const
       {
          return ((const dmsRecord*)this)->getState() ;
@@ -600,10 +549,8 @@ namespace engine
    typedef _dmsDeletedRecord dmsDeletedRecord ;
    #define DMS_DELETEDRECORD_METADATA_SZ  sizeof(dmsDeletedRecord)
 
-   // oid + one field = 12 + 5 = 17, Algned:20
    #define DMS_MIN_DELETEDRECORD_SZ    (DMS_DELETEDRECORD_METADATA_SZ+20)
    #define DMS_MIN_RECORD_SZ           DMS_MIN_DELETEDRECORD_SZ
-   // The min size of BSONObj data.
    #define DMS_MIN_RECORD_DATA_SZ      5
 }
 

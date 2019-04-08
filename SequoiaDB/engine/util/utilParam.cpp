@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = utilParam.cpp
 
@@ -53,15 +52,6 @@
 
 namespace engine
 {
-
-   /*
-      limits.conf
-   */
-   #define UTIL_OPTION_LIMIT_CORE       "core_file_size"
-   #define UTIL_OPTION_LIMIT_DATA       "data_seg_size"
-   #define UTIL_OPTION_LIMIT_FILESIZE   "file_size"
-   #define UTIL_OPTION_LIMIT_VM         "virtual_memory"
-   #define UTIL_OPTION_LIMIT_FD         "open_files"
 
    INT32 utilReadConfigureFile( const CHAR *file,
                                 po::options_description &desc,
@@ -174,7 +164,6 @@ namespace engine
          ossDelete( tmpFile.c_str() ) ;
       }
 
-      // 1. first back up the file
       if ( SDB_OK == ossAccess( pFile ) )
       {
          if ( createOnly )
@@ -188,7 +177,6 @@ namespace engine
          }
       }
 
-      // 2. Create the file
       rc = ossOpen ( pFile, OSS_READWRITE|OSS_SHAREWRITE|OSS_REPLACE,
                      OSS_RWXU, file ) ;
       if ( rc )
@@ -197,7 +185,6 @@ namespace engine
       }
       isOpen = TRUE ;
 
-      // 3. write data
       {
          SINT64 written = 0 ;
          SINT64 len = ossStrlen( pData ) ;
@@ -216,7 +203,6 @@ namespace engine
          }
       }
 
-      // 4. remove tmp
       if ( SDB_OK == ossAccess( tmpFile.c_str() ) )
       {
          ossDelete( tmpFile.c_str() ) ;
@@ -509,7 +495,6 @@ namespace engine
       vector<pair<string, string> > vec ;
       vector<pair<string, string> >::iterator it ;
 
-      /// get full path of limits.conf
       rc = ossGetEWD( rootPath, OSS_MAX_PATHSIZE ) ;
       if ( rc )
       {
@@ -527,13 +512,12 @@ namespace engine
          goto error ;
       }
 
-      /// load limits.conf
       limitDesc.add_options()
-      ( UTIL_OPTION_LIMIT_CORE,      po::value<INT64>(), "" )
-      ( UTIL_OPTION_LIMIT_DATA,      po::value<INT64>(), "" )
-      ( UTIL_OPTION_LIMIT_FILESIZE,  po::value<INT64>(), "" )
-      ( UTIL_OPTION_LIMIT_VM,        po::value<INT64>(), "" )
-      ( UTIL_OPTION_LIMIT_FD,        po::value<INT64>(), "" ) ;
+      ( PMD_OPTION_LIMIT_CORE,      po::value<INT64>(), "" )
+      ( PMD_OPTION_LIMIT_DATA,      po::value<INT64>(), "" )
+      ( PMD_OPTION_LIMIT_FILESIZE,  po::value<INT64>(), "" )
+      ( PMD_OPTION_LIMIT_VM,        po::value<INT64>(), "" )
+      ( PMD_OPTION_LIMIT_FD,        po::value<INT64>(), "" ) ;
       rc = utilReadConfigureFile( confFileName, limitDesc, limitVarmap ) ;
       if ( rc )
       {
@@ -549,16 +533,15 @@ namespace engine
          goto error ;
       }
 
-      /// set ulimit and check
-      vec.push_back( make_pair<string,string>( UTIL_OPTION_LIMIT_CORE,
+      vec.push_back( make_pair<string,string>( PMD_OPTION_LIMIT_CORE,
                                                OSS_LIMIT_CORE_SZ ) ) ;
-      vec.push_back( make_pair<string,string>( UTIL_OPTION_LIMIT_DATA,
+      vec.push_back( make_pair<string,string>( PMD_OPTION_LIMIT_DATA,
                                                OSS_LIMIT_DATA_SEG_SZ ) ) ;
-      vec.push_back( make_pair<string,string>( UTIL_OPTION_LIMIT_FILESIZE,
+      vec.push_back( make_pair<string,string>( PMD_OPTION_LIMIT_FILESIZE,
                                                OSS_LIMIT_FILE_SZ ) ) ;
-      vec.push_back( make_pair<string,string>( UTIL_OPTION_LIMIT_VM,
+      vec.push_back( make_pair<string,string>( PMD_OPTION_LIMIT_VM,
                                                OSS_LIMIT_VIRTUAL_MEM ) ) ;
-      vec.push_back( make_pair<string,string>( UTIL_OPTION_LIMIT_FD,
+      vec.push_back( make_pair<string,string>( PMD_OPTION_LIMIT_FD,
                                                OSS_LIMIT_OPEN_FILE ) ) ;
       for( it = vec.begin() ; it != vec.end() ; it++ )
       {
@@ -574,14 +557,12 @@ namespace engine
          INT64 curSoft = 0, curHard = 0 ;
          BOOLEAN hasGot = FALSE ;
 
-         // set ulimit
          hasGot = procLim.getLimit( limStr.c_str(), curSoft, curHard ) ;
          if ( !hasGot ||  curSoft != limVal )
          {
             procLim.setLimit( limStr.c_str(), limVal, limVal ) ;
          }
 
-         // check ulimit
          hasGot = procLim.getLimit( limStr.c_str(), curSoft, curHard ) ;
          if ( !hasGot )
          {
@@ -614,7 +595,6 @@ namespace engine
       OSSUID curUID  = OSS_INVALID_UID ;
       OSSGID curGID  = OSS_INVALID_GID ;
 
-      // first compare file:cur uid/gid
       ossGetFileUserInfo( curFileName, fileUID, fileGID ) ;
       curUID = ossGetCurrentProcessUID() ;
       curGID = ossGetCurrentProcessGID() ;
@@ -622,19 +602,15 @@ namespace engine
       if ( OSS_INVALID_UID == fileUID || 0 == fileUID ||
            OSS_INVALID_GID == fileGID || 0 == fileGID )
       {
-         // get install user info
          rc = utilGetInstallInfo( info ) ;
          if ( rc )
          {
-            // no install info, not change
             rc = SDB_OK ;
             goto done ;
          }
-         // get install user uid and gid
          rc = ossGetUserInfo( info._user.c_str(), fileUID, fileGID ) ;
          if ( rc )
          {
-            // no install user, not change
             rc = SDB_OK ;
             goto done ;
          }

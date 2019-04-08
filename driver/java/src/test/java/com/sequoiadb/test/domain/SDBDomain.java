@@ -22,7 +22,6 @@ public class SDBDomain {
 
     @BeforeClass
     public static void setConnBeforeClass() throws Exception {
-        // sdb
         sdb = new Sequoiadb(Constants.COOR_NODE_CONN, "", "");
         isCluster = Constants.isCluster();
     }
@@ -34,10 +33,8 @@ public class SDBDomain {
 
     @Before
     public void setUp() throws Exception {
-        if (!isCluster) {
+        if (!isCluster)
             return;
-        }
-        // domain
         BSONObject options = new BasicBSONObject();
         BSONObject arr = new BasicBSONList();
         arr.put("0", Constants.GROUPNAME);
@@ -45,9 +42,8 @@ public class SDBDomain {
         if (sdb.isDomainExist(Constants.TEST_DOMAIN_NAME)) {
             sdb.dropDomain(Constants.TEST_DOMAIN_NAME);
             dm = sdb.createDomain(Constants.TEST_DOMAIN_NAME, options);
-        } else {
+        } else
             dm = sdb.createDomain(Constants.TEST_DOMAIN_NAME, options);
-        }
     }
 
     @After
@@ -62,14 +58,10 @@ public class SDBDomain {
         if (!isCluster)
             return;
         String dmName = "test_domain_name";
-        // create domain
         Domain domain1 = sdb.createDomain(dmName, null);
-        // get domain
         Domain domain2 = sdb.getDomain(dmName);
         String name = domain2.getName();
-        // check
         assertTrue(name.equals(dmName));
-        // dropDomain
         try {
             sdb.dropDomain(dmName);
         } catch (BaseException e) {

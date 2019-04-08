@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnRemoteExec.cpp
 
@@ -113,8 +112,7 @@ namespace engine
       rc = utilReadConfigureFile ( conf, desc, vm ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR,
-                  "Failed to read configure file[%s], rc = %d", conf, rc ) ;
+         PD_LOG ( PDERROR, "Failed to read configure file, rc = %d", rc ) ;
          goto error ;
       }
       else if ( vm.count(hostname2) )
@@ -156,7 +154,6 @@ namespace engine
          {
             PD_LOG( PDWARNING, "Failed to disable nagle, rc: %d", rc ) ;
          }
-         // set keep alive
          rc = sock.setKeepAlive( 1, OSS_SOCKET_KEEP_IDLE,
                                  OSS_SOCKET_KEEP_INTERVAL,
                                  OSS_SOCKET_KEEP_CONTER ) ;
@@ -165,7 +162,6 @@ namespace engine
             PD_LOG( PDWARNING, "Failed to set keep alive, rc=%d", rc ) ;
          }
 
-         // build message
          rc = msgBuildCMRequest ( &pCMRequest, &reqSize, remoCode,
                                    arg1, arg2, arg3, arg4 ) ;
          if ( rc )
@@ -175,7 +171,6 @@ namespace engine
             goto error ;
          }
 
-         // send message
          rc = pmdSend ( pCMRequest, ((MsgHeader*)pCMRequest)->messageLength,
                         &sock, pmdGetThreadEDUCB() ) ;
          if ( rc )
@@ -184,7 +179,6 @@ namespace engine
             goto error ;
          }
 
-         // receive message
          rc = pmdRecv ( (CHAR*)&packetLength, sizeof (SINT32), &sock,
                         pmdGetThreadEDUCB() ) ;
          if ( rc )
@@ -202,7 +196,6 @@ namespace engine
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-         // free at the end of this function
          pReceiveBuffer = (CHAR*)SDB_OSS_MALLOC ( packetLength + 1 ) ;
          if ( !pReceiveBuffer )
          {
@@ -224,14 +217,12 @@ namespace engine
          pReceiveBuffer[ packetLength ] = 0 ;
       }
 
-      // process reply
       {
          SINT64 contextID  = 0 ;
          SINT32 startFrom = 0 ;
          SINT32 numReturned = 0 ;
          vector<BSONObj> objLst ;
-
-         // extract message
+        
          rc = msgExtractReply ( pReceiveBuffer, retCode, &contextID,
                                 &startFrom, &numReturned, objLst ) ;
          if ( rc )

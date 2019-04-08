@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pmdEDUMgr.hpp
 
@@ -68,8 +67,7 @@ namespace engine
 
    typedef boost::shared_ptr<ossEvent>       pmdEventPtr ;
 
-   #define PMD_STOP_TIMEOUT               ( 600000 )  /// 10 mins
-   #define PMD_STOP_DEADCHECK_TIMEOUT     ( PMD_STOP_TIMEOUT + 60000 )
+   #define PMD_STOP_TIMEOUT      ( 600000 )  /// 10 mins
 
    /*
       _pmdEDUMgr define
@@ -101,16 +99,11 @@ namespace engine
          BOOLEAN           reset( INT64 timeout = PMD_STOP_TIMEOUT ) ;
          UINT32            dumpAbnormalEDU() ;
 
-         INT32             startDeadCheck( INT64 timeout = PMD_STOP_DEADCHECK_TIMEOUT ) ;
-         void              stopDeadCheck() ;
-
          UINT32            countIOService() ;
          UINT32            size() ;
          UINT32            sizeRun() ;
          UINT32            sizeIdle() ;
          UINT32            sizeSystem() ;
-         UINT32            sizeByType( INT32 type ) ;
-         UINT32            sizeWithSession() ;
          void              sizeInfo( UINT32 &runSize,
                                      UINT32 &idleSize,
                                      UINT32 &sysSize ) ;
@@ -126,9 +119,6 @@ namespace engine
 
          INT32             activateEDU( EDUID eduID ) ;
          INT32             activateEDU( pmdEDUCB *cb ) ;
-
-         void              lockEDU( pmdEDUCB *cb ) ;
-         void              unlockEDU( pmdEDUCB *cb ) ;
 
          INT32             createIdleEDU( EDUID *pEDUID ) ;
 
@@ -234,10 +224,8 @@ namespace engine
 
          IResource                  *_pResource ;
          boost::thread              *_pMonitorThd ;
-         boost::thread              *_pDeadCheckThd ;
 
          ossAutoEvent               _monitorEvent ;
-         ossAutoEvent               _deadCheckEvent ;
 
       private:
          /*
@@ -248,7 +236,6 @@ namespace engine
                                  pmdEventPtr ePtr,
                                  BOOLEAN &quitWithException ) ;
          void  monitor() ;
-         void  deadCheck( INT64 timeout ) ;
    };
    typedef _pmdEDUMgr pmdEDUMgr ;
 

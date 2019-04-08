@@ -63,10 +63,6 @@ error:
    goto done ;
 }
 
-/// record: {a:[1,2]}
-///         {a:[3,4]}
-/// match: {"a.$0":1 }
-/// return: {a:[1,2]}
 TEST( mthmatcher, dollar_match_1 )
 {
    INT32 rc = SDB_OK ;
@@ -98,11 +94,6 @@ TEST( mthmatcher, dollar_match_1 )
    ASSERT_EQ( 1, cnt ) ;
 }
 
-/// record: {a:[1,2]}
-///          {a:[3,4]}
-/// match: {"a.$0":1 }, set a.$0 to 5
-/// final   {a:[5, 2]}
-///         {a:[3,4])
 TEST( mthmatcher, dollar_match_2 )
 {
    INT32 rc = SDB_OK ;
@@ -138,10 +129,6 @@ TEST( mthmatcher, dollar_match_2 )
    
 }
 
-/// record: {a:[1,[2,3]]}
-///         {a:[1, [4,5]]}
-/// match: {"a.$0.$1":2}
-/// return {a:[1,[2,3]]}
 TEST( mthmatcher, dollar_match_3 )
 {
    INT32 rc = SDB_OK ;
@@ -173,11 +160,6 @@ TEST( mthmatcher, dollar_match_3 )
    ASSERT_EQ( 1, cnt ) ;   
 }
 
-/// record: {a:[1,[2,3]]}
-///         {a:[1, [4,5]]}
-/// match {"a.$0.$1:2} set {"a.$0.$1": 6}
-/// final {a:[1,[6,3]}
-//        {a:[1, [4,5]]}
 TEST( mthmatcher, dollar_match_4 )
 {
    INT32 rc = SDB_OK ;
@@ -212,10 +194,6 @@ TEST( mthmatcher, dollar_match_4 )
    ASSERT_EQ( 1, cnt ) ;
 }
 
-/// record: {a:[1, {b:[2,3]}]}
-///         {a:[1, {b:[4,5]}]}
-/// match {"a.$0.b.$1":2}
-/// return {a:[1, {b:[2,3]}]}
 TEST( mthmatcher, dollar_match_5 )
 {
    INT32 rc = SDB_OK ;
@@ -247,11 +225,6 @@ TEST( mthmatcher, dollar_match_5 )
    ASSERT_EQ( 1, cnt ) ;   
 }
 
-/// record: {a:[1, {b:[2,3]}]}
-///         {a:[1, {b:[4,5]}]}
-/// match {"a.$0.b.$1":2} set {"a.$0.b.$1":6}
-/// final   {a:[1, {b:[6,3]}]}}
-//          {a:[1, {b:[4,5]}]}
 TEST( mthmatcher, dollar_match_6 )
 {
    INT32 rc = SDB_OK ;
@@ -286,10 +259,6 @@ TEST( mthmatcher, dollar_match_6 )
    ASSERT_EQ( 1, cnt ) ;
 }
 
-/// record {a:[1,2,3], b:1}
-//         {a:[1,2,3], b:4}
-//  match  {"a.$0":{$field:"b"}}
-//  return {a:[1,2,3], b:1}
 TEST( mthmatcher, dollar_match_7 )
 {
    INT32 rc = SDB_OK ;
@@ -321,11 +290,6 @@ TEST( mthmatcher, dollar_match_7 )
    ASSERT_EQ( 1, cnt ) ;  
 }
 
-/// record {a:[1,2,3], b:1}
-//         {a:[1,2,3], b:4}
-//  match  {"a.$0":{$field:"b"}}  set {"a.$0": 5}
-//  final      {a:[5,2,3], b:1}
-//             {a:[1,2,3], b:4}
 TEST( mthmatcher, dollar_match_8 )
 {
    INT32 rc = SDB_OK ;
@@ -360,9 +324,6 @@ TEST( mthmatcher, dollar_match_8 )
    ASSERT_EQ( 1, cnt ) ;
 }
 
-/// index {a.b:1}
-// match {a.$0.b.$1:1}
-// ix scan
 TEST( mthmatcher, dollar_match_9 )
 {
    INT32 rc = SDB_OK ;
@@ -392,10 +353,6 @@ TEST( mthmatcher, dollar_match_9 )
    cursor.close() ;
 }
 
-/// record {a:[{b:[{c:1}, {c:2}]}]}
-///        {a:[{b:[{c:3}, {c:4}]}]}
-//  match {"a.$0.b.$1.c":1}
-//  return {a:[{b:[{c:1}, {c:2}]}]}
 TEST( mthmatcher, dollar_match_10 )
 {
    INT32 rc = SDB_OK ;
@@ -427,11 +384,6 @@ TEST( mthmatcher, dollar_match_10 )
    ASSERT_EQ( 1, cnt ) ;
 }
 
-/// record {a:[{b:[{c:1}, {c:2}]}]}
-//         {a:[{b:[{c:3}, {c:4}]}]}
-//   match {"a.$0.b.$1.c":1}  set {"a.$0.b.$1.c":5}
-//   final      {a:[{b:[{c:51}, {c:2}]}]}
-//              {a:[{b:[{c:3}, {c:4}]}]}
 TEST( mthmatcher, dollar_match_11 )
 {
    INT32 rc = SDB_OK ;

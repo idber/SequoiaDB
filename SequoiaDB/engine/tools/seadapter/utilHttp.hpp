@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = utilHttp.hpp
 
@@ -40,6 +39,7 @@
 #define UTIL_HTTP_HPP_
 
 #include "ossSocket.hpp"
+
 #include "utilHttpDef.hpp"
 #include "http_parser.hpp"
 #include <string>
@@ -66,11 +66,7 @@ namespace seadapter
          _utilHttp() ;
          ~_utilHttp() ;
 
-         // The format of the uri should be like "192.168.1.100:9200".
-         // If you call init multiple times, only the last call will take
-         // affect.
-         INT32 init( const string &uri, BOOLEAN keepAlive = TRUE,
-                     INT32 timeout = HTTP_OPRATION_TIMEOUT ) ;
+         INT32 init( const string &uri, BOOLEAN keepAlive = TRUE ) ;
          void reset() ;
 
          OSS_INLINE BOOLEAN isConnected() const
@@ -78,7 +74,26 @@ namespace seadapter
             return ( _socket && _socket->isConnected() ) ;
          }
 
-         // Generic request.
+         OSS_INLINE INT32 reconnect()
+         {
+            INT32 rc = SDB_OK ;
+
+            if ( !_socket )
+            {
+               PD_LOG( PDEVENT, "Not initialized yet" ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+
+            rc = _connectBySocket() ;
+            PD_RC_CHECK( rc, PDERROR, "Create connection by socket "
+                         "failed[ %d ]", rc ) ;
+         done:
+            return rc ;
+         error:
+            goto done ;
+         }
+
          INT32 request( const CHAR *method,
                         const CHAR *endUrl,
                         const CHAR *data = NULL,
@@ -135,7 +150,7 @@ namespace seadapter
       private:
          INT32 _parseUri( const string &uri ) ;
          INT32 _connectBySocket() ;
-         INT32 _connect() ;
+         INT32 _connect( BOOLEAN newSock = FALSE ) ;
          void  _disconnect() ;
          BOOLEAN _validMethod( const CHAR *method ) ;
          void _buildReqStr( const CHAR *method, const CHAR *endUrl,
@@ -157,7 +172,6 @@ namespace seadapter
                                     INT32 &bodyOffset ) ;
          INT32 _parseHeader( CHAR *buff, INT32 len ) ;
 
-         // HTTP parser callback functions.
          static INT32 _onMessageBegin( void *data ) ;
          static INT32 _onUrl( void *data, const CHAR* at, size_t length ) ;
          static INT32 _onStatus( void *data, const CHAR* at, size_t length ) ;
@@ -168,10 +182,8 @@ namespace seadapter
          static INT32 _onMessageComplete( void *data ) ;
 
 
-         /// Append the chunk message to the stream.
          size_t appendChunk(string& output, CHAR* msg, size_t msgSize);
 
-         /// Determine if we must reconnect.
          /*
          inline bool mustReconnect() const
          {
@@ -181,7 +193,6 @@ namespace seadapter
 
          INT32 _extendRecvBuff() ;
          const CHAR* _getHeaderItemVal( const CHAR *key ) ;
-         void _cleanup() ;
 
    private:
       BOOLEAN        _init ;
@@ -190,7 +201,6 @@ namespace seadapter
       string         _urn ;
       INT32          _port ;
       ossSocket      *_socket ;
-      INT32          _timeout ;  // timeout for the socket to send and receive
       CHAR           *_sendBuf ;
       UINT32         _sendBufSize ;
       CHAR           *_recvBuf ;

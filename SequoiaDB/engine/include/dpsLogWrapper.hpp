@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dpsLogWrapper.hpp
 
@@ -229,10 +228,6 @@ namespace engine
          return _archiver.run() ;
       }
 
-      // note flushAll function is ONLY USED IN TESTCASE
-      // engine should NEVER call flushAll in any situation.
-      // The log write thread supposed to call run() in order to flush dirty
-      // pages once at a time
       OSS_INLINE INT32 flushAll()
       {
          SDB_ASSERT ( _initialized, "shouldn't call flushAll without init" ) ;
@@ -283,8 +278,6 @@ namespace engine
       }
 
       BOOLEAN isInRestore() ;
-
-      INT32 readOldestBeginLsnOffset( DPS_LSN_OFFSET &offset ) ;
 
    };
    typedef class _dpsLogWrapper SDB_DPSCB ;

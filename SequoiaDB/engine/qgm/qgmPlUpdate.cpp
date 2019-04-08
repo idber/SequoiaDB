@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = qgmPlUpdate.cpp
 
@@ -95,22 +94,11 @@ namespace engine
       _SDB_KRCB *krcb = pmdGetKRCB() ;
       SDB_ROLE role = krcb->getDBRole() ;
       BSONObj hint ;
-      string clName = _collection.toString() ;
 
       CHAR *pMsg = NULL ;
       INT32 msgSize = 0 ;
 
-      /// When update virtual cs
-      if ( 0 == ossStrncmp( clName.c_str(), CMD_ADMIN_PREFIX SYS_VIRTUAL_CS".",
-                            SYS_VIRTUAL_CS_LEN + 1 ) )
-      {
-         rc = _updateVCS( clName.c_str(), _updater, eduCB ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-      }
-      else if ( SDB_ROLE_COORD == role )
+      if ( SDB_ROLE_COORD == role )
       {
          CoordCB *pCoord = krcb->getCoordCB() ;
          coordUpdateOperator opr ;
@@ -124,9 +112,8 @@ namespace engine
                     opr.getName(), rc ) ;
             goto error ;
          }
-         /// build message
          rc = msgBuildUpdateMsg( &pMsg, &msgSize,
-                                 clName.c_str(),
+                                 _collection.toString().c_str(),
                                  _flag, 0,
                                  &_condition,
                                  &_updater,
@@ -156,15 +143,16 @@ namespace engine
          {
              dpsCB = NULL ;
          }
-
-         rc = rtnUpdate( clName.c_str(), _condition, _updater, hint,
+         rc = rtnUpdate( _collection.toString().c_str(),
+                         _condition,
+                         _updater,
+                         hint,
                          _flag, eduCB, dmsCB, dpsCB ) ;
          if( SDB_OK != rc )
          {
             goto error ;
          }
       }
-
    done:
       if ( pMsg )
       {
@@ -175,40 +163,4 @@ namespace engine
    error:
       goto done ;
    }
-
-   INT32 _qgmPlUpdate::_updateVCS( const CHAR *fullName,
-                                   const BSONObj &updator,
-                                   pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-
-      if ( 0 == ossStrcmp( fullName, CMD_ADMIN_PREFIX SYS_CL_SESSION_INFO ) )
-      {
-         schedTaskMgr *pSvcTaskMgr = pmdGetKRCB()->getSvcTaskMgr() ;
-         schedItem *pItem = ( schedItem* )cb->getSession()->getSchedItemPtr() ;
-         BSONObj objSrc = pItem->_info.toBSON() ;
-         BSONObj objDest ;
-
-         objDest = rtnUpdator2Obj( objSrc, updator ) ;
-
-         pItem->_info.fromBSON( objDest, TRUE ) ;
-
-         /// update task info
-         pItem->_ptr = pSvcTaskMgr->getTaskInfoPtr( pItem->_info.getTaskID(),
-                                                    pItem->_info.getTaskName() ) ;
-         /// update monApp's info
-         cb->getMonAppCB()->setSvcTaskInfo( pItem->_ptr.get() ) ;
-      }
-      else
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
 }

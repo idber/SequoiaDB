@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 SequoiaDB Inc.
+ * Copyright 2017 SequoiaDB Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,15 +21,12 @@ import com.sequoiadb.exception.SDBError;
 import com.sequoiadb.message.MsgOpCode;
 import com.sequoiadb.util.Helper;
 import org.bson.BSONObject;
-import org.bson.types.BasicBSONList;
 import org.bson.types.ObjectId;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-
-import static com.sequoiadb.base.DBCollection.FLG_INSERT_RETURN_OID;
 
 public class InsertRequest extends SdbRequest {
     private final static String OID = "_id";
@@ -40,7 +37,6 @@ public class InsertRequest extends SdbRequest {
     private int flag = 0;
     private String collectionName;
     private List<byte[]> docsBytes;
-    private Object oid;
 
     private InsertRequest(String collectionName) {
         opCode = MsgOpCode.INSERT_REQ;
@@ -54,57 +50,37 @@ public class InsertRequest extends SdbRequest {
         length += Helper.alignedSize(collectionName.length() + 1);
     }
 
-    public InsertRequest(String collectionName, BSONObject doc, int flags) {
+    public InsertRequest(String collectionName, BSONObject doc) {
         this(collectionName);
-
-        this.flag = flags;
 
         if (doc == null) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "doc is null");
         }
-        // prepare oid and try to return it
-        if ((flags & FLG_INSERT_RETURN_OID) != 0) {
-            Object objId = doc.get(OID);
-            if (objId == null) {
-                objId = ObjectId.get();
-                doc.put(OID, objId);
-            }
-            oid = objId;
-        }
+
         docsBytes = new ArrayList<byte[]>(1);
         byte[] docBytes = Helper.encodeBSONObj(doc);
         docsBytes.add(docBytes);
         length += Helper.alignedSize(docBytes.length);
     }
 
-    public InsertRequest(String collectionName, List<BSONObject> docs, int flags, boolean ensureOID) {
+    public InsertRequest(String collectionName, List<BSONObject> docs, int flag, boolean ensureOID) {
         this(collectionName);
 
-        this.flag = flags;
+        this.flag = flag;
 
         if (docs == null || docs.size() == 0) {
             throw new BaseException(SDBError.SDB_INVALIDARG, "docs is null or empty");
         }
-        if ((flags & FLG_INSERT_RETURN_OID) != 0) {
-            oid = new BasicBSONList();
-        }
+
         docsBytes = new ArrayList<byte[]>(docs.size());
-        int index = 0;
         for (BSONObject doc : docs) {
             if (ensureOID && !doc.containsField(OID)) {
                 doc.put(OID, ObjectId.get());
-            }
-            if ((flags & FLG_INSERT_RETURN_OID) != 0 && doc.containsField(OID)) {
-                ((BasicBSONList)oid).put(index++, doc.get(OID));
             }
             byte[] docBytes = Helper.encodeBSONObj(doc);
             docsBytes.add(docBytes);
             length += Helper.alignedSize(docBytes.length);
         }
-    }
-
-    public Object getOIDValue() {
-        return oid;
     }
 
     @Override

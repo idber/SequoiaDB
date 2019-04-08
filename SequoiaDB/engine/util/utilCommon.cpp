@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = utilCommon.cpp
 
@@ -304,14 +303,12 @@ namespace engine
       return FALSE ;
    }
 
-   BSONObj utilGetErrorBson( INT32 flags, const CHAR *detail,
-                             BOOLEAN *pRollback )
+   BSONObj utilGetErrorBson( INT32 flags, const CHAR *detail )
    {
       static BSONObj _retObj [SDB_MAX_ERROR + SDB_MAX_WARNING + 1] ;
       static BOOLEAN _init = FALSE ;
       static ossSpinXLatch _lock ;
 
-      // init retobj
       if ( FALSE == _init )
       {
          _lock.get() ;
@@ -330,31 +327,20 @@ namespace engine
          _lock.release() ;
       }
 
-      // check flags
       if ( flags < -SDB_MAX_ERROR || flags > SDB_MAX_WARNING )
       {
          PD_LOG ( PDERROR, "Error code error[rc:%d]", flags ) ;
          flags = SDB_SYS ;
       }
 
-      // return new obj
-      if ( ( detail && *detail != 0  ) || pRollback )
+      if ( detail && *detail != 0 )
       {
          BSONObjBuilder bb ;
          bb.append ( OP_ERRNOFIELD, flags ) ;
          bb.append ( OP_ERRDESP_FIELD, getErrDesp ( flags ) ) ;
-
-         if ( detail )
-         {
-            bb.append ( OP_ERR_DETAIL, detail ) ;
-         }
-         if ( pRollback )
-         {
-            bb.appendBool ( FIELD_NAME_ROLLBACK, *pRollback ? TRUE : FALSE ) ;
-         }
+         bb.append ( OP_ERR_DETAIL, detail ) ;
          return bb.obj() ;
       }
-      // return fix obj
       return _retObj[ SDB_MAX_ERROR + flags ] ;
    }
 
@@ -371,7 +357,6 @@ namespace engine
    utilShellRCItem* utilGetShellRCMap()
    {
       static utilShellRCItem s_srcMap[] = {
-         // map begin
          MAP_SHELL_RC_ITEM( SDB_SRC_SUC, SDB_OK )
          MAP_SHELL_RC_ITEM( SDB_SRC_IO, SDB_IO )
          MAP_SHELL_RC_ITEM( SDB_SRC_PERM, SDB_PERM )
@@ -385,7 +370,6 @@ namespace engine
          MAP_SHELL_RC_ITEM( SDB_SRC_CANNOT_LISTEN, SDB_NET_CANNOT_LISTEN )
          MAP_SHELL_RC_ITEM( SDB_SRC_CAT_AUTH_FAILED, SDB_CAT_AUTH_FAILED )
          MAP_SHELL_RC_ITEM( SDB_SRC_INVALIDARG, SDB_INVALIDARG )
-         // map end
          { 0, 0, 1 }
       } ;
       return &s_srcMap[0] ;

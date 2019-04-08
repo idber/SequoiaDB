@@ -99,7 +99,6 @@ public class QueryMapper {
 
 		for (String key : query.keySet()) {
 
-			// TODO: remove one once QueryMapper can work with Query instances directly
 			if (Query.isRestrictedTypeKey(key)) {
 
 				@SuppressWarnings("unchecked")
@@ -220,7 +219,6 @@ public class QueryMapper {
 	 */
 	protected DBObject getMappedKeyword(Keyword keyword, MongoPersistentEntity<?> entity) {
 
-		// $or/$nor
 		if (keyword.isOrOrNor() || keyword.hasIterableValue()) {
 
 			Iterable<?> conditions = keyword.getValue();
@@ -466,7 +464,6 @@ public class QueryMapper {
 		try {
 			return conversionService.convert(id, ObjectId.class);
 		} catch (ConversionException e) {
-			// Ignore
 		}
 
 		return delegateConvertToMongoType(id, null);

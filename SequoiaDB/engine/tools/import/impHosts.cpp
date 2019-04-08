@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2015 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = impHosts.cpp
 
@@ -68,7 +67,6 @@ namespace import
          string hostname1 = host1.hostname;
          string hostname2 = host2.hostname;
 
-         // "localhost" equals "127.0.0.1"
 
          if ("127.0.0.1" == hostname1)
          {
@@ -89,7 +87,6 @@ namespace import
       }
    };
 
-   // "locahost:11810, localhost:11910"
    INT32 Hosts::parse(const string& hostList, vector<Host>& hosts)
    {
       INT32 rc = SDB_OK;
@@ -108,7 +105,6 @@ namespace import
          host = boost::algorithm::trim_copy_if(host, boost::is_space());
          if (host.empty())
          {
-            // ignore empty string or white space
             continue;
          }
 
@@ -118,7 +114,6 @@ namespace import
             string hostname;
             string svcname;
 
-            // first is hostname
             if (nameIt == nameTok.end())
             {
                rc = SDB_INVALIDARG;
@@ -134,7 +129,6 @@ namespace import
                goto error;
             }
 
-            // second is svcname
             *nameIt++;
             if (nameIt == nameTok.end())
             {
@@ -151,7 +145,6 @@ namespace import
                goto error;
             }
 
-            // error if still have string
             *nameIt++;
             if (nameIt != nameTok.end())
             {

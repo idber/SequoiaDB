@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = ossAtomic.hpp
 
@@ -43,9 +42,6 @@
 #include "oss.hpp"
 #include "ossAtomicBase.hpp"
 
-//
-// OSS atomic class
-//
 
 template <class T>
 class ossAtomicPredicateGreaterThan : public SDBObject
@@ -71,9 +67,6 @@ class ossAtomicPredicateLesserThan : public SDBObject
 
 class _ossAtomic32 ;
 
-// Implements atomic operation on a signed 32bit value.
-// Note:
-//    32bit alignment is required for this type.
 class _ossAtomicSigned32 : public SDBObject
 {
    public :
@@ -118,7 +111,6 @@ class _ossAtomicSigned32 : public SDBObject
       {
          init ( val ) ;
       }
-      // object can be reinit to another value
       void init ( valueType val )
       {
          m_value.value = val ;
@@ -209,9 +201,6 @@ class _ossAtomicSigned32 : public SDBObject
 typedef class _ossAtomicSigned32 ossAtomicSigned32 ;
 
 
-// Implements atomic operation on an unsigned 32bit value.
-// Note:
-//    32bit alignment is required for this type.
 class _ossAtomic32 : public SDBObject
 {
    private :
@@ -317,9 +306,6 @@ typedef class _ossAtomic32 ossAtomic32 ;
 
 class _ossAtomic64 ;
 
-// Implements atomic operation on a signed 64bit value.
-// Note:
-//    64bit alignment is required for this type.
 class _ossAtomicSigned64 : public SDBObject
 {
    public :
@@ -453,9 +439,6 @@ class _ossAtomicSigned64 : public SDBObject
 } ;
 typedef class _ossAtomicSigned64 ossAtomicSigned64 ;
 
-// Implements atomic operation on an unsigned 64bit value.
-// Note:
-//    64bit alignment is required for this type.
 class _ossAtomic64 : public SDBObject
 {
    private :

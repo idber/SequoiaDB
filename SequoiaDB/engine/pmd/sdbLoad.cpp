@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sdbLoad.cpp
 
@@ -212,7 +211,6 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
    lDelCFR[2] = '\n' ;
    lDelCFR[3] = 0 ;
    ossMemset ( lServiceName, 0, OSS_MAX_SERVICENAME + 1 ) ;
-   // service name is optional, default is OSS_DFT_SVCPORT, which is 11810
    if ( vm.count ( OPTION_SVCNAME ) )
    {
       ossStrncpy ( lServiceName, vm[OPTION_SVCNAME].as<string>().c_str(),
@@ -304,7 +302,6 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
    }
    else if(!vm.count ( OPTION_BUCKETNUM ) && !vm.count(OPTION_PARSEBUFFERSIZE ))
    {
-      //do not anything
    }
    else
    {
@@ -567,8 +564,6 @@ INT32 connectSdb ()
       PD_LOG ( PDERROR, "Failed to recv msg, rc = %d", rc ) ;
       goto error ;
    }
-   //check load recv buff
-   //end
    free ( _pRecvBuffer ) ;
 done:
    PD_TRACE_EXITRC ( SDB_SDBLOAD_CONNECTSDB, rc );
@@ -595,7 +590,6 @@ INT32 main ( INT32 argc, CHAR **argv )
 
    bson_init ( &sendObj ) ;
 
-   // enable pd log
    sdbEnablePD( LOGPATH ) ;
    setPDLevel( PDINFO ) ;
 
@@ -770,7 +764,6 @@ INT32 main ( INT32 argc, CHAR **argv )
       }
       else
       {
-         //if ( MAKE_REPLY_TYPE(MSG_BS_QUERY_REQ) == msgOp->header.opCode )
          ossMemset ( _pSendBuffer, 0, _sendBufferSize ) ;
          rc = clientBuildDisconnectMsg ( &_pSendBuffer, &_sendBufferSize,
                                          0, FALSE ) ;

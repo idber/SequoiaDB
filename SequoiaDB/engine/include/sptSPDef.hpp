@@ -1,20 +1,19 @@
 /******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptSPDef.hpp
 
@@ -48,16 +47,11 @@ namespace engine
 
    #define SPT_ERR               "ErrMsg"
 
-   #define SPT_GLOBAL_STR        "Global"
-
    /*
       SPT_PROP_ATTR define
    */
-   /// visible to enumerate. for...in, for...each, JS_Enumerate
    #define SPT_PROP_ENUMERATE                JSPROP_ENUMERATE
-   /// can't be set
    #define SPT_PROP_READONLY                 JSPROP_READONLY
-   /// can't be deleted
    #define SPT_PROP_PERMANENT                JSPROP_PERMANENT
 
    #define SPT_PROP_DEFAULT                  (SPT_PROP_ENUMERATE|SPT_PROP_READONLY|SPT_PROP_PERMANENT)
@@ -70,7 +64,6 @@ namespace engine
    {
       SPT_JSOP_GETPROP        = 53,
       SPT_JSOP_SETPROP        = 54,
-      SPT_JSOP_GETELEMENT     = 55,
       SPT_JSOP_CALL           = 58,
       SPT_JSOP_FUNAPPLY       = 78,
       SPT_JSOP_SETNAME        = 111,

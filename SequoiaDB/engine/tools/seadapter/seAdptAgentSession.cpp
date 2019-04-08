@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = seAdptAgentSession.cpp
 
@@ -38,6 +37,7 @@
 *******************************************************************************/
 #include "seAdptAgentSession.hpp"
 #include "rtnContextBuff.hpp"
+#include "msgMessage.hpp"
 #include "utilCommon.hpp"
 
 using engine::_pmdEDUCB ;
@@ -52,25 +52,20 @@ namespace seadapter
    _seAdptAgentSession::_seAdptAgentSession( UINT64 sessionID )
    : _pmdAsyncSession( sessionID )
    {
-      _imContext = NULL ;
-      _seCltFactory = sdbGetSeCltFactory() ;
+      _seCltMgr = sdbGetSeCltMgr() ;
       _esClt = NULL ;
-      _contextIDHWM = 0 ;
+      _context = NULL ;
    }
 
    _seAdptAgentSession::~_seAdptAgentSession()
    {
-      for ( CTX_MAP_ITR itr = _ctxMap.begin(); itr != _ctxMap.end(); )
-      {
-         SDB_OSS_DEL itr->second ;
-         _ctxMap.erase( itr++ ) ;
-      }
-
-      // Be sure to release the client at last, because the context needs it to
-      // release scroll.
       if ( _esClt )
       {
-         SDB_OSS_DEL _esClt ;
+         _seCltMgr->releaseClt( _esClt ) ;
+      }
+      if ( _context )
+      {
+         SDB_OSS_DEL _context ;
       }
    }
 
@@ -115,7 +110,6 @@ namespace seadapter
       const CHAR *msgBody = NULL ;
       INT32 bodySize = 0 ;
       utilCommObjBuff objBuff ;
-      INT64 contextID = -1 ;
 
       rc = objBuff.init() ;
       if ( rc )
@@ -127,10 +121,10 @@ namespace seadapter
          switch ( msg->opCode )
          {
             case MSG_BS_QUERY_REQ:
-               rc = _onQueryReq( msg, objBuff, contextID ) ;
+               rc = _onQueryReq( msg, objBuff ) ;
                break ;
             case MSG_BS_GETMORE_REQ:
-               rc = _onGetmoreReq( msg, objBuff, contextID ) ;
+               rc = _onGetmoreReq( msg, objBuff ) ;
                break ;
             default:
                rc = SDB_UNKNOWN_MESSAGE ;
@@ -156,13 +150,11 @@ namespace seadapter
             }
          }
 
-         // Maybe data, maybe the error message.
          if ( objBuff.getObjNum() > 0 )
          {
             msgBody = objBuff.data() ;
             bodySize = objBuff.dataSize() ;
             reply.numReturned = objBuff.getObjNum() ;
-            reply.contextID = contextID ;
          }
       }
       else
@@ -181,12 +173,8 @@ namespace seadapter
       goto done ;
    }
 
-   // Handle query message from data node.
-   // It will analyze the original query, fetch the neccessary data, and rewrite
-   // the items, then return the new message.
    INT32 _seAdptAgentSession::_onQueryReq( MsgHeader *msg,
                                            utilCommObjBuff &objBuff,
-                                           INT64 &contextID,
                                            pmdEDUCB *eduCB )
    {
       INT32 rc = SDB_OK ;
@@ -201,7 +189,9 @@ namespace seadapter
 
       string indexName ;
       string typeName ;
-      seAdptContextQuery *context = NULL ;
+      utilCommObjBuff resultObjs ;
+      seIdxMetaMgr *idxMetaCache = NULL ;
+      BOOLEAN cacheLocked = FALSE ;
 
       rc = msgExtractQuery( (CHAR *)msg, &flag, &pCollectionName,
                             &numToSkip, &numToReturn, &pQuery, &pFieldSelector,
@@ -209,30 +199,115 @@ namespace seadapter
       PD_RC_CHECK( rc, PDERROR, "Session[ %s ] extract query message "
                    "failed[ %d ]", sessionName(), rc ) ;
 
-      if ( !_esClt )
-      {
-         rc = _seCltFactory->create( &_esClt ) ;
-         if ( rc )
-         {
-            PD_LOG_MSG( PDERROR, "Connect to search engine failed[ %d ]", rc ) ;
-            goto error ;
-         }
-      }
-
       try
       {
          BSONObj matcher( pQuery ) ;
          BSONObj selector ( pFieldSelector ) ;
          BSONObj orderBy ( pOrderBy ) ;
          BSONObj hint ( pHint ) ;
-         BSONObj newHint ;
+         IDX_META_VEC idxMetas ;
+         const CHAR *hintIdxName = NULL ;
 
-         rc = _selectIndex( pCollectionName, hint, newHint ) ;
-         PD_RC_CHECK( rc, PDERROR, "Select index for collection[%s] failed[%d]",
-                      pCollectionName, rc ) ;
+         if ( !hint.isEmpty() )
+         {
+            hintIdxName = hint.getStringField( "" );
+            if ( 0 == ossStrlen( hintIdxName ) )
+            {
+               PD_LOG_MSG( PDERROR, "No valid index name specified in hint" ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+         }
 
-         context = SDB_OSS_NEW seAdptContextQuery() ;
-         if ( !context )
+         if ( !_esClt )
+         {
+            rc = _seCltMgr->getClt( &_esClt ) ;
+            if ( rc )
+            {
+               PD_LOG_MSG( PDERROR, "Connect to search engine failed[ %d ]", rc ) ;
+               goto error ;
+            }
+         }
+
+         if ( _context )
+         {
+            SDB_OSS_DEL _context ;
+            _context = NULL ;
+         }
+
+         idxMetaCache = sdbGetSeAdapterCB()->getIdxMetaCache() ;
+         idxMetaCache->lock( SHARED ) ;
+         cacheLocked = TRUE ;
+         rc = idxMetaCache->getIdxMetas( pCollectionName, idxMetas ) ;
+         if ( rc )
+         {
+            PD_LOG_MSG( PDERROR, "No index information found for collection"
+                        "[ %s ], rc[ %d ]", pCollectionName, rc ) ;
+            goto error ;
+         }
+
+
+         if ( 0 == idxMetas.size() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "No index information found for "
+                        "collection[ %s ]", pCollectionName ) ;
+            goto error ;
+         }
+         else if ( 1 == idxMetas.size() )
+         {
+            const CHAR *idxName = idxMetas.front().getOrigIdxName().c_str() ;
+            if ( hintIdxName )
+            {
+               if ( 0 != ossStrcmp( idxName, hintIdxName ) )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG_MSG( PDERROR, "Index name specified in hint[ %s ] dose "
+                              "not match the actual name[ %s ]", hintIdxName,
+                              idxName ) ;
+                  goto error ;
+               }
+            }
+            indexName = idxMetas.front().getEsIdxName() ;
+         }
+         else
+         {
+            if ( !hintIdxName )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "Text index name should be specified in "
+                           "hint when there are multiple text indices") ;
+               goto error ;
+            }
+
+            for ( IDX_META_VEC_CITR itr = idxMetas.begin();
+                  itr != idxMetas.end(); ++itr )
+            {
+               if ( 0 == ossStrcmp( itr->getOrigIdxName().c_str(),
+                                    hintIdxName ) )
+               {
+                  indexName = itr->getEsIdxName() ;
+                  break ;
+               }
+            }
+
+            if ( indexName.empty() )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "Index specified in hint[ %s ] dose not "
+                           "exist on search engine", hintIdxName ) ;
+               goto error ;
+            }
+         }
+
+         idxMetaCache->unlock() ;
+         cacheLocked = FALSE ;
+
+         typeName = sdbGetSeAdapterCB()->getDataNodeGrpName() ;
+
+         _context = SDB_OSS_NEW seAdptContextQuery( indexName,
+                                                    typeName, _esClt ) ;
+         if ( !_context )
          {
             rc = SDB_OOM ;
             PD_LOG_MSG( PDERROR, "Allocate memory for query context failed, "
@@ -240,8 +315,8 @@ namespace seadapter
             goto error ;
          }
 
-         rc = context->open( _imContext, _esClt, matcher, selector, orderBy,
-                             newHint, objBuff, eduCB ) ;
+         rc = _context->open( matcher, selector, orderBy,
+                              hint, objBuff, eduCB ) ;
          if ( rc )
          {
             if ( SDB_DMS_EOC != rc )
@@ -251,8 +326,6 @@ namespace seadapter
             }
             goto error ;
          }
-         contextID = _contextIDHWM++ ;
-         _ctxMap[ contextID ] = context ;
       }
       catch ( std::exception &e )
       {
@@ -263,40 +336,28 @@ namespace seadapter
       }
 
    done:
-      if ( _imContext && _imContext->isMetaLocked() )
+      if ( cacheLocked )
       {
-         _imContext->metaUnlock() ;
+         SDB_ASSERT( idxMetaCache, "Index meta cache should not be NULL" ) ;
+         idxMetaCache->unlock( SHARED ) ;
       }
       return rc ;
    error:
-      if ( context )
+      if ( _context )
       {
-         SDB_OSS_DEL context ;
+         SDB_OSS_DEL _context ;
+         _context = NULL ;
       }
       goto done ;
    }
 
-   // Generate another new message.
    INT32 _seAdptAgentSession::_onGetmoreReq( MsgHeader *msg,
                                              utilCommObjBuff &objBuff,
-                                             INT64 &contextID,
                                              pmdEDUCB *eduCB )
    {
       INT32 rc = SDB_OK ;
-      seAdptContextBase *context = NULL ;
 
-      contextID = ((MsgOpGetMore *)msg)->contextID ;
-
-      CTX_MAP_ITR itr = _ctxMap.find( contextID ) ;
-      if ( _ctxMap.end() == itr )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Context can not be found" ) ;
-         goto error ;
-      }
-
-      context = itr->second ;
-      rc = context->getMore( 1, objBuff ) ;
+      rc = _context->getMore( 1, objBuff ) ;
       if ( rc )
       {
          if ( SDB_DMS_EOC != rc )
@@ -309,15 +370,9 @@ namespace seadapter
    done:
       return rc ;
    error:
-      if ( itr != _ctxMap.end() )
-      {
-         SDB_OSS_DEL itr->second ;
-         _ctxMap.erase( itr ) ;
-      }
       goto done ;
    }
 
-   // Send reply message. It contains a header, and an optinal body.
    INT32 _seAdptAgentSession::_reply( MsgOpReply *header, const CHAR *buff,
                                       UINT32 size )
    {
@@ -346,103 +401,6 @@ namespace seadapter
                                                 MsgHeader * msg )
    {
       return _onOPMsg( handle, msg ) ;
-   }
-
-   INT32 _seAdptAgentSession::_selectIndex( const CHAR *clName,
-                                            const BSONObj &hint,
-                                            BSONObj &newHint )
-   {
-      INT32 rc = SDB_OK ;
-      seIdxMetaMgr* idxMetaMgr = NULL ;
-      BSONObjBuilder builder ;
-      UINT32 textIdxNum = 0 ;
-      map<string, UINT16> idxNameMap ;
-      UINT16 imID = SEADPT_INVALID_IMID ;
-
-      idxMetaMgr = sdbGetSeAdapterCB()->getIdxMetaMgr() ;
-
-      idxMetaMgr->getIdxNamesByCL( clName, idxNameMap ) ;
-      if ( 0 == idxNameMap.size() )
-      {
-         rc = SDB_RTN_INDEX_NOTEXIST ;
-         PD_LOG_MSG( PDERROR, "No index information found for collection[%s]",
-                     clName ) ;
-         goto error ;
-      }
-
-      try
-      {
-         // Traverse the hint to find text indices. They should be removed from
-         // hint.
-         BSONObjIterator itr( hint ) ;
-         while ( itr.more() )
-         {
-            string esIdxName ;
-            BSONElement ele = itr.next() ;
-            string idxName = ele.str() ;
-            if ( idxName.empty() )
-            {
-               continue ;
-            }
-
-            map<string, UINT16>::iterator itr =
-                  idxNameMap.find( idxName.c_str() )  ;
-            if ( itr != idxNameMap.end() )
-            {
-               // If multiple text indices specified in the hint, use the first
-               // one.
-               if ( 0 == textIdxNum )
-               {
-                  imID = itr->second ;
-               }
-               textIdxNum++ ;
-            }
-            else
-            {
-               builder.append( ele ) ;
-            }
-         }
-
-         // If no text index in the hint, and there is only one text index on
-         // the collection, use it for search. Otherwise, report error.
-         if ( 0 == textIdxNum )
-         {
-            if ( 1 == idxNameMap.size() )
-            {
-               imID = idxNameMap.begin()->second ;
-            }
-            else
-            {
-               rc = SDB_INVALIDARG ;
-               PD_LOG_MSG( PDERROR, "Text index name should be specified in "
-                                    "hint when there are multiple text indices") ;
-               goto error ;
-            }
-         }
-
-         if ( _imContext )
-         {
-            idxMetaMgr->releaseIMContext( _imContext ) ;
-         }
-
-         rc = idxMetaMgr->getIMContext( &_imContext, imID, SHARED ) ;
-         PD_RC_CHECK( rc, PDERROR, "Get index meta context failed[%d]", rc ) ;
-         newHint = builder.obj() ;
-      }
-      catch ( std::exception &e )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
-         goto error ;
-      }
-
-      PD_LOG( PDDEBUG, "Original hint[ %s ], new hint[ %s ]",
-              hint.toString( FALSE, TRUE ).c_str(),
-              newHint.toString( FALSE, TRUE ).c_str() ) ;
-   done:
-      return rc ;
-   error:
-      goto done ;
    }
 }
 

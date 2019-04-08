@@ -171,7 +171,6 @@ public class PerformanceTests {
 	@Test
 	public void writeAndRead() throws Exception {
 
-//		mongo.setWriteConcern(WriteConcern.SAFE);
 
 		readsAndWrites(NUMBER_OF_PERSONS, ITERATIONS);
 	}

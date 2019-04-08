@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = qgmUtil.cpp
 
@@ -124,7 +123,6 @@ namespace engine
       {
          tmp = str + read ;
 
-         /// ignore all space
          if ( ' ' == *tmp || '\t' == *tmp )
          {
             ++read ;
@@ -400,7 +398,6 @@ namespace engine
       }
       else
       {
-         /// do noting.
       }
 
       return t ;
@@ -449,7 +446,7 @@ namespace engine
       return ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMREPLACEATTRRELE2, "replaceAttrRele" )
+   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMREPLACEATTRRELE2, "replaceAttrRele2" )
    void replaceAttrRele( qgmDbAttrVec &attrs,  const qgmField &newRele )
    {
       PD_TRACE_ENTRY( SDB__QGMREPLACEATTRRELE2 ) ;
@@ -465,7 +462,7 @@ namespace engine
       return ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMREPLACEATTRRELE3, "replaceAggrRele" )
+   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMREPLACEATTRRELE3, "replaceAggrRele3" )
    void replaceAggrRele( qgmAggrSelectorVec & aggrs, const qgmField & newRele )
    {
       PD_TRACE_ENTRY( SDB__QGMREPLACEATTRRELE3 ) ;
@@ -849,7 +846,7 @@ namespace engine
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMUPATTRSBYFIELDALIAS2, "upAttrsByFieldAlias" )
+   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMUPATTRSBYFIELDALIAS2, "upAttrsByFieldAlias2" )
    INT32 upAttrsByFieldAlias( qgmDbAttrVec & attrs,
                               const qgmOPFieldPtrVec & fieldAlias )
    {
@@ -922,7 +919,7 @@ namespace engine
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMUPATTRSBYFIELDALIAS3, "upAggrsByFieldAlias" )
+   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMUPATTRSBYFIELDALIAS3, "upAggrsByFieldAlias3" )
    INT32 upAggrsByFieldAlias( qgmAggrSelectorVec & aggrs,
                               const qgmOPFieldPtrVec & fieldAlias )
    {
@@ -971,8 +968,9 @@ namespace engine
       return ss.str() ;
    }
 
-   void qgmUseIndexHintToBson( const qgmHint &h, BSONObjBuilder &build )
+   BSONObj qgmUseIndexHintToBson( const qgmHint &h )
    {
+      BSONObjBuilder builder ;
       qgmField f ;
       if ( 1 == h.param.size() )
       {
@@ -990,41 +988,19 @@ namespace engine
       if ( TABLE_SCAN_SIZE == f.size() &&
            0 == ossStrncmp( f.begin(), TABLE_SCAN, f.size() ) )
       {
-         build.appendNull("") ;
+         builder.appendNull("") ;
          goto done ;
       }
       if ( TABLE_SCAN_LOWER_SIZE == f.size() &&
            0 == ossStrncmp( f.begin(), TABLE_SCAN_LOWER, f.size() ) )
       {
-         build.appendNull("") ;
+         builder.appendNull("") ;
          goto done ;
       }
-      build.appendStrWithNoTerminating( "", f.begin(), f.size() ) ;
+      builder.appendStrWithNoTerminating( "", f.begin(), f.size() ) ;
 
    done:
-      return ;
-   }
-
-   void qgmUseOptionToBson( const qgmHint &h, BSONObjBuilder &build )
-   {
-      qgmField key ;
-      qgmField value ;
-
-      if ( 2 == h.param.size() )
-      {
-         key = h.param.at(0).value.attr() ;
-         value = h.param.at(1).value.attr() ;
-      }
-      else
-      {
-         goto done ;
-      }
-
-      build.appendStrWithNoTerminating( key.toString(), value.begin(),
-                                        value.size() ) ;
-
-   done:
-      return ;
+      return builder.obj() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION( SDB__QGMUSEHINTTOFLAG, "qgmUseHintToFlag" )
@@ -1044,7 +1020,6 @@ namespace engine
          goto done ;
       }
 
-      // treat it as string flag
       if ( FLG_SQL_UPDATE_KEEP_SK_SIZE == f.size() &&
            0 == ossStrncmp( f.begin(), FLG_SQL_UPDATE_KEEP_SK, f.size() ) )
       {
@@ -1052,7 +1027,6 @@ namespace engine
          goto done ;
       }
 
-      // treat it as number flag
       strFlag = f.toString().c_str() ;
       rc = utilStr2Num( strFlag, flag );
       if ( rc )
@@ -1162,7 +1136,6 @@ namespace engine
             r = builder.appendAsNumber( fieldName, value ) ;
             if ( !r )
             {
-               /// try decimal
                r = builder.appendDecimal( fieldName, value ) ;
             }
 

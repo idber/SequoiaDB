@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omagentNodeMgr.cpp
 
@@ -131,77 +130,9 @@ namespace engine
       goto done ;
    }
 
-   /*
-      _stopNodeJob implement
-   */
-   _stopNodeJob::_stopNodeJob( const string &svcname,
-                               NODE_START_TYPE type,
-                               _omAgentNodeMgr *pNodeMgr )
-   {
-      _svcName    = svcname ;
-      _type       = type ;
-      _pNodeMgr   = pNodeMgr ;
-
-      _jobName = "StopNode[" ;
-      _jobName += _svcName ;
-      _jobName += "]" ;
-   }
-
-   _stopNodeJob::~_stopNodeJob()
-   {
-   }
-
-   RTN_JOB_TYPE _stopNodeJob::type() const
-   {
-      return RTN_JOB_STOPNODE ;
-   }
-
-   const CHAR* _stopNodeJob::name() const
-   {
-      return _jobName.c_str() ;
-   }
-
-   BOOLEAN _stopNodeJob::muteXOn( const _rtnBaseJob *pOther )
-   {
-      BOOLEAN mutex = FALSE ;
-
-      if ( RTN_JOB_STOPNODE == pOther->type() )
-      {
-         _stopNodeJob *pOtherJob = ( _stopNodeJob* )pOther ;
-         if ( 0 == ossStrcmp( _svcName.c_str(),
-                              pOtherJob->getSvcName().c_str() ) )
-         {
-            mutex = TRUE ;
-         }
-      }
-
-      return mutex ;
-   }
-
-   INT32 _stopNodeJob::doit()
-   {
-      INT32 rc = SDB_OK ;
-
-      rc = _pNodeMgr->stopANode( _svcName.c_str(), _type, TRUE ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Stop SequoaiDB node[svcname = %s] failed, rc: %d",
-                 _svcName.c_str(), rc ) ;
-         goto error ;
-      }
-
-      PD_LOG( PDEVENT, "Stop SequoaiDB node[svcname = %s] succeed",
-              _svcName.c_str() ) ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 runStartNodeJob( const string &svcname, NODE_START_TYPE startType,
-                          _omAgentNodeMgr *pNodeMgr, EDUID * pEDUID,
-                          BOOLEAN returnResult )
+   INT32 startStartNodeJOb( const string &svcname, NODE_START_TYPE startType,
+                            _omAgentNodeMgr *pNodeMgr, EDUID * pEDUID,
+                            BOOLEAN returnResult )
    {
       INT32 rc = SDB_OK ;
       startNodeJob *pJob = NULL ;
@@ -210,30 +141,6 @@ namespace engine
       if ( !pJob )
       {
          PD_LOG( PDERROR, "Failed to alloc start node job" ) ;
-         rc = SDB_OOM ;
-         goto error ;
-      }
-
-      rc = rtnGetJobMgr()->startJob( pJob, RTN_JOB_MUTEX_REUSE, pEDUID,
-                                     returnResult ) ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 runStopNodeJob( const string &svcname, NODE_START_TYPE type,
-                         _omAgentNodeMgr *pNodeMgr, EDUID * pEDUID,
-                         BOOLEAN returnResult )
-   {
-      INT32 rc = SDB_OK ;
-      stopNodeJob *pJob = NULL ;
-
-      pJob = SDB_OSS_NEW stopNodeJob( svcname, type, pNodeMgr ) ;
-      if ( !pJob )
-      {
-         PD_LOG( PDERROR, "Failed to alloc stop node job" ) ;
          rc = SDB_OOM ;
          goto error ;
       }
@@ -339,7 +246,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get service list from config, "
                    "rc: %d", rc ) ;
 
-      /// init process info
       _mapLatch.get() ;
       for ( UINT32 i = 0 ; i < vecSvc.size() ; ++i )
       {
@@ -356,7 +262,6 @@ namespace engine
       }
       _mapLatch.release() ;
 
-      /// init node guards
       for ( UINT32 i = 0 ; i < vecSvc.size() ; ++i )
       {
          addNodeGuard( vecSvc[i] ) ;
@@ -424,7 +329,7 @@ namespace engine
          {
             continue ;
          }
-         rc = runStartNodeJob( pSvcName, startType, this, NULL, FALSE ) ;
+         rc = startStartNodeJOb( pSvcName, startType, this, NULL, FALSE ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Start startNodeJob failed, svcname = %s, rc: %d",
@@ -531,7 +436,6 @@ namespace engine
             continue ;
          }
 
-         // if the bucket is locked by other, skip
          if ( FALSE == getBucket( pSvcName )->try_get() )
          {
             continue ;
@@ -549,7 +453,6 @@ namespace engine
          omCheckDBProcessBySvc( pSvcName, isRunning, pInfo->_pid ) ;
          if ( isRunning )
          {
-            // start by manual start
             pInfo->_status = OMNODE_RUNNING ;
             pInfo->_startTime.clear() ;
             PD_LOG( PDEVENT, "Detect Sequoiadb node[svcname = %s ] has been "
@@ -559,9 +462,6 @@ namespace engine
 
          pInfo->_pid = OSS_INVALID_PID ;
 
-         // before we try to restart a node which _status is "restart" or
-         // "crash", check whether it's cfg file exist or not, if not,
-         // set it's _status to be "removing"
          rc = _getCfgFile( pSvcName, cfgFile, OSS_MAX_PATHSIZE + 1 ) ;
          if ( SDB_FNE == rc )
          {
@@ -574,7 +474,6 @@ namespace engine
          if ( 0 == restartCount || ( restartCount > 0 &&
               pInfo->_startTime.size() > (UINT32)restartCount ) )
          {
-            // the process has been start many times and all failed.
             continue ;
          }
 
@@ -583,12 +482,10 @@ namespace engine
             if ( ( time( NULL ) - pInfo->_startTime.back() ) / 60 <
                  restartInterval )
             {
-               // does not meet the interval
                continue ;
             }
          }
 
-         // clear some time-info
          if ( pInfo->_startTime.size() > 0 )
          {
             UINT32 keepCount = 1 ;
@@ -605,18 +502,14 @@ namespace engine
          if ( OMNODE_RESTART != pInfo->_status )
          {
             pInfo->_status = OMNODE_NORMAL ;
-            // check status by startup file
             _checkNodeByStartupFile( pSvcName, pInfo ) ;
          }
 
-         // if crashed, start job
          if ( OMNODE_CRASH == pInfo->_status ||
               OMNODE_RESTART == pInfo->_status )
          {
-            // if enableWatch is TRUE, start node
             if ( sdbGetOMAgentOptions()->isEnableWatch() )
             {
-               // if enable watch, clear state of _isDetected
                if ( pInfo->_isDetected )
                {
                   pInfo->_isDetected = FALSE ;
@@ -625,12 +518,11 @@ namespace engine
                        "Begin to restart", pSvcName,
                        OMNODE_CRASH == pInfo->_status ?
                        "crashed" : "start failed" ) ;
-               runStartNodeJob( pSvcName, NODE_START_MONITOR, this,
-                                NULL, FALSE ) ;
+               startStartNodeJOb( pSvcName, NODE_START_MONITOR, this,
+                                  NULL, FALSE ) ;
             }
             else if( !pInfo->_isDetected )
             {
-               // if the process is detected the first time, write log
                pInfo->_isDetected = TRUE ;
                PD_LOG( PDEVENT, "Detect Sequoiadb node[svcname = %s] %s",
                        pSvcName,
@@ -686,7 +578,6 @@ namespace engine
          goto error ;
       }
 
-      // get cfg file
       len = ( ossStrlen(cfgFile) + 1 <= (UINT32)bufSize ) ?
             ossStrlen(cfgFile) + 1 : bufSize ;
       ossStrncpy( pBuffer, cfgFile, len - 1 ) ;
@@ -822,7 +713,6 @@ namespace engine
          else
          {
             BOOLEAN isRunning = FALSE ;
-            // check is running
             omCheckDBProcessBySvc( svcname, isRunning, pInfo->_pid ) ;
 
             if ( isRunning )
@@ -838,7 +728,6 @@ namespace engine
          pInfo->_startTime.push_back( now ) ;
       }
 
-      // start node
       rc = omStartDBNode( sdbGetOMAgentOptions()->getStartProcFile(),
                           cfgPath, svcname, pInfo->_pid,
                           sdbGetOMAgentOptions()->isUseCurUser() ) ;
@@ -1139,8 +1028,7 @@ namespace engine
                }
                pDBPath = e.valuestrsafe() ;
             }
-            /// ignore PMD_OPTION_CONFPATH
-            else if ( 0 != ossStrcmp( e.fieldName(), PMD_OPTION_CONFPATH ) )
+            else
             {
                ss << e.fieldName() << "=" ;
                switch( e.type() )
@@ -1195,7 +1083,6 @@ namespace engine
 
       if ( needLock )
       {
-         // lock bucket
          lockBucket( pSvcName ) ;
          hasLock = TRUE ;
       }
@@ -1207,7 +1094,6 @@ namespace engine
       }
 
       rc = ossAccess( dbPath, W_OK ) ;
-      // if we get permission, we can't continue
       if ( SDB_PERM == rc )
       {
          PD_LOG ( PDERROR, "Permission error for path: %s", dbPath ) ;
@@ -1240,15 +1126,12 @@ namespace engine
          goto error ;
       }
 
-      // create path: "conf/local/$svcname"
       rc = ossAccess( cfgPath, W_OK ) ;
-      // if we get permission, we can't continue
       if ( SDB_PERM == rc )
       {
          PD_LOG ( PDERROR, "Permission error for path[%s]", cfgPath ) ;
          goto error ;
       }
-      // if we can not find the file, then create one
       else if ( SDB_FNE == rc )
       {
          rc = ossMkdir ( cfgPath ) ;
@@ -1267,7 +1150,6 @@ namespace engine
          goto error ;
       }
 
-      // make config file
       rc = utilBuildFullPath( cfgPath, PMD_DFT_CONF, OSS_MAX_PATHSIZE,
                               cfgFile ) ;
       if ( rc )
@@ -1279,7 +1161,6 @@ namespace engine
       else if ( !isModify && ( NULL != getNodeProcessInfo( pSvcName ) ||
                 SDB_OK == ossAccess( cfgFile ) ) )
       {
-         /// need to return omsvc
          if ( omsvc )
          {
             pmdOptionsCB nodeOptions ;
@@ -1292,7 +1173,6 @@ namespace engine
          goto error ;
       }
 
-      // build full config and write file
       {
          pmdOptionsCB nodeOptions ;
          stringstream ss ;
@@ -1310,7 +1190,6 @@ namespace engine
          }
          createCfgFile = TRUE ;
 
-         // read and check config
          rc = nodeOptions.initFromFile( cfgFile, FALSE ) ;
          if ( rc )
          {
@@ -1333,11 +1212,9 @@ namespace engine
          }
 
          nodeGuard.init( pSvcName, &nodeOptions ) ;
-         /// check config path valid
          rc = nodeGuard.checkValid( &nodeOptions ) ;
          PD_RC_CHECK( rc, PDERROR, "Check node[%s] config path valid "
                       "failed, rc: %d", pSvcName, rc ) ;
-         /// check config mutex on others
          {
             ossScopedLock lock( &_guardLatch, SHARED ) ;
             for ( UINT32 idx = 0 ; idx < _nodeGuards.size() ; ++idx )
@@ -1356,7 +1233,6 @@ namespace engine
          goto done ;
       }
 
-      // the first catalog node, need to write sdb.cat file
       try
       {
          CHAR cataCfgFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
@@ -1376,7 +1252,6 @@ namespace engine
          }
          ss << objArg2 << endl ;
 
-         // write sdb.cat file
          rc = utilWriteConfigFile( cataCfgFile, ss.str().c_str(), TRUE ) ;
          if ( rc )
          {
@@ -1482,11 +1357,9 @@ namespace engine
          goto error ;
       }
 
-      // lock
       lockBucket( pSvcName ) ;
       hasLock = TRUE ;
 
-      // read config
       rc = nodeOptions.initFromFile( cfgFile, FALSE ) ;
       if ( rc )
       {
@@ -1515,7 +1388,6 @@ namespace engine
          goto error ;
       }
 
-      // check config whether is matched
       try
       {
          BSONObj configObj( arg1 ) ;
@@ -1533,7 +1405,6 @@ namespace engine
             nodeOptions.getFieldStr( e.fieldName(), name, "" ) ;
             if ( 0 != ossStrcmp( e.valuestrsafe(), name.c_str() ) )
             {
-               // not the special node
                rc = SDBCM_NODE_NOTEXISTED ;
                goto error ;
             }
@@ -1547,7 +1418,6 @@ namespace engine
          goto error ;
       }
 
-      // first to stop the node
       rc = stopANode( pSvcName, NODE_START_CLIENT, FALSE, TRUE ) ;
       if ( rc )
       {
@@ -1556,7 +1426,6 @@ namespace engine
          goto error ;
       }
 
-      // make sure need to backup dialog
       if ( backupDialog )
       {
          CHAR bakPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
@@ -1589,7 +1458,6 @@ namespace engine
          }
       }
 
-      // remove all dir
       rc = nodeOptions.removeAllDir() ;
       if ( rc )
       {
@@ -1598,7 +1466,6 @@ namespace engine
          goto error ;
       }
 
-      // remove config
       rc = ossDelete( cfgPath ) ;
       if ( SDB_OK != rc && SDB_FNE != rc )
       {
@@ -1609,7 +1476,6 @@ namespace engine
 
       PD_LOG( PDEVENT, "Remove node[svcname=%s] succeed.", pSvcName ) ;
 
-      // remove from process info
       delNodeProcessInfo( pSvcName ) ;
       delNodeGuard( pSvcName ) ;
 
@@ -1681,38 +1547,6 @@ namespace engine
 
       PD_LOG( PDEVENT, "Stop Sequoiadb node succeed, svcname = %s",
               pSvcName ) ;
-
-      /// If detach, need to remove self from cataAddr
-      try
-      {
-         BSONObj argObj( arg1 ) ;
-         BSONElement eHost = argObj.getField( FIELD_NAME_HOST ) ;
-         BSONElement eDetach = argObj.getField( FIELD_NAME_ONLY_DETACH ) ;
-         BSONElement eKeep = argObj.getField( FIELD_NAME_KEEP_DATA ) ;
-
-         if ( eDetach.booleanSafe() && eKeep.booleanSafe() &&
-              String == eHost.type() )
-         {
-            CHAR confFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-            pmdOptionsCB nodeOptions ;
-
-            utilBuildFullPath( sdbGetOMAgentOptions()->getLocalCfgPath(),
-                               pSvcName, OSS_MAX_PATHSIZE, confFile ) ;
-            utilCatPath( confFile, OSS_MAX_PATHSIZE, PMD_DFT_CONF ) ;
-
-            if ( SDB_OK == nodeOptions.initFromFile( confFile, FALSE ) )
-            {
-               nodeOptions.rmCatAddrItem( eHost.valuestr(),
-                                          nodeOptions.catService() ) ;
-               nodeOptions.reflush2File() ;
-            }
-         }
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
-         /// ignore error
-      }
 
    done:
       return rc ;

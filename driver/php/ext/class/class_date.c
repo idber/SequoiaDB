@@ -1,5 +1,5 @@
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -28,9 +28,6 @@ static void local_time ( time_t *Time, struct tm *TM )
 #if defined (__linux__ ) || defined (_AIX)
    localtime_r( Time, TM ) ;
 #elif defined (_WIN32)
-   // The Time represents the seconds elapsed since midnight (00:00:00),
-   // January 1, 1970, UTC. This value is usually obtained from the time
-   // function.
    localtime_s( TM, Time ) ;
 #else
 #error "unimplemented local_time()"

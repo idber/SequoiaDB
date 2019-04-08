@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordUtil.cpp
 
@@ -103,11 +102,7 @@ namespace engine
             {
                BSONObjBuilder objBD( arrayBD.subobjStart() ) ;
                objBD.append( FIELD_NAME_NODE_NAME, strNodeName ) ;
-               //objBD.append( FIELD_NAME_HOST, strHostName ) ;
-               //objBD.append( FIELD_NAME_SERVICE_NAME, strServiceName ) ;
                objBD.append( FIELD_NAME_GROUPNAME, strGroupName ) ;
-               //objBD.append( FIELD_NAME_GROUPID, routeID.columns.groupID ) ;
-               //objBD.append( FIELD_NAME_NODEID, (INT32)routeID.columns.nodeID ) ;
                objBD.append( FIELD_NAME_RCFLAG, iter->second._rc ) ;
                objBD.append( FIELD_NAME_ERROR_IINFO, iter->second._obj ) ;
                objBD.done() ;
@@ -116,7 +111,6 @@ namespace engine
             {
                PD_LOG( PDWARNING, "Build error object occur exception: %s",
                        e.what() ) ;
-               /// then ignored this record
             }
             ++iter ;
          }
@@ -146,7 +140,6 @@ namespace engine
       builder.append( OP_ERRNOFIELD, flag ) ;
       builder.append( OP_ERRDESP_FIELD, getErrDesp( flag ) ) ;
       builder.append( OP_ERR_DETAIL, pDetail ? pDetail : "" ) ;
-      /// add ErrNodes
       if ( pFailedNodes && pFailedNodes->size() > 0 )
       {
          coordBuildFailedNodeReply( pResource, *pFailedNodes, builder ) ;
@@ -192,7 +185,6 @@ namespace engine
                goto error ;
             }
 
-            // add to group list
             groupLst[ beTmp.numberInt() ] = beTmp.numberInt() ;
             PD_LOG( PDDEBUG, "Get group[%d] into list", beTmp.numberInt() ) ;
          }
@@ -229,13 +221,11 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Parse object[%s] group list failed, rc: %d",
                    obj.toString().c_str(), rc ) ;
 
-      /// group id
       for ( i = 0 ; i < tmpVecInt.size() ; ++i )
       {
          groupList[(UINT32)tmpVecInt[i]] = (UINT32)tmpVecInt[i] ;
       }
 
-      /// group name
       for ( i = 0 ; i < tmpVecStr.size() ; ++i )
       {
          rc = pResource->getGroupInfo( tmpVecStr[i], grpPtr ) ;
@@ -342,7 +332,6 @@ namespace engine
       {
          if ( !reNew && groupMap.end() != groupMap.find( it->second ) )
          {
-            // alredy exist, don't update group info
             ++it ;
             continue ;
          }
@@ -391,7 +380,6 @@ namespace engine
       vector< INT32 > vecNodeID ;
       vector< const CHAR* > vecHostName ;
       vector< const CHAR* > vecSvcName ;
-      vector< const CHAR* > vecNodeName ;
       BOOLEAN emptyFilter = TRUE ;
 
       nodes.clear() ;
@@ -400,18 +388,16 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Group ids to group info failed, rc: %d", rc ) ;
 
       rc = coordParseNodesInfo( filterObj, vecNodeID, vecHostName,
-                                vecSvcName, vecNodeName,
-                                pNewObj, strictCheck ) ;
+                                vecSvcName, pNewObj, strictCheck ) ;
       PD_RC_CHECK( rc, PDERROR, "Parse obj[%s] nodes info failed, rc: %d",
                    filterObj.toString().c_str(), rc ) ;
 
       if ( vecNodeID.size() > 0 || vecHostName.size() > 0 ||
-           vecSvcName.size() > 0 || vecNodeName.size() > 0 )
+           vecSvcName.size() > 0 )
       {
          emptyFilter = FALSE ;
       }
 
-      /// parse nodes
       it = groupPtrs.begin() ;
       while ( it != groupPtrs.end() )
       {
@@ -426,7 +412,6 @@ namespace engine
             randNum %= grp->nodeCount() ;
          }
 
-         /// calc pos
          while ( calTimes++ < grp->nodeCount() )
          {
             if ( NODE_SEL_SECONDARY == emptyFilterSel &&
@@ -453,7 +438,6 @@ namespace engine
             {
                BOOLEAN findNode = FALSE ;
                UINT32 index = 0 ;
-               /// check node id
                for ( index = 0 ; index < vecNodeID.size() ; ++index )
                {
                   if ( (UINT16)vecNodeID[ index ] == itrn->_id.columns.nodeID )
@@ -468,7 +452,6 @@ namespace engine
                }
 
                findNode = FALSE ;
-               /// check host name
                for ( index = 0 ; index < vecHostName.size() ; ++index )
                {
                   if ( 0 == ossStrcmp( vecHostName[ index ],
@@ -484,28 +467,10 @@ namespace engine
                }
 
                findNode = FALSE ;
-               /// check svcname
                for ( index = 0 ; index < vecSvcName.size() ; ++index )
                {
                   if ( 0 == ossStrcmp( vecSvcName[ index ],
                                        itrn->_service[MSG_ROUTE_LOCAL_SERVICE].c_str() ) )
-                  {
-                     findNode = TRUE ;
-                     break ;
-                  }
-               }
-               if ( index > 0 && !findNode )
-               {
-                  continue ;
-               }
-
-               findNode = FALSE ;
-               /// check node name
-               for ( index = 0 ; index < vecNodeName.size() ; ++index )
-               {
-                  if ( coordMatchNodeName( vecNodeName[ index ],
-                                           itrn->_host,
-                                           itrn->_service[MSG_ROUTE_LOCAL_SERVICE].c_str() ) )
                   {
                      findNode = TRUE ;
                      break ;

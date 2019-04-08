@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsTask.hpp
 
@@ -188,7 +187,6 @@ namespace engine
          }
          ++it ;
       }
-      // add to map
       _taskMap[ taskID ] = pTask ;
    done:
       PD_TRACE_EXITRC ( SDB__CLSTKMGR_ADDTK, rc ) ;
@@ -403,7 +401,6 @@ namespace engine
       _status = CLS_TASK_STATUS_READY ;
       _taskType = CLS_TASK_SPLIT ;
       _percent  = 0.0 ;
-      //_lockEnd = FALSE ;
    }
 
    _clsSplitTask::~_clsSplitTask ()
@@ -420,7 +417,6 @@ namespace engine
       _taskName += _splitEndKeyObj.toString() ;
       _taskName += " } " ;
 
-      /// cs name make
       size_t npos = _clFullName.find( '.' ) ;
       _csName = _clFullName.substr( 0, npos ) ;
    }
@@ -432,7 +428,6 @@ namespace engine
                                clsCatalogSet &cataSet )
    {
       INT32 rc = SDB_OK ;
-      //_lockEnd = FALSE ;
 
       _clFullName    = clFullName ;
       _sourceID      = sourceID ;
@@ -449,7 +444,6 @@ namespace engine
          _shardingType = CAT_SHARDING_TYPE_HASH ;
       }
 
-      // calc the end key
       BSONObj groupUpBound ;
       BSONObj allUpbound ;
       rc = cataSet.getGroupUpBound( sourceID, groupUpBound ) ;
@@ -458,11 +452,9 @@ namespace engine
       rc = cataSet.getGroupUpBound( 0, allUpbound ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get all up bound, rc: %d", rc ) ;
 
-      // bKey can't empty
       PD_CHECK( !_splitKeyObj.isEmpty(), SDB_INVALIDARG, error, PDERROR,
                 "Split begin key can't be empty" ) ;
 
-      // check begin valid
       if ( cataSet.isHashSharding() )
       {
          PD_CHECK( bKey.firstElement().numberInt() <
@@ -482,7 +474,6 @@ namespace engine
                    bKey.toString().c_str() ) ;
       }
 
-      // calc eKey
       if ( _splitEndKeyObj.isEmpty() )
       {
          _splitEndKeyObj = groupUpBound.getOwned() ;
@@ -493,7 +484,6 @@ namespace engine
          _splitEndKeyObj = BSONObj() ;
       }
 
-      // make sure eKey > bKey
       if ( !_splitEndKeyObj.isEmpty() )
       {
          if ( cataSet.isHashSharding() )
@@ -731,7 +721,6 @@ namespace engine
          goto error ;
       }
 
-      // calc all partition number
       pos = cataSet.getFirstItem() ;
       while ( NULL != ( cataItem = cataSet.getNextItem( pos ) ) )
       {
@@ -756,7 +745,6 @@ namespace engine
                 cataSet.toCataInfoBson().toString().c_str(), groupID,
                 splitNum, totalNum, percent ) ;
 
-      // find the begin key
       splitNum = totalNum - splitNum ;
       pos = cataSet.getFirstItem() ;
       while ( NULL != ( cataItem = cataSet.getNextItem( pos ) ) )
@@ -869,7 +857,6 @@ namespace engine
                ret = TRUE ;
                goto done ;
             }
-            // lock end
             /*else if ( _lockEnd && beginResult < 0 )
             {
                ret = TRUE ;

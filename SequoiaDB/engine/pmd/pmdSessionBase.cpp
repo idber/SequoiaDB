@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pmdSessionBase.cpp
 
@@ -60,7 +59,6 @@ namespace engine
       _socket.disableNagle() ;
       _socket.setKeepAlive() ;
 
-      // make session name
       if ( SOCKET_INVALIDSOCKET != fd )
       {
          CHAR tmpName [ 128 ] = {0} ;
@@ -85,7 +83,6 @@ namespace engine
 
    void _pmdSession::clear ()
    {
-      // release buff
       if ( _pBuff )
       {
          releaseBuff( _pBuff ) ;
@@ -173,16 +170,6 @@ namespace engine
          return _pEDUCB->getID() ;
       }
       return 0 ;
-   }
-
-   void* _pmdSession::getSchedItemPtr()
-   {
-      return (void*)&_infoItem ;
-   }
-
-   void _pmdSession::setSchedItemVer( INT32 ver )
-   {
-      _infoItem._info.setVersion( ver ) ;
    }
 
    INT32 _pmdSession::allocBuff( UINT32 len, CHAR **ppBuff, UINT32 *pRealSize )
@@ -367,7 +354,6 @@ namespace engine
    void _pmdProcessor::detachSession()
    {
       SDB_ASSERT( _pSession, "Session can't be NULL" ) ;
-      eduCB()->getMonAppCB()->setSvcTaskInfo( NULL ) ;
       _onDetach() ;
       _pSession = NULL ;
    }

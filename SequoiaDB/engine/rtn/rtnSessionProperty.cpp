@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnSessionProperty.cpp
 
@@ -350,7 +349,6 @@ namespace engine
       ossStrncpy( instanceCopyStr, instanceStr, PMD_MAX_LONG_STR_LEN ) ;
       instanceCopyStr[ PMD_MAX_LONG_STR_LEN ] = '\0' ;
 
-      // Split the preferred instance string by ','
       curInstanceStr = ossStrtok( instanceCopyStr, ",", &lastParsed ) ;
       while ( NULL != curInstanceStr && '\0' != curInstanceStr )
       {
@@ -497,7 +495,6 @@ namespace engine
       }
       else
       {
-         // Invalid options, use the default one
          builder.append( FIELD_NAME_PREFERED_INSTANCE,
                          PREFER_INSTANCE_MASTER_STR ) ;
          builder.append( FIELD_NAME_PREFERED_INSTANCE_MODE,
@@ -538,7 +535,7 @@ namespace engine
     */
    _rtnSessionProperty::_rtnSessionProperty ()
    : _instanceOption(),
-     _operationTimeout( RTN_SESSION_OPERATION_TIMEOUT_MAX )
+     _operationTimeout( -1 )
    {
    }
 
@@ -649,7 +646,6 @@ namespace engine
 
          if ( 0 == ossStrcmp( field.fieldName(), FIELD_NAME_PREFERED_INSTANCE ) )
          {
-            /// PreferedInstance
             INT32 replType = PREFER_REPL_ANYONE ;
 
             PD_CHECK( field.type() == NumberInt, SDB_INVALIDARG, error,
@@ -672,7 +668,6 @@ namespace engine
          }
          else if ( 0 == ossStrcmp( field.fieldName(), FIELD_NAME_TIMEOUT ) )
          {
-            /// Timeout
             PD_CHECK( field.isNumber(), SDB_INVALIDARG, error,
                       PDERROR, "Field[%s] is not number",
                       FIELD_NAME_TIMEOUT ) ;
@@ -728,7 +723,6 @@ namespace engine
 
          if ( 0 == ossStrcmp( field.fieldName(), FIELD_NAME_PREFERED_INSTANCE_V1 ) )
          {
-            /// PreferedInstance
             rc = instanceOption.parsePreferredInstance( field ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to parse preferred instance, "
                          " rc: %d", rc ) ;
@@ -740,7 +734,6 @@ namespace engine
          else if ( 0 == ossStrcmp( field.fieldName(),
                                    FIELD_NAME_PREFERED_INSTANCE_MODE ) )
          {
-            /// PreferedInstanceMode
             PD_CHECK( String == field.type(), SDB_INVALIDARG, error,
                       PDERROR, "Field[%s] is not string",
                       FIELD_NAME_PREFERED_INSTANCE_MODE ) ;
@@ -753,7 +746,6 @@ namespace engine
          }
          else if ( 0 == ossStrcmp( field.fieldName(), FIELD_NAME_TIMEOUT ) )
          {
-            /// Timeout
             PD_CHECK( field.isNumber(), SDB_INVALIDARG, error,
                       PDERROR, "Field[%s] is not number",
                       FIELD_NAME_TIMEOUT ) ;
@@ -763,7 +755,6 @@ namespace engine
          }
          else if ( 0 == ossStrcmp( field.fieldName(), FIELD_NAME_PREFERED_INSTANCE ) )
          {
-            /// do nothing
          }
          else
          {

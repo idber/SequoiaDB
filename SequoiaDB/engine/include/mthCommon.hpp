@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = mthCommon.hpp
 
@@ -41,8 +40,8 @@
 #include "core.hpp"
 #include <vector>
 #include "utilString.hpp"
-#include "ossMemPool.hpp"
 #include "utilStr.hpp"
+#include "utilMap.hpp"
 #include "../bson/bson.h"
 
 using namespace bson ;
@@ -52,7 +51,6 @@ namespace engine
 
    #define MTH_OPERATOR_EYECATCHER              '$'
 
-   // basic operation flags
    #define MTH_OPERATION_FLAG_OVERFLOW   0x00000001
 
 
@@ -165,10 +163,10 @@ namespace engine
       INT32 getCastStr( BSONType type, string &name ) ;
 
    private:
-      typedef ossPoolMap< string, BSONType > MTH_CAST_NAME_MAP ;
+      typedef _utilMap< string, BSONType > MTH_CAST_NAME_MAP ;
       MTH_CAST_NAME_MAP _castTransMap ;
 
-      typedef ossPoolMap< BSONType, string > MTH_CAST_TYPE_MAP ;
+      typedef _utilMap< BSONType, string > MTH_CAST_TYPE_MAP ;
       MTH_CAST_TYPE_MAP _castTypeMap ;
    } ;
 

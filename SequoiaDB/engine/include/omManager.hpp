@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omManager.hpp
 
@@ -44,13 +43,11 @@
 #include "rtnCB.hpp"
 #include "netRouteAgent.hpp"
 #include "pmdRemoteSession.hpp"
-#include "pmdRemoteMsgEventHandler.hpp"
-#include "ossMemPool.hpp"
+#include "omMsgEventHandler.hpp"
 
 #include <vector>
 #include <string>
 #include <map>
-#include <set>
 
 using namespace std ;
 using namespace bson ;
@@ -85,8 +82,6 @@ namespace engine
       typedef map< string, omAgentInfo >     MAP_HOST2ID ;
       typedef MAP_HOST2ID::iterator          MAP_HOST2ID_IT ;
 
-      typedef ossPoolMap< SINT64, UINT64>    CONTEXT_LIST ;
-
       public:
          _omManager() ;
          virtual ~_omManager() ;
@@ -106,7 +101,6 @@ namespace engine
          UINT32      setTimer( UINT32 milliSec ) ;
          void        killTimer( UINT32 timerID ) ;
 
-         // comm interface
          netRouteAgent* getRouteAgent() ;
          MsgRouteID     updateAgentInfo( const string &host,
                                          const string &service ) ;
@@ -135,9 +129,9 @@ namespace engine
          void              removeClusterVersion( string cluster ) ;
          void              updateClusterHostFilePrivilege( string clusterName,
                                                            BOOLEAN privilege ) ;
-         void              getPluginPasswd( string &passwd ) ;
+         void getPluginPasswd( string &passwd ) ;
 
-         void              getUpdatePluginPasswdTimeDiffer( INT64 &differ ) ;
+         void getUpdatePluginPasswdTimeDiffer( INT64 &differ ) ;
 
          omTaskManager     *getTaskManager() ;
 
@@ -148,14 +142,6 @@ namespace engine
 
       protected:
          virtual void      onTimer ( UINT64 timerID, UINT32 interval ) ;
-         virtual INT32     _defaultMsgFunc( NET_HANDLE handle,
-                                            MsgHeader *pMsg ) ;
-         void              _onMsgBegin( MsgHeader *pMsg ) ;
-         void              _onMsgEnd() ;
-         INT32             _reply ( const NET_HANDLE &handle,
-                                    MsgOpReply *pReply,
-                                    const CHAR *pReplyData = NULL,
-                                    UINT32 replyDataLen = 0 ) ;
 
          MsgRouteID        _incNodeID() ;
 
@@ -180,7 +166,6 @@ namespace engine
          INT32             _updateBusinessTable() ;
          INT32             _updateClusterTable() ;
          INT32             _updateHostTable() ;
-         INT32             _updatePluginIndex() ;
          INT32             _updateTable() ;
 
          INT32             _createJobs() ;
@@ -189,89 +174,39 @@ namespace engine
                                                     const CHAR *pIndex,
                                                     pmdEDUCB *cb ) ;
 
-         INT32             _dropCollectionIndex( const CHAR *pCollection,
-                                                 const CHAR *pIndex,
-                                                 pmdEDUCB *cb ) ;
-
          INT32             _createCollection ( const CHAR *pCollection,
                                                pmdEDUCB *cb ) ;
          void              _readAgentPort() ;
 
+         INT32             _onAgentQueryTaskReq( NET_HANDLE handle, 
+                                                 MsgHeader *pMsg ) ;
+         INT32             _onAgentUpdateTaskReq( NET_HANDLE handle, 
+                                                  MsgHeader *pMsg ) ;
          BOOLEAN           _isCommand( const CHAR *pCheckName ) ;
-
          void              _sendResVector2Agent( NET_HANDLE handle, 
                                                  MsgHeader *pSrcMsg, 
                                                  INT32 flag, 
-                                                 vector < BSONObj > &objs,
-                                                 INT64 contextID = -1 ) ;
-
+                                                 vector < BSONObj > &objs ) ;
          void              _sendRes2Agent( NET_HANDLE handle, 
                                            MsgHeader *pSrcMsg, 
-                                           INT32 flag,
-                                           const BSONObj &obj,
-                                           INT64 contextID = -1 ) ;
-
+                                           INT32 flag, BSONObj &obj ) ;
          void              _sendRes2Agent( NET_HANDLE handle, 
                                            MsgHeader *pSrcMsg, 
                                            INT32 flag, 
-                                           const rtnContextBuf &buffObj,
-                                           INT64 contextID = -1 ) ;
+                                           rtnContextBuf &buffObj ) ;
 
          void              _checkTaskTimeout( const BSONObj &task ) ;
 
-         INT32             _updatePluginPasswd() ;
+         INT32 _updatePluginPasswd() ;
 
          void              _createVersionFile() ;
 
       private:
-         INT32             _appendClusterGrant( const string& clusertName,
-                                                const string& grantName,
-                                                BOOLEAN privilege ) ;
+         INT32 _appendClusterGrant( const string& clusertName,
+                                    const string& grantName,
+                                    BOOLEAN privilege ) ;
 
-         void              _addContext( const UINT32 &handle,
-                                        UINT32 tid,
-                                        INT64 contextID ) ;
-
-         void              _delContextByHandle( const UINT32 &handle ) ;
-
-         void              _delContext( const UINT32 &handle,
-                                        UINT32 tid ) ;
-
-         void              _delContextByID( INT64 contextID, BOOLEAN rtnDel ) ;
-
-      // Msg functions
       protected:
-         INT32             _processMsg( const NET_HANDLE &handle,
-                                        MsgHeader *pMsg ) ;
-
-         INT32             _processQueryMsg( MsgHeader *pMsg,
-                                             rtnContextBuf &buf,
-                                             INT64 &contextID ) ;
-
-         INT32             _processGetMoreMsg( MsgHeader *pMsg,
-                                               rtnContextBuf &buf,
-                                               INT64 &contextID ) ;
-
-         INT32             _processKillContext( MsgHeader *pMsg ) ;
-
-         INT32             _processSessionInit( MsgHeader *pMsg ) ;
-
-         INT32             _processDisconnectMsg( NET_HANDLE handle,
-                                                  MsgHeader *pMsg ) ;
-
-         INT32             _processInterruptMsg( NET_HANDLE handle,
-                                                 MsgHeader *pMsg ) ;
-
-         INT32             _processRemoteDisc( NET_HANDLE handle,
-                                               MsgHeader *pMsg ) ;
-
-         INT32             _processPacketMsg( const NET_HANDLE &handle,
-                                              MsgHeader *pMsg,
-                                              INT64 &contextID,
-                                              rtnContextBuf &buf ) ;
-
-         INT32             _onAgentUpdateTaskReq( NET_HANDLE handle, 
-                                                  MsgHeader *pMsg ) ;
 
       private:
 
@@ -284,15 +219,14 @@ namespace engine
 
          pmdRemoteSessionMgr                    _rsManager ;
 
-         pmdRemoteMsgHandler                    _msgHandler ;
-         pmdRemoteTimerHandler                  _timerHandler ;
+         omMsgHandler                           _msgHandler ;
+         omTimerHandler                         _timerHandler ;
          netRouteAgent                          _netAgent ;
          MsgRouteID                             _myNodeID ;
 
          pmdKRCB*                               _pKrcb ;
          SDB_DMSCB*                             _pDmsCB ;
          SDB_RTNCB*                             _pRtnCB ;
-         pmdEDUCB                               *_pEDUCB ;
 
          string                                 _wwwRootPath ;
 
@@ -300,15 +234,6 @@ namespace engine
          omHostVersion                          *_hostVersion ;
 
          omTaskManager                          *_taskManager ;
-
-         CONTEXT_LIST                           _contextLst;
-         ossSpinXLatch                          _contextLatch ;
-         MsgOpReply                             _replyHeader ;
-         BOOLEAN                                _needReply ;
-         BSONObj                                _errorInfo ;
-         UINT32                                 _inPacketLevel ;
-         INT64                                  _pendingContextID ;
-         rtnContextBuf                          _pendingBuff ;
 
          INT64                                  _updateTimestamp ;
          UINT64                                 _updatePluinUsrTimer ;

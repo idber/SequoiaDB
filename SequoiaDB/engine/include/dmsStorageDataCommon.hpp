@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dmsStorageDataCommon.hpp
 
@@ -46,9 +45,7 @@
 #include "dmsEventHandler.hpp"
 #include "dmsExtDataHandler.hpp"
 
-#include "ossMemPool.hpp"
-#include "utilInsertResult.hpp"
-#include "dmsOprHandler.hpp"
+#include <map>
 
 using namespace bson ;
 
@@ -90,15 +87,113 @@ namespace engine
 
 #pragma pack()
 
+   /*
+      MB FLAG(_flag) values :
+   */
+   #define DMS_MB_BASE_MASK                        0x000F
+   #define DMS_MB_FLAG_FREE                        0x0000
+   #define DMS_MB_FLAG_USED                        0x0001
+   #define DMS_MB_FLAG_DROPED                      0x0002
+
+   #define DMS_MB_OPR_TYPE_MASK                    0x00F0
+   #define DMS_MB_FLAG_OFFLINE_REORG               0x0010
+   #define DMS_MB_FLAG_ONLINE_REORG                0x0020
+   #define DMS_MB_FLAG_LOAD                        0x0040
+
+   #define DMS_MB_OPR_PHASE_MASK                   0x0F00
+
+   #define DMS_MB_FLAG_OFFLINE_REORG_SHADOW_COPY   0x0100
+   #define DMS_MB_FLAG_OFFLINE_REORG_TRUNCATE      0x0200
+   #define DMS_MB_FLAG_OFFLINE_REORG_COPY_BACK     0x0400
+   #define DMS_MB_FLAG_OFFLINE_REORG_REBUILD       0x0800
+
+   #define DMS_MB_FLAG_LOAD_LOAD                   0x0100
+   #define DMS_MB_FLAG_LOAD_BUILD                  0x0200
+
+   #define DMS_MB_BASE_FLAG(x)                     ((x)&DMS_MB_BASE_MASK)
+   #define DMS_MB_OPR_FLAG(x)                      ((x)&DMS_MB_OPR_TYPE_MASK)
+   #define DMS_MB_PHASE_FLAG(x)                    ((x)&DMS_MB_OPR_PHASE_MASK)
+
+   #define DMS_IS_MB_FREE(x)        (DMS_MB_FLAG_FREE==(x))
+   #define DMS_SET_MB_FREE(x)       do {(x)=DMS_MB_FLAG_FREE ;} while(0)
+   #define DMS_IS_MB_INUSE(x)       (0!=((x)&DMS_MB_FLAG_USED))
+   #define DMS_SET_MB_INUSE(x)      do {(x)|=DMS_MB_FLAG_USED ;} while(0)
+   #define DMS_IS_MB_DROPPED(x)     (DMS_MB_FLAG_DROPED==(x))
+   #define DMS_SET_MB_DROPPED(x)    do {(x)=DMS_MB_FLAG_DROPED ;} while(0)
+   #define DMS_IS_MB_NORMAL(x)      (DMS_MB_FLAG_USED==(x))
+   #define DMS_SET_MB_NORMAL(x)     do {(x)=DMS_MB_FLAG_USED ;} while(0)
+
+   #define DMS_IS_MB_OFFLINE_REORG(x)  \
+      ((0!=((x)&DMS_MB_FLAG_OFFLINE_REORG))&&(DMS_IS_MB_INUSE(x)))
+   #define DMS_SET_MB_OFFLINE_REORG(x) \
+      do {(x)=DMS_MB_FLAG_OFFLINE_REORG|DMS_MB_FLAG_USED;} while(0)
+   #define DMS_IS_MB_ONLINE_REORG(x)   \
+      ((0!=((x)&DMS_MB_FLAG_ONLINE_REORG))&&(DMS_IS_MB_INUSE(x)))
+   #define DMS_SET_MB_ONLINE_REORG(x)  \
+      do {(x)=DMS_MB_FLAG_ONLINE_REORG|DMS_MB_FLAG_USED;} while(0)
+   #define DMS_IS_MB_OFFLINE_REORG_SHADOW_COPY(x)     \
+      ((0!=((x)&DMS_MB_FLAG_OFFLINE_REORG_SHADOW_COPY))&&\
+      (DMS_IS_MB_OFFLINE_REORG(x)))
+   #define DMS_SET_MB_OFFLINE_REORG_SHADOW_COPY(x)    \
+      do {(x)=DMS_MB_FLAG_OFFLINE_REORG_SHADOW_COPY|DMS_MB_FLAG_OFFLINE_REORG|\
+      DMS_MB_FLAG_USED;} while(0)
+   #define DMS_IS_MB_OFFLINE_REORG_TRUNCATE(x)        \
+      ((0!=((x)&DMS_MB_FLAG_OFFLINE_REORG_TRUNCATE))&&\
+      (DMS_IS_MB_OFFLINE_REORG(x)))
+   #define DMS_SET_MB_OFFLINE_REORG_TRUNCATE(x)       \
+      do {(x)=DMS_MB_FLAG_OFFLINE_REORG_TRUNCATE|DMS_MB_FLAG_OFFLINE_REORG|\
+      DMS_MB_FLAG_USED;} while(0)
+   #define DMS_IS_MB_OFFLINE_REORG_COPY_BACK(x)       \
+      ((0!=((x)&DMS_MB_FLAG_OFFLINE_REORG_COPY_BACK))&&\
+      (DMS_IS_MB_OFFLINE_REORG(x)))
+   #define DMS_SET_MB_OFFLINE_REORG_COPY_BACK(x)      \
+      do {(x)=DMS_MB_FLAG_OFFLINE_REORG_COPY_BACK|DMS_MB_FLAG_OFFLINE_REORG|\
+      DMS_MB_FLAG_USED;} while(0)
+   #define DMS_IS_MB_OFFLINE_REORG_REBUILD(x)         \
+      ((0!=((x)&DMS_MB_FLAG_OFFLINE_REORG_REBUILD))&&\
+      (DMS_IS_MB_OFFLINE_REORG(x)))
+   #define DMS_SET_MB_OFFLINE_REORG_REBUILD(x)        \
+      do {(x)=DMS_MB_FLAG_OFFLINE_REORG_REBUILD|DMS_MB_FLAG_OFFLINE_REORG|\
+      DMS_MB_FLAG_USED;} while(0)
+
+   #define DMS_IS_MB_LOAD(x)                          \
+      (0!=((x)&DMS_MB_FLAG_LOAD)&&(DMS_IS_MB_INUSE(x)))
+   #define DMS_SET_MB_LOAD(x)                         \
+      do {(x)=DMS_MB_FLAG_LOAD|DMS_MB_FLAG_USED;} while(0)
+   #define DMS_IS_MB_FLAG_LOAD_LOAD(x)                \
+      ((0!=((x)&DMS_MB_FLAG_LOAD_LOAD))&&(DMS_IS_MB_LOAD(x)))
+   #define DMS_SET_MB_FLAG_LOAD_LOAD(x)               \
+      do {(x)=DMS_MB_FLAG_LOAD_LOAD|DMS_MB_FLAG_LOAD|\
+      DMS_MB_FLAG_USED;} while(0)
+   #define DMS_IS_MB_FLAG_LOAD_BUILD(x)               \
+      ((0!=((x)&DMS_MB_FLAG_LOAD_BUILD))&&(DMS_IS_MB_LOAD(x)))
+   #define DMS_SET_MB_FLAG_LOAD_BUILD(x)              \
+      do {(x)=DMS_MB_FLAG_LOAD_BUILD|DMS_MB_FLAG_LOAD|\
+      DMS_MB_FLAG_USED;} while(0)
+
+   #define DMS_MB_STATINFO_FLAG_TRUNCATED  0x00000001
+
+   #define DMS_MB_STATINFO_IS_TRUNCATED(x) \
+      (0 != ((x) & DMS_MB_STATINFO_FLAG_TRUNCATED))
+   #define DMS_MB_STATINFO_SET_TRUNCATED(x) \
+      do { (x) |= DMS_MB_STATINFO_FLAG_TRUNCATED ; } while (0)
+   #define DMS_MB_STATINFO_CLEAR_TRUNCATED(x) \
+      do { (x) &= ~DMS_MB_STATINFO_FLAG_TRUNCATED ; } while (0)
+
+   /*
+      DMS MB ATTRIBUTE DEFINE
+   */
+   #define DMS_MB_ATTR_COMPRESSED         0x00000001
+   #define DMS_MB_ATTR_NOIDINDEX          0x00000002
+   #define DMS_MB_ATTR_CAPPED             0x00000004
+   #define DMS_MB_ATTR_STRICTDATAMODE     0x00000008
+
 #pragma pack(4)
    /*
       _dmsMetadataBlock defined
    */
    struct _dmsMetadataBlock
    {
-      // every records <= 32 bytes go to slot 0
-      // every records >32 and <= 64 go to slot 1...
-      // every records
       enum deleteListType
       {
          _32 = 0,
@@ -138,32 +233,25 @@ namespace engine
       dmsExtentID    _loadFirstExtentID ;
       dmsExtentID    _loadLastExtentID ;
       dmsExtentID    _mbExExtentID ;
-      // for stat
       UINT64         _totalRecords ;
       UINT32         _totalDataPages ;
       UINT32         _totalIndexPages ;
       UINT64         _totalDataFreeSpace ;
       UINT64         _totalIndexFreeSpace ;
       UINT32         _totalLobPages ;
-      // end
 
-      // This extent is used to store dictionary of the collection. If the
-      // dictionary has not been created, the value should be DMS_INVALID_EXTENT.
       dmsExtentID    _dictExtentID ;
       dmsExtentID    _newDictExtentID ;
       SINT32         _dictStatPageID ;
       UINT8          _dictVersion ;
       UINT8          _compressorType ;
       UINT8          _lastCompressRatio ;
-      UINT8          _compressFlags ;
-      // for stat
+      UINT8          _pad1[ 1 ] ;   // reserved
       UINT64         _totalLobs ;
       UINT64         _totalOrgDataLen ;
       UINT64         _totalDataLen ;
       CHAR           _pad2[ 16 ] ;  // reserved
-      // end stat
 
-      // for persistence
       UINT32         _commitFlag ;
       UINT64         _commitLSN ;
       UINT64         _commitTime ;
@@ -173,19 +261,11 @@ namespace engine
       UINT32         _lobCommitFlag ;
       UINT64         _lobCommitLSN ;
       UINT64         _lobCommitTime ;
-      // end persistence
 
-      // Extend option extent id for collection.
-      // If one storage type has its own special options, allocate one seperate
-      // page to store them, instead of putting them in this common structure.
       dmsExtentID    _mbOptExtentID ;
-
-      utilCLUniqueID _clUniqueID ;
-
-      CHAR           _pad [ 276 ] ;
+      CHAR           _pad [ 284 ] ;
 
       void reset ( const CHAR *clName = NULL,
-                   utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL,
                    UINT16 mbID = DMS_INVALID_MBID,
                    UINT32 clLID = DMS_INVALID_CLID,
                    UINT32 attr = 0,
@@ -197,7 +277,6 @@ namespace engine
          {
             ossStrncpy( _collectionName, clName, DMS_COLLECTION_NAME_SZ ) ;
          }
-         _clUniqueID = clUniqueID ;
          if ( DMS_INVALID_MBID != mbID )
          {
             DMS_SET_MB_INUSE( _flag ) ;
@@ -232,13 +311,12 @@ namespace engine
          _totalIndexFreeSpace    = 0 ;
          _totalLobPages          = 0 ;
          _totalLobs              = 0 ;
-         _compressorType         = UTIL_COMPRESSOR_INVALID ;
+         _compressorType         = compressType ;
          _dictVersion            = 0 ;
          _dictExtentID           = DMS_INVALID_EXTENT ;
          _newDictExtentID        = DMS_INVALID_EXTENT ;
          _dictStatPageID         = DMS_INVALID_EXTENT ;
          _lastCompressRatio      = 100 ;
-         _compressFlags          = UTIL_COMPRESS_ALTERABLE_FLAG ;
 
          _totalOrgDataLen        = 0 ;
          _totalDataLen           = 0 ;
@@ -255,13 +333,12 @@ namespace engine
 
          _mbOptExtentID          = DMS_INVALID_EXTENT ;
 
-         /// set compressor type
          if ( OSS_BIT_TEST( attr, DMS_MB_ATTR_COMPRESSED ) )
          {
             _compressorType      = compressType ;
          }
 
-         // pad
+         ossMemset( _pad1, 0, sizeof( _pad1 ) ) ;
          ossMemset( _pad2, 0, sizeof( _pad2 ) ) ;
          ossMemset( _pad, 0, sizeof( _pad ) ) ;
       }
@@ -415,15 +492,15 @@ namespace engine
       {
          if ( DMS_FILE_DATA == type )
          {
-            _lastLSN.swap( lsn ) ;
+            _lastLSN.init( lsn ) ;
          }
          else if ( DMS_FILE_IDX == type )
          {
-            _idxLastLSN.swap( lsn ) ;
+            _idxLastLSN.init( lsn ) ;
          }
          else if ( DMS_FILE_LOB == type )
          {
-            _lobLastLSN.swap( lsn ) ;
+            _lobLastLSN.init( lsn ) ;
          }
       }
       void updateLastLSNWithComp( UINT64 lsn,
@@ -496,9 +573,6 @@ namespace engine
          virtual ~_dmsMBContext() ;
          void _reset () ;
 
-         void  attachSubContext( _IContext *pContext ) ;
-         void  detachSubContext() ;
-
       public:
          virtual string toString () const ;
          virtual INT32  pause () ;
@@ -515,7 +589,6 @@ namespace engine
          OSS_INLINE  dmsMBStatInfo* mbStat() { return _mbStat ; }
          OSS_INLINE  UINT32 clLID () const { return _clLID ; }
          OSS_INLINE  UINT32 startLID() const { return _startLID ; }
-         OSS_INLINE  INT32  mbLockType() const { return _mbLockType ; }
 
       private:
          dmsMB             *_mb ;
@@ -526,8 +599,6 @@ namespace engine
          UINT16            _mbID ;
          INT32             _mbLockType ;
          INT32             _resumeType ;
-
-         _IContext         *_pSubContext ;
    };
    typedef _dmsMBContext   dmsMBContext ;
 
@@ -545,12 +616,10 @@ namespace engine
       {
          return SDB_OK ;
       }
-      // already lock(type not same), need to unlock
       if ( -1 != _mbLockType && SDB_OK != ( rc = pause() ) )
       {
          return rc ;
       }
-      // check before lock
       if ( !DMS_IS_MB_INUSE(_mb->_flag) )
       {
          return SDB_DMS_NOTEXIST ;
@@ -568,7 +637,6 @@ namespace engine
          }
       }
       ossLatch( _latch, (OSS_LATCH_MODE)lockType ) ;
-      // check after lock
       if ( !DMS_IS_MB_INUSE(_mb->_flag) )
       {
          ossUnlatch( _latch, (OSS_LATCH_MODE)lockType ) ;
@@ -632,13 +700,13 @@ namespace engine
 
       public:
          _dmsRecordRW() ;
-         virtual ~_dmsRecordRW() ;
+         ~_dmsRecordRW() ;
 
          BOOLEAN           isEmpty() const ;
-         _dmsRecordRW      derivePre() const ;
-         _dmsRecordRW      deriveNext() const ;
-         _dmsRecordRW      deriveOverflow() const ;
-         _dmsRecordRW      derive( const dmsRecordID &rid ) const ;
+         _dmsRecordRW      derivePre() ;
+         _dmsRecordRW      deriveNext() ;
+         _dmsRecordRW      deriveOverflow() ;
+         _dmsRecordRW      derive( const dmsRecordID &rid ) ;
 
          void              setNothrow( BOOLEAN nothrow ) ;
          BOOLEAN           isNothrow() const ;
@@ -648,12 +716,11 @@ namespace engine
          /*
             When len == 0, Use the record's size
          */
-         const dmsRecord*  readPtr( UINT32 len = sizeof( dmsRecord ) ) const ;
+         const dmsRecord*  readPtr( UINT32 len = sizeof( dmsRecord ) ) ;
          dmsRecord*        writePtr( UINT32 len = sizeof( dmsRecord ) ) ;
 
-
          template< typename T >
-         const T*          readPtr( UINT32 len = sizeof(T) ) const
+         const T*          readPtr( UINT32 len = sizeof(T) )
          {
             return ( const T* )readPtr( len ) ;
          }
@@ -669,29 +736,17 @@ namespace engine
       private:
          void              _doneAddr() ;
 
-      protected:
-         BOOLEAN           _isDirectMem ;
-         const dmsRecord   *_ptr ;
-
       private:
          dmsRecordID       _rid ;
+         const dmsRecord   *_ptr ;
          dmsExtRW          _rw ;
          _dmsStorageDataCommon   *_pData ;
    } ;
-   typedef class _dmsRecordRW dmsRecordRW ;
+   typedef _dmsRecordRW dmsRecordRW ;
 
    #define DMS_MME_OFFSET                 ( DMS_SME_OFFSET + DMS_SME_SZ )
    #define DMS_DATASU_EYECATCHER          "SDBDATA"
 
-   // History of data version change:
-   // Version  Update in which version    Reason
-   //    1             --                 The Initial version.
-   //    2             2.0                Support for lzw compression. New
-   //                                     dictionary extent information added
-   //                                     in MB.
-   //    3             2.9                Support for capped collection. A new
-   //                                     page for extend option is used, id
-   //                                     stored in MB.
    #define DMS_DATASU_CUR_VERSION         3
    #define DMS_DATACAPSU_EYECATCHER       "SDBDCAP"
    #define DMS_COMPRESSION_ENABLE_VER     2
@@ -731,17 +786,14 @@ namespace engine
          }
       } ;
 
-      typedef ossPoolMap<const CHAR*, UINT16, cmp_str> COLNAME_MAP ;
-      typedef ossPoolMap<utilCLUniqueID, UINT16>       COLID_MAP ;
+      typedef std::map<const CHAR*, UINT16, cmp_str>        COLNAME_MAP ;
 #if defined (_WINDOWS)
       typedef COLNAME_MAP::iterator                         COLNAME_MAP_IT ;
       typedef COLNAME_MAP::const_iterator                   COLNAME_MAP_CIT ;
 #else
-      typedef ossPoolMap<const CHAR*, UINT16>::iterator       COLNAME_MAP_IT ;
-      typedef ossPoolMap<const CHAR*, UINT16>::const_iterator COLNAME_MAP_CIT ;
+      typedef std::map<const CHAR*, UINT16>::iterator       COLNAME_MAP_IT ;
+      typedef std::map<const CHAR*, UINT16>::const_iterator COLNAME_MAP_CIT ;
 #endif
-      typedef COLID_MAP::iterator    COLID_MAP_IT ;
-      typedef COLID_MAP::const_iterator COLID_MAP_CIT ;
 
       public:
          _dmsStorageDataCommon ( const CHAR *pSuFileName,
@@ -755,15 +807,10 @@ namespace engine
          dmsStorageUnitID CSID () const { return _CSID ; }
 
          OSS_INLINE INT32  getMBContext( dmsMBContext **pContext, UINT16 mbID,
-                                         UINT32 clLID, UINT32 startLID,
-                                         INT32 lockType = -1 );
+                                         UINT32 clLID, UINT32 startLID, INT32 lockType = -1 );
          OSS_INLINE INT32  getMBContext( dmsMBContext **pContext,
                                          const CHAR* pName,
                                          INT32 lockType = -1 ) ;
-         OSS_INLINE INT32  getMBContextByID( dmsMBContext **pContext,
-                                             utilCLUniqueID clUniqueID,
-                                             INT32 lockType = -1 ) ;
-
          OSS_INLINE INT32  checkMBContext( const CHAR *pName, UINT16 mbID ) ;
          OSS_INLINE void   releaseMBContext( dmsMBContext *&pContext ) ;
 
@@ -773,12 +820,8 @@ namespace engine
          OSS_INLINE UINT32 getCollectionNum() ;
 
          OSS_INLINE dmsRecordRW record2RW( const dmsRecordID &record,
-                                           UINT16 collectionID ) const ;
+                                           UINT16 collectionID ) ;
 
-         BOOLEAN isCapped () { return _isCapped; }
-
-         // update extent logical id and expanded meta
-         // must hold mb exclusive lock
          INT32         addExtent2Meta( dmsExtentID extID, dmsExtent *extent,
                                        dmsMBContext *context ) ;
          INT32         removeExtentFromMeta( dmsMBContext *context,
@@ -802,17 +845,12 @@ namespace engine
             return _pExtDataHandler ;
          }
 
-         /// flush mme
          INT32          flushMME( BOOLEAN sync = FALSE ) ;
-
-         BOOLEAN        isTransSupport() const ;
 
       public:
 
-         // create a new collection for given name, returns collectionID
          INT32 addCollection ( const CHAR *pName,
                                UINT16 *collectionID,
-                               utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL,
                                UINT32 attributes = 0,
                                _pmdEDUCB * cb = NULL,
                                SDB_DPSCB *dpscb = NULL,
@@ -839,17 +877,11 @@ namespace engine
          INT32 truncateCollectionLoads( const CHAR *pName,
                                         dmsMBContext *context = NULL ) ;
 
-         INT32 changeCLUniqueID( const MAP_CLNAME_ID& clInfo,
-                                 BOOLEAN setOnlyIfNull = TRUE,
-                                 BOOLEAN resetOtherCl = FALSE ) ;
-
          INT32 renameCollection ( const CHAR *oldName, const CHAR *newName,
                                   _pmdEDUCB *cb, SDB_DPSCB *dpscb,
                                   BOOLEAN sysCollection = FALSE ) ;
 
-         INT32 findCollection ( const CHAR *pName,
-                                UINT16 &collectionID,
-                                utilCLUniqueID *pClUniqueID = NULL ) ;
+         INT32 findCollection ( const CHAR *pName, UINT16 &collectionID ) ;
 
          INT32 insertRecord ( dmsMBContext *context,
                               const BSONObj &record,
@@ -857,29 +889,21 @@ namespace engine
                               SDB_DPSCB *dpscb,
                               BOOLEAN mustOID = TRUE,
                               BOOLEAN canUnLock = TRUE,
-                              INT64 position = -1,
-                              utilInsertResult *insertResult = NULL ) ;
+                              INT64 position = -1 ) ;
 
-         // if deletedDataPtr = 0, will get from recordID
-         // must hold mb exclusive lock
          INT32 deleteRecord ( dmsMBContext *context,
                               const dmsRecordID &recordID,
                               ossValuePtr deletedDataPtr,
                               _pmdEDUCB * cb,
-                              SDB_DPSCB *dpscb,
-                              IDmsOprHandler *pHandler = NULL,
-                              const dmsTransRecordInfo *pInfo = NULL ) ;
+                              SDB_DPSCB *dpscb ) ;
 
-         // if updatedDataPtr = 0, will get from recordID
-         // must hold mb exclusive lock
          INT32 updateRecord ( dmsMBContext *context,
                               const dmsRecordID &recordID,
                               ossValuePtr updatedDataPtr,
                               _pmdEDUCB *cb,
                               SDB_DPSCB *dpscb,
                               _mthModifier &modifier,
-                              BSONObj* newRecord = NULL,
-                              IDmsOprHandler *pHandler = NULL ) ;
+                              BSONObj* newRecord = NULL ) ;
 
          virtual INT32 popRecord( dmsMBContext *context,
                                   INT64 targetID,
@@ -887,8 +911,6 @@ namespace engine
                                   SDB_DPSCB *dpscb,
                                   INT8 direction = 1 ) ;
 
-         // the dataRecord is not owned
-         // Caller must hold mb exclusive/shared lock
          INT32 fetch ( dmsMBContext *context,
                        const dmsRecordID &recordID,
                        BSONObj &dataRecord,
@@ -903,8 +925,8 @@ namespace engine
          /*
             Caller must hold the mbContext
          */
-         virtual INT32 extractData( const dmsMBContext *mbContext,
-                                    const dmsRecordRW &recordRW,
+         virtual INT32 extractData( dmsMBContext *mbContext,
+                                    dmsRecordRW &recordRW,
                                     _pmdEDUCB *cb,
                                     dmsRecordData &recordData ) = 0 ;
 
@@ -921,9 +943,6 @@ namespace engine
 
          virtual INT32 dumpExtOptions( dmsMBContext *context,
                                        BSONObj &extOptions ) = 0 ;
-
-         virtual INT32 setExtOptions ( dmsMBContext * context,
-                                       const BSONObj & extOptions ) = 0 ;
 
       protected:
          virtual INT32 _prepareAddCollection( const BSONObj *extOption,
@@ -977,8 +996,7 @@ namespace engine
                                              dmsRecordRW &recordRW,
                                              const dmsRecordData &recordData,
                                              const BSONObj &newObj,
-                                             _pmdEDUCB *cb,
-                                             IDmsOprHandler *pHandler ) = 0 ;
+                                             _pmdEDUCB *cb ) = 0 ;
 
          virtual INT32 _extentRemoveRecord( dmsMBContext *context,
                                             dmsExtRW &extRW,
@@ -986,9 +1004,6 @@ namespace engine
                                             _pmdEDUCB *cb,
                                             BOOLEAN decCount = TRUE ) = 0 ;
 
-         // Calculate the final size needed by the record. Records of different
-         // type may have different strategy, such as reservation for update,
-         // space for meta data, etc.
          virtual void _finalRecordSize( UINT32 &size,
                                         const dmsRecordData &recordData ) = 0 ;
 
@@ -1033,10 +1048,6 @@ namespace engine
          void _setCompressor( dmsMBContext *context ) ;
          void _rmCompressor( _dmsMBContext *context ) ;
 
-         // This function allocates a new extent. When the extent is allocated,
-         // different storage types( sub classes of this base class ) may have
-         // different further in-extent initialize operations. The parameter
-         // 'deepInit' specifies if those operations should happen.
          INT32 _allocateExtent ( dmsMBContext *context,
                                  UINT16 numPages,
                                  BOOLEAN deepInit = TRUE,
@@ -1054,16 +1065,11 @@ namespace engine
       private:
          void               _initializeMME () ;
 
-         OSS_INLINE void _collectionInsert( const CHAR *pName,
-                                            UINT16 mbID,
-                                            utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ) ;
-
-         OSS_INLINE UINT16 _collectionNameLookup( const CHAR *pName ) ;
-         OSS_INLINE UINT16 _collectionIdLookup( utilCLUniqueID clUniqueID ) ;
-
-         OSS_INLINE void _collectionRemove( const CHAR *pName,
-                                            utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ) ;
-         OSS_INLINE void _collectionMapCleanup () ;
+         OSS_INLINE void    _collectionNameInsert ( const CHAR *pName,
+                                                    UINT16 mbID ) ;
+         OSS_INLINE UINT16  _collectionNameLookup ( const CHAR *pName ) ;
+         OSS_INLINE void    _collectionNameRemove ( const CHAR *pName ) ;
+         OSS_INLINE void    _collectionNameMapCleanup () ;
 
          INT32          _logDPS( SDB_DPSCB *dpsCB, dpsMergeInfo &info,
                                  _pmdEDUCB * cb, ossSLatch *pLatch,
@@ -1071,8 +1077,6 @@ namespace engine
                                  UINT32 clLID, dmsExtentID extLID ) ;
 
          INT32          _initCompressorEntry( UINT16 mbID ) ;
-
-         INT32          _setCompressorEntry ( UINT16 mbID ) ;
 
          INT32          _truncateCollection ( dmsMBContext *context,
                                               BOOLEAN needChangeCLID = TRUE ) ;
@@ -1086,23 +1090,17 @@ namespace engine
 
          OSS_INLINE UINT32  _getFactor () const ;
 
-      //private:
       protected:
          dmsMetadataManagementExtent         *_dmsMME ;     // 4MB
 
-         // latch for each MB. For normal record SIUD, shared latches are
-         // requested exclusive latch on mblock is only when changing
-         // metadata (say add an extent into the MB, or create/drop the MB)
          ossSpinSLatch                       _mblock [ DMS_MME_SLOTS ] ;
          dmsMBStatInfo                       _mbStatInfo [ DMS_MME_SLOTS ] ;
          ossSpinSLatch                       _metadataLatch ;
          COLNAME_MAP                         _collectionNameMap ;
-         COLID_MAP                           _collectionIDMap ;
          UINT32                              _logicalCSID ;
          dmsStorageUnitID                    _CSID ;
 
          UINT32                              _mmeSegID ;
-         BOOLEAN                             _isCapped ;
 
          vector<dmsMBContext*>               _vecContext ;
          ossSpinXLatch                       _latchContext ;
@@ -1121,45 +1119,21 @@ namespace engine
    /*
       OSS_INLINE functions :
    */
-   OSS_INLINE void _dmsStorageDataCommon::_collectionInsert( const CHAR * pName,
-                                                             UINT16 mbID,
-                                                             utilCLUniqueID clUniqueID )
+   OSS_INLINE void _dmsStorageDataCommon::_collectionNameInsert( const CHAR * pName,
+                                                                 UINT16 mbID )
    {
       _collectionNameMap[ ossStrdup( pName ) ] = mbID ;
-
-      if ( UTIL_IS_VALID_CLUNIQUEID( clUniqueID ) )
-      {
-         _collectionIDMap[ clUniqueID ] = mbID ;
-      }
    }
    OSS_INLINE UINT16 _dmsStorageDataCommon::_collectionNameLookup( const CHAR * pName )
    {
-      UINT16 mbID = DMS_INVALID_MBID ;
-      if ( pName )
+      COLNAME_MAP_CIT it = _collectionNameMap.find( pName ) ;
+      if ( _collectionNameMap.end() == it  )
       {
-         COLNAME_MAP_CIT it = _collectionNameMap.find( pName ) ;
-         if ( it != _collectionNameMap.end() )
-         {
-            mbID = it->second ;
-         }
+         return DMS_INVALID_MBID ;
       }
-      return mbID ;
+      return (*it).second ;
    }
-   OSS_INLINE UINT16 _dmsStorageDataCommon::_collectionIdLookup( utilCLUniqueID clUniqueID )
-   {
-      UINT16 mbID = DMS_INVALID_MBID ;
-      if ( UTIL_IS_VALID_CLUNIQUEID( clUniqueID ) )
-      {
-         COLID_MAP_CIT it = _collectionIDMap.find( clUniqueID ) ;
-         if ( it != _collectionIDMap.end() )
-         {
-            mbID = it->second ;
-         }
-      }
-      return mbID ;
-   }
-   OSS_INLINE void _dmsStorageDataCommon::_collectionRemove( const CHAR * pName,
-                                                             utilCLUniqueID clUniqueID )
+   OSS_INLINE void _dmsStorageDataCommon::_collectionNameRemove( const CHAR * pName )
    {
       COLNAME_MAP_IT it = _collectionNameMap.find( pName ) ;
       if ( _collectionNameMap.end() != it )
@@ -1168,13 +1142,8 @@ namespace engine
          _collectionNameMap.erase( it ) ;
          SDB_OSS_FREE( const_cast<CHAR *>(tp) ) ;
       }
-
-      if ( UTIL_IS_VALID_CLUNIQUEID( clUniqueID ) )
-      {
-         _collectionIDMap.erase( clUniqueID ) ;
-      }
    }
-   OSS_INLINE void _dmsStorageDataCommon::_collectionMapCleanup ()
+   OSS_INLINE void _dmsStorageDataCommon::_collectionNameMapCleanup ()
    {
       COLNAME_MAP_CIT it = _collectionNameMap.begin() ;
 
@@ -1183,7 +1152,6 @@ namespace engine
          SDB_OSS_FREE( const_cast<CHAR *>(it->first) ) ;
       }
       _collectionNameMap.clear() ;
-      _collectionIDMap.clear() ;
    }
    OSS_INLINE UINT32 _dmsStorageDataCommon::getCollectionNum()
    {
@@ -1191,16 +1159,15 @@ namespace engine
       return (UINT32)_collectionNameMap.size() ;
    }
    OSS_INLINE dmsRecordRW _dmsStorageDataCommon::record2RW( const dmsRecordID &record,
-                                                            UINT16 collectionID ) const
+                                                            UINT16 collectionID )
    {
       dmsRecordRW rRW ;
-      rRW._pData = const_cast<_dmsStorageDataCommon*>( this ) ;
+      rRW._pData = this ;
       rRW._rid = record ;
       rRW._rw = extent2RW( record._extent, collectionID ) ;
       rRW._doneAddr() ;
       return rRW ;
    }
-
    OSS_INLINE const CHAR* _dmsStorageDataCommon::_clFullName( const CHAR *clName,
                                                               CHAR * clFullName,
                                                               UINT32 fullNameLen )
@@ -1230,7 +1197,6 @@ namespace engine
       if ( _dmsHeader && _dmsHeader->_createLobs != createLobs )
       {
          _dmsHeader->_createLobs = createLobs ;
-         /// flush to file
          flushHeader( isSyncDeep() ) ;
       }
    }
@@ -1245,7 +1211,6 @@ namespace engine
          return SDB_INVALIDARG ;
       }
 
-      // metadata shared lock
       if ( (UINT32)DMS_INVALID_CLID == clLID ||
            (UINT32)DMS_INVALID_CLID == startLID )
       {
@@ -1261,7 +1226,6 @@ namespace engine
          _metadataLatch.release_shared() ;
       }
 
-      // context lock
       _latchContext.get() ;
       if ( _vecContext.size () > 0 )
       {
@@ -1295,16 +1259,14 @@ namespace engine
       }
       return SDB_OK ;
    }
-
-   OSS_INLINE INT32 _dmsStorageDataCommon::getMBContext( dmsMBContext **pContext,
-                                                         const CHAR* pName,
+   OSS_INLINE INT32 _dmsStorageDataCommon::getMBContext( dmsMBContext ** pContext,
+                                                         const CHAR * pName,
                                                          INT32 lockType )
    {
       UINT16 mbID = DMS_INVALID_MBID ;
       UINT32 clLID = DMS_INVALID_CLID ;
       UINT32 startLID = DMS_INVALID_CLID ;
 
-      // metadata shared lock
       _metadataLatch.get_shared() ;
       mbID = _collectionNameLookup( pName ) ;
       if ( DMS_INVALID_MBID != mbID )
@@ -1320,32 +1282,6 @@ namespace engine
       }
       return getMBContext( pContext, mbID, clLID, startLID, lockType ) ;
    }
-
-   OSS_INLINE INT32 _dmsStorageDataCommon::getMBContextByID( dmsMBContext **pContext,
-                                                             utilCLUniqueID clUniqueID,
-                                                             INT32 lockType )
-   {
-      UINT16 mbID = DMS_INVALID_MBID ;
-      UINT32 clLID = DMS_INVALID_CLID ;
-      UINT32 startLID = DMS_INVALID_CLID ;
-
-      // metadata shared lock
-      _metadataLatch.get_shared() ;
-      mbID = _collectionIdLookup( clUniqueID ) ;
-      if ( DMS_INVALID_MBID != mbID )
-      {
-         clLID = _dmsMME->_mbList[mbID]._logicalID ;
-         startLID = _mbStatInfo[mbID]._startLID ;
-      }
-      _metadataLatch.release_shared() ;
-
-      if ( DMS_INVALID_MBID == mbID )
-      {
-         return SDB_DMS_NOTEXIST ;
-      }
-      return getMBContext( pContext, mbID, clLID, startLID, lockType ) ;
-   }
-
    OSS_INLINE void _dmsStorageDataCommon::releaseMBContext( dmsMBContext *&pContext )
    {
       if ( !pContext )

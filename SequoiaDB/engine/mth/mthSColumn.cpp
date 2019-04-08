@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = mthSColumn.cpp
 
@@ -43,8 +42,8 @@ using namespace bson ;
 
 namespace engine
 {
-   #define MTH_S_IS_LAST_ACTION( i )\
-         ( _getSubColumns().empty() && (_actions.size() - 1 == i) )
+#define MTH_S_IS_LAST_ACTION( i )\
+        ( _getSubColumns().empty() && (_actions.size() - 1 == i) )
 
    _mthSColumn::_mthSColumn()
    :_father( NULL ),
@@ -129,7 +128,6 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__MTHSCOLUMN_CLEAR ) ;
 
-      /// columns and actions will be freed by their pools.
       MTH_S_COLUMNS::iterator i( _subColumns ) ;
       while ( i.more() )
       {
@@ -282,7 +280,6 @@ namespace engine
       }
       else
       {
-         /// do noting.
       }
    done:
       PD_TRACE_EXITRC( SDB__MTHSCOLUMN__BUILDFROMCHILDREN, rc ) ;
@@ -343,7 +340,6 @@ namespace engine
       }
       else
       {
-         /// do nothing.
       }
    done:
       PD_TRACE_EXITRC( SDB__MTHSCOLUMN__BUILDFROMCHILDREN2, rc ) ;
@@ -371,45 +367,34 @@ namespace engine
       }
 
       {
-         BSONObjIterator i( obj ) ;
-         while ( i.more() )
+      BSONObjIterator i( obj ) ;
+      while ( i.more() )
+      {
+         BSONElement e = i.next() ;
+         mthSColumn *column = NULL ;
+         if ( _findColumn( e.fieldName(),
+                           _subColumns,
+                           column,
+                           &number ) )
          {
-            BSONElement e = i.next() ;
-            mthSColumn *column = NULL ;
-
-            if ( _findColumn( e.fieldName(),
-                              _subColumns,
-                              column,
-                              &number ) )
+            rc = column->build( e, builder ) ;
+            if ( SDB_OK != rc )
             {
-               rc = column->build( e, builder ) ;
-               if ( SDB_OK != rc )
-               {
-                  PD_LOG( PDERROR, "failed to build column from obj:%d", rc ) ;
-                  goto error ;
-               }
-               if ( array[number] )
-               {
-                  ++found ;
-                  array[number] = NULL ;
-               }
+               PD_LOG( PDERROR, "failed to build column from obj:%d", rc ) ;
+               goto error ;
             }
-            else if ( !_attribute.isInclude() )
-            {
-               builder.append( e ) ;
-            }
-            else if ( addOtherChild )
-            {
-               // If the field has action, we should also show its other children
-               // eg: selector is {a:null,'a.b':{$add:10}}, record is {a:{b:1,c:1}
-               //     result is {a:{b:11,c:1}, instead of {a:{b:11}
-               builder.append( e ) ;
-            }
-            else if ( found >= array.size() )
-            {
-               break ;
-            }
+            ++found ;
+            array[number] = NULL ;
          }
+         else if ( !_attribute.isInclude() )
+         {
+            builder.append( e ) ;
+         }
+         else if ( addOtherChild )
+         {
+            builder.append( e ) ;
+         }
+      }
       }
 
       if ( found < array.size() )
@@ -421,7 +406,6 @@ namespace engine
             goto error ;
          }
       }
-
    done:
       PD_TRACE_EXITRC( SDB__MTHSCOLUMN__BUILDOBJFROMCHILDREN, rc ) ;
       return rc ;
@@ -494,7 +478,6 @@ namespace engine
             }
             goto done ;
          }
-         /// a <-> a.b   ||  a <-> d
          else if ( ( compare == RIGHT_SUBFIELD ) || ( compare == LEFT_BEFORE ) )
          {
             end = mid ;

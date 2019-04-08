@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordUpdateOperator.cpp
 
@@ -41,7 +40,7 @@
 #include "rtnCommandDef.hpp"
 #include "coordUtil.hpp"
 #include "mthModifier.hpp"
-#include "coordKeyKicker.hpp"
+#include "coordShardKicker.hpp"
 #include "coordInsertOperator.hpp"
 #include "mthMatchTree.hpp"
 #include "mthModifier.hpp"
@@ -102,7 +101,6 @@ namespace engine
       INT32 rcTmp = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_UPDATEOPR_EXEC ) ;
 
-      // process define
       coordSendOptions sendOpt( TRUE ) ;
       coordSendMsgIn inMsg( pMsg ) ;
       coordProcessResult result ;
@@ -117,7 +115,6 @@ namespace engine
       INT32 buffLen  = 0 ;
       MsgOpUpdate *pNewUpdate          = NULL ;
 
-      // fill default-reply(update success)
       MsgOpUpdate *pUpdate             = (MsgOpUpdate *)pMsg ;
       INT32 oldFlag                    = pUpdate->flags ;
       pUpdate->flags                  |= FLG_UPDATE_RETURNNUM ;
@@ -141,13 +138,6 @@ namespace engine
          goto error ;
       }
 
-      if ( 0 == ossStrncmp( pCollectionName, CMD_ADMIN_PREFIX SYS_VIRTUAL_CS".",
-                            SYS_VIRTUAL_CS_LEN + 1 ) )
-      {
-         rc = SDB_COORD_UNKNOWN_OP_REQ ;
-         goto error ;
-      }
-
       try
       {
          boSelector = BSONObj( pSelector ) ;
@@ -160,7 +150,6 @@ namespace engine
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-         // add last op info
          MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                              "Collection:%s, Matcher:%s, Updator:%s, Hint:%s, "
                              "Flag:0x%08x(%u)",
@@ -195,14 +184,15 @@ namespace engine
          BOOLEAN keepShardingKey = OSS_BIT_TEST( flag,
                                                  FLG_UPDATE_KEEP_SHARDINGKEY ) ;
 
-         if ( cataSel.getCataPtr()->isSharded() ||
-              cataSel.getCataPtr()->hasAutoIncrement() )
+         if ( cataSel.getCataPtr()->isSharded() )
          {
-            coordKeyKicker kicker ;
-            kicker.bind( _pResource, cataSel.getCataPtr() ) ;
+            coordShardKicker shardKicker ;
+            shardKicker.bind( _pResource, cataSel.getCataPtr() ) ;
 
-            rc = kicker.kickKey( boUpdator, tmpNewObj, isChanged, cb,
-                                 boSelector, keepShardingKey ) ;
+            rc = shardKicker.kickShardingKey( boUpdator, tmpNewObj,
+                                              isChanged, cb,
+                                              boSelector,
+                                              keepShardingKey ) ;
             if ( SDB_UPDATE_SHARD_KEY == rc && !cataSel.hasUpdated() )
             {
                rc = cataSel.updateCataInfo( pCollectionName, cb ) ;
@@ -218,7 +208,7 @@ namespace engine
             }
             else if ( rc )
             {
-               PD_LOG( PDERROR, "Kick key for collection[%s] "
+               PD_LOG( PDERROR, "Kick sharding key for collection[%s] "
                        "failed, rc: %d", pCollectionName, rc ) ;
                goto error ;
             }
@@ -246,13 +236,11 @@ namespace engine
                              pCollectionName, rc ) ;
                      goto error ;
                   }
-                  /// inc retry time
                   _groupSession.getGroupCtrl()->incRetry() ;
                   goto retry ;
                }
                else
                {
-                  // don't do anything
                   goto done ;
                }
             }
@@ -280,7 +268,6 @@ namespace engine
 
       if ( SDB_OK == rcTmp && nokRC.empty() )
       {
-         // do nothing, for upsert
       }
       else if ( checkRetryForCLOpr( rcTmp, &nokRC, cataSel, inMsg.msg(),
                                     cb, rc, &errNodeID, TRUE ) )
@@ -291,7 +278,6 @@ namespace engine
       }
       else if ( SDB_CAT_NO_MATCH_CATALOG == rcTmp )
       {
-         /// ignore
          rc = SDB_OK ;
       }
       else
@@ -301,7 +287,6 @@ namespace engine
          goto error ;
       }
 
-      // upsert
       if ( ( flag & FLG_UPDATE_UPSERT ) && 0 == _recvNum )
       {
          if ( OSS_BIT_TEST( cataSel.getCataPtr()->getCatalogSet()->getAttribute(),
@@ -320,12 +305,10 @@ namespace engine
    done:
       if ( oldFlag & FLG_UPDATE_RETURNNUM )
       {
-         /// insertedNum(hi) + updatedNum(lo)
          contextID = ossPack32To64( _insertedNum, _recvNum ) ;
       }
       if ( pCollectionName )
       {
-         /// AUDIT
          PD_AUDIT_OP( AUDIT_DML, MSG_BS_UPDATE_REQ, AUDIT_OBJ_CL,
                       pCollectionName, rc,
                       "UpdatedNum:%llu, InsertedNum:%u, Matcher:%s, "
@@ -405,7 +388,6 @@ namespace engine
             goto error ;
          }
 
-         /// build buff
          rc = msgBuildInsertMsg( &pBuff, &buffSize, pCollectionName,
                                  0, 0, &target, cb ) ;
          if ( rc )
@@ -507,16 +489,13 @@ namespace engine
             netIOVec &iovec = inMsg._datas[ it->first ] ;
             netIOV ioItem ;
 
-            // 1. first vec
             ioItem.iovBase = (CHAR*)inMsg.msg() + sizeof( MsgHeader ) ;
             ioItem.iovLen = ossRoundUpToMultipleX ( offsetof(MsgOpUpdate, name) +
                                                     pUpMsg->nameLength + 1, 4 ) -
                             sizeof( MsgHeader ) ;
             iovec.push_back( ioItem ) ;
 
-            // 2. new deletor vec( selector )
             boNew = _buildNewSelector( boSelector, subCLLst ) ;
-            // 2.1 add to buff
             UINT32 roundLen = ossRoundUpToMultipleX( boNew.objsize(), 4 ) ;
             if ( buffPos + roundLen > buffLen )
             {
@@ -534,7 +513,6 @@ namespace engine
             buffPos += roundLen ;
             iovec.push_back( ioItem ) ;
 
-            // 3. for last( updator + hint )
             ioItem.iovBase = boUpdator.objdata() ;
             ioItem.iovLen = ossRoundUpToMultipleX( boUpdator.objsize(), 4 ) +
                             boHint.objsize() ;

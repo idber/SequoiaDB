@@ -1,19 +1,20 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
+
+
 *******************************************************************************/
 
 #include "ossTypes.hpp"
@@ -250,7 +251,6 @@ TEST(netTest, agent_1)
       ASSERT_TRUE(handler2._msg.b == msg.body.b);
    }
 
-//   ASSERT_TRUE( SDB_NET_CANNOT_CONNECT == sender.syncSend(MY_ID_2, &msg, sizeof(msg))) ;
    sender.close(MY_ID_1) ;
    ossSleepsecs(1);
    agent.stop();
@@ -267,10 +267,8 @@ TEST(netTest, myTest)
    boost::thread t(run, &acceptor);
 
    ossSleepsecs(1);
-//   _netFrame connector(NULL);
    MY_ID_1.columns.groupID = 1;
    MY_ID_1.columns.nodeID = 1;
-//   ASSERT_TRUE(SDB_OK == connector.syncConnect(HOST, SERVICE, MY_ID_1));
    _ossSocket sock( HOST, 12345) ;
    sock.initSocket() ;
    ASSERT_TRUE( SDB_OK == sock.connect() ) ;
@@ -285,7 +283,6 @@ TEST(netTest, myTest)
       ossTimestamp start;
       ossGetCurrentTime(start);
       rc = sock.send((const CHAR *)&msg, sizeof(msg), sentLen, -1) ;
-//      rc = connector.syncSend(MY_ID_1, &msg) ;
       ossTimestamp end ;
       ossGetCurrentTime( end ) ;
       total += end.time * 1000000 + end.microtm - start.time*1000000 - start.microtm ;

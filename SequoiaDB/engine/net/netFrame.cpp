@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = netFrame.cpp
 
@@ -120,7 +119,6 @@ namespace engine
                                 this, _dummyTimerID ) ;
    }
 
-   /// define listen host
    #define NET_LISTEN_HOST          "0.0.0.0"
 
    /*
@@ -177,12 +175,10 @@ namespace engine
 
    void _netFrame::onRunSuitStart( netEvSuitPtr evSuitPtr )
    {
-      /// do nothing
    }
 
    void _netFrame::onRunSuitStop( netEvSuitPtr evSuitPtr )
    {
-      /// make sure all the netEventHandles have closed
       _mtx.get() ;
       _eraseSuit_i( evSuitPtr ) ;
       _mtx.release() ;
@@ -202,7 +198,6 @@ namespace engine
 
       if ( 0 == evSuitPtr->getHandleNum() )
       {
-         /// stop the suit and remove it
          evSuitPtr->stop() ;
          _eraseSuit_i( evSuitPtr ) ;
       }
@@ -226,7 +221,6 @@ namespace engine
 
       _pThreadFunc = pFunc ;
 
-      /// start dummy timer
       rc = _innerTimeHandle.startDummyTimer() ;
       if ( rc )
       {
@@ -234,13 +228,10 @@ namespace engine
          goto error ;
       }
 
-      /// run main suit ioservice
       _mainSuitPtr->getIOService().run() ;
 
-      /// stop all evSuit
       _stopAllEvSuit() ;
 
-      /// wait all evSuit stop
       while( TRUE )
       {
          if ( getEvSuitSize() > 0 )
@@ -296,7 +287,6 @@ namespace engine
          handle = itr->first ;
          _mtx.release_shared() ;
 
-         /// make stat
          eh->makeStat( curTick ) ;
       }
       PD_TRACE_EXIT ( SDB__NETFRAME_MAKESTAT ) ;
@@ -347,12 +337,6 @@ namespace engine
          handle = itr->first ;
          _mtx.release_shared() ;
 
-         if ( eh->isNew() )
-         {
-            continue ;
-         }
-
-         /// send msg
          if ( pmdGetTickSpanTime( eh->getLastBeatTick() ) >= _beatInterval &&
               ( -1 == serviceType ||
                 serviceType == eh->id().columns.serviceID ) )
@@ -387,13 +371,7 @@ namespace engine
          handle = itr->first ;
          _mtx.release_shared() ;
 
-         if ( eh->isNew() )
-         {
-            continue ;
-         }
-
          spanTime = pmdGetTickSpanTime( eh->getLastRecvTick() ) ;
-         /// check break
          if ( ( -1 == serviceType ||
                 serviceType == eh->id().columns.serviceID ) &&
               spanTime >= timeout )
@@ -461,7 +439,6 @@ namespace engine
       }
       catch ( std::exception& )
       {
-         // ignore error
       }
 
       return ip ;
@@ -507,7 +484,6 @@ namespace engine
 
       try
       {
-         /// here we bind 0.0.0.0.
          tcp::resolver::query query ( tcp::v4(), NET_LISTEN_HOST, serviceName ) ;
          tcp::resolver resolver ( _mainSuitPtr->getIOService() ) ;
          tcp::resolver::iterator itr = resolver.resolve ( query ) ;
@@ -524,7 +500,6 @@ namespace engine
          rc = SDB_NET_CANNOT_LISTEN ;
          goto error ;
       }
-      /// set info
       _innerTimeHandle.setInfo( hostName, serviceName ) ;
 
       rc = _asyncAccept() ;
@@ -572,13 +547,11 @@ namespace engine
          eh->id( id ) ;
          eh->asyncRead() ;
 
-         /// add to map
          _mtx.get() ;
          _opposite.insert( make_pair( eh->handle(), eh ) ) ;
          _route.insert( make_pair( eh->id().value, eh ) ) ;
          _mtx.release() ;
 
-         // callback: handleConnect
          _handler->handleConnect( eh->handle(), id, TRUE ) ;
       }
 
@@ -616,12 +589,6 @@ namespace engine
                   eh->asyncRead() ;
                }
             }
-
-            if ( rc )
-            {
-               eh->close() ;
-               _erase( eh->handle() ) ;
-            }
          }
          else
          {
@@ -636,7 +603,6 @@ namespace engine
       }
       if ( hasConnect )
       {
-         // callback: handleConnect
          _handler->handleConnect( eh->handle(), eh->id(), TRUE ) ;
       }
 
@@ -693,14 +659,12 @@ namespace engine
          }
          else if ( 1 == retryTimes )
          {
-            /// need to swith the lock
             mode = EXCLUSIVE ;
             continue ;
          }
          else
          {
             _netEventHandler *pEH = NULL ;
-            /// create a new socket
             pEH = SDB_OSS_NEW _netEventHandler( _getEvSuit( FALSE ),
                                                 _handle.inc() ) ;
             if ( !pEH )
@@ -712,7 +676,6 @@ namespace engine
             eh = NET_EH( pEH ) ;
 
             eh->id( id ) ;
-            /// add to map
             _opposite.insert( make_pair( eh->handle(), eh ) ) ;
             _route.insert( make_pair( eh->id().value, eh ) ) ;
          }
@@ -862,7 +825,7 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME_SYNCSEND3, "_netFrame::syncSend" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME_SYNCSEND3, "INT32 _netFrame::syncSend" )
    INT32 _netFrame::syncSend( const NET_HANDLE &handle,
                               MsgHeader *header,
                               const void *body,
@@ -894,7 +857,6 @@ namespace engine
          header->routeID = _local ;
       }
       eh->mtx().get() ;
-      /// header len should be computed. can not get sizeof(MsgHeader)
       rc = eh->syncSend( header, headLen ) ;
       if ( SDB_OK != rc )
       {
@@ -1215,10 +1177,8 @@ namespace engine
       timer = NET_TH( t ) ;
       t = NULL ;
 
-      /// lock
       _mtx.get() ;
       _timers.insert( std::make_pair( timer->id(), timer ) ) ;
-      /// release
       _mtx.release() ;
 
       timerid = timer->id() ;
@@ -1372,21 +1332,17 @@ namespace engine
 
                if ( minSockNum < _maxSockPerThread )
                {
-                  /// find
                   goto done ;
                }
             }
             ++itr ;
          }
 
-         /// when all suit's socket is >= _maxSockPerThread
          if ( 0 == _maxThreadNum || _vecEvSuit.size() < _maxThreadNum )
          {
-            /// create new
             pSuit = SDB_OSS_NEW netEventSuit( this ) ;
             if ( pSuit )
             {
-               /// start thread
                INT32 rc = _pThreadFunc( pSuit ) ;
                if ( rc )
                {
@@ -1487,12 +1443,10 @@ namespace engine
       eh->setOpt() ;
       eh->asyncRead() ;
 
-      /// add to map
       _mtx.get() ;
       _opposite.insert( make_pair( eh->handle(), eh ) ) ;
       _mtx.release() ;
 
-      // callback: handleConnect
       _handler->handleConnect( eh->handle(), eh->id(), FALSE ) ;
       _asyncAccept() ;
 
@@ -1582,8 +1536,6 @@ namespace engine
          case SDB_NETWORK_CLOSE:
          case SDB_NET_CANNOT_CONNECT:
          case SDB_COORD_REMOTE_DISC:
-         case SDB_INVALID_ROUTEID:
-         case SDB_TIMEOUT:
             status = NET_NODE_STAT_OFFLINE ;
             break ;
          default:

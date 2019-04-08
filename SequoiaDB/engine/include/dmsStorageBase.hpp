@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dmsStorageBase.hpp
 
@@ -73,9 +72,6 @@ namespace engine
    {
       UINT32      _pageSize ;
       CHAR        _suName [ DMS_SU_NAME_SZ + 1 ] ; // storage unit file name is
-                                                   // foo.0 / foo.1, where foo
-                                                   // is suName, and 0/1 are
-                                                   // _sequence
       UINT32      _sequence ;
       UINT64      _secretValue ;
       UINT32       _lobdPageSize ;
@@ -88,14 +84,11 @@ namespace engine
       UINT32      _cacheMergeSize ;
       UINT32      _pageAllocTimeout ;
 
-      /// Data is OK
       BOOLEAN     _dataIsOK ;
       UINT64      _curLSNOnStart ;
 
       DMS_STORAGE_TYPE _type ;
       IDmsExtDataHandler *_extDataHandler ;
-
-      utilCSUniqueID _csUniqueID ;
 
       _dmsStorageInfo ()
       {
@@ -116,8 +109,6 @@ namespace engine
          _curLSNOnStart  = ~0 ;
          _type = DMS_STORAGE_NORMAL ;
          _extDataHandler = NULL ;
-
-         _csUniqueID     = UTIL_UNIQUEID_NULL ;
       }
    };
    typedef _dmsStorageInfo dmsStorageInfo ;
@@ -142,8 +133,7 @@ namespace engine
       UINT32 _commitFlag ;                               // commit flag
       UINT64 _commitLsn ;                                // commit LSN
       UINT64 _commitTime ;                               // commit timestamp
-      utilCSUniqueID _csUniqueID ;                       // cs unique id
-      CHAR   _pad [ 65332 ] ;
+      CHAR   _pad [ 65336 ] ;
 
       _dmsStorageUnitHeader()
       {
@@ -157,7 +147,6 @@ namespace engine
          ossMemset( this, 0, DMS_PAGE_SIZE_MAX ) ;
          _commitLsn = ~0 ;
       }
-
    } ;
    typedef _dmsStorageUnitHeader dmsStorageUnitHeader ;
    #define DMS_HEADER_SZ   sizeof(dmsStorageUnitHeader)
@@ -249,7 +238,6 @@ namespace engine
          void     setFullDirty() { _fullDirty = TRUE ; }
          BOOLEAN  isFullDirty() const { return _fullDirty ; }
 
-         /// return -1 for no find the pos
          INT32    nextDirtyPos( UINT32 &fromPos ) const ;
          void     cleanAll() ;
          UINT32   dirtyNumber() const ;
@@ -299,12 +287,12 @@ namespace engine
             If you set nothrow attribute, the both functions will return
             NULL instead of throw pdGeneralException with error.
          */
-         const CHAR*    readPtr( UINT32 offset, UINT32 len ) const ;
+         const CHAR*    readPtr( UINT32 offset, UINT32 len ) ;
          CHAR*          writePtr( UINT32 offset, UINT32 len ) ;
 
          template< typename T >
          const T*       readPtr( UINT32 offset = 0,
-                                 UINT32 len = sizeof(T) ) const
+                                 UINT32 len = sizeof(T) )
          {
             return ( const T* )readPtr( offset, len ) ;
          }
@@ -335,7 +323,7 @@ namespace engine
    /*
       _dmsContext define
    */
-   class _dmsContext : public _IContext
+   class _dmsContext : public SDBObject
    {
       public:
          _dmsContext () {}
@@ -343,6 +331,9 @@ namespace engine
 
       public:
          virtual string toString () const = 0 ;
+         virtual INT32  pause () = 0 ;
+         virtual INT32  resume () = 0 ;
+
          virtual UINT16 mbID() const = 0 ;
 
    };
@@ -364,7 +355,6 @@ namespace engine
                           dmsStorageInfo *pInfo ) ;
          virtual ~_dmsStorageBase() ;
 
-      /// For Persistence
       public:
          virtual BOOLEAN      isClosed() const ;
          virtual BOOLEAN      canSync( BOOLEAN &force ) const ;
@@ -426,12 +416,12 @@ namespace engine
          }
 
          OSS_INLINE UINT32  extent2Segment( dmsExtentID extentID,
-                                            UINT32 *pSegOffset = NULL ) const ;
+                                            UINT32 *pSegOffset = NULL ) ;
          OSS_INLINE dmsExtentID segment2Extent( UINT32 segID,
-                                                UINT32 segOffset = 0 ) const ;
+                                                UINT32 segOffset = 0 ) ;
 
          OSS_INLINE dmsExtRW    extent2RW( INT32 extentID,
-                                           INT32 collectionID = -1 ) const ;
+                                           INT32 collectionID = -1 ) ;
          OSS_INLINE dmsExtentID rw2extentID( const dmsExtRW &rw ) ;
 
          OSS_INLINE const ossValuePtr beginFixedAddr( INT32 extentID,
@@ -443,7 +433,7 @@ namespace engine
                                            INT32 extentID,
                                            DMS_CHG_STEP step ) ;
 
-         OSS_INLINE DMS_STORAGE_TYPE getStorageType() const
+         OSS_INLINE DMS_STORAGE_TYPE getStorageType()
          {
             return _pStorageInfo->_type ;
          }
@@ -452,8 +442,8 @@ namespace engine
          /*
             Make these function internal
          */
-         OSS_INLINE ossValuePtr extentAddr( INT32 extentID ) const ;
-         OSS_INLINE dmsExtentID extentID( ossValuePtr extendAddr ) const ;
+         OSS_INLINE ossValuePtr extentAddr( INT32 extentID ) ;
+         OSS_INLINE dmsExtentID extentID( ossValuePtr extendAddr ) ;
 
       public:
          INT32 openStorage ( const CHAR *pPath,
@@ -465,11 +455,6 @@ namespace engine
          INT32 renameStorage( const CHAR *csName,
                               const CHAR *suFileName ) ;
 
-         INT32 updateCSUniqueIDFromInfo() ;
-
-         INT32 setLobPageSize ( UINT32 lobPageSize ) ;
-
-         /// flush functions
          INT32 flushHeader( BOOLEAN sync = FALSE ) ;
          INT32 flushSME( BOOLEAN sync = FALSE ) ;
          INT32 flushMeta( BOOLEAN sync = FALSE,
@@ -483,7 +468,6 @@ namespace engine
                                    BOOLEAN force = TRUE,
                                    BOOLEAN sync = TRUE ) ;
 
-         /// virtual interface
          virtual void  syncMemToMmap () {}
          virtual BOOLEAN isOpened() const { return ossMmapFile::_opened ; }
 
@@ -505,7 +489,6 @@ namespace engine
          /*
             For Persistence
          */
-         /// flush callback:  SDB_OK: continue, no SDB_OK: stop
          virtual INT32  _onFlushDirty( BOOLEAN force, BOOLEAN sync )
          {
             return SDB_OK ;
@@ -523,8 +506,6 @@ namespace engine
             return SDB_OK ;
          }
 
-         // Called when trying to find freespace. The return value specifies
-         // whether to do the allocation or not.
          virtual void _onAllocSpaceReady( dmsContext *context, BOOLEAN &doit )
          {
             doit = TRUE ;
@@ -538,7 +519,6 @@ namespace engine
          virtual INT32 _extendSegments( UINT32 numSeg ) ;
 
       protected:
-         // No space will extent new segment
          INT32    _findFreeSpace ( UINT16 numPages, SINT32 &foundPage,
                                    dmsContext *context ) ;
          INT32    _releaseSpace ( SINT32 pageStart, UINT16 numPages ) ;
@@ -569,14 +549,13 @@ namespace engine
 
       protected:
          dmsStorageUnitHeader          *_dmsHeader ;     // 64KB
-         dmsSpaceManagementExtent      *_dmsSME ;        // 16MB
+         dmsSpaceManagementExtent      *_dmsSME ;        // 8MB
          CHAR                          _suFileName[ DMS_SU_FILENAME_SZ + 1 ] ;
 
          dmsStorageInfo                *_pStorageInfo ;
          UINT32                        _pageSize ;    // cache, not use header
          UINT32                        _lobPageSize ; // cache, not use header
 
-      /// for persistence
       private:
          dmsDirtyList                  _dirtyList ;
          IDataSyncManager              *_pSyncMgr ;
@@ -670,27 +649,24 @@ namespace engine
       return 0 ;
    }
    OSS_INLINE UINT32 _dmsStorageBase::extent2Segment( dmsExtentID extentID,
-                                                      UINT32 * pSegOffset ) const
+                                                      UINT32 * pSegOffset )
    {
       if ( pSegOffset )
       {
-         // the same with : extentID % _segmentPages
          *pSegOffset = extentID & (( 1 << _segmentPagesSquare ) - 1 ) ;
       }
-      // the same with: extentID / _segmentPages + _dataSegID
       return ( extentID >> _segmentPagesSquare ) + _dataSegID ;
    }
    OSS_INLINE dmsExtentID _dmsStorageBase::segment2Extent( UINT32 segID,
-                                                           UINT32 segOffset ) const
+                                                           UINT32 segOffset )
    {
       if ( segID < _dataSegID )
       {
          return DMS_INVALID_EXTENT ;
       }
-      // the same with: ( segID - _dataSegID ) * _segmentPages + segOffset
       return (( segID - _dataSegID ) << _segmentPagesSquare ) + segOffset ;
    }
-   OSS_INLINE ossValuePtr _dmsStorageBase::extentAddr( INT32 extentID ) const
+   OSS_INLINE ossValuePtr _dmsStorageBase::extentAddr( INT32 extentID )
    {
       if ( DMS_INVALID_EXTENT == extentID )
       {
@@ -704,15 +680,13 @@ namespace engine
       }
       return getSegmentInfo( segID ) +
              (ossValuePtr)( segOffset << _pageSizeSquare ) ;
-      // the same with: segOffset * _segmentPages
    }
-   OSS_INLINE dmsExtentID _dmsStorageBase::extentID( ossValuePtr extendAddr ) const
+   OSS_INLINE dmsExtentID _dmsStorageBase::extentID( ossValuePtr extendAddr )
    {
       if ( 0 == extendAddr || _maxSegID < 0 )
       {
          return DMS_INVALID_EXTENT ;
       }
-      // find seg ID
       INT32 segID = 0 ;
       UINT32 segOffset = 0 ;
       ossValuePtr tmpPtr = 0 ;
@@ -736,10 +710,10 @@ namespace engine
       return segment2Extent( (UINT32)segID, segOffset ) ;
    }
    OSS_INLINE dmsExtRW _dmsStorageBase::extent2RW( INT32 extentID,
-                                                   INT32 collectionID ) const
+                                                   INT32 collectionID )
    {
       dmsExtRW rw ;
-      rw._pBase = const_cast<_dmsStorageBase*>( this ) ;
+      rw._pBase = this ;
       rw._extentID = extentID ;
       rw._collectionID = collectionID ;
       rw._ptr = extentAddr( extentID ) ;
@@ -766,7 +740,6 @@ namespace engine
       }
       _lastWriteTick = pmdGetDBTick() ;
       _dirtyList.setFullDirty() ;
-      /// Notify Change
       if ( _pSyncMgr && _syncRecordNum > 0 &&
            _writeReordNum >= _syncRecordNum )
       {
@@ -788,7 +761,6 @@ namespace engine
          _lastWriteTick = pmdGetDBTick() ;
          _dirtyList.setDirty( segID - _dataSegID ) ;
 
-         /// Notify Change
          if ( _pSyncMgr && _syncRecordNum > 0 &&
               _writeReordNum >= _syncRecordNum )
          {
@@ -796,6 +768,57 @@ namespace engine
          }
       }
    }
+
+   /*
+      DMS Other define
+   */
+   #define DMS_MON_OP_COUNT_INC( _pMonAppCB_, op, delta )  \
+   {                                                       \
+      if ( NULL != _pMonAppCB_ )                           \
+      {                                                    \
+         _pMonAppCB_->monOperationCountInc( op, delta ) ;  \
+      }                                                    \
+   }
+
+   #define DMS_MON_OP_TIME_INC( _pMonAppCB_, op, delta )   \
+   {                                                       \
+      if ( NULL != _pMonAppCB_ )                           \
+      {                                                    \
+         _pMonAppCB_->monOperationTimeInc( op, delta ) ;   \
+      }                                                    \
+   }
+
+   #define DMS_MON_CONTEXT_COUNT_INC( _monContextCB_, op, delta ) \
+   {                                                               \
+      if ( NULL != _monContextCB_ )                                \
+      {                                                            \
+         _monContextCB_->monOperationCountInc ( op, delta ) ;      \
+      }                                                            \
+   }
+
+   #define DMS_MON_CONTEXT_TIME_INC( _monContextCB_, op, delta )  \
+   {                                                               \
+      if ( NULL != _monContextCB_ )                                \
+      {                                                            \
+         _monContextCB_->monOperationTimeInc ( op, delta ) ;       \
+      }                                                            \
+   }
+
+   /****************************************************************************
+    * Specify the matrix for collection flag and access type, returns TRUE means
+    * access is allowed, otherwise return FALSE
+    * AccessType:       Query  Fetch  Insert  Update  Delete  Truncate CRT-IDX  DROP-IDX
+    *  FREE                N      N       N       N       N       N       N         N
+    *  NORMAL              Y      Y       Y       Y       Y       Y       Y         Y
+    *  DROPPED             N      N       N       N       N       N       N         N
+    *  OFFLINE REORG       N (only alloed in shadow copy phase, rebuild )
+    *                             N       N       N       N       N ( only allowed in
+    *  truncate phase )                                                   N         N
+    *  ONLINE REORG        Y      Y       Y       Y       Y       Y       Y         Y
+    *  Load                Y      Y       Y       Y       Y       N       Y         Y
+    ***************************************************************************/
+   BOOLEAN dmsAccessAndFlagCompatiblity ( UINT16 collectionFlag,
+                                          DMS_ACCESS_TYPE accessType ) ;
 
 }
 

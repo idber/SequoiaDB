@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = mthModifier.hpp
 
@@ -177,24 +176,20 @@ namespace engine
    */
    class _mthModifier : public SDBObject
    {
-   typedef vector<ModifierElement> MODIFIER_VEC ;
-
    private :
       BSONObjBuilder *_srcChgBuilder ;
       BSONObjBuilder *_dstChgBuilder ;
 
       BSONObj _modifierPattern ;
       BOOLEAN _initialized ;
-      MODIFIER_VEC _modifierElements ;
+      vector<ModifierElement> _modifierElements ;
       UINT32  _modifierBits ;
 
       _ixmIndexKeyGen *_shardingKeyGen ;
 
-      // add for replace begin
       set<string>    _keepKeys ;
       BOOLEAN        _isReplaceID ;
       BOOLEAN        _isReplace ;
-      // add for replace end
 
       vector<INT64> *_dollarList ;
       _compareFieldNames1  _fieldCompare ;
@@ -264,7 +259,6 @@ namespace engine
                                   Builder &bb, INT32 in,
                                   ModifierElement &me ) ;
 
-      // Process $setarray
       template<class Builder>
       INT32 _applySetArrayModifier ( const CHAR *pRoot, Builder &bb,
                                      const BSONElement &in,
@@ -290,12 +284,6 @@ namespace engine
       OSS_INLINE void _buildSetArray ( Builder *builder, const CHAR *pRoot,
                                        INT32 beginPos, const BSONElement &ele ) ;
 
-      // if the original object has the element we asked to modify, then e is
-      // the
-      // original element, b is the builder, me is the info that we want to
-      // modify
-      // basically we need to take the original data from e, and use modifier
-      // element me to make some change, and add into builder b
       template<class Builder>
       INT32 _applyChange ( CHAR **ppRoot,
                            INT32 &rootBufLen,
@@ -304,19 +292,10 @@ namespace engine
                            Builder &b,
                            SINT32 *modifierIndex ) ;
 
-      // when requested update want to change something that not exist in
-      // original
-      // object, we need to append the original object in those cases
       template<class Builder>
       INT32 _appendNew ( const CHAR *pRoot, const CHAR *pShort,
                          Builder& b, SINT32 *modifierIndex ) ;
 
-      // Builder could be BSONObjBuilder or BSONArrayBuilder
-      // _appendNewFromMods appends the current builder with the new field
-      // root represent the current fieldName, me is the current modifier element
-      // b is the builder, onedownseen represent the all subobjects have been
-      // processed in the current object, and modifierIndex is the pointer for
-      // current modifier
       template<class Builder>
       INT32 _appendNewFromMods ( CHAR **ppRoot,
                                  INT32 &rootBufLen,
@@ -325,10 +304,6 @@ namespace engine
                                  Builder &b,
                                  SINT32 *modifierIndex,
                                  BOOLEAN hasCreateNewRoot ) ;
-      // Builder could be BSONObjBuilder or BSONArrayBuilder
-      // This function is recursively called to build new object
-      // The prerequisit is that _modifierElement is sorted, which supposed to
-      // happen at end of loadPattern
       template<class Builder>
       INT32 _buildNewObj ( CHAR **ppRoot,
                            INT32 &rootBufLen,

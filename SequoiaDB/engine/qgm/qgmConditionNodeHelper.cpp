@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = qgmConditionNodeHelper.cpp
 
@@ -177,7 +176,7 @@ namespace engine
    }
 
 
-   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMCONDITIONNODEHELPER_SEPARATE2, "_qgmConditionNodeHelper::_separate" )
+   // PD_TRACE_DECLARE_FUNCTION( SDB__QGMCONDITIONNODEHELPER_SEPARATE2, "_qgmConditionNodeHelper::_separate2" )
    void _qgmConditionNodeHelper::_separate( _qgmConditionNode *predicate,
                                             qgmConditionNodePtrVec &nodes )
    {
@@ -189,7 +188,6 @@ namespace engine
          _separate( predicate->left, nodes ) ;
          _separate( predicate->right, nodes ) ;
 
-         /// release the node
          predicate->dettach() ;
          SAFE_OSS_DELETE( predicate ) ;
       }
@@ -216,7 +214,6 @@ namespace engine
          goto error ;
       }
 
-      /// $and | $or
       if ( SQL_GRAMMAR::AND == node->type ||
            SQL_GRAMMAR::OR == node->type )
       {
@@ -230,7 +227,6 @@ namespace engine
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-         /// left
          {
             BSONObjBuilder leftBuilder( logicalBuilder.subobjStart() ) ;
             rc = _crtBson( node->left, leftBuilder, keepAlias ) ;
@@ -240,7 +236,6 @@ namespace engine
             }
             leftBuilder.done() ;
          }
-         /// right
          {
             BSONObjBuilder rightBuilder( logicalBuilder.subobjStart() ) ;
             rc = _crtBson( node->right, rightBuilder, keepAlias ) ;
@@ -252,7 +247,6 @@ namespace engine
          }
          logicalBuilder.done() ;
       }
-      /// $not
       else if ( SQL_GRAMMAR::NOT == node->type )
       {
          if ( !node->left )
@@ -274,7 +268,6 @@ namespace engine
             logicalBuilder.done() ;
          }
       }
-      /// is null ==> { $isnull:1 }
       else if ( ( SQL_GRAMMAR::IS == node->type ||
                   SQL_GRAMMAR::ISNOT == node->type ) &&
                 node->left && SQL_GRAMMAR::DBATTR == node->left->type &&
@@ -289,7 +282,6 @@ namespace engine
                             SQL_GRAMMAR::IS == node->type ? 1 : 0 ) ;
          oprBuilder.done() ;
       }
-      /// like  ==> { $regex:"", $option:"" }
       else if ( SQL_GRAMMAR::LIKE == node->type &&
                 node->left && SQL_GRAMMAR::DBATTR == node->left->type &&
                 node->right && SQL_GRAMMAR::STR == node->right->type )

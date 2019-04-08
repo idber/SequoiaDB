@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = mthSelector.cpp
 
@@ -42,7 +41,6 @@
 
 using namespace bson ;
 
-// 4 bytes size, 1 byte type, 1 byte 0, 4 bytes string length
 #define FIRST_ELEMENT_STARTING_POS     10
 #define MAX_SELECTOR_BUFFER_THRESHOLD  67108864 // 64MB
 
@@ -190,7 +188,6 @@ namespace engine
       BOOLEAN result = FALSE ;
       INT32 stringLength = 0 ;
 
-      // in the first round, let's allocate memory
       if ( 0 == _stringOutputBufferSize )
       {
          rc = mthDoubleBufferSize ( &_stringOutputBuffer,
@@ -229,17 +226,11 @@ namespace engine
 
       stringLength =
                ossStrlen ( &_stringOutputBuffer[FIRST_ELEMENT_STARTING_POS] ) ;
-      // assign object length, 1 for 0 at the end, 1 for the eoo
       *(INT32*)_stringOutputBuffer = FIRST_ELEMENT_STARTING_POS + 2 +
                                         stringLength ;
       _stringOutputBuffer[ *(INT32*)_stringOutputBuffer -1 ] = EOO ;
-      // assign string length, 1 for 0 at the end
       *(INT32*)(&_stringOutputBuffer[FIRST_ELEMENT_STARTING_POS-4]) =
                stringLength + 1 ;
-      // it should not cause memory leak even if there's previous owned
-      // buffer because _stringOutputBuffer is owned by context, and we don't
-      // touch holder in BSONObj, so smart pointer should still holding the
-      // original buffer it owns
       csv.init ( _stringOutputBuffer ) ;
    done:
       PD_TRACE_EXITRC( SDB__MTHSELECTOR__BUILDCSV, rc ) ;

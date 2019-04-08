@@ -239,13 +239,11 @@ public class TextQueryTests extends AbstractIntegrationTests {
 
 		initWithDefaultDocuments();
 
-		// page 1
 		List<FullTextDoc> result = template.find(new TextQuery("bake coffee cake").sortByScore()
 				.with(new PageRequest(0, 2)), FullTextDoc.class);
 		assertThat(result, hasSize(2));
 		assertThat(result, contains(BAKE, COFFEE));
 
-		// page 2
 		result = template.find(new TextQuery("bake coffee cake").sortByScore().with(new PageRequest(1, 2)),
 				FullTextDoc.class);
 		assertThat(result, hasSize(1));

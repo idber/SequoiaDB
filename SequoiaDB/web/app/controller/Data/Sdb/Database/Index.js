@@ -820,7 +820,7 @@
                   },
                   {
                      "name": "ReplSize",
-                     "webName":  $scope.autoLanguage( '一致性写副本数' ),
+                     "webName":  $scope.autoLanguage( '副本数' ),
                      "type": "int",
                      "required": true,
                      "value": 1,
@@ -944,7 +944,7 @@
                   },
                   {
                      "name": "ReplSize",
-                     "webName":  $scope.autoLanguage( '一致性写副本数' ),
+                     "webName":  $scope.autoLanguage( '副本数' ),
                      "type": "int",
                      "required": true,
                      "value": 1,
@@ -1092,7 +1092,7 @@
                   },
                   {
                      "name": "ReplSize",
-                     "webName":  $scope.autoLanguage( '一致性写副本数' ),
+                     "webName":  $scope.autoLanguage( '副本数' ),
                      "type": "int",
                      "required": true,
                      "value": 1,
@@ -1478,14 +1478,14 @@
          }
          var mainCL = [] ;
          var childCL = [] ;
-         $.each( $scope.clList, function( index, clInfo ){
+         $.each( $scope.sourceClList, function( index, clInfo ){
             if( typeof( clInfo['MainCLName'] ) == 'string' && clInfo['MainCLName'].length > 0 )
             {
                if( findMainCL( mainCL, clInfo['MainCLName'] ) < 0 )
                {
                   mainCL.push( { 'key': clInfo['MainCLName'], 'value': clInfo['MainCLName'] } ) ;
                }
-               childCL.push( { 'mainCL': clInfo['MainCLName'], 'childCL': clInfo['csName'] + '.' + clInfo['Name'] } ) ;
+               childCL.push( { 'mainCL': clInfo['MainCLName'], 'childCL': clInfo['Name'] } ) ;
             }
          } ) ;
          //设置子表的列表
@@ -1738,7 +1738,6 @@
          var clIndex = -1 ;
          var sourceGroupValid = [] ;
          var groupValid = [] ;
-         var type = '' ;
          $.each( $scope.GroupList, function( index, groupInfo ){
             groupValid.push( { 'key': groupInfo['GroupName'], 'value': index } ) ;
          } ) ;
@@ -1768,7 +1767,7 @@
             }
             if( clInfo['IsMainCL'] != true && ( clInfo['ShardingType'] == 'hash' || clInfo['ShardingType'] == 'range' ) )
             {
-               clValid.push( { 'key' : clInfo['csName'] + '.' + clInfo['Name'] , 'value' : index, 'type': clInfo['ShardingType'] } ) ;
+               clValid.push( { 'key' : clInfo['csName'] + '.' + clInfo['Name'] , 'value' : index } ) ;
             }
          } ) ;
          if( clIndex < 0 && clValid.length > 0 )
@@ -1801,102 +1800,6 @@
                      else if( value == 1 )
                      {
                         $scope.Components.Modal.formShow = 1 ;
-                        $.each( clValid, function( index, info ){
-                           if( $scope.Components.Modal.form1['inputList'][1]['value'] == info['value'] )
-                           {
-                              type = info['type'] ;
-                           }
-                        } ) ;
-                        if( type == 'hash' )
-                        {
-                           $scope.Components.Modal.form2.inputList[4]['type'] = 'inline' ;
-                           $scope.Components.Modal.form2.inputList[4]['child'] = [
-                              {
-                                 "name": "field",
-                                 "webName": $scope.autoLanguage( "字段名" ),
-                                 "placeholder": $scope.autoLanguage( "字段名" ),
-                                 "type": "string",
-                                 "disabled": true,
-                                 "value": "Partition",
-                                 "valid": {
-                                    "min": 1,
-                                    "regex": "^[^/$].*",
-                                    "ban": "."
-                                 }
-                              },
-                              {
-                                 "name": "start",
-                                 "webName": $scope.autoLanguage( "起始范围" ),
-                                 "placeholder": $scope.autoLanguage( "起始范围" ),
-                                 "type": "string",
-                                 "value": "",
-                                 "selectList": [ '$minKey' ]
-                              },
-                              {
-                                 "name": "end",
-                                 "webName": $scope.autoLanguage( "结束范围" ),
-                                 "placeholder": $scope.autoLanguage( "结束范围" ),
-                                 "type": "string",
-                                 "value": "",
-                                 "selectList": [ '$maxKey' ]
-                              }
-                           ] ;
-                        }
-                        else
-                        {
-                           $scope.Components.Modal.form2.inputList[4]['type'] = 'list' ;
-                           $scope.Components.Modal.form2.inputList[4]['child'] = [
-                              [
-                                 {
-                                    "name": "field",
-                                    "webName": $scope.autoLanguage( "字段名" ),
-                                    "placeholder": $scope.autoLanguage( "字段名" ),
-                                    "type": "string",
-                                    "value": "",
-                                    "valid": {
-                                       "min": 1,
-                                       "regex": "^[^/$].*",
-                                       "ban": "."
-                                    }
-                                 },
-                                 {
-                                    "name": "type",
-                                    "webName": $scope.autoLanguage( "类型" ),
-                                    "placeholder": $scope.autoLanguage( "类型" ),
-                                    "type": "select",
-                                    "value": "Auto",
-                                    "valid": [
-                                       { "key": "Auto",      "value": "Auto" },
-                                       { "key": "Bool",      "value": "Bool" },
-                                       { "key": "Number",    "value": "Number" },
-                                       { "key": "Decimal",   "value": "Decimal" },
-                                       { "key": "String",    "value": "String" },
-                                       { "key": "ObjectId",  "value": "ObjectId" },
-                                       { "key": "Regex",     "value": "Regex" },
-                                       { "key": "Binary",    "value": "Binary" },
-                                       { "key": "Timestamp", "value": "Timestamp" },
-                                       { "key": "Date",      "value": "Date" }
-                                    ]
-                                 },
-                                 {
-                                    "name": "start",
-                                    "webName": $scope.autoLanguage( "起始范围" ),
-                                    "placeholder": $scope.autoLanguage( "起始范围" ),
-                                    "type": "string",
-                                    "value": "",
-                                    "selectList": [ '$minKey' ]
-                                 },
-                                 {
-                                    "name": "end",
-                                    "webName": $scope.autoLanguage( "结束范围" ),
-                                    "placeholder": $scope.autoLanguage( "结束范围" ),
-                                    "type": "string",
-                                    "value": "",
-                                    "selectList": [ '$maxKey' ]
-                                 }
-                              ]
-                           ] ;
-                        }
                      }
                      $scope.Components.Modal.form1.inputList[0]['value'] = 0 ;
                      $scope.Components.Modal.form2.inputList[1]['value'] = $scope.Components.Modal.form1.inputList[1]['value'] ;
@@ -1915,7 +1818,6 @@
                      $.each( $scope.clList, function( index, clInfo ){
                         if( key == ( clInfo['csName'] + '.' + clInfo['Name'] ) )
                         {
-                           type = clInfo['ShardingType'] ;
                            sourceGroupValid = [] ;
                            var sourceIndex = -1 ;
                            $.each( $scope.clList[ index ]['GroupName'], function( index2, groupInfo ){
@@ -1930,98 +1832,6 @@
                            return false;
                         }
                      } ) ;
-
-                     if( type == 'hash' )
-                     {
-                        $scope.Components.Modal.form2.inputList[4]['type'] = 'inline' ;
-                        $scope.Components.Modal.form2.inputList[4]['child'] = [
-                           {
-                              "name": "field",
-                              "webName": $scope.autoLanguage( "字段名" ),
-                              "placeholder": $scope.autoLanguage( "字段名" ),
-                              "type": "string",
-                              "disabled": true,
-                              "value": "Partition",
-                              "valid": {
-                                 "min": 1,
-                                 "regex": "^[^/$].*",
-                                 "ban": "."
-                              }
-                           },
-                           {
-                              "name": "start",
-                              "webName": $scope.autoLanguage( "起始范围" ),
-                              "placeholder": $scope.autoLanguage( "起始范围" ),
-                              "type": "string",
-                              "value": "",
-                              "selectList": [ '$minKey' ]
-                           },
-                           {
-                              "name": "end",
-                              "webName": $scope.autoLanguage( "结束范围" ),
-                              "placeholder": $scope.autoLanguage( "结束范围" ),
-                              "type": "string",
-                              "value": "",
-                              "selectList": [ '$maxKey' ]
-                           }
-                        ] ;
-                     }
-                     else
-                     {
-
-                        $scope.Components.Modal.form2.inputList[4]['type'] = 'list' ;
-                        $scope.Components.Modal.form2.inputList[4]['child'] = [
-                           [
-                              {
-                                 "name": "field",
-                                 "webName": $scope.autoLanguage( "字段名" ),
-                                 "placeholder": $scope.autoLanguage( "字段名" ),
-                                 "type": "string",
-                                 "value": "",
-                                 "valid": {
-                                    "min": 1,
-                                    "regex": "^[^/$].*",
-                                    "ban": "."
-                                 }
-                              },
-                              {
-                                 "name": "type",
-                                 "webName": $scope.autoLanguage( "类型" ),
-                                 "placeholder": $scope.autoLanguage( "类型" ),
-                                 "type": "select",
-                                 "value": "Auto",
-                                 "valid": [
-                                    { "key": "Auto",      "value": "Auto" },
-                                    { "key": "Bool",      "value": "Bool" },
-                                    { "key": "Number",    "value": "Number" },
-                                    { "key": "Decimal",   "value": "Decimal" },
-                                    { "key": "String",    "value": "String" },
-                                    { "key": "ObjectId",  "value": "ObjectId" },
-                                    { "key": "Regex",     "value": "Regex" },
-                                    { "key": "Binary",    "value": "Binary" },
-                                    { "key": "Timestamp", "value": "Timestamp" },
-                                    { "key": "Date",      "value": "Date" }
-                                 ]
-                              },
-                              {
-                                 "name": "start",
-                                 "webName": $scope.autoLanguage( "起始范围" ),
-                                 "placeholder": $scope.autoLanguage( "起始范围" ),
-                                 "type": "string",
-                                 "value": "",
-                                 "selectList": [ '$minKey' ]
-                              },
-                              {
-                                 "name": "end",
-                                 "webName": $scope.autoLanguage( "结束范围" ),
-                                 "placeholder": $scope.autoLanguage( "结束范围" ),
-                                 "type": "string",
-                                 "value": "",
-                                 "selectList": [ '$maxKey' ]
-                              }
-                           ]
-                        ] ;
-                     }
                   }
                },
                {
@@ -2070,104 +1880,6 @@
                      else if( value == 1 )
                      {
                         $scope.Components.Modal.formShow = 1 ;
-                        
-                        $.each( clValid, function( index, info ){
-                           if( $scope.Components.Modal.form2['inputList'][1]['value'] == info['value'] )
-                           {
-                              type = info['type'] ;
-                           }
-                        } ) ;
-
-                        if( type == 'hash' )
-                        {
-                           $scope.Components.Modal.form2.inputList[4]['type'] = 'inline' ;
-                           $scope.Components.Modal.form2.inputList[4]['child'] = [
-                              {
-                                 "name": "field",
-                                 "webName": $scope.autoLanguage( "字段名" ),
-                                 "placeholder": $scope.autoLanguage( "字段名" ),
-                                 "type": "string",
-                                 "disabled": true,
-                                 "value": "Partition",
-                                 "valid": {
-                                    "min": 1,
-                                    "regex": "^[^/$].*",
-                                    "ban": "."
-                                 }
-                              },
-                              {
-                                 "name": "start",
-                                 "webName": $scope.autoLanguage( "起始范围" ),
-                                 "placeholder": $scope.autoLanguage( "起始范围" ),
-                                 "type": "string",
-                                 "value": "",
-                                 "selectList": [ '$minKey' ]
-                              },
-                              {
-                                 "name": "end",
-                                 "webName": $scope.autoLanguage( "结束范围" ),
-                                 "placeholder": $scope.autoLanguage( "结束范围" ),
-                                 "type": "string",
-                                 "value": "",
-                                 "selectList": [ '$maxKey' ]
-                              }
-                           ] ;
-                        }
-                        else
-                        {
-                           $scope.Components.Modal.form2.inputList[4]['type'] = 'list' ;
-                           $scope.Components.Modal.form2.inputList[4]['child'] = [
-                              [
-                                 {
-                                    "name": "field",
-                                    "webName": $scope.autoLanguage( "字段名" ),
-                                    "placeholder": $scope.autoLanguage( "字段名" ),
-                                    "type": "string",
-                                    "value": "",
-                                    "valid": {
-                                       "min": 1,
-                                       "regex": "^[^/$].*",
-                                       "ban": "."
-                                    }
-                                 },
-                                 {
-                                    "name": "type",
-                                    "webName": $scope.autoLanguage( "类型" ),
-                                    "placeholder": $scope.autoLanguage( "类型" ),
-                                    "type": "select",
-                                    "value": "Auto",
-                                    "valid": [
-                                       { "key": "Auto",      "value": "Auto" },
-                                       { "key": "Bool",      "value": "Bool" },
-                                       { "key": "Number",    "value": "Number" },
-                                       { "key": "Decimal",   "value": "Decimal" },
-                                       { "key": "String",    "value": "String" },
-                                       { "key": "ObjectId",  "value": "ObjectId" },
-                                       { "key": "Regex",     "value": "Regex" },
-                                       { "key": "Binary",    "value": "Binary" },
-                                       { "key": "Timestamp", "value": "Timestamp" },
-                                       { "key": "Date",      "value": "Date" }
-                                    ]
-                                 },
-                                 {
-                                    "name": "start",
-                                    "webName": $scope.autoLanguage( "起始范围" ),
-                                    "placeholder": $scope.autoLanguage( "起始范围" ),
-                                    "type": "string",
-                                    "value": "",
-                                    "selectList": [ '$minKey' ]
-                                 },
-                                 {
-                                    "name": "end",
-                                    "webName": $scope.autoLanguage( "结束范围" ),
-                                    "placeholder": $scope.autoLanguage( "结束范围" ),
-                                    "type": "string",
-                                    "value": "",
-                                    "selectList": [ '$maxKey' ]
-                                 }
-                              ]
-                           ] ;
-                        }
                      }
                      $scope.Components.Modal.form2.inputList[0]['value'] = 1 ;
                      $scope.Components.Modal.form1.inputList[1]['value'] = $scope.Components.Modal.form2.inputList[1]['value'] ;
@@ -2186,7 +1898,6 @@
                      $.each( $scope.clList, function( index, clInfo ){
                         if( key == ( clInfo['csName'] + '.' + clInfo['Name'] ) )
                         {
-                           type = clInfo['ShardingType'] ;
                            var sourceIndex = -1 ;
                            sourceGroupValid = [] ;
                            $.each( $scope.clList[ index ]['GroupName'], function( index2, groupInfo ){
@@ -2201,97 +1912,6 @@
                            return false;
                         }
                      } ) ;
-
-                     if( type == 'hash' )
-                     {
-                        $scope.Components.Modal.form2.inputList[4]['type'] = 'inline' ;
-                        $scope.Components.Modal.form2.inputList[4]['child'] = [
-                           {
-                              "name": "field",
-                              "webName": $scope.autoLanguage( "字段名" ),
-                              "placeholder": $scope.autoLanguage( "字段名" ),
-                              "type": "string",
-                              "disabled": true,
-                              "value": "Partition",
-                              "valid": {
-                                 "min": 1,
-                                 "regex": "^[^/$].*",
-                                 "ban": "."
-                              }
-                           },
-                           {
-                              "name": "start",
-                              "webName": $scope.autoLanguage( "起始范围" ),
-                              "placeholder": $scope.autoLanguage( "起始范围" ),
-                              "type": "string",
-                              "value": "",
-                              "selectList": [ '$minKey' ]
-                           },
-                           {
-                              "name": "end",
-                              "webName": $scope.autoLanguage( "结束范围" ),
-                              "placeholder": $scope.autoLanguage( "结束范围" ),
-                              "type": "string",
-                              "value": "",
-                              "selectList": [ '$maxKey' ]
-                           }
-                        ] ;
-                     }
-                     else
-                     {
-                        $scope.Components.Modal.form2.inputList[4]['type'] = 'list' ;
-                        $scope.Components.Modal.form2.inputList[4]['child'] = [
-                           [
-                              {
-                                 "name": "field",
-                                 "webName": $scope.autoLanguage( "字段名" ),
-                                 "placeholder": $scope.autoLanguage( "字段名" ),
-                                 "type": "string",
-                                 "value": "",
-                                 "valid": {
-                                    "min": 1,
-                                    "regex": "^[^/$].*",
-                                    "ban": "."
-                                 }
-                              },
-                              {
-                                 "name": "type",
-                                 "webName": $scope.autoLanguage( "类型" ),
-                                 "placeholder": $scope.autoLanguage( "类型" ),
-                                 "type": "select",
-                                 "value": "Auto",
-                                 "valid": [
-                                    { "key": "Auto",      "value": "Auto" },
-                                    { "key": "Bool",      "value": "Bool" },
-                                    { "key": "Number",    "value": "Number" },
-                                    { "key": "Decimal",   "value": "Decimal" },
-                                    { "key": "String",    "value": "String" },
-                                    { "key": "ObjectId",  "value": "ObjectId" },
-                                    { "key": "Regex",     "value": "Regex" },
-                                    { "key": "Binary",    "value": "Binary" },
-                                    { "key": "Timestamp", "value": "Timestamp" },
-                                    { "key": "Date",      "value": "Date" }
-                                 ]
-                              },
-                              {
-                                 "name": "start",
-                                 "webName": $scope.autoLanguage( "起始范围" ),
-                                 "placeholder": $scope.autoLanguage( "起始范围" ),
-                                 "type": "string",
-                                 "value": "",
-                                 "selectList": [ '$minKey' ]
-                              },
-                              {
-                                 "name": "end",
-                                 "webName": $scope.autoLanguage( "结束范围" ),
-                                 "placeholder": $scope.autoLanguage( "结束范围" ),
-                                 "type": "string",
-                                 "value": "",
-                                 "selectList": [ '$maxKey' ]
-                              }
-                           ]
-                        ] ;
-                     }
                   }
                },
                {
@@ -2419,46 +2039,35 @@
                   //条件
                   var splitquery = {} ;
                   var splitendquery = {} ;
-                  if( type == 'hash' )
-                  {
-                     var fieldName = value['condition']['field'] ;
-                     splitquery[ fieldName ]    = autoTypeConvert( value['condition']['start'], true ) ;
-                     splitendquery[ fieldName ] = autoTypeConvert( value['condition']['end'], true ) ;
-                     data['splitquery'] = JSON.stringify( splitquery ) ;
-                     data['splitendquery'] = JSON.stringify( splitendquery ) ;
-                  }
-                  else
-                  {
-                     $.each( value['condition'], function( index, conditionInfo ){
-                        var fieldName = conditionInfo['field'] ;
-                        if( conditionInfo['type'] == 'Auto' )
+                  $.each( value['condition'], function( index, conditionInfo ){
+                     var fieldName = conditionInfo['field'] ;
+                     if( conditionInfo['type'] == 'Auto' )
+                     {
+                        splitquery[ fieldName ]    = autoTypeConvert( conditionInfo['start'], true ) ;
+                        splitendquery[ fieldName ] = autoTypeConvert( conditionInfo['end'], true ) ;
+                     }
+                     else
+                     {
+                        if( conditionInfo['start'].toLowerCase() == '$minkey' )
                         {
-                           splitquery[ fieldName ]    = autoTypeConvert( conditionInfo['start'], true ) ;
-                           splitendquery[ fieldName ] = autoTypeConvert( conditionInfo['end'], true ) ;
+                           splitquery[ fieldName ] = { '$minKey': 1 } ;
                         }
                         else
                         {
-                           if( conditionInfo['start'].toLowerCase() == '$minkey' )
-                           {
-                              splitquery[ fieldName ] = { '$minKey': 1 } ;
-                           }
-                           else
-                           {
-                              splitquery[ fieldName ]    = specifyTypeConvert( conditionInfo['start'], conditionInfo['type'] ) ;
-                           }
-                           if( conditionInfo['end'].toLowerCase() == '$maxkey' )
-                           {
-                              splitendquery[ fieldName ] = { '$maxKey': 1 } ;
-                           }
-                           else
-                           {
-                              splitendquery[ fieldName ] = specifyTypeConvert( conditionInfo['end'], conditionInfo['type'] ) ;
-                           }
+                           splitquery[ fieldName ]    = specifyTypeConvert( conditionInfo['start'], conditionInfo['type'] ) ;
                         }
-                     } ) ;
-                     data['splitquery'] = JSON.stringify( splitquery ) ;
-                     data['splitendquery'] = JSON.stringify( splitendquery ) ;
-                  }
+                        if( conditionInfo['end'].toLowerCase() == '$maxkey' )
+                        {
+                           splitendquery[ fieldName ] = { '$maxKey': 1 } ;
+                        }
+                        else
+                        {
+                           splitendquery[ fieldName ] = specifyTypeConvert( conditionInfo['end'], conditionInfo['type'] ) ;
+                        }
+                     }
+                  } ) ;
+                  data['splitquery'] = JSON.stringify( splitquery ) ;
+                  data['splitendquery'] = JSON.stringify( splitendquery ) ;
                }
                var exec = function(){
                   SdbRest.DataOperation( data, {

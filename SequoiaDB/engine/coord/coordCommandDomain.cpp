@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordCommandDomain.cpp
 
@@ -38,7 +37,6 @@
 #include "coordCommandDomain.hpp"
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
-#include "rtn.hpp"
 
 using namespace bson;
 
@@ -137,17 +135,49 @@ namespace engine
 
    /*
       _coordCMDAlterDomain implement
-    */
+   */
    COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDAlterDomain,
                                       CMD_NAME_ALTER_DOMAIN,
                                       FALSE ) ;
-   _coordCMDAlterDomain::_coordCMDAlterDomain ()
-   : _coordDataCMDAlter()
+   _coordCMDAlterDomain::_coordCMDAlterDomain()
    {
    }
 
-   _coordCMDAlterDomain::~_coordCMDAlterDomain ()
+   _coordCMDAlterDomain::~_coordCMDAlterDomain()
    {
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( COORD_ALTERDOMAIN_EXE, "_coordCMDAlterDomain::execute" )
+   INT32 _coordCMDAlterDomain::execute( MsgHeader *pMsg,
+                                        pmdEDUCB *cb,
+                                        INT64 &contextID,
+                                        rtnContextBuf *buf )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( COORD_ALTERDOMAIN_EXE ) ;
+
+      contextID = -1 ;
+
+      MsgOpQuery *forward  = (MsgOpQuery *)pMsg;
+      forward->header.opCode = MSG_CAT_ALTER_DOMAIN_REQ;
+
+      _printDebug ( (const CHAR*)pMsg, getName() ) ;
+
+      rc = executeOnCataGroup ( pMsg, cb, TRUE, NULL, NULL, buf ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Execute on catalog failed in command[%s], "
+                  "rc: %d", getName(), rc ) ;
+         goto error ;
+      }
+
+   done:
+      PD_TRACE_EXITRC ( COORD_ALTERDOMAIN_EXE, rc ) ;
+      return rc ;
+   error :
+      goto done ;
    }
 
 }
+
+

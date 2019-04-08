@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2016 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = expCLFile.cpp
 
@@ -39,24 +38,14 @@ namespace exprt
 {
    CHAR *expConvertor::_getBuf( UINT32 reqSize ) 
    {
-      CHAR *pNewBuf = NULL ;
-
       SDB_ASSERT( reqSize > 0, "" ) ;
       if ( !_buf || reqSize > _bufSize )
       {
-         pNewBuf = (CHAR *)SDB_OSS_REALLOC( _buf, reqSize ) ;
-         if ( pNewBuf )
-         {
-            _buf = pNewBuf ;
-            _bufSize = reqSize ;
-         }
-      }
-      else
-      {
-         pNewBuf = _buf ;
+         _buf = (CHAR *)SDB_OSS_REALLOC( _buf, reqSize ) ;
+         _bufSize = reqSize ;
       }
 
-      return pNewBuf ;
+      return _buf ;
    }
 
    void expConvertor::_freeBuf() 
@@ -94,8 +83,6 @@ namespace exprt
 
       fieldsBufSize = (INT32)_cl.fields.size() ;
       SDB_ASSERT( NULL == _fieldsBuf, "" ) ;
-      // _fieldsBuf is needed because _decodeBson.parseFields requires a
-      // not-const buf, while _cl.fields.c_str() is const
       _fieldsBuf = (CHAR*)SDB_OSS_MALLOC( fieldsBufSize + 1 ) ;
       if ( !_fieldsBuf )
       {
@@ -105,7 +92,6 @@ namespace exprt
       }
       ossStrcpy( _fieldsBuf, _cl.fields.c_str() ) ;
 
-      // _fieldsBuf will be modified inside while parsing
       rc = _decodeBson.parseFields( _fieldsBuf, fieldsBufSize ) ;
       if ( SDB_OK !=  rc )
       {
@@ -138,7 +124,6 @@ namespace exprt
       INT32 jsonSize = 0 ;
       CHAR  *jsonBuf = NULL ;
 
-      // the jsonSize returns from parseJSONSize is max estimated value
       rc = _decodeBson.parseJSONSize( fromRecord.data, &jsonSize ) ;
       if ( SDB_OK !=  rc )
       {
@@ -156,7 +141,6 @@ namespace exprt
 
       ossMemset( jsonBuf, 0, jsonSize ) ;
       rc = _decodeBson.bsonCovertJson( fromRecord.data, &jsonBuf, &jsonSize ) ;
-      //because of double, increase th space
       if (rc == SDB_OOM)
       {
          _freeBuf();
@@ -244,7 +228,6 @@ namespace exprt
       INT32 tmpSize = 0 ;
       CHAR *tmpBuf = NULL ;
 
-      // the csvSize returns from parseCSVSize is max estimated value
       rc = _decodeBson.parseCSVSize( fromRecord.data, &csvSize ) ;
       if ( SDB_OK != rc )
       {
@@ -259,7 +242,6 @@ namespace exprt
       }
       tmpBuf = csvBuf ;
       tmpSize = csvSize ;
-      // tmpSize is the size of buf not used
       rc = _decodeBson.bsonCovertCSV( fromRecord.data, &tmpBuf, &tmpSize ) ;
       if ( SDB_OK !=  rc )
       {
@@ -335,9 +317,6 @@ namespace exprt
       }
    }
 
-   // one export-file should not be too large 
-   // so open one more file to write data when current file is too large
-   // the adding file keeps the suffix like ".1",".2"
    INT32 expCLFile::_nextFile() 
    {
       INT32 rc = SDB_OK ;

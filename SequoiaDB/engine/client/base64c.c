@@ -1,5 +1,5 @@
 /*******************************************************************************
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -41,7 +41,6 @@ int getEnBase64Size ( int size )
    return len ;
 }
 
-//return string length + 1
 int getDeBase64Size ( const char *s )
 {
 

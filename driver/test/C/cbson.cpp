@@ -86,19 +86,15 @@ TEST(cbson, esc_problem)
    }
    rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &connection ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cs
    rc = getCollectionSpace ( connection,
                              COLLECTION_SPACE_NAME,
                              &cs ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cl
    rc = getCollection ( connection, COLLECTION_FULL_NAME, &cl ) ;
    CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // TO DO:
    bson_init( &obj1 ) ;
    bson_init( &obj2 ) ;
    bson_init( &obj3 ) ;
@@ -126,7 +122,6 @@ TEST(cbson, esc_problem)
    ASSERT_EQ( TRUE, flag ) ;
    flag = jsonToBson( &obj9, str9 ) ;
    ASSERT_EQ( TRUE, flag ) ;
-   // insert
    rc = sdbInsert( cl, &obj1 );
    CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
    ASSERT_EQ ( SDB_OK, rc ) ;
@@ -154,7 +149,6 @@ TEST(cbson, esc_problem)
    rc = sdbInsert( cl, &obj9 );
    CHECK_MSG( "%s%d\n", "rc = ", rc ) ;
    ASSERT_EQ ( SDB_OK, rc ) ;
-   // query
    rc = sdbQuery( cl, NULL, NULL, NULL, NULL, 0, -1, &cursor ) ;
    ASSERT_EQ ( SDB_OK, rc ) ;
    bson_init ( &temp );
@@ -162,7 +156,6 @@ TEST(cbson, esc_problem)
    while ( !( rc = sdbNext( cursor, &temp ) ) )
    {
       rc = bsonToJson( result[i], bufSize, &temp, FALSE, FALSE );
-//      bson_print( &temp );
       ASSERT_EQ ( TRUE, rc );
       printf( "bson is: %s\n", result[i] );
       i++;
@@ -211,22 +204,18 @@ TEST(cbson, regex)
    INT32 num = 10 ;
    rc = initEnv( HOST, SERVER, USER, PASSWD ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &db ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cs
    rc = getCollectionSpace ( db,
                              COLLECTION_SPACE_NAME,
                              &cs ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cl
    rc = getCollection ( db,
                         COLLECTION_FULL_NAME,
                         &cl ) ;
    CHECK_MSG("%s%d\n","rc = ", rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // insert some recored
    for ( INT32 i = 0 ; i < num; i++ )
    {
       CHAR buff[32] = { 0 } ;
@@ -243,7 +232,6 @@ TEST(cbson, regex)
       bson_destroy( &obj ) ;
    }
 
-   // insert some recored
    for ( INT32 i = 0 ; i < num; i++ )
    {
       CHAR buff[32] = { 0 } ;
@@ -260,36 +248,24 @@ TEST(cbson, regex)
       bson_destroy( &obj ) ;
    }
 
-   // cond
    bson_init ( &cond ) ;
 
-//   bson_append_regex( &cond, "name", regex, options ) ;
 
-////
-//   bson_append_start_object( &cond, "name" ) ;
-//   bson_append_string ( &cond, "$regex", "^31" ) ;
-//   bson_append_string ( &cond, "$options", "i" ) ;
-//   bson_append_finish_object( &cond ) ;
-////
    rc = bson_finish( &cond ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // rule
    bson_init ( &rule ) ;
    bson_append_start_object( &rule, "$set" ) ;
    bson_append_int ( &rule, "age", 999 ) ;
    bson_append_finish_object( &rule ) ;
    rc = bson_finish ( &rule ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // update with regex expression
    rc = sdbUpdate( cl, &rule, &cond, NULL ) ;
    CHECK_MSG("%s%d\n","rc = ", rc) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // query
    rc = sdbQuery( cl, NULL, NULL, NULL, NULL, 0, -1, &cursor ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // print the records
    displayRecord( &cursor ) ;
 
    sdbDisconnect ( db ) ;
@@ -306,7 +282,6 @@ TEST( cbson, base64Encode )
    const CHAR *str = "hello world" ;
    const CHAR *str2 = "aGVsbG8gd29ybGQ=" ;
    INT32 strLen = strlen( str) ;
-   // encode
    INT32 len = getEnBase64Size( strLen ) ;
    CHAR *out = (CHAR *)malloc( len ) ;
    memset( out, 0, len ) ;
@@ -358,12 +333,9 @@ TEST(cbson, dateType)
    sdbCursorHandle cursor    = 0 ;
    INT32 rc                  = SDB_OK ;
 
-   // normal
    const CHAR* ppNormalDate[] = {
-      // the dates which are in the [1900-01-01, 9999-12-31]
       "{ \"myDate1\": { \"$date\": \"1900-01-01\" } }",
       "{ \"myDate2\": { \"$date\": \"9999-12-31\" } }",
-      // the dates which are in the [0001-01-01T00:00:00.000000Z, 9999-12-31T23:59:59.999999Z]
       "{ \"myDate3\": { \"$date\": \"1900-01-01T00:00:00.000000Z\" } }",
       "{ \"myDate4\": { \"$date\": \"9999-12-31T12:59:59.999999Z\" } }",
       "{ \"myDate5\": { \"$date\": \"1900-01-01T00:00:00.000000-0100\" } }",
@@ -383,17 +355,14 @@ TEST(cbson, dateType)
    } ;
 
    const CHAR* ppAbnormalDate[] = {
-      // the dates which are not in [1900-01-01, 9999-12-31]
       "{ \"myDate1\": { \"$date\": \"1899-12-31\" } }",
       "{ \"myDate2\": { \"$date\": \"10000-01-01\" } }",
-      // the dates which are not in [0001-01-01T00:00:00.000000Z, 9999-12-31T23:59:59.999999Z]
       "{ \"myDate1\": { \"$date\": \"0000-01-01T00:00:00.000000Z\" } }",
       "{ \"myDate2\": { \"$date\": \"0000-01-01T23:59:59.999999-0100\" } }",
       "{ \"myDate3\": { \"$date\": \"-0001-01-01T00:00:00.000000Z\" } }",
       "{ \"myDate4\": { \"$date\": \"10000-01-01T00:00:00.000000Z\" } }",
       "{ \"myDate5\": { \"$date\": \"10000-01-01T00:00:00.000000+0100\" } }"
    } ;
-   /// case1: test abnormal dates
 #define bufsize 1024
    CHAR buffer[ bufsize ] = { 0 } ;
    bson obj ;
@@ -401,16 +370,13 @@ TEST(cbson, dateType)
    INT32 num = 10;
    bson_init( &obj ) ;
 
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &db ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cl
    rc = getCollection ( db, "foo.bar", &cl ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbDelete( cl, NULL, NULL ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-   // check abnormal type
    for( i = 0; i < sizeof(ppAbnormalDate)/sizeof(const CHAR*); i++ )
    {
       bson_destroy( &obj ) ;
@@ -421,9 +387,7 @@ TEST(cbson, dateType)
       }
    }
 
-   /// case2
    {
-   // insert
    printf( "The inserted records are as below: \n" ) ;
    for ( i = 0; i < sizeof(ppNormalDate)/sizeof(const CHAR*); i++ )
    {
@@ -476,7 +440,6 @@ TEST(cbson, timestampType)
    sdbCursorHandle cursor    = 0 ;
    INT32 rc                  = SDB_OK ;
 
-   // normal
    const CHAR* ppNormalTimestamp[] = {
       "{ \"myTimestamp1\": { \"$timestamp\": \"1902-01-01-00:00:00.000000\" } }", 
       "{ \"myTimestamp2\": { \"$timestamp\": \"1902-01-01T00:00:00.000000+0800\" } }",
@@ -486,31 +449,7 @@ TEST(cbson, timestampType)
       "{ \"myTimestamp6\": { \"$timestamp\": \"2037-12-31T23:59:59.999999Z\" } }"
    } ;
 
-//   // normal
-//   const CHAR* ppNormalTimestamp[] = {
-//      "{ \"myTimestamp1\": { \"$timestamp\": \"1901-12-14-04.45.52.000000\" } }", // if you find it can't pass,
-//                                                                                  // please check your system,
-//                                                                                  // whether it is "+0800 in Beijing",
-//                                                                                  // but not "+0800 in Shanghai" or the
-//                                                                                  // other place
-//      "{ \"myTimestamp2\": { \"$timestamp\": \"2038-01-19-11.14.07.999999\" } }",
-//      "{ \"myTimestamp3\": { \"$timestamp\": \"1901-12-13T20:45:52.000000Z\" } }",
-//      "{ \"myTimestamp4\": { \"$timestamp\": \"1901-12-14T04:45:52.000000+0800\" } }",
-//      "{ \"myTimestamp5\": { \"$timestamp\": \"2038-01-19T03:14:07.999999Z\" } }",
-//      "{ \"myTimestamp6\": { \"$timestamp\": \"2038-01-19T11:14:07.999999+0800\" } }"
-//   } ;
-//
-//
-//   const CHAR* ppAbnormalTimestamp[] = {
-//      "{ \"myTimestamp1\": { \"$timestamp\": \"1901-12-14-04.45.51.000000\" } }",
-//      "{ \"myTimestamp2\": { \"$timestamp\": \"2038-01-19-11.14.08.000000\" } }",
-//      "{ \"myTimestamp3\": { \"$timestamp\": \"1901-12-13T20:45:51.999999Z\" } }",
-//      "{ \"myTimestamp4\": { \"$timestamp\": \"1901-12-14T04:45:51.999999+0800\" } }",
-//      "{ \"myTimestamp5\": { \"$timestamp\": \"2038-01-19T03:14:08.000000Z\" } }",
-//      "{ \"myTimestamp6\": { \"$timestamp\": \"2038-01-19T11:14:08.000000+0800\" } }"
-//   } ;
 
-   // abnormal
 #define bufsize 1024
    CHAR buffer[ bufsize ] = { 0 } ;
    bson obj ;
@@ -518,29 +457,15 @@ TEST(cbson, timestampType)
    INT32 num = 10;
    bson_init( &obj ) ;
 
-   // connect to database
    rc = sdbConnect ( HOST, SERVER, USER, PASSWD, &db ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
-   // get cl
    rc = getCollection ( db, "foo.bar", &cl ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
    rc = sdbDelete( cl, NULL, NULL ) ;
    ASSERT_EQ( SDB_OK, rc ) ;
 
-//   // check abnormal type
-//   for( i = 0; i < sizeof(ppAbnormalTimestamp)/sizeof(const CHAR*); i++ )
-//   {
-//      bson_destroy( &obj ) ;
-//      if ( jsonToBson( &obj, ppAbnormalTimestamp[i] ) )
-//      {
-//         rc = SDB_INVALIDARG ;
-//         ASSERT_EQ( SDB_OK, rc ) << ppAbnormalTimestamp[i] ;
-//      }
-//   }
 
-   /// case1
    {
-   // insert
    printf( "The inserted records are as below: \n" ) ;
    for ( i = 0; i < sizeof(ppNormalTimestamp)/sizeof(const CHAR*); i++ )
    {

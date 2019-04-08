@@ -1,5 +1,5 @@
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ PHP_METHOD( SequoiaCS, __construct )
 {
 }
 
-//cs
 PHP_METHOD( SequoiaCS, drop )
 {
    INT32 rc = SDB_OK ;
@@ -105,8 +104,6 @@ error:
    goto done ;
 }
 
-//cl
-//e.g. Rename selectCollection
 PHP_METHOD( SequoiaCS, selectCL )
 {
    INT32 rc = SDB_OK ;
@@ -247,7 +244,6 @@ error:
    goto done ;
 }
 
-//e.g. Rename dropCollection
 PHP_METHOD( SequoiaCS, dropCL )
 {
    INT32 rc = SDB_OK ;
@@ -273,249 +269,10 @@ PHP_METHOD( SequoiaCS, dropCL )
    {
       goto error ;
    }
-
-done:
    PHP_RETURN_AUTO_ERROR( FALSE, pThisObj, rc ) ;
+done:
    return ;
 error:
    PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
    goto done ;
 }
-
-PHP_METHOD( SequoiaCS, renameCL )
-{
-   INT32 rc = SDB_OK ;
-   PHP_LONG clOldNameLen = 0 ;
-   PHP_LONG clNewNameLen = 0 ;
-   zval *pThisObj = getThis() ;
-   CHAR *pOldName = NULL ;
-   CHAR *pNewName = NULL ;
-   zval *pOptions = NULL ;
-   sdbCSHandle cs = SDB_INVALID_HANDLE ;
-   bson options ;
-
-   bson_init( &options ) ;
-
-   PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
-
-   if ( PHP_GET_PARAMETERS( "ss|z", &pOldName, &clOldNameLen,
-                                    &pNewName, &clNewNameLen,
-                                    &pOptions ) == FAILURE )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-
-   rc = php_auto2Bson( pOptions, &options TSRMLS_CC ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-
-   PHP_READ_HANDLE( pThisObj,
-                    cs,
-                    sdbCSHandle,
-                    SDB_CS_HANDLE_NAME,
-                    csDesc ) ;
-
-   rc = sdbRenameCollection( cs, pOldName, pNewName, &options ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-
-done:
-   bson_destroy( &options ) ;
-   PHP_RETURN_AUTO_ERROR( FALSE, pThisObj, rc ) ;
-   return ;
-error:
-   PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
-   goto done ;
-}
-
-PHP_METHOD( SequoiaCS, alter )
-{
-   INT32 rc = SDB_OK ;
-   zval *pOptions = NULL ;
-   zval *pThisObj = getThis() ;
-   sdbCSHandle cs  = SDB_INVALID_HANDLE ;
-   bson options ;
-   bson_init( &options ) ;
-   PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
-   if ( PHP_GET_PARAMETERS( "z", &pOptions ) == FAILURE )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-   PHP_READ_HANDLE( pThisObj,
-                    cs,
-                    sdbCSHandle,
-                    SDB_CS_HANDLE_NAME,
-                    csDesc ) ;
-   rc = php_auto2Bson( pOptions, &options TSRMLS_CC ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-   rc = sdbAlterCollectionSpace( cs, &options ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-done:
-   bson_destroy( &options ) ;
-   PHP_RETURN_AUTO_ERROR( FALSE, pThisObj, rc ) ;
-   return ;
-error:
-   PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
-   goto done ;
-}
-
-PHP_METHOD( SequoiaCS, setDomain )
-{
-   INT32 rc = SDB_OK ;
-   zval *pOptions = NULL ;
-   zval *pThisObj = getThis() ;
-   sdbCSHandle cs  = SDB_INVALID_HANDLE ;
-   bson options ;
-   bson_init( &options ) ;
-   PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
-   if ( PHP_GET_PARAMETERS( "z", &pOptions ) == FAILURE )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-   PHP_READ_HANDLE( pThisObj,
-                    cs,
-                    sdbCSHandle,
-                    SDB_CS_HANDLE_NAME,
-                    csDesc ) ;
-   rc = php_auto2Bson( pOptions, &options TSRMLS_CC ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-   rc = sdbCSSetDomain( cs, &options ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-done:
-   bson_destroy( &options ) ;
-   PHP_RETURN_AUTO_ERROR( FALSE, pThisObj, rc ) ;
-   return ;
-error:
-   PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
-   goto done ;
-}
-
-PHP_METHOD( SequoiaCS, removeDomain )
-{
-   INT32 rc = SDB_OK ;
-   zval *pThisObj = getThis() ;
-   sdbCSHandle cs  = SDB_INVALID_HANDLE ;
-   PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
-   PHP_READ_HANDLE( pThisObj,
-                    cs,
-                    sdbCSHandle,
-                    SDB_CS_HANDLE_NAME,
-                    csDesc ) ;
-   rc = sdbCSRemoveDomain( cs ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-done:
-   PHP_RETURN_AUTO_ERROR( FALSE, pThisObj, rc ) ;
-   return ;
-error:
-   PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
-   goto done ;
-}
-
-PHP_METHOD( SequoiaCS, enableCapped )
-{
-   INT32 rc = SDB_OK ;
-   zval *pThisObj = getThis() ;
-   sdbCSHandle cs  = SDB_INVALID_HANDLE ;
-   PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
-   PHP_READ_HANDLE( pThisObj,
-                    cs,
-                    sdbCSHandle,
-                    SDB_CS_HANDLE_NAME,
-                    csDesc ) ;
-   rc = sdbCSEnableCapped( cs ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-done:
-   PHP_RETURN_AUTO_ERROR( FALSE, pThisObj, rc ) ;
-   return ;
-error:
-   PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
-   goto done ;
-}
-
-PHP_METHOD( SequoiaCS, disableCapped )
-{
-   INT32 rc = SDB_OK ;
-   zval *pThisObj = getThis() ;
-   sdbCSHandle cs  = SDB_INVALID_HANDLE ;
-   PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
-   PHP_READ_HANDLE( pThisObj,
-                    cs,
-                    sdbCSHandle,
-                    SDB_CS_HANDLE_NAME,
-                    csDesc ) ;
-   rc = sdbCSDisableCapped( cs ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-done:
-   PHP_RETURN_AUTO_ERROR( FALSE, pThisObj, rc ) ;
-   return ;
-error:
-   PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
-   goto done ;
-}
-
-PHP_METHOD( SequoiaCS, setAttributes )
-{
-   INT32 rc = SDB_OK ;
-   zval *pOptions = NULL ;
-   zval *pThisObj = getThis() ;
-   sdbCSHandle cs  = SDB_INVALID_HANDLE ;
-   bson options ;
-   bson_init( &options ) ;
-   PHP_SET_ERRNO_OK( FALSE, pThisObj ) ;
-   if ( PHP_GET_PARAMETERS( "z", &pOptions ) == FAILURE )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-   PHP_READ_HANDLE( pThisObj,
-                    cs,
-                    sdbCSHandle,
-                    SDB_CS_HANDLE_NAME,
-                    csDesc ) ;
-   rc = php_auto2Bson( pOptions, &options TSRMLS_CC ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-   rc = sdbCSSetAttributes( cs, &options ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-done:
-   bson_destroy( &options ) ;
-   PHP_RETURN_AUTO_ERROR( FALSE, pThisObj, rc ) ;
-   return ;
-error:
-   PHP_SET_ERROR( FALSE, pThisObj, rc ) ;
-   goto done ;
-}
-

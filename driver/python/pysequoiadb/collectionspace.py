@@ -21,10 +21,13 @@ except:
     raise Exception("Cannot find extension: sdb")
 
 import bson
-from bson.py3compat import (str_type)
+import pysequoiadb
+from bson.py3compat import (PY3, str_type)
 from pysequoiadb.collection import collection
-from pysequoiadb.errcode import SDB_OOM
+from pysequoiadb.cursor import cursor
+from pysequoiadb import error
 from pysequoiadb.error import (SDBBaseError, SDBSystemError, SDBTypeError, raise_if_error)
+from pysequoiadb.errcode import SDB_OOM
 
 
 class collectionspace(object):
@@ -201,31 +204,6 @@ class collectionspace(object):
         rc = sdb.cs_drop_collection(self._cs, cl_name)
         raise_if_error(rc, "Failed to drop collection")
 
-    def rename_collection(self, old_name, new_name, options=None):
-        """Rename the specified collection in current collection space.
-
-        Parameters:
-           Name      Type     Info:
-           old_name  str      The original name of collection.
-           new_name  str      The new name of collection.
-           options   dict     Options for renaming.
-        Exceptions:
-           pysequoiadb.error.SDBTypeError
-           pysequoiadb.error.SDBBaseError
-        """
-        if not isinstance(old_name, str_type):
-            raise SDBTypeError("old name must be an instance of str_type")
-        if not isinstance(new_name, str_type):
-            raise SDBTypeError("new name must be an instance of str_type")
-        bson_options = None
-        if options is not None:
-            if not isinstance(options, dict):
-                raise SDBTypeError("options must be an instance of dict")
-            bson_options = bson.BSON.encode(options)
-
-        rc = sdb.cs_rename_collection(self._cs, old_name, new_name, bson_options)
-        raise_if_error(rc, "Failed to rename collection")
-
     def get_collection_space_name(self):
         """Get the current collection space name.
 
@@ -238,70 +216,3 @@ class collectionspace(object):
         raise_if_error(rc, "Failed to get collection space name")
 
         return cs_name
-
-    def alter(self, options):
-        """Alter the current collection space.
-
-        Parameters:
-           Name     Type           Info:
-           options   dict          The options for alter collection space, including
-                                   Domain      : domain of collection space
-                                   PageSize    : page size of collection space
-                                   LobPageSize : LOB page size of collection space
-        """
-        if not isinstance(options, dict):
-            raise SDBTypeError("options must be an instance of dict")
-        bson_options = bson.BSON.encode(options)
-
-        rc = sdb.cs_alter(self._cs, bson_options)
-        raise_if_error(rc, "Failed to alter collection space")
-
-    def set_domain(self, options):
-        """Alter the current collection space to set domain.
-
-        Parameters:
-           Name     Type           Info:
-           options   dict          The options for alter collection space, including
-                                 Domain      : domain of collection space
-        """
-        if not isinstance(options, dict):
-            raise SDBTypeError("options must be an instance of dict")
-        bson_options = bson.BSON.encode(options)
-
-        rc = sdb.cs_set_domain(self._cs, bson_options)
-        raise_if_error(rc, "Failed to alter collection space to set domain")
-
-    def remove_domain(self):
-        """Alter the current collection space to remove domain.
-        """
-        rc = sdb.cs_remove_domain(self._cs)
-        raise_if_error(rc, "Failed to alter collection space to remove domain")
-
-    def enable_capped(self):
-        """Alter the current collection space to enable capped.
-        """
-        rc = sdb.cs_enable_capped(self._cs)
-        raise_if_error(rc, "Failed to alter collection space to enable capped")
-
-    def disable_capped(self):
-        """Alter the current collection space to disble capped.
-        """
-        rc = sdb.cs_disable_capped(self._cs)
-        raise_if_error(rc, "Failed to alter collection space to disable capped")
-
-    def set_attributes(self, options):
-        """Alter the current collection space.
-
-        Parameters:
-           Name     Type           Info:
-           options   dict          The options for alter collection space, including
-                                   Domain      : domain of collection space
-                                   PageSize    : page size of collection space
-                                   LobPageSize : LOB page size of collection space
-        """
-        if not isinstance(options, dict):
-            raise SDBTypeError("options must be an instance of dict")
-        bson_options = bson.BSON.encode(options)
-
-        rc = sdb.cs_set_attributes(self._cs, bson_options)
-        raise_if_error(rc, "Failed to alter collection space")

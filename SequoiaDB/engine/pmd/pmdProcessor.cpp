@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pmdPorcessor.cpp
 
@@ -54,11 +53,6 @@
 #include "coordQueryOperator.hpp"
 #include "coordInterruptOperator.hpp"
 #include "pmdController.hpp"
-#include "schedDef.hpp"
-#include "pd.hpp"
-#include "pdTrace.hpp"
-#include "pmdTrace.hpp"
-
 
 using namespace bson ;
 
@@ -75,35 +69,28 @@ namespace engine
    {
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDDATAPROC_PROMSG, "_pmdDataProcessor::processMsg" )
    INT32 _pmdDataProcessor::processMsg( MsgHeader *msg,
                                         rtnContextBuf &contextBuff,
                                         INT64 &contextID,
-                                        BOOLEAN &needReply,
-                                        BOOLEAN &needRollback )
+                                        BOOLEAN &needReply )
    {
-      INT32 rc     = SDB_OK ;
-      INT32 opCode = msg->opCode ;
-
-      PD_TRACE_ENTRY ( SDB_PMDDATAPROC_PROMSG );
+      INT32 rc = SDB_OK ;
 
       SDB_ASSERT( getSession(), "Must attach session at first" ) ;
 
-      needRollback = FALSE ;
-
-      if ( MSG_AUTH_VERIFY_REQ == opCode )
+      if ( MSG_AUTH_VERIFY_REQ == msg->opCode )
       {
          rc = getClient()->authenticate( msg ) ;
       }
-      else if ( MSG_BS_INTERRUPTE == opCode )
+      else if ( MSG_BS_INTERRUPTE == msg->opCode )
       {
          rc = _onInterruptMsg( msg, getDPSCB() ) ;
       }
-      else if ( MSG_BS_INTERRUPTE_SELF == opCode )
+      else if ( MSG_BS_INTERRUPTE_SELF == msg->opCode )
       {
          rc = _onInterruptSelfMsg() ;
       }
-      else if ( MSG_BS_DISCONNECT == opCode )
+      else if ( MSG_BS_DISCONNECT == msg->opCode )
       {
          rc = _onDisconnectMsg() ;
       }
@@ -118,42 +105,36 @@ namespace engine
             }
          }
 
-         switch( opCode )
+         switch( msg->opCode )
          {
             case MSG_BS_MSG_REQ :
                rc = _onMsgReqMsg( msg ) ;
                break ;
             case MSG_BS_UPDATE_REQ :
-               needRollback = TRUE ;
                rc = _onUpdateReqMsg( msg, getDPSCB() ) ;
                break ;
             case MSG_BS_INSERT_REQ :
-               needRollback = TRUE ;
                rc = _onInsertReqMsg( msg ) ;
                break ;
             case MSG_BS_QUERY_REQ :
-               rc = _onQueryReqMsg( msg, getDPSCB(), contextBuff, contextID,
-                                    needRollback ) ;
+               rc = _onQueryReqMsg( msg, getDPSCB(), contextBuff, contextID ) ;
                break ;
             case MSG_BS_DELETE_REQ :
-               needRollback = TRUE ;
                rc = _onDelReqMsg( msg, getDPSCB() ) ;
                break ;
             case MSG_BS_GETMORE_REQ :
-               rc = _onGetMoreReqMsg( msg, contextBuff, contextID,
-                                      needRollback ) ;
+               rc = _onGetMoreReqMsg( msg, contextBuff, contextID ) ;
                break ;
             case MSG_BS_KILL_CONTEXT_REQ :
                rc = _onKillContextsReqMsg( msg ) ;
                break ;
             case MSG_BS_SQL_REQ :
-               rc = _onSQLMsg( msg, contextID, getDPSCB(), needRollback ) ;
+               rc = _onSQLMsg( msg, contextID, getDPSCB() ) ;
                break ;
             case MSG_BS_TRANS_BEGIN_REQ :
                rc = _onTransBeginMsg() ;
                break ;
             case MSG_BS_TRANS_COMMIT_REQ :
-               needRollback = TRUE ;
                rc = _onTransCommitMsg( getDPSCB() ) ;
                break ;
             case MSG_BS_TRANS_ROLLBACK_REQ :
@@ -190,8 +171,8 @@ namespace engine
             default :
                PD_LOG( PDWARNING, "Session[%s] recv unknow msg[type:[%d]%d, "
                        "len: %d, tid: %d, routeID: %d.%d.%d, reqID: %lld]",
-                       getSession()->sessionName(), IS_REPLY_TYPE(opCode),
-                       GET_REQUEST_TYPE(opCode), msg->messageLength,
+                       getSession()->sessionName(), IS_REPLY_TYPE(msg->opCode),
+                       GET_REQUEST_TYPE(msg->opCode), msg->messageLength,
                        msg->TID, msg->routeID.columns.groupID,
                        msg->routeID.columns.nodeID,
                        msg->routeID.columns.serviceID, msg->requestID ) ;
@@ -201,21 +182,7 @@ namespace engine
       }
 
    done:
-      if ( SDB_DMS_EOC == rc )
-      {
-         needRollback = FALSE ;
-      }
-      PD_TRACE_EXITRC ( SDB_PMDDATAPROC_PROMSG, rc ) ;
       return rc ;
-   }
-
-   INT32 _pmdDataProcessor::doRollback()
-   {
-      if ( eduCB() )
-      {
-         return rtnTransRollback( eduCB(), getDPSCB() ) ;
-      }
-      return SDB_OK ;
    }
 
    INT32 _pmdDataProcessor::_onMsgReqMsg( MsgHeader * msg )
@@ -223,101 +190,7 @@ namespace engine
       return rtnMsg( (MsgOpMsg*)msg ) ;
    }
 
-   INT32 _pmdDataProcessor::_updateVCS( const CHAR *fullName,
-                                        const BSONObj &updator )
-   {
-      INT32 rc = SDB_OK ;
-
-      if ( 0 == ossStrcmp( fullName, CMD_ADMIN_PREFIX SYS_CL_SESSION_INFO ) )
-      {
-         schedTaskMgr *pSvcTaskMgr = pmdGetKRCB()->getSvcTaskMgr() ;
-         schedItem *pItem = ( schedItem* )getSession()->getSchedItemPtr() ;
-         BSONObj objSrc = pItem->_info.toBSON() ;
-         BSONObj objDest ;
-
-         objDest = rtnUpdator2Obj( objSrc, updator ) ;
-
-         pItem->_info.fromBSON( objDest, TRUE ) ;
-
-         /// update task info
-         pItem->_ptr = pSvcTaskMgr->getTaskInfoPtr( pItem->_info.getTaskID(),
-                                                    pItem->_info.getTaskName() ) ;
-         /// update monApp's info
-         eduCB()->getMonAppCB()->setSvcTaskInfo( pItem->_ptr.get() ) ;
-      }
-      else
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _pmdDataProcessor::_insertVCS( const CHAR *fullName,
-                                        const BSONObj &insertor )
-   {
-      INT32 rc = SDB_OK ;
-
-      if ( 0 == ossStrcmp( fullName, CMD_ADMIN_PREFIX SYS_CL_SESSION_INFO ) )
-      {
-         schedTaskMgr *pSvcTaskMgr = pmdGetKRCB()->getSvcTaskMgr() ;
-         schedItem *pItem = ( schedItem* )getSession()->getSchedItemPtr() ;
-
-         pItem->_info.fromBSON( insertor, TRUE ) ;
-
-         /// update task info
-         pItem->_ptr = pSvcTaskMgr->getTaskInfoPtr( pItem->_info.getTaskID(),
-                                                    pItem->_info.getTaskName() ) ;
-         /// update monApp's info
-         eduCB()->getMonAppCB()->setSvcTaskInfo( pItem->_ptr.get() ) ;
-      }
-      else
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _pmdDataProcessor::_deleteVCS( const CHAR *fullName,
-                                        const BSONObj &deletor )
-   {
-      INT32 rc = SDB_OK ;
-
-      if ( 0 == ossStrcmp( fullName, CMD_ADMIN_PREFIX SYS_CL_SESSION_INFO ) )
-      {
-         schedTaskMgr *pSvcTaskMgr = pmdGetKRCB()->getSvcTaskMgr() ;
-         schedItem *pItem = ( schedItem* )getSession()->getSchedItemPtr() ;
-
-         pItem->_info.reset() ;
-
-         /// update task info
-         pItem->_ptr = pSvcTaskMgr->getTaskInfoPtr( pItem->_info.getTaskID(),
-                                                    pItem->_info.getTaskName() ) ;
-         /// update monApp's info
-         eduCB()->getMonAppCB()->setSvcTaskInfo( pItem->_ptr.get() ) ;
-      }
-      else
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _pmdDataProcessor::_onUpdateReqMsg( MsgHeader *msg, SDB_DPSCB *dpsCB )
+   INT32 _pmdDataProcessor::_onUpdateReqMsg( MsgHeader * msg, SDB_DPSCB *dpsCB )
    {
       INT32 rc    = SDB_OK ;
       INT32 flags = 0 ;
@@ -332,28 +205,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract update message failed, "
                    "rc: %d", getSession()->sessionName(), rc ) ;
 
-      /// When update virtual cs
-      if ( 0 == ossStrncmp( pCollectionName, CMD_ADMIN_PREFIX SYS_VIRTUAL_CS".",
-                            SYS_VIRTUAL_CS_LEN + 1 ) )
-      {
-         try
-         {
-            BSONObj objUpdator( pUpdatorBuffer ) ;
-            rc = _updateVCS( pCollectionName, objUpdator ) ;
-            if ( rc )
-            {
-               goto error ;
-            }
-            goto done ;
-         }
-         catch( std::exception &e )
-         {
-            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-      }
-
       try
       {
          INT64   updatedNum = 0 ;
@@ -361,7 +212,6 @@ namespace engine
          BSONObj selector( pSelectorBuffer );
          BSONObj updator( pUpdatorBuffer );
          BSONObj hint( pHintBuffer );
-         // add last op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                              "Collection:%s, Matcher:%s, Updator:%s, Hint:%s, "
                              "Flag:0x%08x(%u)",
@@ -372,7 +222,7 @@ namespace engine
                              flags, flags ) ;
 
          PD_LOG ( PDDEBUG, "Session[%s] Update:\nMatcher: %s\nUpdator: %s\n"
-                  "hint: %s\nFlag: 0x%08x(%u)", getSession()->sessionName(),
+                  "hint: %s\nFlag: 0x%08x(%u)", getSession()->sessionName(), 
                   selector.toString().c_str(),
                   updator.toString().c_str(), hint.toString().c_str(),
                   flags, flags ) ;
@@ -380,7 +230,6 @@ namespace engine
          rc = rtnUpdate( pCollectionName, selector, updator, hint,
                          flags, eduCB(), _pDMSCB, dpsCB, 1, &updatedNum,
                          &insertNum ) ;
-         /// AUDIT
          PD_AUDIT_OP( AUDIT_DML, MSG_BS_UPDATE_REQ, AUDIT_OBJ_CL,
                       pCollectionName, rc,
                       "UpdatedNum:%llu, InsertedNum:%u, Matcher:%s, "
@@ -417,42 +266,11 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extrace insert msg failed, rc: %d",
                    getSession()->sessionName(), rc ) ;
 
-      if ( (flag & FLG_INSERT_CONTONDUP) && (flag & FLG_INSERT_REPLACEONDUP) )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR,"Conflict insert flag(CONTONDUP and REPLACEONDUP):"
-                 "flag=%d,rc=%d", flag, rc ) ;
-         goto error ;
-      }
-
-      /// When insert virtual cs
-      if ( 0 == ossStrncmp( pCollectionName, CMD_ADMIN_PREFIX SYS_VIRTUAL_CS".",
-                            SYS_VIRTUAL_CS_LEN + 1 ) )
-      {
-         try
-         {
-            BSONObj objInsertor( pInsertor ) ;
-            rc = _insertVCS( pCollectionName, objInsertor ) ;
-            if ( rc )
-            {
-               goto error ;
-            }
-            goto done ;
-         }
-         catch( std::exception &e )
-         {
-            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-      }
-
       try
       {
          INT32   insertedNum = 0 ;
          INT32   ignoredNum = 0 ;
          BSONObj insertor( pInsertor ) ;
-         // add list op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                              "Collection:%s, Insertors:%s, ObjNum:%d, "
                              "Flag:0x%08x(%u)",
@@ -468,7 +286,6 @@ namespace engine
 
          rc = rtnInsert( pCollectionName, insertor, count, flag, eduCB(),
                          &insertedNum, &ignoredNum ) ;
-         /// AUDIT
          PD_AUDIT_OP( AUDIT_DML, MSG_BS_INSERT_REQ, AUDIT_OBJ_CL,
                       pCollectionName, rc, "InsertedNum:%u, IgnoredNum:%u, "
                       "ObjNum:%u, Insertor:%s, Flag:0x%08x(%u)", insertedNum,
@@ -476,8 +293,8 @@ namespace engine
                       flag ) ;
 
          PD_RC_CHECK( rc, PDERROR, "Session[%s] insert objs[%s, count:%d, "
-                      "collection: %s] failed, rc: %d",
-                      getSession()->sessionName(), insertor.toString().c_str(),
+                      "collection: %s] failed, rc: %d", 
+                      getSession()->sessionName(), insertor.toString().c_str(), 
                       count, pCollectionName, rc ) ;
       }
       catch( std::exception &e )
@@ -497,8 +314,7 @@ namespace engine
    INT32 _pmdDataProcessor::_onQueryReqMsg( MsgHeader * msg,
                                             SDB_DPSCB *dpsCB,
                                             _rtnContextBuf &buffObj,
-                                            INT64 &contextID,
-                                            BOOLEAN &needRollback )
+                                            INT64 &contextID )
    {
       INT32 rc = SDB_OK ;
       INT32 flags = 0 ;
@@ -526,7 +342,6 @@ namespace engine
             BSONObj selector ( pFieldSelector ) ;
             BSONObj orderBy ( pOrderByBuffer ) ;
             BSONObj hint ( pHintBuffer ) ;
-            // add last op info
             MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                                 "Collection:%s, Matcher:%s, Selector:%s, "
                                 "OrderBy:%s, Hint:%s, Skip:%llu, Limit:%lld, "
@@ -539,11 +354,6 @@ namespace engine
                                 numToSkip, numToReturn,
                                 flags, flags ) ;
 
-            if ( flags & FLG_QUERY_MODIFY )
-            {
-               needRollback = TRUE ;
-            }
-
             /*
             PD_LOG ( PDDEBUG, "Session[%s] Query: Matcher: %s\nSelector: "
                      "%s\nOrderBy: %s\nHint:%s\nSkip: %llu\nLimit: %lld\n"
@@ -555,7 +365,6 @@ namespace engine
             rc = rtnQuery( pCollectionName, selector, matcher, orderBy,
                            hint, flags, eduCB(), numToSkip, numToReturn,
                            _pDMSCB, _pRTNCB, contextID, &pContext, TRUE ) ;
-            /// AUDIT
             PD_AUDIT_OP( ( flags & FLG_QUERY_MODIFY ? AUDIT_DML : AUDIT_DQL ),
                          MSG_BS_QUERY_REQ, AUDIT_OBJ_CL,
                          pCollectionName, rc,
@@ -568,13 +377,11 @@ namespace engine
                          hint.toString().c_str(),
                          numToSkip, numToReturn,
                          flags, flags ) ;
-            /// Jduge error
             if ( rc )
             {
                goto error ;
             }
 
-            /// if write operator, need set dps info( local session: w=1)
             if ( pContext && pContext->isWrite() )
             {
                pContext->setWriteInfo( dpsCB, 1 ) ;
@@ -604,7 +411,7 @@ namespace engine
          catch ( std::exception &e )
          {
             PD_LOG ( PDERROR, "Session[%s] Failed to create matcher and "
-                     "selector for QUERY: %s", getSession()->sessionName(),
+                     "selector for QUERY: %s", getSession()->sessionName(), 
                      e.what () ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
@@ -644,7 +451,6 @@ namespace engine
 
          PD_LOG ( PDDEBUG, "Command: %s", pCommand->name () ) ;
 
-         //run command
          rc = rtnRunCommand( pCommand, getSession()->getServiceType(),
                              eduCB(), _pDMSCB, _pRTNCB,
                              dpsCB, 1, &contextID ) ;
@@ -672,39 +478,16 @@ namespace engine
       CHAR *pDeletorBuffer  = NULL ;
       CHAR *pHintBuffer     = NULL ;
 
-      rc = msgExtractDelete ( (CHAR *)msg , &flags, &pCollectionName,
+      rc = msgExtractDelete ( (CHAR *)msg , &flags, &pCollectionName, 
                               &pDeletorBuffer, &pHintBuffer ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract delete msg failed, rc: %d",
                    getSession()->sessionName(), rc ) ;
-
-      /// When delete virtual cs
-      if ( 0 == ossStrncmp( pCollectionName, CMD_ADMIN_PREFIX SYS_VIRTUAL_CS".",
-                            SYS_VIRTUAL_CS_LEN + 1 ) )
-      {
-         try
-         {
-            BSONObj objDeletor( pDeletorBuffer ) ;
-            rc = _deleteVCS( pCollectionName, objDeletor ) ;
-            if ( rc )
-            {
-               goto error ;
-            }
-            goto done ;
-         }
-         catch( std::exception &e )
-         {
-            PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-      }
 
       try
       {
          INT64 deletedNum = 0 ;
          BSONObj deletor ( pDeletorBuffer ) ;
          BSONObj hint ( pHintBuffer ) ;
-         // add last op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                              "Collection:%s, Deletor:%s, Hint:%s, "
                              "Flag:0x%08x(%u)",
@@ -716,11 +499,10 @@ namespace engine
          /*
          PD_LOG ( PDDEBUG, "Session[%s] Delete: Deletor: %s\nhint: %s\n"
                   "Flag: 0x%08x(%u)",
-                  getSession()->sessionName(), deletor.toString().c_str(),
+                  getSession()->sessionName(), deletor.toString().c_str(), 
                   hint.toString().c_str(), flags, flags ) ; */
-         rc = rtnDelete( pCollectionName, deletor, hint, flags, eduCB(),
+         rc = rtnDelete( pCollectionName, deletor, hint, flags, eduCB(), 
                          _pDMSCB, dpsCB, 1, &deletedNum ) ;
-         /// AUDIT
          PD_AUDIT_OP( AUDIT_DML, MSG_BS_DELETE_REQ, AUDIT_OBJ_CL,
                       pCollectionName, rc,
                       "DeletedNum:%u, Deletor:%s, Hint:%s, Flag:0x%08x(%u)",
@@ -743,8 +525,7 @@ namespace engine
 
    INT32 _pmdDataProcessor::_onGetMoreReqMsg( MsgHeader * msg,
                                               rtnContextBuf &buffObj,
-                                              INT64 &contextID,
-                                              BOOLEAN &needRollback )
+                                              INT64 &contextID )
    {
       INT32 rc         = SDB_OK ;
       INT32 numToRead  = 0 ;
@@ -753,7 +534,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract get more msg failed, "
                    "rc: %d", getSession()->sessionName(), rc ) ;
 
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld, NumToRead:%d",
                           contextID, numToRead ) ;
@@ -762,8 +542,7 @@ namespace engine
       PD_LOG ( PDDEBUG, "Session[%s] GetMore: contextID:%lld\nnumToRead: %d",
                getSession()->sessionName(), contextID, numToRead ) ; */
 
-      rc = rtnGetMore ( contextID, numToRead, buffObj, eduCB(),
-                        _pRTNCB, &needRollback ) ;
+      rc = rtnGetMore ( contextID, numToRead, buffObj, eduCB(), _pRTNCB ) ;
 
    done:
       return rc ;
@@ -773,7 +552,7 @@ namespace engine
 
    INT32 _pmdDataProcessor::_onKillContextsReqMsg( MsgHeader *msg )
    {
-      PD_LOG ( PDDEBUG, "session[%s] _onKillContextsReqMsg",
+      PD_LOG ( PDDEBUG, "session[%s] _onKillContextsReqMsg", 
                getSession()->sessionName() ) ;
 
       INT32 rc = SDB_OK ;
@@ -784,7 +563,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract kill contexts msg failed, "
                    "rc: %d", getSession()->sessionName(), rc ) ;
 
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextNum:%d, ContextID:%lld",
                           contextNum, pContextIDs[0] ) ;
@@ -806,24 +584,31 @@ namespace engine
 
    INT32 _pmdDataProcessor::_onSQLMsg( MsgHeader *msg,
                                        INT64 &contextID,
-                                       SDB_DPSCB *dpsCB,
-                                       BOOLEAN &needRollback )
+                                       SDB_DPSCB *dpsCB )
    {
       CHAR *sql = NULL ;
       INT32 rc = SDB_OK ;
       SQL_CB *sqlcb = pmdGetKRCB()->getSqlCB() ;
+      BOOLEAN needRollback = FALSE ;
 
       rc = msgExtractSql( (CHAR*)msg, &sql ) ;
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract sql msg failed, rc: %d",
                    getSession()->sessionName(), rc ) ;
 
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "%s", sql ) ;
 
       rc = sqlcb->exec( sql, eduCB(), contextID, needRollback ) ;
       if ( rc )
       {
+         if ( needRollback )
+         {
+            INT32 rcTmp = rtnTransRollback( eduCB(), dpsCB );
+            if ( rcTmp )
+            {
+               PD_LOG ( PDERROR, "Failed to rollback, rc: %d", rcTmp );
+            }
+         }
          goto error ;
       }
 
@@ -866,7 +651,6 @@ namespace engine
       }
       else
       {
-         // add last op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), MSG_BS_TRANS_COMMIT_REQ,
                              "TransactionID: 0x%016x(%llu)",
                              eduCB()->getTransID(),
@@ -893,7 +677,6 @@ namespace engine
       }
       else
       {
-         // add last op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), MSG_BS_TRANS_ROLLBACK_REQ,
                              "TransactionID: 0x%016x(%llu)",
                              eduCB()->getTransID(),
@@ -925,7 +708,6 @@ namespace engine
       {
          BSONObj objs( pObjs ) ;
 
-         /// Prepare last info
          CHAR szTmp[ MON_APP_LASTOP_DESC_LEN + 1 ] = { 0 } ;
          UINT32 len = 0 ;
          const CHAR *pObjData = pObjs ;
@@ -941,7 +723,6 @@ namespace engine
             }
          }
 
-         // add last op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                              "Collection:%s, ObjNum:%u, Objs:%s, "
                              "Flag:0x%08x(%u)",
@@ -951,7 +732,6 @@ namespace engine
          rc = rtnAggregate( pCollectionName, objs, count, flags, eduCB(),
                             _pDMSCB, contextID ) ;
 
-         /// AUDIT
          PD_AUDIT_OP( AUDIT_DQL, msg->opCode, AUDIT_OBJ_CL,
                       pCollectionName, rc,
                       "ContextID:%lld, ObjNum:%u, Objs:%s, Flag:0x%08x(%u)",
@@ -988,11 +768,9 @@ namespace engine
 
       try
       {
-         // add last op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                              "Option:%s", lob.toString().c_str() ) ;
 
-         /// pStream will delete in context
          pStream = SDB_OSS_NEW _rtnLocalLobStream() ;
          if ( !pStream )
          {
@@ -1002,7 +780,6 @@ namespace engine
          }
          rc = rtnOpenLob( lob, header->flags, eduCB(), dpsCB, pStream,
                           header->w, contextID, buffObj ) ;
-         /// Jduge
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to open lob:%d", rc ) ;
@@ -1038,7 +815,6 @@ namespace engine
          goto error ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld, Len:%u, Offset:%llu",
                           header->contextID, len, offset ) ;
@@ -1073,7 +849,6 @@ namespace engine
          goto error ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld, Len:%u, Offset:%llu",
                           header->contextID, readLen, offset ) ;
@@ -1107,7 +882,6 @@ namespace engine
          goto error ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld", header->contextID ) ;
 
@@ -1136,7 +910,6 @@ namespace engine
          goto error ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                           "ContextID:%lld", header->contextID ) ;
 
@@ -1168,7 +941,6 @@ namespace engine
 
       try
       {
-         // add last op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                              "Option:%s", meta.toString().c_str() ) ;
 
@@ -1208,7 +980,6 @@ namespace engine
 
       try
       {
-         // add last op info
          MON_SAVE_OP_DETAIL( eduCB()->getMonAppCB(), msg->opCode,
                              "Option:%s", meta.toString().c_str() ) ;
 
@@ -1237,7 +1008,6 @@ namespace engine
       PD_LOG ( PDEVENT, "Session[%s, %lld] recieved interrupt msg",
                getSession()->sessionName(), eduCB()->getID() ) ;
 
-      // delete all contextID, rollback transaction
       INT64 contextID = -1 ;
       while ( -1 != ( contextID = eduCB()->contextPeek() ) )
       {
@@ -1284,7 +1054,6 @@ namespace engine
 
    void _pmdDataProcessor::_onDetach()
    {
-      // rollback transaction
       if ( DPS_INVALID_TRANS_ID != eduCB()->getTransID() )
       {
          INT32 rc = rtnTransRollback( eduCB(), getDPSCB() ) ;
@@ -1295,7 +1064,6 @@ namespace engine
          }
       }
 
-      // delete all context
       INT64 contextID = -1 ;
       while ( -1 != ( contextID = eduCB()->contextPeek() ) )
       {
@@ -1303,7 +1071,6 @@ namespace engine
       }
    }
 
-   //***************_pmdCoordProcessor*********************
    _pmdCoordProcessor::_pmdCoordProcessor()
    {
    }
@@ -1324,9 +1091,7 @@ namespace engine
 
    void _pmdCoordProcessor::_onAttach()
    {
-      // must call base _onAttach first
       pmdDataProcessor::_onAttach() ;
-      // do self
       if ( sdbGetPMDController()->getRSManager() )
       {
          sdbGetPMDController()->getRSManager()->registerEDU( eduCB() ) ;
@@ -1335,40 +1100,31 @@ namespace engine
 
    void _pmdCoordProcessor::_onDetach()
    {
-      // must call base _onDetach first( will kill context, but kill context
-      // need the coordSession
       pmdDataProcessor::_onDetach() ;
-      // do self
       if ( sdbGetPMDController()->getRSManager() )
       {
          sdbGetPMDController()->getRSManager()->unregEUD( eduCB() ) ;
       }
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDCOORDPROC_PROCOORDMSG, "_pmdCoordProcessor::_processCoordMsg" )
-   INT32 _pmdCoordProcessor::_processCoordMsg( MsgHeader *msg,
+   INT32 _pmdCoordProcessor::_processCoordMsg( MsgHeader *msg, 
                                                INT64 &contextID,
-                                               rtnContextBuf &contextBuff,
-                                               BOOLEAN &needReply,
-                                               BOOLEAN &needRollback )
+                                               rtnContextBuf &contextBuff )
    {
       INT32 rc = SDB_OK ;
-      INT32 opCode = msg->opCode ;
+      BOOLEAN needRollback = FALSE ;
       CoordCB *pCoordCB = _pKrcb->getCoordCB() ;
       coordResource *pResource = pCoordCB->getResource() ;
 
-      PD_TRACE_ENTRY ( SDB_PMDCOORDPROC_PROCOORDMSG ) ;
-
-      if ( MSG_AUTH_VERIFY_REQ == opCode )
+      if ( MSG_AUTH_VERIFY_REQ == msg->opCode )
       {
          rc = SDB_COORD_UNKNOWN_OP_REQ ;
          goto done ;
       }
-      else if ( MSG_BS_INTERRUPTE == opCode ||
-                MSG_BS_INTERRUPTE_SELF == opCode ||
-                MSG_BS_DISCONNECT == opCode )
+      else if ( MSG_BS_INTERRUPTE == msg->opCode ||
+                MSG_BS_INTERRUPTE_SELF == msg->opCode ||
+                MSG_BS_DISCONNECT == msg->opCode )
       {
-         // don't need auth
       }
       else if ( !getClient()->isAuthed() )
       {
@@ -1379,7 +1135,7 @@ namespace engine
          }
       }
 
-      switch ( opCode )
+      switch ( msg->opCode )
       {
          case MSG_BS_INTERRUPTE :
          {
@@ -1428,8 +1184,6 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Init operator[%s] failed, rc: %d",
                          opr.getName(), rc ) ;
             rc = opr.execute( msg, eduCB(), contextID, &contextBuff ) ;
-            /// needRollback call must after opr.execute, because the sql
-            /// command is parsed in execute
             needRollback = opr.needRollback() ;
             break ;
          }
@@ -1585,8 +1339,6 @@ namespace engine
          }
       }
 
-      PD_TRACE1 ( SDB_PMDCOORDPROC_PROCOORDMSG, PD_PACK_INT ( needRollback ) );
-
       if ( rc && contextBuff.size() == 0 )
       {
          BSONObj obj = utilGetErrorBson( rc, eduCB()->getInfo(
@@ -1594,16 +1346,17 @@ namespace engine
          contextBuff = rtnContextBuf( obj ) ;
       }
 
+      if ( needRollback && rc )
+      {
+         coordTransRollback rollbackOpr ;
+         INT32 rcTmp = rollbackOpr.init( pResource, eduCB() ) ;
+         PD_RC_CHECK( rcTmp, PDERROR, "Init operator[%s] failed, rc: %d",
+                      rollbackOpr.getName(), rcTmp ) ;
+
+         rollbackOpr.rollback( eduCB() ) ;
+      }
+
    done:
-      if ( SDB_DMS_EOC == rc )
-      {
-         needRollback = FALSE ;
-      }
-      else if ( eduCB()->getTransRC() )
-      {
-         needRollback = TRUE ;
-      }
-      PD_TRACE_EXITRC ( SDB_PMDCOORDPROC_PROCOORDMSG, rc );
       return rc ;
    error:
       goto done ;
@@ -1639,7 +1392,6 @@ namespace engine
          goto error ;
       }
 
-      /// command
       if ( pCollectionName && CMD_ADMIN_PREFIX[0] == pCollectionName[0] )
       {
          pFactory = coordGetFactory() ;
@@ -1654,7 +1406,6 @@ namespace engine
             goto error ;
          }
 
-         // add last op info
          MON_SAVE_CMD_DETAIL( eduCB()->getMonAppCB(), CMD_UNKNOW - 1,
                               "Command:%s, Match:%s, "
                               "Selector:%s, OrderBy:%s, Hint:%s, Skip:%llu, "
@@ -1692,10 +1443,8 @@ namespace engine
          rc = opr.init( pResource, eduCB() ) ;
          PD_RC_CHECK( rc, PDERROR, "Init operator[%s] failed, rc: %d",
                       opr.getName(), rc ) ;
-         rc = opr.execute( msg, eduCB(), contextID, &buffObj ) ;
-         /// should call opr.needRollback() after execute. because
-         /// the func 'needRollback()' is take effect in execute()
          needRollback = opr.needRollback() ;
+         rc = opr.execute( msg, eduCB(), contextID, &buffObj ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Execute operator[%s] failed, rc: %d",
@@ -1703,7 +1452,6 @@ namespace engine
             goto error ;
          }
 
-         // query with return data
          if ( ( flag & FLG_QUERY_WITH_RETURNDATA ) &&
               -1 != contextID &&
               NULL != ( pContext = _pRTNCB->contextFind( contextID ) ) )
@@ -1737,23 +1485,19 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDCOORDPROC_PROMSG, "_pmdCoordProcessor::processMsg" )
    INT32 _pmdCoordProcessor::processMsg( MsgHeader *msg,
                                          rtnContextBuf &contextBuff,
                                          INT64 &contextID,
-                                         BOOLEAN &needReply,
-                                         BOOLEAN &needRollback )
+                                         BOOLEAN &needReply )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_PMDCOORDPROC_PROMSG );
 
-      rc = _processCoordMsg( msg, contextID, contextBuff,
-                             needReply, needRollback ) ;
+      rc = _processCoordMsg( msg, contextID, contextBuff ) ;
       if ( SDB_COORD_UNKNOWN_OP_REQ == rc )
       {
          contextBuff.release() ;
-         rc = _pmdDataProcessor::processMsg( msg, contextBuff, contextID,
-                                             needReply, needRollback ) ;
+         rc = _pmdDataProcessor::processMsg( msg, contextBuff,
+                                             contextID, needReply ) ;
       }
 
       if ( rc )
@@ -1768,39 +1512,7 @@ namespace engine
          }
       }
 
-      PD_TRACE_EXITRC ( SDB_PMDCOORDPROC_PROMSG, rc );
       return rc ;
-   }
-
-   INT32 _pmdCoordProcessor::doRollback()
-   {
-      INT32 rc = SDB_OK ;
-
-      if ( eduCB() )
-      {
-         CoordCB *pCoordCB = _pKrcb->getCoordCB() ;
-         coordResource *pResource = pCoordCB->getResource() ;
-
-         coordTransRollback rollbackOpr ;
-         rc = rollbackOpr.init( pResource, eduCB() ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Rollback init operator[%s] failed, rc: %d",
-                    rollbackOpr.getName(), rc ) ;
-            goto error ;
-         }
-
-         rc = rollbackOpr.rollback( eduCB() ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
    }
 
 }

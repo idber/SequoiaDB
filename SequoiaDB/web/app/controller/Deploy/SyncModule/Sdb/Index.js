@@ -25,7 +25,7 @@
 
       var afterSyncDefer  = SdbPromise.init( 2 ) ;
 
-      //同步服务
+      //同步业务
       var syncBusinessConf = function(){
          var data = { 'cmd': 'sync business configure', 'ClusterName': $scope.ClusterName, 'BusinessName': $scope.ModuleName } ;
          SdbRest.OmOperation( data, {
@@ -38,7 +38,7 @@
                if( isArray( errorInfo['hosts'] ) && errorInfo['hosts'].length > 0 )
                {
                   $scope.Components.Confirm.type = 3 ;
-                  $scope.Components.Confirm.context = $scope.autoLanguage( '同步后的服务有主机未添加到OM中，是否前往添加主机？' ) ;
+                  $scope.Components.Confirm.context = $scope.autoLanguage( '同步后的业务有主机未添加到OM中，是否前往添加主机？' ) ;
                   $scope.Components.Confirm.isShow = true ;
                   $scope.Components.Confirm.okText = $scope.autoLanguage( '是' ) ;
                   $scope.Components.Confirm.ok = function(){
@@ -60,7 +60,7 @@
       }
 
       var isFirst = true ;
-      //获取服务配置
+      //获取业务配置
       var getBusinessConf = function(){
          var data = { 'cmd': 'query node configure', 'filter': JSON.stringify( { 'ClusterName': $scope.ClusterName, 'BusinessName': $scope.ModuleName } ) } ;
          SdbRest.OmOperation( data, {

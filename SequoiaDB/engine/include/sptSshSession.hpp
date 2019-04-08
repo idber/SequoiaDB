@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptSshSession.hpp
 
@@ -75,9 +74,7 @@ namespace engine
       virtual INT32 exec( const CHAR *cmd, INT32 &exit,
                           std::string &outStr ) = 0 ;
 
-//      virtual INT32 read( CHAR *buf, UINT32 len, UINT32 &readSize ) = 0 ;
 
-//      virtual INT32 done( INT32 &eixtcode, std::string &exitsignal ) = 0 ;
 
       virtual INT32 copy2Remote( SPT_CP_PROTOCOL protocol,
                                  const CHAR *local,   /// full path

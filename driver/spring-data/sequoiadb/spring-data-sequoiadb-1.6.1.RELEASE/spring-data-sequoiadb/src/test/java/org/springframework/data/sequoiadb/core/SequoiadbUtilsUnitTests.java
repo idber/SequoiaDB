@@ -93,29 +93,20 @@ public class SequoiadbUtilsUnitTests {
 	@Test
 	public void handlesTransactionSynchronizationLifecycle() {
 
-		// ensure transaction synchronization manager has no registered
-		// transaction synchronizations or bound resources at start of test
 		assertThat(TransactionSynchronizationManager.getSynchronizations().isEmpty(), is(true));
 		assertThat(TransactionSynchronizationManager.getResourceMap().isEmpty(), is(true));
 
-		// access database for one sdb instance, (registers transaction
-		// synchronization and binds transaction resource)
 		SequoiadbUtils.getDB(sdb, "first");
 
-		// ensure transaction synchronization manager has registered
-		// transaction synchronizations and bound resources
 		assertThat(TransactionSynchronizationManager.getSynchronizations().isEmpty(), is(false));
 		assertThat(TransactionSynchronizationManager.getResourceMap().isEmpty(), is(false));
 
-		// simulate transaction completion, (unbinds transaction resource)
 		try {
 			simulateTransactionCompletion();
 		} catch (Exception e) {
 			fail("Unexpected exception thrown during transaction completion: " + e);
 		}
 
-		// ensure transaction synchronization manager has no bound resources
-		// at end of test
 		assertThat(TransactionSynchronizationManager.getResourceMap().isEmpty(), is(true));
 	}
 
@@ -125,30 +116,21 @@ public class SequoiadbUtilsUnitTests {
 	@Test
 	public void handlesTransactionSynchronizationsLifecycle() {
 
-		// ensure transaction synchronization manager has no registered
-		// transaction synchronizations or bound resources at start of test
 		assertThat(TransactionSynchronizationManager.getSynchronizations().isEmpty(), is(true));
 		assertThat(TransactionSynchronizationManager.getResourceMap().isEmpty(), is(true));
 
-		// access multiple databases for one sdb instance, (registers
-		// transaction synchronizations and binds transaction resources)
 		SequoiadbUtils.getDB(sdb, "first");
 		SequoiadbUtils.getDB(sdb, "second");
 
-		// ensure transaction synchronization manager has registered
-		// transaction synchronizations and bound resources
 		assertThat(TransactionSynchronizationManager.getSynchronizations().isEmpty(), is(false));
 		assertThat(TransactionSynchronizationManager.getResourceMap().isEmpty(), is(false));
 
-		// simulate transaction completion, (unbinds transaction resources)
 		try {
 			simulateTransactionCompletion();
 		} catch (Exception e) {
 			fail("Unexpected exception thrown during transaction completion: " + e);
 		}
 
-		// ensure transaction synchronization manager has no bound
-		// transaction resources at end of test
 		assertThat(TransactionSynchronizationManager.getResourceMap().isEmpty(), is(true));
 	}
 
@@ -161,13 +143,11 @@ public class SequoiadbUtilsUnitTests {
 	 */
 	private void simulateTransactionCompletion() {
 
-		// triggerBeforeCompletion() implementation without swallowed exceptions
 		List<TransactionSynchronization> synchronizations = TransactionSynchronizationManager.getSynchronizations();
 		for (TransactionSynchronization synchronization : synchronizations) {
 			synchronization.beforeCompletion();
 		}
 
-		// triggerAfterCompletion() implementation without swallowed exceptions
 		List<TransactionSynchronization> remainingSynchronizations = TransactionSynchronizationManager
 				.getSynchronizations();
 		if (remainingSynchronizations != null) {

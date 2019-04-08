@@ -1,20 +1,4 @@
-﻿/*
- * Copyright 2018 SequoiaDB Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
-*/
-
-using SequoiaDB;
+﻿using SequoiaDB;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
@@ -202,66 +186,6 @@ namespace DriverTest
             Assert.IsNotNull(cur);
             record = cur.Next();
             Assert.IsNull(record);
-        }
-
-        [TestMethod()]
-        public void DomainSetAttributesTest()
-        {
-            string dmName = "testDomain";
-            string group1Name = config.conf.Groups[0].GroupName;
-            string group2Name = config.conf.Groups[1].GroupName;
-
-            Domain dm = null;
-
-            /// IsDomainExist
-            bool flag = sdb.IsDomainExist(dmName);
-            Assert.IsFalse(flag);
-
-            /// getDomain
-            try
-            {
-                dm = sdb.GetDomain(dmName);
-            }
-            catch (BaseException e)
-            {
-                Assert.IsTrue(e.ErrorType.Equals("SDB_CAT_DOMAIN_NOT_EXIST"));
-            }
-
-            /// createDomain
-            dm = null;
-
-            {
-                BsonDocument options = new BsonDocument();
-                BsonArray arr = new BsonArray();
-                arr.Add(group1Name);
-                options.Add(SequoiadbConstants.FIELD_GROUPS, arr);
-                dm = sdb.CreateDomain(dmName, options);
-                Assert.IsNotNull(dm);
-            }
-
-            {
-                BsonDocument options = new BsonDocument();
-                BsonArray arr = new BsonArray();
-                arr.Add(group2Name);
-                options.Add(SequoiadbConstants.FIELD_GROUPS, arr);
-                dm.AddGroups(options);
-            }
-
-            {
-                BsonDocument options = new BsonDocument();
-                BsonArray arr = new BsonArray();
-                arr.Add(group2Name);
-                options.Add(SequoiadbConstants.FIELD_GROUPS, arr);
-                dm.RemoveGroups(options);
-            }
-
-            {
-                BsonDocument options = new BsonDocument();
-                options.Add("AutoSplit", true);
-                dm.SetAttributes(options);
-            }
-
-            sdb.DropDomain(dmName);
         }
     }
 }

@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omCommandInterface.cpp
 
@@ -49,24 +48,16 @@ namespace engine
    {
    }
 
-   omRestCommandBase::omRestCommandBase( pmdRestSession *pRestSession,
-                                         restAdaptor *pRestAdaptor, 
-                                         restRequest *pRequest,
-                                         restResponse *pResponse,
-                                         const string &localAgentHost,
-                                         const string &localAgentService,
-                                         const string &rootPath )
+   omRestCommandBase::omRestCommandBase( restAdaptor *pRestAdaptor, 
+                                         pmdRestSession *pRestSession )
    {
+      _pKRCB  = pmdGetKRCB() ;
+      _pDMDCB = _pKRCB->getDMSCB() ;
+      _pRTNCB = _pKRCB->getRTNCB() ;
+      _pDMSCB = _pKRCB->getDMSCB() ;
       _cb     = NULL ;
-
-      _restSession = pRestSession ;
       _restAdaptor = pRestAdaptor ;
-      _request     = pRequest ;
-      _response    = pResponse ;
-
-      _localAgentHost    = localAgentHost ;
-      _localAgentService = localAgentService ;
-      _rootPath          = rootPath ;
+      _restSession = pRestSession ;
    }
 
    omRestCommandBase::~omRestCommandBase()
@@ -76,11 +67,6 @@ namespace engine
    INT32 omRestCommandBase::init( pmdEDUCB * cb )
    {
       _cb = cb ;
-
-      _pKRCB  = pmdGetKRCB() ;
-      _pDMDCB = _pKRCB->getDMSCB() ;
-      _pRTNCB = _pKRCB->getRTNCB() ;
-      _pDMSCB = _pKRCB->getDMSCB() ;
 
       return SDB_OK ;
    }
@@ -713,7 +699,6 @@ namespace engine
       goto done ;
    }
 
-   // if error happened when quering table, TRUE will be returned
    BOOLEAN omRestCommandBase::_isHostExistInTask( const string &hostName )
    {
       BSONObjBuilder bsonBuilder ;
@@ -726,8 +711,6 @@ namespace engine
       INT32 rc         = SDB_OK ;
       rtnContextBuf buffObj ;
 
-      // ResultInfo.$elemMatch.HostName == hostName 
-      // && Status not in( OM_TASK_STATUS_FINISH, OM_TASK_STATUS_CANCEL )
       BSONObj hostNameObj = BSON( OM_HOST_FIELD_NAME << hostName ) ;
       BSONObj elemMatch   = BSON( "$elemMatch" << hostNameObj ) ;
 
@@ -756,7 +739,6 @@ namespace engine
             goto done ;
          }
 
-         // notice: if rc != SDB_OK, contextID is deleted in rtnGetMore
          isExist = FALSE ;
          goto done ;
       }
@@ -786,7 +768,6 @@ namespace engine
       string businessKey ;
       rtnContextBuf buffObj ;
 
-      //Status not in( OM_TASK_STATUS_FINISH, OM_TASK_STATUS_CANCEL )
       BSONArrayBuilder arrBuilder ;
       arrBuilder.append( OM_TASK_STATUS_FINISH ) ;
       arrBuilder.append( OM_TASK_STATUS_CANCEL ) ;
@@ -813,7 +794,6 @@ namespace engine
             goto done ;
          }
 
-         // notice: if rc != SDB_OK, contextID is deleted in rtnGetMore
          isExist = FALSE ;
          goto done ;
       }
@@ -942,7 +922,7 @@ namespace engine
                           << OM_REST_RES_DESP << getErrDesp( rc )
                           << OM_REST_RES_DETAIL << detail ) ;
 
-      _response->setOPResult( rc, res ) ;
+      _restAdaptor->setOPResult( _restSession, rc, res ) ;
    }
 
    void omRestCommandBase::_sendOKRes2Web()
@@ -953,8 +933,7 @@ namespace engine
    void omRestCommandBase::_sendErrorRes2Web( INT32 rc, const CHAR* detail )
    {
       _setOPResult( rc, detail ) ;
-      _response->setResponse( HTTP_OK ) ;
-      _restAdaptor->sendRest( _restSession->socket(), _response ) ;
+      _restAdaptor->sendResponse( _restSession, HTTP_OK ) ;
    }
 
    void omRestCommandBase::_sendErrorRes2Web( INT32 rc, const string &detail )
@@ -1000,117 +979,6 @@ namespace engine
       goto done ;
    }
 
-   /*
-      _omRestCmdAssit
-   */
-   _omRestCmdAssit::_omRestCmdAssit( OMREST_NEW_FUNC pFunc )
-   {
-      if ( pFunc )
-      {
-         omRestCommandBase *pCommand = (*pFunc)( NULL, NULL, NULL, NULL,
-                                                 "", "", "" ) ;
-         if ( pCommand )
-         {
-            getOmRestCmdBuilder()->_register ( pCommand->name(), pFunc ) ;
-            SDB_OSS_DEL pCommand ;
-            pCommand = NULL ;
-         }
-      }
-   }
-
-   _omRestCmdAssit::~_omRestCmdAssit ()
-   {
-   }
-
-   
-   /*
-      _omRestCmdBuilder
-   */
-   _omRestCmdBuilder::_omRestCmdBuilder ()
-   {
-   }
-
-   _omRestCmdBuilder::~_omRestCmdBuilder ()
-   {
-   }
-
-   omRestCommandBase* _omRestCmdBuilder::create( const CHAR *command,
-                                                 OMREST_CLASS_PARAMETER )
-   {
-      OMREST_NEW_FUNC pFunc = _find ( command ) ;
-
-      if ( pFunc )
-      {
-         SDB_ASSERT ( pRestSession, "pRestSession is NULL" ) ;
-         SDB_ASSERT ( pRestAdaptor, "pRestAdaptor is NULL" ) ;
-         SDB_ASSERT ( pRequest,     "pRequest is NULL" ) ;
-         SDB_ASSERT ( pResponse,    "pResponse is NULL" ) ;
-
-         return (*pFunc)( OMREST_CLASS_INPUT_PARAMETER ) ;
-      }
-
-      return NULL ;
-   }
-
-   void _omRestCmdBuilder::release ( omRestCommandBase *&pCommand )
-   {
-      if ( pCommand )
-      {
-         SDB_OSS_DEL pCommand ;
-         pCommand = NULL ;
-      }
-   }
-
-   INT32 _omRestCmdBuilder::_register ( const CHAR *name, OMREST_NEW_FUNC pFunc )
-   {
-      INT32 rc = SDB_OK ;
-      pair< MAP_OACMD_IT, BOOLEAN > ret ;
-
-      if ( ossStrlen( name ) == 0 )
-      {
-         goto done ;
-      }
-
-      ret = _cmdMap.insert( pair<const CHAR*, OMREST_NEW_FUNC>(name, pFunc) ) ;
-      if ( FALSE == ret.second )
-      {
-         PD_LOG_MSG ( PDERROR, "Failed to register om rest command[%s], "
-                      "already exist", name ) ;
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   OMREST_NEW_FUNC _omRestCmdBuilder::_find ( const CHAR *name )
-   {
-      if ( name )
-      {
-         MAP_OACMD_IT it = _cmdMap.find( name ) ;
-         if ( it != _cmdMap.end() )
-         {
-            return it->second ;
-         }
-      }
-      return NULL ;
-   }
-
-   /*
-      get om rest command builder
-   */
-   _omRestCmdBuilder* getOmRestCmdBuilder()
-   {
-      static _omRestCmdBuilder cmdBuilder ;
-      return &cmdBuilder ;
-   }
-
-   /*
-      omAgentReqBase
-   */
    omAgentReqBase::omAgentReqBase( BSONObj &request )
                   :_request( request.copy() ), _response( BSONObj() )
    {

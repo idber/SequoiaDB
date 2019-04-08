@@ -30,7 +30,7 @@
       <div ng-container="{offsetY:-45}">
          <div class="pull-left" ng-controller="Deploy.Sdb.ExtendConf.Template.Ctrl" ng-container="{width:370}">
 
-            <div style="height:30px;font-size:110%;font-weight:bold;">{{autoLanguage("服务配置")}}</div>
+            <div style="height:30px;font-size:110%;font-weight:bold;">{{autoLanguage("业务配置")}}</div>
 
             <div class="borderBox" style="padding:10px;font-size:90%;" ng-container="{offsetY:-30}">
 
@@ -39,7 +39,7 @@
                </div>
 
                <div style="margin-top:20px;">
-                  <div class="pull-left" style="width:130px;">{{autoLanguage("服务名")}}</div>
+                  <div class="pull-left" style="width:130px;">{{autoLanguage("业务名")}}</div>
                   <div class="pull-left Ellipsis" style="padding-left:10px;width:208px;">{{ModuleName}}</div>
                   <div class="clear-float"></div>
                </div>
@@ -49,14 +49,14 @@
                <div style="margin-top:10px;" form-create para="ConfForm2"></div>
 
                <div class="alert alert-danger" ng-style="{'zh-CN':{'line-height':'32px'}}[Language]" ng-if="ReplicaTips == true">
-                  {{sprintf(autoLanguage("提示：该服务数据组最大副本数为：?，最小副本数为：?。"),MaxReplicaNum,MinReplicaNum)}}
+                  {{sprintf(autoLanguage("提示：该业务数据组最大副本数为：?，最小副本数为：?。"),MaxReplicaNum,MinReplicaNum)}}
                </div>
             </div>
 
          </div>
          <div class="pull-left" ng-controller="Deploy.Sdb.ExtendConf.Preview.Ctrl" ng-container="{offsetX:-380,marginLeft:10}">
 
-            <div style="height:30px;font-size:110%;font-weight:bold;">{{autoLanguage("服务预览")}}</div>
+            <div style="height:30px;font-size:110%;font-weight:bold;">{{autoLanguage("业务预览")}}</div>
 
             <div class="borderBox" style="padding:10px;overflow-y:auto;overflow-x:hidden;position:relative;" ng-container="{offsetY:-30}">
                <div style="margin-top:10px;color:#ff0000;">

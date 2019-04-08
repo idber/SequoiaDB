@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordCommandSnapshot.cpp
 
@@ -39,7 +38,6 @@
 #include "catDef.hpp"
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
-#include "catGTSDef.hpp"
 
 using namespace bson ;
 
@@ -85,7 +83,6 @@ namespace engine
    void _coordCmdSnapshotReset::_preSet( pmdEDUCB *cb,
                                          coordCtrlParam &ctrlParam )
    {
-      // catalog / data has been set with default 1
       ctrlParam._role[ SDB_ROLE_COORD ] = 1 ;
    }
 
@@ -110,7 +107,16 @@ namespace engine
       ctrlParam._emptyFilterSel = NODE_SEL_PRIMARY ;
 
       ctrlParam._useSpecialNode = TRUE ;
-      _groupSession.getPropSite()->dumpTransNode( ctrlParam._specialNodes ) ;
+      DpsTransNodeMap *pMap = cb->getTransNodeLst() ;
+      if ( pMap )
+      {
+         DpsTransNodeMap::iterator it = pMap->begin() ;
+         while( it != pMap->end() )
+         {
+            ctrlParam._specialNodes.insert( it->second.value ) ;
+            ++it ;
+         }
+      }
    }
 
    /*
@@ -220,13 +226,6 @@ namespace engine
    {
    }
 
-   void _coordCMDSnapshotDataBaseIntr::_preSet( pmdEDUCB *cb,
-                                                coordCtrlParam &ctrlParam )
-   {
-      // catalog / data has been selected in constructor of _coordCtrlParam
-      ctrlParam._role[ SDB_ROLE_COORD ] = 1 ;
-   }
-
    /*
       _coordCMDSnapshotSystem implement
    */
@@ -306,7 +305,6 @@ namespace engine
    void _coordCMDSnapshotHealthIntr::_preSet( pmdEDUCB *cb,
                                               coordCtrlParam &ctrlParam )
    {
-      // catalog / data has been selected in constructor of _coordCtrlParam
       ctrlParam._role[ SDB_ROLE_COORD ] = 1 ;
    }
 
@@ -560,26 +558,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   INT32 _coordCMDSnapshotCata::_processVCS( rtnQueryOptions &queryOpt,
-                                             const CHAR *pName,
-                                             rtnContext *pContext )
-   {
-      INT32 rc = SDB_OK ;
-
-      if ( 0 == ossStrcmp( pName,
-                           CMD_ADMIN_PREFIX SYS_CL_SESSION_INFO ) )
-      {
-         pContext->append( BSON( FIELD_NAME_NAME << pName <<
-                                 FIELD_NAME_VERSION << 1 ) ) ;
-      }
-      else
-      {
-         rc = _coordCMDQueryBase::_processVCS( queryOpt, pName, pContext ) ;
-      }
-
-      return rc ;
-   }
-
    /*
       _coordCMDSnapshotCataIntr implement
    */
@@ -631,115 +609,6 @@ namespace engine
    _coordCMDSnapshotAccessPlansIntr::~_coordCMDSnapshotAccessPlansIntr ()
    {
    }
-
-   /*
-      _coordCMDSnapshotConfigs implement
-   */
-   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotConfigs,
-                                      CMD_NAME_SNAPSHOT_CONFIGS,
-                                      TRUE ) ;
-   _coordCMDSnapshotConfigs::_coordCMDSnapshotConfigs()
-   {
-   }
-
-   _coordCMDSnapshotConfigs::~_coordCMDSnapshotConfigs()
-   {
-   }
-
-   const CHAR* _coordCMDSnapshotConfigs::getIntrCMDName()
-   {
-      return CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_CONFIGS_INTR;
-   }
-
-   const CHAR* _coordCMDSnapshotConfigs::getInnerAggrContent()
-   {
-      return NULL ;
-   }
-
-   /*
-      _coordCMDSnapshotConfigsIntr implement
-   */
-   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotConfigsIntr,
-                                      CMD_NAME_SNAPSHOT_CONFIGS_INTR,
-                                      TRUE ) ;
-   _coordCMDSnapshotConfigsIntr::_coordCMDSnapshotConfigsIntr()
-   {
-   }
-
-   _coordCMDSnapshotConfigsIntr::~_coordCMDSnapshotConfigsIntr()
-   {
-   }
-
-   void _coordCMDSnapshotConfigsIntr::_preSet( pmdEDUCB *cb,
-                                               coordCtrlParam &ctrlParam )
-   {
-      // catalog / data has been set with default 1
-      ctrlParam._role[ SDB_ROLE_COORD ] = 1 ;
-   }
-
-   /*
-      _coordCMDSnapshotSvcTasks implement
-   */
-   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotSvcTasks,
-                                      CMD_NAME_SNAPSHOT_SVCTASKS,
-                                      TRUE ) ;
-
-   _coordCMDSnapshotSvcTasks::_coordCMDSnapshotSvcTasks()
-   {
-   }
-
-   _coordCMDSnapshotSvcTasks::~_coordCMDSnapshotSvcTasks()
-   {
-   }
-
-   const CHAR* _coordCMDSnapshotSvcTasks::getIntrCMDName()
-   {
-      return CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_SVCTASKS_INTR ;
-   }
-
-   const CHAR* _coordCMDSnapshotSvcTasks::getInnerAggrContent()
-   {
-      return COORD_SNAPSHOTSVCTASKS_INPUT ;
-   }
-
-   /*
-      _coordCMDSnapshotSvcTasksIntr implement
-   */
-   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotSvcTasksIntr,
-                                      CMD_NAME_SNAPSHOT_SVCTASKS_INTR,
-                                      TRUE ) ;
-   _coordCMDSnapshotSvcTasksIntr::_coordCMDSnapshotSvcTasksIntr()
-   {
-   }
-
-   _coordCMDSnapshotSvcTasksIntr::~_coordCMDSnapshotSvcTasksIntr()
-   {
-   }
-
-   /*
-      _coordCMDSnapshotSequencess implement
-   */
-   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDSnapshotSequences,
-                                      CMD_NAME_SNAPSHOT_SEQUENCES,
-                                      TRUE ) ;
-
-   _coordCMDSnapshotSequences::_coordCMDSnapshotSequences()
-   {
-   }
-
-   _coordCMDSnapshotSequences::~_coordCMDSnapshotSequences()
-   {
-   }
-
-   INT32 _coordCMDSnapshotSequences::_preProcess( rtnQueryOptions &queryOpt,
-                                            string & clName,
-                                            BSONObj &outSelector )
-   {
-      BSONObjBuilder builder ;
-      clName = GTS_SEQUENCE_COLLECTION_NAME ;
-      return SDB_OK ;
-   }
-
 
 }
 

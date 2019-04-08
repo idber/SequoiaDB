@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = optPlanNode.cpp
 
@@ -50,15 +49,6 @@
 #include <cmath>
 
 using namespace bson;
-
-// Memory for _optPlanNode may be allocated in two ways:
-// 1. By using malloc.
-// 2. By using user specified allocator(instances of optPlanAllocator).
-// The actions when releasing these two kinds of node are different.
-// So a type flag is added at the head of the actual allocated memory.
-#define OPT_MEM_TYPE_SIZE            sizeof(INT32)
-#define OPT_MEM_BY_USER_ALLOCATOR    0
-#define OPT_MEM_BY_DFT_ALLOCATOR     1
 
 namespace engine
 {
@@ -101,65 +91,42 @@ namespace engine
    }
 
    void * _optPlanNode::operator new ( size_t size,
-                                       optPlanAllocator *allocator,
+                                       optPlanAllocator *pAllocator,
                                        std::nothrow_t )
    {
       void *p = NULL ;
       if ( size > 0 )
       {
-         // In order to know if the memory is allocated by malloc() when
-         // deleting the object, reserve space for a flag at the head of the
-         // allocated space.
-         size_t reserveSize = size + OPT_MEM_TYPE_SIZE ;
-         if ( allocator )
+         if ( pAllocator )
          {
-            p = allocator->allocate( reserveSize ) ;
+            p = pAllocator->allocate( size ) ;
          }
 
          if ( NULL == p )
          {
-            p = SDB_OSS_MALLOC( reserveSize ) ;
-            if ( NULL == p )
-            {
-               goto error ;
-            }
-            *(INT32 *)p = OPT_MEM_BY_DFT_ALLOCATOR ;
+            p = SDB_OSS_MALLOC( size ) ;
          }
-         else
-         {
-            *(INT32 *)p = OPT_MEM_BY_USER_ALLOCATOR ;
-         }
-         // Seek address which can actually be used by the user.
-         p = (CHAR *)p + OPT_MEM_TYPE_SIZE ;
       }
 
-   done:
       return p ;
-   error:
-      goto done ;
    }
 
    void _optPlanNode::operator delete ( void *p )
    {
-      if ( p )
-      {
-         void *beginAddr = (void *)( (CHAR *)p - OPT_MEM_TYPE_SIZE ) ;
-         // Only release memory allocted by SDB_OSS_MALLOC().
-         // Objects allocated by instances of _utilAllocator(allocator is not
-         // NULL in new) will not be released seperately, as they are allocated
-         // in a stack. They space is released when the allocator is destroyed.
-         if ( OPT_MEM_BY_DFT_ALLOCATOR == *(INT32 *)beginAddr )
-         {
-            SDB_OSS_FREE( beginAddr ) ;
-         }
-      }
+      SDB_OSS_FREE( p ) ;
    }
 
    void _optPlanNode::operator delete ( void *p,
-                                        optPlanAllocator *allocator,
+                                        optPlanAllocator *pAllocator,
                                         std::nothrow_t )
    {
-      _optPlanNode::operator delete( p ) ;
+      if ( pAllocator && pAllocator->isAllocatedByme( p ) )
+      {
+      }
+      else
+      {
+         SDB_OSS_FREE( p ) ;
+      }
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTPLANNODE_ADDCHILDNODE, "_optPlanNode::addChildNode" )
@@ -174,7 +141,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTPLANNODE_DELCHILDNODES, "_optPlanNode::deleteChildNodes" )
-   void _optPlanNode::deleteChildNodes ()
+   void _optPlanNode::deleteChildNodes ( optPlanAllocator *pAllocator )
    {
       PD_TRACE_ENTRY( SDB_OPTPLANNODE_DELCHILDNODES ) ;
 
@@ -185,8 +152,8 @@ namespace engine
          _optPlanNode *pChildNode = ( *iter ) ;
          iter = _childNodes.erase( iter ) ;
 
-         pChildNode->deleteChildNodes() ;
-         SDB_OSS_DEL pChildNode ;
+         pChildNode->deleteChildNodes( pAllocator ) ;
+         pChildNode->release( pAllocator ) ;
       }
 
       PD_TRACE_EXIT( SDB_OPTPLANNODE_DELCHILDNODES ) ;
@@ -219,39 +186,33 @@ namespace engine
       {
          if ( _returnOptions.getLimit() == 0 )
          {
-            // No return records
             outputRecords = 0 ;
             outputSkipRecords = 0 ;
          }
          else if ( inputRecords < (UINT64)_returnOptions.getSkip() )
          {
-            // All input records are skipped
             outputRecords = 0 ;
             outputSkipRecords = inputRecords ;
          }
          else if ( inputRecords < (UINT64)( _returnOptions.getLimit() +
                                             _returnOptions.getSkip() ) )
          {
-            // Input records could not cover limit and skip options
             outputRecords = inputRecords - _returnOptions.getSkip() ;
             outputSkipRecords = _returnOptions.getSkip() ;
          }
          else if ( _returnOptions.getLimit() > 0 )
          {
-            // Limit options is given
             outputRecords = _returnOptions.getLimit() ;
             outputSkipRecords = _returnOptions.getSkip() ;
          }
          else
          {
-            // Limit options is not given
             outputRecords = inputRecords - _returnOptions.getSkip() ;
             outputSkipRecords = _returnOptions.getSkip() ;
          }
       }
       else
       {
-         // No limit or skip options
          outputRecords = inputRecords ;
          outputSkipRecords = 0 ;
       }
@@ -834,7 +795,6 @@ namespace engine
          _returnOptions = dataContext->getReturnOptions() ;
          _setReturnSelector( dataContext ) ;
 
-         // Reset matcher by runtime
          _runtimeMatcher = planRuntime->getParsedMatcher() ;
       }
    }
@@ -1031,7 +991,6 @@ namespace engine
    {
       StringBuilder formBuilder, evalBuilder ;
 
-      // max( 1, ceil( input * selectivity ) )
       formBuilder << "max( 1, ceil( " << inputName << " * "
                   << selName << " ) )" ;
       evalBuilder << "max( 1, ceil( " << inputValue << " * "
@@ -1052,7 +1011,6 @@ namespace engine
      {
         StringBuilder formBuilder, evalBuilder ;
 
-        // max( 1, ceil( input * selectivity ) )
         formBuilder << "max( 1, ceil( " << inputName << " * "
                     << selName << " ) )" ;
         evalBuilder << "max( 1, ceil( " << inputValue << " * "
@@ -1098,6 +1056,18 @@ namespace engine
 
    _optTbScanNode::~_optTbScanNode ()
    {
+   }
+
+   void _optTbScanNode::release ( optPlanAllocator * pAllocator )
+   {
+      if ( pAllocator && pAllocator->isAllocatedByme( this ) )
+      {
+         this->~_optTbScanNode() ;
+      }
+      else
+      {
+         SDB_OSS_DEL this ;
+      }
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTTBSCAN_PREEVAL, "_optTbScanNode::preEvaluate" )
@@ -1179,7 +1149,6 @@ namespace engine
 
       _estIOCost = _evalScanIOCost( OPT_SEQ_SCAN_IO_COST, _readPages ) ;
 
-      // Need to extract every records and evaluate matchers
       _estCPUCost = ( OPT_RECORD_CPU_COST + _mthCPUCost ) * _readRecords ;
 
       _estStartCost = OPT_TBSCAN_DEFAULT_START_COST ;
@@ -1217,7 +1186,6 @@ namespace engine
       scanSkipIOCost = _evalScanIOCost( OPT_SEQ_SCAN_IO_COST, readSkipPages ) ;
       scanReturnIOCost = _evalScanIOCost( OPT_SEQ_SCAN_IO_COST, readReturnPages ) ;
 
-      // Need to extract every records and evaluate matchers
       scanSkipCPUCost = ( OPT_RECORD_CPU_COST + _mthCPUCost ) *
                         readSkipRecords ;
       scanReturnCPUCost = ( OPT_RECORD_CPU_COST + _mthCPUCost ) *
@@ -1362,7 +1330,6 @@ namespace engine
    {
       StringBuilder formBuilder, evalBuilder ;
 
-      // SeqReadIOCostUnit * ( Pages * ( PageSize / PageUnit ) )
       formBuilder << OPT_FIELD_SEQ_IO_COST << " * "
                   << OPT_FIELD_PAGES << " * ( "
                   << OPT_FIELD_PAGE_SIZE << " / "
@@ -1383,7 +1350,6 @@ namespace engine
    {
       StringBuilder formBuilder, evalBuilder ;
 
-      // TotalRecords * ( RecExtractCPUCost + MthCPUCost )
       formBuilder << OPT_FIELD_RECORDS << " * ( "
                   << OPT_FIELD_REC_CPU_COST << " + "
                   << OPT_FIELD_MTH_COST << " )" ;
@@ -1442,6 +1408,7 @@ namespace engine
      _ixFromStat( FALSE ),
      _ixStatTime( 0 )
    {
+      _pIndexName[0] = '\0' ;
    }
 
    _optIxScanNode::_optIxScanNode ( const CHAR * pCollection,
@@ -1464,12 +1431,17 @@ namespace engine
      _ixFromStat( FALSE ),
      _ixStatTime( 0 )
    {
+      _pIndexName[ 0 ] = '\0' ;
+
       if ( indexCB.isInitialized() )
       {
-         _pIndexName.append( indexCB.getName() ) ;
+         const CHAR *pIndexName = indexCB.getName() ;
+         ossStrncpy( _pIndexName, pIndexName, IXM_INDEX_NAME_SIZE ) ;
+         _pIndexName[ IXM_INDEX_NAME_SIZE ] = '\0' ;
+
          _indexExtID = indexCB.getExtentID() ;
          _indexLID = indexCB.getLogicalID() ;
-         _keyPattern = indexCB.keyPattern().getOwned() ;
+         _keyPattern = indexCB.keyPattern().copy() ;
       }
    }
 
@@ -1493,12 +1465,15 @@ namespace engine
      _ixStatTime( node._ixStatTime ),
      _runtimeIXBound( node._runtimeIXBound )
    {
-      if ( node._pIndexName.len() > 0 )
+      _pIndexName[ 0 ] = '\0' ;
+
+      if ( '\0' != node._pIndexName[ 0 ] )
       {
-         _pIndexName.append( node._pIndexName.str() ) ;
+         ossStrncpy( _pIndexName, node._pIndexName, IXM_INDEX_NAME_SIZE ) ;
+         _pIndexName[ IXM_INDEX_NAME_SIZE ] = '\0' ;
          _indexExtID = node._indexExtID ;
          _indexLID = node._indexLID ;
-         _keyPattern = node._keyPattern.getOwned() ;
+         _keyPattern = node._keyPattern.copy() ;
       }
 
       if ( NULL != context )
@@ -1513,7 +1488,6 @@ namespace engine
          SDB_ASSERT( IXSCAN == planRuntime->getScanType(),
                      "scan type is invalid" ) ;
 
-         // Reset need match by runtime
          if ( NULL != planRuntime->getMatchTree() )
          {
             setNeedMatch( !planRuntime->getMatchTree()->isMatchesAll() ) ;
@@ -1523,13 +1497,24 @@ namespace engine
             setNeedMatch( FALSE ) ;
          }
 
-         // Reset index bound by runtime
          setIXBound( planRuntime->getPredIXBound() ) ;
       }
    }
 
    _optIxScanNode::~_optIxScanNode ()
    {
+   }
+
+   void _optIxScanNode::release ( optPlanAllocator * pAllocator )
+   {
+      if ( pAllocator && pAllocator->isAllocatedByme( this ) )
+      {
+         this->~_optIxScanNode() ;
+      }
+      else
+      {
+         SDB_OSS_DEL this ;
+      }
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTIXSCAN_PREEVAL, "_optIxScanNode::preEvaluate" )
@@ -1562,7 +1547,6 @@ namespace engine
          }
          case OPT_PLAN_SORTED_IDX_REQUIRED :
          {
-            // Must be sorted index
             if ( _sorted )
             {
                _isCandidate = TRUE ;
@@ -1571,7 +1555,6 @@ namespace engine
          }
          case OPT_PLAN_IDX_PREFERRED :
          {
-            // Either be sorted or matched predicates
             if ( _sorted || _matchedFields > 0 )
             {
                _isCandidate = TRUE ;
@@ -1580,7 +1563,6 @@ namespace engine
          }
          default :
          {
-            // Either be sorted or scan selectivity smaller than threshold
             if ( _scanSelectivity <= OPT_PRED_THRESHOLD_SELECTIVITY ||
                  _sorted )
             {
@@ -1660,14 +1642,11 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB_OPTIXSCAN__EVALNORETOPTS ) ;
 
-      // Number of index pages and records will be read ( based on _scanSelectivity )
       _idxReadPages = OPT_ROUND_NUM( (UINT32)ceil( (double)_indexPages *
                                                    _scanSelectivity ) ) ;
       _idxReadRecords = OPT_ROUND_NUM( (UINT64)ceil( (double)_inputRecords *
                                                      _scanSelectivity ) ) ;
 
-      // Number of data pages and records will be read ( based on _predSelectivity )
-      // which is also the number of items output from index
       _readPages = OPT_ROUND_NUM( (UINT32)ceil( (double)_inputPages *
                                                 _predSelectivity ) ) ;
       _readRecords = OPT_ROUND_NUM( (UINT64)ceil( (double)_inputRecords *
@@ -1676,10 +1655,6 @@ namespace engine
       _estIOCost = _evalScanIOCost( OPT_RANDOM_SCAN_IO_COST,
                                     _idxReadPages + _readPages ) ;
 
-      // For each index read records, need to be extracted from index page and
-      // evaluated against predicates
-      // For each index output records, need to be extracted from data page and
-      // evaluated against matchers
       _estCPUCost = ( _idxReadRecords *
                       ( OPT_IDX_CPU_COST + _predCPUCost ) ) +
                     ( _readRecords *
@@ -1714,14 +1689,11 @@ namespace engine
       returnRate = (double)_outputRecords / (double)noLimitRecords ;
       scanRate = skipRate + returnRate ;
 
-      // Number of index pages and records will be read ( based on _scanSelectivity )
       idxNoLimitReadPages = OPT_ROUND_NUM( (UINT32)ceil( (double)_indexPages *
                                                          _scanSelectivity ) ) ;
       idxNoLimitReadRecords = OPT_ROUND_NUM( (UINT64)ceil( (double)_inputRecords *
                                                            _scanSelectivity ) ) ;
 
-      // Number of data pages and records will be read ( based on _predSelectivity )
-      // which is also the number of items output from index
       noLimitReadPages = OPT_ROUND_NUM( (UINT32)ceil( (double)_inputPages *
                                                       _predSelectivity ) ) ;
       noLimitReadRecords = OPT_ROUND_NUM( (UINT64)ceil( (double)_inputRecords *
@@ -1747,10 +1719,6 @@ namespace engine
       scanReturnIOCost = _evalScanIOCost( OPT_RANDOM_SCAN_IO_COST,
                                           idxReadReturnPages + readReturnPages ) ;
 
-      // For each index read records, need to be extracted from index page and
-      // evaluated against predicates
-      // For each index output records, need to be extracted from data page and
-      // evaluated against matchers
       scanSkipCPUCost = ( idxReadSkipRecords ) *
                         ( OPT_IDX_CPU_COST + _predCPUCost ) +
                         ( readSkipRecords *
@@ -1797,8 +1765,6 @@ namespace engine
       BOOLEAN isEqual = TRUE ;
       const CHAR *pFirstField = NULL ;
 
-      // The statistics of index are invalid, we need to evaluate each predicate
-      // in the predicate set
       BOOLEAN fieldOnly = !indexStat->isValid() ;
 
       mthMatchTree *matcher = planHelper.getMatchTree() ;
@@ -1806,8 +1772,6 @@ namespace engine
 
       if ( !planHelper.isEstimated() )
       {
-         // The matcher has not been estimated, which could not be used
-         // to evaluate predicates
          isBestIndex = FALSE ;
       }
 
@@ -1819,13 +1783,11 @@ namespace engine
          BSONElement beKey = iterKey.next() ;
          const CHAR *pFieldName = beKey.fieldName() ;
 
-         // Set the first name
          if ( !pFirstField )
          {
             pFirstField = pFieldName ;
          }
 
-         // Try to match order first
          if ( needMatchOrder && iterOrder.more() )
          {
             BSONElement beOrder = iterOrder.next() ;
@@ -1864,8 +1826,6 @@ namespace engine
          if ( iterPred == predicates.end() ||
               iterPred->second.isEmpty() )
          {
-            // The key is not included in the predicates
-            // Cover all values in this key
             if ( !fieldOnly && !isBestIndex )
             {
                predicateList.push_back( NULL ) ;
@@ -1878,7 +1838,6 @@ namespace engine
 
             if ( fieldOnly )
             {
-               // Evaluate the predicate for this field only
                BOOLEAN curIsAllRange = FALSE ;
                double curSelectivity =  indexStat->evalPredicate(
                         pFieldName, curPredicate, planHelper.mthEnabledMixCmp(),
@@ -1892,8 +1851,6 @@ namespace engine
             }
             else if ( !isBestIndex )
             {
-               // Need to evaluate the whole predicate set together, add the
-               // predicates into list, and evaluate them later
                predicateList.push_back( &curPredicate ) ;
 
                isEqual &= curPredicate.isEquality() ;
@@ -1907,23 +1864,17 @@ namespace engine
          iterIdx ++ ;
       }
 
-      // Matched key in index
       if ( matchedFields > 0 )
       {
          if ( fieldOnly )
          {
-            // Do nothing
-            // scanSelectivity is estimated by the first field
          }
          else if ( isBestIndex )
          {
-            // The best index has been evaluated and cached in matcher
             planHelper.getPredSelectivity( predSelectivity, scanSelectivity ) ;
          }
          else
          {
-            // The predicates contain multiple start stop key-pairs, evaluate
-            // each of them
             predSelectivity = indexStat->evalPredicateList(
                   pFirstField, predicateList, planHelper.mthEnabledMixCmp(),
                   scanSelectivity ) ;
@@ -1932,7 +1883,6 @@ namespace engine
 
       if ( !boOrder.isEmpty() )
       {
-         // Set the scan direction
          _direction = direction ;
          if ( matchedOrders == (UINT32)boOrder.nFields() )
          {
@@ -1940,7 +1890,6 @@ namespace engine
          }
       }
 
-      // we try to set matchall only when all fields converted into predicates
       if ( matcher->totallyConverted() )
       {
          _matchAll = ( 0 == predicates.size() ) ||
@@ -2099,7 +2048,7 @@ namespace engine
       builder.append( OPT_FIELD_OPERATOR, getName() ) ;
       builder.append( OPT_FIELD_COLLECTION,
                       NULL == _pCollection ? "" : _pCollection ) ;
-      builder.append( OPT_FIELD_INDEX, _pIndexName.str() ) ;
+      builder.append( OPT_FIELD_INDEX, _pIndexName ) ;
       if ( _runtimeIXBound.isEmpty() )
       {
          builder.appendNull( OPT_FIELD_IX_BOUND ) ;
@@ -2155,8 +2104,8 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to get field [%s], rc: %d",
                       OPT_FIELD_INDEX, rc ) ;
 
-         _pIndexName.clear() ;
-         _pIndexName.append( indexName ) ;
+         ossStrncpy( _pIndexName, indexName, IXM_INDEX_NAME_SIZE ) ;
+         _pIndexName[ IXM_INDEX_NAME_SIZE ] = '\0' ;
 
          if ( object.getField( OPT_FIELD_IX_BOUND ).isNull() )
          {
@@ -2275,8 +2224,6 @@ namespace engine
    {
       StringBuilder formBuilder, evalBuilder ;
 
-      // RandomReadIOCostUnit * ( IndexReadPages + ReadPages ) *
-      // ( PageSize / PageUnit )
       formBuilder << OPT_FIELD_RAN_IO_COST << " * ( "
                   << OPT_FIELD_INDEX_READ_PAGES << " + "
                   << OPT_FIELD_READ_PAGES << " ) * ( "
@@ -2299,12 +2246,6 @@ namespace engine
    {
       StringBuilder formBuilder, evalBuilder ;
 
-      // 1. If match is needed
-      //    IndexReadRecords * ( IXExtractCPUCost + PredCPUCost ) +
-      //    ReadRecords * ( RecExtractCPUCost + MthCPUCost )
-      // 2. If match is not needed
-      //    IndexReadRecords * ( IXExtractCPUCost + PredCPUCost ) +
-      //    ReadRecords * RecExtractCPUCost
       formBuilder << OPT_FIELD_INDEX_READ_RECORDS << " * ( "
                   << OPT_FIELD_IDX_CPU_COST << " + "
                   << OPT_FIELD_PRED_COST << " ) + " ;
@@ -2340,7 +2281,6 @@ namespace engine
    {
       StringBuilder formBuilder, evalBuilder ;
 
-      // IXScanStartCost + PredCPUCost * IndexLevels
       formBuilder << OPT_FIELD_IX_START_COST << " + "
                   << OPT_FIELD_PRED_COST << " * "
                   << OPT_FIELD_INDEX_LEVELS ;
@@ -2359,7 +2299,6 @@ namespace engine
    {
       StringBuilder formBuilder, evalBuilder ;
 
-      // max( 1, ceil( Records * min( IXPredSelectivity, MthSelectivity ) ) )
       formBuilder << "max( 1, ceil( " << OPT_FIELD_RECORDS << " * min( "
                   << OPT_FIELD_PRED_SEL << ", " << OPT_FIELD_MTH_SEL << " ) ) )" ;
       evalBuilder << "max( 1, ceil( " << _inputRecords << " * min( "
@@ -2411,6 +2350,18 @@ namespace engine
    {
    }
 
+   void _optSortNode::release ( optPlanAllocator * pAllocator )
+   {
+      if ( pAllocator && pAllocator->isAllocatedByme( this ) )
+      {
+         this->~_optSortNode() ;
+      }
+      else
+      {
+         SDB_OSS_DEL this ;
+      }
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTSORT_PREEVAL, "_optSortNode::preEvaluate" )
    void _optSortNode::preEvaluate ( const rtnQueryOptions & queryOptions,
                                     UINT64 sortBufferSize )
@@ -2446,20 +2397,13 @@ namespace engine
                                   (double)numOrderByFields ;
       UINT64 outputSkipRecords = 0 ;
 
-      // At least 2 records to be compared
       double roundInputRecords = (double)( OSS_MAX( 2, inputRecords ) ) ;
       _estCPUCost = (UINT64)ceil( comparisionCPUCost *
                                   roundInputRecords *
                                   OPT_LOG2( roundInputRecords ) ) ;
 
-      // Check input size against sort buffer size
       if ( inputSize > _sortBufferSize )
       {
-         // Use external merge-sort
-         // 1. Write data to disk
-         // 2. Read data from disk and merge
-         //    75% is sequential read
-         //    25% is random read
          _estIOCost = (UINT64)ceil( (double)_getInputPages( inputSize ) *
                                     ( (double)OPT_SEQ_WRITE_IO_COST +
                                       (double)OPT_SEQ_SCAN_IO_COST * 0.75 +
@@ -2468,7 +2412,6 @@ namespace engine
       }
       else
       {
-         // Use in-memory sort
          _estIOCost = 0 ;
          _estSortType = OPT_PLAN_IN_MEM_SORT ;
       }
@@ -2717,7 +2660,6 @@ namespace engine
    {
       StringBuilder formBuilder, evalBuilder ;
 
-      // Records * RecordSize
       formBuilder << OPT_FIELD_RECORDS << " * "
                   << OPT_FIELD_RECORD_SIZE ;
 
@@ -2735,7 +2677,6 @@ namespace engine
    {
       StringBuilder formBuilder, evalBuilder ;
 
-      // max( 1, ceil( RecordTotalSize / PageUnit ) )
       formBuilder << "max( 1, ceil( "
                   << OPT_FIELD_RECORD_TOTAL_SIZE << " / "
                   << OPT_FIELD_PAGE_UINT << ") )" ;
@@ -2754,8 +2695,6 @@ namespace engine
    {
       StringBuilder formBuilder, evalBuilder ;
 
-      // ceil( Pages * ( SeqWrtIOCostUnit + SeqReadIOCostUnit * 0.75 +
-      //                 RandomReadIOCostUnit * 0.25 ) )
       formBuilder << "ceil( " << OPT_FIELD_PAGES << " * ( "
                   << OPT_FIELD_SEQ_WRITE_IO_COST << " + "
                   << OPT_FIELD_SEQ_IO_COST << " * 0.75 + "
@@ -2777,8 +2716,6 @@ namespace engine
    {
       StringBuilder formBuilder, evalBuilder ;
 
-      // ceil( 2 * OptrCPUCost * SortFields * max( 2, Records ) *
-      //       log2( max( 2, Records ) ) )
       formBuilder << "ceil( 2 * " << OPT_FIELD_OPTR_CPU_COST << " * "
                   << OPT_FIELD_SORT_FIELDS << " * "
                   << "max( 2, " << OPT_FIELD_RECORDS << " ) * log2( "
@@ -2799,7 +2736,6 @@ namespace engine
    {
       StringBuilder formBuilder, evalBuilder ;
 
-      // ChildTotalCost + IOCPURate * IOCost + CPUCost
       formBuilder << OPT_FIELD_CHILD_TOTAL_COST << " + "
                   << OPT_FIELD_IO_CPU_RATE << " * "
                   << OPT_FIELD_IO_COST << " + "
@@ -2821,7 +2757,6 @@ namespace engine
    {
       StringBuilder formBuilder, evalBuilder ;
 
-      // OptrCPUCost * Records
       formBuilder << OPT_FIELD_OPTR_CPU_COST << " * "
                   << OPT_FIELD_RECORDS ;
       evalBuilder << OPT_OPTR_BASE_CPU_COST << " * "
@@ -2837,7 +2772,6 @@ namespace engine
    {
       StringBuilder formBuilder, evalBuilder ;
 
-      // Records
       formBuilder << OPT_FIELD_RECORDS ;
       evalBuilder << _outputRecords ;
 
@@ -2897,8 +2831,7 @@ namespace engine
 
       try
       {
-         // Make sure result is owned
-         BSONObj explainResult = childExplain.getOwned() ;
+         BSONObj explainResult = childExplain.copy() ;
 
          if ( needChildExplain )
          {
@@ -2978,7 +2911,6 @@ namespace engine
 
             _childNodes.push_back( newNode ) ;
 
-            // Construct summary
             childSummary._name = childNodeName ;
             childSummary._estTotalCost = newNode->getEstTotalCost() ;
             childSummary._queryTime = realQueryTime ;
@@ -3003,8 +2935,10 @@ namespace engine
       return rc ;
 
    error :
-      SAFE_OSS_DELETE( newNode ) ;
-      // Ignore errors
+      if ( NULL != newNode )
+      {
+         newNode->release( pAllocator ) ;
+      }
       rc = SDB_OK ;
       goto done ;
    }
@@ -3078,7 +3012,6 @@ namespace engine
 
       _sorted = !_orderBy.isEmpty() ;
 
-      // No child node or single child node, no need to reorder
       if ( _sorted && _needReorder && _childNodes.size() <= 1 )
       {
          _needReorder = FALSE ;
@@ -3257,7 +3190,6 @@ namespace engine
                                    OPT_FIELD_ROLE ) ) &&
                  !needNodeInfo )
             {
-               // Skip node info
                continue ;
             }
             else if ( 0 == ossStrcmp( subElement.fieldName(),
@@ -3265,7 +3197,6 @@ namespace engine
                       Object == subElement.type() &&
                       ! needExpand )
             {
-               // Skip plan path
                continue ;
             }
             else
@@ -3297,6 +3228,18 @@ namespace engine
 
    _optMainCLMergeNode::~_optMainCLMergeNode ()
    {
+   }
+
+   void _optMainCLMergeNode::release ( optPlanAllocator * pAllocator )
+   {
+      if ( pAllocator && pAllocator->isAllocatedByme( this ) )
+      {
+         this->~_optMainCLMergeNode() ;
+      }
+      else
+      {
+         SDB_OSS_DEL this ;
+      }
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTMERGENODE__EVALEMPRUNCOST, "_optMainCLMergeNode::_evaluateEmptyRunCost" )
@@ -3336,7 +3279,6 @@ namespace engine
          returnRate = (double)_outputRecords  / (double)_inputRecords ;
       }
 
-      // Iterate all input nodes
       for ( optPlanNodeList::const_iterator iter = _childNodes.begin() ;
             iter != _childNodes.end() ;
             iter ++ )
@@ -3349,7 +3291,6 @@ namespace engine
          _estRunCost += (UINT64)ceil( (double)node->getEstRunCost() * returnRate ) ;
       }
 
-      // CPU cost
       _estStartCost += ( ( comparisionCPUCost + OPT_OPTR_BASE_CPU_COST ) *
                          _outputSkipRecords ) ;
       _estRunCost += ( ( comparisionCPUCost + OPT_OPTR_BASE_CPU_COST ) *
@@ -3454,6 +3395,18 @@ namespace engine
    {
    }
 
+   void _optCoordMergeNode::release ( optPlanAllocator * pAllocator )
+   {
+      if ( pAllocator && pAllocator->isAllocatedByme( this ) )
+      {
+         this->~_optCoordMergeNode() ;
+      }
+      else
+      {
+         SDB_OSS_DEL this ;
+      }
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTCOORDNODE__EVALEMPRUNCOST, "_optCoordMergeNode::_evaluateEmptyRunCost" )
    void _optCoordMergeNode::_evaluateEmptyRunCost ()
    {
@@ -3505,7 +3458,6 @@ namespace engine
          returnRate = (double)_outputRecords  / (double)_inputRecords ;
       }
 
-      // Iterate all input nodes
       for ( optPlanNodeList::const_iterator iter = _childNodes.begin() ;
             iter != _childNodes.end() ;
             iter ++ )
@@ -3537,7 +3489,6 @@ namespace engine
          }
       }
 
-      // CPU cost
       _estStartCost += ( ( comparisionCPUCost + OPT_OPTR_BASE_CPU_COST ) *
                          _outputSkipRecords ) ;
       _estRunCost += ( ( comparisionCPUCost + OPT_OPTR_BASE_CPU_COST ) *
@@ -3561,7 +3512,6 @@ namespace engine
          returnRate = (double)_outputRecords  / (double)_inputRecords ;
       }
 
-      // Iterate all input nodes
       for ( optPlanNodeList::const_iterator iter = _childNodes.begin() ;
             iter != _childNodes.end() ;
             iter ++ )
@@ -3593,7 +3543,6 @@ namespace engine
          }
       }
 
-      // CPU cost
       _estStartCost += ( OPT_OPTR_BASE_CPU_COST * _outputSkipRecords ) ;
       _estRunCost += ( OPT_OPTR_BASE_CPU_COST * _outputRecords ) ;
 

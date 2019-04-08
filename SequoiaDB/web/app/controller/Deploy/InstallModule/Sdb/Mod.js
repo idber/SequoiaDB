@@ -101,13 +101,7 @@
       
       //创建分区组 弹窗
       $scope.CreateGroupWindow = {
-         'config': {},
-         'callback': {}
-      } ;
-
-      //打开 创建分区组 弹窗
-      $scope.ShowCreateGroup = function(){
-         $scope.CreateGroupWindow['config'] = {
+         'config': {
             'inputList': [
                {
                   "name": "groupName",
@@ -122,7 +116,12 @@
                   }
                }
             ]
-         } ;
+         },
+         'callback': {}
+      } ;
+
+      //打开 创建分区组 弹窗
+      $scope.ShowCreateGroup = function(){
          $scope.CreateGroupWindow['callback']['SetOkButton']( $scope.autoLanguage( '确定' ), function(){
             var isAllClear = $scope.CreateGroupWindow['config'].check( function( thisValue ){
                var isFind = false ;
@@ -166,12 +165,9 @@
          $scope.Components.Modal.icon = '' ;
          $scope.Components.Modal.title = $scope.autoLanguage( '编辑节点配置' ) ;
          $scope.Components.Modal.ShowType = 1 ;
-         $scope.Components.Modal.inputErrNum1 = 0 ;
-         $scope.Components.Modal.inputErrNum2 = 0 ;
-         $scope.Components.Modal.inputErrNum3 = 0 ;
          $scope.Components.Modal.form1 = {
             'keyWidth': '160px',
-            'inputList': _Deploy.ConvertTemplate( $scope.Template, 0, false, false, true )
+            'inputList': _Deploy.ConvertTemplate( $scope.Template, 0 )
          } ;
          if( $scope.Configure['DeployMod'] == 'distribution' )
          {
@@ -179,7 +175,7 @@
          }
          $scope.Components.Modal.form2 = {
             'keyWidth': '160px',
-            'inputList': _Deploy.ConvertTemplate( $scope.Template, 1, false, false, true )
+            'inputList': _Deploy.ConvertTemplate( $scope.Template, 1 )
          } ;
          $scope.Components.Modal.form3 = {
             'keyWidth': '160px',
@@ -454,16 +450,13 @@
 <div class="underlineTab" style="height:50px;">\
    <ul class="left">\
       <li ng-class="{true:\'active\'}[data.ShowType == 1]">\
-         <a class="linkButton" ng-click="data.Switch1()">' + $scope.autoLanguage( '普通' ) + '</a>\n\
-         <span class="badge badge-danger" ng-if="data.inputErrNum1 > 0">{{data.inputErrNum1}}</span>\
+         <a class="linkButton" ng-click="data.Switch1()">' + $scope.autoLanguage( '普通' ) + '</a>\
       </li>\
       <li ng-class="{true:\'active\'}[data.ShowType == 2]">\
-         <a class="linkButton" ng-click="data.Switch2()">' + $scope.autoLanguage( '高级' ) + '</a>\n\
-         <span class="badge badge-danger" ng-if="data.inputErrNum2 > 0">{{data.inputErrNum2}}</span>\
+         <a class="linkButton" ng-click="data.Switch2()">' + $scope.autoLanguage( '高级' ) + '</a>\
       </li>\
       <li ng-class="{true:\'active\'}[data.ShowType == 3]">\
-         <a class="linkButton" ng-click="data.Switch3()">' + $scope.autoLanguage( '自定义' ) + '</a>\n\
-         <span class="badge badge-danger" ng-if="data.inputErrNum3 > 0">{{data.inputErrNum3}}</span>\
+         <a class="linkButton" ng-click="data.Switch3()">' + $scope.autoLanguage( '自定义' ) + '</a>\
       </li>\
    </ul>\
 </div>\
@@ -471,7 +464,7 @@
 <div form-create para="data.form2" ng-show="data.ShowType == 2"></div>\
 <div form-create para="data.form3" ng-show="data.ShowType == 3"></div>' ;
          $scope.Components.Modal.ok = function(){
-            var inputErrNum1 = $scope.Components.Modal.form1.getErrNum( function( valueList ){
+            var isAllClear1 = $scope.Components.Modal.form1.check( function( valueList ){
                var error = [] ;
                if( type != 4 && valueList['dbpath'].length == 0 )
                {
@@ -487,8 +480,8 @@
                }
                return error ;
             } ) ;
-            var inputErrNum2 = $scope.Components.Modal.form2.getErrNum() ;
-            var inputErrNum3 = $scope.Components.Modal.form3.getErrNum( function( valueList ){
+            var isAllClear2 = $scope.Components.Modal.form2.check() ;
+            var isAllClear3 = $scope.Components.Modal.form3.check( function( valueList ){
                var error = [] ;
                $.each( valueList['other'], function( index, configInfo ){
                   if( configInfo['name'].toLowerCase() == 'hostname' ||
@@ -503,10 +496,7 @@
                } )
                return error ;
             } ) ;
-            $scope.Components.Modal.inputErrNum1 = inputErrNum1 ;
-            $scope.Components.Modal.inputErrNum2 = inputErrNum2 ;
-            $scope.Components.Modal.inputErrNum3 = inputErrNum3 ;
-            if( inputErrNum1 == 0 && inputErrNum2 == 0 && inputErrNum3 == 0 )
+            if( isAllClear1 && isAllClear2 && isAllClear3 )
             {
                var formVal1 = $scope.Components.Modal.form1.getValue() ;
                var formVal2 = $scope.Components.Modal.form2.getValue() ;
@@ -529,6 +519,14 @@
                   formVal['dbpath'] = dbpathEscape( formVal['dbpath'], formVal['HostName'], formVal['svcname'], formVal['role'], formVal['datagroupname'] ) ;
                   formVal['i'] = $scope.NodeList.length ;
                   $scope.NodeList.push( formVal ) ;
+                  if( $scope.GroupList[groupIndex]['role'] != 'coord' && $scope.GroupList[groupIndex]['nodeNum'] >= 7 )
+                  {
+                     $scope.GroupList[groupIndex]['DropdownMenu'][0]['disabled'] = true ;
+                  }
+                  if( $scope.GroupList[groupIndex]['nodeNum'] > 0 )
+                  {
+                     $scope.GroupList[groupIndex]['DropdownMenu'][1]['disabled'] = false ;
+                  }
                }
                else if( type == 3 )
                {
@@ -582,23 +580,20 @@
             }
             else
             {
-               if ( inputErrNum1 > 0 )
+               if( !isAllClear1 )
                {
-                  $scope.Components.Modal.Switch1() ;
-                  $scope.Components.Modal.form1.scrollToError( null ) ;
+                  $scope.Components.Modal.ShowType = 1 ;
                }
-               else if ( inputErrNum2 > 0 )
+               else if( !isAllClear2 )
                {
-                  $scope.Components.Modal.Switch2() ;
-                  $scope.Components.Modal.form2.scrollToError( null ) ;
+                  $scope.Components.Modal.ShowType = 2 ;
                }
-               else if ( inputErrNum3 > 0 )
+               else if( !isAllClear3 )
                {
-                  $scope.Components.Modal.Switch3() ;
-                  $scope.Components.Modal.form3.scrollToError( null ) ;
+                  $scope.Components.Modal.ShowType = 3 ;
                }
             }
-            return inputErrNum1 == 0 && inputErrNum2 == 0 && inputErrNum3 == 0 ;
+            return isAllClear1 && isAllClear2 && isAllClear3 ;
          }
       }
 
@@ -732,7 +727,6 @@
          {
             return;
          }
-         $scope.RemoveNodeWindow['config']['inputList'][0]['valid'] = [] ;
          var isFirst = true ;
          $.each( $scope.NodeList, function( index2, nodeInfo ){
             if( $scope.GroupList[index]['role'] == 'data' && nodeInfo['datagroupname'] == $scope.GroupList[index]['groupName'] )
@@ -764,6 +758,15 @@
                   $scope.NodeList[index]['i'] = index ;
                } ) ;
                --$scope.GroupList[index]['nodeNum'] ;
+               //没有节点了，禁用删除节点的按钮
+               if( $scope.GroupList[index]['nodeNum'] < 7 )
+               {
+                  $scope.GroupList[index]['DropdownMenu'][0]['disabled'] = false ;
+               }
+               if( $scope.GroupList[index]['nodeNum'] == 0 )
+               {
+                  $scope.GroupList[index]['DropdownMenu'][1]['disabled'] = true ;
+               }
             }
             return isAllClear ;
          } ) ;
@@ -1100,17 +1103,6 @@
             //定时循环转换，防止浏览器卡死
             var timer = $interval( function(){
                var nodeInfo = config['Config'][index] ;
-              
-               var tmpNodeInfo = {} ;
-               $.each( nodeInfo, function( key, value ){
-                  if( ( value.length > 0 && isFilterDefaultItem( key, value ) == false ) || key == 'datagroupname' )
-                  {
-                     tmpNodeInfo[key] = value ;
-                  }
-               } ) ;
-
-               nodeInfo = tmpNodeInfo ;
-
                if( nodeInfo['role'] == 'coord' )
                {
                   newConfig['Deploy']['Coord']['Node'].push( deleteJson( nodeInfo, [ 'datagroupname', 'role' ] ) ) ;
@@ -1199,6 +1191,11 @@
             if( ( role == 'data' && groupInfo['groupName'] == groupName ) || ( role != 'data' && groupInfo['role'] == role ) )
             {
                ++$scope.GroupList[index]['nodeNum'] ;
+               $scope.GroupList[index]['DropdownMenu'][1]['disabled'] = false ;
+               if( role != 'coord' && $scope.GroupList[index]['nodeNum'] >= 7 )
+               {
+                  $scope.GroupList[index]['DropdownMenu'][0]['disabled'] = true ;
+               }
                isFind = true ;
                return false ;
             }
@@ -1206,7 +1203,23 @@
          if( isFind == false )
          {
             var groupIndex = $scope.GroupList.length ;
-            $scope.GroupList.push( { 'role': role, 'groupName': groupName, 'nodeNum': defaultNum } ) ;
+            if( role == 'data' )
+            {
+               $scope.GroupList.push( { 'role': role, 'groupName': groupName, 'nodeNum': defaultNum, 'DropdownMenu': [
+                  { 'html': $compile( '<div style="padding:5px 10px" ng-click="CreateAddNodeModel(' + groupIndex + ')">{{autoLanguage("添加节点")}}</div>' )( $scope ), 'disabled': false },
+                  { 'html': $compile( '<div style="padding:5px 10px" ng-click="ShowRemoveNode(' + groupIndex + ')">{{autoLanguage("删除节点")}}</div>' )( $scope ), 'disabled': true },
+                  {},
+                  { 'html': $compile( '<div style="padding:5px 10px" ng-click="ShowRenameGroup(' + groupIndex + ')">{{autoLanguage("修改分区组名")}}</div>' )( $scope ) },
+                  { 'html': $compile( '<div style="padding:5px 10px" ng-click="CreateRemoveGroupModel(' + groupIndex + ')">{{autoLanguage("删除分区组")}}</div>' )( $scope ) }
+               ] } ) ;
+            }
+            else
+            {
+               $scope.GroupList.push( { 'role': role, 'groupName': groupName, 'nodeNum': defaultNum, 'DropdownMenu': [
+                  { 'html': $compile( '<div style="padding:5px 10px" ng-click="CreateAddNodeModel(' + groupIndex + ')">{{autoLanguage("添加节点")}}</div>' )( $scope ), 'disabled': false },
+                  { 'html': $compile( '<div style="padding:5px 10px" ng-click="ShowRemoveNode(' + groupIndex + ')">{{autoLanguage("删除节点")}}</div>' )( $scope ), 'disabled': true }
+               ] } ) ;
+            }
             if( role == 'data' )
             {
                selectGroup.push( { 'key': groupName, 'value': groupName } ) ;
@@ -1214,85 +1227,6 @@
          }
       }
 
-      $scope.GroupOperateDropdown = {
-         'config': [],
-         'callback': {}
-      }
-
-      $scope.OpenDropdown = function( event, role, groupIndex ){
-         $scope.GroupOperateDropdown['config'] = [] ;
-         if( role == 'data' )
-         {
-            $scope.GroupOperateDropdown['config'] = [
-               { 'key': $scope.autoLanguage( '添加节点' ) },
-               { 'key': $scope.autoLanguage( '删除节点' ) },
-               { 'key': $scope.autoLanguage( '修改分区组名' ) },
-               { 'key': $scope.autoLanguage( '删除分区组' ) }
-            ] ;
-
-            if( $scope.GroupList[groupIndex]['nodeNum'] == 0 )
-            {
-               $scope.GroupOperateDropdown['config'][1]['disabled'] = true ;
-            }
-            else if( $scope.GroupList[groupIndex]['nodeNum'] < 7 )
-            {
-               $scope.GroupOperateDropdown['config'][1]['disabled'] = false ;
-               $scope.GroupOperateDropdown['config'][0]['disabled'] = false ;
-            }
-            else if( $scope.GroupList[groupIndex]['nodeNum'] == 7 )
-            {
-               $scope.GroupOperateDropdown['config'][0]['disabled'] = true ;
-            }
-
-            $scope.GroupOperateDropdown['OnClick'] = function( index ){
-               if( index == 0 )
-               {
-                  $scope.CreateAddNodeModel( groupIndex ) ;
-               }
-               else if( index == 1 )
-               {
-                  $scope.ShowRemoveNode( groupIndex ) ;
-               }
-               else if( index == 2 )
-               {
-                  $scope.ShowRenameGroup( groupIndex ) ;
-               }
-               else
-               {
-                  $scope.CreateRemoveGroupModel( groupIndex ) ;
-               }
-               $scope.GroupOperateDropdown['callback']['Close']() ;
-            }
-         }
-         else
-         {
-            $scope.GroupOperateDropdown['config'] = [
-               { 'key': $scope.autoLanguage( '添加节点' ) },
-               { 'key': $scope.autoLanguage( '删除节点' ) }
-            ] ;
-            if( $scope.GroupList[groupIndex]['nodeNum'] == 0 )
-            {
-               $scope.GroupOperateDropdown['config'][1]['disabled'] = true ;
-            }
-            if( role == 'catalog' && $scope.GroupList[groupIndex]['nodeNum'] == 7 )
-            {
-               $scope.GroupOperateDropdown['config'][0]['disabled'] = true ;
-            }
-            $scope.GroupOperateDropdown['OnClick'] = function( index ){
-               if( index == 0 )
-               {
-                  $scope.CreateAddNodeModel( groupIndex ) ;
-               }
-               else
-               {
-                  $scope.ShowRemoveNode( groupIndex ) ;
-               }
-               $scope.GroupOperateDropdown['callback']['Close']() ;
-            }
-         }
-         $scope.GroupOperateDropdown['callback']['Open']( event.currentTarget ) ;
-      }
-      
       //获取业务配置
       var getModuleConfig = function(){
          var data = { 'cmd': 'get business config', 'TemplateInfo': JSON.stringify( $scope.Configure ) } ;
@@ -1304,33 +1238,34 @@
                   $scope.NodeList[index]['i'] = index ;
                } ) ;
                //删除单机版不需要的配置项
-               $scope.Template = [] ;
-               $.each( configure[0]['Property'], function( index, info ){
-                  if ( info['hidden'] == 'true' )
-                  {
-                     return true ;
-                  }
-                  if( $scope.Configure['DeployMod'] == 'standalone' &&
-                      ( info['Name'] == 'preferedinstance' ||
-                        info['Name'] == 'syncstrategy' ||
-                        info['Name'] == 'weight' ||
-                        info['Name'] == 'maxreplsync' ) )
-                  {
-                     return true ;
-                  }
-                  $scope.Template.push( info ) ;
-               } ) ;
-
+               if( $scope.Configure['DeployMod'] == 'standalone' )
+               {
+                  $scope.Template = [] ;
+                  $.each( configure[0]['Property'], function( index, info ){
+                     if( info['Name'] == 'preferedinstance' ||
+                         info['Name'] == 'syncstrategy' ||
+                         info['Name'] == 'weight' ||
+                         info['Name'] == 'maxreplsync' )
+                     {
+                        return true ;
+                     }
+                     $scope.Template.push( info ) ;
+                  } ) ;
+               }
+               else
+               {
+                  $scope.Template = configure[0]['Property'] ;
+               }
                $scope.NodeTable['body'] = $scope.NodeList ;
                if( $scope.Configure['DeployMod'] == 'standalone' )
                {
                   $scope.StandaloneForm1 = {
                      'keyWidth': '160px',
-                     'inputList': _Deploy.ConvertTemplate( $scope.Template, 0, false, false, true )
+                     'inputList': _Deploy.ConvertTemplate( $scope.Template, 0 )
                   } ;
                   $scope.StandaloneForm2 = {
                      'keyWidth': '160px',
-                     'inputList': _Deploy.ConvertTemplate( $scope.Template, 1, false, false, true )
+                     'inputList': _Deploy.ConvertTemplate( $scope.Template, 1 )
                   } ;
                   $scope.StandaloneForm3 = {
                      'keyWidth': '160px',
@@ -1464,7 +1399,7 @@
          SdbRest.OmOperation( data, {
             'success': function( taskInfo ){
                $rootScope.tempData( 'Deploy', 'ModuleTaskID', taskInfo[0]['TaskID'] ) ;
-               $location.path( '/Deploy/Task/Module' ).search( { 'r': new Date().getTime() } ) ;
+               $location.path( '/Deploy/InstallModule' ).search( { 'r': new Date().getTime() } ) ;
             },
             'failed': function( errorInfo ){
                _IndexPublic.createRetryModel( $scope, errorInfo, function(){
@@ -1547,23 +1482,6 @@
          return configure ;
       }
 
-      var isFilterDefaultItem = function( key, value ) {
-         var result = false ;
-         var unSkipList = [ 'HostName', 'dbpath', 'role', 'svcname', 'datagroupname' ] ;
-         if ( unSkipList.indexOf( key ) >= 0 )
-         {
-            return false ;
-         }
-         $.each( $scope.Template, function( index, item ){
-            if ( item['Name'] == key )
-            {
-               result = ( item['Default'] == value ) ;
-               return false ;
-            }
-         } ) ;
-         return result ;
-      }
-
       $scope.GotoInstall = function(){
          var oldConfigure = convertConfig() ;
          if( typeof( oldConfigure ) == 'undefined' )
@@ -1578,18 +1496,15 @@
          $.each( oldConfigure['Config'], function( nodeIndex, nodeInfo ){
             var nodeConfig = {} ;
             $.each( nodeInfo, function( key, value ){
-               if( ( value.length > 0 && isFilterDefaultItem( key, value ) == false ) || key == 'datagroupname' )
+               if( value.length > 0 || key == 'datagroupname' )
                {
                    nodeConfig[key] = value ;
                }
             } ) ;
             configure['Config'].push( nodeConfig ) ;
          } ) ;
-         
          if( configure )
-         {
             installSdb( configure ) ;
-         }
       }
 
    } ) ;

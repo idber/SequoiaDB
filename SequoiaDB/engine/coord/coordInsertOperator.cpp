@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordInsertOperator.cpp
 
@@ -42,115 +41,11 @@
 #include "rtnCommandDef.hpp"
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
-#include "coordSequenceAgent.hpp"
-#include "ossMemPool.hpp"
 
 using namespace bson ;
 
 namespace engine
 {
-   /*
-      this is a simplized bson builder, it can build bson on exist
-      buffer, but never check the exist buffer size. please check
-      the buffer size before use it.
-   */
-   class _coordInsertOperator::_SimpleBSONBuilder
-   {
-      /*
-         BSONObj struct:
-         |length(UINT32)   |BSONElements(...)   |EOO(CHAR)  |
-
-         BSONElement struct:
-         |type(CHAR) |fieldName(CHAR*) |value(...) |
-         value length is decided by type. if NumberLong, it's INT64.
-      */
-      public:
-         _SimpleBSONBuilder( CHAR *pBuf )
-         {
-            _pBuf    = pBuf ;
-            _pCur    = _pBuf ;
-            _ppPos   = NULL ;
-            _hasDone = FALSE ;
-
-            init() ;
-         }
-
-         _SimpleBSONBuilder( CHAR **ppPos )
-         {
-            _pBuf    = *ppPos ;
-            _pCur    = _pBuf ;
-            _ppPos   = ppPos ;
-            _hasDone = FALSE ;
-
-            init() ;
-         }
-
-         UINT32 len() const { return _pCur - _pBuf ; }
-
-         const CHAR* done()
-         {
-            if ( !_hasDone )
-            {
-               _hasDone = TRUE ;
-               *_pCur = (CHAR) EOO ;
-               ++_pCur ;
-               /// set size
-               *((UINT32*)_pBuf) = _pCur - _pBuf ;
-               /// set pos
-               if ( _ppPos )
-               {
-                  *_ppPos = _pCur ;
-               }
-            }
-            return _pBuf ;
-         }
-
-         _SimpleBSONBuilder* appendElement( BSONElement &ele )
-         {
-            ossMemcpy( _pCur, ele.rawdata(), ele.size() ) ;
-            _pCur += ele.size() ;
-            return this ;
-         }
-
-         _SimpleBSONBuilder* append( const CHAR *fieldName, INT64 value )
-         {
-            *_pCur = (CHAR) NumberLong ;
-            _pCur += 1 ;
-
-            const INT32 fieldLen = ossStrlen( fieldName ) + 1 ;
-            ossMemcpy( _pCur, fieldName, fieldLen ) ;
-            _pCur += fieldLen ;
-
-            *((INT64*)_pCur) = value ;
-            _pCur += 8 ;
-            return this ;
-         }
-
-         CHAR** subobjStart( const CHAR *fieldName )
-         {
-            *_pCur = (CHAR) Object ;
-            _pCur += 1 ;
-
-            const INT32 fieldLen = ossStrlen( fieldName ) + 1 ;
-            ossMemcpy( _pCur, fieldName, fieldLen ) ;
-            _pCur += fieldLen ;
-
-            return &_pCur ;
-         }
-
-      protected:
-         void init()
-         {
-            *((UINT32*)_pBuf) = 0 ;
-            _pCur = _pBuf + 4 ;
-         }
-
-      private:
-         CHAR*       _pBuf ;
-         CHAR*       _pCur ;
-         CHAR**      _ppPos ;
-         BOOLEAN     _hasDone ;
-   };
 
    /*
       _coordInsertOperator implement
@@ -159,7 +54,6 @@ namespace engine
    {
       _insertedNum = 0 ;
       _ignoredNum = 0 ;
-      _hasRetry = FALSE ;
 
       const static string s_insertStr("Insert" ) ;
       setName( s_insertStr ) ;
@@ -200,7 +94,6 @@ namespace engine
       INT32 rcTmp = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_INSERTOPR_EXE ) ;
 
-      // process define
       coordSendOptions sendOpt( TRUE ) ;
       sendOpt._useSpecialGrp = TRUE ;
 
@@ -211,21 +104,7 @@ namespace engine
 
       coordCataSel cataSel ;
       MsgRouteID errNodeID ;
-      CoordCataInfoPtr cataPtr ;
 
-      // for autoIncrement
-      CHAR *pNewMsg = NULL ;
-      INT32 newMsgSize = 0 ;
-      INT32 newMsgLen = 0 ;
-      INT32 orgMsgLen = 0 ;
-      MsgOpInsert *pTmpInsertMsg = NULL ;
-      const clsAutoIncSet *pAutoIncSet = NULL ;
-      clsAutoIncIDSet curAutoIncIDs ;
-      clsAutoIncIDSet lastAutoIncIDs ;
-      BOOLEAN hasExplicitKey = FALSE ;
-      BOOLEAN needNewAutoInc = FALSE ;
-
-      // fill default-reply(insert success)
       MsgOpInsert *pInsertMsg          = (MsgOpInsert *)pMsg ;
       INT32 oldFlag                    = pInsertMsg->flags ;
       pInsertMsg->flags               |= FLG_INSERT_RETURNNUM ;
@@ -244,14 +123,6 @@ namespace engine
          goto error ;
       }
 
-      if ( 0 == ossStrncmp( pCollectionName, CMD_ADMIN_PREFIX SYS_VIRTUAL_CS".",
-                            SYS_VIRTUAL_CS_LEN + 1 ) )
-      {
-         rc = SDB_COORD_UNKNOWN_OP_REQ ;
-         goto error ;
-      }
-
-      // add list op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "Collection:%s, Insertors:%s, ObjNum:%d, "
                           "Flag:0x%08x(%u)",
@@ -266,45 +137,10 @@ namespace engine
                  "failed, rc: %d", pCollectionName, rc ) ;
          goto error ;
       }
-      orgMsgLen = pMsg->messageLength ;
 
    retry:
-      cataPtr = cataSel.getCataPtr() ;
-      if ( cataPtr->hasAutoIncrement() )
-      {
-         pAutoIncSet = &cataPtr->getAutoIncSet() ;
-         curAutoIncIDs = pAutoIncSet->getIDs() ;
-
-         /*
-            when retry, only in two conditions we need to generate key again.
-            1. auto-increment attributes are altered;
-            2. auto-increment key from system is a dupplicate key.
-          */
-         if ( 0 == result._sucGroupLst.size() &&
-              ( curAutoIncIDs != lastAutoIncIDs || needNewAutoInc ) )
-         {
-            needNewAutoInc = FALSE ;
-            // in case of reshard, clear the last shard result.
-            cataPtr->isMainCL() ? _grpSubCLDatas.clear() : inMsg.data()->clear() ;
-
-            hasExplicitKey = FALSE ;
-            rc = _addAutoIncToMsg( *pAutoIncSet, pInsertMsg, pInsertor,
-                                   count, orgMsgLen, cb,
-                                   &pNewMsg, newMsgSize, newMsgLen,
-                                   hasExplicitKey ) ;
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to add autoIncrement fields to msg, rc: %d",
-                         rc ) ;
-            inMsg._pMsg = (MsgHeader*)pNewMsg ;
-            lastAutoIncIDs = curAutoIncIDs ;
-         }
-      }
-
-      pTmpInsertMsg = (MsgOpInsert*) inMsg._pMsg ;
-      pTmpInsertMsg->version = cataPtr->getVersion() ;
-      pTmpInsertMsg->w = 0 ;
-
-      /// Do on collection
+      pInsertMsg->version = cataSel.getCataPtr()->getVersion() ;
+      pInsertMsg->w = 0 ;
       rcTmp = doOpOnCL( cataSel, BSONObj(), inMsg, sendOpt, cb, result ) ;
       if ( SDB_OK == rcTmp && nokRC.empty() )
       {
@@ -317,14 +153,6 @@ namespace engine
          _groupSession.getGroupCtrl()->incRetry() ;
          goto retry ;
       }
-      else if ( cataPtr->hasAutoIncrement() &&
-                _canRetry( count, rc, hasExplicitKey ) )
-      {
-         nokRC.clear() ;
-         _removeLocalSeqCache( cataPtr->getAutoIncSet() ) ;
-         needNewAutoInc = TRUE ;
-         goto retry ;
-      }
       else
       {
          PD_LOG( PDERROR, "Insert failed on node[%s], rc: %d",
@@ -333,7 +161,6 @@ namespace engine
       }
 
    done:
-      /// AUDIT
       if ( pCollectionName )
       {
          PD_AUDIT_OP( AUDIT_DML, MSG_BS_INSERT_REQ, AUDIT_OBJ_CL,
@@ -344,10 +171,8 @@ namespace engine
       }
       if ( oldFlag & FLG_INSERT_RETURNNUM )
       {
-         /// InsertedNum(Hi) + IgnoredNum(Lo)
          contextID = ossPack32To64( _insertedNum, _ignoredNum ) ;
       }
-      msgReleaseBuffer( pNewMsg, cb ) ;
       PD_TRACE_EXITRC ( COORD_INSERTOPR_EXE, rc ) ;
       return rc ;
    error:
@@ -372,14 +197,11 @@ namespace engine
                                             pInsertMsg->nameLength + 1, 4 ) -
                     sizeof( MsgHeader ) ) ;
 
-      // clear send groups
       options._groupLst.clear() ;
 
       if ( !cataSel.getCataPtr()->isSharded() )
       {
-         // get group
          cataSel.getCataPtr()->getGroupLst( options._groupLst ) ;
-         // don't change the msg
          goto done ;
       }
       else if ( inMsg.data()->size() == 0 )
@@ -399,7 +221,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to shard data by group, rc: %d",
                       rc ) ;
 
-         // only one group, send by normal
          if ( 1 == inMsg._datas.size() )
          {
             UINT32 groupID = inMsg._datas.begin()->first ;
@@ -416,13 +237,11 @@ namespace engine
             }
          }
       }
-      // reshard
       else
       {
          rc = reshardData( cataSel.getCataPtr(), fixed, inMsg._datas ) ;
          PD_RC_CHECK( rc, PDERROR, "Re-shard data failed, rc: %d", rc ) ;
 
-         // build groups
          {
             GROUP_2_IOVEC::iterator it = inMsg._datas.begin() ;
             while( it != inMsg._datas.end() )
@@ -445,7 +264,6 @@ namespace engine
                                          pmdEDUCB *cb,
                                          coordProcessResult &result )
    {
-      // remove the datas by succeed group
       if ( inMsg._datas.size() > 0 )
       {
          CoordGroupList::iterator it = result._sucGroupLst.begin() ;
@@ -456,7 +274,6 @@ namespace engine
          }
       }
 
-      // clear all succeed group
       result._sucGroupLst.clear() ;
    }
 
@@ -473,7 +290,6 @@ namespace engine
       if ( pReply->contextID > 0 )
       {
          UINT32 hi1 = 0, lo1 = 0 ;
-         /// (UINT32)insertedNum + (UINT32)ignoredNum
          ossUnpack32From64( pReply->contextID, hi1, lo1 ) ;
          _insertedNum += hi1 ;
          _ignoredNum += lo1 ;
@@ -504,7 +320,6 @@ namespace engine
             goto error ;
          }
 
-         // add 2 group
          {
             netIOVec &iovec = datas[ groupID ] ;
             UINT32 size = iovec.size() ;
@@ -513,7 +328,6 @@ namespace engine
                if ( (const CHAR*)( iovec[size-1].iovBase ) +
                     iovec[size-1].iovLen == pInsertor )
                {
-                  // only change the length
                   iovec[size-1].iovLen += roundLen ;
                }
                else
@@ -603,7 +417,6 @@ namespace engine
       {
          netIOVec &iovec = it->second ;
          UINT32 size = iovec.size() ;
-         // skip the first
          for ( UINT32 i = 1 ; i < size ; ++i )
          {
             netIOV &ioItem = iovec[ i ] ;
@@ -686,15 +499,12 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Re-shard data failed, rc: %d", rc ) ;
       }
 
-      // build msg
       inMsg._datas.clear() ;
 
       rc = buildInsertMsg( fixed, _grpSubCLDatas, _vecObject, inMsg._datas ) ;
-      PD_RC_CHECK( rc, PDERROR, "Build insert msg failed, rc: %d", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Build insert msg failed, rc: %d" ) ;
 
-      // clear send groups
       options._groupLst.clear() ;
-      // build group list
       it = inMsg._datas.begin() ;
       while( it != inMsg._datas.end() )
       {
@@ -715,7 +525,6 @@ namespace engine
                                              pmdEDUCB *cb,
                                              coordProcessResult &result )
    {
-      // remove the datas by succeed group
       if ( _grpSubCLDatas.size() > 0 )
       {
          CoordGroupList::iterator it = result._sucGroupLst.begin() ;
@@ -726,7 +535,6 @@ namespace engine
          }
       }
 
-      // clear all succeed group
       result._sucGroupLst.clear() ;
 
       _vecObject.clear() ;
@@ -758,7 +566,6 @@ namespace engine
             goto error ;
          }
 
-         /// get sub-collection's catalog info
          rc = _pResource->getOrUpdateCataInfo( subCLName.c_str(),
                                                subClCataInfo, cb ) ;
          if ( rc )
@@ -779,7 +586,6 @@ namespace engine
             goto error ;
          }
 
-         /// add to group
          (groupSubCLMap[ groupID ])[ subCLName ].push_back(
             netIOV( (const void*)pInsertor, roundLen ) ) ;
       }
@@ -899,7 +705,6 @@ namespace engine
             UINT32 dataLen = netCalcIOVecSize( subCLIOVec ) ;
             UINT32 objNum = subCLIOVec.size() ;
 
-            // first for sub cl info
             BSONObjBuilder subCLInfoBuild ;
             subCLInfoBuild.append( FIELD_NAME_SUBOBJSNUM, (INT32)objNum ) ;
             subCLInfoBuild.append( FIELD_NAME_SUBOBJSSIZE, (INT32)dataLen ) ;
@@ -911,7 +716,6 @@ namespace engine
             ioCLInfo.iovLen = subCLInfoObj.objsize() ;
             iovec.push_back( ioCLInfo ) ;
 
-            // need fill
             UINT32 infoRoundSize = ossRoundUpToMultipleX( ioCLInfo.iovLen,
                                                           4 ) ;
             if ( infoRoundSize > ioCLInfo.iovLen )
@@ -930,300 +734,6 @@ namespace engine
       }
 
       return rc ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( COORD_INSERTOPR__ADD_AUTOINC_TO_MSG, "_coordInsertOperator::_addAutoIncToMsg" )
-   INT32 _coordInsertOperator::_addAutoIncToMsg( const clsAutoIncSet &autoIncSet,
-                                                 MsgOpInsert *pInsertMsg,
-                                                 CHAR const *pInsertor,
-                                                 const INT32 count,
-                                                 INT32 orgMsgLen,
-                                                 pmdEDUCB *cb,
-                                                 CHAR **ppNewMsg,
-                                                 INT32 &newMsgSize,
-                                                 INT32 &newMsgLen,
-                                                 BOOLEAN &hasExplicitKey )
-   {
-      PD_TRACE_ENTRY( COORD_INSERTOPR__ADD_AUTOINC_TO_MSG ) ;
-
-      INT32 rc = SDB_OK ;
-      INT32 i = 0 ;
-      CHAR* pCurPos = NULL ;
-      UINT32 estimatedSize = 0 ;
-      UINT32 headerSize = 0 ;
-
-      // 1.malloc a msg buffer which is big enough
-      estimatedSize = orgMsgLen + count * ( autoIncSet.getEleSize() + 4 ) ;
-      newMsgLen = 0 ;
-      rc = msgCheckBuffer( ppNewMsg, &newMsgSize, estimatedSize, cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to malloc buffer, rc: %d", rc ) ;
-
-      // 2.copy the header of original msg
-      headerSize = ossRoundUpToMultipleX( offsetof(MsgOpInsert, name) +
-                                          pInsertMsg->nameLength + 1,
-                                          4 ) ;
-      ossMemcpy( *ppNewMsg, (CHAR*) pInsertMsg, headerSize ) ;
-      pCurPos = *ppNewMsg + headerSize ;
-
-      // 3.build new bson objs with auto-increment field
-      for ( i = 0 ; i < count ; ++i )
-      {
-         const BSONObj objIn( (const CHAR*)pInsertor ) ;
-         _SimpleBSONBuilder builder( pCurPos ) ;
-         rc = _addAutoIncToObj( objIn, autoIncSet, cb, builder, hasExplicitKey ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to add autoIncrement field to obj[%s], rc: %d",
-                      objIn.toString().c_str(), rc ) ;
-         builder.done() ;
-
-         pCurPos += ossRoundUpToMultipleX( builder.len(), 4 ) ;
-         pInsertor += ossRoundUpToMultipleX( objIn.objsize(), 4 ) ;
-      }
-
-      newMsgLen = pCurPos - (*ppNewMsg) ;
-      SDB_ASSERT( newMsgLen <= newMsgSize, "message is over boundary" ) ;
-      ((MsgHeader*)(*ppNewMsg))->messageLength = newMsgLen ;
-
-   done:
-      PD_TRACE_EXITRC( COORD_INSERTOPR__ADD_AUTOINC_TO_MSG, rc ) ;
-      return rc ;
-   error:
-      newMsgLen = 0 ;
-      goto done ;
-   }
-
-   template <typename T>
-   // PD_TRACE_DECLARE_FUNCTION ( COORD_INSERTOPR__ADD_AUTOINC_TO_OBJ, "_coordInsertOperator::_addAutoIncToObj" )
-   INT32 _coordInsertOperator::_addAutoIncToObj( const BSONObj &objIn,
-                                                 const T &set,
-                                                 pmdEDUCB *cb,
-                                                 _SimpleBSONBuilder &builder,
-                                                 BOOLEAN &hasExplicitKey )
-   {
-      PD_TRACE_ENTRY( COORD_INSERTOPR__ADD_AUTOINC_TO_OBJ ) ;
-      typedef ossPoolSet<_utilMapStringKey>    StringKeySet ;
-
-      INT32                      rc = SDB_OK ;
-      BSONElement                ele ;
-      const clsAutoIncItem       *pItem = NULL ;
-      StringKeySet               doneSet ;
-
-      // 1. Handle autoIncrement fields inputted by user.
-      BSONObjIterator boIt( objIn ) ;
-      while( boIt.more() )
-      {
-         ele = boIt.next() ;
-         pItem = set.findItem( ele.fieldName() ) ;
-         if ( NULL == pItem )
-         {
-            builder.appendElement( ele ) ;
-            continue ;
-         }
-
-         UINT32 oldLen = builder.len() ;
-         rc = _processUserInput( pItem, ele, cb, builder, hasExplicitKey ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to process user entered field, rc: %d", rc ) ;
-
-         if ( builder.len() > oldLen ) {
-            doneSet.insert( ele.fieldName() ) ;
-         }
-
-         if ( doneSet.size() == set.itemCount() )
-         {
-            break ;
-         }
-      }
-
-      while( boIt.more() )
-      {
-         ele = boIt.next() ;
-         builder.appendElement( ele ) ;
-      }
-
-      // 2. Complete the rest of autoIncrement fields.
-      {
-         clsAutoIncIterator autoIncIt( set );
-         while ( autoIncIt.more() )
-         {
-            /// already exist
-            pItem = autoIncIt.next();
-            if ( doneSet.find( pItem->fieldName() ) != doneSet.end() )
-            {
-               continue;
-            }
-
-            rc = _appendAutoIncField( pItem, cb, builder );
-            PD_RC_CHECK( rc, PDERROR,
-                         "Failed to append auto-increment field[%s], rc: %d",
-                         pItem->fieldName(), rc );
-         }
-      }
-
-   done:
-      PD_TRACE_EXITRC( COORD_INSERTOPR__ADD_AUTOINC_TO_OBJ, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( COORD_INSERTOPR__PROCESS_USER_INPUT, "_coordInsertOperator::_processUserInput" )
-   INT32 _coordInsertOperator::_processUserInput( const clsAutoIncItem *pItem,
-                                                  BSONElement &ele,
-                                                  pmdEDUCB *cb,
-                                                  _SimpleBSONBuilder &builder,
-                                                  BOOLEAN &hasExplicitKey )
-   {
-      INT32 rc = SDB_OK ;
-      const CHAR *eleField = ele.fieldName() ;
-      PD_TRACE_ENTRY( COORD_INSERTOPR__PROCESS_USER_INPUT ) ;
-
-      if ( !pItem->hasSubField() )
-      {
-         BOOLEAN isNumber = FALSE ;
-
-         if ( AUTOINC_GEN_ALWAYS == pItem->generatedType() )
-         {
-            goto done ;
-         }
-
-         isNumber = (NumberInt == ele.type() || NumberLong == ele.type()) ;
-         if ( AUTOINC_GEN_STRICT == pItem->generatedType() )
-         {
-            PD_CHECK( isNumber, SDB_INVALIDARG, error, PDERROR,
-                      "Wrong type[%d] of autoIncrement field[%s]",
-                      ele.type(), eleField ) ;
-         }
-
-         if ( isNumber )
-         {
-            coordSequenceAgent *pSequenceAgent = _pResource->getSequenceAgent() ;
-            rc = pSequenceAgent->adjustNextValue( pItem->sequenceName(),
-                                                  pItem->sequenceID(),
-                                                  ele.numberLong(),
-                                                  cb ) ;
-            if ( SDB_SEQUENCE_NOT_EXIST == rc )
-            {
-               rc = SDB_OK ;
-            }
-            if ( SDB_OK != rc )
-            {
-               PD_LOG( PDERROR, "Failed to adjust sequence[%s] next value, rc:%d",
-                       pItem->sequenceName(), rc ) ;
-               goto error ;
-            }
-         }
-
-         builder.appendElement( ele ) ;
-         hasExplicitKey = TRUE ;
-      }
-      else
-      {
-         if ( Object == ele.type() )
-         {
-            _SimpleBSONBuilder subBuilder( builder.subobjStart( eleField ) ) ;
-            rc = _addAutoIncToObj( ele.embeddedObject(), *pItem,
-                                   cb, subBuilder, hasExplicitKey ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to add autoIncrement field[%s], "
-                         "rc: %d", eleField, rc ) ;
-            subBuilder.done();
-         }
-         else
-         {
-            // autoIncrement field is "a.b",
-            // and user just input field "a".
-            PD_RC_CHECK( SDB_INVALIDARG, PDERROR,
-                         "Field[%s] conflicted with autoIncrement field",
-                         eleField );
-         }
-      }
-
-   done:
-      PD_TRACE_EXITRC( COORD_INSERTOPR__PROCESS_USER_INPUT, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( COORD_INSERTOPR__APPEND_AUTOINC_FLD, "_coordInsertOperator::_appendAutoIncField" )
-   INT32 _coordInsertOperator::_appendAutoIncField( const clsAutoIncItem *pItem,
-                                                    pmdEDUCB *cb,
-                                                    _SimpleBSONBuilder &builder )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( COORD_INSERTOPR__APPEND_AUTOINC_FLD ) ;
-
-      if ( !pItem->hasSubField() )
-      {
-         coordSequenceAgent *pSequenceAgent = _pResource->getSequenceAgent() ;
-         INT64 nextValue = 0 ;
-
-         rc = pSequenceAgent->getNextValue( pItem->sequenceName(),
-                                            pItem->sequenceID(),
-                                            nextValue, cb ) ;
-         if ( SDB_SEQUENCE_NOT_EXIST == rc )
-         {
-            rc = SDB_OK ;
-            goto done ;
-         }
-         else if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "Failed to get sequence[%s] next value, rc: %d",
-                    pItem->sequenceName(), rc ) ;
-            goto error ;
-         }
-
-         builder.append( pItem->fieldName(), nextValue ) ;
-      }
-      else
-      {
-         _SimpleBSONBuilder subBuilder(
-               builder.subobjStart( pItem->fieldName() ) ) ;
-
-         BOOLEAN hasExplicitKey = FALSE ; // it must be FALSE here, used to compile
-         rc = _addAutoIncToObj( BSONObj(), *pItem, cb,
-                                subBuilder, hasExplicitKey ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to add autoIncrement "
-                      "field[%s], rc: %d", pItem->fieldName(), rc ) ;
-         subBuilder.done() ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( COORD_INSERTOPR__APPEND_AUTOINC_FLD, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   BOOLEAN _coordInsertOperator::_canRetry( INT32 count,
-                                            INT32 rc,
-                                            BOOLEAN hasExplicitKey )
-   {
-      BOOLEAN retry = FALSE ;
-      if (1 == count && SDB_IXM_DUP_KEY == rc &&
-          !hasExplicitKey && !_hasRetry )
-      {
-         _hasRetry = TRUE ;
-         retry = TRUE ;
-      }
-      return retry ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( COORD_INSERTOPR__REMOVE_LOCAL_SEQ_CACHE, "_coordInsertOperator::_removeLocalSeqCache" )
-   void _coordInsertOperator::_removeLocalSeqCache( const clsAutoIncSet &set )
-   {
-      PD_TRACE_ENTRY( COORD_INSERTOPR__REMOVE_LOCAL_SEQ_CACHE ) ;
-
-      coordSequenceAgent *pSequenceAgent = _pResource->getSequenceAgent() ;
-      clsAutoIncIterator iter( set, clsAutoIncIterator::RECURS ) ;
-      while ( iter.more() )
-      {
-         const clsAutoIncItem *pItem = iter.next() ;
-         pSequenceAgent->removeCache( pItem->sequenceName(),
-                                      pItem->sequenceID() ) ;
-      }
-
-      PD_TRACE_EXIT( COORD_INSERTOPR__REMOVE_LOCAL_SEQ_CACHE ) ;
    }
 
 }

@@ -1,18 +1,17 @@
 /*******************************************************************************
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pmdEnv.cpp
 
@@ -176,7 +175,6 @@ namespace engine
 
       static BOOLEAN s_closeStdFds = FALSE ;
 
-      // set signum
       PMD_SIGNUM = sigNum ;
 
       if ( ossGetSignalShieldFlag() )
@@ -190,7 +188,6 @@ namespace engine
          if ( SIGPIPE == sigNum && !s_closeStdFds &&
               1 == ossGetCurrentProcessID() )
          {
-            /// close std fds
             ossCloseStdFds() ;
             s_closeStdFds = TRUE ;
          }
@@ -316,14 +313,12 @@ namespace engine
       ossMemset ( &newact, 0, sizeof(newact)) ;
       sigemptyset ( &newact.sa_mask ) ;
 
-      // set trap file path
       if ( filepath )
       {
          ossSetTrapExceptionPath ( filepath ) ;
       }
       pmdGetSysInfo()->_pQuitFunc = pFunc ;
 
-      // SIGSEGV( 11 )
       newact.sa_sigaction = ( OSS_SIGFUNCPTR ) ossEDUCodeTrapHandler ;
       newact.sa_flags |= SA_SIGINFO ;
       newact.sa_flags |= SA_ONSTACK ;
@@ -340,7 +335,6 @@ namespace engine
          goto error ;
       }
 
-      // stack dump signals: SIGURG( 23 )
       newact.sa_sigaction = ( OSS_SIGFUNCPTR ) pmdEDUUserTrapHandler ;
       newact.sa_flags |= SA_SIGINFO ;
       newact.sa_flags |= SA_ONSTACK ;
@@ -350,7 +344,6 @@ namespace engine
          rc = SDB_SYS ;
          goto error ;
       }
-      // capture the internal user stack dump signal
       if ( sigaction ( OSS_STACK_DUMP_SIGNAL_INTERNAL, &newact, NULL ) )
       {
          PD_LOG ( PDERROR, "Failed to setup signal handler for dump signal" ) ;
@@ -358,7 +351,6 @@ namespace engine
          goto error ;
       }
 
-      // signal test
       newact.sa_sigaction = ( OSS_SIGFUNCPTR ) pmdSignalTestHandler ;
       newact.sa_flags |= SA_SIGINFO ;
       newact.sa_flags |= SA_ONSTACK ;
@@ -368,7 +360,6 @@ namespace engine
          rc = SDB_SYS ;
          goto error ;
       }
-      // capture the internal user stack dump signal
       if ( sigaction ( OSS_INTERNAL_TEST_SIGNAL, &newact, NULL ) )
       {
          PD_LOG ( PDERROR, "Failed to setup signal handler for internal "
@@ -377,10 +368,8 @@ namespace engine
          goto error ;
       }
 
-      /// ignore the SIGPIPE
       signal( SIGPIPE, SIG_IGN ) ;
 
-      // other signal
       sigSet.fillSet () ;
       sigSet.sigDel ( SIGSEGV ) ;
       sigSet.sigDel ( SIGBUS ) ;
@@ -406,8 +395,6 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG ( PDWARNING, "Failed to register signals, rc = %d", rc ) ;
-         // we do not abort startup process if any signal handler can't be
-         // installed
          rc = SDB_OK ;
       }
 
@@ -426,7 +413,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_PMDCTRLHND );
       switch( fdwCtrlType )
       {
-      // Handle the CTRL-C signal.
       case CTRL_C_EVENT:
          printf( "Ctrl-C event\n\n" ) ;
          pmdGetSysInfo()->_quitFlag = TRUE ;
@@ -438,14 +424,12 @@ namespace engine
          ret = TRUE ;
          goto done ;
 
-      // CTRL-CLOSE: confirm that the user wants to exit.
       case CTRL_CLOSE_EVENT:
          Beep( 600, 200 );
          printf( "Ctrl-Close event\n\n" ) ;
          ret = TRUE ;
          goto done ;
 
-      // Pass other signals to the next handler.
       case CTRL_BREAK_EVENT:
          Beep( 900, 200 );
          printf( "Ctrl-Break event\n\n" ) ;
@@ -477,14 +461,12 @@ namespace engine
    INT32 pmdEnableSignalEvent( const CHAR * filepath, PMD_ON_QUIT_FUNC pFunc,
                                INT32 *pDelSig )
    {
-      // set trap file path
       if ( filepath )
       {
          ossSetTrapExceptionPath ( filepath ) ;
       }
       pmdGetSysInfo()->_pQuitFunc = pFunc ;
 
-      // install ctrl event handler
       SetConsoleCtrlHandler( (PHANDLER_ROUTINE)pmdCtrlHandler, TRUE ) ;
 
       return SDB_OK ;
@@ -537,9 +519,6 @@ namespace engine
    void pmdGetTicks( UINT64 &tick,
                      UINT64 &validationTick )
    {
-      /// ticks may be modified by other thread.
-      /// get validationTick first that we can
-      /// ensure validationTick <= tick.
       validationTick = pmdGetSysInfo()->_validationTick ;
       tick = pmdGetSysInfo()->_tick ;
       return ;
@@ -552,7 +531,6 @@ namespace engine
       const static UINT64 s_maxTick = (30*OSS_ONE_SEC)/PMD_SYNC_CLOCK_INTERVAL ;
       pmdGetTicks( tick, validationTick ) ;
 
-      /// 30s is not update validation, we think db is abnormal
       if ( tick > validationTick && tick - validationTick > s_maxTick )
       {
          PD_LOG( PDERROR, "db is abnormal, tick[%lld], validation tick[%lld]",

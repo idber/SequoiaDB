@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sdbstop.cpp
 
@@ -70,7 +69,6 @@ namespace engine
       ( PMD_OPTION_HELPFULL, "help all configs" ) \
       ( PMD_OPTION_CURUSER, "use current user" ) \
       
-   // initialize options
    void init ( po::options_description &desc,
                po::options_description &all )
    {
@@ -130,7 +128,6 @@ namespace engine
       if ( vm.count ( PMD_OPTION_SVCNAME ) )
       {
          string svcname = vm[PMD_OPTION_SVCNAME].as<string>() ;
-         // break service names using ';'
          rc = utilSplitStr( svcname, listServices, ", \t" ) ;
          if ( rc )
          {
@@ -199,7 +196,6 @@ namespace engine
       CHAR verText[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       vector<string> listServices ;
       UTIL_VEC_NODES listNodes ;
-      UTIL_VEC_NODES::iterator itrNode ;
       BOOLEAN bFind = TRUE ;
       INT32 typeFilter = SDB_TYPE_DB ;
       INT32 roleFilter =  -1 ;
@@ -210,7 +206,6 @@ namespace engine
       
       init ( desc, all ) ;
 
-      // validate arguments
       rc = resolveArgument ( desc, all, vm, argc, argv, listServices, typeFilter,
                              roleFilter, bForce ) ;
       if ( rc )
@@ -232,7 +227,6 @@ namespace engine
          UTIL_CHECK_AND_CHG_USER() ;
       }
       
-      // make path
       rc = ossGetEWD( dialogFile, OSS_MAX_PATHSIZE ) ;
       if ( rc )
       {
@@ -240,20 +234,17 @@ namespace engine
                     rc ) ;
          goto error ;
       }
-      // dialog path and file
       rc = utilCatPath( dialogFile, OSS_MAX_PATHSIZE, SDBCM_LOG_PATH ) ;
       if ( rc )
       {
          ossPrintf( "Failed to build dialog path: %d"OSS_NEWLINE, rc ) ;
          goto error ;
       }
-      // make sure the dir exist
       rc = ossMkdir( dialogFile ) ;
       if ( rc && SDB_FE != rc )
       {
          ossPrintf( "Create dialog dir[%s] failed, rc: %d"OSS_NEWLINE,
                     dialogFile, rc ) ;
-         // not go to error, continue
          rc = SDB_OK ;
       }
       rc = engine::utilCatPath( dialogFile, OSS_MAX_PATHSIZE,
@@ -261,10 +252,8 @@ namespace engine
       if ( rc )
       {
          ossPrintf( "Failed to build dialog file: %d"OSS_NEWLINE, rc ) ;
-         // not go to error, continue
          rc = SDB_OK ;
       }
-      // enable pd log
       sdbEnablePD( dialogFile ) ;
       setPDLevel( PDINFO ) ;
 
@@ -273,24 +262,19 @@ namespace engine
 
       if ( listServices.size() > 0 )
       {
-         // if used -p, list all nodes
          typeFilter = -1 ;
          roleFilter = -1 ;
       }
 
-      // list all nodes
       utilListNodes( listNodes, typeFilter, NULL, OSS_INVALID_PID,
                      roleFilter ) ;
 
-      itrNode = listNodes.begin() ;
-      while( itrNode != listNodes.end() )
+      for ( UINT32 i = 0 ; i < listNodes.size() ; ++i )
       {
-         utilNodeInfo &info = *itrNode ;
+         utilNodeInfo &info = listNodes[ i ] ;
 
-         // can't stop oma
          if ( SDB_TYPE_OMA == info._type )
          {
-            itrNode = listNodes.erase( itrNode ) ;
             continue ;
          }
 
@@ -315,56 +299,21 @@ namespace engine
          if ( bFind )
          {
             ++total ;
-            rc = utilAsyncStopNode( info ) ;
-            if ( rc )
-            {
-               ossPrintf ( "Terminating process %d: %s(%s)"OSS_NEWLINE,
-                           info._pid, utilDBTypeStr( (SDB_TYPE)info._type ),
-                           info._svcname.c_str() ) ;
-               if ( SDB_CLS_NODE_NOT_EXIST == rc )
-               {
-                  rc = SDB_OK ;
-                  ++success ;
-                  ossPrintf ( "DONE"OSS_NEWLINE ) ;
-               }
-               else
-               {
-                  ossPrintf ( "FAILED"OSS_NEWLINE ) ;
-               }
+            ossPrintf ( "Terminating process %d: %s(%s)"OSS_NEWLINE,
+                        info._pid, utilDBTypeStr( (SDB_TYPE)info._type ),
+                        info._svcname.c_str() ) ;
 
-               itrNode = listNodes.erase( itrNode ) ;
-               continue ;
+            rc = utilStopNode( info, UTIL_STOP_NODE_TIMEOUT, bForce ) ;
+            if ( SDB_OK == rc )
+            {
+               ++success ;
+               ossPrintf ( "DONE"OSS_NEWLINE ) ;
+            }
+            else
+            {
+               ossPrintf ( "FAILED"OSS_NEWLINE ) ;
             }
          }
-         else
-         {
-            itrNode = listNodes.erase( itrNode ) ;
-            continue ;
-         }
-         ++itrNode ;
-      }
-
-      /// The second time for wait
-      itrNode = listNodes.begin() ;
-      while( itrNode != listNodes.end() )
-      {
-         utilNodeInfo &info = *itrNode ;
-
-         ossPrintf ( "Terminating process %d: %s(%s)"OSS_NEWLINE,
-                     info._pid, utilDBTypeStr( (SDB_TYPE)info._type ),
-                     info._svcname.c_str() ) ;
-
-         rc = utilStopNode( info, UTIL_STOP_NODE_TIMEOUT, bForce, TRUE ) ;
-         if ( SDB_OK == rc )
-         {
-            ++success ;
-            ossPrintf ( "DONE"OSS_NEWLINE ) ;
-         }
-         else
-         {
-            ossPrintf ( "FAILED"OSS_NEWLINE ) ;
-         }
-         ++itrNode ;
       }
 
       ossPrintf ( "Total: %d; Success: %d; Failed: %d"OSS_NEWLINE,

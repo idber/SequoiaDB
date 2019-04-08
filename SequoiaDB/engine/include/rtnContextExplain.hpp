@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnContextExplain.hpp
 
@@ -44,7 +43,7 @@
 #include "rtnContext.hpp"
 #include "rtnContextDataDispatcher.hpp"
 #include "optAccessPlanRuntime.hpp"
-#include "ossMemPool.hpp"
+#include "utilSet.hpp"
 
 using namespace std ;
 using namespace bson ;
@@ -60,7 +59,7 @@ namespace engine
    class _rtnExplainBase : public _rtnSubContextHolder
    {
       public :
-         _rtnExplainBase () ;
+         _rtnExplainBase ( optExplainPath * explainPath ) ;
 
          virtual ~_rtnExplainBase () ;
 
@@ -70,7 +69,6 @@ namespace engine
             return FALSE ;
          }
 
-         /// Control flags
          OSS_INLINE virtual BOOLEAN _needReturnDataInRun () const
          {
             return FALSE ;
@@ -108,7 +106,6 @@ namespace engine
          virtual INT32 _buildExplain ( rtnContext * explainContext,
                                        BOOLEAN & hasMore ) = 0 ;
 
-         /// Helper functions
          INT32 _extractExplainOptions ( const BSONObj & hint,
                                         BSONObj & explainOptions,
                                         BSONObj & realHint ) ;
@@ -139,15 +136,9 @@ namespace engine
          INT32 _buildBSONQueryOptions ( BSONObjBuilder & builder,
                                         BOOLEAN needDetail ) const ;
 
-         optPlanAllocator*          getPlanAllocator() ;
-
-         virtual optExplainPath*    getExplainPath() = 0 ;
-
       protected :
-         /// Query options
          rtnQueryOptions _queryOptions ;
 
-         /// Explain options
          UINT16 _explainMask ;
          BOOLEAN _needDetail ;
          BOOLEAN _needEstimate ;
@@ -157,15 +148,13 @@ namespace engine
          BOOLEAN _needExpand ;
          BOOLEAN _needFlatten ;
 
-         /// Explain status
          BOOLEAN _explainStarted ;
          BOOLEAN _explainRunned ;
          BOOLEAN _explainPrepared ;
          BOOLEAN _explained ;
 
-      private:
-         /// Explain path
          optPlanAllocator     _planAllocator ;
+         optExplainPath *     _explainPath ;
    } ;
 
    /*
@@ -205,7 +194,6 @@ namespace engine
       virtual BOOLEAN   _canPrefetch () const { return FALSE ; }
       virtual void      _toString ( stringstream & ss ) ;
 
-      /// rtnExplainBase functions
       OSS_INLINE BOOLEAN _needReturnDataInRun () const
       {
          return !_fromLocal ;
@@ -231,11 +219,6 @@ namespace engine
       INT32 _buildExplain ( rtnContext * explainContext,
                             BOOLEAN & hasMore ) ;
 
-      virtual optExplainPath*    getExplainPath()
-      {
-         return &_explainScanPath ;
-      }
-
    protected :
       BOOLEAN              _fromLocal ;
       optExplainScanPath   _explainScanPath ;
@@ -250,7 +233,7 @@ namespace engine
                                public _IRtnCtxDataProcessor
    {
       public :
-         _rtnExplainMainBase () ;
+         _rtnExplainMainBase ( optExplainMergePathBase * explainMergePath ) ;
 
          virtual ~_rtnExplainMainBase () ;
 
@@ -281,7 +264,6 @@ namespace engine
          INT32 checkSubContext ( INT64 dataID ) ;
 
       protected :
-         // Sub-contexts are processed in parallel or not
          virtual BOOLEAN _needParallelProcess () const = 0 ;
 
          INT32 _registerExplainProcessor ( rtnContext * context ) ;
@@ -309,16 +291,9 @@ namespace engine
             return OPT_EXPINFO_MASK_ALL ;
          }
 
-         virtual optExplainPath*    getExplainPath()
-         {
-            return getExplainMergePath() ;
-         }
-
-         virtual optExplainMergePathBase* getExplainMergePath() = 0 ;
-
       protected :
-         typedef ossPoolMap< INT64, ossTick > rtnExplainTimestampList ;
-         typedef ossPoolSet< INT64 > rtnExplainIDList ;
+         typedef _utilMap< INT64, ossTick > rtnExplainTimestampList ;
+         typedef _utilSet< INT64 > rtnExplainIDList ;
 
       protected :
          ossTick                    _tempTimestamp ;
@@ -327,6 +302,7 @@ namespace engine
          rtnExplainTimestampList    _endTimestampList ;
          rtnExplainIDList           _explainIDSet ;
          BOOLEAN                    _mainExplainOutputted ;
+         optExplainMergePathBase *  _explainMergeBasePath ;
    } ;
 
 }

@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnSorting.cpp
 
@@ -49,8 +48,8 @@
 namespace engine
 {
    _rtnSorting::_rtnSorting()
-   :_bucketBuff( NULL ),
-    _objBuff( NULL ),
+   :_sortBuf(NULL),
+    _totalBufSize(0),
     _step(RTN_SORT_STEP_BEGIN),
     _cb(NULL),
     _internalBlk(NULL),
@@ -66,8 +65,7 @@ namespace engine
 
    _rtnSorting::~_rtnSorting()
    {
-      SAFE_OSS_DELETE( _bucketBuff ) ;
-      SAFE_OSS_DELETE( _objBuff ) ;
+      SAFE_OSS_FREE( _sortBuf ) ;
       SAFE_OSS_FREE( _cpBuf ) ;
       SAFE_OSS_DELETE( _internalBlk ) ;
       SAFE_OSS_DELETE( _mergeBlk ) ;
@@ -88,30 +86,23 @@ namespace engine
       SDB_ASSERT( !orderby.isEmpty(), "impossible" ) ;
       UINT64 realSize = bufSize * 1024 * 1024 ;
 
-      rc = _buffMonitor.init( realSize ) ;
-      PD_RC_CHECK( rc, PDERROR, "Initialize buffer monitor failed[%d]", rc ) ;
-
-      _bucketBuff = SDB_OSS_NEW utilCommBuff( UTIL_BUFF_MODE_SERIAL,
-                                              RTN_SORT_TUPLE_DIR_MIN_SZ,
-                                              &_buffMonitor ) ;
-      _objBuff = SDB_OSS_NEW utilCommBuff( UTIL_BUFF_MODE_SCATTER,
-                                           RTN_SORT_TUPLE_MIN_SZ,
-                                           &_buffMonitor ) ;
-      if ( !_bucketBuff || !_objBuff )
+      _sortBuf = ( CHAR * )SDB_OSS_MALLOC( realSize ) ;
+      if ( NULL == _sortBuf )
       {
+         PD_LOG( PDERROR, "failed to allocate _sortBuf." ) ;
          rc = SDB_OOM ;
-         PD_LOG( PDERROR, "Allocate memory for sort buffer failed[%d]", rc ) ;
          goto error ;
       }
 
+      _totalBufSize = realSize ;
       _cb = cb ;
       _orderby = orderby.getOwned() ;
       _fino = fino ;
       _limit = limit ;
 
       _internalBlk = SDB_OSS_NEW _rtnInternalSorting( _orderby,
-                                                      _bucketBuff,
-                                                      _objBuff,
+                                                      _sortBuf,
+                                                      _totalBufSize,
                                                       _limit ) ;
       if ( NULL == _internalBlk )
       {
@@ -127,8 +118,7 @@ namespace engine
       PD_TRACE_EXITRC(  SDB__RTNSORTING_INIT, rc ) ;
       return rc ;
    error:
-      SAFE_OSS_DELETE( _bucketBuff ) ;
-      SAFE_OSS_DELETE( _objBuff ) ;
+      SAFE_OSS_FREE( _sortBuf ) ;
       SAFE_OSS_DELETE( _internalBlk ) ;
       goto done ;
    }
@@ -193,14 +183,12 @@ namespace engine
          PD_LOG( PDERROR, "failed to exec internal sort:%d", rc ) ;
          goto error ;
       }
-      /// sorting can be done in mem.
       if ( _blks.empty() )
       {
          _step = RTN_SORT_STEP_FETCH_FROM_INTER ;
       }
       else
       {
-         UINT32 maxRecordSize = _internalBlk->maxRecordSize() ;
          rc = _moveToExternalBlks( _internalBlk, _blks, cb ) ;
          if ( SDB_OK != rc )
          {
@@ -210,8 +198,6 @@ namespace engine
 
          PD_LOG( PDDEBUG, "total size of unit:%lld", _unit.totalSize() ) ;
          SAFE_OSS_DELETE( _internalBlk ) ;
-         // Internal sorting is done, release the bucket buffer.
-         SAFE_OSS_DELETE( _bucketBuff ) ;
 
          SDB_ASSERT( NULL == _mergeBlk, "impossible" ) ;
          _mergeBlk = SDB_OSS_NEW _rtnMergeSorting( &_unit, _orderby ) ;
@@ -222,12 +208,8 @@ namespace engine
             goto error ;
          }
 
-         _objBuff->switchMode( UTIL_BUFF_MODE_SERIAL ) ;
-         // If aquire all failed, use the current buffer for merge sorting.
-         _objBuff->acquireAll( TRUE ) ;
-
-         rc = _mergeBlk->init( _objBuff->offset2Addr(0), _objBuff->capacity(),
-                               _blks, maxRecordSize, _limit ) ;
+         rc = _mergeBlk->init( _sortBuf, _totalBufSize,
+                               _blks, _limit ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to init merge sort:%d", rc ) ;
@@ -437,18 +419,15 @@ namespace engine
    }
 
    //PD_TRACE_DECLARE_FUNCTION( SDB__RTNSORTING__FETCHFROMEXTER, "_rtnSorting::_fetchFromExter")
-   INT32 _rtnSorting::_fetchFromExter( BSONObj &key, const CHAR** obj,
-                                       INT32* objLen, _pmdEDUCB *cb )
+   INT32 _rtnSorting::_fetchFromExter( BSONObj &key, const CHAR** obj, INT32* objLen, _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNSORTING__FETCHFROMEXTER ) ;
       rc = _mergeBlk->fetch( key, obj, objLen, cb ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
       }
    done:
-      PD_TRACE_EXITRC( SDB__RTNSORTING__FETCHFROMEXTER, rc ) ;
       return rc ;
    error:
       goto done ;

@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2015 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = impOptions.cpp
 
@@ -33,8 +32,6 @@
 #include "impUtil.hpp"
 #include "ossUtil.h"
 #include "pd.hpp"
-#include "utilPasswdTool.hpp"
-#include "utilParam.hpp"
 #include <iostream>
 #include <sstream>
 
@@ -50,9 +47,6 @@ namespace import
    #define IMP_OPTION_HOSTS             "hosts"
    #define IMP_OPTION_USER              "user"
    #define IMP_OPTION_PASSWORD          "password"
-   #define IMP_OPTION_CIPHERFILE        "cipherfile"
-   #define IMP_OPTION_CIPHER            "cipher"
-   #define IMP_OPTION_TOKEN             "token"
    #define IMP_OPTION_COLLECTSPACE      "csname"
    #define IMP_OPTION_COLLECTION        "clname"
    #define IMP_OPTION_DELCHAR           "delchar"
@@ -86,7 +80,6 @@ namespace import
    #define IMP_OPTION_TRIMSTRING        "trim"
    #define IMP_OPTION_IGNORENULL        "ignorenull"
    #define IMP_OPTION_STRICTFIELDNUM    "strictfieldnum"
-   #define IMP_OPTION_UNICODE           "unicode"
 
    #define IMP_EXPLAIN_HELP             "print help information"
    #define IMP_EXPLAIN_VERSION          "print version"
@@ -95,9 +88,6 @@ namespace import
    #define IMP_EXPLAIN_HOSTS            "host addresses(hostname:svcname), separated by ',', such as 'localhost:11810,localhost:11910', default: 'localhost:11810'"
    #define IMP_EXPLAIN_USER             "username"
    #define IMP_EXPLAIN_PASSWORD         "password"
-   #define IMP_EXPLAIN_CIPHERFILE       "cipherfile location, default ./passwd"
-   #define IMP_EXPLAIN_CIPHER           "input password using a cipherfile"
-   #define IMP_EXPLAIN_TOKEN            "password encryption token"
    #define IMP_EXPLAIN_DELCHAR          "string delimiter, default: '\"' ( csv only )"
    #define IMP_EXPLAIN_DELFIELD         "field delimiter, default: ',' ( csv only )"
    #define IMP_EXPLAIN_DELRECORD        "record delimiter, default: '\\n'"
@@ -132,15 +122,12 @@ namespace import
    #define IMP_EXPLAIN_TRIMSTRING       "trim string (arg: [no|right|left|both]), default: no"
    #define IMP_EXPLAIN_IGNORENULL       "ignore null field, default: false"
    #define IMP_EXPLAIN_STRICTFIELDNUM   "report error if record fields num does not equal to fields definition, default: false"
-   #define IMP_EXPLAIN_UNICODE          "whether to escape Unicode encoding, default: true"
 
    #define _TYPE(T) utilOptType(T)
-   #define _IMPLICIT_TYPE(T,V) implicit_value<T>(V)
 
    #define IMP_DEFAULT_HOSTNAME "localhost"
    #define IMP_DEFAULT_SVCNAME  "11810"
    #define IMP_DEFAULT_HOST     "localhost:11810"
-   #define IMP_DEFAULT_CIPHER   "passwd"
 
    #define IMP_STR_TRIM_NO    "no"
    #define IMP_STR_TRIM_RIGHT "right"
@@ -157,10 +144,7 @@ namespace import
       (IMP_OPTION_SVCNAME",p",         _TYPE(string),    IMP_EXPLAIN_SVCNAME) \
       (IMP_OPTION_HOSTS,               _TYPE(string),    IMP_EXPLAIN_HOSTS) \
       (IMP_OPTION_USER",u",            _TYPE(string),    IMP_EXPLAIN_USER) \
-      (IMP_OPTION_PASSWORD",w", _IMPLICIT_TYPE(string, ""), IMP_EXPLAIN_PASSWORD) \
-      (IMP_OPTION_CIPHERFILE,          _TYPE(string),    IMP_EXPLAIN_CIPHERFILE) \
-      (IMP_OPTION_CIPHER,              _TYPE(bool),      IMP_EXPLAIN_CIPHER) \
-      (IMP_OPTION_TOKEN,               _TYPE(string),    IMP_EXPLAIN_TOKEN) \
+      (IMP_OPTION_PASSWORD",w",        _TYPE(string),    IMP_EXPLAIN_PASSWORD) \
       (IMP_OPTION_COLLECTSPACE",c",    _TYPE(string),    IMP_EXPLAIN_COLLECTSPACE) \
       (IMP_OPTION_COLLECTION",l",      _TYPE(string),    IMP_EXPLAIN_COLLECTION) \
       (IMP_OPTION_ERRORSTOP,           _TYPE(string),    IMP_EXPLAIN_ERRORSTOP) \
@@ -182,9 +166,6 @@ namespace import
       (IMP_OPTION_LINEPRIORITY,        _TYPE(string),    IMP_EXPLAIN_LINEPRIORITY) \
       (IMP_OPTION_DELRECORD",r",       _TYPE(string),    IMP_EXPLAIN_DELRECORD) \
       (IMP_OPTION_FORCE,               _TYPE(string),    IMP_EXPLAIN_FORCE) \
-
-   #define IMP_JSON_OPTIONS \
-      (IMP_OPTION_UNICODE,             _TYPE(bool),      IMP_EXPLAIN_UNICODE) \
 
    #define IMP_CSV_OPTIONS \
       (IMP_OPTION_DELCHAR",a",         _TYPE(string),    IMP_EXPLAIN_DELCHAR) \
@@ -223,7 +204,6 @@ namespace import
             str++;
             len--;
 
-            // escape ascii char
             if (isdigit(nextCh))
             {
                INT64 c = 0;
@@ -231,7 +211,6 @@ namespace import
                while (len > 0 && isdigit(*str))
                {
                   c = c * 10 + (*str - '0');
-                  // the max ascii is 127
                   if (c < 0 || c > 127)
                   {
                      rc = SDB_INVALIDARG;
@@ -290,13 +269,193 @@ namespace import
       goto done;
    }
 
+   static inline INT32 _checkDateTimeFormat(const string& format)
+   {
+      INT32 rc = SDB_OK;
+      const CHAR* fmt = format.c_str();
+      INT32 len = format.length();
+      BOOLEAN hasYear = FALSE;
+      BOOLEAN hasMonth = FALSE;
+      BOOLEAN hasDay = FALSE;
+      BOOLEAN hasHour = FALSE;
+      BOOLEAN hasMinute = FALSE;
+      BOOLEAN hasSecond = FALSE;
+      BOOLEAN hasMillisecond = FALSE;
+      BOOLEAN hasMicrosecond = FALSE;
+
+      while (len > 0)
+      {
+         switch(*fmt)
+         {
+         case 'Y':
+            if (hasYear)
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            if ('Y' != fmt[1] ||
+                'Y' != fmt[2] ||
+                'Y' != fmt[3])
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            hasYear = TRUE;
+            fmt += 4;
+            len -= 4;
+            break;
+         case 'M':
+            if (hasMonth)
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            if ('M' != fmt[1])
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            hasMonth = TRUE;
+            fmt += 2;
+            len -= 2;
+            break;
+         case 'D':
+            if (hasDay)
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            if ('D' != fmt[1])
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            hasDay = TRUE;
+            fmt += 2;
+            len -= 2;
+            break;
+         case 'H':
+            if (hasHour)
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            if ('H' != fmt[1])
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            hasHour = TRUE;
+            fmt += 2;
+            len -= 2;
+            break;
+         case 'm':
+            if (hasMinute)
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            if ('m' != fmt[1])
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            hasMinute = TRUE;
+            fmt += 2;
+            len -= 2;
+            break;
+         case 's':
+            if (hasSecond)
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            if ('s' != fmt[1])
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            hasSecond = TRUE;
+            fmt += 2;
+            len -= 2;
+            break;
+         case 'S':
+            if (hasMillisecond || hasMicrosecond)
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            if ('S' != fmt[1] ||
+                'S' != fmt[2])
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            hasMillisecond = TRUE;
+            fmt += 3;
+            len -= 3;
+            break;
+         case 'f':
+            if (hasMillisecond || hasMicrosecond)
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            if ('f' != fmt[1] ||
+                'f' != fmt[2] ||
+                'f' != fmt[3] ||
+                'f' != fmt[4] ||
+                'f' != fmt[5])
+            {
+               rc = SDB_INVALIDARG;
+               goto error;
+            }
+
+            hasMicrosecond = TRUE;
+            fmt += 6;
+            len -= 6;
+            break;
+         case '*':
+         default:
+            fmt++;
+            len--;
+            break;
+         }
+      }
+
+      if (!hasYear || !hasMonth || !hasDay)
+      {
+         rc = SDB_INVALIDARG;
+         goto error;
+      }
+
+   done:
+      return rc;
+   error:
+      goto done;
+   }
+
    Options::Options()
    {
       _parsed = FALSE;
       _hostname = IMP_DEFAULT_HOSTNAME;
       _svcname = IMP_DEFAULT_SVCNAME;
       _hostsString = IMP_DEFAULT_HOST;
-      _cipherfile = IMP_DEFAULT_CIPHER;
       _recordDelimiter = "\n";
       _inputType = INPUT_STDIN;
       _inputFormat = FORMAT_CSV;
@@ -312,8 +471,6 @@ namespace import
       _enableCoord = TRUE;
       _enableTransaction = FALSE;
       _allowKeyDuplication = TRUE;
-
-      _isUnicode = TRUE ;
 
       _stringDelimiter = "\"";
       _fieldDelimiter = ",";
@@ -349,10 +506,6 @@ namespace import
 
       addOptions("Input Options")
          IMP_INPUT_OPTIONS
-      ;
-
-      addOptions("JSON Options")
-         IMP_JSON_OPTIONS
       ;
 
       addOptions("CSV Options")
@@ -439,11 +592,8 @@ namespace import
          _svcname = get<string>(IMP_OPTION_SVCNAME);
       }
 
-      // add hostname & svcname to hostsString,
-      // so we can process them in one time
       if (has(IMP_OPTION_HOSTNAME) || has(IMP_OPTION_SVCNAME))
       {
-         // it's ok if there are duplicate hostsString, it'll be processed.
          if (has(IMP_OPTION_HOSTS))
          {
             _hostsString += "," + _hostname + ":" + _svcname;
@@ -463,55 +613,14 @@ namespace import
       }
       Hosts::removeDuplicate(_hosts);
 
-      if (has(IMP_OPTION_CIPHERFILE))
-      {
-         _cipherfile = get<string>(IMP_OPTION_CIPHERFILE);
-      }
-      if (has(IMP_OPTION_TOKEN))
-      {
-         _token = get<string>(IMP_OPTION_TOKEN);
-      }
       if (has(IMP_OPTION_USER))
       {
-         _user = get<string>(IMP_OPTION_USER) ;
+         _user = get<string>(IMP_OPTION_USER);
+      }
 
-         if ( has(IMP_OPTION_PASSWORD) )
-         {
-            string passwd = get<string>(IMP_OPTION_PASSWORD) ;
-            if ( "" == passwd )
-            {
-               passwd = utilPasswordTool::interactivePasswdInput() ;
-            }
-            _password = passwd ;
-         }
-         else
-         {
-            utilPasswordTool passwdTool ;
-
-            if ( has(IMP_OPTION_CIPHER) && get<bool>(IMP_OPTION_CIPHER) )
-            {
-               string connectionUserName ;
-
-               rc = passwdTool.getPasswdByCipherFile( _user, _token,
-                                                      _cipherfile,
-                                                      connectionUserName,
-                                                      _password ) ;
-               if ( SDB_OK != rc )
-               {
-                  cerr << "get user password failed" << endl ;
-                  PD_LOG( PDERROR, "get user password failed" ) ;
-                  goto error ;
-               }
-               _user = connectionUserName ;
-            }
-            else
-            {
-               if ( has(IMP_OPTION_TOKEN) || has(IMP_OPTION_CIPHERFILE) )
-               {
-                  cout << "to use cipherfile, provide --cipher" << endl ;
-               }
-            }
-         }
+      if (has(IMP_OPTION_PASSWORD))
+      {
+         _password = get<string>(IMP_OPTION_PASSWORD);
       }
 
       if (has(IMP_OPTION_COLLECTSPACE))
@@ -723,14 +832,6 @@ namespace import
             rc = SDB_INVALIDARG;
             goto error;
          }
-
-         if ( _fieldDelimiter.find( _recordDelimiter ) != string::npos )
-         {
-            std::cerr << IMP_OPTION_DELFIELD << " can't contain "
-                      << IMP_OPTION_DELRECORD << std::endl;
-            rc = SDB_INVALIDARG;
-            goto error;
-         }
       }
 
       if (has(IMP_OPTION_FIELDS))
@@ -742,11 +843,6 @@ namespace import
       {
          string headerline = get<string>(IMP_OPTION_HEADERLINE);
          ossStrToBoolean(headerline.c_str(), &_hasHeaderLine);
-      }
-
-      if (has(IMP_OPTION_UNICODE))
-      {
-         _isUnicode = get<bool>(IMP_OPTION_UNICODE) ? TRUE : FALSE ;
       }
 
       if (FORMAT_CSV == _inputFormat)
@@ -788,7 +884,7 @@ namespace import
       if (has(IMP_OPTION_DATEFMT))
       {
          string datefmt = get<string>(IMP_OPTION_DATEFMT);
-         rc = checkDateTimeFormat(datefmt);
+         rc = _checkDateTimeFormat(datefmt);
          if (SDB_OK != rc)
          {
             std::cerr << "invalid " << IMP_OPTION_DATEFMT
@@ -803,7 +899,7 @@ namespace import
       if (has(IMP_OPTION_TIMESTAMPFMT))
       {
          string tsfmt = get<string>(IMP_OPTION_TIMESTAMPFMT);
-         rc = checkDateTimeFormat(tsfmt);
+         rc = _checkDateTimeFormat(tsfmt);
          if (SDB_OK != rc)
          {
             std::cerr << "invalid " << IMP_OPTION_TIMESTAMPFMT

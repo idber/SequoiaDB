@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dpsLogFile.hpp
 
@@ -104,7 +103,6 @@ namespace engine
    {
    private:
       _OSS_FILE      *_file ;
-      // 32 bit size, so we can support up to 4GB file size
       UINT32         _fileSize ;
       UINT32         _fileNum ;
       UINT32         _idleSize ;
@@ -143,22 +141,15 @@ namespace engine
       string toString() const ;
 
    public:
-      // initialize file
       INT32 init ( const CHAR *path, UINT32 fileSize, UINT32 fileNum ) ;
-      // write into file
       INT32 write ( const CHAR *content, UINT32 len ) ;
-      // read from file
       INT32 read ( const DPS_LSN_OFFSET &lOffset, UINT32 len, CHAR *buf ) ;
-      // close the file
       INT32 close();
-      // get how much space we still able to write
       UINT32 getIdleSize() { return _idleSize ; }
       UINT32 getLength () { return _fileSize - _idleSize ; }
       UINT32 getValidLength() const ;
-      // reset metadata
       INT32 reset ( UINT32 logID, const DPS_LSN_OFFSET &offset,
                     const DPS_LSN_VER &version ) ;
-      // get first lsn
       DPS_LSN getFirstLSN ( BOOLEAN mustExist = TRUE ) ;
 
       BOOLEAN isZeroStart()
@@ -190,11 +181,8 @@ namespace engine
          _logHeader._fileSize = _fileSize ;
          _logHeader._version  = DPS_LOG_FILE_VERSION1 ;
       }
-      // flush log file header
       INT32 _flushHeader() ;
-      // restore header
       INT32 _readHeader () ;
-      // restore from file
       INT32 _restore () ;
    };
    typedef class _dpsLogFile dpsLogFile;

@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omDef.hpp
 
@@ -41,7 +40,6 @@
 namespace engine
 {
 
-//********************************** NEW **************************************
 
    #define OM_CS_DEPLOY                         "SYSDEPLOY"
 
@@ -62,7 +60,6 @@ namespace engine
    #define OM_REST_FIELD_PASSWORD               "Passwd"
    #define OM_REST_FIELD_ENFORCED               "Enforced"
    #define OM_REST_FIELD_CONFIGINFO             "ConfigInfo"
-   #define OM_REST_FIELD_BUSINESS_TYPE          "BusinessType"
    #define OM_REST_FIELD_OPERATION_TYPE         "OperationType"
    #define OM_REST_FIELD_FROM                   "From"
    #define OM_REST_FIELD_TO                     "To"
@@ -117,12 +114,6 @@ namespace engine
    #define OM_BSON_SQL                          "Sql"
    #define OM_BSON_LEASETIME                    "LeaseTime"
    #define OM_BSON_LEASETIME2                   "leaseTime"
-   #define OM_BSON_OM_ADDR                      "omaddr"
-   #define OM_BSON_FORCE                        "Force"
-   #define OM_BSON_NODES                        "Nodes"
-   #define OM_BSON_USER                         "User"
-   #define OM_BSON_PASSWD                       "Passwd"
-   #define OM_BSON_COMMAND                      "Command"
 
    /***************** XML field *****************/
    #define OM_XML_FIELD_BUSINESS_TYPE           "BusinessType"
@@ -146,10 +137,6 @@ namespace engine
    #define OM_PUBLIC_FIELD_USER                 "User"
    #define OM_PUBLIC_FIELD_PASSWD               "Passwd"
    #define OM_PUBLIC_FIELD_HOSTNAME             "HostName"
-   #define OM_PUBLIC_FIELD_DBNAME               "DbName"
-   #define OM_PUBLIC_FIELD_GRANT_TYPE           "GrantType"
-   #define OM_PUBLIC_FIELD_SVCNAME              "svcname"
-   #define OM_PUBLIC_FIELD_DBPATH               "dbpath"
 
    /******* SYSCLUSTER *******/
    #define OM_CS_DEPLOY_CL_CLUSTER              OM_CS_DEPLOY".SYSCLUSTER"
@@ -203,7 +190,6 @@ namespace engine
    #define OM_CONFIGURE_FIELD_PORT              "Port"
    #define OM_CONFIGURE_FIELD_PORT2             "port"
    #define OM_CONFIGURE_FIELD_INSTALLPATH       "InstallPath"
-   #define OM_CONFIGURE_FIELD_DBPATH            OM_PUBLIC_FIELD_DBPATH
 
    /******* SYSHOST *******/
    #define OM_CS_DEPLOY_CL_HOST                 OM_CS_DEPLOY".SYSHOST"
@@ -274,8 +260,7 @@ key: {"OM_HOST_FIELD_IP":1}, unique: true, enforced: true }"
    #define OM_TASKINFO_FIELD_PACKAGENAME        "PackageName"
    #define OM_TASKINFO_FIELD_HOSTINFO           "HostInfo"
    #define OM_TASKINFO_FIELD_ENFORCED           "Enforced"
-   #define OM_TASKINFO_FIELD_HOSTNAME           OM_PUBLIC_FIELD_HOSTNAME
-   #define OM_TASKINFO_FIELD_SVCNAME            OM_PUBLIC_FIELD_SVCNAME
+   #define OM_TASKINFO_FIELD_HOSTNAME           "HostName"
    #define OM_TASKINFO_FIELD_IP                 "IP"
    #define OM_TASKINFO_FIELD_USER               OM_PUBLIC_FIELD_USER
    #define OM_TASKINFO_FIELD_PASSWD             OM_PUBLIC_FIELD_PASSWD
@@ -288,7 +273,6 @@ key: {"OM_HOST_FIELD_IP":1}, unique: true, enforced: true }"
    #define OM_TASKINFO_FIELD_DEPLOY_MOD         OM_PUBLIC_FIELD_DEPLOY_MOD
    #define OM_TASKINFO_FIELD_AUTH_USER          "AuthUser"
    #define OM_TASKINFO_FIELD_AUTH_PASSWD        "AuthPasswd"
-   #define OM_TASKINFO_FIELD_DBNAME             OM_PUBLIC_FIELD_DBNAME
 
    #define OM_CS_DEPLOY_CL_TASKINFOIDX1      "{name:\"SYSDEPLOY_TASKINFO_IDX1\",key: {"\
 OM_TASKINFO_FIELD_TASKID":1}, unique: true, enforced: true } "
@@ -318,47 +302,19 @@ _IDX1\",key: {"OM_RELATIONSHIP_FIELD_NAME":1}, unique: true, enforced: true }"
    #define OM_PLUGINS_FIELD_SERVICENAME         "ServiceName"
    #define OM_PLUGINS_FIELD_UPDATETIME          "UpdateTime"
    #define OM_CS_DEPLOY_CL_PLUGINSIDX1          "{name:\"SYSDEPLOY_PLUGINS_IDX1\
-\",key: {"OM_PLUGINS_FIELD_NAME":1,"OM_PLUGINS_FIELD_BUSINESSTYPE":1}, \
-unique: true, enforced: true }"
+\",key: {"OM_PLUGINS_FIELD_NAME":1}, unique: true, enforced: true }"
    #define OM_CS_DEPLOY_CL_PLUGINSIDX2          "{name:\"SYSDEPLOY_PLUGINS_IDX2\
 \",key: {"OM_PLUGINS_FIELD_BUSINESSTYPE":1}, unique: true, enforced: true }"
 
    /********** SYSSTRATEGY **********/
    #define OM_CS_STRATEGY                       "SYSSTRATEGY"
 
-   /********** SYSTASKPROPERTY **********/
-   #define OM_CS_STRATEGY_CL_TASK_PRO           OM_CS_STRATEGY".SYSTASKPROPERTY"
-   #define OM_CS_STRATEGY_CL_TASK_PRO_IDX1      BSON( "name" <<\
-"OM_CS_STRATEGY_CL_TASKPROIDX1" << "key" << BSON( OM_BSON_CLUSTER_NAME <<\
-1 << OM_BSON_BUSINESS_NAME << 1 << OM_REST_FIELD_TASK_ID << 1 ) <<\
-"unique" << true << "enforced" << true )
-   #define OM_CS_STRATEGY_CL_TASK_PRO_IDX2      BSON( "name" <<\
-"OM_CS_STRATEGY_CL_TASKPROIDX2" << "key" << BSON( OM_BSON_CLUSTER_NAME <<\
-1 << OM_BSON_BUSINESS_NAME << 1 << OM_REST_FIELD_TASK_NAME << 1 ) <<\
-"unique" << true << "enforced" << true )
-   #define OM_CS_STRATEGY_CL_TASK_PRO_IDX3      BSON( "name" <<\
-"OM_CS_STRATEGY_CL_TASKPROIDX3" << "key" << BSON( OM_BSON_CLUSTER_NAME <<\
-1 << OM_BSON_BUSINESS_NAME << 1 << OM_REST_FIELD_STATUS << 1 ) )
+   /********** SYSBUSINESSTASKPROPERTY **********/
+   #define OM_CS_STRATEGY_CL_BUSINESS_TASK_PRO  OM_CS_STRATEGY".SYSBUSINESSTASKPROPERTY"
+   #define OM_STRATEGY_FIELD_TASKID             FIELD_NAME_TASKID
+   #define OM_STRATEGY_BUSINESSTASKPROIDX1      "{name:\"OM_STRATEGY_BUSINESSTASKPROIDX1\",\
+key: {"OM_STRATEGY_FIELD_TASKID":1} }"
 
-   /********** SYSSTRATEGYPROPERTY **********/
-   #define OM_CS_STRATEGY_CL_STRATEGY_PRO       OM_CS_STRATEGY".SYSSTRATEGYPROPERTY"
-   #define OM_CS_STRATEGY_CL_STRATEGY_PRO_IDX1  BSON( "name" <<\
-"OM_CS_STRATEGY_CL_STRATEGYPROIDX1" << "key" << BSON( OM_BSON_CLUSTER_NAME <<\
-1 << OM_BSON_BUSINESS_NAME << 1 << OM_REST_FIELD_TASK_ID << 1 ) )
-   #define OM_CS_STRATEGY_CL_STRATEGY_PRO_IDX2  BSON( "name" <<\
-"OM_CS_STRATEGY_CL_STRATEGYPROIDX2" << "key" << BSON( OM_BSON_CLUSTER_NAME <<\
-1 << OM_BSON_BUSINESS_NAME << 1 << OM_REST_FIELD_RULE_ID << 1 ) <<\
-"unique" << true << "enforced" << true )
-   #define OM_CS_STRATEGY_CL_STRATEGY_PRO_IDX3  BSON( "name" <<\
-"OM_CS_STRATEGY_CL_STRATEGYPROIDX3" << "key" << BSON( OM_BSON_CLUSTER_NAME <<\
-1 << OM_BSON_BUSINESS_NAME << 1 << OM_REST_FIELD_STATUS << 1 ) )
-
-   /********** SYSMETADATA **********/
-   #define OM_CS_STRATEGY_CL_META_DATA          OM_CS_STRATEGY".SYSMETADATA"
-   #define OM_CS_STRATEGY_CL_META_DATA_IDX1     BSON("name" << \
-"OM_CS_STRATEGY_CL_METADATAIDX1" << "key" << BSON( FIELD_NAME_NAME << 1 ) )
-
-//********************************** OLD **************************************
 
    #define OM_PATH_WEB                       "web"
    #define OM_PATH_CONFIG                    "config"
@@ -369,17 +325,14 @@ unique: true, enforced: true }"
    #define OM_VALUE_BOOLEAN_FALSE1            "false"
    #define OM_VALUE_BOOLEAN_FALSE2            "FALSE"
 
-   // Sequoiadb's template configure
    #define OM_TEMPLATE_REPLICA_NUM           "replicanum"
    #define OM_TEMPLATE_DATAGROUP_NUM         "datagroupnum"
    #define OM_TEMPLATE_CATALOG_NUM           "catalognum"
    #define OM_TEMPLATE_COORD_NUM             "coordnum"
    #define OM_TEMPLATE_TRANSACTION           PMD_OPTION_TRANSACTIONON
 
-   // database
    #define OM_DBPATH_PREFIX_DATABASE         "database"
 
-   // extend configure
    #define OM_CONF_DETAIL_EX_DG_NAME         "datagroupname"
    #define OM_CONF_DETAIL_DBPATH             PMD_OPTION_DBPATH
    #define OM_CONF_DETAIL_SVCNAME            PMD_OPTION_SVCNAME
@@ -395,14 +348,10 @@ unique: true, enforced: true }"
    #define OM_CONF_DETAIL_DATAGROUPNAME      "datagroupname"
    #define OM_CONF_DETAIL_TRANSACTIONON      PMD_OPTION_TRANSACTIONON
 
-   // Zookeeper's template configure
    #define OM_TEMPLATE_ZOO_NUM               "zoonodenum"
 
-   // Zookeeper's extend configure
    #define OM_ZOO_CONF_DETAIL_ZOOID          "zooid"
-   // /opt/$businessType/$businessName/$dataport
    #define OM_ZOO_CONF_DETAIL_INSTALLPATH    "installpath"
-   // /disk/$businessType/$businessName/database/$$dataport
    #define OM_ZOO_CONF_DETAIL_DATAPATH       "datapath"
    #define OM_ZOO_CONF_DETAIL_DATAPORT       "dataport"
    #define OM_ZOO_CONF_DETAIL_ELECTPORT      "electport"
@@ -411,10 +360,8 @@ unique: true, enforced: true }"
    #define OM_ZOO_CONF_DETAIL_INITLIMIT      "initlimit"
    #define OM_ZOO_CONF_DETAIL_TICKTIME       "ticktime"
 
-   // sequoiasql oltp
    #define OM_SEQUOIASQL_DEPLOY_OLTP            "oltp"
 
-   // sequoiasql olap
    #define OM_SEQUOIASQL_DEPLOY_OLAP            "olap"
    #define OM_SSQL_OLAP_DEPLOY_STANDBY          "deploy_standby"
    #define OM_SSQL_OLAP_SEGMENT_NUM             "segment_num"
@@ -449,15 +396,7 @@ unique: true, enforced: true }"
    #define OM_BUSINESS_YARN                  "yarn"
    #define OM_BUSINESS_SEQUOIASQL            "sequoiasql"
    #define OM_BUSINESS_SEQUOIASQL_OLAP       "sequoiasql-olap"
-   #define OM_BUSINESS_SEQUOIASQL_POSTGRESQL "sequoiasql-postgresql"
-   #define OM_BUSINESS_SEQUOIASQL_MYSQL      "sequoiasql-mysql"
-
-   /*
-      install package name
-   */
-   #define OM_PACKAGE_SEQUOIADB              OM_BUSINESS_SEQUOIADB
-   #define OM_PACKAGE_SEQUOIASQL_POSTGRESQL  OM_BUSINESS_SEQUOIASQL_POSTGRESQL
-   #define OM_PACKAGE_SEQUOIASQL_MYSQL       OM_BUSINESS_SEQUOIASQL_MYSQL
+   #define OM_BUSINESS_SEQUOIASQL_OLTP       "sequoiasql-oltp"
 
    /*
       discover businesss respone
@@ -471,19 +410,17 @@ unique: true, enforced: true }"
       }
    */
    #define OM_TASKINFO_FIELD_FLOW            "Flow"
-   //**********************************************
 
    enum omTaskType
    {
-      OM_TASK_TYPE_ADD_HOST         = 0,
-      OM_TASK_TYPE_REMOVE_HOST      = 1,
-      OM_TASK_TYPE_ADD_BUSINESS     = 2,
-      OM_TASK_TYPE_REMOVE_BUSINESS  = 3,
-      OM_TASK_TYPE_SSQL_EXEC        = 4,
-      OM_TASK_TYPE_EXTEND_BUSINESS  = 5,
-      OM_TASK_TYPE_SHRINK_BUSINESS  = 6,
-      OM_TASK_TYPE_DEPLOY_PACKAGE   = 7,
-      OM_TASK_TYPE_RESTART_BUSINESS = 8,
+      OM_TASK_TYPE_ADD_HOST        = 0,
+      OM_TASK_TYPE_REMOVE_HOST     = 1,
+      OM_TASK_TYPE_ADD_BUSINESS    = 2,
+      OM_TASK_TYPE_REMOVE_BUSINESS = 3,
+      OM_TASK_TYPE_SSQL_EXEC       = 4,
+      OM_TASK_TYPE_EXTEND_BUSINESS = 5,
+      OM_TASK_TYPE_SHRINK_BUSINESS = 6,
+      OM_TASK_TYPE_DEPLOY_PACKAGE  = 7,
 
       OM_TASK_TYPE_END
    } ;
@@ -496,7 +433,6 @@ unique: true, enforced: true }"
    #define OM_TASK_TYPE_EXTEND_BUSINESS_STR   "EXTEND_BUSINESS"
    #define OM_TASK_TYPE_SHRINK_BUSINESS_STR   "SHRINK_BUSINESS"
    #define OM_TASK_TYPE_DEPLOY_PACKAGE_STR    "DEPLOY_PACKAGE"
-   #define OM_TASK_TYPE_RESTART_BUSINESS_STR  "RESTART_BUSINESS"
 
    const CHAR *getTaskTypeStr( INT32 taskType ) ;
 
@@ -519,7 +455,6 @@ unique: true, enforced: true }"
 
    const CHAR *getTaskStatusStr( INT32 taskStatus ) ;
 
-   // OM_REST_DEFINE
    #define  OM_REST_LOGIN_HTML               "login.html"
    #define  OM_REST_INDEX_HTML               "index.html"
    #define  OM_REST_FAVICON_ICO              "favicon.ico"
@@ -532,7 +467,6 @@ unique: true, enforced: true }"
                                              "<meta http-equiv=\"refresh\" content=\"0;url="\
                                              OM_REST_INDEX_HTML"\"></head></html>"
 
-   //#define  OM_REST_RES_RETCODE              OP_ERRNOFIELD
    #define  OM_REST_RES_RETCODE              OP_ERRNOFIELD
    #define  OM_REST_RES_DESP                 OP_ERRDESP_FIELD
    #define  OM_REST_RES_DETAIL               OP_ERR_DETAIL
@@ -550,17 +484,13 @@ unique: true, enforced: true }"
    #define  OM_DEFAULT_INSTALL_ROOT_PATH     "/opt/"
 #endif
 
-   //*************************default values***********************************
    #define  OM_DEFAULT_SDB_USER              "sdbadmin"
    #define  OM_DEFAULT_SDB_PASSWD            "sdbadmin"
    #define  OM_DEFAULT_SDB_USERGROUP         "sdbadmin_group"
    #define  OM_REST_LANGUAGE_EN              "en"
    #define  OM_REST_LANGUAGE_ZH_CN           "zh-CN"
-   // MB
    #define  OM_MIN_DISK_FREE_SIZE            (600)
-   // agent default localhost
    #define  OM_DEFAULT_LOCAL_HOST            "localhost"
-   // agent default port
    #define  OM_AGENT_DEFAULT_PORT            SDBCM_DFT_PORT
 
    /*
@@ -570,11 +500,8 @@ unique: true, enforced: true }"
    #define OM_REST_DEPLOYMOD_VERTICAL        "vertical"
 
 
-   // milliseconds
-   //two hours
    #define  OM_MSG_TIMEOUT_TWO_HOUR          (2 * 3600 * 1000)
-   #define  OM_MSG_TIMEOUT_THIRTY_SECS       (30 * 1000)
-   #define  OM_MSG_TIMEOUT_ONE_MIN           (60 * 1000)
+   #define  OM_MSG_TIMEOUT_TEN_SECS          (10 * 1000)
 
    #define  OM_BASICCHECK_INTERVAL           OM_MSG_TIMEOUT_TWO_HOUR
    #define  OM_INSTALL_AGET_INTERVAL         OM_MSG_TIMEOUT_TWO_HOUR
@@ -582,9 +509,8 @@ unique: true, enforced: true }"
    #define  OM_WAIT_AGENT_UNISTALL_INTERVAL  OM_MSG_TIMEOUT_TWO_HOUR
    #define  OM_WAIT_SCAN_RES_INTERVAL        OM_MSG_TIMEOUT_TWO_HOUR
 
-   // wait for response's timeout
-   #define  OM_NOTIFY_TASK_TIMEOUT           OM_MSG_TIMEOUT_THIRTY_SECS
-   #define  OM_QUERY_HOST_STATUS_TIMEOUT     OM_MSG_TIMEOUT_ONE_MIN
+   #define  OM_NOTIFY_TASK_TIMEOUT           OM_MSG_TIMEOUT_TEN_SECS
+   #define  OM_QUERY_HOST_STATUS_TIMEOUT     OM_MSG_TIMEOUT_TEN_SECS
 
    #define  OM_WAIT_PROGRESS_RES_INTERVAL    (3000)
    #define  OM_WAIT_AGENT_EXIT_RES_INTERVAL  (1000)
@@ -595,14 +521,11 @@ unique: true, enforced: true }"
    #define OM_INT32_LENGTH                   (20)
    #define OM_INT64_LENGTH                   (20)
 
-   // OM user's table
    #define  OM_DEFAULT_LOGIN_USER            "admin"
    #define  OM_DEFAULT_LOGIN_PASSWD          "admin"
 
    #define  OM_DEFAULT_PLUGIN_USER           "plugin"
-   //**************************************************************************
 
-   //*********************command between rest and om**************************
    #define  OM_REST_FIELD_COMMAND            "cmd"
    #define  OM_CREATE_CLUSTER_REQ            "create cluster"
    #define  OM_QUERY_CLUSTER_REQ             "query cluster"
@@ -618,7 +541,6 @@ unique: true, enforced: true }"
    #define  OM_QUERY_HOST_STATUS_REQ         "query host status"
    #define  OM_LIST_BUSINESS_TYPE_REQ        "list business type"
    #define  OM_GET_BUSINESS_TEMPLATE_REQ     "get business template"
-   #define  OM_GET_CONFIG_TEMPLATE_REQ       "get config template"
    #define  OM_CONFIG_BUSINESS_REQ           "get business config"
    #define  OM_INSTALL_BUSINESS_REQ          "add business"
    #define  OM_LIST_NODE_REQ                 "list nodes"
@@ -639,22 +561,12 @@ unique: true, enforced: true }"
    #define  OM_DISCOVER_BUSINESS_REQ         "discover business"
    #define  OM_UNDISCOVER_BUSINESS_REQ       "undiscover business"
 
-   /// Strategy command begin ==>
-   #define  OM_TASK_STRATEGY_LIST_REQ        "list svc task strategy"
-   #define  OM_TASK_STRATEGY_ADD_REQ         "add svc task strategy"
-   #define  OM_TASK_STRATEGY_UPDATE_NICE_REQ "update svc task strategy nice"
-   #define  OM_TASK_STRATEGY_ADD_IPS_REQ     "add svc task strategy ips"
-   #define  OM_TASK_STRATEGY_DEL_IPS_REQ     "del svc task strategy ips"
-   #define  OM_TASK_STRATEGY_DEL_REQ         "del svc task strategy"
-   #define  OM_TASK_STRATEGY_UPDATE_STAT_REQ "update svc task strategy status"
-   #define  OM_TASK_STRATEGY_UPDATE_SORT_REQ "update svc task strategy sort"
-   #define  OM_TASK_STRATEGY_UPDATE_USER_REQ "update svc task strategy user"
-   #define  OM_TASK_LIST_REQ                 "list svc task"
-   #define  OM_TASK_ADD_REQ                  "add svc task"
-   #define  OM_TASK_UPDATE_STATUS_REQ        "update svc task status"
-   #define  OM_TASK_DEL_REQ                  "del svc task"
-   #define  OM_TASK_STRATEGY_FLUSH           "flush svc task strategy"
-   /// <== Strategy command over
+   #define  OM_TASK_STRATEGY_LIST_REQ        "list task strategy"
+   #define  OM_TASK_STRATEGY_ADD_REQ         "add task strategy"
+   #define  OM_TASK_STRATEGY_UPDATE_NICE_REQ "update task strategy nice"
+   #define  OM_TASK_STRATEGY_ADD_IPS_REQ     "add task strategy ips"
+   #define  OM_TASK_STRATEGY_DEL_IPS_REQ     "del task strategy ips"
+   #define  OM_TASK_STRATEGY_DEL_REQ         "del task strategy"
 
    #define  OM_UPDATE_HOST_INFO_REQ          "update host info"
 
@@ -675,16 +587,7 @@ unique: true, enforced: true }"
    #define  OM_REGISTER_PLUGIN_REQ           "register plugin"
    #define  OM_LIST_PLUGIN_REQ               "list plugins"
 
-   #define  OM_RESTART_BUSINESS_REQ          "restart business"
 
-   #define  OM_MODIFY_BUSINESS_CONFIG_REQ    "modify business config"
-   #define  OM_UPDATE_BUSINESS_CONFIG_REQ    "update business config"
-   #define  OM_DELETE_BUSINESS_CONFIG_REQ    "delete business config"
-
-   //**************************************************************************
-
-   //*********************param between rest and om****************************
-   //field names
    #define  OM_REST_CLUSTER_INFO             "ClusterInfo"
    #define  OM_BSON_FIELD_CLUSTER_DESC       OM_CLUSTER_FIELD_DESC
    #define  OM_BSON_FIELD_SDB_USER           OM_CLUSTER_FIELD_SDBUSER
@@ -699,18 +602,12 @@ unique: true, enforced: true }"
    #define  OM_REST_FIELD_TIMESTAMP          "Timestamp"
    #define  OM_REST_FIELD_NEW_PASSWD         "NewPasswd"
 
-   /// Strategy fields begin ==>
    #define  OM_REST_FIELD_TASK_ID            "TaskID"
    #define  OM_REST_FIELD_RULE_ID            "RuleID"
    #define  OM_REST_FIELD_USER_NAME          "UserName"
    #define  OM_REST_FIELD_TASK_NAME          "TaskName"
    #define  OM_REST_FIELD_IPS                "IPs"
    #define  OM_REST_FIELD_NICE               "Nice"
-   #define  OM_REST_FIELD_SORT_ID            "SortID"
-   #define  OM_REST_FIELD_STATUS             "Status"
-   #define  OM_REST_FIELD_CREATE_USER        "CreateUser"
-   #define  OM_REST_FIELD_CREATE_TIME        "CreateTime"
-   /// <== Strategy fields end
 
    #define  OM_REST_FIELD_ADDRESS            "Address"
    #define  OM_BSON_FIELD_HOST_INFO          OM_REST_FIELD_HOST_INFO
@@ -720,7 +617,7 @@ unique: true, enforced: true }"
    #define  OM_BSON_FIELD_HOST_PASSWD        OM_HOST_FIELD_PASSWORD
    #define  OM_BSON_FIELD_HOST_SSHPORT       OM_HOST_FIELD_SSHPORT
    #define  OM_BSON_FIELD_AGENT_PORT         OM_HOST_FIELD_AGENT_PORT
-   #define  OM_BSON_FIELD_SCAN_STATUS        OM_REST_FIELD_STATUS
+   #define  OM_BSON_FIELD_SCAN_STATUS        "Status"
    #define  OM_SCAN_HOST_STATUS_FINISH       "finish"
    #define  OM_BSON_FIELD_OS                 OM_HOST_FIELD_OS
    #define  OM_BSON_FIELD_OMA                OM_HOST_FIELD_OMA
@@ -801,7 +698,6 @@ unique: true, enforced: true }"
    #define  OM_CONF_PATH_STR                 "conf"
    #define  OM_LOG_PATH_STR                  "log"
 
-   //xml file
    #define  OM_CONFIG_FILE_TYPE              ".xml"
    #define  OM_XMLATTR_KEY                   "<xmlattr>"
    #define  OM_XMLATTR_TYPE                  "<xmlattr>.type"
@@ -826,10 +722,7 @@ unique: true, enforced: true }"
    #define  OM_XML_CONFIG                    "config"
    #define  OM_REST_TEMPLATE_INFO            "TemplateInfo"
    #define  OM_BSON_PROPERTY_VALUE           "Value"
-   #define  OM_BSON_PROPERTY_HIDDEN          "hidden"
-   //**************************************************************************
 
-   //*********************command between om and agent*************************
    #define  OM_PRE_CHECK_HOST                "pre-check host"
    #define  OM_POST_CHECK_HOST               "post-check host"
    #define  OM_UPDATE_HOSTNAME_REQ           "update hostname"
@@ -838,9 +731,7 @@ unique: true, enforced: true }"
    #define  OM_NOTIFY_TASK                   "notify task"
    #define  OM_SSQL_GET_MORE_REQ             "ssql getmore"
    #define  OM_INTERRUPT_TASK_REQ            "interrupt task"
-   //**************************************************************************
 
-   // this is for the web transfer request.  web -> om -> coord/data
    #define  OM_REST_HEAD_CLUSTERNAME         "sdbClusterName"
    #define  OM_REST_HEAD_BUSINESSNAME        "sdbBusinessName"
 

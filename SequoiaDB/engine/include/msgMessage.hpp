@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = msgMessage.hpp
 
@@ -77,30 +76,6 @@ BOOLEAN msgIsInnerOpReply( MsgHeader *pMsg ) ;
 #define MSG_GET_INNER_REPLY_HEADER_LEN(msg) \
    ( msgIsInnerOpReply(msg) ? sizeof(MsgOpReply) : \
                               sizeof(MsgInternalReplyHeader) )
-
-OSS_INLINE BOOLEAN isNoReplyMsg( INT32 opCode )
-{
-   if ( MSG_CAT_GRP_CHANGE_NTY == opCode ||
-        MSG_BS_DISCONNECT == opCode ||
-        MSG_BS_INTERRUPTE == opCode ||
-        MSG_BS_INTERRUPTE_SELF == opCode )
-   {
-      return TRUE ;
-   }
-   return FALSE ;
-}
-
-OSS_INLINE BOOLEAN isTransBSMsg( INT32 opCode )
-{
-   if ( MSG_BS_TRANS_INSERT_REQ == GET_REQUEST_TYPE( opCode ) ||
-        MSG_BS_TRANS_UPDATE_REQ == GET_REQUEST_TYPE( opCode ) ||
-        MSG_BS_TRANS_DELETE_REQ == GET_REQUEST_TYPE( opCode ) ||
-        MSG_BS_TRANS_QUERY_REQ  == GET_REQUEST_TYPE( opCode ) )
-   {
-      return TRUE ;
-   }
-   return FALSE ;
-}
 
 /*
  * Create Update Message in ppBuffer
@@ -234,8 +209,6 @@ INT32 msgExtractReply ( CHAR *pBuffer, SINT32 *flag, SINT64 *contextID,
                         SINT32 *startFrom, SINT32 *numReturned,
                         vector<BSONObj> &objList ) ;
 
-// Reply need sessionID ( nodeID + reqID ) to reply to sender, so we need to
-// pass both
 void msgBuildReplyMsgHeader ( MsgOpReply &replyHeader, SINT32 packetLength,
                               INT32 opCode, SINT32 flag, SINT64 contextID,
                               SINT32 startFrom, SINT32 numReturned,
@@ -245,8 +218,6 @@ INT32 msgBuildDisconnectMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                               UINT64 reqID,
                               engine::IExecutor *cb = NULL ) ;
 
-// Disconnect need sessionID ( nodeID + reqID ) to send to data nodes, so we
-// need to pass both
 void msgBuildDisconnectMsg ( MsgOpDisconnect &disconnectHeader,
                              MsgRouteID &nodeID, UINT64 reqID );
 
@@ -271,7 +242,6 @@ INT32 msgBuildQuerySpaceReqMsg ( CHAR **ppBuffer, INT32 *pBufferSize,
 
 INT32 msgExtractSql( CHAR *pBuffer, CHAR **sql ) ;
 
-// cluster manager
 INT32 msgBuildCMRequest ( CHAR **ppBuffer, INT32 *pBufferSize, SINT32 remoCode,
                           const BSONObj *arg1 = NULL,
                           const BSONObj *arg2 = NULL,
@@ -282,16 +252,6 @@ INT32 msgBuildCMRequest ( CHAR **ppBuffer, INT32 *pBufferSize, SINT32 remoCode,
 INT32 msgExtractCMRequest ( CHAR *pBuffer, SINT32 *remoCode,
                             CHAR **arg1, CHAR **arg2,
                             CHAR **arg3, CHAR **arg4 ) ;
-
-INT32 msgBuildQueryCMDMsg ( CHAR ** ppBuffer,
-                            INT32 * pBufferSize,
-                            const CHAR * commandName,
-                            const BSONObj & boQuery,
-                            const BSONObj & boSelect,
-                            const BSONObj & boSort,
-                            const BSONObj & boHint,
-                            UINT64 reqID,
-                            engine::IExecutor * cb ) ;
 
 INT32 msgBuildDropCLMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                           const CHAR *CollectionName, UINT64 reqID,
@@ -326,30 +286,6 @@ INT32 msgBuildSysInfoReply ( CHAR **ppBuffer, INT32 *pBufferSize,
 
 INT32 msgExtractSysInfoReply ( CHAR *pBuffer, BOOLEAN &endianConvert,
                                INT32 *osType ) ;
-
-INT32 msgBuildSequenceAcquireMsg( CHAR **ppBuffer, INT32 *bufferSize,
-                                  UINT64 reqID, const BSONObj& options,
-                                  engine::IExecutor *cb = NULL ) ;
-
-INT32 msgBuildSequenceCreateMsg( CHAR **ppBuffer, INT32 *bufferSize,
-                                 UINT64 reqID, const BSONObj& options,
-                                 engine::IExecutor *cb = NULL ) ;
-
-INT32 msgBuildSequenceDropMsg( CHAR **ppBuffer, INT32 *bufferSize,
-                               UINT64 reqID, const BSONObj& options,
-                               engine::IExecutor *cb = NULL ) ;
-
-INT32 msgBuildSequenceAlterMsg( CHAR **ppBuffer, INT32 *bufferSize,
-                                UINT64 reqID, const BSONObj& options,
-                                engine::IExecutor *cb = NULL ) ;
-
-INT32 msgBuildSequenceInvalidateCacheMsg( CHAR **ppBuffer, INT32 *bufferSize,
-                                          const BSONObj &boQuery, UINT64 reqID,
-                                          engine::IExecutor *cb = NULL ) ;
-
-INT32 msgExtractSequenceRequestMsg( CHAR *pBuffer, BSONObj& options ) ;
-
-INT32 msgExtractSequenceAcquireReply( CHAR *pBuffer, BSONObj& options ) ;
 
 INT32 msgBuildTransCommitPreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                                   engine::IExecutor *cb = NULL );

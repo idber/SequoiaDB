@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptUsrSsh.cpp
 
@@ -51,7 +50,6 @@ JS_MEMBER_FUNC_DEFINE( _sptUsrSsh, getLastRet )
 JS_MEMBER_FUNC_DEFINE( _sptUsrSsh, getLastOutStr )
 JS_MEMBER_FUNC_DEFINE( _sptUsrSsh, getLocalIP )
 JS_MEMBER_FUNC_DEFINE( _sptUsrSsh, getPeerIP )
-JS_MEMBER_FUNC_DEFINE( _sptUsrSsh, memberHelp )
 JS_CONSTRUCT_FUNC_DEFINE( _sptUsrSsh, construct )
 JS_DESTRUCT_FUNC_DEFINE( _sptUsrSsh, destruct )
 JS_STATIC_FUNC_DEFINE(_sptUsrSsh, help)
@@ -68,7 +66,6 @@ JS_BEGIN_MAPPING( _sptUsrSsh, "Ssh" )
    JS_ADD_MEMBER_FUNC( "getLastOut", getLastOutStr )
    JS_ADD_CONSTRUCT_FUNC( construct )
    JS_ADD_DESTRUCT_FUNC( destruct )
-   JS_ADD_MEMBER_FUNC( "help", memberHelp )
    JS_ADD_STATIC_FUNC( "help", help)
 JS_MAPPING_END()
 
@@ -390,25 +387,6 @@ JS_MAPPING_END()
          detail = BSON( SPT_ERR << errMsg ) ;
       }
       goto done ;
-   }
-
-   INT32 _sptUsrSsh::memberHelp( const _sptArguments & arg,
-                                 _sptReturnVal & rval,
-                                 BSONObj & detail )
-   {
-      stringstream ss ;
-      ss << "Ssh functions:" << endl
-         << "   getLastRet()       --- get the last cmd remote exec return number" << endl
-         << "   getLastOut()       --- get the last cmd remote exec out string" << endl
-         << "   close()" << endl
-         << "   exec( command )" << endl
-         << "   push( local_file, dst_file, [mode] )" << endl
-         << "   pull( remote_file, local_file, [mode] )" << endl
-         << "   getLocalIP()" << endl
-         << "   getPeerIP()" << endl ;
-
-      rval.getReturnVal().setValue( ss.str() ) ;
-      return SDB_OK ;
    }
 
    INT32 _sptUsrSsh::help( const _sptArguments & arg,

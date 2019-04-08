@@ -1,5 +1,4 @@
 (function(){
-   window.SdbSacName = 'SAC' ;
    window.SdbSacManagerConf.nowRoute = [
       { path: '/Transfer',
         options: {
@@ -7,6 +6,27 @@
            resolve: resolveFun( [ './app/controller/Transfer.js' ] )
         }
       },
+      //·ÏÆú
+      /*
+      { path: '/Index/Index/Index',
+        options: {
+           templateUrl: './app/template/Index/Index/Index.html',
+           resolve: resolveFun( [ './app/controller/Index/Index/Index.js' ] )
+        }
+      },
+      { path: '/Data/SDB-Overview/Index',
+        options: {
+           templateUrl: './app/template/Data/Sdb/Overview/Index.html',
+           resolve: resolveFun( [ './app/other/function/Data/Sdb/Overview/Index.js', './app/controller/Data/Sdb/Overview/Index.js' ] )
+        }
+      },
+      { path: '/Data/SDB-Operate/Index',
+        options: {
+           templateUrl: './app/template/Data/Sdb/Operate/Index.html',
+           resolve: resolveFun( [ './app/other/function/Data/Sdb/Operate/Index.js', './app/controller/Data/Sdb/Operate/Index.js' ] )
+        }
+      },
+      */
       { path: '/Data/SDB-Operate/Record',
         options: {
            templateUrl: './app/template/Data/Sdb/Operate/Record.html',
@@ -23,6 +43,30 @@
         options: {
            templateUrl: './app/template/Data/Sdb/Database/Index.html',
            resolve: resolveFun( [ './app/other/function/Data/Sdb/Database/Index.js', './app/controller/Data/Sdb/Database/Index.js' ] )
+        }
+      },
+      { path: '/Data/SQL-Overview/Index',
+        options: {
+           templateUrl: './app/template/Data/Sql/Overview/Index.html',
+           resolve: resolveFun( [ './app/controller/Data/Sql/Overview/Index.js' ] )
+        }
+      },
+      { path: '/Data/SQL-Metadata/Index',
+        options: {
+           templateUrl: './app/template/Data/Sql/Metadata/Index.html',
+           resolve: resolveFun( [ './app/controller/Data/Sql/Metadata/Index.js' ] )
+        }
+      },
+      { path: '/Data/SQL-Operate/Data',
+        options: {
+           templateUrl: './app/template/Data/Sql/Operate/Data.html',
+           resolve: resolveFun( [ './app/controller/Data/Sql/Operate/Data.js' ] )
+        }
+      },
+      { path: '/Data/SQL-Operate/Structure',
+        options: {
+           templateUrl: './app/template/Data/Sql/Operate/Structure.html',
+           resolve: resolveFun( [ './app/controller/Data/Sql/Operate/Structure.js' ] )
         }
       },
       { path: '/Data/HDFS-web/Index',
@@ -59,12 +103,6 @@
         options: {
            templateUrl: './app/template/Strategy/Sdb/Index.html',
            resolve: resolveFun( [ './app/controller/Strategy/Sdb/Index.js' ] )
-        }
-      },
-      { path: '/Strategy/SDB/Strategy',
-        options: {
-           templateUrl: './app/template/Strategy/Sdb/Strategy.html',
-           resolve: resolveFun( [ './app/controller/Strategy/Sdb/Strategy.js' ] )
         }
       },
       //¼à¿ØÖ÷Ò³
@@ -242,6 +280,25 @@
            resolve: resolveFun( [ './app/controller/Monitor/Sdb/Host/Info/Charts.js' ] )
          }
       },
+      //SQL¼à¿ØÒ³
+      { path: '/Monitor/SQL-Module/Index',
+        options: {
+           templateUrl: './app/template/Monitor/SqlModule/Preview/Index.html',
+           resolve: resolveFun( [ './app/controller/Monitor/SqlModule/Preview/Index.js' ] )
+         }
+      },
+      { path: '/Monitor/SQL-Module/Performance',
+        options: {
+           templateUrl: './app/template/Monitor/SqlModule/Performance/Index.html',
+           resolve: resolveFun( [ './app/controller/Monitor/SqlModule/Performance/Index.js' ] )
+         }
+      },
+      { path: '/Monitor/SQL-Module/Analyze',
+        options: {
+           templateUrl: './app/template/Monitor/SqlModule/Analyze/Index.html',
+           resolve: resolveFun( [ './app/controller/Monitor/SqlModule/Analyze/Index.js' ] )
+         }
+      },
       //¼à¿Ø-ÉçÇø°æÌáÊ¾Ò³Ãæ
       { path: '/Monitor/Preview',
         options: {
@@ -249,7 +306,7 @@
            resolve: resolveFun( [ './app/controller/Monitor/other/Preview.js' ] )
          }
       },
-      // =============== ²¿Êð =============
+      //²¿Êð
       { path: '/Deploy/Index',
         options: {
            templateUrl: './app/template/Deploy/Index.html',
@@ -282,26 +339,18 @@
            resolve: resolveFun( [ './app/controller/Deploy/InstallModule/Sdb/Mod.js' ] )
         }
       },
-      // ================== task ==================
-      { path: '/Deploy/Task/Host',
+      { path: '/Deploy/InstallHost',
         options: {
            templateUrl: './app/template/Deploy/Task/Host.html',
            resolve: resolveFun( [ './app/controller/Deploy/Task/Host.js' ] )
         }
       },
-      { path: '/Deploy/Task/Module',
+      { path: '/Deploy/InstallModule',
         options: {
            templateUrl: './app/template/Deploy/Task/Module.html',
            resolve: resolveFun( [ './app/controller/Deploy/Task/Module.js' ] )
         }
       },
-      { path: '/Deploy/Task/Restart',
-        options: {
-           templateUrl: './app/template/Deploy/Task/Restart.html',
-           resolve: resolveFun( [ './app/controller/Deploy/Task/Restart.js' ] )
-        }
-      },
-      // ================== extend ==================
       { path: '/Deploy/SDB-ExtendConf',
         options: {
            templateUrl: './app/template/Deploy/ExtendModule/Sdb/Conf.html',
@@ -320,16 +369,10 @@
            resolve: resolveFun( [ './app/controller/Deploy/ExtendModule/Sdb/Install.js' ] )
         }
       },
-      { path: '/Deploy/PostgreSQL-Mod',
+      { path: '/Deploy/OLTP-Mod',
         options: {
-           templateUrl: './app/template/Deploy/InstallModule/PostgreSQL/Mod.html',
-           resolve: resolveFun( [ './app/controller/Deploy/InstallModule/PostgreSQL/Mod.js' ] )
-        }
-      },
-      { path: '/Deploy/MySQL-Mod',
-        options: {
-           templateUrl: './app/template/Deploy/InstallModule/MySQL/Mod.html',
-           resolve: resolveFun( [ './app/controller/Deploy/InstallModule/MySQL/Mod.js' ] )
+           templateUrl: './app/template/Deploy/InstallModule/OLTP/Mod.html',
+           resolve: resolveFun( [ './app/controller/Deploy/InstallModule/OLTP/Mod.js' ] )
         }
       },
       { path: '/Deploy/ZKP-Mod',
@@ -372,13 +415,6 @@
         options: {
            templateUrl: './app/template/Deploy/DeployPackage/Conf.html',
            resolve: resolveFun( [ './app/controller/Deploy/DeployPackage/Conf.js' ] )
-        }
-      },
-      //ÅäÖÃ
-      { path: '/Config/SDB/Index',
-        options: {
-           templateUrl: './app/template/Config/Sdb/Index.html',
-           resolve: resolveFun( [ './app/controller/Config/Sdb/Index.js' ] )
         }
       }
    ] ;

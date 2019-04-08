@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptUsrOmaAssit.cpp
 
@@ -83,7 +82,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Connect to %s:%s failed, rc: %d",
                    pHostName, pServiceName, rc ) ;
 
-      // get coord group
       rc = _getCoordGroupHandle( _groupHandle ) ;
       PD_RC_CHECK( rc, PDERROR, "Get group handle failed, rc: %d", rc ) ;
 
@@ -213,7 +211,6 @@ namespace engine
       handle = (ossValuePtr)r ;
 
       ossMemset( (void*)r, 0, sizeof( sdbRNStruct ) ) ;
-      // set members
       r->_handleType = SDB_HANDLE_TYPE_REPLICANODE ;
       r->_connection = s->_connection ;
       r->_sock = s->_sock ;
@@ -250,7 +247,6 @@ namespace engine
       handle = (ossValuePtr)r ;
 
       ossMemset( (void*)r, 0, sizeof( sdbRGStruct ) ) ;
-      // set members
       r->_handleType = SDB_HANDLE_TYPE_REPLICAGROUP ;
       r->_connection = getHandle() ;
       r->_sock = connection->_sock ;
@@ -274,7 +270,6 @@ namespace engine
       Node **ptr      = NULL ;
       sdbConnectionStruct *connection = (sdbConnectionStruct *)getHandle() ;
 
-      // pass invalid socket
       if ( NULL == *(Socket **)pSock )
       {
          goto done ;
@@ -283,7 +278,6 @@ namespace engine
       ossMutexLock( &connection->_sockMutex ) ;
       hasLock = TRUE ;
 
-      // if client has disconnected, stop registing
       if ( NULL == connection->_sock )
       {
          goto done ;
@@ -301,10 +295,8 @@ namespace engine
       p->data = pSock ;
       p->next = NULL ;
 
-      // if it's the 1st time to add handle
       if ( !(*ptr) )
          *ptr = p ;
-      // add handle to the node header
       else
       {
          p->next = *ptr ;

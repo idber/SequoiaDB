@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsReplayer.cpp
 
@@ -46,7 +45,6 @@
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
 #include "rtnLob.hpp"
-#include "rtnAlter.hpp"
 #include "utilCompressor.hpp"
 
 using namespace bson ;
@@ -59,177 +57,7 @@ namespace engine
                          _dpsLogWrapper *dpsCB,
                          BOOLEAN isRollBack ) ;
 
-   #define CLS_PARALLA_CHECK_LSNNUM_MIN_SPAN          ( 10000 )
-
-   /*
-      _clsCLParallaInfo implement
-   */
-   _clsCLParallaInfo::_clsCLParallaInfo()
-   {
-      _lastInsertLSN = DPS_INVALID_LSN_OFFSET ;
-      _lastUpdateLSN = DPS_INVALID_LSN_OFFSET ;
-      _lastDelLSN = DPS_INVALID_LSN_OFFSET ;
-
-      _lastParallaType = CLS_PARALLA_NULL ;
-
-      _clearID() ;
-   }
-
-   _clsCLParallaInfo::~_clsCLParallaInfo()
-   {
-   }
-
-   void _clsCLParallaInfo::_clearID()
-   {
-      _lastInsertID = 0 ;
-      _lastDelID = 0 ;
-      _lastUpdateID = 0 ;
-      _idValue = 1 ;
-   }
-
-   INT32 _clsCLParallaInfo::waitLastLSN( _clsBucket *pBucket )
-   {
-      INT32 rc = SDB_OK ;
-      DPS_LSN completeLSN = pBucket->completeLSN() ;
-      DPS_LSN_OFFSET maxLSN = DPS_INVALID_LSN_OFFSET ;
-
-      maxLSN = _max( _max( _lastInsertLSN, _lastUpdateLSN ),
-                     _lastDelLSN ) ;
-
-      while ( completeLSN.compareOffset( maxLSN ) <= 0 )
-      {
-         if ( CLS_BUCKET_NORMAL != pBucket->getStatus() ||
-              pBucket->bucketSize() == 0 )
-         {
-            rc = pBucket->waitEmptyWithCheck() ;
-            break ;
-         }
-         pBucket->waitSubmit( OSS_ONE_SEC ) ;
-         completeLSN = pBucket->completeLSN() ;
-      }
-
-      return rc ;
-   }
-
-   BOOLEAN _clsCLParallaInfo::checkParalla( UINT16 type,
-                                            DPS_LSN_OFFSET curLSN,
-                                            _clsBucket *pBucket ) const
-   {
-      DPS_LSN completeLSN ;
-      DPS_LSN_OFFSET otherLSN = DPS_INVALID_LSN_OFFSET ;
-      UINT64 maxID = 0 ;
-      BOOLEAN canRecParalla = FALSE ;
-
-      switch ( (INT32)type )
-      {
-         case LOG_TYPE_DATA_INSERT :
-            otherLSN = _max( _lastDelLSN, _lastUpdateLSN ) ;
-            maxID = _lastDelID >= _lastUpdateID ? _lastDelID : _lastUpdateID ;
-
-            if ( DPS_INVALID_LSN_OFFSET == otherLSN || 0 == maxID ||
-                 ( CLS_PARALLA_REC == _lastParallaType &&
-                   _lastInsertID + 1 == _idValue ) )
-            {
-               canRecParalla = TRUE ;
-            }
-            else
-            {
-               completeLSN = pBucket->completeLSN() ;
-               if ( completeLSN.compareOffset( otherLSN ) > 0 &&
-                    _idValue - maxID >= CLS_PARALLA_CHECK_LSNNUM_MIN_SPAN )
-               {
-                  canRecParalla = TRUE ;
-               }
-            }
-            break ;
-         case LOG_TYPE_DATA_UPDATE :
-            break ;
-         case LOG_TYPE_DATA_DELETE :
-            otherLSN = _max( _lastInsertLSN, _lastUpdateLSN ) ;
-            maxID = _lastInsertID >= _lastUpdateID ?
-                    _lastInsertID : _lastUpdateID ;
-            if ( DPS_INVALID_LSN_OFFSET == otherLSN || 0 == maxID ||
-                 ( CLS_PARALLA_REC == _lastParallaType &&
-                   _lastDelLSN + 1 == _idValue ) )
-            {
-               canRecParalla = TRUE ;
-            }
-            else
-            {
-               completeLSN = pBucket->completeLSN() ;
-               if ( completeLSN.compareOffset( otherLSN ) > 0 &&
-                    _idValue - maxID >= CLS_PARALLA_CHECK_LSNNUM_MIN_SPAN )
-               {
-                  canRecParalla = TRUE ;
-               }
-            }
-            break ;
-         default :
-            break ;
-      }
-
-      return canRecParalla ;
-   }
-
-   void _clsCLParallaInfo::updateParalla( CLS_PARALLA_TYPE parallaType,
-                                          UINT16 type,
-                                          DPS_LSN_OFFSET curLSN )
-   {
-      _lastParallaType = parallaType ;
-
-      if ( DPS_INVALID_LSN_OFFSET != _lastInsertLSN &&
-           _lastInsertLSN > curLSN )
-      {
-         _lastInsertLSN = curLSN ;
-      }
-      if ( DPS_INVALID_LSN_OFFSET != _lastUpdateLSN &&
-           _lastUpdateLSN > curLSN )
-      {
-         _lastUpdateLSN = curLSN ;
-      }
-      if ( DPS_INVALID_LSN_OFFSET != _lastDelLSN &&
-           _lastDelLSN > curLSN )
-      {
-         _lastDelLSN = curLSN ;
-      }
-
-      switch ( (INT32)type )
-      {
-         case LOG_TYPE_DATA_INSERT :
-            _lastInsertLSN = curLSN ;
-            _lastInsertID = _idValue++ ;
-            break ;
-         case LOG_TYPE_DATA_UPDATE :
-            _lastUpdateLSN = curLSN ;
-            _lastUpdateID = _idValue++ ;
-            break ;
-         case LOG_TYPE_DATA_DELETE :
-            _lastDelLSN = curLSN ;
-            _lastDelID = _idValue++ ;
-            break ;
-         default :
-            break ;
-      }
-   }
-
-   CLS_PARALLA_TYPE _clsCLParallaInfo::getLastParallaType() const
-   {
-      return _lastParallaType ;
-   }
-
-   BOOLEAN _clsCLParallaInfo::isParallaTypeSwitch( CLS_PARALLA_TYPE type ) const
-   {
-      if ( CLS_PARALLA_NULL == _lastParallaType )
-      {
-         return FALSE ;
-      }
-      return _lastParallaType != type ? TRUE : FALSE ;
-   }
-
-   /*
-      _clsReplayer implement
-   */
-   _clsReplayer::_clsReplayer( BOOLEAN useDps, BOOLEAN isReplSync )
+   _clsReplayer::_clsReplayer( BOOLEAN useDps )
    {
       _dmsCB = sdbGetDMSCB() ;
       _dpsCB = NULL ;
@@ -238,8 +66,6 @@ namespace engine
          _dpsCB = sdbGetDPSCB() ;
       }
       _monDBCB = pmdGetKRCB()->getMonDBCB () ;
-
-      _isReplSync = isReplSync ;
    }
 
    _clsReplayer::~_clsReplayer()
@@ -268,10 +94,8 @@ namespace engine
       BSONElement idEle ;
       const bson::OID *oidPtr = NULL ;
       UINT32 sequence = 0 ;
-      BOOLEAN clParalla = FALSE ;
-      BOOLEAN recParalla = FALSE ;
-      BOOLEAN doSameOID = FALSE ;
-      clsCLParallaInfo *pInfo = NULL ;
+      BOOLEAN paralla = FALSE ;
+      BOOLEAN updateSameOID = FALSE ;
       UINT32 bucketID = ~0 ;
 
       SDB_ASSERT( recordHeader && pBucket, "Invalid param" ) ;
@@ -280,13 +104,9 @@ namespace engine
       switch( recordHeader->_type )
       {
          case LOG_TYPE_DATA_INSERT :
-            clParalla = TRUE ;
-            doSameOID = TRUE ;
             rc = dpsRecord2Insert( (CHAR *)recordHeader, &fullname, obj ) ;
             break ;
          case LOG_TYPE_DATA_DELETE :
-            clParalla = TRUE ;
-            doSameOID = TRUE ;
             rc = dpsRecord2Delete( (CHAR *)recordHeader, &fullname, obj ) ;
             break ;
          case LOG_TYPE_DATA_UPDATE :
@@ -295,20 +115,19 @@ namespace engine
             BSONObj oldObj ;
             BSONObj newMatch ;
             BSONObj modifier ;   //new change obj
-            clParalla = TRUE ;
             rc = dpsRecord2Update( (CHAR *)recordHeader, &fullname,
                                    match, oldObj, newMatch, modifier ) ;
             if ( SDB_OK == rc &&
                  0 == match.woCompare( newMatch, BSONObj(), false ) )
             {
                obj = match ;
-               doSameOID = TRUE ;
+               updateSameOID = TRUE ;
             }
             break ;
          }
          case LOG_TYPE_LOB_WRITE :
          {
-            recParalla = TRUE ;
+            paralla = TRUE ;
             const CHAR *fullName = NULL ;
             const bson::OID *oid = NULL ;
             UINT32 offset = 0 ;
@@ -325,7 +144,7 @@ namespace engine
          }
          case LOG_TYPE_LOB_UPDATE :
          {
-            recParalla = TRUE ;
+            paralla = TRUE ;
             const CHAR *fullName = NULL ;
             const bson::OID *oid = NULL ;
             UINT32 offset = 0 ;
@@ -345,7 +164,7 @@ namespace engine
          }
          case LOG_TYPE_LOB_REMOVE :
          {
-            recParalla = TRUE ;
+            paralla = TRUE ;
             const CHAR *fullName = NULL ;
             const bson::OID *oid = NULL ;
             UINT32 offset = 0 ;
@@ -371,90 +190,36 @@ namespace engine
                    "falied, rc: %d", recordHeader->_type,
                    recordHeader->_lsn, recordHeader->_length, rc ) ;
 
-      /*
-         When collection paralla(clParalla) is true, but recParalla is false,
-         we should update clParalla to recParalla in bellow case:
-            1. unique index number <= 1 and no text index
-         or 2. only the simple operator as insert/delete
-      */
-      if ( clParalla )
+      if ( LOG_TYPE_DATA_INSERT == recordHeader->_type ||
+           LOG_TYPE_DATA_DELETE == recordHeader->_type ||
+           ( LOG_TYPE_DATA_UPDATE == recordHeader->_type && updateSameOID ) )
       {
          dmsStorageUnit *su = NULL ;
          const CHAR *pShortName = NULL ;
          dmsStorageUnitID suID = DMS_INVALID_SUID ;
-         CLS_PARALLA_TYPE parallaType = CLS_PARALLA_CL ;
-         INT32 rcTmp = SDB_OK ;
-
          rc = rtnResolveCollectionNameAndLock( fullname, _dmsCB, &su,
                                                &pShortName, suID ) ;
          if ( SDB_OK == rc )
          {
-            // Currently parallel replaying on capped collection is forbidden,
-            // because we need to be sure the records are exactly the same with
-            // the ones on primary node, including their positions.
-            if ( DMS_STORAGE_CAPPED != su->type() )
+            dmsMBContext *mbContext = NULL ;
+            rc = su->data()->getMBContext( &mbContext, pShortName, SHARED ) ;
+            if ( SDB_OK == rc )
             {
-               dmsMBContext *mbContext = NULL ;
-               rc = su->data()->getMBContext( &mbContext, pShortName, SHARED ) ;
-               if ( SDB_OK == rc )
-               {
-                  pInfo = _getOrCreateInfo( mbContext->mb()->_clUniqueID ) ;
-                  if ( !pInfo )
-                  {
-                     rcTmp = SDB_OOM ;
-                     /// can't goto error
-                  }
-                  // For collection who has text indices, parallel replay should
-                  // also be forbidden. Otherwise, the records in the capped
-                  // collection will not be exactly the same.
-                  if ( !doSameOID || 0 != mbContext->mbStat()->_textIdxNum )
-                  {
-                     /// can't upgrade to recParalla
-                  }
-                  else if ( mbContext->mbStat()->_uniqueIdxNum <= 1 )
-                  {
-                     recParalla = TRUE ;
-                     parallaType = CLS_PARALLA_REC ;
-                  }
-                  else if ( pInfo && pInfo->checkParalla( recordHeader->_type,
-                                                          recordHeader->_lsn,
-                                                          pBucket ) )
-                  {
-                     recParalla = TRUE ;
-                     parallaType = CLS_PARALLA_REC ;
-                  }
-                  su->data()->releaseMBContext( mbContext ) ;
-               }
+               paralla = ( mbContext->mbStat()->_uniqueIdxNum <= 1 &&
+                           0 == mbContext->mbStat()->_textIdxNum ) ?
+                         TRUE : FALSE ;
+               su->data()->releaseMBContext( mbContext ) ;
+            }
+
+            if ( DMS_STORAGE_CAPPED == su->type() )
+            {
+               paralla = FALSE ;
             }
             _dmsCB->suUnlock( suID, SHARED ) ;
+         }
+      }
 
-            /// when get or create clParallaInfo failed
-            if ( rcTmp )
-            {
-               rc = rcTmp ;
-               goto error ;
-            }
-            else if ( pInfo )
-            {
-               if ( pInfo->isParallaTypeSwitch( parallaType ) &&
-                    SDB_OK != ( rc = pInfo->waitLastLSN( pBucket ) ) )
-               {
-                  INT32 bucketStatus = (INT32)pBucket->getStatus() ;
-                  PD_LOG( PDWARNING, "Wait repl bucket empty failed, its "
-                          "status[%s(%d)] is error",
-                          clsGetReplBucketStatusDesp( bucketStatus ),
-                          bucketStatus ) ;
-                  goto error ;
-               }
-
-               /// update paralla info
-               pInfo->updateParalla( parallaType, recordHeader->_type,
-                                     recordHeader->_lsn ) ;
-            } // else if ( pInfo )
-         } // if ( SDB_OK == rc )
-      } // if ( clParalla )
-
-      if ( recParalla )
+      if ( paralla )
       {
          idEle = obj.getField( DMS_ID_KEY_NAME ) ;
          if ( !idEle.eoo() )
@@ -472,10 +237,6 @@ namespace engine
             bucketID = pBucket->calcIndex( tmpData, sizeof( tmpData ) ) ;
          }
       }
-      else if ( clParalla )
-      {
-         bucketID = pBucket->calcIndex( fullname, ossStrlen( fullname ) ) ;
-      }
 
       if ( (UINT32)~0 != bucketID )
       {
@@ -486,7 +247,6 @@ namespace engine
       }
       else
       {
-         // wait bucket all complete and check status
          rc = pBucket->waitEmptyWithCheck() ;
          if ( rc )
          {
@@ -498,7 +258,6 @@ namespace engine
             goto error ;
          }
 
-         // judge lsn valid
          if ( !pBucket->_expectLSN.invalid() &&
               0 != pBucket->_expectLSN.compareOffset( recordHeader->_lsn ) )
          {
@@ -507,11 +266,7 @@ namespace engine
             rc = SDB_CLS_REPLAY_LOG_FAILED ;
             goto error ;
          }
-
-         _clearParallaInfo() ;
-
          rc = replay( recordHeader, eduCB ) ;
-         // re-calc complete lsn
          if ( SDB_OK == rc && !pBucket->_expectLSN.invalid() )
          {
             pBucket->_expectLSN.offset += recordHeader->_length ;
@@ -547,8 +302,6 @@ namespace engine
       goto done ;
    }
 
-   // for all UPDATE/DELETE, make sure we use hint = {"":"$id"}, so that we can
-   // bypass expensive optimizer to improve performance
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREP_REPLAY, "_clsReplayer::replay" )
    INT32 _clsReplayer::replay( dpsLogRecordHeader *recordHeader,
                                pmdEDUCB *eduCB, BOOLEAN incCount )
@@ -597,7 +350,6 @@ namespace engine
             BSONObj newMatch ;
             BSONObj modifier ;   //new change obj
             const CHAR *fullname = NULL ;
-            INT64 updateNum = 0 ;
             BSONObj hint = BSON(""<<IXM_ID_KEY_NAME);
             rc = dpsRecord2Update( (CHAR *)recordHeader,
                                    &fullname,
@@ -609,26 +361,14 @@ namespace engine
             {
                goto error ;
             }
-            /// possibly get a empty modifier
             if ( !modifier.isEmpty() )
             {
                rc = rtnUpdate( fullname, match, modifier,
-                               hint, 0, eduCB, _dmsCB, _dpsCB, 1,
-                               &updateNum ) ;
+                               hint, 0, eduCB, _dmsCB, _dpsCB, 1 ) ;
             }
-            if ( SDB_OK == rc )
+            if ( SDB_OK == rc && incCount )
             {
-               if ( updateNum > 0 )
-               {
-                  if ( incCount )
-                  {
-                     _monDBCB->monOperationCountInc ( MON_UPDATE_REPL ) ;
-                  }
-               }
-               else if ( _isReplSync )
-               {
-                  SDB_ASSERT( updateNum > 0, "Updated number must > 0" ) ;
-               }
+               _monDBCB->monOperationCountInc ( MON_UPDATE_REPL ) ;
             }
             break ;
          }
@@ -636,7 +376,6 @@ namespace engine
          {
             const CHAR *fullname = NULL ;
             BSONObj obj ;
-            INT64 deleteNum = 0 ;
             rc = dpsRecord2Delete( (CHAR *)recordHeader,
                                    &fullname,
                                    obj ) ;
@@ -660,22 +399,12 @@ namespace engine
                   BSONObj selector = selectorBuilder.obj() ;
                   BSONObj hint = BSON(""<<IXM_ID_KEY_NAME) ;
                   rc = rtnDelete( fullname, selector, hint, 0, eduCB, _dmsCB,
-                                  _dpsCB, 1, &deleteNum ) ;
+                                  _dpsCB, 1 ) ;
                }
             }
-            if ( SDB_OK == rc )
+            if ( SDB_OK == rc && incCount )
             {
-               if ( deleteNum > 0 )
-               {
-                  if ( incCount )
-                  {
-                     _monDBCB->monOperationCountInc ( MON_DELETE_REPL ) ;
-                  }
-               }
-               else if ( _isReplSync )
-               {
-                  SDB_ASSERT( deleteNum > 0, "Deleted number must > 0" ) ;
-               }
+               _monDBCB->monOperationCountInc ( MON_DELETE_REPL ) ;
             }
             break ;
          }
@@ -704,12 +433,11 @@ namespace engine
          case LOG_TYPE_CS_CRT :
          {
             const CHAR *cs = NULL ;
-            utilCSUniqueID csUniqueID = UTIL_UNIQUEID_NULL ;
             INT32 pageSize = 0 ;
             INT32 lobPageSize = 0 ;
             INT32 type = 0 ;
-            rc = dpsRecord2CSCrt( (CHAR *)recordHeader, &cs, csUniqueID,
-                                  pageSize, lobPageSize, type ) ;
+            rc = dpsRecord2CSCrt( (CHAR *)recordHeader,
+                                  &cs, pageSize, lobPageSize, type ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
@@ -723,21 +451,13 @@ namespace engine
             }
 
             rc = rtnCreateCollectionSpaceCommand( cs, eduCB, _dmsCB, _dpsCB,
-                                                  csUniqueID,
                                                   pageSize, lobPageSize,
                                                   (DMS_STORAGE_TYPE)type ) ;
             if ( SDB_DMS_CS_EXIST == rc )
             {
                PD_LOG( PDWARNING, "Collection space[%s] already exist when "
                        "create", cs ) ;
-
-               rc = _dmsCB->changeUniqueID( cs, csUniqueID, BSONObj(),
-                                            eduCB, _dpsCB, FALSE, FALSE ) ;
-               if ( rc )
-               {
-                  PD_LOG( PDERROR,
-                          "Fail to change cs[%s] unique id, rc: %d", cs, rc ) ;
-               }
+               rc = SDB_OK ;
             }
             break ;
          }
@@ -772,25 +492,18 @@ namespace engine
          case LOG_TYPE_CL_CRT :
          {
             const CHAR *cl = NULL ;
-            utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
             UINT32 attribute = 0 ;
             UINT8 compType = UTIL_COMPRESSOR_INVALID ;
             BSONObj extOptions ;
-            string cs ;
-            utilCSUniqueID csUniqID = UTIL_UNIQUEID_NULL ;
-
-            rc = dpsRecord2CLCrt( (CHAR *)recordHeader, &cl, clUniqueID,
-                                  attribute, compType, extOptions ) ;
+            rc = dpsRecord2CLCrt( (CHAR *)recordHeader, &cl, attribute,
+                                  compType, extOptions ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
             }
 
-            cs = dmsGetCSNameFromFullName( cl ) ;
-            csUniqID = utilGetCSUniqueID( clUniqueID ) ;
-
             rc = rtnCreateCollectionCommand( cl, attribute, eduCB, _dmsCB,
-                                             _dpsCB, clUniqueID,
+                                             _dpsCB,
                                              (UTIL_COMPRESSOR_TYPE)compType,
                                              0, TRUE,
                                              ( extOptions.isEmpty() ?
@@ -799,21 +512,7 @@ namespace engine
             {
                PD_LOG( PDWARNING, "Collection [%s] already exist when "
                        "create", cl ) ;
-
-               BSONArrayBuilder clArr ;
-               clArr << BSON( FIELD_NAME_NAME <<
-                              dmsGetCLShortNameFromFullName( cl ).c_str() <<
-                              FIELD_NAME_UNIQUEID <<
-                              (INT64)clUniqueID ) ;
-               rc = _dmsCB->changeUniqueID( cs.c_str(), csUniqID, clArr.arr(),
-                                            eduCB, _dpsCB, FALSE, FALSE ) ;
-               if ( rc )
-               {
-                  PD_LOG( PDERROR, "Fail to change cl[%s] unique id, rc: %d",
-                          cl, rc ) ;
-                  goto error ;
-               }
-
+               rc = SDB_OK ;
             }
             break ;
          }
@@ -832,8 +531,6 @@ namespace engine
          }
          case LOG_TYPE_IX_CRT :
          {
-            /// rebuild the index can be very time-consuming.
-            /// we create a sub thread to handle it.
             startIndexJob ( RTN_JOB_CREATE_INDEX, recordHeader,
                             _dpsCB, FALSE ) ;
             break ;
@@ -849,41 +546,28 @@ namespace engine
             const CHAR *cs = NULL ;
             const CHAR *oldCl = NULL ;
             const CHAR *newCl = NULL ;
+            dmsStorageUnitID suID = DMS_INVALID_CS ;
+            dmsStorageUnit *su = NULL ;
             rc = dpsRecord2CLRename( (CHAR *)recordHeader,
                                       &cs, &oldCl, &newCl ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
             }
-            rc = rtnRenameCollectionCommand( cs, oldCl, newCl,
-                                             eduCB, _dmsCB, _dpsCB ) ;
-            if ( SDB_DMS_NOTEXIST == rc )
+            rc = rtnCollectionSpaceLock ( cs, _dmsCB, FALSE, &su, suID ) ;
+            if ( SDB_OK != rc )
             {
-               INT32 rcTmp = SDB_OK ;
-               CHAR newCLFullName [ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
-               ossSnprintf( newCLFullName, DMS_COLLECTION_FULL_NAME_SZ,
-                            "%s.%s", cs, newCl ) ;
-               rcTmp = rtnTestCollectionCommand( newCLFullName, _dmsCB ) ;
-               if ( SDB_OK == rcTmp )
-               {
-                  /// When old cl doesn't exist, but new cl has already exist,
-                  /// we should ignore error
-                  rc = SDB_OK ;
-                  PD_LOG( PDWARNING, "Rename cl[%s.%s] to [%s.%s], old"
-                          " cl not exist, new cl exist, ignore error.",
-                          cs, oldCl, cs, newCl ) ;
-               }
-               else
-               {
-                  PD_LOG( PDERROR, "Failed to rename cl[%s.%s] to [%s.%s], "
-                          "rc: %d, test new cl rc: %d",
-                          cs, oldCl, cs, newCl, rc, rcTmp ) ;
-               }
+               PD_LOG( PDERROR, "failed to get collection space %s, rc: %d",
+                       cs, rc ) ;
+               goto error ;
             }
-            else if ( SDB_OK != rc )
+            rc = su->data()->renameCollection ( oldCl, newCl,
+                                                eduCB, _dpsCB ) ;
+            _dmsCB->suUnlock ( suID ) ;
+            if ( SDB_OK != rc )
             {
-               PD_LOG( PDERROR, "Failed to rename cl[%s.%s] to [%s.%s], rc: %d",
-                       cs, oldCl, cs, newCl, rc ) ;
+               PD_LOG( PDERROR, "failed to rename %s to %s, rc: %d",
+                       oldCl, newCl, rc ) ;
                goto error ;
             }
             break ;
@@ -899,11 +583,10 @@ namespace engine
             {
                goto error ;
             }
-#ifdef _WINDOWS
-            while ( TRUE )
+            while( TRUE )
             {
-               rc = rtnRenameCollectionSpaceCommand( oldName, newName,
-                                                     eduCB, _dmsCB, _dpsCB ) ;
+               rc = _dmsCB->renameCollectionSpace( oldName, newName,
+                                                   eduCB, _dpsCB ) ;
                if ( SDB_LOCK_FAILED == rc )
                {
                   ossSleep ( 100 ) ;
@@ -911,32 +594,9 @@ namespace engine
                }
                break ;
             }
-#else
-            rc = rtnRenameCollectionSpaceCommand( oldName, newName,
-                                                  eduCB, _dmsCB, _dpsCB ) ;
-#endif
-            if ( SDB_DMS_CS_NOTEXIST == rc )
+            if ( SDB_OK != rc )
             {
-               INT32 rcTmp = SDB_OK ;
-               rcTmp = rtnTestCollectionSpaceCommand( newName, _dmsCB ) ;
-               if ( SDB_OK == rcTmp )
-               {
-                  /// When old cs doesn't exist, but new cs has already exist,
-                  /// we should ignore error
-                  rc = SDB_OK ;
-                  PD_LOG( PDWARNING, "Replay log: rename cs[%s] to [%s], old"
-                          " cs not exist, new cs exist, ignore error.",
-                          oldName, newName ) ;
-               }
-               else
-               {
-                  PD_LOG( PDERROR, "Failed to rename cs[%s] to [%s], rc: %d, "
-                          "test new cs rc: %d", oldName, newName, rc, rcTmp ) ;
-               }
-            }
-            else if ( SDB_OK != rc )
-            {
-               PD_LOG( PDERROR, "Failed to rename cs[%s] to [%s], rc: %d",
+               PD_LOG( PDERROR, "failed to rename %s to %s, rc: %d",
                        oldName, newName, rc ) ;
                goto error ;
             }
@@ -975,7 +635,6 @@ namespace engine
                goto error ;
             }
 
-            // Check if only contains name of collection space
             if ( NULL != clFullName &&
                  NULL == ossStrchr( clFullName, '.' ) )
             {
@@ -991,7 +650,6 @@ namespace engine
 
                if ( csName && 0 == ossStrcmp( csName, "SYS" ) )
                {
-                  // Reload all statistics
                   csName = NULL ;
                }
 
@@ -1001,11 +659,8 @@ namespace engine
 
             if ( OSS_BIT_TEST( type, DPS_LOG_INVALIDCATA_TYPE_CATA ) )
             {
-               catAgent *pCatAgent = NULL ;
-
-               /// when sdbrestore, the shardCB is NULL
-               if ( sdbGetShardCB() &&
-                    NULL != ( pCatAgent = sdbGetShardCB()->getCataAgent() ) )
+               catAgent *pCatAgent = sdbGetShardCB()->getCataAgent() ;
+               if ( pCatAgent )
                {
                   pCatAgent->lock_w() ;
                   if ( NULL != clFullName )
@@ -1152,62 +807,6 @@ namespace engine
 
             break ;
          }
-         case LOG_TYPE_ALTER :
-         {
-            const CHAR * objectName = NULL ;
-            RTN_ALTER_OBJECT_TYPE objectType = RTN_ALTER_INVALID_OBJECT ;
-            BSONObj alterObject ;
-
-            rc = dpsRecord2Alter( (CHAR *)recordHeader, &objectName,
-                                  (INT32 &)objectType, alterObject ) ;
-            if ( SDB_OK != rc )
-            {
-               goto error ;
-            }
-
-            while ( TRUE )
-            {
-               rc = rtnAlter( objectName, objectType, alterObject,
-                              eduCB, _dpsCB ) ;
-               if ( SDB_LOCK_FAILED == rc )
-               {
-                  ossSleep( 100 ) ;
-                  continue ;
-               }
-               break ;
-            }
-            PD_RC_CHECK( rc, PDERROR, "Failed to alter object, rc: %d", rc ) ;
-
-            break ;
-         }
-         case LOG_TYPE_ADDUNIQUEID :
-         {
-            const CHAR * csname = NULL ;
-            utilCSUniqueID csUniqueID = UTIL_UNIQUEID_NULL ;
-            BSONObj clInfoObj ;
-
-            rc = dpsRecord2AddUniqueID( (CHAR *)recordHeader, &csname,
-                                         csUniqueID, clInfoObj ) ;
-            if ( SDB_OK != rc )
-            {
-               goto error ;
-            }
-
-            while ( TRUE )
-            {
-               rc = rtnChangeUniqueID( csname, csUniqueID, clInfoObj,
-                                       eduCB, _dmsCB, _dpsCB ) ;
-               if ( SDB_LOCK_FAILED == rc )
-               {
-                  ossSleep( 100 ) ;
-                  continue ;
-               }
-               break ;
-            }
-            PD_RC_CHECK( rc, PDERROR, "Failed to add unique id, rc: %d", rc ) ;
-
-            break ;
-         }
          case LOG_TYPE_DUMMY :
          {
             rc = SDB_OK ;
@@ -1342,10 +941,6 @@ namespace engine
             {
                PD_LOG( PDINFO, "Record[%s] exist when rollback delete",
                        obj.toString().c_str() ) ;
-#ifdef _DEBUG
-               SDB_ASSERT ( (rc == SDB_OK),
-                            "Rollback should not hit dup key" );
-#endif
                rc = SDB_OK ;
             }
             break ;
@@ -1353,12 +948,11 @@ namespace engine
          case LOG_TYPE_CS_CRT :
          {
             const CHAR *cs = NULL ;
-            utilCSUniqueID csUniqueID = UTIL_UNIQUEID_NULL ;
             INT32 pageSize = 0 ;
             INT32 lobPageSize = 0 ;
             INT32 type = 0 ;
-            rc = dpsRecord2CSCrt( (const CHAR *)recordHeader, &cs, csUniqueID,
-                                  pageSize, lobPageSize, type ) ;
+            rc = dpsRecord2CSCrt( (const CHAR *)recordHeader,
+                                  &cs, pageSize, lobPageSize, type ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
@@ -1375,19 +969,16 @@ namespace engine
          }
          case LOG_TYPE_CS_DELETE :
          {
-            /// cant not rollback, return fail.
             rc = SDB_CLS_REPLAY_LOG_FAILED ;
             goto error ;
          }
          case LOG_TYPE_CL_CRT :
          {
             const CHAR *fullname = NULL ;
-            utilCLUniqueID clUniqueID = UTIL_UNIQUEID_NULL ;
             UINT32 attribute = 0 ;
             UINT8 compType = UTIL_COMPRESSOR_INVALID ;
             BSONObj extOptions ;
-            rc = dpsRecord2CLCrt( (const CHAR *)recordHeader,
-                                  &fullname, clUniqueID,
+            rc = dpsRecord2CLCrt( (const CHAR *)recordHeader, &fullname,
                                   attribute, compType, extOptions ) ;
             if ( SDB_OK != rc )
             {
@@ -1404,7 +995,6 @@ namespace engine
          }
          case LOG_TYPE_CL_DELETE :
          {
-            /// cant not rollback, return fail.
             rc = SDB_CLS_REPLAY_LOG_FAILED ;
             goto error ;
          }
@@ -1422,21 +1012,35 @@ namespace engine
          }
          case LOG_TYPE_CL_RENAME :
          {
+            dmsStorageUnitID suID = DMS_INVALID_CS ;
+            dmsStorageUnit *su = NULL ;
             const CHAR *cs = NULL ;
-            const CHAR *oldCl = NULL ;
-            const CHAR *newCl = NULL ;
-            rc = dpsRecord2CLRename( (CHAR *)recordHeader,
-                                      &cs, &oldCl, &newCl ) ;
+            const CHAR *oldName = NULL ;
+            const CHAR *newName = NULL ;
+            rc = dpsRecord2CLRename( (const CHAR *)recordHeader,
+                                     &cs,
+                                     &oldName,
+                                     &newName ) ;
             if ( SDB_OK != rc )
             {
                goto error ;
             }
-            rc = rtnRenameCollectionCommand( cs, newCl, oldCl,
-                                             eduCB, _dmsCB, _dpsCB ) ;
+            rc = rtnCollectionSpaceLock ( cs, _dmsCB, FALSE, &su, suID ) ;
             if ( SDB_OK != rc )
             {
-               PD_LOG( PDERROR, "failed to rename cs[%s] cl %s to %s, rc: %d",
-                       cs, oldCl, newCl, rc ) ;
+               PD_LOG( PDERROR, "failed to get collection space %s, rc: %d",
+                       cs, rc ) ;
+               goto error ;
+            }
+            rc = su->data()->renameCollection ( newName,
+                                                oldName,
+                                                eduCB,
+                                                _dpsCB ) ;
+            _dmsCB->suUnlock ( suID ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to rename %s to %s, rc: %d",
+                       newName, oldName, rc ) ;
                goto error ;
             }
             break ;
@@ -1452,56 +1056,29 @@ namespace engine
             {
                goto error ;
             }
-            rc = rtnRenameCollectionSpaceCommand( newName, oldName,
-                                                  eduCB, _dmsCB, _dpsCB ) ;
+            while( TRUE )
+            {
+               rc = _dmsCB->renameCollectionSpace( newName, oldName,
+                                                   eduCB, _dpsCB ) ;
+               if ( SDB_LOCK_FAILED == rc )
+               {
+                  ossSleep ( 100 ) ;
+                  continue ;
+               }
+               break ;
+            }
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "failed to rename %s to %s, rc: %d",
-                       oldName, newName, rc ) ;
+                       newName, oldName, rc ) ;
                goto error ;
             }
             break ;
          }
          case LOG_TYPE_CL_TRUNC :
          {
-            /// cant not rollback, return fail.
             rc = SDB_CLS_REPLAY_LOG_FAILED ;
             goto error ;
-         }
-         case LOG_TYPE_ALTER :
-         {
-            /// cant not rollback, return fail.
-            rc = SDB_CLS_REPLAY_LOG_FAILED ;
-            goto error ;
-         }
-         case LOG_TYPE_ADDUNIQUEID :
-         {
-            const CHAR * csname = NULL ;
-            utilCSUniqueID csUniqueID = UTIL_UNIQUEID_NULL ;
-            BSONObj clInfoObj, emptyObj ;
-
-            rc = dpsRecord2AddUniqueID( (CHAR *)recordHeader, &csname,
-                                         csUniqueID, clInfoObj ) ;
-            if ( SDB_OK != rc )
-            {
-               goto error ;
-            }
-
-            while ( TRUE )
-            {
-               rc = rtnChangeUniqueID( csname, UTIL_UNIQUEID_NULL,
-                                       utilSetUniqueID( clInfoObj ),
-                                       eduCB, _dmsCB, _dpsCB, FALSE ) ;
-               if ( SDB_LOCK_FAILED == rc )
-               {
-                  ossSleep( 100 ) ;
-                  continue ;
-               }
-               break ;
-            }
-            PD_RC_CHECK( rc, PDERROR, "Failed to add unique id, rc: %d", rc ) ;
-
-            break ;
          }
          case LOG_TYPE_TS_COMMIT :
          case LOG_TYPE_DUMMY :
@@ -1615,7 +1192,6 @@ namespace engine
          }
          case LOG_TYPE_DATA_POP:
          {
-            // Pop is not able to rollback, return error.
             rc = SDB_CLS_REPLAY_LOG_FAILED ;
             goto error ;
          }
@@ -1630,7 +1206,6 @@ namespace engine
       }
       catch ( std::exception &e )
       {
-         /// reuse error code.
          rc = SDB_CLS_REPLAY_LOG_FAILED ;
          PD_LOG( PDERROR, "unexpected exception: %s", e.what() ) ;
          goto error ;
@@ -1657,75 +1232,35 @@ namespace engine
       goto done ;
    }
 
-   INT32 _clsReplayer::replayCrtCS( const CHAR *cs, utilCSUniqueID csUniqueID,
-                                    INT32 pageSize,
+   INT32 _clsReplayer::replayCrtCS( const CHAR *cs, INT32 pageSize,
                                     INT32 lobPageSize, DMS_STORAGE_TYPE type,
                                     _pmdEDUCB *eduCB )
    {
       SDB_ASSERT( NULL != cs, "cs should not be NULL" ) ;
-      INT32 rc = SDB_OK ;
-
-      rc = rtnTestCollectionSpaceCommand( cs, _dmsCB, &csUniqueID ) ;
-
-      if ( SDB_DMS_CS_REMAIN == rc )
-      {
-         rc = rtnDropCollectionSpaceCommand( cs, eduCB,
-                                             _dmsCB, _dpsCB ) ;
-         if ( SDB_OK == rc )
-         {
-            rc = SDB_DMS_CS_NOTEXIST ;
-         }
-         if ( SDB_DMS_CS_NOTEXIST != rc )
-         {
-            PD_LOG( PDERROR,
-                    "Drop cs[%s] before create cs failed, rc: %d",
-                    cs, rc ) ;
-         }
-      }
-
+      INT32 rc = rtnTestCollectionSpaceCommand( cs, _dmsCB ) ;
       if ( SDB_DMS_CS_NOTEXIST == rc )
       {
          rc = rtnCreateCollectionSpaceCommand( cs, eduCB, _dmsCB,
-                                               _dpsCB, csUniqueID, pageSize,
+                                               _dpsCB, pageSize,
                                                lobPageSize, type, TRUE ) ;
       }
       return rc ;
    }
 
    INT32 _clsReplayer::replayCrtCollection( const CHAR *collection,
-                                            utilCLUniqueID clUniqueID,
                                             UINT32 attributes,
                                             _pmdEDUCB *eduCB,
                                             UTIL_COMPRESSOR_TYPE compType,
                                             const BSONObj *extOptions )
    {
       SDB_ASSERT( NULL != collection, "collection should not be NULL" ) ;
-      INT32 rc = SDB_OK ;
-
-      rc = rtnTestCollectionCommand( collection, _dmsCB, &clUniqueID ) ;
-
-      if ( SDB_DMS_REMAIN == rc )
-      {
-         rc = rtnDropCollectionCommand( collection, eduCB, _dmsCB, _dpsCB ) ;
-         if ( SDB_OK == rc )
-         {
-            rc = SDB_DMS_NOTEXIST ;
-         }
-         if ( SDB_DMS_NOTEXIST != rc )
-         {
-            PD_LOG( PDERROR,
-                    "Drop cl[%s] before create cl failed, rc: %d",
-                    collection, rc ) ;
-         }
-      }
-
+      INT32 rc = rtnTestCollectionCommand( collection, _dmsCB ) ;
       if ( SDB_DMS_NOTEXIST == rc )
       {
          rc = rtnCreateCollectionCommand( collection, attributes, eduCB,
-                                          _dmsCB, _dpsCB, clUniqueID, compType,
+                                          _dmsCB, _dpsCB, compType,
                                           0, TRUE, extOptions ) ;
       }
-
       return rc ;
    }
 
@@ -1758,33 +1293,6 @@ namespace engine
       return rtnWriteLob( fullName, oid, sequence,
                           offset, len, data, eduCB,
                           1, _dpsCB ) ;
-   }
-
-   clsCLParallaInfo* _clsReplayer::_getOrCreateInfo( utilCLUniqueID clUID )
-   {
-      try
-      {
-         clsCLParallaInfo &info = _mapParallaInfo[ clUID ] ;
-         return &info ;
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-      }
-      return NULL ;
-   }
-
-   void _clsReplayer::_clearParallaInfo()
-   {
-      _mapParallaInfo.clear() ;
-   }
-
-   static BOOLEAN _isTextIdx( const BSONObj &index )
-   {
-      BSONObj idxDef = index.getObjectField( IXM_FIELD_NAME_KEY ) ;
-      BSONElement ele = idxDef.firstElement() ;
-
-      return ( 0 == ossStrcmp( ele.valuestrsafe(), IXM_TEXT_KEY_TYPE ) ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_STARTINXJOB, "startIndexJob" )
@@ -1828,7 +1336,7 @@ namespace engine
          }
       }
 
-      if ( pmdGetKRCB()->isRestore() || _isTextIdx( index ) )
+      if ( pmdGetKRCB()->isRestore() )
       {
          useSync = TRUE ;
       }
@@ -1861,7 +1369,6 @@ namespace engine
          goto error ;
       }
 
-      /// When is $id or useSync
       if ( useSync ||
            0 == ossStrcmp( indexJob->getIndexName(), IXM_ID_KEY_NAME ) )
       {
@@ -1871,9 +1378,6 @@ namespace engine
       }
       else
       {
-         // if use RTN_JOB_MUTEX_STOP_RET, when create index have complete,
-         // drop index should not drop really, so it's error, need to use
-         // RTN_JOB_MUTEX_STOP_CONT
          rc = rtnGetJobMgr()->startJob( indexJob, RTN_JOB_MUTEX_STOP_CONT,
                                         NULL ) ;
       }

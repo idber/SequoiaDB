@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnLobWindow.cpp
 
@@ -104,8 +103,6 @@ const UINT32 RTN_MAX_READ_LEN = DMS_PAGE_SIZE128K * 512 ;      /// 64MB
          goto error ;
       }
 
-      /// first page for the last data
-      /// second page for the meta data
       _pool = ( CHAR * )SDB_OSS_MALLOC( pageSize * 2 ) ;
       if ( NULL == _pool )
       {
@@ -161,7 +158,6 @@ const UINT32 RTN_MAX_READ_LEN = DMS_PAGE_SIZE128K * 512 ;      /// 64MB
          }
       }
 
-      // put data in meta page to the second page of _pool
       if ( _metaPageDataCached && _mergeMeta &&
            _curOffset < _pageSize - DMS_LOB_META_LENGTH )
       {
@@ -189,7 +185,6 @@ const UINT32 RTN_MAX_READ_LEN = DMS_PAGE_SIZE128K * 512 ;      /// 64MB
          }
       }
 
-      // no cached data
       if ( 0 == _cachedSz )
       {
          _writeData.tuple.columns.offset = _curOffset ;
@@ -198,7 +193,6 @@ const UINT32 RTN_MAX_READ_LEN = DMS_PAGE_SIZE128K * 512 ;      /// 64MB
       }
       else
       {
-         // join cached data and write data.
          UINT32 curOffsetInPage = RTN_LOB_GET_OFFSET_IN_SEQUENCE( _curOffset,
                                                                   _mergeMeta,
                                                                   _pageSize ) ;
@@ -277,7 +271,6 @@ const UINT32 RTN_MAX_READ_LEN = DMS_PAGE_SIZE128K * 512 ;      /// 64MB
          }
          else
          {
-            /// cache data
             goto done ;
          }
       }
@@ -380,7 +373,7 @@ const UINT32 RTN_MAX_READ_LEN = DMS_PAGE_SIZE128K * 512 ;      /// 64MB
       return hasNext ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNLOBWINDOW_PREPARE4READ, "_rtnLobWindow::prepare4Read" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNLOBWINDOW_PREPARE4READ, "_rtnLobWindow::_rtnLobWindow::prepare4Read" )
    INT32 _rtnLobWindow::prepare4Read( INT64 lobLen,
                                       INT64 offset,
                                       UINT32 len,
@@ -407,7 +400,6 @@ const UINT32 RTN_MAX_READ_LEN = DMS_PAGE_SIZE128K * 512 ;      /// 64MB
          UINT32 lenOfTuple = _pageSize - offsetOfTuple ;
          if ( ( lobLen - _curOffset ) < lenOfTuple )
          {
-            /// we want to read a whole piece unless hit the end of lob.
             lenOfTuple = lobLen - _curOffset ;
          }
 

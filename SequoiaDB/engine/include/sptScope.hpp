@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptScope.hpp
 
@@ -37,7 +36,6 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "sptSPDef.hpp"
-#include "sptSPVal.hpp"
 #include "../bson/bson.hpp"
 #include <list>
 #include <string>
@@ -67,9 +65,6 @@ namespace engine
          _sptResultVal() ;
          virtual ~_sptResultVal() ;
 
-         virtual _sptResultVal*  copy() const = 0 ;
-
-         virtual const sptSPVal* getVal() const = 0 ;
          virtual const void*     rawPtr() const = 0 ;
          virtual bson::BSONObj   toBSON() const = 0 ;
 
@@ -94,32 +89,29 @@ namespace engine
 
       virtual SPT_SCOPE_TYPE getType() const = 0 ;
 
-      UINT32         getLoadMask() const { return _loadMask ; }
-      INT32          getLastError() const ;
-      const CHAR*    getLastErrMsg() const ;
-      bson::BSONObj  getLastErrObj() const ;
+      UINT32 getLoadMask() const { return _loadMask ; }
+      INT32  getLastError() const ;
+      const CHAR* getLastErrMsg() const ;
+      bson::BSONObj getLastErrObj() const ;
 
-      // be used to implement import function
-      void     pushJSFileNameToStack( const string &filename ) ;
-      void     popJSFileNameFromStack() ;
-      INT32    getStackSize() ;
-      void     addJSFileNameToList( const string &filename ) ;
-      void     clearJSFileNameList() ;
-      BOOLEAN  isJSFileNameExistInStack( const string &filename ) ;
-      BOOLEAN  isJSFileNameExistInList( const string &filename ) ;
-
-      string   calcImportPath( const string &filename ) ;
+      void pushJSFileNameToStack( const string &filename ) ;
+      void popJSFileNameFromStack() ;
+      INT32 getStackSize() ;
+      void addJSFileNameToList( const string &filename ) ;
+      void clearJSFileNameList() ;
+      BOOLEAN isJSFileNameExistInStack( const string &filename ) ;
+      BOOLEAN isJSFileNameExistInList( const string &filename ) ;
 
    public:
-      virtual INT32  start( UINT32 loadMask = SPT_OBJ_MASK_ALL ) = 0 ;
+      virtual INT32 start( UINT32 loadMask = SPT_OBJ_MASK_ALL ) = 0 ;
 
-      virtual void   shutdown() = 0 ;
+      virtual void shutdown() = 0 ;
 
-      virtual INT32  eval( const CHAR *code, UINT32 len,
-                           const CHAR *filename,
-                           UINT32 lineno,
-                           INT32 flag, // SPT_EVAL_FLAG_NONE/SPT_EVAL_FLAG_PRINT
-                           const sptResultVal **ppRval ) = 0 ;
+      virtual INT32 eval( const CHAR *code, UINT32 len,
+                          const CHAR *filename,
+                          UINT32 lineno,
+                          INT32 flag, // SPT_EVAL_FLAG_NONE/SPT_EVAL_FLAG_PRINT
+                          const sptResultVal **ppRval ) = 0 ;
 
       virtual void   getGlobalFunNames( set<string> &setFunc,
                                         BOOLEAN showHide = FALSE ) = 0 ;
@@ -127,10 +119,6 @@ namespace engine
       virtual void   getObjStaticFunNames( const string &objName,
                                            set<string> &setFunc,
                                            BOOLEAN showHide = FALSE ) = 0 ;
-
-      virtual void   getObjFunNames( const string &className,
-                                     set< string > &setFunc,
-                                     BOOLEAN showHide = FALSE ) = 0 ;
 
       virtual void   getObjFunNames( const void *pObj,
                                      set<string> &setFunc,

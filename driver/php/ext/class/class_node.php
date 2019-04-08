@@ -1,6 +1,6 @@
 <?php
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ class SequoiaNode
     * Example:
     * @code
     * $nodeName = $nodeObj -> getName() ;
-    * $err = $db -> getLastErrorMsg() ;
+    * $err = $db -> getError() ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to get node name, error code: ".$err['errno'] ;
     *    return ;
@@ -54,7 +54,7 @@ class SequoiaNode
     * Example:
     * @code
     * $hostName = $nodeObj -> getName() ;
-    * $err = $db -> getLastErrorMsg() ;
+    * $err = $db -> getError() ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to get host name, error code: ".$err['errno'] ;
     *    return ;
@@ -74,7 +74,7 @@ class SequoiaNode
     * Example:
     * @code
     * $servicename = $nodeObj -> getServiceName() ;
-    * $err = $db -> getLastErrorMsg() ;
+    * $err = $db -> getError() ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to get service name, error code: ".$err['errno'] ;
     *    return ;
@@ -103,14 +103,14 @@ class SequoiaNode
     * //get group object
     * $groupObj = $db -> getGroup( 'myGroup' ) ;
     * if( empty( $groupObj ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call getGroup, error code: ".$err['errno'] ;
     *    return ;
     * }
     * //get node object
     * $nodeObj = $groupObj -> getNode( 'host1:11910' ) ;
     * if( empty( $nodeObj ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to get the node, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -123,7 +123,7 @@ class SequoiaNode
     * //get node contexts
     * $cursor = $nodeDB -> list( SDB_LIST_CONTEXTS ) ;
     * if( empty( $cursor ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call list, error code: ".$err['errno'] ;
     *    return ;
     * }

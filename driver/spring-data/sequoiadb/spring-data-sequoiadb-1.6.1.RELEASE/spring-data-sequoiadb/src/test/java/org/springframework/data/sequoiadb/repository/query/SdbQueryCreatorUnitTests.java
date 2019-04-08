@@ -128,23 +128,11 @@ public class SdbQueryCreatorUnitTests {
 	@Test
 	public void bindsMetricDistanceParameterToNearSphereCorrectly() throws Exception {
 
-//		Point point = new Point(10, 20);
-//		Distance distance = new Distance(2.5, Metrics.KILOMETERS);
-//
-//		Query query = query(where("location").nearSphere(point).maxDistance(distance.getNormalizedValue()).and("firstname")
-//				.is("Dave"));
-//		assertBindsDistanceToQuery(point, distance, query);
 	}
 
 	@Test
 	public void bindsDistanceParameterToNearCorrectly() throws Exception {
 
-//		Point point = new Point(10, 20);
-//		Distance distance = new Distance(2.5);
-//
-//		Query query = query(where("location").near(point).maxDistance(distance.getNormalizedValue()).and("firstname")
-//				.is("Dave"));
-//		assertBindsDistanceToQuery(point, distance, query);
 	}
 
 	@Test
@@ -326,7 +314,6 @@ public class SdbQueryCreatorUnitTests {
 
 		Query query = creator.createQuery();
 		String str = query(new Criteria().notOperator(where("firstName").regex("^dave$", "i"))).toString();
-//		assertThat(query.toString(), is(query(where("firstName").not().regex("^dave$", "i")).toString()));
 		assertThat(query.toString(), is(str));
 	}
 

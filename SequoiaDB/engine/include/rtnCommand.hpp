@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnCommand.hpp
 
@@ -41,7 +40,7 @@
 #include "dms.hpp"
 #include "msg.hpp"
 #include "migLoad.hpp"
-#include "rtnAlterJob.hpp"
+#include "rtnAlterRunner.hpp"
 #include "rtnQueryOptions.hpp"
 
 using namespace bson ;
@@ -148,7 +147,6 @@ namespace engine
    _rtnCmdBuilder * getRtnCmdBuilder () ;
 
 
-   //Command list
    class _rtnCoordOnly : public _rtnCommand
    {
       protected:
@@ -459,36 +457,6 @@ namespace engine
          virtual RTN_COMMAND_TYPE type () { return CMD_GET_DCINFO ; }
    } ;
 
-    class _rtnSnapshotSequences : public _rtnCoordOnly
-    {
-       DECLARE_CMD_AUTO_REGISTER()
-       public:
-          _rtnSnapshotSequences () {}
-          virtual ~_rtnSnapshotSequences () {}
-          virtual const CHAR * name () { return NAME_SNAP_SEQUENCES ; }
-          virtual RTN_COMMAND_TYPE type () { return CMD_SNAPSHOT_SEQUENCES ; }
-    };
-
-    class _rtnSnapshotSequencesIntr : public _rtnCoordOnly
-    {
-       DECLARE_CMD_AUTO_REGISTER()
-       public:
-          _rtnSnapshotSequencesIntr () {}
-          virtual ~_rtnSnapshotSequencesIntr () {}
-          virtual const CHAR * name () { return CMD_NAME_SNAPSHOT_SEQUENCES_INTR ; }
-          virtual RTN_COMMAND_TYPE type () { return CMD_SNAPSHOT_SEQUENCES ; }
-    } ;
-
-    class _rtnListSequences : public _rtnCoordOnly
-    {
-       DECLARE_CMD_AUTO_REGISTER()
-       public:
-          _rtnListSequences () {}
-          virtual ~_rtnListSequences () {}
-          virtual const CHAR * name () { return NAME_LIST_SEQUENCES ; }
-          virtual RTN_COMMAND_TYPE type () { return CMD_LIST_SEQUENCES ; }
-    } ;
-
    class _rtnBackup : public _rtnCommand
    {
       DECLARE_CMD_AUTO_REGISTER()
@@ -541,15 +509,12 @@ namespace engine
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
 
-         void setCLUniqueID( utilCLUniqueID clUniqueID ) ;
-
       private:
          void _clean( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB, _dpsLogWrapper *dpsCB ) ;
       protected:
          const CHAR              *_collectionName ;
          BSONObj                 _shardingKey ;
          UINT32                  _attributes ;
-         utilCLUniqueID          _clUniqueID ;
          UTIL_COMPRESSOR_TYPE    _compressorType ;
          BSONObj                 _extOptions ; // Store options accorrding to attributes.
    };
@@ -577,7 +542,6 @@ namespace engine
 
      protected:
          const CHAR                 *_spaceName ;
-         utilCSUniqueID             _csUniqueID ;
          INT32                      _pageSize ;
          INT32                      _lobPageSize ;
          DMS_STORAGE_TYPE           _storageType ;
@@ -780,6 +744,7 @@ namespace engine
       public:
          _rtnRenameCollection () ;
          virtual ~_rtnRenameCollection () ;
+         virtual INT32 spaceService () { return CMD_SPACE_SERVICE_LOCAL ; }
 
          virtual const CHAR * name () ;
          virtual RTN_COMMAND_TYPE type () ;
@@ -795,8 +760,8 @@ namespace engine
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL  ) ;
       protected:
-         const CHAR           *_clShortName ;
-         const CHAR           *_newCLShortName ;
+         const CHAR           *_oldCollectionName ;
+         const CHAR           *_newCollectionName ;
          const CHAR           *_csName ;
          std::string          _fullCollectionName ;
    } ;
@@ -808,6 +773,7 @@ namespace engine
       public:
          _rtnRenameCollectionSpace () ;
          virtual ~_rtnRenameCollectionSpace () ;
+         virtual INT32 spaceService () { return CMD_SPACE_SERVICE_LOCAL ; }
 
          virtual const CHAR * name () { return NAME_RENAME_COLLECTIONSPACE ; }
          virtual RTN_COMMAND_TYPE type () { return CMD_RENAME_COLLECTIONSPACE ; }
@@ -990,60 +956,6 @@ namespace engine
          virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL ) ;
-   } ;
-
-   class _configOprBase : public _rtnCommand
-   {
-      protected:
-         _configOprBase() ;
-         virtual ~_configOprBase() ;
-         virtual INT32 _errorReport( BSONObj &returnObj ) ;
-   } ;
-
-   class _rtnUpdateConfig : public _configOprBase
-   {
-      DECLARE_CMD_AUTO_REGISTER()
-
-      public:
-         _rtnUpdateConfig() ;
-         virtual ~_rtnUpdateConfig() ;
-
-      public:
-         virtual const CHAR * name () ;
-         virtual RTN_COMMAND_TYPE type () ;
-         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
-                              const CHAR *pMatcherBuff,
-                              const CHAR *pSelectBuff,
-                              const CHAR *pOrderByBuff,
-                              const CHAR *pHintBuff ) ;
-         virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
-                              _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
-                              INT16 w = 1, INT64 *pContextID = NULL ) ;
-      private:
-         BSONObj _newCfgObj ;
-   } ;
-
-   class _rtnDeleteConfig : public _configOprBase
-   {
-      DECLARE_CMD_AUTO_REGISTER()
-
-      public:
-         _rtnDeleteConfig() ;
-         virtual ~_rtnDeleteConfig() ;
-
-      public:
-         virtual const CHAR * name () ;
-         virtual RTN_COMMAND_TYPE type () ;
-         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
-                              const CHAR *pMatcherBuff,
-                              const CHAR *pSelectBuff,
-                              const CHAR *pOrderByBuff,
-                              const CHAR *pHintBuff ) ;
-         virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
-                              _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
-                              INT16 w = 1, INT64 *pContextID = NULL ) ;
-      private:
-         BSONObj _newCfgObj ;
    } ;
 
    class _rtnTraceStart : public _rtnCommand
@@ -1392,6 +1304,44 @@ namespace engine
       INT8 _direction ;
    };
 
+   class _rtnAlterCollection: public _rtnCommand
+   {
+   DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _rtnAlterCollection() ;
+      virtual ~_rtnAlterCollection() ;
+
+   public:
+      virtual const CHAR * name () { return NAME_ALTER_COLLECTION ; }
+      virtual RTN_COMMAND_TYPE type() { return CMD_ALTER_COLLECTION ; }
+      virtual const CHAR * collectionFullName() ;
+      virtual BOOLEAN writable() { return TRUE ;}
+
+      virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+                           const CHAR *pMatcherBuff,
+                           const CHAR *pSelectBuff,
+                           const CHAR *pOrderByBuff,
+                           const CHAR *pHintBuff ) ;
+      virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                           _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                           INT16 w = 1, INT64 *pContextID = NULL ) ;
+
+      OSS_INLINE const _rtnAlterRunner &getRunner() const
+      {
+         return _runner ;
+      }
+
+   private:
+      INT32 _handleOldVersion( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                               INT16 w = 1, INT64 *pContextID = NULL ) ;
+
+   private:
+      BSONObj _alterObj ;
+
+      _rtnAlterRunner _runner ;
+   } ;
+
    class _rtnSyncDB : public _rtnCommand
    {
    DECLARE_CMD_AUTO_REGISTER()
@@ -1439,15 +1389,9 @@ namespace engine
                            _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                            INT16 w = 1, INT64 *pContextID = NULL ) ;
 
-      const CHAR* csName () { return _csName ; }
-      void setCSUniqueID ( utilCSUniqueID csUniqueID ) ;
-      void setCLInfo ( const BSONObj& clInfoObj ) ;
-
    protected:
-      const CHAR                 *_csName ;
-      BOOLEAN                    _needChangeID ;
-      utilCSUniqueID             _csUniqueID ;
-      BSONObj                    _clInfoObj ;
+      const CHAR        *_csName ;
+
    } ;
 
    class _rtnUnloadCollectionSpace : public _rtnLoadCollectionSpace
@@ -1514,7 +1458,6 @@ namespace engine
 
       virtual BOOLEAN writable ()
       {
-         // Reload is read-only operation
          return ( _param._mode != SDB_ANALYZE_MODE_RELOAD &&
                   _param._mode != SDB_ANALYZE_MODE_CLEAR ) ;
       }

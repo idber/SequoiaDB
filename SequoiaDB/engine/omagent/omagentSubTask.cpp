@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omagentSubTask.cpp
 
@@ -84,7 +83,6 @@ namespace engine
       INT32 rc      = SDB_OK ;
       INT32 tmpRc   = SDB_OK ;
 
-      // set current sub task to be running
       _pTask->setSubTaskStatus( _taskName, OMA_TASK_STATUS_RUNNING ) ;
       
       while( TRUE )
@@ -102,7 +100,6 @@ namespace engine
          string version ;
          BSONObj retObj ;
 
-         // 1. judge whether program had been interrupted
          if ( TRUE == pmdGetThreadEDUCB()->isInterrupted() )
          {
             PD_LOG( PDEVENT, "Program has been interrupted, stop task[%s]",
@@ -110,9 +107,6 @@ namespace engine
             goto done ;
          }
 
-         // 2. get a host item to install
-         // if no host item needs to install, let this backgroud
-         // thread finish
          pInfo = _pTask->getAddHostItem() ;
          if ( NULL == pInfo )
          {
@@ -126,7 +120,6 @@ namespace engine
          resultInfo._ip       = pIP ;
          resultInfo._hostName = pHostName ;
 
-         // 3. before install the host, update the progress
          ossSnprintf( flow, OMA_BUFF_SIZE, "Adding host[%s]", pIP ) ;
          resultInfo._flow.push_back( flow ) ;
          tmpRc = _pTask->updateProgressToTask( pInfo->_serialNum, resultInfo ) ;
@@ -136,7 +129,6 @@ namespace engine
                     "rc = %d", pIP, tmpRc ) ;
          }
 
-         // 4. add host
          _omaAddHost runCmd( *pInfo ) ;
          rc = runCmd.init( NULL ) ;
          if ( rc )
@@ -148,18 +140,10 @@ namespace engine
                pDetail = "Failed to init for adding host" ;
             goto build_error_result ;
          }
-         // doit may return error before execute js file
-         // so, when rc != SDB_OK, we need to ensure where
-         // error happen
-         // a. rc != SDB_OK && retObj == {}, error happen before executing js
-         // b. rc == SDB_OK && retObj == { errno:xxx, detail:"xxx" }, error
-         // happen in js
          rc = runCmd.doit( retObj ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to do adding host[%s], rc = %d", pIP, rc ) ;
-            // if we can't get field "detail", it means we failed in CPP,
-            // we had not executed js file yet
             tmpRc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pDetail ) ;
             if ( SDB_OK != tmpRc )
             {
@@ -169,7 +153,6 @@ namespace engine
             }
             goto build_error_result ;
          }
-         // extract "errno"
          rc = omaGetIntElement ( retObj, OMA_FIELD_ERRNO, errNum ) ;
          if ( rc )
          {
@@ -181,13 +164,10 @@ namespace engine
             goto build_error_result ;
          }
 
-         // install version
          version = retObj.getStringField( OMA_FIELD_VERSION ) ;
 
-         // to see whether execute js successfully or not
          if ( SDB_OK != errNum )
          {
-            // get error detail
             rc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pDetail ) ;
             if ( SDB_OK != rc )
             {
@@ -237,7 +217,6 @@ namespace engine
       }
 
    done:
-      // set current sub task to finish
       _pTask->setSubTaskStatus( _taskName, OMA_TASK_STATUS_FINISH ) ;
       _pTask->notifyUpdateProgress() ;
       return SDB_OK ;
@@ -290,30 +269,24 @@ namespace engine
       INT32 errNum                 = 0 ;
       OMA_TASK_STATUS taskStatus ;
 
-      // set current sub task to be running
       _pTask->setSubTaskStatus( _taskName, OMA_TASK_STATUS_RUNNING ) ;
 
       while( TRUE )
       {
          string instRGName ;
 
-         // 1. judge whether program had been interrupted
          if ( TRUE == pmdGetThreadEDUCB()->isInterrupted() )
          {
             PD_LOG( PDEVENT, "Program has been interrupted, stop task[%s]",
                     _taskName.c_str() ) ;
             goto done ;
          }
-         // judge whether task had fail
          if ( TRUE == _pTask->getIsTaskFail() )
          {
             PD_LOG( PDEVENT, "Install db business task had failed, "
                     "sub task[%s] exits", _taskName.c_str() ) ;
             goto done ;
          }
-         // 2. get a data group to install
-         // if no group needs to install, let this backgroud
-         // thread finish
          instRGName = _pTask->getDataRGToInst() ;
          if ( instRGName.empty() )
          {
@@ -329,7 +302,6 @@ namespace engine
             stringstream ss ;
             BSONObj retObj ;
 
-            // 3. get a data node to install
             pInfo = _pTask->getDataNodeInfo( instRGName ) ;
             if ( NULL == pInfo )
             {
@@ -338,7 +310,6 @@ namespace engine
                break ;
             }
 
-            // 4. check task's status
             taskStatus = _pTask->getTaskStatus() ;
             if ( OMA_TASK_STATUS_RUNNING != taskStatus )
             {
@@ -347,7 +318,6 @@ namespace engine
                goto done ;
             }
 
-            // 5. init install result
             pHostName              = pInfo->_instInfo._hostName.c_str() ;
             pSvcName               = pInfo->_instInfo._svcName.c_str() ;
             instResult._errno      = SDB_OK ;
@@ -359,7 +329,6 @@ namespace engine
             instResult._status     = OMA_TASK_STATUS_RUNNING ;
             instResult._statusDesc = getTaskStatusDesc( OMA_TASK_STATUS_RUNNING ) ;
 
-            // 6. before install data group, update the progress
             ossSnprintf( flow, OMA_BUFF_SIZE, "Installing data node[%s:%s]",
                          pHostName, pSvcName ) ;
             instResult._status     = OMA_TASK_STATUS_RUNNING ;
@@ -372,7 +341,6 @@ namespace engine
                PD_LOG( PDWARNING, "Failed to update install data node[%s:%s]'s "
                        "progress, rc = %d", pHostName, pSvcName, rc ) ;
             }
-            // 7. install data node
             _omaInstallDataNode runCmd( _taskID, _pTask->getTmpCoordSvcName(),
                                         pInfo->_instInfo ) ;
             rc = runCmd.init( NULL ) ;
@@ -386,19 +354,11 @@ namespace engine
                   pDetail = "Failed to init to install data node" ;
                goto build_error_result ;
             }
-            // doit may return error before execute js file
-            // so, when rc != SDB_OK, we need to ensure where
-            // error happen
-            // a. rc != SDB_OK && retObj == {}, error happen before executing js
-            // b. rc == SDB_OK && retObj == { errno:xxx, detail:"xxx" }, error
-            // happen in js
             rc = runCmd.doit( retObj ) ;
             if ( rc )
             {
                PD_LOG( PDERROR, "Failed to install data node[%s:%s], rc = %d",
                        pHostName, pSvcName, rc ) ;
-               // if we can't get field "detail", it means we failed in CPP,
-               // we had not executed js file yet
                tmpRc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pDetail ) ;
                if ( SDB_OK != tmpRc )
                {
@@ -408,7 +368,6 @@ namespace engine
                }
                goto build_error_result ;
             }
-            // extract "errno"
             rc = omaGetIntElement ( retObj, OMA_FIELD_ERRNO, errNum ) ;
             if ( rc )
             {
@@ -420,10 +379,8 @@ namespace engine
                pDetail = ss.str().c_str() ;
                goto build_error_result ;
             }
-            // to see whether execute js successfully or not
             if ( SDB_OK != errNum )
             {
-               // get error detail
                rc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pDetail ) ;
                if ( SDB_OK != rc )
                {
@@ -480,7 +437,6 @@ namespace engine
       } // while
 
    done:
-      // set current sub task to finish
       _pTask->setSubTaskStatus( _taskName, OMA_TASK_STATUS_FINISH ) ;
       _pTask->notifyUpdateProgress() ;
       return rc ;
@@ -533,7 +489,6 @@ namespace engine
       INT32 tmpRc   = SDB_OK ;
       const CHAR *pDetail          = NULL ;
 
-      // set current sub task to be running
       _pTask->setSubTaskStatus( _taskName, OMA_TASK_STATUS_RUNNING ) ;
       
       while( TRUE )
@@ -548,23 +503,18 @@ namespace engine
          stringstream ss ;
          BSONObj retObj ;
 
-         // 1. judge whether program had been interrupted
          if ( TRUE == pmdGetThreadEDUCB()->isInterrupted() )
          {
             PD_LOG( PDEVENT, "Program has been interrupted, stop task[%s]",
                     _taskName.c_str() ) ;
             goto done ;
          }
-         // 2. judge whether task had fail
          if ( TRUE == _pTask->getIsTaskFail() )
          {
             PD_LOG( PDEVENT, "Installing zookeeper business task had failed, "
                     "sub task[%s] exits", _taskName.c_str() ) ;
             goto done ;
          }
-         // 3. get a znode item to install
-         // if no znode item needs to install, let this backgroud
-         // thread finish
          pInfo = _pTask->getZNInfo() ;
          if ( NULL == pInfo )
          {
@@ -577,7 +527,6 @@ namespace engine
          resultInfo._hostName = pHostName ;
          resultInfo._zooid    = pInfo->_item._zooid ;
 
-         // 3. before install this znode, update the progress
          ossSnprintf( flow, OMA_BUFF_SIZE, "Installing znode[%s]", pHostName ) ;
          resultInfo._flow.push_back( flow ) ;
          tmpRc = _pTask->updateProgressToTask( pInfo->_serialNum, resultInfo ) ;
@@ -587,7 +536,6 @@ namespace engine
                     "rc = %d", pHostName, tmpRc ) ;
          }
 
-         // 4. add znode
          _omaAddZNode runCmd( *pInfo ) ;
          rc = runCmd.init( NULL ) ;
          if ( rc )
@@ -599,19 +547,11 @@ namespace engine
                pDetail = "Failed to init for installing znode" ;
             goto build_error_result ;
          }
-         // doit may return error before execute js file
-         // so, when rc != SDB_OK, we need to ensure where
-         // error happen
-         // a. rc != SDB_OK && retObj == {}, error happen before executing js
-         // b. rc == SDB_OK && retObj == { errno:xxx, detail:"xxx" }, error
-         // happen in js
          rc = runCmd.doit( retObj ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to do installing znode[%s], "
                     "rc = %d", pHostName, rc ) ;
-            // if we can't get field "detail", it means we failed in CPP,
-            // we had not executed js file yet
             tmpRc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pDetail ) ;
             if ( SDB_OK != tmpRc )
             {
@@ -621,7 +561,6 @@ namespace engine
             }
             goto build_error_result ;
          }
-         // extract "errno"
          rc = omaGetIntElement ( retObj, OMA_FIELD_ERRNO, errNum ) ;
          if ( rc )
          {
@@ -632,10 +571,8 @@ namespace engine
             pDetail = ss.str().c_str() ;
             goto build_error_result ;
          }
-         // to see whether execute js successfully or not
          if ( SDB_OK != errNum )
          {
-            // get error detail
             rc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pDetail ) ;
             if ( SDB_OK != rc )
             {
@@ -685,7 +622,6 @@ namespace engine
       } // while
 
    done:
-      // set current sub task to finish
       _pTask->setSubTaskStatus( _taskName, OMA_TASK_STATUS_FINISH ) ;
       _pTask->notifyUpdateProgress() ;
       return rc ;
@@ -738,7 +674,6 @@ namespace engine
       INT32 tmpRc = SDB_OK ;
       string detail ;
 
-      // set current sub task to be running
       _mainTask->setSubTaskStatus( _taskName, OMA_TASK_STATUS_RUNNING ) ;
 
       while( TRUE )
@@ -749,7 +684,6 @@ namespace engine
          INT32 errNum = 0 ;
          BSONObj retObj ;
 
-         // judge whether program had been interrupted
          if ( pmdGetThreadEDUCB()->isInterrupted() )
          {
             PD_LOG( PDEVENT, "program has been interrupted, stop task[%s]",
@@ -757,7 +691,6 @@ namespace engine
             goto done ;
          }
 
-         // judge whether task has failed
          if ( _mainTask->isTaskFailed() )
          {
             PD_LOG( PDEVENT, "installing sequoiasql olap business task has been failed, "
@@ -765,8 +698,6 @@ namespace engine
             goto done ;
          }
 
-         // get a node to install
-         // if no node item needs to install, then exit
          nodeInfo = _mainTask->getNodeInfo() ;
          if ( NULL == nodeInfo )
          {
@@ -778,7 +709,6 @@ namespace engine
          hostName = nodeInfo->hostName ;
          role = nodeInfo->role ;
 
-         // before install this node, update the progress
          {
             stringstream ss ;
             ss << "installing " << hostName << ":" << role ;
@@ -793,7 +723,6 @@ namespace engine
             }
          }
 
-         // install
          _omaInstallSsqlOlap runCmd( nodeInfo->config, _mainTask->getSysInfo() ) ;
          rc = runCmd.init( NULL ) ;
          if ( SDB_OK != rc )
@@ -808,19 +737,11 @@ namespace engine
             goto build_error_result ;
          }
 
-         // doit may return error before execute js file
-         // so, when rc != SDB_OK, we need to ensure where
-         // error happen
-         // a. rc != SDB_OK && retObj == {}, error happen before executing js
-         // b. rc == SDB_OK && retObj == { errno:xxx, detail:"xxx" }, error
-         // happen in js
          rc = runCmd.doit( retObj ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to do installing sequoiasql olap[%s:%s], "
                     "rc = %d", hostName.c_str(), role.c_str(), rc ) ;
-            // if we can't get field "detail", it means we failed in CPP,
-            // we had not executed js file yet
             tmpRc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, detail ) ;
             if ( SDB_OK != tmpRc )
             {
@@ -833,7 +754,6 @@ namespace engine
             goto build_error_result ;
          }
 
-         // extract "errno"
          rc = omaGetIntElement( retObj, OMA_FIELD_ERRNO, errNum ) ;
          if ( rc )
          {
@@ -847,10 +767,8 @@ namespace engine
             goto build_error_result ;
          }
 
-         // to see whether execute js successfully or not
          if ( SDB_OK != errNum )
          {
-            // get error detail
             rc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, detail ) ;
             if ( SDB_OK != rc )
             {
@@ -908,7 +826,6 @@ namespace engine
       } // while
 
    done:
-      // set current sub task to finish
       _mainTask->setSubTaskStatus( _taskName, OMA_TASK_STATUS_FINISH ) ;
       _mainTask->notifyUpdateProgress() ;
       return rc ;

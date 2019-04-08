@@ -69,7 +69,6 @@ ossFiles = [
 pmdFiles = [
       "pmd/pmd.cpp",
       "pmd/pmdEDU.cpp",
-      "pmd/pmdTransExecutor.cpp",
       "pmd/pmdSessionBase.cpp",
       "pmd/pmdExternClient.cpp",
       "pmd/pmdInnerClient.cpp",
@@ -93,7 +92,7 @@ pmdFiles = [
       "pmd/pmdEnv.cpp",
       "pmd/pmdOptionsMgr.cpp",
       "pmd/pmdStartup.cpp",
-      "pmd/pmdStartupHistoryLogger.cpp",
+      "pmd/pmdStartupHstLogger.cpp",
       "pmd/pmdBackgroundJob.cpp",
       "pmd/pmdDpsTransRollback.cpp",
       "pmd/pmdLoadWorker.cpp",
@@ -105,17 +104,7 @@ pmdFiles = [
       "pmd/pmdProtocolEntryPoint.cpp",
       "pmd/pmdModuleLoader.cpp",
       "pmd/pmdRestSession.cpp",
-      "pmd/pmdEntryPoint.cpp",
-      "pmd/pmdRemoteMsgEventHandler.cpp",
-
-      "sched/schedDef.cpp",
-      "sched/schedTaskQue.cpp",
-      "sched/schedTaskContainer.cpp",
-      "sched/schedTaskAdapter.cpp",
-      "sched/schedTaskAdapterBase.cpp",
-      "sched/schedPrepareJob.cpp",
-      "sched/schedDispatchJob.cpp",
-      "sched/schedTaskMgr.cpp"
+      "pmd/pmdEntryPoint.cpp"
       ]
 migFiles = [
       "mig/migLoad.cpp"
@@ -163,6 +152,7 @@ utilFiles = [
       "util/utilBsonHash.cpp",
       "util/linenoise.cpp",
       "util/utilLinenoiseWrapper.cpp",
+      "util/utilString.cpp",
       "util/utilBsonHashObsolete.cpp",
       "util/utilDictionary.cpp",
       "util/utilLZWDictionary.cpp",
@@ -177,13 +167,7 @@ utilFiles = [
       "util/utilFileStream.cpp",
       "util/utilZlibStream.cpp",
       "util/utilJsonFile.cpp",
-      "util/utilMath.cpp",
-      "util/utilUniqueID.cpp",
-      "util/utilBuffBlock.cpp",
-      "util/utilCommBuff.cpp",
-      "util/utilRenameLogger.cpp",
-      "util/utilInsertResult.cpp",
-      "util/utilResult.cpp"
+      "util/utilMath.cpp"
       ]
 
 rtnFiles = [
@@ -214,9 +198,6 @@ rtnFiles = [
       "rtn/rtnCommandList.cpp",
       "rtn/rtnPredicate.cpp",
       "rtn/rtnIXScanner.cpp",
-      "rtn/rtnDiskIXScanner.cpp",
-      "rtn/rtnMemIXTreeScanner.cpp",
-      "rtn/rtnMergeIXScanner.cpp",
       "rtn/rtnBackup.cpp",
       "rtn/rtnReorg.cpp",
       "rtn/rtnRecover.cpp",
@@ -259,25 +240,27 @@ rtnFiles = [
       "rtn/rtnLobPieces.cpp",
       "rtn/rtnLobMetaCache.cpp",
       "rtn/rtnLobSections.cpp",
+      "rtn/rtnAlterFuncList.cpp",
+      "rtn/rtnAlterFuncs.cpp",
+      "rtn/rtnAlterRunner.cpp",
+      "rtn/rtnAlterJob.cpp",
       "rtn/rtnIxmKeySorter.cpp",
       "rtn/rtnDictCreatorJob.cpp",
       "rtn/rtnAnalyze.cpp",
       "rtn/rtnOperator.cpp",
+      "rtn/rtnQueryOperator.cpp",
       "rtn/rtnExtDataHandler.cpp",
       "rtn/rtnExtDataProcessor.cpp",
+      "rtn/rtnSimpleCondNode.cpp",
       "rtn/rtnContextDataDispatcher.cpp",
       "rtn/rtnSessionProperty.cpp",
-      "rtn/rtnRemoteMessenger.cpp",
-      "rtn/rtnAlterJob.cpp",
-      "rtn/rtnAlterTask.cpp",
-      "rtn/rtnAlter.cpp",
-      "rtn/rtnContextAlter.cpp",
-      "rtn/rtnExtContext.cpp"
+      "rtn/rtnRemoteMessenger.cpp"
       ]
 
 msgFiles = [
       "msg/msgMessage.cpp",
       "msg/msgMessageFormat.cpp",
+      "msg/msgReplicator.cpp",
       "msg/msgCatalog.cpp",
       "msg/msgAuth.cpp"
       ]
@@ -290,7 +273,6 @@ dmsFiles = [
       "dms/dmsStorageDataFactory.cpp",
       "dms/dmsStorageIndex.cpp",
       "dms/dmsScanner.cpp",
-      "dms/dmsTransContext.cpp",
       "dms/dmsDump.cpp",
       "dms/dmsInspect.cpp",
       "dms/dmsStorageUnit.cpp",
@@ -314,7 +296,6 @@ dmsFiles = [
       "dms/dmsStatSUMgr.cpp",
       "dms/dmsStatUnit.cpp",
       "dms/dmsCachedPlanUnit.cpp",
-      "dms/dmsTransLockCallback.cpp",
       "dms/dmsSUCache.cpp"
       ]
 
@@ -436,9 +417,7 @@ clsFiles = [
       "cls/clsDCMgr.cpp",
       "cls/clsLocalValidation.cpp",
       "cls/clsStorageCheckJob.cpp",
-      "cls/clsRegAssit.cpp",
-      "cls/clsUniqueIDCheckJob.cpp",
-      "cls/clsAutoIncItem.cpp"
+      "cls/clsRegAssit.cpp"
       ]
 
 dpsFiles = [
@@ -449,28 +428,27 @@ dpsFiles = [
       "dps/dpsMergeBlock.cpp",
       "dps/dpsLogFile.cpp",
       "dps/dpsLogFileMgr.cpp",
-      "dps/dpsMetaFile.cpp",
       "dps/dpsLogRecord.cpp",
       "dps/dpsTransCB.cpp",
-      "dps/dpsTransExecutor.cpp",
-      "dps/dpsTransVersionCtrl.cpp",
-      "dps/dpsTransLockMgr.cpp",
+      "dps/dpsTransLock.cpp",
+      "dps/dpsTransLockDef.cpp",
+      "dps/dpsTransLockBucket.cpp",
       "dps/dpsOp2Record.cpp",
       "dps/dpsDump.cpp",
       "dps/dpsArchiveMgr.cpp",
       "dps/dpsArchiveInfo.cpp",
       "dps/dpsArchiveFile.cpp",
-      "dps/dpsArchiveFileMgr.cpp"
+      "dps/dpsArchiveFileMgr.cpp",
       ]
 
 omsvcFiles = [
       "omsvc/omManager.cpp",
       "omsvc/omCommand.cpp",
-      "omsvc/omCmdHost.cpp",
       "omsvc/omCmdBusiness.cpp",
       "omsvc/omCmdRelationship.cpp",
       "omsvc/omCommandTool.cpp",
       "omsvc/omCommandInterface.cpp",
+      "omsvc/omMsgEventHandler.cpp",
       "omsvc/omManagerJob.cpp",
       "omsvc/omTaskManager.cpp",
       "omsvc/omRestSession.cpp",
@@ -484,10 +462,7 @@ omsvcFiles = [
       "omsvc/omConfigSdb.cpp",
       "omsvc/omConfigZoo.cpp",
       "omsvc/omConfigSsqlOlap.cpp",
-      "omsvc/omConfigPostgreSQL.cpp",
-      "omsvc/omConfigMySQL.cpp",
-      "omsvc/omSdbAdaptor.cpp",
-      "omsvc/omStrategyObserverJob.cpp"
+      "omsvc/omConfigSsqlOltp.cpp",
       ]
 
 barFiles = [
@@ -514,13 +489,7 @@ catFiles = [
       "cat/catContext.cpp",
       "cat/catContextData.cpp",
       "cat/catContextNode.cpp",
-      "cat/catContextTask.cpp",
-      "cat/catContextAlterTask.cpp",
-      "cat/catGTSManager.cpp",
-      "cat/catGTSMsgHandler.cpp",
-      "cat/catGTSMsgJob.cpp",
-      "cat/catSequence.cpp",
-      "cat/catSequenceManager.cpp"
+      "cat/catContextTask.cpp"
       ]
 
 coordFiles = [
@@ -533,7 +502,7 @@ coordFiles = [
       "coord/coordGroupHandle.cpp",
       "coord/coordOperator.cpp",
       "coord/coordTransOperator.cpp",
-      "coord/coordKeyKicker.cpp",
+      "coord/coordShardKicker.cpp",
       "coord/coordInsertOperator.cpp",
       "coord/coordDeleteOperator.cpp",
       "coord/coordUpdateOperator.cpp",
@@ -564,14 +533,8 @@ coordFiles = [
       "coord/coordLobStream.cpp",
       "coord/coordLobOperator.cpp",
       "coord/coordCommands.cpp",
-      "coord/coordContext.cpp",
-      "coord/coordOmOperator.cpp",
-      "coord/coordOmProxy.cpp",
-      "coord/coordOmStrategyAccessor.cpp",
-      "coord/coordOmCache.cpp",
-      "coord/coordOmStrategyJob.cpp",
-      "coord/coordSequenceAgent.cpp",
-      "coord/coordCommandSequence.cpp"
+      "coord/coordMsgEventHandler.cpp",
+      "coord/coordContext.cpp"
       ]
 
 aggrFiles = [

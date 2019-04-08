@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordAggrOperator.cpp
 
@@ -91,7 +90,6 @@ namespace engine
       {
          objs = BSONObj( pObjs ) ;
 
-         /// Prepare last info
          CHAR szTmp[ MON_APP_LASTOP_DESC_LEN + 1 ] = { 0 } ;
          UINT32 len = 0 ;
          const CHAR *pObjData = pObjs ;
@@ -106,7 +104,6 @@ namespace engine
                break ;
             }
          }
-         // add last op info
          MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                              "Collection:%s, ObjNum:%u, Objs:%s, "
                              "Flag:0x%08x(%u)",
@@ -114,13 +111,11 @@ namespace engine
                              flags, flags ) ;
 
          rc = pAggrBuilder->build( objs, count, pCollectionName,
-                                   BSONObj(), cb, contextID ) ;
-         /// AUDIT
+                                   cb, contextID ) ;
          PD_AUDIT_OP( AUDIT_DQL, pMsg->opCode, AUDIT_OBJ_CL,
                       pCollectionName, rc,
                       "ContextID:%lld, ObjNum:%u, Objs:%s, Flag:0x%08x(%u)",
                       contextID, count, szTmp, flags, flags ) ;
-         /// CHECK RESULT
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to execute aggregation operation, rc: %d",
                       rc );

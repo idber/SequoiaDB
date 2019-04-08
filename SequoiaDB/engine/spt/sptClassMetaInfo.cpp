@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptClassMetaInfo.cpp
 
@@ -128,7 +127,6 @@ namespace engine
             << rc << ERROR_END ;
          goto error ;
       }
-      // get contents from config file
       rc = ossOpen( pFilePath, OSS_READONLY, 0, file ) ;
       if ( rc )
       {
@@ -210,19 +208,16 @@ namespace engine
 
    _sptClassMetaInfo::_sptClassMetaInfo() 
    {
-      _lang = SPT_LANG_EN ;
-      _initOK = FALSE ;
+      _lang    = SPT_LANG_EN ;
+      _initOK  = FALSE ;
    }
 
    _sptClassMetaInfo::_sptClassMetaInfo( const string &lang ) 
    {
       _lang = lang == "cn" ? SPT_LANG_CN : SPT_LANG_EN ;
-      _initOK = SDB_OK == _init() ? TRUE : FALSE ;
+      _initOK  = SDB_OK == _init() ? TRUE : FALSE ;
    }
 
-   // fuzzyFuncName maybe "xxx::yyy" or "xxx" or "yyy"
-   // when fuzzyFuncName is "xxx" or "yyy", use matcher to determine
-   // which class the function is belong to.
    INT32 _sptClassMetaInfo::queryFuncInfo( const string &fuzzyFuncName,
                                            const string &matcher,
                                            BOOLEAN isInstance,
@@ -244,7 +239,6 @@ namespace engine
          goto error ;
       }
      
-      // in case fuzzyFuncName is "xxx" or "yyy"
       if ( std::string::npos == lfuzzyFuncName.find( SPT_CLASS_SEPARATOR ) )
       {
          for ( it = _functions.begin(); it != _functions.end(); it++ )
@@ -261,10 +255,32 @@ namespace engine
                   << rc << ERROR_END ;
                goto error ;
             }
-            if ( ( lmatcher.empty() || vec[0].compare( lmatcher ) ==0 ) &&
+            if ( std::string::npos != vec[0].find( lmatcher ) &&
                  std::string::npos != vec[1].find( lfuzzyFuncName ) )
             {
                output.push_back( *it ) ;
+               /*
+               std::size_t pos = 0 ;
+               if ( matcher == "" )
+               {
+                  if ( std::string::npos != it->find( SPT_GLOBAL_CLASS ) )
+                  {
+                     pos = it->find(SPT_CLASS_SEPARATOR) + 
+                        ossStrlen( SPT_CLASS_SEPARATOR ) ;
+                     output.push_back( it->substr( pos  ) ) ;                   
+                  }
+                  else
+                  {
+                     output.push_back( *it ) ;
+                  }
+               }
+               else
+               {
+                  pos = it->find(SPT_CLASS_SEPARATOR) + 
+                     ossStrlen( SPT_CLASS_SEPARATOR ) ;
+                  output.push_back( it->substr( pos  ) ) ;
+               }
+               */
             }
          }
       }
@@ -310,7 +326,6 @@ namespace engine
       goto done ;
    }
 
-   // funcName must be "xxxx::yyyy", e.g. "Oma::createCoord"
    INT32 _sptClassMetaInfo::getTroffFile( const string &fullName, string &path )
    {
       INT32 rc = SDB_OK ;
@@ -458,7 +473,6 @@ namespace engine
       string filter = string("*") + 
          (_lang == SPT_LANG_EN ? SPT_TROFF_SUFFIX_EN : SPT_TROFF_SUFFIX_CN) ;
 
-      // load file
       rc = ossGetEWD( filePath, OSS_MAX_PATHSIZE ) ;
       if ( rc )
       {
@@ -479,7 +493,6 @@ namespace engine
             << rc << ERROR_END ;
          goto error ;
       }
-      // get files from the specified directory
       rc = ossEnumFiles( filePath, mapFiles, filter.c_str(), 2 ) ;
       if ( rc )
       {
@@ -511,7 +524,6 @@ namespace engine
       multimap<string, string>::iterator it ;
       MAP_FUNC_META_INFO_IT it2 ;
       
-      // alloc buffer, on sucess, free it in "done"
       pFileBuff = (CHAR *)SDB_OSS_MALLOC( fileSize ) ;
       if ( !pFileBuff )
       {
@@ -538,7 +550,6 @@ namespace engine
                << filePath.c_str() << ", rc = " << rc << ERROR_END ;
             goto error ;
          }
-         // extract info
          rc = _getFuncName( filePath, funcName ) ;
          if ( rc )
          {
@@ -560,7 +571,6 @@ namespace engine
                << filePath << "], rc = " << rc << ERROR_END ;
             goto error ;
          }
-         // keep the meta info to map
          metaInfo.funcName = funcName ;
          metaInfo.syntax = syntax ;
          metaInfo.desc = desc ;
@@ -577,7 +587,6 @@ namespace engine
             vec.push_back( metaInfo ) ;
             _map_func_meta_info.insert( PAIR_FUNC_META_INFO( className, vec ) ) ;
          }
-         // keep the meta info to vector for fuzzy searching
          fullName = className + SPT_CLASS_SEPARATOR + funcName ;
          _functions.push_back( fullName ) ;
       }
@@ -679,7 +688,6 @@ namespace engine
             << pMark2 << "], rc = " << rc << ERROR_END ;
          goto error ;
       }
-      // alloc memory, free in done
       buffSize = end - begin ;
       pBuff = (CHAR *)SDB_OSS_MALLOC( buffSize + 1 ) ;
       if ( NULL == pBuff )
@@ -690,10 +698,8 @@ namespace engine
          goto error ;
       }
       ossMemset( pBuff, 0, buffSize ) ;
-      // get contents
       ossMemcpy( pBuff, begin, buffSize ) ;
       pBuff[buffSize] = '\0' ;
-      // output
       *ppBuff = pBuff ;
       *pBuffSize = buffSize + 1 ;
       
@@ -719,7 +725,6 @@ namespace engine
       const CHAR *end_mark = 
          SPT_LANG_EN == _lang ? SPT_TROFF_CATEGORY_EN : SPT_TROFF_CATEGORY_CN ;
 
-      // pBuff 
       rc = _getContents( pFileBuff, beg_mark, end_mark, 
                          &pBuff, &buffSize ) ;
       if ( SDB_OK != rc )
@@ -728,10 +733,8 @@ namespace engine
             << rc << endl ;
          goto error ;
       }
-      // filter marks
       _filterMarks( pBuff, _uselessMarks, 
                     sizeof( _uselessMarks ) / sizeof( const CHAR * ) ) ;
-      // split synopsis
       boost::split( vec, pBuff, boost::is_any_of("\n") ) ;
       for ( it = vec.begin(); it != vec.end(); it++ )
       {
@@ -783,7 +786,6 @@ namespace engine
       const CHAR *end_mark = 
          SPT_LANG_EN == _lang ? SPT_TROFF_SYNOPSIS_EN : SPT_TROFF_SYNOPSIS_CN ;
 
-      // pBuff 
       rc = _getContents( pFileBuff, beg_mark, end_mark, 
                          &pBuff, &buffSize ) ;
       if ( SDB_OK != rc )
@@ -795,7 +797,6 @@ namespace engine
       _replaceCharsWithSpace( pBuff, "\n" ) ;
       _filterMarks( pBuff, _uselessMarks2, 
                     sizeof( _uselessMarks2 ) / sizeof( const CHAR * ) ) ;
-      // get description
       pos = ossStrstr( pBuff, "-" ) ;
       if ( NULL == pos )
       {
@@ -804,7 +805,6 @@ namespace engine
             << rc << ERROR_END ;
          goto error ;
       }
-      // we are going to return a desc in the format of "- xxxx"
       pos++ ;
       while( '\r' != *pos && '\n' != *pos )
       {

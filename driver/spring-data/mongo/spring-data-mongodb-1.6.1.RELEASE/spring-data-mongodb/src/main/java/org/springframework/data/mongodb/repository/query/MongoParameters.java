@@ -100,7 +100,6 @@ public class MongoParameters extends Parameters<MongoParameters, MongoParameter>
 
 		MongoParameter mongoParameter = new MongoParameter(parameter);
 
-		// Detect manually annotated @Near Point and reject multiple annotated ones
 		if (this.nearIndex == null && mongoParameter.isManuallyAnnotatedNearParameter()) {
 			this.nearIndex = mongoParameter.getIndex();
 		} else if (mongoParameter.isManuallyAnnotatedNearParameter()) {

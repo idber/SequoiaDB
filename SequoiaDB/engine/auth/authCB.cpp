@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = authCB.cpp
 
@@ -77,37 +76,9 @@ namespace engine
       _authEnabled = pmdGetOptionCB()->authEnabled() ;
    }
 
-   BSONObj _authCB::_desensitization( const BSONObj &options )
-   {
-      /// discard password
-      try
-      {
-         BSONObjBuilder builder( options.objsize() ) ;
-         BSONObjIterator itr( options ) ;
-         while ( itr.more() )
-         {
-            BSONElement e = itr.next() ;
-            if ( 0 == ossStrcmp( e.fieldName(), SDB_AUTH_PASSWD ) )
-            {
-               continue ;
-            }
-            builder.append( e ) ;
-         }
-         return builder.obj() ;
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
-      }
-
-      return options ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB_AUTHCB_AUTHENTICATE, "_authCB::authenticate" )
-   INT32 _authCB::authenticate( BSONObj &obj,
-                                _pmdEDUCB *cb,
-                                BOOLEAN chkPasswd,
-                                BSONObj *pOutUserObj )
+   INT32 _authCB::authenticate( BSONObj &obj, _pmdEDUCB *cb,
+                                BOOLEAN chkPasswd )
    {
       INT32 rc = SDB_OK ;
       BSONObj hint ;
@@ -138,7 +109,6 @@ namespace engine
       }
       catch ( std::exception &e )
       {
-         // if exception happen, let's just continue
          PD_LOG ( PDWARNING, "Failed to initialize hint: %s",
                   e.what() ) ;
       }
@@ -182,12 +152,6 @@ namespace engine
       }
       else if ( 1 == buffObj.recordNum() )
       {
-         if ( pOutUserObj )
-         {
-            BSONObj tmpObj ;
-            buffObj.nextObj( tmpObj ) ;
-            *pOutUserObj =  _desensitization( tmpObj ) ;
-         }
          rc = SDB_OK ;
       }
       else
@@ -209,12 +173,11 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_AUTHCB_CREATEUSR, "_authCB::createUsr" )
-   INT32 _authCB::createUsr( BSONObj &obj, _pmdEDUCB *cb,
-                             BSONObj *pOutObj, INT32 w )
+   INT32 _authCB::createUsr( BSONObj &obj, _pmdEDUCB *cb, INT32 w )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_AUTHCB_CREATEUSR ) ;
-      rc = _createUsr( obj, cb, pOutObj, w ) ;
+      rc = _createUsr( obj, cb, w ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -350,7 +313,6 @@ namespace engine
                              << obj.getStringField(SDB_AUTH_USER) ) ;
       rtnContextBuf buffObj ;
 
-      // firstly, we check the user is exist or not
       rc = rtnQuery( AUTH_USR_COLLECTION, selector, newObj, order, hint,
                      0, cb, 0, -1, dmsCB, rtnCB, contextID ) ;
       if ( SDB_OK != rc )
@@ -389,15 +351,12 @@ namespace engine
       }
          
       {
-         // then, we check user name and password is correct or not
          rc = authenticate( obj, cb, FALSE ) ;
          if ( SDB_OK != rc )
          {
             goto error ;
          }
 
-         // at last, we confirm eht user and password is correct
-         // now we remove the record from system collection
          hint = BSON( "" << AUTH_USR_INDEX_NAME ) ;
          rc = rtnDelete( AUTH_USR_COLLECTION,
                          obj, hint,
@@ -434,7 +393,6 @@ namespace engine
          goto error ;
       }
 
-      // create index
       {
          BSONObjBuilder builder ;
          builder.append( IXM_FIELD_NAME_KEY, BSON( SDB_AUTH_USER << 1) ) ;
@@ -506,8 +464,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_AUTHCB__CREATEUSR, "_authCB::_createUsr" )
-   INT32 _authCB::_createUsr( BSONObj &obj, _pmdEDUCB *cb,
-                              BSONObj *pOutObj, INT32 w )
+   INT32 _authCB::_createUsr( BSONObj &obj, _pmdEDUCB *cb, INT32 w )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_AUTHCB__CREATEUSR ) ;
@@ -537,9 +494,8 @@ namespace engine
          rc = SDB_AUTH_USER_ALREADY_EXIST ;
          goto error ;
       }
-      else if ( pOutObj )
+      else
       {
-         *pOutObj = _desensitization( obj ) ;
       }
 
    done:
@@ -554,106 +510,44 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_AUTHCB__VALID ) ;
-      BSONElement usr, passwd, option ;
+      BSONElement usr, passwd ;
       INT32 fieldNum = 0 ;
-
       if ( obj.isEmpty() )
       {
+         PD_TRACE0 ( SDB_AUTHCB__VALID ) ;
          goto error ;
       }
 
       usr = obj.getField( SDB_AUTH_USER ) ;
-      if ( String != usr.type() )
+      if ( usr.eoo() || String != usr.type() ||
+           ( usr.String().empty() && notEmpty ) )
       {
-         goto error ;
-      }
-      else if ( notEmpty && 0 == ossStrlen( usr.valuestr() ) )
-      {
+         PD_TRACE0 ( SDB_AUTHCB__VALID ) ;
          goto error ;
       }
       ++fieldNum ;
 
       passwd = obj.getField( SDB_AUTH_PASSWD ) ;
-      if ( String != passwd.type() )
+      if ( passwd.eoo() || String != passwd.type() ||
+           ( passwd.String().empty() && notEmpty ) )
       {
-         goto error ;
-      }
-      else if ( notEmpty && 0 == ossStrlen( passwd.valuestr() ) )
-      {
+         PD_TRACE0 ( SDB_AUTHCB__VALID ) ;
          goto error ;
       }
       ++fieldNum ;
 
-      option = obj.getField( FIELD_NAME_OPTIONS ) ;
-      if ( Object == option.type() )
-      {
-         ++fieldNum ;
-         rc = _validOptions( option.embeddedObject() ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-      }
-      else if ( !option.eoo() )
-      {
-         goto error ;
-      }
-
       if ( fieldNum != obj.nFields() )
       {
+         PD_TRACE0 ( SDB_AUTHCB__VALID ) ;
          goto error ;
       }
-
    done:
       PD_TRACE_EXITRC ( SDB_AUTHCB__VALID, rc ) ;
       return rc ;
    error:
-      rc = rc ? rc : SDB_INVALIDARG ;
+      rc = SDB_INVALIDARG ;
       PD_LOG( PDDEBUG, "invalid obj of the auth[%s]",
               obj.toString().c_str() ) ;
-      goto done ;
-   }
-
-   INT32 _authCB::_validOptions( const BSONObj &options )
-   {
-      INT32 rc = SDB_OK ;
-
-      BSONObjIterator itr( options ) ;
-      while ( itr.more() )
-      {
-         BSONElement e = itr.next() ;
-
-         if ( 0 == ossStrcmp( e.fieldName(), FIELD_NAME_AUDIT_MASK ) )
-         {
-            UINT32 mask = 0 ;
-            if ( String != e.type() )
-            {
-               PD_LOG( PDERROR, "Field[%s] is invalid in option[%s]",
-                       FIELD_NAME_AUDIT_MASK, options.toString().c_str() ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-
-            rc = pdString2AuditMask( e.valuestr(), mask, TRUE ) ;
-            if ( rc )
-            {
-               PD_LOG( PDERROR, "Field[%s] is invalid in option[%s]",
-                       FIELD_NAME_AUDIT_MASK, options.toString().c_str() ) ;
-               goto error ;
-            }
-         }
-         else
-         {
-            PD_LOG( PDERROR, "Invalid field[%s] in option[%s]",
-                    e.fieldName(), options.toString().c_str() ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-      }
-
-   done:
-      return rc ;
-   error:
       goto done ;
    }
 

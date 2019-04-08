@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = catContextTask.cpp
 
@@ -142,7 +141,7 @@ namespace engine
 
          _hasUpdated = TRUE ;
       }
-      catch( exception & e )
+      catch( std::exception &e )
       {
          PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
          rc = SDB_SYS ;
@@ -292,7 +291,6 @@ namespace engine
                    "Failed to get the collection [%s], rc: %d",
                    _dataName.c_str(), rc ) ;
 
-      // Check version
       rc = rtnGetIntElement( _boData, CAT_VERSION_NAME, curVersion ) ;
       PD_RC_CHECK( rc, PDWARNING,
                    "Failed to get the field [%s], rc: %d",
@@ -300,7 +298,13 @@ namespace engine
 
       if ( -1 != _version )
       {
-         // Always update Coord
+         if ( _version != curVersion )
+         {
+            PD_LOG( PDWARNING,
+                    "Need update Coord version of [%s] "
+                    "( curVer: %d, coordVer: %d )",
+                  _dataName.c_str(), curVersion, _version ) ;
+         }
          _needUpdateCoord = TRUE ;
       }
 
@@ -323,7 +327,6 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_CATCTXDROPCLTASK_PREEXECUTE_INT ) ;
 
-      // Remove tasks in checking step to avoid tasks to wait for locks
       rc = catRemoveCLTasks( _dataName, cb, w ) ;
       if ( SDB_CAT_TASK_NOTFOUND == rc )
       {
@@ -353,23 +356,6 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY ( SDB_CATCTXDROPCLTASK_EXECUTE_INT ) ;
-
-      BSONObj boCollection ;
-
-      rc = catGetCollection( _dataName, boCollection, cb ) ;
-      if ( SDB_OK == rc )
-      {
-         rc = catDropAutoIncSequences( boCollection, cb, w ) ;
-         PD_RC_CHECK( rc, PDWARNING,
-                      "Failed to remove system sequences of collection [%s], rc: %d",
-                      _dataName.c_str(), rc ) ;
-      }
-      else
-      {
-         PD_LOG( PDWARNING,
-                 "Failed to get system sequences of collection [%s], rc: %d",
-                 _dataName.c_str(), rc ) ;
-      }
 
       rc = catDropCLStep( _dataName, _version, FALSE, cb, pDmsCB, pDpsCB, w ) ;
       PD_RC_CHECK( rc, PDWARNING,
@@ -411,7 +397,6 @@ namespace engine
                    "Failed to get the main-collection [%s], rc: %d",
                    _dataName.c_str(), rc ) ;
 
-      // Main-collection should be main collection
       rc = catCheckMainCollection( _boData, TRUE ) ;
       PD_RC_CHECK( rc, PDWARNING,
                    "Source collection [%s] must be partitioned-collection!",
@@ -436,7 +421,6 @@ namespace engine
 
       BSONObj dummyLowBound, dummyUpBound ;
 
-      // update main-collection catalog info
       rc = catUnlinkMainCLStep( _dataName, _subCLName,
                                 FALSE, dummyLowBound, dummyUpBound,
                                 cb, pDmsCB, pDpsCB, w ) ;
@@ -491,7 +475,6 @@ namespace engine
                    "Sub-collection [%s] could not be a main-collection!",
                    _dataName.c_str() ) ;
 
-      // Check if sub-collection already linked
       rc = catCheckRelinkCollection ( _boData, tmpMainCLName ) ;
       if ( rc == SDB_RELINK_SUB_CL )
       {
@@ -506,7 +489,6 @@ namespace engine
       }
       else
       {
-         // Need return SDB_OK to keep quiet
          PD_LOG( PDWARNING,
                  "Sub-collection [%s] hasn't been linked",
                  _dataName.c_str() ) ;
@@ -535,7 +517,6 @@ namespace engine
          goto done ;
       }
 
-      // update sub-collection catalog info
       rc = catUnlinkSubCLStep( _dataName, cb, pDmsCB, pDpsCB, w ) ;
       PD_RC_CHECK( rc, PDWARNING,
                    "Failed to update the sub-collection [%s], rc: %d",
@@ -574,6 +555,7 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_CATCTXCREATEIDXTASK_CHECK_INT ) ;
 
+      std::set<UINT32> checkedSet ;
       clsCatalogSet cataSet( _dataName.c_str() );
 
       rc = catGetAndLockCollection( _dataName, _boData, cb,
@@ -582,25 +564,6 @@ namespace engine
                    "Failed to get the collection [%s], rc: %d",
                    _dataName.c_str(), rc ) ;
 
-      rc = rtnGetObjElement ( _boIdx, IXM_KEY_FIELD, _boIdxKey ) ;
-      PD_RC_CHECK ( rc, PDWARNING,
-                    "Failed to get [%s] for index [%s], rc: %d",
-                    IXM_KEY_FIELD, _boIdx.toString().c_str(), rc ) ;
-
-      try
-      {
-         // index key obj shouldn't has more than 32 field
-         bson::Ordering::make ( _boIdxKey ) ;
-      }
-      catch( std::exception &e )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG_MSG( PDERROR, "%s", e.what() ) ;
-         PD_LOG( PDERROR, "Create index: %s, cl name: %s, rc: %d.",
-                 _boIdxKey.toString().c_str(), _dataName.c_str(), rc ) ;
-         goto error ;
-      }
-
       rc = cataSet.updateCatSet( _boData );
       PD_RC_CHECK( rc, PDWARNING,
                    "Failed to parse catalog info [%s], rc: %d",
@@ -608,20 +571,20 @@ namespace engine
 
       if ( cataSet.isSharding() )
       {
+         rc = rtnGetObjElement ( _boIdx, IXM_KEY_FIELD, _boIdxKey ) ;
+         PD_RC_CHECK ( rc, PDWARNING,
+                       "Failed to get [%s] for index [%s], rc: %d",
+                       IXM_KEY_FIELD, _boIdx.toString().c_str(), rc ) ;
+
          rc = rtnGetBooleanElement ( _boIdx, IXM_UNIQUE_FIELD, _isUnique ) ;
          if ( SDB_FIELD_NOT_EXIST == rc )
          {
-            rc = rtnGetBooleanElement ( _boIdx, IXM_UNIQUE_FIELD1, _isUnique ) ;
-            if ( SDB_FIELD_NOT_EXIST == rc )
-            {
-               _isUnique = FALSE ;
-               rc = SDB_OK ;
-            }
+            _isUnique = FALSE ;
+            rc = SDB_OK ;
          }
          PD_RC_CHECK ( rc, PDWARNING,
-                       "Failed to get [%s] or [%s] for index [%s], rc: %d",
-                       IXM_UNIQUE_FIELD, IXM_UNIQUE_FIELD1,
-                       _boIdx.toString().c_str(), rc ) ;
+                       "Failed to get [%s] for index [%s], rc: %d",
+                       IXM_UNIQUE_FIELD, _boIdx.toString().c_str(), rc ) ;
       }
 
    done :
@@ -639,7 +602,6 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB_CATCTXCREATEIDXTASK_EXECUTE_INT ) ;
 
-      // Do nothing
 
       PD_TRACE_EXIT ( SDB_CATCTXCREATEIDXTASK_EXECUTE_INT ) ;
 
@@ -654,7 +616,6 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB_CATCTXCREATEIDXTASK_ROLLBACK_INT ) ;
 
-      // Do nothing
 
       PD_TRACE_EXIT ( SDB_CATCTXCREATEIDXTASK_ROLLBACK_INT ) ;
 
@@ -674,13 +635,11 @@ namespace engine
       {
          if ( checkedKeyIDs.count( skSiteID ) > 0 )
          {
-            /// already checked
             goto done ;
          }
          checkedKeyIDs.insert( skSiteID ) ;
       }
 
-      /// check the sharding key
       try
       {
          const BSONObj &shardingKey = cataSet.getShardingKey() ;
@@ -754,7 +713,6 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB_CATCTXDROPIDXTASK_EXECUTE_INT ) ;
 
-      // Do nothing
 
       PD_TRACE_EXIT ( SDB_CATCTXDROPIDXTASK_EXECUTE_INT ) ;
 
@@ -810,7 +768,6 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_CATCTXDELCLCSTASK_CHECK_INT ) ;
 
-      // Do nothing
 
       PD_TRACE_EXITRC ( SDB_CATCTXDELCLCSTASK_CHECK_INT, rc ) ;
 
@@ -905,7 +862,6 @@ namespace engine
                       "Failed to get the main-collection [%s], rc: %d",
                       mainCLName.c_str(), rc ) ;
 
-         // Main-collection should be main collection
          rc = catCheckMainCollection( boMainCL, TRUE ) ;
          if ( SDB_INVALID_MAIN_CL == rc )
          {
@@ -965,5 +921,4 @@ namespace engine
    error :
       goto done ;
    }
-
 }

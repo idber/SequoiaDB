@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = seAdptContext.hpp
 
@@ -42,9 +41,7 @@
 #include "pmdEDU.hpp"
 #include "utilCommObjBuff.hpp"
 #include "utilESClt.hpp"
-#include "utilESFetcher.hpp"
 #include "rtnSimpleCondParser.hpp"
-#include "seAdptIdxMetaMgr.hpp"
 
 using namespace engine ;
 
@@ -69,7 +66,6 @@ namespace seadapter
       _seAdptQueryRebuilder() ;
       ~_seAdptQueryRebuilder() ;
 
-      // Initialize the rebuilder with the original message.
       INT32 init( const BSONObj &matcher,
                   const BSONObj &selector,
                   const BSONObj &orderBy,
@@ -85,60 +81,59 @@ namespace seadapter
    } ;
    typedef _seAdptQueryRebuilder seAdptQueryRebuilder ;
 
-   // Context for operations of adapter.
-   // It maintains the buffer.
    class _seAdptContextBase : public SDBObject
    {
    public:
-      _seAdptContextBase() {}
-      virtual ~_seAdptContextBase() {}
+      _seAdptContextBase( const string &indexName,
+                          const string &typeName,
+                          utilESClt *seClt ) ;
+      virtual ~_seAdptContextBase() ;
 
-      virtual INT32 open( seIdxMetaContext *imContext,
-                          utilESClt *esClt,
-                          const BSONObj &matcher,
+      virtual INT32 open( const BSONObj &matcher,
                           const BSONObj &selector,
                           const BSONObj &orderBy,
                           const BSONObj &hint,
                           utilCommObjBuff &objBuff,
                           pmdEDUCB *eduCB ) = 0 ;
-      // Prepare the selector, matcher, order by and hint in objBuff.
       virtual INT32 getMore( INT32 returnNum, utilCommObjBuff &objBuff ) = 0 ;
+
+   protected:
+      string _indexName ;
+      string _type ;
+      utilESClt *_esClt ;
+      string _scrollID ;
+      utilCommObjBuff _objBuff ;
    } ;
    typedef _seAdptContextBase seAdptContextBase ;
 
-   // Context for query modify.
    class _seAdptContextQuery : public _seAdptContextBase
    {
    public:
-      _seAdptContextQuery() ;
+      _seAdptContextQuery( const string &indexName,
+                           const string &typeName,
+                           utilESClt *seClt ) ;
       virtual ~_seAdptContextQuery() ;
 
-      INT32 open( seIdxMetaContext *imContext,
-                  utilESClt *esClt,
-                  const BSONObj &matcher,
+      INT32 open( const BSONObj &matcher,
                   const BSONObj &selector,
                   const BSONObj &orderBy,
                   const BSONObj &hint,
                   utilCommObjBuff &objBuff,
                   _pmdEDUCB *eduCB ) ;
 
-      // Prepare the selector, matcher, order by and hint in objBuff.
       INT32 getMore( INT32 returnNum, utilCommObjBuff &objBuff ) ;
 
    private:
-      INT32 _prepareSearch( const BSONObj &queryCond ) ;
-      INT32 _getMore( utilCommObjBuff &result ) ;
-      INT32 _fetchAll( const BSONObj &queryCond,
+      INT32 _fetchFirstBatch( const string &queryCond, utilCommObjBuff &result ) ;
+      INT32 _fetchNextBatch( utilCommObjBuff &result ) ;
+      INT32 _fetchAll( const string &queryCond,
                        utilCommObjBuff &result, UINT32 limitNum ) ;
 
       INT32 _buildInCond( utilCommObjBuff &objBuff,
                           BSONObj &condition ) ;
    private:
-      seIdxMetaContext       *_imContext ;
-      utilESClt              *_esClt ;
-      seAdptQueryRebuilder    _queryRebuilder ;
-      rtnSimpleCondParseTree  _condTree ;
-      utilESFetcher          *_esFetcher ;
+      seAdptQueryRebuilder _queryRebuilder ;
+      rtnSimpleCondParseTree _condTree ;
    } ;
    typedef _seAdptContextQuery seAdptContextQuery ;
 }

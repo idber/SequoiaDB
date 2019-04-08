@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dmsTempSUMgr.hpp
 
@@ -58,16 +57,12 @@ namespace engine
    class _dmsTempSUMgr : public _dmsSysSUMgr
    {
    private :
-      // fifo queue, reserve operation always reserve the first one
       queue<UINT16>        _freeCollections ;
-      // a reserved temp table will be stored in this map, with their EDU ID
       map<UINT16, UINT64>  _occupiedCollections ;
 
    public :
       _dmsTempSUMgr ( _SDB_DMSCB *dmsCB ) ;
 
-      // this function verify whether SYSTEMP collection space exist. If it
-      // is not exist then create one. And then reset all temp collections
       INT32 init() ;
 
       INT32 release ( _dmsMBContext *&context ) ;

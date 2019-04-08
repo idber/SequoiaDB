@@ -90,7 +90,6 @@ html,body{ width:100%; height:100%; /*overflow:hidden; */ }
 /* 按钮 */
 .btn { cursor:pointer; border-radius:0; height:25px; padding:0 30px; margin:0; }
 .btn:active { background-image:none; outline:0; }
-.btn.btn-xs{ height:25px; padding:0 10px 0 10px; *padding:0; *height:22px; }
 .btn.btn-lg{ height:28px; padding:0 5px 0 5px; *padding:0; *height:22px; }
 .btn.btn-mg{ height:30px; padding:0 5px 0 5px; *padding:0; *height:24px; }
 /* 默认 */ 

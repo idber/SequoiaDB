@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pmdCBMgrEntryPoint.cpp
 
@@ -49,11 +48,11 @@ namespace engine
       _pmdObjBase *pObj = ( _pmdObjBase* )pData ;
       pmdEDUMgr *pEDUMgr = cb->getEDUMgr() ;
       pmdEDUEvent eventData;
-      INT64 timeSpan = 0 ; /// usec
-      INT64 maxMsgTime = pObj->getMaxProcMsgTime() * 1000000 ;
-      INT64 maxEventTime = pObj->getMaxProcEventTime() * 1000000 ;
-      INT64 *pMsgTimeSpan = maxMsgTime >= 0 ? &timeSpan : NULL ;
-      INT64 *pEventTimeSpan = maxEventTime >= 0 ? &timeSpan : NULL ;
+      INT32 timeSpan = 0 ;
+      INT32 maxMsgTime = pObj->getMaxProcMsgTime() ;
+      INT32 maxEventTime = pObj->getMaxProcEventTime() ;
+      INT32 *pMsgTimeSpan = maxMsgTime >= 0 ? &timeSpan : NULL ;
+      INT32 *pEventTimeSpan = maxEventTime >= 0 ? &timeSpan : NULL ;
 
       pObj->attachCB( cb ) ;
 
@@ -64,7 +63,6 @@ namespace engine
          goto error ;
       }
 
-      //Wait event msg and dispatch msg
       while ( !cb->isDisconnected() )
       {
          if ( cb->waitEvent( eventData, OSS_ONE_SEC, TRUE ) )
@@ -72,17 +70,14 @@ namespace engine
             cb->resetInterrupt() ;
             cb->resetInfo( EDU_INFO_ERROR ) ;
             cb->resetLsn() ;
-            cb->updateTransConf() ;
 
             if ( PMD_EDU_EVENT_TERM == eventData._eventType )
             {
                PD_LOG ( PDDEBUG, "EDU[%lld, %s] is terminated", cb->getID(),
                         getEDUName( cb->getType() ) ) ;
             }
-            //Dispatch event msg to cb manager
             else if ( PMD_EDU_EVENT_MSG == eventData._eventType )
             {
-               //restore handle
                pObj->dispatchMsg( (NET_HANDLE)eventData._userData,
                                   (MsgHeader*)(eventData._Data),
                                   pMsgTimeSpan ) ;
@@ -90,7 +85,7 @@ namespace engine
                {
                   MsgHeader *pMsg = (MsgHeader*)(eventData._Data) ;
                   PD_LOG( PDWARNING, "[%s] Process msg[opCode:[%d]%d, "
-                          "requestID: %lld, TID: %d, Len: %d] over %d millsecs",
+                          "requestID: %lld, TID: %d, Len: %d] over %d seconds",
                           pObj->name(), IS_REPLY_TYPE(pMsg->opCode),
                           GET_REQUEST_TYPE(pMsg->opCode), pMsg->requestID,
                           pMsg->TID, pMsg->messageLength, timeSpan ) ;
@@ -102,12 +97,11 @@ namespace engine
                if ( pEventTimeSpan && timeSpan > maxEventTime )
                {
                   PD_LOG( PDWARNING, "[%s] Process event[type:%d] over %d "
-                          "us", pObj->name(), eventData._eventType,
+                          "seconds", pObj->name(), eventData._eventType,
                           timeSpan ) ;
                }
             }
 
-            //Relase memory
             pmdEduEventRelase( eventData, cb ) ;
             eventData.reset () ;
          }
@@ -121,7 +115,6 @@ namespace engine
       goto done ;
    }
 
-   /// Register
    PMD_DEFINE_ENTRYPOINT( EDU_TYPE_CLUSTER, TRUE,
                           pmdCBMgrEntryPoint,
                           "Cluster" ) ;

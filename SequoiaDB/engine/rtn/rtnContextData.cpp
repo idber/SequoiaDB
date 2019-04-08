@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnContextData.cpp
 
@@ -39,17 +38,12 @@
 #include "rtnContextData.hpp"
 #include "rtnContextSort.hpp"
 #include "rtn.hpp"
-#include "pmd.hpp"
-#include "rtnIXScannerFactory.hpp"
-#include "dpsTransLockCallback.hpp"
+#include "rtnIXScanner.hpp"
 #include "dmsScanner.hpp"
 #include "dmsStorageUnit.hpp"
-#include "dmsStorageDataCommon.hpp"
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
 #include "pmdController.hpp"
-
-using namespace bson ;
 
 namespace engine
 {
@@ -77,31 +71,29 @@ namespace engine
       _direction        = 0 ;
       _queryModifier    = NULL ;
 
-      // Save query activity
       _enableMonContext = TRUE ;
       _enableQueryActivity = TRUE ;
    }
 
    _rtnContextData::~_rtnContextData ()
    {
-      rtnScannerFactory f ;
-      f.releaseScanner( _scanner ) ;
+      if ( _scanner )
+      {
+         SDB_OSS_DEL _scanner ;
+         _scanner = NULL ;
+      }
 
-      // first release plan
       setQueryActivity( _hitEnd ) ;
       _planRuntime.releasePlan() ;
 
-      // second release mb context
       if ( _mbContext && _su )
       {
          _su->data()->releaseMBContext( _mbContext ) ;
       }
-      // last unlock su
       if ( _dmsCB && _su && -1 != contextID() )
       {
          _dmsCB->suUnlock ( _su->CSID() ) ;
       }
-      // query modifier
       if ( _queryModifier )
       {
          SDB_OSS_DEL _queryModifier ;
@@ -125,11 +117,6 @@ namespace engine
       return _queryModifier ? TRUE : FALSE ;
    }
 
-   BOOLEAN _rtnContextData::needRollback() const
-   {
-      return isWrite() ;
-   }
-
    void _rtnContextData::_toString( stringstream & ss )
    {
       if ( NULL != _su && NULL != _planRuntime.getPlan() )
@@ -148,26 +135,17 @@ namespace engine
       }
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCONTEXTDATA_OPIXSC, "_rtnContextData::_openIXScan" )
    INT32 _rtnContextData::_openIXScan( dmsStorageUnit *su,
                                        dmsMBContext *mbContext,
                                        pmdEDUCB *cb,
-                                       const rtnReturnOptions &returnOptions,
                                        const BSONObj *blockObj,
                                        INT32 direction )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_RTNCONTEXTDATA_OPIXSC );
 
-      rtnScannerFactory f ;
-      IXScannerType scanType = ( DPS_INVALID_TRANS_ID != cb->getTransID() ) ?
-                               SCANNER_TYPE_MERGE : SCANNER_TYPE_DISK ;
       rtnPredicateList *predList = NULL ;
 
-      // for index scan, we maintain context by runtime instead of by DMS
-      ixmIndexCB indexCB ( _planRuntime.getIndexCBExtent(),
-                           su->index(),
-                           NULL ) ;
+      ixmIndexCB indexCB ( _planRuntime.getIndexCBExtent(), su->index(), NULL ) ;
       if ( !indexCB.isInitialized() )
       {
          PD_LOG ( PDERROR, "unable to get proper index control block" ) ;
@@ -182,24 +160,23 @@ namespace engine
          rc = SDB_IXM_NOTEXIST ;
          goto error ;
       }
-      // get the predicate list
       predList = _planRuntime.getPredList() ;
       SDB_ASSERT ( predList, "predList can't be NULL" ) ;
 
-      // create scanner
       if ( _scanner )
       {
-         f.releaseScanner( _scanner ) ;
+         SDB_OSS_DEL _scanner ;
       }
-
-      rc = f.createScanner( scanType, &indexCB, predList, su, cb, _scanner ) ;
-      if ( rc )
+      _scanner = SDB_OSS_NEW rtnIXScanner ( &indexCB, predList,
+                                            su, cb ) ;
+      if ( !_scanner )
       {
+         PD_LOG ( PDERROR, "Unable to allocate memory for scanner" ) ;
+         rc = SDB_OOM ;
          goto error ;
       }
       _scanner->setMonCtxCB ( &_monCtxCB ) ;
 
-      // index block scan
       if ( blockObj )
       {
          SDB_ASSERT( direction == 1 || direction == -1,
@@ -217,21 +194,17 @@ namespace engine
       }
 
    done :
-      PD_TRACE_EXITRC ( SDB_RTNCONTEXTDATA_OPIXSC , rc );
       return rc ;
    error :
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCONTEXTDATA_OPTBSC, "_rtnContextData::_openTBScan" )
    INT32 _rtnContextData::_openTBScan( dmsStorageUnit *su,
                                        dmsMBContext *mbContext,
                                        pmdEDUCB * cb,
-                                       const rtnReturnOptions &returnOptions,
                                        const BSONObj *blockObj )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_RTNCONTEXTDATA_OPTBSC );
 
       if ( blockObj )
       {
@@ -254,7 +227,6 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC ( SDB_RTNCONTEXTDATA_OPTBSC , rc );
       return rc ;
    error:
       goto done ;
@@ -302,13 +274,12 @@ namespace engine
 
       if ( TBSCAN == _planRuntime.getScanType() )
       {
-         rc = _openTBScan( su, mbContext, cb, returnOptions, blockObj ) ;
+         rc = _openTBScan( su, mbContext, cb, blockObj ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open tbscan, rc: %d", rc ) ;
       }
       else if ( IXSCAN == _planRuntime.getScanType() )
       {
-         rc = _openIXScan( su, mbContext, cb, returnOptions,
-                           blockObj, direction ) ;
+         rc = _openIXScan( su, mbContext, cb, blockObj, direction ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open ixscan, rc: %d", rc ) ;
       }
       else
@@ -318,7 +289,6 @@ namespace engine
          goto error ;
       }
 
-      // once context is opened, let's construct matcher and selector
       if ( !selector.isEmpty() )
       {
          try
@@ -410,7 +380,6 @@ namespace engine
       }
       _scanner = scanner ;
 
-      // once context is opened, let's construct matcher and selector
       if ( !selector.isEmpty() )
       {
          try
@@ -471,9 +440,7 @@ namespace engine
    INT32 _rtnContextData::_queryModify( pmdEDUCB* eduCB,
                                         const dmsRecordID& recordID,
                                         ossValuePtr recordDataPtr,
-                                        BSONObj& obj,
-                                        IDmsOprHandler* pHandler,
-                                        const dmsTransRecordInfo *pInfo )
+                                        BSONObj& obj )
    {
       INT32 rc = SDB_OK ;
 
@@ -498,15 +465,14 @@ namespace engine
          rc = _su->data()->updateRecord( _mbContext, recordID,
                                          recordDataPtr, eduCB, getDPSCB(),
                                          _queryModifier->getModifier(),
-                                         newObjPtr, pHandler ) ;
+                                         newObjPtr ) ;
          PD_RC_CHECK( rc, PDERROR, "Update record failed, rc: %d", rc ) ;
          _queryModifier->getDollarList()->clear() ;
       }
       else if ( _queryModifier->isRemove() )
       {
          rc = _su->data()->deleteRecord( _mbContext, recordID,
-                                         recordDataPtr, eduCB, getDPSCB(),
-                                         pHandler, pInfo ) ;
+                                         recordDataPtr, eduCB, getDPSCB() ) ;
          PD_RC_CHECK( rc, PDERROR, "Delete record failed, rc: %d", rc ) ;
       }
 
@@ -561,13 +527,11 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTDATA__SELANDAPPD, "_rtnContextData::_selectAndAppend" )
    INT32 _rtnContextData::_selectAndAppend( mthSelector *selector,
                                             BSONObj &obj )
    {
       INT32 rc = SDB_OK ;
       BSONObj selObj ;
-      PD_TRACE_ENTRY ( SDB__RTNCONTEXTDATA__SELANDAPPD );
 
       if ( selector )
       {
@@ -586,7 +550,6 @@ namespace engine
                    selObj.toString().c_str(), rc ) ;
 
    done:
-      PD_TRACE_EXITRC ( SDB__RTNCONTEXTDATA__SELANDAPPD, rc );
       return rc ;
    error:
       goto done ;
@@ -613,7 +576,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTDATA__PREPAREBYTBSCAN, "_rtnContextData::_prepareByTBScan" )
    INT32 _rtnContextData::_prepareByTBScan( pmdEDUCB * cb,
                                             DMS_ACCESS_TYPE accessType,
                                             vector<INT64>* dollarList )
@@ -629,8 +591,6 @@ namespace engine
       mthSelector *selector   = NULL ;
       dmsExtScannerFactory* extFactory = dmsGetScannerFactory() ;
       dmsExtScannerBase* extScanner = NULL ;
-
-      PD_TRACE_ENTRY ( SDB__RTNCONTEXTDATA__PREPAREBYTBSCAN );
 
       if ( _selector.isInitialized() )
       {
@@ -652,8 +612,7 @@ namespace engine
 
       extScanner = extFactory->create( _su->data(), _mbContext, matchRuntime,
                                        _extentID, accessType,
-                                       _numToReturn, _numToSkip,
-                                       _returnOptions.getFlag() ) ;
+                                       _numToReturn, _numToSkip ) ;
       if ( !extScanner )
       {
          rc = SDB_OOM ;
@@ -669,7 +628,6 @@ namespace engine
             mthContext.enableDollarList() ;
          }
 
-         // prefetch
          if ( eduID() != cb->getID() && !isOpened() )
          {
             rc = SDB_DMS_CONTEXT_IS_CLOSE ;
@@ -677,7 +635,7 @@ namespace engine
          }
 
          while ( SDB_OK == ( rc = extScanner->advance( recordID, generator,
-                                                       cb, &mthContext ) ) )
+                                                      cb, &mthContext ) ) )
          {
             try
             {
@@ -686,11 +644,8 @@ namespace engine
 
                if ( _queryModifier )
                {
-                  //dollarList is pointed to _queryModifier->getDollarList()
                   mthContext.getDollarList( dollarList ) ;
-                  rc = _queryModify( cb, recordID, recordDataPtr,
-                                     obj, extScanner->callbackHandler(),
-                                     extScanner->recordInfo() ) ;
+                  rc = _queryModify( cb, recordID, recordDataPtr, obj ) ;
                   PD_RC_CHECK( rc, PDERROR, "Failed to query modify" ) ;
                   generator.resetValue( obj, &mthContext ) ;
                }
@@ -704,15 +659,12 @@ namespace engine
                rc = SDB_SYS ;
                goto error ;
             }
-            // increase counter
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_SELECT, 1 ) ;
-            // decrease numToReturn
             if ( _numToReturn > 0 )
             {
                --_numToReturn ;
             }
 
-            //do not clear dollarlist flag
             mthContext.clearRecordInfo() ;
          } // end while
 
@@ -758,8 +710,6 @@ namespace engine
          }
          _lastExtLID = extScanner->curExtent()->_logicID ;
 
-         // If the next extent is valid, let's step to it. Otherwise, the end
-         // is hit.
          if ( DMS_INVALID_EXTENT == _extentID ||
               SDB_DMS_EOC == extScanner->stepToNextExtent() )
          {
@@ -792,13 +742,11 @@ namespace engine
       {
          SDB_OSS_DEL extScanner ;
       }
-      PD_TRACE_EXITRC ( SDB__RTNCONTEXTDATA__PREPAREBYTBSCAN, rc );
       return rc ;
    error:
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTDATA__PREPAREBYIXSCAN, "_rtnContextData::_prepareByIXScan" )
    INT32 _rtnContextData::_prepareByIXScan( pmdEDUCB *cb,
                                             DMS_ACCESS_TYPE accessType,
                                             vector<INT64>* dollarList )
@@ -814,7 +762,6 @@ namespace engine
       dmsRecordID rid ;
       BSONObj dataRecord ;
 
-      PD_TRACE_ENTRY ( SDB__RTNCONTEXTDATA__PREPAREBYIXSCAN );
       if ( _selector.isInitialized() )
       {
          selector = &_selector ;
@@ -829,7 +776,6 @@ namespace engine
          generator.setQueryModify( TRUE ) ;
       }
 
-      // loop until we read something in the buffer
       while ( numRecords() == startNumRecords )
       {
          _mthMatchTreeContext mthContext ;
@@ -838,7 +784,6 @@ namespace engine
             mthContext.enableDollarList() ;
          }
 
-         // prefetch
          if ( eduID() != cb->getID() && !isOpened() )
          {
             rc = SDB_DMS_CONTEXT_IS_CLOSE ;
@@ -847,8 +792,7 @@ namespace engine
 
          dmsIXSecScanner secScanner( _su->data(), _mbContext, matchRuntime,
                                      scanner, accessType, _numToReturn,
-                                     _numToSkip,
-                                     _returnOptions.getFlag() ) ;
+                                     _numToSkip ) ;
          if ( _indexBlockScan )
          {
             secScanner.enableIndexBlockScan( _indexBlocks[0],
@@ -874,11 +818,8 @@ namespace engine
 
                   if ( _queryModifier )
                   {
-                     //dollarList is pointed to _queryModifier->getDollarList()
                      mthContext.getDollarList( dollarList ) ;
-                     rc = _queryModify( cb, recordID, recordDataPtr,
-                                        obj,  secScanner.callbackHandler(),
-                                        secScanner.recordInfo() ) ;
+                     rc = _queryModify( cb, recordID, recordDataPtr, obj ) ;
                      PD_RC_CHECK( rc, PDERROR, "Failed to query modify" ) ;
                      generator.resetValue( obj, &mthContext ) ;
                   }
@@ -886,16 +827,10 @@ namespace engine
                   rc = _innerAppend( selector, generator ) ;
                   PD_RC_CHECK( rc, PDERROR, "innerAppend failed:rc=%d", rc ) ;
 
-                  // make sure we still have room to read another
-                  // record_max_sz (i.e. 16MB). if we have less than 16MB
-                  // to 256MB, we can't safely assume the next record we
-                  // read will not overflow the buffer, so let's just break
-                  // before reading the next record
                   if ( buffEndOffset() + DMS_RECORD_MAX_SZ >
                        RTN_RESULTBUFFER_SIZE_MAX )
                   {
                      secScanner.stop () ;
-                     // let's break if there's no room for another max record
                      break ;
                   }
                }
@@ -905,7 +840,6 @@ namespace engine
                   rc = SDB_SYS ;
                   goto error ;
                }
-               // increase counter
                DMS_MON_OP_COUNT_INC( pMonAppCB, MON_SELECT, 1 ) ;
             }
             else
@@ -916,7 +850,6 @@ namespace engine
                             rc ) ;
             }
 
-            //do not clear dollarlist flag
             mthContext.clearRecordInfo() ;
          }
 
@@ -977,7 +910,6 @@ namespace engine
       {
          _mbContext->pause() ;
       }
-      PD_TRACE_EXITRC ( SDB__RTNCONTEXTDATA__PREPAREBYIXSCAN, rc );
       return rc ;
    error :
       goto done ;
@@ -1093,22 +1025,18 @@ namespace engine
             goto error ;
          }
          indexObj = ele.embeddedObject() ;
-         // StartKey
          rc = rtnGetObjElement( indexObj, FIELD_NAME_STARTKEY, startKey ) ;
          PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s] from obj[%s], "
                       "rc: %d", FIELD_NAME_STARTKEY,
                       indexObj.toString().c_str(), rc ) ;
-         // EndKey
          rc = rtnGetObjElement( indexObj, FIELD_NAME_ENDKEY, endKey ) ;
          PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s] from obj[%s], "
                       "rc: %d", FIELD_NAME_ENDKEY,
                       indexObj.toString().c_str(), rc ) ;
-         // StartRID
          rc = _parseRID( indexObj.getField( FIELD_NAME_STARTRID ), startRID ) ;
          PD_RC_CHECK( rc, PDWARNING, "Failed to parse %s, rc: %d",
                       FIELD_NAME_STARTRID, rc ) ;
 
-         // EndRID
          rc = _parseRID( indexObj.getField( FIELD_NAME_ENDRID ), endRID ) ;
          PD_RC_CHECK( rc, PDWARNING, "Failed to parse %s, rc: %d",
                       FIELD_NAME_ENDRID, rc ) ;
@@ -1300,7 +1228,6 @@ namespace engine
                 error, PDERROR, "Failed to get dms mb context, rc: %d",
                 SDB_DMS_NOTEXIST ) ;
 
-      // create a new context
       dataContext = SDB_OSS_NEW rtnContextData( -1, eduID() ) ;
       if ( !dataContext )
       {
@@ -1322,7 +1249,6 @@ namespace engine
       dataContext->enablePrefetch ( cb, &_prefWather ) ;
       dataContext->setEnableQueryActivity( FALSE ) ;
 
-      // sample timetamp
       if ( cb->getMonConfigCB()->timestampON )
       {
          dataContext->getMonCB()->recordStartTimestamp() ;
@@ -1489,7 +1415,6 @@ namespace engine
             pContext = _vecContext[0] ;
          }
 
-         // get data
          if ( pContext )
          {
             rtnContextBuf buffObj ;
@@ -1502,7 +1427,6 @@ namespace engine
                maxReturnNum = -1 ;
             }
 
-            // get data
             rc = pContext->getMore( maxReturnNum, buffObj, cb ) ;
             if ( rc )
             {
@@ -1526,7 +1450,6 @@ namespace engine
             {
                buffObj.truncate( _numToReturn ) ;
             }
-            // append data
             rc = appendObjs( buffObj.data(), buffObj.size(),
                              buffObj.recordNum() ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to add objs, rc: %d", rc ) ;
@@ -1830,7 +1753,6 @@ namespace engine
          else if ( 0 < _numToSkip )
          {
             -- _numToSkip ;
-            /// wo do not want to break this loop when get nothing.
             -- i ;
             continue ;
          }
@@ -1931,7 +1853,6 @@ namespace engine
 
    _rtnContextTemp::~_rtnContextTemp ()
    {
-      // release temp collection
       if ( _dmsCB && _mbContext )
       {
          _dmsCB->getTempSUMgr()->release( _mbContext ) ;

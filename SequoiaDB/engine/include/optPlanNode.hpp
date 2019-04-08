@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = optPlanNode.hpp
 
@@ -48,7 +47,6 @@
 #include "monCB.hpp"
 #include "rtnQueryOptions.hpp"
 #include "utilAllocator.hpp"
-#include "utilString.hpp"
 
 using namespace std ;
 using namespace bson ;
@@ -81,17 +79,12 @@ namespace engine
 
    enum OPT_PLAN_PATH_PRIORITY
    {
-      // Must use index
       OPT_PLAN_IDX_REQUIRED,
 
-      // Must use sorted index
       OPT_PLAN_SORTED_IDX_REQUIRED,
 
-      // Index scan is preferred when matched fields or matched orders
-      // otherwise, goto table scan
       OPT_PLAN_IDX_PREFERRED,
 
-      // Default
       OPT_PLAN_DEFAULT_PRIORITY
    } ;
 
@@ -101,11 +94,9 @@ namespace engine
    class _pmdEDUCB ;
    typedef class _pmdEDUCB pmdEDUCB ;
 
-   // Allocator of
    typedef _utilAllocator< OPT_NODE_ALLOCATOR_SIZE > optPlanAllocator ;
 
-   // Store explain results of sub-contexts
-   typedef ossPoolList< BSONObj > optExplainResultList ;
+   typedef _utilList< BSONObj > optExplainResultList ;
 
    typedef struct _optChildNodeSummary
    {
@@ -132,7 +123,7 @@ namespace engine
       double         _waitTime ;
    } optChildNodeSummary ;
 
-   typedef ossPoolList< optChildNodeSummary > optChildSummaryList ;
+   typedef _utilList< optChildNodeSummary > optChildSummaryList ;
 
    /*
       _optPlanNode define
@@ -140,9 +131,9 @@ namespace engine
    class _optPlanNode ;
    typedef class _optPlanNode optPlanNode ;
 
-   typedef ossPoolList< optPlanNode * > optPlanNodeList ;
+   typedef _utilList< optPlanNode * > optPlanNodeList ;
 
-   class _optPlanNode
+   class _optPlanNode : public SDBObject
    {
       public :
          _optPlanNode () ;
@@ -152,12 +143,15 @@ namespace engine
 
          virtual ~_optPlanNode () ;
 
-         void * operator new ( size_t size, optPlanAllocator *allocator,
+         void * operator new ( size_t size, optPlanAllocator *pAllocator,
                                std::nothrow_t ) ;
 
          void operator delete ( void *p ) ;
-         void operator delete ( void *p, optPlanAllocator *allocator,
+
+         void operator delete ( void *p, optPlanAllocator *pAllocator,
                                 std::nothrow_t ) ;
+
+         virtual void release ( optPlanAllocator * pAllocator ) = 0 ;
 
          OSS_INLINE optPlanNodeList & getChildNodes ()
          {
@@ -171,7 +165,7 @@ namespace engine
 
          void addChildNode ( _optPlanNode *pChildNode ) ;
 
-         void deleteChildNodes () ;
+         void deleteChildNodes ( optPlanAllocator *pAllocator ) ;
 
          OSS_INLINE virtual UINT32 getChildNodeNum () const
          {
@@ -353,28 +347,21 @@ namespace engine
       protected :
          optPlanNodeList   _childNodes ;
 
-         // Start cost of this node
          UINT64            _estStartCost ;
 
-         // Run cost of this node
          UINT64            _estRunCost ;
 
-         // Total cost of this node
          UINT64            _estTotalCost ;
 
-         // Number of records will be output
          UINT64            _outputRecords ;
 
-         // Average size of output records
          UINT32            _outputRecordSize ;
 
-         // Average number of fields in output records
          UINT32            _outputNumFields ;
 
          UINT64            _estIOCost ;
          UINT64            _estCPUCost ;
 
-         // If output is sorted by required
          BOOLEAN           _sorted ;
 
          rtnReturnOptions  _returnOptions ;
@@ -456,7 +443,6 @@ namespace engine
             return _isCandidate ;
          }
 
-         // virtual functions for index scan
          OSS_INLINE virtual INT32 getDirection () const
          {
             return 1 ;
@@ -504,7 +490,6 @@ namespace engine
 
          OSS_INLINE virtual void setIXBound ( const BSONObj & ixBound )
          {
-            // Do nothing
          }
 
          OSS_INLINE virtual double getScanSelectivity () const
@@ -590,40 +575,28 @@ namespace engine
       protected :
          const CHAR *      _pCollection ;
 
-         // Page size
          UINT32            _pageSize ;
 
-         // Estimate cache size ( from --optestcachesize )
          INT32             _estCacheSize ;
 
-         // Selectivity of matcher
          double            _mthSelectivity ;
 
-         // CPU cost of matcher
          UINT32            _mthCPUCost ;
 
-         // Need evaluate matchers after scan
          BOOLEAN           _needMatch ;
 
-         // Number of records in the collection
          UINT64            _inputRecords ;
 
-         // Number of pages in the collection
          UINT32            _inputPages ;
 
-         // Average number of fields in records
          UINT32            _inputNumFields ;
 
-         // Average size of records
          UINT32            _inputRecordSize ;
 
-         // Number of records will be scan
          UINT64            _readRecords ;
 
-         // Number of pages will be read
          UINT32            _readPages ;
 
-         // If the estimation is based on statistics
          BOOLEAN           _clFromStat ;
          UINT64            _clStatTime ;
 
@@ -650,6 +623,8 @@ namespace engine
                           const rtnContext * context ) ;
 
          virtual ~_optTbScanNode () ;
+
+         virtual void release ( optPlanAllocator * pAllocator ) ;
 
          OSS_INLINE virtual OPT_PLAN_NODE_TYPE getType () const
          {
@@ -707,8 +682,6 @@ namespace engine
 
    class _optIxScanNode : public _optScanNode
    {
-      typedef _utilString<128>   idxNameString ;
-
       public :
          _optIxScanNode () ;
 
@@ -720,6 +693,8 @@ namespace engine
                           const rtnContext * context ) ;
 
          virtual ~_optIxScanNode () ;
+
+         virtual void release ( optPlanAllocator * pAllocator ) ;
 
          OSS_INLINE virtual OPT_PLAN_NODE_TYPE getType () const
          {
@@ -733,7 +708,7 @@ namespace engine
 
          OSS_INLINE virtual const CHAR * getIndexName () const
          {
-            return _pIndexName.str() ;
+            return _pIndexName ;
          }
 
          OSS_INLINE virtual INT32 getDirection () const
@@ -844,51 +819,34 @@ namespace engine
          INT32 _toBSONOutputRecordsEval ( BSONObjBuilder & builder ) const ;
 
       protected :
-         idxNameString     _pIndexName ;
+         CHAR              _pIndexName [ IXM_INDEX_NAME_SIZE + 1 ] ;
 
-         // Scan direction of index
          INT32             _direction ;
 
-         // Operators in matchers are covered by predicates
          BOOLEAN           _matchAll ;
 
-         // Number of matched fields in index
          UINT32            _matchedFields ;
 
-         // Number of matched order by fields in index
          UINT32            _matchedOrders ;
 
-         // Information of index
          dmsExtentID       _indexExtID ;
          dmsExtentID       _indexLID ;
          BSONObj           _keyPattern ;
 
-         // The range to scan the index: from the start key to the stop key
-         // of each key-pairs in the predicates
          double            _scanSelectivity ;
 
-         // The selectivity of output from index with each start and stop
-         // key-pairs in predicates
          double            _predSelectivity ;
 
-         // CPU cost to evaluate predicates
          UINT32            _predCPUCost ;
 
-         // Number of index pages
          UINT32            _indexPages ;
 
-         // Number of index levels
          UINT32            _indexLevels ;
 
-         // Number of records could be read in index
-         // ( based on _scanSelectivity, skip and limit )
          UINT64            _idxReadRecords ;
 
-         // Number of pages could be read in index
-         // ( based on _scanSelectivity, skip and limit )
          UINT32            _idxReadPages ;
 
-         // If the estimation is based on statistics
          BOOLEAN           _ixFromStat ;
          UINT64            _ixStatTime ;
 
@@ -917,6 +875,8 @@ namespace engine
                         const rtnContext * context ) ;
 
          virtual ~_optSortNode () ;
+
+         virtual void release ( optPlanAllocator * pAllocator ) ;
 
          OSS_INLINE virtual OPT_PLAN_NODE_TYPE getType () const
          {
@@ -1099,6 +1059,8 @@ namespace engine
 
          virtual ~_optMainCLMergeNode () ;
 
+         virtual void release ( optPlanAllocator * pAllocator ) ;
+
          OSS_INLINE virtual OPT_PLAN_NODE_TYPE getType () const
          {
             return OPT_PLAN_MERGE ;
@@ -1159,6 +1121,8 @@ namespace engine
          _optCoordMergeNode ( const rtnContext * context ) ;
 
          virtual ~_optCoordMergeNode () ;
+
+         virtual void release ( optPlanAllocator * pAllocator ) ;
 
          OSS_INLINE virtual OPT_PLAN_NODE_TYPE getType () const
          {

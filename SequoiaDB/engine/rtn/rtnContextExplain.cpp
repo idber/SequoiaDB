@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnContextExplain.cpp
 
@@ -50,7 +49,7 @@ namespace engine
    /*
       _rtnExplainBase implement
     */
-   _rtnExplainBase::_rtnExplainBase ()
+   _rtnExplainBase::_rtnExplainBase ( optExplainPath * explainPath )
    : _rtnSubContextHolder(),
      _explainMask( OPT_NODE_EXPLAIN_MASK_NONE ),
      _needDetail( FALSE ),
@@ -63,8 +62,10 @@ namespace engine
      _explainStarted( FALSE ),
      _explainRunned( FALSE ),
      _explainPrepared( FALSE ),
-     _explained( FALSE )
+     _explained( FALSE ),
+     _explainPath( explainPath )
    {
+      SDB_ASSERT( NULL != explainPath, "explain path is invalid" ) ;
    }
 
    _rtnExplainBase::~_rtnExplainBase ()
@@ -94,14 +95,11 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to parse explain options, "
                    "rc: %d", rc ) ;
 
-      // Reset query hint
       _queryOptions.setHint( realHint ) ;
 
-      // Reset query flags
       if ( _queryOptions.testFlag( FLG_QUERY_MODIFY ) &&
            !_queryOptions.isOrderByEmpty() )
       {
-         // Tell the optimizer to use index by sort
          _queryOptions.setFlag( FLG_QUERY_FORCE_IDX_BY_SORT ) ;
       }
 
@@ -117,16 +115,13 @@ namespace engine
          subOptions.clearFlag( FLG_QUERY_MODIFY ) ;
       }
 
-      // Open query context
       rc = _openSubContext( subOptions, cb, &queryContext ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open query context, rc: %d", rc ) ;
 
       SDB_ASSERT( NULL != queryContext, "query context is invalid" ) ;
 
-      // Disable setting query activity
       queryContext->setEnableQueryActivity( FALSE ) ;
 
-      // Log start timestamp
       if ( cb->getMonConfigCB()->timestampON )
       {
          queryContext->getMonCB()->recordStartTimestamp() ;
@@ -166,7 +161,7 @@ namespace engine
 
       if ( !_explainStarted )
       {
-         rc = getExplainPath()->setExplainStart( queryCB ) ;
+         rc = _explainPath->setExplainStart( queryCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to set explain start, "
                       "rc: %d", rc ) ;
          _explainStarted = TRUE ;
@@ -209,17 +204,13 @@ namespace engine
 
       if ( !_explainPrepared )
       {
-         // Set the end of explain
-         rc = getExplainPath()->setExplainEnd( queryContext, queryCB ) ;
+         rc = _explainPath->setExplainEnd( queryContext, queryCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to set explain end, rc: %d", rc ) ;
 
-         // Finish the query context
          rc = _finishSubContext( queryContext, queryCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to finish query context [%lld], "
                    "rc: %d", queryContext->contextID(), rc ) ;
 
-         // Prepare explain paths, must called after finish query context
-         // which will collect sub-explain results
          rc = _prepareExplainPath( queryContext, queryCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to prepare explain path, rc: %d", rc ) ;
 
@@ -247,7 +238,6 @@ namespace engine
          goto error ;
       }
 
-      // Reset total records for context data processor
       if ( _needResetTotalRecords() )
       {
          explainContext->_resetTotalRecords( RTN_CTX_EXPLAIN_PROCESSOR +
@@ -282,14 +272,12 @@ namespace engine
       {
          BSONElement element ;
 
-         // Extract explain options
          element = hint.getField( FIELD_NAME_OPTIONS ) ;
          if ( Object == element.type() )
          {
             explainOptions = element.embeddedObject() ;
          }
 
-         // Extract hint
          element = hint.getField( FIELD_NAME_HINT ) ;
          if ( Object == element.type() )
          {
@@ -321,19 +309,16 @@ namespace engine
       BOOLEAN hasMask = TRUE ;
       BOOLEAN hasOption = FALSE ;
 
-      // Run option
       rc = _parseBoolOption( options, FIELD_NAME_RUN, _needRun,
                              hasOption, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
                    FIELD_NAME_RUN, rc ) ;
 
-      // Detail option
       rc = _parseBoolOption( options, FIELD_NAME_DETAIL, _needDetail,
                              hasOption, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
                    FIELD_NAME_DETAIL, rc ) ;
 
-      // Expand option
       rc = _parseBoolOption( options, FIELD_NAME_EXPAND, _needExpand,
                              hasOption, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
@@ -344,7 +329,6 @@ namespace engine
          _needDetail = TRUE ;
       }
 
-      // Flatten option
       rc = _parseBoolOption( options, FIELD_NAME_FLATTEN, _needFlatten,
                              hasOption, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
@@ -356,7 +340,6 @@ namespace engine
          _needDetail = TRUE ;
       }
 
-      // Search option
       rc = _parseBoolOption( options, FIELD_NAME_SEARCH, _needSearch,
                              hasOption, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
@@ -368,7 +351,6 @@ namespace engine
          _needExpand = TRUE ;
       }
 
-      // Evaluate option
       rc = _parseBoolOption( options, FIELD_NAME_EVALUATE, _needEvaluate,
                              hasOption, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
@@ -381,7 +363,6 @@ namespace engine
          _needSearch = TRUE ;
       }
 
-      // Filter option, convert to mask
       rc = _parseMaskOption( options, FIELD_NAME_FILTER, hasMask,
                              _explainMask ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
@@ -392,7 +373,6 @@ namespace engine
          _needDetail = TRUE ;
       }
 
-      // Location option
       rc = _parseLocationOption ( options, hasOption ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
                    FIELD_NAME_LOCATION, rc ) ;
@@ -402,7 +382,6 @@ namespace engine
          _needDetail = TRUE ;
       }
 
-      // Estimate option
       rc = _parseBoolOption ( options, FIELD_NAME_ESTIMATE, _needEstimate,
                               hasOption, _needDetail ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse %s option, rc: %d",
@@ -413,7 +392,6 @@ namespace engine
          _needDetail = TRUE ;
       }
 
-      // Reset explain mask
       if ( _needDetail )
       {
          if ( _needEstimate )
@@ -456,8 +434,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_RTNEXPBASE__PARSELOCFILTER ) ;
 
-      // We doesn't need "Location" option
-      // but it need to make sure "Detail" option is enabled
       if ( explainOptions.hasField( FIELD_NAME_SUB_COLLECTIONS ) ||
            explainOptions.hasField( FIELD_NAME_LOCATION ) )
       {
@@ -699,11 +675,6 @@ namespace engine
       return rc ;
    }
 
-   optPlanAllocator* _rtnExplainBase::getPlanAllocator()
-   {
-      return &_planAllocator ;
-   }
-
    /*
       _rtnContextExplain implement
     */
@@ -712,7 +683,8 @@ namespace engine
    _rtnContextExplain::_rtnContextExplain ( INT64 contextID,
                                             UINT64 eduID )
    : _rtnContextBase( contextID, eduID ),
-     _explainScanPath( getPlanAllocator() )
+     _rtnExplainBase( &_explainScanPath ),
+     _explainScanPath( &_planAllocator )
    {
    }
 
@@ -838,7 +810,6 @@ namespace engine
       {
          const optAccessPlanRuntime * planRuntime = NULL ;
 
-         // Generate explain path from plan runtime
          PD_CHECK( NULL != context, SDB_SYS, error, PDERROR,
                    "Failed to explain: data context should not be NULL" ) ;
 
@@ -927,11 +898,14 @@ namespace engine
    /*
       _rtnExplainMainBase implement
     */
-   _rtnExplainMainBase::_rtnExplainMainBase ()
-   : _IRtnCtxDataProcessor(),
+   _rtnExplainMainBase::_rtnExplainMainBase ( optExplainMergePathBase * explainMergePath )
+   : _rtnExplainBase( explainMergePath ),
+     _IRtnCtxDataProcessor(),
      _tempTimestamp(),
-     _mainExplainOutputted( FALSE )
+     _mainExplainOutputted( FALSE ),
+     _explainMergeBasePath( explainMergePath )
    {
+      SDB_ASSERT( NULL != explainMergePath, "explain merge path is invalid" ) ;
    }
 
    _rtnExplainMainBase::~_rtnExplainMainBase ()
@@ -999,8 +973,6 @@ namespace engine
                   startTimestamp = _tempTimestamp ;
                   if ( !_needParallelProcess() )
                   {
-                     // Not in parallel, re-use the start timestamp to save
-                     // the start timestamp of the next sub context
                      _tempTimestamp.sample() ;
                   }
                }
@@ -1017,10 +989,10 @@ namespace engine
                   waitTime = endTimestamp - startTimestamp ;
                }
 
-               PD_CHECK( NULL != getExplainMergePath(), SDB_SYS, error,
-                         PDERROR, "Failed to get merge explain path" ) ;
+               PD_CHECK( NULL != _explainMergeBasePath, SDB_SYS, error, PDERROR,
+                         "Failed to get merge explain path" ) ;
 
-               rc = getExplainMergePath()->addChildExplain(
+               rc = _explainMergeBasePath->addChildExplain(
                         explainResult, queryTime, waitTime, needParse,
                         needExplain, _explainMask ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to add child explain, "
@@ -1032,7 +1004,7 @@ namespace engine
             {
                needParse = FALSE ;
 
-               rc = getExplainMergePath()->addChildExplain(
+               rc = _explainMergeBasePath->addChildExplain(
                         explainResult, queryTime, waitTime, needParse,
                         needExplain, _explainMask ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to add child explain, "
@@ -1202,7 +1174,7 @@ namespace engine
 
       SDB_ASSERT( explainContext, "explain context is invalid" ) ;
 
-      PD_CHECK( NULL != getExplainMergePath(), SDB_SYS, error, PDERROR,
+      PD_CHECK( NULL != _explainMergeBasePath, SDB_SYS, error, PDERROR,
                 "Failed to get merge explain path" ) ;
 
       hasMore = FALSE ;
@@ -1251,7 +1223,7 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_RTNEXPLAINMAINBASE__BLDMAINEXP ) ;
 
-      if ( NULL != getExplainMergePath() )
+      if ( NULL != _explainMergeBasePath )
       {
          BSONObjBuilder builder ;
 
@@ -1263,12 +1235,12 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for query options, "
                       "rc: %d", rc ) ;
 
-         rc = getExplainMergePath()->toBSONExplainInfo( builder,
+         rc = _explainMergeBasePath->toBSONExplainInfo( builder,
                                                         _getExplainInfoMask() ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build BSON for run information, "
                       "rc: %d", rc ) ;
 
-         rc = getExplainMergePath()->toBSON( builder, _needExpand,
+         rc = _explainMergeBasePath->toBSON( builder, _needExpand,
                                              _needFlatten, _explainMask ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to output BSON from explain path, "
                       "rc: %d", rc ) ;
@@ -1281,9 +1253,8 @@ namespace engine
       }
       else
       {
-         PD_LOG( PDERROR, "Failed to get merge explain path" ) ;
-         rc = SDB_SYS ;
-         goto error ;
+         PD_CHECK( NULL != _explainMergeBasePath, SDB_SYS, error, PDERROR,
+                   "Failed to get merge explain path" ) ;
       }
 
    done :
@@ -1294,7 +1265,7 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNEXPLAINMAINBASE__BLDSIMPEXP, "_rtnExplainMainBase::_buildSubExplains" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNEXPLAINMAINBASE__BLDSIMPEXP, "_rtnExplainMainBase::_buildSimpleExplain" )
    INT32 _rtnExplainMainBase::_buildSubExplains ( rtnContext * explainContext,
                                                   BOOLEAN needSort,
                                                   BOOLEAN & hasMore )
@@ -1303,19 +1274,19 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_RTNEXPLAINMAINBASE__BLDSIMPEXP ) ;
 
-      PD_CHECK( NULL != getExplainMergePath(), SDB_SYS, error, PDERROR,
+      PD_CHECK( NULL != _explainMergeBasePath, SDB_SYS, error, PDERROR,
                 "Failed to get merge explain path" ) ;
 
       if ( needSort )
       {
-         rc = getExplainMergePath()->sortChildExplains() ;
+         rc = _explainMergeBasePath->sortChildExplains() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to sort child explains, "
                       "rc: %d", rc ) ;
       }
 
       {
          optExplainResultList & childExplainList =
-                                 getExplainMergePath()->getChildExplains() ;
+                                 _explainMergeBasePath->getChildExplains() ;
 
          while ( !childExplainList.empty() &&
                  explainContext->buffEndOffset() < RTN_MAX_EXPLAIN_BUFFER_SIZE &&

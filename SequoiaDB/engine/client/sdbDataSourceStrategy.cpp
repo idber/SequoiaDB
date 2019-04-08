@@ -1,19 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2016 SequoiaDB Ltd.
 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
+   This program is free software: you can redistribute it and/or modify
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
-   http://www.apache.org/licenses/LICENSE-2.0
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY ; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU Affero General Public License for more details.
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sdbDataSourceStrategy.cpp
 
@@ -69,7 +69,6 @@ namespace sdbclient
       string newcoord ;
       if ( _converToIP(coord, newcoord) )
       {
-         // if not find, add it
          _coordMutex.get() ;
          if ( ( _normalCoordList.end() == std::find( _normalCoordList.begin(), 
             _normalCoordList.end(), newcoord ) ) && 
@@ -91,17 +90,14 @@ namespace sdbclient
          _coordMutex.get() ;
          iter = std::find( _normalCoordList.begin(), 
             _normalCoordList.end(), newcoord ) ;
-         // find it in normal list
          if ( iter != _normalCoordList.end() )
          {
             _normalCoordList.erase( iter ) ;
          }
-         // not find in normal list
          else
          {
             iter = std::find( _abnormalCoordList.begin(), 
                _abnormalCoordList.end(), newcoord ) ;
-            // find in abnormal list
             if ( iter != _abnormalCoordList.end() )
             {
                _abnormalCoordList.erase( iter ) ;  
@@ -158,7 +154,6 @@ namespace sdbclient
       return rc ;
    }
 
-   // move coord from abnormal list to normal list
    void sdbDataSourceStrategy::mvCoordToNormal( const string &coord )
    {
       vector<string>::iterator iter ;
@@ -173,7 +168,6 @@ namespace sdbclient
       _coordMutex.release() ;
    }
 
-   // convert hostname to ip
    BOOLEAN sdbDataSourceStrategy::_converToIP( 
       const string &oldcoord, string& newcoord )
    {
@@ -229,7 +223,6 @@ namespace sdbclient
       return TRUE ;
    }
       
-   // move coord from normal list to abnormal list
    void sdbDataSourceStrategy::mvCoordToAbnormal( const string &coord )
    {
       vector<string>::iterator iter ;
@@ -252,10 +245,11 @@ namespace sdbclient
       ossStrcpy( hostname, ipstr.substr(0, pos).c_str() ) ;
       if ( 0 == ossStrcmp( SDB_DS_LOCAL_IP1, hostname ) )
          return TRUE ;
-
-#if defined (_LINUX) || defined (_AIX)
+   
       struct ifaddrs* ifAddrStruct, *ifAddr ;
       void* tmpAddrPtr = NULL ;
+
+      #if defined (_LINUX) || defined (_AIX)
       if ( 0 != getifaddrs( &ifAddrStruct ) )
          return FALSE ;
       ifAddr = ifAddrStruct ;
@@ -276,7 +270,7 @@ namespace sdbclient
       }
       freeifaddrs( ifAddr ) ;
       return FALSE ;
-#else
+      #else
       WORD wVersionRequested = MAKEWORD( 2, 2 ) ;
       WSADATA wsaData ;
       WSAStartup( wVersionRequested, &wsaData ) ;
@@ -299,7 +293,7 @@ namespace sdbclient
       }
       WSACleanup() ;
       return FALSE ;
-#endif
+      #endif
    }
 
 
@@ -365,7 +359,6 @@ namespace sdbclient
       string newcoord ;
       if ( _converToIP(coord, newcoord) )
       {
-         // if not find, add it
          _coordMutex.get() ;
          if ( ( _normalCoordList.end() == std::find( _normalCoordList.begin(), 
             _normalCoordList.end(), newcoord ) ) && 
@@ -390,7 +383,6 @@ namespace sdbclient
          vector<string>::iterator iter ;
          _coordMutex.get() ;
          iter = std::find( _normalCoordList.begin(), _normalCoordList.end(), newcoord ) ;
-         // find it in normal list
          if ( iter != _normalCoordList.end() )
          {
             _normalCoordList.erase( iter ) ;
@@ -398,19 +390,16 @@ namespace sdbclient
             {
                iter = std::find( _localCoordList.begin(), 
                   _localCoordList.end(), newcoord ) ;
-               // find it in normal list
                if ( iter != _localCoordList.end() )
                {
                   _localCoordList.erase( iter ) ;   
                }
             }
          }
-         // not find in normal list
          else
          {
             iter = std::find( _abnormalCoordList.begin(), 
                _abnormalCoordList.end(), newcoord ) ;
-            // find in abnormal list
             if ( iter != _abnormalCoordList.end() )
             {
                _abnormalCoordList.erase( iter ) ;  
@@ -420,8 +409,6 @@ namespace sdbclient
       }
    }
 
-   // move coord from normal list to abnormal list, if local list exist,
-   // delete it from local list
    void sdbDSLocalStrategy::mvCoordToAbnormal( const string &coord )
    {
       vector<string>::iterator iter ;
@@ -440,8 +427,6 @@ namespace sdbclient
       _coordMutex.release() ;
    }
 
-   // move coord from abnormal list to normal list, if coord is local coord,
-   // add it to local list
    void sdbDSLocalStrategy::mvCoordToNormal( const string &coord )
    {
       vector<string>::iterator iter ;
@@ -506,11 +491,8 @@ namespace sdbclient
       goto done  ;
    }
 
-   // check coord is local coord or not
    BOOLEAN sdbDSLocalStrategy::_isLocalCoord( const string &coord )
    {
-      // TODO: (new) local ips do not only mean "127.0.0.1",
-      // we should scan all the netcards to get the local ips.
       CHAR hostname[HOSTNAMELEN] ;
       INT32 pos = coord.find_first_of( ":" ) ;
       ossStrcpy( hostname, coord.substr(0, pos).c_str() ) ;
@@ -550,7 +532,6 @@ namespace sdbclient
       {
          _coordMutex.get() ;
          set<coordInfo*, coordInfoCmp>::const_iterator iter = _findCoord( newcoord ) ;
-         // not found
          if ( iter == _coordInfoSet.end() )
          {
             coordInfo* pCoord = SDB_OSS_NEW coordInfo( newcoord ) ;
@@ -580,8 +561,6 @@ namespace sdbclient
       }
    }
 
-   // isNormal: TRUE get normal coord number
-   // FALSE get abnormal coord number
    INT32 sdbDSBalanceStrategy::_getCoordNum( BOOLEAN isNormal )
    {
       INT32 availableNum = 0 ;
@@ -685,12 +664,10 @@ namespace sdbclient
       return rc ;
    }
 
-   // move coord from normal list to abnormal list
    void sdbDSBalanceStrategy::mvCoordToAbnormal( const string &coord )
    {
       _coordMutex.get() ;
       set<coordInfo*, coordInfoCmp>::const_iterator iter = _findCoord( coord ) ;
-      // found
       if ( iter != _coordInfoSet.end() )
       {
          coordInfo* newCoord = *iter ;
@@ -701,12 +678,10 @@ namespace sdbclient
       _coordMutex.release() ;
    }
 
-   // move coord from abnormal list to normal list
    void sdbDSBalanceStrategy::mvCoordToNormal( const string &coord )
    {
       _coordMutex.get() ;
       set<coordInfo*, coordInfoCmp>::const_iterator iter = _findCoord( coord ) ;
-      // found
       if ( iter != _coordInfoSet.end() )
       {
          coordInfo* newCoord = *iter ;
@@ -719,7 +694,6 @@ namespace sdbclient
 
    void sdbDSBalanceStrategy::syncAddNewConn( sdb *conn, const string &coord )
    {
-      // sync _coordInfoSet
       set<coordInfo*, coordInfoCmp>::const_iterator iter ;
       _coordMutex.get() ;
       iter = _findCoord( coord ) ;
@@ -729,7 +703,6 @@ namespace sdbclient
          _coordInfoSet.erase( iter ) ;
          info->totalNum = info->totalNum + 1 ;
          _coordInfoSet.insert( info ) ;
-         // sync _connToCoord
          _connToCoord[conn] = info ;
       }
       else
@@ -739,7 +712,6 @@ namespace sdbclient
       _coordMutex.release() ;
    }
 
-   // sync strategy
    void sdbDSBalanceStrategy::sync( sdb *conn, SYNC_CHOICE choice )
    {
       switch(choice)
@@ -761,7 +733,6 @@ namespace sdbclient
 
    void sdbDSBalanceStrategy::_syncDelIdleConn( sdb *conn )
    {
-      // sync _coordInfoSet
       set<coordInfo*, coordInfoCmp>::const_iterator iter ;
       _coordMutex.get() ;
       iter = _coordInfoSet.find( _connToCoord[conn] ) ;
@@ -771,7 +742,6 @@ namespace sdbclient
          _coordInfoSet.erase( iter ) ;
          info->totalNum = info->totalNum - 1 ;
          _coordInfoSet.insert( info ) ;
-         // sync _connToCoord
          _connToCoord.erase( conn ) ;
       }      
       _coordMutex.release() ;
@@ -779,7 +749,6 @@ namespace sdbclient
 
    void sdbDSBalanceStrategy::_syncDelBusyConn( sdb *conn )
    {
-      // sync _coordInfoSet
       set<coordInfo*, coordInfoCmp>::const_iterator iter ;
       _coordMutex.get() ;
       iter = _coordInfoSet.find( _connToCoord[conn] ) ;
@@ -790,7 +759,6 @@ namespace sdbclient
          info->usedNum = info->usedNum - 1 ;
          info->totalNum = info->totalNum - 1 ;
          _coordInfoSet.insert( info ) ;
-         // sync _connToCoord
          _connToCoord.erase( conn ) ;
       }
       _coordMutex.release() ;
@@ -798,7 +766,6 @@ namespace sdbclient
 
    void sdbDSBalanceStrategy::_syncAddBusyConn( sdb *conn )
    {
-      // sync _coordInfoSet
       set<coordInfo*, coordInfoCmp>::const_iterator iter ;
       _coordMutex.get() ;
       iter = _coordInfoSet.find( _connToCoord[conn] ) ;
@@ -814,7 +781,6 @@ namespace sdbclient
 
    void sdbDSBalanceStrategy::_syncAddIdleConn( sdb *conn )
    {
-      // sync _coordInfoSet
       set<coordInfo*, coordInfoCmp>::const_iterator iter ;
       _coordMutex.get() ;
       iter = _coordInfoSet.find( _connToCoord[conn] ) ;

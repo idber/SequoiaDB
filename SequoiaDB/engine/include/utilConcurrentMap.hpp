@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = utilZlibStream.hpp
 
@@ -63,7 +62,6 @@ namespace engine
       typedef utilConcurrentMap< Key, T, BUCKET_NUM, Hash > cmap_type ;
 
    private:
-      // disallow copy and assign
       utilConcurrentMap( const utilConcurrentMap& ) ;
       void operator=( const utilConcurrentMap& ) ;
 
@@ -85,7 +83,6 @@ namespace engine
       {
          friend class utilConcurrentMap< Key, T, BUCKET_NUM, Hash > ;
       private:
-         // disallow copy and assign
          Bucket( const Bucket& ) ;
          void operator=( const Bucket& ) ;
 
@@ -283,7 +280,6 @@ namespace engine
                return true ;
             }
 
-            // out of range index is end iterator
             if ( ( _index < 0 || _index >= BUCKET_NUM ) &&
                  ( rhs._index < 0 || rhs._index >= BUCKET_NUM ) )
             {
@@ -389,7 +385,6 @@ namespace engine
       Hash     _hasher ;
    } ;
 
-   // shared lock
    #define FOR_EACH_CMAP_BUCKET_S( _MAP_TYPE, _map ) \
       for ( _MAP_TYPE::bucket_iterator bucketIt = (_map).begin() ; \
             bucketIt != (_map).end() ; \
@@ -398,7 +393,6 @@ namespace engine
          _MAP_TYPE::Bucket& bucket = *bucketIt ; \
          BUCKET_SLOCK( bucket ) ;
 
-   // exclusive lock
    #define FOR_EACH_CMAP_BUCKET_X( _MAP_TYPE, _map ) \
       for ( _MAP_TYPE::bucket_iterator bucketIt = (_map).begin() ; \
             bucketIt != (_map).end() ; \
@@ -407,7 +401,6 @@ namespace engine
          _MAP_TYPE::Bucket& bucket = *bucketIt ; \
          BUCKET_XLOCK( bucket ) ;
 
-   // not lock
    #define FOR_EACH_CMAP_BUCKET( _MAP_TYPE, _map ) \
       for ( _MAP_TYPE::bucket_iterator bucketIt = (_map).begin() ; \
             bucketIt != (_map).end() ; \
@@ -417,7 +410,6 @@ namespace engine
 
    #define FOR_EACH_CMAP_BUCKET_END }
 
-   // shared lock
    #define FOR_EACH_CMAP_ELEMENT_S( _MAP_TYPE, _map ) \
       for ( _MAP_TYPE::bucket_iterator bucketIt = (_map).begin() ; \
             bucketIt != (_map).end() ; \
@@ -431,7 +423,6 @@ namespace engine
                it++ ) \
          {
 
-   // exclusive lock
    #define FOR_EACH_CMAP_ELEMENT_X( _MAP_TYPE, _map ) \
       for ( _MAP_TYPE::bucket_iterator bucketIt = (_map).begin() ; \
             bucketIt != (_map).end() ; \
@@ -445,7 +436,6 @@ namespace engine
                it++ ) \
          {
 
-   // not lock
    #define FOR_EACH_CMAP_ELEMENT( _MAP_TYPE, _map ) \
       for ( _MAP_TYPE::bucket_iterator bucketIt = (_map).begin() ; \
             bucketIt != (_map).end() ; \

@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnContext.cpp
 
@@ -80,10 +79,8 @@ namespace engine
 
       newSize = ( _bufferSize == 0 ) ? RTN_DFT_BUFFERSIZE : _bufferSize ;
 
-      // make sure we get enough memory in result buffer
       while ( newSize < ensuredSize )
       {
-         // make sure we haven't hit max
          if ( newSize >= RTN_CONTEXT_MAX_BUFF_SIZE )
          {
             PD_LOG ( PDERROR, "Result buffer is greater than %d bytes",
@@ -92,7 +89,6 @@ namespace engine
             goto error ;
          }
 
-         // double buffer size until hitting RTN_CONTEXT_MAX_BUFF_SIZE
          newSize = newSize << 1 ;
          if (newSize > RTN_CONTEXT_MAX_BUFF_SIZE )
          {
@@ -107,7 +103,6 @@ namespace engine
       }
       else
       {
-         // reallocate memory
          _buffer = (CHAR*)SDB_OSS_REALLOC(
                                  RTN_BUFF_TO_REAL_PTR( _buffer ),
                                  RTN_BUFF_TO_PTR_SIZE( newSize ) ) ;
@@ -168,9 +163,9 @@ namespace engine
    }
 
    INT32 _rtnContextStoreBuf::appendObjs( const CHAR* objBuf,
-                                          INT32 len,
-                                          INT32 num,
-                                          BOOLEAN needAligned )
+                                             INT32 len,
+                                             INT32 num,
+                                             BOOLEAN needAligned )
    {
       INT32 rc = SDB_OK ;
 
@@ -224,9 +219,7 @@ namespace engine
          _readOffset = ossAlign4( (UINT32)_readOffset ) ;
          buf._pOrgBuff = _buffer ;
          buf._pBuff = &_buffer[ _readOffset ] ;
-         //buf._startFrom = _totalRecords - _numRecords ;
 
-         // return current all records
          if ( maxNumToReturn < 0 )
          {
             buf._buffSize = _writeOffset - _readOffset ;
@@ -510,7 +503,6 @@ namespace engine
       BOOLEAN locked = FALSE ;
       BOOLEAN againTry = FALSE ;
       UINT32 timeout = 0 ;
-      monSvcTaskInfo *pOldInfo = NULL ;
 
       while ( timeout < OSS_ONE_SEC )
       {
@@ -554,9 +546,6 @@ namespace engine
       if ( _pMonAppCB && cb->getID() != eduID() )
       {
          cb->getMonAppCB()->reset() ;
-         /// save task info
-         pOldInfo = cb->getMonAppCB()->getSvcTaskInfo() ;
-         cb->getMonAppCB()->setSvcTaskInfo( _pMonAppCB->getSvcTaskInfo() ) ;
       }
       rc = _prepareDataMonitor( cb ) ;
       _prefetchRet = rc ;
@@ -570,8 +559,6 @@ namespace engine
          *_pMonAppCB += *cb->getMonAppCB() ;
          _monCtxCB.monDataReadInc( cb->getMonAppCB()->totalDataRead ) ;
          cb->getMonAppCB()->reset() ;
-         /// restore task info
-         cb->getMonAppCB()->setSvcTaskInfo( pOldInfo ) ;
       }
 
       if ( SDB_OK == rc && isEmpty() && isOpened() && !eof() &&
@@ -583,7 +570,6 @@ namespace engine
       }
 
    done:
-      // inc idle
       pmdGetKRCB()->getBPSCB()->_idlePrefAgentNum.inc() ;
       if ( locked )
       {
@@ -629,14 +615,11 @@ namespace engine
 
          currentPreparedSize = _buffer.writeOffset() - startOffset ;
 
-         // assume next prepared size equals current,
-         // so break if data size exceeds limit when prepare once more time
          if ( _buffer.writeOffset() + currentPreparedSize >= _prepareMoreDataLimit )
          {
             break ;
          }
 
-         // prepare timeout
          currentTime = ossGetCurrentMicroseconds() ;
          if ( currentTime - beginTime >= PREPARE_TIMEOUT )
          {
@@ -690,7 +673,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       BOOLEAN locked = FALSE ;
 
-      // release buff obj
       buffObj.release() ;
 
       if ( !isOpened() )
@@ -705,7 +687,6 @@ namespace engine
          goto error ;
       }
 
-      // need to get data lock
       while ( TRUE )
       {
          rc = _dataLock.lock_r( OSS_ONE_SEC ) ;
@@ -725,7 +706,6 @@ namespace engine
       {
          ++_prefetchID ;
       }
-      // check prefetch has error
       if ( _prefetchRet && SDB_DMS_EOC != _prefetchRet )
       {
          rc = _prefetchRet ;
@@ -733,7 +713,6 @@ namespace engine
          goto error ;
       }
 
-      // need to get more datas
       if ( isEmpty() && !eof() )
       {
          UINT64 tmpTotalRead = cb->getMonAppCB()->totalDataRead ;
@@ -757,7 +736,6 @@ namespace engine
                                    tmpTotalRead ) ;
       }
 
-      // if not empty, get current data
       if ( !isEmpty() )
       {
          INT64 numRecords = _buffer.numRecords() ;
@@ -777,7 +755,6 @@ namespace engine
             buffObj._reference( _buffer.getRefCountPointer(), &_dataLock ) ;
             locked = FALSE ;
 
-            // if get all data
             if ( isEmpty() && !eof() )
             {
                _buffer.empty() ;
@@ -845,10 +822,6 @@ namespace engine
          SDB_ASSERT( NULL != info->newFunc, "null pointer of newFunc" ) ;
 
          _rtnContextBase* ctx = (*(info->newFunc))( contextId, eduId ) ;
-         if ( NULL == ctx )
-         {
-            return NULL ;
-         }
          SDB_ASSERT( ctx->name() == info->name, "name is wrong" ) ;
          SDB_ASSERT( ctx->getType() == info->type, "type is wrong" ) ;
          return ctx ;

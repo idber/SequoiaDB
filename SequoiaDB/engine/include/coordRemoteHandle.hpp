@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordRemoteHandle.hpp
 
@@ -39,43 +38,10 @@
 
 #include "pmdRemoteSession.hpp"
 #include "coordDef.hpp"
-
-#include "../bson/bson.h"
-
-using namespace bson ;
+#include "coordContext.hpp"
 
 namespace engine
 {
-
-   #pragma pack(4)
-
-   /*
-      _coordRemoteHandleStatus define
-   */
-   struct _coordRemoteHandleStatus
-   {
-      UINT16               _initFinished ;
-      UINT16               _initTrans ;
-      UINT64               _nodeVer ;
-      UINT64               _nodeID ;
-
-      _coordRemoteHandleStatus()
-      {
-         SDB_ASSERT( sizeof( *this ) <= PMD_SUBSESSION_UDF_DATA_LEN,
-                     "Size must <= PMD_SUBSESSION_UDF_DATA_LEN" ) ;
-         init() ;
-      }
-      void init()
-      {
-         _initFinished = TRUE ;
-         _initTrans = FALSE ;
-         _nodeVer = 0 ;
-         _nodeID = 0 ;
-      }
-   } ;
-   typedef _coordRemoteHandleStatus coordRemoteHandleStatus ;
-
-   #pragma pack()
 
    /*
       _coordRemoteHandlerBase define
@@ -83,16 +49,8 @@ namespace engine
    class _coordRemoteHandlerBase : public _IRemoteSessionHandler
    {
       public:
-         enum SESSION_INIT_TYPE
-         {
-            INIT_V0,
-            INIT_V1
-         } ;
-      public:
          _coordRemoteHandlerBase() ;
          virtual ~_coordRemoteHandlerBase() ;
-
-         BOOLEAN  isVersion0() const ;
 
       public:
          virtual INT32  onSendFailed( _pmdRemoteSession *pSession,
@@ -115,57 +73,11 @@ namespace engine
                                        const MsgHeader *pReq,
                                        BOOLEAN isFirst ) ;
 
-         virtual INT32  onSend( _pmdRemoteSession *pSession,
-                                _pmdSubSession *pSub ) ;
-
-         virtual void   onHandleClose( _pmdRemoteSessionSite *pSite,
-                                       NET_HANDLE handle,
-                                       const MsgHeader *pReply ) ;
-
-
-         virtual void   setUserData( UINT64 data ) ;
-
       protected:
 
          INT32          _sessionInit( _pmdRemoteSession *pSession,
                                       const MsgRouteID &nodeID,
                                       _pmdEDUCB *cb ) ;
-
-         INT32          _buildPacket( _pmdRemoteSession *pSession,
-                                      _pmdSubSession *pSub,
-                                      MsgHeader *pHeader ) ;
-
-         INT32          _buildPacketWithUpdateSched( _pmdRemoteSession *pSession,
-                                                     _pmdSubSession *pSub,
-                                                     const BSONObj &objSched ) ;
-
-         INT32          _buildPacketWithSessionInit( _pmdRemoteSession *pSession,
-                                                     _pmdSubSession *pSub,
-                                                     BOOLEAN isUpdate ) ;
-
-         INT32          _onSendConnectOld( _pmdSubSession *pSub ) ;
-
-      private:
-         BSONObj        _buildSessionInitObj( _pmdEDUCB *cb ) ;
-
-         INT32          _checkSessionTransaction( _pmdRemoteSession *pSession,
-                                                  _pmdSubSession *pSub,
-                                                  _pmdEDUCB *cb,
-                                                  coordRemoteHandleStatus *pStatus ) ;
-
-         INT32          _checkSessionSchedInfo( _pmdRemoteSession *pSession,
-                                                _pmdSubSession *pSub,
-                                                _pmdEDUCB *cb,
-                                                UINT32 &nodeSiteVer ) ;
-
-         INT32          _checkSessionAttr( _pmdRemoteSession *pSession,
-                                           _pmdSubSession *pSub,
-                                           _pmdEDUCB *cb,
-                                           UINT32 &nodeSiteVer ) ;
-
-      private:
-         SESSION_INIT_TYPE    _initType ;
-
    } ;
    typedef _coordRemoteHandlerBase coordRemoteHandlerBase ;
 
@@ -211,10 +123,14 @@ namespace engine
                                  const MsgHeader *pReply,
                                  BOOLEAN isPending ) ;
 
-         virtual INT32  onExpiredReply ( pmdRemoteSessionSite *pSite,
-                                         const MsgHeader *pReply ) ;
+         virtual INT32  onExpiredReply ( _pmdEDUCB * cb,
+                                         const MsgHeader * pReply ) ;
+
+         virtual INT32  processExpiredContext () ;
 
       protected:
+         rtnContextCoord * _expiredContext ;
+         _pmdEDUCB *    _expiredEDUCB ;
          BOOLEAN        _interruptWhenFailed ;
          SET_RC         _ignoreRC ;
 

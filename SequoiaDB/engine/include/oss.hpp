@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = oss.hpp
 
@@ -41,18 +40,12 @@
 #include "oss.h"
 #include "ossMem.hpp"
 
-// we should NEVER AND EVER put any virtual function in this object
-// and we should never cast an object to SDBObject and delete.
 class SDBObject
 {
 protected :
-   // never instantiate SDBObject
    SDBObject () {}
 public :
-   // do NOT put virtual destructor because it will change the inherited object
-   // size
 
-   // regular new
    void * operator new ( size_t size ) throw ( const char * )
    {
       void *p = SDB_OSS_MALLOC(size) ;
@@ -67,19 +60,6 @@ public :
       return p ;
    }
 
-   // placement new
-   void * operator new ( size_t size, void* p ) throw ( const char * )
-   {
-      if ( !p ) throw "allocation failure" ;
-      return p;
-   }
-
-   void * operator new[] ( size_t size, void* p ) throw ( const char * )
-   {
-      if ( !p ) throw "allocation failure" ;
-      return p;
-   }
-
    void operator delete ( void *p )
    {
       SDB_OSS_FREE(p) ;
@@ -90,16 +70,6 @@ public :
       SDB_OSS_FREE(p) ;
    }
 
-   // placement delete (no-op)
-   void operator delete ( void* p , void* p2) throw ()
-   {
-   }
-
-   void operator delete[] ( void* p, void* p2 ) throw ()
-   {
-   }
-
-   // new with file/line number
    void * operator new ( size_t size, const CHAR *pFile, UINT32 line )
          throw ( const char * )
    {
@@ -126,7 +96,6 @@ public :
       SDB_OSS_FREE(p) ;
    }
 
-   // no throw
    void * operator new ( size_t size, const std::nothrow_t & )
    {
       return SDB_OSS_MALLOC(size) ;
@@ -147,7 +116,6 @@ public :
       SDB_OSS_FREE(p) ;
    }
 
-   // no throw with line number
    void * operator new ( size_t size, const CHAR *pFile,
                          UINT32 line, const std::nothrow_t & )
    {

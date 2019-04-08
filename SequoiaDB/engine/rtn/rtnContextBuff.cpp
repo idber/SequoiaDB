@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnContextBuff.cpp
 
@@ -107,12 +106,6 @@ namespace engine
       {
          _buffSize = offset ;
       }
-
-      if ( offset < _curOffset )
-      {
-         _curOffset = offset ;
-      }
-
       if ( recordNum < _recordNum )
       {
          _recordNum = recordNum ;
@@ -133,7 +126,6 @@ namespace engine
          CHAR *pBuff = ( CHAR* )SDB_OSS_MALLOC( _buffSize ) ;
          if ( pBuff )
          {
-            // copy buf data to own
             ossMemcpy( pBuff, _pBuff, _buffSize ) ;
             _pBuff = pBuff ;
             _owned = TRUE ;
@@ -235,7 +227,6 @@ namespace engine
 
    _rtnContextBuf& _rtnContextBuf::operator=( const _rtnContextBuf &right )
    {
-      // release cur
       release () ;
 
       _rtnObjBuff::operator=( right ) ;
@@ -247,7 +238,6 @@ namespace engine
       _pOrgBuff = right._pOrgBuff ;
       _startFrom = right._startFrom ;
 
-      // increase counter
       if ( !_released && NULL != _pBuffCounter )
       {
          ++(*_pBuffCounter) ;

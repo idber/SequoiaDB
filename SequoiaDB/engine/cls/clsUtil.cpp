@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsUtil.hpp
 
@@ -61,30 +60,25 @@ namespace engine
       INT32 erc = endLsn.compare( remoteLsn ) ;
 
 
-      /// fbegin > remote
       if ( 0 < frc )
       {
          goto done ;
       }
-      /// fbein <= remote < membegin
       if ( frc <= 0 && 0 < mrc )
       {
          status = CLS_SYNC_STATUS_RC ;
          goto done ;
       }
-      /// membegin <= remote < end
       else if ( mrc <= 0 && 0 < erc )
       {
          status = CLS_SYNC_STATUS_PEER ;
          goto done ;
       }
-      /// end == remote
       else if ( 0 == erc )
       {
          status = CLS_SYNC_STATUS_PEER ;
          goto done ;
       }
-      /// end < remote
       else
       {
          goto done ;

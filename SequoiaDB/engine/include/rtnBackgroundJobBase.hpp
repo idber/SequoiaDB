@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnBackgroundJobBase.hpp
 
@@ -38,7 +37,7 @@
 
 #include "ossEvent.hpp"
 #include "pmdEDUMgr.hpp"
-#include "ossMemPool.hpp"
+#include <map>
 
 namespace engine
 {
@@ -64,20 +63,6 @@ namespace engine
       RTN_JOB_CLS_STORAGE_CHECK  = 17, // storage check job
       RTN_JOB_OPT_PLAN_CLEAR     = 18, // opt plan clear job
       RTN_JOB_PAGEMAPPING        = 19, // page mapping job
-
-      RTN_JOB_UPDATESTRATEGY     = 20,
-      RTN_JOB_STRATEGYOBSERVER   = 21,
-
-      RTN_JOB_SCHED_PREPARE      = 22,
-      RTN_JOB_SCHED_DISPATCH     = 23,
-
-      RTN_JOB_GTS_DISPATH        = 24,
-
-      RTN_JOB_CLS_UNIQUEID_CHECK = 25,
-
-      RTN_JOB_CLS_NAME_CHECK_BY_UNIQUEID = 26,
-
-      RTN_JOB_STOPNODE           = 27, // stop node
 
       RTN_JOB_MAX
    } ;
@@ -113,8 +98,8 @@ namespace engine
          INT32 _removeJob ( EDUID eduID, INT32 result = SDB_OK ) ;
 
       private:
-         ossPoolMap<EDUID, _rtnBaseJob*>  _mapJobs ;
-         ossPoolMap<EDUID, INT32>         _mapResult ;
+         std::map<EDUID, _rtnBaseJob*>        _mapJobs ;
+         std::map<EDUID, INT32>               _mapResult ;
          ossSpinSLatch                        _latch ;
          ossSpinSLatch                        _latchRemove ;
          pmdEDUMgr                            *_eduMgr ;
@@ -147,11 +132,6 @@ namespace engine
          virtual INT32 doit () = 0 ;
 
          virtual BOOLEAN reuseEDU() const { return FALSE ; }
-         virtual BOOLEAN isSystem() const { return FALSE ; }
-
-      protected:
-         virtual void _onAttach() ;
-         virtual void _onDetach() ;
 
       private:
          ossEvent             _evtIn ;

@@ -1,6 +1,6 @@
 <?php
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -24,11 +24,8 @@
  */
 class SequoiaCL
 {
-   /** The flag represent whether insert continue(no errors were reported) when hitting index key duplicate error */
+   /** The flags represent whether bulk insert continue when hitting index key duplicate error. */
    define( "SDB_FLG_INSERT_CONTONDUP",                   0x00000001 ) ;
-   /** The flag represent whether insert return the "_id" field of the record for user */
-   define( "SDB_FLG_INSERT_RETURN_OID",                  0x00000002 ) ;
-   
 
    /** Force to use specified hint to query, if database have no index assigned by the hint, fail to query. */
    define( "SDB_FLG_FIND_FORCE_HINT",                    0x00000080 ) ;
@@ -48,13 +45,6 @@ class SequoiaCL
    define( "SDB_FLG_QUERY_PREPARE_MORE",                 0x00004000 ) ;
    /** The sharding key in update rule is not filtered, when executing findAndUpdate */
    define( "SDB_FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE",   0x00008000 ) ;
-   /** 
-     * When the transaction is turned on and the transaction isolation level is "RC", the transaction lock will be
-     * released after the record is read by default. However, when setting this flag, the transaction lock will not
-     * released until the transaction is committed or rollback. When the transaction is turned off or
-     * the transaction isolation level is "RU", the flag does not work.
-     */
-   define( "SDB_FLG_QUERY_FOR_UPDATE",                   0x00010000 ) ;
 
    /** The sharding key in update rule is not filtered, when executing update or upsert. */
    /** SDB_FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE is equal to SDB_FLG_UPDATE_KEEP_SHARDINGKEY, to prevent confusion.*/
@@ -89,20 +79,7 @@ class SequoiaCL
    /**
     * Alter collection options.
     *
-    * @param $options an array or the string argument. The options are as following:
-    *                                              @code
-    *                                              ReplSize             : Assign how many replica nodes need to be synchronized when a write request(insert, update, etc) is executed
-    *                                              ShardingKey          : Assign the sharding key
-    *                                              ShardingType         : Assign the sharding type
-    *                                              Partition            : When the ShardingType is "hash", need to assign Partition, it's the bucket number for hash, the range is [2^3,2^20]
-    *                                              CompressionType      : The compression type of data, could be "snappy" or "lzw"
-    *                                              EnsureShardingIndex  : Assign to true to build sharding index
-    *                                              StrictDataMode       : Using strict date mode in numeric operations or not
-    *                                                                     e.g. array( "RepliSize" => 0, "ShardingKey" => array( "a" => 1 ), "ShardingType" => "hash", "Partition" =>1024 )
-    *                                              AutoIncrement        : Assign attributes of an autoincrement field or batch autoincrement fields.
-    *                                                                     e.g. array( "AutoIncrement" => array( "Field" => "a", "MaxValue" => 2000 ) )
-    *                                                                     array( "AutoIncrement" => array( array( "Field" => "a", "MaxValue" => 2000 ), array( "Field" => "a", "MaxValue" => 4000 ) ) )
-    *                                              @endcode
+    * @param $options an array or the string argument. New collection options.
     *
     * @return Returns the result, default return array.
     *
@@ -119,124 +96,6 @@ class SequoiaCL
     * @endcode
    */
    public function alter( array|string $options ){}
-
-   /**
-    * Alter collection to enable sharding.
-    *
-    * @param $options an array or the string argument. New collection options.
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example: Alter collection to enable sharding
-    * @code
-    * $err = $cl -> enableSharding( array( 'ShardingKey' => array( 'a' => 1 ) ) ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to alter collection options, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-   */
-   public function enableSharding( array|string $options ){}
-
-   /**
-    * Alter collection to disable sharding.
-    *
-    * @param $options an array or the string argument. New collection options.
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example: Alter collection to disable sharding
-    * @code
-    * $err = $cl -> disableSharding() ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to alter collection options, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-   */
-   public function disableSharding(){}
-
-   /**
-    * Alter collection to enable compression.
-    *
-    * @param $options an array or the string argument. New collection options.
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example: Alter collection to enable compression
-    * @code
-    * $err = $cl -> enableCompression( array( 'CompressionType' => 'lzw' ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to alter collection options, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-   */
-   public function enableCompression( array|string $options ){}
-
-   /**
-    * Alter collection to disable compression.
-    *
-    * @param $options an array or the string argument. New collection options.
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example: Alter collection to disable compression
-    * @code
-    * $err = $cl -> disableCompression() ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to alter collection options, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-   */
-   public function disableCompression(){}
-
-   /**
-    * Alter collection options.
-    *
-    * @param $options an array or the string argument. The options are as following:
-    *                                              @code
-    *                                              ReplSize             : Assign how many replica nodes need to be synchronized when a write request(insert, update, etc) is executed
-    *                                              ShardingKey          : Assign the sharding key
-    *                                              ShardingType         : Assign the sharding type
-    *                                              Partition            : When the ShardingType is "hash", need to assign Partition, it's the bucket number for hash, the range is [2^3,2^20]
-    *                                              CompressionType      : The compression type of data, could be "snappy" or "lzw"
-    *                                              EnsureShardingIndex  : Assign to true to build sharding index
-    *                                              StrictDataMode       : Using strict date mode in numeric operations or not
-    *                                                                     e.g. array( "RepliSize" => 0, "ShardingKey" => array( "a" => 1 ), "ShardingType" => "hash", "Partition" =>1024 )
-    *                                              AutoIncrement        : Assign attributes of an autoincrement field or batch autoincrement fields.
-    *                                                                     e.g. array( "AutoIncrement" => array( "Field" => "a", "MaxValue" => 2000 ) )
-    *                                                                     array( "AutoIncrement" => array( array( "Field" => "a", "MaxValue" => 2000 ), array( "Field" => "a", "MaxValue" => 4000 ) ) )
-    *                                              @endcode
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example: Alter collection option ReplSize
-    * @code
-    * $err = $cl -> setAttributes( array( 'ReplSize' => -1 ) ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to alter collection options, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-   */
-   public function setAttributes( array|string $options ){}
 
    /**
     * Split the specified collection from source replica group to target by percent.
@@ -354,7 +213,7 @@ class SequoiaCL
     * Example:
     * @code
     * $fullName = $cl -> getFullName() ;
-    * $err = $db -> getLastErrorMsg() ;
+    * $err = $db -> getError() ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to get collection full name, error code: ".$err['errno'] ;
     *    return ;
@@ -374,7 +233,7 @@ class SequoiaCL
     * Example:
     * @code
     * $csName = $cl -> getCSName() ;
-    * $err = $db -> getLastErrorMsg() ;
+    * $err = $db -> getError() ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to get collection space name, error code: ".$err['errno'] ;
     *    return ;
@@ -394,7 +253,7 @@ class SequoiaCL
     * Example:
     * @code
     * $clName = $cl -> getName() ;
-    * $err = $db -> getLastErrorMsg() ;
+    * $err = $db -> getError() ;
     * if( $err['errno'] != 0 ) {
     *    echo "Failed to get collection name, error code: ".$err['errno'] ;
     *    return ;
@@ -451,77 +310,11 @@ class SequoiaCL
    public function detachCL( string $subClFullName ){}
 
    /**
-    * Create autoincrement field on collection
-    *
-    * @param $field  an array or the string argument. The arguments of field. e.g. array( 'Field' => 'a', 'MaxValue' => 2000 )
-    *                                              @code
-    *                                              Field          : The name of autoincrement field
-    *                                              StartValue     : The start value of autoincrement field
-    *                                              MinValue       : The minimum value of autoincrement field
-    *                                              MaxValue       : The maxmun value of autoincrement field
-    *                                              Increment      : The increment value of autoincrement field
-    *                                              CacheSize      : The cache size of autoincrement field
-    *                                              AcquireSize    : The acquire size of autoincrement field
-    *                                              Cycled         : The cycled flag of autoincrement field
-    *                                              Generated      : The generated mode of autoincrement field
-    *                                              @endcode
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example:
-    * @code
-    * $err = $cl -> createAutoIncrement( array( 'Field' => 'a', 'MaxValue' => 2000 ) ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to create auto increment, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-   */
-   public function createAutoIncrement( array|string $field ){}
-
-   /**
-    * Drop autoincrement field on collection
-    *
-    * @param $field  an array or the string argument. The arguments of field. e.g. array( 'Field' => 'a' )
-    *                                              @code
-    *                                              Field          : The name of autoincrement field
-    *                                              @endcode
-    *
-    * @return Returns the result, default return array.
-    *
-    * @retval array   array( 'errno' => 0 )
-    * @retval string  { "errno": 0 }
-    *
-    * Example:
-    * @code
-    * $err = $cl -> dropAutoIncrement( array( 'Field' => 'a' ) ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to drop auto increment, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * @endcode
-   */
-   public function dropAutoIncrement( array|string $field ){}
-
-   /**
     * Insert a record into current collection.
     *
-    * @param $record an array or the string argument. The inserted record, cannot be empty.
+    * @param $record	an array or the string argument. The inserted record, cannot be empty.
     *
-    * @param $flags an integer argument.
-    *                                    @code
-    *                                    0                           :  while 0 is set, database will stop inserting
-    *                                                                   when the record hit index key duplicate error.
-    *                                    SDB_FLG_INSERT_CONTONDUP    :  if the record hit index key duplicate error,
-    *                                                                   database will skip them and go on inserting.
-    *                                    SDB_FLG_INSERT_RETURN_OID   :  return the value of "_id" field in the record.
-    *                                    @endcode
-    *
-    * @return Returns the result, default return array. When flag SDB_FLG_INSERT_RETURN_OID is set,
-    * return the value of "_id" field of the inserted record.
+    * @return Returns the result, default return array.
     *
     * @retval array   array( 'errno' => 0, '_id' => &lt;24 hexadecimal characters&gt; )
     * @retval string  { "errno": 0, "_id": &lt;24 hexadecimal characters&gt; }
@@ -545,32 +338,16 @@ class SequoiaCL
     * }
     * echo "Insert record id is: ".$err['_id'] ;
     * @endcode
-    *
-    * Example: 
-    * @code
-    * $err = $cl -> insert( array( 'name' => 'jack' ), SDB_FLG_INSERT_CONTONDUP | SDB_FLG_INSERT_RETURN_OID ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to insert record, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * echo "Insert record id is: ".$err['_id'] ;
-    * @endcode
    */
-   public function insert( array|string $record, integer $flags = SDB_FLG_INSERT_RETURN_OID ){}
+   public function insert( array|string $record ){}
 
    /**
     * Insert records into current collection.
     *
     * @param $records	an array or the string argument. The inserted record, cannot be empty.
     *
-    * @param $flags an integer argument. 
-    *                                    @code
-    *                                    0                           :  while 0 is set, database will stop inserting
-    *                                                                   when the record hit index key duplicate error.
-    *                                    SDB_FLG_INSERT_CONTONDUP    :  if the record hit index key duplicate error,
-    *                                                                   database will skip them and go on inserting.
-    *                                    SDB_FLG_INSERT_RETURN_OID   :  return the value of "_id" field in the record.
-    *                                    @endcode
+    * @param $flags an integer argument. While SDB_FLG_INSERT_CONTONDUP is set, if some records hit index key duplicate error,
+    *                                    database will skip them and go on inserting. However, while 0 is set, database will stop inserting in that case, and return errno code.
     *
     * @return Returns the result, default return array.
     *
@@ -635,45 +412,6 @@ class SequoiaCL
     *    echo "Failed to insert records, error code: ".$err['errno'] ;
     *    return ;
     * }
-    * @endcode
-    *
-    * Example: Set $flags SDB_FLG_INSERT_RETURN_OID
-    * @code
-    * $records = array(
-    *    array( 'a' => 3 ),
-    *    array( 'a' => 4 ),
-    *    array( 'a' => 5 )
-    * ) ;
-    * $err = $cl -> bulkInsert( $records, SDB_FLG_INSERT_RETURN_OID ) ;
-    * if( $err['errno'] != 0 ) {
-    *    echo "Failed to insert records, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * var_dump( $err ) ;
-    *
-    * Print $err is 
-    * array(2) {
-        ["_id"]=>
-        array(3) {
-          [0]=>
-          object(SequoiaID)#4 (1) {
-            ["$oid"]=>
-            string(24) <24 hexadecimal characters>
-          }
-          [1]=>
-          object(SequoiaID)#5 (1) {
-            ["$oid"]=>
-            string(24) <24 hexadecimal characters>
-          }
-          [2]=>
-          object(SequoiaID)#6 (1) {
-            ["$oid"]=>
-            string(24) <24 hexadecimal characters>
-          }
-        }
-        ["errno"]=>
-        int(0)
-      }
     * @endcode
    */
    public function bulkInsert( array|string $records, integer $flags = 0 ){}
@@ -795,11 +533,6 @@ class SequoiaCL
     *                                                                                 when add this flag, return data in query response, it will be more high-performance
     *                                   SDB_FLG_QUERY_PREPARE_MORE(0x00004000)      : Enable prepare more data when query
     *                                   SDB_FLG_UPDATE_KEEP_SHARDINGKEY(0x00008000) : The sharding key in update rule is not filtered, when updating records.
-    *                                   SDB_FLG_QUERY_FOR_UPDATE(0x00010000 )       : When the transaction is turned on and the transaction isolation level is "RC", the transaction lock will be
-    *                                                                                 released after the record is read by default. However, when setting this flag, the transaction lock will not 
-    *                                                                                 released until the transaction is committed or rollback. When the transaction is turned off or
-    *                                                                                 the transaction isolation level is "RU", the flag does not work
-    *
     *                                   @endcode
     *
     * @return Returns a new SequoiaCursor object.
@@ -810,7 +543,7 @@ class SequoiaCL
     * @code
     * $cursor = $cl -> find( array( 'a' => array( '$lte' => 50 ) ) ) ;
     * if( empty( $cursor ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to find, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -845,10 +578,6 @@ class SequoiaCL
     *                                   SDB_FLG_QUERY_WITH_RETURNDATA(0x00000200)            : In general, query will not return data until cursor get from database,
     *                                                                                          when add this flag, return data in query response, it will be more high-performance
     *                                   SDB_FLG_QUERY_KEEP_SHARDINGKEY_IN_UPDATE(0x00008000) : The sharding key in update rule is not filtered.
-    *                                   SDB_FLG_QUERY_FOR_UPDATE(0x00010000 )                : When the transaction is turned on and the transaction isolation level is "RC", the transaction lock will be
-    *                                                                                          released after the record is read by default. However, when setting this flag, the transaction lock will not 
-    *                                                                                          released until the transaction is committed or rollback. When the transaction is turned off or
-    *                                                                                          the transaction isolation level is "RU", the flag does not work
     *
     *                                   @endcode
     *
@@ -862,7 +591,7 @@ class SequoiaCL
     * @code
     * $cursor = $cl -> findAndUpdate( array( '$set' => array( 'a' => 0 ) ), false, array( 'a' => array( '$gt' => 0 ) ) ) ;
     * if( empty( $cursor ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call findAndUpdate, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -893,12 +622,7 @@ class SequoiaCL
     *                                   SDB_FLG_QUERY_FORCE_HINT(0x00000080)      : Force to use specified hint to query, if database have no index assigned by the hint, fail to query
     *                                   SDB_FLG_QUERY_PARALLED(0x00000100)        : Enable paralled sub query
     *                                   SDB_FLG_QUERY_WITH_RETURNDATA(0x00000200) : In general, query will not return data until cursor get from database,
-    *                                                                               when add this flag, return data in query response, it will be more high-performance
-    *                                   SDB_FLG_QUERY_FOR_UPDATE(0x00010000 )     : When the transaction is turned on and the transaction isolation level is "RC", the transaction lock will be
-    *                                                                               released after the record is read by default. However, when setting this flag, the transaction lock will not 
-    *                                                                               released until the transaction is committed or rollback. When the transaction is turned off or
-    *                                                                               the transaction isolation level is "RU", the flag does not work
-    *
+    *                                                                           when add this flag, return data in query response, it will be more high-performance
     *                                   @endcode
     *
     * @return Returns a new SequoiaCursor object.
@@ -909,7 +633,7 @@ class SequoiaCL
     * @code
     * $cursor = $cl -> findAndRemove( array( 'a' => array( '$gt' => 0 ) ) ) ;
     * if( empty( $cursor ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call findAndRemove, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -959,7 +683,7 @@ class SequoiaCL
     * @code
     * $cursor = $cl -> explain( array( 'Run' => true ) ) ;
     * if( empty( $cursor ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call explain, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -985,7 +709,7 @@ class SequoiaCL
     * @code
     * $recordNum = $cl -> count() ;
     * if( $recordNum < 0 ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call count, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -1021,7 +745,7 @@ class SequoiaCL
     * @code
     * $cursor = $cl -> aggregate( array ( array ( '$project' => array ( 'field1' => 1, 'field2' => 2 ) ), array ( '$project' => array ( 'field1' => 1 ) ) ) ) ;
     * if( empty( $cursor ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call aggregate, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -1084,7 +808,9 @@ class SequoiaCL
    public function dropIndex( string $indexName ){}
 
    /**
-    * Get the information of all the indexes in current collection.
+    * Get all of or one of the indexes in current collection.
+    *
+    * @param $indexName the string argument. The index name, returns all of the indexes if this parameter is empty string.
     *
     * @return Returns a new SequoiaCursor object.
     *
@@ -1092,9 +818,9 @@ class SequoiaCL
     *
     * Example:
     * @code
-    * $cursor = $cl -> getIndexes() ;
+    * $cursor = $cl -> getIndex() ;
     * if( empty( $cursor ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to get indexes, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -1103,31 +829,7 @@ class SequoiaCL
     * }
     * @endcode
    */
-   public function getIndexes(){}
-
-   /**
-    * Get the information of the specified index in current collection.
-    *
-    * @param $name the string argument. The index name.
-    *
-    * @return Returns the information of index., default return array.
-    *
-    * @retval array   record
-    * @retval string  record
-    *
-    * Example:
-    * @code
-    * $indexInfo = $cl -> getIndexInfo( 'myIndex' ) ;
-    * if ( empty( $indexInfo ) )
-    * {
-    *    $err = $db -> getLastErrorMsg() ;
-    *    echo "Failed to get index, error code: ".$err['errno'] ;
-    *    return ;
-    * }
-    * var_dump( $indexInfo ) ;
-    * @endcode
-   */
-   public function getIndexInfo( string $name ){}
+   public function getIndex( string $indexName = "" ){}
 
    /**
     * Create $id index in collection.
@@ -1192,7 +894,7 @@ class SequoiaCL
     * @code
     * $lobObj = $cl -> openLob( "123456789012345678901234", SDB_LOB_CREATEONLY ) ;
     * if( empty( $lobObj ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to open lob, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -1263,7 +965,7 @@ class SequoiaCL
     * @code
     * $cursor = $cl -> listLob() ;
     * if( empty( $cursor ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call listLob, error code: ".$err['errno'] ;
     *    return ;
     * }
@@ -1293,7 +995,7 @@ class SequoiaCL
     * @code
     * $cursor = $cl -> listLobPieces() ;
     * if( empty( $cursor ) ) {
-    *    $err = $db -> getLastErrorMsg() ;
+    *    $err = $db -> getError() ;
     *    echo "Failed to call listLobPieces, error code: ".$err['errno'] ;
     *    return ;
     * }

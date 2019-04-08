@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pmdDef.hpp
 
@@ -80,7 +79,6 @@ namespace engine
    */
    union PMD_EVENT_MESSAGES
    {
-      // for PMD_EDU_EVENT_TIMEOUT
       struct timeoutMsg
       {
          UINT64   timerID ;
@@ -147,7 +145,6 @@ namespace engine
    */
    enum EDU_TYPES
    {
-      //System EDU Type
       EDU_TYPE_TCPLISTENER                = 0,
       EDU_TYPE_RESTLISTENER,
       EDU_TYPE_REPR,
@@ -173,7 +170,6 @@ namespace engine
       EDU_TYPE_SIGNALTEST,
 #endif // _LINUX
 
-      // Agent EDU Type Begin
       EDU_TYPE_AGENT_BEGIN,
 
       EDU_TYPE_AGENT,
@@ -183,10 +179,8 @@ namespace engine
       EDU_TYPE_FAPAGENT,
       EDU_TYPE_OMAAGENT,
 
-      // Agent EDU Type END
       EDU_TYPE_AGENT_END,
 
-      //background job EDU Type
       EDU_TYPE_BACKGROUND_JOB,
 
       EDU_TYPE_LOADWORKER,
@@ -194,7 +188,6 @@ namespace engine
 
       EDU_TYPE_MAIN,
 
-      // edu for search engine adapter.
       EDU_TYPE_SEADPTMGR,
       EDU_TYPE_SE_SERVICE,
       EDU_TYPE_SE_INDEXR,
@@ -210,13 +203,9 @@ namespace engine
    */
    enum EDU_STATUS
    {
-      // EDU Manager initialize status to this
       PMD_EDU_CREATING = 0,
-      // EDU should change status to running when serve a request
       PMD_EDU_RUNNING,
-      // EDU should change to wait after request result send back
       PMD_EDU_WAITING,
-      // EDU should change status to idle when get into pool
       PMD_EDU_IDLE,
 
       PMD_EDU_UNKNOW,
@@ -261,8 +250,10 @@ namespace engine
       define
    */
    #define PMD_CONF_DIR_NAME           "conf"
+   #define PMD_RUN_DIR_NAME            "run"
    #define PMD_DFT_CONF                "sdb.conf"
    #define PMD_DFT_CAT                 "sdb.cat"
+   #define PMD_DFT_RUN                 "sdb.id"
    #define PMD_OPTION_DIAG_PATH        "diaglog"
    #define PMD_OPTION_AUDIT_PATH       PMD_OPTION_DIAG_PATH
    #define PMD_OPTION_LOG_PATH         "replicalog"
@@ -278,7 +269,6 @@ namespace engine
    #define PROC_CMDLINE_PATH_FORMAT    PROC_PATH"/%s/cmdline"
    #define ENGINE_NAME                 "sequoiadb"
    #define ENGINE_NPIPE_PREFIX_BW      "sequoiadb_engine_bw_"
-   #define PMD_OPTION_IGNOREULIMIT     "ignoreulimit"
    #elif defined (_WINDOWS)
    #define ENGINE_NAME                 "sequoiadb.exe"
    #define PMD_OPTION_AS_PROC          "asproc"
@@ -294,12 +284,22 @@ namespace engine
    #define PMD_OPTION_STANDALONE       "standalone"      // for om
    #define PMD_OPTION_ALIVE_TIME       "alivetime"       // for om
    #define PMD_OPTION_FORCE            "force"
+   #define PMD_OPTION_IGNOREULIMIT     "ignoreulimit"
 
    /*
       SDB_RUN_MODE_TYPE_STR DEFINE
    */
    #define SDB_RUN_MODE_TYPE_LOCAL_STR  "local"
    #define SDB_RUN_MODE_TYPE_RUN_STR    "run"
+
+   /*
+      limits.conf
+   */
+   #define PMD_OPTION_LIMIT_CORE       "core_file_size"
+   #define PMD_OPTION_LIMIT_DATA       "data_seg_size"
+   #define PMD_OPTION_LIMIT_FILESIZE   "file_size"
+   #define PMD_OPTION_LIMIT_VM         "virtual_memory"
+   #define PMD_OPTION_LIMIT_FD         "open_files"
 
    /*
      SDBLIST_TYPE_STR

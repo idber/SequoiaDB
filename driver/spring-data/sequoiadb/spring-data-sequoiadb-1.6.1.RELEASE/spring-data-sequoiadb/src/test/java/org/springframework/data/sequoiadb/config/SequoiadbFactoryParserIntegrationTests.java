@@ -107,7 +107,6 @@ public class SequoiadbFactoryParserIntegrationTests {
 		assertThat(myDbWriteConcern, is(myDbFactoryWriteConcern));
 	}
 
-	// This test will fail since equals in WriteConcern uses == for _w and not .equals
 	public void testWriteConcernEquality() {
 		String s1 = new String("rack1");
 		String s2 = new String("rack1");

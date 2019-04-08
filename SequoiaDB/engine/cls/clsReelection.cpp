@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsReelection.cpp
 
@@ -130,8 +129,6 @@ namespace engine
 
       _event.reset() ;
 
-      /// if node changes to secondary now, all write requests
-      /// may be waked up. they will get 'not primary'.
       _level = lvl ;
 
       rc = _wait4AllWriteDone( timePassed, seconds, cb ) ;
@@ -142,9 +139,6 @@ namespace engine
          goto error ;
       }
 
-      /// we need at least one replication done.
-      /// otherwise this node will still be the primary.
-      /// WARNING: do not compare with _level.
       if ( CLS_REELECTION_LEVEL_1 < lvl )
       {
          rc = _wait4Replica( timePassed, seconds, cb ) ;

@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsCatalogMatcher.cpp
 
@@ -114,7 +113,6 @@ namespace engine
             if ( predicateSet.getLogicType() == CLS_CATA_LOGIC_OR &&
                  predicateSet.isUniverse() )
             {
-               // $or: ignore all predicatesets in universe set
                goto done ;
             }
          }
@@ -157,7 +155,6 @@ namespace engine
             if ( 'a' == pFieldName[1] && 'n' == pFieldName[2] &&
                  'd' == pFieldName[3] && 0 == pFieldName[4] )
             {
-               // parse "$and"
                logicType = CLS_CATA_LOGIC_AND ;
                predicateSet.setLogicType( CLS_CATA_LOGIC_AND ) ;
                pPredicateSet = &predicateSet;
@@ -165,7 +162,6 @@ namespace engine
             else if( 'o' == pFieldName[1] && 'r' == pFieldName[2] &&
                      0 == pFieldName[3] )
             {
-               // parse "$or"
                if ( predicateSet.getLogicType() != CLS_CATA_LOGIC_INVALID )
                {
                   pPredicateSet =
@@ -184,7 +180,6 @@ namespace engine
             }
             else // parse "$not"
             {
-               // now "$not" is regarded as universe set
             }
 
             if ( logicType != CLS_CATA_LOGIC_INVALID )
@@ -214,13 +209,8 @@ namespace engine
                goto done ;
             }
          }
-         // the regular expresion is regarded as universe set.
-         // if it is in the $or then upgrade to universe set
-         // and ignore the remaining elements.
-         // if it is in the $and then ignore this element.
          if ( predicateSet.getLogicType() == CLS_CATA_LOGIC_OR )
          {
-            // clear all predicates and upgrade to universe set
             predicateSet.upgradeToUniverse();
          }
       }
@@ -258,7 +248,6 @@ namespace engine
          BSONElement beTmp = _shardingKey.getField( pFieldName );
          if ( beTmp.eoo() )
          {
-            // ignore the field which is not sharding-key
             goto done ;
          }
          if ( beField.type() == Object )
@@ -271,12 +260,10 @@ namespace engine
 
             if ( isOpObj( boValue ) )
             {
-               // Object contains match operators
                rc = parseOpObj( beField, predicateSet ) ;
             }
             else
             {
-               // Just a simple object
                rc = predicateSet.addPredicate( pFieldName, beField,
                                                beField.getGtLtOp() ) ;
             }
@@ -284,7 +271,6 @@ namespace engine
          else if ( RegEx == beField.type() &&
                    MTH_OPERATOR_EYECATCHER != pFieldName[0] )
          {
-            // It is a { 'xx': { $regex: 'xxx', $options: 'xxx' } }
             rc = predicateSet.addPredicate( pFieldName, beField,
                                             BSONObj::opREGEX ) ;
          }
@@ -348,9 +334,6 @@ namespace engine
             }
             else if ( pRegex )
             {
-               // It is a { $regex:'xxx', ... } case
-               // Put the original element to predicate, it will parse
-               // the regex operator
                rc = predicateSet.addPredicate( pFieldName, beField,
                                                BSONObj::opREGEX ) ;
                PD_RC_CHECK( rc, PDERROR,
@@ -359,8 +342,6 @@ namespace engine
             }
             else if ( pOptions )
             {
-               // Put the original element to predicate, it will parse
-               // the regex operator
                PD_LOG( PDERROR, "Invalid regular expression operator" ) ;
                rc = SDB_INVALIDARG ;
                goto error ;
@@ -368,9 +349,6 @@ namespace engine
 
             if ( pRegex && pOptions )
             {
-               // It is a { $regex:'xxx', $options:'xxx', ... }
-               // Put the original element to predicate, it will parse
-               // the regex operator
                rc = predicateSet.addPredicate( pFieldName, beField,
                                                BSONObj::opREGEX ) ;
                pRegex = NULL ;
@@ -378,12 +356,10 @@ namespace engine
             }
             else if ( pRegex || pOptions )
             {
-               // Delay until we parse the next element
                continue ;
             }
             else
             {
-               // It is a match operator
                rc = predicateSet.addPredicate( pFieldName, beTmp,
                                                beTmp.getGtLtOp() ) ;
             }
@@ -406,7 +382,7 @@ namespace engine
       goto done;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSCATAMATCHER_ISEXISTUNRECONIGZEDOP, "clsCatalogMatcher::_isExistUnreconigzeOp" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CLSCATAMATCHER_ISEXISTUNRECONIGZEDOP, "clsCatalogMatcher::isExistUnreconigzeOp" )
    BOOLEAN clsCatalogMatcher::_isExistUnreconigzeOp( const bson::BSONObj obj )
    {
       BOOLEAN result = FALSE;
@@ -428,20 +404,16 @@ namespace engine
                }
                else if ( op == BSONObj::opMOD && beTmp.isNumber() )
                {
-                  // $mod:num is a function
-                  // Note: $mod:[num,num] is a recognized operator
                   result = TRUE ;
                   break ;
                }
                else if ( op == BSONObj::opTYPE )
                {
-                  // $type is a function now
                   result = TRUE ;
                   break ;
                }
                else if ( op == BSONObj::opSIZE )
                {
-                  // $size is a function now
                   result = TRUE ;
                   break ;
                }
@@ -450,14 +422,12 @@ namespace engine
                          pFieldName[3] == 'e' && pFieldName[4] == 'l' &&
                          pFieldName[5] == 'd' && pFieldName[6] == 0 )
                {
-                  // $field should not be used to generate predicate
                   result = TRUE ;
                   break ;
                }
             }
             if ( beTmp.type() == Object )
             {
-               // Recursively check inner object
                result = _isExistUnreconigzeOp( beTmp.embeddedObject() ) ;
                if ( result )
                {

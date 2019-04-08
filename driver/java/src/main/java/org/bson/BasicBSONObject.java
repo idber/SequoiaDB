@@ -1,4 +1,3 @@
-// BasicBSONObject.java
 
 /**
  *      Copyright (C) 2008 10gen Inc.
@@ -18,7 +17,6 @@
 
 package org.bson;
 
-// BSON
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
@@ -54,7 +52,6 @@ import org.bson.types.ObjectId;
 import org.bson.types.Symbol;
 import org.bson.util.JSON;
 
-// Java
 
 /**
  * A simple implementation of <code>BSONObject</code>. A <code>BSONObject</code>
@@ -92,10 +89,6 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 		this(false);
 	}
 
-	/**
-	 * Creates an empty object. by default, key won't be sorted
-	 * @param size this parament does not work.
-	 */
 	public BasicBSONObject(int size) {
 		this(false);
 	}
@@ -138,7 +131,6 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 	 * 
 	 * @return the BSONObject
 	 */
-	// @Override
 	public Map toMap() {
 		if (_objectMap instanceof LinkedHashMap) {
 			return new LinkedHashMap<String, Object>(_objectMap);
@@ -154,7 +146,6 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 	 *            the field name to remove
 	 * @return the object removed
 	 */
-	// @Override
 	public Object removeField(String key) {
 		return _objectMap.remove(key);
 	}
@@ -166,7 +157,6 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 	 *            field name
 	 * @return if the field exists
 	 */
-	// @Override
 	public boolean containsField(String field) {
 		return _objectMap.containsKey(field);
 	}
@@ -174,7 +164,6 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 	/**
 	 * @deprecated
 	 */
-	// @Override
 	@Deprecated
 	public boolean containsKey(String key) {
 		return containsField(key);
@@ -187,7 +176,6 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 	 *            field name
 	 * @return the value
 	 */
-	// @Override
 	public Object get(String key) {
 		return _objectMap.get(key);
 	}
@@ -437,7 +425,6 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 	 *            the field value
 	 * @return the <code>val</code> parameter
 	 */
-	// @Override
 	public Object put(String key, Object val) {
 		return _objectMap.put(key, val);
 	}
@@ -448,7 +435,6 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 	 * @param m
 	 *            the map
 	 */
-	// @Override
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public void putAll(Map m) {
 		for (Map.Entry entry : (Set<Map.Entry>) m.entrySet()) {
@@ -462,7 +448,6 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 	 * @param o
 	 *            the object
 	 */
-	// @Override
 	public void putAll(BSONObject o) {
 		for (String k : o.keySet()) {
 			put(k, o.get(k));
@@ -542,20 +527,10 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 	public boolean BasicTypeWrite(Object object, Object value, Method method)
 			throws IllegalArgumentException, IllegalAccessException,
 			InvocationTargetException {
-		// Get type of write method's first parameter.
 		Class<?> paramType = method.getParameterTypes()[0];
 		boolean result = true;
 		boolean numberCompare = false;
 		if (paramType.isPrimitive()) {
-			// if (!(field instanceof Number) && !(field instanceof Character))
-			// {
-			// throw new IllegalArgumentException(
-			// "The method: "
-			// + method.getName()
-			// +
-			// " Expected parameter type:Number does not match with the actual type:"
-			// + field.getClass().getName());
-			// }
 
 			if (paramType.getName().equals("int")) {
 				method.invoke(object, ((Number) value).intValue());
@@ -580,7 +555,6 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 			return result;
 		}
 
-		// make sure paramType and field are both number
 		if ((paramType.getName().equals("java.lang.Integer")
 				|| paramType.getName().equals("java.lang.Long")
 				|| paramType.getName().equals("java.lang.Float") || paramType
@@ -591,7 +565,6 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 						.getClass().getName().equals("java.lang.Double"))) {
 			numberCompare = true;
 		}
-		// for number compare, we always cast to Number then cast back
 		if (!numberCompare) {
 			if (!paramType.isInstance(value)
 					&& (!value.getClass().getName()
@@ -627,17 +600,12 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 			method.invoke(object, (Boolean) value);
 		} else if (Pattern.class.isAssignableFrom(paramType)) {
 			method.invoke(object, (Pattern) value);
-			// } else if (Map.class.isAssignableFrom(paramType)) {
-			// method.invoke(object, (Map) field);
-			// } else if (paramType.isAssignableFrom(Iterable.class)) {
-			// method.invoke(object, (Iterable) field);
 		} else if (byte[].class.isAssignableFrom(paramType)) {
 			method.invoke(object, (byte[]) value);
 		} else if (Binary.class.isAssignableFrom(paramType)) {
 			method.invoke(object, (Binary) value);
 		} else if (UUID.class.isAssignableFrom(paramType)) {
 			method.invoke(object, (UUID) value);
-			// } else if (paramType.getClass().isArray()) { // TODO
 		} else if (Symbol.class.isAssignableFrom(paramType)) {
 			method.invoke(object, (Symbol) value);
 		} else if (BSONTimestamp.class.isAssignableFrom(paramType)) {
@@ -737,7 +705,6 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 					if (value == null) {
 						continue;
 					} else if (p.getPropertyType().equals(java.util.Map.class)) { // TODO
-						// p is Map
 						Field mapField = cls.getDeclaredField(p.getName());
 						Type generictype = mapField.getGenericType();
 						Type valueType = null;
@@ -746,7 +713,6 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 									.getActualTypeArguments();
 							valueType = types[1];
 						}
-						// change bson object to map
 						Map map = ((BSONObject) value).toMap();
 						Map realMap = new HashMap();
 						Set<Map.Entry<?, ?>> set = map.entrySet();
@@ -790,11 +756,9 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 						}
 						writeMethod.invoke(result, realMap);
 					} else if (value instanceof BasicBSONObject) { // bson <=>
-																	// Object
 						writeMethod.invoke(result,
 								((BSONObject) value).as(p.getPropertyType()));
 					} else if (value instanceof BasicBSONList) { // bsonlist <=>
-																	// Collection
 
 						Field f = cls.getDeclaredField(p.getName());
 						if (f == null)

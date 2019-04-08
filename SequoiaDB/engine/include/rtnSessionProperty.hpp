@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnSessionProperty.hpp
 
@@ -39,17 +38,14 @@
 
 #include "msg.hpp"
 #include "utilArray.hpp"
-#include "ossMemPool.hpp"
+#include "utilList.hpp"
 #include "../bson/bson.h"
 
 namespace engine
 {
-   #define RTN_SESSION_OPERATION_TIMEOUT_MIN ( 1000 )    // 1000ms
-   #define RTN_SESSION_OPERATION_TIMEOUT_MAX ( -1 )
 
    typedef enum _RTN_PREFER_INSTANCE_TYPE
    {
-      // Note : secondary choice means lower priority than numeric instances
       PREFER_INSTANCE_TYPE_MASTER_SND  = -6, // master node in secondary choice
       PREFER_INSTANCE_TYPE_SLAVE_SND   = -5, // any slave node in secondary choice
       PREFER_INSTANCE_TYPE_ANYONE_SND  = -4, // any node( include master ) in secondary choice
@@ -69,7 +65,7 @@ namespace engine
       PREFER_INSTANCE_MODE_ORDERED,
    } RTN_PREFER_INSTANCE_MODE ;
 
-   typedef ossPoolList< UINT8 > RTN_INSTANCE_LIST ;
+   typedef _utilList< UINT8 > RTN_INSTANCE_LIST ;
 
    /*
       _rtnInstanceOption define
@@ -200,18 +196,7 @@ namespace engine
 
          OSS_INLINE void setOperationTimeout ( INT64 operationTimeout )
          {
-            if ( operationTimeout < 0 )
-            {
-               _operationTimeout = RTN_SESSION_OPERATION_TIMEOUT_MAX ;
-            }
-            else if ( operationTimeout < RTN_SESSION_OPERATION_TIMEOUT_MIN )
-            {
-               _operationTimeout = RTN_SESSION_OPERATION_TIMEOUT_MIN ;
-            }
-            else
-            {
-               _operationTimeout = operationTimeout ;
-            }
+            _operationTimeout = operationTimeout < 0 ? -1 : operationTimeout ;
          }
 
          OSS_INLINE INT64 getOperationTimeout () const

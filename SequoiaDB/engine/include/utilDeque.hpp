@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = utilDeque.hpp
 
@@ -85,12 +84,10 @@ namespace engine
             {
                if ( _pData && rhs._pData )
                {
-                  /// left, right is end
                   BOOLEAN leftEnd = _pData >= _pSrc + *_pEleSize ?
                                     TRUE : FALSE ;
                   BOOLEAN rightEnd = rhs._pData > rhs._pSrc + *(rhs._pEleSize) ?
                                      TRUE : FALSE ;
-                  /// both end, equal
                   if ( leftEnd && rightEnd &&
                        _pSrc == rhs._pSrc &&
                        _pEleSize == rhs._pEleSize )
@@ -355,7 +352,6 @@ namespace engine
                   rc = SDB_OOM ;
                   goto error ;
                }
-               /// copy stack data to deque
                for ( UINT32 i = 0 ; i < _eleSize ; ++i )
                {
                   (*_pDeque)[i] = _staticBuf[ i ] ;
@@ -583,11 +579,8 @@ namespace engine
       {
          UINT32 rSize = rhs.size() ;
 
-         /// clear self
          clear( TRUE ) ;
-         /// alloc space
          _ensureSpace( rSize ) ;
-         /// copy all elements
          for ( UINT32 i = 0 ; i < rSize ; ++i )
          {
             push_back( rhs[ i ] ) ;
@@ -606,13 +599,11 @@ namespace engine
             }
             if ( _pDeque->size() <= threshold )
             {
-               /// copy data to stack
                _eleSize = _pDeque->size() ;
                for ( UINT32 i = 0 ; i < _eleSize ; ++i )
                {
                   _staticBuf[ i ] = (*_pDeque)[ i ] ;
                }
-               /// release the deque
                delete _pDeque ;
                _pDeque = NULL ;
             }
@@ -641,7 +632,6 @@ namespace engine
                rc = SDB_OOM ;
                goto error ;
             }
-            /// copy stack data to deque
             for ( UINT32 i = 0 ; i < _eleSize ; ++i )
             {
                (*_pDeque)[i] = _staticBuf[i] ;

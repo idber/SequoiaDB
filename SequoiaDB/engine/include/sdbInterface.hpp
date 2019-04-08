@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sdbInterface.hpp
 
@@ -71,7 +70,6 @@ namespace engine
       SDB_CB_PMDCTRL,
       SDB_CB_OMPROXY,
       SDB_CB_SEADAPTER,
-      // THE MAX CB TYPE
       SDB_CB_MAX
    } ;
 
@@ -87,7 +85,6 @@ namespace engine
 
       SDB_IF_CTXMGR,
 
-      // THD MAX IF TYPE
       SDB_IF_MAX
    } ;
 
@@ -109,7 +106,6 @@ namespace engine
       SDB_SESSION_PROTOCOL,
       SDB_SESSION_SE_INDEX,
       SDB_SESSION_SE_AGENT,
-      // Reserved
       SDB_SESSION_MAX
    } ;
 
@@ -121,7 +117,6 @@ namespace engine
       SDB_CLIENT_EXTERN    = 1,  // external client,ex: local service
       SDB_CLIENT_INNER,          // inner client, ex: shard service
 
-      // Reserved
       SDB_CLIENT_MAX
    } ;
 
@@ -302,9 +297,6 @@ namespace engine
          virtual INT32              getServiceType() const = 0 ;
          virtual IClient*           getClient() = 0 ;
 
-         virtual void*              getSchedItemPtr() = 0 ;
-         virtual void               setSchedItemVer( INT32 ver ) = 0 ;
-
       protected:
          virtual void               _onAttach () {}
          virtual void               _onDetach () {}
@@ -329,16 +321,14 @@ namespace engine
    {
       UINT32   _lockMode ;
       UINT32   _lockCount ;
-      UINT32   _lockHWCount ;
 
       sdbLockItem() { reset() ; }
-      void     reset() { _lockMode = 0 ; _lockCount = 0 ; _lockHWCount = 0 ; }
+      void     reset() { _lockMode = 0 ; _lockCount = 0 ; }
       void     setMode( UINT32 mode ) { _lockMode = mode ; }
       UINT32   getMode() const { return _lockMode ; }
-      UINT32   incCount() { ++_lockHWCount ; return ++_lockCount ; }
+      UINT32   incCount() { return ++_lockCount ; }
       UINT32   decCount() { return --_lockCount ; }
       UINT32   lockCount() const { return _lockCount ; }
-      UINT32   lockHWCount() const { return _lockHWCount ; }
    } ;
 
    /*
@@ -420,14 +410,9 @@ namespace engine
 
          virtual void      releaseAlignedBuff() = 0 ;
 
-         virtual CHAR*     getBuffer( UINT32 len ) = 0 ;
-
-         virtual void      releaseBuffer() = 0 ;
-
          /*
             Operation Related
          */
-         /// for read
          virtual UINT64    getBeginLsn () const = 0 ;
          virtual UINT64    getEndLsn() const = 0 ;
          virtual UINT32    getLsnCount () const = 0 ;
@@ -435,7 +420,6 @@ namespace engine
 
          virtual UINT64    getTransID () const = 0 ;
          virtual UINT64    getCurTransLsn () const = 0 ;
-         /// for write
          virtual void      resetLsn() = 0 ;
          virtual void      insertLsn( UINT64 lsn,
                                       BOOLEAN isRollback = FALSE ) = 0 ;

@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptLibssh2Session.cpp
 
@@ -71,7 +70,6 @@ namespace engine
       INT32 rc = SDB_SYS ;
       static SshMapRCItem sshRCMap[] =
       {
-         // map begin
          MAP_SSH_RC_ITEM( LIBSSH2_ERROR_NONE, SDB_OK ),
          MAP_SSH_RC_ITEM( LIBSSH2_ERROR_ALLOC, SDB_OOM ),
          MAP_SSH_RC_ITEM( LIBSSH2_ERROR_AUTHENTICATION_FAILED, SDB_INVALIDARG ),
@@ -87,7 +85,6 @@ namespace engine
          MAP_SSH_RC_ITEM( LIBSSH2_ERROR_CHANNEL_PACKET_EXCEEDED, SDB_INVALIDSIZE ),
          MAP_SSH_RC_ITEM( LIBSSH2_ERROR_SOCKET_SEND, SDB_NET_SEND_ERR ),
          MAP_SSH_RC_ITEM( LIBSSH2_ERROR_BAD_SOCKET, SDB_NET_INVALID_HANDLE ),
-         // map end
          { 0, 0, TRUE }
       } ;
 
@@ -104,7 +101,6 @@ namespace engine
       return rc ;
    }
 
-   // callback function 1
    void lock_callback( INT32 mode, INT32 type, CHAR *file, INT32 line )
    {
       if ( mode & CRYPTO_LOCK )
@@ -113,25 +109,21 @@ namespace engine
          locks[type].release() ;
    }
 
-   // callback function 2
    UINT64 thread_id( void )
    {
       return (UINT64)ossGetCurrentThreadID() ;
    }
 
-   // set 2 callback functions
    void ssh2_user_init( void )
    {
       if ( NULL == locks )
       {
-         /// _locks is delete[] in ssh2_user_cleanup
          locks = SDB_OSS_NEW ossSpinSLatch[CRYPTO_num_locks()] ;
          if ( NULL == locks )
          {
             PD_LOG ( PDERROR, "Failed to new[] memory, rc = %d", SDB_OOM ) ;
             ossPanic() ;
          }
-         // TODO: have not macro for "unsigned long"
          CRYPTO_set_id_callback( (unsigned long(*)())thread_id) ;
          CRYPTO_set_locking_callback((void(*)(INT32, INT32, const CHAR*, INT32))lock_callback) ;
       }
@@ -139,7 +131,6 @@ namespace engine
 
    void ssh2_user_cleanup( void )
    {
-      /// when nobody use _locks, delete[] it
       if ( NULL != locks )
       {
          SDB_OSS_DEL[] locks ;
@@ -182,7 +173,6 @@ namespace engine
                              LIBSSH2_USERAUTH_KBDINT_RESPONSE *responses,
                              void **abstract )
    {
-      // disable warning
       (void)name ;
       (void)name_len ;
       (void)instruction ;
@@ -250,7 +240,6 @@ namespace engine
          goto error ;
       }
 
-      // check auth type
       authList = libssh2_userauth_list( _session, _usr.c_str(),
                                         ossStrlen( _usr.c_str() ) ) ;
 
@@ -290,7 +279,6 @@ namespace engine
             goto error ;
          }
 
-         // build public key file path
          rc = utilBuildFullPath( homePath.c_str(), SPT_PUBLICKEY_FILE,
                                  OSS_MAX_PATHSIZE, publicKeyFile ) ;
          if( SDB_OK != rc )
@@ -300,7 +288,6 @@ namespace engine
             goto error ;
          }
 
-         // build private key file path
          rc = utilBuildFullPath( homePath.c_str(), SPT_PRIVATEKEY_FILE,
                                  OSS_MAX_PATHSIZE, privateKeyFile ) ;
          if( SDB_OK != rc )
@@ -522,7 +509,6 @@ namespace engine
 
          eixtcode = libssh2_channel_get_exit_status( _channel ) ;
 
-         /// we don't own the signal's mem.
          libssh2_channel_get_exit_signal(_channel, &sig,
                                          NULL, NULL, NULL, NULL, NULL);
          if ( NULL != sig )
@@ -548,7 +534,6 @@ namespace engine
       CHAR *msg = NULL ;
       INT32 errLen = 0 ;
 
-      /// we do not want to own the mem. set want_buf = 0.
       if ( NULL != _session )
       {
          libssh2_session_last_error( _session, &msg, &errLen, 0 ) ;
@@ -807,7 +792,6 @@ namespace engine
          _session = NULL ;
       }
 
-      //libssh2_exit() ;
 
       return ;
    }

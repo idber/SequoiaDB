@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnCommandImpl.cpp
 
@@ -48,11 +47,10 @@
 #include "msgMessage.hpp"
 #include "ixmExtent.hpp"
 #include "rtnInternalSorting.hpp"
+#include "utilList.hpp"
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
 #include "rtnExtDataHandler.hpp"
-#include "rtnContextDel.hpp"
-#include "ossMemPool.hpp"
 
 using namespace bson ;
 
@@ -85,16 +83,6 @@ namespace engine
     *    collectionspace + oldname + newname
     ***********************************************/
 
-   // get total number of records for a given query.
-   // there are two scenarios
-   // 1) users provided query condition
-   // 2) users didn't specify any condition
-   // for condition (1), we convert it into a normal query and count the total
-   // number of records we read. In this case it will go through the regular
-   // codepath for rtnQuery + rtnGetMore by using tbscan or ixscan
-   // for condition (2), we directly call DMS countCollection function, this
-   // will bypass fetching records by records. Instead it will read each extent
-   // and get the _recCount in extent header for quick count
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNGETCOUNT, "rtnGetCount" )
    INT32 rtnGetCount ( const rtnQueryOptions & options,
                        SDB_DMSCB *dmsCB,
@@ -137,11 +125,8 @@ namespace engine
                          &pContextBase ) ;
          if ( rc )
          {
-            // any error will clean up queryContext
             if ( SDB_DMS_EOC == rc )
             {
-               // if we hit end of collection, let's clear the rc
-               // in this case, totalCount = 0
                rc = SDB_OK ;
             }
             else
@@ -161,7 +146,6 @@ namespace engine
                rc = rtnGetMore ( queryContextID, -1, buffObj, cb, rtnCB ) ;
                if ( rc )
                {
-                  // any error will clean up query context
                   if ( SDB_DMS_EOC == rc )
                   {
                      rc = SDB_OK ;
@@ -176,8 +160,6 @@ namespace engine
                }
                else
                {
-                  // since rtnGetMore only takes 32 bit count, so let's pass
-                  // count and add into totalCount every round
                   totalCount += buffObj.recordNum() ;
                }
             }
@@ -185,7 +167,6 @@ namespace engine
       }
       else
       {
-         // use quick extent header count
          rc = su->countCollection ( pCollectionShortName, totalCount, cb ) ;
          if ( rc )
          {
@@ -392,7 +373,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      ossPoolList< dmsExtentID> extentIDStack ;
+      _utilList< dmsExtentID, 32 > extentIDStack ;
       UINT32 targetLevelKeyCount = 0 ;
       UINT64 curLevelKeyCount = 0, curLevelExtCount = 0,
              nextLevelExtCount = 0 ;
@@ -400,7 +381,6 @@ namespace engine
 
       BOOLEAN foundTargetLevel = FALSE ;
 
-      // First search the root extent
       extentIDStack.push_back( rootExtentID ) ;
       curLevelExtCount = 1 ;
 
@@ -416,7 +396,6 @@ namespace engine
             goto error ;
          }
 
-         // Breadth-first search each levels
          for ( UINT32 extIdx = 0 ; extIdx < curLevelExtCount ; extIdx ++ )
          {
             dmsExtentID curExtentID = extentIDStack.front() ;
@@ -442,8 +421,6 @@ namespace engine
 
          nextLevelExtCount = extentIDStack.size() ;
 
-         // If found leaf level or found enough sample keys, we found the
-         // target level
          if ( !foundTargetLevel &&
                ( curLevelKeyCount > sampleRecords ||
                  0 == nextLevelExtCount ) )
@@ -453,8 +430,6 @@ namespace engine
             targetLevel = levelCount ;
          }
 
-         // If the root extent has enough samples, but it is not leaf, it could
-         // not be used for estimate levels and pages, We should go deeper
          if ( ( foundTargetLevel && levelCount > 1 && !fullScan ) ||
               0 == nextLevelExtCount )
          {
@@ -465,28 +440,11 @@ namespace engine
          levelCount ++ ;
       }
 
-      // Finish the estimation
       if ( 0 != nextLevelExtCount )
       {
-         // Estimate the level of index tree
-         // 1. the max number of keys in a extent is "maxExtKeyCount"
-         // 2. the average number of keys in scanned extents of the last level
-         //    is "avgExtKeyCount"
-         // From the last scanned level:
-         // 1. For each extent in the last scanned level, there would be
-         //    ( avgExtKeyCount + 1 ) child extents by estimation. So the
-         //    total number of extents in the next level will be
-         //       lastLevelExtCount * ( avgExtKeyCount + 1 )
-         // 2. For each extent in the next level, there are maxExtKeyCount at
-         //    most, so the maximum number of keys in the next level will be
-         //       lastLevelExtCount * ( avgExtKeyCount + 1 ) * maxExtKeyCount
-         // 3. If this value is larger than totalRecords, it means the next
-         //    level would be enough for all keys, which might be the leaf
-         //    level. Then we could stop the estimation.
          UINT32 avgExtKeyCount = (UINT32)ceil( (double)curLevelKeyCount /
                                                (double)curLevelExtCount ) ;
 
-         // Calculate from next level
          UINT32 levelExtCount = nextLevelExtCount ;
          UINT32 levelKeyCount = nextLevelExtCount * maxExtKeyCount ;
          levelCount ++ ;
@@ -701,7 +659,6 @@ namespace engine
          step = keyNodeCount / segmentCount ;
          mod  = keyNodeCount % segmentCount ;
 
-         // push start
          idxBlocks.push_back( rtnUniqueKeyNameObj( startObj ) ) ;
          idxRIDs.push_back( dmsRecordID() ) ;
          prevObj = startObj ;
@@ -752,7 +709,6 @@ namespace engine
             }
          }
 
-         // push end
          idxBlocks.push_back( rtnUniqueKeyNameObj( endObj ) ) ;
          idxRIDs.push_back( dmsRecordID() ) ;
       }
@@ -901,7 +857,6 @@ namespace engine
       copiedOptions.setFlag( 0 ) ;
       copiedOptions.setLimit( -1 ) ;
 
-      // This prevents other sessions drop the collectionspace during accessing
       rc = rtnResolveCollectionNameAndLock ( pCollectionName, dmsCB, &su,
                                              &pCollectionShortName, suID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s",
@@ -913,7 +868,6 @@ namespace engine
       apm = rtnCB->getAPM() ;
       SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
 
-      // plan is released in context destructor
       rc = apm->getAccessPlan( copiedOptions, FALSE, su, mbContext, planRuntime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for %s, "
                    "context %lld, rc: %d", pCollectionName,
@@ -987,7 +941,6 @@ namespace engine
       SDB_ASSERT ( rtnCB, "runtimeCB can't be NULL" ) ;
       rtnContextDump *context = NULL ;
 
-      // create cursors
       rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, (rtnContext**)&context,
                                contextID, cb ) ;
       if ( rc )
@@ -995,23 +948,17 @@ namespace engine
          PD_LOG ( PDERROR, "Failed to create new context, rc: %d", rc ) ;
          goto error ;
       }
-
-      // For count(), the condition is pushed down to rtnQuery. So passing an
-      // empty one to open() here. Otherwise count() with text search condition
-      // will fail.
       rc = context->open( options.getSelector(),
-                          ( CMD_GET_COUNT == command ) ? BSONObj() : options.getQuery(),
+                          options.getQuery(),
                           options.isOrderByEmpty() ? options.getLimit() : -1,
                           options.isOrderByEmpty() ? options.getSkip() : 0 ) ;
       PD_RC_CHECK( rc, PDERROR, "Open context failed, rc: %d", rc ) ;
 
-      // sample timetamp
       if ( cb->getMonConfigCB()->timestampON )
       {
          context->getMonCB()->recordStartTimestamp() ;
       }
 
-      // do each commands, $get
       switch ( command )
       {
          case CMD_GET_INDEXES :
@@ -1041,7 +988,6 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_RTNGETCOMMANDENTRY, rc ) ;
       return rc ;
    error :
-      // delete the context when something goes wrong
       rtnCB->contextDelete ( contextID, cb ) ;
       contextID = -1 ;
       goto done ;
@@ -1050,9 +996,7 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCREATECSCOMMAND, "rtnCreateCollectionSpaceCommand" )
    INT32 rtnCreateCollectionSpaceCommand ( const CHAR *pCollectionSpace,
                                            pmdEDUCB *cb, SDB_DMSCB *dmsCB,
-                                           SDB_DPSCB *dpsCB,
-                                           utilCSUniqueID csUniqueID,
-                                           INT32 pageSize,
+                                           SDB_DPSCB *dpsCB, INT32 pageSize,
                                            INT32 lobPageSize,
                                            DMS_STORAGE_TYPE type,
                                            BOOLEAN sysCall )
@@ -1067,7 +1011,6 @@ namespace engine
       BOOLEAN hasAquired   = FALSE ;
       pmdOptionsCB *optCB  = pmdGetOptionCB() ;
 
-      // make sure the collectionspace length is not out of range
       UINT32 length = ossStrlen ( pCollectionSpace ) ;
       if ( length <= 0 || length > DMS_SU_NAME_SZ )
       {
@@ -1076,7 +1019,6 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // validate collection space name
       rc = dmsCheckCSName ( pCollectionSpace, sysCall ) ;
       if ( rc )
       {
@@ -1089,13 +1031,10 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
       writable = TRUE ;
 
-      // let's see if the CS already exist or not
       rc = dmsCB->nameToSUAndLock ( pCollectionSpace, suID, &su ) ;
       if ( rc != SDB_DMS_CS_NOTEXIST )
       {
-         // make sure assign su to NULL so that we won't delete it at exit
          su = NULL ;
-         // collectionspace already exist
          PD_LOG ( PDERROR, "Collection space %s is already exist",
                   pCollectionSpace ) ;
          rc = SDB_DMS_CS_EXIST ;
@@ -1115,7 +1054,6 @@ namespace engine
          goto error ;
       }
 
-      // only for standalone
       if ( SDB_ROLE_STANDALONE == pmdGetKRCB()->getDBRole() )
       {
          rc = rtnLoadCollectionSpace ( pCollectionSpace,
@@ -1132,9 +1070,7 @@ namespace engine
          }
       }
 
-      // new storage unit, will insert into dmsCB->addCollectionSpace
-      su = SDB_OSS_NEW dmsStorageUnit ( pCollectionSpace,
-                                        csUniqueID, 1,
+      su = SDB_OSS_NEW dmsStorageUnit ( pCollectionSpace, 1,
                                         pmdGetBuffPool(),
                                         pageSize,
                                         lobPageSize,
@@ -1160,13 +1096,11 @@ namespace engine
                   rc ) ;
          goto error ;
       }
-      /// set config
       su->setSyncConfig( optCB->getSyncInterval(),
                          optCB->getSyncRecordNum(),
                          optCB->getSyncDirtyRatio() ) ;
       su->setSyncDeep( optCB->isSyncDeep() ) ;
 
-      /// add collctionspace
       rc = dmsCB->addCollectionSpace( pCollectionSpace, 1, su, cb, dpsCB, TRUE ) ;
       if ( rc )
       {
@@ -1179,17 +1113,14 @@ namespace engine
          {
             PD_LOG ( PDERROR, "Failed to add collection space, rc = %d", rc ) ;
          }
-         /// need to remove the files
          su->remove() ;
          goto error ;
       }
 
-      PD_LOG( PDEVENT, "Create collectionspace[name: %s, id: %u] succeed, "
-              "PageSize:%u, LobPageSize:%u", pCollectionSpace,
-              csUniqueID, pageSize, lobPageSize ) ;
+      PD_LOG( PDEVENT, "Create collectionspace[%s] succeed, PageSize:%u, "
+              "LobPageSize:%u", pCollectionSpace, pageSize, lobPageSize ) ;
 
    done :
-      // Unlock the existing storage unit
       if ( DMS_INVALID_CS != suID )
       {
          dmsCB->suUnlock ( suID ) ;
@@ -1218,7 +1149,6 @@ namespace engine
                                       _pmdEDUCB * cb,
                                       SDB_DMSCB *dmsCB,
                                       SDB_DPSCB *dpsCB,
-                                      utilCLUniqueID clUniqueID,
                                       UTIL_COMPRESSOR_TYPE compressorType,
                                       INT32 flags,
                                       BOOLEAN sysCall,
@@ -1228,7 +1158,7 @@ namespace engine
       return rtnCreateCollectionCommand ( pCollection,
                                           obj, attributes,
                                           cb, dmsCB, dpsCB,
-                                          clUniqueID, compressorType,
+                                          compressorType,
                                           flags, sysCall, extOptions ) ;
    }
 
@@ -1236,10 +1166,9 @@ namespace engine
    INT32 rtnCreateCollectionCommand ( const CHAR *pCollection,
                                       const BSONObj &shardingKey,
                                       UINT32 attributes,
-                                      _pmdEDUCB *cb,
+                                      _pmdEDUCB * cb,
                                       SDB_DMSCB *dmsCB,
                                       SDB_DPSCB *dpsCB,
-                                      utilCLUniqueID clUniqueID,
                                       UTIL_COMPRESSOR_TYPE compType,
                                       INT32 flags, BOOLEAN sysCall,
                                       const BSONObj *extOptions )
@@ -1251,13 +1180,11 @@ namespace engine
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
       dmsStorageUnit *su    = NULL ;
       dmsStorageUnitID suID = DMS_INVALID_CS ;
-      BOOLEAN writable      = FALSE ;
-      UINT16 collectionID   = DMS_INVALID_MBID ;
-      UINT32 logicalID      = DMS_INVALID_CLID ;
       const CHAR *pCollectionShortName = NULL ;
-      utilCSUniqueID csUniqueID = utilGetCSUniqueID( clUniqueID ) ;
+      BOOLEAN writable      = FALSE ;
+      UINT16 collectionID = DMS_INVALID_MBID ;
+      UINT32 logicalID = DMS_INVALID_CLID ;
 
-      // Check writable before su lock
       rc = dmsCB->writable( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
       writable = TRUE ;
@@ -1275,19 +1202,16 @@ namespace engine
             DMS_STORAGE_CAPPED : DMS_STORAGE_NORMAL ;
          SDB_ASSERT ( pCollectionShortName > pCollection, "Collection pointer "
                       "is not part of full collection name" ) ;
-         // set '.' to '\0'
          temp [ pCollectionShortName - pCollection - 1 ] = '\0' ;
          if ( SDB_OK == rtnCreateCollectionSpaceCommand ( temp, cb,
                                                           dmsCB, dpsCB,
-                                                          csUniqueID,
                                                           DMS_PAGE_SIZE_DFT,
                                                           DMS_DEFAULT_LOB_PAGE_SZ,
                                                           type,
                                                           sysCall ) )
          {
-            //restore '\0' to '.'
-            rc = rtnResolveCollectionNameAndLock ( pCollection, dmsCB, &su,
-                                                   &pCollectionShortName,
+            rc = rtnResolveCollectionNameAndLock ( pCollection, dmsCB,
+                                                   &su, &pCollectionShortName,
                                                    suID ) ;
          }
       }
@@ -1310,14 +1234,12 @@ namespace engine
       }
 
       rc = su->data()->addCollection ( pCollectionShortName, &collectionID,
-                                       clUniqueID, attributes, cb,
-                                       dpsCB, 0, sysCall,
+                                       attributes, cb, dpsCB, 0, sysCall,
                                        compType, &logicalID, extOptions ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR,
-                  "Failed to create collection [name:%s, id:%llu], rc: %d",
-                  pCollection, clUniqueID, rc ) ;
+         PD_LOG ( PDERROR, "Failed to create collection %s, rc: %d",
+                  pCollection, rc ) ;
          goto error ;
       }
       if ( !shardingKey.isEmpty() )
@@ -1325,12 +1247,11 @@ namespace engine
          try
          {
             BSONObj shardKeyObj = BSON ( "key"<<shardingKey<<"name"<<
-                                         IXM_SHARD_KEY_NAME<< IXM_FIELD_NAME_V <<0 ) ;
+                                         IXM_SHARD_KEY_NAME<<"v"<<0 ) ;
             rc = rtnCreateIndexCommand ( pCollection, shardKeyObj,
                                          cb, dmsCB, dpsCB, TRUE ) ;
             if ( SDB_IXM_REDEF == rc || SDB_IXM_EXIST_COVERD_ONE == rc )
             {
-               /// same defined index already exists.
                rc = SDB_OK ;
             }
             else if ( SDB_OK != rc )
@@ -1364,18 +1285,16 @@ namespace engine
          mbAttr2String( attributes, attrStr, sizeof( attrStr ) - 1 ) ;
          if ( extOptions && !extOptions->isEmpty())
          {
-            PD_LOG( PDEVENT, "Create collection[name: %s, id: %llu] succeed, "
-                    "ShardingKey:%s, Attr:%s(0x%08x), CompressType:%s(%d), "
-                    "External options:%s", pCollection, clUniqueID,
-                    shardingKey.toString().c_str(), attrStr,
+            PD_LOG( PDEVENT, "Create collection[%s] succeed, ShardingKey:%s, "
+                    "Attr:%s(0x%08x), CompressType:%s(%d), External options:%s",
+                    pCollection, shardingKey.toString().c_str(), attrStr,
                     attributes, utilCompressType2String( (UINT8)compType ),
                     compType, extOptions->toString().c_str() ) ;
          }
          else
          {
-            PD_LOG( PDEVENT, "Create collection[name: %s, id: %llu] succeed, "
-                    "ShardingKey:%s, Attr:%s(0x%08x), CompressType:%s(%d)",
-                    pCollection, clUniqueID,
+            PD_LOG( PDEVENT, "Create collection[%s] succeed, ShardingKey:%s, "
+                    "Attr:%s(0x%08x), CompressType:%s(%d)", pCollection,
                     shardingKey.toString().c_str(), attrStr, attributes,
                     utilCompressType2String( (UINT8)compType ),
                     compType ) ;
@@ -1448,8 +1367,6 @@ namespace engine
                              cb, dpsCB, isSys, NULL, sortBufferSize ) ;
       if ( rc )
       {
-         // SDB_IXM_EXIST may happen when user mistakenly type index name with
-         // same name, so we display INFO instead of ERROR
          PD_LOG ( PDERROR, "Failed to create index %s: %s, rc: %d",
                   pCollection, indexObj.toString().c_str(), rc ) ;
          goto error ;
@@ -1554,74 +1471,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNRENAMECSCOMMAND, "rtnRenameCollectionSpaceCommand" )
-   INT32 rtnRenameCollectionSpaceCommand ( const CHAR *csName,
-                                           const CHAR *newCSName,
-                                           _pmdEDUCB *cb,
-                                           SDB_DMSCB *dmsCB,
-                                           SDB_DPSCB *dpsCB )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_RTNRENAMECSCOMMAND ) ;
-      BOOLEAN lockDMS = FALSE ;
-      utilRenameLogger logger ;
-
-      /// dms lock
-      // When two threads concurrently do rename, blockWrite() will report
-      // -148. We retry multiple times to reduce the error.
-      INT16 i = 0 ;
-      while ( ( rc = dmsCB->blockWrite( cb ) )  &&
-              ( i < RTN_RENAME_BLOCKWRITE_TIMES ) )
-      {
-         ossSleep( RTN_RENAME_BLOCKWRITE_INTERAL ) ;
-         i++ ;
-      }
-      PD_RC_CHECK( rc, PDERROR, "Block dms write failed, rc: %d", rc ) ;
-      lockDMS = TRUE ;
-
-      /// log to .SEQUOIADB_RENAME_INFO
-      {
-         utilRenameLog aLog ( csName, newCSName ) ;
-
-         rc = logger.init() ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to init rename logger, rc: %d", rc );
-
-         rc = logger.log( aLog ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                      "Failed to log rename info to file, rc: %d", rc ) ;
-      }
-
-      /// dms rename
-      rc = dmsCB->renameCollectionSpace( csName, newCSName, cb, dpsCB ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to rename collectionspace from %s to %s, rc: %d",
-                   csName, newCSName, rc ) ;
-
-      /// remove .SEQUOIADB_RENAME_INFO
-      rc = logger.clear() ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to clear rename info, rc: %d", rc ) ;
-
-      PD_LOG( PDEVENT, "Rename cs[%s] to [%s] succeed", csName, newCSName ) ;
-
-   done:
-      if ( lockDMS )
-      {
-         dmsCB->unblockWrite( cb ) ;
-         lockDMS = FALSE ;
-      }
-      PD_TRACE_EXITRC ( SDB_RTNRENAMECSCOMMAND, rc ) ;
-      return rc ;
-   error:
-      {
-         INT32 tmpRC = logger.clear() ;
-         if ( tmpRC )
-         {
-            PD_LOG( PDERROR, "Failed to clear rename info, rc: %d", tmpRC ) ;
-         }
-      }
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNDROPCSCOMMAND, "rtnDropCollectionSpaceCommand" )
    INT32 rtnDropCollectionSpaceCommand ( const CHAR *pCollectionSpace,
                                          _pmdEDUCB *cb,
@@ -1654,7 +1503,6 @@ namespace engine
 
       SDB_ASSERT ( pCollectionSpace, "collection space can't be NULL" ) ;
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
-      // make sure the collectionspace length is not out of range
       UINT32 length = ossStrlen ( pCollectionSpace ) ;
       if ( length <= 0 || length > DMS_SU_NAME_SZ )
       {
@@ -1664,8 +1512,6 @@ namespace engine
          goto error ;
       }
 
-      // let's find out whether the collection space is held by this
-      // EDU. If so we have to get rid of those contexts
       if ( NULL != cb )
       {
          rtnDelContextForCollectionSpace( pCollectionSpace, cb ) ;
@@ -1767,7 +1613,6 @@ namespace engine
       const CHAR *pCollectionShortName    = NULL ;
       BOOLEAN writable                    = FALSE ;
 
-      // Check writable before su lock
       rc = dmsCB->writable( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
       writable = TRUE ;
@@ -1806,63 +1651,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNRENAMECLCOMMAND, "rtnRenameCollectionCommand" )
-   INT32 rtnRenameCollectionCommand ( const CHAR *csName,
-                                      const CHAR *clShortName,
-                                      const CHAR *newCLShortName,
-                                      _pmdEDUCB *cb,
-                                      SDB_DMSCB *dmsCB,
-                                      SDB_DPSCB *dpsCB )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_RTNRENAMECLCOMMAND ) ;
-      dmsStorageUnitID suID   = DMS_INVALID_CS ;
-      dmsStorageUnit *su      = NULL ;
-      BOOLEAN lockDMS         = FALSE ;
-
-      // When two threads concurrently do rename, blockWrite() will report
-      // -148. We retry multiple times to reduce the error.
-      INT16 i = 0 ;
-      while ( ( rc = dmsCB->blockWrite( cb ) )  &&
-              ( i < RTN_RENAME_BLOCKWRITE_TIMES ) )
-      {
-         ossSleep( RTN_RENAME_BLOCKWRITE_INTERAL ) ;
-         i++ ;
-      }
-      PD_RC_CHECK( rc, PDERROR, "Block dms write failed, rc: %d", rc ) ;
-      lockDMS = TRUE ;
-
-      rc = rtnCollectionSpaceLock ( csName, dmsCB, FALSE,
-                                    &su, suID, SHARED ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Fail to lock collection space name[%s]",
-                   csName ) ;
-
-      rc = su->data()->renameCollection ( clShortName, newCLShortName,
-                                          cb, dpsCB ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to rename collection from %s to %s, rc: %d",
-                   clShortName, newCLShortName, rc ) ;
-
-      PD_LOG( PDEVENT, "Rename cs[%s] collection[%s] to [%s] succeed",
-              csName, clShortName, newCLShortName ) ;
-
-   done:
-      if ( DMS_INVALID_CS != suID )
-      {
-         dmsCB->suUnlock ( suID ) ;
-      }
-      if ( lockDMS )
-      {
-         dmsCB->unblockWrite( cb ) ;
-         lockDMS = FALSE ;
-      }
-      PD_TRACE_EXITRC ( SDB_RTNRENAMECLCOMMAND, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNTRUNCCLCOMMAND, "rtnTruncCollectionCommand" )
    INT32 rtnTruncCollectionCommand( const CHAR *pCollection, pmdEDUCB *cb,
                                     SDB_DMSCB *dmsCB, SDB_DPSCB *dpsCB )
@@ -1878,7 +1666,6 @@ namespace engine
       dmsMBContext *context            = NULL ;
       dmsMB *mb                        = NULL ;
 
-      // Check writable before su lock
       rc = dmsCB->writable( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
       writable = TRUE ;
@@ -1943,8 +1730,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNTESTCSCOMMAND, "rtnTestCollectionSpaceCommand" )
    INT32 rtnTestCollectionSpaceCommand ( const CHAR *pCollectionSpace,
-                                         SDB_DMSCB *dmsCB,
-                                         utilCSUniqueID *pCsUniqueID )
+                                         SDB_DMSCB *dmsCB )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNTESTCSCOMMAND ) ;
@@ -1952,40 +1738,12 @@ namespace engine
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
       dmsStorageUnit *su = NULL ;
       dmsStorageUnitID suID = DMS_INVALID_CS ;
-
-      if ( 0 == ossStrcmp( pCollectionSpace, CMD_ADMIN_PREFIX SYS_VIRTUAL_CS ) )
-      {
-         goto done ;
-      }
-
       rc = dmsCB->nameToSUAndLock ( pCollectionSpace, suID, &su ) ;
       if ( SDB_OK != rc )
       {
          rc = SDB_DMS_CS_NOTEXIST ;
          goto error ;
       }
-
-      if ( pCsUniqueID )
-      {
-         utilCSUniqueID curCsUniqueID = su->CSUniqueID() ;
-         if ( curCsUniqueID != *pCsUniqueID )
-         {
-            if ( UTIL_IS_VALID_CSUNIQUEID( curCsUniqueID ) &&
-                 UTIL_IS_VALID_CSUNIQUEID( *pCsUniqueID ) )
-            {
-               rc = SDB_DMS_CS_REMAIN ;
-            }
-            else
-            {
-               rc = SDB_DMS_CS_UNIQUEID_CONFLICT ;
-            }
-            PD_LOG ( PDERROR,
-                     "CS[%u] unique id error, expect: %u, rc: %d",
-                     curCsUniqueID, *pCsUniqueID, rc ) ;
-            goto error ;
-         }
-      }
-
    done :
       if ( DMS_INVALID_CS != suID )
       {
@@ -2061,8 +1819,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNTESTCLCOMMAND, "rtnTestCollectionCommand" )
    INT32 rtnTestCollectionCommand ( const CHAR *pCollection,
-                                    SDB_DMSCB *dmsCB,
-                                    utilCLUniqueID *pClUniqueID )
+                                    SDB_DMSCB *dmsCB )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNTESTCLCOMMAND ) ;
@@ -2072,75 +1829,18 @@ namespace engine
       dmsStorageUnit *su = NULL ;
       const CHAR *pCollectionShortName = NULL ;
       UINT16 cID ;
-      dmsMBContext* mbContext = NULL ;
-      utilCLUniqueID curClUniqueID = UTIL_UNIQUEID_NULL ;
-
-      if ( 0 == ossStrcmp( pCollection, CMD_ADMIN_PREFIX SYS_CL_SESSION_INFO ) )
-      {
-         goto done ;
-      }
-
       rc = rtnResolveCollectionNameAndLock ( pCollection, dmsCB, &su,
                                              &pCollectionShortName, suID ) ;
       if ( rc )
       {
          goto error ;
       }
-
-      if ( pClUniqueID )
-      {
-         utilCSUniqueID expCsUniqueID = utilGetCSUniqueID( *pClUniqueID ) ;
-         utilCSUniqueID curCsUniqueID = su->CSUniqueID() ;
-         if ( curCsUniqueID != expCsUniqueID )
-         {
-            if ( UTIL_IS_VALID_CSUNIQUEID( curCsUniqueID ) &&
-                 UTIL_IS_VALID_CSUNIQUEID( expCsUniqueID ) )
-            {
-               rc = SDB_DMS_CS_REMAIN ;
-            }
-            else
-            {
-               rc = SDB_DMS_CS_UNIQUEID_CONFLICT ;
-            }
-            PD_LOG ( PDERROR,
-                     "CS[%u] unique id error, expect: %u, rc: %d",
-                     curCsUniqueID, expCsUniqueID, rc ) ;
-            goto error ;
-         }
-      }
-
-      rc = su->data()->findCollection ( pCollectionShortName, cID,
-                                        &curClUniqueID ) ;
+      rc = su->data()->findCollection ( pCollectionShortName, cID ) ;
       if ( rc )
       {
          goto error ;
       }
-
-      if ( pClUniqueID )
-      {
-         if ( curClUniqueID != *pClUniqueID )
-         {
-            if ( UTIL_IS_VALID_CLUNIQUEID( curClUniqueID ) &&
-                 UTIL_IS_VALID_CLUNIQUEID( *pClUniqueID ) )
-            {
-               rc = SDB_DMS_REMAIN ;
-            }
-            else
-            {
-               rc = SDB_DMS_UNIQUEID_CONFLICT ;
-            }
-            PD_LOG ( PDERROR,
-                     "CL[%llu] unique id error, expect: %llu, rc: %d",
-                     curClUniqueID, *pClUniqueID, rc ) ;
-            goto error ;
-         }
-      }
-
    done :
-      if ( su && mbContext )
-      {
-         su->data()->releaseMBContext( mbContext ) ;
-      }
       if ( DMS_INVALID_CS != suID )
       {
          dmsCB->suUnlock ( suID ) ;
@@ -2178,7 +1878,6 @@ namespace engine
          goto error ;
       }
 
-      // Check writable before su lock
       rc = dmsCB->writable( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
       writable = TRUE ;
@@ -2188,7 +1887,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s, rc: %d",
                    pCollectionName, rc ) ;
 
-      // pop can only be done on capped collections.
       if ( DMS_STORAGE_CAPPED != su->type() )
       {
          PD_LOG( PDERROR, "pop can only be used on capped collection" ) ;
@@ -2229,37 +1927,6 @@ namespace engine
       PD_TRACE_EXITRC( SDB_RTNPOPCOMMAND, rc ) ;
       return rc ;
    error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCHGUID, "rtnChangeUniqueID" )
-   INT32 rtnChangeUniqueID( const CHAR* csName,
-                            utilCSUniqueID csUniqueID,
-                            const BSONObj& clInfoObj,
-                            pmdEDUCB* cb,
-                            SDB_DMSCB* dmsCB, SDB_DPSCB* dpsCB,
-                            BOOLEAN setOnlyIfNull )
-   {
-      PD_TRACE_ENTRY( SDB_RTNCHGUID ) ;
-      INT32 rc = SDB_OK ;
-      BOOLEAN writable = FALSE ;
-
-      rc = dmsCB->writable( cb ) ;
-      PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc: %d", rc ) ;
-      writable = TRUE ;
-
-      rc = dmsCB->changeUniqueID( csName, csUniqueID, clInfoObj,
-                                  cb, dpsCB, setOnlyIfNull ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to change unique id, rc: %d", rc ) ;
-
-   done :
-      if ( writable )
-      {
-         dmsCB->writeDown( cb ) ;
-      }
-      PD_TRACE_EXITRC( SDB_RTNCHGUID, rc ) ;
-      return rc ;
-   error :
       goto done ;
    }
 }

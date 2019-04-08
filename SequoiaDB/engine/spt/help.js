@@ -1,19 +1,10 @@
-/*******************************************************************************
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+Bson.prototype.help = function() {
+   println("Bson methods:") ;
+   println("   toObj() - convert to javascript object") ;
+   println("   toJson() - convert to json string") ;
+}
 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-   http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-*******************************************************************************/
- const help = function( val ) {
+const help = function( val ) {
    if ( val == undefined )
    {
    	  println("   --Connect to database:");
@@ -29,8 +20,8 @@
 	  println("   --Get help information:");
       println("   help(<method>)                                     - Help on specified method, e.g. help(\'createCS\').");
       println("   db.help()                                          - Help on db methods.");
-      println("   db.<csname>.help()                                 - Help on collection space methods.");
-      println("   db.<csname>.<clname>.help()                        - Help on collection methods.");
+      println("   db.cs.help()                                       - Help on collection space methods.");
+      println("   db.cs.cl.help()                                    - Help on collection methods.");
 	  println("   help('help')                                       - For more detail of help.");
 	  println("");
 	  println("   --Global functions: ");
@@ -48,7 +39,6 @@
    }
 }
 
-/*
 const _help = function( className, funcName, isInstance ) {
    if ( isInstance == undefined )
    {
@@ -126,7 +116,6 @@ SdbDomain.help = function( func ) {
 SdbDomain.prototype.help = function( func ) {
    _help( "SdbDomain", func, true ) ;
 }
-*/
 
 // SdbQuery
 SdbQuery.prototype.help = function( func ) {
@@ -163,12 +152,10 @@ SdbQuery.prototype.help = function( func ) {
 
 }
 
-/*
 // SdbDC
 SdbDC.help = function( func ) {
    _help( "SdbDC", func, false ) ;
 }
-*/
 
 SdbDC.prototype.help = function( func ) {
    // _help( "SdbDC", func, true ) ;

@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsVoteStatus.cpp
 
@@ -114,7 +113,6 @@ namespace engine
          SDB_ASSERT( NULL != _logger, "logger should not be NULL" ) ;
       }
 
-      // launch
       {
          DPS_LSN lsn = _logger->expectLsn() ;
          _MsgClsElectionBallot msg ;
@@ -125,7 +123,6 @@ namespace engine
                                        _groupInfo->alives.begin() ;
          for ( ; itr != _groupInfo->alives.end(); itr++ )
          {
-            // if my bs is ok, but peer is not ok, skip
             if ( SERVICE_ABNORMAL == itr->second->beat.serviceStatus &&
                  pmdGetStartup().isOK() )
             {
@@ -166,7 +163,6 @@ namespace engine
       DPS_LSN local ;
 
       itrInfo = _groupInfo->info.find( id.value ) ;
-      /// unknown member
       if ( _groupInfo->info.end() == itrInfo )
       {
          PD_LOG( PDWARNING, "unknown member [group:%d] [node:%d]",
@@ -182,7 +178,6 @@ namespace engine
          localAbnormal = TRUE ;
       }
 
-      /// primary is exist. refuse
       if ( MSG_INVALID_ROUTEID !=_groupInfo->primary.value )
       {
          PD_LOG( PDDEBUG, "vote:the primary still exist [group:%d] [node:%d]",
@@ -190,7 +185,6 @@ namespace engine
                  _groupInfo->primary.columns.nodeID ) ;
          goto accepterr ;
       }
-      /// majority members' status are unknown.do not response
       if ( !CLS_IS_MAJORITY( _groupInfo->aliveSize() ,
                              _groupInfo->groupSize() ) )
       {
@@ -214,7 +208,6 @@ namespace engine
             {
                continue ;
             }
-            /// find anyone's lsn > request's lsn. refuse.
             else if ( 0 > lsn.compare( itr->second->beat.endLsn ) )
             {
                goto accepterr ;
@@ -228,17 +221,14 @@ namespace engine
       if ( !localAbnormal || peerAbnormal )
       {
          INT32 cRc = local.compare( lsn ) ;
-         /// local < lsn. accept
          if ( 0 > cRc )
          {
             goto accept ;
          }
-         /// local > lsn. refuse
          else if ( 0 < cRc )
          {
             goto accepterr ;
          }
-         /// the same, judge weight.
          else
          {
             UINT8 weight = pmdGetOptionCB()->weight() ;
@@ -257,7 +247,6 @@ namespace engine
             {
                goto accepterr ;
             }
-            /// judge id
             else if ( id.value < _groupInfo->local.value )
             {
                goto accepterr ;
@@ -282,7 +271,6 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__CLSVTSTUS__LAU1, rc ) ;
       return rc ;
    error:
-      /// reuse err code
       rc = SDB_CLS_VOTE_FAILED ;
       goto done ;
    accepterr:

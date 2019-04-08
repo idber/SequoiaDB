@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnContextDel.hpp
 
@@ -40,7 +39,6 @@
 #define RTN_CONTEXT_DEL_HPP_
 
 #include "rtnContext.hpp"
-#include "utilRenameLogger.hpp"
 
 namespace engine
 {
@@ -70,8 +68,11 @@ namespace engine
       INT32 open( const CHAR *pCollectionName,
                   _pmdEDUCB *cb );
 
+      virtual INT32 getMore( INT32 maxNumToReturn, rtnContextBuf &buffObj,
+                             _pmdEDUCB *cb );
+
    protected:
-      virtual INT32 _prepareData( _pmdEDUCB *cb ) ;
+      virtual INT32 _prepareData( _pmdEDUCB *cb ){ return SDB_DMS_EOC; };
       virtual void  _toString( stringstream &ss ) ;
 
    private:
@@ -109,10 +110,13 @@ namespace engine
       virtual BOOLEAN          isWrite() const { return TRUE ; }
 
       INT32 open( const CHAR *pCollectionName, _pmdEDUCB *cb,
-                  INT16 w ) ;
+                  INT16 w );
+
+      virtual INT32 getMore( INT32 maxNumToReturn, rtnContextBuf &buffObj,
+                             _pmdEDUCB *cb );
 
    protected:
-      virtual INT32 _prepareData( _pmdEDUCB *cb ) ;
+      virtual INT32 _prepareData( _pmdEDUCB *cb ){ return SDB_DMS_EOC; };
       virtual void  _toString( stringstream &ss ) ;
 
    private:
@@ -144,7 +148,7 @@ namespace engine
    class _SDB_RTNCB;
    class _rtnContextDelMainCL : public _rtnContextBase
    {
-      typedef ossPoolMap< std::string, SINT64>  SUBCL_CONTEXT_LIST ;
+   typedef _utilMap< std::string, SINT64, 20 >  SUBCL_CONTEXT_LIST ;
       DECLARE_RTN_CTX_AUTO_REGISTER()
    public:
       _rtnContextDelMainCL( SINT64 contextID, UINT64 eduID );
@@ -152,15 +156,18 @@ namespace engine
       virtual std::string      name() const ;
       virtual RTN_CONTEXT_TYPE getType () const;
       virtual _dmsStorageUnit* getSU () { return NULL ; }
-      virtual BOOLEAN          isWrite() const { return TRUE ; }
 
       INT32 open( const CHAR *pCollectionName,
                   vector< string > &subCLList,
+                  INT32 version,
                   _pmdEDUCB *cb,
                   INT16 w ) ;
 
+      virtual INT32 getMore( INT32 maxNumToReturn, rtnContextBuf &buffObj,
+                             _pmdEDUCB *cb ) ;
+
    protected:
-      virtual INT32 _prepareData( _pmdEDUCB *cb ) ;
+      virtual INT32 _prepareData( _pmdEDUCB *cb ){ return SDB_DMS_EOC; };
       virtual void  _toString( stringstream &ss ) ;
 
    private:
@@ -171,133 +178,10 @@ namespace engine
       _SDB_RTNCB                 *_pRtncb;
       CHAR                       _name[ DMS_COLLECTION_FULL_NAME_SZ + 1 ];
       SUBCL_CONTEXT_LIST         _subContextList ;
-      BOOLEAN                    _lockDms ;
+      INT32                      _version ;
 
    };
-   typedef class _rtnContextDelMainCL rtnContextDelMainCL ;
-
-   #define RTN_RENAME_BLOCKWRITE_INTERAL ( 0.1 * OSS_ONE_SEC )
-   #define RTN_RENAME_BLOCKWRITE_TIMES   ( 10 )
-
-   /*
-      _rtnContextRenameCS define
-   */
-   class _rtnContextRenameCS : public _rtnContextBase
-   {
-      enum renameCSPhase
-      {
-         RENAMECSPHASE_0 = 0,
-         RENAMECSPHASE_1
-      } ;
-      DECLARE_RTN_CTX_AUTO_REGISTER()
-   public:
-      _rtnContextRenameCS( SINT64 contextID, UINT64 eduID ) ;
-      ~_rtnContextRenameCS();
-      virtual std::string      name() const ;
-      virtual RTN_CONTEXT_TYPE getType () const;
-      virtual _dmsStorageUnit* getSU () { return NULL ; }
-      virtual BOOLEAN          isWrite() const { return TRUE ; }
-
-      INT32 open( const CHAR *pCSName, const CHAR *pNewCSName,
-                  _pmdEDUCB *cb );
-
-   protected:
-      virtual INT32 _prepareData( _pmdEDUCB *cb ) ;
-      virtual void  _toString( stringstream &ss ) ;
-
-   private:
-      INT32 _tryLock( const CHAR *pCSName,
-                     _pmdEDUCB *cb );
-
-      INT32 _releaseLock( _pmdEDUCB *cb );
-
-   private:
-      _SDB_DMSCB           *_pDmsCB ;
-      dpsTransCB           *_pTransCB ;
-      _clsCatalogAgent     *_pCatAgent ;
-      CHAR                 _oldName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] ;
-      CHAR                 _newName[ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] ;
-      BOOLEAN              _lockDMS ;
-      UINT32               _logicCSID ;
-      renameCSPhase        _status ;
-      utilRenameLogger     _logger ;
-      BOOLEAN              _skipGetMore ;
-   };
-   typedef class _rtnContextRenameCS rtnContextRenameCS ;
-
-   /*
-      _rtnContextRenameCL define
-   */
-   class _rtnContextRenameCL : public _rtnContextBase
-   {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
-   public:
-      _rtnContextRenameCL( SINT64 contextID, UINT64 eduID ) ;
-      ~_rtnContextRenameCL();
-      virtual std::string      name() const ;
-      virtual RTN_CONTEXT_TYPE getType () const;
-      virtual _dmsStorageUnit* getSU () { return NULL ; }
-      virtual BOOLEAN          isWrite() const { return TRUE ; }
-
-      INT32 open( const CHAR *csName, const CHAR *clShortName,
-                  const CHAR *newCLShortName,
-                  _pmdEDUCB *cb, INT16 w = 1 ) ;
-
-   protected:
-      virtual INT32 _prepareData( _pmdEDUCB *cb ) ;
-      virtual void  _toString( stringstream &ss ) ;
-
-   private:
-      INT32 _tryLock( const CHAR *pCSName, _pmdEDUCB *cb );
-      INT32 _releaseLock( _pmdEDUCB *cb );
-
-   private:
-      _SDB_DMSCB           *_pDmsCB ;
-      _clsCatalogAgent     *_pCatAgent ;
-      dpsTransCB           *_pTransCB ;
-
-      CHAR                 _clFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
-      CHAR                 _clShortName[ DMS_COLLECTION_NAME_SZ + 1 ] ;
-      CHAR                 _newCLShortName[ DMS_COLLECTION_NAME_SZ + 1 ] ;
-
-      BOOLEAN              _lockDMS ;
-      _dmsStorageUnit      *_su ;
-      UINT16               _mbID ;
-      BOOLEAN              _skipGetMore ;
-   };
-   typedef class _rtnContextRenameCL rtnContextRenameCL ;
-
-   /*
-      _rtnContextRenameMainCL define
-   */
-   class _rtnContextRenameMainCL : public _rtnContextBase
-   {
-      DECLARE_RTN_CTX_AUTO_REGISTER()
-   public:
-      _rtnContextRenameMainCL( SINT64 contextID, UINT64 eduID );
-      ~_rtnContextRenameMainCL();
-      virtual std::string      name() const ;
-      virtual RTN_CONTEXT_TYPE getType () const;
-      virtual _dmsStorageUnit* getSU () { return NULL ; }
-      virtual BOOLEAN          isWrite() const { return TRUE ; }
-
-      INT32 open( const CHAR *pCollectionName, _pmdEDUCB *cb, INT16 w ) ;
-
-   protected:
-      virtual INT32 _prepareData( _pmdEDUCB *cb ) ;
-      virtual void  _toString( stringstream &ss ) ;
-
-   private:
-      void _clean( _pmdEDUCB *cb );
-
-   private:
-      _SDB_DMSCB                 *_pDmsCB ;
-      _clsCatalogAgent           *_pCatAgent;
-      CHAR                       _name[ DMS_COLLECTION_FULL_NAME_SZ + 1 ];
-      BOOLEAN                    _lockDms ;
-
-   };
-   typedef class _rtnContextRenameMainCL rtnContextRenameMainCL ;
+   typedef class _rtnContextDelMainCL rtnContextDelMainCL;
 }
 
 #endif /* RTN_CONTEXT_DEL_HPP_ */

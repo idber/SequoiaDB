@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = seadptMgr.cpp
 
@@ -37,22 +36,28 @@
 
 *******************************************************************************/
 #include "pmd.hpp"
+#include "sptCommon.hpp"
 #include "seAdptMgr.hpp"
 #include "seAdptAgentSession.hpp"
 #include "seAdptIndexSession.hpp"
+#include "seAdptDef.hpp"
+#include "msgMessage.hpp"
 
 #define DATA_NODE_GRP_ID                        10000
 #define DATA_NODE_ID                            10000
-#define SEADPT_INIT_TEXT_INDEX_VERSION          (-1)
+#define SEADPT_NAME_CAPPED_COLLECTION           "CappedCL"
+#define SEADPT_INIT_TEXT_INDEX_VERSION          -1
 #define SEADPT_IDX_UPDATE_INTERVAL              ( 5 * OSS_ONE_SEC )
+#define SEADPT_CAT_RETRY_MAX_TIMES              3
 #define SEADPT_PORT_STR_SZ                      10
 #define SEADPT_MAX_PORT                         65535
 #define SEADPT_SVC_PORT_PLUS                    7
+#define ES_SYS_PREFIX                           "sys"
 
 namespace seadapter
 {
    UINT64 _seSvcSessionMgr::makeSessionID( const NET_HANDLE &handle,
-                                           const MsgHeader *header )
+                                        const MsgHeader *header )
    {
       return ossPack32To64( PMD_BASE_HANDLE_ID, header->TID ) ;
    }
@@ -74,22 +79,20 @@ namespace seadapter
 
       if ( 0 != sessionID )
       {
-         // In case of error, let reply the error to the client.
          ret = _reply( handle, rc, pReq ) ;
       }
       else
       {
-         ret = rc ;
+         ret = rc  ;
       }
 
       return ret ;
    }
 
-   pmdAsyncSession*
-   _seSvcSessionMgr::_createSession( SDB_SESSION_TYPE sessionType,
-                                     INT32 startType,
-                                     UINT64 sessionID,
-                                     void *data )
+   pmdAsyncSession* _seSvcSessionMgr::_createSession( SDB_SESSION_TYPE sessionType,
+                                                      INT32 startType,
+                                                      UINT64 sessionID,
+                                                      void *data )
    {
       pmdAsyncSession* session = NULL ;
 
@@ -108,7 +111,7 @@ namespace seadapter
    _seIndexSessionMgr::_seIndexSessionMgr( _seAdptCB *pAdptCB )
    {
       _pAdptCB = pAdptCB ;
-      _optionMgr = NULL ;
+      _indexSessionTimer = NET_INVALID_TIMER_ID ;
       _innerSessionID = 0 ;
    }
 
@@ -122,73 +125,61 @@ namespace seadapter
       return ossPack32To64( PMD_BASE_HANDLE_ID, header->TID ) ;
    }
 
-   INT32 _seIndexSessionMgr::refreshTasks()
+   INT32 _seIndexSessionMgr::refreshTasks( BSONObj &obj )
    {
       INT32 rc = SDB_OK ;
-      vector<UINT16> imIDs ;
-      seIdxMetaMgr* idxMetaMgr = _pAdptCB->getIdxMetaMgr() ;
-      seIdxMetaContext *imContext = NULL ;
+      BSONElement ele ;
+      seIdxMetaMgr* idxMetaCache = _pAdptCB->getIdxMetaCache() ;
 
-      idxMetaMgr->getCurrentIMIDs( imIDs ) ;
-
-      for ( vector<UINT16>::iterator itr = imIDs.begin(); itr != imIDs.end();
-            ++itr )
+      try
       {
-         // Start new task.
-         seIdxMetaContext *imContext = NULL ;
-         UINT64 sessionID = _newSessionID() ;
-         rc = idxMetaMgr->getIMContext( &imContext, *itr, SHARED ) ;
-         PD_RC_CHECK( rc, PDERROR, "Get index meta context failed[%d]",
-                      rc ) ;
-         if ( idxMetaMgr->getMetaVersion() == imContext->meta()->getVersion() &&
-              SEADPT_IM_STAT_PENDING == imContext->meta()->getStat() )
+         idxMetaCache->lock( SHARED ) ;
+         TASK_SESSION_MAP taskMapTmp ;
+         const IDX_META_MAP* metaMap = idxMetaCache->getIdxMetaMap() ;
+
+         for ( IDX_META_MAP_CITR mItr = metaMap->begin();
+               mItr != metaMap->end(); ++mItr )
          {
-            _pAdptCB->startInnerSession( SEADPT_SESSION_INDEX,
-                                         sessionID, (void *)imContext ) ;
-            imContext->metaUnlock() ;
-            // Note: Do not release the imContext. It will be used by the session,
-            // and released when the session exists.
+            for ( IDX_META_VEC_CITR vItr = mItr->second.begin();
+                  vItr != mItr->second.end(); ++vItr )
+            {
+               TASK_SESSION_ITEM* taskItem = _findTask( &*vItr ) ;
+               if ( !taskItem )
+               {
+                  UINT64 sessionID = _newSessionID() ;
+                  _pAdptCB->startInnerSession( SEADPT_SESSION_INDEX,
+                                               sessionID,
+                                               (void *)(&*vItr ) ) ;
+                  taskMapTmp.insert( TASK_SESSION_ITEM(sessionID, *vItr ) ) ;
+               }
+               else
+               {
+                  taskMapTmp.insert( *taskItem ) ;
+               }
+            }
          }
-         else
-         {
-            imContext->metaUnlock() ;
-            idxMetaMgr->releaseIMContext( imContext ) ;
-         }
+
+         _taskSessionMap = taskMapTmp ;
+         idxMetaCache->unlock( SHARED ) ;
       }
-
-   done:
-      if ( imContext && imContext->isMetaLocked() )
+      catch ( std::exception &e )
       {
-         imContext->metaUnlock() ;
-      }
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   void _seIndexSessionMgr::stopAllIndexer( const NET_HANDLE &handle )
-   {
-      // Stopp all indexers which are running currently. Then clean all
-      // remainning tasks.
-      handleSessionClose( handle ) ;
-      _pAdptCB->cleanInnerSession( SEADPT_SESSION_INDEX ) ;
-   }
-
-   INT32 _seIndexSessionMgr::setOptionMgr( const seAdptOptionsMgr *optionMgr )
-   {
-      INT32 rc = SDB_OK ;
-      if ( !optionMgr )
-      {
-         rc = SDB_INVALIDARG ;
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Exception occurred: %s", e.what() ) ;
          goto error ;
       }
 
-      _optionMgr = optionMgr ;
-
    done:
       return rc ;
    error:
       goto done ;
+   }
+
+   void _seIndexSessionMgr::stopAllIndexer()
+   {
+      _pAdptCB->cleanInnerSession( SEADPT_SESSION_INDEX ) ;
+
+      _taskSessionMap.clear() ;
    }
 
    SDB_SESSION_TYPE _seIndexSessionMgr::_prepareCreate( UINT64 sessionID,
@@ -226,25 +217,13 @@ namespace seadapter
 
    void _seIndexSessionMgr::onSessionDestoryed( pmdAsyncSession *pSession )
    {
-      seIdxMetaMgr* idxMetaMgr = _pAdptCB->getIdxMetaMgr() ;
-      seIdxMetaContext *imContext =
-            ((seAdptIndexSession *)pSession)->idxMetaContext() ;
-      seIndexMeta *meta = imContext->meta() ;
-      imContext->metaLock( EXCLUSIVE ) ;
-      if ( SEADPT_IM_STAT_NORMAL == meta->getStat() )
-      {
-         imContext->meta()->setStat( SEADPT_IM_STAT_PENDING ) ;
-      }
-      imContext->metaUnlock() ;
-      idxMetaMgr->releaseIMContext( imContext ) ;
-      _pAdptCB->resetIdxVersion() ;
+      _taskSessionMap.erase( pSession->sessionID() ) ;
    }
 
-   pmdAsyncSession*
-   _seIndexSessionMgr::_createSession( SDB_SESSION_TYPE sessionType,
-                                       INT32 startType,
-                                       UINT64 sessionID,
-                                       void *data )
+   pmdAsyncSession* _seIndexSessionMgr::_createSession( SDB_SESSION_TYPE sessionType,
+                                                        INT32 startType,
+                                                        UINT64 sessionID,
+                                                        void *data )
    {
       pmdAsyncSession *pSession = NULL ;
 
@@ -254,8 +233,11 @@ namespace seadapter
       }
       else if ( SDB_SESSION_SE_INDEX == sessionType )
       {
-         seIdxMetaContext *imContext = (seIdxMetaContext*)data ;
-         pSession = SDB_OSS_NEW seAdptIndexSession( sessionID, imContext ) ;
+         seIndexMeta *idxMeta = (seIndexMeta *)data ;
+         if ( idxMeta->valid() )
+         {
+            pSession = SDB_OSS_NEW seAdptIndexSession( sessionID, idxMeta ) ;
+         }
       }
       else
       {
@@ -265,8 +247,25 @@ namespace seadapter
       return pSession ;
    }
 
+   TASK_SESSION_ITEM* _seIndexSessionMgr::_findTask( const seIndexMeta *idxMeta )
+   {
+      TASK_SESSION_ITEM* item = NULL ;
+      for ( TASK_SESSION_MAP_ITR itr = _taskSessionMap.begin() ;
+            itr != _taskSessionMap.end(); ++itr )
+      {
+         if ( *idxMeta == itr->second )
+         {
+            item = &*itr ;
+            break ;
+         }
+      }
+
+      return item ;
+   }
+
    BEGIN_OBJ_MSG_MAP( _seAdptCB, _pmdObjBase )
       ON_MSG( MSG_AUTH_VERIFY_RES, _onRegisterRes )
+      ON_MSG( MSG_CAT_QUERY_CATALOG_RSP, _onCatalogResMsg )
       ON_MSG( MSG_SEADPT_UPDATE_IDXINFO_RES, _onIdxUpdateRes )
       ON_MSG( MSG_COM_REMOTE_DISC, _onRemoteDisconnect )
    END_OBJ_MSG_MAP()
@@ -276,21 +275,22 @@ namespace seadapter
      _svcMsgHandler( &_svcSessionMgr ),
      _indexTimerHandler( &_idxSessionMgr ),
      _svcTimerHandler( &_svcSessionMgr ),
-     _dbAssist( &_indexMsgHandler ),
+     _indexNetRtAgent( &_indexMsgHandler ),
      _svcRtAgent( &_svcMsgHandler ),
      _idxSessionMgr( this )
    {
       ossMemset( _serviceName, 0, OSS_MAX_SERVICENAME + 1 ) ;
+      _dataNodeID.value = MSG_INVALID_ROUTEID ;
+      _cataNodeID.value = MSG_INVALID_ROUTEID ;
       _selfRouteID.value = MSG_INVALID_ROUTEID ;
       _peerPrimary = FALSE ;
+      ossMemset( _peerGroupName, 0, OSS_MAX_GROUPNAME_SIZE + 1 ) ;
       _regTimerID = NET_INVALID_TIMER_ID ;
       _idxUpdateTimerID = NET_INVALID_TIMER_ID ;
       _oneSecTimerID = NET_INVALID_TIMER_ID ;
-      _esDetectTimerID = NET_INVALID_TIMER_ID ;
-      _localIdxVer = SEADPT_INIT_TEXT_INDEX_VERSION ;
+      _clVersion = -1 ;
+      _localIdxVer = -1 ;
       _regMsgBuff = NULL ;
-      _esClt = NULL ;
-      _indexerOn = FALSE ;
    }
 
    _seAdptCB::~_seAdptCB()
@@ -298,10 +298,6 @@ namespace seadapter
       if ( _regMsgBuff )
       {
          SDB_OSS_FREE( _regMsgBuff ) ;
-      }
-      if ( _esClt )
-      {
-         SDB_OSS_DEL _esClt ;
       }
    }
 
@@ -318,15 +314,13 @@ namespace seadapter
    INT32 _seAdptCB::init()
    {
       INT32 rc = SDB_OK ;
-      CHAR seSvcAddr[ SEADPT_SE_SVCADDR_MAX_SZ + 1 ] = { 0 } ;
+      std::string seSvcPath ;
 
-      // register config handler to se adapter options.
       _options.setConfigHandler( pmdGetKRCB() ) ;
 
       rc = _startSvcListener() ;
       PD_RC_CHECK( rc, PDERROR, "Start service listener failed[ %d ]", rc ) ;
 
-      // Init sdb data node address.
       rc = _initSdbAddr() ;
       if ( rc )
       {
@@ -334,27 +328,26 @@ namespace seadapter
          goto error ;
       }
 
-      rc = _idxSessionMgr.init( _dbAssist.routeAgent(), &_indexTimerHandler,
+      rc = _initSearchEngineAddr() ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Init search engine address failed[ %d ]", rc ) ;
+         goto error ;
+      }
+
+      rc = _idxSessionMgr.init( &_indexNetRtAgent, &_indexTimerHandler,
                                 5 * OSS_ONE_SEC ) ;
       PD_RC_CHECK( rc, PDERROR, "Init index session manager failed[ %d ]",
                    rc ) ;
-
-      rc = _idxSessionMgr.setOptionMgr( &_options ) ;
-      PD_RC_CHECK( rc, PDERROR, "Set option manager in index session manager "
-                   "failed[ %d ]", rc ) ;
 
       rc = _svcSessionMgr.init( &_svcRtAgent, &_svcTimerHandler,
                                 60 * OSS_ONE_SEC ) ;
       PD_RC_CHECK( rc, PDERROR, "Init service session manager failed[ %d ]",
                    rc ) ;
 
-      // Initialize search engine client manager.
-      ossSnprintf( seSvcAddr, OSS_MAX_HOSTNAME + OSS_MAX_SERVICENAME + 2,
-                   "%s:%s", _options.getSEHost(), _options.getSEService() ) ;
-
-      // TODO: In future, if we can connect to adapter and change the
-      // configuration value, just set the option manager in the factory.
-      rc = _seCltFactory.init( seSvcAddr, _options.getTimeout() ) ;
+      seSvcPath = std::string( _options.getSeHost() ) + ":"
+                  + std::string( _options.getSeService() ) ;
+      rc = _seCltMgr.init( seSvcPath ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Init search engine client manager failed[ %d ]",
@@ -363,8 +356,6 @@ namespace seadapter
       }
       PD_LOG( PDEVENT, "Search engine client manager init successfully" ) ;
 
-      // Set the business status to not OK. Change to OK after successfully
-      // registered on data node.
       pmdGetKRCB()->setBusinessOK( FALSE ) ;
 
    done:
@@ -382,7 +373,6 @@ namespace seadapter
       pmdEDUMgr *pEDUMgr = pmdGetKRCB()->getEDUMgr() ;
 
       _attachEvent.reset() ;
-      // 1. start se adapter manager edu.
       rc = pEDUMgr->startEDU( EDU_TYPE_SEADPTMGR, (_pmdObjBase*)this, &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start search engine adapter manager "
                    "edu, rc: %d", rc ) ;
@@ -390,16 +380,13 @@ namespace seadapter
       PD_RC_CHECK( rc, PDERROR, "Wait search engine adapter manager edu attach "
                    "failed, rc: %d", rc ) ;
 
-      // 2. start network daemon for indexer reader.
-      rc = pEDUMgr->startEDU( EDU_TYPE_SE_INDEXR, _dbAssist.routeAgent(),
-                              &eduID ) ;
+      rc = pEDUMgr->startEDU( EDU_TYPE_SE_INDEXR, &_indexNetRtAgent, &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start search engine adapter net, "
                    "rc: %d", rc ) ;
       rc = pEDUMgr->waitUntil( eduID, PMD_EDU_RUNNING ) ;
       PD_RC_CHECK( rc, PDERROR, "Wait indexer reader network daemons active "
                    "failed[ %d ]", rc ) ;
 
-      // 3. start se adapter service.
       rc = pEDUMgr->startEDU( EDU_TYPE_SE_SERVICE, (void *)&_svcRtAgent,
                               &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Start service listener failed[ %d ]", rc ) ;
@@ -410,7 +397,6 @@ namespace seadapter
       rc = _setTimers() ;
       PD_RC_CHECK( rc, PDERROR, "Set timers failed[ %d ]", rc ) ;
 
-      // Register immediately.
       _sendRegisterMsg() ;
 
    done:
@@ -422,7 +408,8 @@ namespace seadapter
    INT32 _seAdptCB::deactive()
    {
       _svcRtAgent.closeListen() ;
-      _dbAssist.routeAgent()->stop() ;
+
+      _indexNetRtAgent.stop() ;
       _svcRtAgent.stop() ;
 
       _idxSessionMgr.setForced() ;
@@ -467,10 +454,6 @@ namespace seadapter
       {
          _sendRegisterMsg() ;
       }
-      else if ( timerID == _esDetectTimerID )
-      {
-         _detectES() ;
-      }
       else if ( timerID == _oneSecTimerID )
       {
          _idxSessionMgr.onTimer( interval ) ;
@@ -478,10 +461,7 @@ namespace seadapter
       }
       else if ( timerID == _idxUpdateTimerID )
       {
-         // Only send the index update request when adapter is successfully
-         // registered, and Elasticsearch is online.
-         if ( NET_INVALID_TIMER_ID == _regTimerID
-              && NET_INVALID_TIMER_ID == _esDetectTimerID )
+         if ( NET_INVALID_TIMER_ID == _regTimerID )
          {
             INT32 rc = _sendIdxUpdateReq() ;
             if ( rc )
@@ -499,9 +479,9 @@ namespace seadapter
       return &_options ;
    }
 
-   utilESCltFactory* _seAdptCB::getSeCltFactory()
+   utilESCltMgr* _seAdptCB::getSeCltMgr()
    {
-      return &_seCltFactory ;
+      return &_seCltMgr ;
    }
 
    seSvcSessionMgr* _seAdptCB::getSeAgentMgr()
@@ -512,6 +492,11 @@ namespace seadapter
    seIndexSessionMgr* _seAdptCB::getIdxSessionMgr()
    {
       return &_idxSessionMgr ;
+   }
+
+   netRouteAgent* _seAdptCB::getIdxRouteAgent()
+   {
+      return &_indexNetRtAgent ;
    }
 
    INT32 _seAdptCB::startInnerSession( SEADPT_SESSION_TYPE type,
@@ -549,23 +534,12 @@ namespace seadapter
       }
    }
 
-   void _seAdptCB::resetIdxVersion()
-   {
-      _localIdxVer = SEADPT_INIT_TEXT_INDEX_VERSION ;
-   }
-
-   // Update catalogue address by registering again.
-   INT32 _seAdptCB::updateCataInfo( INT64 millsec )
+   INT32 _seAdptCB::sendToDataNode( MsgHeader *msg )
    {
       INT32 rc = SDB_OK ;
 
-      _registerEvent.reset() ;
-
-      rc = _resumeRegister() ;
-      PD_RC_CHECK( rc, PDERROR, "Resume register failed[%d]", rc ) ;
-
-      rc = _registerEvent.wait( millsec ) ;
-      PD_RC_CHECK( rc, PDERROR, "Update catalogue info failed[%d]", rc ) ;
+      rc = _indexNetRtAgent.syncSend( _dataNodeID, (void *)msg ) ;
+      PD_RC_CHECK( rc, PDERROR, "Send message to data node failed[ %d ]", rc ) ;
 
    done:
       return rc ;
@@ -573,7 +547,164 @@ namespace seadapter
       goto done ;
    }
 
-   INT32 _seAdptCB::_updateIndexInfo( const NET_HANDLE &handle, BSONObj &obj )
+   INT32 _seAdptCB::syncUpdateCLVersion( const CHAR *collectionName,
+                                         INT64 millsec, pmdEDUCB *cb,
+                                         INT32 &version )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj query ;
+      BSONObj selector ;
+      BOOLEAN needRetry = FALSE ;
+      UINT32 retryTimes = 0 ;
+      BOOLEAN hasSent = FALSE ;
+
+      try
+      {
+         query = BSON( FIELD_NAME_NAME << collectionName ) ;
+         selector = BSON( FIELD_NAME_VERSION << "" ) ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Exception occurred when creating query: %s",
+                 e.what() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+   retry:
+      _verUpdateLock.get() ;
+      _clVersion = -1 ;
+      if ( !hasSent )
+      {
+         _cataEvent.reset() ;
+         rc = _sendCataQueryReq( query, selector, 0, cb ) ;
+         if ( SDB_OK == rc )
+         {
+            hasSent = TRUE ;
+         }
+      }
+
+      if ( SDB_OK == rc )
+      {
+         INT32 result = SDB_OK ;
+         rc = _cataEvent.wait( millsec, &result ) ;
+         if ( SDB_OK == rc )
+         {
+            rc = result ;
+            if ( SDB_DMS_EOC == rc || SDB_DMS_NOTEXIST == rc )
+            {
+               rc = SDB_DMS_NOTEXIST ;
+            }
+            else if ( SDB_CLS_NOT_PRIMARY == rc )
+            {
+               needRetry = TRUE ;
+               hasSent = FALSE ;
+            }
+         }
+
+         if ( SDB_OK == rc )
+         {
+            version = _clVersion ;
+         }
+         else if ( SDB_NET_CANNOT_CONNECT == rc ||
+                   SDB_NETWORK_CLOSE == rc ||
+                   SDB_CLS_NOT_PRIMARY == rc )
+         {
+            needRetry = TRUE ;
+         }
+         else if ( rc && SDB_DMS_NOTEXIST != rc )
+
+         {
+            needRetry = FALSE ;
+         }
+
+      }
+
+      _verUpdateLock.release() ;
+
+      if ( needRetry && retryTimes < SEADPT_CAT_RETRY_MAX_TIMES )
+      {
+         goto retry ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _seAdptCB::_onCatalogResMsg( NET_HANDLE handle, MsgHeader *msg )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 flag = 0 ;
+      INT64 contextID = -1 ;
+      INT32 startFrom = 0 ;
+      INT32 numReturned = 0 ;
+      vector<BSONObj> docObjs ;
+      MsgOpReply *res = (MsgOpReply *)msg ;
+
+      if ( SDB_OK != res->flags )
+      {
+         if ( SDB_DMS_EOC == res->flags || SDB_DMS_NOTEXIST == res->flags )
+         {
+            _cataEvent.signalAll( SDB_DMS_NOTEXIST ) ;
+         }
+         else
+         {
+            _cataEvent.signalAll( res->flags ) ;
+         }
+      }
+      else
+      {
+         rc = msgExtractReply( (CHAR *)msg, &flag, &contextID, &startFrom,
+                               &numReturned, docObjs ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to extract query result, rc: %d", rc ) ;
+            goto error ;
+         }
+
+         rc = flag ;
+         PD_RC_CHECK( rc, PDERROR, "Error returned from catalog[ %d ]", rc ) ;
+
+         SDB_ASSERT( 1 == numReturned && 1 == docObjs.size(),
+                     "Respond size from catalog is wrong" ) ;
+         _clVersion = docObjs[0].getIntField( FIELD_NAME_VERSION ) ;
+         _cataEvent.signalAll( SDB_OK ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _seAdptCB::_sendCataQueryReq( const BSONObj &query,
+                                       const BSONObj &selector,
+                                       UINT64 requestID,
+                                       pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      MsgHeader *msg = NULL ;
+      INT32 buffSize = 0 ;
+      INT32 flag = FLG_QUERY_WITH_RETURNDATA ;
+
+      rc = msgBuildQueryCatalogReqMsg( (CHAR **)&msg, &buffSize, flag, 0, 0,
+                                       -1, 0, &query, &selector,
+                                       NULL, NULL, cb ) ;
+      PD_RC_CHECK( rc, PDERROR, "Build query catalog message failed[ %d ]",
+                   rc ) ;
+
+      rc = _indexNetRtAgent.syncSend( _cataNodeID, (void *)msg ) ;
+      PD_RC_CHECK( rc, PDERROR, "Send message to cata node failed[ %d ]", rc ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _seAdptCB::_updateIndexInfo( BSONObj &obj, BOOLEAN &updated )
    {
       INT32 rc = SDB_OK ;
       INT64 peerVersion = -1 ;
@@ -613,11 +744,8 @@ namespace seadapter
                           "adapter switch from READWRITE mode to READONLY "
                           "mode" ) ;
                   setDataNodePrimary( FALSE ) ;
-                  _idxSessionMgr.stopAllIndexer( handle ) ;
-                  _indexerOn = FALSE ;
-                  // Reset the index version. If the mode change to full again,
-                  // new indexing work should be started.
-                  resetIdxVersion() ;
+                  _idxSessionMgr.stopAllIndexer() ;
+                  _localIdxVer = SEADPT_INIT_TEXT_INDEX_VERSION ;
                }
             }
          }
@@ -634,13 +762,6 @@ namespace seadapter
             peerVersion = ele.numberLong() ;
             if ( peerVersion != _localIdxVer )
             {
-               PD_LOG( PDDEBUG, "Index version: local[%lld] != peer[%lld]. "
-                                "Ready to update local metas",
-                       _localIdxVer, peerVersion ) ;
-#ifdef _DEBUG
-               _idxMetaMgr.printAllIdxMetas() ;
-#endif
-
                BSONElement idxEles = obj.getField( FIELD_NAME_INDEXES ) ;
                if ( EOO == idxEles.type() )
                {
@@ -650,26 +771,50 @@ namespace seadapter
                }
 
                {
-                  _idxMetaMgr.setMetaVersion( peerVersion ) ;
                   vector<BSONElement> idxElements = idxEles.Array() ;
                   for ( vector<BSONElement>::iterator itr = idxElements.begin();
                         itr != idxElements.end(); ++itr )
                   {
-                     BSONObj idxInfoObj = itr->Obj() ;
-                     rc = _idxMetaMgr.addIdxMeta( idxInfoObj, NULL, TRUE ) ;
-                     PD_RC_CHECK( rc, PDERROR, "Add index metadata failed[%d]. "
-                                               "Index metadata: %s",
-                                  rc, idxInfoObj.toString().c_str() ) ;
+                     seIndexMeta idxMeta ;
+                     seIndexMeta *oldMeta = NULL ;
+                     rc = _parseIndexInfo( &*itr, idxMeta ) ;
+                     if ( rc )
+                     {
+                        PD_LOG( PDERROR, "Parse index definition failed[ %d ]",
+                                rc ) ;
+                        continue ;
+                     }
+
+                     idxMeta.setVersion( peerVersion ) ;
+                     _idxMetaCache.lock( EXCLUSIVE ) ;
+                     oldMeta = _idxMetaCache.getIdxMeta( idxMeta ) ;
+                     if ( !oldMeta )
+                     {
+                        _idxMetaCache.addIdxMeta( idxMeta.getOrigCLName().c_str(),
+                                                  idxMeta ) ;
+                        PD_LOG( PDDEBUG, "New index metadata added: %s",
+                                idxMeta.toString().c_str() ) ;
+                     }
+                     else
+                     {
+                        oldMeta->setVersion( peerVersion ) ;
+                     }
+                     _idxMetaCache.unlock( EXCLUSIVE ) ;
                   }
-                  _idxMetaMgr.clearObsoleteMeta() ;
+
+                  PD_LOG( PDDEBUG, "Change local version from [ %d ] to [ %d ]",
+                          _localIdxVer, peerVersion ) ;
+                  _localIdxVer = peerVersion ;
+                  updated = TRUE ;
+
+                  _idxMetaCache.lock( EXCLUSIVE ) ;
+                  _idxMetaCache.cleanByVer( peerVersion ) ;
+                  _idxMetaCache.unlock( EXCLUSIVE ) ;
                }
-               _localIdxVer = peerVersion ;
-#ifdef _DEBUG
-               _idxMetaMgr.printAllIdxMetas() ;
-#endif
             }
             else
             {
+               updated = FALSE ;
                PD_LOG( PDDEBUG, "Text index version are the same[%lld], no need "
                        "for updating", _localIdxVer ) ;
             }
@@ -688,6 +833,115 @@ namespace seadapter
       goto done ;
    }
 
+   INT32 _seAdptCB::_parseIndexInfo( const BSONElement *ele,
+                                     seIndexMeta &idxMeta )
+   {
+      INT32 rc = SDB_OK ;
+      const CHAR *clName = NULL ;
+      const CHAR *idxName = NULL  ;
+      const CHAR *cappedCLName = NULL ;
+      BSONObj idxDef ;
+      BSONObj key ;
+      BSONElement lidEle ;
+      UINT32 csLogicalID = 0 ;
+      UINT32 clLogicalID = 0 ;
+      UINT32 idxLogicalID = 0 ;
+
+      try
+      {
+         BSONObj idxObj = ele->Obj() ;
+         clName = idxObj.getStringField( FIELD_NAME_COLLECTION ) ;
+         if ( 0 == ossStrlen( clName ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Collection name not found in index infor" ) ;
+            goto error ;
+         }
+
+         cappedCLName = idxObj.getStringField( SEADPT_NAME_CAPPED_COLLECTION ) ;
+         if ( 0 == ossStrlen( cappedCLName ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR,
+                    "Capped collection name not found in index info" ) ;
+            goto error ;
+         }
+
+         idxDef = idxObj.getObjectField( FIELD_NAME_INDEX ) ;
+         if ( idxDef.isEmpty() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "No valid index definition in index info" ) ;
+            goto error ;
+         }
+
+         key = idxDef.getObjectField( IXM_FIELD_NAME_KEY ) ;
+         if ( key.isEmpty() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "No valid key definition in index info" ) ;
+            goto error ;
+         }
+
+         idxName = idxDef.getStringField( IXM_FIELD_NAME_NAME ) ;
+         if ( 0 == ossStrlen( idxName ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Get index name from definition failed" ) ;
+            goto error ;
+         }
+
+         lidEle = idxObj.getField( FIELD_NAME_LOGICAL_ID ) ;
+         if ( Array != lidEle.type() )
+         {
+            rc = SDB_SYS ;
+            PD_LOG( PDERROR, "Get logical id array from definition failed" ) ;
+            goto error ;
+         }
+
+         {
+            BSONObj lidObj = lidEle.embeddedObject() ;
+            if ( 3 != lidObj.nFields() )
+            {
+               rc = SDB_SYS ;
+               PD_LOG( PDERROR, "Logical id field size is not as expected. "
+                       "Expected: 2, Actual: %d", lidObj.nFields() ) ;
+               goto error ;
+            }
+            else
+            {
+               csLogicalID = (UINT32)lidObj.getIntField( "0" ) ;
+               clLogicalID = (UINT32)lidObj.getIntField( "1" ) ;
+               idxLogicalID = (UINT32)lidObj.getIntField( "2" ) ;
+            }
+         }
+
+         idxMeta.setCLName( clName ) ;
+         idxMeta.setIdxName( idxName ) ;
+         idxMeta.setCappedCLName( cappedCLName ) ;
+         rc = idxMeta.setIdxDef( key ) ;
+         PD_RC_CHECK( rc, PDERROR, "Set index difinition failed[ %d ]", rc ) ;
+
+         idxMeta.setCSLogicalID( csLogicalID ) ;
+         idxMeta.setCLLogicalID( clLogicalID ) ;
+         idxMeta.setIdxLogicalID( idxLogicalID ) ;
+
+         _genESIdxName( idxMeta ) ;
+         idxMeta.setESIdxType( _peerGroupName ) ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Unexpected exception happed: %s", e.what() ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _seAdptCB::_startSvcListener()
    {
       INT32 rc = SDB_OK ;
@@ -696,21 +950,15 @@ namespace seadapter
       UINT16 sdbPort = 0 ;
       BOOLEAN success = FALSE ;
 
-      // Use a fixed node id and a random service port for the adapter.
-      // Try to use port starting from [ sdb_service + 7|8|9 ], skipping the
-      // ones end with 0. Find one that can be used, or return error if we
-      // can't.
-      ossSocket::getPort( _options.getDBService(), sdbPort ) ;
+      ossSocket::getPort( _options.getDbService(), sdbPort ) ;
 
-      // Create listener socket. This is for searching and command processing.
-      svcRtID.columns.groupID = SEADPT_GRP_ID ;
-      svcRtID.columns.nodeID = SEADPT_NODE_ID ;
-      svcRtID.columns.serviceID = SEADPT_SVC_ID ;
+      svcRtID.columns.groupID = SDB_SEADPT_GRP_ID ;
+      svcRtID.columns.nodeID = SDB_SEADPT_NODE_ID ;
+      svcRtID.columns.serviceID = SDB_SEADPT_SVC_ID ;
 
-      INT32 svcPort = sdbPort + SEADPT_SVC_PORT_PLUS ;
+      INT32 svcPort = sdbPort + SEADPT_SVC_PORT_PLUS;
       while ( svcPort <= SEADPT_MAX_PORT )
       {
-         // Skip the ports end with 0, for they may be used by sdb nodes.
          if ( 0 == svcPort % 10 )
          {
             svcPort += SEADPT_SVC_PORT_PLUS ;
@@ -756,26 +1004,26 @@ namespace seadapter
 
    INT32 _seAdptCB::_initSdbAddr()
    {
-      // Add the route information of sdb node.
       INT32 rc = SDB_OK ;
       UINT16 port = 0 ;
-      CHAR service[ OSS_MAX_SERVICENAME + 1 ] = { 0 } ;
-      MsgRouteID dataNodeID ;
 
-      dataNodeID.columns.groupID = DATA_NODE_GRP_ID ;
-      dataNodeID.columns.nodeID = DATA_NODE_ID ;
+      _dataNodeID.columns.groupID = DATA_NODE_GRP_ID ;
+      _dataNodeID.columns.nodeID = DATA_NODE_ID ;
 
-      // capped collection from shard flat.
-      dataNodeID.columns.serviceID = MSG_ROUTE_SHARD_SERVCIE ;
-      ossSocket::getPort( _options.getDBService(), port ) ;
+      _dataNodeID.columns.serviceID = MSG_ROUTE_SHARD_SERVCIE ;
+      ossSocket::getPort( _options.getDbService(), port ) ;
       port += MSG_ROUTE_SHARD_SERVCIE ;
 
-      ossSnprintf( service, OSS_MAX_SERVICENAME + 1, "%u", port ) ;
+      std::stringstream portStr ;
+      portStr << port ;
 
-      rc = _dbAssist.updateDataNodeRoute( dataNodeID, _options.getDBHost(),
-                                          service ) ;
-      PD_RC_CHECK( rc, PDERROR, "Update data node route information failed[%d]",
-                   rc ) ;
+      rc = _indexNetRtAgent.updateRoute( _dataNodeID, _options.getDbHost(),
+                                         portStr.str().c_str() ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Update route failed[ %d ]", rc ) ;
+         goto error ;
+      }
 
    done:
       return rc ;
@@ -783,7 +1031,28 @@ namespace seadapter
       goto done ;
    }
 
-   // Register on the data node. Use the auth msg.
+   INT32 _seAdptCB::_initSearchEngineAddr()
+   {
+      INT32 rc = SDB_OK ;
+      MsgRouteID nodeID ;
+
+      nodeID.columns.groupID = INVALID_GROUPID ;
+      nodeID.columns.nodeID = INVALID_NODEID ;
+      nodeID.columns.serviceID = 0 ;
+
+      rc = _indexNetRtAgent.updateRoute( nodeID, _options.getSeHost(),
+                                         _options.getSeService() ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Update route failed[ %d ]", rc ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 _seAdptCB::_sendRegisterMsg()
    {
       INT32 rc = SDB_OK ;
@@ -793,14 +1062,11 @@ namespace seadapter
 
       try
       {
-         // Should send the route information to data node. Then data node is
-         // able to send request and reply. Currently we use a fixed node id
-         // for the adapter.
          authObj = BSON( FIELD_NAME_HOST << pmdGetKRCB()->getHostName()
                          << FIELD_NAME_SERVICE_NAME << _options.getSvcName()
-                         << FIELD_NAME_GROUPID << SEADPT_GRP_ID
-                         << FIELD_NAME_NODEID << SEADPT_NODE_ID
-                         << FIELD_NAME_SERVICE_TYPE << SEADPT_SVC_ID ) ;
+                         << FIELD_NAME_GROUPID << SDB_SEADPT_GRP_ID
+                         << FIELD_NAME_NODEID << SDB_SEADPT_NODE_ID
+                         << FIELD_NAME_SERVICE_TYPE << SDB_SEADPT_SVC_ID ) ;
       }
       catch ( std::exception &e )
       {
@@ -825,14 +1091,13 @@ namespace seadapter
       authMsg->header.messageLength = sizeof( MsgAuthentication ) +
                                       authObj.objsize() ;
       authMsg->header.routeID.value = 0 ;
-      // Send to the main thread of shard.
       authMsg->header.TID = 0 ;
       ossMemcpy( (CHAR *)authMsg + sizeof( MsgAuthentication ),
                  authObj.objdata(), authObj.objsize() ) ;
 
-      rc = _dbAssist.sendToDataNode( (const MsgHeader *)authMsg ) ;
+      rc = sendToDataNode( (MsgHeader *)authMsg ) ;
       PD_RC_CHECK( rc, PDERROR, "Send register request to data node "
-                   "failed%d]", rc ) ;
+                   "failed[ %d ]", rc ) ;
       PD_LOG( PDDEBUG, "Send register message to data node successfully. "
               "Information: %s", authObj.toString().c_str() ) ;
 
@@ -846,41 +1111,12 @@ namespace seadapter
       goto done ;
    }
 
-   INT32 _seAdptCB::_detectES()
-   {
-      INT32 rc = SDB_OK ;
-      utilESClt *clt = NULL ;
-
-      if ( _esClt )
-      {
-         goto done ;
-      }
-
-      rc = _seCltFactory.create( &clt ) ;
-      PD_RC_CHECK( rc, PDERROR, "Create search engine client failed[ %d ]",
-                   rc ) ;
-
-      _esClt = clt ;
-      _killTimer( _esDetectTimerID ) ;
-      _esDetectTimerID = NET_INVALID_TIMER_ID ;
-
-      if ( NET_INVALID_TIMER_ID == _regTimerID )
-      {
-         pmdGetKRCB()->setBusinessOK( TRUE ) ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
    INT32 _seAdptCB::_resumeRegister()
    {
       INT32 rc = SDB_OK ;
 
-      rc = _dbAssist.routeAgent()->addTimer( OSS_ONE_SEC, &_indexTimerHandler,
-                                             _regTimerID ) ;
+      rc = _indexNetRtAgent.addTimer( OSS_ONE_SEC, &_indexTimerHandler,
+                                      _regTimerID ) ;
       PD_RC_CHECK( rc, PDERROR, "Register timer failed[ %d ]", rc ) ;
 
       _sendRegisterMsg() ;
@@ -901,30 +1137,27 @@ namespace seadapter
       vector<BSONObj> objVec ;
       BSONObj cataInfoObj ;
 
-      const CHAR *cataHost = NULL ;
-      const CHAR *cataSvc = NULL ;
+      string cataHost ;
+      string cataSvc ;
       const CHAR *peerGrpName = NULL ;
-      MsgRouteID cataNodeID ;
+      MsgOpReply *res = (MsgOpReply *)msg ;
 
-      // Adapter has registered successfully.
       if ( NET_INVALID_TIMER_ID == _regTimerID )
       {
          goto done ;
       }
 
+      rc = res->flags ;
+      PD_RC_CHECK( rc, PDERROR, "Adapter register on data node failed[ %d ]",
+                   rc ) ;
+
       try
       {
-         // Get the role, group id of the node.
          rc = msgExtractReply( (CHAR *)msg, &flag, &contextID, &startFrom,
                                &numReturned, objVec ) ;
          PD_RC_CHECK( rc, PDERROR, "Extract register reply failed[ %d ]", rc ) ;
-         if ( SDB_OK != flag )
-         {
-            PD_LOG( PDERROR, "Adapter register on data node failed[%d]",
-                    flag ) ;
-            goto error ;
-         }
-
+         rc = flag ;
+         PD_RC_CHECK( rc, PDERROR, "Error returned from data node[ %d ]", rc ) ;
          if ( 1 != objVec.size() )
          {
             PD_LOG( PDERROR, "Register reply is not as expected" ) ;
@@ -934,14 +1167,15 @@ namespace seadapter
 
          _peerPrimary = objVec[0].getBoolField( FIELD_NAME_IS_PRIMARY ) ;
          peerGrpName = objVec[0].getStringField( FIELD_NAME_GROUPNAME ) ;
-         if ( 0 == ossStrlen( peerGrpName ) )
+         if ( !peerGrpName )
          {
             PD_LOG( PDERROR, "Find peer node group name failed" ) ;
             rc = SDB_SYS ;
             goto error ;
          }
 
-         _idxMetaMgr.setFixTypeName( peerGrpName ) ;
+         ossStrncpy( _peerGroupName, peerGrpName, OSS_MAX_GROUPNAME_SIZE ) ;
+         _peerGroupName[ OSS_MAX_GROUPNAME_SIZE ] = '\0' ;
 
          cataInfoObj = objVec[0].getObjectField( FIELD_NAME_CATALOGINFO ) ;
          if ( cataInfoObj.isEmpty() )
@@ -953,12 +1187,12 @@ namespace seadapter
 
          cataHost = cataInfoObj.getStringField( FIELD_NAME_HOST ) ;
          cataSvc = cataInfoObj.getStringField( FIELD_NAME_SERVICE_NAME ) ;
-         cataNodeID.columns.groupID =
-               (UINT32)cataInfoObj.getIntField( FIELD_NAME_GROUPID ) ;
-         cataNodeID.columns.nodeID =
-               (UINT16)cataInfoObj.getIntField( FIELD_NAME_NODEID ) ;
-         cataNodeID.columns.serviceID =
-               (UINT16)cataInfoObj.getIntField( FIELD_NAME_SERVICE ) ;
+         _cataNodeID.columns.groupID =
+            cataInfoObj.getIntField( FIELD_NAME_GROUPID ) ;
+         _cataNodeID.columns.nodeID =
+            cataInfoObj.getIntField( FIELD_NAME_NODEID ) ;
+         _cataNodeID.columns.serviceID =
+            cataInfoObj.getIntField( FIELD_NAME_SERVICE ) ;
       }
       catch ( std::exception &e )
       {
@@ -967,7 +1201,8 @@ namespace seadapter
          goto error ;
       }
 
-      rc = _dbAssist.updateCataNodeRoute( cataNodeID, cataHost, cataSvc ) ;
+      rc = _indexNetRtAgent.updateRoute( _cataNodeID, cataHost.c_str(),
+                                         cataSvc.c_str() ) ;
       if ( rc && SDB_NET_UPDATE_EXISTING_NODE != rc )
       {
          PD_LOG( PDERROR, "Update route failed[ %d ]", rc ) ;
@@ -977,39 +1212,25 @@ namespace seadapter
       _killTimer( _regTimerID ) ;
       _regTimerID = NET_INVALID_TIMER_ID ;
 
-      if ( NET_INVALID_TIMER_ID == _esDetectTimerID )
+      pmdGetKRCB()->setBusinessOK( TRUE ) ;
+
+      PD_LOG( PDEVENT, "Search engine adapter registered on SequoiaDB data "
+              "node successfully" ) ;
+      if ( TRUE == _peerPrimary )
       {
-         pmdGetKRCB()->setBusinessOK( TRUE ) ;
+         PD_LOG( PDEVENT, "Peer node is primary. Search engine adapter is "
+                 "running in READWRITE mode" ) ;
+      }
+      else
+      {
+         PD_LOG( PDEVENT, "Peer node is not primary. Search engine adapter is "
+                 "running in READONLY mode" ) ;
       }
 
-      // Registration forcefully triggered when the service is ok. That may
-      // happen when the adapter try to update the catalogue information. In
-      // that case, the following actions should not be done.
-      if ( !_indexerOn )
-      {
-         PD_LOG( PDEVENT, "Search engine adapter registered on SequoiaDB data "
-                          "node successfully" ) ;
-         if ( TRUE == _peerPrimary )
-         {
-            PD_LOG( PDEVENT, "Peer node is primary. Search engine adapter is "
-                             "running in READWRITE mode" ) ;
-         }
-         else
-         {
-            PD_LOG( PDEVENT, "Peer node is not primary. Search engine adapter "
-                             "is running in READONLY mode" ) ;
-         }
-
-         // New register means new connections. Refresh the index information
-         // forcefully.
-         _localIdxVer = SEADPT_INIT_TEXT_INDEX_VERSION ;
-         // When connect to any node, start the index update timer.
-         rc = _dbAssist.routeAgent()->addTimer( SEADPT_IDX_UPDATE_INTERVAL,
-                                                &_indexTimerHandler,
-                                                _idxUpdateTimerID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Register timer failed[ %d ]", rc ) ;
-      }
-      _registerEvent.signalAll() ;
+      rc = _indexNetRtAgent.addTimer( SEADPT_IDX_UPDATE_INTERVAL,
+                                      &_indexTimerHandler,
+                                      _idxUpdateTimerID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Register timer failed[ %d ]", rc ) ;
 
    done:
       return rc ;
@@ -1025,16 +1246,14 @@ namespace seadapter
       pmdKRCB *pKRCB = pmdGetKRCB () ;
       pmdEDUMgr *pEDUMgr = pKRCB->getEDUMgr () ;
 
-      //Start EDU
       rc = pEDUMgr->startEDU( (EDU_TYPES)type, (void *)agrs, &eduID ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG ( PDERROR, "Failed to create EDU[type:%d(%s)], rc = %d",
-                  type, getEDUName( (EDU_TYPES)type ), rc ) ;
+                  type, getEDUName( (EDU_TYPES)type ), rc );
          goto error ;
       }
 
-      //Wait edu running
       if ( PMD_EDU_UNKNOW != waitStatus )
       {
          rc = pEDUMgr->waitUntil( (EDU_TYPES)type, waitStatus ) ;
@@ -1067,7 +1286,6 @@ namespace seadapter
          seAdptSessionInfo &info = *itr ;
          if ( info.type != type ||
               SDB_OK == pSessionMgr->getSession( info.sessionID,
-                                                 FALSE,
                                                  info.startType,
                                                  NET_INVALID_HANDLE,
                                                  FALSE, 0, NULL,
@@ -1077,8 +1295,7 @@ namespace seadapter
             continue ;
          }
 
-         rc = pSessionMgr->getSession( info.sessionID, FALSE,
-                                       info.startType,
+         rc = pSessionMgr->getSession( info.sessionID, info.startType,
                                        NET_INVALID_HANDLE, TRUE, 0,
                                        info.data,
                                        &pSession ) ;
@@ -1098,14 +1315,10 @@ namespace seadapter
       return rc ;
    }
 
-   // Communicate with SDB data node to ensure the local text index information
-   // is fresh. If not, get it from SDB and refresh local copy.
    INT32 _seAdptCB::_sendIdxUpdateReq()
    {
       INT32 rc = SDB_OK ;
 
-      // Send index query request to data node. The local index information
-      // version number will be passed.
       BSONObj msgBody ;
       INT32 msgLen = 0 ;
 
@@ -1144,8 +1357,8 @@ namespace seadapter
       ossMemcpy( (CHAR *)_regMsgBuff + sizeof( MsgHeader ),
                  msgBody.objdata(), msgBody.objsize() ) ;
 
-      rc = _dbAssist.sendToDataNode( _regMsgBuff ) ;
-      PD_RC_CHECK( rc, PDERROR, "Send message to data node failed[%d]", rc ) ;
+      rc = sendToDataNode( _regMsgBuff ) ;
+      PD_RC_CHECK( rc, PDERROR, "Send message to data node failed[ %d ]", rc ) ;
       PD_LOG( PDDEBUG, "Send text index update request to data node. "
               "Message: %s", msgBody.toString().c_str() ) ;
 
@@ -1163,57 +1376,35 @@ namespace seadapter
       INT32 startFrom = 0 ;
       INT32 numReturned = 0 ;
       vector<BSONObj> objVec ;
-      const INT32 expectReplySz = 1 ;
+      BSONElement ele ;
+      BOOLEAN updated = FALSE ;
 
       rc = msgExtractReply( (CHAR *)msg, &flag, &contextID, &startFrom,
                             &numReturned, objVec ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Extract index information query reply failed[ %d ]", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Extract index update reply failed[ %d ]",
+                   rc ) ;
       rc = flag ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Index information query request failed[ %d ]", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Index update request failed[ %d ]", rc ) ;
 
-      // All text indices information should be replied in one object.
-      if ( ( expectReplySz != numReturned ) ||
-           ( expectReplySz != (INT32)objVec.size() ) )
+      if ( 1 != objVec.size() )
       {
-         PD_LOG( PDERROR, "Reply of index information is not as expected" ) ;
+         PD_LOG( PDERROR, "Register reply is not as expected" ) ;
          rc = SDB_SYS ;
          goto error ;
       }
 
-      rc = _updateIndexInfo( handle, objVec[0] ) ;
+      rc = _updateIndexInfo( objVec[0], updated ) ;
       PD_RC_CHECK( rc, PDERROR, "Update indices information failed[ %d ]",
                    rc ) ;
 
-      // There are several scenarios we should refresh index tasks:
-      // (1) Index information is updated.
-      // (2) Peer data node upgrades from slave to primary.
-      // (3) No upgrade or update, all index tasks stopped due to the connection
-      //     lost with ES. Now it's alive again. Tasks should be restarted.
-      if ( _isESOnline() )
+      if ( updated && isDataNodePrimary() )
       {
-         if ( isDataNodePrimary() )
-         {
-            PD_LOG( PDEVENT, "Index information updated or data node upgrade. "
-                             "Refresh index tasks") ;
-            rc = _idxSessionMgr.refreshTasks() ;
-            PD_RC_CHECK( rc, PDERROR, "Update text index information failed[ %d ]",
-                         rc ) ;
-            rc = _startInnerSession( SEADPT_SESSION_INDEX, &_idxSessionMgr ) ;
-            PD_RC_CHECK( rc, PDERROR, "Start inner session failed[ %d ]", rc ) ;
-            _indexerOn = TRUE ;
-         }
-      }
-      else
-      {
-         if ( _indexerOn )
-         {
-            PD_LOG( PDERROR, "Can't connect to search engine, "
-                    "stop all index tasks... " ) ;
-            _idxSessionMgr.stopAllIndexer( handle ) ;
-            _indexerOn = FALSE ;
-         }
+         rc = _idxSessionMgr.refreshTasks( objVec[0] ) ;
+         PD_RC_CHECK( rc, PDERROR, "Update text index information failed[ %d ]",
+                      rc ) ;
+
+         rc = _startInnerSession( SEADPT_SESSION_INDEX, &_idxSessionMgr ) ;
+         PD_RC_CHECK( rc, PDERROR, "Start inner session failed[ %d ]", rc ) ;
       }
 
    done:
@@ -1226,17 +1417,19 @@ namespace seadapter
    {
       INT32 rc = SDB_OK ;
 
-      // Kill the index update timer, and resume the register.
       if ( NET_INVALID_TIMER_ID != _idxUpdateTimerID )
       {
          _killTimer( _idxUpdateTimerID ) ;
          _idxUpdateTimerID = NET_INVALID_TIMER_ID ;
       }
 
-      PD_LOG( PDEVENT, "Network broken with data node. Stop all indexing jobs "
+      _idxMetaCache.lock( EXCLUSIVE ) ;
+      _idxMetaCache.clear() ;
+      _idxMetaCache.unlock( EXCLUSIVE ) ;
+
+      PD_LOG( PDEVENT, "Network broken with remote. Stop all indexing jobs "
               "and try to register on data node again..." ) ;
-      _idxSessionMgr.stopAllIndexer( handle ) ;
-      _indexerOn = FALSE ;
+      _idxSessionMgr.stopAllIndexer() ;
 
       rc = _resumeRegister() ;
       PD_RC_CHECK( rc, PDERROR, "Resume register failed[ %d ]", rc ) ;
@@ -1251,23 +1444,13 @@ namespace seadapter
    {
       INT32 rc = SDB_OK ;
 
-      // 1. Set the register timer. Before success, try to register every one
-      //    second. Once success, the timer will be killed.
-      rc = _dbAssist.routeAgent()->addTimer( OSS_ONE_SEC, &_indexTimerHandler,
-                                             _regTimerID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Register registration timer failed[ %d ]",
-                   rc ) ;
+      rc = _indexNetRtAgent.addTimer( OSS_ONE_SEC, &_indexTimerHandler,
+                                      _regTimerID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Register timer failed[ %d ]", rc ) ;
 
-      // 2. Set the ES detection timer.
-      rc = _dbAssist.routeAgent()->addTimer( OSS_ONE_SEC, &_indexTimerHandler,
-                                             _esDetectTimerID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Register ES detect timer failed[ %d ]", rc ) ;
-
-      // 3. Set the one second timer. This is for session managers to check
-      //    deleting sessions.
-      rc = _dbAssist.routeAgent()->addTimer( OSS_ONE_SEC, &_indexTimerHandler,
-                                             _oneSecTimerID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Register one second timer failed[ %d ]", rc ) ;
+      rc = _indexNetRtAgent.addTimer( OSS_ONE_SEC, &_indexTimerHandler,
+                                      _oneSecTimerID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Register timer failed[ %d ]", rc ) ;
 
    done:
       return rc ;
@@ -1277,12 +1460,23 @@ namespace seadapter
 
    void _seAdptCB::_killTimer( UINT32 timerID )
    {
-      _dbAssist.routeAgent()->removeTimer( timerID ) ;
+      _indexNetRtAgent.removeTimer( timerID ) ;
    }
 
-   BOOLEAN _seAdptCB::_isESOnline()
+   void _seAdptCB::_genESIdxName( UINT32 csLID, UINT32 clLID, INT32 idxLID,
+                                  CHAR *esIdxName, UINT32 buffSize )
    {
-      return ( _esClt && _esClt->isActive() ) ;
+      ossSnprintf( esIdxName, buffSize, ES_SYS_PREFIX"_%u_%u_%d",
+                   csLID, clLID, idxLID ) ;
+   }
+
+   void _seAdptCB::_genESIdxName( seIndexMeta &idxMeta )
+   {
+      std::string::size_type pos = idxMeta.getCappedCLName().find('.') ;
+      std::string cappedCLName = idxMeta.getCappedCLName().substr( pos + 1 ) ;
+      std::string esIdx = cappedCLName + "_" + _peerGroupName ;
+      std::transform( esIdx.begin(), esIdx.end(), esIdx.begin(), ::tolower ) ;
+      idxMeta.setESIdxName( esIdx.c_str() ) ;
    }
 
    seAdptCB* sdbGetSeAdapterCB()
@@ -1296,9 +1490,14 @@ namespace seadapter
       return sdbGetSeAdapterCB()->getOptions() ;
    }
 
-   utilESCltFactory* sdbGetSeCltFactory()
+   seSvcSessionMgr* sdbGetSeAgentCB()
    {
-      return sdbGetSeAdapterCB()->getSeCltFactory() ;
+      return sdbGetSeAdapterCB()->getSeAgentMgr() ;
+   }
+
+   utilESCltMgr* sdbGetSeCltMgr()
+   {
+      return sdbGetSeAdapterCB()->getSeCltMgr() ;
    }
 }
 

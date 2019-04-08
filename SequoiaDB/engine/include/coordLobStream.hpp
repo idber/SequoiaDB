@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordLobStream.hpp
 
@@ -38,7 +37,6 @@
 #include "rtnLobStream.hpp"
 #include "coordRemoteSession.hpp"
 #include "coordGroupHandle.hpp"
-#include "ossMemPool.hpp"
 
 namespace engine
 {
@@ -183,9 +181,9 @@ namespace engine
             RETRY_TAG_REOPEN = 0x00002,
          } ;
 
-         typedef ossPoolMap<UINT32, subStream>     SUB_STREAMS ;
-         typedef ossPoolSet<ossValuePtr>           DONE_LST ;
-         typedef ossPoolMap<UINT32, dataGroup>     DATA_GROUPS ;
+         typedef _utilMap<UINT32, subStream, 20 >  SUB_STREAMS ;
+         typedef std::set<ossValuePtr>             DONE_LST ;
+         typedef _utilMap<UINT32, dataGroup, 20 >  DATA_GROUPS ;
 
       private:
          INT32 _openSubStreams( const CHAR *fullName,
@@ -294,7 +292,6 @@ namespace engine
          UINT32            _metaGroup ;
 
          UINT32            _alignBuf ;
-         /// error info
          ROUTE_RC_MAP      _nokRC ;
 
          coordResource        *_pResource ;

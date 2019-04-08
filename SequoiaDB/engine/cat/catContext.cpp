@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = catContext.cpp
 
@@ -65,9 +64,7 @@ namespace engine
 
       _needUpdate = FALSE ;
       _hasUpdated = FALSE ;
-      _needClearAfterDone = FALSE ;
       _version = -1 ;
-      _hitEnd = FALSE ;
    }
 
    _catContextBase::~_catContextBase ()
@@ -155,13 +152,20 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXBASE_PREPAREDATA, "_catContextBase::_prepareData" )
-   INT32 _catContextBase::_prepareData ( _pmdEDUCB *cb )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXBASE_GETMORE, "_catContextBase::getMore" )
+   INT32 _catContextBase::getMore ( INT32 maxNumToReturn,
+                                    rtnContextBuf &buffObj,
+                                    _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
-      rtnContextBuf buffObj ;
 
-      PD_TRACE_ENTRY( SDB_CATCTXBASE_PREPAREDATA ) ;
+      PD_TRACE_ENTRY( SDB_CATCTXBASE_GETMORE ) ;
+
+      if ( !isOpened() )
+      {
+         rc = SDB_DMS_CONTEXT_IS_CLOSE ;
+         goto error ;
+      }
 
       switch ( _status )
       {
@@ -201,7 +205,6 @@ namespace engine
                       "Failed in catContext [%lld]: "
                       "failed to commit catalog changes, rc: %d",
                       contextID(), rc ) ;
-         _clear( cb ) ;
          break ;
       }
       default :
@@ -221,25 +224,16 @@ namespace engine
 
       if ( _status == CAT_CONTEXT_DATA_DONE )
       {
-         // End of execution
          rc = SDB_DMS_EOC ;
-      }
-      else
-      {
-         rc = appendObjs( buffObj.data(), buffObj.size(),
-                          buffObj.recordNum() ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Append data(%d) failed, rc: %d",
-                    buffObj.size(), rc ) ;
-            goto error ;
-         }
+         _isOpened = FALSE ;
       }
 
-      PD_LOG( PDDEBUG, "Finished context[%lld] getmore", contextID() ) ;
+      PD_LOG( PDDEBUG,
+              "catContext [%lld]: finished get-more",
+              contextID() ) ;
 
    done :
-      PD_TRACE_EXITRC ( SDB_CATCTXBASE_PREPAREDATA, rc ) ;
+      PD_TRACE_EXITRC ( SDB_CATCTXBASE_GETMORE, rc ) ;
       return rc ;
 
    error :
@@ -315,7 +309,6 @@ namespace engine
                       "failed to pre-execute catalog changes, rc: %d",
                       contextID(), rc ) ;
 
-         // Only need one pre-execute
          _needPreExecute = FALSE ;
       }
       catch ( std::exception &e )
@@ -382,10 +375,8 @@ namespace engine
    done :
       if ( SDB_OK == rc )
       {
-         // Update status
          _setStatus( CAT_CONTEXT_CAT_DONE ) ;
 
-         // Continue to commit if needed
          if ( _commitAfterExecute )
          {
             rc = _commit( cb ) ;
@@ -425,7 +416,6 @@ namespace engine
 
       if ( cb->isForced() )
       {
-         // The database is closing, do not rollback
          goto done ;
       }
 
@@ -500,41 +490,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXBASE_CLEAR, "_catContextBase::_clear" )
-   INT32 _catContextBase::_clear ( _pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY ( SDB_CATCTXBASE_CLEAR ) ;
-
-      INT16 w = _pCatCB->majoritySize() ;
-
-      try
-      {
-         if ( _needClearAfterDone )
-         {
-            rc = _clearInternal( cb, w ) ;
-         }
-       }
-      catch ( std::exception &e )
-      {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = SDB_INVALIDARG;
-         goto error ;
-      }
-
-      PD_LOG( PDDEBUG,
-              "catContext [%lld]: finished clear",
-              contextID() ) ;
-
-   done :
-      PD_TRACE_EXITRC ( SDB_CATCTXBASE_CLEAR, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATCTXBASE_ONCTXDEL, "_catContextBase::_onCtxDelete" )
    INT32 _catContextBase::_onCtxDelete ()
    {
@@ -571,7 +526,6 @@ namespace engine
       return rc ;
 
    error :
-      // No more rollback
       goto done ;
    }
 

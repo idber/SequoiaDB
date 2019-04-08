@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = mthMatchTree.hpp
 
@@ -42,6 +41,7 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "ossUtil.hpp"
+#include "utilMap.hpp"
 #include "../bson/bson.hpp"
 #include "mthMatchNode.hpp"
 #include "mthMatchLogicNode.hpp"
@@ -86,7 +86,7 @@ namespace engine
       EN_MATCH_OP_FUNC_TYPE   getMatchNodeType( const CHAR *opStr ) ;
 
    private:
-      typedef ossPoolMap< string, mthMatchOpMapping* > MTH_OPSTRMAP ;
+      typedef _utilMap< string, mthMatchOpMapping* > MTH_OPSTRMAP ;
       MTH_OPSTRMAP _opstrMap ;
    } ;
 
@@ -106,7 +106,6 @@ namespace engine
          INT32    loadPattern ( const BSONObj &matcher,
                                 mthMatchNormalizer &normalizer ) ;
 
-         //TODO: delete
          INT32    matches( const BSONObj &matchTarget, BOOLEAN &result,
                            _mthMatchTreeContext *context = NULL,
                            rtnParamList *parameters = NULL ) ;
@@ -240,19 +239,14 @@ namespace engine
    {
       enum EN_MATCH_RECORD_SRC_TYPE
       {
-         // just return original src obj
          MTH_SRC_TYPE_ORIGINAL       = 1,
 
-         // split src's fieldName to objs
          MTH_SRC_TYPE_ORIGINAL_SPLIT = 2,
 
-         // set original fieldName's value to NULL
          MTH_SRC_TYPE_ORIGINAL_NULL  = 3,
 
-         // combine all elements as one obj
          MTH_SRC_TYPE_ELEMENTS       = 4,
 
-         // one element one obj
          MTH_SRC_TYPE_ELEMENTS_SPLIT = 5,
       } ;
 
@@ -306,10 +300,8 @@ namespace engine
 
       EN_MATCH_RECORD_SRC_TYPE _srcType ;
 
-      //****_srcType = SRC_TYPE_ORIGINAL_SPLIT ****
       BSONObj _specifyObj ;
       BSONObjIterator _specifyIter ;
-      //*******************************************
    } ;
 
 

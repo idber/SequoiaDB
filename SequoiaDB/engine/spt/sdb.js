@@ -1,18 +1,3 @@
-/*******************************************************************************
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-   http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-*******************************************************************************/
 // Global Constants
 const SDB_PAGESIZE_4K              = 4096 ;
 const SDB_PAGESIZE_8K              = 8192 ;
@@ -34,8 +19,6 @@ const SDB_SNAP_TRANSACTIONS        = 9 ;
 const SDB_SNAP_TRANSACTIONS_CURRENT= 10 ;
 const SDB_SNAP_ACCESSPLANS         = 11 ;
 const SDB_SNAP_HEALTH              = 12 ;
-const SDB_SNAP_CONFIGS             = 13 ;
-const SDB_SNAP_SEQUENCES           = 15 ;
 
 const SDB_LIST_CONTEXTS            = 0 ;
 const SDB_LIST_CONTEXTS_CURRENT    = 1 ;
@@ -50,11 +33,9 @@ const SDB_LIST_DOMAINS             = 9 ;
 const SDB_LIST_TASKS               = 10 ;
 const SDB_LIST_TRANSACTIONS        = 11 ;
 const SDB_LIST_TRANSACTIONS_CURRENT = 12 ;
-const SDB_LIST_SEQUENCES           = 15 ;
 
 const SDB_INSERT_CONTONDUP         = 1 ;
 const SDB_INSERT_RETURN_ID         = 2 ; // only available when inserting only one document
-const SDB_INSERT_REPLACEONDUP      = 4 ;
 
 const SDB_TRACE_FLW                = 0 ;
 const SDB_TRACE_FMT                = 1 ;
@@ -62,6 +43,8 @@ const SDB_TRACE_FMT                = 1 ;
 const SDB_COORD_GROUP_NAME         = "SYSCoord" ;
 const SDB_CATALOG_GROUP_NAME       = "SYSCatalogGroup" ;
 const SDB_SPARE_GROUP_NAME         = "SYSSpare" ;
+
+var SDB_PRINT_JSON_FORMAT          = true ;
 
 const SDB_JSON_PARSE               = JSON.parse ;
 // end Global Constants
@@ -357,6 +340,13 @@ function isEmptyObject(obj) {
    return true;
 }
 
+function jsonFormat(pretty) {
+   if (pretty == undefined){
+      pretty = true;
+   }
+   SDB_PRINT_JSON_FORMAT = pretty;
+}
+
 // end Global functions
 
 Object.defineProperty(Object.prototype,'_rawValueOf',{
@@ -417,6 +407,33 @@ Object.prototype.toString = function() {
    }
    return this._rawToString() ;
 }
+
+// Bson
+Bson.prototype.toObj = function() {
+   return JSON.parse( this.toJson() ) ;
+}
+
+Bson.prototype.toString = function() {
+   if ( typeof(SDB_PRINT_JSON_FORMAT) == "undefined" ||
+        SDB_PRINT_JSON_FORMAT )
+   {
+      try
+      {
+         var obj = this.toObj();
+         var str = JSON.stringify ( obj, undefined, 2 ) ;
+         return str ;
+      }
+      catch ( e )
+      {
+         return this.toJson() ;
+      }
+   }
+   else
+   {
+      return this.toJson() ;
+   }
+}
+// end Bson
 
 // SdbCursor
 SdbCursor.prototype.toArray = function() {
@@ -502,67 +519,16 @@ CLCount.prototype._exec = function() {
 // end CLCount
 
 // SdbCollection
-
 SdbCollection.prototype.count = function( condition ) {
-   var count = new CLCount() ;
-   count._condition = {} ;
-   if( undefined != condition )
-   {
-      count._condition = condition ;
-   }
-   count._collection = this ;
-   count._hint = {} ;
-   return count ;
+   return new CLCount( this, condition ) ;
 }
 
 SdbCollection.prototype.find = function( query, select ) {
-
-   if ( query instanceof SdbQueryOption )
-   {
-      return this.rawFind( query );
-   }
-
-   var queryObj = new SdbQuery();
-   queryObj._query = {};
-   queryObj._select = {} ;
-   if( undefined != query )
-   {
-      queryObj._query = query ;
-   }
-   if( undefined != select )
-   {
-      queryObj._select = select ;
-   }
-   queryObj._sort = {} ;
-   queryObj._hint = {} ;
-   queryObj._options = {} ;
-   queryObj._collection = this ;
-   return queryObj ;
+   return new SdbQuery( this , query, select );
 }
 
 SdbCollection.prototype.findOne = function( query, select ) {
-   if ( query instanceof SdbQueryOption )
-   {
-      return this.rawFind( query.limit(1) );
-   }
-
-   var queryObj = new SdbQuery() ;
-   queryObj._query = {};
-   queryObj._select = {} ;
-   if( undefined != query )
-   {
-      queryObj._query = query ;
-   }
-   if( undefined != select )
-   {
-      queryObj._select = select ;
-   }
-   queryObj._sort = {} ;
-   queryObj._hint = {} ;
-   queryObj._options = {} ;
-   queryObj._collection = this ;
-   queryObj.limit( 1 ) ;
-   return queryObj ;
+   return new SdbQuery( this , query, select ).limit( 1 ) ;
 }
 
 SdbCollection.prototype.getIndex = function( name ) {
@@ -587,42 +553,33 @@ SdbCollection.prototype.toString = function() {
    return this._cs.toString() + "." + this._name;
 }
 
-SdbCollection.prototype.insert = function ( data , arg )
+SdbCollection.prototype.insert = function ( data , flags )
 {
    if ( (typeof data) != "object" )
+      throw "SdbCollection.insert(): the 1st param should be obj or array of objs";
+   var newFlags = 0 ;
+   if ( flags != undefined )
    {
-      throw ( "SdbCollection.insert(): the 1st param should be "
-              + "obj or array of objs" ) ;
-   }
-
-   var flag = 0 ;
-   if ( arg == undefined )
-   {
-      flag = 0 ;
-   }
-   else if ( ( typeof arg ) == "number" ||
-             ( ( typeof arg ) == "object" && !( arg instanceof Array ) ) )
-   {
-      flag = arg ;
-   }
-   else
-   {
-      throw ( "SdbCollection.insert(): the 2nd param if existed should be "
-              + "a insert flag or insert options" ) ;
+      if ( (typeof flags) != "number" ||
+            ( flags != 0 &&
+              flags != SDB_INSERT_RETURN_ID &&
+              flags != SDB_INSERT_CONTONDUP ) )
+         throw "SdbCollection.insert(): the 2nd param if existed should be 0 or SDB_INSERT_RETURN_ID or SDB_INSERT_CONTONDUP only";
+      newFlags = flags ;
    }
 
    if ( data instanceof Array )
    {
-      if ( 0 == data.length )
-      {
-         return ;
-      }
-
-      return this._bulkInsert( data, flag ) ;
+      if ( 0 == data.length ) return ;
+      if ( newFlags != 0 && newFlags != SDB_INSERT_CONTONDUP )
+         throw "SdbCollection.insert(): when insert more than 1 records, the 2nd param if existed should be 0 or SDB_INSERT_CONTONDUP only";
+      return this._bulkInsert ( data , newFlags ) ;
    }
    else
    {
-      return this._insert( data, flag ) ;
+      if ( newFlags != 0 && newFlags != SDB_INSERT_RETURN_ID )
+         throw "SdbCollection.insert(): when insert 1 record, the 2nd param if existed should be 0 or SDB_INSERT_RETURN_ID only";
+      return this._insert ( data , SDB_INSERT_RETURN_ID == flags ) ;
    }
 }
 
@@ -783,10 +740,6 @@ SdbQuery.prototype.count = function() {
 }
 
 SdbQuery.prototype.explain = function( options ) {
-   if( undefined == options )
-   {
-      options = {} ;
-   }
    return this._collection.explain( this._query,
                                     this._select,
                                     this._sort,
@@ -854,18 +807,6 @@ SdbNode.prototype.getNodeDetail = function() {
           this._servicename + "(" +
           this._rg.toString() + ")" ;
 }
-
-SdbNode.prototype.connect = function( isSecure )
-{
-   if( true == isSecure )
-   {
-      return new SecureSdb( this._hostname, this._servicename ) ;
-   }
-   else
-   {
-      return new Sdb( this._hostname, this._servicename ) ;
-   }
-}
 // end SdbNode
 
 // SdbReplicaGroup
@@ -885,10 +826,7 @@ SdbCS.prototype.toString = function() {
 }
 
 SdbCS.prototype._resolveCL = function(clName) {
-   if( !this.hasOwnProperty( clName) )
-   {
-      this.getCL( clName ) ;
-   }
+   this.getCL(clName) ;
 }
 
 // end SdbCS
@@ -919,19 +857,12 @@ Sdb.prototype.listCollections = function() {
    return this.list( SDB_LIST_COLLECTIONS ) ;
 }
 
-Sdb.prototype.listSequences = function() {
-   return this.list( SDB_LIST_COLLECTIONS ) ;
-}
-
 Sdb.prototype.listReplicaGroups = function() {
    return this.list( SDB_LIST_GROUPS ) ;
 }
 
 Sdb.prototype._resolveCS = function(csName) {
-   if( !this.hasOwnProperty( csName ) )
-   {
-      return this.getCS( csName ) ;
-   }
+   this.getCS( csName ) ;
 }
 
 Sdb.prototype.getCatalogRG = function() {
@@ -984,13 +915,6 @@ Sdb.prototype.stopRG = function() {
          setLastErrMsg( rgName + ": " + getLastErrMsg() ) ;
          throw e ;
       }
-   }
-}
-
-SecureSdb.prototype._resolveCS = function(csName) {
-   if( !this.hasOwnProperty( csName ) )
-   {
-      return this.getCS( csName ) ;
    }
 }
 // end Sdb
@@ -1101,133 +1025,3 @@ SdbDate.prototype.toString = function() {
    return "SdbDate(\"" + this._d + "\")" ;
 }
 // end SdbDate
-
-// SdbOptionBase
-
-SdbOptionBase.prototype.cond = function(cond) {
-   this._cond = BSONObj(cond) ;
-   return this ;
-}
-
-SdbOptionBase.prototype.sel = function(sel) {
-   this._sel = BSONObj(sel) ;
-   return this ;
-}
-
-SdbOptionBase.prototype.sort = function(sort) {
-   this._sort = BSONObj(sort) ;
-   return this ;
-}
-
-SdbOptionBase.prototype.hint = function(hint) {
-   this._hint = BSONObj(hint) ;
-   return this ;
-}
-
-SdbOptionBase.prototype.skip = function(skip) {
-   if ( typeof( skip ) == "number" ) {
-      this._skip = skip ;
-   } else {
-      throw "SdbOptionBase.skip() param must be Number" ;
-   }
-   return this ;
-}
-
-SdbOptionBase.prototype.limit = function(limit) {
-   if ( typeof( limit ) == "number" ) {
-      this._limit = limit ;
-   } else {
-      throw "SdbOptionBase.limit() param must be Number" ;
-   }
-   return this ;
-}
-
-SdbOptionBase.prototype.flags = function(flags) {
-   if ( typeof ( flags ) == "number" ) {
-      this._flags = flags ;
-   } else {
-      throw "SdbOptionBase.flags() param must be Number" ;
-   }
-   return this ;
-}
-
-SdbOptionBase.prototype.toString = function() {
-   return this.__className__ + "(" + "\"cond\": " + this._cond.toJson() +
-          ", \"sel\": " + this._sel.toJson() +
-          ", \"sort\": " + this._sort.toJson() +
-          ", \"hint\": " + this._hint.toJson() +
-          ", \"skip\": " + this._skip +
-          ", \"limit\": " + this._limit +
-          ", \"flags\": " + this._flags + ")" ;
-}
-
-// end SdbOptionBase
-
-// SdbSnapshotOption
-
-SdbSnapshotOption.prototype.options = function(options) {
-   if (undefined != options && (typeof options) != "object") {
-      throw "SdbSnapshotOption.options(): param should be object";
-   }
-
-   this._hint = BSONObj({$Options:BSONObj(options)}) ;
-   return this ;
-}
-
-// end SdbSnapshotOption
-
-// SdbQueryOption
-
-SdbQueryOption.prototype.update = function( rule, returnNew, options ) {
-   if ((typeof rule) != "object" || isEmptyObject(rule)) {
-      throw "SdbQueryOption.update(): the 1st param should be non-empty object";
-   }
-   if (undefined != returnNew && (typeof returnNew) != "boolean") {
-      throw "SdbQueryOption.update(): the 2nd param should be boolean";
-   }
-   if (undefined != options && (typeof options) != "object") {
-      throw "SdbQueryOption.update(): the 3rd param should be object";
-   }
-
-   var hintObj = eval('(' + this._hint.toString() + ')');
-
-   if (undefined == this._hint) {
-      this._hint = {};
-   } else if ( undefined != hintObj.$Modify ) {
-      throw "SdbQueryOption.update(): duplicate modification";
-   }
-
-   var modify = {};
-   modify.OP = "update";
-   modify.Update = rule;
-   modify.ReturnNew = (returnNew != undefined) ? returnNew : false ;
-   hintObj["$Modify"] = modify ;
-   this._hint = BSONObj( hintObj );
-
-   if (undefined != options) {
-      this._options = BSONObj( options ) ;
-   }
-
-   return this;
-}
-
-SdbQueryOption.prototype.remove = function() {
-
-   var hintObj = eval('(' + this._hint.toString() + ')');
-
-   if (undefined == this._hint) {
-      this._hint = {};
-   } else if ( undefined != hintObj.$Modify ) {
-      throw "SdbQueryOption.remove(): duplicate modification";
-   }
-
-   var modify = {};
-   modify.OP = "remove";
-   modify.Remove = true;
-   hintObj["$Modify"] = modify ;
-   this._hint = BSONObj( hintObj );
-
-   return this;
-}
-
-// end SdbQueryOption

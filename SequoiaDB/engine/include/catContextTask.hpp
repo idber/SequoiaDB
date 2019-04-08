@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = catContextTask.hpp
 
@@ -47,8 +46,6 @@ using namespace bson ;
 
 namespace engine
 {
-   typedef std::vector< UINT32 > CAT_GROUP_LIST ;
-
    /*
     * _catCtxTaskBase define
     */
@@ -62,8 +59,6 @@ namespace engine
       void enableLocks () { _needLocks = TRUE ; }
 
       void disableLocks () { _needLocks = FALSE ; }
-
-      void disableUpdate () { _needUpdate = FALSE ; }
 
       virtual INT32 checkTask ( _pmdEDUCB *cb, catCtxLockMgr &lockMgr ) ;
 
@@ -111,7 +106,7 @@ namespace engine
       BOOLEAN _hasUpdated ;
       std::set<INT32> _ignoreRC ;
    } ;
-   typedef class _catCtxTaskBase catCtxTaskBase ;
+
    /*
     * _catCtxDataTask define
     */
@@ -144,7 +139,6 @@ namespace engine
       BSONObj _boData ;
    } ;
 
-   typedef _catCtxDataTask catCtxDataTask ;
    /*
     * _catCtxDropCSTask define
     */
@@ -288,8 +282,6 @@ namespace engine
       BOOLEAN _uniqueCheck ;
    } ;
 
-   typedef class _catCtxCreateIdxTask catCtxCreateIdxTask ;
-
    /*
     * _catCtxDropIdxTask define
     */
@@ -315,8 +307,6 @@ namespace engine
       std::string _idxName ;
       BSONObj _boIdx ;
    } ;
-
-   typedef class _catCtxDropIdxTask catCtxDropIdxTask ;
 
    /*
     * _catCtxDelCLsFromCSTask define
@@ -368,7 +358,7 @@ namespace engine
    protected :
       std::set<std::string> _mainCLLst ;
    } ;
-
 }
 
 #endif //CATCONTEXTBASETASK_HPP_
+

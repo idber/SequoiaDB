@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptFuncDef.cpp
 
@@ -34,9 +33,6 @@
 
 *******************************************************************************/
 #include "sptFuncDef.hpp"
-#include "sptSPScope.hpp"
-#include "sptContainer.hpp"
-
 #include "ossUtil.hpp"
 
 namespace engine
@@ -53,82 +49,50 @@ namespace engine
       return obj ;
    }
 
-   INT32 _sptFuncDef::_init()
-   {
-      INT32 rc = SDB_OK ;      
-      engine::sptContainer container ;
-      engine::sptScope *scope = NULL ;
-      set< string > setClass ;
-      set< string >::iterator it ;
-
-      // get a temp scope
-      rc = container.init() ;
-      if ( rc )
-      {
-         ossPrintf( "Failed to init container, rc: %d"OSS_NEWLINE, rc ) ;
-         goto error ;
-      }
-      scope = container.newScope() ;
-      if ( !scope )
-      {
-         rc = SDB_SYS ;
-         ossPrintf( "Failed to new scope in container, rc: %d"OSS_NEWLINE, rc ) ;
-         goto error ;
-
-      }
-
-      // get functions in all the js class
-      sptGetObjFactory()->getClassNames( setClass, FALSE ) ;
-      it = setClass.begin() ;
-      for ( ; it != setClass.end(); ++it )
-      {
-         string className = *it ;
-         set< string > setFunc ;
-         set< string > setStaticFunc ;
-         scope->getObjFunNames( className, setFunc, FALSE ) ;
-         scope->getObjStaticFunNames( className, setStaticFunc, FALSE ) ;
-         rc = _loadFuncInfo( className, setFunc, setStaticFunc ) ;
-         if ( rc )
-         {
-            ossPrintf( "Load the functions of class[%s] failed, "
-                       "rc: %d"OSS_NEWLINE, className.c_str(), rc ) ;
-            goto error ;
-         }
-      }
-      
-   done:
-      if ( scope )
-      {
-         container.releaseScope( scope ) ;
-      }
-      container.fini() ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
    const MAP_FUNC_DEF_INFO& _sptFuncDef::getFuncDefInfo()
    {
       return _map_func_def ;
    }
 
-   INT32 _sptFuncDef::_loadFuncInfo( string &className, 
-                                       const set< string > & setFunc,
-                                       const set< string > & setStaticFunc )
+   INT32 _sptFuncDef::_init()
    {
-      // register constructor
-      _insert( className, className, SPT_FUNC_CONSTRUCTOR ) ;
-      // register instance method for help
-      set< string >::iterator itr = setFunc.begin() ;
-      for ( ; itr != setFunc.end() ; ++itr )
+      INT32 rc = SDB_OK ;
+      SPT_VEC_OBJDESC vecObjs ;
+      sptGetObjFactory()->getObjDescs( vecObjs ) ;
+      for ( UINT32 i = 0 ; i < vecObjs.size() ; ++i )
       {
-         _insert( className, *itr, SPT_FUNC_INSTANCE ) ;
+         sptObjDesc *desc = (sptObjDesc*)vecObjs[ i ] ;
+         rc = _loadFuncInfo( desc ) ;
+         if ( rc )
+         {
+            ossPrintf( "Load the functions of class[%s] failed, "
+                       "rc: %d"OSS_NEWLINE, desc->getJSClassName(), rc ) ;
+            goto error ;
+         }
       }
-      // register static method for help
-      itr = setStaticFunc.begin() ;
-      for ( ; itr != setStaticFunc.end() ; ++itr )
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptFuncDef::_loadFuncInfo( _sptObjDesc *desc )
+   {
+      const CHAR *objName = desc->getJSClassName() ;
+      const _sptFuncMap &fMap = desc->getFuncMap() ;
+      const sptFuncMap::NORMAL_FUNCS &memberFuncs = fMap.getMemberFuncs() ;
+      const sptFuncMap::NORMAL_FUNCS &staticFuncs = fMap.getStaticFuncs() ;
+
+      _insert( objName, objName, SPT_FUNC_CONSTRUCTOR ) ;
+      sptFuncMap::NORMAL_FUNCS::const_iterator itr = memberFuncs.begin() ;
+      for ( ; itr != memberFuncs.end() && !itr->first.empty() ; itr++ )
       {
-         _insert( className, *itr, SPT_FUNC_STATIC ) ;
+         _insert( objName, itr->first.c_str(), SPT_FUNC_INSTANCE ) ;
+      }
+      itr = staticFuncs.begin() ;
+      for ( ; itr != staticFuncs.end() && !itr->first.empty() ;  itr++ )
+      {
+         _insert( objName, itr->first.c_str(), SPT_FUNC_STATIC ) ;
       }
       return SDB_OK ;
    }

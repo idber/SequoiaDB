@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsRegAssit.cpp
 
@@ -83,7 +82,6 @@ namespace engine
       BSONArrayBuilder subServiceBuild( bsonBuilder.subarrayStart(
          CAT_SERVICE_FIELD_NAME ) ) ;
 
-      /// local
       BSONObjBuilder subLocalBuild( subServiceBuild.subobjStart() ) ;
       subLocalBuild.append ( CAT_SERVICE_TYPE_FIELD_NAME ,
                             (INT32)MSG_ROUTE_LOCAL_SERVICE ) ;
@@ -91,7 +89,6 @@ namespace engine
                             pKRCB->getSvcname() ) ;
       subLocalBuild.done() ;
 
-      /// repl
       BSONObjBuilder subReplBuild( subServiceBuild.subobjStart() ) ;
       subReplBuild.append ( CAT_SERVICE_TYPE_FIELD_NAME ,
                             (INT32)MSG_ROUTE_REPL_SERVICE ) ;
@@ -99,7 +96,6 @@ namespace engine
                             pKRCB->getOptionCB()->replService() ) ;
       subReplBuild.done() ;
 
-      /// shard
       BSONObjBuilder subShdBuild( subServiceBuild.subobjStart() ) ;
       subShdBuild.append ( CAT_SERVICE_TYPE_FIELD_NAME ,
                            (INT32)MSG_ROUTE_SHARD_SERVCIE) ;
@@ -107,7 +103,6 @@ namespace engine
                            pKRCB->getOptionCB()->shardService() ) ;
       subShdBuild.done() ;
 
-      /// cata
       BSONObjBuilder subCataBuild( subServiceBuild.subobjStart() ) ;
       subCataBuild.append ( CAT_SERVICE_TYPE_FIELD_NAME ,
                             (INT32)MSG_ROUTE_CAT_SERVICE ) ;
@@ -117,7 +112,6 @@ namespace engine
 
       subServiceBuild.done() ;
 
-      // append IP address
       ossIPInfo ipInfo ;
       if ( ipInfo.getIPNum() > 0 )
       {
@@ -127,7 +121,6 @@ namespace engine
          ossIP* ip = ipInfo.getIPs() ;
          for ( INT32 i = ipInfo.getIPNum(); i > 0; i-- )
          {
-            // skip loopback IP
             if (0 != ossStrncmp( ip->ipAddr, OSS_LOOPBACK_IP,
                                  ossStrlen(OSS_LOOPBACK_IP)) )
             {
@@ -136,7 +129,6 @@ namespace engine
             ip++ ;
          }
 
-         // support 'localhost' and '127.0.0.1' for node's hostname
          subIPBuild.append( OSS_LOOPBACK_IP ) ;
          subIPBuild.append( OSS_LOCALHOST ) ;
          subIPBuild.done() ;
@@ -148,7 +140,7 @@ namespace engine
       return obj ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREGASSIT_EXTRACTRES, "_clsRegAssit::extractResponseMsg" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREGASSIT_EXTRACTRES, "_clsRegAssit::extractRegRes" )
    INT32 _clsRegAssit::extractResponseMsg ( MsgHeader *pMsg )
    {
       PD_TRACE_ENTRY ( SDB__CLSREGASSIT_EXTRACTRES );

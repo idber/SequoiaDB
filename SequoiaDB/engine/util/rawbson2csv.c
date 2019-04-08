@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rawbson2csv.c
 
@@ -71,9 +70,6 @@ static void local_time ( time_t *Time, struct tm *TM )
 #if defined (__linux__ )
    localtime_r( Time, TM ) ;
 #elif defined (_WIN32)
-   // The Time represents the seconds elapsed since midnight (00:00:00),
-   // January 1, 1970, UTC. This value is usually obtained from the time
-   // function.
    localtime_s( TM, Time ) ;
 #endif
 }
@@ -313,7 +309,7 @@ INT32 _appendValue( const CHAR *delChar, INT32 delCharSize, bson_iterator *pIt,
    bson_timestamp_t ts;
    time_t timer ;
    struct tm psr;
-   bson_decimal decimal = SDB_DECIMAL_DEFAULT_VALUE ;
+   bson_decimal decimal = DECIMAL_DEFAULT_VALUE ;
 
    if ( type == BSON_DOUBLE )
    {
@@ -413,7 +409,7 @@ INT32 _appendValue( const CHAR *delChar, INT32 delCharSize, bson_iterator *pIt,
          UTIL_RAW2BSON_PRINTF_LOG( "Failed to call bson_iterator_decimal" ) ;
          goto error ;
       }
-      rc = sdb_decimal_to_str_get_len( &decimal, &decimalSize ) ;
+      rc = decimal_to_str_get_len( &decimal, &decimalSize ) ;
       if ( rc )
       {
          UTIL_RAW2BSON_PRINTF_LOG( "Failed to get decimal size, rc=%d", rc ) ;
@@ -429,10 +425,10 @@ INT32 _appendValue( const CHAR *delChar, INT32 delCharSize, bson_iterator *pIt,
          goto error ;
       }
       ossMemset( pDecimalStr, 0, decimalSize ) ;
-      rc = sdb_decimal_to_str( &decimal, pDecimalStr, decimalSize ) ;
+      rc = decimal_to_str( &decimal, pDecimalStr, decimalSize ) ;
       if( rc )
       {
-         UTIL_RAW2BSON_PRINTF_LOG( "Failed to call sdb_decimal_to_str, rc=%d",
+         UTIL_RAW2BSON_PRINTF_LOG( "Failed to call decimal_to_str, rc=%d",
                                    rc ) ;
          goto error ;
       }
@@ -645,7 +641,6 @@ INT32 _appendValue( const CHAR *delChar, INT32 delCharSize, bson_iterator *pIt,
          if( tempSize > 0 )
          {
             base64Size = getEnBase64Size ( tempSize ) ;
-            //free before the function return.
             pBase64 = (CHAR *)SDB_OSS_MALLOC( base64Size ) ;
             if( NULL == pBase64 )
             {
@@ -753,7 +748,7 @@ INT32 _appendValue( const CHAR *delChar, INT32 delCharSize, bson_iterator *pIt,
       }
    }
 done:
-   sdb_decimal_free( &decimal ) ;
+   decimal_free( &decimal ) ;
    SAFE_OSS_FREE( pBase64 ) ;
    SAFE_OSS_FREE( pDecimalStr ) ;
    return rc ;
@@ -824,12 +819,10 @@ INT32 bson2csv( const CHAR *delChar, const CHAR *delField, INT32 delFieldSize,
    while ( bson_iterator_next( &it ) )
    {
       fieldType = bson_iterator_type( &it ) ;
-      //if BSON_EOO == fieldType ( which is 0 ),that means we hit end of object
       if ( BSON_EOO == fieldType )
       {
          break ;
       }
-      // do NOT concat "," for first entrance
       if ( isFirst )
       {
          isFirst = FALSE ;
@@ -849,7 +842,6 @@ INT32 bson2csv( const CHAR *delChar, const CHAR *delField, INT32 delFieldSize,
       {
          continue ;
       }
-      //then we check the data type
       rc = _appendValue( delChar, delCharSize, &it,
                          ppBuffer, pCSVSize,
                          includeBinary,

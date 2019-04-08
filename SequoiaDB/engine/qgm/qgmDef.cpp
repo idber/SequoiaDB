@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = qgmDef.cpp
 
@@ -194,7 +193,6 @@ namespace engine
       return sub ;
    }
 
-   /// ex: self: abc.dek, return: abc
    _qgmField _qgmField::rootField() const
    {
       UINT32 pos = 0 ;
@@ -207,7 +205,6 @@ namespace engine
       return root ;
    }
 
-   /// ex: self: abc.dek, return: dek
    _qgmField _qgmField::lastField() const
    {
       UINT32 pos = 0 ;
@@ -221,8 +218,6 @@ namespace engine
       return last ;
    }
 
-   /// ex: self: abc.def.kk, cur: abc, return: def
-   ///                       cur: kk,  return: (null)
    _qgmField _qgmField::nextField( const _qgmField &cur ) const
    {
       _qgmField next ;
@@ -249,8 +244,6 @@ namespace engine
       return next ;
    }
 
-   /// ex: self: abc.def.kk, cur: kk, return: def
-   ///                       cur: abc,return: (null)
    _qgmField _qgmField::preField( const _qgmField &cur ) const
    {
       _qgmField next ;
@@ -522,7 +515,6 @@ namespace engine
              this->obj.getOwned() : qgmMerge( obj, next->mergedObj() ) ;
    }
 
-////////////////// _qgmValueTuple
    _qgmValueTuple::_qgmValueTuple( CHAR *data, UINT32 len, BOOLEAN format )
    :_row( data ),
     _len( len ),
@@ -645,20 +637,15 @@ namespace engine
 
       pData   = _row + sizeof( _tuple ) ;
 
-      //define in common_decimal.h __sdb_decimal
-      // size
       *( INT32 *)pData = dataLen ;
       pData += sizeof( INT32 ) ;
 
-      // typemod
       *( INT32 *)pData = decimal.getTypemod() ;
       pData += sizeof( INT32 ) ;
 
-      // sign + scale 
       *( INT16 *)pData = decimal.getStorageScale() ;
       pData += sizeof( INT16 ) ;
 
-      // weight
       *( INT16 *)pData = decimal.getWeight() ;
       pData += sizeof( INT16 ) ;
 
@@ -1132,7 +1119,6 @@ namespace engine
       else if ( ( INT16 )bson::NumberLong == getValueType() ||
                 ( INT16 )bson::NumberLong == right.getValueType() )
       {
-         //NumberLong
          INT64 lNumber = *((INT64 *)(getValue() ) ) ;
          INT64 rNumber = *(( INT64 * )( right.getValue() ) ) ;
          INT64 result64 ;
@@ -1149,7 +1135,6 @@ namespace engine
          }
          else
          {
-            //overflow
             bsonDecimal decResult ;
             rc = decResult.fromString( "9223372036854775808" ) ;
             if ( SDB_OK != rc )
@@ -1163,7 +1148,6 @@ namespace engine
       }
       else
       {
-         // int32
          INT32 lNumber = *((INT32 *)(getValue() ) ) ;
          INT32 rNumber = *(( INT32 * )( right.getValue() ) ) ;
          INT32 result32 ;
@@ -1291,7 +1275,6 @@ namespace engine
       }
       else
       {
-         //NumberLong
          INT64 lNumber = *((INT64 *)(getValue() ) ) ;
          INT64 rNumber = *(( INT64 * )( right.getValue() ) ) ;
          if ( 0 == rNumber )

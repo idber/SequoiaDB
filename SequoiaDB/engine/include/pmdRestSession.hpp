@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pmdRestSession.hpp
 
@@ -36,7 +35,6 @@
 
 #include "pmdSessionBase.hpp"
 #include "restDefine.hpp"
-#include "restAdaptor.hpp"
 #include "ossLatch.hpp"
 #include "ossAtomic.hpp"
 #include "pmdProcessorBase.hpp"
@@ -74,7 +72,6 @@ namespace engine
          CHAR              _userName[SESSION_USER_NAME_LEN+1] ;
       } _attr ;
 
-      // status
       UINT64               _activeTime ;
       INT64                _timeoutCounter ; // ms
       BOOLEAN              _authOK ;
@@ -170,7 +167,9 @@ namespace engine
 
          virtual INT32     run() ;
 
+
       public:
+         httpConnection*   getRestConn() { return &_restConn ; }
          CHAR*             getFixBuff() ;
          INT32             getFixBuffSize () const ;
 
@@ -182,9 +181,7 @@ namespace engine
          INT32             doLogin ( const string &username,
                                      UINT32 localIP ) ;
 
-         INT32             _dealWithLoginReq( INT32 result,
-                                              restRequest &request,
-                                              restResponse &response ) ;
+         INT32             _dealWithLoginReq( INT32 result ) ;
 
       protected:
          virtual void      _onAttach () ;
@@ -197,16 +194,14 @@ namespace engine
 
          INT32             _fetchOneContext( SINT64 &contextID,
                                              rtnContextBuf &contextBuff ) ;
-         virtual INT32     _processMsg( restRequest &request,
-                                        restResponse &response ) ;
-         INT32             _processBusinessMsg( restAdaptor *pAdaptor,
-                                                restRequest &request,
-                                                restResponse &response ) ;
+         virtual INT32     _processMsg( HTTP_PARSE_COMMON command,
+                                        const CHAR *pFilePath ) ;
+         INT32             _processBusinessMsg( restAdaptor *pAdaptor ) ;
          INT32             _translateMSG( restAdaptor *pAdaptor,
-                                          restRequest &request,
                                           MsgHeader **msg ) ;
-         INT32             _checkAuth( restRequest *request ) ;
+         INT32             _checkAuth( restAdaptor *pAdaptor ) ;
       protected:
+         httpConnection    _restConn ;
          CHAR*             _pFixBuff ;
 
          restSessionInfo*  _pSessionInfo ;
@@ -242,7 +237,6 @@ namespace engine
 
    class RestToMSGTransfer ;
    typedef INT32 ( RestToMSGTransfer::*restTransFunc )( restAdaptor *pAdaptor,
-                                                        restRequest &request,
                                                         MsgHeader **msg ) ;
 
    class RestToMSGTransfer : public SDBObject
@@ -252,25 +246,19 @@ namespace engine
          ~RestToMSGTransfer() ;
 
       public:
-         INT32       trans( restAdaptor *pAdaptor, restRequest &request,
-                            MsgHeader **msg ) ;
+         INT32       trans( restAdaptor *pAdaptor, MsgHeader **msg ) ;
          INT32       init() ;
 
       private:
          INT32       _convertCreateCS( restAdaptor *pAdaptor,
-                                       restRequest &request,
                                        MsgHeader **msg ) ;
          INT32       _convertCreateCL( restAdaptor *pAdaptor,
-                                       restRequest &request,
                                        MsgHeader **msg ) ;
-         INT32       _convertDropCS( restAdaptor *pAdaptor,
-                                     restRequest &request, MsgHeader **msg ) ;
-         INT32       _convertDropCL( restAdaptor *pAdaptor,
-                                     restRequest &request, MsgHeader **msg ) ;
+         INT32       _convertDropCS( restAdaptor *pAdaptor, MsgHeader **msg ) ;
+         INT32       _convertDropCL( restAdaptor *pAdaptor, MsgHeader **msg ) ;
 
          INT32       _convertQueryBasic( restAdaptor *pAdaptor,
-                                         restRequest &request,
-                                         string &collectionName,
+                                         const CHAR** collectionName,
                                          BSONObj& match,
                                          BSONObj& selector,
                                          BSONObj& order,
@@ -278,213 +266,137 @@ namespace engine
                                          INT32* flag,
                                          SINT64* skip,
                                          SINT64* returnRow ) ;
-         INT32       _convertQuery( restAdaptor *pAdaptor,
-                                    restRequest &request, MsgHeader **msg ) ;
+         INT32       _convertQuery( restAdaptor *pAdaptor, MsgHeader **msg ) ;
 
          INT32       _convertQueryUpdate( restAdaptor *pAdaptor,
-                                          restRequest &request,
                                           MsgHeader **msg ) ;
          INT32       _convertQueryRemove( restAdaptor *pAdaptor,
-                                          restRequest &request,
                                           MsgHeader **msg ) ;
          INT32       _convertQueryModify( restAdaptor *pAdaptor,
-                                          restRequest &request,
                                           MsgHeader **msg,
                                           BOOLEAN isUpdate ) ;
 
-         INT32       _convertInsert( restAdaptor *pAdaptor,
-                                     restRequest &request, MsgHeader **msg ) ;
+         INT32       _convertInsert( restAdaptor *pAdaptor, MsgHeader **msg ) ;
 
-         INT32       _convertUpdateBase( restAdaptor *pAdaptor,
-                                         restRequest &request,
-                                         MsgHeader **msg,
+         INT32       _convertUpdateBase( restAdaptor *pAdaptor, MsgHeader **msg,
                                          BOOLEAN isUpsert = FALSE ) ;
-         INT32       _convertUpdate( restAdaptor *pAdaptor,
-                                     restRequest &request, MsgHeader **msg ) ;
-         INT32       _convertUpsert( restAdaptor * pAdaptor,
-                                     restRequest &request, MsgHeader **msg ) ;
+         INT32       _convertUpdate( restAdaptor *pAdaptor, MsgHeader **msg ) ;
+         INT32       _convertUpsert( restAdaptor * pAdaptor, MsgHeader **msg ) ;
 
-         INT32       _convertDelete( restAdaptor *pAdaptor,
-                                     restRequest &request, MsgHeader **msg ) ;
+         INT32       _convertDelete( restAdaptor *pAdaptor, MsgHeader **msg ) ;
 
-         INT32       _convertSplit( restAdaptor *pAdaptor,
-                                    restRequest &request, MsgHeader **msg ) ;
+         INT32       _convertSplit( restAdaptor *pAdaptor, MsgHeader **msg ) ;
 
          INT32       _convertCreateIndex( restAdaptor *pAdaptor,
-                                          restRequest &request,
                                           MsgHeader **msg ) ;
 
          INT32       _convertDropIndex( restAdaptor *pAdaptor,
-                                        restRequest &request,
                                         MsgHeader **msg ) ;
 
          INT32       _convertTruncateCollection( restAdaptor *pAdaptor,
-                                                 restRequest &request,
                                                  MsgHeader **msg ) ;
          INT32       _coverAttachCollection( restAdaptor *pAdaptor,
-                                             restRequest &request,
                                              MsgHeader **msg ) ;
          INT32       _coverDetachCollection( restAdaptor *pAdaptor,
-                                             restRequest &request,
                                              MsgHeader **msg ) ;
 
          INT32       _convertAlterCollection( restAdaptor *pAdaptor,
-                                              restRequest &request,
                                               MsgHeader **msg ) ;
          INT32       _convertGetCount( restAdaptor *pAdaptor,
-                                       restRequest &request,
                                        MsgHeader **msg ) ;
 
-         //list
          INT32       _convertListContexts( restAdaptor *pAdaptor,
-                                           restRequest &request,
                                            MsgHeader **msg ) ;
          INT32       _convertListBase( restAdaptor *pAdaptor,
-                                       restRequest &request,
-                                       BSONObj &match, BSONObj &selector,
-                                       BSONObj &order ) ;
-
+                                              BSONObj &match, BSONObj &selector,
+                                              BSONObj &order ) ;
          INT32       _convertListContextsCurrent( restAdaptor *pAdaptor,
-                                                  restRequest &request,
                                                   MsgHeader **msg ) ;
          INT32       _convertListSessions( restAdaptor *pAdaptor,
-                                           restRequest &request,
                                            MsgHeader **msg ) ;
 
          INT32       _convertListGroups( restAdaptor *pAdaptor,
-                                         restRequest &request,
                                          MsgHeader **msg ) ;
          INT32       _convertStartGroup( restAdaptor *pAdaptor,
-                                         restRequest &request,
                                          MsgHeader **msg ) ;
          INT32       _convertStopGroup( restAdaptor *pAdaptor,
-                                        restRequest &request,
                                         MsgHeader **msg ) ;
 
          INT32       _convertStartNode( restAdaptor *pAdaptor,
-                                        restRequest &request,
-                                        MsgHeader **msg ) ;
+                                         MsgHeader **msg ) ;
          INT32       _convertStopNode( restAdaptor *pAdaptor,
-                                       restRequest &request,
-                                       MsgHeader **msg ) ;
+                                        MsgHeader **msg ) ;
 
          INT32       _convertListSessionsCurrent( restAdaptor *pAdaptor,
-                                                  restRequest &request,
                                                   MsgHeader **msg ) ;
          INT32       _convertListCollections( restAdaptor *pAdaptor,
-                                              restRequest &request,
                                               MsgHeader **msg ) ;
          INT32       _convertListCollectionSpaces( restAdaptor *pAdaptor,
-                                                   restRequest &request,
                                                    MsgHeader **msg ) ;
          INT32       _convertListStorageUnits( restAdaptor *pAdaptor,
-                                               restRequest &request,
                                                MsgHeader **msg ) ;
 
          INT32       _convertCreateProcedure( restAdaptor *pAdaptor,
-                                              restRequest &request,
                                               MsgHeader **msg ) ;
          INT32       _convertRemoveProcedure( restAdaptor *pAdaptor,
-                                              restRequest &request,
                                               MsgHeader **msg ) ;
          INT32       _convertListProcedures( restAdaptor *pAdaptor,
-                                             restRequest &request,
                                              MsgHeader **msg ) ;
 
          INT32       _convertCreateDomain( restAdaptor *pAdaptor,
-                                           restRequest &request,
                                            MsgHeader **msg ) ;
          INT32       _convertDropDomain( restAdaptor *pAdaptor,
-                                         restRequest &request,
                                          MsgHeader **msg ) ;
          INT32       _convertAlterDomain( restAdaptor *pAdaptor,
-                                          restRequest &request,
                                           MsgHeader **msg ) ;
          INT32       _convertListDomains( restAdaptor *pAdaptor,
-                                          restRequest &request,
                                           MsgHeader **msg ) ;
          INT32       _convertListTasks( restAdaptor *pAdaptor,
-                                        restRequest &request,
                                         MsgHeader **msg ) ;
          INT32       _convertListCSInDomain( restAdaptor *pAdaptor,
-                                             restRequest &request,
                                              MsgHeader **msg ) ;
          INT32       _convertListCLInDomain( restAdaptor *pAdaptor,
-                                             restRequest &request,
                                              MsgHeader **msg ) ;
 
          INT32       _convertListLobs( restAdaptor *pAdaptor,
-                                       restRequest &request,
                                        MsgHeader **msg ) ;
 
          INT32       _convertListIndexes( restAdaptor *pAdaptor,
-                                          restRequest &request,
                                           MsgHeader **msg ) ;
 
-         //snapshot
-         INT32       _convertSnapshotBase( restAdaptor *pAdaptor,
-                                           restRequest &request,
-                                           BSONObj &match, BSONObj &selector,
-                                           BSONObj &order, BSONObj &hint,
-                                           SINT64* skip, SINT64* returnRow ) ;
-
          INT32       _convertSnapshotContext( restAdaptor *pAdaptor,
-                                              restRequest &request,
                                               MsgHeader **msg ) ;
          INT32       _convertSnapshotContextCurrent( restAdaptor *pAdaptor,
-                                                     restRequest &request,
                                                      MsgHeader **msg ) ;
          INT32       _convertSnapshotSessions( restAdaptor *pAdaptor,
-                                               restRequest &request,
                                                MsgHeader **msg ) ;
          INT32       _convertSnapshotSessionsCurrent( restAdaptor *pAdaptor,
-                                                      restRequest &request,
                                                       MsgHeader **msg ) ;
          INT32       _convertSnapshotCollections( restAdaptor *pAdaptor,
-                                                  restRequest &request,
                                                   MsgHeader **msg ) ;
          INT32       _convertSnapshotCollectionSpaces( restAdaptor *pAdaptor,
-                                                       restRequest &request,
                                                        MsgHeader **msg ) ;
          INT32       _convertSnapshotDatabase( restAdaptor *pAdaptor,
-                                               restRequest &request,
                                                MsgHeader **msg ) ;
          INT32       _convertSnapshotSystem( restAdaptor *pAdaptor,
-                                             restRequest &request,
                                              MsgHeader **msg ) ;
          INT32       _convertSnapshotCata( restAdaptor *pAdaptor,
-                                           restRequest &request,
                                            MsgHeader **msg ) ;
          INT32       _convertSnapshotAccessPlans ( restAdaptor * pAdaptor,
-                                                   restRequest &request,
                                                    MsgHeader ** msg ) ;
          INT32       _convertSnapshotHealth ( restAdaptor * pAdaptor,
-                                              restRequest &request,
                                               MsgHeader ** msg ) ;
-         INT32       _convertSnapshotConfigs ( restAdaptor * pAdaptor,
-                                               restRequest &request,
-                                               MsgHeader ** msg ) ;
+
          INT32       _buildExecMsg( CHAR **ppBuffer, INT32 *bufferSize,
                                     const CHAR *pSql, UINT64 reqID ) ;
-         INT32       _convertExec( restAdaptor *pAdaptor, restRequest &request,
-                                   MsgHeader **msg ) ;
+         INT32       _convertExec( restAdaptor *pAdaptor, MsgHeader **msg ) ;
 
          INT32       _convertForceSession( restAdaptor *pAdaptor,
-                                           restRequest &request,
                                            MsgHeader **msg ) ;
 
-         INT32       _convertLogin( restAdaptor *pAdaptor,
-                                    restRequest &request, MsgHeader **msg ) ;
+         INT32       _convertLogin( restAdaptor *pAdaptor, MsgHeader **msg ) ;
 
-         INT32       _convertAnalyze ( restAdaptor *pAdaptor,
-                                       restRequest &request,
-                                       MsgHeader ** msg ) ;
-         INT32       _convertUpdateConfig( restAdaptor * pAdaptor,
-                                           restRequest &request,
-                                           MsgHeader ** msg ) ;
-         INT32       _convertDeleteConfig( restAdaptor * pAdaptor,
-                                           restRequest &request,
-                                           MsgHeader ** msg ) ;
+         INT32       _convertAnalyze ( restAdaptor * pAdaptor, MsgHeader ** msg ) ;
 
       private:
          pmdRestSession    *_restSession ;
@@ -494,8 +406,7 @@ namespace engine
    } ;
 
    void _sendOpError2Web ( INT32 rc, restAdaptor *pAdptor,
-                           restResponse &response, pmdRestSession *pRestSession,
-                           pmdEDUCB* pEduCB ) ;
+                           pmdRestSession *pRestSession, pmdEDUCB* pEduCB ) ;
 
 }
 

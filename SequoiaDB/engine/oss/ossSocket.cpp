@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = ossSocket.cpp
 
@@ -49,7 +48,6 @@
 
 const UINT32 MAX_INTR_RETRIES = 5000 ;
 
-// Create a listening socket
 // PD_TRACE_DECLARE_FUNCTION ( SDB__OSSSK__OSSSK, "_ossSocket::_ossSocket" )
 _ossSocket::_ossSocket ( UINT32 port, INT32 timeoutMilli )
 {
@@ -74,7 +72,6 @@ _ossSocket::_ossSocket ( UINT32 port, INT32 timeoutMilli )
    PD_TRACE_EXIT ( SDB__OSSSK__OSSSK );
 }
 
-// Create a connecting socket
 // PD_TRACE_DECLARE_FUNCTION ( SDB__OSSSK__OSSSK2, "_ossSocket::_ossSocket" )
 _ossSocket::_ossSocket ( const CHAR *pHostname, UINT32 port,
                          INT32 timeoutMilli )
@@ -128,7 +125,6 @@ _ossSocket::_ossSocket ( const CHAR *pHostname, UINT32 port,
 #endif
    PD_TRACE_EXIT ( SDB__OSSSK__OSSSK2 );
 }
-// Create from a existing socket
 // PD_TRACE_DECLARE_FUNCTION ( SDB__OSSSK__OSSSK3, "_ossSocket::_ossSocket" )
 _ossSocket::_ossSocket ( SOCKET *sock, INT32 timeoutMilli )
 {
@@ -154,7 +150,6 @@ _ossSocket::_ossSocket ( SOCKET *sock, INT32 timeoutMilli )
    }
    else
    {
-      //get peer address
       rc = getpeername ( _fd, (sockaddr*)&_peerAddress, &_peerAddressLen ) ;
       if ( rc )
       {
@@ -205,7 +200,6 @@ INT32 _ossSocket::initSocket ()
       goto error ;
    }
    _init = TRUE ;
-   // settimeout should always return SDB_OK
    setTimeout ( _timeout ) ;
 done :
    PD_TRACE_EXITRC ( SDB_OSSSK_INITTSK, rc );
@@ -248,7 +242,6 @@ INT32 _ossSocket::setKeepAlive( INT32 keepAlive, INT32 keepIdle,
 #endif
    PD_CHECK( _init, SDB_SYS, error, PDWARNING, "Socket is not init" ) ;
 
-   // set keep alive options
 #if defined (_WINDOWS)
    alive_in.onoff             = keepAlive ;
    alive_in.keepalivetime     = keepIdle * 1000 ; // ms
@@ -317,8 +310,6 @@ INT32 _ossSocket::bind_listen ()
 
    PD_CHECK( _init, SDB_SYS, error, PDWARNING, "Socket is not init" ) ;
 
-   // Allows the socket to be bound to an address that is already in use.
-   // For database shutdown and restart right away, before socket close
    rc = setsockopt ( _fd, SOL_SOCKET, SO_REUSEADDR,
                      (char*)&temp, sizeof (INT32) ) ;
    if ( rc )
@@ -378,13 +369,11 @@ INT32 _ossSocket::send ( const CHAR *pMsg, INT32 len,
 
    maxSelectTime.tv_sec = timeout / 1000 ;
    maxSelectTime.tv_usec = ( timeout % 1000 ) * 1000 ;
-   // if we don't expect to receive anything, no need to continue
    if ( 0 == len )
    {
       return SDB_OK ;
    }
 
-   // wait loop until the socket is ready
    while ( TRUE )
    {
       FD_ZERO ( &fds ) ;
@@ -392,17 +381,14 @@ INT32 _ossSocket::send ( const CHAR *pMsg, INT32 len,
       rc = select ( maxFD + 1, NULL, &fds, NULL,
                     timeout>=0?&maxSelectTime:NULL ) ;
 
-      // 0 means timeout
       if ( 0 == rc )
       {
          rc = SDB_TIMEOUT ;
          goto done ;
       }
-      // if < 0, means something wrong
       if ( 0 > rc )
       {
          rc = SOCKET_GETLASTERROR ;
-         // if we failed due to interrupt, let's continue
          if ( SOCKET_EINTR == rc )
          {
             continue ;
@@ -412,7 +398,6 @@ INT32 _ossSocket::send ( const CHAR *pMsg, INT32 len,
          goto error ;
       }
 
-      // if the socket we interested is not receiving anything, let's continue
       if ( FD_ISSET ( _fd, &fds ) )
       {
          break ;
@@ -447,9 +432,6 @@ INT32 _ossSocket::send ( const CHAR *pMsg, INT32 len,
       rc = ::send ( _fd, pMsg, len, flags ) ;
       if ( SOCKET_ERROR == rc )
 #else
-      // MSG_NOSIGNAL : Requests not to send SIGPIPE on errors on stream
-      // oriented sockets when the other end breaks the connection. The EPIPE
-      // error is still returned.
       rc = ::send ( _fd, pMsg, len, MSG_NOSIGNAL|flags ) ;
       if ( -1 == rc )
 #endif
@@ -467,7 +449,6 @@ INT32 _ossSocket::send ( const CHAR *pMsg, INT32 len,
          }
          if ( SOCKET_EINTR == rc && retries < MAX_INTR_RETRIES )
          {
-            // less than max_recv_retries number, let's retry
             retries ++ ;
             continue ;
          }
@@ -481,7 +462,6 @@ INT32 _ossSocket::send ( const CHAR *pMsg, INT32 len,
       len -= rc ;
       pMsg += rc ;
 
-      // non-block
       if ( !block )
       {
          break ;
@@ -518,11 +498,6 @@ BOOLEAN _ossSocket::isConnected ()
    rc = ::send ( _fd, "", 0, 0 ) ;
    if ( 0 == rc )
 #else
-   // MSG_NOSIGNAL : Requests not to send SIGPIPE on errors on stream
-   // oriented sockets when the other end breaks the connection. The EPIPE
-   // error is still returned.
-   //rc = ::send ( _fd, "", 0, MSG_NOSIGNAL ) ;
-   //if ( 0 > rc )
    rc = ::recv ( _fd, NULL, 0, MSG_DONTWAIT ) ;
    if ( 0 == rc )
 #endif
@@ -551,7 +526,6 @@ INT32 _ossSocket::recv ( CHAR *pMsg, INT32 len,
 
    PD_CHECK( _init, SDB_SYS, error, PDWARNING, "Socket is not init" ) ;
 
-   // if we don't expect to receive anything, no need to continue
    if ( 0 == len )
    {
       goto done ;
@@ -597,7 +571,6 @@ INT32 _ossSocket::recv ( CHAR *pMsg, INT32 len,
             goto done;
          }
 
-         // non-block
          if ( !block )
          {
             goto done ;
@@ -611,7 +584,6 @@ INT32 _ossSocket::recv ( CHAR *pMsg, INT32 len,
 
    maxSelectTime.tv_sec = timeout / 1000 ;
    maxSelectTime.tv_usec = ( timeout % 1000 ) * 1000 ;
-   // wait loop until either we timeout or get a message
    while ( true )
    {
       FD_ZERO ( &fds ) ;
@@ -619,17 +591,14 @@ INT32 _ossSocket::recv ( CHAR *pMsg, INT32 len,
       rc = select ( maxFD + 1, &fds, NULL, NULL,
                     timeout>=0?&maxSelectTime:NULL ) ;
 
-      // 0 means timeout
       if ( 0 == rc )
       {
          rc = SDB_TIMEOUT ;
          goto done ;
       }
-      // if < 0, means something wrong
       if ( 0 > rc )
       {
          rc = SOCKET_GETLASTERROR ;
-         // if we failed due to interrupt, let's continue
          if ( SOCKET_EINTR == rc )
          {
             continue ;
@@ -639,22 +608,16 @@ INT32 _ossSocket::recv ( CHAR *pMsg, INT32 len,
          goto error ;
       }
 
-      // if the socket we interested is not receiving anything, let's continue
       if ( FD_ISSET ( _fd, &fds ) )
       {
          break ;
       }
    }
-   // Once we start receiving message, there's no chance to timeout, in order to
-   // prevent partial read
    while ( len > 0 )
    {
 #if defined (_WINDOWS)
       rc = ::recv ( _fd, pMsg, len, flags ) ;
 #else
-      // MSG_NOSIGNAL : Requests not to send SIGPIPE on errors on stream
-      // oriented sockets when the other end breaks the connection. The EPIPE
-      // error is still returned.
       rc = ::recv ( _fd, pMsg, len, MSG_NOSIGNAL|flags ) ;
 #endif
       if ( rc > 0 )
@@ -667,7 +630,6 @@ INT32 _ossSocket::recv ( CHAR *pMsg, INT32 len,
          len -= rc ;
          pMsg += rc ;
 
-         // non-block
          if ( !block )
          {
             break ;
@@ -681,7 +643,6 @@ INT32 _ossSocket::recv ( CHAR *pMsg, INT32 len,
       }
       else
       {
-         // if rc < 0
          rc = SOCKET_GETLASTERROR ;
 #if defined (_WINDOWS)
          if ( WSAETIMEDOUT == rc && _timeout > 0 )
@@ -695,17 +656,14 @@ INT32 _ossSocket::recv ( CHAR *pMsg, INT32 len,
          }
          if ( SOCKET_EINTR == rc && retries < MAX_INTR_RETRIES )
          {
-            // less than max_recv_retries number, let's retry
             retries ++ ;
             continue ;
          }
-         // something bad when get here
          PD_LOG ( PDERROR, "Recv() Failed: rc = %d", rc ) ;
          rc = SDB_NETWORK ;
          goto error ;
       }
    }
-   // Everything is fine when get here
    rc = SDB_OK ;
 done :
    PD_TRACE_EXITRC ( SDB_OSSSK_RECV, rc );
@@ -758,7 +716,6 @@ INT32 _ossSocket::connect ( INT32 timeout )
    }
    else
    {
-      /// do nothing.
    }
 
    if ( fcntl( native(), F_SETFL, flags & ~O_NONBLOCK ) <0 )
@@ -778,7 +735,6 @@ INT32 _ossSocket::connect ( INT32 timeout )
    }
 #endif
 
-   //get local address
    rc = getsockname ( _fd, (sockaddr*)&_sockAddress, &_addressLen ) ;
    if ( rc )
    {
@@ -786,7 +742,6 @@ INT32 _ossSocket::connect ( INT32 timeout )
       rc = SDB_NETWORK ;
       goto error ;
    }
-   //get peer address
    rc = getpeername ( _fd, (sockaddr*)&_peerAddress, &_peerAddressLen ) ;
    if ( rc )
    {
@@ -794,7 +749,6 @@ INT32 _ossSocket::connect ( INT32 timeout )
       rc = SDB_NETWORK ;
       goto error ;
    }
-   // if the local addr is the same with remote addr
    if ( _sockAddress.sin_port == _peerAddress.sin_port &&
         _sockAddress.sin_addr.s_addr == _peerAddress.sin_addr.s_addr )
    {
@@ -860,18 +814,15 @@ INT32 _ossSocket::accept ( SOCKET *sock, struct sockaddr *addr, socklen_t
       rc = select ( maxFD + 1, &fds, NULL, NULL,
                     timeout>=0?&maxSelectTime:NULL ) ;
 
-      // 0 means timeout
       if ( 0 == rc )
       {
          *sock = 0 ;
          rc = SDB_TIMEOUT ;
          goto done ;
       }
-      // if < 0, means something wrong
       if ( 0 > rc )
       {
          sysError = SOCKET_GETLASTERROR ;
-         // if we failed due to interrupt, let's continue
          if ( SOCKET_EINTR == sysError )
          {
             continue ;
@@ -882,13 +833,11 @@ INT32 _ossSocket::accept ( SOCKET *sock, struct sockaddr *addr, socklen_t
          goto error ;
       }
 
-      // if the socket we interested is not receiving anything, let's continue
       if ( FD_ISSET ( _fd, &fds ) )
       {
          break ;
       }
    }
-   // reset rc back to SDB_OK, since the rc now is the result from select()
    rc = SDB_OK ;
    *sock = ::accept ( _fd, addr, addrlen ) ;
    if ( SOCKET_INVALIDSOCKET == *sock )
@@ -962,7 +911,6 @@ INT32 _ossSocket::secure ()
    {
       PD_LOG ( PDERROR, "_sslHandle already exists" ) ;
       ret = SDB_NETWORK ;
-      // do not free _sslHandle
       goto error2 ;
    }
 
@@ -1033,7 +981,6 @@ INT32 _ossSocket::doSSLHandshake ( const CHAR* initialBytes, INT32 len )
    {
       PD_LOG ( PDERROR, "_sslHandle already exists" ) ;
       ret = SDB_NETWORK ;
-      // do not free _sslHandle
       goto error2 ;
    }
 
@@ -1167,10 +1114,7 @@ INT32 _ossSocket::setTimeout ( INT32 milliSeconds )
 
    tv.tv_sec = milliSeconds / 1000 ;
    tv.tv_usec = ( milliSeconds % 1000 ) * 1000 ;
-   // windows take milliseconds as parameter
-   // but linux takes timeval as input
 #if defined (_WINDOWS)
-   // convert microseconds to milliseconds in DWORD
    tv.tv_sec = milliSeconds ;
    rc = setsockopt ( _fd, SOL_SOCKET, SO_RCVTIMEO, ( char* ) &tv.tv_sec,
                      sizeof ( INT32 ) ) ;
@@ -1222,14 +1166,12 @@ INT32 _ossSocket::getPort ( const CHAR *pServiceName, UINT16 &port )
    return ossGetPort( pServiceName, port ) ;
 }
 
-#if defined (_LINUX) || defined (_AIX)
-
 // PD_TRACE_DECLARE_FUNCTION ( SDB__OSSSK__COMPLETE, "_ossSocket::_complete" )
 INT32 _ossSocket::_complete( INT32 timeout )
 {
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY( SDB__OSSSK__COMPLETE ) ;
-
+#if defined (_LINUX) || defined (_AIX)
    INT32 err = 0 ;
    socklen_t errlen = sizeof(err) ;
    timeval tv ;
@@ -1243,7 +1185,6 @@ retry:
    if ( -1 == ::select( _fd + 1, NULL, &wfd, NULL, &tv ) )
    {
       rc = SOCKET_GETLASTERROR ;
-      // if we failed due to interrupt, let's retry
       if ( SOCKET_EINTR == rc )
       {
          goto retry ;
@@ -1276,7 +1217,7 @@ retry:
       rc = SDB_NET_CANNOT_CONNECT ;
       goto error ;
    }
-
+#endif
 done:
    PD_TRACE_EXITRC( SDB__OSSSK__COMPLETE, rc ) ;
    return rc ;
@@ -1285,16 +1226,6 @@ error:
    goto done ;
 }
 
-#else
-
-INT32 _ossSocket::_complete( INT32 timeout )
-{
-   return SDB_OK ;
-}
-
-#endif // (_LINUX) || defined (_AIX)
-
-// socket functions implement:
 
 INT32 ossInitSocket()
 {
@@ -1307,10 +1238,6 @@ INT32 ossInitSocket()
       INT32 rc = WSAStartup ( MAKEWORD ( 2,2 ), &data ) ;
       if ( 0 != rc )
       {
-         // The WSAStartup function directly returns the extended error code in
-         // the return value for this function
-         // A call to the WSAGetLastError function is not needed and should not
-         // be used.
          PD_LOG ( PDERROR, "Failed to startup socket, rc = %d", rc ) ;
          return SDB_NETWORK ;
       }

@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptArguments.hpp
 
@@ -38,7 +37,7 @@
 #include "oss.hpp"
 #include "../bson/bson.hpp"
 #include "sptPrivateData.hpp"
-#include "sptObjDesc.hpp"
+
 namespace engine
 {
    enum SPT_NATIVE_TYPE
@@ -51,9 +50,6 @@ namespace engine
       SPT_NATIVE_FLOAT64
    } ;
 
-   /*
-      _sptArguments define
-   */
    class _sptArguments : public SDBObject
    {
    public:
@@ -61,20 +57,11 @@ namespace engine
       virtual ~_sptArguments(){}
 
    public:
-      /// start with zero.
       virtual INT32 getNative( UINT32 pos, void *value,
                                SPT_NATIVE_TYPE type ) const = 0 ;
       virtual INT32 getString( UINT32 pos, std::string &value,
                                BOOLEAN strict = TRUE ) const = 0 ;
-      virtual INT32 getBsonobj( UINT32 pos, bson::BSONObj &value,
-                                BOOLEAN strict = TRUE,
-                                BOOLEAN allowNull = FALSE )
-                                const = 0 ;
-      virtual INT32 getArray( UINT32 pos, vector< bson::BSONObj >&value,
-                              BOOLEAN strict = TRUE ) const = 0 ;
-      virtual INT32 getArray( UINT32 pos, vector< string > &value,
-                              BOOLEAN strict = TRUE ) const = 0 ;
-
+      virtual INT32 getBsonobj( UINT32 pos, bson::BSONObj &value ) const = 0 ;
       virtual INT32 getUserObj( UINT32 pos, const _sptObjDesc &objDesc,
                                 const void** value ) const = 0 ;
       virtual sptPrivateData* getPrivateData() const = 0 ;
@@ -91,11 +78,7 @@ namespace engine
       virtual BOOLEAN isVoid( UINT32 pos ) const = 0 ;
       virtual BOOLEAN isUserObj( UINT32 pos,
                                  const _sptObjDesc &objDesc ) const = 0 ;
-      virtual BOOLEAN isArray( UINT32 pos ) const = 0 ;
-      virtual string  getUserObjClassName( UINT32 pos ) const = 0 ;
-
-      virtual string  getErrMsg() const = 0 ;
-      virtual BOOLEAN hasErrMsg() const = 0 ;
+      virtual string getUserObjClassName( UINT32 pos ) const = 0 ;
    } ;
    typedef class _sptArguments sptArguments ;
 }

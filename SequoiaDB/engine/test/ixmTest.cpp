@@ -1,19 +1,19 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
+
 *******************************************************************************/
 
 #include "dmsStorageUnit.hpp"
@@ -42,7 +42,6 @@ int main ( int argc, char **argv )
    CHAR inputBuffer[1024] ;
    ixmIndexCB *indexCB = NULL ;
 
-   // Jun dirty test
    ossValuePtr startOffset = DMS_PAGE_SIZE64K + DMS_SME_LEN ;
    CHAR * addPtr = (CHAR*)startOffset ;
    ossPrimitiveFileOp storageUint ;
@@ -70,7 +69,6 @@ int main ( int argc, char **argv )
    }
    storageUint.Close() ;
    return rc ;
-   // Jun dirty test
 
    printf("size=%d\n", (INT32)sizeof(ixmKeyNode));
    rc = myUnit.open("./", "./", "./", TRUE ) ;
@@ -79,8 +77,7 @@ int main ( int argc, char **argv )
       printf("Failed to open collection, rc = %d\n", rc ) ;
       return 0 ;
    }
-   rc = myUnit.data()->addCollection( "test", NULL, UTIL_UNIQUEID_NULL,
-                                      0, NULL, NULL, 1 ) ;
+   rc = myUnit.data()->addCollection("test", NULL, 0, NULL, NULL, 1 ) ;
    if ( rc )
    {
       if ( SDB_DMS_EXIST != rc )
@@ -101,7 +98,6 @@ int main ( int argc, char **argv )
       printf ( "Invalid BSON Key\n" ) ;
       return 0 ;
    }
-   // create index CB at page 1, for object 0 in myUnit
    indexCB = new ixmIndexCB ( 1, indexDef, 0, myUnit.index(), NULL ) ;
    if ( !indexCB )
    {
@@ -161,12 +157,9 @@ int main ( int argc, char **argv )
    }
    return 0 ;
    INT32 dummyRid = 0 ;
-   // insert 10000 index keys
    while ( dummyRid < 10000 )
    {
-      //printf("Please input query object: ");
       ossMemset ( inputBuffer, 0, sizeof(inputBuffer) ) ;
-      //gets(inputBuffer) ;
       sprintf(inputBuffer, "{c1:%d}", abs(rand()) % 100 ) ;
       inputBuffer[ossStrlen(inputBuffer)]=0 ;
       BSONObj inputObj ;
@@ -176,7 +169,6 @@ int main ( int argc, char **argv )
          printf ( "Invalid BSON Key\n" ) ;
          return 0 ;
       }
-      //printf("input: %s\n", inputObj.toString().c_str()) ;
       rc = indexCB->getKeysFromObject ( inputObj, keySet ) ;
       if ( rc )
       {
@@ -189,12 +181,10 @@ int main ( int argc, char **argv )
       Ordering ordering = Ordering::make(indexCB->keyPattern()) ;
       for ( it = keySet.begin() ; it != keySet.end(); it++ )
       {
-         //printf("\t%s\n", (*it).toString().c_str()) ;
          ixmIndexInsertRequestImpl *impl = new
                ixmIndexInsertRequestImpl(dmsRecordID(0,2*dummyRid), (*it),
                ordering, indexCB) ;
          ixmExtent rootidx ( indexCB->getRoot(), myUnit.index()) ;
-         //rc = rootidx.insertStepOne ( *impl, TRUE ) ;
          if ( rc )
          {
             printf("Failed to run insertStepOne\n") ;
@@ -219,12 +209,9 @@ int main ( int argc, char **argv )
    }
 
 
-   // remove indexes test
-   // insert 10000 index keys
    while ( dummyRid >= 0 )
    {
       ossMemset ( inputBuffer, 0, sizeof(inputBuffer) ) ;
-      //gets(inputBuffer) ;
       strcpy ( inputBuffer, "{c1:10}") ;
       inputBuffer[ossStrlen(inputBuffer)]=0 ;
       BSONObj inputObj ;
@@ -234,7 +221,6 @@ int main ( int argc, char **argv )
          printf ( "Invalid BSON Object\n" ) ;
          continue ;
       }
-      //printf("input: %s\n", inputObj.toString().c_str()) ;
       rc = indexCB->getKeysFromObject ( inputObj, keySet ) ;
       if ( rc )
       {

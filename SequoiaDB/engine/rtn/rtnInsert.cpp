@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnInsert.cpp
 
@@ -44,15 +43,10 @@
 #include "pmdCB.hpp"
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
-#include "utilInsertResult.hpp"
-
-using namespace bson;
 
 namespace engine
 {
    #define RTN_INSERT_ONCE_NUM         (10)
-
-   static BSONObj generateUpdator( const BSONObj &record ) ;
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNINSERT1, "rtnInsert" )
    INT32 rtnInsert ( const CHAR *pCollectionName, BSONObj &objs, INT32 objNum,
@@ -64,7 +58,6 @@ namespace engine
       pmdKRCB *krcb = pmdGetKRCB () ;
       SDB_DMSCB *dmsCB = krcb->getDMSCB () ;
       SDB_DPSCB *dpsCB = krcb->getDPSCB () ;
-      //EDUID eduId = cb->getID() ;
 
       if ( dpsCB && cb->isFromLocal() && !dpsCB->isLogLocal() )
       {
@@ -136,63 +129,15 @@ namespace engine
 
          try
          {
-            utilInsertResult insertResult ;
-            if ( FLG_INSERT_REPLACEONDUP & flags )
-            {
-               insertResult.enableDupErrInfo() ;
-            }
-
             BSONObj record ( (const CHAR*)pDataPos ) ;
-            rc = su->insertRecord ( pCollectionShortName, record, cb, dpsCB,
-                                    TRUE, TRUE, NULL, -1, &insertResult ) ;
-            // check return code
+            rc = su->insertRecord ( pCollectionShortName, record, cb, dpsCB ) ;
             if ( rc )
             {
-               if ( SDB_IXM_DUP_KEY == rc && FLG_INSERT_CONTONDUP & flags )
+               if ( ( SDB_IXM_DUP_KEY == rc ) &&
+                    ( FLG_INSERT_CONTONDUP & flags ) )
                {
-                  // skip duplicate key error
                   ++ignoredNum ;
                   rc = SDB_OK ;
-               }
-               else if ( SDB_IXM_DUP_KEY == rc
-                         && FLG_INSERT_REPLACEONDUP & flags )
-               {
-                  // update record when duplicate key error
-                  INT32 rcTmp = SDB_OK ;
-                  INT64 updateNum = 0 ;
-                  INT32 insertNum = 0 ;
-                  BSONObj hint ;
-                  BSONObj updator ;
-                  utilIdxDupErrInfo dupErrInfo( insertResult.getErrorInfo() ) ;
-
-                  BSONObj matcher = dupErrInfo.getIdxMatcher() ;
-                  PD_LOG( PDDEBUG, "DupInfo: %s", matcher.toString().c_str() ) ;
-                  if ( matcher.isEmpty() )
-                  {
-                     PD_LOG ( PDERROR, "matcher is empty, insert record %s into"
-                              " collection: %s, rc: %d",
-                              record.toString().c_str(), pCollectionName, rc ) ;
-                     goto error ;
-                  }
-
-                  updator = generateUpdator( record ) ;
-                  rcTmp = rtnUpdate( pCollectionName, matcher, updator, hint,
-                                     0, cb, &updateNum, &insertNum ) ;
-                  if ( SDB_OK != rcTmp )
-                  {
-                     PD_LOG( PDERROR, "Try to update record: %s when insert "
-                             "exists duplicate error. collection: %s, "
-                             "rcTmp:%d, rc: %d",
-                             record.toString().c_str(), pCollectionName,
-                             rcTmp, rc ) ;
-                     goto error ;
-                  }
-                  else
-                  {
-                     // update success.
-                     ++ignoredNum ;
-                     rc = SDB_OK ;
-                  }
                }
                else
                {
@@ -258,7 +203,7 @@ namespace engine
       dmsStorageUnitID suID = DMS_INVALID_CS ;
       const CHAR *clShortName = NULL ;
       BOOLEAN writable = FALSE ;
-      BSONElement positionEle ;
+      BSONElement positionELe ;
       INT64 position = -1 ;
 
       rc = dmsCB->writable( cb ) ;
@@ -277,46 +222,24 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s",
                    pCollectionName ) ;
 
-      try
+      if ( DMS_STORAGE_CAPPED == su->type() )
       {
-         // Insertion on capped collection should be done by position.
-         if ( DMS_STORAGE_CAPPED == su->type() )
+         positionELe = obj.getField( DMS_ID_KEY_NAME ) ;
+         if ( NumberLong != positionELe.type() )
          {
-            positionEle = obj.getField( DMS_ID_KEY_NAME ) ;
-            if ( NumberLong != positionEle.type() )
-            {
-               PD_LOG( PDERROR, "Field _id type[ %d ] is not as expected"
-                       "[ %d ]", positionEle.type(), NumberLong ) ;
-               rc = SDB_SYS ;
-               goto error ;
-            }
-
-            position = positionEle.numberLong() ;
+            PD_LOG( PDERROR, "Field _id type[ %d ] is not as expected"
+                    "[ %d ]", positionELe.type(), NumberLong ) ;
+            rc = SDB_SYS ;
+            goto error ;
          }
 
-         rc = su->insertRecord( clShortName, obj, cb, dpsCB, TRUE,
-                                TRUE, NULL, position ) ;
-         if ( rc )
-         {
-            if ( ( SDB_IXM_DUP_KEY == rc ) &&
-                 ( FLG_INSERT_CONTONDUP & flags ) )
-            {
-               rc = SDB_OK ;
-            }
-            else
-            {
-               PD_LOG( PDERROR, "Insert record by position[ %lld ] failed, "
-                       "rc: %d", positionEle.numberLong(), rc) ;
-               goto error ;
-            }
-         }
+         position = positionELe.numberLong() ;
       }
-      catch( std::exception &e )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Occur exception: %s, rc: %d", e.what(), rc ) ;
-         goto error ;
-      }
+
+      rc = su->insertRecord( clShortName, obj, cb, dpsCB, TRUE,
+                             TRUE, NULL, position ) ;
+      PD_RC_CHECK( rc, PDERROR, "Insert record by position[ %lld ] failed, "
+                   "rc: %d", positionELe.numberLong(), rc) ;
 
    done:
       if ( DMS_INVALID_CS != suID )
@@ -339,12 +262,6 @@ namespace engine
       return rc ;
    error:
       goto done ;
-   }
-
-   BSONObj generateUpdator( const BSONObj &record )
-   {
-      return BSON( "$replace" << record
-                   << "$keep" << BSON( DMS_ID_KEY_NAME << 1) ) ;
    }
 }
 

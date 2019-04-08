@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordLobOperator.cpp
 
@@ -78,11 +77,9 @@ namespace engine
          goto error ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "Option:%s", obj.toString().c_str() ) ;
 
-      /// pStream will free in context
       pStream = SDB_OSS_NEW _coordLobStream( _pResource, getTimeout() ) ;
       if ( !pStream )
       {
@@ -142,7 +139,6 @@ namespace engine
          goto error ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "ContextID:%lld, Len:%u, Offset:%llu",
                           header->contextID, len, offset ) ;
@@ -200,7 +196,6 @@ namespace engine
          goto error ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "ContextID:%lld, Len:%u, Offset:%llu",
                           header->contextID, readLen, offset ) ;
@@ -255,7 +250,6 @@ namespace engine
          goto error ;
       } 
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "ContextID:%lld", header->contextID ) ;
 
@@ -304,7 +298,6 @@ namespace engine
          goto error ;
       } 
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "ContextID:%lld", header->contextID ) ;
 
@@ -377,13 +370,10 @@ namespace engine
          goto error ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "Option:%s", obj.toString().c_str() ) ;
 
-      /// release operator's groupSession to improve perfermance
       _groupSession.release() ;
-      /// then open stream, will init it's groupSession
       rc = stream.open( fullName,
                         ele.__oid(), SDB_LOB_MODE_REMOVE,
                         header->flags,
@@ -400,7 +390,6 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "faield to remove lob pieces:%d", rc ) ;
-         /// get error info
          stream.getErrorInfo( rc, cb, buf ) ;
          goto error ;
       }
@@ -495,13 +484,10 @@ namespace engine
       }
       length = ele.numberLong() ;
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "Option:%s", obj.toString().c_str() ) ;
 
-      /// release operator's groupSession to improve perfermance
       _groupSession.release() ;
-      /// then open stream, will init it's groupSession
       rc = stream.open( fullName.c_str(),
                         oid, SDB_LOB_MODE_TRUNCATE,
                         header->flags,
@@ -518,7 +504,6 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "faield to truncate lob:%d", rc ) ;
-         /// get error info
          stream.getErrorInfo( rc, cb, buf ) ;
          goto error ;
       }

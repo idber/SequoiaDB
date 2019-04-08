@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = netRouteAgent.cpp
 
@@ -48,8 +47,6 @@ namespace engine
 
    }
 
-   // this updateRoute only change the old routeID to new one. It does NOT
-   // change the hostname and servicename, so we do not need to restart services
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETRTAG_UPRT, "_netRouteAgent::updateRoute" )
    INT32 _netRouteAgent::updateRoute ( const _MsgRouteID &oldID,
                                        const _MsgRouteID &newID )
@@ -61,7 +58,6 @@ namespace engine
       {
          goto error ;
       }
-      /// close the old connections
       _frame.close( oldID ) ;
 
    done :
@@ -85,7 +81,6 @@ namespace engine
          goto error ;
       }
 
-      // new node don't close the exist connect
       if ( FALSE == newAdd )
       {
          _frame.close( id ) ;
@@ -111,7 +106,6 @@ namespace engine
          goto error ;
       }
 
-      // new node don't close the existed connect
       if ( FALSE == newAdd )
       {
          _frame.close( id ) ;

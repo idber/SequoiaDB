@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sdblobtool.cpp
 
@@ -37,7 +36,6 @@
 #include "utilParam.hpp"
 #include "pmdDef.hpp"
 #include "ossVer.hpp"
-#include "utilPasswdTool.hpp"
 #include "utilCommon.hpp"
 #include <iostream>
 
@@ -51,10 +49,7 @@ using namespace std ;
         ( MIG_HOSTNAME, boost::program_options::value<string>(), "The host name of coord. Default value is localhost." )\
         ( MIG_SERVICE, boost::program_options::value<string>(), "The service name of coord. Default value is \"11810\"." )\
         ( MIG_USRNAME, boost::program_options::value<string>(), "Username" )\
-        ( MIG_PASSWD, implicit_value<string>(""), "Password" )\
-        ( MIG_CIPHERFILE, boost::program_options::value<string>(), "cipherfile location, default ./passwd" )\
-        ( MIG_CIPHER, boost::program_options::value<bool>(), "input password using a cipherfile" )\
-        ( MIG_TOKEN, boost::program_options::value<string>(), "password encryption token" )\
+        ( MIG_PASSWD, boost::program_options::value<string>(), "Password" )\
         ( MIG_OP, boost::program_options::value<string>(), "import/export/migration" )\
         ( MIG_CL, boost::program_options::value<string>(), "Full name of collection, eg:\"foo.bar\"" )\
         ( MIG_FILE, boost::program_options::value<string>(), "Full path of file" )\
@@ -65,8 +60,6 @@ using namespace std ;
         ( MIG_DST_PASSWD, boost::program_options::value<string>(), "Destination password(Specify it when use migration)" )\
         ( MIG_DST_CL, boost::program_options::value<string>(), "Destination collection(Specify it when use migration)" )\
         ( MIG_SESSION_PREFER, boost::program_options::value<string>(), "Indicate which instance to respond export request in current session. (\"m\"/\"M\"/\"s\"/\"S\"/\"a\"/\"A\"/1-7 default is \"M\")" ) \
-
-#define DEFAULT_CIPHER  "passwd"
 
 static void initDesc( po::options_description &desc )
 {
@@ -88,8 +81,6 @@ static INT32 parseCmdLine( const po::options_description &desc,
    doNothing = FALSE ;
    std::string optype ;
    BOOLEAN isMig = FALSE ;
-   std::string cipherfile = DEFAULT_CIPHER;
-   std::string token;
 
    if ( vm.count( "help" ) )
    {
@@ -123,66 +114,22 @@ static INT32 parseCmdLine( const po::options_description &desc,
       builder.append( MIG_SERVICE, vm[MIG_SERVICE].as<string>() ) ;
    }
 
-   if ( vm.count( MIG_CIPHERFILE ) )
-   {
-      cipherfile = vm[MIG_CIPHERFILE].as<string>() ;
-   }
-   if ( vm.count( MIG_TOKEN ) )
-   {
-      token = vm[MIG_TOKEN].as<string>() ;
-   }
    if ( vm.count( MIG_USRNAME ) )
    {
-      string user = vm[MIG_USRNAME].as<string>();
-
-      if ( vm.count( MIG_PASSWD ) )
-      {
-         string passwd = vm[MIG_PASSWD].as<string>() ;
-         if ( "" == passwd )
-         {
-            passwd = engine::utilPasswordTool::interactivePasswdInput() ;
-         }
-         builder.append( MIG_USRNAME, user ) ;
-         builder.append( MIG_PASSWD, passwd ) ;
-      }
-      else
-      {
-         engine::utilPasswordTool passwdTool ;
-         string passwd ;
-
-         if ( vm.count(MIG_CIPHER) && vm[MIG_CIPHER].as<bool>() )
-         {
-            string connectionUserName ;
-            
-            rc = passwdTool.getPasswdByCipherFile( user, token,
-                                                   cipherfile,
-                                                   connectionUserName,
-                                                   passwd ) ;
-            if ( SDB_OK != rc )
-            {
-               cerr << "get user password failed" << endl ;
-               PD_LOG( PDERROR, "get user password failed" ) ;
-               goto error ;
-            }
-            builder.append( MIG_USRNAME, connectionUserName ) ;
-            builder.append( MIG_PASSWD, passwd ) ;
-         }
-         else
-         {
-            builder.append( MIG_USRNAME, user ) ;
-            if ( vm.count(MIG_TOKEN) || vm.count(MIG_CIPHERFILE) )
-            {
-               cout << "to use cipherfile, provide --cipher" << endl ;
-            }
-         }
-      }
+      builder.append( MIG_USRNAME, vm[MIG_USRNAME].as<string>() ) ;
    }
    else
    {
       builder.append( MIG_USRNAME, "" ) ;
-      vm.count( MIG_PASSWD )?
-      builder.append( MIG_PASSWD, vm[MIG_PASSWD].as<string>() ):
-      builder.append( MIG_PASSWD, "");
+   }
+
+   if ( vm.count( MIG_PASSWD ) )
+   {
+      builder.append( MIG_PASSWD, vm[MIG_PASSWD].as<string>() ) ;
+   }
+   else
+   {
+      builder.append( MIG_PASSWD, "" ) ;
    }
 
    if ( !vm.count( MIG_OP ) )

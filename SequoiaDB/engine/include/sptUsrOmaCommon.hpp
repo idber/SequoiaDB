@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptUsrOmaCommon.hpp
 
@@ -54,15 +53,7 @@ namespace engine
                                   bson::BSONObj &retObj,
                                   string &err ) ;
 
-      static INT32 getIniConfigs( const bson::BSONObj &arg,
-                                  bson::BSONObj &retObj,
-                                  string &err ) ;
-
       static INT32 setOmaConfigs( const bson::BSONObj &arg,
-                                  const bson::BSONObj &confObj,
-                                  string &err ) ;
-
-      static INT32 setIniConfigs( const bson::BSONObj &arg,
                                   const bson::BSONObj &confObj,
                                   string &err ) ;
 
@@ -80,53 +71,14 @@ namespace engine
    private:
       static INT32 _getConfFile( string &confFile ) ;
 
-      /*
-      confFile       [in] : Configuration file path
-      conf           [out]: Output configuration item
-      err            [out]: Description of execution failure
-      allowNotExist  [in] : Whether to allow files to not exist
-      isSdbConfig    [in] : If it is a sdb configuration file,
-                            need to parse the special configuration item.
-      enableType     [in] : TRUE:  Automatically identify the type of
-                                   configuration item;
-                            FALSE: Configuration item types are
-                                   converted to strings.
-      strDelimiter   [in] : TRUE:  String only supports double quotes;
-                            FALSE: String supports double quotes and
-                                   single quotes.
-      */
       static INT32  _getConfInfo( const string &confFile,
                                   bson::BSONObj &conf,
                                   string &err,
-                                  BOOLEAN allowNotExist = FALSE,
-                                  BOOLEAN isSdbConfig = TRUE,
-                                  BOOLEAN enableType = FALSE,
-                                  BOOLEAN strDelimiter = TRUE ) ;
+                                  BOOLEAN allowNotExist = FALSE ) ;
 
-      /*
-      isSdbConfig    [in] : TRUE:  Force type enableType and
-                                   not use character separators;
-                            FALSE: enableType and strDelimiter are valid and
-                                   use string separators.
-      enableType     [in] : TRUE:  Output according to the type of value;
-                            FALSE: Forced value output string.
-      strDelimiter   [in] : TRUE:  Output string with double quotes;
-                            FALSE: Output string with single quotes.
-      */
-      static INT32  _confObj2Str( const bson::BSONObj &conf,
-                                  string &str,
+      static INT32  _confObj2Str( const bson::BSONObj &conf, string &str,
                                   string &err,
-                                  const CHAR* pExcept = NULL,
-                                  BOOLEAN isSdbConfig = TRUE,
-                                  BOOLEAN enableType = FALSE,
-                                  BOOLEAN strDelimiter = TRUE ) ;
-
-      static INT32 _config2Ini( const bson::BSONObj &config,
-                                string &out,
-                                string &err,
-                                BOOLEAN noDelimiter = FALSE,
-                                BOOLEAN enableType = FALSE,
-                                BOOLEAN strDelimiter = TRUE ) ;
+                                  const CHAR* pExcept = NULL ) ;
    } ;
 }
 

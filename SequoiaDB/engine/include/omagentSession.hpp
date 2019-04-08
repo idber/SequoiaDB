@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omagentSession.hpp
 
@@ -71,7 +70,6 @@ namespace engine
 
          virtual void    onTimer ( UINT64 timerID, UINT32 interval ) ;
 
-         // fileObj operation function
          virtual INT32 newFileObj( UINT32 &fID, sptUsrFileCommon** fileObj ) ;
          virtual void releaseFileObj( UINT32 fID ) ;
          virtual sptUsrFileCommon* getFileObjByID( UINT32 fID ) ;
@@ -80,7 +78,6 @@ namespace engine
          virtual void   _onAttach () ;
          virtual INT32  _defaultMsgFunc ( NET_HANDLE handle, MsgHeader* msg ) ;
 
-      // msg map function
       protected:
          INT32       _onNodeMgrReq( const NET_HANDLE &handle,
                                     MsgHeader *pMsg ) ;

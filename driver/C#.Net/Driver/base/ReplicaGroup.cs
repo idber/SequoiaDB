@@ -1,20 +1,4 @@
-﻿/*
- * Copyright 2018 SequoiaDB Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
-*/
-
-using System;
+﻿using System;
 using SequoiaDB.Bson;
 using System.Collections.Generic;
 
@@ -230,7 +214,7 @@ namespace SequoiaDB
             SDBMessage rtn = AdminCommand(command, configuration, dummyObj, dummyObj, dummyObj);
             int flags = rtn.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
             else
                 return GetNode(hostName, port);
         }
@@ -272,7 +256,7 @@ namespace SequoiaDB
             SDBMessage rtn = AdminCommand(command, config, dummyObj, dummyObj, dummyObj);
             int flags = rtn.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
         }
 
         /** \fn Node GetMaster()
@@ -342,8 +326,8 @@ namespace SequoiaDB
         }
 
         /** \fn Node GetSlave()
-         *  \brief Get the slave node, when have no slave node, return master node.
-         *  \return The fitted node.
+         *  \brief Get the slave node of current group
+         *  \return The fitted node or null
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
          */
@@ -353,48 +337,18 @@ namespace SequoiaDB
         }
 
         /** \fn Node GetSlave(params int[] positions)
-         *  \brief Get the slave node in the specified positions,
-         *         when have no slave node in the specified positions, return master node.
-         *  \param positions The positions of nodes.
-         *      The position of a node is depended on the index of the node
-         *      defined in catalog. But the beginning position of a node is start
-         *      from 1 instead of 0, so it can be 1-7. 
-         *  \return The fitted node.
+         *  \brief Get the slave node of current group
+         *  \param positions The positions of nodes
+         *  \return The fitted node or null
          *  \exception SequoiaDB.BaseException
          *  \exception System.Exception
          */
         public Node GetSlave(params int[] positions)
         {
-            List<int> list = null;
-            if (positions == null || positions.Length == 0) {
-                return GetSlave(list);
-            } else {
-                list = new List<int>();
-                foreach (int pos in positions)
-                {
-                    list.Add(pos);
-                }
-                return GetSlave(list);
-            }
-        }
-
-        /** \fn Node GetSlave(IList<int> positions)
-         *  \brief Get the slave node in the specified positions,
-         *         when have no slave node in the specified positions, return master node.
-         *  \param positions The positions of nodes.
-         *      The position of a node is depended on the index of the node
-         *      defined in catalog. But the beginning position of a node is start
-         *      from 1 instead of 0, so it can be 1-7. 
-         *  \return The fitted node.
-         *  \exception SequoiaDB.BaseException
-         *  \exception System.Exception
-         */
-        public Node GetSlave(IList<int> positions)
-        {
             bool needGeneratePosition = false;
             List<int> validPositions = new List<int>();
             // check arguements 
-            if (positions == null || positions.Count == 0)
+            if (positions == null || positions.Length == 0)
             {
                 needGeneratePosition = true;
             }
@@ -561,43 +515,6 @@ namespace SequoiaDB
             }
         }
 
-        /** \fn bool IsNodeExist(string nodeName)
-         *  \brief Whether the specified node exists in current group or not.
-         *  \param nodeName The name of the node. e.g. "192.168.20.165:20000"
-         *  \return true or false.
-         */
-        public bool IsNodeExist(string nodeName)
-        {
-            try
-            {
-                GetNode(nodeName);
-            }
-            catch (BaseException e)
-            {
-                return false;
-            }
-            return true;
-        }
-
-        /** \fn bool IsNodeExist(string hostName, int port)
-         *  \brief Whether the specified node exists in current group or not.
-         *  \param hostName The hostname of the node.
-         *  \param port The port of the node.
-         *  \return true or false.
-         */
-        public bool IsNodeExist(string hostName, int port)
-        {
-            try
-            {
-                GetNode(hostName, port);
-            }
-            catch (BaseException e)
-            {
-                return false;
-            }
-            return true;
-        }
-
         /** \fn Node GetNode(string nodeName)
          *  \brief Get the node by node name
          *  \param nodeName The node name
@@ -680,19 +597,12 @@ namespace SequoiaDB
         /** \fn void AttachNode( string hostName, 
          *                       int port, 
          *                       BsonDocument options )
-         *  \brief Attach a node to the group.
-         *  \param hostName The host name of node.
-         *  \param port The port for the node.
-         *  \param options configuration for this operation,
-         *                 can not be null or empty, can be the follow options:
-         *                <ul>
-         *                <li>KeepData : Whether to keep the original data of the new
-         *                               node. This option has no default value. User
-         *                               should specify its value explicitly.</li>
-         *                </ul>
-         *  \return void
-         *  \exception SequoiaDB.BaseException
-         *  \exception System.Exception
+         *  \brief Attach a node to the group
+         *  \param [in] hostName The host name of node.
+         *  \param [in] port The port for the node.
+         *  \param [in] optoins The options of attach.
+         *  \retval SDB_OK Operation Success
+         *  \retval Others Operation Fail
          */
         public void AttachNode(string hostName, int port, BsonDocument options)
         {
@@ -719,27 +629,18 @@ namespace SequoiaDB
             SDBMessage rtn = AdminCommand(command, newObj, dummyObj, dummyObj, dummyObj);
             int flags = rtn.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
         }
 
         /** \fn void DetachNode( string hostName,
          *                       int port,
          *                       BsonDocument options )
-         *  \brief Detach a node from the group.
-         *  \param hostName The host name of node.
-         *  \param port The port for the node.
-         *  \param options configuration for this operation,
-         *                 can not be null or empty, can be the follow options:
-         *                <ul>
-         *                <li>KeepData : Whether to keep the original data of the
-         *                               detached node. This option has no default
-         *                               value. User should specify its value explicitly.</li>
-         *                <li>Enforced : Whether to detach the node forcibly , default
-         *                               to be false.</li>
-         *                </ul>
-         *  \return void
-         *  \exception SequoiaDB.BaseException
-         *  \exception System.Exception
+         *  \brief Detach a node from the group
+         *  \param [in] pHostName The host name of node.
+         *  \param [in] port The port for the node.
+         *  \param [in] optoins The options of detach.
+         *  \retval SDB_OK Operation Success
+         *  \retval Others Operation Fail
          */
         public void DetachNode(string hostName, int port, BsonDocument options)
         {
@@ -766,7 +667,7 @@ namespace SequoiaDB
             SDBMessage rtn = AdminCommand(command, newObj, dummyObj, dummyObj, dummyObj);
             int flags = rtn.Flags;
             if (flags != 0)
-                throw new BaseException(flags, rtn.ErrorObject);
+                throw new BaseException(flags);
         }
 
         private SDBMessage AdminCommand(string command, BsonDocument arg1, BsonDocument arg2,

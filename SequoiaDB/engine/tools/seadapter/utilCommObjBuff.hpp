@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = utilCommObjBuff.hpp
 
@@ -59,7 +58,6 @@ namespace seadapter
                           UINT32 sizeLimit = UTIL_DFT_OBJBUFF_MAX_SIZE ) ;
          ~_utilCommObjBuff() ;
 
-         // If extentSize is 0, the default strategy is to double the space.
          INT32 init( UINT32 size = UTIL_OBJBUFF_DFT_SIZE,
                      UINT32 extendSize = 0 ) ;
          BOOLEAN valid() const ;
@@ -76,7 +74,6 @@ namespace seadapter
          BOOLEAN eof() const { return _readPos >= _writePos ; }
 
 #ifdef _DEBUG
-         // Print all the objects in the buffer to the screen.
          void viewAll() ;
 #endif /* _DEBUG */
       private:

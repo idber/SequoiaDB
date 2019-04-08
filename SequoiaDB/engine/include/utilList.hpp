@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = utilList.hpp
 
@@ -167,12 +166,10 @@ namespace engine
             {
                if ( _pData && rhs._pData )
                {
-                  /// left, right is end
                   BOOLEAN leftEnd = _pData >= _pSrc + *_pEleSize ?
                                     TRUE : FALSE ;
                   BOOLEAN rightEnd = rhs._pData > rhs._pSrc + *(rhs._pEleSize) ?
                                      TRUE : FALSE ;
-                  /// both end, equal
                   if ( leftEnd && rightEnd &&
                        _pSrc == rhs._pSrc &&
                        _pEleSize == rhs._pEleSize )
@@ -468,7 +465,6 @@ namespace engine
                   rc = SDB_OOM ;
                   goto error ;
                }
-               /// copy stack data to deque
                for ( UINT32 i = 0 ; i < _eleSize ; ++i )
                {
                   _pList->push_back( _staticBuf[ i ] ) ;
@@ -733,7 +729,6 @@ namespace engine
             {
                _insertBySort( tmp, tmpSize, _staticBuf[ i ] ) ;
             }
-            /// copy back
             for ( UINT32 i = 0 ; i < _eleSize ; ++i )
             {
                _staticBuf[ i ] = tmp[ i ] ;
@@ -756,7 +751,6 @@ namespace engine
             {
                _insertBySort( tmp, tmpSize, comp, _staticBuf[ i ] ) ;
             }
-            /// copy back
             for ( UINT32 i = 0 ; i < _eleSize ; ++i )
             {
                _staticBuf[ i ] = tmp[ i ] ;
@@ -779,7 +773,6 @@ namespace engine
             {
                tmp[ i ] = _staticBuf[ j - 1 ] ;
             }
-            /// copy back
             for ( i = 0 ; i < _eleSize ; ++i )
             {
                _staticBuf[ i ] = tmp[ i ] ;
@@ -791,11 +784,8 @@ namespace engine
       {
          UINT32 rSize = rhs.size() ;
 
-         /// clear self
          clear( TRUE ) ;
-         /// alloc space
          _ensureSpace( rSize ) ;
-         /// copy all elements
          const_iterator it = rhs.begin() ;
          while ( it != rhs.end() )
          {
@@ -816,7 +806,6 @@ namespace engine
             }
             if ( _pList->size() <= threshold )
             {
-               /// copy data to stack
                _eleSize = 0 ;
                typename list<T>::iterator it = _pList->begin() ;
                while( it != _pList->end() )
@@ -824,7 +813,6 @@ namespace engine
                   _staticBuf[ _eleSize++ ] = *it ;
                   ++it ;
                }
-               /// release the deque
                delete _pList ;
                _pList = NULL ;
             }
@@ -853,7 +841,6 @@ namespace engine
                rc = SDB_OOM ;
                goto error ;
             }
-            /// copy stack data to deque
             for ( UINT32 i = 0 ; i < _eleSize ; ++i )
             {
                _pList->push_back( _staticBuf[ i ] ) ;
@@ -886,13 +873,11 @@ namespace engine
                }
                else
                {
-                  /// find the position
                   pBuff[ pos ] = val ;
                   ++size ;
                   return ;
                }
             }
-            /// insert to the begin
             pBuff[ 0 ] = val ;
             ++size ;
          }
@@ -919,13 +904,11 @@ namespace engine
                }
                else
                {
-                  /// find the position
                   pBuff[ pos ] = val ;
                   ++size ;
                   return ;
                }
             }
-            /// insert to the begin
             pBuff[ 0 ] = val ;
             ++size ;
          }

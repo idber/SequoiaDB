@@ -74,8 +74,6 @@ public class MongoNamespaceTests {
 		assertEquals(new Integer(27017), port);
 
 		MongoOptions options = (MongoOptions) getField(mfb, "mongoOptions");
-//		assertFalse("By default socketFactory should not be a SSLSocketFactory",
-//				options.getSocketFactory() instanceof SSLSocketFactory);
 	}
 
 	/**
@@ -88,7 +86,6 @@ public class MongoNamespaceTests {
 		MongoFactoryBean mfb = (MongoFactoryBean) ctx.getBean("&mongoSsl");
 
 		MongoOptions options = (MongoOptions) getField(mfb, "mongoOptions");
-//		assertTrue("socketFactory should be a SSLSocketFactory", options.getSocketFactory() instanceof SSLSocketFactory);
 	}
 
 	/**
@@ -103,8 +100,6 @@ public class MongoNamespaceTests {
 		SSLSocketFactory customSslSocketFactory = ctx.getBean("customSslSocketFactory", SSLSocketFactory.class);
 		MongoOptions options = (MongoOptions) getField(mfb, "mongoOptions");
 
-//		assertTrue("socketFactory should be a SSLSocketFactory", options.getSocketFactory() instanceof SSLSocketFactory);
-//		assertSame(customSslSocketFactory, options.getSocketFactory());
 	}
 
 	@Test
@@ -236,17 +231,5 @@ public class MongoNamespaceTests {
 		Mongo mongo = mfb.getObject();
 		MongoOptions mongoOpts = mongo.getMongoOptions();
 
-//		assertEquals(8, mongoOpts.connectionsPerHost);
-//		assertEquals(1000, mongoOpts.connectTimeout);
-//		assertEquals(1500, mongoOpts.maxWaitTime);
-//		assertEquals(true, mongoOpts.autoConnectRetry);
-//		assertEquals(1500, mongoOpts.socketTimeout);
-//		assertEquals(4, mongoOpts.threadsAllowedToBlockForConnectionMultiplier);
-//		assertEquals(true, mongoOpts.socketKeepAlive);
-//		assertEquals(true, mongoOpts.fsync);
-//		assertEquals(true, mongoOpts.slaveOk);
-//		assertEquals(1, mongoOpts.getWriteConcern().getW());
-//		assertEquals(0, mongoOpts.getWriteConcern().getWtimeout());
-//		assertEquals(true, mongoOpts.getWriteConcern().fsync());
 	}
 }

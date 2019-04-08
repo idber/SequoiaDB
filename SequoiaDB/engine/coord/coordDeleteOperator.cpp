@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordDeleteOperator.cpp
 
@@ -87,7 +86,6 @@ namespace engine
       INT32 rcTmp = SDB_OK ;
       PD_TRACE_ENTRY ( COORD_OPERATORDEL_EXE ) ;
 
-      // process define
       coordSendOptions sendOpt( TRUE ) ;
       coordSendMsgIn inMsg( pMsg ) ;
       coordProcessResult result ;
@@ -99,7 +97,6 @@ namespace engine
 
       BSONObj boDeletor ;
 
-      // fill default-reply(delete success)
       MsgOpDelete *pDelMsg             = (MsgOpDelete *)pMsg ;
       INT32 oldFlag                    = pDelMsg->flags ;
       pDelMsg->flags                  |= FLG_DELETE_RETURNNUM ;
@@ -118,13 +115,6 @@ namespace engine
          goto error ;
       }
 
-      if ( 0 == ossStrncmp( pCollectionName, CMD_ADMIN_PREFIX SYS_VIRTUAL_CS".",
-                            SYS_VIRTUAL_CS_LEN + 1 ) )
-      {
-         rc = SDB_COORD_UNKNOWN_OP_REQ ;
-         goto error ;
-      }
-
       try
       {
          boDeletor = BSONObj( pDeletor ) ;
@@ -136,7 +126,6 @@ namespace engine
                       e.what() ) ;
       }
 
-      // add last op info
       MON_SAVE_OP_DETAIL( cb->getMonAppCB(), pMsg->opCode,
                           "Collection:%s, Deletor:%s, Hint:%s, "
                           "Flag:0x%08x(%u)",
@@ -183,7 +172,6 @@ namespace engine
       }
       if ( pCollectionName )
       {
-         /// AUDIT
          PD_AUDIT_OP( AUDIT_DML, MSG_BS_DELETE_REQ, AUDIT_OBJ_CL,
                       pCollectionName, rc,
                       "DeletedNum:%u, Deletor:%s, Hint:%s, Flag:0x%08x(%u)",
@@ -257,16 +245,13 @@ namespace engine
             netIOVec &iovec = inMsg._datas[ it->first ] ;
             netIOV ioItem ;
 
-            // 1. first vec
             ioItem.iovBase = (const CHAR*)inMsg.msg() + sizeof( MsgHeader ) ;
             ioItem.iovLen = ossRoundUpToMultipleX ( offsetof(MsgOpDelete, name) +
                                                     pDelMsg->nameLength + 1, 4 ) -
                             sizeof( MsgHeader ) ;
             iovec.push_back( ioItem ) ;
 
-            // 2. new deletor vec
             boNew = _buildNewDeletor( boDeletor, subCLLst ) ;
-            // 2.1 add to buff
             UINT32 roundLen = ossRoundUpToMultipleX( boNew.objsize(), 4 ) ;
             if ( buffPos + roundLen > buffLen )
             {
@@ -284,7 +269,6 @@ namespace engine
             buffPos += roundLen ;
             iovec.push_back( ioItem ) ;
 
-            // 3. hinter vec
             ioItem.iovBase = boHint.objdata() ;
             ioItem.iovLen = boHint.objsize() ;
             iovec.push_back( ioItem ) ;         

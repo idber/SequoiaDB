@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dpsOp2Record.hpp
 
@@ -48,7 +47,6 @@ using namespace bson ;
 
 namespace engine
 {
-   /// warning: any value can not be value-passed.
    INT32 dpsInsert2Record( const CHAR *fullName,
                            const BSONObj &obj,
                            const DPS_TRANS_ID &transID,
@@ -104,7 +102,6 @@ namespace engine
                         INT8 &direction ) ;
 
    INT32 dpsCSCrt2Record( const CHAR *csName,
-                          const utilCSUniqueID &csUniqueID,
                           const INT32 &pageSize,
                           const INT32 &lobPageSize,
                           const INT32 &type,
@@ -112,7 +109,6 @@ namespace engine
 
    INT32 dpsRecord2CSCrt( const CHAR *logRecord,
                           const CHAR **csName,
-                          utilCSUniqueID &csUniqueID,
                           INT32 &pageSize,
                           INT32 &lobPageSize,
                           INT32 &type ) ;
@@ -132,7 +128,6 @@ namespace engine
                              const CHAR **newCSName ) ;
 
    INT32 dpsCLCrt2Record( const CHAR *fullName,
-                          const utilCLUniqueID &clUniqueID,
                           const UINT32 &attribute,
                           const UINT8 &compressorType,
                           const BSONObj *extOptions,
@@ -140,7 +135,6 @@ namespace engine
 
    INT32 dpsRecord2CLCrt( const CHAR *logRecord,
                           const CHAR **fullName,
-                          utilCLUniqueID &clUniqueID,
                           UINT32 &attribute,
                           UINT8 &compressorType,
                           BSONObj &extOptions ) ;
@@ -191,9 +185,6 @@ namespace engine
    INT32 dpsRecord2TransCommit( const CHAR *logRecord,
                                 DPS_TRANS_ID &transID ) ;
 
-//   INT32 dpsTransRollback2Record( const DPS_TRANS_ID &transID,
-//                                  const DPS_LSN_OFFSET &preTransLsn,
-//                                  dpsLogRecord &record ) ;
 
    INT32 dpsInvalidCata2Record( const UINT8 &type,
                                 const CHAR * clFullName,
@@ -290,26 +281,7 @@ namespace engine
    INT32 dpsRecord2LobTruncate( const CHAR *raw,
                                 const CHAR **fullName ) ;
 
-   INT32 dpsAlter2Record ( const CHAR * name,
-                           INT32 objectType,
-                           const bson::BSONObj & alterObject,
-                           dpsLogRecord & record ) ;
-
-   INT32 dpsRecord2Alter ( const CHAR * logRecord,
-                           const CHAR ** name,
-                           INT32 & objectType,
-                           bson::BSONObj & alterObject ) ;
-
-   INT32 dpsAddUniqueID2Record ( const CHAR* csname,
-                                 const utilCSUniqueID& csUniqueID,
-                                 const bson::BSONObj& clInfoObj,
-                                 dpsLogRecord& record ) ;
-
-   INT32 dpsRecord2AddUniqueID ( const CHAR* logRecord,
-                                 const CHAR** csname,
-                                 utilCSUniqueID& csUniqueID,
-                                 bson::BSONObj & clInfoObj ) ;
-
 }
 
 #endif
+

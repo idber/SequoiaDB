@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dmsStorageUnit.hpp
 
@@ -49,8 +48,6 @@
 #include "dmsExtDataHandler.hpp"
 #include "dmsStatUnit.hpp"
 #include "dmsCachedPlanUnit.hpp"
-#include "ossMemPool.hpp"
-#include "utilInsertResult.hpp"
 
 using namespace bson ;
 
@@ -250,7 +247,7 @@ namespace engine
          }
 
       protected :
-         typedef ossPoolList<_IDmsEventHandler *> HANDLER_LIST ;
+         typedef _utilList<_IDmsEventHandler *> HANDLER_LIST ;
 
          dmsStorageUnit *     _su ;
          dmsCacheHolder *     _pCacheHolder ;
@@ -268,7 +265,6 @@ namespace engine
 
       public:
          _dmsStorageUnit ( const CHAR *pSUName,
-                           UINT32 csUniqueID,
                            UINT32 sequence,
                            utilCacheMgr *pMgr,
                            INT32 pageSize = DMS_PAGE_SIZE_DFT,
@@ -287,13 +283,12 @@ namespace engine
          INT32 remove () ;
 
          INT32 renameCS( const CHAR *pNewName ) ;
-
-         INT32 setLobPageSize ( UINT32 lobPageSize ) ;
-
          dmsStorageDataCommon *data() { return _pDataSu ; }
+
          dmsStorageIndex   *index() { return _pIndexSu ; }
          dmsStorageLob     *lob() { return _pLobSu ; }
          utilCacheUnit     *cacheUnit() { return _pCacheUnit ; }
+         dmsStorageInfo    *storageInfo() { return &_storageInfo ; }
 
          INT32       getPageSize() const { return _storageInfo._pageSize ; }
          INT32       getLobPageSize() const { return _storageInfo._lobdPageSize ; }
@@ -306,10 +301,6 @@ namespace engine
          dmsStorageUnitID CSID() const
          {
             return _pDataSu ? _pDataSu->CSID() : DMS_INVALID_SUID ;
-         }
-         utilCSUniqueID CSUniqueID() const
-         {
-            return _storageInfo._csUniqueID ;
          }
 
          DMS_STORAGE_TYPE type() const { return _storageInfo._type ; }
@@ -373,9 +364,6 @@ namespace engine
                              _monIndex &resultIndex ) ;
 
       protected :
-         // Dump helper functions
-         // NOTE: Should be called after mbContext is locked or
-         //       metadataLatch is locked
          INT32    _dumpCLInfo ( monCollection &collection,
                                 UINT16 mbID ) ;
 
@@ -389,7 +377,6 @@ namespace engine
                               const CHAR *pIndexName,
                               monIndex &resultIndex ) ;
 
-      // only for LOAD
       public:
          OSS_INLINE void    mapExtent2DelList( dmsMB * mb, dmsExtent * extAddr,
                                                SINT32 extentID ) ;
@@ -401,21 +388,14 @@ namespace engine
 
          OSS_INLINE void    addExtentRecordCount( dmsMB *mb, UINT32 count ) ;
 
-      // for dmsCB
       protected:
          OSS_INLINE void  _setLogicalCSID( UINT32 logicalID ) ;
 
          OSS_INLINE void  _setCSID( dmsStorageUnitID CSID ) ;
 
          INT32        _resetCollection( dmsMBContext *context ) ;
-      // for dmsCB
-      private:
-         dmsStorageInfo* _getStorageInfo() { return &_storageInfo ; }
 
       public:
-         // Position is used to specify the insert position of the record.
-         // Currently it's used in capped collection, holding the logical id
-         // of the record.
          INT32    insertRecord ( const CHAR *pName,
                                  BSONObj &record,
                                  _pmdEDUCB *cb,
@@ -423,8 +403,7 @@ namespace engine
                                  BOOLEAN mustOID = TRUE,
                                  BOOLEAN canUnLock = TRUE,
                                  dmsMBContext *context = NULL,
-                                 INT64 position = -1,
-                                 utilInsertResult *insertResult = NULL ) ;
+                                 INT64 position = -1 ) ;
 
          INT32    updateRecords ( const CHAR *pName,
                                   _pmdEDUCB *cb,
@@ -486,42 +465,14 @@ namespace engine
                                           UTIL_COMPRESSOR_TYPE &compType,
                                           dmsMBContext *context = NULL ) ;
 
-         INT32    setCollectionCompType ( const CHAR * pName,
-                                          UTIL_COMPRESSOR_TYPE compType,
-                                          dmsMBContext * context = NULL ) ;
-
-         INT32    setCollectionAttribute ( const CHAR * pName,
-                                           UINT32 attributeMask,
-                                           BOOLEAN attributeValue,
-                                           dmsMBContext * context = NULL ) ;
-
-         INT32    setCollectionStrictDataMode ( const CHAR * pName,
-                                                BOOLEAN strictDataMode,
-                                                dmsMBContext * context = NULL ) ;
-
-         INT32    setCollectionNoIDIndex ( const CHAR * pName,
-                                           BOOLEAN noIDIndex,
-                                           dmsMBContext * context = NULL ) ;
-
-         INT32    canSetCollectionCompressor ( dmsMBContext * context ) ;
-         INT32    setCollectionCompressor ( const CHAR * pName,
-                                            UTIL_COMPRESSOR_TYPE compressType,
-                                            dmsMBContext * context = NULL ) ;
-
          INT32    getCollectionExtOptions( const CHAR *pName,
                                            BSONObj &extOptions,
                                            dmsMBContext *context = NULL ) ;
 
-         INT32    setCollectionExtOptions ( const CHAR * pName,
-                                            const BSONObj & extOptions,
-                                            dmsMBContext * context = NULL ) ;
-
-         //loadExtentA is not init extent records
          INT32    loadExtentA ( dmsMBContext *mbContext, const CHAR *pBuffer,
                                 UINT16 numPages, const BOOLEAN toLoad = FALSE,
                                 SINT32 *allocatedExtent = NULL ) ;
 
-         //loadExtent will init extent records
          INT32    loadExtent ( dmsMBContext *mbContext, const CHAR *pBuffer,
                                UINT16 numPages ) ;
 
@@ -552,6 +503,7 @@ namespace engine
          utilCacheUnit                       *_pCacheUnit ;
          dmsEventHolder                       _eventHolder ;
          dmsCacheHolder                       _cacheHolder ;
+         IDmsExtDataHandler                  *_extDataHandler ;
    } ;
 
    OSS_INLINE INT32 _dmsStorageUnit::extentRemoveRecord( dmsMBContext *context,

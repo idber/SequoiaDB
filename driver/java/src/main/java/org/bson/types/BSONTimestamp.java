@@ -1,4 +1,3 @@
-// BSONTimestamp.java
 
 /**
  *      Copyright (C) 2008 10gen Inc.
@@ -25,8 +24,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
- * this is used for storing timestamp.
- * for storing normal dates in database, you should use java.util.Date
+ * this is used for internal increment values.
+ * for storing normal dates in MongoDB, you should use java.util.Date
  * <b>time</b> is seconds since epoch
  * <b>inc<b> is an ordinal
  */
@@ -36,30 +35,13 @@ public class BSONTimestamp implements Serializable {
     
     static final boolean D = Boolean.getBoolean( "DEBUG.DBTIMESTAMP" );
 
-    /**
-     * Construct an empty BSONTimestamp.
-     */
     public BSONTimestamp(){
         _inc = 0;
         _time = new Date(0L );
     }
 
-    /**
-     * Construct BSONTimestamp.
-     * @param time seconds since epoch.
-     * @param inc microseconds in range of [0us, 999999us], while the 'inc' is out of range,
-     *             the carry will occur.
-     */
     public BSONTimestamp(int time, int inc ) {
-        if (inc < 0 || inc >= 1000000) {
-            time += inc / 1000000;
-            inc = inc % 1000000;
-            if (inc < 0) {
-                time -= 1;
-                inc += 1000000;
-            }
-        }
-        _time = new Date(time * 1000L);
+        _time = new Date( time * 1000L );
         _inc = inc;
     }
 
@@ -81,14 +63,14 @@ public class BSONTimestamp implements Serializable {
     }
 
     /**
-     * @return Date of time and inc in milliseconds since epoch.
+     * @return get Date of time and inc in milliseconds since epoch
      */
     public Date toDate() {
         return new Date(getTime() * 1000L + getInc() / 1000L);
     }
 
     /**
-     * @return Timestamp of time in milliseconds and inc in nanoseconds since epoch
+     * @return get Timestamp of time in milliseconds and inc in nanoseconds since epoch
      */
     public Timestamp toTimestamp() {
         Timestamp ts = new Timestamp(getTime() * 1000L);

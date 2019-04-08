@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pmdCMMain.cpp
 
@@ -43,7 +42,6 @@
 #include "ossVer.h"
 #include "pmd.hpp"
 #include "pmdProc.hpp"
-#include "utilPidFile.hpp"
 
 namespace engine
 {
@@ -65,7 +63,6 @@ namespace engine
       std::cout << desc << std::endl ;
    }
 
-   // initialize options
    INT32 initArgs ( INT32 argc, CHAR **argv, po::variables_map &vm )
    {
       INT32 rc = SDB_OK ;
@@ -81,7 +78,6 @@ namespace engine
          COMMANDS_OPTIONS
       PMD_ADD_PARAM_OPTIONS_END
 
-      // validate arguments
       rc = utilReadCommandLine( argc, argv, all, vm ) ;
       if ( rc )
       {
@@ -90,7 +86,6 @@ namespace engine
          goto done ;
       }
 
-      /// read cmd first
       if ( vm.count( PMD_OPTION_HELP ) )
       {
          displayArg( desc ) ;
@@ -127,7 +122,6 @@ namespace engine
       CHAR currentPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       CHAR dialogPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       CHAR dialogFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-      CHAR pidFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       INT32 delSig[] = { 17, 0 } ; // del SIGCHLD
       CHAR verText[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       po::variables_map vm ;
@@ -142,17 +136,14 @@ namespace engine
          goto done ;
       }
 
-      // 1. get root path
       rc = ossGetEWD( currentPath, OSS_MAX_PATHSIZE ) ;
       if ( rc )
       {
          std::cout << "Get current path failed: " << rc << std::endl ;
          goto error ;
       }
-      /// set current path
       ossChDir( currentPath ) ;
 
-      // 2. enable dialog
       rc = utilBuildFullPath( currentPath, SDBCM_LOG_PATH,
                               OSS_MAX_PATHSIZE, dialogPath ) ;
       if ( rc )
@@ -160,7 +151,6 @@ namespace engine
          std::cout << "Build dialog path failed: " << rc << std::endl ;
          goto error ;
       }
-      // make sure the dir exist
       rc = ossMkdir( dialogPath ) ;
       if ( rc && SDB_FE != rc )
       {
@@ -180,22 +170,6 @@ namespace engine
       ossSprintVersion( "Version", verText, OSS_MAX_PATHSIZE, FALSE ) ;
       PD_LOG( PDEVENT, "Start cm[%s]...", verText) ;
 
-      // 3. create pid file
-      rc = utilBuildFullPath( dialogPath, SDBCM_PID_FILE_NAME,
-                              OSS_MAX_PATHSIZE, pidFile ) ;
-      if ( rc )
-      {
-         std::cout << "Build dialog path failed: " << rc << std::endl ;
-         goto error ;
-      }
-      rc = createPIDFile( pidFile ) ;
-      if ( rc )
-      {
-         PD_LOG( PDWARNING, "Failed to create pid file, rc: %d", rc ) ;
-         rc = SDB_OK ;
-      }
-
-      // 4. init param
       rc = sdbGetOMAgentOptions()->init( currentPath ) ;
       if ( rc )
       {
@@ -223,7 +197,6 @@ namespace engine
       }
       setPDLevel( sdbGetOMAgentOptions()->getDiagLevel() ) ;
 
-      // 5. print all config
       {
          string configs ;
          sdbGetOMAgentOptions()->toString( configs ) ;
@@ -232,7 +205,6 @@ namespace engine
 
       pmdSetDBRole( SDB_ROLE_OMA ) ;
 
-      // 6. handlers and init global mem
       rc = pmdEnableSignalEvent( dialogPath, (PMD_ON_QUIT_FUNC)pmdOnQuit,
                                  delSig ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to enable trap, rc: %d", rc ) ;
@@ -241,17 +213,14 @@ namespace engine
       signal( SIGCHLD, SIG_IGN ) ;
 #endif // _LINUX
 
-      // 7. register agent cb
       PMD_REGISTER_CB( sdbGetOMAgentMgr() ) ;
 
-      // 8. init krcb
       rc = krcb->init() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to init krcb, rc: %d", rc ) ;
 
       {
          EDUID agentEDU = PMD_INVALID_EDUID ;
          pmdEDUMgr *eduMgr = krcb->getEDUMgr() ;
-         // Then start windows listener thread for "backdoor" listening
          rc = eduMgr->startEDU ( EDU_TYPE_PIPESLISTENER,
                                  (void*)sdbGetOMAgentOptions()->getCMServiceName(),
                                  &agentEDU ) ;
@@ -263,7 +232,6 @@ namespace engine
                       "failed, rc: %d", rc ) ;
       }
 
-      // 9. change process name
 #if defined (_LINUX)
       {
          CHAR pmdProcessName [ OSS_RENAME_PROCESS_BUFFER_LEN + 1 ] = {0} ;
@@ -275,7 +243,6 @@ namespace engine
       }
 #endif // _LINUX
 
-      // Now master thread get into big loop and check shutdown flag
       while ( PMD_IS_DB_UP() )
       {
          ossSleepsecs ( 1 ) ;
@@ -285,7 +252,6 @@ namespace engine
    done:
       PMD_SHUTDOWN_DB( rc ) ;
       pmdSetQuit() ;
-      removePIDFile( pidFile ) ;
       krcb->destroy () ;
       PD_LOG ( PDEVENT, "Stop programme, exit code: %d",
                krcb->getShutdownCode() ) ;

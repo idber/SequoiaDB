@@ -1,5 +1,5 @@
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -153,77 +153,17 @@ error:
    goto done ;
 }
 
-PHP_METHOD( SequoiaDB, getLastErrorMsg )
+PHP_METHOD( SequoiaDB, getError )
 {
    INT32 rc = SDB_OK ;
-   INT32 errNum = SDB_OK ;
+   zval *pError = NULL ;
    zval *pThisObj = getThis() ;
-   sdbConnectionHandle connection = SDB_INVALID_HANDLE ;
-   bson record ;
-   bson_iterator bsonItr ;
 
-   bson_init( &record ) ;
-
-   PHP_READ_HANDLE( pThisObj,
-                    connection,
-                    sdbConnectionHandle,
-                    SDB_HANDLE_NAME,
-                    connectionDesc ) ;
-
-   if ( SDB_INVALID_HANDLE != connection )
-   {
-      rc = sdbGetLastErrorObj( connection, &record ) ;
-      if ( SDB_OK == rc )
-      {
-         if ( bson_is_empty( &record ) )
-         {
-            rc = SDB_DMS_EOC ;
-         }
-         else
-         {
-            bson_type bType = bson_find( &bsonItr, &record, "errno" ) ;
-
-            if ( BSON_INT == bType )
-            {
-               errNum = bson_iterator_int( &bsonItr ) ;
-            }
-         }
-      }
-   }
-
-   if ( SDB_OK == errNum )
-   {
-      zval *pError = NULL ;
-
-      PHP_READ_VAR( pThisObj, "_error", pError ) ;
-      errNum = Z_LVAL_P( pError ) ;
-
-      PHP_RETURN_AUTO_ERROR( TRUE, pThisObj, errNum ) ;
-      goto done ;
-   }
-
-   PHP_RETURN_AUTO_RECORD( TRUE, pThisObj, ( rc == SDB_OK ? FALSE : TRUE ),
-                           record ) ;
-
-done:
-   bson_destroy( &record ) ;
+   PHP_READ_VAR( pThisObj, "_error", pError ) ;
+   rc = Z_LVAL_P( pError ) ;
+   PHP_RETURN_AUTO_ERROR( TRUE, pThisObj, rc ) ;
 }
 
-PHP_METHOD( SequoiaDB, cleanLastErrorMsg )
-{
-   zval *pThisObj = getThis() ;
-   sdbConnectionHandle connection = SDB_INVALID_HANDLE ;
-
-   PHP_READ_HANDLE( pThisObj,
-                    connection,
-                    sdbConnectionHandle,
-                    SDB_HANDLE_NAME,
-                    connectionDesc ) ;
-
-   sdbCleanLastErrorObj( connection ) ;
-}
-
-//db
 PHP_METHOD( SequoiaDB, connect )
 {
    INT32 rc = SDB_OK ;
@@ -280,24 +220,26 @@ PHP_METHOD( SequoiaDB, close )
 
 PHP_METHOD( SequoiaDB, isValid )
 {
+   INT32 rc = SDB_OK ;
    BOOLEAN result = FALSE ;
    zval *pThisObj = getThis() ;
    sdbConnectionHandle connection = SDB_INVALID_HANDLE ;
-
    PHP_SET_ERRNO_OK( TRUE, pThisObj ) ;
-
    PHP_READ_HANDLE( pThisObj,
                     connection,
                     sdbConnectionHandle,
                     SDB_HANDLE_NAME,
                     connectionDesc ) ;
-
-   result = sdbIsValid( connection ) ;
-
+   rc = sdbIsValid( connection, &result ) ;
+   if( rc )
+   {
+      goto error ;
+   }
 done:
    RETVAL_BOOL( result ) ;
    return ;
 error:
+   PHP_SET_ERROR( TRUE, pThisObj, rc ) ;
    goto done ;
 }
 
@@ -343,51 +285,6 @@ error:
    goto done ;
 }
 
-PHP_METHOD( SequoiaDB, invalidateCache )
-{
-   INT32 rc = SDB_OK ;
-   zval *pCondition = NULL ;
-   zval *pThisObj = getThis() ;
-   sdbConnectionHandle connection = SDB_INVALID_HANDLE ;
-   bson condition ;
-   bson_init( &condition ) ;
-   PHP_SET_ERRNO_OK( TRUE, pThisObj ) ;
-
-   if ( PHP_GET_PARAMETERS( "|z", &pCondition ) == FAILURE )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-
-   rc = php_auto2Bson( pCondition, &condition TSRMLS_CC ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-
-   PHP_READ_HANDLE( pThisObj,
-                    connection,
-                    sdbConnectionHandle,
-                    SDB_HANDLE_NAME,
-                    connectionDesc ) ;
-
-   rc = sdbInvalidateCache( connection, &condition ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-
-done:
-   bson_destroy( &condition ) ;
-   PHP_RETURN_AUTO_ERROR( TRUE, pThisObj, rc ) ;
-   return ;
-error:
-   PHP_SET_ERROR( TRUE, pThisObj, rc ) ;
-   goto done ;
-}
-
-//snapshot & list
-//e.g. Rename getSnapshot
 PHP_METHOD( SequoiaDB, snapshot )
 {
    INT32 rc = SDB_OK ;
@@ -397,30 +294,22 @@ PHP_METHOD( SequoiaDB, snapshot )
    zval *pSelector  = NULL ;
    zval *pOrderBy   = NULL ;
    zval *pHint      = NULL ;
-   zval *pNumToSkip = NULL ;
-   zval *pNumToReturn = NULL ;
-   INT64 numToSkip  = 0 ;
-   INT64 numToReturn = -1 ;
    zval *pThisObj   = getThis() ;
    sdbConnectionHandle connection = SDB_INVALID_HANDLE ;
    sdbCursorHandle cursor         = SDB_INVALID_HANDLE ;
    bson condition ;
    bson selector ;
    bson orderBy ;
-   bson hint ;
    bson_init( &condition ) ;
    bson_init( &selector ) ;
    bson_init( &orderBy ) ;
-   bson_init( &hint ) ;
    PHP_SET_ERRNO_OK( TRUE, pThisObj ) ;
-   if ( PHP_GET_PARAMETERS( "|zzzzzzz",
+   if ( PHP_GET_PARAMETERS( "|zzzzz",
                             &pType,
                             &pCondition,
                             &pSelector,
                             &pOrderBy,
-                            &pHint,
-                            &pNumToSkip,
-                            &pNumToReturn ) == FAILURE )
+                            &pHint ) == FAILURE )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
@@ -445,38 +334,17 @@ PHP_METHOD( SequoiaDB, snapshot )
    {
       goto error ;
    }
-   rc = php_auto2Bson( pHint, &hint TSRMLS_CC ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-   rc = php_zval2Long( pNumToSkip, &numToSkip TSRMLS_CC ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-   rc = php_zval2Long( pNumToReturn, &numToReturn TSRMLS_CC ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-   
    PHP_READ_HANDLE( pThisObj,
                     connection,
                     sdbConnectionHandle,
                     SDB_HANDLE_NAME,
                     connectionDesc ) ;
-
-   rc = sdbGetSnapshot1( connection,
-                         type,
-                         &condition,
-                         &selector,
-                         &orderBy,
-                         &hint,
-                         numToSkip,
-                         numToReturn,
-                         &cursor ) ;
-
+   rc = sdbGetSnapshot( connection,
+                        type,
+                        &condition,
+                        &selector,
+                        &orderBy,
+                        &cursor ) ;
    if( rc )
    {
       goto error ;
@@ -490,7 +358,6 @@ done:
    bson_destroy( &condition ) ;
    bson_destroy( &selector ) ;
    bson_destroy( &orderBy ) ;
-   bson_destroy( &hint ) ;
    return ;
 error:
    RETVAL_NULL() ;
@@ -536,110 +403,70 @@ error:
    goto done ;
 }
 
-//e.g. Rename getList
 PHP_METHOD( SequoiaDB, list )
 {
    INT32 rc = SDB_OK ;
-   INT32 type        = 0 ;
-   INT64 numToSkip   = 0 ;
-   INT64 numToReturn = -1 ;
+   INT32 type       = 0 ;
    zval *pType      = NULL ;
    zval *pCondition = NULL ;
    zval *pSelector  = NULL ;
    zval *pOrderBy   = NULL ;
    zval *pHint      = NULL ;
-   zval *pNumToSkip   = NULL ;
-   zval *pNumToReturn = NULL ;
    zval *pThisObj   = getThis() ;
    sdbConnectionHandle connection = SDB_INVALID_HANDLE ;
    sdbCursorHandle cursor         = SDB_INVALID_HANDLE ;
    bson condition ;
    bson selector ;
    bson orderBy ;
-   bson hint ;
-
    bson_init( &condition ) ;
    bson_init( &selector ) ;
    bson_init( &orderBy ) ;
-   bson_init( &hint ) ;
-
    PHP_SET_ERRNO_OK( TRUE, pThisObj ) ;
-
-   if ( PHP_GET_PARAMETERS( "z|zzzzzz",
+   if ( PHP_GET_PARAMETERS( "z|zzzz",
                             &pType,
                             &pCondition,
                             &pSelector,
                             &pOrderBy,
-                            &pHint,
-                            &pNumToSkip,
-                            &pNumToReturn ) == FAILURE )
+                            &pHint ) == FAILURE )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-
    rc = php_zval2Int( pType, &type TSRMLS_CC ) ;
    if( rc )
    {
       goto error ;
    }
-
    rc = php_auto2Bson( pCondition, &condition TSRMLS_CC ) ;
    if( rc )
    {
       goto error ;
    }
-
    rc = php_auto2Bson( pSelector, &selector TSRMLS_CC ) ;
    if( rc )
    {
       goto error ;
    }
-
    rc = php_auto2Bson( pOrderBy, &orderBy TSRMLS_CC ) ;
    if( rc )
    {
       goto error ;
    }
-
-   rc = php_auto2Bson( pHint, &hint TSRMLS_CC ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-
-   rc = php_zval2Long( pNumToSkip, &numToSkip TSRMLS_CC ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-
-   rc = php_zval2Long( pNumToReturn, &numToReturn TSRMLS_CC ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-
    PHP_READ_HANDLE( pThisObj,
                     connection,
                     sdbConnectionHandle,
                     SDB_HANDLE_NAME,
                     connectionDesc ) ;
-
-   rc = sdbGetList1( connection,
-                     type,
-                     &condition,
-                     &selector,
-                     &orderBy,
-                     &hint,
-                     numToSkip,
-                     numToReturn,
-                     &cursor ) ;
+   rc = sdbGetList( connection,
+                    type,
+                    &condition,
+                    &selector,
+                    &orderBy,
+                    &cursor ) ;
    if( rc )
    {
       goto error ;
    }
-
    PHP_BUILD_CLASS( TRUE,
                     pThisObj,
                     pSequoiadbCursor,
@@ -649,7 +476,6 @@ done:
    bson_destroy( &condition ) ;
    bson_destroy( &selector ) ;
    bson_destroy( &orderBy ) ;
-   bson_destroy( &hint ) ;
    return ;
 error:
    RETVAL_NULL() ;
@@ -657,8 +483,6 @@ error:
    goto done ;
 }
 
-//cs
-//e.g. Rename listCSs
 PHP_METHOD( SequoiaDB, listCS )
 {
    INT32 rc = SDB_OK ;
@@ -842,7 +666,6 @@ error:
    goto done ;
 }
 
-//e.g. Rename dropCollectionSpace
 PHP_METHOD( SequoiaDB, dropCS )
 {
    INT32 rc = SDB_OK ;
@@ -876,59 +699,6 @@ error:
    goto done ;
 }
 
-PHP_METHOD( SequoiaDB, renameCS )
-{
-   INT32 rc = SDB_OK ;
-   PHP_LONG csOldNameLen = 0 ;
-   PHP_LONG csNewNameLen = 0 ;
-   zval *pThisObj = getThis() ;
-   CHAR *pOldName = NULL ;
-   CHAR *pNewName = NULL ;
-   zval *pOptions = NULL ;
-   sdbConnectionHandle connection = SDB_INVALID_HANDLE ;
-   bson options ;
-
-   bson_init( &options ) ;
-
-   PHP_SET_ERRNO_OK( TRUE, pThisObj ) ;
-
-   if ( PHP_GET_PARAMETERS( "ss|z", &pOldName, &csOldNameLen,
-                                    &pNewName, &csNewNameLen,
-                                    &pOptions ) == FAILURE )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-
-   rc = php_auto2Bson( pOptions, &options TSRMLS_CC ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-
-   PHP_READ_HANDLE( pThisObj,
-                    connection,
-                    sdbConnectionHandle,
-                    SDB_HANDLE_NAME,
-                    connectionDesc ) ;
-
-   rc = sdbRenameCollectionSpace( connection, pOldName, pNewName, &options ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-
-done:
-   bson_destroy( &options ) ;
-   PHP_RETURN_AUTO_ERROR( TRUE, pThisObj, rc ) ;
-   return ;
-error:
-   PHP_SET_ERROR( TRUE, pThisObj, rc ) ;
-   goto done ;
-}
-
-//cl
-//e.g. Rename listCollections
 PHP_METHOD( SequoiaDB, listCL )
 {
    INT32 rc = SDB_OK ;
@@ -1033,8 +803,6 @@ error:
    goto done ;
 }
 
-//domain
-//e.g. Rename listDomains
 PHP_METHOD( SequoiaDB, listDomain )
 {
    INT32 rc = SDB_OK ;
@@ -1234,7 +1002,6 @@ error:
    goto done ;
 }
 
-//group
 PHP_METHOD( SequoiaDB, listGroup )
 {
    INT32 rc = SDB_OK ;
@@ -1312,7 +1079,6 @@ error:
    goto done ;
 }
 
-//e.g. Rename selectGroup
 PHP_METHOD( SequoiaDB, getGroup )
 {
    INT32 rc = SDB_OK ;
@@ -1478,7 +1244,6 @@ error:
    goto done ;
 }
 
-//sql
 PHP_METHOD( SequoiaDB, execSQL )
 {
    INT32 rc = SDB_OK ;
@@ -1547,7 +1312,6 @@ error:
    goto done ;
 }
 
-//user
 PHP_METHOD( SequoiaDB, createUser )
 {
    INT32 rc = SDB_OK ;
@@ -1624,7 +1388,6 @@ error:
    goto done ;
 }
 
-//config
 PHP_METHOD( SequoiaDB, flushConfigure )
 {
    INT32 rc = SDB_OK ;
@@ -1663,103 +1426,6 @@ error:
    goto done ;
 }
 
-//update config
-PHP_METHOD( SequoiaDB, updateConfig )
-{
-   INT32 rc = SDB_OK ;
-   zval *pConfigs = NULL ;
-   zval *pOptions = NULL ;
-   zval *pThisObj = getThis() ;
-   sdbConnectionHandle connection = SDB_INVALID_HANDLE ;
-   bson configs ;
-   bson options ;
-   bson_init( &configs ) ;
-   bson_init( &options ) ;
-   PHP_SET_ERRNO_OK( TRUE, pThisObj ) ;
-   if ( PHP_GET_PARAMETERS( "z|z", &pConfigs, &pOptions ) == FAILURE )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-   PHP_READ_HANDLE( pThisObj,
-                    connection,
-                    sdbConnectionHandle,
-                    SDB_HANDLE_NAME,
-                    connectionDesc ) ;
-   rc = php_auto2Bson( pOptions, &options TSRMLS_CC ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-   rc = php_auto2Bson( pConfigs, &configs TSRMLS_CC ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-   rc = sdbUpdateConfig( connection, &configs, &options ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-done:
-   bson_destroy( &configs ) ;
-   bson_destroy( &options ) ;
-   PHP_RETURN_AUTO_ERROR( TRUE, pThisObj, rc ) ;
-   return ;
-error:
-   PHP_SET_ERROR( TRUE, pThisObj, rc ) ;
-   goto done ;
-}
-
-//delete config
-PHP_METHOD( SequoiaDB, deleteConfig )
-{
-   INT32 rc = SDB_OK ;
-   zval *pConfigs = NULL ;
-   zval *pOptions = NULL ;
-   zval *pThisObj = getThis() ;
-   sdbConnectionHandle connection = SDB_INVALID_HANDLE ;
-   bson configs ;
-   bson options ;
-   bson_init( &configs ) ;
-   bson_init( &options ) ;
-   PHP_SET_ERRNO_OK( TRUE, pThisObj ) ;
-   if ( PHP_GET_PARAMETERS( "z|z", &pConfigs, &pOptions ) == FAILURE )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
-   PHP_READ_HANDLE( pThisObj,
-                    connection,
-                    sdbConnectionHandle,
-                    SDB_HANDLE_NAME,
-                    connectionDesc ) ;
-   rc = php_auto2Bson( pOptions, &options TSRMLS_CC ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-   rc = php_auto2Bson( pConfigs, &configs TSRMLS_CC ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-   rc = sdbDeleteConfig( connection, &configs, &options ) ;
-   if( rc )
-   {
-      goto error ;
-   }
-done:
-   bson_destroy( &configs ) ;
-   bson_destroy( &options ) ;
-   PHP_RETURN_AUTO_ERROR( TRUE, pThisObj, rc ) ;
-   return ;
-error:
-   PHP_SET_ERROR( TRUE, pThisObj, rc ) ;
-   goto done ;
-}
-
-//procedure
 PHP_METHOD( SequoiaDB, listProcedure )
 {
    INT32 rc = SDB_OK ;
@@ -1901,7 +1567,6 @@ error:
 
 PHP_METHOD( SequoiaDB, evalJs )
 {
-/*
    INT32 rc = SDB_OK ;
    PHP_LONG codeLen = 0 ;
    SDB_SPD_RES_TYPE type = SDB_SPD_RES_TYPE_VOID ;
@@ -2111,10 +1776,8 @@ error:
    PHP_RETVAL_STRING( pErrMsg, 1 ) ;
    PHP_SET_ERROR( TRUE, pThisObj, rc ) ;
    goto done ;
-*/
 }
 
-//transaction
 PHP_METHOD( SequoiaDB, transactionBegin )
 {
    INT32 rc = SDB_OK ;
@@ -2187,7 +1850,6 @@ error:
    goto done ;
 }
 
-//backup
 PHP_METHOD( SequoiaDB, backupOffline )
 {
    INT32 rc = SDB_OK ;
@@ -2356,7 +2018,6 @@ error:
    goto done ;
 }
 
-//task
 PHP_METHOD( SequoiaDB, listTask )
 {
    INT32 rc = SDB_OK ;
@@ -2566,7 +2227,6 @@ error:
    goto done ;
 }
 
-//session
 PHP_METHOD( SequoiaDB, setSessionAttr )
 {
    INT32 rc = SDB_OK ;

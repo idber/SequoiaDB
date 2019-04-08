@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptUsrCmd.cpp
 
@@ -218,7 +217,6 @@ namespace engine
       }
       rc = SDB_OK ;
 
-      // useShell, default : 1
       rc = arg.getNative( 3, (void*)&useShell, SPT_NATIVE_INT32 ) ;
       if ( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
       {
@@ -270,7 +268,6 @@ namespace engine
          goto error ;
       }
 
-      // useShell, default : 1
       rc = arg.getNative( 2, (void*)&useShell, SPT_NATIVE_INT32 ) ;
       if ( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
       {
@@ -280,7 +277,6 @@ namespace engine
       }
       rc = SDB_OK ;
 
-      // timeout, default : 100
       rc = arg.getNative( 3, (void*)&timeout, SPT_NATIVE_INT32 ) ;
       if ( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
       {
@@ -326,8 +322,8 @@ namespace engine
    }
 
    INT32 _sptUsrCmd::staticHelp( const _sptArguments & arg,
-                                 _sptReturnVal & rval,
-                                 BSONObj & detail )
+                           _sptReturnVal & rval,
+                           BSONObj & detail )
    {
       stringstream ss ;
       ss << "Methods to access:" << endl
@@ -343,7 +339,7 @@ namespace engine
          << "   getCommand()" << endl
          << "   getLastRet()" << endl
          << "   getLastOut()" << endl
-		   << "   getInfo()" << endl
+		 << "   getInfo()" << endl
          << "Remote Cmd member functions:" << endl
          << "   runJS( code )" << endl ;
       rval.getReturnVal().setValue( ss.str() ) ;

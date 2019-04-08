@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = mongoConverter.cpp
 
@@ -46,8 +45,6 @@ INT32 mongoConverter::convert( msgBuffer &out )
    baseCommand *&cmd = _parser.command() ;
    _parser.extractMsg( _msgdata, _msglen ) ;
 
-   // convert mongodb msg to sequoiadb msg
-   // for all kinds of requests available
    commandMgr *cmdMgr = commandMgr::instance() ;
    if ( NULL == cmdMgr )
    {
@@ -163,14 +160,8 @@ INT32 mongoConverter::reConvert( msgBuffer &out, MsgOpReply *reply )
       goto done ;
    }
 
-   // create collection failed
    if ( OP_CMD_CREATE == _parser.currentOption() )
    {
-      // here mean mongo msg was converted to multi sdb msg
-      // like create collection command msg
-      // those msg convert to more than one sdb msg
-      // that time cs may be not existed, should skip the error
-      // and create collection space first
       if ( SDB_OK != reply->flags && SDB_DMS_CS_NOTEXIST == reply->flags )
       {
          _parser.reparse() ;
@@ -197,7 +188,6 @@ INT32 mongoConverter::reConvert( msgBuffer &out, MsgOpReply *reply )
       }
    }
 
-   // if is create collection space msg
    if ( OP_CMD_CREATE_CS == _parser.currentOption() )
    {
       if ( SDB_OK != reply->flags && SDB_DMS_CS_EXIST != reply->flags )
@@ -206,7 +196,6 @@ INT32 mongoConverter::reConvert( msgBuffer &out, MsgOpReply *reply )
          goto error ;
       }
 
-      // then, try to create collection again
       _parser.reparse() ;
       cmd = cmdMgr->findCommand( "create" ) ;
       if ( NULL != cmd )
@@ -225,7 +214,6 @@ INT32 mongoConverter::reConvert( msgBuffer &out, MsgOpReply *reply )
       }
    }
 
-   // when not handled above, assigned the reply flags to rc for return
    rc = reply->flags ;
 
 done:

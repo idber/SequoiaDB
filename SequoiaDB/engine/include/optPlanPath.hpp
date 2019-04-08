@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = optPlanPath.hpp
 
@@ -44,7 +43,6 @@
 #include "oss.hpp"
 #include "optCommon.hpp"
 #include "optPlanNode.hpp"
-#include "ossMemPool.hpp"
 
 using namespace std ;
 using namespace bson ;
@@ -118,8 +116,7 @@ namespace engine
    class _optScanPath ;
    typedef class _optScanPath optScanPath ;
 
-   // Store searched paths during optimization
-   typedef ossPoolList< optScanPath> optScanPathList ;
+   typedef _utilList< optScanPath, OPT_MAX_CANDIDATE_COUNT > optScanPathList ;
 
    class _optScanPath : public _optPlanPath
    {
@@ -301,13 +298,11 @@ namespace engine
       protected :
          CHAR                 _clFullName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] ;
 
-         /// info before explain
          monAppCB             _beginMon ;
          ossTimestamp         _beginTime ;
          FLOAT64              _beginUsrCpu ;
          FLOAT64              _beginSysCpu ;
 
-         /// info after explain
          monAppCB             _endMon ;
          ossTimestamp         _endTime ;
          FLOAT64              _endUsrCpu ;

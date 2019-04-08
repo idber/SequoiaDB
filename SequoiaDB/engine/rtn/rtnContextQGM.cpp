@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnContextQGM.cpp
 
@@ -134,17 +133,10 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Append obj[%s] failed, rc: %d",
                       obj.toString().c_str(), rc ) ;
 
-         // increase counter
          DMS_MON_OP_COUNT_INC( pMonAppCB, MON_SELECT, 1 ) ;
 
-         // make sure we still have room to read another
-         // record_max_sz (i.e. 16MB). if we have less than 16MB
-         // to 256MB, we can't safely assume the next record we
-         // read will not overflow the buffer, so let's just break
-         // before reading the next record
          if ( buffEndOffset() + DMS_RECORD_MAX_SZ > RTN_RESULTBUFFER_SIZE_MAX )
          {
-            // let's break if there's no room for another max record
             break ;
          }
       }
@@ -176,7 +168,6 @@ namespace engine
 
    _rtnContextQgmSort::~_rtnContextQgmSort()
    {
-     /// qgmPlan should be released by plan tree.
       _qp = NULL ;
    }
 

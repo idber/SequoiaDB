@@ -55,19 +55,19 @@
       {
          if( discoverConf != null )
          {
-            $scope.stepList = _Deploy.BuildSdbDiscoverStep( $scope, $location, $scope['Url']['Method'], 'sequoiadb' ) ;
+            $scope.stepList = _Deploy.BuildSdbDiscoverStep( $scope, $location, $scope['Url']['Action'], 'sequoiadb' ) ;
          }
          else if( syncConf != null )
          {
-            $scope.stepList = _Deploy.BuildSdbSyncStep( $scope, $location, $scope['Url']['Method'], 'sequoiadb' ) ;
+            $scope.stepList = _Deploy.BuildSdbSyncStep( $scope, $location, $scope['Url']['Action'], 'sequoiadb' ) ;
          }
          else if( $scope.DeployType == 'Package' )
          {
-            $scope.stepList = _Deploy.BuildDeployPackageStep( $scope, $location, $scope['Url']['Method'], $scope.DeployType ) ;
+            $scope.stepList = _Deploy.BuildDeployPackageStep( $scope, $location, $scope['Url']['Action'], $scope.DeployType ) ;
          }
          else
          {
-            $scope.stepList = _Deploy.BuildSdbStep( $scope, $location, $scope.DeployType, $scope['Url']['Method'], $scope.ModuleType ) ;
+            $scope.stepList = _Deploy.BuildSdbStep( $scope, $location, $scope.DeployType, $scope['Url']['Action'], $scope.ModuleType ) ;
          }
          if( $scope.stepList['info'].length == 0 )
          {
@@ -76,13 +76,7 @@
          }
       }
 
-      
-      //部署包上一步
-      $scope.GotoPackage = function(){
-         $location.path( '/Deploy/Package' ).search( { 'r': new Date().getTime() } ) ;
-      }
-
-      //安装主机上一步
+      //上一步
       $scope.GotoAddHost = function(){
          $location.path( '/Deploy/AddHost' ).search( { 'r': new Date().getTime() } ) ;
       }
@@ -182,10 +176,8 @@
                return true ;
             }, $scope.autoLanguage( '错误' ), $scope.autoLanguage( '获取日志失败。' ) ) ;
          } ) ;
+         $scope.GetLogWindow['callback']['SetOkButton']( $scope.autoLanguage( '确定' ) ) ;
          $scope.GetLogWindow['callback']['SetTitle']( $scope.autoLanguage( '日志' ) ) ;
-         $scope.GetLogWindow['callback']['SetCloseButton']( $scope.autoLanguage( '关闭' ), function(){
-            $scope.GetLogWindow['callback']['Close']() ;
-         } ) ;
          $scope.GetLogWindow['callback']['Open']() ;
       }
 

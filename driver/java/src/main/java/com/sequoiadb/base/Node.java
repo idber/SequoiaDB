@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 SequoiaDB Inc.
+ * Copyright 2017 SequoiaDB Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -96,7 +96,7 @@ public class Node {
     }
 
     /**
-     * Connect to current node with the same username and password of coordination node.
+     * Connect to current node with the same username and password.
      *
      * @return The Sequoiadb instance of current node.
      * @throws BaseException If error happens.
@@ -129,10 +129,7 @@ public class Node {
     /**
      * Get the Sequoiadb of current node.
      *
-     * @return The Sequoiadb object of current node or null for having not
-     * connected to the current node yet.
-     * @see Node#connect()
-     * @see Node#connect(String, String)
+     * @return The Sequoiadb object of current node.
      */
     public Sequoiadb getSdb() {
         return sequoiadb;

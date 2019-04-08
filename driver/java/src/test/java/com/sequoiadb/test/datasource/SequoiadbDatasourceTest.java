@@ -73,7 +73,6 @@ public class SequoiadbDatasourceTest {
         sds.close();
     }
 
-    // jira-2136
     @Test
     @Ignore
     public void jira2136_transactionRollback() throws InterruptedException {
@@ -105,14 +104,12 @@ public class SequoiadbDatasourceTest {
     public void testConnectOne() throws BaseException, InterruptedException {
         Sequoiadb sdb = ds.getConnection();
         CollectionSpace cs;
-        // cs
         if (sdb.isCollectionSpaceExist("ds")) {
             sdb.dropCollectionSpace("ds");
             cs = sdb.createCollectionSpace("ds");
         } else {
             cs = sdb.createCollectionSpace("ds");
         }
-        // cl
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
         DBCollection cl = cs.createCollection("ds", conf);
@@ -209,23 +206,16 @@ public class SequoiadbDatasourceTest {
         ArrayList<Sequoiadb> dbs = new ArrayList<Sequoiadb>();
         int poolSize = 0;
         try {
-//            List<String> coords = new ArrayList<String>();
-//            coords.add("rhel64-test9:11810");
-//            coords.add("192.168.20.166:50000");
-//            coords.add("192.168.20.166:51000");
-//            coords.add("192.168.20.166:52000");
             DatasourceOptions options = new DatasourceOptions();
             options.setConnectStrategy(ConnectStrategy.BALANCE);
             SequoiadbDatasource datasource = new SequoiadbDatasource(coords, "", "", null, options);
             options = (DatasourceOptions) datasource.getDatasourceOptions();
             poolSize = options.getMaxCount();
-            //申请到池满
             for (int i = 0; i < poolSize; ++i) {
                 Sequoiadb db = datasource.getConnection();
                 Assert.assertEquals(db.isValid(), true);
                 dbs.add(db);
             }
-//            System.out.println(String.format("Total: %d, create directly: %d", poolSize, datasource.aInt.get()));
             System.out.println("go on.");
             for (Sequoiadb db : dbs) {
                 datasource.releaseConnection(db);
@@ -247,7 +237,6 @@ public class SequoiadbDatasourceTest {
         String addr = Constants.COOR_NODE_CONN;
         int connNum = 500;
 
-        // case 1: create connection directly
         Sequoiadb[] dbs = new Sequoiadb[connNum];
         long beginTime = System.currentTimeMillis();
         for (int i = 0; i < connNum; i++) {
@@ -256,7 +245,6 @@ public class SequoiadbDatasourceTest {
         long endTime = System.currentTimeMillis();
         System.out.println(String.format("create connections directly takes: %dms", endTime - beginTime));
 
-        // case 2: get connections from data source
         List<String> coords = new ArrayList<String>();
         coords.add(Constants.COOR_NODE_CONN);
         DatasourceOptions options = new DatasourceOptions();
@@ -267,13 +255,11 @@ public class SequoiadbDatasourceTest {
         }
         endTime = System.currentTimeMillis();
         System.out.println(String.format("get connetions from data source takes: %dms", endTime - beginTime));
-        // release connections
         for (int i = 0; i < connNum; i++) {
             datasource.releaseConnection(dbs[i]);
         }
         datasource.close();
 
-        // case 3:
         options = new DatasourceOptions();
         options.setMaxIdleCount(options.getMaxCount());
         datasource = new SequoiadbDatasource(coords, "", "", null, options);
@@ -290,7 +276,6 @@ public class SequoiadbDatasourceTest {
         }
         endTime = System.currentTimeMillis();
         System.out.println(String.format("get connetions from data source cache takes: %dms", endTime - beginTime));
-        // release connections
         for (int i = 0; i < connNum; i++) {
             datasource.releaseConnection(dbs[i]);
         }

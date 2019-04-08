@@ -1,5 +1,5 @@
 /*******************************************************************************
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -169,7 +169,6 @@ INT32 php_assocArrayFind( zval *pArray,
    return FAILURE ;
 }
 
-//json find key's value
 INT32 php_jsonFind( const CHAR *pStr,
                     const CHAR *pKey,
                     zval **ppValue TSRMLS_DC )
@@ -194,7 +193,7 @@ INT32 php_jsonFind( const CHAR *pStr,
       goto error ;
    }
 
-   cJsonInit( pMachine, CJSON_RIGOROUS_PARSE, TRUE, TRUE ) ;
+   cJsonInit( pMachine, CJSON_RIGOROUS_PARSE, TRUE ) ;
    if( cJsonParse( pStr, pMachine ) == FALSE )
    {
       rc = SDB_INVALIDARG ;
@@ -263,16 +262,7 @@ INT32 php_zval2Int( zval *pValue, INT32 *pIntValue TSRMLS_DC )
       }
       else if( Z_TYPE_P( pValue ) == IS_STRING )
       {
-         const CHAR *pTmp = Z_STRVAL_P( pValue ) ;
-
-         if( isdigit( pTmp[0] ) )
-         {
-            *pIntValue = ossAtoi( pTmp ) ;
-         }
-         else
-         {
-            rc = SDB_INVALIDARG ;
-         }
+         *pIntValue = ossAtoi( Z_STRVAL_P( pValue ) ) ;
       }
       else if( Z_TYPE_P( pValue ) == IS_OBJECT &&
                IS_CLASS( pValue, pSequoiadbInt64 ) )
@@ -333,16 +323,7 @@ INT32 php_zval2Long( zval *pValue, INT64 *pLongValue TSRMLS_DC )
       }
       else if( Z_TYPE_P( pValue ) == IS_STRING )
       {
-         const CHAR *pTmp = Z_STRVAL_P( pValue ) ;
-
-         if( isdigit( pTmp[0] ) )
-         {
-            *pLongValue = ossAtoll( pTmp ) ;
-         }
-         else
-         {
-            rc = SDB_INVALIDARG ;
-         }
+         *pLongValue = ossAtoll( Z_STRVAL_P( pValue ) ) ;
       }
       else if( Z_TYPE_P( pValue ) == IS_OBJECT &&
                IS_CLASS( pValue, pSequoiadbInt64 ) )
@@ -1400,7 +1381,6 @@ void php_parseNumber( CHAR *pBuffer,
 
    while( size > 0 && '0' == *pBuffer )
    {
-      // is zero
       ++pBuffer ;
       --size ;
    }

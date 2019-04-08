@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptSPScope.hpp
 
@@ -36,7 +35,6 @@
 
 #include "sptScope.hpp"
 #include "jsapi.h"
-#include <map>
 
 namespace engine
 {
@@ -48,12 +46,8 @@ namespace engine
    {
       public:
          _sptSPResultVal() ;
-         _sptSPResultVal( const _sptSPResultVal &right ) ;
          virtual ~_sptSPResultVal() ;
 
-         virtual _sptResultVal*  copy() const ;
-
-         virtual const sptSPVal* getVal() const ;
          virtual const void*     rawPtr() const ;
          virtual bson::BSONObj   toBSON() const ;
 
@@ -61,17 +55,16 @@ namespace engine
 
       protected:
          INT32  _rval2obj( JSContext *cx,
-                           const sptSPVal *pVal,
+                           const jsval &jsrval,
                            bson::BSONObj &rval ) const ;
 
       protected:
-         sptSPVal          _value ;
+         jsval             _value ;
          JSContext         *_ctx ;
 
    } ;
    typedef _sptSPResultVal sptSPResultVal ;
 
-   typedef map< string, const JSObject* >       MAP_NAME_2_PROTOTYPE ;
    /*
       _sptSPScope define
    */
@@ -118,10 +111,6 @@ namespace engine
                                            set<string> &setFunc,
                                            BOOLEAN showHide = FALSE ) ;
 
-      virtual void   getObjFunNames( const string &className,
-                                     set< string > &setFunc,
-                                     BOOLEAN showHide = FALSE ) ;
-
       virtual void   getObjFunNames( const void *pObj,
                                      set<string> &setFunc,
                                      BOOLEAN showHide = FALSE ) ;
@@ -142,20 +131,15 @@ namespace engine
       INT32 _loadUsrClass( _sptObjDesc *desc ) ;
 
       INT32 _loadGlobal( _sptObjDesc *desc ) ;
-
-      void  _addPrototype( const string &name,
-                           const JSObject *obj ) ;
-
-      const JSObject*   _getPrototype( const string &name ) const ;
-
-      BOOLEAN           _hasPrototype( const string &name ) const ;
-
+         
+      INT32 _rval2obj( JSContext *cx,
+                       const jsval &jsrval,
+                       bson::BSONObj &rval ) ;
    private:
       JSRuntime *_runtime ;
       JSContext *_context ;
       JSObject *_global ;
       sptSPResultVal _rval ;
-      MAP_NAME_2_PROTOTYPE _mapName2Proto ;
 
    } ;
    typedef class _sptSPScope sptSPScope ;

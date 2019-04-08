@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omagentMsgDef.hpp
 
@@ -39,18 +38,14 @@
 #include "omDef.hpp"
 #include "omagentDef.hpp"
 
-// business type
-#define OMA_BUS_TYPE_SEQUOIADB               OM_BUSINESS_SEQUOIADB
-#define OMA_BUS_TYPE_SEQUOIASQL_POSTGRESQL   OM_BUSINESS_SEQUOIASQL_POSTGRESQL
-#define OMA_BUS_TYPE_SEQUOIASQL_MYSQL        OM_BUSINESS_SEQUOIASQL_MYSQL
-
+#define OMA_BUS_TYPE_SEQUOIADB         OM_BUSINESS_SEQUOIADB
 #define OMA_BUS_TYPE_ZOOKEEPER         OM_BUSINESS_ZOOKEEPER
 #define OMA_BUS_TYPE_SEQUOIASQL_OLAP   OM_BUSINESS_SEQUOIASQL_OLAP
+#define OMA_BUS_TYPE_SEQUOIASQL_OLTP   OM_BUSINESS_SEQUOIASQL_OLTP
 #define OMA_BUS_TYPE_SEQUOIASQL        OM_BUSINESS_SEQUOIASQL
 #define OMA_BUS_TYPE_SPARK             OM_BUSINESS_SPARK
 #define OMA_BUS_TYPE_HDFS              OM_BUSINESS_HDFS
 
-// field
 #define OMA_FIELD_HOSTINFO                         "HostInfo" /* OM_REST_FIELD_HOST_INFO */
 #define OMA_FIELD_SSH_PORT                         "SshPort" /* OM_BSON_FIELD_HOST_SSHPORT */
 #define OMA_FIELD_AGENT_PORT                       "AgentPort" /* OM_BSON_FIELD_AGENT_PORT */
@@ -165,9 +160,7 @@
 #define OMA_FIELD_USERTAG                          "UserTag"
 #define OMA_FIELD_USERTAG2                         "usertag"
 #define OMA_FIELD_USERTAG3                         "usertag"
-#define OMA_FIELD_FORCE                            "Force"
 
-// host info
 #define OMA_FIELD_HOST                             "Host"
 #define OMA_FIELD_OS                               "OS"
 #define OMA_FIELD_OM                               "OM"
@@ -185,41 +178,32 @@
 #define OMA_FIELD_SAFETY                           "Safety"
 #define OMA_FIELD_SERVERINFO                       "ServerInfo"
 
-// om
 #define OMA_FIELD_VERSION                          "Version"
 #define OMA_FIELD_PATH                             "Path"
 
-// memory
 #define OMA_FIELD_SIZE                             "Size"
 #define OMA_FIELD_MODEL                            "Model"
 #define OMA_FIELD_FREE                             "Free"
 #define OMA_FIELD_UNIT                             "Unit"
 
-// Disk
 #define OMA_FIELD_NAME                             "Name"
 #define OMA_FIELD_FILESYSTEM                       "Filesystem"
 #define OMA_FIELD_MOUNT                            "Mount"
 #define OMA_FIELD_ISLOCAL                          "IsLocal"
 #define OMA_FIELD_USED                             "Used"
 
-// cpu
 #define OMA_FIELD_ID                               "ID"
 #define OMA_FIELD_CORE                             "Core"
 #define OMA_FIELD_MODEL                            "Model"
 #define OMA_FIELD_FREQ                             "Freq"
 
-// net
 #define OMA_FIELD_BANDWIDTH                        "Bandwidth"
 
-// port
 #define OMA_FIELD_STATUS                           "Status"
 
-// service
 
-// safety
 #define OMA_FIELD_CONTEXT                          "Context"
 
-// ssql exec
 #define OMA_FIELD_DBUSER                           "DbUser"
 #define OMA_FIELD_DBPASSWD                         "DbPasswd"
 #define OMA_FIELD_DBNAME                           "DbName"
@@ -231,13 +215,10 @@
 #define OMA_FIELD_ROWNUM                           "RowNum"
 #define OMA_FIELD_ROWVALUE                         "Value"
 
-// business
 
 
-// install db business result
 
 
-// config file
 #define OMA_OPTION_DATAGROUPNAME                   "datagroupname"
 #define OMA_OPTION_HELP                            PMD_OPTION_HELP
 #define OMA_OPTION_VERSION                         PMD_OPTION_VERSION

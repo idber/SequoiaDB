@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = optQgmOptimizer.hpp
 
@@ -48,7 +47,6 @@ namespace engine
 
    INT32 _optQgmOptimizer::optimize( qgmOptTree & orgTree )
    {
-      // TODO:XUJIANHUI
       return SDB_OK ;
    }
 
@@ -70,7 +68,6 @@ namespace engine
          adjust = FALSE ;
          mapDelNodes.clear() ;
 
-         // top to botton adjust
          rc = _downAdjust( orgTree, adjust, mapDelNodes ) ;
          if ( SDB_OK != rc )
          {
@@ -78,7 +75,6 @@ namespace engine
             break ;
          }
 
-         // botton to top adjust
          rc = _upAdjust( orgTree, adjust, mapDelNodes ) ;
          if ( SDB_OK != rc )
          {
@@ -159,7 +155,6 @@ namespace engine
             }
          }
 
-         // remove empty node
          if ( pTreeNode->isEmpty() )
          {
             PD_CHECK( 1 == pTreeNode->getSubNodeCount(), SDB_SYS, error,
@@ -170,7 +165,6 @@ namespace engine
             PD_LOG( PDDEBUG, "node[%s] is empty, delete from tree[%s]",
                     pTreeNode->toString().c_str(), orgTree.treeName() ) ;
 
-            // push alias
             if ( pTreeNode->validSelfAlias() )
             {
                pTreeNode->getSubNode( 0 )->setAlias( pTreeNode->getAlias() ) ;
@@ -226,7 +220,6 @@ namespace engine
          result = OPT_SS_REFUSE ;
          OPT_QGM_SS_RESULT tmpResult = OPT_SS_REFUSE ;
 
-         // loop all sub nodes until find the accep node
          while ( NULL != ( indexNode = curNode->getSubNode( index++ ) ) &&
                  result > OPT_SS_ACCEPT )
          {
@@ -306,7 +299,6 @@ namespace engine
       }
       else if ( OPT_SS_ACCEPT == result || OPT_SS_TAKEOVER == result )
       {
-         // delete oprUnit from curNode
          curNode->removeOprUnit( oprUnit, FALSE, TRUE ) ;
 
          if ( OPT_SS_ACCEPT == result )
@@ -327,7 +319,6 @@ namespace engine
                  result == OPT_SS_ACCEPT ? "accept" : "takeover",
                  curNode->toString().c_str(), subNode->toString().c_str() ) ;
 
-         // push to subNode
          rc = subNode->pushOprUnit( oprUnit, curNode, qgmOptiTreeNode::FROM_UP ) ;
          if ( SDB_OK != rc )
          {
@@ -343,16 +334,13 @@ namespace engine
                  "subNode[%s]", oprUnit->toString().c_str(),
                  curNode->toString().c_str(), subNode->toString().c_str() ) ;
 
-         // remove and release oprUnit
          curNode->removeOprUnit( oprUnit, TRUE, FALSE ) ;
       }
       else if ( !curNode->validateBeforeChange( oprUnit->getType() ) &&
                 !oprUnit->isNodeIDValid() )
       {
-         // create a new node
          adjust = TRUE ;
 
-         // delete oprUnit from curNode
          curNode->removeOprUnit( oprUnit, FALSE, TRUE ) ;
 
          PD_LOG( PDDEBUG, "oprUnit[%s] process refused, createNew. curNode[%s], "
@@ -383,7 +371,6 @@ namespace engine
          pTreeNode = *rit ;
          pTreeNode->getOprUnits( oprUnitVec ) ;
 
-         // rollback optional oprUnit
          qgmOprUnit *oprUnit = NULL ;
          qgmOprUnitPtrVec::iterator it = oprUnitVec.begin() ;
          while ( it != oprUnitVec.end() )
@@ -404,7 +391,6 @@ namespace engine
             ++it ;
          }
 
-         // remove empty node
          if ( pTreeNode->isEmpty() )
          {
             PD_CHECK( 1 == pTreeNode->getSubNodeCount(), SDB_SYS, error,
@@ -412,7 +398,6 @@ namespace engine
                       pTreeNode->toString().c_str(),
                       pTreeNode->getSubNodeCount() ) ;
 
-            // push alias
             if ( pTreeNode->validSelfAlias() )
             {
                pTreeNode->getSubNode( 0 )->setAlias( pTreeNode->getAlias() ) ;
@@ -444,7 +429,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       qgmOptiTreeNode *parent = curNode->getParent() ;
 
-      // find the right node
       if ( QGM_OPTI_TYPE_FILTER != oprUnit->getType() &&
            parent && parent->getNodeID() > oprUnit->getNodeID() &&
            QGM_OPTI_TYPE_JOIN != parent->getType() )
@@ -468,7 +452,6 @@ namespace engine
       {
          curNode->removeOprUnit( oprUnit, FALSE, FALSE ) ;
 
-         // remove delNodes
          DEL_NODES::iterator itFind = delNodes.find( oprUnit->getNodeID() ) ;
          if ( itFind != delNodes.end() )
          {
@@ -478,7 +461,6 @@ namespace engine
          PD_LOG( PDDEBUG, "oprUnit[%s] take back createNew from Node[%s]",
                  oprUnit->toString().c_str(), curNode->toString().c_str() ) ;
 
-         // create a new node
          rc = _formNewNode( orgTree, oprUnit, parent, curNode,
                             qgmOptiTreeNode::FROM_DOWN ) ;
          PD_RC_CHECK( rc, PDERROR, "Form new node failed, rc: %d", rc ) ;
@@ -511,7 +493,6 @@ namespace engine
          rc = SDB_OOM ;
          goto error ;
       }
-      // insert new node
       rc = orgTree.insertBetween( curNode, subNode, newNode ) ;
       if ( SDB_OK != rc )
       {
@@ -522,7 +503,6 @@ namespace engine
 
       SDB_ASSERT( !oprUnit->isOptional(), "impossible" ) ;
 
-      // if filter selectors is optional, need clear
       if ( QGM_OPTI_TYPE_FILTER == oprUnit->getType() )
       {
          qgmFilterUnit *filterUnit = (qgmFilterUnit*)oprUnit ;
@@ -555,7 +535,6 @@ namespace engine
       goto done ;
    }
 
-   /////////////////////////////////////////////////////////////////////////////
 
    optQgmOptimizer* getQgmOptimizer()
    {

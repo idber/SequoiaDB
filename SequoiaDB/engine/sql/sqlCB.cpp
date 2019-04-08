@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sqlCB.cpp
 
@@ -107,7 +106,6 @@ namespace engine
          goto error ;
       }
 
-      /// step 1: ast parse
       container->ast() = SQL_PARSE( trimedSql, _grammar ) ;
       if ( !container->ast().match
            || !container->ast().full )
@@ -118,7 +116,6 @@ namespace engine
       }
 
       {
-      /// step 2: build opti tree
       qgmBuilder builder( container->ptrTable(),
                           container->paramTable()) ;
       rc = builder.build( container->ast().trees, opti ) ;
@@ -128,7 +125,6 @@ namespace engine
          goto error ;
       }
 
-      /// step 3: extend
       rc = opti->extend( extend ) ;
       if ( SDB_OK != rc )
       {
@@ -136,7 +132,6 @@ namespace engine
          goto error ;
       }
 
-      /// step 4: optimize
       {
       _qgmOptTree tree( extend ) ;
       _optQgmOptimizer optimizer ;
@@ -150,7 +145,6 @@ namespace engine
       extend = tree.getRoot() ;
       }
 
-      /// step 5:build physical plan.
       rc = builder.build( extend, container->plan() ) ;
       if ( SDB_OK != rc )
       {
@@ -161,16 +155,14 @@ namespace engine
       SDB_ASSERT( QGM_PLAN_TYPE_MAX != container->type(),
                   "impossible" ) ;
 
-      /// step 6: execute.
       rc = container->execute( cb ) ;
       needRollback = container->needRollback() ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "Failed to execute qgm tree, rc: %d", rc ) ;
+         PD_LOG( PDERROR, "failed to execute pty tree:%d", rc ) ;
          goto error ;
       }
 
-      /// step 7: if it is a query. create context.
       if ( QGM_PLAN_TYPE_RETURN == container->type() )
       {
          rc = _createContext( container, cb, contextID ) ;
@@ -182,7 +174,6 @@ namespace engine
       }
       }
    done:
-      /// if extended, we noly need release extended root.
       if ( NULL != extend )
       {
          SAFE_OSS_DELETE( extend ) ;
@@ -220,7 +211,6 @@ namespace engine
       rc = rtnCB->contextNew ( RTN_CONTEXT_QGM, (rtnContext**)&context,
                                contextID, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create new context, rc: %d", rc ) ;
-      // open
       rc = context->open( container ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to open context[%lld], rc: %d",
                    context->contextID(), rc ) ;

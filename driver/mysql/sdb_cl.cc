@@ -1,18 +1,3 @@
-/* Copyright (c) 2018, SequoiaDB and/or its affiliates. All rights reserved.
-
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; version 2 of the License.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
-
 #include <my_base.h>
 #include "sdb_cl.h"
 #include "sdb_cl_ptr.h"
@@ -79,35 +64,21 @@ int sdb_cl::re_init( bool create,
    sdbCollectionSpace cs ;
 
 retry:
-   if ( !create )
-   {
-      rc = p_conn->get_sdb().getCollectionSpace( cs_name, cs ) ;
-   }
-   else
+   rc = p_conn->get_sdb().getCollectionSpace( cs_name, cs ) ;
+   if ( SDB_DMS_CS_NOTEXIST == rc && create )
    {
       rc = p_conn->get_sdb().createCollectionSpace( cs_name,
                                           4096, cs ) ;
-      if ( SDB_DMS_CS_EXIST == rc )
-      {
-         rc = p_conn->get_sdb().getCollectionSpace( cs_name, cs ) ;
-      }
    }
    if ( rc != SDB_ERR_OK )
    {
       goto error ;
    }
 
-   if ( !create )
-   {
-      rc = cs.getCollection( cl_name, cl ) ;
-   }
-   else
+   rc = cs.getCollection( cl_name, cl ) ;
+   if ( SDB_DMS_NOTEXIST == rc && create )
    {
       rc = cs.createCollection( cl_name, options, cl ) ;
-      if ( SDB_DMS_EXIST == rc )
-      {
-         rc = cs.getCollection( cl_name, cl ) ;
-      }
    }
    if ( rc != SDB_ERR_OK )
    {
@@ -136,7 +107,6 @@ int sdb_cl::check_connect( int rc )
    {
       return p_conn->connect() ;
    }
-   return SDB_ERR_OK ;
 }
 
 int sdb_cl::begin_transaction()
@@ -203,7 +173,7 @@ error:
    goto done ;
 }
 
-int sdb_cl::query_one( bson::BSONObj &obj,
+int sdb_cl::query_one( bson::BSONObj obj,
                        const bson::BSONObj &condition,
                        const bson::BSONObj &selected,
                        const bson::BSONObj &orderBy,
@@ -484,32 +454,6 @@ retry:
          rc = SDB_ERR_OK ;
          goto done ;
       }
-      goto error ;
-   }
-done:
-   return rc ;
-error:
-   if ( IS_SDB_NET_ERR(rc) )
-   {
-      bool is_transaction = p_conn->is_transaction() ;
-      if( 0 == p_conn->connect() && !is_transaction
-          && retry_times-- > 0 )
-      {
-         goto retry ;
-      }
-   }
-   convert_sdb_code( rc ) ;
-   goto done ;
-}
-
-int sdb_cl::get_count( long long &count )
-{
-   int rc = SDB_ERR_OK ;
-   int retry_times = 2 ;
-retry:
-   rc = cl.getCount( count ) ;
-   if ( rc != SDB_ERR_OK )
-   {
       goto error ;
    }
 done:

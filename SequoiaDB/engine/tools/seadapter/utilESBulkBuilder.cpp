@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = utilESBulkBuilder.cpp
 
@@ -49,29 +48,43 @@ namespace seadapter
 {
    _utilESBulkActionBase::_utilESBulkActionBase( const CHAR *index,
                                                  const CHAR *type )
-   : _ownData( FALSE ),
-     _index( index ),
-     _type( type ),
-     _id( NULL )
    {
+      SDB_ASSERT( index, "Index can't be NULL" ) ;
+      SDB_ASSERT( type, "Type can't be NULL" ) ;
+
+      _sourceData = NULL ;
+      _srcDataLen = 0 ;
+      _ownData = FALSE ;
+
+      if ( index )
+      {
+         _index = std::string( index ) ;
+      }
+      if ( type )
+      {
+         _type = std::string( type ) ;
+      }
    }
 
    _utilESBulkActionBase::~_utilESBulkActionBase()
    {
+      if ( _sourceData && _ownData )
+      {
+         SDB_OSS_FREE( _sourceData ) ;
+      }
    }
 
    INT32 _utilESBulkActionBase::setID( const CHAR *id )
    {
       INT32 rc = SDB_OK ;
-      if ( !id || ( 0 == ossStrlen( id ) )
-           || ( ossStrlen( id ) > SEADPT_MAX_ID_SZ ))
+      if ( !id )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "_id is invalid" ) ;
+         PD_LOG( PDERROR, "_id is NULL" ) ;
          goto error ;
       }
 
-      _id = id ;
+      _id = std::string( id ) ;
 
    done:
       return rc ;
@@ -79,16 +92,58 @@ namespace seadapter
       goto done ;
    }
 
-   void _utilESBulkActionBase::setSourceData( const BSONObj &record )
+   INT32 _utilESBulkActionBase::setSourceData( const CHAR *sourceData,
+                                               INT32 length, BOOLEAN copy )
    {
-      SDB_ASSERT( !record.isEmpty(), "Data is empty" ) ;
-      _dataObj = record ;
+      INT32 rc = SDB_OK ;
+
+      if ( !sourceData || length <=0 )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Invalid source data or length" ) ;
+         goto error ;
+      }
+
+      if ( _sourceData )
+      {
+         if ( _ownData )
+         {
+            SDB_OSS_FREE( _sourceData ) ;
+            _ownData = FALSE ;
+         }
+         _sourceData = NULL ;
+      }
+
+      if ( copy )
+      {
+         _sourceData = (CHAR *)SDB_OSS_MALLOC( length ) ;
+         if ( !_sourceData )
+         {
+            rc = SDB_OOM ;
+            PD_LOG( PDERROR, "Allocate memory for source data failed, requested"
+                    " size[ %d ]", length ) ;
+            goto error ;
+         }
+         ossStrncpy( _sourceData, sourceData, length ) ;
+         _ownData = TRUE ;
+      }
+      else
+      {
+         _sourceData = (CHAR *)sourceData ;
+      }
+
+      _srcDataLen = length ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
-   UINT32 _utilESBulkActionBase::outSizeEstimate() const
+   INT32 _utilESBulkActionBase::outSizeEstimate() const
    {
-      return ( UTIL_ESBULK_MIN_META_SIZE + ossStrlen( _index ) +
-               ossStrlen( _type ) + ossStrlen( _id ) + _dataObj.objsize() ) ;
+      return ( UTIL_ESBULK_MIN_META_SIZE + _index.length() +
+               _type.length() + _id.length() + _srcDataLen ) ;
    }
 
    INT32 _utilESBulkActionBase::output( CHAR *buffer, INT32 size,
@@ -99,7 +154,7 @@ namespace seadapter
       INT32 metaLen = 0 ;
       INT32 dataLen = 0 ;
 
-      if ( (UINT32)size < outSizeEstimate() )
+      if ( size < outSizeEstimate() )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG( PDERROR, "Buffer size[%d] is too small", size ) ;
@@ -125,10 +180,6 @@ namespace seadapter
       goto done ;
    }
 
-   // The format of the action and metadata is as follows:
-   // { action : { metadata }}\n
-   // metadata can be empty, or it may contain index, type, _id of the
-   // document. That's optional, depending on the url string of _bulk.
    INT32 _utilESBulkActionBase::_outputActionAndMeta( CHAR *buffer,
                                                       INT32 size,
                                                       INT32 &length,
@@ -138,71 +189,60 @@ namespace seadapter
    {
       INT32 rc = SDB_OK ;
       BOOLEAN begin = TRUE ;
-      INT32 writePos = 0 ;
-      INT32 writeNum = 0 ;
 
-      writeNum = ossSnprintf( buffer, size, "{\"%s\":{", _getActionName() ) ;
-      writePos += writeNum ;
-      if ( writePos >= size - 1 )
+      std::string metaData = std::string( "{\"" ) + _getActionName() + "\":{" ;
+      if ( withIndex )
+      {
+         if ( _index.empty() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Index name is empty" ) ;
+            goto error ;
+         }
+         metaData += "\"_index\":\"" + _index + "\"" ;
+         begin = FALSE ;
+      }
+      if ( withType )
+      {
+         if ( _type.empty() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Type name is empty" ) ;
+            goto error ;
+         }
+         if ( !begin )
+         {
+            metaData += "," ;
+         }
+         metaData += "\"_type\":\"" + _type + "\"" ;
+         begin = FALSE ;
+      }
+      if ( withID )
+      {
+         if ( _id.empty() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "_id is empty" ) ;
+            goto error ;
+         }
+         if ( !begin )
+         {
+            metaData += "," ;
+         }
+         metaData += "\"_id\":\"" + _id + "\"" ;
+      }
+
+      metaData += "}}\n" ;
+      if ( (UINT32)size < metaData.size() )
       {
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "Buffer size[%d] is too small", size ) ;
+         PD_LOG( PDERROR, "Buffer size[ %d ] is too small", size ) ;
          goto error ;
       }
 
-      if ( withIndex )
-      {
-         writeNum = ossSnprintf( buffer + writePos, size - writePos,
-                                 "\"_index\":\"%s\"", _index ) ;
-         writePos += writeNum ;
-         begin = FALSE ;
-         if ( writePos >= size - 1 )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Buffer size[%d] is too small", size ) ;
-            goto error ;
-         }
-      }
-
-      if ( withType )
-      {
-         if ( !begin )
-         {
-            buffer[ writePos ] = ',' ;
-            ++writePos ;
-         }
-         writeNum = ossSnprintf( buffer + writePos, size - writePos,
-                                 "\"_type\":\"%s\"", _type ) ;
-         writePos += writeNum ;
-         begin = FALSE ;
-         if ( writePos >= size - 1 )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Buffer size[%d] is too small", size ) ;
-            goto error ;
-         }
-      }
-
-      if ( withID )
-      {
-         if ( !begin )
-         {
-            buffer[ writePos ] = ',' ;
-            ++writePos ;
-         }
-         writeNum = ossSnprintf( buffer + writePos, size - writePos,
-                                 "\"_id\":\"%s\"", _id ) ;
-         writePos += writeNum ;
-         if ( writePos >= size - 1 )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Buffer size[%d] is too small", size ) ;
-            goto error ;
-         }
-      }
-
-      writeNum = ossSnprintf( buffer + writePos, size - writePos, "}}\n" ) ;
-      length = writePos + writeNum ;
+      SDB_ASSERT( buffer, "Buffer is NULL" ) ;
+      ossStrncpy( buffer, metaData.c_str(), metaData.length() ) ;
+      length = metaData.length() ;
 
    done:
       return rc ;
@@ -220,7 +260,7 @@ namespace seadapter
    {
    }
 
-   utilESBulkActionType _utilESActionCreate::getActionType() const
+   utilESBulkActionType _utilESActionCreate::getType() const
    {
       return UTIL_ES_ACTION_CREATE ;
    }
@@ -239,19 +279,16 @@ namespace seadapter
                                               INT32 &length ) const
    {
       INT32 rc = SDB_OK ;
-      string dataStr = _dataObj.toString( false, true ) ;
 
-      // One byte for the extra '\n' at the end of the line.
-      if ( (UINT32)size < dataStr.length() + 1 )
+      if ( size < _srcDataLen + 1 )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG( PDERROR, "Buffer size[ %d ] is too small", size ) ;
          goto error ;
       }
-
-      ossStrncpy( buffer, dataStr.c_str(), dataStr.length() ) ;
-      buffer[ dataStr.length() ] = '\n' ;
-      length = dataStr.length() + 1 ;
+      ossStrncpy( buffer, _sourceData, _srcDataLen ) ;
+      buffer[ _srcDataLen ] = '\n' ;
+      length = _srcDataLen + 1 ;
 
    done:
       return rc ;
@@ -268,7 +305,7 @@ namespace seadapter
    {
    }
 
-   utilESBulkActionType _utilESActionIndex::getActionType() const
+   utilESBulkActionType _utilESActionIndex::getType() const
    {
       return UTIL_ES_ACTION_INDEX ;
    }
@@ -287,19 +324,16 @@ namespace seadapter
                                              INT32 &length ) const
    {
       INT32 rc = SDB_OK ;
-      string dataStr = _dataObj.toString( false, true ) ;
 
-      // One byte for the extra '\n' at the end of the line.
-      if ( (UINT32)size < dataStr.length() + 1 )
+      if ( size < _srcDataLen + 1 )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG( PDERROR, "Buffer size[ %d ] is too small", size ) ;
          goto error ;
       }
-
-      ossStrncpy( buffer, dataStr.c_str(), dataStr.length() ) ;
-      buffer[ dataStr.length() ] = '\n' ;
-      length = dataStr.length() + 1 ;
+      ossStrncpy( buffer, _sourceData, _srcDataLen ) ;
+      buffer[ _srcDataLen ] = '\n' ;
+      length = _srcDataLen + 1 ;
 
    done:
       return rc ;
@@ -316,7 +350,7 @@ namespace seadapter
    {
    }
 
-   utilESBulkActionType _utilESActionUpdate::getActionType() const
+   utilESBulkActionType _utilESActionUpdate::getType() const
    {
       return UTIL_ES_ACTION_UPDATE ;
    }
@@ -338,14 +372,10 @@ namespace seadapter
       UINT32 writePos = 0 ;
       const CHAR *upsertStr = ",\"doc_as_upsert\":true" ;
       UINT32 upsertLen = ossStrlen( upsertStr ) ;
-      string dataStr = _dataObj.toString( false, true ) ;
 
-      // The source data of update is in the following format:
-      //    {"doc":{field1:val1, field2:val2,...,fieldn:valn}}\n
 
-      // One byte for the extra '\n' at the end of the line.
-      if ( size < (INT32)( dataStr.length() + BULK_UPDATE_PREFIX_LEN +
-                           upsertLen + BULK_UPDATE_SUFFIX_LEN + 1 ) )
+      if ( size < (INT32)( _srcDataLen + BULK_UPDATE_PREFIX_LEN + upsertLen +
+                           BULK_UPDATE_SUFFIX_LEN + 1 ) )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG( PDERROR, "Buffer size[ %d ] is too small", size ) ;
@@ -354,8 +384,8 @@ namespace seadapter
 
       ossStrncpy( buffer, BULK_UPDATE_PREFIX, BULK_UPDATE_PREFIX_LEN ) ;
       writePos = BULK_UPDATE_PREFIX_LEN ;
-      ossStrncpy( buffer + writePos, dataStr.c_str(), dataStr.length() ) ;
-      writePos += dataStr.length() ;
+      ossStrncpy( buffer + writePos, _sourceData, _srcDataLen ) ;
+      writePos += _srcDataLen ;
       ossStrncpy( buffer + writePos, upsertStr, upsertLen ) ;
       writePos += upsertLen ;
       ossStrncpy( buffer + writePos, BULK_UPDATE_SUFFIX,
@@ -379,7 +409,7 @@ namespace seadapter
    {
    }
 
-   utilESBulkActionType _utilESActionDelete::getActionType() const
+   utilESBulkActionType _utilESActionDelete::getType() const
    {
       return UTIL_ES_ACTION_DELETE ;
    }
@@ -398,19 +428,16 @@ namespace seadapter
                                               INT32 &length ) const
    {
       INT32 rc = SDB_OK ;
-      string dataStr = _dataObj.toString( false, true ) ;
 
-      // One byte for the extra '\n' at the end of the line.
-      if ( (UINT32)size < dataStr.length() + 1 )
+      if ( size < _srcDataLen + 1 )
       {
          rc = SDB_INVALIDARG ;
          PD_LOG( PDERROR, "Buffer size[ %d ] is too small", size ) ;
          goto error ;
       }
-
-      ossStrncpy( buffer, dataStr.c_str(), dataStr.length() ) ;
-      buffer[ dataStr.length() ] = '\n' ;
-      length = dataStr.length() + 1 ;
+      ossStrncpy( buffer, _sourceData, _srcDataLen ) ;
+      buffer[ _srcDataLen ] = '\n' ;
+      length = _srcDataLen + 1 ;
 
    done:
       return rc ;
@@ -436,7 +463,6 @@ namespace seadapter
    INT32 _utilESBulkBuilder::init( UINT32 bufferSize )
    {
       INT32 rc = SDB_OK ;
-      UINT32 capacity = 0 ;
 
       if ( 0 == bufferSize || bufferSize > UTIL_ESBULK_MAX_SIZE )
       {
@@ -445,7 +471,6 @@ namespace seadapter
          goto error ;
       }
 
-      capacity = bufferSize * 1024 * 1024 ;
       if ( _buffer )
       {
          SDB_ASSERT( _capacity, "_capacity is 0" ) ;
@@ -454,18 +479,17 @@ namespace seadapter
          goto error ;
       }
 
-      _buffer = (CHAR *)SDB_OSS_MALLOC( capacity ) ;
+      _buffer = (CHAR *)SDB_OSS_MALLOC( bufferSize ) ;
       if ( !_buffer )
       {
          rc = SDB_OOM ;
          PD_LOG( PDERROR, "Allocate memory for bulk buffer failed, requested "
-                 "size[ %u ]", capacity ) ;
+                 "size[ %d ]", bufferSize ) ;
          goto error ;
       }
 
-      ossMemset( _buffer, 0, capacity ) ;
-      _capacity = capacity ;
-      _itemNum = 0 ;
+      ossMemset( _buffer, 0, bufferSize ) ;
+      _capacity = bufferSize ;
 
    done:
       return rc ;
@@ -478,10 +502,9 @@ namespace seadapter
    {
       ossMemset( _buffer, 0, _capacity ) ;
       _dataLen = 0 ;
-      _itemNum = 0 ;
    }
 
-   UINT32 _utilESBulkBuilder::getFreeSize() const
+   INT32 _utilESBulkBuilder::getFreeSize() const
    {
       return ( _capacity - _dataLen ) ;
    }
@@ -505,7 +528,6 @@ namespace seadapter
                         withType, withID ) ;
       PD_RC_CHECK( rc, PDERROR, "Append bulk item failed[ %d ]", rc ) ;
       _dataLen += itemLen ;
-      _itemNum++ ;
 
    done:
       return rc ;

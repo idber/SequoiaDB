@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = ossASIO.cpp
 
@@ -141,11 +140,8 @@ void _ossAsioMsgProcessor::_handleReadPacketHead (
    }
    if ( !_message )
    {
-      // page size unit is 4096 bytes
       INT32 bufSize = ossRoundUpToMultipleX ( _header.messageLength,
                                               SDB_PAGE_SIZE ) ;
-      // currently let's malloc a buffer. later we should change this to a
-      // static log buffer to avoid frequent dynamic memory allocation
       _message = (CHAR*)SDB_OSS_MALLOC ( bufSize ) ;
       if ( !_message )
       {
@@ -272,7 +268,6 @@ void _ossASIO::_handleAccept ( boost::shared_ptr<ossAsioMsgProcessor> processor,
       goto done ;
    }
    processor->run() ;
-   // repeatedly call accept in order to accept more messages
    _accept() ;
 done :
    PD_TRACE_EXIT ( SDB__OSSAIO__HNDAPT );
@@ -311,7 +306,6 @@ INT32 _ossASIO::connect ( CHAR *pHostName, CHAR *pServiceName,
    if ( !rc )
    {
       *sock = &processor->socket() ;
-      // start run the processor if connection is established
       processor->run() ;
    }
    else

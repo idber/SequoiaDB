@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = catLevelLock.hpp
 
@@ -64,7 +63,6 @@ namespace engine
       CAT_LOCK_DATA        = 1,  // for collectionspace,collection
       CAT_LOCK_NODE        = 2,  // for group,node
       CAT_LOCK_DOMAIN      = 3,  // for domain
-      CAT_LOCK_SHARDING    = 4,  // for sharding
 
       CAT_LOCK_MAX
    } ;
@@ -158,7 +156,6 @@ namespace engine
          CAT_LOCK_TYPE           _type ;
 
       private:
-         // forbidden copy construct and equal assignment
          _catZeroLevelLock( const _catZeroLevelLock &right ) ;
          _catZeroLevelLock& operator=( const _catZeroLevelLock &right ) ;
 
@@ -233,30 +230,6 @@ namespace engine
    typedef _catCLLock catCLLock ;
 
    /*
-      _catCSShardingLock define
-    */
-   class _catCSShardingLock : public _catOneLevelLock
-   {
-      public :
-         _catCSShardingLock ( const string & csName ) ;
-         virtual ~_catCSShardingLock () ;
-   } ;
-
-   typedef class _catCSShardingLock catCSShardingLock ;
-
-   /*
-      _catCLShardingLock define
-    */
-   class _catCLShardingLock : public _catTwoLevelLock
-   {
-      public :
-         _catCLShardingLock ( const string & csName, const string & clName ) ;
-         virtual ~_catCLShardingLock () ;
-   } ;
-
-   typedef class _catCLShardingLock catCLShardingLock ;
-
-   /*
       _catGroupLock define
    */
    class _catGroupLock : public _catOneLevelLock
@@ -302,7 +275,6 @@ namespace engine
       ~_catCtxLockMgr () ;
 
    public:
-      // _catCtxLockMgr functions
       BOOLEAN tryLockCollectionSpace ( const std::string &csName,
                                        OSS_LATCH_MODE mode ) ;
 
@@ -312,16 +284,6 @@ namespace engine
 
       BOOLEAN tryLockCollection ( const std::string &clFullName,
                                   OSS_LATCH_MODE mode ) ;
-
-      BOOLEAN tryLockCollectionSpaceSharding ( const std::string & csName,
-                                               OSS_LATCH_MODE mode ) ;
-
-      BOOLEAN tryLockCollectionSharding ( const std::string & clFullName,
-                                          OSS_LATCH_MODE mode ) ;
-
-      BOOLEAN tryLockCollectionSharding ( const std::string & csName,
-                                          const std::string & clFullName,
-                                          OSS_LATCH_MODE mode ) ;
 
       BOOLEAN tryLockDomain ( const std::string &domainName,
                               OSS_LATCH_MODE mode ) ;

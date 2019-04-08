@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = utilMap.hpp
 
@@ -72,9 +71,7 @@ namespace engine
          _eleSize = 0 ;
 
          UINT32 rSize = rhs.size() ;
-         /// alloc space
          _ensureSpace( rSize ) ;
-         /// copy all elements
          const_iterator it = rhs.begin() ;
          while( it != rhs.end() )
          {
@@ -110,12 +107,10 @@ namespace engine
             {
                if ( _pData && rhs._pData )
                {
-                  /// left, right is end
                   BOOLEAN leftEnd = _pData >= _pSrc + *_pEleSize ?
                                     TRUE : FALSE ;
                   BOOLEAN rightEnd = rhs._pData >= rhs._pSrc + *(rhs._pEleSize) ?
                                      TRUE : FALSE ;
-                  /// both end,equal
                   if ( leftEnd && rightEnd &&
                        _pSrc == rhs._pSrc &&
                        _pEleSize == rhs._pEleSize )
@@ -219,7 +214,6 @@ namespace engine
             }
 
          private:
-            /// Must forbidden these functions
             iterator operator++ ( int )
             {
                iterator tmp( *this ) ;
@@ -268,12 +262,10 @@ namespace engine
             {
                if ( _pData && rhs._pData )
                {
-                  /// left, right is end
                   BOOLEAN leftEnd = _pData >= _pSrc + *_pEleSize ?
                                     TRUE : FALSE ;
                   BOOLEAN rightEnd = rhs._pData >= rhs._pSrc + *(rhs._pEleSize) ?
                                      TRUE : FALSE ;
-                  /// both end,equal
                   if ( leftEnd && rightEnd &&
                        _pSrc == rhs._pSrc &&
                        _pEleSize == rhs._pEleSize )
@@ -376,7 +368,6 @@ namespace engine
                _it            = it ;
             }
          private:
-            /// Must forbidden these functions
             const_iterator operator++ ( int )
             {
                const_iterator tmp( *this ) ;
@@ -558,7 +549,6 @@ namespace engine
          }
          else
          {
-            /// first find the key
             BOOLEAN exist = FALSE ;
             INT32 pos = _findBoundInStackBuf( val.first, FALSE, &exist ) ;
             if ( exist )
@@ -591,11 +581,8 @@ namespace engine
       {
          UINT32 rSize = rhs.size() ;
 
-         /// clear self
          clear( TRUE ) ;
-         /// alloc space
          _ensureSpace( rSize ) ;
-         /// copy all elements
          const_iterator it = rhs.begin() ;
          while( it != rhs.end() )
          {
@@ -613,13 +600,11 @@ namespace engine
          }
          else
          {
-            /// first to find
             INT32 pos = _findInStackBuf( key ) ;
             if ( pos != -1 )
             {
                return _staticBuf[ pos ].second ;
             }
-            /// error
             throw std::out_of_range( "out-of-range" ) ;
          }
       }
@@ -632,13 +617,11 @@ namespace engine
          }
          else
          {
-            /// first to find
             INT32 pos = _findInStackBuf( key ) ;
             if ( pos != -1 )
             {
                return _staticBuf[ pos ].second ;
             }
-            /// error
             throw std::out_of_range( "out-of-range" ) ;
          }
       }
@@ -651,13 +634,11 @@ namespace engine
          }
          else
          {
-            /// first to find
             INT32 pos = _findInStackBuf( key ) ;
             if ( pos != -1 )
             {
                return _staticBuf[ pos ].second ;
             }
-            /// insert
             pair< iterator, BOOLEAN > ret = insert( value_type( key, T() ) ) ;
             return (ret.first)->second ;
          }
@@ -790,7 +771,6 @@ namespace engine
             {
                itBegin = iterator( &_staticBuf[ pos ], _staticBuf,
                                    &_eleSize ) ;
-               /// back to calc itEnd
                for ( UINT32 i = pos + 1 ; i < _eleSize ; ++i )
                {
                   if ( _staticBuf[ i ].first != key )
@@ -825,7 +805,6 @@ namespace engine
             {
                itBegin = const_iterator( &_staticBuf[ pos ], _staticBuf,
                                          &_eleSize ) ;
-               /// back to calc itEnd
                for ( UINT32 i = pos + 1 ; i < _eleSize ; ++i )
                {
                   if ( _staticBuf[ i ].first != key )
@@ -851,7 +830,6 @@ namespace engine
             }
             if ( _pMap->size() <= threshold )
             {
-               /// copy data to stack
                _eleSize = 0 ;
                typename map< Key, T >::iterator it = _pMap->begin() ;
                for ( ; it != _pMap->end() ; ++it )
@@ -860,7 +838,6 @@ namespace engine
                   _staticBuf[ _eleSize ].second = it->second ;
                   ++_eleSize ;
                }
-               /// release the map
                delete _pMap ;
                _pMap = NULL ;
             }
@@ -872,7 +849,6 @@ namespace engine
       {
          if ( 0 == _eleSize )
          {
-            /// not found
             return -1 ;
          }
 
@@ -896,7 +872,6 @@ namespace engine
                h = m - 1 ;
             }
          }
-         /// not found
          return -1 ;
       }
 
@@ -906,7 +881,6 @@ namespace engine
       {
          if ( 0 == _eleSize )
          {
-            /// not found
             return -1 ;
          }
 
@@ -946,7 +920,6 @@ namespace engine
                h = m - 1 ;
             }
          }
-         /// not found
          return (UINT32)l >= _eleSize ? -1 : l ;
       }
 
@@ -971,7 +944,6 @@ namespace engine
                rc = SDB_OOM ;
                goto error ;
             }
-            /// copy stack data to deque
             for ( UINT32 i = 0 ; i < _eleSize ; ++i )
             {
                (*_pMap)[ _staticBuf[ i ].first ] = _staticBuf[ i ].second ;
@@ -1033,7 +1005,6 @@ namespace engine
       private :
          OSS_INLINE T& operator[] ( const _utilMapStringKey& key )
          {
-            // Disabled
             return _utilMap< _utilMapStringKey, T, stackSize >::operator[]( key ) ;
          }
    } ;

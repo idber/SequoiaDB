@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = mthSColumnMatrix.hpp
 
@@ -91,7 +90,6 @@ namespace engine
 
       try
       {
-         /// must be sorted.
          BSONObjIteratorSorted i( _pattern ) ;
          while ( i.more() )
          {
@@ -274,7 +272,7 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSCOLUMNMATRIX__LOADDEFAULTVALUE, "_mthSColumnMatrix::_loadDefaultValue" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSCOLUMNMATRIX__LOADDEFAULTVALUE, "_mthSColumnMatrix::_loadDefautValue" )
    INT32 _mthSColumnMatrix::_loadDefaultValue( const BSONElement &e )
    {
       INT32 rc = SDB_OK ;
@@ -336,15 +334,12 @@ namespace engine
       _mthSColumn *node = NULL ;
       INT32 eleNumber = 0 ;
 
-      /// WARNING: fieldName may be changed when get next.
-      /// do not use it again until i is destroyed.
       utilSplitIterator i( ( CHAR * )fieldName ) ;
       while ( i.more() )
       {
          node = NULL ;
          const CHAR *columnName = i.next() ;
 
-         /// a.$[0].b
          if ( '$' == *columnName &&
               NULL != father &&
               SDB_OK == mthConvertSubElemToNumeric( columnName,

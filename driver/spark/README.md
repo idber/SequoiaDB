@@ -8,7 +8,7 @@ Spark-SequoiaDB connector is used to integrate SequoiaDB and Spark, in order to 
 
 ## Requirements
 
-This library requires Spark 2.0+, Scala 2.11.8+ and sequoiadb-driver-2.8+
+This library requires Spark 2.0.2, Scala 2.11.8+ and sequoiadb-driver-2.8.1
 
 ## Build
 

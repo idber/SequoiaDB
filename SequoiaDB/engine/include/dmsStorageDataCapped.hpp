@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2016 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dmsStorageDataCapped.hpp
 
@@ -40,14 +39,11 @@
 #define DMSSTORAGE_DATACAPPED_HPP
 
 #include "dmsStorageDataCommon.hpp"
-#include "ossMemPool.hpp"
 
 namespace engine
 {
 #define DMS_INVALID_REC_LOGICALID         -1
 
-// Default size threshold of capped collection is 30GB.
-// Default record number threshold is set to 0, which means no limit on that.
 #define DMS_DFT_CAPPEDCL_SIZE             (30 * 1024 * 1024 * 1024LL)
 #define DMS_DFT_CAPPEDCL_RECNUM           0
 
@@ -103,8 +99,6 @@ namespace engine
    } ;
    typedef _dmsCappedCLOptions dmsCappedCLOptions ;
 
-   // Information of the working extent. Working extent is the one which is
-   // used for insertion currently.
    struct _dmsExtentInfo
    {
       dmsExtentID    _id ;
@@ -114,8 +108,6 @@ namespace engine
       dmsOffset      _firstRecordOffset ;
       dmsOffset      _lastRecordOffset ;
       UINT32         _writePos ; // Currently write position in the working
-                                 // extent data area( the extent header
-                                 // excluded). Always 4 byte aligned.
       UINT32         _recNo ;
       _dmsExtentInfo()
       {
@@ -156,7 +148,6 @@ namespace engine
          _recNo++ ;
       }
 
-      // Should only be done after attach to a new empty extent.
       void seek( dmsOffset offset )
       {
          SDB_ASSERT( offset >= (INT32)DMS_EXTENT_METADATA_SZ,
@@ -165,7 +156,6 @@ namespace engine
          _freeSpace = DMS_CAP_EXTENT_SZ - offset ;
       }
 
-      // For debug purpose.
       string toString() const
       {
          ostringstream ss ;
@@ -185,7 +175,7 @@ namespace engine
 
    class _dmsStorageDataCapped : public _dmsStorageDataCommon
    {
-      typedef ossPoolMap<UINT32, UINT32> SIZE_REQ_MAP ;
+      typedef std::map<UINT32, UINT32>    SIZE_REQ_MAP ;
    public:
       _dmsStorageDataCapped( const CHAR* pSuFileName,
                              dmsStorageInfo *pInfo,
@@ -201,14 +191,9 @@ namespace engine
       virtual INT32 dumpExtOptions( dmsMBContext *context,
                                     BSONObj &extOptions ) ;
 
-      virtual INT32 setExtOptions ( dmsMBContext * context,
-                                    const BSONObj & extOptions ) ;
-
       OSS_INLINE dmsExtentInfo* getWorkExtInfo( UINT16 mbID ) ;
 
       virtual INT32 postDataRestored( dmsMBContext * context ) ;
-
-      OSS_INLINE BOOLEAN spaceEnough( dmsMBContext *context, UINT32 newSize ) ;
 
    private:
       virtual const CHAR* _getEyeCatcher() const ;
@@ -265,8 +250,7 @@ namespace engine
                                           dmsRecordRW &recordRW,
                                           const dmsRecordData &recordData,
                                           const BSONObj &newObj,
-                                          _pmdEDUCB *cb,
-                                          IDmsOprHandler *pHandler ) ;
+                                          _pmdEDUCB *cb ) ;
 
       virtual INT32 _extentRemoveRecord( dmsMBContext *context,
                                          dmsExtRW &extRW,
@@ -281,8 +265,8 @@ namespace engine
                                    ossValuePtr dataPtr,
                                    _pmdEDUCB *cb ) ;
 
-      virtual INT32 extractData( const dmsMBContext *mbContext,
-                                 const dmsRecordRW &recordRW,
+      virtual INT32 extractData( dmsMBContext *mbContext,
+                                 dmsRecordRW &recordRW,
                                  _pmdEDUCB *cb,
                                  dmsRecordData &recordData ) ;
 
@@ -327,7 +311,8 @@ namespace engine
       OSS_INLINE void _updateStatInfo( dmsMBContext *context,
                                        UINT32 recordSize,
                                        const dmsRecordData &recordData ) ;
-
+      OSS_INLINE BOOLEAN _sizeExceedLimit( dmsMBContext *context,
+                                           UINT32 newSize ) ;
       OSS_INLINE BOOLEAN _numExceedLimit( dmsMBContext *context, UINT32 size ) ;
       OSS_INLINE BOOLEAN _overwriteOnExceed( dmsMBContext *context ) ;
       OSS_INLINE void _recLid2ExtLidAndOffset( INT64 logicalID,
@@ -371,8 +356,6 @@ namespace engine
 
    private:
       dmsCappedCLOptions *_options[ DMS_MME_SLOTS ] ;
-      // The information of the working extents of each collection.
-      // Working extent is the one which we are using for inserting record now.
       dmsExtentInfo _workExtInfo[ DMS_MME_SLOTS ] ;
       SIZE_REQ_MAP  _sizeReqMap ;
    } ;
@@ -445,14 +428,14 @@ namespace engine
       _updateCLStat( _mbStatInfo[ context->mbID() ], recordSize, recordData ) ;
    }
 
-   OSS_INLINE BOOLEAN _dmsStorageDataCapped::spaceEnough( dmsMBContext *context,
-                                                          UINT32 newSize )
+   OSS_INLINE BOOLEAN _dmsStorageDataCapped::_sizeExceedLimit( dmsMBContext *context,
+                                                               UINT32 newSize )
    {
       const dmsMBStatInfo *mbStatInfo = getMBStatInfo( context->mbID() ) ;
       SDB_ASSERT( mbStatInfo, "mbStatInfo should not be NULL" ) ;
 
       return (((UINT64)mbStatInfo->_totalDataPages << pageSizeSquareRoot()) + newSize)
-             <= (UINT64)_options[context->mbID()]->_maxSize ;
+             > (UINT64)_options[context->mbID()]->_maxSize ;
    }
 
    OSS_INLINE BOOLEAN _dmsStorageDataCapped::_numExceedLimit( dmsMBContext *context,
@@ -536,18 +519,15 @@ namespace engine
          }
          else if ( extLID == extent->_logicID )
          {
-            // Found the target extent.
             break ;
          }
          else if ( extentID == extentInfo->getID() )
          {
-            // If hit the working extent, and still not found, stop.
             extentID = DMS_INVALID_EXTENT ;
             break ;
          }
          else
          {
-            // Recycle the current extent.
             extentID = extent->_nextExtent;
          }
       }

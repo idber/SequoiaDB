@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsVSPrimary.cpp
 
@@ -60,7 +59,6 @@ namespace engine
    INT32 _clsVSPrimary::handleInput( const MsgHeader *header,
                                      INT32 &next )
    {
-      /// primary do not accept any request
       next = id() ;
       return SDB_OK ;
    }
@@ -96,7 +94,6 @@ namespace engine
    {
       _MsgCatPrimaryChange msg ;
 
-      // primary change before
       sdbGetClsCB()->ntyPrimaryChange( FALSE, SDB_EVT_OCCUR_BEFORE ) ;
 
       _info()->mtx.lock_w() ;
@@ -109,7 +106,6 @@ namespace engine
       msg.oldPrimary = _info()->local ;
       _info()->mtx.release_w() ;
 
-      // primary change after
       sdbGetClsCB()->ntyPrimaryChange( FALSE, SDB_EVT_OCCUR_AFTER ) ;
 
       sdbGetReplCB()->callCatalog( (MsgHeader *)&msg ) ;
@@ -123,7 +119,6 @@ namespace engine
       next = id() ;
       _MsgCatPrimaryChange msg ;
 
-      // before primary
       sdbGetClsCB()->ntyPrimaryChange( TRUE, SDB_EVT_OCCUR_BEFORE ) ;
 
       _info()->mtx.lock_w() ;
@@ -137,7 +132,6 @@ namespace engine
 
       PD_LOG ( PDEVENT, "Change to Primary" ) ;
 
-      // after primary
       sdbGetClsCB()->ntyPrimaryChange( TRUE, SDB_EVT_OCCUR_AFTER ) ;
 
       sdbGetReplCB()->callCatalog( (MsgHeader *)&msg,

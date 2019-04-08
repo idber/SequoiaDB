@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = seAdptOptionsMgr.cpp
 
@@ -37,6 +36,7 @@
 
 *******************************************************************************/
 #include "seAdptOptionsMgr.hpp"
+#include "pmdDef.hpp"
 #include "seAdptDef.hpp"
 #include "ossVer.hpp"
 
@@ -47,12 +47,10 @@ using namespace engine ;
    ( PMD_OPTION_VERSION, "version" ) \
    ( PMD_COMMANDS_STRING (PMD_OPTION_CONFPATH, ",c"), boost::program_options::value<string>(), "Configure file path" ) \
    ( PMD_COMMANDS_STRING (PMD_OPTION_DIAGLEVEL, ",v"), boost::program_options::value<int>(), "Diagnostic level,default:3,value range:[0-5]" ) \
-   ( SEADPT_DNODE_HOST, boost::program_options::value<string>(), "Data node address" ) \
-   ( SEADPT_DNODE_PORT, boost::program_options::value<string>(), "Data node service name or port" ) \
-   ( SEADPT_SE_HOST, boost::program_options::value<string>(), "Search engine address" ) \
-   ( SEADPT_SE_PORT, boost::program_options::value<string>(), "Search engine service name or port" ) \
-   ( SEADPT_BULK_BUFF_SIZE, boost::program_options::value<int>(), "Bulk operation buffer size,unit:MB,default:10,value range:[1-32]" ) \
-   ( PMD_COMMANDS_STRING (PMD_OPTION_OPERATOR_TIMEOUT, ",t"), boost::program_options::value<int>(), "Rest operation timeout in millisecond,default:10000,value range[3000-3600000]" )
+   ( SDB_SEADPT_DNODE_HOST, boost::program_options::value<string>(), "Data node address" ) \
+   ( SDB_SEADPT_DNODE_PORT, boost::program_options::value<string>(), "Data node service name or port" ) \
+   ( SDB_SEADPT_SE_HOST, boost::program_options::value<string>(), "Search engine address" ) \
+   ( SDB_SEADPT_SE_PORT, boost::program_options::value<string>(), "Search engine service name or port" )
 
 namespace seadapter
 {
@@ -65,8 +63,6 @@ namespace seadapter
       ossMemset( _seHost, 0, sizeof( _seHost ) ) ;
       ossMemset( _seService, 0, sizeof( _seService ) ) ;
       _diagLevel = PDWARNING ;
-      _timeout = SEADPT_DFT_TIMEOUT ;
-      _bulkBuffSize = SEADPT_DFT_BULKBUFF_SZ ;
    }
 
    INT32 _seAdptOptionsMgr::init( INT32 argc, CHAR **argv,
@@ -106,8 +102,6 @@ namespace seadapter
          goto done ;
       }
 
-      // Get the configuration file path. If not privided, search in the current
-      // path.
       if ( vmFromCmd.count( PMD_OPTION_CONFPATH ) )
       {
          CHAR *cfgPath =
@@ -134,7 +128,7 @@ namespace seadapter
          }
       }
 
-      rc = utilBuildFullPath( cfgTempPath, SEADPT_CFG_FILE_NAME,
+      rc = utilBuildFullPath( cfgTempPath, SDB_SEADPT_CFG_FILE_NAME,
                               OSS_MAX_PATHSIZE, _cfgFileName ) ;
       if ( rc )
       {
@@ -148,14 +142,12 @@ namespace seadapter
       {
          if ( vmFromCmd.count( PMD_OPTION_CONFPATH ) )
          {
-            // Read the configuration file specified by command failed.
             std::cerr << "ERROR: Read configuration file[ " << _cfgFileName
                       << "] failed[ " << rc << " ]" << std::endl ;
             goto error ;
          }
          else
          {
-            // Read the default configuration file failed.
             std::cerr << "ERROR: Read default configuration file[ "
                << _cfgFileName << " ] failed[ " << rc << " ]" << std::endl ;
             goto error ;
@@ -180,33 +172,16 @@ namespace seadapter
    {
       resetResult() ;
 
-      rdxString( pEX, SEADPT_DNODE_HOST, _dbHost, sizeof( _dbHost ),
-                 TRUE, PMD_CFG_CHANGE_FORBIDDEN , "" ) ;
-      rdvNotEmpty( pEX, _dbHost ) ;
-
-      rdxString( pEX, SEADPT_DNODE_PORT, _dbService,
-                 sizeof( _dbService ), TRUE, PMD_CFG_CHANGE_FORBIDDEN, "" ) ;
-      rdvNotEmpty( pEX, _dbService ) ;
-
-      rdxUShort( pEX, SEADPT_DIAGLEVEL, _diagLevel,
-                 FALSE, PMD_CFG_CHANGE_RUN, (UINT16)PDWARNING ) ;
-      rdvMinMax( pEX, _diagLevel, PDSEVERE, PDDEBUG, TRUE ) ;
-
-      rdxString( pEX, SEADPT_SE_HOST, _seHost, sizeof( _seHost ),
-                 TRUE, PMD_CFG_CHANGE_FORBIDDEN, "" ) ;
-      rdvNotEmpty( pEX, _seHost ) ;
-
-      rdxString( pEX, SEADPT_SE_PORT, _seService, sizeof( _seService ),
-                 TRUE, PMD_CFG_CHANGE_FORBIDDEN, SEADPT_SE_DFT_SERVICE ) ;
-      rdvNotEmpty( pEX, _seService ) ;
-
-      rdxInt( pEX, PMD_OPTION_OPERATOR_TIMEOUT, _timeout,
-              FALSE, PMD_CFG_CHANGE_FORBIDDEN, SEADPT_DFT_TIMEOUT ) ;
-      rdvMinMax( pEX, _timeout, 3000, 3600000, TRUE ) ;
-
-      rdxUInt( pEX, SEADPT_BULK_BUFF_SIZE, _bulkBuffSize,
-               FALSE, PMD_CFG_CHANGE_RUN, SEADPT_DFT_BULKBUFF_SZ ) ;
-      rdvMinMax( pEX, _bulkBuffSize, 1, 32, TRUE ) ;
+      rdxString( pEX, SDB_SEADPT_DNODE_HOST, _dbHost,
+                 sizeof( _dbHost ), TRUE, FALSE , _dbHost ) ;
+      rdxString( pEX, SDB_SEADPT_DNODE_PORT, _dbService,
+                 sizeof( _dbService ), TRUE, FALSE, _dbService ) ;
+      rdxInt( pEX, SDB_SEADPT_DIAGLEVEL, _diagLevel,
+              FALSE, FALSE, _diagLevel ) ;
+      rdxString( pEX, SDB_SEADPT_SE_HOST, _seHost, sizeof( _seHost ),
+                 TRUE, FALSE, _seHost ) ;
+      rdxString( pEX, SDB_SEADPT_SE_PORT, _seService,
+                 sizeof( _seService ), TRUE, FALSE, _seService ) ;
 
       return getResult() ;
    }
@@ -235,16 +210,6 @@ namespace seadapter
       }
 
       return level ;
-   }
-
-   INT32 _seAdptOptionsMgr::getTimeout() const
-   {
-      return _timeout ;
-   }
-
-   UINT32 _seAdptOptionsMgr::getBulkBuffSize() const
-   {
-      return _bulkBuffSize ;
    }
 }
 

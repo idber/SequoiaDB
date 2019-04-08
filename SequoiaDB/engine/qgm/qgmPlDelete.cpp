@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = qgmPlDelete.cpp
 
@@ -107,15 +106,8 @@ namespace engine
       SDB_ROLE role = krcb->getDBRole() ;
       CHAR *msg = NULL ;
       INT32 bufSize = 0 ;
-      string clName = _collection.toString() ;
 
-      /// When delete virtual cs
-      if ( 0 == ossStrncmp( clName.c_str(), CMD_ADMIN_PREFIX SYS_VIRTUAL_CS".",
-                            SYS_VIRTUAL_CS_LEN + 1 ) )
-      {
-         rc = _deleteVCS( clName.c_str(), _condition, eduCB ) ;
-      }
-      else if ( SDB_ROLE_COORD == role )
+      if ( SDB_ROLE_COORD == role )
       {
          CoordCB *pCoord = krcb->getCoordCB() ;
          INT64 contextID = -1 ;
@@ -123,7 +115,7 @@ namespace engine
 
          coordDeleteOperator opr ;
          rc = msgBuildDeleteMsg( &msg, &bufSize,
-                                 clName.c_str(),
+                                 _collection.toString().c_str(),
                                  0, 0,
                                  _condition.isEmpty() ? NULL : &_condition,
                                  NULL, eduCB ) ;
@@ -152,7 +144,7 @@ namespace engine
          }
          SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
          BSONObj empty ;
-         rc = rtnDelete( clName.c_str(),
+         rc = rtnDelete( _collection.toString().c_str(),
                          _condition, empty, 0, eduCB,
                          dmsCB, dpsCB ) ;
       }
@@ -172,36 +164,4 @@ namespace engine
    error:
       goto done ;
    }
-
-   INT32 _qgmPlDelete::_deleteVCS( const CHAR *fullName,
-                                   const BSONObj &deletor,
-                                   _pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-
-      if ( 0 == ossStrcmp( fullName, CMD_ADMIN_PREFIX SYS_CL_SESSION_INFO ) )
-      {
-         schedTaskMgr *pSvcTaskMgr = pmdGetKRCB()->getSvcTaskMgr() ;
-         schedItem *pItem = ( schedItem* )cb->getSession()->getSchedItemPtr() ;
-
-         pItem->_info.reset() ;
-
-         /// update task info
-         pItem->_ptr = pSvcTaskMgr->getTaskInfoPtr( pItem->_info.getTaskID(),
-                                                    pItem->_info.getTaskName() ) ;
-         /// update monApp's info
-         cb->getMonAppCB()->setSvcTaskInfo( pItem->_ptr.get() ) ;
-      }
-      else
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
 }

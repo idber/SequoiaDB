@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptGlobalFunc.cpp
 
@@ -41,8 +40,6 @@
 #include "sptSPScope.hpp"
 #include "pdTraceAnalysis.hpp"
 
-#define SPT_FIELD_FUNCTIONLIST "UseFunctionListFile"
-
 using namespace bson ;
 
 namespace engine
@@ -59,19 +56,13 @@ JS_GLOBAL_FUNC_DEFINE_NORESET( _sptGlobalFunc, showClassfull)
 JS_GLOBAL_FUNC_DEFINE_NORESET( _sptGlobalFunc, forceGC )
 JS_GLOBAL_FUNC_DEFINE_NORESET( _sptGlobalFunc, displayManual )
 JS_GLOBAL_FUNC_DEFINE_NORESET( _sptGlobalFunc, displayMethod )
-JS_GLOBAL_FUNC_DEFINE_NORESET( _sptGlobalFunc, getExePath )
-JS_GLOBAL_FUNC_DEFINE_NORESET( _sptGlobalFunc, getSelfPath )
-JS_GLOBAL_FUNC_DEFINE_NORESET( _sptGlobalFunc, getRootPath )
 JS_GLOBAL_FUNC_DEFINE( _sptGlobalFunc, sleep )
 JS_GLOBAL_FUNC_DEFINE( _sptGlobalFunc, traceFmt )
 JS_GLOBAL_FUNC_DEFINE( _sptGlobalFunc, globalHelp )
 JS_GLOBAL_FUNC_DEFINE( _sptGlobalFunc, importJSFile )
 JS_GLOBAL_FUNC_DEFINE( _sptGlobalFunc, importJSFileOnce )
-JS_GLOBAL_FUNC_DEFINE( _sptGlobalFunc, catPath )
 
-JS_BEGIN_MAPPING( _sptGlobalFunc, SPT_GLOBAL_STR )
-   setGlobal( TRUE ) ; /// set global
-   /// Define func
+JS_BEGIN_MAPPING( _sptGlobalFunc, "" )
    JS_ADD_GLOBAL_FUNC( "getLastErrMsg", getLastErrorMsg )
    JS_ADD_GLOBAL_FUNC( "setLastErrMsg", setLastErrorMsg )
    JS_ADD_GLOBAL_FUNC( "getLastError", getLastError )
@@ -81,18 +72,14 @@ JS_BEGIN_MAPPING( _sptGlobalFunc, SPT_GLOBAL_STR )
    JS_ADD_GLOBAL_FUNC( "sleep", sleep )
    JS_ADD_GLOBAL_FUNC( "print", print )
    JS_ADD_GLOBAL_FUNC( "traceFmt", traceFmt )
-   JS_ADD_GLOBAL_FUNC_WITHATTR( "globalHelp", globalHelp, 0 )
-   JS_ADD_GLOBAL_FUNC_WITHATTR( "displayMethod", displayMethod, 0 )
-   JS_ADD_GLOBAL_FUNC_WITHATTR( "displayManual", displayManual, 0 )
+   JS_ADD_GLOBAL_FUNC( "globalHelp", globalHelp )
+   JS_ADD_GLOBAL_FUNC( "displayMethod", displayMethod )
+   JS_ADD_GLOBAL_FUNC( "displayManual", displayManual )
    JS_ADD_GLOBAL_FUNC( "showClass", showClass )
    JS_ADD_GLOBAL_FUNC( "showClassfull", showClassfull )
    JS_ADD_GLOBAL_FUNC( "forceGC", forceGC )
    JS_ADD_GLOBAL_FUNC( "import", importJSFile )
    JS_ADD_GLOBAL_FUNC( "importOnce", importJSFileOnce )
-   JS_ADD_GLOBAL_FUNC( "getExePath", getExePath )
-   JS_ADD_GLOBAL_FUNC( "getSelfPath", getSelfPath )
-   JS_ADD_GLOBAL_FUNC( "getRootPath", getRootPath )
-   JS_ADD_GLOBAL_FUNC( "catPath", catPath )
 JS_MAPPING_END()
 
    INT32 _sptGlobalFunc::getLastErrorMsg( const _sptArguments &arg,
@@ -243,18 +230,14 @@ JS_MAPPING_END()
       INT32 formatType = 0 ;
       string input ;
       string output ;
-      BSONObj option ;
       pdTraceParser traceParser ;
-      BOOLEAN useFunctionListFile = TRUE ;
 
-      /// 1st
       rc = arg.getNative( 0, (void*)&formatType, SPT_NATIVE_INT32 ) ;
       if ( rc )
       {
          detail = BSON( SPT_ERR << "The 1st param must be number" ) ;
          goto error ;
       }
-      /// check param
       if ( PD_TRACE_FORMAT_TYPE_FLOW != formatType &&
            PD_TRACE_FORMAT_TYPE_FORMAT != formatType )
       {
@@ -263,7 +246,6 @@ JS_MAPPING_END()
          goto error ;
       }
 
-      /// 2nd
       rc = arg.getString( 1, input ) ;
       if ( rc )
       {
@@ -277,7 +259,6 @@ JS_MAPPING_END()
          goto error ;
       }
 
-      /// 3rd
       rc = arg.getString( 2, output ) ;
       if ( rc )
       {
@@ -291,26 +272,9 @@ JS_MAPPING_END()
          goto error ;
       }
 
-      //4th
-      if ( 4 == arg.argc() )
-      {
-         rc = arg.getBsonobj( 3, option ) ;
-         if( SDB_OK != rc )
-         {
-            detail = BSON( SPT_ERR << "The 4th param value must be json" ) ;
-            goto error ;
-         }
-         if ( option.hasField( SPT_FIELD_FUNCTIONLIST )&&
-              Bool == option.getField( SPT_FIELD_FUNCTIONLIST ).type() )
-         {
-            useFunctionListFile = option.getBoolField( SPT_FIELD_FUNCTIONLIST );
-         }
-      }
-
       rc = traceParser.init( input.c_str(),
                              output.c_str(),
-                             (pdTraceFormatType)formatType,
-                             useFunctionListFile ) ;
+                             (pdTraceFormatType)formatType ) ;
       if ( rc )
       {
          goto error ;
@@ -509,7 +473,6 @@ JS_MAPPING_END()
       context = spScope->getContext() ;
       if ( !className.empty() )
       {
-         /// static functions
          sptGetObjFactory()->getClassStaticFuncNames( context,
                                                       className,
                                                       names,
@@ -525,7 +488,6 @@ JS_MAPPING_END()
             }
             names.clear() ;
          }
-         /// member functions
          sptGetObjFactory()->getClassFuncNames( context,
                                                 className,
                                                 names,
@@ -542,10 +504,9 @@ JS_MAPPING_END()
             ss << "   " << *it << endl ;
             ++it ;
          }
-         /// get global function
          names.clear() ;
          sptGetObjFactory()->getClassStaticFuncNames( context,
-                                                      SPT_GLOBAL_STR,
+                                                      "",
                                                       names,
                                                       showHide ) ;
          ss << "Global functions:" << endl ;
@@ -597,124 +558,6 @@ JS_MAPPING_END()
       goto done ;
    }
 
-   INT32 _sptGlobalFunc::getExePath( const _sptArguments &arg,
-                                     _sptReturnVal &rval,
-                                     BSONObj &detail )
-   {
-      INT32 rc = SDB_OK ;
-      CHAR szPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-
-      rc = ossGetEWD( szPath, OSS_MAX_PATHSIZE ) ;
-      if ( rc )
-      {
-         detail = BSON( SPT_ERR << "Failed to get EWD" ) ;
-         goto error ;
-      }
-
-      rval.getReturnVal().setValue( szPath ) ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _sptGlobalFunc::getRootPath( const _sptArguments &arg,
-                                      _sptReturnVal &rval,
-                                      BSONObj &detail )
-   {
-      INT32 rc = SDB_OK ;
-      CHAR szPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-
-      rc = ossGetCWD( szPath, OSS_MAX_PATHSIZE ) ;
-      if ( rc )
-      {
-         detail = BSON( SPT_ERR << "Failed to get CWD" ) ;
-         goto error ;
-      }
-
-      rval.getReturnVal().setValue( szPath ) ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _sptGlobalFunc::getSelfPath( const _sptArguments &arg,
-                                      _sptReturnVal &rval,
-                                      BSONObj &detail )
-   {
-      INT32 rc = SDB_OK ;
-      sptScope *pScope = NULL ;
-
-      sptPrivateData *pPivateData = arg.getPrivateData() ;
-      if( NULL == pPivateData )
-      {
-         detail = BSON( SPT_ERR << "Failed to get private data" ) ;
-         goto error ;
-      }
-      pScope = pPivateData->getScope() ;
-      if( NULL == pScope )
-      {
-         detail = BSON( SPT_ERR << "Failed to get scope" ) ;
-         goto error ;
-      }
-
-      rval.getReturnVal().setValue( pScope->calcImportPath( "" ) ) ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _sptGlobalFunc::catPath( const _sptArguments &arg,
-                                  _sptReturnVal &rval,
-                                  BSONObj &detail )
-   {
-      INT32 rc = SDB_OK ;
-      string pathTmp ;
-      string path ;
-      UINT32 index = 0 ;
-
-      while( index < arg.argc() )
-      {
-         rc = arg.getString( index, pathTmp ) ;
-         if ( rc )
-         {
-            detail = BSON( SPT_ERR << "path must be string" ) ;
-            goto error ;
-         }
-
-         if ( 0 == index )
-         {
-            path = pathTmp ;
-         }
-         else
-         {
-            const CHAR *ptr = path.c_str() ;
-            UINT32 len = ossStrlen( ptr ) ;
-
-            if ( len > 0 && OSS_FILE_SEP_CHAR != ptr[ len - 1 ] &&
-                 ( pathTmp.empty() || pathTmp.at( 0 ) != OSS_FILE_SEP_CHAR ) )
-            {
-               path += OSS_FILE_SEP ;
-            }
-            path += pathTmp ;
-         }
-
-         ++index ;
-      }
-
-      rval.getReturnVal().setValue( path ) ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
    INT32 _sptGlobalFunc::importJSFile( const _sptArguments &arg,
                                        _sptReturnVal &rval,
                                        bson::BSONObj &detail )
@@ -738,12 +581,12 @@ JS_MAPPING_END()
       string filename ;
       string fullPath ;
       sptScope *pScope = NULL ;
+      CHAR* buf = NULL ;
       string err ;
       string content ;
       const sptResultVal *pResultVal = NULL ;
       CHAR realPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 
-      // get filename
       rc = arg.getString( 0, filename ) ;
       if( SDB_OUT_OF_BOUND == rc )
       {
@@ -756,7 +599,14 @@ JS_MAPPING_END()
          goto error ;
       }
 
-      // get scope by access private data
+      if( NULL == ossGetRealPath( filename.c_str(), realPath, OSS_MAX_PATHSIZE ) )
+      {
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << "Failed to get full path of file" ) ;
+         goto error ;
+      }
+      fullPath = realPath ;
+
       {
          sptPrivateData *pPivateData = arg.getPrivateData() ;
          if( NULL == pPivateData )
@@ -772,17 +622,6 @@ JS_MAPPING_END()
          }
       }
 
-      // get full pathname
-      if( NULL == ossGetRealPath( pScope->calcImportPath( filename ).c_str(),
-                                  realPath, OSS_MAX_PATHSIZE ) )
-      {
-         rc = SDB_INVALIDARG ;
-         detail = BSON( SPT_ERR << "Failed to get full path of file" ) ;
-         goto error ;
-      }
-      fullPath = realPath ;
-
-      // if only import once, need to check list to avoid importing repeatedly
       if( TRUE == importOnce )
       {
          if( pScope->isJSFileNameExistInList( fullPath ) )
@@ -792,7 +631,6 @@ JS_MAPPING_END()
       }
       else
       {
-         // same file can't be import repeatedly in a function call
          if( pScope->isJSFileNameExistInStack( fullPath ) )
          {
             goto done ;
@@ -800,7 +638,6 @@ JS_MAPPING_END()
       }
 
       {
-         CHAR* buf = NULL ;
          INT64 readLen = 0 ;
          rc = _sptUsrFileCommon::readFile( fullPath, err, &buf, readLen ) ;
          if( SDB_OK != rc )
@@ -809,7 +646,6 @@ JS_MAPPING_END()
                            ( "Failed to read file content, filename: " + filename ) ) ;
             goto error ;
          }
-         // skip BOM (notepad auto add flag for UTF-8)
          if ( readLen >= 3 && (UINT8)buf[0] == 0xEF &&
               (UINT8)buf[1] == 0xBB && (UINT8)buf[2] == 0xBF )
          {
@@ -817,11 +653,8 @@ JS_MAPPING_END()
          }
          else
          {
-            content = buf ;
+            content = buf;
          }
-         /// free buf
-         SDB_OSS_FREE( buf ) ;
-         buf = NULL ;
       }
 
       pScope->addJSFileNameToList( fullPath ) ;
@@ -833,7 +666,6 @@ JS_MAPPING_END()
          {
             evalFlags |= SPT_EVAL_FLAG_IGNORE_ERR_PREFIX ;
          }
-         // need to save old err print flag to recover
          BOOLEAN saveOldPrintFlag = sdbNeedPrintError() ;
          BOOLEAN saveOldIgnoreFlag = sdbNeedIgnoreErrorPrefix() ;
          rc = pScope->eval( content.c_str(), ( UINT32 )content.length(),

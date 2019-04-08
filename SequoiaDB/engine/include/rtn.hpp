@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtn.hpp
 
@@ -49,7 +48,6 @@
 #include "dpsLogWrapper.hpp"
 #include "pmd.hpp"
 #include "pd.hpp"
-#include "utilRenameLogger.hpp"
 
 #define RTN_SORT_INDEX_NAME "sort"
 using namespace bson;
@@ -91,8 +89,6 @@ namespace engine
                           std::vector< BSONObj > &idxBlocks,
                           std::vector< dmsRecordID > &idxRIDs ) ;
 
-   BSONObj rtnUpdator2Obj( const BSONObj &source, const BSONObj &updator ) ;
-
    class _rtnInternalSorting ;
 
    INT32 rtnGetIndexSamples ( _dmsStorageUnit *su,
@@ -109,15 +105,12 @@ namespace engine
                      INT32 *pInsertedNum = NULL,
                      INT32 *pIgnoredNum = NULL ) ;
 
-   // for insert/update/delete, if dpsCB = NULL, that means we don't log
    INT32 rtnInsert ( const CHAR *pCollectionName, BSONObj &objs, INT32 objNum,
                      INT32 flags, pmdEDUCB *cb, SDB_DMSCB *dmsCB,
                      SDB_DPSCB *dpsCB, INT16 w = 1,
                      INT32 *pInsertedNum = NULL,
                      INT32 *pIgnoredNum = NULL ) ;
 
-   // for replaying insert operation. Only one record will be inserted in one
-   // call.
    INT32 rtnReplayInsert( const CHAR *pCollectionName, BSONObj &obj,
                           INT32 flags, pmdEDUCB *cb, SDB_DMSCB *dmsCB,
                           SDB_DPSCB *dpsCB, INT16 w = 1 ) ;
@@ -167,18 +160,6 @@ namespace engine
 
    INT32 rtnMsg ( MsgOpMsg *pMsg ) ;
 
-   // pCollectionName : requested collection name
-   // selector        : fields want to select
-   // matcher         : condition to match
-   // orderBy         : orderBy for result
-   // hint            : optimizer hint
-   // flags           : query flag
-   // cb              : EDU control block
-   // numToSkip       : number of records to skip
-   // numToReturn     : maximum number of records to return
-   // dmsCB           : dms control block
-   // rtnCB           : runtime control block
-   // contextID       : newly created context
    INT32 rtnQuery ( const CHAR *pCollectionName,
                     const BSONObj &selector,
                     const BSONObj &matcher,
@@ -210,14 +191,6 @@ namespace engine
                    SINT64 numToReturn,
                    SINT64 &contextID ) ;
 
-   // traversal the collection from a given key
-   // the key must be normalized by ixm index key generator
-   // 1) full collection name
-   // 2) normalized index key
-   // 3) index key that used for traversal
-   // 4) direction (1 or -1 only)
-   // ...
-   // return context id, which can be used for getmore
    INT32 rtnTraversalQuery ( const CHAR *pCollectionName,
                              const BSONObj &key,
                              const CHAR *pIndexName,
@@ -232,7 +205,6 @@ namespace engine
    INT32 rtnCreateCollectionSpaceCommand ( const CHAR *pCollectionSpace,
                                            pmdEDUCB *cb,
                                            SDB_DMSCB *dmsCB, SDB_DPSCB *dpsCB,
-                                           utilCSUniqueID csUniqueID,
                                            INT32 pageSize = DMS_PAGE_SIZE_DFT,
                                            INT32 lobPageSize = DMS_DEFAULT_LOB_PAGE_SZ,
                                            DMS_STORAGE_TYPE type = DMS_STORAGE_NORMAL,
@@ -243,7 +215,6 @@ namespace engine
                                       pmdEDUCB *cb,
                                       SDB_DMSCB *dmsCB,
                                       SDB_DPSCB *dpsCB,
-                                      utilCLUniqueID clUniqueID,
                                       UTIL_COMPRESSOR_TYPE compressorType =
                                           UTIL_COMPRESSOR_INVALID,
                                       INT32 flags = 0,
@@ -256,7 +227,6 @@ namespace engine
                                       _pmdEDUCB * cb,
                                       SDB_DMSCB *dmsCB,
                                       SDB_DPSCB *dpsCB,
-                                      utilCLUniqueID clUniqueID,
                                       UTIL_COMPRESSOR_TYPE compressorType =
                                           UTIL_COMPRESSOR_INVALID,
                                       INT32 flags = 0,
@@ -267,8 +237,7 @@ namespace engine
                       SINT32 maxNumToReturn,       // input, max record to read
                       rtnContextBuf &buffObj,      // output
                       pmdEDUCB *cb,                // input educb
-                      SDB_RTNCB *rtnCB,            // input runtimecb
-                      BOOLEAN *pNeedRollback = NULL
+                      SDB_RTNCB *rtnCB             // input runtimecb
                       ) ;
 
    INT32 rtnLoadCollectionSpace ( const CHAR *pCSName,
@@ -279,17 +248,6 @@ namespace engine
                                   pmdEDUCB *cb,
                                   SDB_DMSCB *dmsCB,
                                   BOOLEAN checkOnly = FALSE ) ;
-
-   INT32 rtnLoadCollectionSpace ( const CHAR *pCSName,
-                                  const CHAR *dataPath,
-                                  const CHAR *indexPath,
-                                  const CHAR *lobPath,
-                                  const CHAR *lobMetaPath,
-                                  pmdEDUCB *cb,
-                                  SDB_DMSCB *dmsCB,
-                                  BOOLEAN checkOnly,
-                                  utilCSUniqueID *csUniqueIDInCata,
-                                  const BSONObj& clInfoInCata ) ;
 
    INT32 rtnLoadCollectionSpaces ( const CHAR *dataPath,
                                    const CHAR *indexPath,
@@ -348,10 +306,6 @@ namespace engine
 
    BOOLEAN rtnIsInBackup () ;
 
-   // perform collection offline reorg. Note ignoreError usually used by full
-   // database rebuild. This option is trying best to ignore data corruption (
-   // not all corruptions can be ignored, for example if metadata is corrupted
-   // there's nothing we can do ).
    INT32 rtnReorgOffline ( const CHAR *pCollectionName,
                            const BSONObj &hint,
                            pmdEDUCB *cb,
@@ -364,7 +318,6 @@ namespace engine
                            SDB_RTNCB *rtnCB ) ;
 
 
-   //RTN common fuction declare
    INT32 rtnGetStringElement ( const BSONObj &obj, const CHAR *fieldName,
                                const CHAR **value ) ;
 
@@ -402,23 +355,10 @@ namespace engine
                                     SDB_DMSCB *dmsCB,
                                     SDB_DPSCB *dpsCB ) ;
 
-   INT32 rtnRenameCollectionCommand ( const CHAR *csName,
-                                      const CHAR *clShortName,
-                                      const CHAR *newCLShortName,
-                                      _pmdEDUCB *cb,
-                                      SDB_DMSCB *dmsCB,
-                                      SDB_DPSCB *dpsCB ) ;
-
    INT32 rtnTruncCollectionCommand( const CHAR *pCollection,
                                     _pmdEDUCB *cb,
                                     SDB_DMSCB *dmsCB,
                                     SDB_DPSCB *dpsCB ) ;
-
-   INT32 rtnRenameCollectionSpaceCommand ( const CHAR *pCSName,
-                                           const CHAR *pNewCSName,
-                                           _pmdEDUCB *cb,
-                                           SDB_DMSCB *dmsCB,
-                                           SDB_DPSCB *dpsCB ) ;
 
    INT32 rtnDropCollectionSpaceCommand ( const CHAR *pCollectionSpace,
                                          _pmdEDUCB *cb,
@@ -476,21 +416,14 @@ namespace engine
                           _rtnContextDump *context ) ;
 
    INT32 rtnTestCollectionCommand ( const CHAR *pCollection,
-                                    SDB_DMSCB *dmsCB,
-                                    utilCLUniqueID *pClUniqueID = NULL ) ;
+                                    SDB_DMSCB *dmsCB ) ;
 
    INT32 rtnTestCollectionSpaceCommand ( const CHAR *pCollectionSpace,
-                                         SDB_DMSCB *dmsCB,
-                                         utilCSUniqueID *pCsUniqueID = NULL ) ;
+                                         SDB_DMSCB *dmsCB ) ;
 
    INT32 rtnPopCommand( const CHAR *pCollectionName, INT64 logicalID,
                         pmdEDUCB *cb, SDB_DMSCB *dmsCB, SDB_DPSCB *dpsCB,
                         INT16 w, INT8 direction = 1 ) ;
-
-   INT32 rtnChangeUniqueID( const CHAR* csName, utilCSUniqueID csUniqueID,
-                            const BSONObj& clInfoObj, pmdEDUCB* cb,
-                            SDB_DMSCB* dmsCB, SDB_DPSCB* dpsCB,
-                            BOOLEAN setOnlyIfNull = TRUE ) ;
 
    INT32 rtnTestIndex( const CHAR *pCollection,
                        const CHAR *pIndexName,
@@ -514,31 +447,15 @@ namespace engine
    INT32 rtnTransCommit( _pmdEDUCB *cb, SDB_DPSCB *dpsCB );
    INT32 rtnTransRollback( _pmdEDUCB * cb, SDB_DPSCB *dpsCB );
    INT32 rtnTransRollbackAll( _pmdEDUCB * cb );
-
-   INT32 rtnTransTryOrTestLockCL( const CHAR *pCollection,
-                                  INT32 lockType,
-                                  BOOLEAN isTest,
-                                  _pmdEDUCB *cb ) ;
-
-   INT32 rtnTransTryOrTestLockCS( const CHAR *pSpace,
-                                  INT32 lockType,
-                                  BOOLEAN isTest,
-                                  _pmdEDUCB *cb ) ;
-
+   INT32 rtnTransTryLockCL( const CHAR *pCollection, INT32 lockType,
+                           _pmdEDUCB *cb,SDB_DMSCB *dmsCB,
+                           SDB_DPSCB *dpsCB );
+   INT32 rtnTransTryLockCS( const CHAR *pSpace, INT32 lockType,
+                           _pmdEDUCB *cb,SDB_DMSCB *dmsCB,
+                           SDB_DPSCB *dpsCB );
    INT32 rtnTransReleaseLock( const CHAR *pCollection,
-                              _pmdEDUCB *cb,SDB_DMSCB *dmsCB,
-                              SDB_DPSCB *dpsCB );
-
-   INT32 rtnCorrectCollectionSpaceFile( const CHAR *dataPath,
-                                        const CHAR *indexPath,
-                                        const CHAR *lobPath,
-                                        const CHAR *lobMetaPath,
-                                        UINT32 sequence,
-                                        const utilRenameLog& renameLog ) ;
-
-   INT32 rtnCorrectCollectionSpaceFile( const CHAR* pPath,
-                                        const CHAR* pFileName,
-                                        const utilRenameLog& renameLog ) ;
+                           _pmdEDUCB *cb,SDB_DMSCB *dmsCB,
+                           SDB_DPSCB *dpsCB );
 
    BOOLEAN rtnVerifyCollectionSpaceFileName ( const CHAR *pFileName,
                                               CHAR *pSUName,
@@ -555,8 +472,6 @@ namespace engine
       SDB_FILE_LOBD        = 3,
 
       SDB_FILE_STARTUP     = 10,
-      SDB_FILE_STARTUP_HST = 11,
-      SDB_FILE_RENAME_INFO = 12,
       SDB_FILE_UNKNOW      = 255
    } ;
 
@@ -630,6 +545,7 @@ namespace engine
    INT32 rtnCollectionsInSameSpace ( const CHAR *pCLNameA, UINT32 lengthA,
                                      const CHAR *pCLNameB, UINT32 lengthB,
                                      BOOLEAN &inSameSpace ) ;
+
 }
 
 #endif

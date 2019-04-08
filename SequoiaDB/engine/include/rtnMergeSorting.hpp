@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnMergeSorting.hpp
 
@@ -41,7 +40,6 @@
 #define RTNMERGESORTING_HPP_
 
 #include "rtnSortDef.hpp"
-#include "dmsRecord.hpp"
 #include "dmsTmpBlkUnit.hpp"
 #include "rtnSortTuple.hpp"
 #include "../bson/ordering.h"
@@ -91,14 +89,10 @@ namespace engine
       virtual ~_rtnMergeSorting() ;
 
    public:
-      static UINT64 calcMinBufSize( UINT32 maxRecordSize ) ;
+      INT32 init( CHAR *buf, UINT64 size,
+                  RTN_SORT_BLKS &src, SINT64 limit = -1) ;
 
-      INT32 init( CHAR *buf, UINT64 size, RTN_SORT_BLKS &src,
-                  UINT32 maxRecordSize = DMS_RECORD_USER_MAX_SZ ,
-                  SINT64 limit = -1 ) ;
-
-      INT32 fetch( BSONObj &key, const CHAR** obj,
-                   INT32* objLen, _pmdEDUCB *cb ) ;
+      INT32 fetch( BSONObj &key, const CHAR** obj, INT32* objLen, _pmdEDUCB *cb ) ;
 
    private:
       INT32 _merge( _pmdEDUCB *cb ) ;

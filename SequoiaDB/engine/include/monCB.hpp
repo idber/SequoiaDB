@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = monCB.hpp
 
@@ -135,7 +134,7 @@ namespace engine
       MON_READ,
       MON_COUNTER_OPERATION_MAX = MON_READ,
 
-      MON_TIME_OPERATION_NONE = 1000,
+      MON_TIME_OPERATION_NONE = 0,
       MON_TOTAL_WAIT_TIME,
       MON_TOTAL_READ_TIME,
       MON_TOTAL_WRITE_TIME,
@@ -211,59 +210,59 @@ namespace engine
          switch ( op )
          {
             case MON_DATA_READ :
-               ossFetchAndAdd64( &totalDataRead, delta ) ;
+               totalDataRead += delta ;
                break ;
 
             case MON_INDEX_READ :
-               ossFetchAndAdd64( &totalIndexRead, delta ) ;
+               totalIndexRead += delta ;
                break ;
 
             case MON_LOB_READ :
-               ossFetchAndAdd64( &totalLobRead, delta ) ;
+               totalLobRead += delta ;
                break ;
 
             case MON_DATA_WRITE :
-               ossFetchAndAdd64( &totalDataWrite, delta ) ;
+               totalDataWrite += delta ;
                break ;
 
             case MON_INDEX_WRITE :
-               ossFetchAndAdd64( &totalIndexWrite, delta ) ;
+               totalIndexWrite += delta ;
                break ;
 
             case MON_LOB_WRITE :
-               ossFetchAndAdd64( &totalLobWrite, delta ) ;
+               totalLobWrite += delta ;
                break ;
 
             case MON_UPDATE :
-               ossFetchAndAdd64( &totalUpdate, delta ) ;
+               totalUpdate += delta ;
                break ;
 
             case MON_DELETE :
-               ossFetchAndAdd64( &totalDelete, delta ) ;
+               totalDelete += delta ;
                break ;
 
             case MON_INSERT :
-               ossFetchAndAdd64( &totalInsert, delta ) ;
+               totalInsert += delta ;
                break ;
 
             case MON_UPDATE_REPL :
-               ossFetchAndAdd64( &replUpdate, delta ) ;
+               replUpdate += delta ;
                break ;
 
             case MON_DELETE_REPL :
-               ossFetchAndAdd64( &replDelete, delta ) ;
+               replDelete += delta ;
                break ;
 
             case MON_INSERT_REPL :
-               ossFetchAndAdd64( &replInsert, delta ) ;
+               replInsert += delta ;
                break ;
 
             case MON_SELECT :
-               ossFetchAndAdd64( &totalSelect, delta ) ;
+               totalSelect += delta ;
                break ;
 
             case MON_READ :
-               ossFetchAndAdd64( &totalRead, delta ) ;
+               totalRead += delta ;
                break ;
 
             default:
@@ -272,19 +271,10 @@ namespace engine
       }
 
       UINT64 getReceiveNum() { return receiveNum ; }
-      void   addReceiveNum()
-      {
-         ossFetchAndAdd64( &receiveNum, 1 ) ;
-      }
+      void   addReceiveNum() { ++receiveNum ; }
 
-      void   svcNetInAdd( INT32 sendSize )
-      {
-         ossFetchAndAdd64( &_svcNetIn, sendSize ) ;
-      }
-      void   svcNetOutAdd( INT32 recvSize )
-      {
-         ossFetchAndAdd64( &_svcNetOut, recvSize ) ;
-      }
+      void   svcNetInAdd( INT32 sendSize ) { _svcNetIn += sendSize ; }
+      void   svcNetOutAdd( INT32 recvSize ) { _svcNetOut += recvSize ; }
       UINT64 svcNetIn() { return _svcNetIn ; }
       UINT64 svcNetOut() { return _svcNetOut ; }
 
@@ -296,125 +286,13 @@ namespace engine
    } ;
    typedef _monDBCB monDBCB ;
 
-   #define MON_SVC_TASK_NAME_LEN             ( 127 )
-   /*
-      _monSvcTaskInfo define
-   */
-   class _monSvcTaskInfo : public SDBObject
-   {
-   private:
-      UINT64                        _taskID ;
-      CHAR                          _taskName[ MON_SVC_TASK_NAME_LEN + 1 ] ;
-
-   public:
-      volatile UINT64               _totalTime ;
-      volatile UINT64               _totalContexts ;
-      volatile UINT64               _totalDataRead ;
-      volatile UINT64               _totalIndexRead ;
-      volatile UINT64               _totalLobRead ;
-      volatile UINT64               _totalDataWrite ;
-      volatile UINT64               _totalIndexWrite ;
-      volatile UINT64               _totalLobWrite ;
-      volatile UINT64               _totalUpdate ;
-      volatile UINT64               _totalDelete ;
-      volatile UINT64               _totalInsert ;
-      volatile UINT64               _totalSelect ;
-      volatile UINT64               _totalRead ;
-      volatile UINT64               _totalWrite ;
-
-      ossTimestamp                  _startTimestamp ;
-      ossTimestamp                  _resetTimestamp ;
-
-   public:
-      _monSvcTaskInfo() ;
-
-      void setTaskInfo( UINT64 taskID, const CHAR* taskName ) ;
-
-      UINT64         getTaskID() const { return _taskID ; }
-      const CHAR*    getTaskName() const { return _taskName ; }
-
-      void monContextInc( INT64 delta = 1 )
-      {
-         _totalContexts += delta ;
-      }
-
-      void monOperationCountInc( MON_OPERATION_TYPES op,
-                                 INT64 delta = 1 )
-      {
-         switch ( op )
-         {
-            case MON_DATA_READ :
-               ossFetchAndAdd64( &_totalDataRead, delta ) ;
-               break ;
-            case MON_INDEX_READ :
-               ossFetchAndAdd64( &_totalIndexRead, delta ) ;
-               break ;
-            case MON_LOB_READ :
-               ossFetchAndAdd64( &_totalLobRead, delta ) ;
-               break ;
-            case MON_DATA_WRITE :
-               ossFetchAndAdd64( &_totalDataWrite, delta ) ;
-               break ;
-            case MON_INDEX_WRITE :
-               ossFetchAndAdd64( &_totalIndexWrite, delta ) ;
-               break ;
-            case MON_LOB_WRITE :
-               ossFetchAndAdd64( &_totalLobWrite, delta ) ;
-               break ;
-            case MON_UPDATE :
-               ossFetchAndAdd64( &_totalUpdate, delta ) ;
-               ossFetchAndAdd64( &_totalWrite, delta ) ;
-               break ;
-            case MON_DELETE :
-               ossFetchAndAdd64( &_totalDelete, delta ) ;
-               ossFetchAndAdd64( &_totalWrite, delta ) ;
-               break ;
-            case MON_INSERT :
-               ossFetchAndAdd64( &_totalInsert, delta ) ;
-               ossFetchAndAdd64( &_totalWrite, delta ) ;
-               break ;
-            case MON_SELECT :
-               ossFetchAndAdd64( &_totalSelect, delta ) ;
-               break ;
-            case MON_READ :
-               ossFetchAndAdd64( &_totalRead, delta ) ;
-               break ;
-            default:
-               break ;
-         }
-      }
-
-      void monOperationTimeInc( MON_OPERATION_TYPES op,
-                                INT64 delta = 1 )
-      {
-         switch ( op )
-         {
-            case MON_TOTAL_READ_TIME :
-            case MON_TOTAL_WRITE_TIME :
-               ossFetchAndAdd64( &_totalTime, delta ) ;
-               break ;
-            default:
-               break ;
-         }
-      }
-
-      void reset() ;
-   } ;
-   typedef _monSvcTaskInfo monSvcTaskInfo ;
-
-   void  monSetDefaultTaskInfo( monSvcTaskInfo *pTaskInfo ) ;
-
    /*
       _monAppCB define
    */
    class _monAppCB : public SDBObject
    {
-   private:
-      monSvcTaskInfo    *_taskInfo ;
-
    public :
-      monDBCB           *mondbcb ;
-
+      monDBCB *mondbcb ;
       UINT64 totalDataRead ;
       UINT64 totalIndexRead ;
       UINT64 totalLobRead ;
@@ -511,19 +389,11 @@ namespace engine
                break ;
          }
          mondbcb->monOperationCountInc( op, delta ) ;
-
-         if ( _taskInfo )
-         {
-            _taskInfo->monOperationCountInc( op, delta ) ;
-         }
       }
 
       _monAppCB() ;
       _monAppCB &operator= ( const _monAppCB &rhs ) ;
       _monAppCB &operator+= ( const _monAppCB &rhs ) ;
-
-      void setSvcTaskInfo( monSvcTaskInfo *pSvcTaskInfo ) ;
-      monSvcTaskInfo* getSvcTaskInfo() ;
 
       void reset() ;
 

@@ -2,7 +2,6 @@ import os
 
 Import("toolEnv")
 Import("linux")
-Import("linux64")
 
 bsonFiles = [
       "bson/bsonobj.cpp",
@@ -52,7 +51,6 @@ exportFiles = [
 
 clsFiles = [
       "cls/clsCatalogAgent.cpp",
-      "cls/clsAutoIncItem.cpp",
       "cls/clsCatalogMatcher.cpp",
       "cls/clsCatalogPredicate.cpp",
       "cls/clsCataHashMatcher.cpp"
@@ -89,6 +87,7 @@ sdbLobToolMain = [
 msgFiles = [
       "msg/msgMessage.cpp",
       "msg/msgMessageFormat.cpp",
+      "msg/msgReplicator.cpp",
       "msg/msgCatalog.cpp",
       "msg/msgAuth.cpp"
       ]
@@ -164,17 +163,8 @@ pmdMTFiles = [
       "pmd/pmdAsyncNetEntryPoint.cpp",
       "pmd/pmdBackgroundJob.cpp",
       "pmd/pmdWindowsListener.cpp",
-
-      "sched/schedDef.cpp",
-      "sched/schedTaskQue.cpp",
-      "sched/schedTaskContainer.cpp",
-      "sched/schedTaskAdapter.cpp",
-      "sched/schedTaskAdapterBase.cpp",
-      "sched/schedPrepareJob.cpp",
-      "sched/schedDispatchJob.cpp",
-      "sched/schedTaskMgr.cpp"
       ]
-
+	  
 utilFiles = [
       "util/fromjson.cpp",
       "util/json2rawbson.c",
@@ -214,12 +204,6 @@ utilFiles = [
       "util/utilFileStream.cpp",
       "util/utilZlibStream.cpp",
       "util/utilJsonFile.cpp",
-      "util/linenoise.cpp",
-      "util/utilPasswdTool.cpp",
-      "util/utilCipherFile.cpp",
-      "util/utilCipherMgr.cpp",
-      "util/utilCipher.c",
-      "util/utilPidFile.cpp"
       ]
 
 dpsFiles = [
@@ -234,7 +218,6 @@ dpsFiles = [
 omagentFiles = [
       "omagent/omagentMgr.cpp",
       "omagent/omagentNodeMgr.cpp",
-      "omagent/omagentPluginMgr.cpp",
       "omagent/omagentUtil.cpp",
       "omagent/omagentSession.cpp",
       "omagent/omagentHelper.cpp",
@@ -256,17 +239,21 @@ omagentFiles = [
       ]
 
 sptFiles = [
-      "spt/sptCommon.cpp",
-      "spt/sptSPObject.cpp",
+      "spt/dbClasses.cpp",
+      "spt/sptConvertor.cpp",
+      "spt/sptConvertorHelper.cpp",
+      "spt/sptCommon.cpp"
+      ]
+
+spt2Files = [
       "spt/sptContainer.cpp",
       "spt/sptInvoker.cpp",
       "spt/sptObjDesc.cpp",
       "spt/sptReturnVal.cpp",
-      "spt/sptSPVal.cpp",
       "spt/sptScope.cpp",
       "spt/sptSPArguments.cpp",
       "spt/sptSPScope.cpp",
-      "spt/sptConvertor.cpp",
+      "spt/sptConvertor2.cpp",
       "spt/sptBsonobj.cpp",
       "spt/sptBsonobjArray.cpp",
       "spt/sptLibssh2Session.cpp",
@@ -294,30 +281,7 @@ sptFiles = [
       "spt/usrdef/sptUsrFileCommon.cpp",
       "spt/usrdef/sptUsrSystemCommon.cpp",
       "spt/usrdef/sptUsrCmdCommon.cpp",
-      "spt/usrdef/sptUsrOmaCommon.cpp",
-      "spt/db/sptDBSdb.cpp",
-      "spt/db/sptDBSecureSdb.cpp",
-      "spt/db/sptDBRG.cpp",
-      "spt/db/sptDBNode.cpp",
-      "spt/db/sptDBCS.cpp",
-      "spt/db/sptDBCL.cpp",
-      "spt/db/sptDBCursor.cpp",
-      "spt/db/sptDBDomain.cpp",
-      "spt/db/sptDBDC.cpp",
-      "spt/db/sptDBTimestamp.cpp",
-      "spt/db/sptDBBinData.cpp",
-      "spt/db/sptDBDate.cpp",
-      "spt/db/sptDBRegex.cpp",
-      "spt/db/sptDBMaxKey.cpp",
-      "spt/db/sptDBMinKey.cpp",
-      "spt/db/sptDBOID.cpp",
-      "spt/db/sptDBNumberLong.cpp",
-      "spt/db/sptDBNumberDecimal.cpp",
-      "spt/db/sptDBQuery.cpp",
-      "spt/db/sptDBCount.cpp",
-      "spt/db/sptDBOptionBase.cpp",
-      "spt/db/sptDBSnapshotOption.cpp",
-      "spt/db/sptDBQueryOption.cpp"
+      "spt/usrdef/sptUsrOmaCommon.cpp"
       ]
 
 ssh2Files = [
@@ -355,17 +319,12 @@ clientCppFiles = [
       "client/clientcpp.cpp",
       "client/common.c",
       "client/network.c",
-      "client/sdbDataSource.cpp",
-      "client/sdbDataSourceComm.cpp",
-      "client/sdbDataSourceStrategy.cpp",
-      "client/sdbDataSourceWorker.cpp",	  
       "bson/bsonobj.cpp",
       "bson/oid.cpp",
       "bson/base64.cpp",
       "bson/md5.c",
       "bson/nonce.cpp",
       ]
-      
 ncursesFiles = [
       "ncurses/./tty/hardscroll.c",
       "ncurses/./tty/hashmap.c",
@@ -585,29 +544,13 @@ sdbSEAdptFiles = [
       "tools/seadapter/utilESClt.cpp",
       "tools/seadapter/utilESBulkBuilder.cpp",
       "tools/seadapter/seAdptMsgHandler.cpp",
-      "tools/seadapter/utilESCltFactory.cpp",
+      "tools/seadapter/utilESCltMgr.cpp",
       "tools/seadapter/seAdptIdxMetaMgr.cpp",
-      "tools/seadapter/seAdptIndexState.cpp",
-      "tools/seadapter/seAdptDBAssist.cpp",
-      "tools/seadapter/seAdptSEAssist.cpp",
       "tools/seadapter/utilCommObjBuff.cpp",
-      "tools/seadapter/utilESUtil.cpp",
-      "tools/seadapter/rtnSimpleCondNode.cpp",
-      "tools/seadapter/rtnSimpleCondParser.cpp",
-      "tools/seadapter/utilESFetcher.cpp",
-      "tools/seadapter/utilProcessLock.cpp"
+      "rtn/rtnSimpleCondNode.cpp",
+      "rtn/rtnSimpleCondParser.cpp"
       ]
-	  
-sequoiaFSFiles = [
-      "tools/sequoiafs/sequoiaFS.cpp",
-      "tools/sequoiafs/sequoiaFSLruCache.cpp",
-      "tools/sequoiafs/sequoiaFSMain.cpp",
-      "tools/sequoiafs/sequoiaFSOptionMgr.cpp",
-    ]	  
-sdbPasswdFiles = [
-      "tools/passwd/passwdOptions.cpp",
-      "tools/passwd/sdbPasswd.cpp"
-    ]
+
 #cls
 toolEnv.StaticLibrary('cls', clsFiles)
 #ixm
@@ -647,6 +590,7 @@ if linux:
    toolEnv.StaticLibrary('ncurses', ncursesFiles)
 #Scripting
 toolEnv.StaticLibrary('spt', sptFiles)
+toolEnv.StaticLibrary('spt2', spt2Files)
 toolEnv.StaticLibrary('ssh2', ssh2Files)
 
 #Export Executable
@@ -679,7 +623,7 @@ sdblist = toolEnv.Program("sdblist", sdbListMain,
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbcm = toolEnv.Program("sdbcm", sdbcmMain,
-         LIBDEPS=["pd","oss","msg","bson","util","net","pmd", "clientcpp","pmdMT","omagent","client", "spt","ssh2","rtnJob"],
+         LIBDEPS=["pd","oss","msg","bson","util","net","pmd","pmdMT","omagent","client", "spt","spt2","ssh2","rtnJob"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdbcmd = toolEnv.Program("sdbcmd", sdbcmDMNMain,
@@ -695,10 +639,6 @@ sdbcmtop = toolEnv.Program("sdbcmtop", sdbcmtopMain,
          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 sdblobtool = toolEnv.Program("sdblobtool", sdbLobToolMain,
-         LIBDEPS=["pd","oss", "bson", "util", "miglob","clientcpp"],
-         _LIBDEPS='$_LIBDEPS_OBJS' )
-
-sdbpasswd = toolEnv.Program("sdbpasswd", sdbPasswdFiles,
          LIBDEPS=["pd","oss", "bson", "util", "miglob","clientcpp"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
 if linux:
@@ -732,13 +672,6 @@ sdbseadapter = toolEnv.Program("sdbseadapter",
 		 sdbSEAdptFiles,
 		 LIBDEPS=["pd","oss","msg","util","bson","pmd","pmdMT","net","rtnJob"],
 		 _LIBDEPS='$_LIBDEPS_OBJS' )
-		 
-if linux64:
-    Import("fuse_lib")	  
-    sequoiafs = toolEnv.Program("sequoiafs",
-        sequoiaFSFiles,
-        LIBDEPS=["bson", "oss", "pd", "util", "pmd", "client", "clientcpp", fuse_lib],
-        _LIBDEPS='$_LIBDEPS_OBJS' )	
 
 toolEnv.Install( '#/bin', sdbimprt )
 toolEnv.Install( '#/bin', sdbexprt )
@@ -751,7 +684,6 @@ toolEnv.Install( '#/bin', sdbcmd )
 toolEnv.Install( '#/bin', sdbcmart )
 toolEnv.Install( '#/bin', sdbcmtop )
 toolEnv.Install( '#/bin', sdblobtool )
-toolEnv.Install( '#/bin', sdbpasswd )
 if linux:
    toolEnv.Install( '#/bin', sdbtop )
 toolEnv.Install( '#/tools', sdbload2 )
@@ -761,6 +693,5 @@ toolEnv.Install( '#/bin', sdbdpsdump )
 toolEnv.Install( '#/bin', sdbinspect )
 if linux:
    toolEnv.Install( '#/bin', sdbomtool )
-if linux64:
-   toolEnv.Install('#/bin', sequoiafs)
+
 toolEnv.Install( '#/bin', sdbseadapter )

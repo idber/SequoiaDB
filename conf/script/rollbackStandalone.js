@@ -1,6 +1,6 @@
 /*******************************************************************************
 
-   Copyright (C) 2012-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -110,7 +110,7 @@ function _checkData( hostName, svcName )
    }
    catch( e )
    {
-      PD_LOG2( task_id, arguments, PDWARNING, FILE_NAME_ROLLBACKSTANDALONE,
+      PD_LOG2( task_id, arguments, PDWARNING, FILE_NAME_INSTALL_STANDALONE,
             sprintf( "Failed to connect standalone[?:?], detail: ?",
                      hostName, svcName, GETLASTERRMSG() ) ) ;
    }

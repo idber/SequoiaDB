@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = qgmPlInsert.cpp
 
@@ -177,17 +176,6 @@ namespace engine
          }
          else
          {
-            /// When insert virtual cs
-            if ( 0 == ossStrncmp( _fullName.c_str(),
-                                  CMD_ADMIN_PREFIX SYS_VIRTUAL_CS".",
-                                  SYS_VIRTUAL_CS_LEN + 1 ) )
-            {
-               rc = _insertVCS( _fullName.c_str(), obj, eduCB ) ;
-               if ( rc )
-               {
-                  goto error ;
-               }
-            }
             if ( SDB_ROLE_COORD == _role )
             {
                rc = msgBuildInsertMsg ( &pMsg,
@@ -241,36 +229,5 @@ namespace engine
    {
       SDB_ASSERT( FALSE, "impossble" ) ;
       return SDB_SYS ;
-   }
-
-   INT32 _qgmPlInsert::_insertVCS( const CHAR *fullName,
-                                   const BSONObj &insertor,
-                                   _pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-
-      if ( 0 == ossStrcmp( fullName, CMD_ADMIN_PREFIX SYS_CL_SESSION_INFO ) )
-      {
-         schedTaskMgr *pSvcTaskMgr = pmdGetKRCB()->getSvcTaskMgr() ;
-         schedItem *pItem = ( schedItem* )cb->getSession()->getSchedItemPtr() ;
-
-         pItem->_info.fromBSON( insertor, TRUE ) ;
-
-         /// update task info
-         pItem->_ptr = pSvcTaskMgr->getTaskInfoPtr( pItem->_info.getTaskID(),
-                                                    pItem->_info.getTaskName() ) ;
-         /// update monApp's info
-         cb->getMonAppCB()->setSvcTaskInfo( pItem->_ptr.get() ) ;
-      }
-      else
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
    }
 }

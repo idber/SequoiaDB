@@ -179,8 +179,6 @@ public class QueryMapperUnitTests {
 	@Test
 	public void handlesNativelyBuiltQueryCorrectly() {
 
-//		BSONObject query = new QueryBuilder().or(new BasicBSONObject("foo", "bar")).get();
-//		mapper.getMappedObject(query, null);
 	}
 
 	/**

@@ -1,20 +1,4 @@
-﻿/*
- * Copyright 2018 SequoiaDB Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
-*/
-
-using SequoiaDB;
+﻿using SequoiaDB;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
@@ -138,7 +122,6 @@ namespace DriverTest
             /// case 1: create a new lob
             // CreateLob
             lob = cl.CreateLob();
-            Assert.IsTrue(lob.IsEof());
             Assert.IsNotNull(lob);
             // IsClosed
             flag = true;
@@ -151,10 +134,8 @@ namespace DriverTest
             long modificationTime1 = lob.GetModificationTime();
             // Write
             lob.Write(buf);
-            Assert.IsTrue(lob.IsEof());
             // Close
             lob.Close();
-            Assert.IsTrue(lob.IsEof());
             long modificationTime2 = lob.GetModificationTime();
             Assert.IsTrue(modificationTime2 > modificationTime1);
             // IsClosed
@@ -165,7 +146,6 @@ namespace DriverTest
             // case 2: open an exsiting lob
             lob2 = cl.OpenLob(oid1);
             Assert.IsNotNull(lob2);
-            Assert.IsFalse(lob2.IsEof());
             // IsClosed
             flag = true;
             flag = lob2.IsClosed();
@@ -190,19 +170,15 @@ namespace DriverTest
             readBuf = new Byte[readNum];
             retNum = lob2.Read(readBuf);
             Assert.IsTrue(readNum == retNum);
-            Assert.IsFalse(lob2.IsEof());
             // Seek
             offset = bufSize / 2;
             lob2.Seek(offset, DBLob.SDB_LOB_SEEK_CUR);
-            Assert.IsFalse(lob2.IsEof());
             // Read
             retNum = 0;
             retNum = lob2.Read(readBuf);
             Assert.IsTrue(readNum == retNum);
-            Assert.IsTrue(lob2.IsEof());
             // Close
             lob2.Close();
-            Assert.IsTrue(lob2.IsEof());
             // IsClosed
             flag = false;
             flag = lob2.IsClosed();
@@ -211,7 +187,6 @@ namespace DriverTest
             /// case 3: create a lob with specified oid
             oid3 = ObjectId.GenerateNewId();
             lob3 = cl.CreateLob(oid3);
-            Assert.IsTrue(lob3.IsEof());
             Assert.IsNotNull(lob3);
             // GetID
             oid4 = lob3.GetID();
@@ -219,10 +194,8 @@ namespace DriverTest
             Assert.IsTrue(oid3 == oid4);
             // Write
             lob3.Write(buf);
-            Assert.IsTrue(lob3.IsEof());
             // Close
             lob3.Close();
-            Assert.IsTrue(lob3.IsEof());
             // IsClosed
             flag = false;
             flag = lob3.IsClosed();
@@ -291,23 +264,19 @@ namespace DriverTest
             // CreateLob
             lob = cl.CreateLob();
             Assert.IsNotNull(lob);
-            Assert.IsTrue(lob.IsEof());
             // GetID
             oid1 = lob.GetID();
             Assert.IsTrue(ObjectId.Empty != oid1);
             // Write, first time
             lob.Write(buf);
-            Assert.IsTrue(lob.IsEof());
             size1 = lob.GetSize();
             Assert.AreEqual(bufSize, size1);
             // Write the second time
             lob.Write(buf);
-            Assert.IsTrue(lob.IsEof());
             size1 = lob.GetSize();
             Assert.AreEqual(bufSize * 2, size1);
             // Close
             lob.Close();
-            Assert.IsTrue(lob.IsEof());
             // IsClosed
             flag = false;
             flag = lob.IsClosed();
@@ -323,16 +292,13 @@ namespace DriverTest
 
             // CreateLob
             lob2 = cl.CreateLob();
-            Assert.IsTrue(lob2.IsEof());
             Assert.IsNotNull(lob2);
             // Write, first time
             lob2.Write(buf2);
-            Assert.IsTrue(lob2.IsEof());
             size1 = lob2.GetSize();
             Assert.AreEqual(bufSize, size1);
             // Close
             lob2.Close();
-            Assert.IsTrue(lob2.IsEof());
             // IsClosed
             flag = false;
             flag = lob2.IsClosed();
@@ -373,11 +339,9 @@ namespace DriverTest
             Assert.AreEqual(bufSize, lobSize);
             // Close
             lob.Close();
-            Assert.IsTrue(lob.IsEof());
 
             // Open lob
             lob2 = cl.OpenLob(oid1);
-            Assert.IsFalse(lob2.IsEof());
             lobSize = lob2.GetSize();
             Assert.AreEqual(bufSize, lobSize);
             // Read
@@ -386,7 +350,6 @@ namespace DriverTest
             readNum = 1024*1024*10;
             readBuf = new byte[readNum];
             retNum = lob2.Read(readBuf);  // after this, the offset is 1024*1024*60
-            Assert.IsFalse(lob2.IsEof());
             Assert.IsTrue(readNum == retNum);
             // check
             for(i = 0; i < readBuf.Length; i++)
@@ -395,7 +358,6 @@ namespace DriverTest
             }
             skipNum = 1024*1024*10;
             lob2.Seek(skipNum, DBLob.SDB_LOB_SEEK_CUR); // after this, the offset is 1024*1024*70
-            Assert.IsFalse(lob2.IsEof());
             readBuf = new byte[readNum];
             retNum = lob2.Read(readBuf);
             Assert.IsTrue(readNum == retNum); // after this, the offset is 1024*1024*80
@@ -406,18 +368,15 @@ namespace DriverTest
             } 
             skipNum = 1024*1024*20;
             lob2.Seek(skipNum, DBLob.SDB_LOB_SEEK_END);
-            Assert.IsFalse(lob2.IsEof());
             readNum = 1024*1024*30; // will only Read 1024*1024*20
             readBuf = new byte[readNum];
             retNum = lob2.Read(readBuf); // after this, the offset is 1024*1024*100
             Assert.AreEqual(readNum, (retNum + 1024 * 1024 * 10));
-            Assert.IsTrue(lob2.IsEof());
 
             //Assert.AreEqual 失败。应为: <31457280>，实际为: <10746880>。
 
             // Close
             lob2.Close();
-            Assert.IsTrue(lob2.IsEof());
             // IsClosed
             flag = false;
             flag = lob.IsClosed();

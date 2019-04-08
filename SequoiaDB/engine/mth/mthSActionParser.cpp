@@ -1,19 +1,18 @@
 /******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = mthSActionParser.cpp
 
@@ -90,7 +89,7 @@ namespace engine
       return &PARSER ;
    }
 
-   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSACTIONPARSER_GETACTION, "_mthSActionParser::parse" )
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSACTIONPARSER_GETACTION, "_mthSActionParser::getAction" )
    INT32 _mthSActionParser::parse( const bson::BSONElement &e,
                                    _mthSAction &action ) const
    {
@@ -100,7 +99,6 @@ namespace engine
       const CHAR *fieldName = e.fieldName() ;
       action.clear() ;
 
-      /// ignore non-dollar field
       if ( '$' != *fieldName )
       {
          goto done ;
@@ -183,78 +181,53 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__MTHSACTIONPARSER__REGISTERPARSERS ) ;
 
-      /// parsers will not be deleted until program is quit -- yunwu.
 
-      /// add all parsers for actions
       parser *p = NULL ;
 
-      /// $include
       MTH_ADD_PARSER( _mthIncludeParser ) ;
 
-      /// $default
       MTH_ADD_PARSER( _mthDefaultParser ) ;
 
-      /// $slice
       MTH_ADD_PARSER( _mthSliceParser ) ;
 
-      /// $elemMatch
       MTH_ADD_PARSER( _mthElemMatchParser ) ;
 
-      /// $elemMatchOne
       MTH_ADD_PARSER( _mthElemMatchOneParser ) ;
 
-      /// $abs
       MTH_ADD_PARSER( _mthAbsParser ) ;
 
-      /// $ceiling
       MTH_ADD_PARSER( _mthCeilingParser ) ;
 
-      /// $floor
       MTH_ADD_PARSER( _mthFloorParser ) ;
 
-      /// $mod
       MTH_ADD_PARSER( _mthModParser ) ;
 
-      /// $substr
       MTH_ADD_PARSER( _mthSubStrParser ) ;
 
-      /// $strlen
       MTH_ADD_PARSER( _mthStrLenParser ) ;
 
-      /// $lower
       MTH_ADD_PARSER( _mthLowerParser ) ;
 
-      /// $upper
       MTH_ADD_PARSER( _mthUpperParser ) ;
 
-      /// $trim
       MTH_ADD_PARSER( _mthTrimParser ) ;
 
-      /// $ltrim
       MTH_ADD_PARSER( _mthLTrimParser ) ;
 
-      /// $rtrim
       MTH_ADD_PARSER( _mthRTrimParser ) ;
 
-      /// $cast
       MTH_ADD_PARSER( _mthCastParser ) ;
 
-      /// $add
       MTH_ADD_PARSER( _mthAddParser ) ;
 
-      /// $subtract
       MTH_ADD_PARSER( _mthSubtractParser ) ;
 
-      /// $multiply
       MTH_ADD_PARSER( _mthMultiplyParser ) ;
 
-      /// $divide
       MTH_ADD_PARSER( _mthDivideParser ) ;
 
-      /// $type
       MTH_ADD_PARSER( _mthTypeParser ) ;
 
-      /// $size
       MTH_ADD_PARSER( _mthSizeParser ) ;
    done:
       PD_TRACE_EXITRC( SDB__MTHSACTIONPARSER__REGISTERPARSERS, rc ) ;

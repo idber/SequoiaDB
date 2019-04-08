@@ -1,19 +1,19 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
+
 *******************************************************************************/
 
 #include "ossSocket.hpp"
@@ -60,7 +60,6 @@ INT32 g_tid                = -1 ;
 BOOLEAN g_auth             = TRUE ;
 ossSpinXLatch _mutex ;
 
-// reply related variables
 vector<BSONObj> resultList ;
 vector<BSONObj>::iterator it ;
 long long contextID        = -1 ;
@@ -68,18 +67,10 @@ int replyFlag              = -1 ;
 int numReturned            = -1 ;
 int startFrom              = -1 ;
 
-// output file
 ofstream outputFile ;
-// OUTPUTNONE means we don't have output file
 #define OUTPUTNONE 0
-// OUTPUTREPLACE means we are going to read next word as output file right after
-// seeing ">"
 #define OUTPUTREPLACE 1
-// OUTPUTAPPEND means we are going to read next word as output file right after
-// seeing ">>"
 #define OUTPUTAPPEND 2
-// OUTPUTDONE means we already opened outputFile, so that next dump is going to
-// outputFile stream instead of cout
 #define OUTPUTDONE 3
 
 int outputMode = OUTPUTNONE ;
@@ -206,7 +197,6 @@ INT32 readInput ( CHAR *pPrompt, INT32 numIndent )
       return SDB_APP_FORCED ;
    }
 
-   // do a loop if the input end with '\\' character
    while ( receiveBuffer[ strlen(receiveBuffer)-1 ] == '\\' &&
            RECEIVE_BUFFER_SIZE - strlen( receiveBuffer ) > 0 )
    {
@@ -221,7 +211,6 @@ INT32 readInput ( CHAR *pPrompt, INT32 numIndent )
       }
    }
 
-   // make sure we don't read out of range
    if ( RECEIVE_BUFFER_SIZE == strlen( receiveBuffer ) )
    {
       printf ( "-Error: Max input length is %d bytes\n", RECEIVE_BUFFER_SIZE ) ;
@@ -295,7 +284,6 @@ INT32 msgReceive ()
 
    while ( !quit )
    {
-      // get unsigned int length first
       rc = sock->recv ( &pInBuffer[ totalReceivedLen ],
                         sizeof(int)-totalReceivedLen,
                         receivedLen ) ;
@@ -381,7 +369,6 @@ INT32 msgReceiveSysInfoRes ()
 
    while ( !quit )
    {
-      // get unsigned int length first
       rc = sock->recv ( &pInBuffer[ totalReceivedLen ],
                         length-totalReceivedLen,
                         receivedLen ) ;
@@ -432,7 +419,6 @@ INT32 msgReceiveExtract ( BOOLEAN *querySuccess )
          {
             *querySuccess = FALSE ;
          }
-         // end of collection, let's jump out
          goto done ;
       }
 
@@ -452,7 +438,6 @@ INT32 msgReceiveExtract ( BOOLEAN *querySuccess )
       }
    }
 
-   // print object list
    for ( it = resultList.begin() ; it < resultList.end() ; it++ )
    {
       printf( "    " ) ;
@@ -503,12 +488,10 @@ INT32 readResultSet ()
       {
          if ( SDB_DMS_EOC == replyFlag )
          {
-            // end of collection, let's jump out
             printf ( " Totally %lld records received\n", rowCount ) ;
             goto done ;
          }
 
-         // otherwise if it's other error, we dump output
          printf("-Error: GetMore Failure: %d\n", replyFlag ) ;
 
          it = resultList.begin() ;
@@ -657,7 +640,6 @@ void displayHelp ( vector<string> subHelp )
       }
       else if ( ADMIN_COMMAND == (*it) )
       {
-         // type command info
          printf ( "%s%s{list {contexts [current]|sessions [current]|collections"
                   "|collectionspaces|storageunits|groups|nodes}}\n",
                   TABSPACE, ADMIN_COMMAND ) ;
@@ -678,7 +660,6 @@ void displayHelp ( vector<string> subHelp )
          printf ( "%s%s shutdown|backup offline [To path]|command\n", TABSPACE,
                   ADMIN_COMMAND ) ;
 
-         // detail command info
          printf ( "%s  list contexts: list all contexts in the database\n",
                   TABSPACE ) ;
          printf ( "%s  list contexts current: list contexts for current "
@@ -739,8 +720,6 @@ INT32 admin ( string Command, vector<string> arg )
    command = string("$")+Command ;
    vector<string>::const_iterator vit ;
 
-   // some admin command will return records, some not
-   //BOOLEAN receiveResultSet = FALSE ;
    BOOLEAN querySuccess = FALSE ;
    INT32 flags = 0 ;
 
@@ -748,7 +727,6 @@ INT32 admin ( string Command, vector<string> arg )
    {
       int pagesize = 4096 ;
       int pagesizes[] = { 4096, 8192, 16384, 32768, 65536 } ;
-      //receiveResultSet = FALSE ;
       if ( arg.size() != 2 || ( "collection" != arg[0]
          && "collectionspace" != arg[0] && "group" != arg[0] ) )
       {
@@ -798,7 +776,6 @@ INT32 admin ( string Command, vector<string> arg )
          }
 
          argCount = 1 ;
-         //receiveResultSet = TRUE ;
          hint = BSON( FIELD_NAME_COLLECTION << arg[1] ) ;
       }
       else
@@ -808,11 +785,9 @@ INT32 admin ( string Command, vector<string> arg )
    }
    else if ( "list" == Command || "snapshot" == Command )
    {
-      //receiveResultSet = TRUE ;
    }
    else if ( "shutdown" == Command )
    {
-      //receiveResultSet = FALSE ;
    }
    else if ( "set" == Command )
    {
@@ -826,7 +801,6 @@ INT32 admin ( string Command, vector<string> arg )
          }
          else
          {
-            // readin
             rc = readInput ( "pdlevel[0~5]", 1 ) ;
             if ( rc )
             {
@@ -865,7 +839,7 @@ INT32 admin ( string Command, vector<string> arg )
          if ( arg.size() < 2 )
          {
             g_tid = -1 ;
-            printf(" change local tid to %ld\n", ossGetCurrentThreadID() ) ;
+            printf(" change local tid to %d\n", ossGetCurrentThreadID() ) ;
          }
          else
          {
@@ -904,7 +878,6 @@ INT32 admin ( string Command, vector<string> arg )
    {
       if ( arg.size() >= 1 && "query" == arg[0] )
       {
-         // readin
          rc = readInput ( "AccessPlan", 1 ) ;
          if ( rc )
          {
@@ -960,14 +933,12 @@ INT32 admin ( string Command, vector<string> arg )
    else if ( "command" == Command )
    {
       argCount = 0 ;
-      // command
       rc = readInput( "command name", 1 ) ;
       if ( rc || 0 == strlen( receiveBuffer ) )
       {
          goto error ;
       }
       command = receiveBuffer ;
-      // need get result
       /*rc = readInput( "need get result[0/1]", 1 ) ;
       if ( rc )
       {
@@ -977,7 +948,6 @@ INT32 admin ( string Command, vector<string> arg )
       {
          receiveResultSet = TRUE ;
       }*/
-      // opcode
       rc = readInput("opCode[empty use default query]", 1 ) ;
       if ( rc )
       {
@@ -987,7 +957,6 @@ INT32 admin ( string Command, vector<string> arg )
       {
          opcode = MSG_BS_QUERY_REQ ;
       }
-      // flags
       rc = readInput("flags", 1 ) ;
       if ( rc )
       {
@@ -1001,7 +970,6 @@ INT32 admin ( string Command, vector<string> arg )
       {
          flags = 0 ;
       }
-      // match
       rc = readInput( "matcher", 1 ) ;
       if ( rc )
       {
@@ -1016,7 +984,6 @@ INT32 admin ( string Command, vector<string> arg )
             goto error ;
          }
       }
-      //selector
       rc = readInput( "selector", 1 ) ;
       if ( rc )
       {
@@ -1031,7 +998,6 @@ INT32 admin ( string Command, vector<string> arg )
             goto error ;
          }
       }
-      // order by
       rc = readInput( "orderby", 1 ) ;
       if ( rc )
       {
@@ -1046,7 +1012,6 @@ INT32 admin ( string Command, vector<string> arg )
             goto error ;
          }
       }
-      //hint
       rc = readInput( "hint", 1 ) ;
       if ( rc )
       {
@@ -1073,7 +1038,6 @@ INT32 admin ( string Command, vector<string> arg )
       goto error ;
    }
 
-   // add other arg
    for ( vit = arg.begin(); vit != arg.end(); vit++ )
    {
       if ( argCount-- > 0 )
@@ -1086,7 +1050,6 @@ INT32 admin ( string Command, vector<string> arg )
       }
    }
 
-   // build msg and send
    rc = msgBuildQueryMsg( &pOutBuffer, &outBufferSize, command.c_str(),
                           flags, 0, 0, -1,
                           &matcher,
@@ -1115,14 +1078,12 @@ INT32 admin ( string Command, vector<string> arg )
       goto error ;
    }
 
-   // recieve reply
    rc = msgReceiveExtract ( &querySuccess ) ;
    if ( rc )
    {
       goto error ;
    }
 
-   // if the command returns records, let's call readResultSet
    if ( -1 != contextID && querySuccess )
    {
       rc = readResultSet () ;
@@ -1193,7 +1154,6 @@ INT32 connect ( vector<string> arg )
    }
    sock->disableNagle();
 
-   /// sys info message
    {
       INT32 sentLen = 0 ;
       rc = msgBuildSysInfoRequest( &pOutBuffer, &outBufferSize ) ;
@@ -1338,7 +1298,6 @@ INT32 indexG ( const CHAR *collectionSpace, const CHAR *collection )
       goto error ;
    }
 
-   // if the command returns records, let's call readResultSet
    if ( querySuccess )
    {
       rc = readResultSet () ;
@@ -2054,7 +2013,7 @@ INT32 queryC ( const CHAR *collectionSpace, const CHAR *collection )
    }
    {
       MsgOpQuery *query = (MsgOpQuery*)pOutBuffer ;
-      query->version = g_Version ;
+      query->version = g_Version ;      
    }
 
    rc = msgSend () ;
@@ -2431,7 +2390,6 @@ void receivePrompt ()
       return ;
    }
 
-   // now let's convert pInput to string
    string textInput ( receiveBuffer ) ;
 
    char_separator<char> sep(" \t") ;
@@ -2453,7 +2411,6 @@ void receivePrompt ()
             outputMode = OUTPUTAPPEND ;
             if ( t.size() > 2 )
             {
-               // file name right followed by >>
                outputFile.open(t.substr(2).c_str(), ios::out|ios::app) ;
                if ( !outputFile.is_open() )
                {
@@ -2469,7 +2426,6 @@ void receivePrompt ()
             outputMode = OUTPUTREPLACE ;
             if ( t.size() > 1 )
             {
-               // file name right followed by >
                outputFile.open(t.substr(2).c_str(), ios::out|ios::trunc) ;
                if ( !outputFile.is_open() )
                {
@@ -2573,7 +2529,6 @@ int main ( int argc, char** argv )
 {
 #ifdef _LINUX
    ossSigSet sigSet ;
-   //sigSet.sigAdd ( SIGINT ) ;
    sigSet.sigAdd ( SIGTSTP ) ;
    INT32 rc = ossRegisterSignalHandle( sigSet,
       (SIG_HANDLE)signalHandler ) ;

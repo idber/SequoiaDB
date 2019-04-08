@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = qgmOptiSelect.cpp
 
@@ -50,8 +49,6 @@
 #include "pdTrace.hpp"
 #include "qgmTrace.hpp"
 #include "qgmHintDef.hpp"
-
-using namespace bson ;
 
 namespace engine
 {
@@ -105,7 +102,6 @@ namespace engine
       }
       else
       {
-         // create a filterUnit
          filterUnit = SDB_OSS_NEW qgmFilterUnit( QGM_OPTI_TYPE_FILTER ) ;
          if ( !filterUnit )
          {
@@ -147,7 +143,6 @@ namespace engine
          filterUnit->emptyCondition() ;
       }
 
-      /// When the child node is scan, can put down the limit and skip
       if ( QGM_OPTI_TYPE_FILTER == getType() &&
            QGM_OPTI_TYPE_SCAN == getSubNode(0)->getType() )
       {
@@ -188,15 +183,11 @@ namespace engine
          qgmOPFieldPtrVec fieldAlias ;
          _getFieldAlias( fieldAlias, FALSE ) ;
 
-         // if  sub node is not join, and selectors has no field alias,
-         // the selectors can be empty
          if ( QGM_OPTI_TYPE_JOIN != getSubNode(0)->getType() &&
               0 == fieldAlias.size() && !hasExpr() )
          {
             _selector.clear() ;
          }
-         // if the parent is aggr node, and the node has no condition and no
-         // constraint, the node can be remove
          else if ( QGM_OPTI_TYPE_AGGR == getParent()->getType() &&
                    NULL == _condition && !hasConstraint() )
          {
@@ -206,7 +197,6 @@ namespace engine
 
             if ( aggrUnit )
             {
-               // step1: replace table alias
                if ( validSelfAlias() && 1 == _getSubAlias( subAlias ) )
                {
                   aggrUnit->replaceRele( subAlias[0] ) ;
@@ -218,11 +208,9 @@ namespace engine
                   _getFieldAlias( fieldAlias, TRUE ) ;
                }
 
-               // step2: replace feild alias
                aggrUnit->replaceFieldAlias( fieldAlias ) ;
                getParent()->updateChange( aggrUnit ) ;
 
-               // step3: remove local filter unit
                if ( filterUnit )
                {
                   removeOprUnit( filterUnit, TRUE, FALSE ) ;
@@ -409,7 +397,6 @@ namespace engine
             {
                removeOprUnit( typeUnit, TRUE, FALSE ) ;
             }
-            // need push to the first
             _oprUnits.insert( _oprUnits.begin(), oprUnit ) ;
          }
          else // scan
@@ -420,7 +407,6 @@ namespace engine
       }
       else if ( QGM_OPTI_TYPE_FILTER == oprUnit->getType() )
       {
-         // update local selector
          qgmOPFieldVec *fields = oprUnit->getFields() ;
          if ( !oprUnit->isWildCardField() && fields->size() != 0 &&
               ( QGM_OPTI_TYPE_SCAN == getType() || typeUnit ) )
@@ -446,7 +432,6 @@ namespace engine
             }
             else
             {
-               // push to oprUnit, not change optional status
                _oprUnits.push_back( filterUnit ) ;
             }
          }
@@ -543,7 +528,6 @@ namespace engine
       _initFrom() ;
       _qgmExtendSelectPlan plan ;
 
-      /// not a leaf node, validate.
       if ( NULL != _from )
       {
          rc = _from->outputStream( s ) ;
@@ -635,6 +619,7 @@ namespace engine
       goto done ;
    }
 
+   
    void _qgmOptiSelect::_handleHint( QGM_HINS &hints )
    {
       if ( &hints != &_hints )
@@ -642,65 +627,35 @@ namespace engine
          QGM_HINS::const_iterator itr = hints.begin() ;
          for ( ; itr != hints.end(); ++itr )
          {
-            if ( 0 == ossStrncmp( itr->value.begin(),
+            if ( 0 != ossStrncmp( itr->value.begin(),
                                   QGM_HINT_USEINDEX,
-                                  itr->value.size() ) ||
-                 0 == ossStrncmp( itr->value.begin(),
-                                  QGM_HINT_USEOPTION,
                                   itr->value.size() ) )
             {
-               _hints.push_back( *itr ) ;
+               continue ;
             }
+            _hints.push_back( *itr ) ;
+            break ;
          }
       }
+      return ;
    }
 
    BSONObj _qgmOptiSelect::getHint() const
    {
       BSONObj obj ;
-
-      if ( !_objHint.isEmpty() )
+      QGM_HINS::const_iterator itr = _hints.begin() ;
+      for( ; itr != _hints.end(); ++itr )
       {
-         obj = _objHint ;
-      }
-      else
-      {
-         try
+         if ( 0 != ossStrncmp( itr->value.begin(),
+                               QGM_HINT_USEINDEX,
+                               itr->value.size() ) )
          {
-            BSONObjBuilder buildOpt ;
-            BSONObjBuilder build ;
-            QGM_HINS::const_iterator itr = _hints.begin() ;
-            for( ; itr != _hints.end(); ++itr )
-            {
-               if ( 0 == ossStrncmp( itr->value.begin(),
-                                     QGM_HINT_USEINDEX,
-                                     itr->value.size() ) )
-               {
-                  qgmUseIndexHintToBson( *itr, build ) ;
-               }
-               else if ( 0 == ossStrncmp( itr->value.begin(),
-                                          QGM_HINT_USEOPTION,
-                                          itr->value.size() ) )
-               {
-                  qgmUseOptionToBson( *itr, buildOpt ) ;
-               }
-            }
+            continue ;
+         }
 
-            BSONObj objOpt = buildOpt.obj() ;
-            if ( !objOpt.isEmpty() )
-            {
-               BSONObjBuilder sub( build.subobjStart( "$"FIELD_NAME_OPTIONS )  ) ;
-               sub.appendElements( objOpt ) ;
-               sub.done() ;         
-            }
-            obj = build.obj() ;
-         }
-         catch( std::exception &e )
-         {
-            PD_LOG( PDWARNING, "Occur exception: %s", e.what() ) ;
-         }
+         obj = qgmUseIndexHintToBson( *itr ) ;
+         break ;
       }
-
       return obj ;
    }
 
@@ -735,7 +690,6 @@ namespace engine
       plan->pushAlias( _alias ) ;
       plan->_original = _selector ;
 
-      // order by
       if ( !_orderby.empty() )
       {
          itr = _orderby.begin() ;
@@ -832,7 +786,6 @@ namespace engine
                goto error ;
             }
             {
-            /// ensure that every param in func exist in stream.
             vector<qgmOpField>::const_iterator itrPara = func.param.begin() ;
             for ( ; itrPara != func.param.end(); itrPara++ )
             {
@@ -872,7 +825,6 @@ namespace engine
                f.value.value = (*itr).value ;
                f.value.type = SQL_GRAMMAR::DBATTR ;
 
-               /// to avoid the upper unable to find field.
                if ( !itr->alias.empty() )
                {
                   f.value.value.relegation().clear() ;
@@ -919,10 +871,6 @@ namespace engine
                BOOLEAN found ;
                qgmOpField *sExist = NULL ;
                UINT32 pos = 0 ;
-               /// eg: select sum(T.a), T.a from T ;
-               /// we do not need put T.a into selector.
-               /// but if it is: select sum(T.a), T.b from T;
-               /// we need push T.a into selector.
                rc = _paramExistInSelector( itrPara->value, found,
                                            sExist, &pos ) ;
                if ( SDB_OK != rc )
@@ -971,7 +919,6 @@ namespace engine
                goto error ;
             }
          }
-         /// do not mind if it is failed.
          plan->insertPlan( QGM_EXTEND_GROUPBY ) ;
 
          itr = _groupby.begin() ;

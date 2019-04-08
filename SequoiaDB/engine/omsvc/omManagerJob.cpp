@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omManagerJob.cpp
 
@@ -157,8 +156,6 @@ namespace engine
               newVersion, _clusterName.c_str() ) ;
       if ( _version != newVersion )
       {
-         // if version changed, generate the hosttable in _vHostTable
-         // and record which host need to update in _mapTargetAgents
          rc = _updateNotifier() ;
          if ( SDB_OK != rc )
          {
@@ -351,7 +348,6 @@ namespace engine
       VEC_SUB_SESSIONPTR subSessionVec ;
       CHAR localHostName[ OSS_MAX_HOSTNAME + 1 ] ;
 
-      // if all agent have update hosttable, do nothing
       if ( _mapTargetAgents.size() == 0 )
       {
          goto done ;
@@ -375,7 +371,6 @@ namespace engine
          goto error ;
       }
 
-      // continue to send others if error happened
       remoteSession->sendMsg( &sucNum, &totalNum ) ;
       if ( totalNum != sucNum )
       {
@@ -442,7 +437,6 @@ namespace engine
             continue ;
          }
 
-         // this agent add hostname success, no need to send request anymore
          {
             string host ;
             string service ;
@@ -671,13 +665,10 @@ namespace engine
          if ( count % 5 == 0 )
          {
             map< string, UINT32 > mapClusterVersion ;
-            // get all cluster's hostname version
             _shareVersion->getVersionMap( mapClusterVersion );
 
-            // notify agent to update /etc/hosts if cluster's version changed
             _checkUpdateCluster( mapClusterVersion ) ;
 
-            // delete if cluster is not exist
             _checkDeleteCluster( mapClusterVersion ) ;
          }
 

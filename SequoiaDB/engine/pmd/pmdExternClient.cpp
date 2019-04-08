@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pmdExternClient.cpp
 
@@ -177,9 +176,6 @@ namespace engine
          }
 
          rc = opr.execute( pMsg, _pEDUCB, contextID, &buf ) ;
-         // special handling for password verification when there is no
-         // addrlist specified. Usually this happen when there is only
-         // one coord node before creating the first catalog
          if ( MSG_AUTH_VERIFY_REQ == pMsg->opCode &&
               SDB_CAT_NO_ADDR_LIST == rc )
          {
@@ -227,7 +223,6 @@ namespace engine
             replyHeader.flags = rc ;
             replyHeader.startFrom = MSG_GET_INNER_REPLY_STARTFROM(pAuthRes) ;
             ossMemcpy( &(replyHeader.header), pAuthRes, sizeof( MsgHeader ) ) ;
-            /// release recv msg
             SDB_OSS_FREE( (BYTE*)pAuthRes ) ;
             pAuthRes = NULL ;
 
@@ -238,7 +233,6 @@ namespace engine
                rcTmp = pShard->updatePrimaryByReply( &(replyHeader.header) ) ;
                if ( SDB_NET_CANNOT_CONNECT == rcTmp )
                {
-                  /// the node is crashed, sleep some seconds
                   PD_LOG( PDWARNING, "Catalog group primary node is crashed "
                           "but other nodes not aware, sleep %d seconds",
                           NET_NODE_FAULTUP_MIN_TIME ) ;

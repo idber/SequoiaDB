@@ -48,7 +48,6 @@ public class TestMainCollection extends SingleCSCLTestCase {
             assertEquals(obj, retObj);
             assertFalse(cursor.hasNext());
         } catch (BaseException e) {
-            // standalone will throw SDB_RTN_CMD_NO_SERVICE_AUTH error
             if (e.getErrorCode() != SDBError.SDB_RTN_CMD_NO_SERVICE_AUTH.getErrorCode()) {
                 throw e;
             }

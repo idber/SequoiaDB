@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dpsDef.hpp
 
@@ -69,25 +68,10 @@
 #define DPS_LOG_INVALIDCATA_TYPE_STAT  ( 0x02 )
 #define DPS_LOG_INVALIDCATA_TYPE_PLAN  ( 0x04 )
 
-typedef UINT64 DPS_TRANS_ID ;
+typedef UINT64 DPS_TRANS_ID;
 typedef UINT64 DPS_LSN_OFFSET ;
 typedef UINT32 DPS_LSN_VER ;
-
-#define DPS_TRANSID_ROLLBACKTAG_BIT          0X0000800000000000ll
-#define DPS_TRANSID_FIRSTOP_BIT              0X0000400000000000ll
-#define DPS_TRANSID_SN_BIT                   0X000000FFFFFFFFFFll
-#define DPS_TRANSID_VALID_BIT                0XFFFF00FFFFFFFFFFll
-
-#define DPS_TRANS_CLEAR_FIRSTOP( id )  \
-   OSS_BIT_CLEAR( id, DPS_TRANSID_FIRSTOP_BIT )
-
-#define DPS_TRANS_IS_FIRSTOP( id )  \
-   OSS_BIT_TEST( id, DPS_TRANSID_FIRSTOP_BIT )
-
-#define DPS_TRANS_GET_NODEID( id )           ( (DPS_TRANS_ID)(id) >> 48 )
-#define DPS_TRANS_GET_SN( id )               ( (id) & DPS_TRANSID_SN_BIT )
-#define DPS_TRANS_GET_ID( id )               ( (id) & DPS_TRANSID_VALID_BIT )
-
+typedef UINT16 DPS_LSN_V_HALF ;
 
 enum DPS_LOG_TYPE
 {
@@ -104,7 +88,7 @@ enum DPS_LOG_TYPE
    LOG_TYPE_CL_RENAME    = 0x0A,
    LOG_TYPE_CL_TRUNC     = 0x0B,
    LOG_TYPE_TS_COMMIT    = 0x0C,
-   LOG_TYPE_TS_ROLLBACK  = 0x0D,    /// reserved, not used
+   LOG_TYPE_TS_ROLLBACK  = 0x0D,
    LOG_TYPE_INVALIDATE_CATA   = 0x0E,
    LOG_TYPE_LOB_WRITE    = 0x0F,
    LOG_TYPE_LOB_REMOVE   = 0x10,
@@ -112,8 +96,6 @@ enum DPS_LOG_TYPE
    LOG_TYPE_LOB_TRUNCATE = 0x12,
    LOG_TYPE_CS_RENAME    = 0x13,
    LOG_TYPE_DATA_POP     = 0x14,
-   LOG_TYPE_ALTER        = 0x15,
-   LOG_TYPE_ADDUNIQUEID  = 0x16
 } ;
 
 enum DPS_MOMENT
@@ -148,8 +130,6 @@ namespace engine
                                         UINT32 curLogicalFileId,
                                         UINT32 curFileId ) = 0 ;
 
-         // moment is callback time,
-         // it's value can be DPS_BEFORE/DPS_AFTER
          virtual void  onMoveLog( DPS_LSN_OFFSET moveToOffset,
                                   DPS_LSN_VER moveToVersion,
                                   DPS_LSN_OFFSET expectOffset,

@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = ixm.cpp
 
@@ -48,9 +47,6 @@ using namespace bson;
 
 namespace engine
 {
-   // Before using ixmIndexCB, after create the object user must check
-   // isInitialized ()
-   // create index details from existing extent
    // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMINXCB1, "_ixmIndexCB::_ixmIndexCB" )
    _ixmIndexCB::_ixmIndexCB ( dmsExtentID extentID,
                               _dmsStorageIndex *pIndexSu,
@@ -93,7 +89,6 @@ namespace engine
       extRW = pIndexSu->extent2RW( extentID, context->mbID() ) ;
       pExtent = extRW.writePtr<ixmIndexCBExtent>( 0, _pageSize ) ;
 
-      // make sure the index object is not too big
       if ( infoObj.objsize() + IXM_INDEX_CB_EXTENT_METADATA_SIZE >=
            (UINT32)_pageSize )
       {
@@ -108,11 +103,7 @@ namespace engine
          goto error ;
       }
 
-      // Caller must make sure the given extentID is free and can be used
-      // In ixmIndexDetails we don't bother to check whether the extent is
-      // freed or not
 
-      // write stuff into extent
       pExtent->_flag           = DMS_EXTENT_FLAG_INUSE ;
       pExtent->_eyeCatcher [0] = IXM_EXTENT_CB_EYECATCHER0 ;
       pExtent->_eyeCatcher [1] = IXM_EXTENT_CB_EYECATCHER1 ;
@@ -121,11 +112,8 @@ namespace engine
       pExtent->_version        = DMS_EXTENT_CURRENT_V ;
       pExtent->_logicID        = DMS_INVALID_EXTENT ;
       pExtent->_scanExtLID     = DMS_INVALID_EXTENT ;
-      // not creating index root page yet
       pExtent->_rootExtentID   = DMS_INVALID_EXTENT ;
       ossMemset( pExtent->_reserved, 0, sizeof( pExtent->_reserved ) ) ;
-      // copy index def into extent. when it is replay op(has oid already),
-      // no need to add oid.
       if ( !infoObj.hasField (DMS_ID_KEY_NAME) )
       {
          _IDToInsert oid ;
@@ -151,7 +139,6 @@ namespace engine
                      infoObj.objdata(),
                      infoObj.objsize() ) ;
       }
-      // call _init() to load things back from page
       _init() ;
 
    done :
@@ -244,7 +231,6 @@ namespace engine
       goto done ;
    }
 
-   // if the field exist in the index object, returns the ith position
    INT32 _ixmIndexCB::keyPatternOffset( const CHAR *key ) const
    {
       SDB_ASSERT ( _isInitialized,
@@ -261,7 +247,6 @@ namespace engine
       return -1 ;
    }
 
-   // allocate an extent for the index
    INT32 _ixmIndexCB::allocExtent ( dmsExtentID &extentID )
    {
       SDB_ASSERT ( _isInitialized,
@@ -291,15 +276,13 @@ namespace engine
          {
             UINT16 mbID = rootExtent.getMBID() ;
             UINT16 freeSize = rootExtent.getFreeSize() ;
-            // we need to set _totalIndexFreeSpace before freeExtent()
-            _pIndexSu->decStatFreeSpace( mbID, freeSize ) ;
             rc = freeExtent ( root ) ;
             if ( rc )
             {
-               _pIndexSu->addStatFreeSpace( mbID, freeSize ) ;
                PD_LOG ( PDERROR, "Failed to free extent %d", root ) ;
                goto error ;
             }
+            _pIndexSu->decStatFreeSpace( mbID, freeSize ) ;
          }
       }
       setFlag ( IXM_INDEX_FLAG_NORMAL ) ;
@@ -317,7 +300,6 @@ namespace engine
    BOOLEAN _ixmIndexCB::isSameDef( const BSONObj &defObj,
                                    BOOLEAN strict ) const
    {
-      //PD_TRACE_ENTRY ( SDB__IXMINXCB_ISSAMEDEF );
       BOOLEAN rs = TRUE;
       SDB_ASSERT( TRUE == _isInitialized, "indexCB must be intialized!" );
       try
@@ -347,8 +329,6 @@ namespace engine
          {
             if ( lIsUnique )
             {
-               /// it is useless to create any same defined index
-               /// when an unique index exists.
                rs = TRUE ;
                goto done ;
             }
@@ -359,7 +339,6 @@ namespace engine
             }
             else
             {
-               /// do nothing.
             }
          }
          else
@@ -389,24 +368,6 @@ namespace engine
             rs = FALSE;
             goto done;
          }
-
-         BOOLEAN lNotNull = FALSE;
-         BOOLEAN rNotNull = FALSE;
-         BSONElement beLNotNull = _infoObj.getField( IXM_NOTNULL_FIELD );
-         BSONElement beRNotNull = defObj.getField( IXM_NOTNULL_FIELD );
-         if ( beLNotNull.booleanSafe() )
-         {
-            lNotNull = TRUE;
-         }
-         if ( beRNotNull.booleanSafe() )
-         {
-            rNotNull = TRUE;
-         }
-         if ( lNotNull != rNotNull )
-         {
-            rs = FALSE;
-            goto done;
-         }
       }
       catch( std::exception &e )
       {
@@ -415,60 +376,9 @@ namespace engine
       }
 
    done:
-      //PD_TRACE_EXIT( SDB__IXMINXCB_ISSAMEDEF );
       return rs;
    }
 
-   // Append extra fields to index definition. This is added in version 3.0.1,
-   // in order to append an external data name into indexCB(For text index).
-   // As in version 3.0, the name is not stored and was generated every time
-   // when used.
-   // Note: Only append, no existing part of the definition should be modified.
-   INT32 _ixmIndexCB::extendDef( const BSONElement &ele )
-   {
-      INT32 rc = SDB_OK ;
-      BSONObjBuilder builder ;
-      BSONObj newDef ;
-      dmsExtRW extRW ;
-      ixmIndexCBExtent *pExtent = NULL ;
-
-      try
-      {
-         builder.appendElements( _infoObj ) ;
-         builder.append( ele ) ;
-         newDef = builder.done() ;
-
-         extRW = _pIndexSu->extent2RW( _extentID, _extent->_mbID ) ;
-         pExtent = extRW.writePtr<ixmIndexCBExtent>( 0, (UINT32)_pageSize ) ;
-
-         ossMemcpy( ((CHAR *) pExtent) + IXM_INDEX_CB_EXTENT_METADATA_SIZE,
-                    newDef.objdata(), (size_t)newDef.objsize() ) ;
-      }
-      catch ( std::exception &e )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "occur unexpected error(%s)", e.what() ) ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   /*
-      Local static variable define
-   */
-   static BSONObj s_idKeyObj = BSON( IXM_FIELD_NAME_KEY << BSON( DMS_ID_KEY_NAME << 1 ) <<
-                                     IXM_FIELD_NAME_NAME << IXM_ID_KEY_NAME <<
-                                     IXM_FIELD_NAME_UNIQUE << true <<
-                                     IXM_FIELD_NAME_V << 0 <<
-                                     IXM_FIELD_NAME_ENFORCED << true ) ;
-
-   BSONObj ixmGetIDIndexDefine ()
-   {
-      return s_idKeyObj ;
-   }
 
 }
+

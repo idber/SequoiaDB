@@ -46,13 +46,10 @@ public class DropCreateGetCS {
 
     @Test
     public void testCreateCS() {
-        // TODO:
-        //create cs name "testfoo"
         cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         assertNotNull(cs);
         String csName1 = cs.getName();
         assertEquals(Constants.TEST_CS_NAME_1, csName1);
-        //create cs name "testCS2" with default pagesize
         cs2 = sdb.createCollectionSpace(Constants.TEST_CS_NAME_2,
             Sequoiadb.SDB_PAGESIZE_DEFAULT);
         assertNotNull(cs2);
@@ -62,14 +59,10 @@ public class DropCreateGetCS {
 
     @Test
     public void testListCS() {
-        // create cs
         cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         cs2 = sdb.createCollectionSpace(Constants.TEST_CS_NAME_2);
-        // TODO:
-        //list collectionspaces
         List<String> listCS = new ArrayList<String>();
         listCS.addAll(sdb.getCollectionSpaceNames());
-        // check
         List<String> name = new ArrayList<String>();
         for (String s : listCS) {
             if (s.equals(Constants.TEST_CS_NAME_1) ||
@@ -79,13 +72,9 @@ public class DropCreateGetCS {
         assertEquals(name.size(), 2);
     }
 
-    //	@Test(expected = BaseException.class)
     @Test
     public void testCreateSameCS() {
-        // create cs
         cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        // TODO:
-        //create the same cs name "testCS1"
         try {
             cs2 = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } catch (BaseException e) {
@@ -97,24 +86,16 @@ public class DropCreateGetCS {
 
     @Test
     public void testGetCS() {
-        // create cs
         cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        // TODO:
-        //get the cs name "testCS1"
         cs2 = sdb.getCollectionSpace(Constants.TEST_CS_NAME_1);
         assertNotNull(cs);
-        //drop cs
         sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
     }
 
     @Test
     public void testIsCSExist() {
-        // create cs
         cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        // TODO:
-        //test if the cs is exist
         assertTrue(sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1));
-        //drop cs
         sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
     }
 
@@ -128,7 +109,6 @@ public class DropCreateGetCS {
 
     @Test(expected = BaseException.class)
     public void testCreateIllegalCS() {
-        //create illegal cs name
         String arr[] = {".", "SYS", "$"};
         String name = "foo";
         for (int i = 0; i < arr.length; i++) {
@@ -139,13 +119,11 @@ public class DropCreateGetCS {
 
     @Test(expected = BaseException.class)
     public void testCreateNullCS() {
-        //create the cs name is ""
         cs = sdb.createCollectionSpace("");
     }
 
     @Test(expected = BaseException.class)
     public void testCreate_128_CS() {
-        //create cs name's legth is 128
         String cs_128 = "";
         for (int i = 0; i < 128; i++) {
             cs_128 += "a";
@@ -153,7 +131,6 @@ public class DropCreateGetCS {
         cs = sdb.createCollectionSpace(cs_128);
     }
 
-    //the cs name's length is 127B
     @Test
     public void testCreate_127_CS() {
         String cs_127 = "";

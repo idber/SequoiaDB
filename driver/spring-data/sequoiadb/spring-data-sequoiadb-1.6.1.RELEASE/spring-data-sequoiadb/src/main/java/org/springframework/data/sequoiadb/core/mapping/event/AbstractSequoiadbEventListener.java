@@ -79,7 +79,6 @@ public abstract class AbstractSequoiadbEventListener<E> implements ApplicationLi
 		@SuppressWarnings("unchecked")
 		E source = (E) event.getSource();
 
-		// Check for matching domain type and invoke callbacks
 		if (source != null && !domainClass.isAssignableFrom(source.getClass())) {
 			return;
 		}

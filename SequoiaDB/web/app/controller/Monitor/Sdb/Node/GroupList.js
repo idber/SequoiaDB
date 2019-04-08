@@ -4,6 +4,8 @@
    //控制器
    sacApp.controllerProvider.register( 'Monitor.SdbOverview.Index.Ctrl', function( $scope, $compile, $rootScope, $location, SdbRest, SdbFunction ){
       
+      _IndexPublic.checkMonitorEdition( $location ) ; //检测是不是企业版
+
       var clusterName = SdbFunction.LocalData( 'SdbClusterName' ) ;
       var moduleType = SdbFunction.LocalData( 'SdbModuleType' ) ;
       var moduleMode = SdbFunction.LocalData( 'SdbModuleMode' ) ;
@@ -24,7 +26,7 @@
       //分区组列表
       $scope.GroupList = [] ;
       $scope.clList = [] ;
-      $scope.NumConnects = 0 ;
+
       //新表格
       $scope.GroupTable = {
          'title': {
@@ -147,7 +149,7 @@
 
       //获取coord节点状态
       var getCoordStatus = function( groupInfo, nodesInfo, hostname, svcname ){
-         var sql = 'SELECT NodeName, TotalNumConnects FROM $SNAPSHOT_DB WHERE GLOBAL=false' ;
+         var sql = 'SELECT NodeName FROM $SNAPSHOT_DB WHERE GLOBAL=false' ;
          SdbRest.Exec( sql, {
             'before': function( jqXHR ){
                jqXHR.setRequestHeader( 'SdbHostName', hostname ) ;
@@ -166,33 +168,6 @@
             'failed':function( errorInfo ){
                _IndexPublic.createRetryModel( $scope, errorInfo, function(){
                   getCoordStatus( groupInfo, nodesInfo, hostname, svcname ) ;
-                  return true ;
-               } ) ;
-            }
-         },{
-            'showLoading': false
-         } ) ;
-      }
-
-      //获取coord连接数
-      var getConnectionNum = function(){
-         var sql = 'SELECT TotalNumConnects FROM $SNAPSHOT_DB WHERE Role = "coord"' ;
-         SdbRest.Exec( sql, {
-            'success': function( result ){
-               if( result.length > 0 )
-               {
-                  $scope.NumConnects = 0 ;
-                  $.each( result, function( index, info ){
-                     if( typeof( info['ErrNodes'] ) == 'undefined' )
-                     {
-                        $scope.NumConnects += info['TotalNumConnects'] ;
-                     }
-                  } ) ;
-               }
-            }, 
-            'failed':function( errorInfo ){
-               _IndexPublic.createRetryModel( $scope, errorInfo, function(){
-                  getConnectionNum() ;
                   return true ;
                } ) ;
             }
@@ -339,7 +314,6 @@
          SdbRest.DataOperation( data, {
             'success':function( groups ){
                $scope.GroupList = groups ;
-               getConnectionNum() ;
                getClInfo() ;
             },
             'failed': function( errorInfo ){

@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2015 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = impRecordParser.cpp
 
@@ -122,7 +121,7 @@ namespace import
          SDB_ASSERT(FORMAT_JSON == format, "format must be JSON");
          
          JSONRecordParser* jsonParser =
-            SDB_OSS_NEW JSONRecordParser( options.isUnicode() );
+            SDB_OSS_NEW JSONRecordParser();
 
          if (NULL == jsonParser)
          {
@@ -156,10 +155,9 @@ namespace import
       SDB_OSS_DEL(parser);
    }
 
-   JSONRecordParser::JSONRecordParser( BOOLEAN isUnicode )
-         : RecordParser("", "", FALSE, FALSE)
+   JSONRecordParser::JSONRecordParser()
+   : RecordParser("", "", FALSE, FALSE)
    {
-      _isUnicode = isUnicode ;
       _pMachine = NULL ;
       JsonSetPrintfLog( _impRecordParseLog ) ;
    }
@@ -195,8 +193,7 @@ namespace import
 
       bson_init(&obj);
 
-      result = json2bson( data, _pMachine, CJSON_RIGOROUS_PARSE,
-                          FALSE, _isUnicode, &obj ) ;
+      result = json2bson( data, _pMachine, CJSON_RIGOROUS_PARSE, FALSE, &obj ) ;
       if (!result)
       {
          rc = SDB_INVALIDARG;

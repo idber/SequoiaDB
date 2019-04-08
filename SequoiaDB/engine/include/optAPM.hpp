@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = optAPM.hpp
 
@@ -57,6 +56,7 @@ namespace engine
    #define OPT_PLAN_CACHE_ACT_HIGH_PERC   ( 0.80 )
    #define OPT_PLAN_CACHE_ACT_LOW_PERC    ( 0.50 )
    #define OPT_PLAN_CACHE_AVG_BUCKET_SIZE ( 3 )
+   #define OPT_PLAN_CACHE_UINT64_LIMIT    ( 0xFFFFFFFF00000000uLL )
 
    class _optCachedPlanMonitor ;
    typedef class _optCachedPlanMonitor optCachedPlanMonitor ;
@@ -80,7 +80,7 @@ namespace engine
 
          BOOLEAN addPlan ( optAccessPlan *pPlan ) ;
 
-         void removeCachedPlan ( optAccessPlan *pPlan, INT32 lockType = -1 ) ;
+         void removeCachedPlan ( optAccessPlan *pPlan ) ;
 
          void invalidateSUPlans ( dmsCachedPlanMgr *pCachedPlanMgr,
                                   UINT32 suLID ) ;
@@ -106,8 +106,6 @@ namespace engine
          virtual void _afterAddItem ( UINT32 bucketID, optAccessPlan *pPlan ) ;
 
          virtual void _afterGetItem ( UINT32 bucketID, optAccessPlan *pPlan ) ;
-
-         virtual void _afterRemoveItem ( UINT32 bucketID, optAccessPlan *pPlan ) ;
 
       protected :
          optCachedPlanMonitor *_pMonitor ;
@@ -183,7 +181,7 @@ namespace engine
 
          void setQueryActivity ( const optQueryActivity &queryActivity ) ;
 
-         void toBSON ( BSONObjBuilder &builder ) ;
+         void toBSON ( BSONObjBuilder &builder ) const ;
 
       protected :
          optAccessPlan *   _pPlan ;
@@ -193,8 +191,6 @@ namespace engine
          ossTickDelta      _totalQueryTimeTick ;
          optQueryActivity  _maxQueryActivity ;
          optQueryActivity  _minQueryActivity ;
-
-         ossSpinXLatch     _latch ;
    } ;
 
    typedef class _optCachedPlanActivity optCachedPlanActivity ;
@@ -247,13 +243,22 @@ namespace engine
                _pActivities[ activityID ].setPlan( NULL, 0 ) ;
                UINT64 freeActivityIndex = _freeIndexEnd.inc() % _activityNum ;
                _pFreeActivityIDs[ freeActivityIndex ] = activityID ;
-               _cachedPlanCount.dec() ;
             }
          }
 
          OSS_INLINE UINT32 getCachedPlanCount () const
          {
             return _cachedPlanCount.peek() ;
+         }
+
+         OSS_INLINE void incCachedPlanCount ()
+         {
+            _cachedPlanCount.inc() ;
+         }
+
+         OSS_INLINE void decCachedPlanCount ( UINT32 count = 1 )
+         {
+            _cachedPlanCount.sub( count ) ;
          }
 
          OSS_INLINE ossRWMutex *getClearLock ()
@@ -270,53 +275,45 @@ namespace engine
 
          void clearCachedPlans () ;
 
-      protected :
-         INT32 _allocateActivity ( optAccessPlan *pPlan ) ;
+         void checkFreeIndexes () ;
+
+         void checkAccessTimestamp () ;
 
       protected :
-         // Begin to the free index, where to get free activities
+         INT32 _allocateActivity ( optAccessPlan *pPlan,
+                                   BOOLEAN criticalMode ) ;
+
+      protected :
          ossAtomic64 _freeIndexBegin ;
 
-         // End to the free index, where to return free activities
          ossAtomic64 _freeIndexEnd ;
 
-         // Free index
          UINT32 *_pFreeActivityIDs ;
 
-         // Thread flag to clearing procedure
          ossAtomic32 _clearThread ;
 
-         // Mutex to protect clearing procedure
+         ossAtomic32 _allocateThread ;
+
          ossRWMutex _clearLock ;
 
-         // Clear event to signal clear job
          ossEvent _clearEvent ;
 
-         // Number of activities ( The capacity of plan cache )
          UINT32 _activityNum ;
 
-         // High water mark to clear cached plans
          UINT32 _highWaterMark ;
 
-         // Low water mark to stop clear cached plans
          UINT32 _lowWaterMark ;
 
-         // Clock index to scan the activity table
          UINT32 _clockIndex ;
 
-         // Activity table
          optCachedPlanActivity *_pActivities ;
 
-         // Total number of cached plans
          ossAtomic32 _cachedPlanCount ;
 
-         // Access timestamp for cached plans
          ossAtomic64 _accessTimestamp ;
 
-         // Last timestamp to finished clearing procedure
          UINT64 _lastClearTimestamp ;
 
-         // Pointer to plan cache
          optAccessPlanCache *_pPlanCache ;
    } ;
 
@@ -367,15 +364,12 @@ namespace engine
             return &_monitor ;
          }
 
-         // Try to get access plan from cache, if could not get access plan
-         // from cache, create one
          INT32 getAccessPlan ( const rtnQueryOptions &options,
                                BOOLEAN keepSearchPaths,
                                dmsStorageUnit *su,
                                dmsMBContext *mbContext,
                                optAccessPlanRuntime &planRuntime ) ;
 
-         // Create access plan directly without caching
          INT32 getTempAccessPlan ( const rtnQueryOptions &options,
                                    dmsStorageUnit *su,
                                    dmsMBContext *mbContext,
@@ -391,7 +385,6 @@ namespace engine
                                  const optQueryActivity &queryActivity ) ;
 
       public :
-         // For _IDmsEventHandler
          virtual INT32 onCreateCS ( IDmsEventHolder *pEventHolder,
                                     IDmsSUCacheHolder *pCacheHolder,
                                     pmdEDUCB *cb,
@@ -506,7 +499,6 @@ namespace engine
 
          BOOLEAN _cacheAccessPlan ( optAccessPlan *pPlan ) ;
 
-         // Helpers for parameterized plans
          INT32 _validateParamPlan ( dmsStorageUnit *su,
                                     dmsMBContext *mbContext,
                                     optAccessPlanKey &planKey,
@@ -514,7 +506,6 @@ namespace engine
                                     optAccessPlanHelper &planHelper,
                                     optParamAccessPlan *plan ) ;
 
-         // Helpers for main-collection plans
          INT32 _createMainCLPlan ( optAccessPlanKey &planKey,
                                    const rtnQueryOptions &subOptions,
                                    dmsStorageUnit *su,
@@ -537,7 +528,6 @@ namespace engine
                                  optAccessPlanRuntime &planRuntime,
                                  optAccessPlanHelper &planHelper ) ;
 
-         // Helpers for _IDmsEventHandler
          void _invalidSUPlans ( IDmsSUCacheHolder *pCacheHolder ) ;
 
          void _invalidCLPlans ( IDmsSUCacheHolder *pCacheHolder,
@@ -545,7 +535,6 @@ namespace engine
 
          void _resetSUPlanCache ( IDmsSUCacheHolder *pCacheHolder ) ;
 
-         // Helpers for clear background job
          INT32 _startClearJob () ;
          void  _stopClearJob () ;
 
@@ -555,7 +544,6 @@ namespace engine
          optCachedPlanMonitor    _monitor ;
          EDUID                   _clearJobEduID ;
 
-         // Configured options
          OPT_PLAN_CACHE_LEVEL    _cacheLevel ;
    } ;
 

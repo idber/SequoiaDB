@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptScope.cpp
 
@@ -36,7 +35,6 @@
 #include "sptObjDesc.hpp"
 #include "ossUtil.hpp"
 #include "sptCommon.hpp"
-#include "ossIO.hpp"
 #include <algorithm>
 using namespace std ;
 namespace engine
@@ -176,64 +174,4 @@ namespace engine
       }
       return isExist ;
    }
-
-   string _sptScope::calcImportPath( const string &filename )
-   {
-      BOOLEAN isAbsolute = FALSE ;
-      const CHAR *pName = filename.c_str() ;
-      string prefixPath ;
-
-#if defined (_LINUX)
-      if ( '/' == pName[0] )
-      {
-         isAbsolute = TRUE ;
-      }
-#else
-      if ( '\\' == pName[0] || ( 0 != pName[0] && ':' == pName[1] ) )
-      {
-         isAbsolute = TRUE ;
-      }
-#endif // _LINUX
-
-      if ( isAbsolute )
-      {
-         return filename ;
-      }
-
-      if ( _fileNameStack.size() > 0 )
-      {
-         string lastfile = *_fileNameStack.rbegin() ;
-         UINT64 pos1 = lastfile.find_last_of( '/' ) ;
-         UINT64 pos = pos1 ;
-
-#if defined (_WINDOWS)
-         UINT64 pos2 = lastfile.find_last_of( '\\' ) ;
-         if ( pos2 != string::npos && ( string::npos == pos || pos2 > pos ) )
-         {
-            pos = pos2 ;
-         }
-#endif // _WINDOWS
-         prefixPath = lastfile.substr( 0, pos ) ;
-      }
-      else
-      {
-         CHAR szPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-         ossGetCWD( szPath, OSS_MAX_PATHSIZE ) ;
-         prefixPath = szPath ;
-      }
-
-      if ( !filename.empty() )
-      {
-         pName = prefixPath.c_str() ;
-         UINT32 len = ossStrlen( pName ) ;
-         if ( len > 0 && pName[ len -1 ] != OSS_FILE_SEP_CHAR )
-         {
-            prefixPath += OSS_FILE_SEP_CHAR ;
-         }
-         prefixPath += filename ;
-      }
-
-      return prefixPath ;
-   }
-
 }

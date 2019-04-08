@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omagentRemoteBase.cpp
 
@@ -170,11 +169,9 @@ namespace engine
       INT32 rc = SDB_OK ;
       utilInstallInfo info ;
       CHAR confFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-      // ../conf/local/SVCNAME/sdb.conf
       string ewdConfPath = SDBCM_LOCAL_PATH OSS_FILE_SEP
                            + svcname + OSS_FILE_SEP PMD_DFT_CONF ;
 
-      // get ewd
       rc = ossGetEWD( confFile, OSS_MAX_PATHSIZE ) ;
       if ( SDB_OK != rc )
       {
@@ -182,7 +179,6 @@ namespace engine
          goto error ;
       }
 
-      // get full path: ewd + ../conf/local/SVCNAME/sdb.conf
       rc = utilCatPath( confFile, OSS_MAX_PATHSIZE, ewdConfPath.c_str() ) ;
       if ( SDB_OK != rc )
       {
@@ -228,7 +224,7 @@ namespace engine
             goto done ;
          }
          stringstream ss ;
-         ss << "conf file[" << confFile << "] does not exist" ;
+         ss << "conf file[" << confFile << "] is not exist" ;
          errMsg = ss.str() ;
          goto error ;
       }
@@ -237,7 +233,7 @@ namespace engine
       if ( SDB_FNE == rc )
       {
          stringstream ss ;
-         ss << "conf file[" << confFile << "] does not exist" ;
+         ss << "conf file[" << confFile << "] is not exist" ;
          errMsg = ss.str() ;
          goto error ;
       }

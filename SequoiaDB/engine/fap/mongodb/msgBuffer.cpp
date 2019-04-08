@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = msgBuffer.cpp
 
@@ -75,7 +74,6 @@ INT32 _msgBuffer::realloc( const UINT32 size )
 
    if ( size <= _capacity )
    {
-      // do nothing
       goto done ;
    }
 
@@ -111,7 +109,6 @@ INT32 _msgBuffer::write( const CHAR *in, const UINT32 inLen,
 
    if( inLen > _capacity - _size )
    {
-      // digit size of memory needed
       num = ( inLen + _size ) / MEMERY_BLOCK_SIZE + 1 ;
       size = num * MEMERY_BLOCK_SIZE ;
 
@@ -146,7 +143,6 @@ INT32 _msgBuffer::write( const bson::BSONObj &obj, BOOLEAN align, INT32 bytes )
    UINT32 objsize = obj.objsize() ;
    if( objsize > _capacity - _size )
    {
-      // digit size of memory needed
       num = ( objsize + _size ) / MEMERY_BLOCK_SIZE + 1 ;
       size = num * MEMERY_BLOCK_SIZE ;
 
@@ -191,18 +187,4 @@ error:
    goto done ;
 }
 
-// int main( int argc, char** argv)
-// {
-//    std::string str = "abcdef" ;
-//    msgBuffer buffer ;
-//    for ( int i = 0; i < 10; ++i)
-//    {
-//       str += "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" ;
-//       buffer.write( str.c_str(), str.length() ) ;
-//    }
-// 
-//    std::cout << buffer.data() << std::endl ;
-// 
-//    return 0 ;
-// }
 

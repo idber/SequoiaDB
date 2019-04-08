@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pmdOptionsMgr.hpp
 
@@ -70,14 +69,6 @@ namespace engine
       PMD_CFG_STEP_CHG                       // change in runtime
    } ;
 
-   enum PMD_CFG_CHANGE
-   {
-      PMD_CFG_CHANGE_INVALID         = 0,
-      PMD_CFG_CHANGE_FORBIDDEN,              // DO NOT allow change
-      PMD_CFG_CHANGE_RUN,                    // allow change in runtime
-      PMD_CFG_CHANGE_REBOOT                  // allow change after reboot
-   } ;
-
    enum PMD_CFG_DATA_TYPE
    {
       PMD_CFG_DATA_CMD        = 0,           // command
@@ -92,33 +83,25 @@ namespace engine
       string         _value ;
       BOOLEAN        _hasMapped ;
       BOOLEAN        _hasField ;
-      PMD_CFG_CHANGE _level;
 
       _pmdParamValue()
       {
          _hasMapped = FALSE ;
          _hasField = FALSE ;
-         _level = PMD_CFG_CHANGE_INVALID ;
       }
-      _pmdParamValue( INT32 value, BOOLEAN hasMappe,
-                      BOOLEAN hasField,
-                      PMD_CFG_CHANGE changeLevel = PMD_CFG_CHANGE_INVALID )
+      _pmdParamValue( INT32 value, BOOLEAN hasMappe, BOOLEAN hasField )
       {
          CHAR tmp[ 15 ] = { 0 } ;
          ossItoa( value, tmp, sizeof( tmp ) - 1 ) ;
          _value = tmp ;
          _hasMapped = hasMappe ;
          _hasField = hasField ;
-         _level  = changeLevel ;
       }
-      _pmdParamValue( const string &value, BOOLEAN hasMappe,
-                      BOOLEAN hasField,
-                      PMD_CFG_CHANGE changeLevel = PMD_CFG_CHANGE_INVALID )
+      _pmdParamValue( const string &value, BOOLEAN hasMappe, BOOLEAN hasField )
       {
          _value = value ;
          _hasMapped = hasMappe ;
          _hasField = hasField ;
-         _level  = changeLevel ;
       }
    } ;
    typedef _pmdParamValue pmdParamValue ;
@@ -131,7 +114,6 @@ namespace engine
    #define PMD_CFG_MASK_SKIP_UNFIELD         0x00000001
    #define PMD_CFG_MASK_SKIP_NORMALDFT       0x00000002
    #define PMD_CFG_MASK_SKIP_HIDEDFT         0x00000004
-   #define PMD_CFG_MASK_MODE_LOCAL           0x00000008
 
    /*
       _pmdCfgExchange define
@@ -142,12 +124,6 @@ namespace engine
 
       public:
          _pmdCfgExchange ( MAP_K2V *pMapField,
-                           const BSONObj &dataObj,
-                           BOOLEAN load = TRUE,
-                           PMD_CFG_STEP step = PMD_CFG_STEP_INIT,
-                           UINT32 mask = 0 ) ;
-         _pmdCfgExchange ( MAP_K2V *pMapField,
-                           MAP_K2V *pMapColdField,
                            const BSONObj &dataObj,
                            BOOLEAN load = TRUE,
                            PMD_CFG_STEP step = PMD_CFG_STEP_INIT,
@@ -171,14 +147,12 @@ namespace engine
 
       public:
          INT32 readInt( const CHAR *pFieldName, INT32 &value,
-                        INT32 defaultValue, PMD_CFG_CHANGE changeLevel ) ;
-         INT32 readInt( const CHAR *pFieldName, INT32 &value,
-                        PMD_CFG_CHANGE changeLevel ) ;
+                        INT32 defaultValue ) ;
+         INT32 readInt( const CHAR *pFieldName, INT32 &value ) ;
 
          INT32 readString( const CHAR *pFieldName, CHAR *pValue, UINT32 len,
-                           const CHAR *pDefault, PMD_CFG_CHANGE changeLevel ) ;
-         INT32 readString( const CHAR *pFieldName, CHAR *pValue, UINT32 len,
-                           PMD_CFG_CHANGE changeLevel ) ;
+                           const CHAR *pDefault ) ;
+         INT32 readString( const CHAR *pFieldName, CHAR *pValue, UINT32 len ) ;
 
          INT32 writeInt( const CHAR *pFieldName, INT32 value ) ;
          INT32 writeString( const CHAR *pFieldName, const CHAR *pValue ) ;
@@ -196,10 +170,6 @@ namespace engine
          {
             return ( _mask & PMD_CFG_MASK_SKIP_NORMALDFT ) ? TRUE : FALSE ;
          }
-         BOOLEAN isLocalMode() const
-         {
-            return ( _mask & PMD_CFG_MASK_MODE_LOCAL ) ? TRUE : FALSE ;
-         }
          BOOLEAN isWhole() const { return _isWhole ; }
 
       private:
@@ -207,24 +177,13 @@ namespace engine
          MAP_K2V*    getKVMap() ;
 
          void        _makeKeyValueMap( po::variables_map *pVM ) ;
-         void        _saveToMapInt( const CHAR * pFieldName,
-                                    INT32 &value,const INT32 &newValue,
-                                    PMD_CFG_CHANGE changeLevel,
-                                    BOOLEAN useDefault ) ;
-         void        _saveToMapString( const CHAR *pFieldName, 
-                                       CHAR *pValue, UINT32 len,
-                                       const string &newValue,
-                                       PMD_CFG_CHANGE changeLevel,
-                                       BOOLEAN useDefault ) ;
 
       private:
          MAP_K2V*                _pMapKeyField ;
-         MAP_K2V*                _pMapColdKeyField ;
          PMD_CFG_STEP            _cfgStep ;
          BOOLEAN                 _isLoad ;
 
          PMD_CFG_DATA_TYPE       _dataType ;
-         //
          BSONObj                 _dataObj ;
          BSONObjBuilder          _dataBuilder ;
          po::variables_map       *_pVMFile ;
@@ -294,10 +253,6 @@ namespace engine
          INT32 change( const BSONObj &objData,
                        BOOLEAN isWhole = FALSE ) ;
 
-         INT32 update( const BSONObj &userConfig,
-                       BOOLEAN setForRestore,
-                       BSONObj &errorObj ) ;
-
          INT32 toBSON ( BSONObj &objData,
                         UINT32 mask = PMD_CFG_MASK_SKIP_HIDEDFT ) ;
          INT32 toString( string &str,
@@ -327,15 +282,6 @@ namespace engine
          INT32  _addToFieldMap( const string &key, const string &value,
                                 BOOLEAN hasMapped = TRUE,
                                 BOOLEAN hasField = TRUE ) ;
-         void  _updateFieldMap( pmdCfgExchange *pEX,
-                                const CHAR *pFieldName,
-                                const CHAR *pValue,
-                                PMD_CFG_CHANGE changeLevel ) ;
-         void  _purgeFieldMap( MAP_K2V &mapKeyField ) ;
-         INT32  _saveUpdateChange( MAP_K2V &mapKeyField,
-                                   MAP_K2V &mapColdKeyField,
-                                   BOOLEAN setForRestore,
-                                   BSONObj &errorObj ) ;
 
       protected:
          virtual INT32 doDataExchange( pmdCfgExchange *pEX ) = 0 ;
@@ -344,39 +290,39 @@ namespace engine
 
       protected:
          INT32 rdxInt( pmdCfgExchange *pEX, const CHAR *pFieldName,
-                       INT32 &value, BOOLEAN required, PMD_CFG_CHANGE changeLevel,
+                       INT32 &value, BOOLEAN required, BOOLEAN allowRunChg,
                        INT32 defaultValue, BOOLEAN hideParam = FALSE ) ;
 
          INT32 rdxUInt( pmdCfgExchange *pEX, const CHAR *pFieldName,
-                        UINT32 &value, BOOLEAN required, PMD_CFG_CHANGE changeLevel,
+                        UINT32 &value, BOOLEAN required, BOOLEAN allowRunChg,
                         UINT32 defaultValue, BOOLEAN hideParam = FALSE ) ;
 
          INT32 rdxShort( pmdCfgExchange *pEX, const CHAR *pFieldName,
-                         INT16 &value, BOOLEAN required, PMD_CFG_CHANGE changeLevel,
+                         INT16 &value, BOOLEAN required, BOOLEAN allowRunChg,
                          INT16 defaultValue, BOOLEAN hideParam = FALSE ) ;
 
          INT32 rdxUShort( pmdCfgExchange *pEX, const CHAR *pFieldName,
-                          UINT16 &value, BOOLEAN required, PMD_CFG_CHANGE changeLevel,
+                          UINT16 &value, BOOLEAN required, BOOLEAN allowRunChg,
                           UINT16 defaultValue, BOOLEAN hideParam = FALSE ) ;
 
          INT32 rdxString( pmdCfgExchange *pEX, const CHAR *pFieldName,
                           CHAR *pValue, UINT32 len, BOOLEAN required,
-                          PMD_CFG_CHANGE changeLevel, const CHAR *pDefaultValue,
+                          BOOLEAN allowRunChg, const CHAR *pDefaultValue,
                           BOOLEAN hideParam = FALSE ) ;
 
          INT32 rdxPath( pmdCfgExchange *pEX, const CHAR *pFieldName,
                         CHAR *pValue, UINT32 len, BOOLEAN required,
-                        PMD_CFG_CHANGE changeLevel, const CHAR *pDefaultValue,
+                        BOOLEAN allowRunChg, const CHAR *pDefaultValue,
                         BOOLEAN hideParam = FALSE ) ;
 
          INT32 rdxPathRaw( pmdCfgExchange *pEX, const CHAR *pFieldName,
                            CHAR *pValue, UINT32 len, BOOLEAN required,
-                           PMD_CFG_CHANGE changeLevel, const CHAR *pDefaultValue,
+                           BOOLEAN allowRunChg, const CHAR *pDefaultValue,
                            BOOLEAN hideParam = FALSE ) ;
 
          INT32 rdxBooleanS( pmdCfgExchange *pEX, const CHAR *pFieldName,
                             BOOLEAN &value, BOOLEAN required,
-                            PMD_CFG_CHANGE changeLevel, BOOLEAN defaultValue,
+                            BOOLEAN allowRunChg, BOOLEAN defaultValue,
                             BOOLEAN hideParam = FALSE ) ;
 
          INT32 rdvMinMax( pmdCfgExchange *pEX, UINT32 &value,
@@ -395,7 +341,7 @@ namespace engine
       private:
          INT32 _rdxPath( pmdCfgExchange *pEX, const CHAR *pFieldName,
                          CHAR *pValue, UINT32 len, BOOLEAN required,
-                         PMD_CFG_CHANGE changeLevel, const CHAR *pDefaultValue,
+                         BOOLEAN allowRunChg, const CHAR *pDefaultValue,
                          BOOLEAN hideParam,
                          BOOLEAN addSep ) ;
 
@@ -406,7 +352,6 @@ namespace engine
          IConfigHandle                       *_pConfigHander ;
 
          MAP_K2V                             _mapKeyValue ;
-         MAP_K2V                             _mapColdKeyValue ;
       protected:
          ossSpinXLatch                       _mutex ;
 
@@ -538,10 +483,6 @@ namespace engine
          {
             return _vecCat ;
          }
-         OSS_INLINE vector< _pmdAddrPair > omAddrs() const
-         {
-            return _vecOm ;
-         }
          OSS_INLINE const CHAR *getTmpPath() const
          {
             return _dmsTmpBlkPath ;
@@ -559,7 +500,6 @@ namespace engine
          }
 
          void clearCatAddr() ;
-         void rmCatAddrItem( const CHAR *host, const CHAR *service ) ;
          void setCatAddr( const CHAR *host, const CHAR *service ) ;
 
          OSS_INLINE UINT32 catNum() const { return CATA_NODE_MAX_NUM ; }
@@ -576,10 +516,6 @@ namespace engine
          OSS_INLINE UINT32 replBucketSize () const { return _replBucketSize ; }
          OSS_INLINE BOOLEAN transactionOn () const { return _transactionOn ; }
          OSS_INLINE UINT32 transTimeout () const { return _transTimeout; }
-         OSS_INLINE UINT32 transLRBInit () const { return _transLRBInit ;}
-         OSS_INLINE UINT32 transLRBTotal () const { return _transLRBTotal ; }
-         OSS_INLINE INT32 transIsolation () const { return _transIsolation; }
-         OSS_INLINE BOOLEAN transLockwait () const { return _transLockwait; }
          OSS_INLINE BOOLEAN memDebugEnabled () const { return _memDebugEnabled ; }
          OSS_INLINE UINT32 memDebugSize () const { return _memDebugSize ; }
          OSS_INLINE UINT32 indexScanStep () const { return _indexScanStep ; }
@@ -601,7 +537,7 @@ namespace engine
          OSS_INLINE UINT32 getOprTimeout() const { return _oprtimeout ; }
          OSS_INLINE UINT32 getOverFlowRatio() const { return _overflowRatio ; }
          OSS_INLINE UINT32 getExtendThreshold() const { return _extendThreshold ; }
-         OSS_INLINE UINT32 getSignalInterval() const { return _signalInterval ; }
+         OSS_INLINE INT32  getSignalInterval() const { return _signalInterval ; }
          OSS_INLINE UINT32 getMaxCacheSize() const { return _maxCacheSize ; }
          OSS_INLINE UINT32 getMaxCacheJob() const { return _maxCacheJob ; }
          OSS_INLINE UINT32 getMaxSyncJob() const { return _maxSyncJob ; }
@@ -629,18 +565,9 @@ namespace engine
          OSS_INLINE const CHAR * getPrefInstModeStr () const { return _prefInstModeStr ; }
          OSS_INLINE UINT32 getInstanceID () const { return _instanceID ; }
          OSS_INLINE UINT32 getMaxConn () const { return _maxconn ; }
-         OSS_INLINE UINT32 getSvcSchedulerType() const { return _svcSchedulerType ; }
-         OSS_INLINE UINT32 getSvcMaxConcurrency() const { return _svcMaxConcurrency ; }
 
          std::string getOmAddr() const ;
 
-#ifdef SDB_ENTERPRISE
-
-#ifdef SDB_SSL
-         OSS_INLINE BOOLEAN useSSL() const { return _useSSL ; }
-#endif
-
-#endif /* SDB_ENTERPRISE */
       protected: // rdx members
          CHAR        _krcbDbPath[ OSS_MAX_PATHSIZE + 1 ] ;
          CHAR        _krcbIndexPath[ OSS_MAX_PATHSIZE + 1 ] ;
@@ -681,10 +608,6 @@ namespace engine
          UINT32      _traceBufSz ;
          BOOLEAN     _transactionOn ;
          UINT32      _transTimeout ;
-         INT32       _transIsolation ;
-         BOOLEAN     _transLockwait;
-         UINT32      _transLRBInit ;
-         UINT32      _transLRBTotal ;
          UINT32      _sharingBreakTime ;
          UINT32      _startShiftTime ;
          UINT32      _logBuffSize ;
@@ -703,7 +626,7 @@ namespace engine
          UINT32      _oprtimeout ;
          UINT32      _overflowRatio ;     // %
          UINT32      _extendThreshold ;   // MB
-         UINT32      _signalInterval ;
+         INT32       _signalInterval ;
          UINT32      _maxCacheSize ;      // MB
          UINT32      _maxCacheJob ;
          UINT32      _maxSyncJob ;
@@ -726,16 +649,7 @@ namespace engine
          UINT32      _planCacheLevel ;
          UINT32      _instanceID ;
          UINT32      _maxconn;
-         UINT32      _svcSchedulerType ;
-         UINT32      _svcMaxConcurrency ;
 
-#ifdef SDB_ENTERPRISE
-
-#ifdef SDB_SSL
-         BOOLEAN     _useSSL;
-#endif
-
-#endif /* SDB_ENTERPRISE */
       private: // other configs
          CHAR        _krcbConfPath[ OSS_MAX_PATHSIZE + 1 ] ;
          CHAR        _krcbConfFile[ OSS_MAX_PATHSIZE + 1 ] ;

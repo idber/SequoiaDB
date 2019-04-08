@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsCommand.hpp
 
@@ -113,7 +112,7 @@ namespace engine
          virtual const CHAR * collectionFullName () ;
          virtual BOOLEAN      writable () { return TRUE ; }
 
-         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn, 
                               const CHAR *pMatcherBuff,
                               const CHAR *pSelectBuff,
                               const CHAR *pOrderByBuff,
@@ -234,7 +233,7 @@ namespace engine
          virtual RTN_COMMAND_TYPE type () { return CMD_ALTER_IMAGE ; }
          virtual BOOLEAN      writable () ;
 
-         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn, 
                               const CHAR *pMatcherBuff,
                               const CHAR *pSelectBuff,
                               const CHAR *pOrderByBuff,
@@ -246,131 +245,6 @@ namespace engine
       private:
          const CHAR              *_pAction ;
 
-   } ;
-
-   /*
-      _rtnAlterCommand define
-    */
-   class _rtnAlterCommand : public _rtnCommand,
-                            public _rtnAlterJobHolder
-   {
-      public :
-         _rtnAlterCommand () ;
-         virtual ~_rtnAlterCommand () ;
-
-      public :
-         virtual BOOLEAN writable () { return TRUE ; }
-
-         virtual INT32 init ( INT32 flags,
-                              INT64 numToSkip,
-                              INT64 numToReturn,
-                              const CHAR * pMatcherBuff,
-                              const CHAR * pSelectBuff,
-                              const CHAR * pOrderByBuff,
-                              const CHAR * pHintBuff ) ;
-
-         virtual INT32 doit ( _pmdEDUCB * cb,
-                              _SDB_DMSCB * dmsCB,
-                              _SDB_RTNCB * rtnCB,
-                              _dpsLogWrapper * dpsCB,
-                              INT16 w = 1,
-                              INT64 * pContextID = NULL ) ;
-
-      protected :
-         virtual RTN_ALTER_OBJECT_TYPE _getObjectType () const = 0 ;
-         virtual AUDIT_OBJ_TYPE _getAuditType () const = 0 ;
-         virtual INT32 _executeTask ( const CHAR * object,
-                                      const rtnAlterTask * task,
-                                      const rtnAlterOptions * options,
-                                      _pmdEDUCB * cb,
-                                      _SDB_DMSCB * dmsCB,
-                                      _SDB_RTNCB * rtnCB,
-                                      _dpsLogWrapper * dpsCB,
-                                      INT16 w ) = 0 ;
-         virtual INT32 _openContext ( _pmdEDUCB * cb,
-                                      _SDB_RTNCB * rtnCB,
-                                      INT64 * pContextID = NULL ) = 0 ;
-   } ;
-
-   /*
-      _rtnAlterCollectionSpace define
-    */
-   class _rtnAlterCollectionSpace : public _rtnAlterCommand
-   {
-      DECLARE_CMD_AUTO_REGISTER()
-
-      public :
-         _rtnAlterCollectionSpace () ;
-         virtual ~_rtnAlterCollectionSpace () ;
-
-      public :
-         virtual const CHAR * name () { return NAME_ALTER_COLLECTION_SPACE ; }
-         virtual RTN_COMMAND_TYPE type () { return CMD_ALTER_COLLECTIONSPACE ; }
-
-      protected :
-         virtual RTN_ALTER_OBJECT_TYPE _getObjectType () const
-         {
-            return RTN_ALTER_COLLECTION_SPACE ;
-         }
-
-         virtual AUDIT_OBJ_TYPE _getAuditType () const
-         {
-            return AUDIT_OBJ_CS ;
-         }
-
-         virtual INT32 _executeTask ( const CHAR * object,
-                                      const rtnAlterTask * task,
-                                      const rtnAlterOptions * options,
-                                      _pmdEDUCB * cb,
-                                      _SDB_DMSCB * dmsCB,
-                                      _SDB_RTNCB * rtnCB,
-                                      _dpsLogWrapper * dpsCB,
-                                      INT16 w ) ;
-
-         virtual INT32 _openContext ( _pmdEDUCB * cb,
-                                      _SDB_RTNCB * rtnCB,
-                                      INT64 * pContextID = NULL ) ;
-   } ;
-
-   /*
-      _rtnAlterCollection define
-    */
-   class _rtnAlterCollection : public _rtnAlterCommand
-   {
-         DECLARE_CMD_AUTO_REGISTER()
-
-      public :
-         _rtnAlterCollection () ;
-         virtual ~_rtnAlterCollection () ;
-
-      public :
-         virtual const CHAR * name () { return NAME_ALTER_COLLECTION ; }
-         virtual RTN_COMMAND_TYPE type () { return CMD_ALTER_COLLECTION ; }
-         virtual const CHAR * collectionFullName () ;
-
-      protected :
-         virtual RTN_ALTER_OBJECT_TYPE _getObjectType () const
-         {
-            return RTN_ALTER_COLLECTION ;
-         }
-
-         virtual AUDIT_OBJ_TYPE _getAuditType () const
-         {
-            return AUDIT_OBJ_CL ;
-         }
-
-         virtual INT32 _executeTask ( const CHAR * object,
-                                      const rtnAlterTask * task,
-                                      const rtnAlterOptions * options,
-                                      _pmdEDUCB * cb,
-                                      _SDB_DMSCB * dmsCB,
-                                      _SDB_RTNCB * rtnCB,
-                                      _dpsLogWrapper * dpsCB,
-                                      INT16 w ) ;
-
-         virtual INT32 _openContext ( _pmdEDUCB * cb,
-                                      _SDB_RTNCB * rtnCB,
-                                      INT64 * pContextID = NULL ) ;
    } ;
 
 }

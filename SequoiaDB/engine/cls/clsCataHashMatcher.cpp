@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsCataHashMatcher.cpp
 
@@ -115,9 +114,6 @@ namespace engine
          {
             if ( _logicType != CLS_CATA_LOGIC_AND )
             {
-               // $or: upgrade to universe set.
-               // CLS_CATA_LOGIC_INVALID means it is the only element also
-               // upgrade to universe set.
                upgradeToUniverse();
             }
          }
@@ -134,7 +130,6 @@ namespace engine
 
       if ( CLS_CATA_LOGIC_OR == _logicType && _fieldSet.size() >= 1 )
       {
-         // _fieldSet can't be $or relations, must be $and relations
          clsCataHashPredTree *pChild = NULL ;
          pChild = SDB_OSS_NEW clsCataHashPredTree( _shardingKey ) ;
          PD_CHECK( pChild != NULL, SDB_OOM, error, PDERROR,
@@ -148,7 +143,6 @@ namespace engine
       iter = _fieldSet.find( pFieldName ) ;
       if ( iter != _fieldSet.end() )
       {
-         // ex: a = 1 and a = 2, is not impossible
          if ( 0 != beField.woCompare( iter->second, FALSE ) )
          {
             clear() ;
@@ -236,7 +230,6 @@ namespace engine
          if ( includeAllKey )
          {
             objKey = bobKey.obj() ;
-            /// should not hit here when version is old
             _hashVal = clsPartition( objKey,
                                      partitionBit,
                                      internalV ) ;
@@ -361,7 +354,6 @@ namespace engine
          buf << _logicType << ": " ;
       }
 
-      // predicate
       if ( _fieldSet.size() > 0 )
       {
          MAP_CLSCATAHASHPREDFIELDS::const_iterator cit = _fieldSet.begin() ;
@@ -383,7 +375,6 @@ namespace engine
          buf << "{ isNull: true }" ;
       }
 
-      // sub
       for ( UINT32 i = 0 ; i < _children.size() ; ++i )
       {
          buf << _children[ i ]->toString() ;
@@ -393,7 +384,6 @@ namespace engine
       return buf.str() ;
    }
 
-   // note: don't delete shardingkey before delete clsCataHashMatcher
    clsCataHashMatcher::clsCataHashMatcher( const BSONObj &shardingKey )
    :_predicateSet( shardingKey ),
    _shardingKey( shardingKey )
@@ -430,8 +420,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION( SDB_CLSCATAHASHMATCHER_PARSEANOBJ, "clsCataHashMatcher::parseAnObj" )
    INT32 clsCataHashMatcher::parseAnObj( const BSONObj &matcher,
-                                         clsCataHashPredTree &predicateSet,
-                                         BOOLEAN *pForceEnd )
+                                         clsCataHashPredTree &predicateSet )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CLSCATAHASHMATCHER_PARSEANOBJ ) ;
@@ -463,10 +452,6 @@ namespace engine
                  ( predicateSet.isNull() &&
                    predicateSet.getLogicType() == CLS_CATA_LOGIC_AND ) )
             {
-               if ( pForceEnd )
-               {
-                  *pForceEnd = TRUE ;
-               }
                break ;
             }
          }
@@ -497,24 +482,18 @@ namespace engine
       {
          const CHAR *pFieldName = beField.fieldName() ;
 
-         // the regular expresion is regarded as universe set
          if ( beField.type() != Array )
          {
             if ( predicateSet.getLogicType() != CLS_CATA_LOGIC_AND )
             {
-               // $or: upgrade to universe set.
-               // CLS_CATA_LOGIC_INVALID means it is the only element also
-               // upgrade to universe set.
                predicateSet.upgradeToUniverse();
             }
-            // $and: ignore the element
             goto done ;
          }
 
          if ( 'a' == pFieldName[1] && 'n' == pFieldName[2] &&
               'd' == pFieldName[3] && 0 == pFieldName[4] )
          {
-            // parse "$and"
             if ( predicateSet.getLogicType() == CLS_CATA_LOGIC_OR )
             {
                pPredicateSet = SDB_OSS_NEW clsCataHashPredTree( _shardingKey ) ;
@@ -535,7 +514,6 @@ namespace engine
          else if ( 'o' == pFieldName[1] && 'r' == pFieldName[2] &&
                    0 == pFieldName[3] )
          {
-            // parse "$or"
             if ( predicateSet.getLogicType() == CLS_CATA_LOGIC_AND )
             {
                pPredicateSet = SDB_OSS_NEW clsCataHashPredTree( _shardingKey ) ;
@@ -557,19 +535,14 @@ namespace engine
          {
             if ( predicateSet.getLogicType() != CLS_CATA_LOGIC_AND )
             {
-               // $or: upgrade to universe set.
-               // CLS_CATA_LOGIC_INVALID means it is the only element also
-               // upgrade to universe set.
                predicateSet.upgradeToUniverse();
             }
-            // $and: ignore the element
             goto done ;
          }
 
          {
-            BOOLEAN forceEnd = FALSE ;
             BSONObjIterator iter( beField.embeddedObject() ) ;
-            while ( iter.more() && !forceEnd )
+            while ( iter.more() )
             {
                BSONObj boTmp ;
                BSONElement beTmp = iter.next() ;
@@ -577,15 +550,13 @@ namespace engine
                          PDERROR, "Failed to parse logic-operation field, "
                          "the field type must be Object!" ) ;
                boTmp = beTmp.embeddedObject() ;
-               rc = parseAnObj( boTmp, *pPredicateSet, &forceEnd );
+               rc = parseAnObj( boTmp, *pPredicateSet );
                PD_RC_CHECK( rc, PDERROR, "Failed to parse the field"
                             "( field:%s, rc=%d )", beTmp.toString().c_str(),
                             rc ) ;
             }
             if ( isNewChild )
             {
-               // after call addchild the predicateset
-               // will free by its father.
                predicateSet.addChild( pPredicateSet );
                isNewChild = FALSE ;
             }
@@ -616,8 +587,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CLSCATAHASHMATCHER_PARSECMPOP ) ;
-      BOOLEAN universeCheck = FALSE ;
-
       try
       {
          const CHAR *pFieldName = NULL ;
@@ -625,7 +594,6 @@ namespace engine
          BSONElement beTmp = _shardingKey.getField( pFieldName ) ;
          if ( beTmp.eoo() )
          {
-            universeCheck = TRUE ;
             goto done ;
          }
          if ( beField.type() == Object )
@@ -637,7 +605,10 @@ namespace engine
                          rc ) ;
             if ( PREDICATE_OBJ_TYPE_OP_NOT_EQ == opType )
             {
-               universeCheck = TRUE ;
+               if ( predicateSet.getLogicType() != CLS_CATA_LOGIC_AND )
+               {
+                  predicateSet.upgradeToUniverse() ;
+               }
                goto done;
             }
             else if ( PREDICATE_OBJ_TYPE_OP_EQ == opType )
@@ -655,7 +626,10 @@ namespace engine
          }
          else if ( beField.type() == RegEx )
          {
-            universeCheck = TRUE ;
+            if ( predicateSet.getLogicType() != CLS_CATA_LOGIC_AND )
+            {
+               predicateSet.upgradeToUniverse() ;
+            }
             goto done ;
          }
          rc = predicateSet.addPredicate( pFieldName, beField ) ;
@@ -668,16 +642,6 @@ namespace engine
                       "unexpected error:%s", e.what() ) ;
       }
    done:
-      if ( universeCheck )
-      {
-         /// $or: upgrade to universe
-         /// CLS_CATA_LOGIC_INVALID means it is the only element also
-         /// upgrade to universe
-         if ( predicateSet.getLogicType() != CLS_CATA_LOGIC_AND )
-         {
-            predicateSet.upgradeToUniverse() ;
-         }
-      }
       PD_TRACE_EXITRC ( SDB_CLSCATAHASHMATCHER_PARSECMPOP, rc ) ;
       return rc ;
    error:
@@ -722,7 +686,6 @@ namespace engine
                         }
                         else
                         {
-                           // Contain other operations
                            result = PREDICATE_OBJ_TYPE_OP_NOT_EQ ;
                         }
                      }
@@ -777,22 +740,17 @@ namespace engine
                if ( opType != BSONObj::opREGEX &&
                     opType != BSONObj::opOPTIONS )
                {
-                  // Neither $regex nor $options, so the whole inner object
-                  // will not be parsed as a simple $et
                   result = PREDICATE_OBJ_TYPE_OP_NOT_EQ ;
                   break ;
                }
                else
                {
-                  // Check if it is a valid $regex or $options, the expression
-                  // is $et:{$regex:xxx} to find RegEx objects
                   PD_CHECK( beTmp.type() == String, SDB_INVALIDARG, error,
                             PDERROR, "Failed to parse regex operator" ) ;
                }
             }
             else if ( beTmp.type() == Object )
             {
-               // Recursively check the object
                rc = checkETInnerObj( beTmp.embeddedObject(), result ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to parse inner object, "
                             "rc: %d", rc ) ;

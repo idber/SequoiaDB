@@ -1,6 +1,6 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
 *******************************************************************************/
 /** \file client.h
     \brief C Client Driver
@@ -111,22 +112,6 @@ typedef sdbNodeHandle             sdbReplicaNodeHandle ;
 #define QUERY_PREPARE_MORE                0x00004000
 /** The sharding key in update rule is not filtered, when executing queryAndUpdate. */
 #define QUERY_KEEP_SHARDINGKEY_IN_UPDATE  0x00008000
-/** When the transaction is turned on and the transaction isolation level is "RC", 
-    the transaction lock will be released after the record is read by default.
-    However, when setting this flag, the transaction lock will not released until 
-    the transaction is committed or rollback. When the transaction is turned off or
-    the transaction isolation level is "RU", the flag does not work. */
-#define QUERY_FOR_UPDATE                  0x00010000
-
-
-/** The flag represent whether insert continue(no errors were reported) when hitting index key duplicate error */
-#define FLG_INSERT_CONTONDUP              0x00000001
-/** The flag represent whether insert return the "_id" field of the record for user */
-#define FLG_INSERT_RETURN_OID             0x00000002
-/** The flag represent replacing the existing record by the new record and continuing when insert hitting index key duplicate error */
-#define FLG_INSERT_REPLACEONDUP           0x00000004
-
-
 
 /** The sharding key in update rule is not filtered, when executing update or upsert. */
 #define UPDATE_KEEP_SHARDINGKEY           QUERY_KEEP_SHARDINGKEY_IN_UPDATE
@@ -138,26 +123,6 @@ typedef sdbNodeHandle             sdbReplicaNodeHandle ;
     \retval Others Fail
 */
 SDB_EXPORT INT32 initClient( sdbClientConf* config ) ;
-
-/** \fn INT32 sdbGetPasswdByCipherFile ( const CHAR *pUsrName,
-                                         const CHAR *pToken,
-                                         const CHAR *pCipherFile,
-                                         CHAR *pUser,
-                                         CHAR *pPasswd ) ;
-    \brief get user password by decrypting the cipherfile
-    \param [in] pUsrName The User's Name in the cipherfile
-    \param [in] pToken The Password encryption token
-    \param [in] pCipherFile The Cipherfile location, default ./passwd
-    \param [out] pUser a buffer to hold usrName without @ and following text,
-                 this user name is used for database connection
-    \param [out] pPasswd a buffer to hold decrypted Password
-    \retval SDB_OK Retrieval Success
-    \retval Others Retrieval Fail
-*/
-SDB_EXPORT INT32 sdbGetPasswdByCipherFile( const CHAR *pUsrName,
-                                           const CHAR *pToken,
-                                           const CHAR *pCipherFile,
-                                           CHAR *pUser, CHAR *pPasswd ) ;
 
 /** \fn INT32 sdbConnect ( const CHAR *pHostName, const CHAR *pServiceName,
                            const CHAR *pUsrName, const CHAR *pPasswd ,
@@ -232,6 +197,20 @@ SDB_EXPORT INT32 sdbSecureConnect1 ( const CHAR **pConnAddrs, INT32 arrSize,
     \param [in] handle The database connection handle
 */
 SDB_EXPORT void sdbDisconnect ( sdbConnectionHandle handle ) ;
+
+/** \fn void sdbGetLastErrorObj ( bson *obj )
+    \brief Get the error object info for the last operation in the thread
+    \param [out] obj The return error bson object
+    \retval SDB_OK Get error object Success
+    \retval SDB_DMS_EOC There is no error object
+    \retval Others Get error object Fail
+*/
+SDB_EXPORT INT32 sdbGetLastErrorObj( bson *obj ) ;
+
+/** \fn void sdbCleanLastErrorObj ()
+    \brief Clean the last error object info in the thread
+*/
+SDB_EXPORT void sdbCleanLastErrorObj() ;
 
 /** \fn INT32 sdbCreateUsr( sdbConnectionHandle cHandle, const CHAR *pUsrName,
                             const CHAR *pPasswd ) ;
@@ -361,14 +340,11 @@ SDB_EXPORT INT32 sdbGetQueryMeta ( sdbCollectionHandle cHandle,
         SDB_SNAP_COLLECTIONSPACES : Get the snapshot of all the collection spaces
         SDB_SNAP_DATABASE         : Get the snapshot of the database
         SDB_SNAP_SYSTEM           : Get the snapshot of the system
-        SDB_SNAP_CATALOG          : Get the snapshot of the catalog
+        SDB_SNAP_CATA             : Get the snapshot of the catalog
         SDB_SNAP_TRANSACTIONS     : Get snapshot of transactions in current session
         SDB_SNAP_TRANSACTIONS_CURRENT : Get snapshot of all the transactions
         SDB_SNAP_ACCESSPLANS      : Get the snapshot of cached access plans
         SDB_SNAP_HEALTH           : Get snapshot of node health detection
-        SDB_SNAP_CONFIGS          : Get snapshot of node configurations
-        SDB_SNAP_SVCTASKS         : Get all the information of schedule task
-        SDB_SNAP_SEQUENCES        : Get the snapshot of sequences
 
     \param [in] condition The matching rule, match all the documents if null
     \param [in] select The selective rule, return the whole document if null
@@ -383,57 +359,6 @@ SDB_EXPORT INT32 sdbGetSnapshot ( sdbConnectionHandle cHandle,
                                   bson *selector,
                                   bson *orderBy,
                                   sdbCursorHandle *handle ) ;
-
-/** \fn INT32 sdbGetSnapshot1 ( sdbConnectionHandle cHandle,
-                                  INT32 snapType,
-                                  bson *condition,
-                                  bson *selector,
-                                  bson *orderBy,
-                                  bson *hint,
-                                  INT64 numToSkip,
-                                  INT64 numToReturn,
-                                  sdbCursorHandle *handle )
-    \brief Get the snapshot
-    \param [in] cHandle The connection handle
-    \param [in] snapType The snapshot type as below
-
-        SDB_SNAP_CONTEXTS         : Get the snapshot of all the contexts
-        SDB_SNAP_CONTEXTS_CURRENT : Get the snapshot of current context
-        SDB_SNAP_SESSIONS         : Get the snapshot of all the sessions
-        SDB_SNAP_SESSIONS_CURRENT : Get the snapshot of current session
-        SDB_SNAP_COLLECTIONS      : Get the snapshot of all the collections
-        SDB_SNAP_COLLECTIONSPACES : Get the snapshot of all the collection spaces
-        SDB_SNAP_DATABASE         : Get the snapshot of the database
-        SDB_SNAP_SYSTEM           : Get the snapshot of the system
-        SDB_SNAP_CATALOG          : Get the snapshot of the catalog
-        SDB_SNAP_TRANSACTIONS     : Get snapshot of transactions in current session
-        SDB_SNAP_TRANSACTIONS_CURRENT : Get snapshot of all the transactions
-        SDB_SNAP_ACCESSPLANS      : Get the snapshot of cached access plans
-        SDB_SNAP_HEALTH           : Get snapshot of node health detection
-        SDB_SNAP_CONFIGS          : Get snapshot of node configurations
-        SDB_SNAP_SVCTASKS         : Get all the information of schedule task
-        SDB_SNAP_SEQUENCES        : Get the snapshot of sequences
-
-    \param [in] condition The matching rule, match all the documents if null
-    \param [in] select The selective rule, return the whole document if null
-    \param [in] orderBy The ordered rule, never sort if null
-    \param [in] hint The options provided for specific snapshot type.
-                format:{ '$Options': { <options> } }
-    \param [in] numToSkip Skip the first numToSkip documents, default is 0
-    \param [in] numToReturn Only return numToReturn documents, default is -1 for returning all results
-    \param [out] handle The cursor handle of current query
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-SDB_EXPORT INT32 sdbGetSnapshot1 ( sdbConnectionHandle cHandle,
-                                   INT32 snapType,
-                                   bson *condition,
-                                   bson *selector,
-                                   bson *orderBy,
-                                   bson *hint,
-                                   INT64 numToSkip,
-                                   INT64 numToReturn,
-                                   sdbCursorHandle *handle ) ;
 
 /** \fn INT32 sdbResetSnapshot ( sdbConnectionHandle cHandle,
  *                               bson *options )
@@ -464,10 +389,8 @@ SDB_EXPORT INT32 sdbResetSnapshot ( sdbConnectionHandle cHandle,
 
 /** \fn INT32 sdbTraceStart ( sdbConnectionHandle cHandle,
                               UINT32 traceBufferSize,
-                              CHAR * component,
-                              CHAR * breakPoint ,
-                              UINT32 *tids,
-                              UINT32 nTids )
+                              CHAR *component,
+                              CHAR *breakpoint )
     \brief Start trace with given trace buffer size and component list
     \param [in] cHandle The connection handle
     \param [in] traceBufferSize The size for trace buffer on bytes
@@ -499,8 +422,6 @@ SDB_EXPORT INT32 sdbResetSnapshot ( sdbConnectionHandle cHandle,
         spt    : Scripting
         util   : Utilities
     \param [in] breakpoint The functions need to break, separated by comma (,)
-	\param [in] tids The array of target threads.
-	\param [in] nTids The length of the array of target threads.
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
 */
@@ -563,9 +484,6 @@ SDB_EXPORT INT32 sdbTraceStatus ( sdbConnectionHandle cHandle,
         SDB_LIST_TASKS            : Get all the running split tasks ( only applicable in sharding env )
         SDB_LIST_TRANSACTIONS     : Get all the transactions information.
         SDB_LIST_TRANSACTIONS_CURRENT : Get the transactions information of current session.
-        SDB_LIST_SVCTASKS         : Get all the schedule task informations
-        SDB_LIST_SEQUENCES        : Get all the sequence informations
-        SDB_LIST_USERS            : Get all the user informations
 
     \param [in] condition The matching rule, match all the documents if null
     \param [in] select The selective rule, return the whole document if null
@@ -579,58 +497,6 @@ SDB_EXPORT INT32 sdbGetList ( sdbConnectionHandle cHandle,
                               bson *condition,
                               bson *selector,
                               bson *orderBy,
-                              sdbCursorHandle *handle ) ;
-
-/** \fn INT32 sdbGetList1 ( sdbConnectionHandle cHandle,
-                            INT32 listType,
-                            bson *condition,
-                            bson *selector,
-                            bson *orderBy,
-                            bson *hint,
-                            INT64 numToSkip,
-                            INT64 numToReturn,
-                            sdbCursorHandle *handle )
-    \brief Get the specified list
-    \param [in] cHandle The collection handle
-    \param [in] listType The list type as below
-
-        SDB_LIST_CONTEXTS         : Get all contexts list
-        SDB_LIST_CONTEXTS_CURRENT : Get contexts list for the current session
-        SDB_LIST_SESSIONS         : Get all sessions list
-        SDB_LIST_SESSIONS_CURRENT : Get the current session
-        SDB_LIST_COLLECTIONS      : Get all collections list
-        SDB_LIST_COLLECTIONSPACES : Get all collecion spaces' list
-        SDB_LIST_STORAGEUNITS     : Get storage units list
-        SDB_LIST_GROUPS           : Get replicaGroup list ( only applicable in sharding env )
-        SDB_LIST_STOREPROCEDURES  : Get all the stored procedure list
-        SDB_LIST_DOMAINS          : Get all the domains list
-        SDB_LIST_TASKS            : Get all the running split tasks ( only applicable in sharding env )
-        SDB_LIST_TRANSACTIONS     : Get all the transactions information.
-        SDB_LIST_TRANSACTIONS_CURRENT : Get the transactions information of current session.
-        SDB_LIST_SVCTASKS         : Get all the schedule task informations
-        SDB_LIST_SEQUENCES        : Get all the sequence informations
-        SDB_LIST_USERS            : Get all the user informations
-
-    \param [in] condition The matching rule, match all the documents if null
-    \param [in] select The selective rule, return the whole document if null
-    \param [in] orderBy The ordered rule, never sort if null
-    \param [in] hint The options provided for specific list type. Reserved.
-    \param [in] numToSkip Skip the first numToSkip documents.
-    \param [in] numToReturn Only return numToReturn documents. -1 means return
-                all matched results.
-    \param [out] handle The cursor handle of current query
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-
-SDB_EXPORT INT32 sdbGetList1( sdbConnectionHandle cHandle,
-                              INT32 listType,
-                              bson *condition,
-                              bson *selector,
-                              bson *orderBy,
-                              bson *hint,
-                              INT64 numToSkip,
-                              INT64 numToReturn,
                               sdbCursorHandle *handle ) ;
 
 /** \fn INT32 sdbGetCollection ( sdbConnectionHandle cHandle,
@@ -1012,18 +878,6 @@ SDB_EXPORT INT32 sdbListCollectionSpaces ( sdbConnectionHandle cHandle,
 SDB_EXPORT INT32 sdbListCollections ( sdbConnectionHandle cHandle,
                                       sdbCursorHandle *handle ) ;
 
-/** \fn INT32 sdbListSequences ( sdbConnectionHandle cHandle,
-                                 sdbCursorHandle *handle )
-    \brief List all sequences of current database
-    \param [in] cHandle The database connection handle
-    \param [out] handle The cursor handle of all sequences names
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-
-SDB_EXPORT INT32 sdbListSequences ( sdbConnectionHandle cHandle,
-                                      sdbCursorHandle *handle ) ;
-
 /** \fn INT32 sdbListReplicaGroups ( sdbConnectionHandle cHandle,
                                      sdbCursorHandle *handle )
     \brief List all the replica groups of current database
@@ -1172,7 +1026,7 @@ SDB_EXPORT INT32 sdbCreateCollection1 ( sdbCSHandle cHandle,
                                         sdbCollectionHandle *handle ) ;
 
 /** \fn INT32 sdbAlterCollection ( sdbCollectionHandle cHandle,
-                                   bson *options  )
+                                  bson *options  )
     \brief Alter the specified collection
     \param [in] cHandle The colleciton handle
     \param [in] options The options are as following:
@@ -1181,13 +1035,7 @@ SDB_EXPORT INT32 sdbCreateCollection1 ( sdbCSHandle cHandle,
         ShardingKey  : Assign the sharding key
         ShardingType : Assign the sharding type
         Partition    : When the ShardingType is "hash", need to assign Partition, it's the bucket number for hash, the range is [2^3,2^20]
-        CompressionType : The compression type of data, could be "snappy" or "lzw"
-        EnsureShardingIndex : Assign to true to build sharding index
-        StrictDataMode : Using strict date mode in numeric operations or not
-                         e.g. {RepliSize:0, ShardingKey:{a:1}, ShardingType:"hash", Partition:1024}
-        AutoIncrement: Assign attributes of an autoincrement field or batch autoincrement fields.
-                       e.g. {AutoIncrement:{Field:"a",MaxValue:2000}}, 
-                       {AutoIncrement:[{Field:"a",MaxValue:2000},{Field:"a",MaxValue:4000}]}
+                       e.g. {RepliSize:0, ShardingKey:{a:1}, ShardingType:"hash", Partition:1024}
     \note Can't alter attributes about split in partition collection; After altering a collection to
           be a partition collection, need to split this collection manually
     \retval SDB_OK Operation Success
@@ -1235,75 +1083,6 @@ SDB_EXPORT INT32 sdbRenameCollection( sdbCSHandle cHandle,
                                       const CHAR *pOldName,
                                       const CHAR *pNewName,
                                       bson *options ) ;
-
-/** \fn INT32 sdbAlterCollectionSpace( sdbCSHandle cHandle,
-                                       bson * options )
-    \brief Alter the specified collection space
-    \param [in] cHandle The collection space handle
-    \param [in] options The options of collection space to be changed, e.g. { "PageSize": 4096, "Domain": "mydomain" }.
-
-        PageSize     : The page size of the collection space
-        LobPageSize  : The page size of LOB objects in the collection space
-        Domain       : The domain which the collection space belongs to
-
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-SDB_EXPORT INT32 sdbAlterCollectionSpace ( sdbCSHandle cHandle,
-                                           bson * options ) ;
-
-/** \fn INT32 sdbCSSetDomain( sdbCSHandle cHandle,
-                              bson * options )
-    \brief Alter the specified collection space to set domain
-    \param [in] cHandle The collection space handle
-    \param [in] options The options of collection space to be changed.
-
-        Domain : The domain which the collection space belongs to
-
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-SDB_EXPORT INT32 sdbCSSetDomain ( sdbCSHandle cHandle,
-                                  bson * options ) ;
-
-/** \fn INT32 sdbCSRemoveDomain( sdbCSHandle cHandle )
-    \brief Alter the specified collection space to remove domain
-    \param [in] cHandle The collection space handle
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-SDB_EXPORT INT32 sdbCSRemoveDomain ( sdbCSHandle cHandle ) ;
-
-/** \fn INT32 sdbCSEnableCapped( sdbCSHandle cHandle )
-    \brief Alter the specified collection space to enable capped
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-SDB_EXPORT INT32 sdbCSEnableCapped ( sdbCSHandle cHandle ) ;
-
-/** \fn INT32 sdbCSDisableCapped( sdbCSHandle cHandle )
-    \brief Alter the specified collection space to disable capped
-    \param [in] cHandle The collection space handle
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-SDB_EXPORT INT32 sdbCSDisableCapped ( sdbCSHandle cHandle ) ;
-
-/** \fn INT32 sdbCSSetAttributes( sdbCSHandle cHandle,
-                                  bson * options )
-    \brief Alter the specified collection space
-    \param [in] cHandle The collection space handle
-    \param [in] options The options of collection space to be changed, e.g. { "PageSize": 4096, "Domain": "mydomain" }.
-
-        PageSize     : The page size of the collection space
-        LobPageSize  : The page size of LOB objects in the collection space
-        Domain       : The domain which the collection space belongs to
-
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-SDB_EXPORT INT32 sdbCSSetAttributes ( sdbCSHandle cHandle,
-                                      bson * options ) ;
 
 /** \fn INT32 sdbGetCLName ( sdbCollectionHandle cHandle,
                              CHAR *pCLName, INT32 size )
@@ -1472,38 +1251,10 @@ SDB_EXPORT INT32 sdbCreateIndex1 ( sdbCollectionHandle cHandle,
     \param [out] handle The cursor handle of returns
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
-    \deprecated use sdbGetIndex and sdbGetIndexInfo instead.
 */
 SDB_EXPORT INT32 sdbGetIndexes ( sdbCollectionHandle cHandle,
                                  const CHAR *pIndexName,
                                  sdbCursorHandle *handle ) ;
-
-/** \fn INT32 sdbGetIndex ( sdbCollectionHandle cHandle,
-                            const CHAR *pIndexName,
-                            bson *info )
-    \brief Get the information of the specified index in current collection.
-    \param [in] cHandle The collection handle.
-    \param [in] pIndexName The index name, returns all of the indexes if this parameter is null
-    \param [out] info The information of index.
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-SDB_EXPORT INT32 sdbGetIndex ( sdbCollectionHandle cHandle,
-                               const CHAR *pIndexName,
-                               bson *info ) ;
-
-
-/** \fn INT32 sdbGetIndexInfo ( sdbCollectionHandle cHandle,
-                                sdbCursorHandle *handle )
-    \brief Get the information of all the indexes in current collection.
-    \param [in] cHandle The collection handle.
-    \param [out] handle The cursor of the information of indexes.
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-SDB_EXPORT INT32 sdbGetIndexInfo ( sdbCollectionHandle cHandle,
-                                   sdbCursorHandle *handle ) ;
-
 
 /** \fn INT32 sdbDropIndex ( sdbCollectionHandle cHandle,
                              const CHAR *pIndexName )
@@ -1553,117 +1304,48 @@ SDB_EXPORT INT32 sdbGetCount1 ( sdbCollectionHandle cHandle,
 
 /** \fn INT32 sdbInsert ( sdbCollectionHandle cHandle,
                           bson *obj )
-    \brief Insert a bson object into current collection.
-    \param [in] cHandle The collection handle.
-    \param [in] obj The bson object to be inserted, cannot be null.
-    \retval SDB_OK Operation Success.
-    \retval Others Operation Fail.
+    \brief Insert a bson object into current collection
+    \param [in] cHandle The collection handle
+    \param [in] obj The inserted bson object, cannot be null
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
 */
 SDB_EXPORT INT32 sdbInsert ( sdbCollectionHandle cHandle,
                              bson *obj ) ;
 
 /** \fn INT32 sdbInsert1 ( sdbCollectionHandle cHandle,
-                           bson *obj, bson_iterator *pId )
-    \brief Insert a bson object into current collection.
-    \param [in] cHandle The collection handle.
-    \param [in] obj The bson object to be inserted, cannot be null.
-    \param [out] pId The object id of inserted bson object. Can be the 
-                     follow value:
-         <ul>
-         <li> NULL: 
-               when this argument is NULL.
-         <li> value of "_id" field: 
-               pId points the position of the record where 
-               the value of "_id" field is. Note that: the memory of pId 
-               will be invalidated when next insert/bulkInsert is 
-               performed or the inserted bson object is destroyed.
-    \retval SDB_OK Operation Success.
-    \retval Others Operation Fail.
+                           bson *obj, bson_iterator *id )
+    \brief Insert a bson object into current collection
+    \param [in] cHandle The collection handle
+    \param [in] obj The inserted bson object, cannot be null
+    \param [out] id The object id of inserted bson object in current collection
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
 */
 SDB_EXPORT INT32 sdbInsert1 ( sdbCollectionHandle cHandle,
-                              bson *obj, bson_iterator *pId ) ;
+                              bson *obj, bson_iterator *id ) ;
 
-
-/** \fn INT32 sdbInsert2 ( sdbCollectionHandle cHandle,
-                           bson *obj, INT32 flags, 
-                           bson *pResullt )
-    \brief Insert a bson object into current collection.
-    \param [in] cHandle The collection handle.
-    \param [in] obj The bson object to be inserted, cannot be null.
-    \param [in] flags The flag to control the behavior of inserting. The
-                      value of flags default to be 0, and it can choose
-                      the follow values:
-         <ul>
-         <li>
-         0:                    while 0 is set(default to be 0), database 
-                               will stop inserting when the record hit 
-                               index key duplicate error.
-         <li>
-         FLG_INSERT_CONTONDUP: 
-                               if the record hit index key duplicate
-                               error, database will skip them and go on 
-                               inserting.
-         <li>
-         FLG_INSERT_RETURN_OID: 
-                               return the value of "_id" field in the record.
-         <li>
-         FLG_INSERT_REPLACEONDUP:
-                               if the record hit index key duplicate 
-                               error, database will replace the existing 
-                               record by the inserting new record.
-
-    \param [out] pResult The result of inserting. Can be NULL or a bson:
-         <ul>
-         <li> NULL: 
-               when this argument is NULL.
-         <li> empty bson: when this argument is not NULL but there is no 
-                          result return.
-         <li> bson which contains the "_id" field: 
-               when flag "FLG_INSERT_RETURN_OID" is set, return the 
-               value of "_id" field of the inserted record. 
-               e.g.: { "_id": { "$oid": "5c456e8eb17ab30cfbf1d5d1" } }
-         </ul>
-                                
-    \retval SDB_OK Operation Success.
-    \retval Others Operation Fail.
-*/
-SDB_EXPORT INT32 sdbInsert2 ( sdbCollectionHandle cHandle,
-                              bson *obj, INT32 flags, bson *pResult ) ;
+/** The flags represent whether bulk insert continue when hitting index key duplicate error */
+#define FLG_INSERT_CONTONDUP  0x00000001
 
 /** \fn INT32 sdbBulkInsert ( sdbCollectionHandle cHandle,
-                              SINT32 flags, bson **objs, SINT32 num )
-    \brief Insert a bulk of bson objects into current collection.
-    \param [in] cHandle The collection handle.
-    \param [in] flags The flag to control the behavior of inserting. The
-                      value of flags default to be 0, and it can choose
-                      the follow values:
-         <ul>
-         <li>
-         0:                    while 0 is set(default to be 0), database 
-                               will stop inserting when the record hit 
-                               index key duplicate error.
-         <li>
-         FLG_INSERT_CONTONDUP: 
-                               if the record hit index key duplicate
-                               error, database will skip them and go on 
-                               inserting.
-         <li>
-         FLG_INSERT_REPLACEONDUP:
-                               if the record hit index key duplicate 
-                               error, database will replace the existing 
-                               record by the inserting new record and then 
-                               go on inserting.
-
-    \param [in] objs The array of bson objects to be inserted, cannot be null.
-    \param [in] num The number of inserted bson objects.
-    \retval SDB_OK Operation Success.
-    \retval Others Operation Fail.
+                              SINT32 flags, bson **obj, SINT32 num )
+    \brief Insert a bulk of bson objects into current collection
+    \param [in] cHandle The collection handle
+    \param [in] flags FLG_INSERT_CONTONDUP or 0. While FLG_INSERT_CONTONDUP
+                is set, if some records hit index key duplicate error,
+                database will skip them and go on inserting. However, while 0
+                is set, database will stop inserting in that case, and return
+                errno code.
+    \param [in] obj The array of inserted bson objects, cannot be null
+    \param [in] num The number of inserted bson objects
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
     \code
       INT32 rc = 0 ;
       INT32 i = 0 ;
       const INT32 num = 10 ;
       bson* obj[num] ;
-      // create bson poiter array
       for ( i = 0; i < num; i++ )
       {
          obj[i] = bson_create();
@@ -1674,11 +1356,9 @@ SDB_EXPORT INT32 sdbInsert2 ( sdbCollectionHandle cHandle,
          if ( rc != 0 )
             printf ( "something wrong.\n" ) ;
       }
-      // bulk insert
       rc = sdbBulkInsert ( cl, 0, obj, num ) ;
       if ( rc )
          printf ( "something wrong, rc = %d.\n", rc ) ;
-      // free memory
       for ( i = 0; i < num; i++ )
       {
          bson_dispose ( obj[i] ) ;
@@ -1687,57 +1367,7 @@ SDB_EXPORT INT32 sdbInsert2 ( sdbCollectionHandle cHandle,
 
 */
 SDB_EXPORT INT32 sdbBulkInsert ( sdbCollectionHandle cHandle,
-                                 SINT32 flags, bson **objs, SINT32 num ) ;
-
-/** \fn INT32 sdbBulkInsert2 ( sdbCollectionHandle cHandle,
-                                  SINT32 flags, bson **objs, 
-                                  SINT32 num,
-                                  bson *pResult )
-    \brief Insert a bulk of bson objects into current collection.
-    \param [in] cHandle The collection handle.
-    \param [in] flags The flag to control the behavior of inserting. The
-                      value of flags default to be 0, and it can choose
-                      the follow values:
-         <ul>
-         <li>
-         0:                    while 0 is set(default to be 0), database 
-                               will stop inserting when the record hit 
-                               index key duplicate error.
-         <li>
-         FLG_INSERT_CONTONDUP: 
-                               if the record hit index key duplicate
-                               error, database will skip them and go on 
-                               inserting.
-         <li>
-         FLG_INSERT_RETURN_OID: 
-                               return the value of "_id" field in the records.
-         <li>
-         FLG_INSERT_REPLACEONDUP:
-                               if the record hit index key duplicate 
-                               error, database will replace the existing 
-                               record by the inserting new record and then 
-                               go on inserting.
-
-    \param [in] objs The array of bson objects to be inserted, cannot be null.
-    \param [in] num The number of inserted bson objects.
-    \param [out] pResult The result of inserting. Can be NULL or a bson:
-         <ul>
-         <li> NULL: 
-               when this argument is NULL.
-         <li> empty bson: when this argument is not NULL but there is no 
-                          result return.
-         <li> bson which contains the "_id" field: 
-               when flag "FLG_INSERT_RETURN_OID" is set, return all the 
-               values of "_id" field in a bson array. 
-               e.g.: { "_id": [ { "$oid": "5c456e8eb17ab30cfbf1d5d1" }, 
-                                { "$oid": "5c456e8eb17ab30cfbf1d5d2" } ] }
-    \retval SDB_OK Operation Success.
-    \retval Others Operation Fail.
-*/
-SDB_EXPORT INT32 sdbBulkInsert2 ( sdbCollectionHandle cHandle,
-                                  SINT32 flags, bson **objs, 
-                                  SINT32 num,
-                                  bson *pResult ) ;
+                                 SINT32 flags, bson **obj, SINT32 num ) ;
 
 /** \fn INT32 sdbUpdate ( sdbCollectionHandle cHandle,
                           bson *rule,
@@ -1906,7 +1536,6 @@ SDB_EXPORT INT32 sdbDelete ( sdbCollectionHandle cHandle,
         QUERY_FORCE_HINT
         QUERY_PARALLED
         QUERY_WITH_RETURNDATA
-        QUERY_FOR_UPDATE
     \endcode
     \param [out] handle The cursor handle of current query
     \retval SDB_OK Operation Success
@@ -1984,7 +1613,6 @@ SDB_EXPORT INT32 sdbQuery ( sdbCollectionHandle cHandle,
         QUERY_PARALLED
         QUERY_WITH_RETURNDATA
         QUERY_KEEP_SHARDINGKEY_IN_UPDATE
-        QUERY_FOR_UPDATE
     \endcode
     \param [in] returnNew When TRUE, returns the updated document rather than the original
     \param [out] handle The cursor handle of current query
@@ -2028,7 +1656,6 @@ SDB_EXPORT INT32 sdbQueryAndUpdate ( sdbCollectionHandle cHandle,
         QUERY_FORCE_HINT
         QUERY_PARALLED
         QUERY_WITH_RETURNDATA
-        QUERY_FOR_UPDATE
     \endcode
     \param [out] handle The cursor handle of current query
     \retval SDB_OK Operation Success
@@ -2145,8 +1772,8 @@ SDB_EXPORT INT32 sdbDeleteCurrent ( sdbCursorHandle cHandle ) ;
 SDB_EXPORT INT32 sdbCloseCursor ( sdbCursorHandle cHandle ) ;
 
 /** \fn INT32 sdbCloseAllCursors( sdbConnectionHandle cHandle )
-    \brief Send a "Interrpt" message to engine, as a result, all the cursors and
-           lobs created by current connection will be closed.
+    \brief Close all the cursors in current thread, we can't use those cursors to get
+           data anymore.
     \param [in] cHandle The database connection handle
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
@@ -2274,24 +1901,18 @@ SDB_EXPORT void sdbReleaseDC ( sdbDCHandle cHandle ) ;
           "{ $project: { no: 1, \"info.name\": 1, major: 1 } }"
         } ;
 
-        // create bson poiter array
         for ( i = 0; i < num; i++ )
         {
            obj[i] = bson_create();
            jsonToBson ( obj[i], pArr[i] ) ;
         }
-        // TODO: get collection handle
-        // aggregate
-        //rc = sdbAggregate ( cl, obj, num, &cursor ) ;
         if ( rc )
            printf ( "something wrong, rc = %d.\n", rc ) ;
-        // free memory
         for ( i = 0; i < num; i++ )
         {
            bson_print( obj[i] ) ;
            bson_dispose ( obj[i] ) ;
         }
-        // TODO: release collection and cursor handles
    \endcode
 */
 SDB_EXPORT INT32 sdbAggregate ( sdbCollectionHandle cHandle,
@@ -2489,19 +2110,13 @@ SDB_EXPORT INT32 sdbSetSessionAttr ( sdbConnectionHandle cHandle,
 SDB_EXPORT INT32 sdbGetSessionAttr ( sdbConnectionHandle cHandle,
                                      bson * result ) ;
 
-/** \fn BOOLEAN sdbIsClosed( sdbConnectionHandle cHandle )
-    \brief Judge whether the connection is closed or not.
-    \param [in] cHandle the connection handle.
-    \retval TRUE for connection is closed while FALSE for not.
-*/
-SDB_EXPORT BOOLEAN sdbIsClosed( sdbConnectionHandle cHandle ) ;
-
-/** \fn BOOLEAN sdbIsValid( sdbConnectionHandle cHandle )
+/** \fn INT32 sdbIsValid( sdbConnectionHandle cHandle, BOOLEAN *result )
     \brief Judge whether the connection is valid.
-    \param [in] cHandle the connection handle.
-    \retval TRUE for connection is valid while FALSE for not.
+    \param [out] result the output result
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
 */
-SDB_EXPORT BOOLEAN sdbIsValid( sdbConnectionHandle cHandle ) ;
+SDB_EXPORT INT32 sdbIsValid( sdbConnectionHandle cHandle, BOOLEAN *result ) ;
 
 SDB_EXPORT INT32 _sdbMsg ( sdbConnectionHandle cHandle, const CHAR *msg ) ;
 
@@ -2601,76 +2216,6 @@ SDB_EXPORT INT32 sdbListDomains ( sdbConnectionHandle cHandle,
 SDB_EXPORT INT32 sdbAlterDomain( sdbDomainHandle cHandle,
                                  const bson *options ) ;
 
-/** \fn INT32 sdbDomainAddGroups( sdbDomainHandle cHandle,
-                                  const bson *options ) ;
-    \brief alter the current domain.
-    \param [in] cHandle The domain handle
-    \param [in] options The options user wants to alter
-
-        Groups:    The list of replica groups' names to be added into the domain.
-                   eg: { "Groups": [ "group1", "group2", "group3" ] }, it means that domain
-                   changes to add "group1", "group2" and "group3".
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-SDB_EXPORT INT32 sdbDomainAddGroups ( sdbDomainHandle cHandle,
-                                      const bson * options ) ;
-
-/** \fn INT32 sdbDomainRemoveGroups( sdbDomainHandle cHandle,
-                                     const bson *options ) ;
-    \brief alter the current domain to remove groups.
-    \param [in] cHandle The domain handle
-    \param [in] options The options user wants to alter
-
-        Groups:    The list of replica groups' names to be removed from the domain.
-                   eg: { "Groups": [ "group1", "group2", "group3" ] }, it means that domain
-                   changes to remove "group1", "group2" and "group3".
-                   However, if a group has data in it, remove it out of domain will be failing.
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-SDB_EXPORT INT32 sdbDomainRemoveGroups ( sdbDomainHandle cHandle,
-                                         const bson * options ) ;
-
-/** \fn INT32 sdbDomainSetGroups( sdbDomainHandle cHandle,
-                                  const bson *options ) ;
-    \brief alter the current domain to set groups.
-    \param [in] cHandle The domain handle
-    \param [in] options The options user wants to alter
-
-        Groups:    The list of replica groups' names which the domain is going to contain.
-                   eg: { "Groups": [ "group1", "group2", "group3" ] }, it means that domain
-                   changes to be "group1" "group2" and "group3".
-                   We can add or remove groups in current domain. However, if a group has data
-                   in it, remove it out of domain will be failing.
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-SDB_EXPORT INT32 sdbDomainSetGroups ( sdbDomainHandle cHandle,
-                                      const bson * options ) ;
-
-/** \fn INT32 sdbDomainSetAttributes( sdbDomainHandle cHandle,
-                                      const bson *options ) ;
-    \brief alter the current domain.
-    \param [in] cHandle The domain handle
-    \param [in] options The options user wants to alter
-
-        Groups:    The list of replica groups' names which the domain is going to contain.
-                   eg: { "Groups": [ "group1", "group2", "group3" ] }, it means that domain
-                   changes to contain "group1" "group2" or "group3".
-                   We can add or remove groups in current domain. However, if a group has data
-                   in it, remove it out of domain will be failing.
-        AutoSplit: Alter current domain to have the ability of automatically split or not.
-                   If this option is set to be true, while creating collection(ShardingType is "hash") in this domain,
-                   the data of this collection will be split(hash split) into all the groups in this domain automatically.
-                   However, it won't automatically split data into those groups which were add into this domain later.
-                   eg: { "Groups": [ "group1", "group2", "group3" ], "AutoSplit: true" }
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-SDB_EXPORT INT32 sdbDomainSetAttributes ( sdbDomainHandle cHandle,
-                                          const bson * options ) ;
-
 /** \fn INT32 sdbListCollectionSpacesInDomain( sdbDomainHandle cHandle,
                                                sdbCursorHandle *cursor ) ;
     \brief list the collection spaces in domain.
@@ -2705,30 +2250,18 @@ SDB_EXPORT INT32 sdbListGroupsInDomain( sdbDomainHandle cHandle,
                                         sdbCursorHandle *cursor ) ;
 
 /** \fn INT32 sdbInvalidateCache( sdbConnectionHandle cHandle,
-                                  bson *options )
+                                  bson *condition )
     \brief invalidate cache on specified nodes.
     \param [in] cHandle The connection handle
-    \param [in] options The control options:(Only take effect in coordinate nodes).
-                        About the parameter 'options', please reference to the official
-                        website(www.sequoiadb.com) and then search "位置命令参数"
-                        for more details. Some of its optional parameters are as bellow:
-                        
-                        <ul>
-                           <li>Global(Bool)                      : execute this command in global or not. While 'options' is null, it's equals to {Glocal: true}.
-                           <li>GroupID(INT32 or INT32 Array)     : specified one or several groups by their group IDs. e.g. {GroupID:[1001, 1002]}.
-                           <li>GroupName(String or String Array) : specified one or several groups by their group names. e.g. {GroupID:"group1"}.
-                           <li>...
-                        </ul>
-    
+    \param [in] condition The destination we want to invalidate.
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
 */
 SDB_EXPORT INT32 sdbInvalidateCache( sdbConnectionHandle cHandle,
-                                     bson *options ) ;
+                                     bson *condition ) ;
 
 /** \fn INT32 sdbForceSession( sdbConnectionHandle cHandle,
-                               SINT64 sessionID,
-                               bson *options )
+                               SINT64 sessionID )
     \brief interrupte the session
     \param [in] cHandle The connection handle
     \param [in] sessionID The id of the session which we want to inerrupt
@@ -2880,15 +2413,6 @@ SDB_EXPORT INT32 sdbGetLobCreateTime( sdbLobHandle lobHandle,
 SDB_EXPORT INT32 sdbGetLobModificationTime( sdbLobHandle lobHandle,
                                             UINT64 *millis ) ;
 
-/** \fn BOOLEAN sdbLobIsEof( sdbLobHandle lobHandle )
-    \brief Check whether current offset has reached to the max size of current lob.
-    \param [in] lobHandle The large object handle
-    \retval Return true if yes while false for not, 
-            while the input handle is invalid, return true.
-*/
-SDB_EXPORT BOOLEAN sdbLobIsEof( sdbLobHandle lobHandle ) ;
-
-
 /** \fn INT32 sdbSeekLob( sdbLobHandle lobHandle,
                           SINT64 size,
                           SDB_LOB_SEEK whence )
@@ -2957,6 +2481,20 @@ SDB_EXPORT INT32 sdbForceStepUp( sdbConnectionHandle cHandle,
 SDB_EXPORT INT32 sdbTruncateCollection( sdbConnectionHandle cHandle,
                                         const CHAR *fullName ) ;
 
+/* \fn INT32 sdbPop( sdbConnectionHandle cHandle,
+                      const CHAR *fullName,
+                      bson *options )
+    \brief pop records from capped collection
+    \param [in] cHandle The handle of connection.
+    \param [in] fullName The full name of collection to be popped, eg: foo.bar.
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbPop( sdbConnectionHandle cHandle,
+                         const CHAR *fullName,
+                         bson *options ) ;
+
+
 /** \fn INT32 sdbDetachNode( sdbReplicaGroupHandle cHandle,
                              const CHAR *hostName,
                              const CHAR *serviceName,
@@ -2965,14 +2503,7 @@ SDB_EXPORT INT32 sdbTruncateCollection( sdbConnectionHandle cHandle,
     \param [in] cHandle The handle of group.
     \param [in] hostName The host name of node.
     \param [in] serviceName The service name of node.
-    \param [in] options The options of detach. Can not be null or empty.
-                           Can be the follow options:
-         <ul>
-         <li>KeepData: Whether to keep the original data of the
-                       detached node. This option has no default 
-                       value. User should specify its value explicitly.
-         <li>Enforced: Whether to detach the node forcibly, default
-                       to be false.
+    \param [in] optoins The options of detach.
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
 */
@@ -2985,16 +2516,11 @@ SDB_EXPORT INT32 sdbDetachNode( sdbReplicaGroupHandle cHandle,
                              const CHAR *hostName,
                              const CHAR *serviceName,
                              const bson *options )
-    \brief attach a node to the group.
+    \brief attach a node to the group
     \param [in] cHandle The handle of group.
     \param [in] hostName The host name of node.
     \param [in] serviceName The service name of node.
-    \param [in] options The options of attach. Can not be null or empty.
-                        Can be the follow options:
-        <ul>
-        <li>KeepData : Whether to keep the original data of the new 
-                       node. This option has no default value. User 
-                       should specify its value explicitly.
+    \param [in] optoins The options of attach.
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
 */
@@ -3009,7 +2535,7 @@ SDB_EXPORT INT32 sdbAttachNode( sdbReplicaGroupHandle cHandle,
     \param [in] args The arguments of creating id index. set it as null if no args. e.g.{SortBufferSize:64}
 
         SortBufferSize     : The size of sort buffer used when creating index, the unit is MB,
-                             zero means don't use sort buffer.
+                             zero means don't use sort buffer
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
 */
@@ -3024,116 +2550,6 @@ SDB_EXPORT INT32 sdbCreateIdIndex( sdbCollectionHandle cHandle,
     \note delete, update and upsert do not work after index "$id" was drop
 */
 SDB_EXPORT INT32 sdbDropIdIndex( sdbCollectionHandle cHandle ) ;
-
-/** \fn INT32 sdbEnableSharding( sdbCollectionHandle cHandle, const bson *args )
-    \brief Enable sharding of collection
-    \param [in] cHandle The collection handle.
-    \param [in] args The arguments of sharding. e.g. { ShardingKey: { a: 1 } }
-
-         ShardingKey          : The key of sharding
-         ShardingType         : The type of sharding, "hash" or "range"
-         Partition            : The number of partitions of "hash" sharding
-         EnsureShardingIndex  : Whether to build sharding index
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-SDB_EXPORT INT32 sdbEnableSharding ( sdbCollectionHandle cHandle,
-                                     const bson * args ) ;
-
-/** \fn INT32 sdbDisableSharding( sdbCollectionHandle cHandle )
-    \brief Disable sharding of collection
-    \param [in] cHandle The collection handle
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-SDB_EXPORT INT32 sdbDisableSharding ( sdbCollectionHandle cHandle ) ;
-
-/** \fn INT32 sdbEnableCompression( sdbCollectionHandle cHandle, const bson *args )
-    \brief Enable compression of collection
-    \param [in] cHandle The collection handle.
-    \param [in] args The arguments of compression. e.g. { ShardingKey: { a: 1 } }
-
-         CompressionType      : The type of compression, "snappy" or "lzw"
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-SDB_EXPORT INT32 sdbEnableCompression ( sdbCollectionHandle cHandle,
-                                        const bson * args ) ;
-
-/** \fn INT32 sdbDisableCompression( sdbCollectionHandle cHandle )
-    \brief Disable compression of collection
-    \param [in] cHandle The collection handle
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-SDB_EXPORT INT32 sdbDisableCompression ( sdbCollectionHandle cHandle ) ;
-
-/** \fn INT32 sdbCreateAutoIncrement( sdbCollectionHandle cHandle, const bson * options )
-    \brief Create an autoincrement field on collection
-    \param [in] cHandle The collection handle.
-    \param [in] options The arguments of autoincrement field. e.g. { Field: "a", MaxValue:2000 }
-
-         Field          : The name of autoincrement field
-         StartValue     : The start value of autoincrement field
-         MinValue       : The minimum value of autoincrement field
-         MaxValue       : The maxmun value of autoincrement field
-         Increment      : The increment value of autoincrement field
-         CacheSize      : The cache size of autoincrement field
-         AcquireSize    : The acquire size of autoincrement field
-         Cycled         : The cycled flag of autoincrement field
-         Generated      : The generated mode of autoincrement field
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-SDB_EXPORT INT32 sdbCreateAutoIncrement( sdbCollectionHandle cHandle,
-                                         const bson * options ) ;
-
-/** \fn INT32 sdbDropAutoIncrement( sdbCollectionHandle cHandle, const bson * options )
-    \brief Drop an autoincrement field on collection
-    \param [in] cHandle The collection handle.
-    \param [in] options The name of autoincrement field. e.g. { Field: "a" }
-
-         Field          : The name of autoincrement field
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-SDB_EXPORT INT32 sdbDropAutoIncrement( sdbCollectionHandle cHandle,
-                                       const bson * options ) ;
-
-/** \fn INT32 sdbCLSetAttributes ( sdbCollectionHandle cHandle,
-                                   const bson *options  )
-    \brief Alter the specified collection
-    \param [in] cHandle The collection handle
-    \param [in] options The options are as following:
-
-        ReplSize     : Assign how many replica nodes need to be synchronized when a write request(insert, update, etc) is executed
-        ShardingKey  : Assign the sharding key
-        ShardingType : Assign the sharding type
-        Partition    : When the ShardingType is "hash", need to assign Partition, it's the bucket number for hash, the range is [2^3,2^20]
-        CompressionType : The compression type of data, could be "snappy" or "lzw"
-        EnsureShardingIndex : Assign to true to build sharding index
-        StrictDataMode : Using strict date mode in numeric operations or not
-                         e.g. {RepliSize:0, ShardingKey:{a:1}, ShardingType:"hash", Partition:1024}
-        AutoIncrement: Assign attributes of an autoincrement field or batch autoincrement fields.
-                       e.g. {AutoIncrement:{Field:"a",MaxValue:2000}}
-                            {AutoIncrement:[{Field:"a",MaxValue:2000},{Field:"a",MaxValue:4000}]}
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-SDB_EXPORT INT32 sdbCLSetAttributes ( sdbCollectionHandle cHandle,
-                                               const bson *options ) ;
-
-/* \fn INT32 sdbPop( sdbCollectionHandle cHandle, bson *options )
-    \brief pop records from capped collection
-    \param [in] cHandle The handle of connection
-    \param [in] fullName The full name of collection to be popped, eg: foo.bar
-    \param [in] options Pop target and direction, including "LogicalID" and "Direction".
-                Direction is optional. Its default value is 1.
-                e.g. { LogicalID:100, Direction:1 }
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-SDB_EXPORT INT32 sdbPop( sdbCollectionHandle cHandle, bson *options ) ;
 
 /* \fn INT32 sdbGetDCName( sdbDCHandle cHandle, CHAR *pBuffer, INT32 size )
     \brief Get the name of the data center
@@ -3368,42 +2784,6 @@ SDB_EXPORT INT32 sdbSetPDLevel( sdbConnectionHandle cHandle,
 SDB_EXPORT INT32 sdbReloadConfig( sdbConnectionHandle cHandle,
                                   bson *options ) ;
 
-/** \fn INT32 sdbUpdateConfig( sdbConnectionHandle cHandle,
-                               bson *configs, bson *options )
-    \brief Force the node to update configs online
-    \param [in] cHandle The database connection handle
-    \param [in] configs the specific configuration parameters to update
-    \param [in] options The control options:(Only take effect in coordinate nodes)
-                GroupID:INT32,
-                GroupName:String,
-                NodeID:INT32,
-                HostName:String,
-                svcname:String,
-                ...
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-SDB_EXPORT INT32 sdbUpdateConfig( sdbConnectionHandle cHandle,
-                                  bson *configs, bson *options ) ;
-
-/** \fn INT32 sdbDeleteConfig( sdbConnectionHandle cHandle,
-                               bson *configs, bson *options )
-    \brief Force the node to delete configs online
-    \param [in] cHandle The database connection handle
-    \param [in] configs the specific configuration parameters to delete
-    \param [in] options The control options:(Only take effect in coordinate nodes)
-                GroupID:INT32,
-                GroupName:String,
-                NodeID:INT32,
-                HostName:String,
-                svcname:String,
-                ...
-    \retval SDB_OK Operation Success
-    \retval Others Operation Fail
-*/
-SDB_EXPORT INT32 sdbDeleteConfig( sdbConnectionHandle cHandle,
-                                  bson *configs, bson *options ) ;
-
 /** \fn INT32 sdbRenameCollectionSpace( sdbConnectionHandle cHandle,
                                         const CHAR *pOldName,
                                         const CHAR *pNewName,
@@ -3422,11 +2802,10 @@ SDB_EXPORT INT32 sdbRenameCollectionSpace( sdbConnectionHandle cHandle,
                                            bson *options ) ;
 
 /** \fn void sdbSetConnectionInterruptFunc( sdbConnectionHandle cHandle,
-                                            socketInterruptFunc func )
-    \brief Set the callback function for connection interruption.
-    \param [in] cHandle The handle of connection.
-    \param [in] func The function that check the app is interrupt or not
-    \retval void
+ *                                          socketInterruptFunc func )
+ *  \param [in] cHandle The handle of connection.
+ *  \param [in] func The function that check the app is interrupt or not
+ *  \retval void
  */
 SDB_EXPORT void sdbSetConnectionInterruptFunc(
                                           sdbConnectionHandle cHandle,
@@ -3461,40 +2840,6 @@ SDB_EXPORT void sdbSetConnectionInterruptFunc(
 */
 SDB_EXPORT INT32 sdbAnalyze( sdbConnectionHandle cHandle,
                              bson *options ) ;
-
-/** \fn void sdbGetLastErrorObj ( sdbConnectionHandle cHandle, bson *errObj )
-    \brief Get the error object(only return by engine) of the last operation.
-           The error object will not be clean up automatically until the next
-           error object cover it.
-    \param [in] cHandle The handle of current connection.
-    \param [out] errObj The return error bson object. 
-                        It contains the follow fields:
-                         <ul>
-                         <li>
-                         errno:       the error number.
-                         <li>
-                         description: the description of the errno.
-                         <li>
-                         detail:      the error detail.
-                         </ul>
-                 Actrally, the follow extended fields may return from the 
-                 database depend on the operations:
-                         <ul>
-                         <li>
-                         ErrNodes:    More detailed error message.  
-                         </ul>
-    \retval SDB_OK Get error object Success.
-    \retval SDB_DMS_EOC There is no error object.
-    \retval Others Get error object Fail.
-*/
-SDB_EXPORT INT32 sdbGetLastErrorObj( sdbConnectionHandle cHandle, bson *errObj ) ;
-
-/** \fn void sdbCleanLastErrorObj ( sdbConnectionHandle cHandle )
-    \brief Clean the last error object(returned by engine) of current connection.
-    \param [in] cHandle The handle of current connection.
-*/
-SDB_EXPORT void sdbCleanLastErrorObj( sdbConnectionHandle cHandle ) ;
-
 
 SDB_EXTERN_C_END
 #endif

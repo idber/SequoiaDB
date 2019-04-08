@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dms.cpp
 
@@ -42,63 +41,11 @@
 #include "pmdEDU.hpp"
 #include "ixm.hpp"
 #include "rtn.hpp"
-#include "pmdStartup.hpp"
 #include "pdTrace.hpp"
 #include "dmsTrace.hpp"
 
 namespace engine
 {
-
-   /*
-      DMS TOOL FUNCTIONS:
-   */
-   BOOLEAN dmsAccessAndFlagCompatiblity ( UINT16 collectionFlag,
-                                          DMS_ACCESS_TYPE accessType )
-   {
-      // if we are in crash recovery mode, only recovery thread is able to
-      // perform query, in this case we always return TRUE
-      if ( !pmdGetStartup().isOK() )
-      {
-         return TRUE ;
-      }
-      else if ( DMS_IS_MB_FREE(collectionFlag) ||
-                DMS_IS_MB_DROPPED(collectionFlag) )
-      {
-         return FALSE ;
-      }
-      else if ( DMS_IS_MB_NORMAL(collectionFlag) )
-      {
-         return TRUE ;
-      }
-      else if ( DMS_IS_MB_OFFLINE_REORG(collectionFlag) )
-      {
-         if ( DMS_IS_MB_OFFLINE_REORG_TRUNCATE(collectionFlag) &&
-            ( accessType == DMS_ACCESS_TYPE_TRUNCATE ) )
-         {
-            return TRUE ;
-         }
-         else if ( ( DMS_IS_MB_OFFLINE_REORG_SHADOW_COPY ( collectionFlag ) ||
-                     DMS_IS_MB_OFFLINE_REORG_REBUILD( collectionFlag ) ) &&
-                  ( ( accessType == DMS_ACCESS_TYPE_QUERY ) ||
-                    ( accessType == DMS_ACCESS_TYPE_FETCH ) ) )
-         {
-            return TRUE ;
-         }
-         return FALSE ;
-      }
-      else if ( DMS_IS_MB_ONLINE_REORG(collectionFlag) )
-      {
-         return TRUE ;
-      }
-      else if ( DMS_IS_MB_LOAD ( collectionFlag ) &&
-                DMS_ACCESS_TYPE_TRUNCATE != accessType )
-      {
-         return TRUE ;
-      }
-
-      return FALSE ;
-   }
-
    BOOLEAN dmsIsSysCSName ( const CHAR *collectionSpaceName )
    {
       if ( collectionSpaceName && ossStrlen ( collectionSpaceName ) >= 3 &&
@@ -322,11 +269,6 @@ namespace engine
    std::string dmsGetCSNameFromFullName( const std::string &fullName )
    {
       return fullName.substr( 0, fullName.find( '.' ) ) ;
-   }
-
-   std::string dmsGetCLShortNameFromFullName( const std::string &fullName )
-   {
-      return fullName.substr( fullName.find( '.' ) + 1 ) ;
    }
 
 }

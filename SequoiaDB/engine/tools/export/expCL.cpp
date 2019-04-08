@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2016 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = expCL.cpp
 
@@ -119,8 +118,7 @@ namespace exprt
       }
       else
       {
-         if( !json2bson( selectStr.c_str(), NULL, CJSON_RIGOROUS_PARSE,
-                         FALSE, TRUE, &select ) )
+         if( !json2bson( selectStr.c_str(), NULL, CJSON_RIGOROUS_PARSE, FALSE, &select ) )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG( PDERROR, "Invalid format of select : %s", 
@@ -150,7 +148,6 @@ namespace exprt
          goto error ;
       }
 
-      // get the first record
       rc = sdbNext( hCusor, &record ) ;
       if ( SDB_DMS_EOC == rc )
       {
@@ -165,7 +162,6 @@ namespace exprt
          goto error ;
       }
 
-      // get each filed, except the '_id'
       bson_iterator_init ( &it, &record ) ;
       while ( BSON_EOO != bson_iterator_next ( &it ) )
       {
@@ -173,7 +169,6 @@ namespace exprt
          cl.fields += key ;
          cl.fields += del ;
       }
-      // erase last delimiter
       if ( !cl.fields.empty() )
       {
          cl.fields.resize( cl.fields.size() - 1 ) ;
@@ -196,7 +191,6 @@ namespace exprt
       goto done ;
    }
 
-   // parse --cscl/--excludecscl into corresponding set
    static INT32 getCSCLSet( const string &includeCSCLs, 
                             const string &excludeCSCLs,
                             set<string> &includeCS, 
@@ -219,12 +213,10 @@ namespace exprt
       for ( vector<string>::iterator it = excludeList.begin();
             excludeList.end() != it; ++it )
       {
-         // is name of cs
          if ( string::npos == it->find_first_of(EXP_DOT_CHAR) ) 
          {
             excludeCS.insert(*it) ;
          }
-         // is full name of cl
          else
          {
             expCL cl ;
@@ -241,7 +233,6 @@ namespace exprt
       for ( vector<string>::iterator it = includeList.begin();
             includeList.end() != it; ++it )
       {
-         // is name of cs
          if ( string::npos == it->find_first_of(EXP_DOT_CHAR) ) 
          {
             if ( excludeCS.end() == excludeCS.find(*it) )
@@ -249,7 +240,6 @@ namespace exprt
                includeCS.insert(*it) ;
             }
          }
-         // is full name of cl
          else
          {
             expCL cl ;
@@ -329,7 +319,6 @@ namespace exprt
       goto done ;
    }
 
-   // check whether each cs or cl in the set exists
    static INT32 checkCSCLSet( sdbConnectionHandle hConn,
                               const set<string> &includeCS, 
                               const set<expCL> &includeCollection,
@@ -338,7 +327,6 @@ namespace exprt
    {
       INT32 rc = SDB_OK ;
 
-      // include-cs-set
       for ( set<string>::const_iterator it = includeCS.begin(); 
             includeCS.end() != it; ++it)
       {
@@ -350,7 +338,6 @@ namespace exprt
          }
       }
 
-      // include-cl-set
       for ( set<expCL>::const_iterator it = includeCollection.begin(); 
             includeCollection.end() != it; ++it)
       {
@@ -368,7 +355,6 @@ namespace exprt
       goto done ;
    }  
 
-   // generate the contents for _collections from cs/cl set
    INT32 expCLSet::_generateCLList( sdbConnectionHandle hConn,
                                     const set<string> &includeCS, 
                                     const set<expCL> &includeCollection,
@@ -427,14 +413,12 @@ namespace exprt
             goto error ;
          }
 
-         // cl is excluded
          if ( ( excludeCS.end() != excludeCS.find(cl.csName) ) ||
               ( excludeCollection.end() != excludeCollection.find(cl) ) )
          {
             continue ;
          }
 
-         // cl is included
          if ( ( _includeAll ) ||
               ( includeCS.end() != includeCS.find(cl.csName) ) ||
               ( includeCollection.end() != includeCollection.find(cl) ) )
@@ -455,16 +439,10 @@ namespace exprt
       goto done ;
    }
 
-   // parse the option '--fields' format as <clFullName>:<Fields-list> or
-   // just as <Fields-list> for single collection
-   // the results will be stored in set<expCL>
    INT32 expCLSet::_parseRawFileds( set<expCL> &clFieldsSet )
    {
       INT32 rc = SDB_OK ;
       const vector<string> &rawCLFields = _options.fieldsList() ;
-      // the fields should be format as <clFullName>:<field-list>
-      // since compat for old version, one fields may be format as <field-list>
-      // so completes the prefix '<clFullName>:' here
       if ( 1 == rawCLFields.size() && 1 == rawCLFields.size() &&
            string::npos == rawCLFields.back().find(EXPCL_FIELDS_SEP_STR) )
       {
@@ -519,7 +497,6 @@ namespace exprt
          goto error ;
       }
 
-      // complete the <field-list> for each collection
       for ( vector<expCL>::iterator it = _collections.begin();
             _collections.end() != it; ++it )
       {
@@ -563,8 +540,6 @@ namespace exprt
                goto error ;
             }
 
-            // for csv, when the collection is not empty, 
-            // fields must be specified
             if ( FORMAT_CSV == _options.type() && 
                  !_options.force() &&
                  !it->fields.empty() &&
@@ -588,7 +563,6 @@ namespace exprt
       goto done ; 
    }
 
-   // do some checking and specialize for single collection 
    INT32 expCLSet::_parsePost()
    {
       INT32 rc = SDB_OK ;

@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnInternalSorting.hpp
 
@@ -44,24 +43,17 @@
 #include "rtnSortTuple.hpp"
 #include "ixmIndexKey.hpp"
 #include "../bson/ordering.h"
-#include "utilCommBuff.hpp"
+
 
 namespace engine
 {
    class _pmdEDUCB ;
 
-   /**
-    * Internal sorting implementation.
-    * It will use several blocks of memory, allocated dynamically by sort area.
-    * This is to avoid allocating large fixed size memory from the beginning,
-    * which will results in memory waste.
-    */
    class _rtnInternalSorting : public SDBObject
    {
    public:
       _rtnInternalSorting( const BSONObj &orderby,
-                           utilCommBuff *tupleDirectory,
-                           utilCommBuff *tupleBuff,
+                           CHAR *buf, UINT64 size,
                            INT64 limit ) ;
       virtual ~_rtnInternalSorting() ;
 
@@ -86,10 +78,6 @@ namespace engine
 
       UINT64 getObjNum () { return _objNum ; }
 
-      UINT32 maxRecordSize() const
-      {
-         return _maxRecordSize ;
-      }
 
    private:
       INT32 _quickSort( _rtnSortTuple **left,
@@ -104,6 +92,7 @@ namespace engine
       INT32 _insertSort( _rtnSortTuple **left,
                          _rtnSortTuple **right ) ;
 
+
       INT32 _swapLeftSameKey( _rtnSortTuple **left,
                               _rtnSortTuple **right,
                               _rtnSortTuple **&axis ) ;
@@ -112,16 +101,17 @@ namespace engine
                                _rtnSortTuple **right,
                                _rtnSortTuple **&axis ) ;
 
+
    private:
       bson::Ordering _order ;
-      utilCommBuff *_tupleDirectory ;
-      utilCommBuff *_tupleBuff ;
-
+      CHAR *_begin ;
+      UINT64 _totalSize ;
+      UINT64 _headOffset ;
+      UINT64 _tailOffset ;
       UINT64 _objNum ;
       UINT64 _fetched ;
       UINT64 _recursion ;
       INT64  _limit ;
-      UINT32 _maxRecordSize ;
    } ;
 }
 

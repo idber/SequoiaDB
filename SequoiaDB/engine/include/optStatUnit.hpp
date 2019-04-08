@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = optStatUnit.hpp
 
@@ -42,7 +41,7 @@
 #include "dmsSUCache.hpp"
 #include "rtnPredicate.hpp"
 #include "ixm.hpp"
-#include "ossMemPool.hpp"
+#include "utilList.hpp"
 #include "../bson/bson.h"
 
 using namespace std ;
@@ -56,12 +55,12 @@ namespace engine
    class _optCollectionStat ;
    typedef _optCollectionStat optCollectionStat ;
 
-   typedef ossPoolList<rtnPredicate *> rtnStatPredList ;
+   typedef _utilList<rtnPredicate *> rtnStatPredList ;
 
    /*
       _optStatListKey define
     */
-   class _optStatListKey : public ossPoolList<const rtnKeyBoundary *>,
+   class _optStatListKey : public _utilList<const rtnKeyBoundary *>,
                            public _dmsStatKey
    {
       public :
@@ -79,7 +78,7 @@ namespace engine
 
          OSS_INLINE virtual UINT32 size ()
          {
-            return ossPoolList<const rtnKeyBoundary *>::size() ;
+            return _utilList<const rtnKeyBoundary *>::size() ;
          }
 
          OSS_INLINE virtual const BSONElement &firstElement ()
@@ -176,7 +175,6 @@ namespace engine
       protected :
          INT32 _evalKeyPair ( const dmsIndexStat *pIndexStat,
                               rtnStatPredList::iterator &predIter,
-                              rtnStatPredList::iterator &endIter,
                               optStatListKey &startKeys,
                               optStatListKey &stopKeys,
                               BOOLEAN isEqual,

@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnRemoteMessenger.cpp
 
@@ -65,18 +64,16 @@ namespace engine
                                 const MsgHeader *pReply,
                                 BOOLEAN isPending )
    {
-      // do nothing
    }
 
    INT32 _rtnRSHandler::onSendConnect( _pmdSubSession *pSub,
                                        const MsgHeader *pReq,
                                        BOOLEAN isFirst )
    {
-      // No process such as authority needs to be don. So, do nothing.
       return SDB_OK ;
    }
 
-   _rtnMsgHandler::_rtnMsgHandler( pmdRemoteSessionMgr *pRSManager )
+   _rtnMsgHandler::_rtnMsgHandler( _pmdRemoteSessionMgr *pRSManager )
    {
       _pRSManager = pRSManager ;
    }
@@ -113,7 +110,6 @@ namespace engine
    {
       SDB_ASSERT( _pRSManager, "Remote session manager can't be NULL" ) ;
       PD_TRACE_ENTRY( SDB__RTNMSGHANDLER_HANDLECLOSE ) ;
-
       _pRSManager->handleClose( handle, id ) ;
       PD_TRACE_EXIT( SDB__RTNMSGHANDLER_HANDLECLOSE ) ;
    }
@@ -180,11 +176,6 @@ namespace engine
       goto done ;
    }
 
-   void _rtnRemoteMessenger::deactive()
-   {
-      _routeAgent.stop() ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNREMOTEMESSENGER_SETTARGET, "_rtnRemoteMessenger::setTarget" )
    INT32 _rtnRemoteMessenger::setTarget( const _MsgRouteID &id,
                                          const CHAR *host, const CHAR *service )
@@ -213,12 +204,8 @@ namespace engine
             rc = SDB_OK ;
          }
       }
-
       _targetNodeID = id.value ;
-      {
-         ossScopedRWLock lock( &_lock, EXCLUSIVE ) ;
-         _ready = TRUE ;
-      }
+      _ready = TRUE ;
 
    done:
       PD_TRACE_EXITRC( SDB__RTNREMOTEMESSENGER_SETTARGET, rc ) ;
@@ -239,7 +226,10 @@ namespace engine
          goto error ;
       }
 
-      _routeAgent.setLocalID( id ) ;
+      if ( MSG_INVALID_ROUTEID == _routeAgent.localID().value )
+      {
+         _routeAgent.setLocalID( id ) ;
+      }
 
    done:
       PD_TRACE_EXITRC( SDB__RTNREMOTEMESSENGER_SETLOCALID, rc ) ;
@@ -256,7 +246,6 @@ namespace engine
       pmdRemoteSessionSite* site = NULL ;
       pmdRemoteSession* session = NULL ;
 
-      // Register the current edu in remote session manager.
       site = _rsMgr.registerEDU( cb ) ;
       session = site->addSession( -1, &_rsHandler ) ;
       if ( !session )
@@ -280,45 +269,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNREMOTEMESSENGER_REMOVESESSION, "_rtnRemoteMessenger::removeSession" )
-   INT32 _rtnRemoteMessenger::removeSession( UINT64 sessionID, pmdEDUCB *cb )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNREMOTEMESSENGER_REMOVESESSION ) ;
-      pmdRemoteSessionSite* site = _rsMgr.getSite( cb ) ;
-
-      if ( !site )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Remote session site is NULL" ) ;
-         goto error ;
-      }
-
-      if ( site->sessionCount() > 0 )
-      {
-         pmdRemoteSession* session = site->getSession( sessionID ) ;
-         if ( !session )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Session with id[ %llu ] dose not exist",
-                    sessionID ) ;
-            goto error ;
-         }
-         site->removeSession( session ) ;
-      }
-      // If it's the last session in the session site, unregister.
-      if ( 0 == site->sessionCount() )
-      {
-         _rsMgr.unregEUD( cb ) ;
-      }
-
-   done:
-      PD_TRACE_EXITRC( SDB__RTNREMOTEMESSENGER_REMOVESESSION, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNREMOTEMESSENGER_SEND, "_rtnRemoteMessenger::send" )
    INT32 _rtnRemoteMessenger::send( UINT64 sessionID, const MsgHeader *msg,
                                     pmdEDUCB *cb )
@@ -339,13 +289,8 @@ namespace engine
       subSession->setReqMsg( (MsgHeader *)msg, PMD_EDU_MEM_NONE ) ;
       subSession->resetForResend() ;
       rc = session->sendMsg( subSession ) ;
-      if ( rc )
-      {
-         PD_LOG_MSG( PDERROR, "Send message to search engine adapter "
+      PD_RC_CHECK( rc, PDERROR, "Send message to search engine adapter "
                    "failed[ %d ]", rc ) ;
-         goto error ;
-      }
-
    done:
       PD_TRACE_EXITRC( SDB__RTNREMOTEMESSENGER_SEND, rc ) ;
       return rc ;
@@ -390,10 +335,47 @@ namespace engine
       goto done ;
    }
 
-   void _rtnRemoteMessenger::onDisconnect()
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNREMOTEMESSENGER_REMOVESESSION, "_rtnRemoteMessenger::removeSession" )
+   INT32 _rtnRemoteMessenger::removeSession( UINT64 sessionID, pmdEDUCB *cb )
    {
-      ossScopedRWLock lock( &_lock, EXCLUSIVE ) ;
-      _ready = FALSE ;
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNREMOTEMESSENGER_REMOVESESSION ) ;
+      pmdRemoteSessionSite* site = _rsMgr.getSite( cb ) ;
+
+      if ( !site )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Remote session site is NULL" ) ;
+         goto error ;
+      }
+
+      if ( 1 == site->sessionCount() )
+      {
+         _rsMgr.unregEUD( cb ) ;
+      }
+      else
+      {
+         pmdRemoteSession* session = site->getSession( sessionID ) ;
+         if ( !session )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "Session with id[ %llu ] dose not exist",
+                    sessionID ) ;
+            goto error ;
+         }
+         site->removeSession( session ) ;
+      }
+
+   done:
+      PD_TRACE_EXITRC( SDB__RTNREMOTEMESSENGER_REMOVESESSION, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   void _rtnRemoteMessenger::removeSession( pmdEDUCB *cb )
+   {
+      _rsMgr.unregEUD( cb ) ;
    }
 }
 

@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dmsStorageLoadExtent.hpp
 
@@ -79,7 +78,6 @@ namespace engine
          _buffSize = 0 ;
       }
 
-      // Flag Load
       BOOLEAN isFlagLoad ( dmsMB *mb )
       {
          return DMS_IS_MB_LOAD ( mb->_flag ) ;
@@ -95,7 +93,6 @@ namespace engine
          OSS_BIT_CLEAR ( mb->_flag, DMS_MB_FLAG_LOAD ) ;
       }
 
-      // Flag Load Load
       BOOLEAN isFlagLoadLoad ( dmsMB *mb )
       {
          return DMS_IS_MB_FLAG_LOAD_LOAD ( mb->_flag ) ;
@@ -111,7 +108,6 @@ namespace engine
          OSS_BIT_CLEAR ( mb->_flag, DMS_MB_FLAG_LOAD_LOAD ) ;
       }
 
-      // Flag Load Build
       BOOLEAN isFlagLoadBuild ( dmsMB *mb )
       {
          return DMS_IS_MB_FLAG_LOAD_BUILD ( mb->_flag ) ;

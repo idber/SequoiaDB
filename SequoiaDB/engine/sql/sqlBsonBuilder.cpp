@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sqlBsonBuilder.cpp
 
@@ -116,8 +115,6 @@ namespace engine
                            , 1 ) ;
       }
       {
-      /// have no idea how to build a expected tree temporarily.
-      /// we'd better improve it.
       SQL_CON_ITR end = c.begin()->children.end() ;
       SQL_CON_ITR itr = c.begin()->children.begin();
       while ( TRUE )
@@ -274,7 +271,6 @@ namespace engine
                                          vitr->value.end()) ) ;
          ss << "," ;
       }
-      /// erase the last ','
       ss.seekp((INT32)ss.tellp()-1 ) ;
       }
       ss << "}" ;
@@ -297,7 +293,6 @@ namespace engine
       {
          if ( itr->children.empty() )
          {
-           /// selector = '*'
             goto done ;
          }
          for ( SQL_CON_ITR citr = itr->children.begin();
@@ -355,10 +350,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       stringstream ss ;
       string value = string( itr->value.begin(), itr->value.end() ) ;
-      /// leaf node.
       if ( itr->children.empty() )
       {
-         /// no idea why begin with ' '
          ss << boost::trim_copy(value) ;
       }
       else if ( 0 == value.compare( SQL_SYMBOL_LT ) )
@@ -582,7 +575,6 @@ namespace engine
       fullName = boost::trim_copy( string(itr->value.begin(),
                                               itr->value.end()) ) ;
 
-      /// the same tree. reuse func.
       rc = buildOrder( c2, fields ) ;
       if ( SDB_OK != rc )
       {

@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2015 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rplOptions.hpp
 
@@ -61,8 +60,6 @@ namespace replay
       OSS_INLINE const string& serviceName() const { return _serviceName; }
       OSS_INLINE const string& user() const { return _user; }
       OSS_INLINE const string& password() const { return _password; }
-      OSS_INLINE const string& cipherfile() const { return _cipherfile; }
-      OSS_INLINE const string& token() const { return _token; }
       OSS_INLINE const string& status() const { return _status; }
       OSS_INLINE const string& path() const { return _path; }
       OSS_INLINE SDB_OSS_FILETYPE pathType() const { return _pathType; }
@@ -87,8 +84,6 @@ namespace replay
       string            _serviceName;
       string            _user;
       string            _password;
-      string            _cipherfile;
-      string            _token;
       string            _status;
       string            _path;
       SDB_OSS_FILETYPE  _pathType;

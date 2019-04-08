@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnContextShdOfLob.cpp
 
@@ -64,8 +63,7 @@ namespace engine
     _dmsCB( NULL ),
     _writeDMS( FALSE ),
     _hasLobPrivilege( FALSE ),
-    _reopened( FALSE ),
-    _isMetaWrote( FALSE )
+    _reopened( FALSE )
    {
       _pData = NULL ;
       _dataLen = 0 ;
@@ -131,7 +129,6 @@ namespace engine
          goto error ;
       }
 
-      // Check writable first
       if ( SDB_LOB_MODE_READ != _mode )
       {
          rc = _dmsCB->writable( cb ) ;
@@ -153,7 +150,6 @@ namespace engine
          goto error ;
       }
 
-      /// get mb context
       rc = _su->data()->getMBContext( &_mbContext, clName, -1 ) ;
       if ( rc )
       {
@@ -191,7 +187,6 @@ namespace engine
          PD_LOG( PDEVENT, "Reopened main shard" ) ;
       }
 
-      /// write down
       if ( _writeDMS )
       {
          _dmsCB->writeDown( cb ) ;
@@ -240,17 +235,9 @@ namespace engine
          goto error ;
       }
 
-      if ( SDB_LOB_MODE_CREATEONLY == _mode )
+      if ( SDB_LOB_MODE_CREATEONLY == _mode && !updated )
       {
-         if ( !updated )
-         {
-            _written.insert( sequence ) ;
-         }
-
-         if ( DMS_LOB_META_SEQUENCE == sequence )
-         {
-            _isMetaWrote = TRUE ;
-         }
+         _written.insert( sequence ) ;
       }
 
    done:
@@ -360,22 +347,6 @@ namespace engine
 
          _accessInfo->unlock() ;
          accessInfoLocked = FALSE ;
-      }
-      else if ( DMS_LOB_META_SEQUENCE == sequence &&
-                SDB_LOB_MODE_CREATEONLY == _mode &&
-                0 == offset && !_isMetaWrote )
-      {
-         // Before SequoiaDB 3.0, we send UPDATE message to
-         // complete lob when close lob in CREATEONLY mode.
-         // And in 3.0.1 we also send UPDATE message,
-         // in order to compatible with version<3.0.
-         // But actually we should WRITE the meta sequence.
-         rc = write( sequence, offset, len, data, cb ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "failed to write lob:%d", rc ) ;
-            goto error ;
-         }
       }
       else
       {
@@ -595,7 +566,6 @@ namespace engine
             PD_LOG( PDERROR, "Failed to extend buf[%u], rc:%d", len * 2, rc ) ;
             goto error ;
          }
-         /// read the whole page
          rc = _su->lob()->read( record, _mbContext, cb, _buf + len, readLen ) ;
          if ( SDB_OK == rc )
          {
@@ -607,7 +577,6 @@ namespace engine
                rc = SDB_SYS ;
                goto error ;
             }
-            /// copy data
             ossMemcpy( (void*)&_meta, _buf + len, sizeof( _meta ) ) ;
             if ( !_meta.isDone() )
             {
@@ -632,7 +601,6 @@ namespace engine
                }
             }
 
-            /// if meta page has data
             if ( withData &&
                  _meta._version >= DMS_LOB_META_MERGE_DATA_VERSION &&
                  _meta._lobLen > 0 &&
@@ -645,7 +613,6 @@ namespace engine
                   _dataLen = _meta._lobLen ;
                }
                _offset = 0 ;
-               /// add msg tuple
                _pData -= sizeof( MsgLobTuple ) ;
                _dataLen += sizeof( MsgLobTuple ) ;
                MsgLobTuple *rt = (MsgLobTuple*)_pData ;
@@ -687,11 +654,6 @@ namespace engine
                goto error ;
             }
             _accessInfo->setMetaCache( metaCache ) ;
-
-            if ( _reopened )
-            {
-               metaCache->setNeedMerge( TRUE ) ;
-            }
          }
          else
          {
@@ -879,8 +841,6 @@ namespace engine
          }
       }
 
-      /// we need to send back pagesize when this node
-      ///  is not the main shard.
       *data = _metaObj.objdata() ;
       read = _metaObj.objsize() ;
 
@@ -909,7 +869,6 @@ namespace engine
       UINT32 i = 0 ;
       UINT32 len = 0 ;
 
-      /// calc total buff size
       for ( i = 0 ; i < cnt ; ++i )
       {
          const MsgLobTuple &t = tuples[i] ;
@@ -917,7 +876,6 @@ namespace engine
          len += t.columns.len ;
       }
 
-      /// extend buf
       rc = _extendBuf( len ) ;
       if ( rc )
       {
@@ -925,7 +883,6 @@ namespace engine
          goto error ;
       }
 
-      /// read all tuples
       for ( i = 0; i < cnt; ++i )
       {
          UINT32 onceRead = 0 ;
@@ -1067,7 +1024,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__RTNCONTEXTSHDOFLOB__ROLLBACK ) ;
       UINT64 sucNum = 0 ;
-      ossPoolSet<UINT32>::reverse_iterator itr = _written.rbegin() ;
+      std::set<UINT32>::reverse_iterator itr = _written.rbegin() ;
       for ( ; itr != _written.rend(); ++itr )
       {
          if ( !sdbGetReplCB()->primaryIsMe() )
@@ -1088,7 +1045,6 @@ namespace engine
                break ;
             }
             rc = SDB_OK ;
-            /// do not goto error. try to rollback all pieces.
          }
          else
          {

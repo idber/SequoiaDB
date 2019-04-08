@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omCommandTool.hpp
 
@@ -64,15 +63,6 @@ namespace engine
       string port ;
    } ;
 
-   INT32 getPacketFile( const string &businessType, string &filePath ) ;
-   BOOLEAN pathCompare( const string &p1, const string &p2 ) ;
-   INT32 getMaxTaskID( INT64 &taskID ) ;
-   INT32 createTask( INT32 taskType, INT64 taskID,
-                     const string &taskName, const string &agentHost,
-                     const string &agentService, const BSONObj &taskInfo,
-                     const BSONArray &resultInfo ) ;
-   INT32 removeTask( INT64 taskID ) ;
-
    class omXmlTool : public SDBObject
    {
    public:
@@ -95,27 +85,27 @@ namespace engine
       {
       }
 
-      string getBuzDeployTemplatePath( const string &businessType,
-                                       const string &operationType ) ;
-      string getBuzConfigTemplatePath( const string &businessType,
-                                       const string &deployMod,
-                                       BOOLEAN isSeparateConfig ) ;
-      string getBuzConfigTemplatePath( const string &businessType,
-                                       const string &deployMod,
-                                       const string &isSeparateConfig ) ;
+      string getBuzTemplatePath( const string &businessType,
+                                 const string &operationType ) ;
+      string getBuzConfigPath( const string &businessType,
+                               const string &deployMod,
+                               BOOLEAN isSeparateConfig ) ;
+      string getBuzConfigPath( const string &businessType,
+                               const string &deployMod,
+                               const string &isSeparateConfig ) ;
 
       INT32 readBuzTypeList( list<BSONObj> &businessList ) ;
-      INT32 readBuzDeployTemplate( const string &businessType,
-                                   const string &operationType,
-                                   list<BSONObj> &objList ) ;
-      INT32 readBuzConfigTemplate( const string &businessType,
-                                   const string &deployMod,
-                                   BOOLEAN isSeparateConfig,
-                                   BSONObj &obj ) ;
-      INT32 readBuzConfigTemplate( const string &businessType,
-                                   const string &deployMod,
-                                   const string &isSeparateConfig,
-                                   BSONObj &obj ) ;
+      INT32 readBuzTemplate( const string &businessType,
+                             const string &operationType,
+                             list<BSONObj> &objList ) ;
+      INT32 readBuzConfig( const string &businessType,
+                           const string &deployMod,
+                           BOOLEAN isSeparateConfig,
+                           BSONObj &obj ) ;
+      INT32 readBuzConfig( const string &businessType,
+                           const string &deployMod,
+                           const string &isSeparateConfig,
+                           BSONObj &obj ) ;
 
    private:
       string _rootPath ;
@@ -136,14 +126,12 @@ namespace engine
 
    public:
 
-      //task
       INT64 getTaskIdOfRunningBuz( const string &businessName ) ;
       INT64 getTaskIdOfRunningHost( const string &hostName ) ;
       BOOLEAN hasTaskRunning() ;
       INT32 getMaxTaskID( INT64 &taskID ) ;
       INT32 removeTask( INT64 taskID ) ;
 
-      //business
       INT32 addBusinessInfo( const INT32 addType,
                              const string &clusterName,
                              const string &businessName,
@@ -167,7 +155,6 @@ namespace engine
                                 INT64 &updateNum ) ;
       INT32 removeBusiness( const string &businessName ) ;
 
-      //cluster
       INT32 addCluster( const BSONObj &clusterInfo ) ;
       INT32 getClusterInfo( const string &clusterName,
                             BSONObj &clusterInfo ) ;
@@ -181,7 +168,6 @@ namespace engine
                                     const string &grantName,
                                     const BOOLEAN privilege ) ;
 
-      //configure
       INT32 getOneNodeConfig( const string &businessName,
                               const string &hostName,
                               const string &svcname,
@@ -218,7 +204,6 @@ namespace engine
                              const string &hostName ) ;
       INT32 removeConfigure( const string &businessName ) ;
 
-      //auth
       INT32 getAuth( const string &businessName,
                      string &authUser, string &authPasswd ) ;
       INT32 getAuth( const string &businessName, BSONObj &authInfo ) ;
@@ -228,7 +213,6 @@ namespace engine
                         const string &authPasswd, BSONObj &options ) ;
       INT32 removeAuth( const string &businessName ) ;
 
-      //host
       INT32 upsertPackage( const string &hostName,
                            const string &packageName,
                            const string &installPath,
@@ -250,7 +234,6 @@ namespace engine
       INT32 removeHost( const string &address,
                         const string &clusterName ) ;
 
-      //relationship
       INT32 createRelationship( const string &name,
                                 const string &fromBuzName,
                                 const string &toBuzName,
@@ -263,17 +246,14 @@ namespace engine
       INT32 getRelationshipList( list<BSONObj> &relationshipList ) ;
       INT32 removeRelationship( const string &name ) ;
 
-      //plugin
       BOOLEAN isPluginExist( const string &name ) ;
-      BOOLEAN isPluginBusinessTypeExist( const string &businessType ) ;
+      BOOLEAN isPluginBusinessTypeExist( const string& businessType ) ;
       INT32 getPluginInfoByBusinessType( const string &businessType,
                                          BSONObj &info ) ;
       INT32 getPluginList( list<BSONObj> &pluginList ) ;
-      INT32 upsertPlugin( const string &name, const string &businessType,
+      INT32 upsertPlugin( const string &name, const string&businessType,
                           const string &serviceName ) ;
-      INT32 removePlugin( const string &name, const string &businessType ) ;
 
-      //trans
       INT32 addPackageOfHosts( set<string> &hostList,
                                const string &packageName,
                                const string &installPath,
@@ -288,33 +268,24 @@ namespace engine
       INT32 unbindHost( const string &clusterName,
                         list<string> &hostList ) ;
 
-      //collection
       INT32 createCollection( const CHAR *pCollection ) ;
       INT32 createCollectionIndex( const CHAR *pCollection,
                                    const CHAR *pIndex ) ;
-      INT32 removeCollectionIndex( const CHAR *pCollection,
-                                   const CHAR *pIndex ) ;
-
    private:
-      //task
       INT32 _getOneTasktInfo( const BSONObj &matcher, const BSONObj &selector,
                               BSONObj &taskInfo ) ;
 
-      //host
       INT32 _getOneHostInfo( const BSONObj &matcher, const BSONObj &selector,
                              BSONObj &hostInfo ) ;
 
-      //configure
       INT32 _getOneConfigure( const BSONObj &condition, const BSONObj &selector,
                               BSONObj &configure ) ;
       INT32 _removeConfigure( const BSONObj &condition ) ;
 
-      //relationship
       INT32 _getOneRelationship( const BSONObj &condition,
                                  const BSONObj &selector,
                                  BSONObj &info ) ;
 
-      //plugin
       INT32 _getOnePluginInfo( const BSONObj &condition,
                                const BSONObj &selector,
                                BSONObj &info ) ;
@@ -354,8 +325,7 @@ namespace engine
    {
    public:
 
-      omRestTool( ossSocket *socket, restAdaptor *pRestAdaptor,
-                  restResponse *response ) ;
+      omRestTool( restAdaptor *pRestAdaptor, pmdRestSession *pRestSession ) ;
 
       void sendRecord2Web( list<BSONObj> &records,
                            const BSONObj *pFilter = NULL,
@@ -363,18 +333,17 @@ namespace engine
 
       void sendOkRespone() ;
 
-      void sendResponse( INT32 rc, const string &detail ) ;
-      void sendResponse( INT32 rc, const char *pDetail ) ;
-      void sendResponse( const BSONObj &msg ) ;
+      void sendRespone( INT32 rc, const string &detail ) ;
+      void sendRespone( INT32 rc, const char *pDetail ) ;
 
       INT32 appendResponeContent( const BSONObj &content ) ;
 
       void appendResponeMsg( const BSONObj &msg ) ;
 
    private:
-      ossSocket      *_socket ;
+
       restAdaptor    *_pRestAdaptor ;
-      restResponse   *_response ;
+      pmdRestSession *_pRestSession ;
 
       list<BSONObj> _msgList ;
    } ;
@@ -426,7 +395,7 @@ namespace engine
    class omArgOptions : public SDBObject
    {
    public:
-      omArgOptions( restRequest *pRequest ) ;
+      omArgOptions( restAdaptor *pRestAdaptor, pmdRestSession *pRestSession ) ;
 
       INT32 parseRestArg( const CHAR *pFormat, ... ) ;
 
@@ -436,7 +405,8 @@ namespace engine
       INT32 _parserArg( const CHAR *pFormat, va_list &vaList ) ;
 
    private:
-      restRequest      *_request ;
+      restAdaptor      *_rest ;
+      pmdRestSession   *_session ;
       omErrorTool       _errorMsg ;
 
    } ;

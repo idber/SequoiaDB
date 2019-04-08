@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dmsCompress.cpp
 
@@ -39,7 +38,6 @@
 #include "pmdEDU.hpp"
 #include "dmsRecord.hpp"
 #include "dmsTrace.hpp"
-#include "utilCompressor.hpp"
 
 using namespace bson ;
 
@@ -47,8 +45,7 @@ namespace engine
 {
    _dmsCompressorEntry::_dmsCompressorEntry()
    : _compressor( NULL ),
-     _dictionary( UTIL_INVALID_DICT ),
-     _flags( UTIL_COMPRESS_EMPTY_FLAG )
+     _dictionary( UTIL_INVALID_DICT )
    {
    }
 
@@ -72,16 +69,6 @@ namespace engine
       PD_TRACE_EXIT( SDB__DMSCOMPRESSORENTRY_SETDICTIONARY ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSCOMPRESSORENTRY_SETFLAGS, "_dmsCompressorEntry::setFlags" )
-   void _dmsCompressorEntry::setFlags ( UINT8 flags )
-   {
-      PD_TRACE_ENTRY( SDB__DMSCOMPRESSORENTRY_SETFLAGS ) ;
-
-      _flags = flags ;
-
-      PD_TRACE_EXIT( SDB__DMSCOMPRESSORENTRY_SETFLAGS ) ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSCOMPRESSORENTRY_RESET, "_dmsCompressorEntry::reset" )
    void _dmsCompressorEntry::reset()
    {
@@ -89,7 +76,6 @@ namespace engine
 
       _compressor = NULL ;
       _dictionary = UTIL_INVALID_DICT ;
-      _flags = UTIL_COMPRESS_EMPTY_FLAG ;
 
       PD_TRACE_EXIT( SDB__DMSCOMPRESSORENTRY_RESET ) ;
    }
@@ -111,7 +97,7 @@ namespace engine
                   "Compressor entry pointer can't be NULL" ) ;
 
       _utilCompressor *compressor = compressorEntry->getCompressor() ;
-      const utilDictHandle dictionary = compressorEntry->getDictionary( compressor ) ;
+      const utilDictHandle dictionary = compressorEntry->getDictionary() ;
       SDB_ASSERT( compressor, "Compressor pointer can't be NULL" ) ;
       if ( !compressor )
       {
@@ -143,7 +129,6 @@ namespace engine
          goto error ;
       }
 
-      // assign the output buffer pointer
       if ( ppData )
       {
          *ppData = pBuff ;
@@ -173,10 +158,8 @@ namespace engine
 
       SDB_ASSERT( compressorEntry, "Compressor entry can't be NULL" ) ;
 
-      // if we want to append OID, then
       if ( oidLen && pOIDPtr )
       {
-         // get the requested size by adding object size and oid size
          UINT32 requestedSize = obj.objsize() + oidLen ;
          rc = cb->allocBuff( requestedSize, &pObjData, NULL ) ;
          if ( rc )
@@ -186,7 +169,6 @@ namespace engine
             goto error ;
          }
 
-         /// copy to new data
          *(UINT32*)pObjData = oidLen + obj.objsize() ;
          ossMemcpy( pObjData + sizeof(UINT32), pOIDPtr, oidLen ) ;
          ossMemcpy( pObjData + sizeof(UINT32) + oidLen,
@@ -221,7 +203,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSUNCOMPRESS, "dmsUncompress" )
    INT32 dmsUncompress ( _pmdEDUCB *cb, _dmsCompressorEntry *compressorEntry,
-                         UINT8 compressType, const CHAR *pInputData, INT32 inputSize,
+                         const CHAR *pInputData, INT32 inputSize,
                          const CHAR **ppData, INT32 *pDataSize )
    {
       INT32 rc = SDB_OK ;
@@ -235,19 +217,7 @@ namespace engine
                   "Compressor entry pointer can't be NULL" ) ;
 
       _utilCompressor *compressor = compressorEntry->getCompressor() ;
-
-      /// The compress type of collection had been altered
-      if ( OSS_BIT_TEST( compressorEntry->getFlags(), UTIL_COMPRESS_ALTERABLE_FLAG ) )
-      {
-         compressor = getCompressorByType( (UTIL_COMPRESSOR_TYPE)compressType ) ;
-      }
-
       SDB_ASSERT( compressor, "Compressor pointer can't be NULL" ) ;
-
-      /// To compitable with the bug:'When not use compress, the compressor
-      /// be set to snappy, so the data maybe compressed with snappy. But,
-      /// restart the node, the compressor be set to null, so can't
-      /// uncompressed'.
       if ( !compressor )
       {
          compressor = getCompressorByType( UTIL_COMPRESSOR_SNAPPY ) ;
@@ -277,10 +247,9 @@ namespace engine
 
       rc = compressor->decompress( pInputData, inputSize, pBuff,
                                    uncompressedLen,
-                                   compressorEntry->getDictionary( compressor ) ) ;
+                                   compressorEntry->getDictionary() ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to decompress data, rc: %d", rc ) ;
 
-      // assign return value
       if ( ppData )
       {
          *ppData = pBuff ;

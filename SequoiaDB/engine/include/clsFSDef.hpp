@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsFSDef.hpp
 
@@ -49,7 +48,6 @@ namespace engine
    #define CLS_FS_COMMITLSN               "commitlsn"
    #define CLS_FS_CS_NAME                 "cs"
    #define CLS_FS_COLLECTION_NAME         "collection"
-   #define CLS_FS_COLLECTION_UNIQUEID     "cluniqueid"
    #define CLS_FS_CS_META_NAME            "csmeta"
    #define CLS_FS_PAGE_SIZE               "pagesize"
    #define CLS_FS_KEYOBJ                  "keyobj"
@@ -60,7 +58,6 @@ namespace engine
    #define CLS_FS_FULLNAMES               "fullnames"
    #define CLS_FS_CSNAME                  "csname"
    #define CLS_FS_CSNAMES                 "csnames"
-   #define CLS_FS_CS_UNIQUEID             "csuniqueid"
    #define CLS_FS_NEEDDATA                "needdata"
    #define CLS_FS_ATTRIBUTES              "attributes"
    #define CLS_FS_LOB_PAGE_SIZE           "lobpagesize"

@@ -91,7 +91,6 @@ void debugArgumentInfo( Oid tableID, Expr *node )
    }
    else if ( nodeTag(node) == T_Param )
    {
-      //Param *param = (Param *)node ;
       elog(DEBUG1, "param(name)") ;
    }
    else if ( nodeTag(node) == T_Const )
@@ -115,18 +114,7 @@ void debugArgumentInfo( Oid tableID, Expr *node )
 
 void debugEqClause( PlannerInfo *root )
 {
-// ListCell *lc1;
-//   foreach(lc1, root->eq_classes)
-// {
-//    EquivalenceClass *cur_ec = (EquivalenceClass *) lfirst(lc1);
-//    ListCell   *lc2;
 
-//    foreach(lc2, cur_ec->ec_members)
-//    {
-//       EquivalenceMember *cur_em = (EquivalenceMember *) lfirst(lc2);
-//       List *opfamilies = cur_ec->ec_opfamilies ;
-//    }
-//   }
 }
 
 void debugRestrictInfo(RestrictInfo *restrictInfo, Oid tableID)
@@ -287,134 +275,6 @@ bool sdbIsVarNode( Node *node )
    }
 
    return false ;
-}
-
-bool isSortCanPushDown( PlannerInfo *root, Index foreignTableIndex )
-{
-   ListCell *cell = NULL ;
-   List *sort_paths = root->sort_pathkeys ;
-   if ( NIL == sort_paths )
-   {
-      elog( DEBUG1, "isSortCanPushDown:empty pathkeys" ) ;
-      return true ;
-   }
-
-   if ( list_length(root->parse->rtable) > 1 )
-   {
-      // can't support more than one table
-      elog( DEBUG1, "isSortCanPushDown:root->parse->rtable is greater than 1" ) ;
-      return false ;
-   }
-
-   if (list_length(root->parse->groupClause) > 0)
-   {
-      // sort is affect in group result, not in the original records.
-      return false ;
-   }
-
-   foreach(cell, sort_paths)
-   {
-      ListCell *emCell ;
-      EquivalenceMember *em ;
-
-      // pk->pk_strategy: BTGreaterStrategyNumber is desc, others is asc
-      PathKey *pk = (PathKey *) lfirst(cell) ;
-      EquivalenceClass *ec = pk->pk_eclass ;
-      if ( ec->ec_below_outer_join )
-      {
-         elog( DEBUG1, "isSortCanPushDown:ec_below_outer_join is true" ) ;
-         return false ;
-      }
-
-      if (1 != list_length(ec->ec_members))
-      {
-         elog( DEBUG1, "isSortCanPushDown:ec->ec_members's length is greater than 1" ) ;
-         return false ;
-      }
-
-      foreach(emCell, ec->ec_members)
-      {
-         Var *var ;
-         em = (EquivalenceMember *) lfirst(emCell) ;
-         if (NULL == em->em_expr)
-         {
-            elog( DEBUG1, "isSortCanPushDown:em->em_expr is NULL" ) ;
-            return false ;
-         }
-
-         var = getRealVar( em->em_expr ) ;
-         if ( NULL == var )
-         {
-            elog( DEBUG1, "isSortCanPushDown:em->em_expr is not Var" ) ;
-            return false ;
-         }
-
-         if ( var->varno != foreignTableIndex ||  var->varlevelsup != 0 )
-         {
-            elog( DEBUG1, "isSortCanPushDown:foreignTableIndex=%d,varno=%d,"
-                  "varlevelsup=%d", foreignTableIndex, var->varno,
-                  var->varlevelsup) ;
-            return false ;
-         }
-      }
-   }
-
-   return true ;
-}
-
-INT32 sdbGenerateSortCondition ( Index foreignTableIndex, Oid foreign_id,
-                                 List *sort_paths, sdbbson *condition )
-{
-   INT32 rc = SDB_OK ;
-   ListCell *cell = NULL ;
-
-   if ( NIL == sort_paths )
-   {
-      goto done ;
-   }
-
-   sdbbson_destroy( condition ) ;
-   sdbbson_init( condition ) ;
-
-   foreach(cell, sort_paths)
-   {
-      EquivalenceClass *ec ;
-      ListCell *emCell ;
-      EquivalenceMember *em ;
-      Var *var ;
-      INT32 order = 1 ;
-
-      // pk->pk_strategy: BTGreaterStrategyNumber is desc, others is asc
-      PathKey *pk = (PathKey *) lfirst(cell) ;
-      if ( pk->pk_strategy == BTGreaterStrategyNumber )
-      {
-         order = -1 ;
-      }
-
-      ec = pk->pk_eclass ;
-      foreach(emCell, ec->ec_members)
-      {
-         CHAR *columnName ;
-         em = (EquivalenceMember *) lfirst(emCell) ;
-         var = getRealVar( em->em_expr ) ;
-         columnName = get_relid_attribute_name( foreign_id, var->varattno ) ;
-         sdbbson_append_int( condition, columnName, order ) ;
-      }
-   }
-
-   rc = sdbbson_finish( condition ) ;
-   if ( SDB_OK != rc )
-   {
-      goto error ;
-   }
-
-done:
-   return rc ;
-error:
-   sdbbson_destroy( condition ) ;
-   sdbbson_init( condition ) ;
-   sdbbson_finish( condition ) ;
-   goto done ;
 }
 
 bool sdbMatchClauseToIndexcol( RelOptInfo *rel, Oid tableID,
@@ -704,9 +564,6 @@ Oid sdb_select_equality_operator(EquivalenceClass *ec, Oid lefttype,
                                         sdbState->sdbServerNum,
                                         sdbState->usr,
                                         sdbState->passwd,
-                                        sdbState->isUseCipher,
-                                        sdbState->token,
-                                        sdbState->cipherfile,
                                         sdbState->preferenceInstance,
                                         sdbState->transaction ) ;
    sdbState->hCollection = sdbGetSdbCollection(sdbState->hConnection,
@@ -726,7 +583,6 @@ Oid sdb_select_equality_operator(EquivalenceClass *ec, Oid lefttype,
       sdbbson_iterator sdbbsonIter1 = {NULL, 0} ;
       sdbbson_iterator_init(&sdbbsonIter1, &obj) ;
 
-      // for each element in sdbbson object
       while(sdbbson_iterator_next(&sdbbsonIter1))
       {
          const CHAR *sdbbsonKey   = sdbbson_iterator_key(&sdbbsonIter1) ;
@@ -828,34 +684,23 @@ int sdbGetIndexInfos( SdbExecState *sdbState, sdbIndexInfo *indexInfo,
    {
       elog( DEBUG1, "get index from cache" ) ;
       rc = sdbGetIndexInfosFromCache( clCache, indexInfo, maxNum, indexNum ) ;
-      if ( SDB_OK != rc )
-      {
-         elog ( ERROR, "sdbGetIndexInfosFromCache failed:rc=%d", rc ) ;
-         goto error ;
-      }
    }
    else
    {
-      int i = 0;
       elog( DEBUG1, "get index from db" ) ;
       rc = sdbGetIndexInfosFromDB( sdbState, indexInfo, maxNum, indexNum ) ;
-      if ( SDB_OK != rc )
+      if ( SDB_OK == rc )
       {
-         elog ( ERROR, "sdbGetIndexInfosFromDB failed:rc=%d", rc ) ;
-         goto error ;
-      }
-
-      clCache->indexNum = *indexNum ;
-      for ( i = 0; i < clCache->indexNum; i++ )
-      {
-         memcpy( &clCache->indexInfo[i], &indexInfo[i], sizeof(sdbIndexInfo) ) ;
+         int i = 0;
+         clCache->indexNum = *indexNum ;
+         for ( i = 0; i < clCache->indexNum; i++ )
+         {
+            memcpy( &clCache->indexInfo[i], &indexInfo[i], sizeof(sdbIndexInfo) ) ;
+         }
       }
    }
 
-done:
    return rc ;
-error:
-   goto done ;
 }
 
 
@@ -872,12 +717,7 @@ int sdbGetIndexInfosFromDB( SdbExecState *sdbState, sdbIndexInfo *indexInfo,
                                         sdbState->sdbServerNum,
                                         sdbState->usr,
                                         sdbState->passwd,
-                                        sdbState->isUseCipher,
-                                        sdbState->token,
-                                        sdbState->cipherfile,
                                         sdbState->preferenceInstance,
-                                        sdbState->preferenceInstanceMode,
-                                        sdbState->sessionTimeout,
                                         sdbState->transaction ) ;
    sdbState->hCollection = sdbGetSdbCollection(sdbState->hConnection,
                            sdbState->sdbcs, sdbState->sdbcl) ;
@@ -940,7 +780,6 @@ int sdbGetIndexInfosFromDB( SdbExecState *sdbState, sdbIndexInfo *indexInfo,
                      count++;
                      if ( count >= maxNum )
                      {
-                        // meet the max index num
                         sdbbson_destroy(&indexDef) ;
                         goto done ;
                      }
@@ -996,22 +835,15 @@ sdbConnectionHandle sdbGetConnectionHandle( const char **serverList,
                                             int serverNum,
                                             const char *usr,
                                             const char *passwd,
-                                            int useCipher,
-                                            const char *token,
-                                            const char *cipherfile,
                                             const char *preference_instance,
-                                            const char *preference_instance_mode,
-                                            int session_timeout,
                                             const char *transaction )
 {
-   sdbConnectionHandle hConnection        = SDB_INVALID_HANDLE ;
-   SdbConnectionPool *pool                = NULL ;
-   INT32 count                            = 0 ;
-   INT32 rc                               = SDB_OK ;
-   INT32 i                                = 0 ;
-   SdbConnection *connect                 = NULL ;
-   CHAR userName[SDB_MAX_USERNAME_LENGTH] = {'\0'} ;
-   CHAR password[SDB_MAX_PASSWORD_LENGTH] = {'\0'} ;
+   sdbConnectionHandle hConnection = SDB_INVALID_HANDLE ;
+   SdbConnectionPool *pool         = NULL ;
+   INT32 count                     = 0 ;
+   INT32 rc                        = SDB_OK ;
+   INT32 i                         = 0 ;
+   SdbConnection *connect          = NULL ;
 
    /* connection string is address + service + user + password */
    StringInfo connName = makeStringInfo() ;
@@ -1021,16 +853,7 @@ sdbConnectionHandle sdbGetConnectionHandle( const char **serverList,
       appendStringInfo( connName, "%s:", serverList[i] ) ;
       i++ ;
    }
-
-   appendStringInfo( connName, "%s:", usr ) ;
-   if ( !useCipher )
-   {
-      appendStringInfo( connName, "%s:", passwd ) ;
-   }
-   else
-   {
-      appendStringInfo( connName, "%s:", token ) ;
-   }
+   appendStringInfo( connName, "%s:%s", usr, passwd ) ;
 
    /* iterate all connections in pool */
    pool = sdbGetConnectionPool() ;
@@ -1039,9 +862,8 @@ sdbConnectionHandle sdbGetConnectionHandle( const char **serverList,
       SdbConnection *tmpConnection = &pool->connList[count] ;
       if ( strcmp( tmpConnection->connName, connName->data ) == 0 )
       {
-         // return pool->connList[count].hConnection ;
          BOOLEAN result = FALSE ;
-         result = sdbIsValid( tmpConnection->hConnection ) ;
+         sdbIsValid( tmpConnection->hConnection, &result ) ;
          if ( !result )
          {
             sdbReleaseConnectionFromPool( count ) ;
@@ -1071,21 +893,7 @@ sdbConnectionHandle sdbGetConnectionHandle( const char **serverList,
    /* when we get here, we don't have the connection so let's create one */
    ereport( DEBUG1, (errcode( ERRCODE_FDW_UNABLE_TO_ESTABLISH_CONNECTION ),
             errmsg( "connecting :list=%s,num=%d", connName->data, serverNum ) )) ;
-
-   if ( !useCipher )
-   {
-      rc = sdbConnect1( serverList, serverNum, usr, passwd, &hConnection ) ;
-   }
-   else
-   {
-      rc = sdbGetPasswdByCipherFile( usr, token, cipherfile,
-                                     userName, password ) ;
-      if ( !rc )
-      {
-         rc = sdbConnect1( serverList, serverNum, userName, password, &hConnection ) ;
-      }
-   }
-
+   rc = sdbConnect1( serverList, serverNum, usr, passwd, &hConnection ) ;
    if ( rc )
    {
       StringInfo tmpInfo = makeStringInfo() ;
@@ -1103,8 +911,7 @@ sdbConnectionHandle sdbGetConnectionHandle( const char **serverList,
       return SDB_INVALID_HANDLE ;
    }
 
-   rc = sdbSetConnectionPreference( hConnection, (char *)preference_instance, preference_instance_mode,
-                                    session_timeout ) ;
+   rc = sdbSetConnectionPreference( hConnection, preference_instance ) ;
    if ( rc )
    {
       ereport( WARNING, ( errcode( ERRCODE_WITH_CHECK_OPTION_VIOLATION ),
@@ -1145,7 +952,7 @@ sdbConnectionHandle sdbGetConnectionHandle( const char **serverList,
    connect->isTransactionOn = 0 ;
    pool->numConnections++ ;
 
-   if ( strcmp( transaction, SDB_OPTION_ON ) == 0 )
+   if ( strcmp( transaction, SDB_TRANSACTION_ON ) == 0 )
    {
       elog( DEBUG1, "trans begin[%s]", connect->connName ) ;
       rc = sdbTransactionBegin( connect->hConnection ) ;
@@ -1156,7 +963,6 @@ sdbConnectionHandle sdbGetConnectionHandle( const char **serverList,
          return SDB_INVALID_HANDLE ;
       }
 
-      //open transaction
       connect->isTransactionOn = 1 ;
       connect->transLevel      = 1 ;
    }
@@ -1216,125 +1022,51 @@ void sdbReleaseConnectionFromPool( int index )
    pool->numConnections-- ;
 }
 
-bool sdbIsPreferedList( const CHAR *preference_instance )
-{
-   INT32 i      = 0 ;
-   INT32 len    = strlen( preference_instance ) ;
-   for( i = 0 ; i < len ; i++ )
-   {
-      if ( preference_instance[i] == SDB_FIELD_COMMA_CHR )
-      {
-         return true ;
-      }
-   }
-
-   return false ;
-}
-
-
-int sdbSetConnectionPreference( sdbConnectionHandle hConnection, CHAR *preference_instance,
-                                const CHAR *preference_instance_mode, INT32 session_timeout )
+int sdbSetConnectionPreference( sdbConnectionHandle hConnection,
+   const CHAR *preference_instance )
 {
    int intPreferenece_instance = 0 ;
    int rc = 0 ;
-   bool isNeedSendReq = 0 ;
-   CHAR index[SDB_MAX_KEY_COLUMN_LENGTH] ;
-   sdbbson recordObj ;
-   sdbbson_init( &recordObj ) ;
-
-   if ( NULL != preference_instance && strlen( preference_instance ) > 0 )
-   {
-      isNeedSendReq = true ;
-
-      // multiple word seperated by ','
-      if ( sdbIsPreferedList( preference_instance ) )
+   if ( NULL != preference_instance ){
+      sdbbson recordObj ;
+      sdbbson_init( &recordObj ) ;
+      intPreferenece_instance = atoi( preference_instance ) ;
+      if ( 0 == intPreferenece_instance )
       {
-         CHAR *tmpSrc    = preference_instance ;
-         CHAR *tmpPtr    = NULL ;
-         CHAR *tmpResult = NULL ;
-         INT32 i         = 0 ;
-
-         sdbbson_append_start_array( &recordObj, FIELD_NAME_PREFERED_INSTANCE ) ;
-
-         while( ( tmpResult = strtok_r( tmpSrc, SDB_FIELD_COMMA, &tmpPtr ) ) != NULL )
-         {
-            CHAR *value = NULL ;
-            tmpSrc = NULL ;
-            value = pstrdup( tmpResult ) ;
-            intPreferenece_instance = atoi( value ) ;
-
-            index[0] = '\0' ;
-            sprintf( index, "%d", i ) ;
-            if ( 0 != intPreferenece_instance )
-            {
-               sdbbson_append_int( &recordObj, index, intPreferenece_instance ) ;
-            }
-            else
-            {
-               sdbbson_append_string( &recordObj, index, value ) ;
-            }
-
-            i++ ;
-         }
-
-         sdbbson_append_finish_array( &recordObj ) ;
+         sdbbson_append_string( &recordObj, FIELD_NAME_PREFERED_INSTANCE,
+                                preference_instance ) ;
       }
       else
       {
-         // single word
-         intPreferenece_instance = atoi( preference_instance ) ;
-         if ( 0 != intPreferenece_instance )
-         {
-            sdbbson_append_int( &recordObj, FIELD_NAME_PREFERED_INSTANCE,
-                                intPreferenece_instance ) ;
-         }
-         else
-         {
-            sdbbson_append_string( &recordObj, FIELD_NAME_PREFERED_INSTANCE,
-                                   preference_instance ) ;
-         }
+         sdbbson_append_int( &recordObj, FIELD_NAME_PREFERED_INSTANCE,
+                             intPreferenece_instance ) ;
       }
-   }
 
-   if ( NULL != preference_instance_mode && strlen( preference_instance_mode ) > 0 )
-   {
-      isNeedSendReq = true ;
-      sdbbson_append_string( &recordObj, FIELD_NAME_PREFERED_INSTANCE_MODE, preference_instance_mode ) ;
-   }
-
-   if ( -1 != session_timeout )
-   {
-      isNeedSendReq = true ;
-      sdbbson_append_int( &recordObj, FIELD_NAME_TIMEOUT, session_timeout ) ;
-   }
-
-   rc = sdbbson_finish( &recordObj ) ;
-   if ( rc != SDB_OK )
-   {
-      elog( WARNING, "finish bson failed:rc = %d", rc ) ;
-      sdbbson_destroy( &recordObj ) ;
-      return rc ;
-   }
-
-   sdbPrintBson( &recordObj, DEBUG1, "display session attr" ) ;
-
-   if ( isNeedSendReq )
-   {
-      elog( DEBUG1, "setting session attr" ) ;
-      rc = sdbSetSessionAttr( hConnection, &recordObj ) ;
+      rc = sdbbson_finish( &recordObj ) ;
       if ( rc != SDB_OK )
       {
-         elog( WARNING, "set session attribute failed:rc = %d", rc ) ;
+         ereport( WARNING, ( errcode( ERRCODE_FDW_ERROR ),
+               errmsg( "finish bson failed:rc = %d", rc ),
+               errhint( "Make sure the data is all right" ) ) ) ;
+
          sdbbson_destroy( &recordObj ) ;
          return rc ;
       }
-   }
-   else
-   {
-      elog( DEBUG1, "do not set session attr" ) ;
+
+      rc = sdbSetSessionAttr( hConnection, &recordObj ) ;
+      if ( rc != SDB_OK )
+      {
+         ereport( WARNING, ( errcode( ERRCODE_FDW_ERROR ),
+               errmsg( "set session attribute failed:rc = %d", rc ),
+               errhint( "Make sure the session is all right" ) ) ) ;
+
+         sdbbson_destroy( &recordObj ) ;
+         return rc ;
+      }
+
+      sdbbson_destroy( &recordObj ) ;
    }
 
-   sdbbson_destroy( &recordObj ) ;
    return rc ;
 }
 
@@ -1413,8 +1145,6 @@ IndexPath *sdb_create_index_path(PlannerInfo *root,
 
    pathnode->path.startup_cost = 0.42749999999999999 ;
    pathnode->path.total_cost = 7.676907287504247 ;
-// pathnode->path.total_cost = pathnode->path.startup_cost + totalDiskCost
-//                             + totalCPUCost ;
 
    return pathnode;
 }
@@ -1632,14 +1362,12 @@ EnumSdbArgType getArgumentType(List *arguments)
 int sdbGenerateRescanCondition(SdbExecState *fdw_state, PlanState *planState,
                                sdbbson *rescanCondition)
 {
-   ListCell *cell       = NULL ;
-   int rc               = SDB_OK ;
-   BOOLEAN existFailure = FALSE ;
+   ListCell *cell     = NULL ;
+   int rc             = SDB_OK ;
    SdbExprTreeState expr_state ;
 
    if ( bms_is_empty(planState->chgParam) )
    {
-      rc = SDB_INVALIDARG ;
       sdbbson_finish( rescanCondition ) ;
       goto error ;
    }
@@ -1648,7 +1376,6 @@ int sdbGenerateRescanCondition(SdbExecState *fdw_state, PlanState *planState,
    expr_state.foreign_table_index = fdw_state->relid ;
    expr_state.foreign_table_id    = fdw_state->tableID ;
    expr_state.is_use_decimal      = fdw_state->isUseDecimal ;
-   expr_state.range_table         = planState->ps_ExprContext->ecxt_estate->es_range_table ;
 
    sdbbson_init( rescanCondition ) ;
    foreach( cell, planState->qual )
@@ -1668,10 +1395,6 @@ int sdbGenerateRescanCondition(SdbExecState *fdw_state, PlanState *planState,
             sdbbson_append_elements( rescanCondition, &subBson ) ;
          }
       }
-      else
-      {
-         existFailure = TRUE ;
-      }
 
       sdbbson_destroy( &subBson ) ;
    }
@@ -1682,12 +1405,6 @@ int sdbGenerateRescanCondition(SdbExecState *fdw_state, PlanState *planState,
       sdbbson_destroy( rescanCondition ) ;
       sdbbson_init( rescanCondition ) ;
       sdbbson_finish( rescanCondition ) ;
-      goto error ;
-   }
-
-   if ( existFailure )
-   {
-      goto error ;
    }
 
 done:
@@ -1782,8 +1499,6 @@ sdbbson *SdbAllocRecord( SdbRecordCache *recordCache, UINT64 *recordID )
 sdbbson *SdbGetRecord( SdbRecordCache *recordCache, UINT64 recordID )
 {
    INT32 index = ( INT32 ) recordID ;
-//   elog( DEBUG1, "SdbGetRecord:usedCount=%d,index=%d",
-//         recordCache->usedCount, index ) ;
 
    if ( index >= recordCache->size )
    {
@@ -1804,8 +1519,6 @@ sdbbson *SdbGetRecord( SdbRecordCache *recordCache, UINT64 recordID )
 void SdbReleaseRecord( SdbRecordCache *recordCache, UINT64 recordID )
 {
    INT32 index = ( INT32 ) recordID ;
-//   elog( DEBUG1, "SdbReleaseRecord:usedCount=%d,index=%d",
-//         recordCache->usedCount, index ) ;
 
    if ( index >= recordCache->size || index < 0 )
    {
@@ -1820,124 +1533,6 @@ void SdbReleaseRecord( SdbRecordCache *recordCache, UINT64 recordID )
 
    recordCache->recordArray[index].isUsed = FALSE ;
    recordCache->usedCount-- ;
-}
-
-void sdbPreprocessLimit(PlannerInfo *root, INT64 *offset, INT64 *limit)
-{
-   BOOLEAN isParsedOffset = FALSE ;
-   BOOLEAN isParsedLimit = FALSE ;
-   Query *parse = root->parse;
-   Node *est;
-
-   *limit = -1;
-   *offset = 0;
-
-   if (list_length(parse->rtable) > 1)
-   {
-      // can't support more than one table
-      return;
-   }
-
-   if (list_length(parse->groupClause) > 0)
-   {
-      // limit is affect in group result, not in the original records.
-      return;
-   }
-
-   if (parse->limitCount)
-   {
-      est = estimate_expression_value(root, parse->limitCount);
-      if (est && IsA(est, Const))
-      {
-         if (!((Const *) est)->constisnull)
-         {
-            *limit = DatumGetInt64(((Const *) est)->constvalue);
-            if (*limit <= 0)
-            {
-               *limit = 0 ;
-            }
-
-            isParsedLimit = TRUE ;
-         }
-      }
-   }
-   else
-   {
-      isParsedLimit = TRUE ;
-   }
-
-   if (parse->limitOffset)
-   {
-      est = estimate_expression_value(root, parse->limitOffset);
-      if (est && IsA(est, Const))
-      {
-         if (!((Const *) est)->constisnull)
-         {
-            *offset = DatumGetInt64(((Const *) est)->constvalue);
-            if (*offset < 0)
-            {
-               *offset = 0;
-            }
-
-            isParsedOffset = TRUE ;
-         }
-      }
-   }
-   else
-   {
-      isParsedOffset = TRUE ;
-   }
-
-   if (isParsedLimit && isParsedOffset)
-   {
-      elog( DEBUG1, "reset parse's limit and offset" ) ;
-      parse->limitCount = NULL ;
-      parse->limitOffset = NULL ;
-   }
-   else
-   {
-      *limit = -1;
-      *offset = 0;
-   }
-
-   return;
-}
-
-Var *getRealVar(Expr *arg)
-{
-   if (NULL == arg)
-   {
-      return NULL;
-   }
-
-   if (T_Var == nodeTag(arg))
-   {
-      return (Var *)arg;
-   }
-   else if (T_RelabelType == nodeTag(arg))
-   {
-      RelabelType* rtype = (RelabelType *)arg;
-      if (NULL == rtype->arg)
-      {
-         return NULL;
-      }
-
-      if (T_Var == nodeTag(rtype->arg))
-      {
-         return (Var *)rtype->arg;
-      }
-      else
-      {
-         elog(DEBUG1, "unreconigzed RelabelType's arg nodeType:nodeTag[%d]",
-              nodeTag(rtype->arg));
-         return NULL;
-      }
-   }
-   else
-   {
-      elog(DEBUG1, "unreconigzed nodeType:nodeTag[%d]", nodeTag(arg));
-      return NULL;
-   }
 }
 
 

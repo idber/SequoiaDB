@@ -1,19 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2016 SequoiaDB Ltd.
 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
+   This program is free software: you can redistribute it and/or modify
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
-   http://www.apache.org/licenses/LICENSE-2.0
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY ; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU Affero General Public License for more details.
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sdbDataSourceComm.hpp
 
@@ -60,10 +60,10 @@ namespace sdbclient
 
    enum DATASOURCE_STRATEGY
    {
-      DS_STY_SERIAL,             /**< serial strategy */
-      DS_STY_RANDOM,             /**< random strategy */
-      DS_STY_LOCAL,              /**< local strategy */
-      DS_STY_BALANCE             /**< balance strategy */
+      DS_STY_SERIAL,             /**serial strategy*/
+      DS_STY_RANDOM,             /**random strategy*/
+      DS_STY_LOCAL,              /**local strategy*/
+      DS_STY_BALANCE             /**balance strategy*/
    } ;
 
    /** \class sdbDataSourceConf
@@ -90,25 +90,18 @@ namespace sdbclient
          _useSSL(FALSE) {}
 
    private:
-      // user info
       string               _userName ;
       string               _passwd ;
-      // connection number info
       INT32                _initConnCount ;
       INT32                _deltaIncCount ;
       INT32                _maxIdleCount ;
       INT32                _maxCount ;
-      // check idle connection interval
       INT32                _checkInterval ;
       INT32                _keepAliveTimeout ;
-      // sync coord interval
       INT32                _syncCoordInterval ;
-      // whether check validation when a connection out
       BOOLEAN              _validateConnection ;
-      // strategy to create connections
       DATASOURCE_STRATEGY  _connectStrategy ;
 
-      // if configure is valid
       BOOLEAN              _useSSL ;
 
    public:

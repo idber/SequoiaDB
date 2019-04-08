@@ -1243,7 +1243,6 @@ public class MappingSdbConverterUnitTests {
 				assertThat(ReflectionTestUtils.getField(target, "this$" + i), is(expected));
 				return;
 			} catch (IllegalArgumentException e) {
-				// Suppress and try next
 			}
 		}
 

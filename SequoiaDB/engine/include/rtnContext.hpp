@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnContext.hpp
 
@@ -44,12 +43,12 @@
 #include "ossRWMutex.hpp"
 #include "monCB.hpp"
 #include "ossAtomic.hpp"
-#include "ossMemPool.hpp"
 #include "dmsCB.hpp"
 #include "dpsLogWrapper.hpp"
 #include "mthSelector.hpp"
 #include "rtnContextBuff.hpp"
 #include "rtnQueryOptions.hpp"
+#include "utilMap.hpp"
 #include <string>
 
 using namespace bson ;
@@ -78,9 +77,6 @@ namespace engine
       RTN_CONTEXT_DELCS,
       RTN_CONTEXT_DELCL,
       RTN_CONTEXT_DELMAINCL,
-      RTN_CONTEXT_RENAMECS,
-      RTN_CONTEXT_RENAMECL,
-      RTN_CONTEXT_RENAMEMAINCL,
       RTN_CONTEXT_EXPLAIN,
       RTN_CONTEXT_LOB,
       RTN_CONTEXT_LOB_FETCHER,
@@ -89,34 +85,20 @@ namespace engine
       RTN_CONTEXT_OM_TRANSFER,
       RTN_CONTEXT_TS,            // Context of text search
 
-      /// Alter contexts
-      RTN_CONTEXT_ALTERCS,
-      RTN_CONTEXT_ALTERCL,
-      RTN_CONTEXT_ALTERMAINCL,
-
-      /// Catalog contexts
 
       RTN_CONTEXT_CAT_BEGIN,
 
-      /// Group related
       RTN_CONTEXT_CAT_REMOVE_GROUP,
       RTN_CONTEXT_CAT_ACTIVE_GROUP,
       RTN_CONTEXT_CAT_SHUTDOWN_GROUP,
-      /// Node related
       RTN_CONTEXT_CAT_CREATE_NODE,
       RTN_CONTEXT_CAT_REMOVE_NODE,
-      /// CollectionSpace related
       RTN_CONTEXT_CAT_DROP_CS,
-      RTN_CONTEXT_CAT_ALTER_CS,
-      RTN_CONTEXT_CAT_RENAME_CS,
-      /// Collection related
       RTN_CONTEXT_CAT_CREATE_CL,
       RTN_CONTEXT_CAT_DROP_CL,
       RTN_CONTEXT_CAT_ALTER_CL,
       RTN_CONTEXT_CAT_LINK_CL,
       RTN_CONTEXT_CAT_UNLINK_CL,
-      RTN_CONTEXT_CAT_RENAME_CL,
-      /// Index related
       RTN_CONTEXT_CAT_CREATE_IDX,
       RTN_CONTEXT_CAT_DROP_IDX,
 
@@ -278,9 +260,9 @@ namespace engine
                               INT32 num,
                               BOOLEAN needAligned = TRUE ) ;
 
-         INT32    getMore( INT32 maxNumToReturn,
-                           rtnContextBuf &buffObj,
-                           _pmdEDUCB *cb ) ;
+         virtual INT32    getMore( INT32 maxNumToReturn,
+                                   rtnContextBuf &buffObj,
+                                   _pmdEDUCB *cb ) ;
 
          virtual void     getErrorInfo( INT32 rc,
                                         _pmdEDUCB *cb,
@@ -309,12 +291,10 @@ namespace engine
          }
          BOOLEAN  isCountMode() const { return _countOnly ; }
 
-         /// write info( some context will write data, drop collection, etc..)
          void           setWriteInfo( SDB_DPSCB *dpsCB, INT16 w ) ;
          SDB_DPSCB*     getDPSCB() { return _pDpsCB ; }
          INT16          getW() const { return _w ; }
 
-      // prefetch
       public:
          void     enablePrefetch ( _pmdEDUCB *cb,
                                    rtnPrefWatcher *pWatcher = NULL ) ;
@@ -337,7 +317,6 @@ namespace engine
          virtual RTN_CONTEXT_TYPE getType () const = 0 ;
          virtual _dmsStorageUnit* getSU () = 0 ;
          virtual BOOLEAN          isWrite() const { return FALSE ; }
-         virtual BOOLEAN          needRollback() const { return FALSE ; }
 
          virtual optAccessPlanRuntime * getPlanRuntime ()
          {
@@ -349,7 +328,6 @@ namespace engine
             return NULL ;
          }
 
-      // Monitor
       public :
          monContextCB* getMonCB ()
          {
@@ -383,7 +361,6 @@ namespace engine
 
          virtual void setQueryActivity ( BOOLEAN hitEnd )
          {
-            // Do nothing
          }
 
       protected:
@@ -412,14 +389,12 @@ namespace engine
          monContextCB            _monCtxCB ;
          _mthSelector            _selector ;
 
-         // status
          BOOLEAN                 _hitEnd ;
          BOOLEAN                 _isOpened ;
 
          SDB_DPSCB               *_pDpsCB ;
          INT16                   _w ;
 
-         // Enable performance monitor
          BOOLEAN                 _enableMonContext ;
          BOOLEAN                 _enableQueryActivity ;
 
@@ -428,7 +403,6 @@ namespace engine
          UINT64                  _eduID ;
          _rtnContextStoreBuf     _buffer ;
          INT64                   _totalRecords ;
-         // mutex
          ossRWMutex              _dataLock ;
          ossRWMutex              _prefetchLock ;
          UINT32                  _prefetchID ;
@@ -512,11 +486,9 @@ namespace engine
       void _releaseContextInfos() ;
 
    private:
-      typedef ossPoolMap<RTN_CONTEXT_TYPE, _rtnContextInfo*> CONTEXT_INFO_MAP;
-
-      CONTEXT_INFO_MAP _contextInfoMap ;
+      std::map<RTN_CONTEXT_TYPE, _rtnContextInfo*> _contextInfoMap ;
       typedef std::pair<RTN_CONTEXT_TYPE, _rtnContextInfo*> pair_type ;
-      typedef CONTEXT_INFO_MAP::const_iterator ctx_info_iterator ;
+      typedef std::map<RTN_CONTEXT_TYPE, _rtnContextInfo*>::const_iterator ctx_info_iterator ;
    } ;
 
    _rtnContextBuilder* sdbGetRTNContextBuilder() ;

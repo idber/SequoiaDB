@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptSPScope.cpp
 
@@ -37,8 +36,11 @@
 #include "ossUtil.hpp"
 #include "ossMem.hpp"
 #include "sptSPDef.hpp"
+#include "sptBsonobj.hpp"
+#include "sptBsonobjArray.hpp"
 #include "sptGlobalFunc.hpp"
-#include "sptConvertor.hpp"
+#include "sptConvertor2.hpp"
+#include "sptConvertorHelper.hpp"
 #include "sptCommon.hpp"
 #include "spt.hpp"
 #include "sptFuncDef.hpp"
@@ -52,7 +54,6 @@ namespace engine
 {
    #define JS_ERROBJ_FILENAME    "fileName"
    #define JS_ERROBJ_LINENO      "lineNumber"
-   
    /*
       case 1: when no argument, we display the functions of class/instance
       case 2: when getting argument in format of "Oma"/"Oma.createCoord"
@@ -64,17 +65,15 @@ namespace engine
       INT32 rc = SDB_OK ;
       stringstream ss ;
       SDB_ASSERT( NULL != cx && NULL != vp, "can not be NULL" ) ;
-   
+
       jsval jsVal = JSVAL_VOID ;
       JSObject *constructor = NULL ;
       JSString *jsStr = NULL ;
       CHAR *pStr = NULL ;
       _sptSPArguments arg( cx, argc, vp ) ;
       string jsClassName ;
-   
-      // set return value
+
       JS_SET_RVAL( cx, vp, JSVAL_VOID ) ;
-      // try to get the js class name
       constructor = JS_GetConstructor( cx, JS_THIS_OBJECT ( cx , vp ) ) ;
       if ( !constructor )
       {
@@ -105,8 +104,7 @@ namespace engine
       }
       jsClassName.assign( pStr ) ;
       JS_free( cx, pStr ) ;
-   
-      // display method or manpage
+
       if ( arg.argc() == 0 )
       {
          rc = sptHelp::getInstance().displayMethod( jsClassName, TRUE ) ;
@@ -132,7 +130,7 @@ namespace engine
          }
       }
    done:
-      return TRUE ;
+      return rc ;
    error:
       if ( !ss.str().empty() )
       {
@@ -153,10 +151,8 @@ namespace engine
       _sptSPArguments arg( cx, argc, vp ) ;
       string jsClassName ;
 
-      // set return value
       JS_SET_RVAL( cx, vp, JSVAL_VOID ) ;
 
-      // get js class name
       if ( !JS_GetProperty( cx, JS_THIS_OBJECT ( cx , vp ), "name", &jsVal ) ||
            !JSVAL_IS_STRING( jsVal ) )
       {
@@ -181,7 +177,6 @@ namespace engine
       jsClassName.assign( pStr ) ;
       JS_free( cx, pStr ) ;
 
-      // display method or manpage
       if ( arg.argc() == 0 )
       {
          rc = sptHelp::getInstance().displayMethod( jsClassName, FALSE ) ;
@@ -208,7 +203,7 @@ namespace engine
       }
 
    done:
-      return TRUE ;
+      return rc ;
    error:
       if ( !ss.str().empty() )
       {
@@ -241,40 +236,24 @@ namespace engine
       _sptSPResultVal implement
    */
    _sptSPResultVal::_sptSPResultVal()
+   :_value( JSVAL_VOID )
    {
       _ctx = NULL ;
-   }
-
-   _sptSPResultVal::_sptSPResultVal( const _sptSPResultVal &right )
-   {
-      _value = right._value ;
-      _ctx = right._ctx ;
    }
 
    _sptSPResultVal::~_sptSPResultVal()
    {
    }
 
-   _sptResultVal* _sptSPResultVal::copy() const
-   {
-      _sptResultVal *pRVal = SDB_OSS_NEW _sptSPResultVal( *this ) ;
-      return pRVal ;
-   }
-
-   const sptSPVal* _sptSPResultVal::getVal() const
-   {
-      return &_value ;
-   }
-
    const void* _sptSPResultVal::rawPtr() const
    {
-      return ( const void* )_value.valuePtr() ;
+      return (void*)&_value ;
    }
 
    bson::BSONObj _sptSPResultVal::toBSON() const
    {
       bson::BSONObj obj ;
-      _rval2obj( _ctx, &_value, obj ) ;
+      _rval2obj( _ctx, _value, obj ) ;
       return obj ;
    }
 
@@ -282,25 +261,119 @@ namespace engine
    {
       _ctx = ctx ;
       _errStr.clear() ;
-      _value.reset( _ctx ) ;
+      _value = JSVAL_VOID ;
    }
 
    INT32 _sptSPResultVal::_rval2obj( JSContext *cx,
-                                     const sptSPVal *pVal,
+                                     const jsval &jsrval,
                                      bson::BSONObj &rval ) const
    {
       INT32 rc = SDB_OK ;
       bson::BSONObjBuilder builder ;
-      sptConvertor c( cx ) ;
 
-      rc = c.appendToBson( SPT_RVAL_KEY, *pVal, builder ) ;
-      if ( SDB_OK != rc )
+      if ( JSVAL_IS_VOID( jsrval ) )
       {
-         ossPrintf( "%s"OSS_NEWLINE, c.getErrMsg().c_str() ) ;
+      }
+      else if ( JSVAL_IS_STRING( jsrval ) )
+      {
+         std::string v ;
+         rc = sptConvertor2::toString( cx, jsrval, v ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
+         builder.append( SPT_RVAL_KEY, v ) ;
+      }
+      else if ( JSVAL_IS_INT( jsrval ) )
+      {
+         int32 v = 0 ;
+         if ( !JS_ValueToInt32( cx, jsrval, &v ) )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         builder.append( SPT_RVAL_KEY, v ) ;
+      }
+      else if ( JSVAL_IS_DOUBLE( jsrval ) )
+      {
+         jsdouble v ;
+         if ( !JS_ValueToNumber( cx, jsrval, &v ))
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         builder.appendNumber( SPT_RVAL_KEY, v ) ;
+      }
+      else if ( JSVAL_IS_BOOLEAN( jsrval ) )
+      {
+         JSBool v ;
+         if ( !JS_ValueToBoolean( cx, jsrval, &v ) )
+         {
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         builder.appendBool( SPT_RVAL_KEY, v ) ;
+      }
+      else if ( JSVAL_IS_OBJECT( jsrval ) )
+      {
+         JSObject *obj = JSVAL_TO_OBJECT( jsrval ) ;
+         if ( JSObjIsBsonobj( cx, obj ) )
+         {
+            CHAR *rawData = NULL ;
+            rc = getBsonRawFromBsonClass( cx, obj, &rawData ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+            else if ( !rawData )
+            {
+               rc = SDB_SYS ;
+               goto error ;
+            }
+            builder.append( SPT_RVAL_KEY, bson::BSONObj( rawData ) ) ;
+         }
+         else if ( _sptBsonobj::__desc.isInstanceOf( cx, obj ) )
+         {
+            _sptBsonobj *p = (_sptBsonobj*)JS_GetPrivate( cx, obj ) ;
+            if ( NULL == p )
+            {
+               rc = SDB_SYS ;
+               goto error ;
+            }
+            builder.append( SPT_RVAL_KEY, p->getBson() ) ;
+         }
+         else if ( _sptBsonobjArray::__desc.isInstanceOf( cx, obj ) )
+         {
+            _sptBsonobjArray *p = (_sptBsonobjArray*)JS_GetPrivate( cx, obj ) ;
+            const vector<bson::BSONObj> vecObjs = p->getBsonArray() ;
+            bson::BSONArrayBuilder sub( builder.subarrayStart( SPT_RVAL_KEY ) ) ;
+            for ( UINT32 i = 0 ; i < vecObjs.size() ; ++i )
+            {
+               sub.append( vecObjs[ i ] ) ;
+            }
+            sub.done() ;
+         }
+         else if ( !JSObjIsSdbObj( cx, JSVAL_TO_OBJECT( jsrval ) ) )
+         {
+            sptConvertor2 c( cx ) ;
+            bson::BSONObj v ;
+            rc = c.toBson( JSVAL_TO_OBJECT( jsrval ), v ) ;
+            if ( SDB_OK != rc )
+            {
+               goto error ;
+            }
+            builder.append( SPT_RVAL_KEY, v ) ;
+         }
+      }
+      else
+      {
+         ossPrintf( "the type[%d] is not supported yet"OSS_NEWLINE,
+                    JS_TypeOfValue( cx, jsrval ) ) ;
+         rc = SDB_INVALIDARG ;
          goto error ;
       }
-      rval = builder.obj() ;
 
+      rval = builder.obj() ;
    done:
       return rc ;
    error:
@@ -324,7 +397,6 @@ namespace engine
    INT32 _sptSPScope::start( UINT32 loadMask )
    {
       INT32 rc = SDB_OK ;
-      BSONObj::setJSCompatibility( TRUE ) ;
       if ( NULL != _runtime )
       {
          ossPrintf( "scope has already been started up"OSS_NEWLINE) ;
@@ -385,7 +457,6 @@ namespace engine
          }
          JS_SetContextPrivate( _context, privateData ) ;
       }
-
    done:
       return rc ;
    error:
@@ -396,6 +467,17 @@ namespace engine
    INT32 _sptSPScope::_loadObj( UINT32 loadMask )
    {
       INT32 rc = SDB_OK ;
+
+      if ( loadMask & SPT_OBJ_MASK_STANDARD )
+      {
+         if ( !InitDbClasses( _context, _global ) )
+         {
+            ossPrintf( "Failed to init dbclass"OSS_NEWLINE ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
+
       if ( loadMask & SPT_OBJ_MASK_USR )
       {
          SPT_VEC_OBJDESC vecObjs ;
@@ -432,8 +514,6 @@ namespace engine
 
    void _sptSPScope::shutdown()
    {
-      _mapName2Proto.clear() ;
-
       if ( NULL != _context )
       {
          sptPrivateData* p = (sptPrivateData*)JS_GetContextPrivate( _context ) ;
@@ -462,7 +542,7 @@ namespace engine
    INT32 _sptSPScope::_loadUsrDefObj( _sptObjDesc *desc )
    {
       INT32 rc = SDB_OK ;
-      if ( !desc->isGlobal() )
+      if ( !desc->isIgnoredName() )
       {
          rc = _loadUsrClass( desc ) ;
       }
@@ -561,11 +641,6 @@ namespace engine
       JSFunctionSpec *fSpecs = NULL ;
       JSFunctionSpec *sfSpecs = NULL ;
 
-      if ( _hasPrototype( objName ) )
-      {
-         goto done ;
-      }
-
       if ( !desc->isIgnoredParent() )
       {
          parentDesc = desc->getParent() ;
@@ -576,20 +651,9 @@ namespace engine
             rc = SDB_SYS ;
             goto error ;
          }
-
-         if ( !_hasPrototype( parentDesc->getJSClassName() ) )
-         {
-            rc = _loadUsrClass( const_cast< sptObjDesc* >( parentDesc ) ) ;
-            if( SDB_OK != rc )
-            {
-               ossPrintf( "Failed to load parent class" ) ;
-               goto error ;
-            }
-         }
-         parent_proto = (JSObject*)_getPrototype( parentDesc->getJSClassName() ) ;
+         parent_proto = (JSObject*)parentDesc->getPrototypeDef() ;
       }
 
-      /// one for instance help method, another for FS_END
       fSpecs = new JSFunctionSpec[memberFuncs.size() + 1 + 1] ;
       if ( NULL == fSpecs )
       {
@@ -663,6 +727,7 @@ namespace engine
          sfSpecs[i].call = NULL ;
          sfSpecs[i].nargs = 0 ;
          sfSpecs[i].flags = 0 ;
+
          prototype = JS_InitClass( _context, /// context
                                    _global,  /// object
                                    parent_proto,  /// parent_proto
@@ -682,18 +747,12 @@ namespace engine
             goto error ;
          }
 
-         _addPrototype( objName, prototype ) ;
+         desc->setClassPrototype( prototype ) ;
       }
 
    done:
-      if ( NULL != fSpecs )
-      {
-         delete []fSpecs ;
-      }
-      if ( NULL != sfSpecs )
-      {
-         delete []sfSpecs ;
-      }
+      delete []fSpecs ;
+      delete []sfSpecs ;
       return rc ;
    error:
       goto done ;
@@ -709,12 +768,11 @@ namespace engine
       SDB_ASSERT ( _context && _global, "this scope has not been initilized" ) ;
       SDB_ASSERT( NULL != code || 0 < len, "code can not be empty" ) ;
       jsval exception = JSVAL_VOID ;
-      string strPrint ;
+      CHAR *print = NULL ;
 
       _rval.reset( _context ) ;
       jsval *pRval = ( jsval* )_rval.rawPtr() ;
 
-      // set error report
       sdbSetPrintError( ( flag & SPT_EVAL_FLAG_PRINT ) ? TRUE : FALSE ) ;
       sdbSetIgnoreErrorPrefix( ( flag & SPT_EVAL_FLAG_IGNORE_ERR_PREFIX ) ?
                                TRUE : FALSE ) ;
@@ -730,22 +788,22 @@ namespace engine
 
       if ( flag & SPT_EVAL_FLAG_PRINT )
       {
-         if ( !_rval.getVal()->isVoid() )
+         if ( !JSVAL_IS_VOID ( *pRval ) )
          {
-            rc = _rval.getVal()->toString( strPrint ) ;
-            if ( rc )
+            print = convertJsvalToString ( _context , *pRval ) ;
+            if ( !print )
             {
+               rc = SDB_SYS ;
                goto error ;
             }
          }
 
-         if ( !strPrint.empty() )
+         if ( NULL != print && print[0] != '\0' )
          {
-            ossPrintf( "%s"OSS_NEWLINE, strPrint.c_str() ) ;
+            ossPrintf( "%s"OSS_NEWLINE, print ) ;
          }
       }
 
-      // clear return error
       if ( sdbIsNeedClearErrorInfo() &&
            !JS_IsExceptionPending( _context ) )
       {
@@ -757,9 +815,9 @@ namespace engine
       {
          *ppRval = &_rval ;
       }
+      SAFE_JS_FREE ( _context , print ) ;
       return rc ;
    error:
-      // report error while calling eval() recursively
       if ( JS_IsExceptionPending( _context ) &&
            JS_GetPendingException ( _context , &exception ) )
       {
@@ -776,7 +834,6 @@ namespace engine
             std::stringstream errPrefix ;
             sptPrivateData *privateData  = NULL ;
 
-            // get privateData to get exception filename and lineno
             privateData = ( sptPrivateData* ) JS_GetContextPrivate( _context ) ;
             /*
              * Branch 1: userdef function throw errno
@@ -786,7 +843,7 @@ namespace engine
             if( NULL != privateData && privateData->isSetErrInfo() )
             {
                {
-                  errPrefix << privateData->getErrFileName() << ":"
+                  errPrefix << privateData->getErrFileName().c_str() << ":"
                             << privateData->getErrLineno() << " " ;
                }
                if( flag & SPT_EVAL_FLAG_IGNORE_ERR_PREFIX && !sdbIsErrMsgEmpty() )
@@ -817,7 +874,6 @@ namespace engine
                errObj = JSVAL_TO_OBJECT( exception ) ;
                if( NULL != errObj )
                {
-                  // get Error obj fileName
                   if( JS_GetProperty( _context, errObj,
                                       JS_ERROBJ_FILENAME, &fileName )
                       && JSVAL_IS_STRING( fileName ) )
@@ -828,7 +884,6 @@ namespace engine
                         errfileName = JS_EncodeString ( _context , jsStr ) ;
                      }
                   }
-                  // get Error obj lineno
                   if( JS_GetProperty( _context, errObj,
                                       JS_ERROBJ_LINENO, &lineNumber )
                       && JSVAL_IS_INT( lineNumber ) )
@@ -839,9 +894,6 @@ namespace engine
                errPrefix << ( errfileName ? string( errfileName ): "(nofile)" ) << ":"
                          << errLineno << " " ;
                errMsg << strException ;
-
-               /// free
-               SAFE_JS_FREE( _context, errfileName ) ;
             }
             /*
              *Branch 3: Throw other type, such as string
@@ -900,14 +952,6 @@ namespace engine
                                                    setFunc, showHide ) ;
    }
 
-   void _sptSPScope::getObjFunNames( const string &className,
-                                          set< string > &setFunc,
-                                          BOOLEAN showHide )
-   {
-      sptGetObjFactory()->getClassFuncNames( _context, className,
-                                             setFunc, showHide ) ;
-   }
-
    void _sptSPScope::getObjFunNames( const void *pObj,
                                      set< string > &setFunc,
                                      BOOLEAN showHide )
@@ -922,32 +966,6 @@ namespace engine
    {
       JSObject *pJSObj = ( JSObject* )pObj ;
       return sptGetObjFactory()->getObjPropNames( _context, pJSObj, setProp ) ;
-   }
-
-   void _sptSPScope::_addPrototype( const string &name,
-                                    const JSObject *obj )
-   {
-      _mapName2Proto[name] = obj ;
-   }
-
-   const JSObject* _sptSPScope::_getPrototype( const string &name ) const
-   {
-      MAP_NAME_2_PROTOTYPE::const_iterator it = _mapName2Proto.find( name ) ;
-      if ( it != _mapName2Proto.end() )
-      {
-         return it->second ;
-      }
-      return NULL ;
-   }
-
-   BOOLEAN _sptSPScope::_hasPrototype( const string &name ) const
-   {
-      MAP_NAME_2_PROTOTYPE::const_iterator it = _mapName2Proto.find( name ) ;
-      if ( it != _mapName2Proto.end() )
-      {
-         return TRUE ;
-      }
-      return FALSE ;
    }
 }
 

@@ -1,40 +1,14 @@
-﻿/*
- * Copyright 2018 SequoiaDB Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
-*/
-
-namespace SequoiaDB
+﻿namespace SequoiaDB
 {
 	public class SDBConst
 	{
         /** \memberof FLG_INSERT_CONTONDUP 0x00000001
-         *  \brief The flag represent whether insert continue(no errors were reported) when hitting index key duplicate error.
+         *   \brief The flags represent whether bulk insert continue when hitting index key duplicate error
          */
         public const int FLG_INSERT_CONTONDUP = 0x00000001;
 
-        /** \memberof FLG_INSERT_RETURN_OID 0x00000002
-         *  \brief The flag represent whether insert return the "_id" field of the record for user.
-         */
-        public const int FLG_INSERT_RETURN_OID = 0x00000002;
-
-        /** \memberof FLG_INSERT_REPLACEONDUP 0x00000004
-         *  \brief The flag represent whether insert becomes update when hitting index key duplicate error.
-         */
-        public const int FLG_INSERT_REPLACEONDUP = 0x00000004;
-
         /** \memberof FLG_UPDATE_KEEP_SHARDINGKEY 0x00008000
-         *  \brief The sharding key in update rule is not filtered,
+         *   \brief The sharding key in update rule is not filtered,
          *          when executing update or upsert.
          */
         public const int FLG_UPDATE_KEEP_SHARDINGKEY = 0x00008000;
@@ -59,9 +33,6 @@ namespace SequoiaDB
         public const int SDB_SNAP_TRANSACTIONS_CURRENT = 10;
         public const int SDB_SNAP_ACCESSPLANS      = 11;
         public const int SDB_SNAP_HEALTH           = 12;
-        public const int SDB_SNAP_CONFIGS          = 13;
-        public const int SDB_SNAP_SVCTASKS         = 14;
-        public const int SDB_SNAP_SEQUENCES        = 15;
 
         public const int SDB_LIST_CONTEXTS         = 0;
         public const int SDB_LIST_CONTEXTS_CURRENT = 1;
@@ -76,9 +47,6 @@ namespace SequoiaDB
         public const int SDB_LIST_TASKS            = 10;
         public const int SDB_LIST_TRANSACTIONS     = 11;
         public const int SDB_LIST_TRANSACTIONS_CURRENT = 12;
-        public const int SDB_LIST_SVCTASKS         = 14;
-        public const int SDB_LIST_SEQUENCES        = 15;
-        public const int SDB_LIST_USERS            = 16;
         public const int SDB_LIST_CL_IN_DOMAIN     = 129;
         public const int SDB_LIST_CS_IN_DOMAIN     = 130;
 

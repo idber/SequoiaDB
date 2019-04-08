@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptBsonobjArray.cpp
 
@@ -64,11 +63,6 @@ namespace engine
      JS_ADD_RESOLVE_FUNC(resolve)
      /* static function */
      JS_ADD_STATIC_FUNC("help", help)
-
-     JS_SET_CVT_TO_BSON_FUNC( _sptBsonobjArray::cvtToBSON )
-     JS_SET_JSOBJ_TO_BSON_FUNC( _sptBsonobjArray::fmpToBSON )
-     JS_SET_BSON_TO_JSOBJ_FUNC( _sptBsonobjArray::bsonToJSObj )
-
    JS_MAPPING_END()
 
    _sptBsonobjArray::_sptBsonobjArray()
@@ -195,112 +189,11 @@ namespace engine
          }
          if ( idValue < (INT32)_vecObj.size() )
          {
-            /// set the return value
             rval.getReturnVal().setValue( _vecObj[idValue] ) ;
          }
          processed = TRUE ;
          setIDProp = TRUE ;
       }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _sptBsonobjArray::fmpToBSON( const sptObject &value,
-                                      BSONObj &retObj,
-                                      string &errMsg )
-   {
-      INT32 rc = SDB_OK ;
-      BSONArrayBuilder builder ;
-      _sptBsonobjArray *pBsonArray = NULL ;
-      rc = value.getUserObj( _sptBsonobjArray::__desc,
-                             (const void **)&pBsonArray ) ;
-      if( SDB_OK != rc )
-      {
-         errMsg = "Failed to get BSONObjArray field" ;
-         goto error ;
-      }
-
-      {
-         const vector< BSONObj >& vecObj = pBsonArray->getBsonArray() ;
-         for ( UINT32 i = 0 ; i < vecObj.size() ; ++i )
-         {
-            builder.append( vecObj[i] ) ;
-         }
-         retObj = builder.arr() ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _sptBsonobjArray::cvtToBSON( const CHAR *key,
-                                      const sptObject &value,
-                                      BOOLEAN isSpecialObj,
-                                      BSONObjBuilder &builder,
-                                      string &errMsg )
-   {
-      INT32 rc = SDB_OK ;
-      _sptBsonobjArray *pBsonArray = NULL ;
-      rc = value.getUserObj( _sptBsonobjArray::__desc,
-                             (const void **)&pBsonArray ) ;
-      if( SDB_OK != rc )
-      {
-         errMsg = "Failed to get BSONObjArray field" ;
-         goto error ;
-      }
-
-      {
-         const vector< BSONObj >& vecObj = pBsonArray->getBsonArray() ;
-         BSONArrayBuilder subBuild( builder.subarrayStart( key ) ) ;
-         for ( UINT32 i = 0 ; i < vecObj.size() ; ++i )
-         {
-            subBuild.append( vecObj[i] ) ;
-         }
-         subBuild.done() ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 _sptBsonobjArray::bsonToJSObj( sdbclient::sdb &db,
-                                        const BSONObj &data,
-                                        _sptReturnVal &rval,
-                                        bson::BSONObj &detail )
-   {
-      INT32 rc = SDB_OK ;
-      vector< BSONObj > vecObj ;
-      _sptBsonobjArray *pBsonArray = NULL ;
-
-      BSONObjIterator itr( data ) ;
-      while( itr.more() )
-      {
-         BSONElement e = itr.next() ;
-         if ( Object != e.type() )
-         {
-            detail = BSON( SPT_ERR << "Data is not Object Array" ) ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         vecObj.push_back( e.embeddedObject() ) ;
-      }
-
-      pBsonArray = SDB_OSS_NEW _sptBsonobjArray( vecObj ) ;
-      if ( !pBsonArray )
-      {
-         rc = SDB_OOM ;
-         detail = BSON( SPT_ERR << "Failed to new _sptBsonobjArray" ) ;
-         goto error ;
-      }
-
-      rval.setUsrObjectVal<_sptBsonobjArray>( pBsonArray ) ;
 
    done:
       return rc ;

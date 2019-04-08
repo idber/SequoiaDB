@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordRemoteSession.hpp
 
@@ -38,8 +37,6 @@
 #include "msgMessageFormat.hpp"
 #include "coordCommon.hpp"
 #include "pmdEDU.hpp"
-#include "pmd.hpp"
-#include "dpsTransCB.hpp"
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
 
@@ -56,10 +53,8 @@ namespace engine
    _coordSessionPropSite::_coordSessionPropSite ()
    : _rtnSessionProperty(),
      _mapLastNodes(),
-     _pEDUCB( NULL ),
-     _pSite( NULL )
+     _pEDUCB( NULL )
    {
-      _transResult = 0 ;
    }
 
    _coordSessionPropSite::~_coordSessionPropSite()
@@ -117,133 +112,9 @@ namespace engine
       _pEDUCB = cb ;
    }
 
-   void _coordSessionPropSite::setSite( pmdRemoteSessionSite *pSite )
-   {
-      _pSite = pSite ;
-   }
-
    void _coordSessionPropSite::_onSetInstance ()
    {
       clear() ;
-   }
-
-   BOOLEAN _coordSessionPropSite::isTransNode( const MsgRouteID &routeID ) const
-   {
-      BOOLEAN found = FALSE ;
-      MAP_TRANS_NODES_CIT cit ;
-
-      cit = _mapTransNodes.find( routeID.columns.groupID ) ;
-      if ( cit != _mapTransNodes.end() &&
-           cit->second.value == routeID.value )
-      {
-         found = TRUE ;
-      }
-
-      return found ;
-   }
-
-   BOOLEAN _coordSessionPropSite::getTransNodeRouteID( UINT32 groupID,
-                                                       MsgRouteID &routeID ) const
-   {
-      BOOLEAN found = FALSE ;
-      MAP_TRANS_NODES_CIT cit ;
-      routeID.value = 0 ;
-
-      cit = _mapTransNodes.find( routeID.columns.groupID ) ;
-      if ( cit != _mapTransNodes.end() )
-      {
-         routeID = cit->second ;
-         found = TRUE ;
-      }
-
-      return found ;
-   }
-
-   BOOLEAN _coordSessionPropSite::hasTransNode( UINT32 groupID ) const
-   {
-      if ( _mapTransNodes.find( groupID ) != _mapTransNodes.end() )
-      {
-         return TRUE ;
-      }
-      return FALSE ;
-   }
-
-   BOOLEAN _coordSessionPropSite::isTransNodeEmpty() const
-   {
-      return _mapTransNodes.empty() ;
-   }
-
-   BOOLEAN _coordSessionPropSite::delTransNode( const MsgRouteID &routeID )
-   {
-      MAP_TRANS_NODES_IT it = _mapTransNodes.find( routeID.columns.groupID ) ;
-      if ( it != _mapTransNodes.end() &&
-           it->second.value == routeID.value )
-      {
-         _mapTransNodes.erase( it ) ;
-         return TRUE ;
-      }
-      return FALSE ;
-   }
-
-   void _coordSessionPropSite::addTransNode( const MsgRouteID &routeID )
-   {
-      _mapTransNodes[ routeID.columns.groupID ] = routeID ;
-   }
-
-   UINT32 _coordSessionPropSite::getTransNodeSize() const
-   {
-      return _mapTransNodes.size() ;
-   }
-
-   UINT32 _coordSessionPropSite::dumpTransNode( SET_ROUTEID &setID ) const
-   {
-      MAP_TRANS_NODES_CIT cit = _mapTransNodes.begin() ;
-      while( cit != _mapTransNodes.end() )
-      {
-         setID.insert( cit->second.value ) ;
-         ++cit ;
-      }
-      return _mapTransNodes.size() ;
-   }
-
-   const _coordSessionPropSite::MAP_TRANS_NODES*
-      _coordSessionPropSite::getTransNodeMap() const
-   {
-      return &_mapTransNodes ;
-   }
-
-   INT32 _coordSessionPropSite::beginTrans( _pmdEDUCB *cb )
-   {
-      if ( !cb->isTransaction() )
-      {
-         SDB_ASSERT( _mapTransNodes.empty(), "Trans node is not empty" ) ;
-
-         dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
-         DPS_TRANS_ID transID = DPS_INVALID_TRANS_ID ;
-
-         /// alloc trans id
-         transID = pTransCB->allocTransID() ;
-         /// clear first op
-         DPS_TRANS_CLEAR_FIRSTOP( transID ) ;
-
-         /// set trans id
-         cb->setTransID( transID ) ;
-         cb->setTransRC( SDB_OK ) ;
-
-         _mapTransNodes.clear() ;
-
-         PD_LOG( PDINFO, "Begin transaction(%04x%010x)",
-                 DPS_TRANS_GET_NODEID( transID ),
-                 DPS_TRANS_GET_SN( transID ) ) ;
-      }
-
-      return SDB_OK ;
-   }
-
-   void _coordSessionPropSite::endTrans( _pmdEDUCB *cb )
-   {
-      cb->setTransID( DPS_INVALID_TRANS_ID ) ;
-      _mapTransNodes.clear() ;
    }
 
    /*
@@ -266,7 +137,6 @@ namespace engine
       propSite.setInstanceOption( _instanceOption ) ;
       propSite.setOperationTimeout( _operationTimeout ) ;
       propSite.setEduCB( cb ) ;
-      propSite.setSite( pSite ) ;
       pSite->setUserData( (UINT64)&propSite ) ;
    }
 
@@ -278,7 +148,6 @@ namespace engine
       if ( pPropSite )
       {
          pPropSite->setEduCB( NULL ) ;
-         pPropSite->setSite( NULL ) ;
          pSite->setUserData( 0 ) ;
       }
       _mapProps.erase( cb->getTID() ) ;
@@ -411,8 +280,7 @@ namespace engine
          addGroupPtr2Map( _groupPtr ) ;
       }
 
-      /// In transaction, need to use the trans node
-      _pPropSite->getTransNodeRouteID( groupID, nodeID ) ;
+      _pPropSite->getEDUCB()->getTransNodeRouteID( groupID, nodeID ) ;
       if ( MSG_INVALID_ROUTEID != nodeID.value &&
            _svcType == nodeID.columns.serviceID )
       {
@@ -460,7 +328,6 @@ namespace engine
 
       if ( MSG_INVALID_ROUTEID == nodeID.value )
       {
-         /// when no primary node, select any one
          rc = _selOtherBegin( nodeID ) ;
          if ( rc )
          {
@@ -488,7 +355,6 @@ namespace engine
       UINT32 nodeNum = 0 ;
 
       nodeID.value = _pPropSite->getLastNode( groupID ) ;
-      // last node is valid and in group info
       if ( MSG_INVALID_ROUTEID != nodeID.value &&
            COORD_GROUP_SEL_INVALID == _pos )
       {
@@ -612,7 +478,6 @@ namespace engine
             case PREFER_INSTANCE_TYPE_MASTER_SND :
             {
                pos = pGroupItem->getPrimaryPos() ;
-               // if there is no primary, then go on to get random node
                if ( CLS_RG_NODE_POS_INVALID != pos )
                {
                   selected = TRUE ;
@@ -652,12 +517,9 @@ namespace engine
 
          if ( !selected && nodeCount > 0 )
          {
-            // Round up the position to number of nodes
             pos = pos % nodeCount ;
             if ( isSlavePreferred && pos == primaryPos )
             {
-               // Move one position back for slave preferred but primary has
-               // been chosen
                pos = ( pos + 1 ) % nodeCount ;
             }
          }
@@ -688,10 +550,6 @@ namespace engine
          {
             if ( _selectedPositions.empty() )
             {
-               // Only when choose from group will consider move position
-               // for slave preferred option
-               // The selected positions have been considered for slave
-               // preferred option
                isSlavePreferred = instanceOption.isSlavePerferred() ;
                tmpPos = ( tmpPos + 1 ) % nodeCount ;
             }
@@ -704,7 +562,6 @@ namespace engine
 
          if ( isSlavePreferred )
          {
-            // Slave is preferred, avoid to use the primary node
             UINT32 primaryPos = pGroupItem->getPrimaryPos() ;
             if ( CLS_RG_NODE_POS_INVALID != primaryPos &&
                  selTimes + 1 == nodeCount )
@@ -749,7 +606,7 @@ namespace engine
                                               _pPropSite->getEDUCB() ) ;
             if ( rc )
             {
-               if ( SDB_CLS_GRP_NOT_EXIST != rc && _ignoredNum > 0 )
+               if ( _ignoredNum > 0 )
                {
                   PD_LOG( PDWARNING, "Update group[%u] info failed, rc: %d",
                           groupID, rc ) ;
@@ -767,7 +624,6 @@ namespace engine
          if ( SDB_OK == rc )
          {
             _resetStatus() ;
-            /// need set update to TRUE
             _hasUpdate = TRUE ;
             rc = _selOtherBegin( nodeID ) ;
          }
@@ -824,7 +680,6 @@ namespace engine
                   {
                      if ( !primaryFirst && !primaryLast )
                      {
-                        // Primary is not specified in this case
                         tempPositions.append( pos ) ;
                      }
                      foundPrimary = TRUE ;
@@ -865,14 +720,10 @@ namespace engine
                 ( instanceOption.getSpecialInstance() == PREFER_INSTANCE_TYPE_MASTER ||
                   instanceOption.getSpecialInstance() == PREFER_INSTANCE_TYPE_MASTER_SND ) )
       {
-         // Primary is not in the selected list, but "M" or "m" is specified,
-         // so we need to consider primary node if all previous selected nodes
-         // are failing, put the primary node to the end
          selectedPositions.push_back( primaryPos ) ;
          OSS_BIT_CLEAR( unselectMask, 1 << primaryPos ) ;
       }
 
-      // Push the unselected positions in the end of selected positions
       if ( !selectedPositions.empty() )
       {
          UINT8 tmpPos = (UINT8)random ;
@@ -1002,7 +853,6 @@ namespace engine
       rc = _pResource->updateCataInfo( pCollectionName, _cataPtr, cb ) ;
       if ( rc )
       {
-         /// Restore the rc when changed by updateCataInfo
          if ( isRoot && SDB_CLS_COORD_NODE_CAT_VER_OLD == rc )
          {
             rc = SDB_DMS_NOTEXIST ;
@@ -1098,7 +948,6 @@ namespace engine
 
       if ( !_cataPtr->isMainCL() )
       {
-         // normal collection or sub-collection
          if ( NULL == pQuery || pQuery->isEmpty() )
          {
             _cataPtr->getGroupLst( groupLst ) ;
@@ -1125,7 +974,6 @@ namespace engine
          }
          else
          {
-            //don't resend to the node which reply ok
             CoordGroupList::const_iterator iter = exceptGrpLst.begin();
             while( iter != exceptGrpLst.end() )
             {
@@ -1136,7 +984,6 @@ namespace engine
       }
       else
       {
-         // main-collection
          vector< string > subCLLst ;
          vector< string >::iterator iterCL ;
 
@@ -1223,7 +1070,6 @@ namespace engine
       _pResource = NULL ;
       _pPropSite = NULL ;
       _pGroupSel = NULL ;
-      _pRemoteHandle = NULL ;
    }
 
    _coordGroupSessionCtrl::~_coordGroupSessionCtrl()
@@ -1242,13 +1088,11 @@ namespace engine
 
    void _coordGroupSessionCtrl::init( coordResource *pResource,
                                       coordSessionPropSite *pPropSite,
-                                      coordGroupSel *pGroupSel,
-                                      IRemoteSessionHandler *pRemoteHandle )
+                                      coordGroupSel *pGroupSel )
    {
       _pResource = pResource ;
       _pPropSite = pPropSite ;
       _pGroupSel = pGroupSel ;
-      _pRemoteHandle = pRemoteHandle ;
    }
 
    void _coordGroupSessionCtrl::incRetry()
@@ -1280,7 +1124,6 @@ namespace engine
 
       if ( coordCheckNodeReplyFlag( flag ) )
       {
-         /// remove last node
          _pPropSite->delLastNode( nodeID.columns.groupID, nodeID.value ) ;
       }
 
@@ -1303,10 +1146,6 @@ namespace engine
          if ( SDB_OK == groupPtr->updatePrimary( primaryNodeID,
                                                  TRUE, &preStat ) )
          {
-            /// when primay's crash has not discoverd by other nodes,
-            /// new primary's nodeid may still be old one.
-            /// To avoid send msg to crashed node frequently,
-            /// sleep some times.
             if ( NET_NODE_STAT_NORMAL != preStat )
             {
                groupPtr->cancelPrimary() ;
@@ -1348,36 +1187,17 @@ namespace engine
             }
          }
       }
-      // [SDB_COORD_REMOTE_DISC] can't use in write command,
-      // because when some insert/update opr do partibal,
-      // if retry, data will repeat. The code can't update status,
-      // because it maybe occured in long time ago
       else if ( ( isReadCmd && SDB_COORD_REMOTE_DISC == flag ) ||
                 SDB_CLS_NODE_NOT_ENOUGH == flag )
       {
-         /// do nothing
       }
-      else if ( SDB_CLS_FULL_SYNC == flag ||
-                SDB_RTN_IN_REBUILD == flag ||
-                SDB_INVALID_ROUTEID == flag )
+      else if ( SDB_CLS_FULL_SYNC == flag || SDB_RTN_IN_REBUILD == flag )
       {
          if( groupPtr.get() )
          {
             groupPtr->updateNodeStat( nodeID.columns.nodeID,
                                       netResult2Status( flag ) ) ;
          }
-      }
-      else if ( SDB_CLS_DATA_NOT_SYNC == flag )
-      {
-         // it may be that rename operation hasn't been replayed on slave data,
-         // so change to primary data.
-         _pGroupSel->setPrimary( TRUE ) ;
-      }
-      else if ( ( SDB_UNKNOWN_MESSAGE == flag ||
-                  SDB_CLS_UNKNOW_MSG == flag ) &&
-                 _pRemoteHandle )
-      {
-         _pRemoteHandle->setUserData( coordRemoteHandlerBase::INIT_V0 ) ;
       }
       else
       {
@@ -1473,6 +1293,8 @@ namespace engine
          SDB_ASSERT( FALSE, "Prop site can't be NULL" ) ;
          goto error ;
       }
+      _groupSel.init( pResource, _pPropSite ) ;
+      _groupCtrl.init( pResource, _pPropSite, &_groupSel ) ;
 
       if ( 0 == _timeout )
       {
@@ -1482,10 +1304,6 @@ namespace engine
       {
          pHandle = &_baseHandle ;
       }
-
-      _groupSel.init( pResource, _pPropSite ) ;
-      _groupCtrl.init( pResource, _pPropSite, &_groupSel, pHandle ) ;
-
       _pSession = _pSite->addSession( _timeout, pHandle ) ;
       if ( !_pSession )
       {
@@ -1595,7 +1413,6 @@ namespace engine
       const netIOVec *pCommonIO = NULL ;
       const netIOVec *pIOVec = NULL ;
 
-      // find common iovec
       itIO = iov.find( 0 ) ; // group id is 0 for common iovec
       if ( iov.end() != itIO )
       {
@@ -1686,12 +1503,9 @@ namespace engine
             _groupSel.selDone() ;
             break ;
          }
-         /// remove the sub node
          _pSession->delSubSession( nodeID.value ) ;
-         /// update node stat
          _groupSel.updateStat( nodeID, rc ) ;
-         /// get next node
-         if ( SDB_OK != ( rc = _groupSel.selNext( nodeID ) ) )
+         if ( SDB_OK != _groupSel.selNext( nodeID ) )
          {
             goto error ;
          }

@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = ossTypes.h
 
@@ -48,7 +47,6 @@
 
 #define SDB_UNUSED(x)      (x)=(x)
 
-// platform dependent data types
 #ifdef TRUE
 #undef TRUE
 #endif
@@ -137,15 +135,6 @@ typedef INT32 SOCKET ;
    typedef uid_t           OSSUID ;
    typedef gid_t           OSSGID ;
    #define OSS_INLINE      inline
-   // any attempt to get TLS variable should use OSS_FORCE_INLINE
-   // It may avoid calling __tls_get_addr (x86 only)instruction repeatedly if
-   // there's any for loop
-   // eg:
-   // static OSS_THREAD_LOCAL pmdEDUCB *_tlsEDUCB ;
-   // OSS_FORCE_INLINE pmdEDUCB *getEDUCB ()
-   // {
-   //    return _tlsEDUCB ;
-   // }
    #define OSS_FORCE_INLINE __attribute__((always_inline))
    #define OSS_THREAD_LOCAL __thread
 #elif defined _WINDOWS
@@ -157,15 +146,6 @@ typedef INT32 SOCKET ;
    typedef DWORD           OSSUID ;
    typedef DWORD           OSSGID ;
    #define OSS_INLINE      inline
-   // any attempt to get TLS variable should use OSS_FORCE_INLINE
-   // It may avoid calling __tls_get_addr (x86 only)instruction repeatedly if
-   // there's any for loop
-   // eg:
-   // static OSS_THREAD_LOCAL pmdEDUCB *_tlsEDUCB ;
-   // OSS_FORCE_INLINE pmdEDUCB *getEDUCB ()
-   // {
-   //    return _tlsEDUCB ;
-   // }
    #define OSS_FORCE_INLINE __forceinline
    #define OSS_THREAD_LOCAL __declspec(thread)
 #else
@@ -181,21 +161,12 @@ typedef UINT64 EDUID ;
 #define OSS_INVALID_UID       ( ( OSSUID )-1 )
 #define OSS_INVALID_GID       ( ( OSSGID )-1 )
 
-// FIXME: need to move to util
-typedef UINT32 OBJIDX ;
-#define OSS_INVALID_OBJIDX    ( ( OBJIDX ) -1 )
 
-
-// return the minimum of two values
 #define OSS_MIN(a, b) (((a) < (b)) ? (a) : (b))
-//
-// return the maximum of two values
 #define OSS_MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 #define ossRoundDownToMultipleX(x,y) (((x)/(y))*(y))
 #define ossRoundUpToMultipleX(x,y) (((x)+((y)-1))-(((x)+((y)-1))%(y)))
-// check if an address is aligned on a 4 or 8 bytes boundary on its
-// platform ( currently it works for 32bit or 64bit only )
 #define ossIsAlignedNative(x) (0==(((ossValuePtr)(x))&(sizeof(void*)-1)))
 #define ossIsAligned4(x) (0==(((ossValuePtr)(x))&(4-1)))
 #define ossIsAligned8(x) (0==(((ossValuePtr)(x))&(8-1)))
@@ -308,7 +279,6 @@ enum SDB_SHELL_RETURN_CODE
 
    SDB_SRC_INVALIDARG         = 127,   // invalid argment
 
-   // user define, begin from 128
    SDB_SRC_IO                 = 128,   // IO Exception
    SDB_SRC_PERM               = 129,   // Permission Error
    SDB_SRC_OOM                = 130,   // Out of Memory
@@ -323,8 +293,6 @@ enum SDB_SHELL_RETURN_CODE
    SDB_SRC_MAX                = 255    // max value
 } ;
 
-// define the client return code
-// should always between 0 to 255
 #define SDB_RETURNCODE_OK      SDB_SRC_SUC
 #define SDB_RETURNCODE_EMPTY   SDB_SRC_EMPTY
 #define SDB_RETURNCODE_WARNING SDB_SRC_WARNING

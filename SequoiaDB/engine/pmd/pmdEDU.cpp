@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pmdEDU.cpp
 
@@ -46,7 +45,6 @@
 #include "pmd.hpp"
 #include "pdTrace.hpp"
 #include "pmdTrace.hpp"
-#include "utilUniqueID.hpp"
 #include <map>
 
 namespace engine
@@ -86,16 +84,12 @@ namespace engine
       _pmdEDUCB implement
    */
    _pmdEDUCB::_pmdEDUCB( _pmdEDUMgr *mgr, INT32 type )
-#if defined ( SDB_ENGINE )
-   :_transExecutor( this )
-#endif // SDB_ENGINE
    {
       _eduMgr           = mgr ;
       _eduID            = PMD_INVALID_EDUID ;
       _tid              = 0 ;
       _status           = PMD_EDU_UNKNOW ;
       _eduType          = type ;
-      _isLocked         = FALSE ;
       _ctrlFlag         = 0 ;
       _isInterruptSelf  = FALSE ;
       _writingDB        = FALSE ;
@@ -117,9 +111,6 @@ namespace engine
       _alignedMem       = NULL ;
       _alignedMemSize   = 0 ;
 
-      _pBuffer          = NULL ;
-      _buffSize         = 0 ;
-
       _beginLsn         = 0 ;
       _endLsn           = 0 ;
       _lsnNumber        = 0 ;
@@ -134,6 +125,7 @@ namespace engine
 
 #if defined ( SDB_ENGINE )
       _relatedTransLSN  = DPS_INVALID_LSN_OFFSET ;
+      _pTransNodeMap    = NULL ;
       _transRC          = SDB_OK ;
 
       _curRequestID     = 1 ;
@@ -144,7 +136,6 @@ namespace engine
       {
          ossMemset( _pErrorBuff, 0, EDU_ERROR_BUFF_SIZE + 1 ) ;
       }
-
    }
 
    _pmdEDUCB::~_pmdEDUCB ()
@@ -154,13 +145,20 @@ namespace engine
          SDB_OSS_FREE ( _pErrorBuff ) ;
          _pErrorBuff = NULL ;
       }
+#if defined ( SDB_ENGINE )
+      clearLockList() ;
+      if ( _pTransNodeMap )
+      {
+         delete _pTransNodeMap;
+         _pTransNodeMap = NULL;
+      }
+#endif // SDB_ENGINE
 
       clear() ;
    }
 
    void _pmdEDUCB::clear()
    {
-      // clear all queue msg
       pmdEDUEvent data ;
       while ( _queue.try_pop( data ) )
       {
@@ -170,14 +168,12 @@ namespace engine
       ossMemset( _name, 0, sizeof( _name ) ) ;
       _userName = "" ;
       _passWord = "" ;
-      _isLocked = FALSE ;
 
       _ctrlFlag = 0 ;
       _isInterruptSelf = FALSE ;
       resetLsn() ;
       writingDB( FALSE ) ;
       releaseAlignedBuff() ;
-      releaseBuffer() ;
 
       resetLocks() ;
 
@@ -185,7 +181,6 @@ namespace engine
       clearTransInfo() ;
 #endif // SDB_ENGINE
 
-      // release buff
       if ( _pCompressBuff )
       {
          releaseBuff( _pCompressBuff ) ;
@@ -199,7 +194,6 @@ namespace engine
       }
       _uncompressBuffLen = 0 ;
 
-      // clean catch
       CATCH_MAP_IT it = _catchMap.begin() ;
       while ( it != _catchMap.end() )
       {
@@ -210,7 +204,6 @@ namespace engine
       }
       _catchMap.clear() ;
 
-      // clean alloc memory
       ALLOC_MAP_IT itAlloc = _allocMap.begin() ;
       while ( itAlloc != _allocMap.end() )
       {
@@ -222,7 +215,6 @@ namespace engine
 
       SDB_ASSERT( _totalCatchSize == 0 , "Catch size is error" ) ;
       SDB_ASSERT( _totalMemSize == 0, "Memory size is error" ) ;
-
    }
 
    string _pmdEDUCB::toString() const
@@ -341,7 +333,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__PMDEDUCB_PRINTINFO );
-      //already exist, return ok
       if ( getInfo ( type ) )
       {
          goto done ;
@@ -437,7 +428,6 @@ namespace engine
 
    void _pmdEDUCB::saveBuffs( _pmdEDUCB::CATCH_MAP &catchMap )
    {
-      // release buff
       if ( _pCompressBuff )
       {
          releaseBuff( _pCompressBuff ) ;
@@ -451,7 +441,6 @@ namespace engine
       }
       _uncompressBuffLen = 0 ;
 
-      // clean alloc memory
       CHAR *pBuff = NULL ;
       ALLOC_MAP_IT itAlloc = _allocMap.begin() ;
       while ( itAlloc != _allocMap.end() )
@@ -462,7 +451,6 @@ namespace engine
       }
       _allocMap.clear() ;
 
-      // restore catch map
       CATCH_MAP_IT it = _catchMap.begin() ;
       while ( it != _catchMap.end() )
       {
@@ -523,7 +511,7 @@ namespace engine
          {
             SDB_OSS_ORIGINAL_FREE( _alignedMem ) ;
             _alignedMemSize = 0 ;
-            _alignedMem = NULL ;
+            _alignedMem = NULL ; 
          }
 
          size = ossRoundUpToMultipleX( size, alignment ) ;
@@ -552,41 +540,18 @@ namespace engine
       }
    }
 
-   CHAR* _pmdEDUCB::getBuffer( UINT32 len )
-   {
-      if ( _buffSize < len )
-      {
-         releaseBuffer() ;
-         allocBuff( len, &_pBuffer, &_buffSize ) ;
-      }
-
-      return _pBuffer ;
-   }
-
-   void _pmdEDUCB::releaseBuffer()
-   {
-      if ( _pBuffer )
-      {
-         releaseBuff( _pBuffer ) ;
-         _pBuffer = NULL ;
-         _buffSize = 0 ;
-      }
-   }
-
    INT32 _pmdEDUCB::allocBuff( UINT32 len,
                                CHAR **ppBuff,
                                UINT32 *pRealSize )
    {
       INT32 rc = SDB_OK ;
 
-      // first alloc from catch
       if ( _totalCatchSize >= len &&
            _allocFromCatch( len, ppBuff, pRealSize ) )
       {
          goto done ;
       }
 
-      // malloc
       len = ossRoundUpToMultipleX( len, EDU_MEM_ALIGMENT_SIZE ) ;
       *ppBuff = ( CHAR* )SDB_OSS_MALLOC( len ) ;
       if( !*ppBuff )
@@ -597,7 +562,6 @@ namespace engine
          goto error ;
       }
 
-      // update meta info
       _totalMemSize += len ;
       _allocMap[ *ppBuff ] = len ;
 
@@ -652,11 +616,9 @@ namespace engine
 
       if ( pOld != *ppBuff )
       {
-         /// the old pointer has release, so need del from map
          _allocMap.erase( pOld ) ;
       }
 
-      // update meta info
       _totalMemSize += ( len - oldLen ) ;
 
       _allocMap[ *ppBuff ] = len ;
@@ -699,11 +661,9 @@ namespace engine
       }
       else
       {
-         // add to catch
          _catchMap.insert( std::make_pair( buffLen, pBuff ) ) ;
          _totalCatchSize += buffLen ;
 
-         // re-org catch
          while ( _totalCatchSize > EDU_MAX_CATCH_SIZE )
          {
             CATCH_MAP_IT it = _catchMap.begin() ;
@@ -721,7 +681,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__PMDEDUCB_ISINT );
       BOOLEAN ret = FALSE ;
 
-      // mask interrupt while doing rollback
       if ( !onlyFlag && _isDoRollback )
       {
          goto done;
@@ -891,32 +850,6 @@ namespace engine
       }
    }
 
-   void _pmdEDUCB::initTransConf()
-   {
-#if defined ( SDB_ENGINE )
-      pmdOptionsCB *optCB = pmdGetOptionCB() ;
-      if ( optCB->transactionOn() )
-      {
-         _transExecutor.initTransConf( optCB->transIsolation(),
-                                       optCB->transTimeout() * OSS_ONE_SEC,
-                                       optCB->transLockwait() ) ;
-      }
-#endif //SDB_ENGINE
-   }
-
-   void _pmdEDUCB::updateTransConf()
-   {
-#if defined ( SDB_ENGINE )
-      pmdOptionsCB *optCB = pmdGetOptionCB() ;
-      if ( optCB->transactionOn() )
-      {
-         _transExecutor.updateTransConf( optCB->transIsolation(),
-                                         optCB->transTimeout() * OSS_ONE_SEC,
-                                         optCB->transLockwait() ) ;
-      }
-#endif //SDB_ENGINE
-   }
-
    void _pmdEDUCB::incEventCount( UINT32 step )
    {
       _processEventCount += step ;
@@ -941,10 +874,6 @@ namespace engine
          SDB_ASSERT( 0 == _lockInfo[i].lockCount(),
                      "Lock count must be 0" ) ;
       }
-
-#if defined ( SDB_ENGINE )
-      _transExecutor.assertLocks() ;
-#endif //SDB_ENGINE
    }
 
    void _pmdEDUCB::resetLocks()
@@ -1023,17 +952,190 @@ namespace engine
       _curTransID = DPS_INVALID_TRANS_ID ;
       _relatedTransLSN = DPS_INVALID_LSN_OFFSET ;
       _curTransLSN = DPS_INVALID_LSN_OFFSET ;
-      _transRC = SDB_OK ;
-      dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB() ;
+      dpsTransCB *pTransCB = pmdGetKRCB()->getTransCB();
       if ( pTransCB )
       {
-         pTransCB->transLockReleaseAll( this, NULL ) ;
+         pTransCB->transLockReleaseAll( this );
+      }
+      delTransaction() ;
+   }
+
+   void _pmdEDUCB::setWaitLock( const dpsTransLockId &lockId )
+   {
+      _waitLock = lockId ;
+   }
+
+   void _pmdEDUCB::clearWaitLock()
+   {
+      _waitLock.reset() ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUCB_GETTRANSLOCK, "_pmdEDUCB::getTransLock" )
+   dpsTransCBLockInfo *_pmdEDUCB::getTransLock( const dpsTransLockId &lockId )
+   {
+      PD_TRACE_ENTRY ( SDB__PMDEDUCB_GETTRANSLOCK );
+      dpsTransCBLockInfo *pLockInfo = NULL;
+      DpsTransCBLockList::iterator iterLst = _transLockLst.find( lockId );
+      if ( iterLst != _transLockLst.end() )
+      {
+         pLockInfo = iterLst->second ;
+      }
+      PD_TRACE_EXIT ( SDB__PMDEDUCB_GETTRANSLOCK );
+      return pLockInfo;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUCB_ADDLOCKINFO, "_pmdEDUCB::addLockInfo" )
+   void _pmdEDUCB::addLockInfo( const dpsTransLockId &lockId, DPS_TRANSLOCK_TYPE lockType )
+   {
+      PD_TRACE_ENTRY ( SDB__PMDEDUCB_ADDLOCKINFO );
+      dpsTransCBLockInfo *pLockInfo = NULL ;
+      pLockInfo = SDB_OSS_NEW dpsTransCBLockInfo( lockType );
+      if ( pLockInfo )
+      {
+         ossScopedLock _lock( &_transLockLstMutex ) ;
+         _transLockLst[ lockId ] = pLockInfo ;
+      }
+      PD_TRACE_EXIT ( SDB__PMDEDUCB_ADDLOCKINFO );
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUCB_DELLOCKINFO, "_pmdEDUCB::delLockInfo" )
+   void _pmdEDUCB::delLockInfo( const dpsTransLockId &lockId )
+   {
+      PD_TRACE_ENTRY ( SDB__PMDEDUCB_DELLOCKINFO );
+      ossScopedLock _lock( &_transLockLstMutex ) ;
+      DpsTransCBLockList::iterator iter
+                        = _transLockLst.find( lockId );
+      if ( iter != _transLockLst.end() )
+      {
+         SDB_OSS_DEL iter->second;
+         _transLockLst.erase( iter );
+      }
+      PD_TRACE_EXIT ( SDB__PMDEDUCB_DELLOCKINFO );
+   }
+
+   DpsTransCBLockList *_pmdEDUCB::getLockList()
+   {
+      return &_transLockLst;
+   }
+
+   void _pmdEDUCB::clearLockList()
+   {
+      ossScopedLock _lock( &_transLockLstMutex ) ;
+      DpsTransCBLockList::iterator iterLst = _transLockLst.begin();
+      while ( iterLst != _transLockLst.end() )
+      {
+         if ( iterLst->second )
+         {
+            SDB_OSS_DEL iterLst->second;
+         }
+         _transLockLst.erase( iterLst++ );
       }
    }
 
-   BOOLEAN _pmdEDUCB::isTransaction() const
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUCB_CREATETRANSACTION, "_pmdEDUCB::createTransaction" )
+   INT32 _pmdEDUCB::createTransaction()
    {
-      return ( DPS_INVALID_TRANS_ID != _curTransID ) ? TRUE : FALSE ;
+      PD_TRACE_ENTRY ( SDB__PMDEDUCB_CREATETRANSACTION );
+      INT32 rc = SDB_OK;
+      if ( NULL == _pTransNodeMap )
+      {
+         _pTransNodeMap = new DpsTransNodeMap;
+         setTransRC(SDB_OK);
+      }
+      if ( NULL == _pTransNodeMap )
+      {
+         rc = SDB_OOM;
+      }
+      PD_TRACE_EXIT ( SDB__PMDEDUCB_CREATETRANSACTION );
+      return rc;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUCB_DELTRANSACTION, "_pmdEDUCB::delTransaction" )
+   void _pmdEDUCB::delTransaction()
+   {
+      PD_TRACE_ENTRY ( SDB__PMDEDUCB_DELTRANSACTION );
+      if ( _pTransNodeMap )
+      {
+         delete _pTransNodeMap;
+         _pTransNodeMap = NULL;
+      }
+      PD_TRACE_EXIT ( SDB__PMDEDUCB_DELTRANSACTION );
+   }
+
+   DpsTransNodeMap *_pmdEDUCB::getTransNodeLst()
+   {
+      return _pTransNodeMap;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUCB_ADDTRANSNODE, "_pmdEDUCB::addTransNode" )
+   void _pmdEDUCB::addTransNode( const MsgRouteID &routeID )
+   {
+      PD_TRACE_ENTRY ( SDB__PMDEDUCB_ADDTRANSNODE );
+      if ( _pTransNodeMap )
+      {
+         (*_pTransNodeMap)[routeID.columns.groupID] = routeID;
+      }
+      PD_TRACE_EXIT ( SDB__PMDEDUCB_ADDTRANSNODE );
+   }
+
+   void _pmdEDUCB::delTransNode( const MsgRouteID &routeID )
+   {
+      if ( _pTransNodeMap )
+      {
+         UINT32 groupID = routeID.columns.groupID ;
+         DpsTransNodeMap::iterator it = _pTransNodeMap->find( groupID ) ;
+         if ( it != _pTransNodeMap->end() &&
+              it->second.value == routeID.value )
+         {
+            _pTransNodeMap->erase( it ) ;
+         }
+      }
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUCB_GETTRANSNODEROUTEID, "_pmdEDUCB::getTransNodeRouteID" )
+   void _pmdEDUCB::getTransNodeRouteID( UINT32 groupID,
+                                        MsgRouteID &routeID )
+   {
+      PD_TRACE_ENTRY ( SDB__PMDEDUCB_GETTRANSNODEROUTEID );
+      DpsTransNodeMap::iterator iterMap;
+      routeID.value = 0;
+      if ( _pTransNodeMap )
+      {
+         iterMap = _pTransNodeMap->find( groupID );
+         if ( iterMap != _pTransNodeMap->end() )
+         {
+            routeID = iterMap->second;
+         }
+      }
+      PD_TRACE_EXIT ( SDB__PMDEDUCB_GETTRANSNODEROUTEID );
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUCB_ISTRANSNODE, "_pmdEDUCB::isTransNode" )
+   BOOLEAN _pmdEDUCB::isTransNode( MsgRouteID &routeID )
+   {
+      PD_TRACE_ENTRY ( SDB__PMDEDUCB_ISTRANSNODE );
+      BOOLEAN isTransNode = FALSE;
+      DpsTransNodeMap::iterator iterMap;
+      if ( _pTransNodeMap )
+      {
+         iterMap = _pTransNodeMap->find( routeID.columns.groupID );
+         if (  iterMap != _pTransNodeMap->end()
+               && iterMap->second.value == routeID.value )
+         {
+            isTransNode = TRUE;
+         }
+      }
+      PD_TRACE_EXIT ( SDB__PMDEDUCB_ISTRANSNODE );
+      return isTransNode;
+   }
+
+   BOOLEAN _pmdEDUCB::isTransaction()
+   {
+      if ( _pTransNodeMap )
+      {
+         return TRUE;
+      }
+      return FALSE;
    }
 
    void _pmdEDUCB::dumpTransInfo( monTransInfo &transInfo )
@@ -1041,9 +1143,6 @@ namespace engine
       transInfo._eduID        = _eduID ;
       transInfo._transID      = _curTransID ;
       transInfo._curTransLsn  = _curTransLSN ;
-
-      transInfo._lastLRB   = _transExecutor.getLastLRB() ;
-      transInfo._waitLRB   = _transExecutor.getWaiterLRB() ;
 
       {
          ossScopedLock lock( &_mutex, SHARED ) ;
@@ -1058,11 +1157,13 @@ namespace engine
             transInfo._relatedNID = 0 ;
          }
       }
-   }
 
-   pmdTransExecutor* _pmdEDUCB::getTransExecutor()
-   {
-      return &_transExecutor ;
+      {
+         ossScopedLock _lock( &_transLockLstMutex ) ;
+         transInfo._lockList  = _transLockLst ;
+      }
+      transInfo._locksNum     = transInfo._lockList.size() ;
+      transInfo._waitLock     = _waitLock ;
    }
 
 #endif // SDB_ENGINE
@@ -1085,8 +1186,6 @@ namespace engine
       __eduCB = NULL ;
    }
 
-   // for pmdRecv, we wait indefinitely until the agent is forced, because
-   // client may not send us anything due to idle of user activities
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDRECV, "pmdRecv" )
    INT32 pmdRecv ( CHAR *pBuffer, INT32 recvSize,
                    ossSocket *sock, pmdEDUCB *cb,
@@ -1188,7 +1287,6 @@ namespace engine
       {
          goto error ;
       }
-      // recieve msg length
       rc = pmdRecv( (CHAR*)&msgLen, sizeof(INT32), sock, cb, timeout,
                     forceTimeout ) ;
       if ( rc )
@@ -1203,7 +1301,6 @@ namespace engine
          sock->close() ;
          goto error ;
       }
-      // alloc memory
       if ( useCBMem )
       {
          rc = cb->allocBuff( msgLen, &pRecvBuf, NULL ) ;
@@ -1223,7 +1320,6 @@ namespace engine
          }
       }
       ossMemcpy( pRecvBuf, ( CHAR* )&msgLen, sizeof( INT32 ) ) ;
-      // recieve last msg
       rc = pmdRecv( pRecvBuf + sizeof( INT32 ), msgLen - sizeof( INT32 ),
                     sock, cb, timeout ) ;
       if ( rc )

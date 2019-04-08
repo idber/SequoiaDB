@@ -1,20 +1,19 @@
 /******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = monCB.cpp
 
@@ -44,20 +43,6 @@ namespace engine
 {
 
    /*
-      Global functions
-   */
-   static monSvcTaskInfo** _monGetDefaultTaskInfo()
-   {
-      static monSvcTaskInfo *s_pDfaultTaskInfo = NULL ;
-      return &s_pDfaultTaskInfo ;
-   }
-
-   void monSetDefaultTaskInfo( monSvcTaskInfo *pTaskInfo )
-   {
-      *_monGetDefaultTaskInfo() = pTaskInfo ;
-   }
-
-   /*
       _monDBCB implement
    */
    _monDBCB::_monDBCB()
@@ -68,27 +53,27 @@ namespace engine
 
    void _monDBCB::reset()
    {
-      ossAtomicExchange64( &totalDataRead, 0 ) ;
-      ossAtomicExchange64( &totalIndexRead, 0 ) ;
-      ossAtomicExchange64( &totalLobRead, 0 ) ;
-      ossAtomicExchange64( &totalDataWrite, 0 ) ;
-      ossAtomicExchange64( &totalIndexWrite, 0 ) ;
-      ossAtomicExchange64( &totalLobWrite, 0 ) ;
+      totalDataRead   = 0 ;
+      totalIndexRead  = 0 ;
+      totalLobRead    = 0 ;
+      totalDataWrite  = 0 ;
+      totalIndexWrite = 0 ;
+      totalLobWrite   = 0 ;
 
-      ossAtomicExchange64( &totalUpdate, 0 ) ;
-      ossAtomicExchange64( &totalDelete, 0 ) ;
-      ossAtomicExchange64( &totalInsert, 0 ) ;
-      ossAtomicExchange64( &totalSelect, 0 ) ;
-      ossAtomicExchange64( &totalRead, 0 ) ;
+      totalUpdate     = 0 ;
+      totalDelete     = 0 ;
+      totalInsert     = 0 ;
+      totalSelect     = 0 ;
+      totalRead       = 0 ;
 
-      ossAtomicExchange64( &receiveNum, 0 ) ;
+      receiveNum      = 0 ;
 
-      ossAtomicExchange64( &replUpdate, 0 ) ;
-      ossAtomicExchange64( &replInsert, 0 ) ;
-      ossAtomicExchange64( &replDelete, 0 ) ;
+      replUpdate      = 0 ;
+      replInsert      = 0 ;
+      replDelete      = 0 ;
 
-      ossAtomicExchange64( &_svcNetIn, 0 ) ;
-      ossAtomicExchange64( &_svcNetOut, 0 ) ;
+      _svcNetIn       = 0 ;
+      _svcNetOut      = 0 ;
 
       totalReadTime.clear() ;
       totalWriteTime.clear() ;
@@ -149,15 +134,12 @@ namespace engine
    _monAppCB::_monAppCB()
    {
       reset() ;
-
-      _taskInfo = *_monGetDefaultTaskInfo() ;
       mondbcb = pmdGetKRCB()->getMonDBCB() ;
    }
 
    _monAppCB &_monAppCB::operator= ( const _monAppCB &rhs )
    {
       mondbcb                   = rhs.mondbcb ;
-      _taskInfo                 = rhs._taskInfo ;
 
       totalDataRead             = rhs.totalDataRead ;
       totalIndexRead            = rhs.totalIndexRead ;
@@ -212,23 +194,6 @@ namespace engine
       return *this ;
    }
 
-   void _monAppCB::setSvcTaskInfo( monSvcTaskInfo *pSvcTaskInfo )
-   {
-      if ( pSvcTaskInfo )
-      {
-         _taskInfo = pSvcTaskInfo ;
-      }
-      else if ( _taskInfo != *_monGetDefaultTaskInfo() )
-      {
-         _taskInfo = *_monGetDefaultTaskInfo() ;
-      }
-   }
-
-   monSvcTaskInfo* _monAppCB::getSvcTaskInfo()
-   {
-      return _taskInfo ;
-   }
-
    void _monAppCB::reset()
    {
       totalDataRead = 0 ;
@@ -274,7 +239,6 @@ namespace engine
          _lastOpEndTime = pmdGetKRCB()->getCurTime() ;
          ossTickDelta delta = _lastOpEndTime - _lastOpBeginTime ;
          opTimeSpentInc( delta ) ;
-         _lastOpBeginTime.clear() ;
       }
    }
 
@@ -296,12 +260,10 @@ namespace engine
             {
                if ( _cmdType != CMD_UNKNOW )
                {
-                  // it is command, do not inc readTimeSpent
                   break ;
                }
             }
          case MSG_BS_GETMORE_REQ :
-         /// LOB
          case MSG_BS_LOB_READ_REQ :
             {
                _readTimeSpent += delta ;
@@ -310,7 +272,6 @@ namespace engine
          case MSG_BS_INSERT_REQ :
          case MSG_BS_UPDATE_REQ :
          case MSG_BS_DELETE_REQ :
-         /// LOB
          case MSG_BS_LOB_WRITE_REQ :
          case MSG_BS_LOB_REMOVE_REQ :
          case MSG_BS_LOB_UPDATE_REQ :
@@ -330,7 +291,6 @@ namespace engine
       UINT32 curLen = ossStrlen( _lastOpDetail ) ;
       if ( curLen >= sizeof( _lastOpDetail ) - 3 )
       {
-         // buffer is full, couldn't save more info
          goto done ;
       }
       else if ( curLen > 0 )
@@ -417,44 +377,6 @@ namespace engine
       _executeTime      = monCtxCB._executeTime ;
 
       return ( *this ) ;
-   }
-
-   /*
-      _monSvcTaskInfo implement
-   */
-   _monSvcTaskInfo::_monSvcTaskInfo()
-   {
-      reset() ;
-
-      _startTimestamp = _resetTimestamp ;
-      _taskID = 0 ;
-      ossMemset( _taskName, 0, sizeof( _taskName ) ) ;
-   }
-
-   void _monSvcTaskInfo::setTaskInfo( UINT64 taskID, const CHAR *taskName )
-   {
-      _taskID = taskID ;
-      ossStrncpy( _taskName, taskName, MON_SVC_TASK_NAME_LEN ) ;
-   }
-
-   void _monSvcTaskInfo::reset()
-   {
-      ossAtomicExchange64( &_totalTime, 0 ) ;
-      ossAtomicExchange64( &_totalDataRead, 0 ) ;
-      ossAtomicExchange64( &_totalIndexRead, 0 ) ;
-      ossAtomicExchange64( &_totalLobRead, 0 ) ;
-      ossAtomicExchange64( &_totalDataWrite, 0 ) ;
-      ossAtomicExchange64( &_totalIndexWrite, 0 ) ;
-      ossAtomicExchange64( &_totalLobWrite, 0 ) ;
-      ossAtomicExchange64( &_totalUpdate, 0 ) ;
-      ossAtomicExchange64( &_totalDelete, 0 ) ;
-      ossAtomicExchange64( &_totalInsert, 0 ) ;
-      ossAtomicExchange64( &_totalSelect, 0 ) ;
-      ossAtomicExchange64( &_totalRead, 0 ) ;
-      ossAtomicExchange64( &_totalWrite, 0 ) ;
-      ossAtomicExchange64( &_totalContexts, 0 ) ;
-
-      ossGetCurrentTime( _resetTimestamp ) ;
    }
 
 }

@@ -1,19 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2016 SequoiaDB Ltd.
 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
+   This program is free software: you can redistribute it and/or modify
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
-   http://www.apache.org/licenses/LICENSE-2.0
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY ; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU Affero General Public License for more details.
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sdbDataSource.hpp
 
@@ -127,36 +127,31 @@ namespace sdbclient
          const sdbDataSourceConf &conf ) ;
 
       /** \fn INT32 getIdleConnNum()const
-         \brief Get idle connection number or -1 for DataSource 
-                has not been initialized yet.
+         \brief Get idle connection number
          \retval The number of idle connection
       */
       INT32 getIdleConnNum()const  ;
 
       /** \fn INT32 getUsedConnNum()const
-         \brief Get used connection number or -1 for DataSource 
-                has not been initialized yet.
+         \brief Get used connection number
          \retval The number of used connection
       */
       INT32 getUsedConnNum()const  ;
 
       /** \fn INT32 getNormalCoordNum()const
-         \brief Get the number of reachable coord nodes or -1 for DataSource 
-                has not been initialized yet.
+         \brief Get the number of reachable coord nodes
          \retval The number of reachable coord nodes
       */
       INT32 getNormalCoordNum()const  ;
 
       /** \fn INT32 getAbnormalCoordNum()const
-         \brief Get the number of unreachable coord nodes or -1 for DataSource 
-                has not been initialized yet.
+         \brief Get the number of unreachable coord nodes
          \retval The number of unreachable coord nodes
       */
       INT32 getAbnormalCoordNum() const  ;
 
       /** \fn INT32 getLocalCoordNum()const
-         \brief Get the number of local coord nodes or -1 for DataSource 
-                has not been initialized yet.
+         \brief Get the number of local coord nodes
          \retval The number of local coord nodes
       */
       INT32 getLocalCoordNum()const  ;
@@ -181,10 +176,7 @@ namespace sdbclient
       INT32 enable() ;
 
       /** \fn INT32 disable()
-         \brief Disable sdbDataSource. After disable, the DataSource will
-                disconnect all the connections and release the handle of 
-                the connections. So stop using the connection handle which has
-                not been released to the DataSource.
+         \brief Disable sdbDataSource
          \retval SDB_OK Operation Success
          \retval Others Operation Fail
       */
@@ -216,73 +208,47 @@ namespace sdbclient
       void close() ;
 
    
-//#if defined (_DEBUG)
-//   private:
-//      void printCreateInfo(const std::string& coord) ;
-//#endif
 
 
    private:
-      // check address arguments, if valid, add it
       BOOLEAN _checkAddrArg( const string &url ) ;
 
-      // new a strategy with config
       INT32 _buildStrategy() ;
 
-      // clear data source
       void _clearDataSource() ;
 
-      // try to get a connection
       BOOLEAN _tryGetConn( sdb*& conn ) ;
 
-      // create connection by a number
       INT32 _createConnByNum( INT32 num ) ;
 
-      // sync coord node info
       void _syncCoordNodes() ;
 
-      // get back the coord address from the abnormal address list
       INT32 _retrieveAddrFromAbnormalList() ;
 
-      // check keep alive time out or not
       BOOLEAN _keepAliveTimeOut( sdb *conn ) ;
 
-      // check max connection number intervally
       void _checkMaxIdleConn() ;
 
-      // add new connection and make sure not reach max connection count
       BOOLEAN _addNewConnSafely( sdb *conn, const std::string &coord );
 
    private:
-      // create connections function
       void _createConn() ;
 
-      //destroy connections function
       void _destroyConn() ;
 
-      // background task function
       void _bgTask() ;
 
    private:
-      // idle connection list
       std::list<sdb*>         _idleList ;
       ossAtomic32             _idleSize ;
-      // busy connection list
       std::list<sdb*>         _busyList ;
       ossAtomic32             _busySize ;
-      // to be destroyed connection list
       std::list<sdb*>         _destroyList ;
-      // data source confiture
       sdbDataSourceConf       _conf ;
-      // data source strategy
       sdbDataSourceStrategy*  _strategy ;
-      // lock for connection lists
       ossSpinXLatch           _connMutex ;
-      // lock for global commuincate
       ossSpinXLatch           _globalMutex ;
-      // if has been inited
       BOOLEAN                 _isInited ;
-      // if is enabled
       BOOLEAN                 _isEnabled ;
 
    private:

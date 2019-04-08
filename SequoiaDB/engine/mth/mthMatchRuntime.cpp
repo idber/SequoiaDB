@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = mthMatchRuntime.cpp
 
@@ -125,7 +124,7 @@ namespace engine
    {
       if ( getOwned )
       {
-         _query = query.getOwned() ;
+         _query = query.copy() ;
       }
       else
       {
@@ -149,27 +148,20 @@ namespace engine
       {
          RTN_PARAM_PREDICATE_LIST *paramPredList = getParamPredList() ;
 
-         // Create predicate list
          if ( _parameters.isEmpty() || NULL == paramPredList )
          {
             UINT32 addedLevel = 0 ;
-            // Not parameterized, initialize with predicate set
             rc = _predList.initialize( predicateSet, keyPattern, direction,
                                        addedLevel ) ;
             normalizer.setDoneByPred( keyPattern, addedLevel ) ;
          }
          else if ( paramPredList->empty() )
          {
-            // parameterized predicate list is empty, initialize predicate list
-            // with predicate set, and generate parameterized predicate list
-            // for the next query
             rc = _predList.initialize( predicateSet, keyPattern, direction,
                                        _parameters, (*paramPredList) ) ;
          }
          else
          {
-            // parameterized predicate list is initialized, initialize
-            // predicate list with parameterized predicate list
             rc = _predList.initialize( (*paramPredList), keyPattern, direction,
                                        _parameters ) ;
          }

@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnPredicate.cpp
 
@@ -55,9 +54,6 @@ namespace bson
    extern BSONObj minKey ;
    extern BSONObj maxKey ;
 }
-
-using namespace bson ;
-
 namespace engine
 {
    /*
@@ -297,18 +293,15 @@ namespace engine
          case MinKey :
             return _rtnKeyMinMinKey ;
 
-         // Should perform a full range compare
          case MaxKey :
             return minKey ;
 
-         // Decimal should cover Double, Int and Long
          case NumberDouble :
          case NumberInt :
          case NumberLong :
          case NumberDecimal :
             return _rtnKeyMinNumberDecimal ;
 
-         // Date should cover Timestamp
          case Date :
          case Timestamp :
             return _rtnKeyMinDate ;
@@ -355,21 +348,18 @@ namespace engine
 
       switch ( bsonType )
       {
-         // Should perform a full range compare
          case MinKey :
             return maxKey ;
 
          case MaxKey :
             return _rtnKeyMaxMaxKey ;
 
-         // Decimal should cover Double, Int and Long
          case NumberDouble :
          case NumberInt :
          case NumberLong :
          case NumberDecimal :
             return _rtnKeyMaxNumberDecimal ;
 
-         // Date should cover Timestamp
          case Date :
          case Timestamp :
             return _rtnKeyMaxDate ;
@@ -407,7 +397,6 @@ namespace engine
       return maxKey ;
    }
 
-   // this class is only used in rtnPredicate::operator|=
    class startStopKeyUnionBuilder : boost::noncopyable
    {
    public :
@@ -435,12 +424,8 @@ namespace engine
          return _result ;
       }
    private:
-      // if start/stopKey n doesn't joint with existing _tail, it will push
-      // _tail to _result and let _tail=n and return FALSE
-      // otherwise it will return TRUE
       void _merge ( const rtnStartStopKey &n )
       {
-         // compare tail.stop and n.start, make sure they are joint
          INT32 cmp = _tail._stopKey._bound.woCompare ( n._startKey._bound,
                                                        FALSE ) ;
          if ((cmp<0) || (cmp==0 && !_tail._stopKey._inclusive &&
@@ -450,15 +435,11 @@ namespace engine
             _tail = n ;
             return ;
          }
-         // make sure n is not part of tail by comparing tail.stopKey and
-         // n.stopKey. If n.stopKey is smaller or equal to tail.stopKey, that
-         // means we don't have to extend
          cmp = _tail._stopKey._bound.woCompare ( n._stopKey._bound, FALSE ) ;
          if ( (cmp<0) || (cmp==0 && !_tail._stopKey._inclusive &&
-                                    n._stopKey._inclusive ))
+                                    !n._stopKey._inclusive ))
          {
             _tail._stopKey = n._stopKey ;
-            // Have different major types, set to default
             if ( _tail._majorType != n._majorType )
             {
                _tail._majorType = RTN_KEY_MAJOR_DEFAULT ;
@@ -495,10 +476,9 @@ namespace engine
       PD_TRACE_EXIT ( SDB_RTNSSKEY_RESET ) ;
    }
 
-   #define RTN_START_STOP_KEY_START "a"
-   #define RTN_START_STOP_KEY_STOP  "o"
-   #define RTN_START_STOP_KEY_INCL  "i"
-
+#define RTN_START_STOP_KEY_START "a"
+#define RTN_START_STOP_KEY_STOP  "o"
+#define RTN_START_STOP_KEY_INCL  "i"
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNSSKEY_FROMBSON, "rtnStartStopKey::fromBson" )
    BOOLEAN rtnStartStopKey::fromBson ( BSONObj &ob )
    {
@@ -542,25 +522,27 @@ namespace engine
    BSONObj rtnStartStopKey::toBson() const
    {
       PD_TRACE_ENTRY ( SDB_RTNSSKEY_TOBSON ) ;
-
-      BSONObjBuilder ob( 128 ) ;
-
-      BSONObjBuilder startOB( ob.subobjStart( RTN_START_STOP_KEY_START ) ) ;
-      startOB.append ( _startKey._bound ) ;
-      if ( _startKey._inclusive )
+      BSONObjBuilder ob ;
       {
-         startOB.append ( RTN_START_STOP_KEY_INCL, TRUE ) ;
+         BSONObjBuilder startOB ;
+         startOB.append ( _startKey._bound ) ;
+         if ( _startKey._inclusive )
+         {
+            startOB.append ( RTN_START_STOP_KEY_INCL, TRUE ) ;
+         }
+         ob.append ( RTN_START_STOP_KEY_START,
+                     startOB.obj () ) ;
       }
-      startOB.done() ;
-
-      BSONObjBuilder stopOB( ob.subobjStart( RTN_START_STOP_KEY_STOP ) ) ;
-      stopOB.append ( _stopKey._bound ) ;
-      if ( _stopKey._inclusive )
       {
-         stopOB.append ( RTN_START_STOP_KEY_INCL, TRUE ) ;
+         BSONObjBuilder stopOB ;
+         stopOB.append ( _stopKey._bound ) ;
+         if ( _stopKey._inclusive )
+         {
+            stopOB.append ( RTN_START_STOP_KEY_INCL, TRUE ) ;
+         }
+         ob.append ( RTN_START_STOP_KEY_STOP,
+                     stopOB.obj () ) ;
       }
-      stopOB.done() ;
-
       PD_TRACE_EXIT ( SDB_RTNSSKEY_TOBSON ) ;
       return ob.obj () ;
    }
@@ -591,84 +573,46 @@ namespace engine
       INT32 posStop  = 0 ;
       RTN_SSK_VALUE_POS pos ;
       SDB_ASSERT ( isValid (), "this object is not valid" ) ;
-
       if ( dir >= 0 )
-      {
          posStart = rtnKeyCompare ( ele, _startKey._bound ) ;
-      }
       else
-      {
          posStart = rtnKeyCompare ( ele, _stopKey._bound ) ;
-      }
-      // case:
-      //       e
-      //           { range ?
       if ( posStart < 0 )
       {
          pos = RTN_SSK_VALUE_POS_LT ;
       }
-      // case :
-      //      e
-      //      { range ?
       else if ( posStart == 0 )
       {
          if ( dir >= 0 )
-         {
-            pos = _startKey._inclusive ?
-                    RTN_SSK_VALUE_POS_LET : RTN_SSK_VALUE_POS_LT ;
-         }
+            pos = _startKey._inclusive?
+                    RTN_SSK_VALUE_POS_LET:RTN_SSK_VALUE_POS_LT ;
          else
-         {
-            pos = _stopKey._inclusive ?
-                    RTN_SSK_VALUE_POS_LET : RTN_SSK_VALUE_POS_LT ;
-         }
+            pos = _stopKey._inclusive?
+                    RTN_SSK_VALUE_POS_LET:RTN_SSK_VALUE_POS_LT ;
       }
-      // case :
-      //       e
-      //     { range ?
       if ( dir >= 0 )
-      {
          posStop  = rtnKeyCompare ( ele, _stopKey._bound ) ;
-      }
       else
-      {
          posStop = rtnKeyCompare ( ele, _startKey._bound ) ;
-      }
-      // case :
-      //       e
-      //    { range }
       if ( posStart > 0 && posStop < 0 )
       {
          pos = RTN_SSK_VALUE_POS_WITHIN ;
       }
-      // case :
-      //           e
-      //   { range }
       else if ( posStop == 0 )
       {
          if ( dir >= 0 )
-         {
-            pos = _stopKey._inclusive ?
-                     RTN_SSK_VALUE_POS_GET : RTN_SSK_VALUE_POS_GT ;
-         }
+            pos = _stopKey._inclusive?
+                     RTN_SSK_VALUE_POS_GET:RTN_SSK_VALUE_POS_GT ;
          else
-         {
-            pos = _startKey._inclusive ?
-                     RTN_SSK_VALUE_POS_GET : RTN_SSK_VALUE_POS_GT ;
-         }
+            pos = _startKey._inclusive?
+                     RTN_SSK_VALUE_POS_GET:RTN_SSK_VALUE_POS_GT ;
       }
-      // case :
-      //             e
-      //   { range }
       else
       {
          pos = RTN_SSK_VALUE_POS_GT ;
       }
       if ( dir < 0 )
-      {
          pos = (RTN_SSK_VALUE_POS)(((INT32)pos) * -1) ;
-      }
-
       PD_TRACE_EXIT ( SDB_RTNSSKEY_COMPARE1 ) ;
       return pos ;
    }
@@ -682,7 +626,6 @@ namespace engine
       RTN_SSK_VALUE_POS posStop ;
       RTN_SSK_RANGE_POS pos = RTN_SSK_RANGE_POS_RT ;
       SDB_ASSERT ( key.isValid (), "key is not valid!" ) ;
-
       if ( dir >= 0 )
       {
          posStart = compare ( key._startKey._bound, 1 ) ;
@@ -695,145 +638,68 @@ namespace engine
       }
       if ( RTN_SSK_VALUE_POS_LT == posStart )
       {
-         // key._startKey is less than edge, in this case we may have less than,
-         // left edge, left
-         // intersect or contain case
          if ( RTN_SSK_VALUE_POS_LT == posStop )
          {
-            // both key's start/stop less than current range
-            // case :
-            //      [ key ]
-            //              [ this ]
             pos = RTN_SSK_RANGE_POS_LT ;
          }
          else if ( RTN_SSK_VALUE_POS_LET == posStop )
          {
-            // case :
-            //     [ key ]
-            //           [ this ]
-            // or :
-            //     [ key )
-            //           [ this ]
             if ( dir >= 0 )
-            {
-               pos = key._stopKey._inclusive ?
-                   RTN_SSK_RANGE_POS_LET : RTN_SSK_RANGE_POS_LT ;
-            }
+               pos = key._stopKey._inclusive?
+                   RTN_SSK_RANGE_POS_LET:RTN_SSK_RANGE_POS_LT ;
             else
-            {
-               pos = key._startKey._inclusive ?
-                   RTN_SSK_RANGE_POS_LET : RTN_SSK_RANGE_POS_LT ;
-            }
+               pos = key._startKey._inclusive?
+                   RTN_SSK_RANGE_POS_LET:RTN_SSK_RANGE_POS_LT ;
          }
          else if ( RTN_SSK_VALUE_POS_WITHIN == posStop )
          {
-            // case :
-            //    [ key ]
-            //       [ this ]
             pos = RTN_SSK_RANGE_POS_LI ;
          }
-         // case :
-         //    [    key  ]
-         //       [ this ]
-         // or :
-         //    [   key     ]
-         //       [ this ]
          pos = RTN_SSK_RANGE_POS_CONTAIN ;
       }
       else if ( RTN_SSK_VALUE_POS_LET == posStart )
       {
-         // key._startKey is at edge, in this case we may have exact edge case
-         // or contain case
          if ( RTN_SSK_VALUE_POS_LET == posStop )
          {
-            // case :
-            //    k
-            //    [ this ]
             pos = RTN_SSK_RANGE_POS_LET ;
          }
-         // case :
-         //    [ key ]
-         //    [  this  ]
-         // or :
-         //    [ key  ]
-         //    [ this ]
-         // or :
-         //    [ key          ]
-         //    [ this ]
          pos = RTN_SSK_RANGE_POS_CONTAIN ;
       }
       else if ( RTN_SSK_VALUE_POS_WITHIN == posStart )
       {
-         // key._startKey is within range, in this case we may have contain
-         // case or right intersect
          if ( RTN_SSK_VALUE_POS_GT == posStop )
          {
-            // case :
-            //    [   key   ]
-            //  [ this ]
             pos = RTN_SSK_RANGE_POS_RI ;
          }
-         // case :
-         //     [ key ]
-         //   [ this  ]
-         // or :
-         //     [ key ]
-         //   [ this   ]
          pos = RTN_SSK_RANGE_POS_CONTAIN ;
       }
       else if ( RTN_SSK_VALUE_POS_GET == posStart )
       {
-         // key._startKey is at right edge, in this case we must be right edge
-         // case :
-         //          [ key ]
-         //   [ this ]
-         //
-         // or :
-         //         k
-         //  [ this ]
-         // or :
-         //         ( key ]
-         //  [ this ]
          if ( dir >= 0 )
-         {
-            pos = key._startKey._inclusive ?
-                   RTN_SSK_RANGE_POS_RET : RTN_SSK_RANGE_POS_RT ;
-         }
+            pos = key._startKey._inclusive?
+                   RTN_SSK_RANGE_POS_RET:RTN_SSK_RANGE_POS_RT ;
          else
-         {
-            pos = key._stopKey._inclusive ?
-                   RTN_SSK_RANGE_POS_RET : RTN_SSK_RANGE_POS_RT ;
-         }
+            pos = key._stopKey._inclusive?
+                   RTN_SSK_RANGE_POS_RET:RTN_SSK_RANGE_POS_RT ;
       }
-      // in this case we must be right than
-      // case :
-      //                  [ key ]
-      //       [ this ]
       PD_TRACE_EXIT ( SDB_RTNSSKEY_COMPARE2 ) ;
       return pos ;
    }
 
-   // input: regex for regular expression string
-   // input: flags for re flag
-   // output: whether it's purePrefix (start with ^)
-   // return regular expression string
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_SIMAPLEREGEX1, "simpleRegex" )
    string simpleRegex ( const CHAR* regex,
                         const CHAR* flags,
                         BOOLEAN *purePrefix )
    {
       PD_TRACE_ENTRY ( SDB_SIMAPLEREGEX1 ) ;
-      // by default return empty string
       BOOLEAN extended = FALSE ;
-      BOOLEAN multilineOK = FALSE ;
       string r = "";
       stringstream ss;
-
       if (purePrefix)
-      {
-         *purePrefix = FALSE;
-      }
+         *purePrefix = false;
 
+      BOOLEAN multilineOK;
       if ( regex[0] == '\\' && regex[1] == 'A')
       {
          multilineOK = TRUE ;
@@ -846,8 +712,6 @@ namespace engine
       }
       else
       {
-          // only able to start with "\\A" or "^"
-          // otherwise return ""
           goto done ;
       }
 
@@ -856,16 +720,12 @@ namespace engine
          switch (*(flags++))
          {
          case 'm': // multiline
-            if ( multilineOK )
-            {
+            if (multilineOK)
                continue;
-            }
             else
-            {
                goto done ;
-            }
          case 'x': // extended
-            extended = TRUE;
+            extended = true;
             break;
          case 's':
             continue;
@@ -879,15 +739,12 @@ namespace engine
          CHAR c = *(regex++);
          if ( c == '*' || c == '?' )
          {
-            // These are the only two symbols that make the last char
-            // optional
             r = ss.str();
             r = r.substr( 0 , r.size() - 1 );
             goto done ; //breaking here fails with /^a?/
          }
          else if (c == '|')
          {
-            // whole match so far is optional. Nothing we can do here.
             r = string();
             goto done ;
          }
@@ -896,7 +753,6 @@ namespace engine
             c = *(regex++);
             if (c == 'Q')
             {
-               // \Q...\E quotes everything inside
                while (*regex)
                {
                   c = (*regex++);
@@ -911,43 +767,26 @@ namespace engine
                   }
                }
             }
-            else if ( c == 'n' )
-            {
-               ss << "\n" ;
-            }
-            else if ( c == 'r' )
-            {
-               ss << "\r" ;
-            }
-            else if ( c == 't' )
-            {
-               ss << "\t" ;
-            }
             else if ((c >= 'A' && c <= 'Z') ||
                      (c >= 'a' && c <= 'z') ||
-                     (c >= '0' && c <= '9') ||
+                     (c >= '0' && c <= '0') ||
                      (c == '\0'))
             {
-               // don't know what to do with these
                r = ss.str();
                break;
             }
             else
             {
-               // slash followed by non-alphanumeric represents the
-               // following char
                ss << c;
             }
          } // else if (c == '\\')
          else if (strchr("^$.[()+{", c))
          {
-            // list of "metacharacters" from man pcrepattern
             r = ss.str();
             break;
          }
          else if (extended && c == '#')
          {
-            // comment
             r = ss.str();
             break;
          }
@@ -957,7 +796,6 @@ namespace engine
          }
          else
          {
-            // self-matching char
             ss << c;
          }
       }
@@ -965,10 +803,8 @@ namespace engine
       if ( r.empty() && *regex == 0 )
       {
          r = ss.str();
-         if ( purePrefix )
-         {
+         if (purePrefix)
             *purePrefix = !r.empty();
-         }
       }
    done :
       PD_TRACE1 ( SDB_SIMAPLEREGEX1, PD_PACK_STRING ( r.c_str() ) ) ;
@@ -1009,9 +845,6 @@ namespace engine
    }
 
 
-   // without inclusive when _bound check matches.
-   // otherwise if this is max bound of stop keys, we want to return the one
-   // with inclusive when _bound check matches
    rtnKeyBoundary maxKeyBound ( const rtnKeyBoundary &l,
                                 const rtnKeyBoundary &r,
                                 BOOLEAN startKey )
@@ -1022,10 +855,6 @@ namespace engine
          return r ;
       return l ;
    }
-   // if we want to find the min bound of stop keys, we want to return the ones
-   // without inclusive when _bound check matches.
-   // otherwise if this is min bound of start keys, we want to return the one
-   // with inclusive when -bound check matches
    rtnKeyBoundary minKeyBound ( const rtnKeyBoundary &l,
                                 const rtnKeyBoundary &r,
                                 BOOLEAN stopKey )
@@ -1036,8 +865,6 @@ namespace engine
          return r ;
       return l ;
    }
-   // return TRUE when l and r are intersect, and result is set to the intersect
-   // of l and r
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PREDOVERLAP, "predicatesOverlap" )
    BOOLEAN predicatesOverlap ( rtnStartStopKey &l,
                                rtnStartStopKey &r,
@@ -1048,7 +875,6 @@ namespace engine
       result._startKey = maxKeyBound ( l._startKey, r._startKey, TRUE ) ;
       result._stopKey = minKeyBound ( l._stopKey, r._stopKey, TRUE ) ;
 
-      // left and right have the same major type, set to the result
       if ( l._majorType == r._majorType )
       {
          result._majorType = l._majorType ;
@@ -1069,15 +895,15 @@ namespace engine
       }
    }
 
-   // intersection operation for two keysets
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNPRED_OPEQU, "rtnPredicate::operator&=" )
-   const rtnPredicate &rtnPredicate::operator&= ( rtnPredicate &right )
+   const rtnPredicate &rtnPredicate::operator&=
+                      (rtnPredicate &right)
    {
       PD_TRACE_ENTRY ( SDB_RTNPRED_OPEQU ) ;
       RTN_SSKEY_LIST newKeySet ;
       RTN_SSKEY_LIST::iterator i = _startStopKeys.begin() ;
       RTN_SSKEY_LIST::iterator j = right._startStopKeys.begin() ;
-      while ( i != _startStopKeys.end() && j != right._startStopKeys.end() )
+      while ( i != _startStopKeys.end() && j != right._startStopKeys.end())
       {
          rtnStartStopKey overlap ;
          if ( predicatesOverlap ( *i, *j, overlap ) )
@@ -1098,7 +924,8 @@ namespace engine
       return *this ;
    }
 
-   const rtnPredicate &rtnPredicate::operator=(const rtnPredicate &right)
+   const rtnPredicate &rtnPredicate::operator=
+                      (const rtnPredicate &right)
    {
       finishOperation(right._startStopKeys, right) ;
       _paramIndex = right._paramIndex ;
@@ -1107,15 +934,16 @@ namespace engine
       return *this ;
    }
 
-   // union operation for two keysets
    // PD_TRACE_DECLARE_FUNCTION (SDB_RTNPRED_OPOREQ, "rtnPredicate::operator|=" )
-   const rtnPredicate &rtnPredicate::operator|=(const rtnPredicate &right)
+   const rtnPredicate &rtnPredicate::operator|=
+                      (const rtnPredicate &right)
    {
       PD_TRACE_ENTRY ( SDB_RTNPRED_OPOREQ ) ;
       startStopKeyUnionBuilder b ;
       RTN_SSKEY_LIST::const_iterator i = _startStopKeys.begin() ;
-      RTN_SSKEY_LIST::const_iterator j = right._startStopKeys.begin() ;
-      while ( i != _startStopKeys.end() && j != right._startStopKeys.end() )
+      RTN_SSKEY_LIST::const_iterator j =
+                        right._startStopKeys.begin() ;
+      while ( i != _startStopKeys.end() && j != right._startStopKeys.end())
       {
          INT32 cmp = i->_startKey._bound.woCompare ( j->_startKey._bound,
                                                      FALSE ) ;
@@ -1141,55 +969,31 @@ namespace engine
       PD_TRACE_EXIT ( SDB_RTNPRED_OPOREQ ) ;
       return *this ;
    }
-   // exclude operation for two keysets
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNPRED_OPMINUSEQ, "rtnPredicate::operator-=" )
-   const rtnPredicate &rtnPredicate::operator-=(const rtnPredicate &right)
+   const rtnPredicate &rtnPredicate::operator-=
+                      (const rtnPredicate &right)
    {
       PD_TRACE_ENTRY ( SDB_RTNPRED_OPMINUSEQ ) ;
       RTN_SSKEY_LIST newKeySet ;
       RTN_SSKEY_LIST::iterator i = _startStopKeys.begin() ;
-      RTN_SSKEY_LIST::const_iterator j = right._startStopKeys.begin() ;
+      RTN_SSKEY_LIST::const_iterator j =
+                        right._startStopKeys.begin() ;
       while ( i != _startStopKeys.end() && j != right._startStopKeys.end())
       {
-         // compare start key for i and j
          INT32 cmp = i->_startKey._bound.woCompare ( j->_startKey._bound,
                                                      FALSE ) ;
          if ( cmp < 0 || ( cmp==0 && i->_startKey._inclusive &&
                                     !j->_startKey._inclusive ) )
          {
-            // if i.startkey < j.startkey
-            // 4 conditions may happen
-            // condition 1:
-            // i: [start stop]
-            // j:                [start stop]
-            // condition 2:
-            // i: [start stop]
-            // j:            [start stop]
-            // condition 3:
-            // i: [start stop]
-            // j:     [start stop]
-            // condition 4:
-            // i: [start          stop]
-            // j:     [start stop]
-            // let's compare the stopkey
             INT32 cmp1 = i->_stopKey._bound.woCompare ( j->_startKey._bound,
                                                         FALSE ) ;
             newKeySet.push_back (*i) ;
             if ( cmp1 < 0 )
             {
-               // condition 1:
-               // i: [start stop]
-               // j:                [start stop]
-               // if i.stopkey < j.startkey, that means i is all out of j
                ++i ;
             }
             else if ( cmp1 == 0 )
             {
-               // condition 2:
-               // i: [start stop]
-               // j:            [start stop]
-               // if i.stopkey == j.stopkey, let's see if we only want to
-               // take out inclusive
                if ( newKeySet.back()._stopKey._inclusive &&
                     j->_startKey._inclusive )
                {
@@ -1199,63 +1003,31 @@ namespace engine
             }
             else
             {
-               // condition 3 and 4
-               // i and j are intersects
-               // set i's stop key to j's start key
                newKeySet.back()._stopKey = j->_startKey ;
-               // revrese inclusive
-               newKeySet.back()._stopKey.reverseInclusive() ;
-               // check i's stop key and j's stop key
+               newKeySet.back()._stopKey.flipInclusive() ;
                INT32 cmp2 = i->_stopKey._bound.woCompare (
                                j->_stopKey._bound, FALSE ) ;
                if ( cmp2 < 0 || ( cmp2 == 0 && (
                          !i->_stopKey._inclusive ||
-                          j->_stopKey._inclusive ) ) )
+                          j->_stopKey._inclusive )))
                {
-                  // condition 3:
-                  // i: [start stop]
-                  // j:     [start stop]
-                  // if i's stop key is less than j's, we are done
                   ++i ;
                }
                else
                {
-                  // condition 4:
-                  // i: [start          stop]
-                  // j:     [start stop]
-                  // let's compare the stopkey
-                  // otherwise j is breaking up i in the middle
-                  // let's update i and use it in the next round, and move to
-                  // next j
                   i->_startKey = j->_stopKey ;
-                  i->_startKey.reverseInclusive() ;
+                  i->_startKey.flipInclusive() ;
                   ++j ;
                }
             }
          }
          else
          {
-            // this code path is hit when i's start is equal or greater than
-            // j's start
-            // 3 conditions may happen
-            // condition 1:
-            // i:               [start stop]
-            // j: [start stop]
-            // condition 2:
-            // i:    [start stop]
-            // j: [start stop]
-            // condition 3:
-            // i:    [start stop]
-            // j: [start           stop]
             INT32 cmp1 = i->_startKey._bound.woCompare ( j->_stopKey._bound,
                                                          FALSE ) ;
             if ( cmp1 > 0 || (cmp1 == 0 && (!i->_stopKey._inclusive ||
                                             !j->_stopKey._inclusive )))
             {
-               // condition 1:
-               // i:               [start stop]
-               // j: [start stop]
-               // simply skip j
                ++j ;
             }
             else
@@ -1267,25 +1039,17 @@ namespace engine
                     (cmp2 == 0 && ( !i->_stopKey._inclusive ||
                                      j->_stopKey._inclusive )))
                {
-                  // condition 3:
-                  // i:    [start stop]
-                  // j: [start           stop]
-                  // simply skip i ;
                   ++i ;
                }
                else
                {
-                  // condition 2:
-                  // i:    [start stop]
-                  // j: [start stop]
                   i->_startKey = j->_stopKey ;
-                  i->_startKey.reverseInclusive() ;
+                  i->_startKey.flipInclusive() ;
                   ++j ;
                }
             }
          }
       } // while ( i != _startStopKeys.end() && j !=
-      // for any leftover i
       while ( i != _startStopKeys.end() )
       {
          newKeySet.push_back (*i) ;
@@ -1294,6 +1058,12 @@ namespace engine
       finishOperation ( newKeySet, right ) ;
       PD_TRACE_EXIT ( SDB_RTNPRED_OPMINUSEQ ) ;
       return *this ;
+   }
+   BOOLEAN rtnPredicate::operator<= ( const rtnPredicate &r ) const
+   {
+      rtnPredicate temp = *this ;
+      temp -= r ;
+      return temp.isEmpty() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNPRED_RTNPRED, "rtnPredicate::rtnPredicate" )
@@ -1402,7 +1172,7 @@ namespace engine
       PD_TRACE_EXIT ( SDB_RTNPRED_REVERSE ) ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNPRED_TOSTRING, "rtnPredicate::toString" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNPRED_TOSTRING, "rtnPredicate::toString()" )
    string rtnPredicate::toString() const
    {
       PD_TRACE_ENTRY ( SDB_RTNPRED_TOSTRING ) ;
@@ -1429,7 +1199,6 @@ namespace engine
 
       if ( _paramIndex >= 0 )
       {
-         // Bind the start and stop key pairs with specified parameters
          for ( RTN_SSKEY_LIST::iterator i = _startStopKeys.begin() ;
                i != _startStopKeys.end();
                ++ i )
@@ -1453,7 +1222,6 @@ namespace engine
                }
             }
          }
-         // Mark the parameter matching is done by predicates
          if ( markDone )
          {
             parameters.setDoneByPred( _paramIndex ) ;
@@ -1466,7 +1234,7 @@ namespace engine
       return res ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITIN, "rtnPredicate::_initIN" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITIN, "_rtnPredicateSet::_initIN" )
    INT32 rtnPredicate::_initIN ( const BSONElement &e, BOOLEAN isNot,
                                  BOOLEAN mixCmp, BOOLEAN expandRegex )
    {
@@ -1479,26 +1247,18 @@ namespace engine
 
       if ( !isNot )
       {
-         // for IN statement without isNot or if the element type is array
-         // and we want equality match {c1:{$et:[1,2,3]}}
-         ossPoolSet<BSONElement, element_cmp_lt> vals ;
-         ossPoolSet<BSONElement,element_cmp_lt>::iterator iterSet ;
-
+         set<BSONElement, element_cmp_lt> vals ;
          RTN_PREDICATE_LIST regexes ;
          BSONObjIterator i ( e.embeddedObject() ) ;
 
-         // if e is an empty array. just add it to vals.(this will be add to
-         // the _startStopKeys
          if ( !i.more() )
          {
             vals.insert ( e ) ;
          }
-         // for each element in the array
          while ( i.more() )
          {
             BSONElement ie = i.next() ;
 
-            // make sure we don't have embedded object with ELEM_MATCH operation
             if ( ie.type() == Object &&
                  ie.embeddedObject().firstElement().getGtLtOp() ==
                        BSONObj::opELEM_MATCH )
@@ -1508,7 +1268,6 @@ namespace engine
                goto done ;
             }
 
-            // for regular expression match, let's create a new rtnPredicate
             if ( expandRegex &&
                  ( ie.type() == RegEx ||
                    ( e.type() == Object &&
@@ -1524,14 +1283,12 @@ namespace engine
             vals.insert ( ie ) ;
          }
 
-         // after going through all elements, let's push all in $in into
-         // start/stopkey list
-         for ( iterSet = vals.begin() ; iterSet != vals.end() ; iterSet++ )
+         for ( set<BSONElement,element_cmp_lt>::const_iterator i = vals.begin();
+               i!=vals.end(); i++ )
          {
-            _startStopKeys.push_back ( rtnStartStopKey ( *iterSet ) ) ;
+            _startStopKeys.push_back ( rtnStartStopKey ( *i ) ) ;
          }
 
-         // and then union with regular expression
          for ( RTN_PREDICATE_LIST::const_iterator i = regexes.begin();
                i!=regexes.end(); i++ )
          {
@@ -1546,16 +1303,13 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITREGEX, "rtnPredicate::_initRegEx" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITREGEX, "_rtnPredicateSet::_initRegEx" )
    INT32 rtnPredicate::_initRegEx ( const BSONElement &e, BOOLEAN isNot )
    {
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY( SDB__RTNPRED__INITREGEX ) ;
 
-      // 1. RegEx { $regex:'xx', $options:'xx }
-      // 2. Object { $regex: 'xx' }
-      // 3. Object { $options: 'xx', $regex: 'xx' }
       PD_CHECK( e.type() == RegEx ||
                 ( e.type() == Object && !e.embeddedObject()[ "$regex" ].eoo() ),
                 SDB_INVALIDARG, error, PDERROR,
@@ -1563,12 +1317,10 @@ namespace engine
 
       if ( !isNot )
       {
-         // let's try to generate regex string if it's simple
-         string r = simpleRegex( e ) ;
+         const string r = simpleRegex( e ) ;
 
          if ( r.size() )
          {
-            // yes we can have a simple regex
             _startStopKeys.push_back( rtnStartStopKey() ) ;
             rtnStartStopKey &keyPair = _startStopKeys.back() ;
             keyPair._startKey._bound = addObj( BSON( "" << r ) ).firstElement() ;
@@ -1580,8 +1332,6 @@ namespace engine
          }
          else
          {
-            // RegEx is restricted to String and Symbol
-            // Note: String and Symbol are the same canonical types currently
             _initTypeRange( String, TRUE ) ;
          }
       }
@@ -1593,7 +1343,7 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITET, "rtnPredicate::_initET" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITET, "_rtnPredicateSet::_initET" )
    INT32 rtnPredicate::_initET ( const BSONElement &e, BOOLEAN isNot )
    {
       INT32 rc = SDB_OK ;
@@ -1602,15 +1352,10 @@ namespace engine
 
       if ( isNot )
       {
-         // $not:$et -> $ne
          rc = _initNE( e, FALSE ) ;
       }
       else if ( Array == e.type() )
       {
-         // do nothing
-         // Note: $et with array could generate predicate if the array is
-         // expanded recursively, but now it is only expanded for one level
-         // rc = _initALL( e, FALSE ) ;
       }
       else
       {
@@ -1628,7 +1373,7 @@ namespace engine
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITNE, "rtnPredicate::_initNE" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITNE, "_rtnPredicateSet::_initNE" )
    INT32 rtnPredicate::_initNE ( const BSONElement &e, BOOLEAN isNot )
    {
       INT32 rc = SDB_OK ;
@@ -1637,18 +1382,15 @@ namespace engine
 
       if ( e.type() == Array )
       {
-         // Operator with array should not generate predicate
          goto done ;
       }
 
       if ( isNot )
       {
-         // $not:ne -> $et
          rc = _initET( e, FALSE ) ;
       }
       else
       {
-         // [ $minKey, e ) and ( e, $maxKey ]
          _initLT( e, FALSE, FALSE, TRUE ) ;
          _initGT( e, FALSE, FALSE, TRUE ) ;
       }
@@ -1658,7 +1400,7 @@ namespace engine
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITLT, "rtnPredicate::_initLT" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITLT, "_rtnPredicateSet::_initLT" )
    INT32 rtnPredicate::_initLT ( const BSONElement &e, BOOLEAN isNot,
                                  BOOLEAN inclusive, BOOLEAN mixCmp )
    {
@@ -1668,14 +1410,11 @@ namespace engine
 
       if ( e.type() == Array )
       {
-         // Operator with array should not generate predicate
          goto done ;
       }
 
       if ( isNot )
       {
-         // $not:$lte -> $gt
-         // $not:$lt -> $gte
          rc = _initGT( e, FALSE, !inclusive, mixCmp ) ;
       }
       else
@@ -1688,16 +1427,13 @@ namespace engine
             if ( e.canonicalType() <=
                  staticUndefined.firstElement().canonicalType() )
             {
-               // Stop key is smaller than $undefined
                startKey = minKey.firstElement() ;
                startInclusive = TRUE ;
             }
             else
             {
-               // Add a special range [ $minKey, $undefined )
                _initMinRange( TRUE ) ;
 
-               // We start from $undefined to exclude undefined fields
                startKey = staticUndefined.firstElement() ;
                startInclusive = FALSE ;
             }
@@ -1706,8 +1442,6 @@ namespace engine
          {
             startKey = rtnKeyGetMinForCmp( e.type(), FALSE ).firstElement() ;
 
-            // If the start key is not the same canonical type as given key,
-            // it should not be included, otherwise it should be included
             startInclusive = ( startKey.canonicalType() == e.canonicalType() ) ;
          }
 
@@ -1733,7 +1467,7 @@ namespace engine
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITGT, "rtnPredicate::_initGT" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITGT, "_rtnPredicateSet::_initGT" )
    INT32 rtnPredicate::_initGT ( const BSONElement &e, BOOLEAN isNot,
                                  BOOLEAN inclusive, BOOLEAN mixCmp )
    {
@@ -1743,14 +1477,11 @@ namespace engine
 
       if ( e.type() == Array )
       {
-         // Operator with array should not generate predicate
          goto done ;
       }
 
       if ( isNot )
       {
-         // $not:$gte -> $lt
-         // $not:$gt -> $lte
          rc = _initLT( e, FALSE, !inclusive, mixCmp ) ;
       }
       else
@@ -1760,7 +1491,6 @@ namespace engine
          if ( e.canonicalType() <=
               staticUndefined.firstElement().canonicalType() )
          {
-            // Add a special range [ $minKey, $undefined )
             _initMinRange( inclusive ) ;
             minRangeAdded = TRUE ;
          }
@@ -1770,7 +1500,6 @@ namespace engine
 
          if ( minRangeAdded )
          {
-            // Then we start from $undefined
             keyPair._startKey._bound = staticUndefined.firstElement() ;
             keyPair._startKey._inclusive = FALSE ;
          }
@@ -1782,11 +1511,6 @@ namespace engine
 
          BSONElement stopKey =
                rtnKeyGetMaxForCmp( e.type(), mixCmp ).firstElement() ;
-         // 1. If it is mixCmp, stop key is $maxKey which should be included
-         // 2. If it is $gt:$minKey or $gte:$minKey, stop key is also $maxKey
-         //    which should be included
-         // 3. If the stop key is not the same canonical type as given key,
-         //    it should not be included, otherwise it should be included
          BOOLEAN stopInclusive =
                ( ( mixCmp || e.type() == MinKey ) ? TRUE :
                  ( stopKey.canonicalType() == e.canonicalType() ) ) ;
@@ -1806,7 +1530,7 @@ namespace engine
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITALL, "rtnPredicate::_initALL" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITALL, "_rtnPredicateSet::_initALL" )
    INT32 rtnPredicate::_initALL ( const BSONElement &e, BOOLEAN isNot )
    {
       INT32 rc = SDB_OK ;
@@ -1818,7 +1542,6 @@ namespace engine
 
       if ( !isNot )
       {
-         // For index, get one in the array to do the index match
          BSONObjIterator i ( e.embeddedObject()) ;
          while ( i.more() )
          {
@@ -1840,7 +1563,7 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITMOD, "rtnPredicate::_initMOD" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITMOD, "_rtnPredicateSet::_initMOD" )
    INT32 rtnPredicate::_initMOD ( const BSONElement &e, BOOLEAN isNot )
    {
       INT32 rc = SDB_OK ;
@@ -1849,7 +1572,6 @@ namespace engine
 
       if ( !isNot )
       {
-         // [ minDecimal, maxDecimal ]
          rc = _initTypeRange( NumberDecimal, TRUE ) ;
       }
 
@@ -1858,7 +1580,7 @@ namespace engine
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITEXISTS, "rtnPredicate::_initEXISTS" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITEXISTS, "_rtnPredicateSet::_initEXISTS" )
    INT32 rtnPredicate::_initEXISTS ( const BSONElement &e, BOOLEAN isNot )
    {
       INT32 rc = SDB_OK ;
@@ -1874,7 +1596,6 @@ namespace engine
 
       if ( !existsSpec )
       {
-         // [ $undefined, $undefined ]
          _startStopKeys.push_back (
                rtnStartStopKey( staticUndefined.firstElement() ) ) ;
       }
@@ -1884,7 +1605,7 @@ namespace engine
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITISNULL, "rtnPredicate::_initISNULL" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITISNULL, "_rtnPredicateSet::_initISNULL" )
    INT32 rtnPredicate::_initISNULL ( const BSONElement &e, BOOLEAN isNot )
    {
       INT32 rc = SDB_OK ;
@@ -1900,11 +1621,9 @@ namespace engine
 
       if ( !existsSpec )
       {
-         // [ $undefined, $undefined ]
          _startStopKeys.push_back (
                rtnStartStopKey( staticUndefined.firstElement() ) ) ;
 
-         // [ null, null ]
          _startStopKeys.push_back (
                rtnStartStopKey( staticNull.firstElement() ) ) ;
       }
@@ -1914,7 +1633,7 @@ namespace engine
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITFULLRANGE, "rtnPredicate::_initFullRange" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITFULLRANGE, "_rtnPredicateSet::_initFullRange" )
    INT32 rtnPredicate::_initFullRange ()
    {
       INT32 rc = SDB_OK ;
@@ -1935,7 +1654,7 @@ namespace engine
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITTYPERANGE, "rtnPredicate::_initTypeRange" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITTYPERANGE, "_rtnPredicateSet::_initTypeRange" )
    INT32 rtnPredicate::_initTypeRange ( BSONType type, BOOLEAN forCmp )
    {
       INT32 rc = SDB_OK ;
@@ -1968,7 +1687,7 @@ namespace engine
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITMINRANGE, "rtnPredicate::_initMinRange" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPRED__INITMINRANGE, "_rtnPredicateSet::_initMinRange" )
    INT32 rtnPredicate::_initMinRange ( BOOLEAN startIncluded )
    {
       INT32 rc = SDB_OK ;
@@ -2043,8 +1762,6 @@ namespace engine
       RTN_PREDICATE_MAP::const_iterator f = _predicates.find(fieldName);
       if ( _predicates.end() == f )
       {
-         // we assign rtnPredicate object to a static pointer
-         // this memory is not released until process terminate
          pRet = &( _rtnGetGenericPredicate() ) ;
       }
       else
@@ -2066,8 +1783,6 @@ namespace engine
       RTN_PARAM_PREDICATE_MAP::const_iterator f = _paramPredicates.find( fieldName );
       if ( _paramPredicates.end() == f )
       {
-         // we assign rtnPredicate object to a static pointer
-         // this memory is not released until process terminate
          pRet = &genericPredList ;
       }
       else
@@ -2076,6 +1791,22 @@ namespace engine
       }
       PD_TRACE_EXIT ( SDB__RTNPRED_PARAMPRED ) ;
       return *pRet ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDSET_MALEFORINDEX, "_rtnPredicateSet::matchLevelForIndex" )
+   INT32 _rtnPredicateSet::matchLevelForIndex (const BSONObj &keyPattern) const
+   {
+      PD_TRACE_ENTRY ( SDB__RTNPREDSET_MALEFORINDEX ) ;
+      INT32 level = 0 ;
+      BSONObjIterator i ( keyPattern ) ;
+      while ( i.more() )
+      {
+         BSONElement e = i.next() ;
+         if ( predicate(e.fieldName()).isGeneric() )
+            return level ;
+      }
+      PD_TRACE_EXIT ( SDB__RTNPREDSET_MALEFORINDEX ) ;
+      return level ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDSET_ADDPRED, "_rtnPredicateSet::addPredicate" )
@@ -2158,7 +1889,6 @@ namespace engine
 
       SDB_ASSERT( !_initialized, "Should not be initialized" ) ;
 
-      // Set direction and key pattern first
       _direction = direction > 0 ? 1 : -1 ;
       _keyPattern = keyPattern ;
 
@@ -2201,7 +1931,6 @@ namespace engine
       BOOLEAN containParamPred = FALSE ;
       BOOLEAN needAddPred = TRUE ;
 
-      // Set direction and key pattern first
       _direction = direction > 0 ? 1 : -1 ;
       _keyPattern = keyPattern ;
 
@@ -2218,10 +1947,6 @@ namespace engine
          }
          else
          {
-            // Construct the parameterized predicates
-            // 1. merge non-parameterized predicates into one predicate
-            // 2. save the parameterized predicates in the list for the similar
-            //    queries in the future
             rtnPredicate pred, nonParamPred ;
             BOOLEAN containNonParamPred = FALSE ;
             BOOLEAN nonParamPredEmpty = FALSE ;
@@ -2249,7 +1974,6 @@ namespace engine
                   rtnPredicate currentPred = (*iter) ;
                   if ( !currentPred.bindParameters( parameters ) )
                   {
-                     // Merge non-parameterized predicates
                      if ( containNonParamPred )
                      {
                         nonParamPred &= currentPred ;
@@ -2266,12 +1990,9 @@ namespace engine
                   }
                   else
                   {
-                     // The predicate is parameterized, save for the future
-                     // queries
                      paramList.push_back( currentPred ) ;
                   }
 
-                  // Stop merging predicates when it is already empty
                   if ( !paramPredEmpty )
                   {
                      pred &= currentPred ;
@@ -2286,8 +2007,6 @@ namespace engine
                {
                   if ( nonParamPredEmpty )
                   {
-                     // Non-parameterized predicates are already empty
-                     // No need to consider parameterized predicates
                      paramList.clear() ;
                      paramList.push_back( nonParamPred ) ;
                   }
@@ -2310,10 +2029,6 @@ namespace engine
 
             if ( needAddPred && pred.isEmpty() )
             {
-               // The current generated predicate is empty
-               // No need for generate predicate list, but still need to
-               // generate parameterized predicate list if the empty predicate
-               // is not generated by non-parameterized predicates
                _addEmptyPredicate() ;
                needAddPred = FALSE ;
                if ( nonParamPredEmpty )
@@ -2328,8 +2043,6 @@ namespace engine
          }
       }
 
-      // Check if contain parameterized predicates
-      // If not, mark the predicate list is fixed
       if ( !containParamPred )
       {
          _fixedPredList = TRUE ;
@@ -2340,7 +2053,7 @@ namespace engine
       return rc ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDLIST_INIT_PARAMLIST, "_rtnPredicateList::initialize" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDLIST_INIT_PARAMLIST, "_rtnPredicateList::_rtnPredicateList" )
    INT32 _rtnPredicateList::initialize ( const RTN_PARAM_PREDICATE_LIST &paramPredList,
                                          const BSONObj &keyPattern,
                                          INT32 direction,
@@ -2350,7 +2063,6 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB__RTNPREDLIST_INIT_PARAMLIST ) ;
 
-      // Set direction and key pattern first
       _direction = direction > 0 ? 1 : -1 ;
       _keyPattern = keyPattern ;
 
@@ -2371,7 +2083,6 @@ namespace engine
             RTN_PREDICATE_LIST::const_iterator predIter = iter->begin () ;
             if ( predIter != iter->end() )
             {
-               // Build the predicates with parameters
                pred = (*predIter) ;
                pred.bindParameters( parameters ) ;
                ++ predIter ;
@@ -2382,8 +2093,6 @@ namespace engine
                   pred &= currentPred ;
                   if ( pred.isEmpty() )
                   {
-                     // The predicate is empty already
-                     // No need to process other parameters
                      break ;
                   }
                }
@@ -2415,17 +2124,8 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__RTNPREDLIST__ADDPRED ) ;
 
-      // num is the number defined in index {c1:1}
       INT32 num = (INT32)e.number() ;
 
-      // if index is defined as forward and direction is forward, then we
-      // have forward
-      // if index is defined as forward and direction is backward, then we
-      // scan backward
-      // if index is defined as backward and direction is forward, then we
-      // scan backward
-      // if index is defined as backward and direction is backward, then we
-      // scan forward
       BOOLEAN forward = ((num>=0?1:-1)*(direction>=0?1:-1)>0) ;
       if ( forward )
       {
@@ -2433,10 +2133,6 @@ namespace engine
       }
       else
       {
-         // if we want to scan backward, we need to reverse the predicate
-         // i.e. startKey to stopKey, stopKey to startKey
-         // first we push an empty predicate into list, then reverse the
-         // existing predicate to replace it
          _predicates.push_back ( rtnPredicate () ) ;
          pred.reverse ( _predicates.back() ) ;
       }
@@ -2459,7 +2155,6 @@ namespace engine
       PD_TRACE_EXIT( SDB__RTNPREDLIST__ADDEMPPRED ) ;
    }
 
-   // get the start key of first start/stopkey in each predicate column
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDLIST_STARTKEY, "_rtnPredicateList::startKey" )
    BSONObj _rtnPredicateList::startKey() const
    {
@@ -2531,8 +2226,6 @@ namespace engine
       return builder.obj() ;
    }
 
-   // whether an element matches the i'th column
-   // even result means the element is contained within a valid range
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDLIST_MATLOWELE, "_rtnPredicateList::matchingLowElement" )
    INT32 _rtnPredicateList::matchingLowElement ( const BSONElement &e, INT32 i,
                                                 BOOLEAN direction,
@@ -2541,23 +2234,14 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__RTNPREDLIST_MATLOWELE ) ;
       lowEquality = FALSE ;
       INT32 l = -1 ;
-      // since each element got start and stop key, so we use *2 to double the
-      // scan range
       INT32 h = _predicates[i]._startStopKeys.size() * 2 ;
       INT32 m = 0 ;
-      // loop until l=h-1, in one start/stop key scenario, we start from l=-1,
-      // h=2
-      // in matching case, l should be 0,2,4,6,8, etc... which indicate the
-      // matching range between l and h
-      // when not match, l should be 1,3,5,7, etc... which indicate the
-      // unmatching range between previous stopKey and next startKey
       while ( l + 1 < h )
       {
          m = ( l + h ) / 2 ;
          BSONElement toCmp ;
          BOOLEAN toCmpInclusive ;
          const rtnStartStopKey &startstopkey=_predicates[i]._startStopKeys[m/2];
-         // even number means startKey
          if ( 0 == m%2 )
          {
             toCmp = startstopkey._startKey._bound ;
@@ -2568,30 +2252,17 @@ namespace engine
             toCmp = startstopkey._stopKey._bound ;
             toCmpInclusive = startstopkey._stopKey._inclusive ;
          }
-         // compare the input and key
          INT32 result = toCmp.woCompare ( e, FALSE ) ;
-         // for backward scan we reverse the result
          if ( !direction )
             result = -result ;
-         // key smaller than input, scan up
          if ( result < 0 )
             l = m ;
-         // key larger than iniput, scan down
          else if ( result > 0 )
             h = m ;
-         // if we get exact match
          else
          {
-            // match the start key
             if ( 0 == m%2 )
                lowEquality = TRUE ;
-            // if we got startKey match and it's inclusive, then we are okay
-            // (return even number, match case)
-            // but if it's not inclusive, we should return the one before it (
-            // return odd number, means out of range)
-            // if we got stopKey match and it's inclusive, we should return the
-            // one before it (return even number, means match)
-            // otherwise we dont' change ( return odd number, out of range )
             INT32 ret = m ;
             if ((0 == m%2 && !toCmpInclusive) ||
                 (1 == m%2 && toCmpInclusive))
@@ -2614,8 +2285,6 @@ namespace engine
       return ( 0 == matchingLowElement ( e, i, direction, dummy )%2 ) ;
    }
 
-   // whether a given index key matches the predicate
-   // the key should have same amount of elements than predicate size
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDLIST_MATKEY, "_rtnPredicateList::matchesKey" )
    BOOLEAN _rtnPredicateList::matchesKey ( const BSONObj &key ) const
    {
@@ -2623,13 +2292,10 @@ namespace engine
       BOOLEAN ret = TRUE ;
       BSONObjIterator j ( key ) ;
       BSONObjIterator k ( _keyPattern ) ;
-      // for each column in predicate list
       for ( INT32 l = 0; l < (INT32)_predicates.size(); ++l )
       {
-         // find out scan direction
          INT32 number = (INT32)k.next().number() ;
          BOOLEAN forward = (number>=0?1:-1)*(_direction>=0?1:-1)>0 ;
-         // if not matches, then return false
          if ( !matchesElement ( j.next(), l, forward))
          {
             ret = FALSE ;
@@ -2662,15 +2328,12 @@ namespace engine
    {
       for ( INT32 j = i; j < (INT32)_currentKey.size(); ++j )
       {
-         // no need to reset _cmp and _inc since we pass _after = TRUE in this
-         // function, the ixm component will not compare cmp and inc
          _currentKey[j] = 0 ;
       }
       _after = TRUE ;
       return i ;
    }
 
-   // set the i'th field to next start key and reset all other following fields
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDLISTITE_ADVTOLOBOU, "_rtnPredicateListIterator::advanceToLowerBound" )
    INT32 _rtnPredicateListIterator::advanceToLowerBound( INT32 i )
    {
@@ -2679,7 +2342,6 @@ namespace engine
                                                         ]._startKey._bound ;
       _inc[i] = _predList._predicates[i]._startStopKeys[_currentKey[i]
                                                        ]._startKey._inclusive ;
-      // reset all other following fields
       for ( INT32 j = i+1; j < (INT32)_currentKey.size(); ++j )
       {
          _cmp[j] =
@@ -2692,10 +2354,6 @@ namespace engine
       PD_TRACE_EXIT ( SDB__RTNPREDLISTITE_ADVTOLOBOU ) ;
       return i ;
    }
-   // this function is only called when the keyIdx-1'th key is equal predicate
-   // MATCH means the currElt matches the currentKey[keyIdx]'s range
-   // LESS means currElt is less than the range
-   // GREATER means currElt is greater than the range
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDLISTITE_VALCURSSKEY, "_rtnPredicateListIterator::validateCurrentStartStopKey" )
    rtnPredicateCompareResult
      _rtnPredicateListIterator::validateCurrentStartStopKey ( INT32 keyIdx,
@@ -2711,19 +2369,14 @@ namespace engine
       INT32 upperMatch = key._stopKey._bound.woCompare ( currElt, FALSE ) ;
       if ( reverse )
          upperMatch = -upperMatch ;
-      // element matches stop key and it's inclusive
       if ( upperMatch == 0 && key._stopKey._inclusive )
       {
          hitUpperInclusive = TRUE ;
-         // it's a match with stop key
          re = MATCH ;
          goto done ;
       }
-      // upperMatch < 0 means the stopKey is smaller than currElt, which means
-      // currElt is greater than the range
       if ( upperMatch <= 0 )
       {
-         // if it's larger than stopkey, or same but not inclusive
          re = GREATER ;
          goto done ;
       }
@@ -2731,17 +2384,13 @@ namespace engine
          INT32 lowerMatch = key._startKey._bound.woCompare ( currElt, FALSE ) ;
          if ( reverse )
             lowerMatch = -lowerMatch ;
-         // element matches start key
          if ( lowerMatch == 0 && key._startKey._inclusive )
          {
             re = MATCH ;
             goto done ;
          }
-         // lowerMatch > 0 means the startKey is gerater than currElt, which means
-         // currElt is smaller than the range
          if ( lowerMatch >= 0 )
          {
-            // if it's less than startkey, or same but not inclusive
             re = LESS ;
          }
       }
@@ -2765,82 +2414,17 @@ namespace engine
       PD_TRACE_EXIT ( SDB__RTNPREDLISTITE_RESET ) ;
    }
 
-   INT32 _rtnPredicateListIterator::syncState(
-                                      const _rtnPredicateListIterator *source )
-   {
-      INT32 rc = SDB_OK ;
-      INT32 i = 0 ;
-      if ( _predList._predicates.size()
-           != source->_predList._predicates.size() )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "Predlist's size must be same. size: %d, "
-                 "sourceSize: %d, rc: %d", _predList._predicates.size(),
-                 source->_predList._predicates.size(), rc ) ;
-         goto error ;
-      }
-
-      for ( i = 0; i < (INT32)_cmp.size(); ++i )
-      {
-         _cmp[i] = source->_cmp[i] ;
-      }
-
-      for ( i = 0; i < (INT32)_inc.size(); ++i )
-      {
-         _inc[i] = source->_inc[i] ;
-      }
-
-      for ( i = 0; i < (INT32)_currentKey.size(); ++i )
-      {
-         _currentKey[i] = source->_currentKey[i] ;
-      }
-
-      for ( i = 0; i < (INT32)_prevKey.size(); ++i )
-      {
-         _prevKey[i] = source->_prevKey[i] ;
-      }
-
-      _after = source->_after ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // Description:
-   //   Based on the current index key object, advance the predicate list
-   //   iterator if needed
-   // Input:
-   //   curr: current index key object
-   // Return:
-   //   -1: selected
-   //   -2: hit end of iterator
-   //  >=0: the key is not selected
    //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDLISTITE_ADVANCE, "_rtnPredicateListIterator::advance" )
    INT32 _rtnPredicateListIterator::advance ( const BSONObj &curr )
    {
       INT32 rc = -1 ;
       PD_TRACE_ENTRY ( SDB__RTNPREDLISTITE_ADVANCE ) ;
-      // iterator for input key to match
       BSONObjIterator j ( curr ) ;
-      // get index key pattern for direction
       BSONObjIterator o ( _predList._keyPattern ) ;
-      // this variable indicates the last field that haven't hit end of the
-      // start/stop key list. This is useful when we hit end of the current
-      // range, so that we only start from the first field that haven't hit the
-      // end (all previous fields remains the same since they can't further
-      // grow)
       INT32 latestNonEndPoint = -1 ;
-      // for each of the key field
       for ( INT32 i = 0; i < (INT32)_currentKey.size(); ++i )
       {
          _prevKey[i] = _currentKey[i] ;
-         // everytime when we search for the best match, we should do binary
-         // search to find the best match place
-         // one exception is that i-1'th field is equal predicate, and don't
-         // change the predicate index which means
-         // the next followed field must be in order
          if ( i > 0 && ( _prevKey[ i-1 ] != _currentKey[ i-1 ] ||
               !_predList._predicates[i-1]._startStopKeys[_currentKey[i-1]
                                                         ].isEquality() ) )
@@ -2848,157 +2432,94 @@ namespace engine
             _currentKey[i] = -1 ;
          }
          BSONElement oo = o.next() ;
-         // if index defined forward, and direction is forward, reverse = FALSE
-         // if index defined forward, and direction is backward, reverse = TRUE
-         // if index defined backward, and direction is forward, reverse = TRUE
-         // if index defined backward, and direction is backward, reverse=FALSE
          BOOLEAN reverse = ((oo.number()<0)^(_predList._direction<0)) ;
-         // now get the i'th field in the key element
          BSONElement jj = j.next() ;
-         // this condition is only hit when the previous field is NOT equal
          if ( -1 == _currentKey[i] )
          {
    retry:
             BOOLEAN lowEquality ;
-            // compare the key element with predicate
             INT32 l = _predList.matchingLowElement ( jj, i, !reverse,
                                                      lowEquality ) ;
             if ( 0 == l%2 )
             {
-               // if we have a match, let's set the current key for i'th column
-               // to the one we found
                _currentKey[i] = l/2 ;
-               // let's record the last non-end point so that we can do reset
-               // from it
                if ( ((INT32)_predList._predicates[i]._startStopKeys.size() >
                         _currentKey[i]+1) ||
                      (_predList._predicates[i]._startStopKeys.back(
                       )._stopKey._bound.woCompare ( jj, FALSE ) != 0) )
                {
-                  // this means we are not at the end point
-                  // or we are at the end range but didn't hit stopKey
                   latestNonEndPoint = i ;
                }
-               // then let's try next field when this field is matched
                continue ;
             }
             else
             {
-               // otherwise we are out of range, first let's see if we are at
-               // the end
                if ( l ==
                  (INT32)_predList._predicates[i]._startStopKeys.size()*2-1 )
                {
-                  // if we hit end of the range, and there's no non-end point,
-                  // we don't have any room to further advance
                   if ( -1 == latestNonEndPoint )
                   {
                      rc = -2 ;
                      goto done ;
                   }
-                  // otherwise let's reset all currentKey from lastNonEndPoint
                   rc = advancePastZeroed ( latestNonEndPoint + 1 ) ;
                   goto done ;
                }
-               // if we are not at the end, let's move to nearest start/stop key
-               // range based on the input
                _currentKey[i] = (l+1)/2 ;
-               // if we are at the non-inclusive startkey, let's return the next
-               // field
                if ( lowEquality )
                {
                   rc = advancePastZeroed ( i+1 ) ;
                   goto done ;
                }
-               // otherwise let's move advance to next start/stop key range (
-               // note _currentKey[i] = (l+1)/2 in few statement before)
                rc = advanceToLowerBound(i) ;
                goto done ;
             }
          } // if ( -1 == _currentKey[i] )
-         // when getting here that means _currentKey[i] != -1
-         // this is possible only when the i-1'th field was equal compare
-         // eq variable represetns whether a key hits stopKey for a given range
          BOOLEAN eq = FALSE ;
          while ( _currentKey[i] <
                  (INT32)_predList._predicates[i]._startStopKeys.size())
          {
-            // since the previous field is equality, we know it's safe to call
-            // validateCurrentStartStopKey
             rtnPredicateCompareResult compareResult =
                validateCurrentStartStopKey ( i, jj, reverse, eq ) ;
-            // if the result shows jj is greater than the current range, let's
-            // move to next range, and compare again
-            // we also need to increment _currentKey if the current processed
-            // range same as previous range when compareResult shows Less.
-            // Otherwise we might loop in same range forever in some situation
-            // Why this will work?
-            // compareResult = GREATER means the current key in record is
-            // greater than the current range
-            // comopareResult = MATCH means the current key in record is within
-            // the current range
-            // compareResult = LESS means the current key in record is smaller
-            // than the current range
             if ( GREATER == compareResult )
             {
                _currentKey[i]++ ;
                continue ;
             }
-            // jump out the loop if we get a match
             else if ( MATCH == compareResult )
             {
                break ;
             }
-            // if jj is less than the current range, let's return the current
-            // field id as well as setting _cmp/_inc
             else
             {
-               /// has increased the start-stop key, so need to relocated
                if ( _prevKey[i] != _currentKey[i] )
                {
                   rc = advanceToLowerBound(i) ;
                }
                else
                {
-                  /// means the pre keys has changed, so need to binary find
-                  /// again. ex: { a:1, b:1, c:5 } ==> { a:2, b:1, c:0 }, cur
-                  /// is c, range is:[5,5]
                   goto retry ;
                }
                goto done ;
             }
          }
-         // when we get here, either we have a match or we hit end of
-         // startstopkeyset
          INT32 diff = _predList._predicates[i]._startStopKeys.size() -
                       _currentKey[i] ;
          if ( diff > 1 || ( !eq && diff == 1 ) )
          {
-            // if we don't hit the last key, or we are not hitting the stopKey,
-            // let's set latest non end point
-            // if we hit stop key at the last predicate, we don't want to set
-            // this variable then
             latestNonEndPoint = i ;
          }
-         // otherwise it means we hit the end if we run out of the loop
          else if ( diff == 0 )
          {
-            // if we hit end of the range, and there's no non-end point,
-            // we don't have any room to further advance
             if ( -1 == latestNonEndPoint )
             {
                rc = -2 ;
                goto done ;
             }
-            // otherwise let's reset all currentKey from lastNonEndPoint
             rc = advancePastZeroed ( latestNonEndPoint + 1 ) ;
             goto done ;
          }
-         // when (eq && diff==1), that means we hit stopKey for the last
-         // predicate, which we want to continue run the next field and don't
-         // set latestNonEndPoint
       }
-      // we have a match if we hit here, means all fields got matched
    done :
       PD_TRACE_EXITRC ( SDB__RTNPREDLISTITE_ADVANCE, rc ) ;
       return rc ;

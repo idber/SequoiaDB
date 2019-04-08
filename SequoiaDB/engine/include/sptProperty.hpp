@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sptProperty.hpp
 
@@ -56,7 +55,6 @@ namespace engine
    class _sptProperty ;
 
    typedef std::vector<_sptProperty*>     SPT_PROP_ARRAY ;
-   typedef SPT_PROP_ARRAY                 SPT_SUB_PROPS ;
 
    /*
       _sptProperty define
@@ -86,7 +84,6 @@ namespace engine
          if ( value < SPT_MIN_NUMBER_VALUE ||
               value > SPT_MAX_NUMBER_VALUE )
          {
-            /// to string
             CHAR tmp[ 50 ] = { 0 } ;
             ossSnprintf( tmp, sizeof(tmp)-1, "%lld", value ) ;
             setValue( (std::string)tmp ) ;
@@ -126,14 +123,6 @@ namespace engine
       {
          assignBsonArray( value ) ;
       }
-      void  setNull()
-      {
-         assignNull() ;
-      }
-      void  setJSCode( const CHAR *codeStr )
-      {
-         assignJSCode( codeStr ) ;
-      }
 
       template< typename T >
       void  setValue( const std::vector<T> &array )
@@ -164,15 +153,10 @@ namespace engine
       }
 
    public:
-      /// BOOLEAN, INT32, FLOAT64
       INT32 assignNative( bson::BSONType type,
                           const void *value ) ;
 
-      /// value should be base64 coded when
-      /// it is a binary data.
       INT32 assignString( const CHAR *value ) ;
-
-      void  assignNull() ;
 
       INT32 assignBsonobj( const bson::BSONObj &value ) ;
 
@@ -180,15 +164,7 @@ namespace engine
 
       INT32 assignResultVal( const sptResultVal* value ) ;
 
-      INT32 assignJSCode( const CHAR *codeStr  ) ;
-
       _sptProperty* addArrayItem() ;
-
-      _sptProperty* addSubProp( const std::string &name,
-                                UINT32 attr = SPT_PROP_DEFAULT ) ;
-
-      void          addBackwardProp( const std::string &name,
-                                     UINT32 attr = SPT_PROP_DEFAULT ) ;
 
       void  setAttr( UINT32 attr )
       {
@@ -261,12 +237,9 @@ namespace engine
       INT32 getNative( bson::BSONType type,
                        void *value ) const ;
 
-      /// copy value if u want to modify or keep it.
       const CHAR *getString() const ;
 
-      const CHAR *getJSCodeStr() const ;
-
-      INT32 getResultVal( const sptResultVal ** ppResultVal ) const ;
+      INT32 getResultVal( sptResultVal ** ppResultVal ) const ;
 
       inline bson::BSONType getType() const
       {
@@ -275,7 +248,7 @@ namespace engine
 
       inline BOOLEAN isRawData() const
       {
-         return bson::JSTypeMax == _type ? TRUE : FALSE ;
+         return _isRawData ;
       }
 
       inline BOOLEAN isObject() const
@@ -318,38 +291,19 @@ namespace engine
          return _array ;
       }
 
-      const SPT_SUB_PROPS& getSubProps() const
-      {
-         return _subs ;
-      }
+   private:
+      std::string _name ;
+      UINT64 _value ;
+      bson::BSONType _type ;
+      SPT_RELEASE_OBJ_FUNC _pReleaseFunc ;
+      const _sptObjDesc *_desc ;
+      UINT32   _attr ;
+      BOOLEAN  _deleted ;
+      BOOLEAN  _isRawData ;
 
-      const _sptProperty*  getBackwardProp() const
-      {
-         return _backwardProp ;
-      }
-
-      BOOLEAN hasBackwardProp() const
-      {
-         return ( _backwardProp && !_backwardProp->getName().empty() ) ?
-                TRUE : FALSE ;
-      }
+      SPT_PROP_ARRAY       _array ;
 
    private:
-      std::string             _name ;
-      UINT64                  _value ;
-      bson::BSONType          _type ;
-      SPT_RELEASE_OBJ_FUNC    _pReleaseFunc ;
-      const _sptObjDesc       *_desc ;
-      UINT32                  _attr ;
-      BOOLEAN                 _deleted ;
-
-      SPT_PROP_ARRAY          _array ;
-
-      SPT_SUB_PROPS           _subs ;
-      _sptProperty            *_backwardProp ;
-
-   private:
-      /// Forbidden
       _sptProperty( const _sptProperty &other ) ;
       _sptProperty &operator=(const _sptProperty &other) ;
 

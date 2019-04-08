@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dmsStorageLob.hpp
 
@@ -47,7 +46,6 @@ namespace engine
    #define DMS_LOBM_EYECATCHER               "SDBLOBM"
    #define DMS_LOBM_EYECATCHER_LEN           8
 
-   /// must be power of 2
    const UINT32 DMS_BUCKETS_NUM =   16777216 ; // 16MB
    #define DMS_BUCKETS_MODULO       16777215
    #define DMS_BUCKETS_LATCH_SIZE   128
@@ -135,8 +133,6 @@ namespace engine
                     _pmdEDUCB *cb,
                     SDB_DPSCB *dpscb ) ;
 
-      /// user should make sure that the length of
-      ///  buf is enough
       INT32 read( const dmsLobRecord &record,
                   dmsMBContext *mbContext,
                   _pmdEDUCB *cb,
@@ -217,7 +213,6 @@ namespace engine
                                           dmsStorageInfo *pInfo ) ;
       virtual INT32  _checkPageSize( dmsStorageUnitHeader *pHeader ) ;
 
-      /// flush callback:  SDB_OK: continue, no SDB_OK: stop
       virtual INT32  _onFlushDirty( BOOLEAN force, BOOLEAN sync ) ;
 
       virtual INT32  _onMarkHeaderValid( UINT64 &lastLSN,
@@ -258,10 +253,8 @@ namespace engine
                        DMS_LOB_PAGEID page,
                        dmsMBContext *mbContext ) ;
 
-      /// only release space of page. will not change other meta data.
       INT32 _releasePage( DMS_LOB_PAGEID page, dmsMBContext *mbContext ) ;
 
-      /// release space of page and change other meta data.
       INT32 _removePage( DMS_LOB_PAGEID page,
                          _dmsLobDataMapBlk *blk,
                          const UINT32 *bucket,

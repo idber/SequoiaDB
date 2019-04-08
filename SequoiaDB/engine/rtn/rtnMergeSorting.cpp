@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnMergeSorting.cpp
 
@@ -38,19 +37,17 @@
 *******************************************************************************/
 
 #include "rtnMergeSorting.hpp"
+#include "dmsRecord.hpp"
 #include "ossUtil.hpp"
 #include "pd.hpp"
 #include "pmdEDU.hpp"
-#include "rtnTrace.hpp"
 
 namespace engine
 {
-   //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNMERGEBLOCK_NEXT, "_rtnMergeBlock::next" )
    INT32 _rtnMergeBlock::next( _dmsTmpBlkUnit *unit,
                                _rtnSortTuple **tuple )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNMERGEBLOCK_NEXT ) ;
       SDB_ASSERT( _read <= _loadSize, "impossible" ) ;
 
       if ( 0 == _limit )
@@ -91,41 +88,34 @@ namespace engine
       {
          --_limit;
       }
-      //0 < _limit ? --_limit:_limit;
    done:
-      PD_TRACE_EXITRC( SDB__RTNMERGEBLOCK_NEXT, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
-   //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNMERGEBLOCK_INIT, "_rtnMergeBlock::init" )
    void _rtnMergeBlock::init( _dmsTmpBlk &blk, CHAR *begin,
                               UINT64 size, SINT64 limit )
    {
-      PD_TRACE_ENTRY( SDB__RTNMERGEBLOCK_INIT ) ;
-      SDB_ASSERT( NULL != begin, "begin is NULL" ) ;
+      SDB_ASSERT( NULL != begin && DMS_RECORD_USER_MAX_SZ * 2 <= size,
+                  "impossible" ) ;
       _blk = blk ;
       _buf = begin ;
       _size = size ;
       _read = 0 ;
       _loadSize = 0 ;
       _limit = limit ;
-      PD_TRACE_EXIT( SDB__RTNMERGEBLOCK_INIT ) ;
       return  ;
    }
 
-   //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNMERGEBLOCK__LOADDATA, "_rtnMergeBlock::_loadData" )
    INT32 _rtnMergeBlock::_loadData( _dmsTmpBlkUnit *unit )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNMERGEBLOCK__LOADDATA ) ;
       SDB_ASSERT( _read <= _loadSize, "impossible" ) ;
       UINT64 lastLen = _loadSize - _read ;
 
       if ( 0 != lastLen )
       {
-         /// keep the last obj in buf.
          ossMemcpy( _buf, _buf + _read, lastLen ) ;
       }
 
@@ -140,13 +130,11 @@ namespace engine
       _read = 0 ;
       SDB_ASSERT( _loadSize <= _size, "impossible" ) ;
    done:
-      PD_TRACE_EXITRC( SDB__RTNMERGEBLOCK__LOADDATA, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
-///////////_rtnMergeSorting
    _rtnMergeSorting::_rtnMergeSorting( _dmsTmpBlkUnit *unit,
                                        const BSONObj &orderby )
    :_order( Ordering::make(orderby) ),
@@ -171,22 +159,14 @@ namespace engine
    {
    }
 
-   UINT64 _rtnMergeSorting::calcMinBufSize( UINT32 maxRecordSize )
-   {
-      return ( maxRecordSize * 2 * RTN_SORT_MIN_MERGESIZE ) ;
-   }
-
-   //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNMERGESORTING_INIT, "_rtnMergeSorting::init" )
    INT32 _rtnMergeSorting::init( CHAR *buf, UINT64 size,
                                  RTN_SORT_BLKS &src,
-                                 UINT32 maxRecordSize,
                                  SINT64 limit )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNMERGESORTING_INIT ) ;
       SDB_ASSERT( NULL != buf && size != 0, "impossible" ) ;
 
-      UINT32 mergeSize = size / ( maxRecordSize * 2 );
+      UINT32 mergeSize = size / ( DMS_RECORD_USER_MAX_SZ * 2 );
       if ( mergeSize < RTN_SORT_MIN_MERGESIZE )
       {
          PD_LOG( PDERROR, "buf is too small to merge records." ) ;
@@ -211,18 +191,14 @@ namespace engine
               " max merge size[%d], limit[%lld]",
               _src->size(), _size, _mergeMax, _limit ) ;
    done:
-      PD_TRACE_EXITRC( SDB__RTNMERGESORTING_INIT, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
-   //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNMERGESORTING_FETCH, "_rtnMergeSorting::fetch" )
-   INT32 _rtnMergeSorting::fetch( BSONObj &key, const CHAR** obj, INT32* objLen,
-                                  _pmdEDUCB *cb )
+   INT32 _rtnMergeSorting::fetch( BSONObj &key, const CHAR** obj, INT32* objLen, _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNMERGESORTING_FETCH ) ;
       SDB_ASSERT( NULL != _buf && 0 < _size && NULL != _src,
                   "impossible" ) ;
 
@@ -267,8 +243,6 @@ namespace engine
             goto error ;
          }
 
-         /// TODO: if there is only one blk left, we do not need to push record to
-         /// heap.
          rc = _pushObjFromSink( node.getI() ) ;
          if ( SDB_DMS_EOC == rc )
          {
@@ -281,7 +255,6 @@ namespace engine
          }
          else
          {
-            /// do noting.
          }
       }
       else if ( SDB_CLS_EMPTY_HEAP != rc )
@@ -296,17 +269,14 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC( SDB__RTNMERGESORTING_FETCH, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
-   //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNMERGESORTING__MERGE, "_rtnMergeSorting::_merge" )
    INT32 _rtnMergeSorting::_merge( _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNMERGESORTING__MERGE ) ;
       RTN_SORT_BLKS *dst = &_merged ;
       RTN_SORT_BLKS *tmp = NULL ;
       UINT32 loop = 0;
@@ -333,19 +303,16 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC( SDB__RTNMERGESORTING__MERGE, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
-   //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNMERGESORTING__MERGEBLKS, "_rtnMergeSorting::_mergeBlks" )
    INT32 _rtnMergeSorting::_mergeBlks( RTN_SORT_BLKS &src,
                                        RTN_SORT_BLKS &dst,
                                        _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNMERGESORTING__MERGEBLKS ) ;
       _rtnMergeTuple node ;
 
       while ( !src.empty() )
@@ -387,7 +354,6 @@ namespace engine
                              node.tuple()->len());
                   _mergePos += node.tuple()->len() ;
                }
-               /// if the buf is full. out put to unit.
                else
                {
                   rc = _unit->seek( _unitHelper._outputStart ) ;
@@ -414,7 +380,6 @@ namespace engine
                   _unitHelper._outputStart += _mergePos ;
                   _unitHelper._newBlkSize += _mergePos ;
 
-                  /// reset mem info.
                   ossMemcpy( _buf, node.tuple(), node.tuple()->len() ) ;
                   _mergePos = node.tuple()->len() ;
                }
@@ -431,7 +396,6 @@ namespace engine
                }
                else
                {
-                  /// do nothing.
                }
             }
             else
@@ -463,7 +427,6 @@ namespace engine
             }
          } // while (TRUE)
 
-         /// one merge done.
          dmsTmpBlk blk ;
          rc = _unit->buildBlk( _unitHelper._outputStart - _unitHelper._newBlkSize,
                                _unitHelper._newBlkSize,
@@ -481,37 +444,31 @@ namespace engine
 
       }// whiel (!src.empty())
    done:
-      PD_TRACE_EXITRC( SDB__RTNMERGESORTING__MERGEBLKS, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
-   //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNMERGESORTING__MAKEHEAP, "_rtnMergeSorting::_makeHeap" )
    INT32 _rtnMergeSorting::_makeHeap( RTN_SORT_BLKS &src,
                                       _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNMERGESORTING__MAKEHEAP ) ;
       UINT32 blkSize = src.size() + 1 ;
       _mergeBlkSize = blkSize < _mergeMax ?
                       blkSize : _mergeMax ;
       _mergeBufSize = _size / _mergeBlkSize ;
       PD_LOG( PDDEBUG, "build [%d] blks to heap at tihs time.", _mergeBlkSize - 1 ) ;
-      /// start from 1. 0 is out put buf.
       for ( UINT32 i = 1; i < _mergeBlkSize; i++ )
       {
          PD_LOG( PDDEBUG, "put the [%d] blk [%s] to the heap",
                  i, src.front().toString().c_str() ) ;
 
-         /// init data sink
          _dataSink[i].init( src.front(),
                             _buf + i * _mergeBufSize,
                             _mergeBufSize, _limit );
          rc = _pushObjFromSink( i ) ;
          if ( SDB_OK == rc || SDB_DMS_EOC == rc )
          {
-            /// do noting. if first push returned eoc, means limit is 0.
          }
          else
          {
@@ -521,17 +478,14 @@ namespace engine
          src.pop_front() ;
       }
    done:
-      PD_TRACE_EXITRC( SDB__RTNMERGESORTING__MAKEHEAP, rc ) ;
       return rc ;
    error:
       goto done ;
    }
 
-   //PD_TRACE_DECLARE_FUNCTION ( SDB__RTNMERGESORTING__PUSHOBJFROMSINK, "_rtnMergeSorting::_pushObjFromSink" )
    INT32 _rtnMergeSorting::_pushObjFromSink( UINT32 i )
    {
       INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__RTNMERGESORTING__PUSHOBJFROMSINK ) ;
       SDB_ASSERT( 0 < i && i < _mergeBlkSize, "impossible" ) ;
       _rtnSortTuple *tuple = NULL ;
       rc = _dataSink[i].next( _unit, &tuple ) ;
@@ -546,7 +500,6 @@ namespace engine
          goto error ;
       }
    done:
-      PD_TRACE_EXITRC( SDB__RTNMERGESORTING__PUSHOBJFROMSINK, rc ) ;
       return  rc ;
    error:
       goto done ;

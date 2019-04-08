@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = seAdptContext.cpp
 
@@ -36,11 +35,17 @@
    Last Changed =
 
 *******************************************************************************/
+#include "msgDef.hpp"
 #include "seAdptContext.hpp"
-#include "utilESKeywordDef.hpp"
-#include "utilESUtil.hpp"
+#include "seAdptDef.hpp"
+#include "rtnSimpleCondParser.hpp"
 
 using namespace bson ;
+
+#define SEADPT_ID_KEY_NAME          "_id"
+#define SEADPT_FETCH_BATCH_SIZE     10000
+#define SEADPT_FETCH_MAX_SIZE       100000
+#define SEADPT_ES_ID_FILTER_PATH    "filter_path=_scroll_id,hits.hits._id"
 
 namespace seadapter
 {
@@ -52,8 +57,6 @@ namespace seadapter
    {
    }
 
-   // Initialize the rebuilder with the original message. It will store separate
-   // parts of the query.
    INT32 _seAdptQueryRebuilder::init( const BSONObj &matcher,
                                       const BSONObj &selector,
                                       const BSONObj &orderBy,
@@ -67,8 +70,6 @@ namespace seadapter
       return SDB_OK ;
    }
 
-   // Rebuild the query message. The vectors of the second and third arguments
-   // contain the items to be modified to the original.
    INT32 _seAdptQueryRebuilder::rebuild( REBUILD_ITEM_MAP &rebuildItems,
                                          utilCommObjBuff &objBuff )
    {
@@ -113,9 +114,6 @@ namespace seadapter
                    rc ) ;
 
       {
-         // The original hint is used to pass the text index name. In the
-         // replay, we give an empty hint.
-         // Any problem ?
          BSONObj object ;
          rc = objBuff.appendObj( object ) ;
          PD_RC_CHECK( rc, PDERROR, "Append hint to object buffer failed[ %d ]",
@@ -128,24 +126,31 @@ namespace seadapter
       goto done ;
    }
 
-   _seAdptContextQuery::_seAdptContextQuery()
-   : _imContext( NULL ),
-     _esClt( NULL ),
-     _esFetcher( NULL )
+   _seAdptContextBase::_seAdptContextBase( const string &indexName,
+                                           const string &typeName,
+                                           utilESClt *seClt )
+   {
+      _indexName = indexName ;
+      _type = typeName ;
+      _esClt = seClt ;
+   }
+
+   _seAdptContextBase::~_seAdptContextBase()
+   {
+   }
+
+   _seAdptContextQuery::_seAdptContextQuery( const string &indexName,
+                                             const string &typeName,
+                                             utilESClt *seClt )
+   : _seAdptContextBase( indexName, typeName, seClt )
    {
    }
 
    _seAdptContextQuery::~_seAdptContextQuery()
    {
-      if ( _esFetcher )
-      {
-         SDB_OSS_DEL _esFetcher ;
-      }
    }
 
-   INT32 _seAdptContextQuery::open( seIdxMetaContext *imContext,
-                                    utilESClt *esClt,
-                                    const BSONObj &matcher,
+   INT32 _seAdptContextQuery::open( const BSONObj &matcher,
                                     const BSONObj &selector,
                                     const BSONObj &orderBy,
                                     const BSONObj &hint,
@@ -153,7 +158,7 @@ namespace seadapter
                                     pmdEDUCB *eduCB )
    {
       INT32 rc = SDB_OK ;
-      BSONObj queryObj ;
+      string queryCond ;
       utilCommObjBuff searchResult ;
       BSONObj inCond ;
       BSONObj newQuery ;
@@ -166,9 +171,6 @@ namespace seadapter
 
       objBuff.reset() ;
 
-      _imContext = imContext ;
-      _esClt = esClt ;
-
       _condTree.parse( matcher ) ;
       textNode = _condTree.getTextNode() ;
       if ( !textNode )
@@ -179,7 +181,6 @@ namespace seadapter
          goto error ;
       }
 
-      // { "" : { "$Text" : { condition } } }
       textRootObj = textNode->toBson() ;
       PD_LOG( PDDEBUG, "Text query object: %s", textRootObj.toString().c_str() ) ;
       {
@@ -192,7 +193,6 @@ namespace seadapter
             goto error ;
          }
 
-         // { "$Text" : { condition } }
          textObj = eleTmp.Obj() ;
          eleTmp = textObj.firstElement() ;
          if ( Object != eleTmp.type() )
@@ -203,39 +203,32 @@ namespace seadapter
             goto error ;
          }
 
-         // { condition }
-         queryObj = eleTmp.Obj() ;
+         queryCond = eleTmp.Obj().toString( FALSE, TRUE ) ;
       }
 
       rc = _queryRebuilder.init(  matcher, selector, orderBy, hint ) ;
       PD_RC_CHECK( rc, PDERROR, "Initialize query rebuilder failed[ %d ]",
                    rc ) ;
 
+      if ( !_esClt->isActive() )
+      {
+         rc = _esClt->active() ;
+         PD_RC_CHECK( rc, PDERROR, "Reactive ES client failed[ %d ]", rc ) ;
+      }
+
       rc = searchResult.init() ;
       PD_RC_CHECK( rc, PDERROR, "Result buffer init failed[ %d ]", rc ) ;
 
-      // If the text index query is inside a $not clause, try to fetch all
-      // the documents which match the condition. Because if that is done in
-      // more than one round, the result on SDB node will be wrong.
-      // Otherwise, fetch one batch of records.
       if ( _condTree.textNodeInNot() )
       {
-         rc = _fetchAll( queryObj, searchResult, SEADPT_FETCH_MAX_SIZE ) ;
+         rc = _fetchAll( queryCond, searchResult, SEADPT_FETCH_MAX_SIZE ) ;
          PD_RC_CHECK( rc, PDERROR, "Fetch all documents failed[ %d ]", rc ) ;
       }
       else
       {
-         rc = _prepareSearch( queryObj ) ;
-         PD_RC_CHECK( rc, PDERROR, "Prepare search failed[ %d ]", rc ) ;
-         rc = _getMore( searchResult ) ;
-         if ( rc )
-         {
-            if ( SDB_DMS_EOC != rc )
-            {
-               PD_LOG( PDERROR, "Get more result failed[ %d ]", rc ) ;
-            }
-            goto error ;
-         }
+         rc = _fetchFirstBatch( queryCond, searchResult ) ;
+         PD_RC_CHECK( rc, PDERROR, "Fetch one batch of documents "
+                      "failed[ %d ]", rc ) ;
       }
 
       if ( 0 == searchResult.getObjNum() )
@@ -281,22 +274,15 @@ namespace seadapter
       rc = searchResult.init() ;
       PD_RC_CHECK( rc, PDERROR, "Init result buffer failed[ %d ]", rc ) ;
 
-      rc = _getMore( searchResult ) ;
-      if ( rc )
-      {
-         if ( SDB_DMS_EOC != rc )
-         {
-            PD_LOG( PDERROR, "Get more failed[ %d ]", rc ) ;
-         }
-         goto error ;
-      }
+      rc = _fetchNextBatch( searchResult ) ;
+      PD_RC_CHECK( rc, PDERROR, "Get next batch of documents failed[ %d ]",
+                   rc ) ;
 
       if ( 0 == searchResult.getObjNum() )
       {
          rc = SDB_DMS_EOC ;
          goto error ;
       }
-
       rc = _buildInCond( searchResult, inCond ) ;
       PD_RC_CHECK( rc, PDERROR, "Build the $in condition failed[ %d ]", rc ) ;
 
@@ -319,140 +305,23 @@ namespace seadapter
       goto done ;
    }
 
-   // There are two ways to get data from ES.
-   // 1. Using pagination by from + size.
-   // 2. Using scrolling.
-   // On SDB side, we only provide a query in the find condition. So we should
-   // decide by which way we are going to fetch the data.
-   // The strategy is as follows:
-   // 1. If from or size is speicified in the query, use pagination.
-   // 2. Otherwise, do it by scrolling.
-   INT32 _seAdptContextQuery::_prepareSearch( const BSONObj &queryCond )
+   INT32 _seAdptContextQuery::_fetchFirstBatch( const string &queryCond,
+                                                utilCommObjBuff &result )
    {
       INT32 rc = SDB_OK ;
 
-      try
+      if ( !_esClt->isActive() )
       {
-         BOOLEAN rangeSet = FALSE ;
-         BSONElement eleFrom ;
-         BSONElement eleSize ;
-         INT64 from = 0 ;
-         INT64 size = 0 ;
-         eleFrom = queryCond.getField( ES_KEYWORD_FROM ) ;
-         if ( EOO != eleFrom.type() )
-         {
-            if ( !eleFrom.isNumber() )
-            {
-               rc = SDB_INVALIDARG ;
-               PD_LOG_MSG( PDERROR, "Value of 'from' in full text search "
-                           "condition is not number" ) ;
-               goto error ;
-            }
-
-            from = eleFrom.numberLong() ;
-            rangeSet = TRUE ;
-         }
-
-         eleSize = queryCond.getField( ES_KEYWORD_SIZE ) ;
-         if ( EOO != eleSize.type() )
-         {
-            if ( !eleSize.isNumber() )
-            {
-               rc = SDB_INVALIDARG ;
-               PD_LOG_MSG( PDERROR, "Value of 'size' in full text search "
-                           "condition is not number" ) ;
-               goto error ;
-            }
-
-            size = eleSize.numberLong() ;
-            if ( !rangeSet )
-            {
-               rangeSet = TRUE ;
-            }
-         }
-
-         if ( _esFetcher )
-         {
-            SDB_OSS_DEL _esFetcher ;
-            _esFetcher = NULL ;
-         }
-
-         rc = _imContext->resume() ;
-         PD_RC_CHECK( rc, PDERROR, "Lock index metadata failed[%d]", rc ) ;
-         if ( rangeSet )
-         {
-            _esFetcher = SDB_OSS_NEW
-                  utilESPageFetcher( _imContext->meta()->getESIdxName(),
-                                     _imContext->meta()->getESTypeName() ) ;
-         }
-         else
-         {
-            _esFetcher = SDB_OSS_NEW
-                  utilESScrollFetcher( _imContext->meta()->getESIdxName(),
-                                       _imContext->meta()->getESTypeName() ) ;
-         }
-         _imContext->pause() ;
-
-         if ( !_esFetcher )
-         {
-            rc = SDB_OOM ;
-            PD_LOG( PDERROR, "Allocate memory for ES fetcher failed" ) ;
-            goto error ;
-         }
-
-         if ( 0 != size )
-         {
-            _esFetcher->setSize( size ) ;
-         }
-         if ( 0 != from )
-         {
-            ((utilESPageFetcher *)_esFetcher)->setFrom( from ) ;
-         }
-
-         _esFetcher->setFilterPath( SEADPT_ES_ID_FILTER_PATH ) ;
-         rc = _esFetcher->setCondition( queryCond ) ;
-         PD_RC_CHECK( rc, PDERROR, "Set ES query condition failed[ %d ]", rc ) ;
-         rc = _esFetcher->setClt( _esClt ) ;
-         PD_RC_CHECK( rc, PDERROR, "Set ES client failed[ %d ]", rc ) ;
-      }
-      catch ( std::exception &e )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
-         goto error ;
+         rc = _esClt->active() ;
+         PD_RC_CHECK( rc, PDERROR, "Reactive ES client failed[ %d ]", rc ) ;
       }
 
-   done:
-      return rc ;
-   error:
-      if ( _esFetcher )
-      {
-         SDB_OSS_DEL _esFetcher ;
-         _esFetcher = NULL ;
-      }
-      goto done ;
-   }
-
-   INT32 _seAdptContextQuery::_getMore( utilCommObjBuff &result )
-   {
-      INT32 rc = SDB_OK ;
-
-      if ( !_esFetcher )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "ES fetcher has not been initialized yet" ) ;
-         goto error ;
-      }
-
-      rc = _esFetcher->fetch( result ) ;
-      if ( rc )
-      {
-         if ( SDB_DMS_EOC != rc )
-         {
-            PD_LOG( PDERROR, "Fetch data from es failed[ %d ]", rc ) ;
-         }
-         goto error ;
-      }
+      rc = _esClt->initScroll( _scrollID, _indexName.c_str(), _type.c_str(),
+                               queryCond, result, SEADPT_FETCH_BATCH_SIZE,
+                               SEADPT_ES_ID_FILTER_PATH ) ;
+      PD_RC_CHECK( rc, PDERROR, "Initialize scroll for index[ %s ] and "
+                   "type[ %s ] failed[ %d ], query string: %s ",
+                   _indexName.c_str(), _type.c_str(), rc, queryCond.c_str() ) ;
 
    done:
       return rc ;
@@ -460,49 +329,61 @@ namespace seadapter
       goto done ;
    }
 
-   INT32 _seAdptContextQuery::_fetchAll( const BSONObj &queryCond,
+   INT32 _seAdptContextQuery::_fetchNextBatch( utilCommObjBuff &result )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( _scrollID.empty() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "Scroll ID is empty" ) ;
+         goto error ;
+      }
+
+      if ( !_esClt->isActive() )
+      {
+         rc = _esClt->active() ;
+         PD_RC_CHECK( rc, PDERROR, "Reactive ES client failed[ %d ]", rc ) ;
+      }
+
+      rc = _esClt->scrollNext( _scrollID, result, SEADPT_ES_ID_FILTER_PATH ) ;
+      PD_RC_CHECK( rc, PDERROR, "Scroll with id[ %s ] for index[ %s ] and "
+                   "type[ %s ] failed[ %d ]", _scrollID.c_str(),
+                   _indexName.c_str(), _type.c_str(), rc ) ;
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _seAdptContextQuery::_fetchAll( const string &queryCond,
                                          utilCommObjBuff &result,
                                          UINT32 limitNum )
    {
       INT32 rc = SDB_OK ;
+      UINT32 totalNum = 0 ;
 
       result.reset() ;
 
-      rc = _prepareSearch( queryCond ) ;
-      PD_RC_CHECK( rc, PDERROR, "Prepare search failed[ %d ]", rc ) ;
+      rc = _fetchFirstBatch( queryCond, result ) ;
+      PD_RC_CHECK( rc, PDERROR, "Fetch one batch of documents failed[ %d ]",
+                   rc ) ;
       do
       {
-         rc = _getMore( result ) ;
-         if ( rc )
-         {
-            if ( SDB_DMS_EOC == rc )
-            {
-               if ( result.getObjNum() > 0 )
-               {
-                  rc = SDB_OK ;
-                  break ;
-               }
-               else
-               {
-                  goto error ;
-               }
-            }
-            else
-            {
-               PD_LOG( PDERROR, "Get more failed[ %d ]", rc ) ;
-               goto error ;
-            }
-         }
+         totalNum = result.getObjNum() ;
 
-         // Two conditions to terminate this loop:
-         // 1. Number exceeds the limit.
-         // 2. The result buffer is full.
-         if ( result.getObjNum() > limitNum )
+         if ( totalNum > limitNum )
          {
             rc = SDB_INVALIDARG ;
-            PD_LOG( PDERROR, "Record number[%u] too large for the operation",
-                    result.getObjNum() ) ;
+            PD_LOG( PDERROR, "Record number too large for the operation" ) ;
             goto error ;
+         }
+         rc = _fetchNextBatch( result ) ;
+         PD_RC_CHECK( rc, PDERROR, "Fetch next batch of documents failed[ %d ]",
+                      rc ) ;
+         if ( totalNum == result.getObjNum() )
+         {
+            break ;
          }
       } while ( TRUE ) ;
 
@@ -530,78 +411,27 @@ namespace seadapter
       BSONArray idArray ;
 
       BSONObj obj ;
-      UINT32 bufSize = SEADPT_MAX_ID_SZ + 1 ;
-      CHAR idBuff[ SEADPT_MAX_ID_SZ + 1 ] = { 0 } ;
 
       try
       {
          while ( !objBuff.eof() )
          {
-            BSONType type ;
             objBuff.nextObj( obj ) ;
-            idValue = obj.getStringField( SEADPT_FIELD_NAME_ID ) ;
+            idValue = obj.getStringField( SEADPT_ID_KEY_NAME ) ;
             SDB_ASSERT( idValue, "id value should not be NULL" ) ;
-            // Skip the SDBCOMMIT mark record.
-            if ( 0 == ossStrcmp( SEADPT_COMMIT_ID, idValue ) )
+            if ( 0 == ossStrcmp( SDB_SEADPT_COMMIT_ID, idValue ) )
             {
                continue ;
             }
 
-            bufSize = SEADPT_MAX_ID_SZ + 1 ;
-            ossMemset( idBuff, 0, bufSize ) ;
-            rc = decodeID( idValue, idBuff, bufSize, type ) ;
-            PD_RC_CHECK( rc, PDERROR, "Decode id[ %s ] failed[ %d ]",
-                         idValue, rc ) ;
-            switch ( type )
-            {
-            case NumberDouble:
-               arrayBuilder.append( *(FLOAT64 *)idBuff ) ;
-               break ;
-            case String:
-               arrayBuilder.append( idBuff ) ;
-               break ;
-            case Object:
-               arrayBuilder.append( BSONObj( (const CHAR *)idBuff ) ) ;
-               break ;
-            case jstOID:
-               arrayBuilder.append( *(bson::OID *)idBuff ) ;
-               break ;
-            case NumberInt:
-               arrayBuilder.append( *(INT32 *)idBuff ) ;
-               break ;
-            case NumberLong:
-               arrayBuilder.append( *(INT64 *)idBuff ) ;
-               break ;
-            case Bool:
-               arrayBuilder.append( (bool)(*idBuff) ) ;
-               break ;
-            case Date:
-               arrayBuilder.append( *(Date_t *)idBuff ) ;
-               break ;
-            case Timestamp:
-               arrayBuilder.appendTimestamp( *(UINT64 *)idBuff ) ;
-               break ;
-            case NumberDecimal:
-            {
-               bsonDecimal number ;
-               number.fromBsonValue( idBuff ) ;
-               arrayBuilder.append( number ) ;
-               break ;
-            }
-            default:
-               PD_LOG( PDERROR, "Unsupported type of record[ %d ]",
-                       obj.toString().c_str() ) ;
-               rc = SDB_SYS ;
-               goto error ;
-            }
+            bson::OID oid( idValue ) ;
+            arrayBuilder.append( oid ) ;
          }
 
          idArray = arrayBuilder.arr() ;
 
          condition = BSON( "_id" << BSON( "$in" << idArray ) ) ;
          condition.getOwned() ;
-         PD_LOG( PDDEBUG, "New in condition: %s",
-                 condition.toString().c_str() ) ;
       }
       catch ( std::exception &e )
       {
@@ -609,6 +439,8 @@ namespace seadapter
          rc = SDB_SYS ;
          goto error ;
       }
+
+      PD_LOG( PDDEBUG, "New in condition: %s", condition.toString().c_str() ) ;
 
    done:
       return rc ;

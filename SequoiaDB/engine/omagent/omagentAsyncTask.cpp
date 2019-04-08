@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omagentBackgroundCmd.cpp
 
@@ -137,26 +136,6 @@ namespace engine
       goto done ;
    }
 
-   INT32 _omaAsyncTask::setTaskRunning( _omaCommand* cmd,
-                                        const BSONObj& itemInfo )
-   {
-      INT32 rc = SDB_OK ;
-      BSONObj resultInfo = itemInfo.getObjectField( OMA_FIELD_RESULTINFO ) ;
-      ossScopedLock lock( &_planLatch, EXCLUSIVE ) ;
-
-      rc = cmd->setRuningStatus( resultInfo, _taskInfo ) ;
-      if( rc )
-      {
-         PD_LOG( PDERROR, "Failed to convert command result, rc=%d", rc ) ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
    INT32 _omaAsyncTask::updateTaskInfo( _omaCommand* cmd,
                                         const BSONObj& itemInfo )
    {
@@ -185,7 +164,7 @@ namespace engine
       --_planTaskNum ;
    }
 
-   INT32 _omaAsyncTask::updateProgressToOM()
+   INT32 _omaAsyncTask::updateProgressToOM( BOOLEAN isSuccessReturn )
    {
       INT32 rc     = SDB_OK ;
       INT32 retRc  = SDB_OK ;
@@ -257,7 +236,6 @@ namespace engine
          pOmaMgr->sendUpdateTaskReq( reqID, &progressInfo ) ;
          if( updateEvent.wait( OMA_WAIT_OMSVC_RES_TIMEOUT, &retRc ) )
          {
-            // try to send update task request again
          }
          else
          {
@@ -282,7 +260,7 @@ namespace engine
                goto done ;
             }
          }
-      } while( cb->isInterrupted() == FALSE ) ;
+      }while( isSuccessReturn && cb->isInterrupted() == FALSE ) ;
 
       rc = SDB_APP_INTERRUPT ;
       PD_LOG( PDERROR, "Receive interrupt when update remove db business task "
@@ -350,7 +328,7 @@ namespace engine
       }
 
       setPlanTaskStatus( OMA_TASK_STATUS_RUNNING ) ;
-      updateProgressToOM() ;
+      updateProgressToOM( FALSE ) ;
 
    done:
       deleteOmaCmd( planCmd ) ;
@@ -372,7 +350,6 @@ namespace engine
    {
       Plan: [
          [
-            // Async exec
             { [a sub-task parameters]... },
             ...
          ],
@@ -402,7 +379,6 @@ namespace engine
             goto error ;
          }
 
-         // 1. build step argument
          _initSubTaskArg() ;
          while( subTaskIter.more() )
          {
@@ -411,7 +387,6 @@ namespace engine
             _appendSubTaskArg( subTask ) ;
          }
 
-         // 2. run step
          rc = _createSubTask() ;
          if( rc )
          {
@@ -431,7 +406,6 @@ namespace engine
             goto error ;
          }
 
-         // 3. exec js to check step result
          planCmd = createOmaCmd() ;
          if( planCmd == NULL )
          {
@@ -469,7 +443,7 @@ namespace engine
 
       _setTaskResultInfoStatus( OMA_TASK_STATUS_FINISH ) ;
       setPlanTaskStatus( OMA_TASK_STATUS_FINISH ) ;
-      rc = updateProgressToOM() ;
+      rc = updateProgressToOM( TRUE ) ;
       if( rc )
       {
          PD_LOG( PDERROR, "Failed to update progress to om, rc=%d", rc ) ;
@@ -541,7 +515,7 @@ namespace engine
 
       setPlanTaskStatus( OMA_TASK_STATUS_ROLLBACK ) ;
       _setTaskResultInfoStatus( OMA_TASK_STATUS_ROLLBACK ) ;
-      updateProgressToOM() ;
+      updateProgressToOM( FALSE ) ;
       
       if( planCmd == NULL )
       {
@@ -600,7 +574,7 @@ namespace engine
    done:
       _setTaskResultInfoStatus( OMA_TASK_STATUS_FINISH ) ;
       setPlanTaskStatus( OMA_TASK_STATUS_FINISH ) ;
-      updateProgressToOM() ;
+      updateProgressToOM( FALSE ) ;
       return rc ;
    error:
       _isSetErrInfo = TRUE ;
@@ -645,7 +619,7 @@ namespace engine
    error:
       _setTaskResultInfoStatus( OMA_TASK_STATUS_FAIL ) ;
       setPlanTaskStatus( OMA_TASK_STATUS_FAIL ) ;
-      updateProgressToOM() ;
+      updateProgressToOM( FALSE ) ;
       if( startTaskNum > 0 )
       {
          rc = _waitSubTask() ;
@@ -674,7 +648,6 @@ namespace engine
       {
          if( _planEvent.wait( OMA_WAIT_SUB_TASK_NOTIFY_TIMEOUT ) )
          {
-            //timeout
             continue ;
          }
          _planEvent.reset() ;
@@ -746,7 +719,6 @@ namespace engine
    _omaAsyncSubTask::_omaAsyncSubTask( INT64 taskID ) : _omaTask( taskID )
    {
       _taskID = taskID ;
-      _taskName = OMA_CMD_ASYNC_SUB_TASK ;
    }
 
    _omaAsyncSubTask::~_omaAsyncSubTask()
@@ -771,7 +743,6 @@ namespace engine
       _pmdEDUCB* cb    = pmdGetThreadEDUCB() ;
       BSONObj argument ;
       BSONObj result ;
-      //BSONObj newResult ;
 
       while( _task->getSubTaskArg( index, argument ) )
       {
@@ -788,15 +759,6 @@ namespace engine
                     _task->getOmaCmdName() ) ;
             goto error ;
          }
-
-         rc = _task->setTaskRunning( cmd, argument ) ;
-         if( rc )
-         {
-            PD_LOG( PDERROR, "Failed to set task status, rc=%d", rc ) ;
-            rc = SDB_OK ;
-         }
-
-         _task->updateProgressToOM() ;
 
          rc = _addStepVar( cmd, OMA_STR_STEP_DOIT ) ;
          if( rc )
@@ -826,7 +788,7 @@ namespace engine
             goto error ;
          }
 
-         _task->updateProgressToOM() ;
+         _task->updateProgressToOM( FALSE ) ;
 
          _task->deleteOmaCmd( cmd ) ;
          cmd = NULL ;
@@ -840,7 +802,7 @@ namespace engine
       return rc ;
    error:
       _task->setPlanTaskStatus( OMA_TASK_STATUS_FAIL ) ;
-      _task->updateProgressToOM() ;
+      _task->updateProgressToOM( FALSE ) ;
       goto done ;
    }
 

@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = aggrGroup.cpp
 
@@ -52,7 +51,6 @@ namespace engine
    */
    INT32 aggrGroupParser::buildNode( const BSONElement &elem,
                                      const CHAR *pCLName,
-                                     BSONObj &hint,
                                      qgmOptiTreeNode *&pNode,
                                      _qgmPtrTable *pTable,
                                      _qgmParamTable *pParamTable )
@@ -70,7 +68,6 @@ namespace engine
                 "Failed to parse the element[%s], type shoud be Object",
                 elem.toString( TRUE, TRUE ).c_str() ) ;
 
-      // 1.parse the fields
       try
       {
          obj = elem.embeddedObject() ;
@@ -82,13 +79,11 @@ namespace engine
             const CHAR *pFieldName = beField.fieldName() ;
             if ( 0 == ossStrcmp( pFieldName, FIELD_NAME_GROUPBY_ID ))
             {
-               // process groupby field(_id)
                rc = parseGroupbyField( beField, pSelect->_groupby,
                                        pTable, pCLName ) ;
             }
             else
             {
-               // process normal field(selector)
                rc = parseSelectorField( beField, pCLName, pSelect->_selector,
                                         pTable, hasFunc ) ;
             }
@@ -96,7 +91,6 @@ namespace engine
                          elem.toString( TRUE, TRUE ).c_str(), rc ) ;
          }
 
-         /// when selector is empty, need push (*) selector
          if ( pSelect->_selector.empty() )
          {
             qgmOpField selectAll ;
@@ -111,14 +105,10 @@ namespace engine
                    e.what() ) ;
       }
 
-      // 2.build the node
       pSelect->_limit = -1 ;
       pSelect->_skip = 0 ;
       pSelect->_type = QGM_OPTI_TYPE_SELECT ;
       pSelect->_hasFunc = hasFunc ;
-      pSelect->_objHint = hint ;
-      aggrEmptyBSONObj( hint ) ;
-
       rc = pTable->getOwnField( AGGR_CL_DEFAULT_ALIAS, pSelect->_alias ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get the own field, rc: %d", rc ) ;
 
@@ -258,9 +248,7 @@ namespace engine
 
       try
       {
-         // format ex: {a:{$first:"$a"}} or {a:"$a"}
          qgmOpField selector;
-         // parse field
          const CHAR *pAlias = beField.fieldName() ;
          qgmField slAlias;
          rc = pTable->getOwnField( pAlias, slAlias ) ;
@@ -278,7 +266,6 @@ namespace engine
 
             hasFunc = TRUE;
 
-            // build selector
             qgmField slValAttr;
             qgmField slValRelegation;
 
@@ -295,7 +282,6 @@ namespace engine
          else if ( String == beField.type() &&
                    AGGR_KEYWORD_PREFIX == beField.valuestr()[0] )
          {
-            // build selector
             qgmField slValAttr;
             qgmField slValRelegation ;
 
@@ -355,7 +341,6 @@ namespace engine
          ss << &pFunc[1] ;
          ss << '(' ;
 
-         /// sum or count allow number
          if ( beField.isNumber() &&
               ( ( pFunc[1] == 's' && pFunc[2] == 'u' &&
                   pFunc[3] == 'm' && pFunc[4] == '\0' ) ||
@@ -375,7 +360,6 @@ namespace engine
                ss << beField.numberInt() ;
             }
          }
-         /// when has multi params, need use [ "$a", "$b" ... ]
          else if ( Array == beField.type() )
          {
             UINT32 paramNum = 0 ;
@@ -428,7 +412,6 @@ namespace engine
             goto error ;
          }
 
-         /// end function
          ss << ')' ;
          strFunc = ss.str() ;
 

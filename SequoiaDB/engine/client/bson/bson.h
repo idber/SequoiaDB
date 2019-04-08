@@ -2,6 +2,20 @@
  * @file bson.h
  * @brief BSON Declarations
  */
+/*    Copyright 2012 SequoiaDB Inc.
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 /*    Copyright 2009-2012 10gen Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,33 +61,14 @@
 #define SDB_EXTERN_C_END
 #endif
 
-//#if defined(SDB_HAVE_STDINT) || __STDC_VERSION__ >= 199901L
 #include <stdint.h>
-//#elif defined(SDB_HAVE_UNISTD)
-//#include <unistd.h>
-//#elif defined(SDB_USE__INT64)
-//typedef __int64 int64_t;
-//typedef unsigned __int64 uint64_t;
-//#elif defined(SDB_USE_LONG_LONG_INT)
-//typedef long long int int64_t;
-//typedef unsigned long long int uint64_t;
-//#else
-//#error Must compile with c99 or define SDB_HAVE_STDINT, SDB_HAVE_UNISTD, SDB_USE__INT64, or SDB_USE_LONG_LONG_INT.
-//#endif
 
-//#ifdef SDB_BIG_ENDIAN
-//#define bson_little_endian64(out, in) ( bson_swap_endian64(out, in) )
-//#define bson_little_endian32(out, in) ( bson_swap_endian32(out, in) )
-//#define bson_big_endian64(out, in) ( memcpy(out, in, 8) )
-//#define bson_big_endian32(out, in) ( memcpy(out, in, 4) )
-//#else
 #define bson_little_endian64(out, in) ( memcpy(out, in, 8) )
 #define bson_little_endian32(out, in) ( memcpy(out, in, 4) )
 #define bson_little_endian16(out, in) ( memcpy(out, in, 2) )
 #define bson_big_endian64(out, in) ( bson_swap_endian64(out, in) )
 #define bson_big_endian32(out, in) ( bson_swap_endian32(out, in) )
 #define bson_big_endian16(out, in) ( bson_swap_endian16(out, in) )
-//#endif
 
 SDB_EXTERN_C_START
 
@@ -159,8 +154,8 @@ typedef union {
 typedef int64_t bson_date_t; /* milliseconds since epoch UTC */
 
 typedef struct {
-    int i; /**< increment: microseconds in range of [0us, 999999us]. */
-    int t; /**< time: seconds since epoch. */
+    int i; /* increment */
+    int t; /* time in seconds */
 } bson_timestamp_t;
 
 /* ----------------------------
@@ -253,7 +248,6 @@ SDB_EXPORT const char *bson_data( const bson *b );
  * @param bson the raw data to print.
  * @param depth the depth to recurse the object.x
  */
-//SDB_EXPORT void bson_print_raw( const char *bson , int depth );
 
 /**
  * Print a string representation of a BSON object to buffer.
@@ -1139,17 +1133,6 @@ SDB_EXPORT int bson_append_elements( bson *dst, const bson *src );
  * @return BSON_OK or BSON_ERROR.
  */
 SDB_EXPORT int bson_append_timestamp( bson *b, const char *name, bson_timestamp_t *ts );
-
-/**
- * Append the timestamp value to a bson.
- *
- * @param b the bson to append to.
- * @param name the key for the timestampe value.
- * @param time seconds since epoch.
- * @param increment microseconds in range of [0us, 999999us].
- *
- * @return BSON_OK or BSON_ERROR.
- */
 SDB_EXPORT int bson_append_timestamp2( bson *b, const char *name, int time, int increment );
 
 /* these both append a bson_date */

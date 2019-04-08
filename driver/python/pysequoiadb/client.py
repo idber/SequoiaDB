@@ -1,4 +1,3 @@
-# coding=utf-8
 #   Copyright (C) 2012-2014 SequoiaDB Ltd.
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -97,15 +96,15 @@ class client(object):
 
         Parameters:
            Name       Type      Info:
-           host       str       The hostname or IP address of SequoiaDB server.
-                                      If None, "localhost" will be used.
-           service    str/int   The service name or port number of SequoiaDB server.
-                                      If None, "11810" will be used.
-           user       str       The user name to access to SequoiaDB server.
-                                      If None, "" will be used.
-           psw        str       The user password to access to SequoiaDB server.
-                                      If None, "" will be used.
-           ssl        bool      Decide whether to use ssl or not, default is False.
+           host       str       The hostname or IP address of dbserver,
+                                      if None, "localhost" will be insteaded
+           service    str/int   The service name or port number of dbserver,
+                                      if None, "11810" will be insteaded
+           user       str       The user name to access to database,
+                                      if None, "" will be insteaded
+           psw        str       The user password to access to database,
+                                      if None, "" will be insteaded
+           ssl        bool      decide to use ssl or not, default is False.
         Exceptions:
            pysequoiadb.error.SDBBaseError
         """
@@ -282,8 +281,8 @@ class client(object):
         if "local_first" == policy:
             for ip in hosts:
                 if ("localhost" in ip.values() or
-                        local in ip.values() or
-                        ip['host'] in local_ip):
+                            local in ip.values() or
+                            ip['host'] in local_ip):
 
                     host = ip['host']
                     svc = ip['service']
@@ -455,22 +454,15 @@ class client(object):
         """Get the snapshots of specified type.
 
         Parameters:
-           Name              Type     Info:
-           snap_type         int      The type of snapshot, see Info as below
-           **kwargs                   Useful options are below
-           - condition       dict     The matching rule, match all the documents
-                                            if not provided.
-           - selector        dict     The selective rule, return the whole
-                                            document if not provided.
-           - order_by        dict     The ordered rule, result set is unordered
-                                            if not provided.
-           - hint            dict     The options provided for specific snapshot type.
-                                      Format:{ '$Options': { <options> } }
-           - num_to_skip     long     Skip the first numToSkip documents,
-                                            default is 0L.
-           - num_to_return   long     Only return numToReturn documents,
-                                            default is -1L for returning
-                                            all results.
+           Name           Type  Info:
+           snap_type      int   The type of snapshot, see Info as below
+           **kwargs             Useful options are below
+           - condition    dict  The matching rule, match all the documents
+                                      if not provided.
+           - selector     dict  The selective rule, return the whole
+                                      document if not provided.
+           - order_by     dict  The ordered rule, result set is unordered
+                                      if not provided.
         Return values:
            a cursor object of query
         Exceptions:
@@ -490,20 +482,15 @@ class client(object):
                     10    : Get current session's transaction snapshot
                     11    : Get cached access plan snapshot
                     12    : Get node health detection snapshot
-                    13    : Get node configuration's snapshot
-                    15    : Get node sequences' snapshot
         """
         if not isinstance(snap_type, int):
             raise SDBTypeError("snap type must be an instance of int")
-        if snap_type < 0 or snap_type > 15:
+        if snap_type < 0 or snap_type > 12:
             raise SDBTypeError("snap_type value is invalid")
 
         bson_condition = None
         bson_selector = None
         bson_order_by = None
-        bson_hint = None
-        num_to_skip = 0
-        num_to_return = -1
 
         if "condition" in kwargs:
             if not isinstance(kwargs.get("condition"), dict):
@@ -517,24 +504,11 @@ class client(object):
             if not isinstance(kwargs.get("order_by"), dict):
                 raise SDBTypeError("order_by in kwargs must be an instance of dict")
             bson_order_by = bson.BSON.encode(kwargs.get("order_by"))
-        if "hint" in kwargs:
-            if not isinstance(kwargs.get("hint"), dict):
-                raise SDBTypeError("hint in kwargs must be an instance of dict")
-            bson_hint = bson.BSON.encode(kwargs.get("hint"))
-        if "num_to_skip" in kwargs:
-            if not isinstance(kwargs.get("num_to_skip"), int):
-                raise SDBTypeError("num_to_skip must be an instance of int")
-            num_to_skip = kwargs.get("num_to_skip")
-        if "num_to_return" in kwargs:
-            if not isinstance(kwargs.get("num_to_return"), int):
-                raise SDBTypeError("num_to_return must be an instance of int")
-            num_to_return = kwargs.get("num_to_return")
 
         result = cursor()
         try:
             rc = sdb.sdb_get_snapshot(self._client, result._cursor, snap_type,
-                                      bson_condition, bson_selector, bson_order_by,
-                                      bson_hint, num_to_skip, num_to_return)
+                                      bson_condition, bson_selector, bson_order_by)
             raise_if_error(rc, "Failed to get snapshot: %d" % snap_type)
         except SDBBaseError:
             del result
@@ -608,13 +582,12 @@ class client(object):
                   10         : Get tasks list
                   11         : Get transactions list
                   12         : Get current session's transaction list
-                  15         : Get all sequences list
                   129        : Get collection space list in domain
                   130        : Get collection list in domain
         """
         if not isinstance(list_type, int):
             raise SDBTypeError("list type must be an instance of int")
-        if list_type < 0 or (15 < list_type < 129) or list_type > 130:
+        if list_type < 0 or (12 < list_type < 129) or list_type > 130:
             raise SDBTypeError("list type value %d is not defined" %
                                list_type)
 
@@ -765,33 +738,6 @@ class client(object):
 
         rc = sdb.sdb_drop_collection_space(self._client, cs_name)
         raise_if_error(rc, "Failed to drop collection space: %s" % cs_name)
-
-    def rename_collection_space(self, old_name, new_name, options=None):
-        """Rename the specified collection space.
-
-        Parameters:
-           Name         Type     Info:
-           old_name     str      The original name of collection space.
-           new_name     str      The new name of collection space.
-           options      dict     Options for renaming.
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        if not isinstance(old_name, str_type):
-            raise SDBTypeError("old name of collection space must be\
-                         an instance of str_type")
-        if not isinstance(new_name, str_type):
-            raise SDBTypeError("new name of collection space must be\
-                         an instance of str_type")
-        bson_options = None
-        if options is not None:
-            if not isinstance(options, dict):
-                raise SDBTypeError("options must be an instance of dict")
-            bson_options = bson.BSON.encode(options)
-
-        rc = sdb.sdb_rename_collection_space(self._client, old_name, new_name, bson_options)
-        raise_if_error(rc, "Failed to rename collection space [%s] to [%s]"
-                       % (old_name, new_name))
 
     def list_collection_spaces(self):
         """List all collection space of current database, include temporary
@@ -1131,54 +1077,6 @@ class client(object):
 
         bson_options = bson.BSON.encode(options)
         rc = sdb.sdb_flush_configure(self._client, bson_options)
-        raise_if_error(rc, "Failed to flush configure")
-
-    def update_config(self, configs, options):
-        """Force the node to update configs online.
-        Parameters:
-           Name      Type  Info:
-           configs   dict  The specific configuration parameters to update
-           options   dict  The configure information, pass {"Global":true} or
-                                 {"Global":false} In cluster environment, passing
-                                 {"Global":true} will flush data's and catalog's
-                                 configuration file, while passing {"Global":false} will
-                                 flush coord's configuration file. In stand-alone
-                                 environment, both them have the same behaviour.
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        if not isinstance(configs, dict):
-            raise SDBTypeError("configs must be an instance of dict")
-        if not isinstance(options, dict):
-            raise SDBTypeError("options must be an instance of dict")
-
-        bson_configs = bson.BSON.encode(configs)
-        bson_options = bson.BSON.encode(options)
-        rc = sdb.sdb_update_config(self._client, bson_configs, bson_options)
-        raise_if_error(rc, "Failed to flush configure")
-
-    def delete_config(self, configs, options):
-        """Force the node to delete configs online.
-        Parameters:
-           Name      Type  Info:
-           configs   dict  The specific configuration parameters to delete
-           options   dict  The configure information, pass {"Global":true} or
-                                 {"Global":false} In cluster environment, passing
-                                 {"Global":true} will flush data's and catalog's
-                                 configuration file, while passing {"Global":false} will
-                                 flush coord's configuration file. In stand-alone
-                                 environment, both them have the same behaviour.
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        if not isinstance(configs, dict):
-            raise SDBTypeError("configs must be an instance of dict")
-        if not isinstance(options, dict):
-            raise SDBTypeError("options must be an instance of dict")
-
-        bson_configs = bson.BSON.encode(configs)
-        bson_options = bson.BSON.encode(options)
-        rc = sdb.sdb_delete_config(self._client, bson_configs, bson_options)
         raise_if_error(rc, "Failed to flush configure")
 
     def create_procedure(self, code):
@@ -1751,112 +1649,3 @@ class client(object):
         rc = sdb.sdb_analyze(self._client, bson_options)
         raise_if_error(rc, "Failed to analyze")
 
-    def invalidate_cache(self, options=None):
-        """Clean up cache in nodes(Data/Coordinator nodes).
-
-        Parameters:
-            Name         Type     Info:
-            options      dict     The control options:(Only take effect in coordinate nodes).
-                                    About the parameter 'options', please reference to the official
-                                    website(www.sequoiadb.com) and then search "命令位置参数"
-                                    for more details. Some of its optional parameters are as bellow:
-                                  
-                                    Global(Bool): execute this command in global or not. While 'options' is null, it's equals to {Global: true}.
-                                    GroupID(INT32 or INT32 Array): specified one or several groups by their group IDs. e.g. {GroupID:[1001, 1002]}.
-                                    GroupName(String or String Array): specified one or several groups by their group names. e.g. {GroupID:"group1"}.
-                                    ...
-                
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        bson_options = None
-        if options is not None:
-            if not isinstance(options, dict):
-                raise SDBTypeError("options must be an instance of dict")
-            bson_options = bson.BSON.encode(options)
-
-        rc = sdb.sdb_invalidate_cache(self._client, bson_options)
-        raise_if_error(rc, "Failed to invalidate cache")
-
-    def force_session(self, session_id, options=None):
-        """Terminate current operation of the specified session.
-
-        Parameters:
-            Name         Type     Info
-            session_id   int/long The id of session whose current operation is to be terminated.
-            options      dict     Command location parameters.
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        bson_options = None
-        if options is not None:
-            if not isinstance(options, dict):
-                raise SDBTypeError("options must be an instance of dict")
-            bson_options = bson.BSON.encode(options)
-        if not isinstance(session_id, int) and not isinstance(session_id, long_type):
-            raise SDBTypeError("session_id must be an instance of int or long")
-        rc = sdb.sdb_force_session(self._client, session_id, bson_options)
-        raise_if_error(rc, "Failed to force session[%d] in %s" % (session_id, str(options)))
-
-    def reload_config(self, options=None):
-        """Reload configurations.
-
-        Parameters:
-            Name         Type     Info
-            options      dict     Command location parameters.
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        bson_options = None
-        if options is not None:
-            if not isinstance(options, dict):
-                raise SDBTypeError("options must be an instance of dict")
-            bson_options = bson.BSON.encode(options)
-
-        rc = sdb.sdb_reload_config(self._client, bson_options)
-        raise_if_error(rc, "Failed to reload config")
-
-    def set_pdlevel(self, level, options=None):
-        """Set PD log level of node.
-
-        Parameters:
-            Name         Type     Info
-            level        int      PD log level, the value can be 0~5.
-                                  0: SEVERE
-                                  1: ERROR
-                                  2: EVENT
-                                  3: WARNING
-                                  4: INFO
-                                  5: DEBUG
-            options      dict     Command location parameters.
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        bson_options = None
-        if options is not None:
-            if not isinstance(options, dict):
-                raise SDBTypeError("options must be an instance of dict")
-            bson_options = bson.BSON.encode(options)
-        if not isinstance(level, int) or not (0 <= level <= 5):
-            raise SDBTypeError("session_id must be an instance of int and in the range [0, 5]")
-        rc = sdb.sdb_set_pdlevel(self._client, level, bson_options)
-        raise_if_error(rc, "Failed to set pd level[%d] in %s" % (level, str(options)))
-
-    def force_stepup(self, options=None):
-        """Force a slave node to be master.
-
-        Parameters:
-            Name         Type     Info
-            options      dict     The control parameters:
-                                  Seconds: (Type: int) Duration to be master. Default is 120.
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        bson_options = None
-        if options is not None:
-            if not isinstance(options, dict):
-                raise SDBTypeError("options must be an instance of dict")
-            bson_options = bson.BSON.encode(options)
-
-        rc = sdb.sdb_force_stepup(self._client, bson_options)
-        raise_if_error(rc, "Failed to force step up")

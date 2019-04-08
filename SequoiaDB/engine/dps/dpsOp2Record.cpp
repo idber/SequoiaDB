@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dpsOp2Record.cpp
 
@@ -43,7 +42,6 @@
 
 namespace engine
 {
-   /// warning: any value can not be value-passed.
    static INT32 dpsPushTran( const DPS_TRANS_ID &transID,
                              const DPS_LSN_OFFSET &preTransLsn,
                              const DPS_LSN_OFFSET &relatedLSN,
@@ -256,8 +254,6 @@ namespace engine
             goto error ;
          }
 
-         // To save space,
-         // do not log new sharding key when it equals old sharding key.
          if ( newShardingKey.woCompare( oldShardingKey ) != 0 )
          {
             SDB_ASSERT( !oldShardingKey.isEmpty(), "must have old sharding key" ) ;
@@ -373,12 +369,10 @@ namespace engine
          }
          else if ( NULL != oldShardingKey )
          {
-            // new sharding key equals old sharding key
             *newShardingKey = *oldShardingKey ;
          }
          else
          {
-            // new sharding key equals old sharding key
             dpsLogRecord::iterator itrOldSK ;
             itrOldSK = record.find( DPS_LOG_UPDATE_OLDSHARDINGKEY ) ;
             if ( itrOldSK.valid() )
@@ -570,7 +564,6 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPS_CSCRT2RECORD, "dpsCSCrt2Record" )
    INT32 dpsCSCrt2Record( const CHAR *csName,
-                          const utilCSUniqueID &csUniqueID,
                           const INT32 &pageSize,
                           const INT32 &lobPageSize,
                           const INT32 &type,
@@ -591,18 +584,9 @@ namespace engine
          goto error ;
       }
 
-      rc = record.push( DPS_LOG_CSCRT_CSUNIQUEID,
-                        sizeof( csUniqueID ),
-                        (CHAR *)( &csUniqueID ) ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to push cs unique id to record, rc: %d", rc ) ;
-         goto error ;
-      }
-
       rc = record.push( DPS_LOG_CSCRT_PAGESIZE,
-                        sizeof( pageSize ),
-                        (CHAR *)( &pageSize ) ) ;
+                        sizeof( pageSize),
+                        (CHAR *)( &pageSize)) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to push pagesize to record, rc: %d", rc ) ;
@@ -610,8 +594,8 @@ namespace engine
       }
 
       rc = record.push( DPS_LOG_CSCRT_LOBPAGESZ,
-                        sizeof( lobPageSize ),
-                        (CHAR *)( &lobPageSize ) ) ;
+                        sizeof( lobPageSize),
+                        (CHAR *)( &lobPageSize)) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to push lob pagesize to record, rc: %d", rc ) ;
@@ -638,7 +622,6 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_RECORD2CSCRT, "dpsRecord2CSCrt" )
    INT32 dpsRecord2CSCrt( const CHAR *logRecord,
                           const CHAR **csName,
-                          utilCSUniqueID &csUniqueID,
                           INT32 &pageSize,
                           INT32 &lobPageSize,
                           INT32 &type )
@@ -655,20 +638,13 @@ namespace engine
       }
 
       {
-      dpsLogRecord::iterator itrCsName, itrUniqueID, itrPageSize,
-                             itrLobPageSz, itrType ;
+      dpsLogRecord::iterator itrCsName, itrPageSize, itrLobPageSz, itrType ;
       itrCsName = record.find( DPS_LOG_CSCRT_CSNAME ) ;
       if ( !itrCsName.valid() )
       {
          PD_LOG( PDERROR, "Failed to find tag csname in record" ) ;
          rc = SDB_SYS ;
          goto error ;
-      }
-
-      itrUniqueID = record.find( DPS_LOG_CSCRT_CSUNIQUEID ) ;
-      if ( itrUniqueID.valid() )
-      {
-         csUniqueID = *((utilCSUniqueID *)itrUniqueID.value()) ;
       }
 
       itrPageSize = record.find( DPS_LOG_CSCRT_PAGESIZE ) ;
@@ -697,7 +673,6 @@ namespace engine
       itrType = record.find( DPS_LOG_CSCRT_CSTYPE ) ;
       if ( !itrType.valid() )
       {
-         // For compatible with elder versions.
          PD_LOG( PDWARNING, "Failed to find tag CS type in record, use normal "
                  "type(0)" ) ;
          type = 0 ;
@@ -859,7 +834,6 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPS_CLCRT2RECORD, "dpsCLCrt2Record" )
    INT32 dpsCLCrt2Record( const CHAR *fullName,
-                          const utilCLUniqueID &clUniqueID,
                           const UINT32 &attribute,
                           const UINT8 &compressorType,
                           const BSONObj *extOptions,
@@ -877,15 +851,6 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Failed to push fullname to record, rc: %d", rc ) ;
-         goto error ;
-      }
-
-      rc = record.push( DPS_LOG_CLCRT_CLUNIQUEID,
-                        sizeof( clUniqueID ),
-                        (const CHAR *)(&clUniqueID)) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "Failed to push cl unique id to record, rc: %d",rc ) ;
          goto error ;
       }
 
@@ -933,7 +898,6 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPS_RECORD2CLCRT, "dpsRecord2CLCrt" )
    INT32 dpsRecord2CLCrt( const CHAR *logRecord,
                           const CHAR **fullName,
-                          utilCLUniqueID &clUniqueID,
                           UINT32 &attribute,
                           UINT8 &compressorType,
                           BSONObj &extOptions )
@@ -961,12 +925,6 @@ namespace engine
       }
 
       *fullName = recordItr.value() ;
-
-      recordItr = record.find( DPS_LOG_CLCRT_CLUNIQUEID ) ;
-      if ( recordItr.valid() )
-      {
-         clUniqueID = *((utilCLUniqueID *)recordItr.value() ) ;
-      }
 
       recordItr = record.find( DPS_LOG_CLCRT_ATTRIBUTE ) ;
       if ( recordItr.valid() )
@@ -1509,7 +1467,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB__DPS_INVALIDCATA2RECORD ) ;
 
-      // For invalidate catalog, must have clFullName
       SDB_ASSERT( NULL != clFullName, "Collection name can't be NULL" ) ;
 
       dpsLogRecordHeader &header = record.head() ;
@@ -1858,7 +1815,7 @@ namespace engine
          }
          *pageSize = *( ( UINT32 * )( itr.value() ) ) ;
       }
-
+      
    done:
       PD_TRACE_EXITRC( SDB__DPS_RECORD2LOBW, rc ) ;
       return rc ;
@@ -2454,175 +2411,5 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPS_ALTER2RECORD, "dpsAlter2Record" )
-   INT32 dpsAlter2Record ( const CHAR * name,
-                           INT32 objectType,
-                           const bson::BSONObj & alterObject,
-                           dpsLogRecord & record )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DPS_ALTER2RECORD ) ;
-
-      dpsLogRecordHeader & header = record.head() ;
-
-      header._type = LOG_TYPE_ALTER ;
-
-      rc = record.push( DPS_LOG_PUBLIC_FULLNAME,
-                        ossStrlen( name ) + 1,
-                        name ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to push name to record, rc: %d", rc ) ;
-
-      rc = record.push( DPS_LOG_ALTER_OBJECT_TYPE, sizeof( INT32 ),
-                        ( const CHAR * )( &objectType ) ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to push alter objec type to record, "
-                   "rc: %d", rc ) ;
-
-      rc = record.push( DPS_LOG_ALTER_OBJECT, alterObject.objsize(),
-                        alterObject.objdata() ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to push alter object to record, "
-                   "rc: %d", rc ) ;
-
-      header._length = record.alignedLen() ;
-
-   done :
-      PD_TRACE_EXITRC( SDB__DPS_ALTER2RECORD, rc ) ;
-      return rc ;
-
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_RECORD2ALTER, "dpsRecord2Alter" )
-   INT32 dpsRecord2Alter ( const CHAR * logRecord,
-                           const CHAR ** name,
-                           INT32 & objectType,
-                           bson::BSONObj & alterObject )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY( SDB__DPS_RECORD2ALTER ) ;
-
-      SDB_ASSERT( NULL != logRecord, "Record can't be NULL" ) ;
-
-      dpsLogRecord record ;
-      dpsLogRecord::iterator iterRecord ;
-
-      rc = record.load( logRecord ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to load alter record, rc: %d",rc ) ;
-
-      iterRecord = record.find( DPS_LOG_PUBLIC_FULLNAME ) ;
-      PD_CHECK( iterRecord.value(), SDB_SYS, error, PDERROR,
-                "Failed to find tag name in record" ) ;
-
-      ( *name ) = iterRecord.value() ;
-
-      iterRecord = record.find( DPS_LOG_ALTER_OBJECT_TYPE ) ;
-      PD_CHECK( iterRecord.value(), SDB_SYS, error, PDERROR,
-                "Failed to find tag alter object type in record" ) ;
-
-      objectType = *( (INT32 *)( iterRecord.value() ) ) ;
-
-      iterRecord = record.find( DPS_LOG_ALTER_OBJECT ) ;
-      PD_CHECK( iterRecord.value(), SDB_SYS, error, PDERROR,
-                "Failed to find tag alter object in record" ) ;
-
-      alterObject = BSONObj( iterRecord.value() ) ;
-
-   done :
-      PD_TRACE_EXITRC( SDB__DPS_RECORD2ALTER, rc ) ;
-      return rc ;
-
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__DPS_UID2RECORD, "dpsAddUniqueID2Record" )
-   INT32 dpsAddUniqueID2Record ( const CHAR* csname,
-                                 const utilCSUniqueID& csUniqueID,
-                                 const bson::BSONObj& clInfoObj,
-                                 dpsLogRecord& record )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__DPS_UID2RECORD ) ;
-
-      dpsLogRecordHeader & header = record.head() ;
-
-      header._type = LOG_TYPE_ADDUNIQUEID ;
-
-      rc = record.push( DPS_LOG_ADDUNIQUEID_CSNAME,
-                        ossStrlen( csname ) + 1,
-                        csname ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to push csname to record, rc: %d",
-                   rc ) ;
-
-      rc = record.push( DPS_LOG_ADDUNIQUEID_CSUNIQUEID,
-                        sizeof( csUniqueID ),
-                        ( const CHAR * )( &csUniqueID ) ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to push cs unique id, rc: %d",
-                   rc ) ;
-
-      rc = record.push( DPS_LOG_ADDUNIQUEID_CLINFO,
-                        clInfoObj.objsize(),
-                        clInfoObj.objdata() ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to push cl info, rc: %d",
-                   rc ) ;
-
-      header._length = record.alignedLen() ;
-
-   done :
-      PD_TRACE_EXITRC( SDB__DPS_UID2RECORD, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION( SDB__DPS_RECORD2UID, "dpsRecord2AddUniqueID" )
-   INT32 dpsRecord2AddUniqueID ( const CHAR* logRecord,
-                                 const CHAR** csname,
-                                 utilCSUniqueID& csUniqueID,
-                                 bson::BSONObj & clInfoObj )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB__DPS_RECORD2UID ) ;
-
-      SDB_ASSERT( NULL != logRecord, "Record can't be NULL" ) ;
-
-      dpsLogRecord record ;
-      dpsLogRecord::iterator it ;
-
-      rc = record.load( logRecord ) ;
-      PD_RC_CHECK( rc, PDERROR,
-                   "Failed to load add unique id record, rc: %d",
-                   rc ) ;
-
-      it = record.find( DPS_LOG_ADDUNIQUEID_CSNAME ) ;
-      PD_CHECK( it.value(), SDB_SYS, error, PDERROR,
-                "Failed to find tag cs name in record" ) ;
-
-      ( *csname ) = it.value() ;
-
-      it = record.find( DPS_LOG_ADDUNIQUEID_CSUNIQUEID ) ;
-      PD_CHECK( it.value(), SDB_SYS, error, PDERROR,
-                "Failed to find tag cs unique id in record" ) ;
-
-      csUniqueID = *( (utilCSUniqueID *)( it.value() ) ) ;
-
-      it = record.find( DPS_LOG_ADDUNIQUEID_CLINFO ) ;
-      PD_CHECK( it.value(), SDB_SYS, error, PDERROR,
-                "Failed to find tag cl info in record" ) ;
-
-      clInfoObj = BSONObj( it.value() ) ;
-
-   done :
-      PD_TRACE_EXITRC( SDB__DPS_RECORD2UID, rc ) ;
-      return rc ;
-   error :
-      goto done ;
-   }
-
-
 }
+

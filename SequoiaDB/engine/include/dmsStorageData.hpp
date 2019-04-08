@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dmsStorageData.hpp
 
@@ -64,11 +63,6 @@ namespace engine
       virtual INT32 dumpExtOptions( dmsMBContext *context,
                                     BSONObj &extOptions ) ;
 
-      virtual INT32 setExtOptions ( dmsMBContext * context,
-                                    const BSONObj & extOptions ) ;
-
-      // the dataRecord is not owned
-      // Caller must hold mb exclusive/shared lock
       INT32 fetch ( dmsMBContext *context,
                     const dmsRecordID &recordID,
                     BSONObj &dataRecord,
@@ -118,15 +112,14 @@ namespace engine
                                    dmsRecordID rid, SDB_DPSCB *dpscb,
                                    ossValuePtr dataPtr, _pmdEDUCB *cb ) ;
 
-      virtual INT32 extractData( const dmsMBContext *mbContext,
-                                 const dmsRecordRW &recordRW,
+      virtual INT32 extractData( dmsMBContext *mbContext,
+                                 dmsRecordRW &recordRW,
                                  _pmdEDUCB *cb,
                                  dmsRecordData &recordData ) ;
 
       virtual INT32 _operationPermChk( DMS_ACCESS_TYPE accessType ) ;
 
    private:
-      //   must be hold the mb EXCLUSIVE lock in this functions :
 
       /*
          When recordSize == 0, will not change the delete record size
@@ -165,21 +158,18 @@ namespace engine
                                   _pmdEDUCB *cb,
                                   BOOLEAN isInsert = TRUE ) ;
 
-      // must hold mb exclusive lock
       INT32 _extentRemoveRecord ( dmsMBContext *context,
                                   dmsExtRW &extRW,
                                   dmsRecordRW &recordRW,
                                   _pmdEDUCB *cb,
                                   BOOLEAN decCount = TRUE ) ;
 
-      // must hold mb exclusive lock
       INT32 _extentUpdatedRecord ( dmsMBContext *context,
                                    dmsExtRW &extRW,
                                    dmsRecordRW &recordRW,
                                    const dmsRecordData &recordData,
                                    const BSONObj &newObj,
-                                   _pmdEDUCB *cb,
-                                   IDmsOprHandler *pHandler ) ;
+                                   _pmdEDUCB *cb ) ;
 
    } ;
    typedef _dmsStorageData dmsStorageData ;

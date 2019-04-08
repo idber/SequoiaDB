@@ -348,7 +348,6 @@ public class MongoTemplateUnitTests extends MongoOperationsUnitTests {
 
 			@Override
 			public void processDocument(DBObject dbObject) throws MongoException, DataAccessException {
-				// nothing to do - just a test
 			}
 		});
 

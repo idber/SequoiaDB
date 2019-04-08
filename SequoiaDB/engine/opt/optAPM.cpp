@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = optAPM.cpp
 
@@ -109,8 +108,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_OPTAPCACHES_ADDPLAN ) ;
 
-      // No need to increase the reference count
-      // The new created plan already has 1 reference count
       result = addItem( pPlan ) ;
 
       PD_TRACE_EXIT( SDB_OPTAPCACHES_ADDPLAN ) ;
@@ -119,38 +116,17 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPCACHES_RMPLAN, "_optAccessPlanCache::removeCachedPlan" )
-   void _optAccessPlanCache::removeCachedPlan ( optAccessPlan *pPlan,
-                                                INT32 lockType )
+   void _optAccessPlanCache::removeCachedPlan ( optAccessPlan *pPlan )
    {
       PD_TRACE_ENTRY( SDB_OPTAPCACHES_RMPLAN ) ;
 
-      if ( SHARED == lockType )
-      {
-         _pMonitor->getClearLock()->lock_r() ;
-      }
-      else if ( EXCLUSIVE == lockType )
-      {
-         _pMonitor->getClearLock()->lock_w() ;
-      }
-
-      // Increase the reference count before we delete it
       pPlan->incRefCount() ;
       if ( removeItem( pPlan ) )
       {
-         // We need to reset the activity ID to check if
-         // someone else is also deleting this plan
          _pMonitor->resetActivity( pPlan->resetActivityID() ) ;
+         _pMonitor->decCachedPlanCount( 1 ) ;
       }
       pPlan->release() ;
-
-      if ( SHARED == lockType )
-      {
-         _pMonitor->getClearLock()->release_r() ;
-      }
-      else if ( EXCLUSIVE == lockType )
-      {
-         _pMonitor->getClearLock()->release_w() ;
-      }
 
       PD_TRACE_EXIT( SDB_OPTAPCACHES_RMPLAN ) ;
    }
@@ -163,6 +139,8 @@ namespace engine
 
       SDB_ASSERT( pCachedPlanMgr, "pCachedPlanMgr is invalid" ) ;
 
+      UINT32 deleteCount = 0 ;
+
       ossScopedRWLock scopedLock( &_bucketNumLock, SHARED ) ;
 
       for ( UINT32 bucketID = 0 ; bucketID < getBucketNum() ; bucketID ++ )
@@ -170,8 +148,6 @@ namespace engine
          if ( pCachedPlanMgr->getBucketNum() != getBucketNum() ||
               pCachedPlanMgr->testCacheBitmap( bucketID ) )
          {
-            // Lock the clear lock shared, parallel removing for different
-            // collections or collection spaces is allowed
             ossScopedRWLock scopedLock( _pMonitor->getClearLock(), SHARED ) ;
             utilHashTableBucket *pBucket = getBucket( bucketID, EXCLUSIVE ) ;
 
@@ -183,12 +159,12 @@ namespace engine
                   optAccessPlan *pNextPlan = (optAccessPlan *)pPlan->getNext() ;
                   if ( pPlan->getSULID() == suLID )
                   {
-                     // Locked bucket already, safe to remove from bucket
+                     pPlan->incRefCount() ;
+
                      if ( pBucket->removeItem( pPlan ) )
                      {
-                        // We need to reset the activity ID to check if someone
-                        // else is also deleting this plan
                         _pMonitor->resetActivity( pPlan->resetActivityID() ) ;
+                        deleteCount ++ ;
                      }
 
                      pPlan->release() ;
@@ -202,6 +178,11 @@ namespace engine
                SDB_ASSERT( pBucket, "pBucket is invalid" ) ;
             }
          }
+      }
+
+      if ( deleteCount > 0 )
+      {
+         _pMonitor->decCachedPlanCount( deleteCount ) ;
       }
 
       PD_TRACE_EXIT( SDB_OPTAPCACHES_INVALIDSUPLANS ) ;
@@ -215,6 +196,8 @@ namespace engine
 
       SDB_ASSERT( pCachedPlanMgr, "pCachedPlanMgr is invalid" ) ;
 
+      UINT32 deleteCount = 0 ;
+
       ossScopedRWLock scopedLock( &_bucketNumLock, SHARED ) ;
 
       for ( UINT32 bucketID = 0 ; bucketID < getBucketNum() ; bucketID ++ )
@@ -222,8 +205,6 @@ namespace engine
          if ( pCachedPlanMgr->getBucketNum() != getBucketNum() ||
               pCachedPlanMgr->testCacheBitmap( bucketID ) )
          {
-            // Lock the clear lock shared, parallel removing for different
-            // collections or collection spaces is allowed
             ossScopedRWLock scopedLock( _pMonitor->getClearLock(), SHARED ) ;
             utilHashTableBucket *pBucket = getBucket( bucketID, EXCLUSIVE ) ;
             BOOLEAN clearBit = TRUE ;
@@ -236,17 +217,15 @@ namespace engine
                   optAccessPlan *pNextPlan = (optAccessPlan *)pPlan->getNext() ;
                   if ( pPlan->getSULID() == suLID && pPlan->getCLLID() == clLID )
                   {
-                     // Locked bucket already, safe to remove from bucket
+                     pPlan->incRefCount() ;
+
                      if ( pBucket->removeItem( pPlan ) )
                      {
-                        // We need to reset the activity ID to check if someone
-                        // else is also deleting this plan
                         _pMonitor->resetActivity( pPlan->resetActivityID() ) ;
+                        deleteCount ++ ;
                      }
                      else if ( clearBit )
                      {
-                        // The plan is not removed, so to be safe,
-                        // could not clear the bit
                         clearBit = FALSE ;
                      }
 
@@ -254,8 +233,6 @@ namespace engine
                   }
                   else if ( clearBit && pPlan->getSULID() == suLID )
                   {
-                     // Still contains plans from the same collection space
-                     // could not clear the bit
                      clearBit = FALSE ;
                   }
                   pPlan = pNextPlan ;
@@ -263,8 +240,6 @@ namespace engine
 
                if ( clearBit )
                {
-                  // Bucket contains no plans of this SU any more
-                  // clear the bit
                   pCachedPlanMgr->clearCacheBit( bucketID ) ;
                }
 
@@ -277,6 +252,11 @@ namespace engine
          }
       }
 
+      if ( deleteCount > 0 )
+      {
+         _pMonitor->decCachedPlanCount( deleteCount ) ;
+      }
+
       PD_TRACE_EXIT( SDB_OPTAPCACHES_INVALIDCLPLANS ) ;
    }
 
@@ -284,6 +264,8 @@ namespace engine
    void _optAccessPlanCache::invalidateAllPlans ()
    {
       PD_TRACE_ENTRY( SDB_OPTAPCACHES_INVALIDALLPLANS ) ;
+
+      UINT32 deleteCount = 0 ;
 
       ossScopedRWLock scopedLock( &_bucketNumLock, SHARED ) ;
 
@@ -298,13 +280,12 @@ namespace engine
             while ( pPlan )
             {
                optAccessPlan *pNextPlan = (optAccessPlan *)pPlan->getNext() ;
+               pPlan->incRefCount() ;
 
-               // Locked bucket already, safe to remove from bucket
                if ( pBucket->removeItem( pPlan ) )
                {
-                  // We need to reset the activity ID to check if someone
-                  // else is also deleting this plan
                   _pMonitor->resetActivity( pPlan->resetActivityID() ) ;
+                  deleteCount ++ ;
                }
                pPlan->release() ;
                pPlan = pNextPlan ;
@@ -318,6 +299,11 @@ namespace engine
          }
       }
 
+      if ( deleteCount > 0 )
+      {
+         _pMonitor->decCachedPlanCount( deleteCount ) ;
+      }
+
       PD_TRACE_EXIT( SDB_OPTAPCACHES_INVALIDALLPLANS ) ;
    }
 
@@ -328,11 +314,12 @@ namespace engine
 
       SDB_ASSERT( NULL != pCLFullName, "collection name is invalid" ) ;
 
+      UINT32 deleteCount = 0 ;
+
       ossScopedRWLock scopedLock( &_bucketNumLock, SHARED ) ;
 
       for ( UINT32 bucketID = 0 ; bucketID < getBucketNum() ; bucketID ++ )
       {
-         // Lock the clear lock shared, parallel removing for different
          ossScopedRWLock scopedLock( _pMonitor->getClearLock(), SHARED ) ;
          utilHashTableBucket *pBucket = getBucket( bucketID, EXCLUSIVE ) ;
 
@@ -345,12 +332,12 @@ namespace engine
                if ( 0 == ossStrncmp( pCLFullName, pPlan->getCLFullName(),
                                      DMS_COLLECTION_FULL_NAME_SZ ) )
                {
-                  // Locked bucket already, safe to remove from bucket
+                  pPlan->incRefCount() ;
+
                   if ( pBucket->removeItem( pPlan ) )
                   {
-                     // We need to reset the activity ID to check if someone
-                     // else is also deleting this plan
                      _pMonitor->resetActivity( pPlan->resetActivityID() ) ;
+                     deleteCount ++ ;
                   }
                   pPlan->release() ;
                }
@@ -365,6 +352,11 @@ namespace engine
          }
       }
 
+      if ( deleteCount > 0 )
+      {
+         _pMonitor->decCachedPlanCount( deleteCount ) ;
+      }
+
       PD_TRACE_EXIT( SDB_OPTAPCACHES_INVALIDCLPLANS_NAME ) ;
    }
 
@@ -375,11 +367,12 @@ namespace engine
 
       SDB_ASSERT( NULL != pCSName, "collection space name is invalid" ) ;
 
+      UINT32 deleteCount = 0 ;
+
       ossScopedRWLock scopedLock( &_bucketNumLock, SHARED ) ;
 
       for ( UINT32 bucketID = 0 ; bucketID < getBucketNum() ; bucketID ++ )
       {
-         // Lock the clear lock shared, parallel removing for different
          ossScopedRWLock scopedLock( _pMonitor->getClearLock(), SHARED ) ;
          utilHashTableBucket *pBucket = getBucket( bucketID, EXCLUSIVE ) ;
 
@@ -406,12 +399,12 @@ namespace engine
                     0 == ossStrncmp( pCSName, csName,
                                      DMS_COLLECTION_SPACE_NAME_SZ ) )
                {
-                  // Locked bucket already, safe to remove from bucket
+                  pPlan->incRefCount() ;
+
                   if ( pBucket->removeItem( pPlan ) )
                   {
-                     // We need to reset the activity ID to check if someone
-                     // else is also deleting this plan
                      _pMonitor->resetActivity( pPlan->resetActivityID() ) ;
+                     deleteCount ++ ;
                   }
                   pPlan->release() ;
                }
@@ -424,6 +417,11 @@ namespace engine
          {
             SDB_ASSERT( pBucket, "pBucket is invalid" ) ;
          }
+      }
+
+      if ( deleteCount > 0 )
+      {
+         _pMonitor->decCachedPlanCount( deleteCount ) ;
       }
 
       PD_TRACE_EXIT( SDB_OPTAPCACHES_INVALIDSUPLANS_NAME ) ;
@@ -482,7 +480,7 @@ namespace engine
 
                if ( NULL != _pMonitor )
                {
-                  optCachedPlanActivity *activity =
+                  const optCachedPlanActivity *activity =
                               _pMonitor->getActivity( pPlan->getActivityID() ) ;
                   if ( NULL != activity )
                   {
@@ -541,7 +539,6 @@ namespace engine
    {
       SDB_ASSERT( pPlan, "pPlan is invalid" ) ;
       pPlan->setCachedBitmap() ;
-      pPlan->incRefCount() ;
    }
 
    void _optAccessPlanCache::_afterGetItem ( UINT32 bucketID,
@@ -551,13 +548,6 @@ namespace engine
 
       pPlan->incRefCount() ;
       _pMonitor->setCachedPlanActivity( pPlan ) ;
-   }
-
-   void _optAccessPlanCache::_afterRemoveItem( UINT32 bucketID,
-                                               optAccessPlan *pPlan )
-   {
-      SDB_ASSERT( pPlan, "pPlan is invalid" ) ;
-      pPlan->decRefCount() ;
    }
 
    /*
@@ -604,10 +594,6 @@ namespace engine
    {
       if ( !isEmpty() )
       {
-         /// The function is called by con-current, so need to mutex
-         /// each other
-         ossScopedLock lock( &_latch ) ;
-
          _totalQueryTimeTick += queryActivity.getQueryTime() ;
          if ( queryActivity.getQueryTime() < _minQueryActivity.getQueryTime() ||
               !_minQueryActivity.isValid() )
@@ -623,7 +609,7 @@ namespace engine
       }
    }
 
-   void _optCachedPlanActivity::toBSON ( BSONObjBuilder &builder )
+   void _optCachedPlanActivity::toBSON ( BSONObjBuilder &builder ) const
    {
       ossTickConversionFactor factor ;
       UINT32 seconds = 0, microseconds = 0 ;
@@ -643,23 +629,17 @@ namespace engine
       builder.append( OPT_FIELD_TOTAL_QUERY_TIME, totalQueryTime ) ;
       builder.append( OPT_FIELD_AVG_QUERY_TIME, avgQueryTime ) ;
 
+      if ( _maxQueryActivity.isValid() )
       {
-         /// When toBSON, the setQueryActivity will be called con-currency.
-         /// So, need to mutex
-         ossScopedLock lock( &_latch ) ;
-
-         if ( _maxQueryActivity.isValid() )
-         {
-            BSONObjBuilder maxBuilder( builder.subobjStart( OPT_FIELD_MAX_QUERY ) ) ;
-            _maxQueryActivity.toBSON( maxBuilder ) ;
-            maxBuilder.done() ;
-         }
-         if ( _minQueryActivity.isValid() )
-         {
-            BSONObjBuilder minBuilder( builder.subobjStart( OPT_FIELD_MIN_QUERY ) ) ;
-            _minQueryActivity.toBSON( minBuilder ) ;
-            minBuilder.done() ;
-         }
+         BSONObjBuilder maxBuilder( builder.subobjStart( OPT_FIELD_MAX_QUERY ) ) ;
+         _maxQueryActivity.toBSON( maxBuilder ) ;
+         maxBuilder.done() ;
+      }
+      if ( _minQueryActivity.isValid() )
+      {
+         BSONObjBuilder minBuilder( builder.subobjStart( OPT_FIELD_MIN_QUERY ) ) ;
+         _minQueryActivity.toBSON( minBuilder ) ;
+         minBuilder.done() ;
       }
    }
 
@@ -671,6 +651,7 @@ namespace engine
      _freeIndexEnd( 0 ),
      _pFreeActivityIDs( NULL ),
      _clearThread( 0 ),
+     _allocateThread( 0 ),
      _activityNum( 0 ),
      _highWaterMark( 0 ),
      _lowWaterMark( 0 ),
@@ -715,15 +696,13 @@ namespace engine
          goto error ;
       }
 
-      // Allocate activity buffer
-      _pFreeActivityIDs = ( UINT32* ) SDB_OSS_MALLOC( activityNum *
-                                                      sizeof( UINT32 ) ) ;
+      _pFreeActivityIDs = new( std::nothrow ) UINT32[ activityNum ] ;
       if ( NULL == _pFreeActivityIDs )
       {
          goto error ;
       }
 
-      _pActivities = SDB_OSS_NEW optCachedPlanActivity[ activityNum ] ;
+      _pActivities = new( std::nothrow ) optCachedPlanActivity[ activityNum ] ;
       if ( NULL == _pActivities )
       {
          goto error ;
@@ -742,6 +721,7 @@ namespace engine
       _freeIndexBegin.init( 0 ) ;
       _freeIndexEnd.init( _activityNum ) ;
       _clearThread.init( 0 ) ;
+      _allocateThread.init( 0 ) ;
       _clockIndex = 0 ;
 
       _cachedPlanCount.init( 0 ) ;
@@ -768,11 +748,11 @@ namespace engine
 
       if ( NULL != _pFreeActivityIDs )
       {
-         SDB_OSS_FREE( _pFreeActivityIDs ) ;
+         delete [] _pFreeActivityIDs ;
       }
       if ( NULL != _pActivities )
       {
-         SDB_OSS_DEL [] _pActivities ;
+         delete [] _pActivities ;
       }
       _pFreeActivityIDs = NULL ;
       _pActivities = NULL ;
@@ -782,6 +762,7 @@ namespace engine
       _freeIndexBegin.init( 0 ) ;
       _freeIndexEnd.init( 0 ) ;
       _clearThread.init( 0 ) ;
+      _allocateThread.init( 0 ) ;
       _clockIndex = 0 ;
       _pPlanCache = NULL ;
 
@@ -801,32 +782,34 @@ namespace engine
       PD_TRACE_ENTRY( SDB_OPTCPMON_SETACT ) ;
 
       INT32 activityID = OPT_INVALID_ACT_ID ;
+      BOOLEAN criticalMode = FALSE ;
 
-      if ( _cachedPlanCount.inc() > _highWaterMark )
+      if ( _freeIndexEnd.peek() >= OPT_PLAN_CACHE_UINT64_LIMIT )
+      {
+         criticalMode = TRUE ;
+      }
+      else if ( _cachedPlanCount.peek() > _highWaterMark )
       {
          signalPlanClearJob() ;
+         criticalMode = TRUE ;
       }
 
-      activityID = _allocateActivity( pPlan ) ;
+      activityID = _allocateActivity( pPlan, criticalMode ) ;
+
       if ( OPT_INVALID_ACT_ID == activityID )
       {
-         _cachedPlanCount.dec() ;
-      }
-      else
-      {
-         optCachedPlanActivity &activity = _pActivities[ activityID ] ;
-
-         SDB_ASSERT( activity.isEmpty(), "Activity is not empty" ) ;
-
-         pPlan->setActivityID( activityID ) ;
-         activity.setPlan( pPlan, _accessTimestamp.inc() ) ;
-         activity.incPeriodAccessCount() ;
-
-         result = TRUE ;
+         goto error ;
       }
 
+      result = TRUE ;
+
+   done :
       PD_TRACE_EXIT( SDB_OPTCPMON_SETACT ) ;
       return result ;
+
+   error :
+      result = FALSE ;
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTCPMON_SIGNALJOB, "_optCachedPlanMonitor::signalPlanClearJob" )
@@ -837,6 +820,76 @@ namespace engine
       PD_TRACE_EXIT( SDB_OPTCPMON_SIGNALJOB ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTCPMON_CHKFREEIDX, "_optCachedPlanMonitor::checkFreeIndexes" )
+   void _optCachedPlanMonitor::checkFreeIndexes ()
+   {
+      PD_TRACE_ENTRY( SDB_OPTCPMON_CHKFREEIDX ) ;
+
+      if ( _freeIndexEnd.peek() >= OPT_PLAN_CACHE_UINT64_LIMIT &&
+           _clearThread.compareAndSwap( 0, 1 ) )
+      {
+
+         ossScopedRWLock scopedLock( &_clearLock, EXCLUSIVE ) ;
+
+         while ( !_allocateThread.compareAndSwap( 0, 1 ) )
+         {
+            ossSleep( 100 ) ;
+         }
+
+         PD_LOG( PDDEBUG, "Cached Plan Monitor: free index is too large "
+                 "[ %llu - %llu ], need reset", _freeIndexBegin.peek(),
+                 _freeIndexEnd.peek() ) ;
+
+         UINT64 newFreeIndexEnd = _freeIndexEnd.peek() % _activityNum ;
+         _freeIndexEnd.init( newFreeIndexEnd ) ;
+
+
+         UINT64 oldFreeIndexBegin = _freeIndexBegin.peek() ;
+         UINT64 tmpFreeIndexBegin = oldFreeIndexBegin ;
+         UINT64 newFreeIndexBegin = 0 ;
+         while ( TRUE )
+         {
+            newFreeIndexBegin = oldFreeIndexBegin % _activityNum ;
+            tmpFreeIndexBegin = _freeIndexBegin.compareAndSwapWithReturn(
+                                    oldFreeIndexBegin, newFreeIndexBegin ) ;
+            if ( tmpFreeIndexBegin == oldFreeIndexBegin )
+            {
+               break ;
+            }
+            oldFreeIndexBegin = tmpFreeIndexBegin ;
+         }
+
+         if ( newFreeIndexBegin > newFreeIndexEnd )
+         {
+            _freeIndexEnd.init( newFreeIndexEnd + _activityNum ) ;
+         }
+
+         PD_LOG( PDDEBUG, "Cached Plan Monitor: free index reseted "
+                 "[ %llu - %llu ]", _freeIndexBegin.peek(),
+                 _freeIndexEnd.peek() ) ;
+
+         _allocateThread.init( 0 ) ;
+         _clearThread.init( 0 ) ;
+      }
+
+      PD_TRACE_EXIT( SDB_OPTCPMON_CHKFREEIDX ) ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTCPMON_CHKACTIME, "_optCachedPlanMonitor::checkAccessTimestamp" )
+   void _optCachedPlanMonitor::checkAccessTimestamp ()
+   {
+      PD_TRACE_ENTRY( SDB_OPTCPMON_CHKACTIME ) ;
+
+      if ( _accessTimestamp.peek() > OPT_PLAN_CACHE_UINT64_LIMIT )
+      {
+         PD_LOG( PDDEBUG, "Cached Plan Monitor: access timestamp reseted" ) ;
+         _accessTimestamp.init( 0 ) ;
+         _lastClearTimestamp = 0 ;
+      }
+
+      PD_TRACE_EXIT( SDB_OPTCPMON_CHKACTIME ) ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTCPMON_CLEARCP, "_optCachedPlanMonitor::clearCachedPlans" )
    void _optCachedPlanMonitor::clearCachedPlans ()
    {
@@ -844,10 +897,7 @@ namespace engine
 
       if ( _clearThread.compareAndSwap( 0, 1 ) )
       {
-         // Only one thread could enter this branch
 
-         // Lock the clear lock exclusively, so other threads could not
-         // remove plans during this procedure
          ossScopedRWLock scopedLock( &_clearLock, EXCLUSIVE ) ;
 
          UINT32 needRemoveCount = 0 ;
@@ -857,11 +907,10 @@ namespace engine
          UINT64 avgAccessCount = 0 ;
          UINT32 lastClockIndex = _clockIndex ;
 
-         // Check again after lock
-         UINT32 cachedPlanCount = _cachedPlanCount.fetch() ;
+         UINT32 cachedPlanCount = _cachedPlanCount.peek() ;
          if ( cachedPlanCount < _highWaterMark )
          {
-            _clearThread.swap( 0 ) ;
+            _clearThread.init( 0 ) ;
             goto done ;
          }
 
@@ -870,11 +919,8 @@ namespace engine
          PD_LOG( PDDEBUG, "Cached Plan Monitor: %u plans are cached, "
                  "%u need to be removed", cachedPlanCount, needRemoveCount ) ;
 
-         // Calculate the average clear score of all cached plans
          currentTimestamp = _accessTimestamp.inc() ;
 
-         // Total access count is difference between current timestamp and last
-         // clear timestamp since the logical timestamp is used
          totalAccessCount = currentTimestamp - _lastClearTimestamp ;
          totalAccessCount = OSS_MAX( 1, totalAccessCount ) ;
 
@@ -883,9 +929,6 @@ namespace engine
 
          avgClearScore = 1.0 / (double)cachedPlanCount ;
 
-         // End searching conditions:
-         // 1. removed enough plans
-         // 2. searched one loop
          while ( needRemoveCount > 0 )
          {
             optCachedPlanActivity &activity = _pActivities[ _clockIndex ] ;
@@ -896,7 +939,6 @@ namespace engine
             if ( activity.isEmpty() )
             {
                _clockIndex = ( _clockIndex + 1 ) % _activityNum ;
-               // Searched one loop
                if ( _clockIndex == lastClockIndex )
                {
                   break ;
@@ -904,32 +946,25 @@ namespace engine
                continue ;
             }
 
-            // Calculate the clear score of current plan
             accessTime = activity.getLastAccessTime() ;
             accessCount = activity.getPeriodAccessCount() ;
             curClearScore = (double)accessCount /
                             (double)( currentTimestamp - accessTime ) ;
 
-            if ( activity.getPlan()->isInvalid() ||
-                 ( curClearScore > -OSS_EPSILON &&
-                   curClearScore < avgClearScore ) )
+            if ( curClearScore > -OSS_EPSILON &&
+                 curClearScore < avgClearScore )
             {
-               // The score is smaller than average score, clear the plan
-               // NOTE: the score < 0.0, means access time is larger than
-               // current clear time
                _pPlanCache->removeCachedPlan( activity.getPlan() ) ;
                needRemoveCount -- ;
             }
             else
             {
-               // Decrease the access count by average access count
                activity.decPeriodAccessCount( avgAccessCount ) ;
             }
 
             _clockIndex = ( _clockIndex + 1 ) % _activityNum ;
             if ( _clockIndex == lastClockIndex )
             {
-               // Searched one loop and could be stopped
                break ;
             }
          }
@@ -939,7 +974,7 @@ namespace engine
                  _cachedPlanCount.peek() ) ;
 
          _lastClearTimestamp = _accessTimestamp.inc() ;
-         _clearThread.swap( 0 ) ;
+         _clearThread.init( 0 ) ;
       }
 
    done :
@@ -947,24 +982,53 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTCPMON__ALLOCACT, "_optCachedPlanMonitor::_allocateActivity" )
-   INT32 _optCachedPlanMonitor::_allocateActivity ( optAccessPlan *pPlan )
+   INT32 _optCachedPlanMonitor::_allocateActivity ( optAccessPlan *pPlan,
+                                                    BOOLEAN criticalMode )
    {
       INT32 activityID = OPT_INVALID_ACT_ID ;
 
       PD_TRACE_ENTRY( SDB_OPTCPMON__ALLOCACT ) ;
 
-      if ( _cachedPlanCount.fetch() < _activityNum )
+      criticalMode |= _clearThread.compare( 1 ) ;
+
+      if ( !criticalMode ||
+           _allocateThread.compareAndSwap( 0, 1 ) )
       {
-         UINT64 tmpEndIndex = _freeIndexEnd.fetch() ;
-         // Get free activity from free index
+         if ( criticalMode &&
+              _freeIndexEnd.compare( _freeIndexBegin.peek() ) )
+         {
+            _allocateThread.init( 0 ) ;
+            goto done ;
+         }
+
          UINT64 freeActivityIndex = _freeIndexBegin.inc() ;
 
-         SDB_ASSERT( freeActivityIndex < tmpEndIndex,
-                     "AcitvityIndex must < tmpEndIndex" ) ;
+         if ( criticalMode )
+         {
+            _allocateThread.init( 0 ) ;
+         }
 
-         activityID = _pFreeActivityIDs[ freeActivityIndex % _activityNum ] ;
+         if ( criticalMode ||
+              freeActivityIndex < _freeIndexEnd.peek() )
+         {
+            activityID = _pFreeActivityIDs[ freeActivityIndex % _activityNum ] ;
+            optCachedPlanActivity &activity = _pActivities[ activityID ] ;
+
+            SDB_ASSERT( activity.isEmpty(), "Activity is not empty" ) ;
+
+            pPlan->setActivityID( activityID ) ;
+            activity.setPlan( pPlan, _accessTimestamp.inc() ) ;
+            activity.incPeriodAccessCount() ;
+         }
+         else
+         {
+
+
+
+         }
       }
 
+   done :
       PD_TRACE_EXIT( SDB_OPTCPMON__ALLOCACT ) ;
       return activityID ;
    }
@@ -1005,7 +1069,6 @@ namespace engine
       setSortBufferSize( sortBufferSize ) ;
       setOptCostThreshold( optCostThreshold ) ;
 
-      // Always update mix-compare mode
       setMthEnableMixCmp( enableMixCmp ) ;
 
       if ( bucketNum > 0 && cacheLevel > OPT_PLAN_NOCACHE )
@@ -1020,7 +1083,6 @@ namespace engine
          PD_CHECK( _monitor.isInitialized(), SDB_OOM, error, PDERROR,
                    "Failed to initialize plan cache sweeper" ) ;
 
-         // Start cached-plan clearing background job
          rc = _startClearJob() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to start cached-plan clearing job "
                       "failed, rc: %d", rc ) ;
@@ -1031,17 +1093,13 @@ namespace engine
          cacheLevel = OPT_PLAN_NOCACHE ;
       }
 
-      // Change caches in DMS level
       sdbGetDMSCB()->changeSUCaches( getMask() ) ;
 
-      // Update parameterize and fuzzy-operator by cache level
       setMthEnableParameterized( cacheLevel >= OPT_PLAN_PARAMETERIZED ) ;
       setMthEnableFuzzyOptr( cacheLevel >= OPT_PLAN_FUZZYOPTR ) ;
 
-      // Set cache level
       _cacheLevel = cacheLevel ;
 
-      // Done initialize, enable caching
       _planCache.enableCaching() ;
 
       PD_LOG( PDDEBUG, "Initialize plan cache: [ level: %s, buckets : %u ]",
@@ -1068,7 +1126,6 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_OPTAPM_REINIT ) ;
 
-      // Only one thread could enter reinitialize process
       ossScopedLock scopedLock( &_reinitLatch ) ;
 
       if ( _planCache.isInitialized() )
@@ -1109,18 +1166,15 @@ namespace engine
             }
             else
             {
-               // We don't need the clearing job anymore
                if ( 0 == bucketNum )
                {
                   _stopClearJob() ;
                }
 
-               // Deinitialize the cache first
                rc = fini() ;
                PD_RC_CHECK( rc, PDERROR, "Failed to finalize access plan "
                             "manager, rc: %d", rc ) ;
 
-               // Initialize the cache again with new value of bucketNum
                rc = init( bucketNum, cacheLevel, sortBufferSize,
                           optCostThreshold, enableMixCmp ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to initialize access plan "
@@ -1158,10 +1212,8 @@ namespace engine
          setMthEnableParameterized( FALSE ) ;
          setMthEnableFuzzyOptr( FALSE ) ;
 
-         // Invalidate cached plans
          _planCache.invalidateAllPlans() ;
 
-         // Finalize cache and monitor
          _planCache.deinitialize() ;
          _monitor.deinitialize() ;
       }
@@ -1187,11 +1239,6 @@ namespace engine
 
       BOOLEAN gotMainCLPlan = FALSE ;
 
-      // Use main-collection plan in below case
-      // 1. plan cache is initialized
-      // 2. parameterized plan is enabled
-      // 3. main-collection name is given
-      // 4. path-searching is disabled
       if ( isInitialized() &&
            _cacheLevel >= OPT_PLAN_PARAMETERIZED &&
            NULL != options.getMainCLName() &&
@@ -1201,15 +1248,10 @@ namespace engine
          if ( NULL == pCachedPlanMgr ||
               pCachedPlanMgr->testMainCLInvalidBitmap( mbContext->mbID() ) )
          {
-            // The sub-collection is not validated to use main-collection plans,
-            // generate a general plan for it
             gotMainCLPlan = FALSE ;
          }
          else
          {
-            // If it is from main-collection, try to get or create main-collection
-            // plan
-            // Note: sub-collection name is considered as one of parameters
             rc = _getMainCLAccessPlan( options, su, mbContext, planRuntime ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to get main-collection access plan "
                          "for query [ %s ], rc: %d", options.toString().c_str(),
@@ -1220,8 +1262,6 @@ namespace engine
 
       if ( !gotMainCLPlan )
       {
-         // If cache is not initialized, or it not from main-collection, or the
-         // cache level is too low, get or create normal plan
          rc = _getCLAccessPlan( options, keepSearchPaths, su, mbContext,
                                 planRuntime ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get collection access plan for "
@@ -1294,7 +1334,6 @@ namespace engine
 
       if ( isInitialized() )
       {
-         // Invalidate cached plans by collection space name
          _planCache.invalidateSUPlans( pCSName ) ;
       }
 
@@ -1308,7 +1347,6 @@ namespace engine
 
       if ( isInitialized() )
       {
-         // Invalidate cached plans
          _planCache.invalidateAllPlans() ;
       }
 
@@ -1391,8 +1429,6 @@ namespace engine
 
       if ( pCacheHolder && isInitialized() )
       {
-         // Only to remove SU plans
-         // no need to remove main-collection plans
          _invalidSUPlans( pCacheHolder ) ;
       }
 
@@ -1419,7 +1455,6 @@ namespace engine
       {
          _invalidSUPlans( pCacheHolder ) ;
 
-         // Run invalidation again to clear main-collection plans
          invalidateSUPlans( pOldCSName ) ;
       }
 
@@ -1444,7 +1479,6 @@ namespace engine
       {
          _invalidSUPlans( pCacheHolder ) ;
 
-         // Run invalidation again to clear main-collection plans
          invalidateSUPlans( pCacheHolder->getCSName() ) ;
       }
 
@@ -1654,8 +1688,6 @@ namespace engine
          cacheLevel = OPT_PLAN_NOCACHE ;
       }
 
-      // If the collection have been marked parameterized invalid,
-      // lower the cache level to normalized
       if ( cacheLevel >= OPT_PLAN_PARAMETERIZED )
       {
          dmsCachedPlanMgr *pCachedPlanMgr = su->getCachedPlanMgr() ;
@@ -1699,7 +1731,6 @@ namespace engine
       optGeneralAccessPlan *pPlan = NULL ;
       optAccessPlan *pTmpPlan = NULL ;
 
-      // Construct the plan key, but needn't to get owned at this stage
       optAccessPlanKey planKey( options, cacheLevel ) ;
 
       optAccessPlanHelper planHelper( cacheLevel, getPlanConfig(),
@@ -1715,17 +1746,15 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to prepare key of access plan, rc: %d",
                    rc ) ;
 
-      // If cache is initialized, try to get plan from cache first
       if ( needCache )
       {
          rc = _getCachedAccessPlan( planKey, &pTmpPlan ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get access plan, rc: %d", rc ) ;
-         if ( pTmpPlan )
+         if ( NULL != pTmpPlan )
          {
             pPlan = dynamic_cast<_optGeneralAccessPlan *>( pTmpPlan ) ;
             if ( NULL == pPlan )
             {
-               // Cast failed, release the temp plan
                pTmpPlan->release() ;
             }
          }
@@ -1733,14 +1762,12 @@ namespace engine
 
       if ( NULL == pPlan )
       {
-         // Failed to get plan from cache, create it
          rc = _createAccessPlan( su, mbContext, planKey, planRuntime,
                                  planHelper, &pPlan, needCache ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to create access plan, rc: %d",
                       rc ) ;
 
          planRuntime.setPlan( pPlan, this, TRUE ) ;
-         pPlan = NULL ;
       }
       else
       {
@@ -1749,7 +1776,6 @@ namespace engine
             optParamAccessPlan *paramPlan = dynamic_cast<optParamAccessPlan *>( pPlan ) ;
             SDB_ASSERT( paramPlan, "paramPlan is invalid" ) ;
 
-            // Plan is parameterized, bind the parameters
             rc = _validateParamPlan( su, mbContext, planKey, planRuntime,
                                      planHelper, paramPlan ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to validate parameterized plan, "
@@ -1757,15 +1783,12 @@ namespace engine
          }
          else
          {
-            // We don't need the match runtime any more
-            // Use the one in the plan
             planRuntime.deleteMatchRuntime() ;
          }
 
          if ( planRuntime.hasPlan() )
          {
             pPlan->release() ;
-            pPlan = NULL ;
          }
          else
          {
@@ -1808,8 +1831,6 @@ namespace engine
       if ( NULL == pCachedPlanMgr ||
            pCachedPlanMgr->testMainCLInvalidBitmap( subCLMBID ) )
       {
-         // The sub-collection is not validated to use main-collection plans,
-         // generate a general plan for it
          rc = _getCLAccessPlan( options, FALSE, su, mbContext, planRuntime ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get collection access plan for "
                       "query [ %s ], rc: %d", options.toString().c_str(), rc ) ;
@@ -1818,7 +1839,6 @@ namespace engine
       {
          optMainCLAccessPlan *mainPlan = NULL ;
 
-         // Construct the plan key for main-collection
          optAccessPlanKey planKey( options, cacheLevel ) ;
          planKey.setCLFullName( options.getMainCLName() ) ;
          planKey.setMainCLName( NULL ) ;
@@ -1831,15 +1851,11 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to prepare key of access plan, "
                       "rc: %d", rc ) ;
 
-         // Try to get the main-collection plan from cache first
          rc = _getCachedAccessPlan( planKey, &pPlan ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get access plan, rc: %d", rc ) ;
 
          if ( NULL == pPlan )
          {
-            // Could not find the main-collection plan from cache, so create
-            // the plan for sub-collection and bind it to the main-collection
-            // plan
             rc = _createMainCLPlan( planKey, options, su, mbContext,
                                     planRuntime, planHelper, &mainPlan ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to create main-collection "
@@ -1847,8 +1863,8 @@ namespace engine
 
             _cacheAccessPlan( mainPlan ) ;
 
-            // Use the sub-collection plan for the this time
             mainPlan->release() ;
+            pPlan = NULL ;
          }
          else
          {
@@ -1858,8 +1874,6 @@ namespace engine
             if ( pCachedPlanMgr->testParamInvalidBitmap( subCLMBID ) ||
                  !mainPlan->isMainCLValid() )
             {
-               // The sub-collection is not parameterized validated, we need
-               // to verify if it is validate to main-collection plan
                rc = _validateMainCLPlan( mainPlan, options, su, mbContext,
                                          planRuntime, planHelper ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to validate main-collection "
@@ -1875,13 +1889,10 @@ namespace engine
 
             if ( planRuntime.hasPlan() )
             {
-               // Already got one plan, release this one
                pPlan->release() ;
-               pPlan = NULL ;
             }
             else
             {
-               // Set the plan
                planRuntime.setPlan( pPlan, this, FALSE ) ;
             }
          }
@@ -1917,7 +1928,6 @@ namespace engine
 
       if ( planKey.getCacheLevel() >= OPT_PLAN_NORMALIZED )
       {
-         // Normalize the query
          rc = planRuntime.createMatchRuntime() ;
          PD_RC_CHECK( rc, PDERROR, "Failed to create match runtime, rc: %d",
                       rc ) ;
@@ -1936,7 +1946,6 @@ namespace engine
          }
          else
          {
-            // The match runtime is not needed
             planRuntime.deleteMatchRuntime() ;
          }
       }
@@ -2010,15 +2019,12 @@ namespace engine
 
       if ( isParameterized )
       {
-         // Validate self
          BSONObj parameters = planRuntime.getParameters().toBSON() ;
          pPlan->validateParameterized( *pPlan, parameters ) ;
       }
 
-      // Set the outputs
       (*ppPlan) = pPlan ;
 
-      // Cache the plan
       if ( needCache && isInitialized() )
       {
          _cacheAccessPlan( pPlan ) ;
@@ -2062,30 +2068,31 @@ namespace engine
 
       PD_TRACE_ENTRY( SDB_OPTAPM__CACHEAP ) ;
 
+      _monitor.incCachedPlanCount() ;
+
       cached = _planCache.addPlan( pPlan ) ;
       if ( cached )
       {
          if ( !_monitor.setActivity( pPlan ) )
          {
-            // Could not allocate activity for the plan
-            // remove it from cache
             if ( _planCache.removeItem( pPlan ) )
             {
                cached = FALSE ;
+               _monitor.decCachedPlanCount( 1 ) ;
             }
          }
          else
          {
-            // Re-check if the plan is still cached.
-            // If it is not cached after setting the activity, it might be
-            // removed by dropCL, so we need to reset the activity if the
-            // dropCL didn't
             if ( !pPlan->isCached() )
             {
                _monitor.resetActivity( pPlan->resetActivityID() ) ;
                cached = FALSE ;
             }
          }
+      }
+      else
+      {
+         _monitor.decCachedPlanCount( 1 ) ;
       }
 
       PD_TRACE_EXIT( SDB_OPTAPM__CACHEAP ) ;
@@ -2112,7 +2119,6 @@ namespace engine
       BSONObj parameters ;
       optGeneralAccessPlan *tempPlan = NULL ;
 
-      // access plan is parameterized validated
       if ( plan->isParamValid() )
       {
          rc = planRuntime.bindParamPlan( planHelper, plan ) ;
@@ -2121,7 +2127,6 @@ namespace engine
          goto done ;
       }
 
-      // access plan has the same parameters
       parameters = planRuntime.getParameters().toBSON() ;
       if ( plan->checkSavedParam( parameters ) )
       {
@@ -2141,16 +2146,13 @@ namespace engine
 
       if ( plan->validateParameterized( *tempPlan, parameters ) )
       {
-         // Do nothing
       }
       else
       {
-         // The parameter is not validate for the parameterized
-         // plan, mark the collection invalidate for parameterized plans
          PD_LOG( PDDEBUG, "Invalid parameterized plan [%s]",
                  plan->toString().c_str() ) ;
          plan->markParamInvalid( mbContext ) ;
-         _planCache.removeCachedPlan( plan, SHARED ) ;
+         _planCache.removeCachedPlan( plan ) ;
       }
 
    done :
@@ -2187,12 +2189,10 @@ namespace engine
       PD_CHECK( mainPlan, SDB_OOM, error, PDERROR,
                 "Failed to allocate main-collection access plan" ) ;
 
-      // Get the key owned
       rc = mainPlan->getKeyOwned() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get key of access plan owned, "
                    "rc: %d", rc ) ;
 
-      // Make sure matcher runtime is created, and must owned by plan
       if ( NULL == planRuntime.getMatchRuntime() )
       {
          rc = mainPlan->createMatchRuntime() ;
@@ -2205,26 +2205,21 @@ namespace engine
          mainPlan->getMatchRuntimeOnwed( planRuntime ) ;
       }
 
-      // Save parameters
       if ( !planRuntime.getParameters().isEmpty() )
       {
          parameters = planRuntime.getParameters().toBSON() ;
       }
 
-      // Prepare to bind the sub-collection plan
       rc = mainPlan->prepareBindSubCL( planHelper ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to prepare main-collection "
                    "plan, rc: %d", rc ) ;
 
-      // Generate the sub-collection plan
-      // Specify the cache level, APM is not allowed to adjust it
       rc = _getCLAccessPlan( subOptions, OPT_PLAN_NOCACHE, FALSE, su, mbContext,
                              planRuntime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for "
                    "sub-collection with query [ %s ], rc: %d",
                    subOptions.toString().c_str(), rc ) ;
 
-      // Bind the sub-collection plan
       subPlan = dynamic_cast<optGeneralAccessPlan *>( planRuntime.getPlan() ) ;
       SDB_ASSERT( subPlan, "subPlan is invalid " ) ;
 
@@ -2265,21 +2260,16 @@ namespace engine
       SDB_ASSERT( su, "su is invalid" ) ;
       SDB_ASSERT( mbContext, "mbContext is invalid" ) ;
 
-      // The sub-collection is not parameterized validated, we need
-      // to verify if it is validate to main-collection plan
       optGeneralAccessPlan *subPlan = NULL ;
       dmsCachedPlanMgr *pCachedPlanMgr = su->getCachedPlanMgr() ;
       BSONObj parameters ;
 
-      // Save parameters
       if ( mainPlan->getCacheLevel() >= OPT_PLAN_PARAMETERIZED &&
            !planRuntime.getParameters().isEmpty() )
       {
          parameters = planRuntime.getParameters().toBSON() ;
       }
 
-      // Check whether the sub-collection and parameters had been
-      // already validated
       if ( mainPlan->checkSavedSubCL( subOptions.getCLFullName(),
                                       parameters ) )
       {
@@ -2290,7 +2280,6 @@ namespace engine
          goto done ;
       }
 
-      // Specify the cache level, APM is not allowed to adjust it
       rc = _getCLAccessPlan( subOptions, OPT_PLAN_NOCACHE, FALSE, su, mbContext,
                              planRuntime ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get access plan for "
@@ -2302,12 +2291,10 @@ namespace engine
 
       if ( !mainPlan->validateSubCLPlan( subPlan, parameters ) )
       {
-         // The sub-collection is not validate for the main-collection
-         // plan, mark the collection invalidate for main-collection plans
          PD_LOG( PDDEBUG, "Invalid main-collection plan [%s]",
                  mainPlan->toString().c_str() ) ;
          mainPlan->markMainCLInvalid( pCachedPlanMgr, mbContext, FALSE ) ;
-         _planCache.removeCachedPlan( mainPlan, SHARED ) ;
+         _planCache.removeCachedPlan( mainPlan ) ;
       }
 
    done :
@@ -2338,14 +2325,9 @@ namespace engine
       dmsExtentID indexExtID = DMS_INVALID_EXTENT ;
       dmsExtentID indexLID = DMS_INVALID_EXTENT ;
 
-      // The sub-collection is parameterized validated, we need
-      // to verify if it has the index specified by main-colleciton
-      // plan, etc
       rc = mainPlan->validateSubCL( su, mbContext, indexExtID, indexLID ) ;
       if ( SDB_OK != rc )
       {
-         // Failed to validate sub-collection, generate a general plan
-         // for sub-collection ( e.g. missing index )
          rc = mainPlan->markMainCLInvalid( pCachedPlanMgr,
                                            mbContext,
                                            TRUE ) ;
@@ -2353,7 +2335,6 @@ namespace engine
                       "invalidated to reuse main-collection plan, "
                       "rc: %d", rc ) ;
 
-         // Create a general plan for sub-collection
          rc = _getCLAccessPlan( subOptions, FALSE, su, mbContext, planRuntime ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get collection access plan for "
                       "query [ %s ], rc: %d", subOptions.toString().c_str(),
@@ -2362,13 +2343,11 @@ namespace engine
          goto done ;
       }
 
-      // Bind plan info ( suID, mbID, etc )
       rc = planRuntime.bindPlanInfo( subOptions.getCLFullName(), su, mbContext,
                                      indexExtID, indexLID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to bind plan info, rc: %d",
                    rc ) ;
 
-      // Bind parameters
       if ( mainPlan->getCacheLevel() >= OPT_PLAN_PARAMETERIZED )
       {
          rc = planRuntime.bindParamPlan( planHelper, mainPlan ) ;
@@ -2377,8 +2356,6 @@ namespace engine
       }
       else
       {
-         // We don't need the match runtime any more
-         // Use the one in the plan
          planRuntime.deleteMatchRuntime() ;
       }
 
@@ -2390,7 +2367,7 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM__INVALIDPLANS, "_optAccessPlanManager::_invalidSUPlans" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_OPTAPM__INVALIDPLANS, "_optAccessPlanManager::_invalidCachedPlans" )
    void _optAccessPlanManager::_invalidSUPlans ( IDmsSUCacheHolder *pCacheHolder )
    {
       PD_TRACE_ENTRY( SDB_OPTAPM__INVALIDPLANS ) ;
@@ -2405,7 +2382,6 @@ namespace engine
 
          _planCache.invalidateSUPlans( pCachedPlanMgr, suLID ) ;
 
-         // No plans belong to this SU, clear the bitmap and free the units
          pCachedPlanMgr->resetCacheBitmap() ;
          pCachedPlanMgr->resetParamInvalidBitmap() ;
          pCachedPlanMgr->resetMainCLInvalidBitmap() ;

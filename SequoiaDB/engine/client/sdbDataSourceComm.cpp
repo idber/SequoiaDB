@@ -1,19 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2016 SequoiaDB Ltd.
 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
+   This program is free software: you can redistribute it and/or modify
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
-   http://www.apache.org/licenses/LICENSE-2.0
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY ; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU Affero General Public License for more details.
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = sdbDataSourceComm.cpp
 
@@ -39,7 +39,6 @@
 
 namespace sdbclient
 {
-   //set user info
    void sdbDataSourceConf::setUserInfo( 
       const std::string &username,
       const std::string &passwd )
@@ -48,7 +47,6 @@ namespace sdbclient
       _passwd = passwd ;
    }
 
-   // set connection number info
    void sdbDataSourceConf::setConnCntInfo( 
       INT32 initCnt,
       INT32 deltaIncCnt,
@@ -61,7 +59,6 @@ namespace sdbclient
       _maxCount = maxCnt ;
    }
 
-   // set idle connection interval
    void sdbDataSourceConf::setCheckIntervalInfo( 
       INT32 interval, 
       INT32 aliveTime /*= 0*/ )
@@ -74,7 +71,6 @@ namespace sdbclient
    {
       BOOLEAN ret = TRUE ;
       
-      // check count info
       if ( (0 >= _maxCount) || (0 >= _maxIdleCount) || 
          (0 >= _deltaIncCount) || (0 > _initConnCount) )
       {
@@ -97,10 +93,8 @@ namespace sdbclient
       {
          _initConnCount = _maxIdleCount ;    // TODO: why ?м╛ио
       }
-      // check idle connection interval
       if ( (0 != _keepAliveTimeout) && (_keepAliveTimeout < _checkInterval) )
          goto error ;
-      // check connection strategy
       if ( (_connectStrategy < DS_STY_SERIAL) ||
          (_connectStrategy > DS_STY_BALANCE) )
       {

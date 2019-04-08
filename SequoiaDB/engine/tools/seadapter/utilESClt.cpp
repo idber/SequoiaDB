@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = utilESClt.cpp
 
@@ -55,7 +54,6 @@ using namespace bson ;
 #define ES_SOURCE_KEY            "_source"
 #define ES_ERROR_FIELD_NAME      "errors"
 
-// For arguments check.
 #define ES_CLT_ARG_CHK1( index )                         \
 do                                                       \
 {                                                        \
@@ -110,8 +108,7 @@ while ( 0 ) ;
 namespace seadapter
 {
    _utilESClt::_utilESClt()
-   : _readOnly( FALSE ),
-     _errMsg( NULL )
+   : _readOnly( FALSE )
    {
    }
 
@@ -119,7 +116,7 @@ namespace seadapter
    {
    }
 
-   INT32 _utilESClt::init( const string &uri, BOOLEAN readOnly, INT32 timeout )
+   INT32 _utilESClt::init( const string &uri, BOOLEAN readOnly )
    {
       INT32 rc = SDB_OK ;
       if ( 0 == uri.size() )
@@ -130,7 +127,7 @@ namespace seadapter
          goto error ;
       }
 
-      rc = _http.init( uri, TRUE, timeout ) ;
+      rc = _http.init( uri, TRUE ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Failed to init http connection with node: %s, "
@@ -148,6 +145,19 @@ namespace seadapter
    BOOLEAN _utilESClt::isActive()
    {
       return ( SDB_OK == _http.get( NULL, NULL ) ) ? TRUE : FALSE ;
+   }
+
+   INT32 _utilESClt::active()
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = _http.reconnect() ;
+      PD_RC_CHECK( rc, PDERROR, "Activate client failed[ %d ]", rc ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    INT32 _utilESClt::getSEInfo( BSONObj &infoObj )
@@ -185,13 +195,11 @@ namespace seadapter
       }
       else if ( HTTP_NOT_FOUND == status )
       {
-         // If page not found, the index does not exist.
          exist = FALSE ;
          rc = SDB_OK ;
          goto done ;
       }
 
-      // Otherwise, error happened...
       rc = _processReply( rc, reply, replyLen, replyInfo ) ;
       PD_RC_CHECK( rc, PDERROR, "Process request reply failed[ %d ]", rc ) ;
 
@@ -201,7 +209,6 @@ namespace seadapter
       goto done ;
    }
 
-   // Create index, optionally with data (settings, mappings etc)
    INT32 _utilESClt::createIndex( const CHAR *index, const CHAR *data )
    {
       INT32 rc = SDB_OK ;
@@ -222,7 +229,6 @@ namespace seadapter
       goto done ;
    }
 
-   // Drop given index (and all types, documents, mappings)s
    INT32 _utilESClt::dropIndex( const CHAR *index )
    {
       INT32 rc = SDB_OK ;
@@ -243,7 +249,6 @@ namespace seadapter
       goto done ;
    }
 
-   // Index a document with a specified id.
    INT32 _utilESClt::indexDocument( const CHAR *index, const CHAR *type,
                                     const CHAR *id, const CHAR *jsonData )
    {
@@ -256,7 +261,6 @@ namespace seadapter
 
       ES_CLT_ARG_CHK4( index, type, id, jsonData ) ;
 
-      // Plus 2 bytes for '/'
       if ( strlen( index ) + strlen( type ) + strlen( id ) + 2
            > UTIL_SE_MAX_URL_SIZE )
       {
@@ -267,7 +271,6 @@ namespace seadapter
          goto error ;
       }
 
-      // Get the full url for operation.
       ossSnprintf( url, UTIL_SE_MAX_URL_SIZE, "%s/%s/%s", index, type, id ) ;
       rc = _http.put( url, jsonData, &status, &reply, &replyLen ) ;
       rc = _processReply( rc, reply, replyLen, bsonObj ) ;
@@ -291,7 +294,6 @@ namespace seadapter
 
       ES_CLT_ARG_CHK4( index, type, id, newData ) ;
 
-      // Plus 2 bytes for '/'
       if ( strlen( index ) + strlen( type ) + strlen( id ) + 2
            > UTIL_SE_MAX_URL_SIZE )
       {
@@ -302,7 +304,6 @@ namespace seadapter
          goto error ;
       }
 
-      // Get the full url for operation.
       ossSnprintf( url, UTIL_SE_MAX_URL_SIZE, "%s/%s/%s", index, type, id ) ;
       rc = _http.put( url, newData, &status, &reply, &replyLen ) ;
       rc = _processReply( rc, reply, replyLen, bsonObj ) ;
@@ -425,48 +426,7 @@ namespace seadapter
                                   const CHAR *query, utilCommObjBuff &objBuff,
                                   BOOLEAN withMeta )
    {
-      INT32 rc = SDB_OK ;
-      const CHAR *reply = NULL ;
-      INT32 replyLen = 0 ;
-      HTTP_STATUS_CODE status = 0 ;
-      std::ostringstream endUrl ;
-      BSONObj fullObj ;
-
-      ES_CLT_ARG_CHK2( index, type ) ;
-
-      if ( !query )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "Query condition is NULL" ) ;
-         goto error ;
-      }
-
-      endUrl << index << "/" << type << "/_search" ;
-
-      rc = objBuff.reset() ;
-      PD_RC_CHECK( rc, PDERROR, "Reset object buffer failed[ %d ]", rc ) ;
-
-      rc = _http.get( endUrl.str().c_str(), query, &status, &reply, &replyLen ) ;
-      if ( withMeta )
-      {
-         rc = _processReply( rc, reply, replyLen, fullObj ) ;
-         PD_RC_CHECK( rc, PDERROR, "Process request reply failed[ %d ]", rc ) ;
-         rc = objBuff.appendObj( fullObj ) ;
-         PD_RC_CHECK( rc, PDERROR, "Append object to buffer failed[ %d ]", rc ) ;
-      }
-      else
-      {
-         rc = _processReply( rc, reply,replyLen, fullObj ) ;
-         PD_RC_CHECK( rc, PDERROR, "Process request reply failed[ %d ]", rc ) ;
-
-         rc = _getResultObjs( fullObj, objBuff ) ;
-         PD_RC_CHECK( rc, PDERROR, "Get result objects failed[ %d ]" ) ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
+      return SDB_OK ;
    }
 
    INT32 _utilESClt::getDocCount( const CHAR *index, const CHAR *type,
@@ -508,9 +468,7 @@ namespace seadapter
       ES_CLT_ARG_CHK3( index, type, id ) ;
 
       oss << index << "/" << type << "/" << id ;
-      // Only need the status code in the head.
       rc = _http.head( oss.str().c_str(), NULL, &status, &reply, &replyLen ) ;
-      // We are get the document by id, so if it exists, the status would be OK.
       if ( SDB_OK == rc )
       {
          exist = ( HTTP_OK == status ) ;
@@ -634,7 +592,7 @@ namespace seadapter
 
       ES_CLT_ARG_CHK2( index, type ) ;
 
-      oss << index << "/" << type << "/_search?scroll=60m&size="
+      oss << index << "/" << type << "/_search?scroll=1m&size="
          << scrollSize;
       if ( filterPath )
       {
@@ -656,6 +614,8 @@ namespace seadapter
                    rc ) ;
 
       scrollId = string( replyObj.getStringField( ES_SCROLL_ID_KEY ) ) ;
+      scrollId = "{ \"scroll_id\" : \"" + scrollId + "\" }" ;
+
       PD_LOG( PDDEBUG, "scroll id returned: %s", scrollId.c_str() ) ;
 
    done:
@@ -672,26 +632,20 @@ namespace seadapter
       INT32 replyLen = 0 ;
       BSONObj replyObj ;
       HTTP_STATUS_CODE status = 0 ;
-      string endUrl = "_search/scroll?scroll=60m" ;
-      string scrollIdStr = "{ \"scroll_id\" : \"" + scrollId + "\" }" ;
+      string endUrl = "_search/scroll?scroll=1m" ;
 
       if ( filterPath )
       {
          endUrl = endUrl + "&" + filterPath ;
       }
 
-      rc = _http.post( endUrl.c_str(), scrollIdStr.c_str(),
+      rc = _http.post( endUrl.c_str(), scrollId.c_str(),
                        &status, &reply, &replyLen ) ;
       rc = _processReply( rc, reply, replyLen, replyObj ) ;
       PD_RC_CHECK( rc, PDERROR, "Process request reply failed[ %d ]", rc ) ;
 
       rc = _getResultObjs( replyObj, result ) ;
       PD_RC_CHECK( rc, PDERROR, "Get objects from reply failed[ %d ]", rc ) ;
-
-      // The initial search request and each ssubsequent scroll request returns
-      // a new _scroll_id. Only the most recent _scroll_id should be used.
-      scrollId = string( replyObj.getStringField( ES_SCROLL_ID_KEY ) ) ;
-      PD_LOG( PDDEBUG, "scroll id returned: %s", scrollId.c_str() ) ;
 
    done:
       return rc ;
@@ -701,8 +655,7 @@ namespace seadapter
 
    void _utilESClt::clearScroll( const std::string& scrollId )
    {
-      string endUrl = "_search/scroll/" + scrollId ;
-      _http.remove( endUrl.c_str(), NULL, NULL, NULL, NULL );
+      _http.remove("/_search/scroll", scrollId.c_str(), NULL, NULL, NULL );
    }
 
    INT32 _utilESClt::bulk( const CHAR *index, const CHAR *type,
@@ -722,7 +675,6 @@ namespace seadapter
          goto error ;
       }
 
-      // Index and type are optional.
       if ( index )
       {
          endUrl = string( index ) ;
@@ -761,11 +713,6 @@ namespace seadapter
       return rc ;
    error:
       goto done ;
-   }
-
-   const CHAR* _utilESClt::getLastErrMsg() const
-   {
-      return _errMsg ;
    }
 
    INT32 _utilESClt::_getResultObjs( const BSONObj &replyObj,
@@ -835,7 +782,7 @@ namespace seadapter
       try
       {
          BSONElement ele = fullObj.getField( ES_SOURCE_KEY ) ;
-         newObj = ele.Obj().getOwned() ;
+         newObj = ele.Obj() ;
       }
       catch ( std::exception &e )
       {

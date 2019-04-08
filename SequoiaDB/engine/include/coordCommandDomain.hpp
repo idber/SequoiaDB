@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordCommandDomain.hpp
 
@@ -39,7 +38,6 @@
 #define COORD_COMMAND_DOMAIN_HPP__
 
 #include "coordCommandBase.hpp"
-#include "coordCommandData.hpp"
 #include "coordFactory.hpp"
 
 using namespace bson ;
@@ -81,49 +79,21 @@ namespace engine
    } ;
    typedef _coordCMDDropDomain coordCMDDropDomain ;
 
-//   /*
-//      _coordCMDAlterDomain define
-//   */
-//   class _coordCMDAlterDomain : public _coordCommandBase
-//   {
-//      COORD_DECLARE_CMD_AUTO_REGISTER() ;
-//      public:
-//         _coordCMDAlterDomain() ;
-//         virtual ~_coordCMDAlterDomain() ;
-//
-//         virtual INT32 execute( MsgHeader *pMsg,
-//                                pmdEDUCB *cb,
-//                                INT64 &contextID,
-//                                rtnContextBuf *buf ) ;
-//   } ;
-//   typedef _coordCMDAlterDomain coordCMDAlterDomain ;
-
    /*
       _coordCMDAlterDomain define
-    */
-   class _coordCMDAlterDomain : public _coordDataCMDAlter
+   */
+   class _coordCMDAlterDomain : public _coordCommandBase
    {
       COORD_DECLARE_CMD_AUTO_REGISTER() ;
-
       public:
-         _coordCMDAlterDomain () ;
-         virtual ~_coordCMDAlterDomain () ;
+         _coordCMDAlterDomain() ;
+         virtual ~_coordCMDAlterDomain() ;
 
-      protected :
-         OSS_INLINE virtual RTN_ALTER_OBJECT_TYPE _getObjectType () const
-         {
-            return RTN_ALTER_DOMAIN ;
-         }
-
-         OSS_INLINE virtual MSG_TYPE _getCatalogMessageType () const
-         {
-            return MSG_CAT_ALTER_DOMAIN_REQ ;
-         }
-
-         // Not a collection command
-         virtual BOOLEAN _flagDoOnCollection () { return FALSE ; }
+         virtual INT32 execute( MsgHeader *pMsg,
+                                pmdEDUCB *cb,
+                                INT64 &contextID,
+                                rtnContextBuf *buf ) ;
    } ;
-
    typedef _coordCMDAlterDomain coordCMDAlterDomain ;
 
 }

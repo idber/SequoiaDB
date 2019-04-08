@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = ossSocket.hpp
 
@@ -51,8 +50,6 @@
 #include <netinet/tcp.h>
 #include <fcntl.h>
 #else
-//#include <winsock2.h>
-//#include <ws2tcpip.h>
 #pragma comment(lib, "Ws2_32.lib")
 #endif
 #include <string.h>
@@ -69,11 +66,6 @@
 #endif
 #include "pd.hpp"
 
-// by default 500ms timeout
-// note this is default for engine communication
-// this value shouldn't be set too big since it may break
-// the heartbeat detection
-// for client, we should set client socket timeout value instead of this one
 #define OSS_SOCKET_DFT_TIMEOUT      500
 
 #define OSS_MAX_HOSTNAME            NI_MAXHOST
@@ -85,7 +77,6 @@ struct SSLHandle ;
 SDB_EXTERN_C_END
 #endif
 
-// todo: support AF_UNIX later
 /*
    _ossSocket define
 */
@@ -120,11 +111,8 @@ class _ossSocket : public SDBObject
                           INT32 keepInterval = OSS_SOCKET_KEEP_INTERVAL,
                           INT32 keepCount = OSS_SOCKET_KEEP_CONTER ) ;
 
-      // Create a listening socket, timeout in millisecond
       _ossSocket ( UINT32 port, INT32 timeoutMilli = 0 ) ;
-      // Create a connecting socket, timeout in millisecond
       _ossSocket ( const CHAR *pHostname, UINT32 port, INT32 timeoutMilli = 0 ) ;
-      // Create from a existing socket, timeout in millisecond
       _ossSocket ( SOCKET *sock, INT32 timeoutMilli = 0 ) ;
 
       ~_ossSocket () ;
@@ -178,7 +166,6 @@ class _ossSocket : public SDBObject
 
 typedef class _ossSocket ossSocket ;
 
-// define socket functions
 
 INT32    ossInitSocket() ;
 INT32    ossGetHostName( CHAR *pName, INT32 nameLen ) ;

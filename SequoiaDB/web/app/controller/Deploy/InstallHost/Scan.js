@@ -430,9 +430,9 @@
          else
          {
             $scope.Components.Confirm.type = 3 ;
-            $scope.Components.Confirm.context = $scope.autoLanguage( '至少选择一台主机，才可以进入下一步操作。' ) ;
+            $scope.Components.Confirm.context = $scope.autoLanguage( '至少选择一台的主机，才可以进入下一步操作。' ) ;
             $scope.Components.Confirm.isShow = true ;
-            $scope.Components.Confirm.noClose = true ;
+            $scope.Components.Confirm.okText = $scope.autoLanguage( '好的' ) ;
          }
       } ;
    } ) ;

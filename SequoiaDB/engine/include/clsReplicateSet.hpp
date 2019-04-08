@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsReplicateSet.hpp
 
@@ -91,7 +90,6 @@ namespace engine
          OSS_INLINE void setLocalID( const MsgRouteID &id )
          {
             _info.local = id ;
-            /// _agent was set by clsMgr.
          }
 
          OSS_INLINE const UINT32 ailves()
@@ -122,7 +120,6 @@ namespace engine
             return ;
          }
 
-         // timeout: ms
          OSS_INLINE UINT32 getAlivesByTimeout( UINT32 timeout =
                                                CLS_NODE_KEEPALIVE_TIMEOUT )
          {
@@ -269,16 +266,12 @@ namespace engine
 
          void reelectionDone() ;
 
-         /// this func is used to support command "forceStepUp".
          INT32 stepUp( UINT32 seconds,
                        pmdEDUCB *cb ) ;
 
          INT32 primaryCheck( pmdEDUCB *cb ) ;
 
          INT32 aliveNode( const MsgRouteID &id ) ;
-
-         UINT64   getLastConsultTick() const ;
-         void     setLastConsultTick( UINT64 tick ) ;
 
       private:
          INT32 _setGroupSet( const CLS_GROUP_VERSION &version,
@@ -318,18 +311,14 @@ namespace engine
          BOOLEAN                 _active ;
          UINT64                  _lastTimerTick ;
 
-         UINT64                  _lastConsultTick ;
-
          UINT32                  _srcSessionNum ;
          ossRWMutex              _vecLatch ;
          std::vector<_clsDataSrcBaseSession*> _vecSrcSessions ;
 
-         // notify queue
          ossQueue< clsLSNNtyInfo >  _ntyQue ;
          DPS_LSN_OFFSET             _ntyLastOffset ;
          DPS_LSN_OFFSET             _ntyProcessedOffset ;
 
-         // sync control param
          UINT64                  _totalLogSize ;
          UINT64                  _sizethreshold[ CLS_SYNCCTRL_THRESHOLD_SIZE ] ;
          UINT32                  _timeThreshold[ CLS_SYNCCTRL_THRESHOLD_SIZE ] ;

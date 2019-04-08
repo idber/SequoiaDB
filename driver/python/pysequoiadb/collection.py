@@ -39,7 +39,6 @@ QUERY_FLG_PARALLED = 0x00000100
 QUERY_FLG_FORCE_HINT = 0x00000200
 QUERY_PREPARE_MORE = 0x00004000
 QUERY_FLG_KEEP_SHARDINGKEY_IN_UPDATE = 0x00008000
-QUERY_FLG_FOR_UPDATE = 0x00010000
 
 UPDATE_FLG_KEEP_SHARDINGKEY = QUERY_FLG_KEEP_SHARDINGKEY_IN_UPDATE
 
@@ -508,8 +507,6 @@ class collection(object):
            QUERY_FLG_PARALLED        : Enable parallel sub query, each sub query will finish scanning different part of the data
            QUERY_FLG_FORCE_HINT      : In general, query won't return data until cursor gets from database, when add this flag, return data in query response, it will be more high-performance
            QUERY_PREPARE_MORE        : Enable prepare more data when query
-           QUERY_FLG_FOR_UPDATE      : When the transaction is turned on and the transaction isolation level is "RC", the transaction lock will not
-                                       be released until the transaction commit or rollback.
         """
 
         bson_condition = None
@@ -607,8 +604,6 @@ class collection(object):
                                                         it will be more high-performance
            QUERY_FLG_KEEP_SHARDINGKEY_IN_UPDATE : The sharding key in update rule is not filtered, when executing
                                                         queryAndUpdate.
-           QUERY_FLG_FOR_UPDATE                 : When the transaction is turned on and the transaction isolation level is "RC", the transaction lock will not
-                                                  be released until the transaction commit or rollback.
         """
 
         bson_condition = None
@@ -718,8 +713,6 @@ class collection(object):
            QUERY_FLG_WITH_RETURNDATA : Force to use specified hint to query, if database have no index assigned by the hint, fail to query
            QUERY_FLG_PARALLED        : Enable parallel sub query, each sub query will finish scanning different part of the data
            QUERY_FLG_FORCE_HINT      : In general, query won't return data until cursor gets from database, when add this flag, return data in query response, it will be more high-performance
-           QUERY_FLG_FOR_UPDATE      : When the transaction is turned on and the transaction isolation level is "RC", the transaction lock will not
-                                       be released until the transaction commit or rollback.
         """
 
         bson_condition = None
@@ -767,8 +760,7 @@ class collection(object):
         if kwargs.get('flags') != None:
             if kwargs.get('flags') not in (0, QUERY_FLG_WITH_RETURNDATA,
                                            QUERY_FLG_PARALLED,
-                                           QUERY_FLG_FORCE_HINT,
-                                           QUERY_FLG_FOR_UPDATE):
+                                           QUERY_FLG_FORCE_HINT):
                 raise SDBTypeError("invalid flags value")
 
         try:
@@ -831,8 +823,8 @@ class collection(object):
 
         Parameters:
            Name         Type  Info:
-           idx_name     str   The index name, returns all of the indexes if this parameter is None.
-                              Deprecated, use get_index_info to get specific index.
+           idx_name     str   The index name, returns all of the indexes
+                                    if this parameter is None.
         Return values:
            a cursor object of result
         Exceptions:
@@ -853,67 +845,6 @@ class collection(object):
             raise
 
         return result
-
-    def get_index_info(self, idx_name):
-        """Get the information of specified index in current collection.
-
-        Parameters:
-           Name         Type  Info:
-           idx_name     str   The index name.
-        Return values:
-           a record of json/dict
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        if idx_name is None or not isinstance(idx_name, str_type):
-            raise SDBTypeError("index name must be an instance of str_type")
-
-        if idx_name == "":
-            return None
-
-        result = cursor()
-        try:
-            rc = sdb.cl_get_index(self._cl, result._cursor, idx_name)
-            raise_if_error(rc, "Failed to get indexes")
-        except SDBBaseError:
-            del result
-            result = None
-            raise
-
-        try:
-            record = result.next()
-        except SDBEndOfCursor:
-            record = None
-        except SDBBaseError:
-            raise
-
-        del result
-
-        return record
-
-    def is_index_exist(self, idx_name):
-        """Test if the specified index exists or not.
-
-        Parameters:
-           Name         Type  Info:
-           idx_name     str   The index name.
-        Return values:
-           bool
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        if idx_name is None or not isinstance(idx_name, str_type):
-            raise SDBTypeError("index name must be an instance of str_type")
-
-        try:
-            result = self.get_index_info(idx_name)
-        except SDBBaseError:
-            return False
-
-        if result is not None:
-            return True
-        else:
-            return False
 
     def drop_index(self, idx_name):
         """The index name.
@@ -1285,8 +1216,6 @@ class collection(object):
            QUERY_FLG_PARALLED        : Enable parallel sub query, each sub query will finish scanning different part of the data
            QUERY_FLG_FORCE_HINT      : In general, query won't return data until cursor gets from database, when add this flag, return data in query response, it will be more high-performance
            QUERY_PREPARE_MORE        : Enable prepare more data when query
-           QUERY_FLG_FOR_UPDATE      : When the transaction is turned on and the transaction isolation level is "RC", the transaction lock will not
-                                       be released until the transaction commit or rollback.
         """
         bson_condition = None
         bson_selector = None
@@ -1448,28 +1377,6 @@ class collection(object):
         rc = sdb.cl_truncate(self._cl)
         raise_if_error(rc, "Truncate failed")
 
-    def alter(self, options):
-        """Alter the collection.
-        Parameters:
-           Name         Type     Info:
-           options      dict     The options to alter
-                                 ReplSize     : Assign how many replica nodes need to be synchronized when a write request(insert, update, etc) is executed
-                                 ShardingKey  : Assign the sharding key
-                                 ShardingType : Assign the sharding type
-                                 Partition    : When the ShardingType is "hash", need to assign Partition, it's the bucket number for hash, the range is [2^3,2^20]
-                                 CompressionType : The compression type of data, could be "snappy" or "lzw"
-                                 EnsureShardingIndex : Assign to true to build sharding index
-                                 StrictDataMode : Using strict date mode in numeric operations or not
-                                 AutoIncrement : Assign attributes of an autoincrement field or batch autoincrement fields. e.g { "AutoIncrement": { "Field": "studentID", "StartValue": 1 } }
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        if not isinstance(options, dict):
-            raise SDBTypeError("options must be an instance of dict")
-        bson_options = bson.BSON.encode(options)
-        rc = sdb.cl_alter(self._cl, bson_options)
-        raise_if_error(rc, "Alter collection failed")
-
     def create_id_index(self, options=None):
         """Create the id index.
 
@@ -1497,136 +1404,3 @@ class collection(object):
         """
         rc = sdb.cl_drop_id_index(self._cl)
         raise_if_error(rc, "Drop id index failed")
-
-    def enable_sharding(self, options):
-        """Alter the collection to enable sharding.
-        Parameters:
-           Name         Type     Info:
-           options      dict     The options to alter
-                                 ShardingKey  : Assign the sharding key
-                                 ShardingType : Assign the sharding type
-                                 Partition    : When the ShardingType is "hash", need to assign Partition, it's the bucket number for hash, the range is [2^3,2^20]
-                                 EnsureShardingIndex : Assign to true to build sharding index
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        if not isinstance(options, dict):
-            raise SDBTypeError("options must be an instance of dict")
-        bson_options = bson.BSON.encode(options)
-        rc = sdb.cl_enable_sharding(self._cl, bson_options)
-        raise_if_error(rc, "Enable sharding failed")
-
-    def disable_sharding(self):
-        """Alter the collection to disable sharding.
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        rc = sdb.cl_disable_sharding(self._cl)
-        raise_if_error(rc, "Disable sharding failed")
-
-    def enable_compression(self, options):
-        """Alter the collection to enable compression.
-        Parameters:
-           Name         Type     Info:
-           options      dict     The options to alter
-                                 CompressionType : The compression type of data, could be "snappy" or "lzw"
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        if not isinstance(options, dict):
-            raise SDBTypeError("options must be an instance of dict")
-        bson_options = bson.BSON.encode(options)
-        rc = sdb.cl_enable_compression(self._cl, bson_options)
-        raise_if_error(rc, "Enable compression failed")
-
-    def disable_compression(self):
-        """Alter the collection to disable compression.
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        rc = sdb.cl_disable_compression(self._cl)
-        raise_if_error(rc, "Disable compression failed")
-
-    def set_attributes(self, options):
-        """Alter the collection.
-        Parameters:
-           Name         Type     Info:
-           options      dict     The options to alter
-                                 ReplSize     : Assign how many replica nodes need to be synchronized when a write request(insert, update, etc) is executed
-                                 ShardingKey  : Assign the sharding key
-                                 ShardingType : Assign the sharding type
-                                 Partition    : When the ShardingType is "hash", need to assign Partition, it's the bucket number for hash, the range is [2^3,2^20]
-                                 CompressionType : The compression type of data, could be "snappy" or "lzw"
-                                 EnsureShardingIndex : Assign to true to build sharding index
-                                 StrictDataMode : Using strict date mode in numeric operations or not
-                                 AutoIncrement : Assign attributes of an autoincrement field or batch autoincrement fields. e.g { "AutoIncrement": { "Field": "studentID", "StartValue": 1 } }
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        if not isinstance(options, dict):
-            raise SDBTypeError("options must be an instance of dict")
-        bson_options = bson.BSON.encode(options)
-        rc = sdb.cl_set_attributes(self._cl, bson_options)
-        raise_if_error(rc, "Set attributes failed")
-
-    def create_autoincrement(self, options):
-        """Create autoincrement field on collection.
-
-        Parameters:
-           Name      Type           Info:
-           options   dict           The options for create_autoincrement. e.g. { Field: "a", MaxValue:2000 }.
-           options   list/tuple     It can also be a list/tuple of such dict. e.g. [ { Field: "a", MaxValue:2000 }, { Field: "b", MaxValue:5000 } ]
-                                    Available options are as below:
-                                    Field          : The name of autoincrement field
-                                    StartValue     : The start value of autoincrement field
-                                    MinValue       : The minimum value of autoincrement field
-                                    MaxValue       : The maxmun value of autoincrement field
-                                    Increment      : The increment value of autoincrement field
-                                    CacheSize      : The cache size of autoincrement field
-                                    AcquireSize    : The acquire size of autoincrement field
-                                    Cycled         : The cycled flag of autoincrement field
-                                    Generated      : The generated mode of autoincrement field
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        if not ( isinstance(options, dict) or isinstance(options, list) or isinstance(options, tuple) ):
-            raise SDBTypeError("options must be an instance of dict, list or tuple")
-
-        container = []
-        if isinstance(options, list) or isinstance(options, tuple):
-            for elem in options:
-                if not isinstance(elem, dict):
-                    raise SDBTypeError("item in list/tuple must be an instance of dict")
-                option = bson.BSON.encode(elem)
-                container.append(option)
-        else:
-            option = bson.BSON.encode(options)
-            container.append(option)
-
-        rc = sdb.cl_create_autoincrement(self._cl, container)
-        raise_if_error(rc, "Create autoincrement failed")
-
-    def drop_autoincrement(self, names):
-        """Drop autoincrement field on collection.
-
-        Parameters:
-           Name      Type           Info:
-           names     str            The name(s) of autoincrement field. e.g. "a"
-           names     list/tuple     It can also be a list/tuple of such str. e.g. [ "a", "b" ]
-        Exceptions:
-           pysequoiadb.error.SDBBaseError
-        """
-        if not ( isinstance(names, str) or isinstance(names, list) or isinstance(names, tuple) ):
-            raise SDBTypeError("names must be an instance of str, list or tuple")
-
-        container = []
-        if isinstance(names, list) or isinstance(names, tuple):
-            for elem in names:
-                if not isinstance(elem, str):
-                    raise SDBTypeError("item in list/tuple must be an instance of str")
-                container.append(elem)
-        else:
-            container.append(names)
-
-        rc = sdb.cl_drop_autoincrement(self._cl, container)
-        raise_if_error(rc, "Drop autoincrement failed")

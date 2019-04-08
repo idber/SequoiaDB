@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2015 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = impRecordScanner.cpp
 
@@ -43,7 +42,6 @@ namespace import
 
       if (data[0] == str[0])
       {
-         // accelerate for single character
          if (1 == strLen)
          {
             return TRUE;
@@ -104,7 +102,6 @@ namespace import
       SDB_ASSERT(length > 0, "length must be greater than 0");
       SDB_ASSERT(recDelLen > 0, "recDelLen must be greater than 0");
 
-      // no need to consider string
       if (_linePriority || _stringDelimiter.empty())
       {
          while(len > 0)
@@ -121,7 +118,6 @@ namespace import
             str++;
          }
       }
-      // should consider string
       else
       {
          const CHAR* strDel = _stringDelimiter.c_str();
@@ -132,14 +128,6 @@ namespace import
          {
             if (!inString)
             {
-               if (_startWith(str, len, strDel, strDelLen))
-               {
-                  inString = TRUE;
-                  len -= strDelLen;
-                  str += strDelLen;
-                  continue;
-               }
-
                if (_startWith(str, len, recDel, recDelLen))
                {
                   recordLength = length - len;
@@ -147,12 +135,19 @@ namespace import
                   rc = SDB_OK;
                   break;
                }
+
+               if (_startWith(str, len, strDel, strDelLen))
+               {
+                  inString = TRUE;
+                  len -= strDelLen;
+                  str += strDelLen;
+                  continue;
+               }
             }
             else // in string
             {
                if (_startWith(str, len, strDel, strDelLen))
                {
-                  // previous character is escape
                   /*if ('\\' == *(str - 1))
                   {
                      len -= strDelLen;
@@ -163,7 +158,6 @@ namespace import
                   len -= strDelLen;
                   str += strDelLen;
 
-                  // two consecutive string delimiter
                   if (len > 0 && _startWith(str, len, strDel, strDelLen))
                   {
                      len -= strDelLen;
@@ -171,7 +165,6 @@ namespace import
                      continue;
                   }
 
-                  // the string is end
                   inString = FALSE;
                   continue;
                }
@@ -185,7 +178,6 @@ namespace import
       if (SDB_EOF == rc && final)
       {
          recordLength = length;
-         // it's safe to terminate the string
          str = (CHAR*)data + length;
          *str = '\0';
          rc = SDB_OK;
@@ -248,7 +240,6 @@ namespace import
             }
             break;
          case '\\':
-            // escape char, so skip one more char
             str++;
             len--;
             break;
@@ -259,7 +250,6 @@ namespace import
          str++;
          len--;
 
-         // json is closed
          if (hasJson && level == 0)
          {
             rc = SDB_OK;
@@ -269,7 +259,6 @@ namespace import
 
       if (SDB_OK == rc)
       {
-         // skip chars until next json
          while (len > 0)
          {
             if ('{' == *str)
@@ -286,7 +275,6 @@ namespace import
       else if (SDB_EOF == rc && final)
       {
          recordLength = length;
-         // it's safe to terminate the string
          str = (CHAR*)data + length;
          *str = '\0';
          rc = SDB_OK;

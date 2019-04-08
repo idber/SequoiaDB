@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omagentTaskBase.hpp
 
@@ -56,32 +55,21 @@ namespace engine
    {
       OMA_TASK_TYPE_BEGIN         = -1,
 
-      // add host
       OMA_TASK_ADD_HOST           = OM_TASK_TYPE_ADD_HOST,
 
-      // remove host
       OMA_TASK_REMOVE_HOST        = OM_TASK_TYPE_REMOVE_HOST,
 
-      // install business
       OMA_TASK_ADD_BUS            = OM_TASK_TYPE_ADD_BUSINESS,
 
-      // remove business
       OMA_TASK_REMOVE_BUS         = OM_TASK_TYPE_REMOVE_BUSINESS,
 
-      // execute ssql
       OMA_TASK_SSQL_EXEC          = OM_TASK_TYPE_SSQL_EXEC,
 
-      // extend business
       OMA_TASK_EXTEND_BUZ         = OM_TASK_TYPE_EXTEND_BUSINESS,
 
-      // shrink business
       OMA_TASK_SHRINK_BUSINESS    = OM_TASK_TYPE_SHRINK_BUSINESS,
 
-      // deploy package
       OMA_TASK_DEPLOY_PACKAGE     = OM_TASK_TYPE_DEPLOY_PACKAGE,
-
-      // restart business
-      OMA_TASK_RESTART_BUSINESS   = OM_TASK_TYPE_RESTART_BUSINESS,
 
       OMA_TASK_TYPE_END,
       
@@ -116,7 +104,6 @@ namespace engine
       OMA_TASK_STATUS_FINISH      = OM_TASK_STATUS_FINISH ,
       
       OMA_TASK_STATUS_FAIL        = 10 , // this status only use in omagent task
-                                         // nerver send to omsvc.
       OMA_TASK_STATUS_END
    } ;
 

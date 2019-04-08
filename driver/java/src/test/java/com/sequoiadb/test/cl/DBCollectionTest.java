@@ -7,13 +7,8 @@ import com.sequoiadb.test.common.Constants;
 import com.sequoiadb.test.common.ConstantsInsert;
 import com.sequoiadb.testdata.SDBTestHelper;
 import com.sequoiadb.testdata.TotalReadValue;
-import org.bson.BSON;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
-import org.bson.types.BSONTimestamp;
-import org.bson.types.BasicBSONList;
-import org.bson.types.Binary;
-import org.bson.util.JSON;
 import org.junit.*;
 
 import java.util.ArrayList;
@@ -37,20 +32,16 @@ public class DBCollectionTest {
 
     @AfterClass
     public static void afterClass() throws Exception {
-        if (sdb != null) {
-            sdb.disconnect();
-        }
+        sdb.disconnect();
     }
 
     @Before
     public void setUp() throws Exception {
-        // cs
         if (sdb.isCollectionSpaceExist(Constants.TEST_CS_NAME_1)) {
             sdb.dropCollectionSpace(Constants.TEST_CS_NAME_1);
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
         } else
             cs = sdb.createCollectionSpace(Constants.TEST_CS_NAME_1);
-        // cl
         BSONObject conf = new BasicBSONObject();
         conf.put("ReplSize", 0);
         cl = cs.createCollection(Constants.TEST_CL_NAME_1, conf);
@@ -140,13 +131,10 @@ public class DBCollectionTest {
 
     @Test
     public void testFind2() {
-        // create index
         BSONObject index = new BasicBSONObject();
         index.put("Id", 1);
         cl.createIndex(Constants.TEST_INDEX_NAME, index, false, false);
-        // insert some record
         ConstantsInsert.insertRecords(cl, NUM);
-        // test
         DBQuery query = new DBQuery();
         BSONObject matcher = new BasicBSONObject();
         BSONObject hint = new BasicBSONObject();
@@ -161,9 +149,7 @@ public class DBCollectionTest {
 
     @Test
     public void testFind3() {
-        // insert some record
         ConstantsInsert.insertRecords(cl, NUM);
-        // test
         BSONObject query = new BasicBSONObject();
         BSONObject condition = new BasicBSONObject();
         BSONObject selector = new BasicBSONObject();
@@ -192,9 +178,7 @@ public class DBCollectionTest {
 
     @Test
     public void testGetCount() {
-        // insert some record
         ConstantsInsert.insertRecords(cl, NUM);
-        // test
         BSONObject condition = new BasicBSONObject();
         BSONObject m = new BasicBSONObject();
         m.put("$gte", 0);
@@ -216,13 +200,10 @@ public class DBCollectionTest {
 
     @Test
     public void GetCount_with_hint() {
-        // create index
         String indexName = "indexfortestgetcount";
         BSONObject index = new BasicBSONObject("Id", 1);
         cl.createIndex(indexName, index, false, false);
-        // insert some record
         ConstantsInsert.insertRecords(cl, NUM);
-        // test
         BSONObject condition = new BasicBSONObject();
         BSONObject hint = new BasicBSONObject();
         BSONObject m = new BasicBSONObject();
@@ -233,14 +214,11 @@ public class DBCollectionTest {
 
         BSONObject empty = new BasicBSONObject();
 
-        // test
         DBCursor cur1 = sdb.getSnapshot(3, empty, empty, empty);
         long count = cl.getCount(condition, hint);
         DBCursor cur2 = sdb.getSnapshot(3, empty, empty, empty);
 
-        // check
         assertTrue(count == 10);
-        // check totalIndexRead and totalDataRead
         TotalReadValue values1 = new TotalReadValue();
         getTotalFromSnapShot(cur1, "TotalIndexRead", "TotalDataRead", values1);
 
@@ -260,9 +238,7 @@ public class DBCollectionTest {
 
     @Test
     public void testDelete() {
-        // insert some record
         ConstantsInsert.insertRecords(cl, NUM);
-        // test
         BSONObject matcher = new BasicBSONObject();
         matcher.put("Id", 0);
         cl.delete(matcher);
@@ -272,13 +248,10 @@ public class DBCollectionTest {
 
     @Test
     public void testDeleteByHint() {
-        // create index
         BSONObject index = new BasicBSONObject();
         index.put("Id", 1);
         cl.createIndex(Constants.TEST_INDEX_NAME, index, false, false);
-        // insert some record
         ConstantsInsert.insertRecords(cl, NUM);
-        // test
         BSONObject matcher = new BasicBSONObject();
         BSONObject hint = new BasicBSONObject();
         matcher.put("Id", 1);
@@ -290,13 +263,10 @@ public class DBCollectionTest {
 
     @Test
     public void testGetIndex() {
-        // create index
         BSONObject index = new BasicBSONObject();
         index.put("Id", 1);
         cl.createIndex(Constants.TEST_INDEX_NAME, index, false, false);
-        // insert some record
         ConstantsInsert.insertRecords(cl, NUM);
-        // test
         BSONObject idx = cl.getIndex(Constants.TEST_INDEX_NAME)
             .getNext();
         BSONObject def = (BSONObject) idx
@@ -315,9 +285,7 @@ public class DBCollectionTest {
 
     @Test
     public void testUpdateByQuery() {
-        // insert some record
         ConstantsInsert.insertRecords(cl, NUM);
-        // test
         DBQuery query = new DBQuery();
         BSONObject matcher = new BasicBSONObject();
         BSONObject modifier = new BasicBSONObject();
@@ -334,9 +302,7 @@ public class DBCollectionTest {
 
     @Test
     public void testUpdate() {
-        // insert some record
         ConstantsInsert.insertRecords(cl, NUM);
-        // test
         BSONObject matcher = new BasicBSONObject();
         BSONObject modifier = new BasicBSONObject();
         BSONObject m = new BasicBSONObject();
@@ -354,7 +320,6 @@ public class DBCollectionTest {
 
     @Test
     public void testUpsert() {
-        // insert some record
         ConstantsInsert.insertRecords(cl, NUM);
         BSONObject matcher = new BasicBSONObject();
         BSONObject modifier = new BasicBSONObject();
@@ -373,11 +338,9 @@ public class DBCollectionTest {
 
     @Test
     public void testDropIndex() {
-        // create index
         BSONObject index = new BasicBSONObject();
         index.put("Id", 1);
         cl.createIndex(Constants.TEST_INDEX_NAME, index, false, false);
-        //test
         cl.dropIndex(Constants.TEST_INDEX_NAME);
         SDBTestHelper.waitIndexDropFinish(cl, Constants.TEST_INDEX_NAME, 100);
         BSONObject idx = cl.getIndex(Constants.TEST_INDEX_NAME)
@@ -397,7 +360,6 @@ public class DBCollectionTest {
             assertNotNull(cl);
         }
     */
-//  @Test
     @Ignore
     public void testSplit() {
         String srcGroup = Constants.TEST_RG_NAME_SRC;
@@ -433,7 +395,6 @@ public class DBCollectionTest {
         }
         BSONObject condition = new BasicBSONObject();
         condition.put("operation", "Split2");
-//      cl1.split(srcGroup, destGroup, condition, new BasicBSONObject());
         cl1.split(srcGroup, destGroup, 50.0);
 
         Sequoiadb sdb2 = sdb.getReplicaGroup(destGroup).getNode(node2)
@@ -495,12 +456,10 @@ public class DBCollectionTest {
             try {
                 sdb.dropCollectionSpace(csName);
             } catch (Exception e) {
-                // ignore
             }
         }
     }
 
-    // create chinese record
     private static BSONObject createChineseRecord() {
 
         BSONObject obj = null;
@@ -523,7 +482,6 @@ public class DBCollectionTest {
         return obj;
     }
 
-    // create name list
     private static List<BSONObject> createNameList(int listSize) {
         List<BSONObject> list = null;
         if (listSize <= 0) {
@@ -558,226 +516,6 @@ public class DBCollectionTest {
             e.printStackTrace();
         }
         return list;
-    }
-
-    @Test
-    @Ignore // jira_3357
-    public void jira_3357_insertBigRecord() {
-        final int recordSize = 15 * 1024 * 1024;
-        byte[] binData = new byte[recordSize];
-
-        for(int i = 0; i < recordSize; ++i) {
-            binData[i] = 'a';
-        }
-
-        Binary binary = new Binary(binData);
-        BSONObject object = new BasicBSONObject();
-        object.put("bindata", binary);
-        cl.insert(object);
-    }
-
-    @Test
-	@Ignore
-    public void jira_() {
-        String csName = "testfoo_cs";
-        String clName = "testbar_cs";
-        DBCollection coll = sdb.getCollectionSpace(csName).getCollection(clName);
-        DBCursor cursor = coll.query();
-        while(cursor.hasNext()) {
-            BSONObject object = cursor.getNext();
-            System.out.println("record is: " + object);
-        }
-    }
-
-    @Test
-    @Ignore
-    public void jira_aa() {
-        BSONObject obj = new BasicBSONObject();
-        obj.put("date", new Date());
-        cl.delete("");
-        cl.insert(obj);
-        DBCursor cursor = cl.query("", "", "", "", 0, 0);
-        sdb.closeAllCursors();
-        while (cursor.hasNext()) {
-            System.out.println("record is: " + cursor.getNext());
-        }
-    }
-
-    @Test
-    @Ignore
-    public void jira_bb() {
-        Sequoiadb db =  new Sequoiadb("192.168.20.165", 11810, "", "");
-        String coordIP = sdb.getReplicaGroup("SYSCatalogGroup").getSlave().getHostName();
-        System.out.println("coordIP is: " + coordIP);
-        ReplicaGroup rg = db.getReplicaGroup("group1");
-        Node data = rg.createNode(coordIP, 21000, "/opt/sequoiadb/database/data/20000");
-        rg.start();
-        String hostName = data.getHostName();
-        System.out.println("hostName is: " + hostName);
-    }
-
-    @Test
-    @Ignore
-    public void jira_cc() {
-        DBCursor cursor = sdb.getList(Sequoiadb.SDB_LIST_COLLECTIONS, null, null, null);
-        while(cursor.hasNext()) {
-            BSONObject obj = cursor.getNext();
-            System.out.println(obj);
-        }
-    }
-
-    @Test
-    @Ignore
-    public void jira_3269() throws InterruptedException {
-        String csName = "jira_3269";
-        String clName = "jira_3269";
-        try {
-            ClientOptions clientOptions = new ClientOptions();
-            clientOptions.setEnableCache(true);
-            clientOptions.setCacheInterval(2000);
-            Sequoiadb.initClient(clientOptions);
-            Sequoiadb db1 = new Sequoiadb("192.168.20.165", 11810, "", "");
-            Sequoiadb db2 = new Sequoiadb("192.168.20.165", 11810, "", "");
-            db1.createCollectionSpace(csName).createCollection(clName);
-            CollectionSpace cs2 = db2.getCollectionSpace(csName);
-            DBCollection cl2 = cs2.getCollection(clName);
-            Thread.sleep(2000);
-            db1.getCollectionSpace(csName).dropCollection(clName);
-            cs2.getCollection(clName);
-        } finally {
-            sdb.dropCollectionSpace(csName);
-        }
-    }
-
-    @Test
-    public void invalidateCacheTest() {
-        BSONObject options = new BasicBSONObject();
-        options.put("Role", "coord");
-        sdb.invalidateCache(null);
-        sdb.invalidateCache(options);
-    }
-
-    @Test
-    public void testBSONTimestamp() {
-        BSONTimestamp ts1 = new BSONTimestamp(10000, 1000000);
-        Assert.assertEquals(10001, ts1.getTime());
-        Assert.assertEquals(0, ts1.getInc());
-
-        BSONTimestamp ts2 = new BSONTimestamp(10000, -1);
-        Assert.assertEquals(9999, ts2.getTime());
-        Assert.assertEquals(999999, ts2.getInc());
-
-        BSONTimestamp ts3 = new BSONTimestamp(10000, 0);
-        Assert.assertEquals(10000, ts3.getTime());
-        Assert.assertEquals(0, ts3.getInc());
-
-        BSONTimestamp ts4 = new BSONTimestamp(10000, 999999);
-        Assert.assertEquals(10000, ts4.getTime());
-        Assert.assertEquals(999999, ts4.getInc());
-
-        int time = 1534942305;
-        int inc = 123456789;
-        int incSec = 123456789 / 1000000;
-        int incMSec = 123456789 % 1000000;
-        int incMSec2 = 1000000 - incMSec;
-        BSONTimestamp ts5 = new BSONTimestamp(time, inc);
-        Assert.assertEquals(time + incSec, ts5.getTime());
-        Assert.assertEquals(incMSec, ts5.getInc());
-
-        BSONTimestamp ts6 = new BSONTimestamp(time, -inc);
-        Assert.assertEquals(time - incSec - 1, ts6.getTime());
-        Assert.assertEquals(incMSec2, ts6.getInc());
-
-        BSONTimestamp ts7 = new BSONTimestamp(-time, inc);
-        Assert.assertEquals(-time + incSec, ts7.getTime());
-        Assert.assertEquals(incMSec, ts7.getInc());
-
-        BSONTimestamp ts8 = new BSONTimestamp(-time, -inc);
-        Assert.assertEquals(-time - incSec - 1, ts8.getTime());
-        Assert.assertEquals(incMSec2, ts8.getInc());
-
-        BasicBSONObject object = new BasicBSONObject();
-        object.append("ts1", ts1).
-                append("ts2", ts2).
-                append("ts3", ts3).
-                append("ts4", ts4).
-                append("ts5", ts5).
-                append("ts6", ts6).
-                append("ts7", ts7).
-                append("ts8", ts8);
-        cl.insert(object);
-        BSONObject result = cl.queryOne();
-        System.out.println("result is: " + result);
-    }
-    
-    @Test
-    public void testCreateDropAutoIncrement() {
-        if (!Constants.isCluster()) {
-            return;
-        }
-        
-        final String autoIncName1 = "ID1";
-        final String autoIncName2 = "ID2";
-        final String autoIncName3 = "ID3";
-
-        cl.createAutoIncrement(new BasicBSONObject("Field", autoIncName1));
-
-        List<BSONObject> options = new ArrayList<BSONObject>();
-        BSONObject autoInc1 = new BasicBSONObject();
-        autoInc1.put("Field", autoIncName2);
-        autoInc1.put("StartValue", 100);
-        options.add(autoInc1);
-
-        BSONObject autoInc2 = new BasicBSONObject();
-        autoInc2.put("Field", autoIncName3);
-        autoInc2.put("StartValue", 200);
-        options.add(autoInc2);
-
-        cl.createAutoIncrement(options);
-
-        String clFullName = Constants.TEST_CS_NAME_1 + "." + Constants.TEST_CL_NAME_1;
-        BSONObject matcher = new BasicBSONObject("Name", clFullName);
-        DBCursor cursor = sdb.getSnapshot(Sequoiadb.SDB_SNAP_CATALOG, matcher, null, null);
-        while (cursor.hasNext()) {
-            BSONObject obj = cursor.getNext();
-            BasicBSONList autoIncList = (BasicBSONList)obj.get("AutoIncrement");
-            assertEquals(3, autoIncList.size());
-            // System.out.println(autoIncList);
-        }
-        cursor.close();
-
-        cl.dropAutoIncrement(autoIncName1);
-        List<String> names = new ArrayList<String>();
-        names.add(autoIncName2);
-        names.add(autoIncName3);
-        cl.dropAutoIncrement(names);
-
-        cursor = sdb.getSnapshot(Sequoiadb.SDB_SNAP_CATALOG, matcher, null, null);
-        while (cursor.hasNext()) {
-            BSONObject obj = cursor.getNext();
-            BasicBSONList autoIncList = (BasicBSONList)obj.get("AutoIncrement");
-            assertEquals(0, autoIncList.size());
-        }
-        cursor.close();
-    }
-
-    @Test
-    public void testExplain() {
-        BSONObject options1 = new BasicBSONObject();
-        options1.put("Expand", true);
-        BSONObject options2 = new BasicBSONObject();
-//        options2.put("Expand", false);
-        DBCursor cursor1 = cl.explain(null, null, null, null, 0, -1, 0, options1);
-        DBCursor cursor2 = cl.explain(null, null, null, null, 0, -1, 0, options2);
-        while (cursor1.hasNext()) {
-            BSONObject obj = cursor1.getNext();
-            System.out.println("obj1 is: " + obj.toString());
-        }
-        while (cursor2.hasNext()) {
-            BSONObject obj = cursor2.getNext();
-            System.out.println("obj2 is: " + obj.toString());
-        }
-
     }
 
 }

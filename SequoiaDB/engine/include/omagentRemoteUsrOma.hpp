@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omagentRemoteUsrOma.hpp
 
@@ -132,90 +131,6 @@ namespace engine
          INT32 doit( BSONObj &retObj ) ;
    } ;
 
-   /*
-      _remoteOmaNodesOperation define
-   */
-   class _remoteOmaNodesOperation : public _remoteExec
-   {
-   public:
-      _remoteOmaNodesOperation() ;
-
-      ~_remoteOmaNodesOperation() ;
-
-      virtual const CHAR * name() = 0 ;
-
-   protected:
-      INT32 _runNodesJob( BOOLEAN isStartNodes ) ;
-      void _mergeResult( BOOLEAN isStartNodes, BSONObj &retObj ) ;
-
-   private:
-      list< pair<EDUID,string> > _jobList ;
-   } ;
-
-   /*
-      _remoteOmaStartNodes define
-   */
-   class _remoteOmaStartNodes : public _remoteOmaNodesOperation
-   {
-   DECLARE_OACMD_AUTO_REGISTER()
-   public:
-      _remoteOmaStartNodes() ;
-
-      ~_remoteOmaStartNodes() ;
-
-      const CHAR *name() ;
-
-      INT32 doit( BSONObj &retObj ) ;
-   } ;
-
-   /*
-      _remoteOmaStopNodes define
-   */
-   class _remoteOmaStopNodes : public _remoteOmaNodesOperation
-   {
-   DECLARE_OACMD_AUTO_REGISTER()
-   public:
-      _remoteOmaStopNodes() ;
-
-      ~_remoteOmaStopNodes() ;
-
-      const CHAR *name() ;
-
-      INT32 doit( BSONObj &retObj ) ;
-   } ;
-
-
-   /*
-      _remoteOmaGetIniConfigs define
-   */
-   class _remoteOmaGetIniConfigs : public _remoteExec
-   {
-   DECLARE_OACMD_AUTO_REGISTER()
-   public:
-      _remoteOmaGetIniConfigs() ;
-
-      ~_remoteOmaGetIniConfigs() ;
-
-      const CHAR *name() ;
-
-      INT32 doit( BSONObj &retObj ) ;
-   } ;
-
-   /*
-      _remoteOmaSetIniConfigs define
-   */
-   class _remoteOmaSetIniConfigs : public _remoteExec
-   {
-   DECLARE_OACMD_AUTO_REGISTER()
-   public:
-      _remoteOmaSetIniConfigs() ;
-
-      ~_remoteOmaSetIniConfigs() ;
-
-      const CHAR *name() ;
-
-      INT32 doit( BSONObj &retObj ) ;
-   } ;
 
    /*
       _remoteOmaSetOmaConfigs define

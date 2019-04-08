@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dpsLogRecord.hpp
 
@@ -46,8 +45,6 @@
 #include "pd.hpp"
 namespace engine
 {
-   /// can not be a virtual class.
-   /// since it will create virtual ptr table.
    class _dpsLogRecordHeader
    {
    public:
@@ -101,19 +98,12 @@ namespace engine
       }
 
    public:
-      // 0x00 - 0x07
       DPS_LSN_OFFSET _lsn;
-      // 0x08 - 0x0F
       DPS_LSN_OFFSET _preLsn;
-      // 0x10 - 0x13
       UINT32 _length;
-      // 0x14 - 0x17
       DPS_LSN_VER _version ;
-      // 0x18 - 0x19
       UINT16 _type;
-      // 0x1A - 0x1B
       UINT16 _reserved1 ;
-      // 0x1C - 0x1F
       UINT32 _reserved2 ;
    } ;
    typedef class _dpsLogRecordHeader dpsLogRecordHeader ;
@@ -133,12 +123,6 @@ namespace engine
    typedef class _dpsRecordEle dpsRecordEle ;
 #pragma pack()
 
-   /// record ::= header body
-   /// body ::= +(item)
-   /// item ::= tag len value
-   /// tag ::= UINT8
-   /// len ::= UINT32
-   /// value ::= CHAR *
    class _dpsLogRecord : public SDBObject
    {
    public:

@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pmdProcessor.hpp
 
@@ -55,10 +54,7 @@ namespace engine
          virtual INT32           processMsg( MsgHeader *msg,
                                              rtnContextBuf &contextBuff,
                                              INT64 &contextID,
-                                             BOOLEAN &needReply,
-                                             BOOLEAN &needRollback ) ;
-
-         virtual INT32           doRollback() ;
+                                             BOOLEAN &needReply ) ;
 
          virtual const CHAR*           processorName() const ;
          virtual SDB_PROCESSOR_TYPE    processorType() const ;
@@ -75,19 +71,16 @@ namespace engine
          INT32                   _onQueryReqMsg( MsgHeader * msg,
                                                  SDB_DPSCB *dpsCB,
                                                  _rtnContextBuf &buffObj,
-                                                 INT64 &contextID,
-                                                 BOOLEAN &needRollback ) ;
+                                                 INT64 &contextID ) ;
          INT32                   _onDelReqMsg( MsgHeader * msg, 
                                                SDB_DPSCB *dpsCB ) ;
          INT32                   _onGetMoreReqMsg( MsgHeader * msg,
                                                    rtnContextBuf &buffObj,
-                                                   INT64 &contextID,
-                                                   BOOLEAN &needRollback ) ;
+                                                   INT64 &contextID ) ;
          INT32                   _onKillContextsReqMsg( MsgHeader *msg ) ;
          INT32                   _onSQLMsg( MsgHeader *msg,
                                             INT64 &contextID,
-                                            SDB_DPSCB *dpsCB,
-                                            BOOLEAN &needRollback ) ;
+                                            SDB_DPSCB *dpsCB ) ;
          INT32                   _onTransBeginMsg () ;
          INT32                   _onTransCommitMsg ( SDB_DPSCB *dpsCB ) ;
          INT32                   _onTransRollbackMsg ( SDB_DPSCB *dpsCB ) ;
@@ -112,15 +105,6 @@ namespace engine
          INT32                   _onInterruptSelfMsg() ;
          INT32                   _onDisconnectMsg() ;
 
-         INT32                   _updateVCS( const CHAR *fullName,
-                                             const BSONObj &updator ) ;
-
-         INT32                   _insertVCS( const CHAR *fullName,
-                                             const BSONObj &insertor ) ;
-
-         INT32                   _deleteVCS( const CHAR *fullName,
-                                             const BSONObj &deletor ) ;
-
       protected:
          _SDB_KRCB *             _pKrcb ;
          _SDB_DMSCB *            _pDMSCB ;
@@ -141,10 +125,7 @@ namespace engine
          virtual INT32           processMsg( MsgHeader *msg,
                                              rtnContextBuf &contextBuff,
                                              INT64 &contextID,
-                                             BOOLEAN &needReply,
-                                             BOOLEAN &needRollback ) ;
-
-         virtual INT32           doRollback() ;
+                                             BOOLEAN &needReply ) ;
 
          virtual const CHAR*           processorName() const ;
          virtual SDB_PROCESSOR_TYPE    processorType() const ;
@@ -161,9 +142,7 @@ namespace engine
       private:
          INT32                   _processCoordMsg( MsgHeader *msg,
                                                    INT64 &contextID,
-                                                   rtnContextBuf &contextBuff,
-                                                   BOOLEAN &needReply,
-                                                   BOOLEAN &needRollback ) ;
+                                                   rtnContextBuf &contextBuff ) ;
    } ;
 
    typedef _pmdCoordProcessor pmdCoordProcessor ;

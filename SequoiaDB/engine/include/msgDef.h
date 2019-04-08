@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = msgDef.h
 
@@ -103,7 +102,6 @@
 #define VALUE_NAME_SESSIONS                  "sessions"
 #define VALUE_NAME_SESSIONS_CURRENT          "sessions current"
 #define VALUE_NAME_HEALTH                    "health"
-#define VALUE_NAME_SVCTASKS                  "svctasks"
 #define VALUE_NAME_ALL                       "all"
 #define FIELD_NAME_ISMAINCL                  "IsMainCL"
 #define FIELD_NAME_MAINCLNAME                "MainCLName"
@@ -115,26 +113,6 @@
 #define FIELD_NAME_SHARDTYPE_RANGE           "range"
 #define FIELD_NAME_SHARDTYPE_HASH            "hash"
 #define FIELD_NAME_PARTITION                 "Partition"
-#define FIELD_NAME_AUTOINCREMENT             "AutoIncrement"
-#define FIELD_NAME_AUTOINC_FIELD             "Field"
-#define FIELD_NAME_AUTOINC_SEQ               "SequenceName"
-#define FIELD_NAME_AUTOINC_SEQ_ID            "SequenceID"
-#define FIELD_NAME_GENERATED                 "Generated"
-#define VALUE_NAME_ALWAYS                    "always"
-#define VALUE_NAME_STRICT                    "strict"
-#define VALUE_NAME_DEFAULT                   "default"
-#define FIELD_NAME_CURRENT_VALUE             "CurrentValue"
-#define FIELD_NAME_INCREMENT                 "Increment"
-#define FIELD_NAME_START_VALUE               "StartValue"
-#define FIELD_NAME_MIN_VALUE                 "MinValue"
-#define FIELD_NAME_MAX_VALUE                 "MaxValue"
-#define FIELD_NAME_CACHE_SIZE                "CacheSize"
-#define FIELD_NAME_ACQUIRE_SIZE              "AcquireSize"
-#define FIELD_NAME_CYCLED                    "Cycled"
-#define FIELD_NAME_INTERNAL                  "Internal"
-#define FIELD_NAME_INITIAL                   "Initial"
-#define FIELD_NAME_NEXT_VALUE                "NextValue"
-#define FIELD_NAME_EXPECT_VALUE              "ExpectValue"
 #define FIELD_NAME_MAJOR                     "Major"
 #define FIELD_NAME_MINOR                     "Minor"
 #define FIELD_NAME_FIX                       "Fix"
@@ -158,11 +136,8 @@
 #define FIELD_NAME_TOTALINSERT               "TotalInsert"
 #define FIELD_NAME_TOTALSELECT               "TotalSelect"
 #define FIELD_NAME_TOTALREAD                 "TotalRead"
-#define FIELD_NAME_TOTALWRITE                "TotalWrite"
 #define FIELD_NAME_TOTALREADTIME             "TotalReadTime"
 #define FIELD_NAME_TOTALWRITETIME            "TotalWriteTime"
-#define FIELD_NAME_TOTALTIME                 "Time"
-#define FIELD_NAME_TOTALCONTEXTS             "TotalContexts"
 #define FIELD_NAME_READTIMESPENT             "ReadTimeSpent"
 #define FIELD_NAME_WRITETIMESPENT            "WriteTimeSpent"
 #define FIELD_NAME_LASTOPBEGIN               "LastOpBegin"
@@ -218,7 +193,6 @@
 #define FIELD_NAME_CURRENTACTIVESESSIONS     "CurrentActiveSessions"
 #define FIELD_NAME_CURRENTIDLESESSIONS       "CurrentIdleSessions"
 #define FIELD_NAME_CURRENTSYSTEMSESSIONS     "CurrentSystemSessions"
-#define FIELD_NAME_CURRENTTASKSESSIONS       "CurrentTaskSessions"
 #define FIELD_NAME_CURRENTCONTEXTS           "CurrentContexts"
 #define FIELD_NAME_SESSIONS                  "Sessions"
 #define FIELD_NAME_STATUS                    "Status"
@@ -226,7 +200,6 @@
 #define FIELD_NAME_DICT_VERSION              "DictionaryVersion"
 #define FIELD_NAME_DICT_CREATE_TIME          "DictionaryCreateTime"
 #define FIELD_NAME_TYPE                      "Type"
-#define FIELD_NAME_EXT_DATA_NAME             "ExtDataName"
 #define FIELD_NAME_TOTAL_RECORDS             "TotalRecords"
 #define FIELD_NAME_TOTAL_LOBS                "TotalLobs"
 #define FIELD_NAME_TOTAL_DATA_PAGES          "TotalDataPages"
@@ -240,7 +213,6 @@
 #define FIELD_NAME_PROCESS_EVENT_COUNT       "ProcessEventCount"
 #define FIELD_NAME_RELATED_ID                "RelatedID"
 #define FIELD_NAME_ID                        "ID"
-#define FIELD_NAME_UNIQUEID                  "UniqueID"
 #define FIELD_NAME_LOGICAL_ID                "LogicalID"
 #define FIELD_NAME_SEQUENCE                  "Sequence"
 #define FIELD_NAME_INDEXES                   "Indexes"
@@ -269,7 +241,6 @@
 #define FIELD_NAME_RECEIVECOUNT              "ReceivedEvents"
 #define FIELD_NAME_TASKTYPE                  "TaskType"
 #define FIELD_NAME_TASKID                    "TaskID"
-#define FIELD_NAME_RULEID                    "RuleID"
 #define FIELD_NAME_SOURCEID                  "SourceID"
 #define FIELD_NAME_TARGETID                  "TargetID"
 #define FIELD_NAME_ASYNC                     "Async"
@@ -324,7 +295,6 @@
 #define FIELD_NAME_ELAPSED_TIME              "ElapsedTime"
 #define FIELD_NAME_RETURN_NUM                "ReturnNum"
 #define FIELD_NAME_RUN                       "Run"
-#define FIELD_NAME_WAIT                      "Wait"
 #define FIELD_NAME_CLUSTERNAME               "ClusterName"
 #define FIELD_NAME_BUSINESSNAME              "BusinessName"
 #define FIELD_NAME_DATACENTER                "DataCenter"
@@ -332,8 +302,6 @@
 #define FIELD_NAME_IMAGE                     "Image"
 #define FIELD_NAME_ACTIVATED                 "Activated"
 #define FIELD_NAME_READONLY                  "Readonly"
-#define FIELD_NAME_CSUNIQUEHWM               "CSUniqueHWM"
-#define FIELD_NAME_GLOBALID                  "GlobalID"
 #define FIELD_NAME_ENABLE                    "Enable"
 #define FIELD_NAME_ACTION                    "Action"
 #define FIELD_NAME_DATA                      "Data"
@@ -348,8 +316,6 @@
 #define FIELD_NAME_SLICE                     "Slice"
 #define FIELD_NAME_REMOTE_IP                 "RemoteIP"
 #define FIELD_NAME_REMOTE_PORT               "RemotePort"
-#define FIELD_NAME_MODE                      "Mode"
-#define VALUE_NAME_LOCAL                     "local"
 
 #define FIELD_NAME_MODIFY                    "$Modify"
 #define FIELD_NAME_OP                        "OP"
@@ -448,34 +414,10 @@
 #define FIELD_NAME_ALTER                     "Alter"
 #define FIELD_NAME_IGNORE_EXCEPTION          "IgnoreException"
 #define FIELD_NAME_KEEP_DATA                 "KeepData"
-#define FIELD_NAME_ENFORCED                  "enforced"
-#define FIELD_NAME_ENFORCED1                 "Enforced"
 #define FIELD_NAME_DEEP                      "Deep"
 #define FIELD_NAME_BLOCK                     "Block"
 #define FIELD_NAME_CAPPED                    "Capped"
 #define FIELD_NAME_TEXT                      "$Text"
-#define FIELD_NAME_CONFIGS                   "Configs"
-#define FIELD_NAME_SEQUENCE_NAME             "Name"
-#define FIELD_NAME_SEQUENCE_OID              "_id"
-#define FIELD_NAME_SEQUENCE_ID               "ID"
-#define FIELD_NAME_CONTONDUP                 "ContOnDup"
-#define FIELD_NAME_REPLACEONDUP              "ReplaceOnDup"
-#define FIELD_NAME_RETURN_OID                "ReturnOID"
-#define FIELD_NAME_AUDIT_MASK                "AuditMask"
-#define FIELD_NAME_AUDIT_CONFIG_MASK         "AuditConfigMask"
-#define FIELD_NAME_ROLLBACK                  "Rollback"
-
-/// strategy field begin
-#define FIELD_NAME_NICE                      "Nice"
-#define FIELD_NAME_TASK_NAME                 "TaskName"
-#define FIELD_NAME_CONTAINER_NAME            "ContainerName"
-#define FIELD_NAME_IP                        "IP"
-#define FIELD_NAME_TASK_ID                   "TaskID"
-#define FIELD_NAME_SCHDLR_TYPE               "SchdlrType"
-#define FIELD_NAME_SCHDLR_TYPE_DESP          "SchdlrTypeDesp"
-#define FIELD_NAME_SCHDLR_TIMES              "SchdlrTimes"
-#define FIELD_NAME_SCHDLR_MGR_EVT_NUM        "SchdlrMgrEvtNum"
-/// strategy field end
 
 #define FIELD_NAME_ANALYZE_MODE              "Mode"
 #define FIELD_NAME_ANALYZE_NUM               "SampleNum"
@@ -487,8 +429,6 @@
 #define FIELD_OP_VALUE_KEEP                  "keep"
 #define FIELD_OP_VALUE_REPLACE               "replace"
 
-// For parameters
-// Used internal: { $param : paramIndex, $ctype : canonicalType }
 #define FIELD_NAME_PARAM                     "$param"
 #define FIELD_NAME_CTYPE                     "$ctype"
 #define FIELD_NAME_PARAMETERS                "Parameters"
@@ -496,24 +436,22 @@
 #define IXM_FIELD_NAME_KEY                   "key"
 #define IXM_FIELD_NAME_NAME                  "name"
 #define IXM_FIELD_NAME_UNIQUE                "unique"
-#define IXM_FIELD_NAME_UNIQUE1               "Unique"
 #define IXM_FIELD_NAME_V                     "v"
 #define IXM_FIELD_NAME_ENFORCED              "enforced"
-#define IXM_FIELD_NAME_ENFORCED1             "Enforced"
 #define IXM_FIELD_NAME_DROPDUPS              "dropDups"
 #define IXM_FIELD_NAME_2DRANGE               "2drange"
 #define IXM_FIELD_NAME_INDEX_DEF             "IndexDef"
 #define IXM_FIELD_NAME_INDEX_FLAG            "IndexFlag"
 #define IXM_FIELD_NAME_SCAN_EXTLID           "ScanExtentLID"
 #define IXM_FIELD_NAME_SORT_BUFFER_SIZE      "SortBufferSize"
-#define IXM_FIELD_NAME_NOTNULL               "NotNull"
 
+#define CMD_NAME_ENFORCED                    "enforced"
 
 #define CMD_ADMIN_PREFIX                     "$"
 #define CMD_NAME_BACKUP_OFFLINE              "backup offline"
 #define CMD_NAME_CREATE_COLLECTION           "create collection"
+#define CMD_NAME_ALTER_COLLECTION            "alter collection"
 #define CMD_NAME_CREATE_COLLECTIONSPACE      "create collectionspace"
-#define CMD_NAME_CREATE_SEQUENCE             "create sequence"
 #define CMD_NAME_CREATE_INDEX                "create index"
 #define CMD_NAME_CANCEL_TASK                 "cancel task"
 #define CMD_NAME_DROP_COLLECTION             "drop collection"
@@ -542,8 +480,6 @@
 #define CMD_NAME_LIST_TASKS                  "list tasks"
 #define CMD_NAME_LIST_TRANSACTIONS           "list transactions"
 #define CMD_NAME_LIST_TRANSACTIONS_CUR       "list transactions current"
-#define CMD_NAME_LIST_SVCTASKS               "list service tasks"
-#define CMD_NAME_LIST_SEQUENCES              "list sequences"
 #define CMD_NAME_RENAME_COLLECTION           "rename collection"
 #define CMD_NAME_RENAME_COLLECTIONSPACE      "rename collectionspace"
 #define CMD_NAME_REORG_OFFLINE               "reorg offline"
@@ -564,9 +500,6 @@
 #define CMD_NAME_SNAPSHOT_TRANSACTIONS_CUR   "snapshot transactions current"
 #define CMD_NAME_SNAPSHOT_ACCESSPLANS        "snapshot accessplans"
 #define CMD_NAME_SNAPSHOT_HEALTH             "snapshot health"
-#define CMD_NAME_SNAPSHOT_CONFIGS            "snapshot configs"
-#define CMD_NAME_SNAPSHOT_SVCTASKS           "snapshot service tasks"
-#define CMD_NAME_SNAPSHOT_SEQUENCES          "snapshot sequences"
 #define CMD_NAME_TEST_COLLECTION             "test collection"
 #define CMD_NAME_TEST_COLLECTIONSPACE        "test collectionspace"
 #define CMD_NAME_CREATE_GROUP                "create group"
@@ -589,6 +522,7 @@
 #define CMD_NAME_TRACE_STATUS                "trace status"
 #define CMD_NAME_CREATE_DOMAIN               "create domain"
 #define CMD_NAME_DROP_DOMAIN                 "drop domain"
+#define CMD_NAME_ALTER_DOMAIN                "alter domain"
 #define CMD_NAME_ADD_DOMAIN_GROUP            "add domain group"
 #define CMD_NAME_REMOVE_DOMAIN_GROUP         "remove domain group"
 #define CMD_NAME_EXPORT_CONFIG               "export configuration"
@@ -601,11 +535,9 @@
 #define CMD_NAME_SETSESS_ATTR                "set session attribute"
 #define CMD_NAME_GETSESS_ATTR                "get session attribute"
 #define CMD_NAME_INVALIDATE_CACHE            "invalidate cache"
-#define CMD_NAME_INVALIDATE_SEQUENCE_CACHE   "invalidate sequence cache"
 #define CMD_NAME_FORCE_SESSION               "force session"
 #define CMD_NAME_LIST_LOBS                   "list lobs"
 #define CMD_NAME_ALTER_DC                    "alter dc"
-#define CMD_NAME_ALTER_USR                   "alter user"
 #define CMD_NAME_REELECT                     "reelect"
 #define CMD_NAME_FORCE_STEP_UP               "force step up"
 #define CMD_NAME_JSON_LOAD                   "json load"
@@ -614,8 +546,6 @@
 #define CMD_NAME_SYNC_DB                     "sync db"
 #define CMD_NAME_POP                         "pop"
 #define CMD_NAME_RELOAD_CONFIG               "reload config"
-#define CMD_NAME_UPDATE_CONFIG               "update config"
-#define CMD_NAME_DELETE_CONFIG               "delete config"
 #define CMD_NAME_ANALYZE                     "analyze"
 
 #define CMD_NAME_SNAPSHOT_DATABASE_INTR      "SNAPSHOT_DB"
@@ -631,9 +561,6 @@
 #define CMD_NAME_SNAPSHOT_TRANSCUR_INTR      "SNAPSHOT_TRANS_CUR"
 #define CMD_NAME_SNAPSHOT_ACCESSPLANS_INTR   "SNAPSHOT_ACCESSPLANS"
 #define CMD_NAME_SNAPSHOT_HEALTH_INTR        "SNAPSHOT_HEALTH"
-#define CMD_NAME_SNAPSHOT_CONFIGS_INTR       "SNAPSHOT_CONFIGS"
-#define CMD_NAME_SNAPSHOT_SVCTASKS_INTR      "SNAPSHOT_SVCTASKS"
-#define CMD_NAME_SNAPSHOT_SEQUENCES_INTR     "SNAPSHOT_SEQUENCES"
 
 #define CMD_NAME_LIST_COLLECTION_INTR        "LIST_CL"
 #define CMD_NAME_LIST_SPACE_INTR             "LIST_CS"
@@ -649,12 +576,6 @@
 #define CMD_NAME_LIST_USER_INTR              "LIST_USER"
 #define CMD_NAME_LIST_TASK_INTR              "LIST_TASK"
 #define CMD_NAME_LIST_DOMAIN_INTR            "LIST_DOMAIN"
-#define CMD_NAME_LIST_SVCTASKS_INTR          "LIST_SVCTASKS"
-#define CMD_NAME_LIST_SEQUENCES_INTR         "LIST_SEQUENCES"
-
-#define SYS_VIRTUAL_CS                       "SYS_VCS"
-#define SYS_VIRTUAL_CS_LEN                   sizeof( SYS_VIRTUAL_CS )
-#define SYS_CL_SESSION_INFO                  SYS_VIRTUAL_CS".SYS_SESSION_INFO"
 
 #define CMD_VALUE_NAME_CREATE                "create image"
 #define CMD_VALUE_NAME_REMOVE                "remove image"
@@ -667,17 +588,8 @@
 #define CMD_VALUE_NAME_ENABLE_READONLY       "enable readonly"
 #define CMD_VALUE_NAME_DISABLE_READONLY      "disable readonly"
 
-/*
-   alter user
-*/
-#define CMD_VALUE_NAME_CHANGEPASSWD          "change passwd"
-#define CMD_VALUE_NAME_SETATTR               "set attributes"
-
 #define CLS_REPLSET_MAX_NODE_SIZE            7
 #define SDB_MAX_MSG_LENGTH                   ( 512 * 1024 * 1024 )
-
-#define SDB_MAX_USERNAME_LENGTH              256
-#define SDB_MAX_PASSWORD_LENGTH              256
 
 #define INVALID_GROUPID                      0
 #define CATALOG_GROUPID                      1
@@ -688,17 +600,12 @@
 #define CATALOG_GROUPNAME                    SYS_PREFIX"CatalogGroup"
 #define COORD_GROUPNAME                      SYS_PREFIX"Coord"
 #define SPARE_GROUPNAME                      SYS_PREFIX"Spare"
-#define OM_GROUPNAME                         SYS_PREFIX"OM"
 #define NODE_NAME_SERVICE_SEP                ":"
 #define NODE_NAME_SERVICE_SEPCHAR            (((CHAR*)NODE_NAME_SERVICE_SEP)[0])
 #define INVALID_NODEID                       0
 #define CURRENT_NODEID                       -1
 #define SYS_NODE_ID_BEGIN                    1
-#define SYS_NODE_ID_END                      ( OM_NODE_ID_BEGIN - 1 )
-#define OM_NODE_ID_BEGIN                     800
-#define OM_NODE_ID_END                       ( RESERVED_NODE_ID_BEGIN - 1 )
-#define RESERVED_NODE_ID_BEGIN               810
-#define RESERVED_NODE_ID_END                 ( DATA_NODE_ID_BEGIN - 1 )
+#define SYS_NODE_ID_END                      ( DATA_NODE_ID_BEGIN - 1 )
 #define DATA_NODE_ID_BEGIN                   1000
 #define DATA_NODE_ID_END                     ( 60000 + DATA_NODE_ID_BEGIN )
 #define DATA_GROUP_ID_BEGIN                  1000
@@ -716,14 +623,9 @@
 
 #define SDB_AUTH_USER                        "User"
 #define SDB_AUTH_PASSWD                      "Passwd"
-#define SDB_AUTH_OLDPASSWD                   "OldPasswd"
 #define SDB_AUTH_SOURCE                      "Source"
 
 #define SDB_LOB_OID_LEN                      16
-
-#define SDB_SHARDING_PARTITION_DEFAULT    4096       // 2^12
-#define SDB_SHARDING_PARTITION_MIN        8          // 2^3
-#define SDB_SHARDING_PARTITION_MAX        1048576    // 2^20
 
 enum SDB_ROLE
 {
@@ -764,127 +666,14 @@ enum SDB_LOB_MODE
 
 #define SDB_ALTER_VERSION 1
 
-/// catalog objects
-#define SDB_CATALOG_DB        "db"
-#define SDB_CATALOG_CS        "collection space"
-#define SDB_CATALOG_CL        "collection"
-#define SDB_CATALOG_DOMAIN    "domain"
-#define SDB_CATALOG_GROUP     "group"
-#define SDB_CATALOG_NODE      "node"
-#define SDB_CATALOG_UNKNOWN   "unknown"
+#define SDB_ALTER_DB          "db"
+#define SDB_ALTER_CL          "collection"
+#define SDB_ALTER_CS          "collection space"
+#define SDB_ALTER_DOMAIN      "domain"
+#define SDB_ALTER_GROUP       "group"
+#define SDB_ALTER_NODE        "node"
 
-#define SDB_CATALOG_CL_ID_INDEX     "id index"
-#define SDB_CATALOG_CL_SHARDING     "sharding"
-#define SDB_CATALOG_CL_COMPRESS     "compression"
-#define SDB_CATALOG_CL_AUTOINC_FLD 	"autoincrement"
-
-#define SDB_CATALOG_CS_DOMAIN    SDB_CATALOG_DOMAIN
-#define SDB_CATALOG_CS_CAPPED    "capped"
-
-#define SDB_CATALOG_DOMAIN_GROUPS "groups"
-
-#define SDB_ALTER_ACTION_CREATE     "create"
-#define SDB_ALTER_ACTION_DROP       "drop"
-#define SDB_ALTER_ACTION_ENABLE     "enable"
-#define SDB_ALTER_ACTION_DISABLE    "disable"
-#define SDB_ALTER_ACTION_ADD        "add"
-#define SDB_ALTER_ACTION_SET        "set"
-#define SDB_ALTER_ACTION_REMOVE     "remove"
-#define SDB_ALTER_ACTION_SET_ATTR   "set attributes"
-
-#define SDB_ALTER_DELIMITER         " "
-
-/// alter collection
-#define CMD_NAME_ALTER_COLLECTION      "alter collection"
-
-/// create id index
-#define SDB_ALTER_CL_CRT_ID_INDEX      SDB_ALTER_ACTION_CREATE \
-                                       SDB_ALTER_DELIMITER \
-                                       SDB_CATALOG_CL_ID_INDEX
-
-/// drop id index
-#define SDB_ALTER_CL_DROP_ID_INDEX     SDB_ALTER_ACTION_DROP \
-                                       SDB_ALTER_DELIMITER \
-                                       SDB_CATALOG_CL_ID_INDEX
-
-/// create autoincrement field
-#define SDB_ALTER_CL_CRT_AUTOINC_FLD   SDB_ALTER_ACTION_CREATE \
-                                       SDB_ALTER_DELIMITER \
-                                       SDB_CATALOG_CL_AUTOINC_FLD
-
-/// drop autoincrement field
-#define SDB_ALTER_CL_DROP_AUTOINC_FLD  SDB_ALTER_ACTION_DROP \
-                                       SDB_ALTER_DELIMITER \
-                                       SDB_CATALOG_CL_AUTOINC_FLD
-
-/// enable sharding
-#define SDB_ALTER_CL_ENABLE_SHARDING   SDB_ALTER_ACTION_ENABLE \
-                                       SDB_ALTER_DELIMITER \
-                                       SDB_CATALOG_CL_SHARDING
-
-/// disable sharding
-#define SDB_ALTER_CL_DISABLE_SHARDING  SDB_ALTER_ACTION_DISABLE \
-                                       SDB_ALTER_DELIMITER \
-                                       SDB_CATALOG_CL_SHARDING
-
-/// enable compression
-#define SDB_ALTER_CL_ENABLE_COMPRESS   SDB_ALTER_ACTION_ENABLE \
-                                       SDB_ALTER_DELIMITER \
-                                       SDB_CATALOG_CL_COMPRESS
-
-/// disable compression
-#define SDB_ALTER_CL_DISABLE_COMPRESS  SDB_ALTER_ACTION_DISABLE \
-                                       SDB_ALTER_DELIMITER \
-                                       SDB_CATALOG_CL_COMPRESS
-
-/// set attributes
-#define SDB_ALTER_CL_SET_ATTR          SDB_ALTER_ACTION_SET_ATTR
-
-/// alter collection space
-#define CMD_NAME_ALTER_COLLECTION_SPACE   "alter collectionspace"
-
-/// set domain
-#define SDB_ALTER_CS_SET_DOMAIN           SDB_ALTER_ACTION_SET \
-                                          SDB_ALTER_DELIMITER \
-                                          SDB_CATALOG_CS_DOMAIN
-
-/// remove domain
-#define SDB_ALTER_CS_REMOVE_DOMAIN        SDB_ALTER_ACTION_REMOVE \
-                                          SDB_ALTER_DELIMITER \
-                                          SDB_CATALOG_CS_DOMAIN
-
-/// enable capped
-#define SDB_ALTER_CS_ENABLE_CAPPED        SDB_ALTER_ACTION_ENABLE \
-                                          SDB_ALTER_DELIMITER \
-                                          SDB_CATALOG_CS_CAPPED
-
-/// disable capped
-#define SDB_ALTER_CS_DISABLE_CAPPED       SDB_ALTER_ACTION_DISABLE \
-                                          SDB_ALTER_DELIMITER \
-                                          SDB_CATALOG_CS_CAPPED
-
-/// set attributes
-#define SDB_ALTER_CS_SET_ATTR             SDB_ALTER_ACTION_SET_ATTR
-
-/// alter domain
-#define CMD_NAME_ALTER_DOMAIN          "alter domain"
-
-/// add groups
-#define SDB_ALTER_DOMAIN_ADD_GROUPS    SDB_ALTER_ACTION_ADD \
-                                       SDB_ALTER_DELIMITER \
-                                       SDB_CATALOG_DOMAIN_GROUPS
-
-/// set groups
-#define SDB_ALTER_DOMAIN_SET_GROUPS    SDB_ALTER_ACTION_SET \
-                                       SDB_ALTER_DELIMITER \
-                                       SDB_CATALOG_DOMAIN_GROUPS
-
-/// remove groups
-#define SDB_ALTER_DOMAIN_REMOVE_GROUPS SDB_ALTER_ACTION_REMOVE \
-                                       SDB_ALTER_DELIMITER \
-                                       SDB_CATALOG_DOMAIN_GROUPS
-
-/// set attributes
-#define SDB_ALTER_DOMAIN_SET_ATTR      SDB_ALTER_ACTION_SET_ATTR
+#define SDB_ALTER_CRT_ID_INDEX     "create id index"
+#define SDB_ALTER_DROP_ID_INDEX    "drop id index"
 
 #endif // MSGDEF_H__

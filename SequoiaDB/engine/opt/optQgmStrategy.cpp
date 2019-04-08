@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = optQgmStrategy.cpp
 
@@ -37,9 +36,6 @@
 
 namespace engine
 {
-////////////////////////////////////////////////////////////////////////////////
-// BEGIN MAP DEFINITION
-////////////////////////////////////////////////////////////////////////////////
 
 #define ON_STRATEGY(oprUnitType, nodeType, strategyClass) \
    do { \
@@ -88,9 +84,6 @@ namespace engine
       } \
    } while ( 0 )
 
-////////////////////////////////////////////////////////////////////////////////
-// END MAP DEFINITION
-////////////////////////////////////////////////////////////////////////////////
 
    optQgmStrategyTable* getQgmStrategyTable ()
    {
@@ -170,9 +163,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      // MAP STARATEGYS
 
-      // SORT
       ON_STRATEGY( QGM_OPTI_TYPE_SORT, QGM_OPTI_TYPE_SELECT, optQgmRefuseSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_SORT, QGM_OPTI_TYPE_SORT, optQgmAcceptSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_SORT, QGM_OPTI_TYPE_FILTER, optQgmSortFilterSty ) ;
@@ -184,7 +175,6 @@ namespace engine
       ON_STRATEGY( QGM_OPTI_TYPE_SORT, QGM_OPTI_TYPE_MTHMCHFILTER, optQgmRefuseSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_SORT, QGM_OPTI_TYPE_SPLIT, optQgmRefuseSty ) ;
 
-      // FILTER
       ON_STRATEGY( QGM_OPTI_TYPE_FILTER, QGM_OPTI_TYPE_SELECT, optQgmRefuseSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_FILTER, QGM_OPTI_TYPE_SORT, optQgmFilterSortSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_FILTER, QGM_OPTI_TYPE_FILTER, optQgmFilterFilterSty ) ;
@@ -196,7 +186,6 @@ namespace engine
       ON_STRATEGY( QGM_OPTI_TYPE_FILTER, QGM_OPTI_TYPE_MTHMCHFILTER, optQgmRefuseSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_FILTER, QGM_OPTI_TYPE_SPLIT, optQgmRefuseSty ) ;
 
-      // AGGR
       ON_STRATEGY_RANGE( QGM_OPTI_TYPE_AGGR, QGM_OPTI_TYPE_SELECT,
                          QGM_OPTI_TYPE_JOIN, optQgmRefuseSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_AGGR, QGM_OPTI_TYPE_MTHMCHSEL, optQgmRefuseSty ) ;
@@ -204,9 +193,7 @@ namespace engine
       ON_STRATEGY( QGM_OPTI_TYPE_AGGR, QGM_OPTI_TYPE_MTHMCHFILTER, optQgmRefuseSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_AGGR, QGM_OPTI_TYPE_SPLIT, optQgmRefuseSty ) ;
 
-      // SCAN
 
-      // JOIN
       ON_STRATEGY_RANGE( QGM_OPTI_TYPE_JOIN, QGM_OPTI_TYPE_SELECT,
                          QGM_OPTI_TYPE_JOIN, optQgmRefuseSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_JOIN, QGM_OPTI_TYPE_MTHMCHSEL, optQgmRefuseSty ) ;
@@ -214,18 +201,15 @@ namespace engine
       ON_STRATEGY( QGM_OPTI_TYPE_JOIN, QGM_OPTI_TYPE_MTHMCHFILTER, optQgmRefuseSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_JOIN, QGM_OPTI_TYPE_SPLIT, optQgmRefuseSty ) ;
 
-      // JOIN CONDITION
       ON_STRATEGY_RANGE( QGM_OPTI_TYPE_JOIN_CONDITION, QGM_OPTI_TYPE_SELECT,
                          QGM_OPTI_TYPE_SPLIT, optQgmRefuseSty ) ;
 
-      // INSERT
       ON_STRATEGY_RANGE( QGM_OPTI_TYPE_INSERT, QGM_OPTI_TYPE_SELECT,
                          QGM_OPTI_TYPE_JOIN, optQgmRefuseSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_INSERT, QGM_OPTI_TYPE_MTHMCHSCAN, optQgmRefuseSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_INSERT, QGM_OPTI_TYPE_MTHMCHFILTER, optQgmRefuseSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_INSERT, QGM_OPTI_TYPE_SPLIT, optQgmRefuseSty ) ;
 
-      // END MAP STATEGYS
 
    done:
       return rc ;

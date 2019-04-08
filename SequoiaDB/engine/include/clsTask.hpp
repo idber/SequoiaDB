@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = clsTask.hpp
 
@@ -53,7 +52,6 @@ namespace engine
    enum CLS_TASK_TYPE
    {
       CLS_TASK_SPLIT          = 0,  //split task
-      CLS_TASK_SEQUENCE       = 1,  //clear sequence cache on coords task
 
       CLS_TASK_UNKNOW         = 255
    } ;
@@ -66,7 +64,6 @@ namespace engine
       CLS_TASK_STATUS_CANCELED= 3,  // canceled
       CLS_TASK_STATUS_META    = 4,  // when meta( ex:catalog info ) changed
       CLS_TASK_STATUS_FINISH  = 9,  // when stopped, this should be the last
-                                    // status before the task is removed
       CLS_TASK_STATUS_END     = 10  // nothing should have this status
    } ;
 
@@ -174,9 +171,7 @@ namespace engine
 #define CLS_SPLIT_MASK_SHARDINGKEY        0x00000400
 #define CLS_SPLIT_MASK_SHARDINGTYPE       0x00000800
 #define CLS_SPLIT_MASK_PERCENT            0x00001000
-//#define CLS_SPLIT_MASK_LOCKEND            0x00002000
 
-//#define CLS_SPLIT_TASK_LOCK_END           "LockEnd"
 
    class _clsSplitTask : public _clsTask
    {
@@ -236,7 +231,6 @@ namespace engine
          BSONObj                 _shardingKey ;
          CLS_TASK_TYPE           _taskType ;
          FLOAT64                 _percent ;
-         //BOOLEAN                 _lockEnd ;
 
       private:
          std::string             _taskName ;

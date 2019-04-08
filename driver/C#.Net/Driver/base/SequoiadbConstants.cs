@@ -1,20 +1,4 @@
-﻿/*
- * Copyright 2018 SequoiaDB Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
-*/
-
-using System;
+﻿using System;
 
 namespace SequoiaDB
 {
@@ -74,13 +58,8 @@ namespace SequoiaDB
         public const string TRANSACTIONS_CURRENT = "transactions current";
         public const string ACCESSPLANS = "accessplans";
         public const string HEALTH = "health";
-        public const string CONFIGS = "configs";
-        public const string SVCTASKS = "service tasks";
-        public const string SEQUENCES = "sequences";
-        public const string USERS = "users";
         public const string CS_IN_DOMAIN = "collectionspaces in domain";
         public const string CL_IN_DOMAIN = "collections in domain";
-        public const string ALTER_CS = "alter collectionspace";
 
         public const string COLLECTION = "collection";
         public const string CREATE_INX = "create index";
@@ -107,14 +86,9 @@ namespace SequoiaDB
         public const string ALTER_COLLECTION = "alter collection";
         public const string LIST_LOBS_CMD = "list lobs";
         public const string TRUNCATE = "truncate";
-        public const string SDB_ALTER_CL_CRT_AUTOINC_FLD = "create autoincrement";
-        public const string SDB_ALTER_CL_DROP_AUTOINC_FLD = "drop autoincrement";
 
         public const string CMD_NAME_ALTER_DC = "alter dc";
         public const string CMD_NAME_GET_DCINFO = "get dcinfo";
-        public const string CMD_NAME_UPDATE_CONFIG = "update config";
-        public const string CMD_NAME_DELETE_CONFIG = "delete config";
-        public const string CMD_NAME_INVALIDATE_CACHE = "invalidate cache";
         public const string CMD_VALUE_NAME_CREATE = "create image";
         public const string CMD_VALUE_NAME_REMOVE = "remove image";
         public const string CMD_VALUE_NAME_ATTACH = "attach groups";
@@ -127,8 +101,6 @@ namespace SequoiaDB
         public const string CMD_VALUE_NAME_DISABLE_READONLY = "disable readonly";
         public const string CMD_VALUE_NAME_SYNC_DB = "sync db";
         public const string CMD_VALUE_NAME_ANALYZE = "analyze";
-        public const string CMD_NAME_RENAME_COLLECTION = "rename collection";
-        public const string CMD_NAME_RENAME_COLLECTIONSPACE = "rename collectionspace";
 
         public const string OID = "_id";
         public const string CLIENT_RECORD_ID_INDEX = "$id";
@@ -191,12 +163,7 @@ namespace SequoiaDB
         public const string FIELD_NAME_CLUSTERNAME = "ClusterName";
         public const string FIELD_NAME_BUSINESSNAME = "BusinessName";
         public const string FIELD_NAME_DATACENTER = "DataCenter";
-        public const string FIELD_NAME_CONFIGS = "Configs";
-        public const string FIELD_NAME_OLDNAME = "OldName";
-        public const string FIELD_NAME_NEWNAME = "NewName";
-        public const string FIELD_NAME_CELLECTIONSPACE = "CollectionSpace";
-	    public const string FIELD_NAME_AUTOINCREMENT = "AutoIncrement";
-        public const string FIELD_NAME_AUTOINC_FIELD = "Field";
+
         public const string FIELD_MODIFY = "$Modify";
         public const string FIELD_OP = "OP";
         public const string FIELD_OP_UPDATE = "Update";
@@ -215,18 +182,6 @@ namespace SequoiaDB
 
         public const string SDB_ALTER_CRT_ID_INDEX = "create id index";
         public const string SDB_ALTER_DROP_ID_INDEX = "drop id index";
-        public const string SDB_ALTER_ENABLE_SHARDING = "enable sharding";
-        public const string SDB_ALTER_DISABLE_SHARDING = "disable sharding";
-        public const string SDB_ALTER_ENABLE_COMPRESSION = "enable compression";
-        public const string SDB_ALTER_DISABLE_COMPRESSION = "disable compression";
-        public const string SDB_ALTER_SET_ATTRIBUTES = "set attributes";
-        public const string SDB_ALTER_SET_DOMAIN = "set domain";
-        public const string SDB_ALTER_REMOVE_DOMAIN = "remove domain";
-        public const string SDB_ALTER_ENABLE_CAPPED = "enable capped";
-        public const string SDB_ALTER_DISABLE_CAPPED = "disable capped";
-        public const string SDB_ALTER_ADD_GROUPS = "add groups";
-        public const string SDB_ALTER_SET_GROUPS = "set groups";
-        public const string SDB_ALTER_REMOVE_GROUPS = "remove groups";
 
         public const string FIELD_SET_ON_INSERT = "$SetOnInsert";
 

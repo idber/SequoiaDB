@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = omagentRemoteUsrCmd.cpp
 
@@ -72,7 +71,6 @@ namespace engine
       BSONObjBuilder builder ;
       _sptUsrCmdCommon _cmdCommon ;
 
-      // get argument
       if ( FALSE == _valueObj.hasField( "command" ) )
       {
          rc = SDB_INVALIDARG ;
@@ -133,14 +131,10 @@ namespace engine
       if( SDB_OK != rc )
       {
          PD_LOG_MSG( PDERROR, err.c_str() ) ;
-         builder.append( OP_ERR_DETAIL, err ) ;
-         retObj = builder.obj() ;
          goto error ;
       }
-
       builder.append( "strOut", strOut ) ;
       retObj = builder.obj() ;
-
    done:
       return rc ;
    error:
@@ -214,7 +208,6 @@ namespace engine
          timeout = _optionObj.getIntField( "timeout" ) ;
       }
 
-      // useShell, default : 1
       if ( TRUE == _optionObj.hasField( "useShell" ) )
       {
          if ( NumberInt != _optionObj.getField( "useShell" ).type() )
@@ -271,7 +264,6 @@ namespace engine
       rc = _remoteExec::init( pInfomation ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get argument, rc: %d", rc ) ;
 
-      // get js code
       if ( FALSE == _valueObj.hasField( "code" ) )
       {
          rc = SDB_INVALIDARG ;
@@ -286,7 +278,6 @@ namespace engine
       }
       _code = _valueObj.getStringField( "code" ) ;
 
-      // get scope
       _jsScope = sdbGetOMAgentMgr()->getScopeBySession() ;
       if ( !_jsScope )
       {
@@ -308,7 +299,6 @@ namespace engine
       BSONObjBuilder builder ;
       BSONObj rval ;
 
-      // run js code
       rc = _jsScope->eval( _code.c_str(), _code.size(),
                            "", 1, SPT_EVAL_FLAG_NONE, &pRval ) ;
       if ( rc )
@@ -319,7 +309,6 @@ namespace engine
          goto error ;
       }
 
-      // set result
       rval = pRval->toBSON() ;
       rc = final ( rval, retObj ) ;
       if ( rc )

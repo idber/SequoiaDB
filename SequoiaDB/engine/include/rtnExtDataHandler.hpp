@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2017 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnExtDataHandler.hpp
 
@@ -43,10 +42,126 @@
 #include "dpsLogWrapper.hpp"
 #include "dmsExtDataHandler.hpp"
 #include "rtnExtDataProcessor.hpp"
-#include "rtnExtContext.hpp"
 
 namespace engine
 {
+   enum _RTN_EXTCTX_TYPE
+   {
+      RTN_EXTCTX_TYPE_INSERT = 0,
+      RTN_EXTCTX_TYPE_DELETE,
+      RTN_EXTCTX_TYPE_UPDATE,
+      RTN_EXTCTX_TYPE_TRUNCATE,
+      RTN_EXTCTX_TYPE_DROPCS,
+      RTN_EXTCTX_TYPE_DROPCL,
+      RTN_EXTCTX_TYPE_DROPIDX
+   } ;
+   typedef enum _RTN_EXTCTX_TYPE RTN_EXTCTX_TYPE ;
+
+   class _rtnExtContextBase : public SDBObject
+   {
+   public:
+      _rtnExtContextBase() ;
+      virtual ~_rtnExtContextBase() ;
+      void setID( UINT32 id )
+      {
+         _id = id ;
+      }
+
+      UINT32 getID() const
+      {
+         return _id ;
+      }
+
+      void appendProcessor( rtnExtDataProcessor *processor ) ;
+      void appendProcessor( rtnExtDataProcessor *processor,
+                            const BSONObj &processData ) ;
+      void appendProcessors( const vector< rtnExtDataProcessor * >& processorVec ) ;
+
+      RTN_EXTCTX_TYPE getType() const { return _type ; }
+
+      virtual INT32 done( rtnExtDataProcessorMgr *edpMgr, _pmdEDUCB *cb,
+                          SDB_DPSCB *dpscb = NULL ) = 0 ;
+      virtual INT32 abort( rtnExtDataProcessorMgr *edpMgr, _pmdEDUCB *cb,
+                           SDB_DPSCB *dpscb = NULL ) = 0 ;
+
+   protected:
+      typedef vector< rtnExtDataProcessor * > EDP_VEC ;
+      typedef EDP_VEC::iterator EDP_VEC_ITR ;
+      typedef vector< BSONObj > OBJ_VEC ;
+      typedef OBJ_VEC::iterator OBJ_VEC_ITR ;
+
+      RTN_EXTCTX_TYPE   _type ;
+      UINT32            _id ;
+      EDP_VEC           _processors ;
+      OBJ_VEC           _objects ;
+   } ;
+   typedef _rtnExtContextBase rtnExtContextBase ;
+
+   class _rtnExtDataOprCtx : public _rtnExtContextBase
+   {
+   public:
+      _rtnExtDataOprCtx() ;
+      ~_rtnExtDataOprCtx() ;
+
+      virtual INT32 done( rtnExtDataProcessorMgr *edpMgr, _pmdEDUCB *cb,
+                          SDB_DPSCB *dpscb = NULL ) ;
+      virtual INT32 abort( rtnExtDataProcessorMgr *edpMgr, _pmdEDUCB *cb,
+                           SDB_DPSCB *dpscb = NULL ) ;
+   } ;
+   typedef _rtnExtDataOprCtx rtnExtDataOprCtx ;
+
+   class _rtnExtDropOprCtx : public _rtnExtContextBase
+   {
+   public:
+      _rtnExtDropOprCtx() ;
+      ~_rtnExtDropOprCtx() ;
+
+      virtual INT32 done( rtnExtDataProcessorMgr *edpMgr, _pmdEDUCB *cb,
+                          SDB_DPSCB *dpscb = NULL ) ;
+      virtual INT32 abort( rtnExtDataProcessorMgr *edpMgr, _pmdEDUCB *cb,
+                           SDB_DPSCB *dpscb = NULL ) ;
+      void setRemoveFiles( BOOLEAN remove ) { _removeFiles = remove ; }
+   private:
+      BOOLEAN _removeFiles ;
+   } ;
+   typedef _rtnExtDropOprCtx rtnExtDropOprCtx ;
+
+   class _rtnExtTruncateCtx : public _rtnExtContextBase
+   {
+   public:
+      _rtnExtTruncateCtx() ;
+      ~_rtnExtTruncateCtx() ;
+
+      virtual INT32 done( rtnExtDataProcessorMgr *edpMgr, _pmdEDUCB *cb,
+                          SDB_DPSCB *dpscb = NULL ) ;
+      virtual INT32 abort( rtnExtDataProcessorMgr *edpMgr, _pmdEDUCB *cb,
+                           SDB_DPSCB *dpscb = NULL ) ;
+
+      void setCLLIDs( UINT32 oldLID, UINT32 newLID ) ;
+   private:
+      UINT32 _oldCLLID ;
+      UINT32 _newCLLID ;
+   } ;
+   typedef _rtnExtTruncateCtx rtnExtTruncateCtx ;
+
+   class _rtnExtContextMgr : public SDBObject
+   {
+      typedef utilConcurrentMap<UINT32, rtnExtContextBase*> RTN_CTX_MAP ;
+   public:
+      _rtnExtContextMgr() ;
+      ~_rtnExtContextMgr() ;
+
+      rtnExtContextBase* findContext( UINT32 contextID ) ;
+      INT32 createContext( RTN_EXTCTX_TYPE type, _pmdEDUCB *cb,
+                           rtnExtContextBase** context ) ;
+      INT32 delContext( UINT32 contextID, _pmdEDUCB *cb ) ;
+
+   private:
+      ossRWMutex        _mutex ;
+      RTN_CTX_MAP       _contextMap ;
+   } ;
+   typedef _rtnExtContextMgr rtnExtContextMgr ;
+
    class _rtnExtDataHandler : public _IDmsExtDataHandler
    {
    public:
@@ -54,144 +169,55 @@ namespace engine
       virtual ~_rtnExtDataHandler() ;
 
    public:
-
-      void enable() ;
-
-      INT32 disable( INT32 timeout ) ;
-
-
-      virtual INT32 prepare( DMS_EXTOPR_TYPE type, const CHAR *csName,
-                             const CHAR *clName, const CHAR *idxName,
-                             const BSONObj *object, const BSONObj *objNew,
-                             pmdEDUCB *cb ) ;
-
       virtual INT32 onOpenTextIdx( const CHAR *csName, const CHAR *clName,
-                                   ixmIndexCB &indexCB ) ;
+                                   const CHAR *idxName ) ;
 
-      // Always called after the cs name have been removed from cscbVec.(In 2P
-      // dropping, it may be in the delCscbVec. Any way, other sessions are not
-      // able to see this cs now.
       virtual INT32 onDelCS( const CHAR *csName, pmdEDUCB *cb,
                              BOOLEAN removeFiles, SDB_DPSCB *dpscb = NULL ) ;
 
-      virtual INT32 onDelCL( const CHAR *csName, const CHAR *clName,
-                             pmdEDUCB *cb, SDB_DPSCB *dpscb = NULL ) ;
+      virtual INT32 onDropAllIndexes( const CHAR *csName, const CHAR *clName,
+                                      _pmdEDUCB *cb, SDB_DPSCB *dpscb = NULL ) ;
 
-      virtual INT32 onCrtTextIdx( _dmsMBContext *context, const CHAR *csName,
-                                  ixmIndexCB &indexCB, _pmdEDUCB *cb,
-                                  SDB_DPSCB *dpscb = NULL ) ;
-
-      virtual INT32 onDropTextIdx( const CHAR *extName, _pmdEDUCB *cb,
+      virtual INT32 onDropTextIdx( const CHAR *csName, const CHAR *clName,
+                                   const CHAR *idxName, _pmdEDUCB *cb,
                                    SDB_DPSCB *dpscb = NULL ) ;
 
       virtual INT32 onRebuildTextIdx( const CHAR *csName, const CHAR *clName,
-                                      const CHAR *idxName, const CHAR *extName,
-                                      const BSONObj &indexDef, _pmdEDUCB *cb,
+                                      const CHAR *idxName, _pmdEDUCB *cb,
                                       SDB_DPSCB *dpscb = NULL ) ;
 
-      virtual INT32 onInsert( const CHAR *extName, const BSONObj &object,
-                              _pmdEDUCB* cb, SDB_DPSCB *dpscb = NULL ) ;
-
-      virtual INT32 onDelete( const CHAR *extName, const BSONObj &object,
-                              _pmdEDUCB* cb, SDB_DPSCB *dpscb = NULL ) ;
-
-      virtual INT32 onUpdate( const CHAR *extName, const BSONObj &orignalObj,
-                              const BSONObj &newObj, _pmdEDUCB* cb,
-                              BOOLEAN isRollback = FALSE,
+      virtual INT32 onInsert( const CHAR *csName, const CHAR *clName,
+                              const CHAR *idxName, const ixmIndexCB &indexCB,
+                              const BSONObj &object, _pmdEDUCB* cb,
                               SDB_DPSCB *dpscb = NULL ) ;
 
-      virtual INT32 onTruncateCL( const CHAR *csName, const CHAR *clName,
-                                  _pmdEDUCB *cb, SDB_DPSCB *dpscb = NULL ) ;
+      virtual INT32 onDelete( const CHAR *csName, const CHAR *clName,
+                              const CHAR *idxName,
+                              const ixmIndexCB &indexCB,
+                              const BSONObj &object, _pmdEDUCB* cb,
+                              SDB_DPSCB *dpscb = NULL ) ;
 
-      virtual INT32 onRenameCS( const CHAR *oldCSName, const CHAR *newCSName,
-                                _pmdEDUCB *cb, SDB_DPSCB *dpscb = NULL ) ;
+      virtual INT32 onUpdate( const CHAR *csName, const CHAR *clName,
+                              const CHAR *idxName, const ixmIndexCB &indexCB,
+                              const BSONObj &orignalObj, const BSONObj &newObj,
+                              _pmdEDUCB* cb, SDB_DPSCB *dpscb = NULL ) ;
 
-      virtual INT32 onRenameCL( const CHAR *csName, const CHAR *oldCLName,
-                                const CHAR *newCLName, _pmdEDUCB *cb,
-                                SDB_DPSCB *dpscb = NULL ) ;
+      INT32 onTruncateCL( const CHAR *csName, const CHAR *clName,
+                           _pmdEDUCB *cb, SDB_DPSCB *dpsCB = NULL ) ;
 
-      virtual INT32 done( DMS_EXTOPR_TYPE type, _pmdEDUCB *cb,
-                          SDB_DPSCB *dpscb = NULL ) ;
+      virtual INT32 done( _pmdEDUCB *cb, SDB_DPSCB *dpscb = NULL ) ;
 
-      virtual INT32 abortOperation( DMS_EXTOPR_TYPE type, _pmdEDUCB *cb ) ;
+      virtual INT32 abortOperation( _pmdEDUCB *cb ) ;
 
    private:
-      BOOLEAN _hasExtName( const ixmIndexCB &indexCB ) ;
+      INT32 _prepareCSAndCL( const CHAR *csName, const CHAR *clName,
+                             pmdEDUCB *cb, SDB_DPSCB *dpsCB ) ;
 
-      INT32 _extendIndexDef( const CHAR *csName, const CHAR *clName,
-                             ixmIndexCB &indexCB ) ;
-
-      OSS_INLINE INT32 _hold() ;
-
-      OSS_INLINE void _release() ;
-
-      OSS_INLINE BOOLEAN _holdingType( DMS_EXTOPR_TYPE type ) const ;
-
-      INT32 _check( DMS_EXTOPR_TYPE type, const CHAR *csName,
-                    const CHAR *clName, const CHAR *idxName,
-                    const BSONObj *object, const BSONObj *objNew ) ;
-
-      INT32 _getContext( DMS_EXTOPR_TYPE type, rtnExtContextBase *&ctx,
-                         pmdEDUCB *cb ) ;
-
-      INT32 _getExtDataName( utilCLUniqueID clUniqID,
-                             const CHAR *idxName,
-                             CHAR *extName,
-                             UINT32 buffSize ) ;
-
-      // For compatibility with version 3.0. The external name rule is
-      // different. This is used during upgrading from version 3.0, to append
-      // 'ExtDataName' to indexCB.
-      INT32 _getExtDataNameV1( const CHAR *csName, const CHAR *clName,
-                               const CHAR *idxName, CHAR *extName,
-                               UINT32 buffSize ) ;
    private:
-      BOOLEAN                 _enabled ;
-      ossAtomic32             _refCount ;
       rtnExtDataProcessorMgr  *_edpMgr ;
       rtnExtContextMgr        _contextMgr ;
    } ;
    typedef _rtnExtDataHandler rtnExtDataHandler ;
-
-   OSS_INLINE INT32 _rtnExtDataHandler::_hold()
-   {
-      INT32 rc = SDB_OK ;
-
-      if ( !_enabled )
-      {
-         rc = SDB_CLS_FULL_SYNC ;
-         PD_LOG( PDERROR, "External data handler is not enabled. Maybe some "
-                          "full sync is in progress and this node is source") ;
-         goto error ;
-      }
-      _refCount.inc() ;
-
-      // Double check if it has been disabled by someone else.
-      if ( !_enabled )
-      {
-         _refCount.dec() ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   OSS_INLINE void _rtnExtDataHandler::_release()
-   {
-      SDB_ASSERT( _refCount.fetch() > 0, "External handler reference "
-                                         "is not greater than 0" ) ;
-      _refCount.dec() ;
-   }
-
-   OSS_INLINE BOOLEAN _rtnExtDataHandler::_holdingType( DMS_EXTOPR_TYPE type ) const
-   {
-      return ( ( DMS_EXTOPR_TYPE_INSERT == type ) ||
-               ( DMS_EXTOPR_TYPE_DELETE == type ) ||
-               ( DMS_EXTOPR_TYPE_UPDATE == type ) ||
-               ( DMS_EXTOPR_TYPE_TRUNCATE == type ) ) ;
-   }
 
    rtnExtDataHandler* rtnGetExtDataHandler() ;
 }

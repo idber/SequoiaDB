@@ -13,27 +13,16 @@
 #define OPTION_NAME_SERVICE          "service"
 #define OPTION_NAME_USER             "user"
 #define OPTION_NAME_PASSWORD         "password"
-#define OPTION_NAME_TOKEN            "token"
-#define OPTION_NAME_CIPHER           "cipher"
-#define OPTION_NAME_CIPHERFILE       "cipherfile"
 #define OPTION_NAME_TRANSACTION      "transaction"
 /******************************/
 
 /* Table related options */
-#define OPTION_NAME_COLLECTIONSPACE       "collectionspace"
-#define OPTION_NAME_COLLECTION            "collection"
-#define OPTION_NAME_USEDECIMAL            "decimal"
-#define OPTION_NAME_PUSHDOWNSORT          "pushdownsort"
-#define OPTION_NAME_PUSHDOWNLIMIT         "pushdownlimit"
-#define OPTION_NAME_PREFEREDINSTANCE      "preferedinstance"
-#define OPTION_NAME_PREFEREDINSTANCE_MODE "preferedinstancemode"
-#define OPTION_NAME_SESSION_TIMEOUT       "sessiontimeout"
+#define OPTION_NAME_COLLECTIONSPACE  "collectionspace"
+#define OPTION_NAME_COLLECTION       "collection"
+#define OPTION_NAME_USEDECIMAL       "decimal"
+#define OPTION_NAME_PREFEREDINSTANCE "preferedinstance"
 
-
-
-#define DEFAULT_PREFEREDINSTANCE      ""
-#define DEFAULT_PREFEREDINSTANCE_MODE ""
-#define DEFAULT_SESSION_TIMEOUT       -1
+#define DEFAULT_PREFEREDINSTANCE     "A"
 /*************************/
 
 #define DEFAULT_HOSTNAME            "localhost"
@@ -41,16 +30,21 @@
 #define DEFAULT_USERNAME            ""
 #define DEFAULT_PASSWORDNAME        ""
 
-#define SDB_OPTION_ON               "on"
-#define SDB_OPTION_OFF              "off"
+#define SDB_TRANSACTION_ON          "on"
+#define SDB_TRANSACTION_OFF         "off"
+#define DEFAULT_TRANSACTION         SDB_TRANSACTION_OFF
+
+#define SDB_DECIMAL_ON              "on"
+#define SDB_DECIMAL_OFF             "off"
+#define DEFAULT_DECIMAL             SDB_DECIMAL_OFF
 
 #define INITIAL_ARRAY_CAPACITY         8
 #define SDB_TUPLE_COST_MULTIPLIER      5
 
 #define SDB_MAX_KEY_COLUMN_COUNT       (10)
-#define SDB_MAX_KEY_COLUMN_LENGTH      (30)
+#define SDB_MAX_KEY_COLUMN_LENGTH      (20)
 
-#define SDB_MAX_INDEX_NUM              (20)
+#define SDB_MAX_INDEX_NUM              (10)
 
 #define SDB_MAX_SERVICE_LENGTH         (256)
 
@@ -65,23 +59,16 @@ typedef struct SdbInputOption SdbInputOption ;
 
 static const SdbInputOption SdbInputOptionList[] =
 {
-   { OPTION_NAME_ADDRESS,                 ForeignServerRelationId },
-   { OPTION_NAME_SERVICE,                 ForeignServerRelationId },
-   { OPTION_NAME_USER,                    ForeignServerRelationId },
-   { OPTION_NAME_PASSWORD,                ForeignServerRelationId },
-   { OPTION_NAME_TOKEN,                   ForeignServerRelationId },
-   { OPTION_NAME_CIPHER,                  ForeignServerRelationId },
-   { OPTION_NAME_CIPHERFILE,              ForeignServerRelationId },
-   { OPTION_NAME_PREFEREDINSTANCE,        ForeignServerRelationId },
-   { OPTION_NAME_PREFEREDINSTANCE_MODE,   ForeignServerRelationId },
-   { OPTION_NAME_SESSION_TIMEOUT,         ForeignServerRelationId },
-   { OPTION_NAME_TRANSACTION,             ForeignServerRelationId },
+   { OPTION_NAME_ADDRESS,          ForeignServerRelationId },
+   { OPTION_NAME_SERVICE,          ForeignServerRelationId },
+   { OPTION_NAME_USER,             ForeignServerRelationId },
+   { OPTION_NAME_PASSWORD,         ForeignServerRelationId },
+   { OPTION_NAME_PREFEREDINSTANCE, ForeignServerRelationId },
+   { OPTION_NAME_TRANSACTION,      ForeignServerRelationId },
 
-   { OPTION_NAME_COLLECTIONSPACE,         ForeignTableRelationId },
-   { OPTION_NAME_COLLECTION,              ForeignTableRelationId },
-   { OPTION_NAME_USEDECIMAL,              ForeignTableRelationId },
-   { OPTION_NAME_PUSHDOWNSORT,            ForeignTableRelationId },
-   { OPTION_NAME_PUSHDOWNLIMIT,           ForeignTableRelationId }
+   { OPTION_NAME_COLLECTIONSPACE,  ForeignTableRelationId },
+   { OPTION_NAME_COLLECTION,       ForeignTableRelationId },
+   { OPTION_NAME_USEDECIMAL,       ForeignTableRelationId }
 } ;
 
 struct SdbInputOptions
@@ -90,18 +77,11 @@ struct SdbInputOptions
    INT32 serviceNum ;
    CHAR  *user ;
    CHAR  *password ;
-   CHAR  *token ;
-   INT32 isUseCipher ;                          /* use cipherfile */
-   CHAR  *cipherfile ;
    CHAR  *collectionspace ;
    CHAR  *collection ;
    CHAR  *preference_instance ;
-   CHAR  *preference_instance_mode ;
-   INT32 sessionTimeout ;
    CHAR  *transaction ;
    INT32 isUseDecimal ;                         /* use decimal in sdb */
-   INT32 isPushDownSort ;                       /* push down sort or not */
-   INT32 isPushDownLimit ;                      /* push down limit or not */
 } ;
 typedef struct SdbInputOptions SdbInputOptions ;
 
@@ -150,8 +130,6 @@ typedef struct SdbExprTreeState_s
    INT32 or_unsupport_count ;   /* OR/NOT 's child node, impact OR/NOT node*/
 
    INT32 is_use_decimal ;       /* use decimal in sdb */
-
-   List *range_table ;          /* List of RangeTblEntry */
 }SdbExprTreeState;
 
 typedef struct PgTableDesc_s
@@ -171,23 +149,13 @@ struct SdbExecState
    sdbConnectionHandle hConnection ;
    sdbCollectionHandle hCollection ;
    sdbbson queryDocument ; /* query request */
-   sdbbson sortDocument ; /* sort request */
-   INT64 offset ;
-   INT64 limit ;
-   int isPushDownSort ;
-   int isPushDownLimit ;
 
    /* sdb server options */
    char *sdbServerList[ INITIAL_ARRAY_CAPACITY ];
    int sdbServerNum;
    char *usr;
    char *passwd;
-   char *token;
-   int isUseCipher;
-   char *cipherfile;
    char *preferenceInstance;
-   char *preferenceInstanceMode;
-   int sessionTimeout;
    char *transaction;
 
    char *sdbcs;
@@ -251,7 +219,6 @@ struct SdbCLStatistics
    int indexNum;
    sdbIndexInfo indexInfo[SDB_MAX_INDEX_NUM + 1];
 
-   /// clHandle should not exist here actually.
    sdbCollectionHandle clHandle ;
 } ;
 typedef struct SdbCLStatistics SdbCLStatistics ;

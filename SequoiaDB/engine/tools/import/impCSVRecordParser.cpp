@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2015 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = impCSVRecordParser.cpp
 
@@ -32,7 +31,6 @@
 #include "impCSVRecordParser.hpp"
 #include "../client/base64c.h"
 #include "ossUtil.h"
-#include "impUtil.hpp"
 #include "pd.hpp"
 #include <cctype>
 #include <cmath>
@@ -152,7 +150,6 @@ namespace import
 
    #define LEFT_BRACKET           ('(')
    #define RIGHT_BRACKET          (')')
-   #define DOUBLE_QUOTES          ('"')
    #define COMMA                  (',')
 
    #define CSV_MAX_STRING_SIZE (1024 * 1024 * 16)
@@ -177,7 +174,6 @@ namespace import
 
       if (data[0] == str[0])
       {
-         // accelerate for single character
          if (1 == strLen)
          {
             return TRUE;
@@ -199,7 +195,6 @@ namespace import
 
       if (data[dataLen - 1] == str[strLen - 1])
       {
-         // accelerate for single character
          if (1 == strLen)
          {
             return TRUE;
@@ -235,7 +230,6 @@ namespace import
       *data = str;
    }
 
-   // don't skip if the delimiter is space
    static inline void _skipSpace(CHAR** data, INT32& length,
                                  const CHAR* delimiter, INT32 delLength)
    {
@@ -250,38 +244,6 @@ namespace import
       {
          if (!isspace(*str) ||
              (_startWith(str, length, delimiter, delLength)))
-         {
-            break;
-         }
-
-         str++;
-         length--;
-      }
-
-      *data = str;
-   }
-
-   // don't skip if the field and string delimiter is space
-   static inline void _skipSpace(CHAR** data, INT32& length,
-                                 const CHAR* fieldDelimiter,
-                                 INT32 fieldDelimiterLen,
-                                 const CHAR* stringDelimiter,
-                                 INT32 stringDelimiterLen )
-   {
-      CHAR* str = *data;
-
-      SDB_ASSERT(NULL != data, "data can't be NULL");
-      SDB_ASSERT(NULL != str, "str can't be NULL");
-      SDB_ASSERT(NULL != fieldDelimiter, "delimiter can't be NULL");
-      SDB_ASSERT(NULL != stringDelimiter, "delimiter can't be NULL");
-      SDB_ASSERT(fieldDelimiterLen > 0, "delLength must be greater than 0");
-      SDB_ASSERT(stringDelimiterLen > 0, "delLength must be greater than 0");
-
-      while (length > 0)
-      {
-         if (!isspace(*str) ||
-             (_startWith(str, length, fieldDelimiter, fieldDelimiterLen)) ||
-             (_startWith(str, length, stringDelimiter, stringDelimiterLen)))
          {
             break;
          }
@@ -328,13 +290,11 @@ namespace import
          return FALSE;
       }
 
-      // the first character can't be '$'
       if ('$' == field[0])
       {
          return FALSE;
       }
 
-      // the characters can't be invisible or '.'
       while (length > 0)
       {
          UINT8 ch = *field;
@@ -452,7 +412,7 @@ namespace import
          goto error;
       }
 
-      if (precision < 1 || precision > SDB_DECIMAL_MAX_PRECISION )
+      if (precision < 1 || precision > DECIMAL_MAX_PRECISION)
       {
          rc = SDB_INVALIDARG;
          PD_LOG(PDERROR, "invalid decimal precision");
@@ -553,115 +513,6 @@ namespace import
       goto done;
    }
 
-   static INT32 _parseTimestampFmt( const CHAR *data, INT32 length,
-                                    CSVFieldOpt &opt )
-   {
-      INT32 rc = SDB_OK ;
-      INT32 len = length;
-      INT32 fmtLen = 0 ;
-      CHAR* fmtStart = NULL ;
-      CHAR* str = (CHAR*)data;
-
-      if ( LEFT_BRACKET != *str )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      str++ ;
-      len-- ;
-
-      _skipSpace( &str, len ) ;
-
-      if ( 0 == len )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      if ( DOUBLE_QUOTES != *str )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      str++ ;
-      len-- ;
-
-      fmtStart = str ;
-
-      while( TRUE )
-      {
-         if ( len <= 0 )
-         {
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-
-         if ( DOUBLE_QUOTES == *str )
-         {
-            break ;
-         }
-
-         str++ ;
-         len-- ;
-         fmtLen++ ;
-      }
-
-      str++ ;
-      len-- ;
-      
-      _skipSpace(&str, len);
-
-      if (0 == len)
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      if (RIGHT_BRACKET != *str)
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      str++;
-      len--;
-
-      _skipSpace(&str, len);
-
-      if (0 != len)
-      {
-         rc = SDB_INVALIDARG;
-         goto error;
-      }
-
-      {
-         string fmtStr( fmtStart, fmtLen ) ;
-
-         rc = checkDateTimeFormat( fmtStr ) ;
-         if ( rc )
-         {
-            goto error ;
-         }
-
-         if ( fmtLen > CSV_TIMESTAMP_FMT_MAX_LEN )
-         {
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-
-         opt.hasOpt = TRUE ;
-         opt.opt.timestampOpt.fmtLength = fmtLen ;
-         ossStrncpy( opt.opt.timestampOpt.format, fmtStart, fmtLen ) ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
    static inline INT32 _convertToCSVType(const CHAR* data,
                                          INT32 length,
                                          CSV_TYPE& type,
@@ -686,8 +537,6 @@ namespace import
       {
       case 'a':
       case 'A':
-         // autodate
-         // autotimestamp
          if (CSV_STR_TYPE_EQ(CSV_STR_AUTO_DATE, str, length))
          {
             type = CSV_TYPE_AUTO_DATE;
@@ -699,9 +548,6 @@ namespace import
          break;
       case 'b':
       case 'B':
-         // bool
-         // boolean
-         // binary
          if (CSV_STR_TYPE_EQ(CSV_STR_BOOL, str, length) ||
              CSV_STR_TYPE_EQ(CSV_STR_BOOLEAN, str, length))
          {
@@ -714,9 +560,6 @@ namespace import
          break;
       case 'd':
       case 'D':
-         // date
-         // double
-         // decimal
          if (CSV_STR_TYPE_EQ(CSV_STR_DATE, str, length))
          {
             type = CSV_TYPE_DATE;
@@ -732,7 +575,6 @@ namespace import
          else if (length > (INT32)CSV_STR_DECIMAL_SIZE &&
                   ossStrncasecmp(str, CSV_STR_DECIMAL, CSV_STR_DECIMAL_SIZE) == 0)
          {
-            // decimal(10, 2)
             rc = _parseDecimalPrecision(data + CSV_STR_DECIMAL_SIZE,
                                         length - CSV_STR_DECIMAL_SIZE,
                                         opt);
@@ -746,8 +588,6 @@ namespace import
          break;
       case 'i':
       case 'I':
-         // int
-         // integer
          if (CSV_STR_TYPE_EQ(CSV_STR_INT, str, length) ||
              CSV_STR_TYPE_EQ(CSV_STR_INTEGER, str, length))
          {
@@ -756,7 +596,6 @@ namespace import
          break;
       case 'l':
       case 'L':
-         // long
          if (CSV_STR_TYPE_EQ(CSV_STR_LONG, str, length))
          {
             type = CSV_TYPE_LONG;
@@ -764,8 +603,6 @@ namespace import
          break;
       case 'n':
       case 'N':
-         // null
-         // number
          if (CSV_STR_TYPE_EQ(CSV_STR_NULL, str, length))
          {
             type = CSV_TYPE_NULL;
@@ -777,7 +614,6 @@ namespace import
          break;
       case 'o':
       case 'O':
-         // oid
          if (CSV_STR_TYPE_EQ(CSV_STR_OID, str, length))
          {
             type = CSV_TYPE_OID;
@@ -785,7 +621,6 @@ namespace import
          break;
       case 'r':
       case 'R':
-         // regex
          if (CSV_STR_TYPE_EQ(CSV_STR_REGEX, str, length))
          {
             type = CSV_TYPE_REGEX;
@@ -793,8 +628,6 @@ namespace import
          break;
       case 's':
       case 'S':
-         // string
-         // skip
          if (CSV_STR_TYPE_EQ(CSV_STR_STRING, str, length))
          {
             type = CSV_TYPE_STRING;
@@ -806,25 +639,9 @@ namespace import
          break;
       case 't':
       case 'T':
-         // timestamp
          if (CSV_STR_TYPE_EQ(CSV_STR_TIMESTAMP, str, length))
          {
             type = CSV_TYPE_TIMESTAMP;
-         }
-         else if ( length > (INT32)CSV_STR_TIMESTAMP_SIZE &&
-                   ossStrncasecmp( str, CSV_STR_TIMESTAMP,
-                                   CSV_STR_TIMESTAMP_SIZE ) == 0 )
-         {
-            // timestamp("YYYY-MM-DD-HH.mm.ss")
-            rc = _parseTimestampFmt( data + CSV_STR_TIMESTAMP_SIZE,
-                                     length - CSV_STR_TIMESTAMP_SIZE,
-                                     opt ) ;
-            if ( rc )
-            {
-               PD_LOG(PDERROR, "invalid timestamp type");
-               goto error;
-            }
-            type = CSV_TYPE_TIMESTAMP ;
          }
          break;
       default:
@@ -845,8 +662,6 @@ namespace import
       goto done;
    }
 
-   // _stringToRawXXX used to auto detect field's raw type
-   // _stringToXXX used to convert data types
 
    static inline INT32 _stringToRawNum(const CHAR* data, INT32 length,
                                           CSV_TYPE& type, CSVFieldValue& value,
@@ -872,8 +687,6 @@ namespace import
    static inline INT32 _stringToRawDecimalNan( const CHAR* data, INT32 length,
                                                CSV_TYPE &type ) ;
 
-   // the number is long type,
-   // but if the number is overflow, we set it as double
    static inline INT32 _stringToRawNum(const CHAR* data, INT32 length,
                                           CSV_TYPE& type, CSVFieldValue& value,
                                           INT32& valueLength, BOOLEAN allowDot)
@@ -918,7 +731,6 @@ namespace import
       if (allowDot && '.' == *str)
       {
          type = CSV_TYPE_DOUBLE;
-         // do not skip '.'
          goto finish;
       }
 
@@ -938,7 +750,6 @@ namespace import
 
          if (CSV_TYPE_LONG == type)
          {
-            // overflow
             if (intNum > quo || (intNum == quo && ch > rem))
             {
                type = CSV_TYPE_DOUBLE;
@@ -961,7 +772,6 @@ namespace import
 
       if (start == str)
       {
-         // no digits
          rc = SDB_INVALIDARG;
          goto error;
       }
@@ -1200,7 +1010,7 @@ namespace import
       end = *str;
       *str = '\0';
 
-      rc = sdb_decimal_from_str( start, &value);
+      rc = decimal_from_str( start, &value);
       if (0 != rc)
       {
          *str = end;
@@ -1317,7 +1127,6 @@ namespace import
       SDB_ASSERT(NULL != data, "data can't be NULL");
       SDB_ASSERT(length > 0, "length must be greater than 0");
 
-      //parse double [+/-]inf  [+/-]Infinity
       rc = _stringToInfinity( str, len, tmpType, tmpValue, intLen );
       if (SDB_OK != rc)
       {
@@ -1334,7 +1143,6 @@ namespace import
          goto done ;
       }
 
-      //parse double nan
       rc = _stringToNan( str, len, tmpType, tmpValue, intLen ) ;
       if ( SDB_OK != rc )
       {
@@ -1359,14 +1167,12 @@ namespace import
 
       start = str;
 
-      // integer part
       rc = _stringToRawNum(str, len, tmpType, tmpValue, intLen, TRUE);
       if (SDB_OK != rc)
       {
          goto error;
       }
 
-      // overflow
       if (CSV_TYPE_DOUBLE == tmpType && 0 != intLen)
       {
          goto decimal ;
@@ -1401,7 +1207,6 @@ namespace import
          str++;
          len--;
 
-         // no digit in both sides of '.'
          if (!isdigit(*str) && !isdigit(*(str-2)))
          {
             rc = SDB_INVALIDARG;
@@ -1433,7 +1238,6 @@ namespace import
          goto done;
       }
 
-      // fractional part
       type = CSV_TYPE_DOUBLE;
       if (CSV_TYPE_LONG == tmpType)
       {
@@ -1508,7 +1312,6 @@ namespace import
          goto done;
       }
 
-      // exponent part
       rc = _stringToRawNum(str, len, tmpType, tmpValue, expLen);
       if (SDB_OK != rc)
       {
@@ -1550,11 +1353,11 @@ namespace import
 
    decimal:
       type = CSV_TYPE_DECIMAL;
-      sdb_decimal_init(&(value.decimalVal));
+      decimal_init(&(value.decimalVal));
       rc = _stringToRawDecimal( data, length, value.decimalVal, valueLength);
       if (SDB_OK != rc)
       {
-         goto error ;
+         goto error;
       }
 
    done:
@@ -1563,7 +1366,6 @@ namespace import
       goto done;
    }
 
-   // [+|-]<0~9...>
    static inline INT32 _stringToRawInt(const CHAR* data, INT32 length,
                                        INT32& value, INT32& valueLength)
    {
@@ -1592,21 +1394,18 @@ namespace import
             value = (INT32)tmpField.value.longVal;
             break;
          }
-         // passthrough
       case CSV_TYPE_DOUBLE:
          if (_cast)
          {
             value = (INT32)tmpField.value.doubleVal;
             break;
          }
-         // passthrough
       case CSV_TYPE_DECIMAL:
          if (_cast)
          {
-            value = (INT32)sdb_decimal_to_int(&(tmpField.value.decimalVal));
+            value = (INT32)decimal_to_int(&(tmpField.value.decimalVal));
             break;
          }
-         // passthrough
       default:
          rc = SDB_INVALIDARG;
          goto error;
@@ -1618,7 +1417,6 @@ namespace import
       goto done;
    }
 
-   // [+|-]<0~9...>
    static inline INT32 _stringToRawLong(const CHAR* data, INT32 length,
                                         INT64& value, INT32& valueLength)
    {
@@ -1650,14 +1448,12 @@ namespace import
             value = (INT64)tmpField.value.doubleVal;
             break;
          }
-         // passthrough
       case CSV_TYPE_DECIMAL:
          if (_cast)
          {
-            value = (INT64)sdb_decimal_to_long(&(tmpField.value.decimalVal));
+            value = (INT64)decimal_to_long(&(tmpField.value.decimalVal));
             break;
          }
-         // passthrough
       default:
          rc = SDB_INVALIDARG;
          goto error;
@@ -1669,8 +1465,6 @@ namespace import
       goto done;
    }
 
-   // [+|-]<0~9...>[.<0~9...>[<E|e>[+|-]<0~9...>]]
-   // -123.45e-678
    static inline INT32 _stringToRawDouble(const CHAR* data, INT32 length,
                                           FLOAT64& value, INT32& valueLength)
    {
@@ -1683,7 +1477,6 @@ namespace import
       rc = _stringToRawNumber(data, length, subField.type, subField.value, valueLength);
       if (SDB_OK != rc)
       {
-         //PD_LOG(PDERROR, "failed to convert to number, rc=%d", rc);
          goto error;
       }
 
@@ -1699,11 +1492,10 @@ namespace import
          value = (FLOAT64)subField.value.longVal;
          break;
       case CSV_TYPE_DECIMAL:
-         value = (FLOAT64)sdb_decimal_to_double(&(subField.value.decimalVal));
+         value = (FLOAT64)decimal_to_double(&(subField.value.decimalVal));
          break;
       default:
          rc = SDB_INVALIDARG;
-         //PD_LOG(PDERROR, "invalid subtype: %d", subField.type);
          goto error;
       }
 
@@ -1713,7 +1505,6 @@ namespace import
       goto done;
    }
 
-   // <true|false|t|f|yes|no|y|n>
    static inline INT32 _stringToRawBool(const CHAR* data, INT32 length,
                                         BOOLEAN& value, INT32& valueLength)
    {
@@ -1781,7 +1572,6 @@ namespace import
       else
       {
          rc = SDB_INVALIDARG;
-         //PD_LOG(PDERROR, "failed to convert to bool, rc=%d", rc);
          goto error;
       }
 
@@ -1832,7 +1622,6 @@ namespace import
       else
       {
          rc = SDB_INVALIDARG;
-         //PD_LOG(PDERROR, "invalid null");
          goto error;
       }
 
@@ -1857,24 +1646,21 @@ namespace import
 
       SDB_ASSERT(NULL != data, "data can't be NULL");
       SDB_ASSERT(length > 0, "length must be greater than 0");
+      SDB_ASSERT(!isspace(*data), "data can't begin with space");
 
       if (_startWith(str, len, strDel, strDelLen))
       {
-         // skip the string delimiter
          str += strDelLen;
          len -= strDelLen;
          inString = TRUE;
       }
 
-      // point to string head
       value.str = str;
 
       while (len > 0)
       {
          if (_startWith(str, len, strDel, strDelLen))
          {
-            // previous character is escape
-            // TODO: process "\\\\"
             /*if ('\\' == *(str - 1))
             {
                len -= strDelLen;
@@ -1887,13 +1673,11 @@ namespace import
 
             if (len == 0)
             {
-               //*(str - strDelLen) = '\0';
                valueLength = length;
                value.length = str - strDelLen - value.str;
                goto done;
             }
 
-            // two consecutive string delimiter
             if (_startWith(str, len, strDel, strDelLen))
             {
                value.hasEscape = TRUE;
@@ -1903,8 +1687,6 @@ namespace import
             }
 
             inString = FALSE;
-            // terminate the string
-            //*(str - strDelLen) = '\0';
             value.length = str - strDelLen - value.str;
             break;
          }
@@ -1913,7 +1695,6 @@ namespace import
          {
             if (_startWith(str, len, fieldDel, fieldDelLen))
             {
-               //*str = '\0';
                fieldEnd = TRUE;
                valueLength = length - len;
                value.length = str - value.str;
@@ -1922,7 +1703,6 @@ namespace import
 
             /*if (isspace(*str))
             {*/
-               //*str = '\0';
                /*value.length = str - value.str;
                str++;
                len--;
@@ -1942,8 +1722,6 @@ namespace import
       if (inString || len == 0)
       {
          SDB_ASSERT(len == 0, "len must be equal 0");
-         // must be sure it's safe to terminate the string
-         //*str = '\0';
          valueLength = length;
          value.length = str - value.str;
          goto done;
@@ -1964,7 +1742,6 @@ namespace import
          }
 
          rc = SDB_INVALIDARG;
-         //PD_LOG(PDERROR, "invalid string");
          goto error;
       }
 
@@ -2036,7 +1813,6 @@ namespace import
          goto error;
       }
 
-      // find out int or bool in string
       rc = _stringToRawInt(str, len, value, tmpLen);
       if (SDB_OK != rc)
       {
@@ -2122,7 +1898,6 @@ namespace import
          goto error;
       }
 
-      // find out long or bool in string
       rc = _stringToRawLong(str, len, value, tmpLen);
       if (SDB_OK != rc)
       {
@@ -2210,7 +1985,6 @@ namespace import
          goto error;
       }
 
-      // find out long or bool in string
       rc = _stringToRawBool(str, len, value, tmpLen);
       if (SDB_OK != rc)
       {
@@ -2300,7 +2074,6 @@ namespace import
          goto error;
       }
 
-      // find out double in string
       rc = _stringToRawNumber(str, len, type, value, tmpLen);
       if (SDB_OK != rc)
       {
@@ -2382,7 +2155,6 @@ namespace import
          goto error;
       }
 
-      // find out double in string
       rc = _stringToRawDouble(str, len, value, tmpLen);
       if (SDB_OK != rc)
       {
@@ -2423,8 +2195,7 @@ namespace import
 
       if (opt.hasOpt)
       {
-         rc = sdb_decimal_init1( &value, opt.opt.decimalOpt.precision,
-                                 opt.opt.decimalOpt.scale ) ;
+         rc = decimal_init1(&value, opt.opt.decimalOpt.precision, opt.opt.decimalOpt.scale);
          if (0 != rc)
          {
             rc = SDB_INVALIDARG;
@@ -2433,7 +2204,7 @@ namespace import
       }
       else
       {
-         sdb_decimal_init(&value);
+         decimal_init(&value);
       }
       rc = _stringToRawDecimal(data, length, value, valueLength);
       if (SDB_OK == rc)
@@ -2471,11 +2242,9 @@ namespace import
          goto error;
       }
 
-      // find out decimal in string
       if (opt.hasOpt)
       {
-         rc = sdb_decimal_init1( &value, opt.opt.decimalOpt.precision,
-                                 opt.opt.decimalOpt.scale ) ;
+         rc = decimal_init1(&value, opt.opt.decimalOpt.precision, opt.opt.decimalOpt.scale);
          if (0 != rc)
          {
             rc = SDB_INVALIDARG;
@@ -2484,7 +2253,7 @@ namespace import
       }
       else
       {
-         sdb_decimal_init(&value);
+         decimal_init(&value);
       }
       rc = _stringToRawDecimal(str, len, value, tmpLen);
       if (SDB_OK != rc)
@@ -2564,7 +2333,6 @@ namespace import
             len -= strDelLen;
             str += strDelLen;
 
-            // escape string delimiter
             if (_startWith(str, len, strDel, strDelLen))
             {
                memcpy(escStr + escLen, str, strDelLen);
@@ -2592,7 +2360,7 @@ namespace import
       goto done;
    }
 
-   static const UINT8 CSV_UTF8_FULL_WIDTH_SPACE[] = {0xE3, 0x80, 0x80, 0x00};
+   static const CHAR CSV_UTF8_FULL_WIDTH_SPACE[] = {0xE3, 0x80, 0x80, 0x00};
    static const INT32 CSV_UTF8_FULL_WIDTH_SPACE_LEN =
       (INT32)(sizeof(CSV_UTF8_FULL_WIDTH_SPACE) / sizeof(CSV_UTF8_FULL_WIDTH_SPACE[0]) - 1) ;
 
@@ -2612,7 +2380,7 @@ namespace import
             len--;
          }
          else if (_startWith(head, len,
-                             (const CHAR *)CSV_UTF8_FULL_WIDTH_SPACE,
+                             CSV_UTF8_FULL_WIDTH_SPACE,
                              CSV_UTF8_FULL_WIDTH_SPACE_LEN))
          {
             head = head + CSV_UTF8_FULL_WIDTH_SPACE_LEN;
@@ -2628,8 +2396,6 @@ namespace import
       {
          if (escaped)
          {
-            // we can not move escaped str pointer,
-            // otherwise it will cause panic when free the memory
             CHAR* trimedStr = (CHAR*)SDB_OSS_MALLOC(len + 1);
             if (NULL == trimedStr)
             {
@@ -2671,7 +2437,7 @@ namespace import
             len--;
          }
          else if (_endWith(str, len,
-                           (const CHAR *)CSV_UTF8_FULL_WIDTH_SPACE,
+                           CSV_UTF8_FULL_WIDTH_SPACE,
                            CSV_UTF8_FULL_WIDTH_SPACE_LEN))
          {            tail = tail - CSV_UTF8_FULL_WIDTH_SPACE_LEN;
             len = len - CSV_UTF8_FULL_WIDTH_SPACE_LEN;
@@ -2726,7 +2492,6 @@ namespace import
       goto done;
    }
 
-   // support INT/LONG/DOUBLE/BOOL/NULL/STRING
    static inline INT32 _detectFieldType(const CHAR* data, INT32 length,
                                         const CHAR* strDel, INT32 strDelLen,
                                         const CHAR* fieldDel, INT32 fieldDelLen,
@@ -2769,13 +2534,11 @@ namespace import
             goto done;
          }
 
-         // reset
          fieldValue.reset( fieldType ) ;
          str = (CHAR*)data;
          len = length;
       }
 
-      // null
       rc = _stringToRawNull(str, len, fieldDel, fieldDelLen, fieldLength, fieldEnd);
       if (SDB_OK == rc)
       {
@@ -2783,7 +2546,6 @@ namespace import
          goto done;
       }
 
-      // string
       fieldType = CSV_TYPE_STRING;
       rc = _stringToString(str, len,
                            strDel, strDelLen,
@@ -2852,70 +2614,6 @@ namespace import
       goto done;
    }
 
-   static inline INT32 _stringToTimeZone( CHAR **ppStr, INT32 &strLen,
-                                          INT32 &gmtoff  )
-   {
-      INT32 rc = SDB_OK ;
-      INT32 valueLength = 0;
-      INT32 hourStrLen  = 0 ;
-      INT32 gmtHour     = 0 ;
-      INT32 gmtMinute   = 0 ;
-      INT32 countMinute = 0 ;
-      CHAR *str = *ppStr ;
-
-      if( !isdigit( str[1] ) || !isdigit( str[2] ) || !isdigit( str[3] ) )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      if( isdigit( str[4] ) )
-      {
-         // xxxx
-         hourStrLen = 2 ;
-      }
-      else
-      {
-         // xxx
-         hourStrLen = 1 ;
-      }
-
-      str++;
-      strLen--;
-
-      rc = _str2i( str, hourStrLen, gmtHour, valueLength ) ;
-      if ( rc )
-      {
-         goto error;
-      }
-      str += valueLength;
-      strLen -= valueLength;
-
-      rc = _str2i( str, 2, gmtMinute, valueLength ) ;
-      if ( rc )
-      {
-         goto error;
-      }
-      str += valueLength;
-      strLen -= valueLength;
-
-      countMinute = gmtHour * 60 + gmtMinute ;
-
-      if ( IMP_UTIL_TIMEZONE_MAX < countMinute )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      gmtoff = countMinute * 60 ;
-
-   done:
-      *ppStr = str ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
    /*
     * year: YYYY
     * month: MM
@@ -2929,12 +2627,11 @@ namespace import
     */
    static inline INT32 _stringToDateTime(const CHAR* data, INT32 dataLength,
                                          const CHAR* format, INT32 formatLength,
-                                         struct tm* time, INT32& microsec,
-                                         BOOLEAN &isLocalTime, INT32 &gmtoff)
+                                         struct tm* time, INT32& microsec)
    {
       INT32 year = 0;
-      INT32 month = 1;
-      INT32 day = 1;
+      INT32 month = 0;
+      INT32 day = 0;
       INT32 hour = 0;
       INT32 minute = 0;
       INT32 second = 0;
@@ -2959,7 +2656,6 @@ namespace import
       {
          switch (*fmt)
          {
-         // year: YYYY
          case 'Y':
             SDB_ASSERT('Y' == fmt[0] &&
                        'Y' == fmt[1] &&
@@ -2975,7 +2671,6 @@ namespace import
             fmt += 4;
             fmtLen -= 4;
             break;
-         // month: MM
          case 'M':
             SDB_ASSERT('M' == fmt[0] &&
                        'M' == fmt[1], "invalid format of month");
@@ -2989,7 +2684,6 @@ namespace import
             fmt += 2;
             fmtLen -= 2;
             break;
-         // day: DD
          case 'D':
             SDB_ASSERT('D' == fmt[0] &&
                        'D' == fmt[1], "invalid format of day");
@@ -3003,7 +2697,6 @@ namespace import
             fmt += 2;
             fmtLen -= 2;
             break;
-         // hour: HH
          case 'H':
             SDB_ASSERT('H' == fmt[0] &&
                        'H' == fmt[1], "invalid format of hour");
@@ -3017,7 +2710,6 @@ namespace import
             fmt += 2;
             fmtLen -= 2;
             break;
-         // minute: mm
          case 'm':
             SDB_ASSERT('m' == fmt[0] &&
                        'm' == fmt[1], "invalid format of minute");
@@ -3031,7 +2723,6 @@ namespace import
             fmt += 2;
             fmtLen -= 2;
             break;
-         // second: ss
          case 's':
             SDB_ASSERT('s' == fmt[0] &&
                        's' == fmt[1], "invalid format of second");
@@ -3045,7 +2736,6 @@ namespace import
             fmt += 2;
             fmtLen -= 2;
             break;
-         // millisecond: SSS
          case 'S':
             {
                INT32 ms;
@@ -3070,7 +2760,6 @@ namespace import
                mxs = TRUE;
             }
             break;
-         // microsecond: ffffff
          case 'f':
             SDB_ASSERT('f' == fmt[0] &&
                        'f' == fmt[1] &&
@@ -3094,122 +2783,6 @@ namespace import
             fmtLen -= 6;
             mxs = TRUE;
             break;
-         // time zone: +/-XXXX
-         case 'Z':
-         {
-            INT32 sign = 1 ;
-
-            fmt++;
-            fmtLen--;
-
-            if( '+' == str[0] )
-            {
-               sign = 1 ;
-            }
-            else if ( '-' == str[0] )
-            {
-               sign = -1 ;
-            }
-            else if ( 'Z' == str[0] )
-            {
-               isLocalTime = FALSE ;
-               break ;
-            }
-            else
-            {
-               break ;
-            }
-
-            rc = _stringToTimeZone( &str, strLen, gmtoff ) ;
-            if ( rc )
-            {
-               goto error ;
-            }
-
-            gmtoff *= sign ;
-            isLocalTime = FALSE ;
-
-            break ;
-         }
-         case '+':
-         case '-':
-         {
-            INT32 sign = 1 ;
-
-            if ( '-' == fmt[0] )
-            {
-               sign = -1 ;
-            }
-
-            if ( !isdigit( fmt[1] ) )
-            {
-               if (*str != *fmt)
-               {
-                  rc = SDB_INVALIDARG;
-                  goto error;
-               }
-               str++;
-               strLen--;
-               fmt++;
-               fmtLen--;
-               break;
-            }
-
-            SDB_ASSERT( isdigit(fmt[2]) &&
-                        isdigit(fmt[3]), "invalid format of time zone");
-
-            if ( '+' == str[0] )
-            {
-               sign = 1 ;
-            }
-            else if ( '-' == str[0] )
-            {
-               sign = -1 ;
-            }
-            else if ( 'Z' == str[0] )
-            {
-               str++;
-               strLen--;
-               fmt++;
-               fmtLen--;
-               isLocalTime = FALSE ;
-               break ;
-            }
-            else
-            {
-               rc = _stringToTimeZone( &fmt, fmtLen, gmtoff ) ;
-               if ( rc )
-               {
-                  goto error ;
-               }
-               gmtoff *= sign ;
-               isLocalTime = FALSE ;
-               break ;
-            }
-
-            rc = _stringToTimeZone( &str, strLen, gmtoff ) ;
-            if ( rc )
-            {
-               goto error ;
-            }
-
-            gmtoff *= sign ;
-            isLocalTime = FALSE ;
-
-            if ( isdigit( fmt[4] ) )
-            {
-               fmt += 4 ;
-               fmtLen -= 4 ;
-            }
-            else
-            {
-               fmt += 3 ;
-               fmtLen -= 3 ;
-            }
-
-            break;
-         }
-         // any charcater: *
          case '*':
             str++;
             strLen--;
@@ -3230,44 +2803,6 @@ namespace import
          }
       }
 
-      if ( 0 >= strLen && 4 <= fmtLen )
-      {
-         while( TRUE )
-         {
-            INT32 sign = 1 ;
-
-            if ( '+' == fmt[0] )
-            {
-               sign = 1 ;
-            }
-            else if ( '-' == fmt[0] )
-            {
-               sign = -1 ;
-            }
-            else
-            {
-               break ;
-            }
-
-            if ( !isdigit( fmt[1] ) )
-            {
-               break;
-            }
-
-            SDB_ASSERT( isdigit(fmt[2]) &&
-                        isdigit(fmt[3]), "invalid format of time zone");
-
-            rc = _stringToTimeZone( &fmt, fmtLen, gmtoff ) ;
-            if ( rc )
-            {
-               goto error ;
-            }
-            gmtoff *= sign ;
-            isLocalTime = FALSE ;
-            break ;
-         }
-      }
-
       ossMemset(time, 0, sizeof(struct tm));
       time->tm_year = year;
       time->tm_mon  = month - 1;
@@ -3283,7 +2818,7 @@ namespace import
    }
 
    static inline INT32 _stringToTimestamp(CSVString& data, BOOLEAN autoTimestamp,
-                                          CSVTimestamp& value, CSVFieldOpt& opt)
+                                          CSVTimestamp& value)
    {
       CHAR* str = data.str;
       INT32 rc = SDB_OK;
@@ -3301,12 +2836,10 @@ namespace import
          goto error;
       }
 
-      // terminate string
       term = str + data.length;
       tmpch = *term;
       *term = '\0';
 
-      // may be negative number
       if ('-' == *str)
       {
          str++;
@@ -3324,27 +2857,13 @@ namespace import
       if (hasNonDigit || !autoTimestamp)
       {
          struct tm t ;
-         BOOLEAN isLocalTime = TRUE ;
          INT32 microsec = 0;
-         INT32 gmtoff = 0 ;
          time_t timep;
 
          ossMemset(&t, 0, sizeof(t));
-
-         if ( FALSE == opt.hasOpt || 0 == opt.opt.timestampOpt.fmtLength )
-         {
-            rc = _stringToDateTime(data.str, data.length,
-                                   TIME_FORMAT, TIME_FORMAT_LEN,
-                                   &t, microsec, isLocalTime, gmtoff);
-         }
-         else
-         {
-            rc = _stringToDateTime(data.str, data.length,
-                                   opt.opt.timestampOpt.format,
-                                   opt.opt.timestampOpt.fmtLength,
-                                   &t, microsec, isLocalTime, gmtoff);
-         }
-
+         rc = _stringToDateTime(data.str, data.length,
+                                TIME_FORMAT, TIME_FORMAT_LEN,
+                                &t, microsec);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to scan timepstamp, rc=%d", rc);
@@ -3374,18 +2893,7 @@ namespace import
          t.tm_year -= RELATIVE_YEAR;
 
          /* create integer time representation */
-         if ( isLocalTime )
-         {
-            timep = mktime(&t);
-         }
-         else
-         {
-#if defined (_WINDOWS)
-            timep = _mkgmtime(&t) - gmtoff;
-#else
-            timep = timegm(&t) - gmtoff;
-#endif
-         }
+         timep = mktime(&t);
          if( !ossIsTimestampValid( timep ) )
          {
             rc = SDB_INVALIDARG;
@@ -3413,7 +2921,6 @@ namespace import
          us = (varLong % 1000) * 1000; // microseconds
          if (us < 0)
          {
-            // move 1s from sec to us
             sec--;
             us += 1000000;
          }
@@ -3439,7 +2946,6 @@ namespace import
       }
 
    done:
-      // recovery string
       if ( NULL != term )
       {
          *term = tmpch;
@@ -3467,12 +2973,10 @@ namespace import
          goto error;
       }
 
-      // terminate string
       term = str + data.length;
       tmpch = *term;
       *term = '\0';
 
-      // may be negative number
       if ('-' == *str)
       {
          str++;
@@ -3490,15 +2994,13 @@ namespace import
       if (hasNonDigit || !autoDate)
       {
          struct tm t;
-         BOOLEAN isLocalTime = TRUE ;
          INT32 microsec = 0;
-         INT32 gmtoff = 0 ;
          time_t timep;
 
          ossMemset(&t, 0, sizeof(t));
          rc = _stringToDateTime(data.str, data.length,
                                 DATE_FORMAT, DATE_FORMAT_LEN,
-                                &t, microsec, isLocalTime, gmtoff);
+                                &t, microsec);
          if (SDB_OK != rc)
          {
             PD_LOG(PDERROR, "failed to scan date");
@@ -3518,18 +3020,7 @@ namespace import
          t.tm_year -= RELATIVE_YEAR;
 
          /* create integer time representation */
-         if ( isLocalTime )
-         {
-            timep = mktime(&t);
-         }
-         else
-         {
-#if defined (_WINDOWS)
-            timep = _mkgmtime(&t) - gmtoff;
-#else
-            timep = timegm(&t) - gmtoff;
-#endif
-         }
+         timep = mktime(&t);
          value = (INT64)timep * 1000 + microsec/1000;
       }
       else
@@ -3544,7 +3035,6 @@ namespace import
       }
 
    done:
-      // recovery string
       if ( NULL != term )
       {
          *term = tmpch;
@@ -3574,7 +3064,6 @@ namespace import
       return rc;
    }
 
-   // "/pattern/<options>"
    static inline INT32 _stringToRegex(CSVString& data, CSVRegex& value)
    {
       CHAR* str = data.str;
@@ -3585,7 +3074,6 @@ namespace import
 
       if (len == 0)
       {
-         // regex can be empty
          value.pattern = CSV_STR_EMPTY;
          value.patternLen = 0;
          value.option = CSV_STR_EMPTY;
@@ -3608,7 +3096,6 @@ namespace import
          goto done;
       }
 
-      // skip '/'
       str++;
       len--;
       value.pattern = str;
@@ -3631,10 +3118,8 @@ namespace import
          goto error;
       }
 
-      //*str = '\0'; // terminate the pattern
       value.patternLen = str - value.pattern;
 
-      // skip '/'
       str++;
       len--;
 
@@ -3684,7 +3169,6 @@ namespace import
       goto done ;
    }
 
-   // "(type)value"
    static inline INT32 _stringToBinary(CSVString& data, CSVBinary& value)
    {
       CHAR* str = data.str;
@@ -3694,7 +3178,6 @@ namespace import
 
       SDB_ASSERT(NULL != data.str, "data.str can't be NULL");
 
-      // terminate string
       CHAR* term = str + data.length;
       CHAR tmpch = *term;
       *term = '\0';
@@ -3713,7 +3196,6 @@ namespace import
          INT32 type = 0;
          INT32 typeLength = 0;
 
-         // skip '('
          str++;
          len--;
 
@@ -3742,7 +3224,6 @@ namespace import
 
          value.type = type;
 
-         // skip the type number
          str += typeLength;
          len -= typeLength;
 
@@ -3761,7 +3242,6 @@ namespace import
             goto error;
          }
 
-         // skip ')'
          str++;
          len--;
 
@@ -3804,7 +3284,6 @@ namespace import
             goto error;
          }
 
-         // ignore '\0'
          value.binLen = base64Len - 1;
       }
       else
@@ -3814,7 +3293,6 @@ namespace import
       }
 
    done:
-      // recovery string
       *term = tmpch;
       return rc ;
    error:
@@ -3863,7 +3341,7 @@ namespace import
                INT32 len = 0;
                CHAR* buf = NULL;
 
-               sdb_decimal_to_str_get_len(&(field.defaultValue.decimalVal), &len);
+               decimal_to_str_get_len(&(field.defaultValue.decimalVal), &len);
 
                buf = (CHAR*)SDB_OSS_MALLOC(len);
                if (NULL == buf)
@@ -3872,7 +3350,7 @@ namespace import
                }
                ossMemset(buf, 0, len);
 
-               sdb_decimal_to_str(&(field.defaultValue.decimalVal), buf, len);
+               decimal_to_str(&(field.defaultValue.decimalVal), buf, len);
                ss << buf;
                SDB_OSS_FREE(buf);
             }
@@ -4029,7 +3507,6 @@ namespace import
          goto done;
       case CSV_TYPE_AUTO_TIMESTAMP:
          autoDateTime = TRUE;
-         // pass through
       case CSV_TYPE_TIMESTAMP:
          rc = _stringToString(data, length, strDel, strDelLen, fieldDel,
                               fieldDelLen, fieldValue.strVal,
@@ -4038,7 +3515,7 @@ namespace import
          {
             goto error;
          }
-         rc = _stringToTimestamp(fieldValue.strVal, autoDateTime, fieldValue.timestampVal, opt);
+         rc = _stringToTimestamp(fieldValue.strVal, autoDateTime, fieldValue.timestampVal);
          if (SDB_OK != rc)
          {
             goto error;
@@ -4046,7 +3523,6 @@ namespace import
          goto done;
       case CSV_TYPE_AUTO_DATE:
          autoDateTime = TRUE;
-         // pass through
       case CSV_TYPE_DATE:
          rc = _stringToString(data, length, strDel, strDelLen, fieldDel,
                               fieldDelLen, fieldValue.strVal,
@@ -4115,7 +3591,6 @@ namespace import
          }
          goto done;
       case CSV_TYPE_SKIP:
-         // treat SKIP filed as string
          rc = _stringToString(data, length, strDel, strDelLen, fieldDel,
                               fieldDelLen, fieldValue.strVal,
                               valueLength, fieldEnd);
@@ -4504,7 +3979,6 @@ namespace import
             CHAR patCh = '\0';
             CHAR optCh = '\0';
 
-            // terminate string
             patTerm = value->regexVal.pattern;
             if (*patTerm != '\0')
             {
@@ -4525,7 +3999,6 @@ namespace import
                                    value->regexVal.pattern,
                                    value->regexVal.option);
 
-            // recovery string
             if (patCh != '\0')
             {
                *patTerm = patCh;
@@ -4543,7 +4016,6 @@ namespace import
                                  value->binaryVal.binLen);
          break;
       case CSV_TYPE_SKIP:
-         // no need to append SKIP filed
          rc = SDB_OK;
          break;
       case CSV_TYPE_AUTO:
@@ -4596,7 +4068,6 @@ namespace import
    {
    }
 
-   // field_name [field_type] [default <default_value>],
    INT32 CSVRecordParser::parseFields(const CHAR* data, INT32 length, BOOLEAN isHeaderline)
    {
       CHAR* str = (CHAR*)data;
@@ -4654,7 +4125,6 @@ namespace import
             goto error;
          }
 
-         // field name
          {
             INT32 fieldNameLen = 0;
             BOOLEAN fieldEnd = FALSE;
@@ -4701,7 +4171,6 @@ namespace import
             goto done;
          }
 
-         // type
          {
             INT32 fieldTypeLen = 0;
             BOOLEAN fieldEnd = FALSE;
@@ -4754,7 +4223,6 @@ namespace import
             goto done;
          }
 
-         // default
          {
             INT32 fieldDefaultLen = 0;
             BOOLEAN fieldEnd = FALSE;
@@ -4888,7 +4356,7 @@ namespace import
          INT32 valueLength = 0;
          BOOLEAN fieldEnd = FALSE;
 
-         _skipSpace(&str, len, fieldDel, fieldDelLen, strDel, strDelLen);
+         _skipSpace(&str, len, fieldDel, fieldDelLen);
          if (len == 0)
          {
             break;
@@ -4937,7 +4405,6 @@ namespace import
 
       if (len == 0 && fieldCount == 0)
       {
-         // empty record
          rc = SDB_DMS_EOC;
          goto error;
       }

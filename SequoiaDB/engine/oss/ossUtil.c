@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = ossUtil.cpp
 
@@ -53,7 +52,6 @@
 #define OSS_TIMESTAMP_MIN (-2147483648LL)
 #define OSS_TIMESTAMP_MAX (2147483647LL)
 
-// All strings represent "true"
 const char *OSSTRUELIST[]={
    "YES",
    "yes",
@@ -65,7 +63,6 @@ const char *OSSTRUELIST[]={
    "t",
    "1"};
 
-// All strings represent "false"
 const char *OSSFALSELIST[]={
    "NO",
    "no",
@@ -141,7 +138,6 @@ size_t ossSnprintf(char* pBuffer, size_t iLength, const char* pFormat, ...)
    n=vsnprintf(pBuffer, iLength, pFormat, ap);
 #endif
    va_end(ap);
-   // Set terminate if the length is greater than buffer size
    if((n<0) || (size_t)n>=iLength)
       n=iLength-1;
    pBuffer[n]='\0';
@@ -199,7 +195,6 @@ INT32 ossWC2ANSI ( LPCWSTR lpcszWCString,
    INT32 requiredSize = 0 ;
    requiredSize       = WideCharToMultiByte ( CP_ACP, 0, lpcszWCString,
                                               -1, NULL, 0, NULL, NULL ) ;
-   // caller is responsible to free memory
    *plppszString = (LPSTR)SDB_OSS_MALLOC ( requiredSize ) ;
    if ( !plppszString )
    {
@@ -235,7 +230,6 @@ INT32 ossANSI2WC ( LPCSTR lpcszString,
    INT32 requiredSize = 0 ;
    requiredSize       = MultiByteToWideChar ( CP_ACP,
                                               0, lpcszString, -1, NULL, 0 ) ;
-   // caller is responsible to free memory
    *plppszWCString = (LPWSTR)SDB_OSS_MALLOC ( requiredSize * sizeof(WCHAR) ) ;
    if ( !plppszWCString )
    {
@@ -264,7 +258,6 @@ void ossCloseAllOpenFileHandles ( BOOLEAN closeSTD )
 {
    INT32 i = 3 ;
    INT32 max = OSS_FD_SETSIZE ;
-   // if we want to close STDIN/STDOUT/STDERR, then we should start form 0
    if ( closeSTD )
    {
       i = 0 ;
@@ -277,10 +270,7 @@ void ossCloseAllOpenFileHandles ( BOOLEAN closeSTD )
    if ( closeSTD )
    {
       INT32 fd = 0 ;
-      // if we are told to close STD, we have to redirect STDIN/STDOUT/STDERR to
-      // /dev/null
       close ( STDIN_FILENO ) ;
-      // after close fd 0, next the fd should be using 0
       fd = open ( SDB_DEV_NULL, O_RDWR ) ;
       if ( -1 != fd )
       {
@@ -386,7 +376,6 @@ size_t ossVsnprintf
    n = vsnprintf( buf, size, fmt, ap ) ;
 #endif
 
-   // Add the NULL terminator after the string
    if ( ( n >= 0 ) && ( n < size ) )
    {
       terminator = n ;
@@ -410,8 +399,6 @@ UINT32 ossHashFileName ( const CHAR *fileName )
       pFileName++ ;
    return ossHash ( pFileName, (INT32)ossStrlen ( pFileName ) ) ;
 }
-// blow hash function is coming from
-// http://www.azillionmonkeys.com/qed/hash.html
 #undef get16bits
 #if (defined(__GNUC__) && defined(__i386__)) || defined(__WATCOMC__) \
   || defined(_MSC_VER) || defined (__BORLANDC__) || defined (__TURBOC__)

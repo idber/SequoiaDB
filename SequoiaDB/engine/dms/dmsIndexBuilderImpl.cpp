@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2015 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = dmsIndexBuilderImpl.cpp
 
@@ -45,10 +44,8 @@ namespace engine
                                                    _dmsStorageData* dataSU,
                                                    _dmsMBContext* mbContext,
                                                    _pmdEDUCB* eduCB,
-                                                   dmsExtentID indexExtentID,
-                                                   dmsExtentID indexLogicID )
-   : _dmsIndexBuilder( indexSU, dataSU, mbContext,
-                       eduCB, indexExtentID, indexLogicID )
+                                                   dmsExtentID indexExtentID )
+   : _dmsIndexBuilder( indexSU, dataSU, mbContext, eduCB, indexExtentID )
    {
    }
 
@@ -61,7 +58,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       Ordering ordering = Ordering::make( _indexCB->keyPattern() ) ;
 
-      // loop through each extent
       while ( DMS_INVALID_EXTENT != _currentExtentID )
       {
          rc = _mbContext->mbLock( SHARED ) ;
@@ -131,19 +127,13 @@ namespace engine
                                                      _dmsMBContext* mbContext,
                                                      _pmdEDUCB* eduCB,
                                                      dmsExtentID indexExtentID,
-                                                     dmsExtentID indexLogicID,
                                                      INT32 sortBufferSize )
-   : _dmsIndexBuilder( indexSU, dataSU, mbContext,
-                       eduCB, indexExtentID, indexLogicID )
+   : _dmsIndexBuilder( indexSU, dataSU, mbContext, eduCB, indexExtentID )
    {
       _sorter = NULL ;
       _eoc = FALSE ;
       _bufSize = (INT64)sortBufferSize * 1024 * 1024 ;
 
-      // add extend size for fetching records by extent granularity
-      // and to prevent sorter's buffer overflowing.
-      // so we assign max extent size to ensure the sorter can't
-      // overflow when fetching records from a extent.
       _bufExtSize = DMS_MAX_EXTENT_SZ ;
    }
 
@@ -200,8 +190,6 @@ namespace engine
 
          if ( _sorter->usedBufferSize() > _bufSize )
          {
-            // the sorter's buffer is logical overflow (actually not overflow in sorter),
-            // so stop fetching records from next extent
             PD_LOG( PDDEBUG, "sorter is full, bufSize=%lld, usedBufSize=%lld, total=%lld",
                     _bufSize, _sorter->usedBufferSize(), _sorter->bufferSize() ) ;
             goto done ;
@@ -382,14 +370,12 @@ namespace engine
                                              dmsStorageData* dataSU,
                                              dmsMBContext* mbContext,
                                              pmdEDUCB* eduCB,
-                                             dmsExtentID indexExtentID,
-                                             dmsExtentID indexLogicID )
-   : _dmsIndexBuilder( indexSU, dataSU, mbContext,
-                       eduCB, indexExtentID, indexLogicID ),
+                                             dmsExtentID indexExtentID)
+   : _dmsIndexBuilder( indexSU, dataSU, mbContext, eduCB, indexExtentID ),
      _extHandler( NULL )
    {
       ossMemset( _collectionName, 0, DMS_COLLECTION_NAME_SZ + 1 ) ;
-      ossMemset( _extDataName, 0, DMS_MAX_EXT_NAME_SIZE + 1 ) ;
+      ossMemset( _idxName, 0, IXM_INDEX_NAME_SIZE + 1 ) ;
    }
 
    _dmsIndexExtBuilder::~_dmsIndexExtBuilder()
@@ -412,14 +398,8 @@ namespace engine
 
       ossStrncpy( _collectionName, _mbContext->mb()->_collectionName,
                   DMS_COLLECTION_NAME_SZ + 1 ) ;
-      _idxName.clear() ;
-      _idxName.append( _indexCB->getName() ) ;
-      ossStrncpy( _extDataName, _indexCB->getExtDataName(),
-                  DMS_MAX_EXT_NAME_SIZE + 1 ) ;
-      _keyDef = _indexCB->keyPattern() ;
+      ossStrncpy( _idxName, _indexCB->getName(), IXM_INDEX_NAME_SIZE + 1 ) ;
 
-      // We are going to create the capped cs and cl. During the whole process,
-      // no use of the index is allowed.
       if ( IXM_INDEX_FLAG_INVALID != _indexCB->getFlag() )
       {
          _indexCB->setFlag( IXM_INDEX_FLAG_INVALID ) ;
@@ -442,30 +422,12 @@ namespace engine
       BOOLEAN hasRebuild = FALSE ;
       INT32 idxID = 0 ;
 
-      if ( !_extHandler )
-      {
-         rc = SDB_SYS ;
-         PD_LOG( PDERROR, "External handler is NULL" ) ;
-         goto error ;
-      }
-
-      rc = _extHandler->onRebuildTextIdx( _suIndex->getSuName(),
-                                          _collectionName, _idxName.str(),
-                                          _extDataName, _keyDef,
-                                          _eduCB, NULL ) ;
+      rc = _extHandler->onRebuildTextIdx( _suData->getSuName(),
+                                          _collectionName, _idxName, _eduCB ) ;
       PD_RC_CHECK( rc, PDERROR, "External handle on text index rebuild "
                    "failed: %d", rc ) ;
-      rc = _extHandler->done( DMS_EXTOPR_TYPE_REBUILDIDX, _eduCB, NULL ) ;
-      PD_RC_CHECK( rc, PDERROR, "External done on text index rebuild failed: "
-                   "%d", rc ) ;
-      // Now the capped cs and cl have been created. So if any failure below,
-      // they need to be dropped.
       hasRebuild = TRUE ;
 
-      // Now we need to set the index as valid.
-      // As we do not take any lock before this place, the cs/cl/index may have
-      // been dropped already. So after taking the lock, we need to check again
-      // if this is the original index.
       rc = _mbContext->mbLock( EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
       mbLocked = TRUE ;
@@ -477,7 +439,6 @@ namespace engine
          }
          ixmIndexCB indexCBTmp( _mbContext->mb()->_indexExtent[idxID], _suIndex,
                                 _mbContext ) ;
-         // Check if this is the original index by comparing the logical id.
          if ( _indexLID == indexCBTmp.getLogicalID() )
          {
             break ;
@@ -486,16 +447,10 @@ namespace engine
 
       if ( DMS_COLLECTION_MAX_INDEX == idxID )
       {
-         // Didn't find this index. It may have been dropped. Need to undo what
-         // has been done here, and nothing more should be done with the
-         // indexCB.
          rc = SDB_DMS_INVALID_INDEXCB ;
          goto error ;
       }
 
-      // Now we have done the external operation and everything is going
-      // smoothly. Set set the index as CREATING and it will be set as NORMAL
-      // in _finish() of dmsIndexRebuilder.
       _indexCB->setFlag( IXM_INDEX_FLAG_CREATING ) ;
 
    done:
@@ -508,13 +463,13 @@ namespace engine
    error:
       if ( hasRebuild )
       {
-         // If the cs/cl/index has been dropped, or the cl has been truncated,
-         // the external operation would have been done. Otherwise, do the
-         // external on drop operation.
          if ( ( SDB_DMS_NOTEXIST != rc ) && ( SDB_DMS_TRUNCATED != rc ) &&
               ( SDB_DMS_INVALID_INDEXCB != rc ) )
          {
-            INT32 rcTmp = _extHandler->onDropTextIdx( _extDataName, _eduCB, NULL ) ;
+            INT32 rcTmp = _extHandler->onDropTextIdx( _suData->getSuName(),
+                                                      _collectionName,
+                                                      _idxName,
+                                                      _eduCB, NULL ) ;
             if ( rcTmp )
             {
                PD_LOG( PDERROR, "External operation on drop text index failed, "

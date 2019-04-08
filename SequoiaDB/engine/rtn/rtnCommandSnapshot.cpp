@@ -1,20 +1,19 @@
 /*******************************************************************************
 
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnCommandSnapshot.cpp
 
@@ -419,7 +418,6 @@ namespace engine
          BOOLEAN hasSessionID = TRUE ;
          string type ;
 
-         // check Type
          rc = rtnGetSTDStringElement( obj, FIELD_NAME_TYPE, type ) ;
          if ( SDB_FIELD_NOT_EXIST == rc )
          {
@@ -444,16 +442,11 @@ namespace engine
          {
             _type = CMD_SNAPSHOT_HEALTH ;
          }
-         else if ( VALUE_NAME_SVCTASKS == type )
-         {
-            _type = CMD_SNAPSHOT_SVCTASKS ;
-         }
          else if ( VALUE_NAME_ALL == type )
          {
             _type = CMD_SNAPSHOT_ALL ; ;
          }
 
-         // check SessionID
          rc = rtnGetNumberLongElement( obj, FIELD_NAME_SESSIONID,
                                        (INT64 &)_sessionID ) ;
          if ( SDB_FIELD_NOT_EXIST == rc )
@@ -464,7 +457,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
                       FIELD_NAME_SESSIONID, rc ) ;
 
-         // check conflict
          if ( hasSessionID && _type != CMD_SNAPSHOT_SESSIONS )
          {
             PD_LOG( PDERROR, "Field[%s] take effect only when reset snapshot "
@@ -473,7 +465,6 @@ namespace engine
             goto error ;
          }
 
-         // reset all session
          if ( _type == CMD_SNAPSHOT_SESSIONS && !hasSessionID )
          {
             _resetAllSession = TRUE ;
@@ -782,7 +773,6 @@ namespace engine
 
    BOOLEAN _rtnSnapshotCollections::_isCurrent() const
    {
-      /// for include system
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          return TRUE ;
@@ -817,7 +807,6 @@ namespace engine
 
    BOOLEAN _rtnSnapshotCollectionsInner::_isCurrent() const
    {
-      /// for include system
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          return TRUE ;
@@ -856,7 +845,6 @@ namespace engine
 
    BOOLEAN _rtnSnapshotCollectionSpaces::_isCurrent() const
    {
-      /// for include system
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          return TRUE ;
@@ -891,7 +879,6 @@ namespace engine
 
    BOOLEAN _rtnSnapshotCollectionSpacesInner::_isCurrent() const
    {
-      /// for include system
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          return TRUE ;
@@ -930,7 +917,6 @@ namespace engine
 
    BOOLEAN _rtnSnapshotAccessPlans::_isCurrent() const
    {
-      /// for include system
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          return TRUE ;
@@ -973,7 +959,6 @@ namespace engine
 
    BOOLEAN _rtnSnapshotAccessPlansInner::_isCurrent() const
    {
-      /// for include system
       if ( CMD_SPACE_SERVICE_LOCAL == getFromService() )
       {
          return TRUE ;
@@ -984,185 +969,6 @@ namespace engine
    UINT32 _rtnSnapshotAccessPlansInner::_addInfoMask() const
    {
       return MON_MASK_NODE_NAME | MON_MASK_GROUP_NAME ;
-   }
-
-   IMPLEMENT_CMD_AUTO_REGISTER(_rtnSnapshotConfigs)
-   _rtnSnapshotConfigs::_rtnSnapshotConfigs ()
-   {
-   }
-
-   _rtnSnapshotConfigs::~_rtnSnapshotConfigs ()
-   {
-   }
-
-   const CHAR *_rtnSnapshotConfigs::name ()
-   {
-      return NAME_SNAPSHOT_CONFIGS ;
-   }
-
-   RTN_COMMAND_TYPE _rtnSnapshotConfigs::type ()
-   {
-      return CMD_SNAPSHOT_CONFIGS ;
-   }
-
-   INT32 _rtnSnapshotConfigs::_getFetchType() const
-   {
-      return RTN_FETCH_CONFIGS ;
-   }
-
-   BOOLEAN _rtnSnapshotConfigs::_isCurrent() const
-   {
-      return FALSE ;
-   }
-
-   UINT32 _rtnSnapshotConfigs::_addInfoMask() const
-   {
-      return MON_MASK_NODE_NAME ;
-   }
-
-   BSONObj _rtnSnapshotConfigs::_getOptObj() const
-   {
-      BSONObj obj ;
-
-      try
-      {
-         BSONElement elem ;
-         BSONObj hintObj( _hintBuff ) ;
-         BSONObjIterator itr( hintObj ) ;
-         while ( itr.more() )
-         {
-            elem = itr.next() ;
-            if ( Object == elem.type() &&
-                 0 == ossStrcasecmp( elem.fieldName(),
-                                     "$"FIELD_NAME_OPTIONS ) )
-            {
-               obj = elem.embeddedObject() ;
-               break ;
-            }
-         }
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-      }
-
-      return obj ;
-   }
-
-   const CHAR* _rtnSnapshotConfigs::getIntrCMDName()
-   {
-      return CMD_NAME_SNAPSHOT_CONFIGS_INTR ;
-   }
-
-   IMPLEMENT_CMD_AUTO_REGISTER(_rtnSnapshotConfigsInner)
-   const CHAR *_rtnSnapshotConfigsInner::name ()
-   {
-      return CMD_NAME_SNAPSHOT_CONFIGS_INTR ;
-   }
-
-   RTN_COMMAND_TYPE _rtnSnapshotConfigsInner::type ()
-   {
-      return CMD_SNAPSHOT_CONFIGS ;
-   }
-
-   INT32 _rtnSnapshotConfigsInner::_getFetchType() const
-   {
-      return RTN_FETCH_CONFIGS ;
-   }
-
-   BOOLEAN _rtnSnapshotConfigsInner::_isCurrent() const
-   {
-      return FALSE ;
-   }
-
-   UINT32 _rtnSnapshotConfigsInner::_addInfoMask() const
-   {
-      return MON_MASK_NODE_NAME ;
-   }
-
-   IMPLEMENT_CMD_AUTO_REGISTER(_rtnSnapshotVCLSessionInfoInner)
-   const CHAR *_rtnSnapshotVCLSessionInfoInner::name ()
-   {
-      return SYS_CL_SESSION_INFO ;
-   }
-
-   RTN_COMMAND_TYPE _rtnSnapshotVCLSessionInfoInner::type ()
-   {
-      return CMD_SNAPSHOT_VCL_SESSIONINFO ;
-   }
-
-   INT32 _rtnSnapshotVCLSessionInfoInner::_getFetchType() const
-   {
-      return RTN_FETCH_VCL_SESSIONINFO ;
-   }
-
-   BOOLEAN _rtnSnapshotVCLSessionInfoInner::_isCurrent() const
-   {
-      return TRUE ;
-   }
-
-   UINT32 _rtnSnapshotVCLSessionInfoInner::_addInfoMask() const
-   {
-      return 0 ;
-   }
-
-   IMPLEMENT_CMD_AUTO_REGISTER(_rtnSnapshotSvcTasks)
-
-   const CHAR* _rtnSnapshotSvcTasks::name()
-   {
-      return NAME_SNAPSHOT_SVCTASKS ;
-   }
-
-   RTN_COMMAND_TYPE _rtnSnapshotSvcTasks::type()
-   {
-      return CMD_SNAPSHOT_SVCTASKS ;
-   }
-
-   INT32 _rtnSnapshotSvcTasks::_getFetchType() const
-   {
-      return RTN_FETCH_SVCTASKS ;
-   }
-
-   BOOLEAN _rtnSnapshotSvcTasks::_isCurrent() const
-   {
-      return FALSE ;
-   }
-
-   UINT32 _rtnSnapshotSvcTasks::_addInfoMask() const
-   {
-      return MON_MASK_NODE_NAME ;
-   }
-
-   const CHAR* _rtnSnapshotSvcTasks::getIntrCMDName()
-   {
-      return CMD_NAME_SNAPSHOT_SVCTASKS_INTR ;
-   }
-
-   IMPLEMENT_CMD_AUTO_REGISTER( _rtnSnapshotSvcTasksInner )
-
-   const CHAR* _rtnSnapshotSvcTasksInner::name()
-   {
-      return CMD_NAME_SNAPSHOT_SVCTASKS_INTR ;
-   }
-
-   RTN_COMMAND_TYPE _rtnSnapshotSvcTasksInner::type()
-   {
-      return CMD_SNAPSHOT_SVCTASKS ;
-   }
-
-   INT32 _rtnSnapshotSvcTasksInner::_getFetchType() const
-   {
-      return RTN_FETCH_SVCTASKS ;
-   }
-
-   BOOLEAN _rtnSnapshotSvcTasksInner::_isCurrent() const
-   {
-      return FALSE ;
-   }
-
-   UINT32 _rtnSnapshotSvcTasksInner::_addInfoMask() const
-   {
-      return MON_MASK_NODE_NAME ;
    }
 
 }

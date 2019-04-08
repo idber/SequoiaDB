@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = coordCB.hpp
 
@@ -40,7 +39,7 @@
 #include "netRouteAgent.hpp"
 #include "ossUtil.h"
 #include "coordRemoteSession.hpp"
-#include "pmdRemoteMsgEventHandler.hpp"
+#include "coordMsgEventHandler.hpp"
 #include "sdbInterface.hpp"
 #include "dmsCB.hpp"
 #include "pmdEDU.hpp"
@@ -50,7 +49,6 @@
 #include "pmdObjBase.hpp"
 #include "rtn.hpp"
 #include "clsRegAssit.hpp"
-#include "ossMemPool.hpp"
 
 using namespace std ;
 
@@ -63,7 +61,7 @@ namespace engine
    {
       DECLARE_OBJ_MSG_MAP()
 
-      typedef ossPoolMap< SINT64, UINT64>    CONTEXT_LIST ;
+      typedef _utilMap< SINT64, UINT64, 20 >    CONTEXT_LIST ;
 
       public:
          _CoordCB() ;
@@ -86,7 +84,6 @@ namespace engine
 
          coordResource* getResource() ;
          netRouteAgent* getRouteAgent() ;
-         pmdRemoteSessionMgr* getRSManager() ;
 
       protected:
          virtual void onTimer ( UINT64 timerID, UINT32 interval ) ;
@@ -110,17 +107,12 @@ namespace engine
          INT32 _filterQueryCmd( _rtnCommand *pCommand,
                                 MsgHeader *pMsg ) ;
          INT32 _processQueryMsg( MsgHeader *pMsg,
-                                 rtnContextBuf &buffObj,
                                  INT64 &contextID ) ;
          INT32 _processSessionInit( MsgHeader *pMsg ) ;
          INT32 _processInterruptMsg( const NET_HANDLE & handle,
                                      MsgHeader * header ) ;
          INT32 _processDisconnectMsg( const NET_HANDLE & handle,
                                       MsgHeader * header ) ;
-         INT32 _processPacketMsg( const NET_HANDLE & handle,
-                                  MsgHeader * header,
-                                  INT64 &contextID,
-                                  rtnContextBuf &buf ) ;
          void _delContextByHandle( const UINT32 &handle ) ;
          void _delContext( const UINT32 &handle, UINT32 tid ) ;
          void _delContextByID( INT64 contextID, BOOLEAN rtnDel ) ;
@@ -134,8 +126,8 @@ namespace engine
          pmdRemoteSessionMgr           _remoteSessionMgr ;
          coordSessionPropMgr           _sitePropMgr ;
 
-         pmdRemoteMsgHandler           *_pMsgHandler ;
-         pmdRemoteTimerHandler         *_pTimerHandler ;
+         coordMsgHandler               *_pMsgHandler ;
+         coordTimerHandler             *_pTimerHandler ;
          netRouteAgent                 *_pAgent ;
 
          UINT16                        _shardServiceID ;
@@ -159,11 +151,6 @@ namespace engine
 
          MsgOpReply                    _replyHeader ;
          BOOLEAN                       _needReply ;
-         BSONObj                       _errorInfo ;
-
-         UINT32                        _inPacketLevel ;
-         INT64                         _pendingContextID ;
-         rtnContextBuf                 _pendingBuff ;
    } ;
    typedef _CoordCB CoordCB ;
 

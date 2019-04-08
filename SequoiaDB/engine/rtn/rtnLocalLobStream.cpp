@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = rtnLocalLobStream.cpp
 
@@ -211,7 +210,6 @@ namespace engine
 
       record.set( &getOID(), DMS_LOB_META_SEQUENCE, 0, len, NULL ) ;
 
-      /// read whole the meta page
       rc = _su->lob()->read( record, _mbContext, cb, buf, readLen ) ;
       if ( SDB_OK == rc )
       {
@@ -223,7 +221,6 @@ namespace engine
             rc = SDB_SYS ;
             goto error ;
          }
-         /// copy data
          ossMemcpy( (void*)&meta, buf, sizeof( meta ) ) ;
          if ( !meta.isDone() && !allowUncompleted )
          {
@@ -238,7 +235,6 @@ namespace engine
             meta._modificationTime = meta._createTime ;
          }
 
-         /// if meta page has data, push the data to pool
          if ( meta._version >= DMS_LOB_META_MERGE_DATA_VERSION &&
               meta._lobLen > 0 &&
               readLen > DMS_LOB_META_LENGTH )
@@ -644,12 +640,6 @@ namespace engine
             }
             ossMemset( buf, 0, DMS_LOB_META_LENGTH ) ;
 
-            // copy record data to buf,
-            // because in local stream,
-            // tuple.data actually is rtnLobStream->_meta
-            // we can't directly override its memory,
-            // especially when newCache has pieces info,
-            // it will override memory after rtnLobStream->_meta
             ossMemcpy( buf, record._data, record._dataLen ) ;
             record._data = (const CHAR*)buf ;
 
@@ -840,7 +830,7 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNLOCALLOBSTREAM__ROLLBACK, "_rtnLocalLobStream::_rollback" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNLOCALLOBSTREAM__ROLLBACK, "_rtnLocalLobStream::_rooback" )
    INT32 _rtnLocalLobStream::_rollback( _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
@@ -861,7 +851,6 @@ namespace engine
                     piece._sequence, rc ) ;
             if ( SDB_LOB_SEQUENCE_NOT_EXIST != rc )
             {
-               /// include SDB_DMS_CS_DELETING
                goto error ;
             }
             rc = SDB_OK ;

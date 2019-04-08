@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
 
    This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
 
    This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
    GNU Affero General Public License for more details.
 
    You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program. If not, see <http://www.gnu.org/license/>.
 
    Source File Name = pdTrace.cpp
 
@@ -38,7 +37,7 @@
 #include "ossUtil.hpp"
 #include "pdTrace.hpp"
 #include "pd.hpp"
-#include "ossVer.h"
+
 #if defined (SDB_ENGINE)
 #include "pmd.hpp"
 #include "pmdDef.hpp"
@@ -48,15 +47,10 @@
 
 #include <sstream>
 
-#define TRACE_FUNCTIONSNAMES_INIT_SIZE      ( 204800 )      /* bytes */
-
 using namespace engine ;
 
 BOOLEAN g_isTraceStarted = FALSE ;
 
-// extract high 32 bit as function component mask, and OR with
-// cb->_componentMask, if the result is 0 that means the component is not what
-// we want
 
 void pdTraceFunc ( UINT64 funcCode, INT32 type,
                    const CHAR* file, UINT32 line,
@@ -65,7 +59,6 @@ void pdTraceFunc ( UINT64 funcCode, INT32 type,
    pdTraceCB *pdCB = sdbGetPDTraceCB() ;
    BOOLEAN hasStarted = FALSE ;
 
-   // make sure trace is turned on
    if ( !pdCB->isStarted() )
    {
       return ;
@@ -74,7 +67,6 @@ void pdTraceFunc ( UINT64 funcCode, INT32 type,
    pdCB->startWrite() ;
    hasStarted = TRUE ;
 
-   /// double check
    if ( !pdCB->isStarted() || !pdCB->checkMask( funcCode ) )
    {
       goto done ;
@@ -100,12 +92,10 @@ void pdTraceFunc ( UINT64 funcCode, INT32 type,
          record._tid = tid ;
          record._line = (UINT16)line ;
 
-         // parse arguments and calcualte the total size of buffer we need
          for ( INT8 i = 0 ; i < PD_TRACE_MAX_ARG_NUM ; ++i )
          {
             if ( PD_TRACE_ARGTYPE_NONE != tuple[i]._arg.getType() )
             {
-               /// make sure size is not overflow
                if ( tuple[i]._arg.argSize() > lastSize )
                {
                   tuple[i]._arg.setType( PD_TRACE_ARGTYPE_NONE ) ;
@@ -167,32 +157,6 @@ done :
 }
 
 /*
-   _pdTraceHeader implement
-*/
-void _pdTraceHeader::reset()
-{
-   ossMemset( this, 0, sizeof( _pdTraceHeader ) ) ;
-   ossMemcpy( _eyeCatcher, TRACECB_EYE_CATCHER, TRACECB_EYE_CATCHER_SIZE ) ;
-   _headerSize          = sizeof( _pdTraceHeader ) ;
-   _version             = PD_TRACE_VERSION_CUR ;
-   _engineVersion       = SDB_ENGINE_VERISON_CURRENT ;
-   _engineSubVersion    = SDB_ENGINE_SUBVERSION_CURRENT ;
-#ifdef SDB_ENGINE_FIXVERSION_CURRENT
-   _engineFixVersion = SDB_ENGINE_FIXVERSION_CURRENT ;
-#else
-   _engineFixVersion = PD_TRACE_INVALID_FIXVERSION ;
-#endif
-   _release                = SDB_ENGINE_RELEASE_CURRENT ;
-   _functionsSegmentSize   = 0 ;
-   _functionsSegmentOffset = 0 ;
-}
-
-_pdTraceHeader::_pdTraceHeader()
-{
-   reset();
-}
-
-/*
    _pdTraceCB implement
 */
 _pdTraceCB::_pdTraceCB()
@@ -218,7 +182,6 @@ _pdTraceCB::_pdTraceCB()
    _reset() ;
 }
 
-// free memory
 _pdTraceCB::~_pdTraceCB()
 {
    _reset() ;
@@ -299,12 +262,9 @@ CHAR* _pdTraceCB::fillIn( CHAR *pPos, const CHAR *pInput, INT32 size )
    CHAR *pRetAddr        = NULL ;
 
    SDB_ASSERT( pPos && pInput, "pos and input can't be NULL" ) ;
-   // target offset must be in valid range
    SDB_ASSERT( pPos >= _pBuffer, "pos can't be smaller than buffer" ) ;
-   // end offset must be in valid range
    SDB_ASSERT( pPos + size <= _pBuffer + _size, "end pos over the buffer" ) ;
 
-   // if we are asked to write too big data, let's just skip it
    if ( size < 0 || size >= TRACE_RECORD_MAX_SIZE )
    {
       pRetAddr = (CHAR*)pPos ;
@@ -357,7 +317,6 @@ INT32 _pdTraceCB::start ( UINT64 size,
       ossSleep( 100 ) ;
    }
 
-   // sanity check, make sure we are not currently tracing anything
    if ( _traceStarted )
    {
       PD_LOG ( PDWARNING, "Trace is already started" ) ;
@@ -367,7 +326,6 @@ INT32 _pdTraceCB::start ( UINT64 size,
 
    _reset() ;
 
-   // trace stop break
    if ( funcCode && funcCode->size() > 0 )
    {
       funcTextss << "[" ;
@@ -389,7 +347,6 @@ INT32 _pdTraceCB::start ( UINT64 size,
       funcTextss << "]" ;
    }
 
-   // trace tid filter
    if ( tids && tids->size() > 0 )
    {
       tidTextss << "[" ;
@@ -417,14 +374,12 @@ INT32 _pdTraceCB::start ( UINT64 size,
    size           *= ( 1024 * 1024 ) ;
    size           = ossRoundUpToMultipleX ( size, TRACE_CHUNK_SIZE ) ;
 
-   // start trace
    PD_LOG ( PDEVENT, "Trace starts, buffersize = %llu, mask = 0x%x, "
             "funcCodes = %s, tids = %s", size, mask,
             funcTextss.str().c_str(), tidTextss.str().c_str() ) ;
 
    _size = size ;
 
-   // memory will be freed in destructor or reset
    _pBuffer       = (CHAR*)SDB_OSS_MALLOC ( size ) ;
    if ( !_pBuffer )
    {
@@ -434,7 +389,6 @@ INT32 _pdTraceCB::start ( UINT64 size,
       goto error ;
    }
 
-   /// set started
    _traceStarted = TRUE ;
    g_isTraceStarted = TRUE ;
 
@@ -458,7 +412,6 @@ void _pdTraceCB::stop()
       g_isTraceStarted = FALSE ;
       PD_LOG ( PDEVENT, "Trace stops" ) ;
 
-      // wait until there's no one write into the buffer
       while ( !_currentWriter.compare( 0 ) )
       {
          ossSleep( 1 ) ;
@@ -481,7 +434,6 @@ void _pdTraceCB::destroy()
       g_isTraceStarted = FALSE ;
       PD_LOG ( PDEVENT, "Trace stops" ) ;
 
-      // wait until there's no one write into the buffer
       while ( !_currentWriter.compare( 0 ) )
       {
          ossSleep( 1 ) ;
@@ -493,61 +445,10 @@ void _pdTraceCB::destroy()
    _metaOpr.swap( 0 ) ;
 }
 
-INT32 _pdTraceCB::_appendFuncName( CHAR **ppBuffer, UINT32 &bufferSize,
-                                   UINT32 &usedSize, UINT32 functionNameID )
-{
-   INT32 rc                = SDB_OK ;
-   CHAR  *pNewBuffer       = NULL ;
-   UINT32 tempBufferSize   = 0 ;
-   UINT32 functionsNameLen = ossStrlen( pdGetTraceFunction( functionNameID ) )
-                             + 1 ;
-   if ( !( *ppBuffer ) )
-   {
-      tempBufferSize = TRACE_FUNCTIONSNAMES_INIT_SIZE ;
-      *ppBuffer = ( CHAR* )SDB_OSS_MALLOC( tempBufferSize ) ;
-      if ( !*ppBuffer )
-      {
-         rc = SDB_OOM ;
-         goto error ;
-      }
-      bufferSize = tempBufferSize ;
-   }
-
-   if ( ( usedSize + functionsNameLen ) > bufferSize )
-   {
-      tempBufferSize = ( usedSize + functionsNameLen ) > ( bufferSize * 2 ) ?
-                       ( usedSize + functionsNameLen ) : ( bufferSize * 2 ) ;
-      pNewBuffer = (CHAR*)SDB_OSS_REALLOC( *ppBuffer, bufferSize ) ;
-      if ( !pNewBuffer )
-      {
-         rc = SDB_OOM ;
-         goto error ;
-      }
-      *ppBuffer = pNewBuffer ;
-      bufferSize = tempBufferSize ;
-   }
-
-   ossMemcpy( *ppBuffer + usedSize,
-              pdGetTraceFunction( functionNameID ), functionsNameLen ) ;
-   usedSize += functionsNameLen ;
-
-done :
-   return rc ;
-error :
-   goto done ;
-}
-
 INT32 _pdTraceCB::dump( OSSFILE *outFile )
 {
    INT32 rc = SDB_OK ;
    pdAllocPair *pAllocPair = NULL ;
-
-   UINT32  readLen               = 0 ;
-   UINT32  mallocSize            = 0 ;
-   CHAR   *funcNamesBuf          = NULL ;
-   UINT32 *funcOffsetListBuf     = NULL ;
-   UINT32  funcOffsetListBufSize = 0 ;
-   const UINT32 functionsCount   = pdGetTraceFunctionListNum() ;
 
    while( !_metaOpr.compareAndSwap( 0, 1 ) )
    {
@@ -569,40 +470,12 @@ INT32 _pdTraceCB::dump( OSSFILE *outFile )
       goto error ;
    }
 
-   funcOffsetListBufSize = ( functionsCount ) * sizeof( UINT32 ) ;
-   funcOffsetListBuf = ( UINT32* )SDB_OSS_MALLOC( funcOffsetListBufSize ) ;
-   if ( !funcOffsetListBuf )
-   {
-      rc = SDB_OOM ;
-      goto error ;
-   }
-
-   //init funcNamesBuf and funcOffsetList
-   for( UINT32 i = 0 ; i < functionsCount ; i++ )
-   {
-      funcOffsetListBuf[i] = readLen ;
-
-      rc = _appendFuncName( &funcNamesBuf, mallocSize, readLen, i ) ;
-      if( rc )
-      {
-         PD_LOG( PDERROR, "Append functionName[%d] failed, rc: %d", i ,rc ) ;
-         goto error ;
-      }
-   }
-
-   _header._functionsSegmentSize = sizeof( UINT32 ) + funcOffsetListBufSize
-                                   + readLen ;
-
-   // write header first
    pAllocPair = ( pdAllocPair* )_ptr.fetch() ;
    _header.savePosition( pAllocPair->_b.fetch(), _size ) ;
-
    if ( _header._bufTail % TRACE_CHUNK_SIZE )
    {
       _pBuffer[_header._bufTail] = 0;
    }
-
-   _header._functionsSegmentOffset = sizeof(_header) + _header._bufSize ;
 
    rc = ossWriteN( outFile, ( const CHAR* )&_header, sizeof( _header ) ) ;
    if ( rc )
@@ -611,7 +484,6 @@ INT32 _pdTraceCB::dump( OSSFILE *outFile )
       goto error ;
    }
 
-   // write buffer
    rc = ossWriteN( outFile, _pBuffer, _header._bufSize ) ;
    if ( rc )
    {
@@ -619,37 +491,7 @@ INT32 _pdTraceCB::dump( OSSFILE *outFile )
       goto error ;
    }
 
-   // write functionsSegment
-   rc = ossWriteN( outFile, ( CHAR* )&functionsCount, sizeof( UINT32 ) ) ;
-   if ( rc )
-   {
-      PD_LOG( PDERROR, "Write functionsCount to file failed, rc: %d", rc ) ;
-      goto error ;
-   }
-   rc = ossWriteN( outFile, ( CHAR* )funcOffsetListBuf, funcOffsetListBufSize ) ;
-   if ( rc )
-   {
-      PD_LOG( PDERROR, "Write funcOffsetList to file failed, rc: %d", rc ) ;
-      goto error ;
-   }
-   rc = ossWriteN( outFile, funcNamesBuf, readLen ) ;
-   if ( rc )
-   {
-      PD_LOG( PDERROR, "Write funcNamesBuf to file failed, rc: %d", rc ) ;
-      goto error ;
-   }
-
 done :
-   if ( funcNamesBuf )
-   {
-      SDB_OSS_FREE( funcNamesBuf ) ;
-      funcNamesBuf = NULL ;
-   }
-   if ( funcOffsetListBuf )
-   {
-      SDB_OSS_FREE( funcOffsetListBuf ) ;
-      funcOffsetListBuf = NULL ;
-   }
    _metaOpr.swap( 0 ) ;
    return rc ;
 error :
@@ -659,7 +501,6 @@ error :
 INT32 _pdTraceCB::_addBreakPoint( UINT64 functionCode )
 {
    INT32 rc = SDB_OK ;
-   // duplicate detection
    for ( UINT32 i = 0; i < _numBP; ++i )
    {
       if ( functionCode == _bpList[i] )
@@ -667,8 +508,6 @@ INT32 _pdTraceCB::_addBreakPoint( UINT64 functionCode )
          goto done ;
       }
    }
-   // here we need to insert the function code into list
-   // first we have to make sure we still have enough room
    if ( _numBP >= PD_TRACE_MAX_BP_NUM )
    {
       rc = SDB_TOO_MANY_TRACE_BP ;
@@ -676,6 +515,7 @@ INT32 _pdTraceCB::_addBreakPoint( UINT64 functionCode )
    }
    _bpList[_numBP] = functionCode ;
    ++_numBP ;
+
 done :
    return rc ;
 error :
@@ -691,7 +531,6 @@ void _pdTraceCB::removeAllBreakPoint()
 INT32 _pdTraceCB::_addTidFilter( UINT32 tid )
 {
    INT32 rc = SDB_OK ;
-   // duplicate detection
    for ( UINT32 i = 0; i < _nMonitoredNum ; ++i )
    {
       if ( tid == _monitoredThreads[i] )
@@ -699,9 +538,7 @@ INT32 _pdTraceCB::_addTidFilter( UINT32 tid )
          goto done ;
       }
    }
-   // here we need to insert the tid filter into list
-   // first we have to make sure we still have enough room
-   if ( _nMonitoredNum >= PD_TRACE_MAX_MONITORED_THREAD_NUM )
+   if ( _numBP >= PD_TRACE_MAX_MONITORED_THREAD_NUM )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
@@ -779,13 +616,10 @@ void _pdTraceCB::pause( UINT64 funcCode )
    pmdEDUCB *educb = pmdGetThreadEDUCB() ;
    pmdEDUEvent event ;
 
-   // compare each defined break points
    for ( UINT32 i = 0 ; i < _numBP ; ++i )
    {
-      // if the break point matches our current function code
       if ( _bpList[i] == funcCode )
       {
-         // put EDU into pause status
          addPausedEDU( educb ) ;
 
          educb->waitEvent( engine::PMD_EDU_EVENT_BP_RESUME, event, -1 ) ;

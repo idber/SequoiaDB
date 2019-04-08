@@ -1,4 +1,3 @@
-// optime.h - OpTime class
 
 /*    Copyright 2009 10gen Inc.
  *
@@ -46,12 +45,6 @@ namespace bson {
         OpTime(ReplTime x) {
             reinterpret_cast<unsigned long long&>(*this) = x;
         }
-        /**
-         * Constructor.
-         *
-         * @param a seconds since epoch.
-         * @param b microseconds in range of [0us, 999999us].
-         */
         OpTime(signed a, unsigned b) {
             secs = a;
             i = b;
@@ -63,19 +56,6 @@ namespace bson {
         static OpTime now() {
             signed t = (signed) time(0);
             if ( t < last.secs ) {
-                // bool toLog = false;
-                // ONCE toLog = true;
-                // RARELY toLog = true;
-                // if ( last.i & 0x80000000 )
-                //     toLog = true;
-                // if ( toLog )
-                //     log() << "clock skew detected  prev: " << last.secs
-                //           << " now: " << t << " trying to handle..." << endl;
-                // if ( last.i & 0x80000000 ) {
-                //     log() << "ERROR Large clock skew detected, shutting down"
-                //           << endl;
-                //     throw ClockSkewException();
-                // }
                 t = last.secs;
             }
             if ( last.secs == t ) {
@@ -99,7 +79,6 @@ namespace bson {
             memcpy( (char *)&time + sizeof( unsigned ), &secs,
                     sizeof( signed ) ) ;
             return time ;
-            //return reinterpret_cast<const unsigned long long*>(&i)[0];
         }
         long long asLL() const {
             long long time = 0 ;
@@ -107,7 +86,6 @@ namespace bson {
             memcpy( (char *)&time + sizeof( unsigned ), &secs,
                     sizeof( signed ) ) ;
             return time ;
-            //return reinterpret_cast<const long long*>(&i)[0];
         }
 
         bool isNull() const { return secs == 0; }

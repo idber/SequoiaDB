@@ -1,19 +1,18 @@
 /*******************************************************************************
 
-   Copyright (C) 2011-2018 SequoiaDB Ltd.
+   Copyright (C) 2012-2014 SequoiaDB Ltd.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Affero General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Affero General Public License for more details.
+   http://www.apache.org/licenses/LICENSE-2.0
 
-   You should have received a copy of the GNU Affero General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
    Source File Name = pd.hpp
 
@@ -112,63 +111,35 @@
 /*
    Max component number
 */
+const INT32 _pdTraceComponentNum = 28 ;
 
-// component masks
-// authentication
 #define PD_TRACE_COMPONENT_AUTH    0x00000001
-// bufferpool service
 #define PD_TRACE_COMPONENT_BPS     0x00000002
-// catalog service
 #define PD_TRACE_COMPONENT_CAT     0x00000004
-// cluster service
 #define PD_TRACE_COMPONENT_CLS     0x00000008
-// data protection service
 #define PD_TRACE_COMPONENT_DPS     0x00000010
-// migration services
 #define PD_TRACE_COMPONENT_MIG     0x00000020
-// messages
 #define PD_TRACE_COMPONENT_MSG     0x00000040
-// network
 #define PD_TRACE_COMPONENT_NET     0x00000080
-// operating system services
 #define PD_TRACE_COMPONENT_OSS     0x00000100
-// problem determination
 #define PD_TRACE_COMPONENT_PD      0x00000200
-// runtime
 #define PD_TRACE_COMPONENT_RTN     0x00000400
-// sql
 #define PD_TRACE_COMPONENT_SQL     0x00000800
-// tools
 #define PD_TRACE_COMPONENT_TOOL    0x00001000
-// backup recovery
 #define PD_TRACE_COMPONENT_BAR     0x00002000
-// client
 #define PD_TRACE_COMPONENT_CLIENT  0x00004000
-// coord services
 #define PD_TRACE_COMPONENT_COORD   0x00008000
-// data management services
 #define PD_TRACE_COMPONENT_DMS     0x00010000
-// index management services
 #define PD_TRACE_COMPONENT_IXM     0x00020000
-// monitoring
 #define PD_TRACE_COMPONENT_MON     0x00040000
-// methods
 #define PD_TRACE_COMPONENT_MTH     0x00080000
-// optimizer
 #define PD_TRACE_COMPONENT_OPT     0x00100000
-// process model
 #define PD_TRACE_COMPONENT_PMD     0x00200000
-// REST
 #define PD_TRACE_COMPONENT_REST    0x00400000
-// scripting
 #define PD_TRACE_COMPONENT_SPT     0x00800000
-// utilities
 #define PD_TRACE_COMPONENT_UTIL    0x01000000
-// aggregation
 #define PD_TRACE_COMPONENT_AGGR    0x02000000
-// stored procedure
 #define PD_TRACE_COMPONENT_SPD     0x04000000
-// query graph manger
 #define PD_TRACE_COMPONENT_QGM     0x08000000
 
 /*
@@ -206,7 +177,6 @@ typedef _pdTraceArgumentType pdTraceArgumentType ;
 
 #pragma pack(4)
 
-// each argument got 8 bytes header for size and type
 class _pdTraceArgument : public SDBObject
 {
 private :
@@ -274,7 +244,7 @@ typedef class _pdTraceArgument pdTraceArgument ;
 /*
    _pdTraceRecord define
 */
-struct _pdTraceRecord
+struct _pdTraceRecord 
 {
    CHAR           _eyeCatcher[ TRACE_EYE_CATCHER_SIZE ] ;
    UINT8          _flag ;
@@ -312,7 +282,6 @@ struct _pdTraceRecord
    {
       CHAR *pArg = NULL ;
 
-      /// zero
       pArg = ( CHAR* )this + sizeof( _pdTraceRecord ) ;
 
       while ( id > 0 )
@@ -329,8 +298,7 @@ typedef struct _pdTraceRecord pdTraceRecord ;
 /*
    Current Version
 */
-#define PD_TRACE_VERSION_CUR           2
-#define PD_TRACE_INVALID_FIXVERSION    0
+#define PD_TRACE_VERSION_CUR        1
 
 /*
    _pdTraceHeader define
@@ -339,24 +307,19 @@ struct _pdTraceHeader
 {
    CHAR     _eyeCatcher[ TRACECB_EYE_CATCHER_SIZE ] ;
    UINT16   _headerSize ;      // size of header
-   UINT8    _version ;         // trace dump file version
-
-   UINT8    _engineVersion ;
-   UINT8    _engineSubVersion ;
-   UINT8    _engineFixVersion ;
+   UINT8    _version ;
+   UINT8    _pad[ 3 ] ;
 
    UINT64   _bufSize ;
    UINT64   _bufHeader ;
    UINT64   _bufTail ;
 
-   UINT32   _release ;
+   UINT32   _pad1[ 10 ] ;
 
-   UINT32   _functionsSegmentSize ;
-   UINT32   _functionsSegmentOffset ;
-
-   UINT32   _pad1[ 7 ] ;
-
-   _pdTraceHeader();
+   _pdTraceHeader()
+   {
+      reset() ;
+   }
 
    void savePosition( UINT64 current, UINT64 bufSize )
    {
@@ -368,7 +331,7 @@ struct _pdTraceHeader
          _bufHeader = ( ( ( ( current + TRACE_CHUNK_SIZE - 1 ) /
                           TRACE_CHUNK_SIZE ) *
                         TRACE_CHUNK_SIZE ) % _bufSize ) ;
-
+         
       }
       else
       {
@@ -378,9 +341,15 @@ struct _pdTraceHeader
       }
    }
 
-   void reset();
+   void reset()
+   {
+      ossMemset( this, 0, sizeof( _pdTraceHeader ) ) ;
+      ossMemcpy( _eyeCatcher, TRACECB_EYE_CATCHER, TRACECB_EYE_CATCHER_SIZE ) ;
+      _headerSize    = sizeof( _pdTraceHeader ) ;
+      _version       = PD_TRACE_VERSION_CUR ;
+   }
 
-};
+} ;
 typedef struct _pdTraceHeader pdTraceHeader ;
 
 /*
@@ -388,8 +357,8 @@ typedef struct _pdTraceHeader pdTraceHeader ;
 */
 struct _pdAllocPair
 {
-   ossAtomic64       _b ;  // begin
-   volatile UINT64   _e ;  // end
+   ossAtomic64       _b ;
+   volatile UINT64   _e ;
 
    _pdAllocPair()
    :_b( 0 ), _e( TRACE_CHUNK_SIZE )
@@ -487,8 +456,6 @@ protected:
    INT32          _addBreakPoint( UINT64 functionCode ) ;
    INT32          _addTidFilter( UINT32 tid ) ;
    void           _removeAllTidFilter() ;
-   INT32          _appendFuncName( CHAR **ppBuffer, UINT32 &bufferSize,
-                                   UINT32 &usedSize, UINT32 functionNameID ) ;
 
    void           _reset() ;
 
@@ -509,7 +476,6 @@ private :
 
    ossAtomic32          _metaOpr ;
    volatile BOOLEAN     _traceStarted ; // whether trace is started or not
-   // number of sessions that currently writing into trace buffer
    ossAtomic32          _currentWriter ;
 
    UINT32               _componentMask ;   // each bit represent one component
@@ -555,40 +521,37 @@ typedef struct _pdTraceArgTuple pdTraceArgTuple ;
 
 #ifndef SDB_ENGINE
 
-#define PD_TRACE_DECLARE_FUNCTION(x,y)
-#define PD_TRACE_ENTRY(funcCode)
-#define PD_TRACE_EXIT(funcCode)
-#define PD_TRACE_EXITRC(funcCode,rc)
-#define PD_TRACE1(funcCode,pack0)
-#define PD_TRACE2(funcCode,pack0,pack1)
-#define PD_TRACE3(funcCode,pack0,pack1,pack2)
-#define PD_TRACE4(funcCode,pack0,pack1,pack2,pack3)
-#define PD_TRACE5(funcCode,pack0,pack1,pack2,pack3,pack4)
-#define PD_TRACE6(funcCode,pack0,pack1,pack2,pack3,pack4,pack5)
-#define PD_TRACE7(funcCode,pack0,pack1,pack2,pack3,pack4,pack5,pack6)
-#define PD_TRACE8(funcCode,pack0,pack1,pack2,pack3,pack4,pack5,pack6,pack7)
-#define PD_TRACE9(funcCode,pack0,pack1,pack2,pack3,pack4,pack5,pack6,pack7,pack8)
+#define PD_TRACE_DECLARE_FUNCTION(x,y) 
+#define PD_TRACE_ENTRY(funcCode) 
+#define PD_TRACE_EXIT(funcCode) 
+#define PD_TRACE_EXITRC(funcCode,rc) 
+#define PD_TRACE1(funcCode,pack0) 
+#define PD_TRACE2(funcCode,pack0,pack1) 
+#define PD_TRACE3(funcCode,pack0,pack1,pack2) 
+#define PD_TRACE4(funcCode,pack0,pack1,pack2,pack3) 
+#define PD_TRACE5(funcCode,pack0,pack1,pack2,pack3,pack4) 
+#define PD_TRACE6(funcCode,pack0,pack1,pack2,pack3,pack4,pack5) 
+#define PD_TRACE7(funcCode,pack0,pack1,pack2,pack3,pack4,pack5,pack6) 
+#define PD_TRACE8(funcCode,pack0,pack1,pack2,pack3,pack4,pack5,pack6,pack7) 
+#define PD_TRACE9(funcCode,pack0,pack1,pack2,pack3,pack4,pack5,pack6,pack7,pack8) 
 
-#define PD_PACK_NONE
-#define PD_PACK_NULL
-#define PD_PACK_CHAR(x)
-#define PD_PACK_BYTE(x)
-#define PD_PACK_SHORT(x)
-#define PD_PACK_USHORT(x)
-#define PD_PACK_INT(x)
-#define PD_PACK_UINT(x)
-#define PD_PACK_LONG(x)
-#define PD_PACK_ULONG(x)
-#define PD_PACK_FLOAT(x)
-#define PD_PACK_DOUBLE(x)
-#define PD_PACK_STRING(x)
-#define PD_PACK_BSON(x)
+#define PD_PACK_NONE 
+#define PD_PACK_NULL 
+#define PD_PACK_CHAR(x) 
+#define PD_PACK_BYTE(x) 
+#define PD_PACK_SHORT(x) 
+#define PD_PACK_USHORT(x) 
+#define PD_PACK_INT(x) 
+#define PD_PACK_UINT(x) 
+#define PD_PACK_LONG(x) 
+#define PD_PACK_ULONG(x) 
+#define PD_PACK_FLOAT(x) 
+#define PD_PACK_DOUBLE(x) 
+#define PD_PACK_STRING(x) 
+#define PD_PACK_BSON(x) 
 
 #else
 
-// dummy macro declare, this just defines an macro perform nothing activities.
-// The autogen component will scan all .C/.cpp/.h/.hpp and pickup this keyword
-// and generate unique id for each function
 #define PD_TRACE_DECLARE_FUNCTION(x,y) \
 
 #define PD_PACK_NONE      _pdTraceArgTuple ( PD_TRACE_ARGTYPE_NONE, NULL, 0 )
@@ -805,10 +768,8 @@ extern BOOLEAN g_isTraceStarted ;
 
 #endif // SDB_ENGINE
 
-const CHAR     *pdGetTraceFunction ( UINT64 id ) ;
-const CHAR     *pdGetTraceComponent ( UINT32 id ) ;
-const UINT32   pdGetTraceFunctionListNum() ;
-UINT32      pdGetTraceComponentSize() ;
+const CHAR *pdGetTraceFunction ( UINT64 id ) ;
+const CHAR *pdGetTraceComponent ( UINT32 id ) ;
 void pdTraceFunc ( UINT64 funcCode, INT32 type,
                    const CHAR* file, UINT32 line,
                    pdTraceArgTuple *tuple ) ;
