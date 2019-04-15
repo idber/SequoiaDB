@@ -605,7 +605,11 @@
 #define INVALID_NODEID                       0
 #define CURRENT_NODEID                       -1
 #define SYS_NODE_ID_BEGIN                    1
-#define SYS_NODE_ID_END                      ( DATA_NODE_ID_BEGIN - 1 )
+#define SYS_NODE_ID_END                      ( OM_NODE_ID_BEGIN - 1 )
+#define OM_NODE_ID_BEGIN                     800
+#define OM_NODE_ID_END                       ( RESERVED_NODE_ID_BEGIN - 1 )
+#define RESERVED_NODE_ID_BEGIN               810
+#define RESERVED_NODE_ID_END                 ( DATA_NODE_ID_BEGIN - 1 )
 #define DATA_NODE_ID_BEGIN                   1000
 #define DATA_NODE_ID_END                     ( 60000 + DATA_NODE_ID_BEGIN )
 #define DATA_GROUP_ID_BEGIN                  1000
