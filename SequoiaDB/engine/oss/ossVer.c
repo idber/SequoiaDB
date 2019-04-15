@@ -62,6 +62,26 @@ void ossGetVersion ( INT32 *version,
       *ppBuild = SDB_ENGINE_BUILD_TIME ;
 }
 
+void ossGetSimpleVersion( CHAR *pBuff, UINT32 bufLen )
+{
+   if ( NULL == pBuff || 0 == bufLen )
+   {
+      return ;
+   }
+   ossMemset( pBuff, 0, bufLen ) ;
+
+#ifdef SDB_ENGINE_FIXVERSION_CURRENT
+   ossSnprintf( pBuff, bufLen - 1, "%d.%d.%d",
+                SDB_ENGINE_VERISON_CURRENT,
+                SDB_ENGINE_SUBVERSION_CURRENT,
+                SDB_ENGINE_FIXVERSION_CURRENT ) ;
+#else
+   ossSnprintf( pBuff, bufLen - 1, "%d.%d",
+                SDB_ENGINE_VERISON_CURRENT,
+                SDB_ENGINE_SUBVERSION_CURRENT ) ;
+#endif
+}
+
 void ossSprintVersion( const CHAR *prompt, CHAR *pBuff, UINT32 len,
                        BOOLEAN multiLine )
 {
