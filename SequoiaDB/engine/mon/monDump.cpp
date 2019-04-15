@@ -59,7 +59,7 @@
 #include "monTrace.hpp"
 #include "pmdEnv.hpp"
 #include "utilEnvCheck.hpp"
-#include "pmdStartupHstLogger.hpp"
+#include "pmdStartupHistoryLogger.hpp"
 
 using namespace bson ;
 
@@ -965,7 +965,7 @@ namespace engine
       pmdKRCB *krcb = pmdGetKRCB() ;
       monDBCB *mondbcb = krcb->getMonDBCB () ;
       pmdEDUMgr *mgr = krcb->getEDUMgr() ;
-      pmdStartupHstLogger *startLogger = pmdGetStartupHstLogger() ;
+      pmdStartupHistoryLogger *startLogger = pmdGetStartupHstLogger() ;
       switch ( type )
       {
          case CMD_SNAPSHOT_ALL :

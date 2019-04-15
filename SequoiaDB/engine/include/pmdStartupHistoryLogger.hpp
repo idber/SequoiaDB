@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program. If not, see <http://www.gnu.org/license/>.
 
-   Source File Name = pmdStartupHstLogger.hpp
+   Source File Name = pmdStartupHistoryLogger.hpp
 
    Descriptive Name = pmd start-up history logger
 
@@ -32,27 +32,28 @@
 
 *******************************************************************************/
 
-#ifndef PMD_STARTUPHSTLOGGER_HPP_
-#define PMD_STARTUPHSTLOGGER_HPP_
+#ifndef PMD_STARTUPHISTORYLOGGER_HPP_
+#define PMD_STARTUPHISTORYLOGGER_HPP_
 
 #include <vector>
+#include "ossVer.hpp"
 #include "ossFile.hpp"
 #include "ossUtil.hpp"
 #include "ossTypes.hpp"
 #include "pmdStartup.hpp"
 
-#define PMD_STARTUP_FILE_NAME          ".SEQUOIADB_STARTUP"
+#define PMD_STARTUPHST_FILE_NAME ".SEQUOIADB_STARTUP_HISTORY"
 
 namespace engine
 {
    /*
-      _pmdStartupHstLogger define
+      _pmdStartupHistoryLogger define
       start-up history logger
    */
    #define PMD_STARTUP_LOG_LEN_MAX     ( 64 )
-   #define PMD_STARTUP_LOG_HEADER      "pid, startTime, startType"OSS_NEWLINE
+   #define PMD_STARTUP_LOG_HEADER      "pid, startTime, startType, version"OSS_NEWLINE
    #define PMD_STARTUP_LOG_HEADER_SIZE ( sizeof( PMD_STARTUP_LOG_HEADER ) - 1 )
-   #define PMD_STARTUP_LOG_FIELD_NUM   ( 3 )
+   #define PMD_STARTUP_LOG_FIELD_NUM   ( 4 )
    #define PMD_STARTUP_FILESIZE_LIMIT  ( 1000 * 1024 )
    #define PMD_STARTUP_LOGSIZE_MAX     ( 100 * 1024 )
 
@@ -61,15 +62,18 @@ namespace engine
       OSSPID            _pid ;
       ossTimestamp      _time ;
       SDB_START_TYPE    _type ;
+      CHAR              _dbVersion[32] ;
 
       _pmdStartupLog()
       :_pid( OSS_INVALID_PID ), _type( SDB_START_NORMAL )
       {
+         ossGetSimpleVersion( _dbVersion, 32 ) ;
       }
 
       _pmdStartupLog( OSSPID pid, ossTimestamp time, SDB_START_TYPE type )
       :_pid( pid ), _time( time ), _type( type )
       {
+         ossGetSimpleVersion( _dbVersion, 32 ) ;
       }
 
       string toString()
@@ -78,8 +82,12 @@ namespace engine
          CHAR strLog[ PMD_STARTUP_LOG_LEN_MAX ] = { 0 } ;
 
          ossTimestampToString( _time, strTime ) ;
-         ossSnprintf( strLog, sizeof( strLog ) - 1, "%d,%s,%s"OSS_NEWLINE,
-                      _pid, strTime, pmdGetStartTypeStr( _type ) ) ;
+
+         ossSnprintf( strLog, sizeof( strLog ) - 1, "%d,%s,%s,%s"OSS_NEWLINE,
+                      _pid,
+                      strTime,
+                      pmdGetStartTypeStr( _type ),
+                      _dbVersion ) ;
          return strLog ;
       }
    } ;
@@ -87,18 +95,17 @@ namespace engine
 
    BOOLEAN pmdStr2StartupLog( const string& str, pmdStartupLog& log ) ;
 
-   class _pmdStartupHstLogger : public SDBObject
+   class _pmdStartupHistoryLogger : public SDBObject
    {
       public:
-         _pmdStartupHstLogger () ;
-         ~_pmdStartupHstLogger () ;
+         _pmdStartupHistoryLogger () ;
+         ~_pmdStartupHistoryLogger () ;
 
          INT32 init() ;
          INT32 clearAll() ;
          INT32 getLatestLogs( UINT32 num, vector<pmdStartupLog> &vecLogs );
 
       protected:
-         INT32 _buildFileName() ;
          INT32 _clearEarlyLogs() ;
          INT32 _loadLogs() ;
          INT32 _log() ;
@@ -110,11 +117,11 @@ namespace engine
          CHAR _fileName[ OSS_MAX_PATHSIZE + 1 ] ;
    };
 
-   typedef _pmdStartupHstLogger pmdStartupHstLogger ;
+   typedef _pmdStartupHistoryLogger pmdStartupHistoryLogger ;
 
-   pmdStartupHstLogger* pmdGetStartupHstLogger () ;
+   pmdStartupHistoryLogger* pmdGetStartupHstLogger () ;
 
 }
 
-#endif //PMD_STARTUPHSTLOGGER_HPP_
+#endif //PMD_STARTUPHISTORYLOGGER_HPP_
 

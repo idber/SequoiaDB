@@ -94,6 +94,8 @@ void ossGetVersion ( INT32 *version,
                      INT32 *release,
                      const CHAR **ppBuild ) ;
 
+void ossGetSimpleVersion( CHAR *pBuff, UINT32 bufLen ) ;
+
 void ossPrintVersion( const CHAR *prompt ) ;
 
 void ossSprintVersion( const CHAR *prompt, CHAR *pBuff, UINT32 len,
