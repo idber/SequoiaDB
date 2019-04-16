@@ -1567,14 +1567,12 @@ public class DBCollection {
                     ", splitEndCondition = " + splitEndCondition;
             sequoiadb.throwIfError(response, msg);
         }
-
-        DBCursor cursor = new DBCursor(response, sequoiadb);
-        if (!cursor.hasNext()) {
-            throw new BaseException(SDBError.SDB_CAT_TASK_NOTFOUND);
-        }
-
         BSONObject result;
+        DBCursor cursor = new DBCursor(response, sequoiadb);
         try {
+            if (!cursor.hasNext()) {
+                throw new BaseException(SDBError.SDB_CAT_TASK_NOTFOUND);
+            }
             result = cursor.getNext();
         } finally {
             cursor.close();
@@ -1622,14 +1620,12 @@ public class DBCollection {
                     ", percent = " + percent;
             sequoiadb.throwIfError(response, msg);
         }
-
-        DBCursor cursor = new DBCursor(response, sequoiadb);
-        if (!cursor.hasNext()) {
-            throw new BaseException(SDBError.SDB_CAT_TASK_NOTFOUND);
-        }
-
         BSONObject result;
+        DBCursor cursor = new DBCursor(response, sequoiadb);
         try {
+            if (!cursor.hasNext()) {
+                throw new BaseException(SDBError.SDB_CAT_TASK_NOTFOUND);
+            }
             result = cursor.getNext();
         } finally {
             cursor.close();

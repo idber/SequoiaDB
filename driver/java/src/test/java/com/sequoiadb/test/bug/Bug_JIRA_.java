@@ -57,7 +57,7 @@ public class Bug_JIRA_ {
 
     @Test
     public void jira2065_Decimal_toBigDecimal() {
-        thrown.expect(BaseException.class);
+        thrown.expect(UnsupportedOperationException.class);
         BSONDecimal bsonDecimal = new BSONDecimal("MIN", 20, 10);
         BigDecimal bigDecimal = bsonDecimal.toBigDecimal();
     }

@@ -37,7 +37,14 @@ using namespace sdbclient ;
 #ifndef SDB_VER
 #define SDB_VER                  "UNKNOWN"
 #endif
-#define SDB_VER_INFO             "SDBVersion: "SDB_VER
+#define SDB_VER_INFO_NAME        "SequoiadbPluginVersion: "
+#define SDB_VER_INFO_F1()        SDB_VER_INFO_NAME
+#ifdef DEBUG
+#define SDB_VER_INFO_F2()        SDB_VER" Debug"
+#else
+#define SDB_VER_INFO_F2()        SDB_VER" Release"
+#endif
+#define SDB_VER_INFO             (SDB_VER_INFO_F1()SDB_VER_INFO_F2())
 
 #define SDB_DATA_EXT             ".data"
 #define SDB_IDX_EXT              ".idx"
@@ -220,10 +227,10 @@ int ha_sdb::open( const char *name, int mode, uint test_if_locked )
       goto error ;
    }
 
-   //rc = SDB_CONN_MGR_INST->get_sdb_conn( ha_thd()->thread_id(),
-   //                                      connection ) ;
-   rc = SDB_CONN_MGR_INST->get_sdb_conn( (my_thread_id)(ha_thd()->active_vio->mysql_socket.fd),
+   rc = SDB_CONN_MGR_INST->get_sdb_conn( ha_thd()->thread_id(),
                                          connection ) ;
+   //rc = SDB_CONN_MGR_INST->get_sdb_conn( (my_thread_id)(ha_thd()->active_vio->mysql_socket.fd),
+   //                                      connection ) ;
    if ( 0 != rc )
    {
       goto error ;
@@ -236,7 +243,8 @@ int ha_sdb::open( const char *name, int mode, uint test_if_locked )
    }
 
    thr_lock_data_init( &share->lock, &lock_data, (void*)this ) ;
-   fd = ha_thd()->active_vio->mysql_socket.fd ;
+   //fd = ha_thd()->active_vio->mysql_socket.fd ;
+   fd = ha_thd()->thread_id() ;
 done:
    return rc ;
 error:
@@ -1372,8 +1380,8 @@ int ha_sdb::rnd_next(uchar *buf)
       }
       first_read = FALSE ;
    }
-   //assert(cl->get_tid() == ha_thd()->thread_id()) ;
-   assert( cl->get_tid() == (my_thread_id)(ha_thd()->active_vio->mysql_socket.fd )) ;
+   assert(cl->get_tid() == ha_thd()->thread_id()) ;
+   //assert( cl->get_tid() == (my_thread_id)(ha_thd()->active_vio->mysql_socket.fd )) ;
    ha_statistic_increment( &SSV::ha_read_rnd_next_count ) ;
    rc = next_row( cur_rec, buf ) ;
    if ( rc != 0 )
@@ -1477,16 +1485,16 @@ int ha_sdb::extra( enum ha_extra_function operation )
 void ha_sdb::check_thread()
 {
    int rc = 0 ;
-   //if ( cl->get_tid() != ha_thd()->thread_id() )
-   if ( cl->get_tid() != (my_thread_id)(ha_thd()->active_vio->mysql_socket.fd) )
+   if ( cl->get_tid() != ha_thd()->thread_id() )
+   //if ( cl->get_tid() != (my_thread_id)(ha_thd()->active_vio->mysql_socket.fd) )
    {
       //first_read = TRUE ;
       //stats.records= 0;
       sdb_conn_auto_ptr conn_tmp ;
-      //rc = SDB_CONN_MGR_INST->get_sdb_conn( ha_thd()->thread_id(),
-      //                                      conn_tmp ) ;
-      rc = SDB_CONN_MGR_INST->get_sdb_conn( (my_thread_id)(ha_thd()->active_vio->mysql_socket.fd),
+      rc = SDB_CONN_MGR_INST->get_sdb_conn( ha_thd()->thread_id(),
                                             conn_tmp ) ;
+      //rc = SDB_CONN_MGR_INST->get_sdb_conn( (my_thread_id)(ha_thd()->active_vio->mysql_socket.fd),
+      //                                      conn_tmp ) ;
       if ( 0 != rc )
       {
          goto error ;
@@ -1499,7 +1507,8 @@ void ha_sdb::check_thread()
       }
 
       connection = conn_tmp ;
-      fd = ha_thd()->active_vio->mysql_socket.fd ;
+      //fd = ha_thd()->active_vio->mysql_socket.fd ;
+      fd = ha_thd()->thread_id() ;
    }
 done:
    return ;
@@ -1758,10 +1767,10 @@ int ha_sdb::delete_table(const char *from)
    }
 
 
-   //rc = SDB_CONN_MGR_INST->get_sdb_conn( ha_thd()->thread_id(),
-   //                                      conn_tmp ) ;
-   rc = SDB_CONN_MGR_INST->get_sdb_conn( (my_thread_id)(ha_thd()->active_vio->mysql_socket.fd),
+   rc = SDB_CONN_MGR_INST->get_sdb_conn( ha_thd()->thread_id(),
                                          conn_tmp ) ;
+   //rc = SDB_CONN_MGR_INST->get_sdb_conn( (my_thread_id)(ha_thd()->active_vio->mysql_socket.fd),
+   //                                      conn_tmp ) ;
    if ( 0 != rc )
    {
       goto error ;
@@ -1880,10 +1889,10 @@ int ha_sdb::create( const char *name, TABLE *form,
       }
    }
 
-   //rc = SDB_CONN_MGR_INST->get_sdb_conn( ha_thd()->thread_id(),
-   //                                      conn_tmp ) ;
-   rc = SDB_CONN_MGR_INST->get_sdb_conn( (my_thread_id)(ha_thd()->active_vio->mysql_socket.fd),
+   rc = SDB_CONN_MGR_INST->get_sdb_conn( ha_thd()->thread_id(),
                                          conn_tmp ) ;
+   //rc = SDB_CONN_MGR_INST->get_sdb_conn( (my_thread_id)(ha_thd()->active_vio->mysql_socket.fd),
+   //                                      conn_tmp ) ;
    if ( 0 != rc )
    {
       goto error ;
@@ -1896,7 +1905,8 @@ int ha_sdb::create( const char *name, TABLE *form,
    }
 
    connection = conn_tmp ;
-   fd = ha_thd()->active_vio->mysql_socket.fd ;
+   //fd = ha_thd()->active_vio->mysql_socket.fd ;
+   fd = ha_thd()->thread_id() ;
 
 done:
    return rc ;
@@ -1982,7 +1992,7 @@ Item *ha_sdb::idx_cond_push(uint keyno, Item* idx_cond)
 
 const char *ha_sdb::get_version()
 {
-   return sdb_ver_info;
+   return sdb_ver_info ;
 }
 
 static handler *sdb_create_handler(handlerton *hton,
@@ -2041,10 +2051,10 @@ sdb_commit(
       goto done ;
    }
 
-   //rc = SDB_CONN_MGR_INST->get_sdb_conn( thd->thread_id(),
-   //                                      connection ) ;
-   rc = SDB_CONN_MGR_INST->get_sdb_conn( (my_thread_id)(thd->active_vio->mysql_socket.fd),
+   rc = SDB_CONN_MGR_INST->get_sdb_conn( thd->thread_id(),
                                          connection ) ;
+   //rc = SDB_CONN_MGR_INST->get_sdb_conn( (my_thread_id)(thd->active_vio->mysql_socket.fd),
+   //                                      connection ) ;
    if ( 0 != rc )
    {
       goto error ;
@@ -2085,10 +2095,10 @@ sdb_rollback(
       goto done ;
    }
 
-   //rc = SDB_CONN_MGR_INST->get_sdb_conn( thd->thread_id(),
-   //                                      connection ) ;
-   rc = SDB_CONN_MGR_INST->get_sdb_conn( (my_thread_id)(thd->active_vio->mysql_socket.fd),
+   rc = SDB_CONN_MGR_INST->get_sdb_conn( thd->thread_id(),
                                          connection ) ;
+   //rc = SDB_CONN_MGR_INST->get_sdb_conn( (my_thread_id)(thd->active_vio->mysql_socket.fd),
+   //                                      connection ) ;
    if ( 0 != rc )
    {
       goto error ;
@@ -2167,13 +2177,34 @@ static struct st_mysql_sys_var *sdb_vars[]={
    NULL
 };
 
+static char * get_sdb_plugin_info()
+{
+#define SDB_ENG_INFO          "SequoiaDB storage engine. "
+   static char sdb_plugin_info[256] = SDB_ENG_INFO ;
+   char *pPos = &sdb_plugin_info[strlen(SDB_ENG_INFO)] ;
+   const char *pVersion = &sdb_ver_info[strlen(SDB_VER_INFO_NAME)] ;
+   const char *pTmp = strchr( pVersion, '_' ) ;
+   if ( pTmp != NULL )
+   {
+      strncpy( pPos, "Sequoiadb: ", strlen("Sequoiadb: ") ) ;
+      pPos += strlen("Sequoiadb: ") ;
+      strncpy( pPos, pVersion, pTmp - pVersion ) ;
+      pPos += pTmp - pVersion ;
+      strncpy( pPos, ", Plugin:", strlen(", Plugin:") ) ;
+      pPos += strlen(", Plugin:") ;
+      strncpy( pPos, pTmp + 1, strlen(pTmp+1) ) ;
+      pPos[strlen(pTmp+1)] = 0 ;
+   }
+   return sdb_plugin_info ;
+}
+
 mysql_declare_plugin(sequoiadb)
 {
   MYSQL_STORAGE_ENGINE_PLUGIN,
   &sdb_storage_engine,
   "SequoiaDB",
   "Jianhua Li, SequoiaDB",
-  "SequoiaDB storage engine",
+  get_sdb_plugin_info(),
   PLUGIN_LICENSE_GPL,
   sdb_init_func, /* Plugin Init */
   sdb_done_func, /* Plugin Deinit */
