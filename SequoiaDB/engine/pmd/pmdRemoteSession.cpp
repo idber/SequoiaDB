@@ -319,6 +319,7 @@ namespace engine
       _pSite         = pSite ;
       _sessionChange = FALSE ;
       _userData      = 0 ;
+      _totalWaitTime = 0 ;
 
       setTimeout( timeout ) ;
    }
@@ -364,6 +365,7 @@ namespace engine
       _sessionID        = sessionID ;
       _pSite            = pSite ;
       _pHandle          = pHandle ;
+      _totalWaitTime    = 0 ;
 
       setTimeout( timeout ) ;
    }
@@ -528,6 +530,11 @@ namespace engine
       return _milliTimeout ;
    }
 
+   INT64 _pmdRemoteSession::getTotalWaitTime() const
+   {
+      return _totalWaitTime ;
+   }
+
    BOOLEAN _pmdRemoteSession::isAllReply()
    {
       BOOLEAN ret = TRUE ;
@@ -551,12 +558,13 @@ namespace engine
    {
       if ( timeout <= 0 )
       {
-         _milliTimeout = 0x7FFFFFFFFFFFFFFF ;
+         _milliTimeoutHard = 0x7FFFFFFFFFFFFFFF ;
       }
       else
       {
-         _milliTimeout = timeout ;
+         _milliTimeoutHard = timeout ;
       }
+      _milliTimeout = _milliTimeoutHard ;
    }
 
    pmdSubSessionItr _pmdRemoteSession::getSubSessionItr( PMD_SSITR_FILTER filter )
@@ -968,8 +976,7 @@ namespace engine
    }
 
    INT32 _pmdRemoteSession::waitReply1( BOOLEAN waitAll,
-                                        MAP_SUB_SESSIONPTR *pSubs,
-                                        BOOLEAN needTimeout )
+                                        MAP_SUB_SESSIONPTR *pSubs )
    {
       INT32 rc                      = SDB_OK ;
       pmdEDUEvent event ;
@@ -979,6 +986,7 @@ namespace engine
       pmdSubSession *pSubSession    = NULL ;
       _sessionChange                = FALSE ;
 
+      _milliTimeout = _milliTimeoutHard ;
       totalUnReplyNum = getSubSessionCount( PMD_SSITR_UNREPLY ) ;
       while ( totalUnReplyNum > 0 )
       {
@@ -1022,35 +1030,22 @@ namespace engine
 
          if ( !_pEDUCB->waitEvent( event, timeout ) )
          {
-            if ( needTimeout )
+            _milliTimeout -= timeout ;
+            if ( 0 == replyNum || waitAll )
             {
-               _milliTimeout -= timeout ;
-               if ( 0 == replyNum || waitAll )
+               if ( _milliTimeout <= 0 )
                {
-                  if ( _milliTimeout <= 0 )
-                  {
-                     rc = SDB_TIMEOUT ;
-                     goto error ;
-                  }
-               }
-               else
-               {
-                  if ( _milliTimeout <= 0 )
-                  {
-                     _milliTimeout = 1 ;
-                  }
-                  goto done ;
+                  rc = SDB_TIMEOUT ;
+                  goto error ;
                }
             }
             else
             {
-               if ( 0 == replyNum || waitAll )
+               if ( _milliTimeout <= 0 )
                {
+                  _milliTimeout = 1 ;
                }
-               else
-               {
-                  goto done ;
-               }
+               goto done ;
             }
             continue ;
          }
@@ -1087,10 +1082,7 @@ namespace engine
       }
 
    done:
-      if ( NULL != _pHandle )
-      {
-         _pHandle->processExpiredContext() ;
-      }
+      _totalWaitTime = _milliTimeoutHard - _milliTimeout ;
       return rc ;
    error:
       goto done ;
@@ -1532,9 +1524,10 @@ namespace engine
                     GET_REQUEST_TYPE(pReply->opCode), pReply->requestID,
                     pReply->messageLength,
                     routeID2String(pReply->routeID).c_str() ) ;
+
             if ( pHandle )
             {
-               pHandle->onExpiredReply( _pEDUCB, pReply ) ;
+               pHandle->onExpiredReply( this, pReply ) ;
             }
          }
       }

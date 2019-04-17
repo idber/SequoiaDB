@@ -37,13 +37,14 @@
 #include "pmdEDU.hpp"
 #include "pmd.hpp"
 #include "msgMessageFormat.hpp"
-#include "rtnCB.hpp"
 #include "../bson/bson.h"
 
 using namespace bson ;
 
 namespace engine
 {
+
+   #define COORD_EXPIRED_KILLCONTEXT_TIMEOUT       ( 30000 )      /// 30s
 
    /*
       _coordRemoteHandlerBase implement
@@ -244,13 +245,10 @@ namespace engine
    _coordRemoteHandler::_coordRemoteHandler()
    {
       _interruptWhenFailed = FALSE ;
-      _expiredContext = NULL ;
-      _expiredEDUCB = NULL ;
    }
 
    _coordRemoteHandler::~_coordRemoteHandler()
    {
-      processExpiredContext() ;
    }
 
    void _coordRemoteHandler::enableInterruptWhenFailed( BOOLEAN enable,
@@ -288,17 +286,15 @@ namespace engine
       }
    }
 
-   INT32 _coordRemoteHandler::onExpiredReply ( _pmdEDUCB * cb,
-                                               const MsgHeader * pReply )
+   INT32 _coordRemoteHandler::onExpiredReply ( pmdRemoteSessionSite *pSite,
+                                               const MsgHeader *pReply )
    {
       INT32 rc = SDB_OK ;
+      MsgOpReply *pOpReply = NULL ;
+      pmdRemoteSession *pSession = NULL ;
+      MsgOpKillContexts msgKillContext ;
 
-      SDB_RTNCB * rtnCB = pmdGetKRCB()->getRTNCB() ;
-      INT64 contextID = -1 ;
-      MsgOpReply * pOpReply = NULL ;
-
-      if ( NULL == pReply ||
-           !IS_REPLY_TYPE( pReply->opCode ) )
+      if ( NULL == pReply || !IS_REPLY_TYPE( pReply->opCode ) )
       {
          goto done ;
       }
@@ -309,55 +305,34 @@ namespace engine
          goto done ;
       }
 
-      if ( NULL != _expiredEDUCB && cb->getID() != _expiredEDUCB->getID() )
+      PD_LOG( PDWARNING, "Received expired context[%lld] from node[%s]",
+              pOpReply->contextID,
+              routeID2String( pReply->routeID ).c_str() ) ;
+
+      pSession = pSite->addSession( COORD_EXPIRED_KILLCONTEXT_TIMEOUT ) ;
+      pSession->addSubSession( pReply->routeID.value ) ;
+
+      msgKillContext.contextIDs[ 0 ] = pOpReply->contextID ;
+      msgKillContext.numContexts = 1 ;
+      msgKillContext.ZERO = 0 ;
+      msgKillContext.header.messageLength = sizeof( MsgOpKillContexts ) ;
+      msgKillContext.header.opCode = MSG_BS_KILL_CONTEXT_REQ ;
+      msgKillContext.header.requestID = 0 ;
+      msgKillContext.header.routeID.value = 0 ;
+      msgKillContext.header.TID = 0 ;
+
+      rc = pSession->sendMsg( (MsgHeader*)&msgKillContext,
+                              PMD_EDU_MEM_NONE ) ;
+      if ( SDB_OK == rc )
       {
-         processExpiredContext() ;
+         pSession->waitReply1() ;
       }
 
-      PD_LOG( PDWARNING, "Received expired context [%lld] from node [%s]",
-              pOpReply->contextID, routeID2String( pReply->routeID ).c_str() ) ;
-
-      if ( NULL == _expiredContext )
+   done:
+      if ( pSession )
       {
-         rtnQueryOptions options ;
-         rc = rtnCB->contextNew ( RTN_CONTEXT_COORD,
-                                  (rtnContext**)&_expiredContext,
-                                  contextID, cb ) ;
-         PD_RC_CHECK( rc, PDWARNING, "Failed to create dummy coord context, "
-                      "rc: %d", rc ) ;
-
-         _expiredEDUCB = cb ;
-
-         rc = _expiredContext->open( options, FALSE ) ;
-         PD_RC_CHECK( rc, PDWARNING, "Failed to open dummy coord context, "
-                      "rc: %d", rc ) ;
+         pSite->removeSession( pSession ) ;
       }
-
-      rc = _expiredContext->createSubContext( pReply->routeID,
-                                              pOpReply->contextID ) ;
-      PD_RC_CHECK( rc, PDWARNING, "Failed to add sub-context to dummy coord "
-                   "context, rc: %d", rc ) ;
-
-   done :
-      return rc ;
-
-   error :
-      processExpiredContext() ;
-      goto done ;
-   }
-
-   INT32 _coordRemoteHandler::processExpiredContext ()
-   {
-      INT32 rc = SDB_OK ;
-
-      if ( NULL != _expiredContext )
-      {
-         SDB_RTNCB * rtnCB = pmdGetKRCB()->getRTNCB() ;
-         rtnCB->contextDelete( _expiredContext->contextID(), _expiredEDUCB ) ;
-         _expiredContext = NULL ;
-         _expiredEDUCB = NULL ;
-      }
-
       return rc ;
    }
 

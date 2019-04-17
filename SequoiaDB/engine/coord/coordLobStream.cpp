@@ -1538,7 +1538,7 @@ namespace engine
             }
          }
 
-         rc = pSession->waitReply1( TRUE, NULL, FALSE ) ;
+         rc = pSession->waitReply1( TRUE ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Wait all reply failed, rc: %d", rc ) ;

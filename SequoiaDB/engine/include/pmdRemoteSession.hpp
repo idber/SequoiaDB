@@ -44,7 +44,6 @@
 #include <set>
 #include <vector>
 #include "../bson/bson.h"
-#include "utilList.hpp"
 
 using namespace bson ;
 using namespace std ;
@@ -88,13 +87,8 @@ namespace engine
                                        const MsgHeader *pReq,
                                        BOOLEAN isFirst ) = 0 ;
 
-         virtual INT32  onExpiredReply ( _pmdEDUCB * cb,
-                                         const MsgHeader * pReply )
-         {
-            return SDB_OK ;
-         }
-
-         virtual INT32  processExpiredContext ()
+         virtual INT32  onExpiredReply ( _pmdRemoteSessionSite *pSite,
+                                         const MsgHeader *pReply )
          {
             return SDB_OK ;
          }
@@ -214,8 +208,6 @@ namespace engine
    typedef set< UINT64 >                           SET_NODEID ;
    typedef map< UINT64, NET_HANDLE >               MAP_NODE2NET ;
 
-   typedef _utilList< std::pair< UINT64, INT64 > > CONTEXT_ID_MAP ;
-
    /*
       PMD_SUB_SESSION_FILTER define
    */
@@ -304,6 +296,7 @@ namespace engine
          BOOLEAN        isAllReply() ;
 
          INT64          getMilliTimeout () const ;
+         INT64          getTotalWaitTime() const ;
 
       public:
          /*
@@ -343,8 +336,7 @@ namespace engine
          INT32    sendMsg( pmdSubSession *pSub ) ;
 
          INT32    waitReply1( BOOLEAN waitAll = FALSE,
-                              MAP_SUB_SESSIONPTR *pSubs = NULL,
-                              BOOLEAN needTimeout = TRUE ) ;
+                              MAP_SUB_SESSIONPTR *pSubs = NULL ) ;
          INT32    waitReply( BOOLEAN waitAll = FALSE,
                              VEC_SUB_SESSIONPTR *pSubs = NULL ) ;
 
@@ -381,6 +373,8 @@ namespace engine
          BOOLEAN                       _sessionChange ;
          UINT64                        _sessionID ;
          INT64                         _milliTimeout ; // ms
+         INT64                         _milliTimeoutHard ;  // ms
+         INT64                         _totalWaitTime ;  // ms
          UINT64                        _userData ;
 
    } ;
