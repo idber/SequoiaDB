@@ -38,7 +38,6 @@
 
 #include "pmdRemoteSession.hpp"
 #include "coordDef.hpp"
-#include "coordContext.hpp"
 
 namespace engine
 {
@@ -123,14 +122,10 @@ namespace engine
                                  const MsgHeader *pReply,
                                  BOOLEAN isPending ) ;
 
-         virtual INT32  onExpiredReply ( _pmdEDUCB * cb,
-                                         const MsgHeader * pReply ) ;
-
-         virtual INT32  processExpiredContext () ;
+         virtual INT32  onExpiredReply ( pmdRemoteSessionSite *pSite,
+                                         const MsgHeader *pReply ) ;
 
       protected:
-         rtnContextCoord * _expiredContext ;
-         _pmdEDUCB *    _expiredEDUCB ;
          BOOLEAN        _interruptWhenFailed ;
          SET_RC         _ignoreRC ;
 

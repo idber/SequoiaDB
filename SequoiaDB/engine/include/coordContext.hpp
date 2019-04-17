@@ -120,7 +120,10 @@ namespace engine
 
          void     killSubContexts( _pmdEDUCB *cb ) ;
 
-         INT64    getSessionMilliTimeout () const ;
+         /*
+            Unit: millisec
+         */
+         INT64    getWaitTime() const ;
 
          virtual void optimizeReturnOptions ( MsgOpQuery * pQueryMsg,
                                               UINT32 targetGroupNum ) ;
@@ -130,8 +133,6 @@ namespace engine
                                         rtnContextBuf &buffObj ) ;
 
          virtual UINT32   getCachedRecordNum() ;
-
-         INT32   createSubContext ( MsgRouteID routeID, SINT64 contextID ) ;
 
       public:
          virtual std::string      name() const ;
@@ -147,6 +148,7 @@ namespace engine
 
       protected:
          OSS_INLINE BOOLEAN _requireExplicitSorting () const ;
+         INT32   _createSubContext ( MsgRouteID routeID, SINT64 contextID ) ;
          INT32   _prepareAllSubCtxDataByOrder( _pmdEDUCB *cb ) ;
          INT32   _getNonEmptyNormalSubCtx( _pmdEDUCB *cb, rtnSubContext*& subCtx ) ;
          INT32   _saveEmptyOrderedSubCtx( rtnSubContext* subCtx ) ;
@@ -258,7 +260,6 @@ namespace engine
       protected :
          SET_ROUTEID             _locationFilter ;
          optExplainCoordPath     _explainCoordPath ;
-         UINT64                  _startSessionTimeout ;
          UINT64                  _endSessionTimeout ;
    } ;
 
