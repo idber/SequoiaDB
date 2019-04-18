@@ -366,6 +366,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__RTNEXTDATAHANDLER_ONDELCS ) ;
       rtnExtDropOprCtx *context = NULL ;
       vector <rtnExtDataProcessor *> processorVec ;
+      vector <rtnExtDataProcessor *> processorVecP1 ;
 
       context = (rtnExtDropOprCtx *)_contextMgr.findContext( cb->getTID() ) ;
       if ( !context )
@@ -383,7 +384,7 @@ namespace engine
       }
 
       for ( vector<rtnExtDataProcessor *>::iterator itr = processorVec.begin();
-            itr != processorVec.end(); )
+            itr != processorVec.end(); ++itr )
       {
          if ( removeFiles )
          {
@@ -395,9 +396,9 @@ namespace engine
          }
          PD_RC_CHECK( rc, PDERROR, "Processor drop operation failed[ %d ]",
                       rc ) ;
-         context->appendProcessor( *itr ) ;
-         processorVec.erase( itr ) ;
+         processorVecP1.push_back( *itr ) ;
       }
+      context->appendProcessors( processorVec );
 
    done:
       PD_TRACE_EXITRC( SDB__RTNEXTDATAHANDLER_ONDELCS, rc ) ;
@@ -405,11 +406,16 @@ namespace engine
    error:
       if ( removeFiles )
       {
-         for ( vector<rtnExtDataProcessor *>::iterator itr = processorVec.begin();
-               itr != processorVec.end(); ++itr )
+         for ( vector<rtnExtDataProcessor *>::iterator itr = processorVecP1.begin();
+               itr != processorVecP1.end(); ++itr )
          {
             (*itr)->doDropP1Cancel( cb, NULL ) ;
          }
+      }
+
+      if ( context )
+      {
+         _contextMgr.delContext( context->getID(), cb ) ;
       }
       goto done ;
    }
@@ -767,6 +773,10 @@ namespace engine
          {
             PD_LOG( PDERROR, "Drop phase 1 cancel failed[ %d ]", rc ) ;
          }
+      }
+      if ( context )
+      {
+         _contextMgr.delContext( context->getID(), cb ) ;
       }
       goto done ;
    }
