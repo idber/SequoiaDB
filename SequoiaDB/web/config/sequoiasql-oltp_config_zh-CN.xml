@@ -147,7 +147,7 @@
       <Valid></Valid>
       <Display>text box</Display>
       <Edit>true</Edit>
-      <Desc>ident configuration file</Desc>
+      <Desc>Specifies the name of an additional process-ID (PID) file that the server should create for use by server administration programs. This parameter can only be set at server start.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -256,7 +256,7 @@
       <WebName>ssl</WebName>
       <Type>string</Type>
       <Default></Default>
-      <Valid> ,off,on</Valid>
+      <Valid>,off,on</Valid>
       <Display>select box</Display>
       <Edit>true</Edit>
       <Desc></Desc>
@@ -455,7 +455,12 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>TCP_KEEPCNT; 0 selects the system default</Desc>
+      <Desc>
+        Specifies the number of keepalive packets to send on an otherwise idle connection. A value of 0
+        uses the system default. This parameter is supported only on systems that support TCP_KEEPCNT
+        or an equivalent socket option; on other systems, it must be zero. In sessions connected via a
+        Unix-domain socket, this parameter is ignored and always reads as zero.
+      </Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -469,7 +474,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>min 800kB</Desc>
+      <Desc>Sets the maximum number of temporary buffers used by each database session. These are session-local buffers used only for access to temporary tables. The default is eight megabytes (8MB).</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -483,7 +488,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>0 disables the feature</Desc>
+      <Desc>Sets the maximum number of transactions that can be in the “prepared” state simultaneously. Setting this parameter to zero (which is the default) disables the prepared-transaction feature. </Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -497,7 +502,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>min 64kB</Desc>
+      <Desc>Specifies the amount of memory to be used by internal sort operations and hash tables beforewriting to temporary disk files. The value defaults to one megabyte (1MB).</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -511,7 +516,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>min 1MB</Desc>
+      <Desc>Specifies the maximum amount of memory to be used by maintenance operations, such as VACUUM, CREATE INDEX, and ALTER TABLE ADD FOREIGN KEY. It defaults to 16 megabytes (16MB).</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -525,7 +530,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>min 100kB</Desc>
+      <Desc>Specifies the maximum safe depth of the server’s execution stack. The default setting is two megabytes (2MB).</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -553,7 +558,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>min 25</Desc>
+      <Desc>Sets the maximum number of simultaneously open files allowed to each server subprocess. The default is one thousand files.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -567,7 +572,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc></Desc>
+      <Desc>This variable specifies one or more shared libraries to be preloaded at server start.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -581,7 +586,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>0-100 milliseconds</Desc>
+      <Desc>The length of time, in milliseconds, that the process will sleep when the cost limit has been exceeded. The default value is zero.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -595,7 +600,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>0-10000 credits</Desc>
+      <Desc>The estimated cost for vacuuming a buffer found in the shared buffer cache. It represents the cost to lock the buffer pool, lookup the shared hash table and scan the content of the page. The default value is one</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -609,7 +614,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>0-10000 credits</Desc>
+      <Desc>The estimated cost for vacuuming a buffer that has to be read from disk. This represents the effort to lock the buffer pool, lookup the shared hash table, read the desired block in from the disk and scan its content. The default value is 10.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -623,7 +628,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>0-10000 credits</Desc>
+      <Desc>The estimated cost charged when vacuum modifies a block that was previously clean. It represents the extra I/O required to flush the dirty block out to disk again. The default value is 20.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -637,7 +642,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>1-10000 credits</Desc>
+      <Desc>The accumulated cost that will cause the vacuuming process to sleep. The default value is 200</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -651,7 +656,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>10-10000ms between rounds</Desc>
+      <Desc>Specifies the delay between activity rounds for the background writer.The default value is 200 milliseconds (200ms).</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -665,7 +670,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>0-1000 max buffers written/round</Desc>
+      <Desc>In each round, no more than this many buffers will be written by the background writer. Setting this to zero disables background writing. The default value is 100 buffers. </Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -679,7 +684,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>0-10.0 multipler on buffers scanned/round</Desc>
+      <Desc>The number of dirty buffers written in each round is based on the number of new buffers that have been needed by server processes during recent rounds.The default is 2.0.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -693,7 +698,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>1-1000; 0 disables prefetching</Desc>
+      <Desc>Sets the number of concurrent disk I/O operations that PostgreSQL expects can be executed simultaneously. The allowed range is 1 to 1000, or zero to disable issuance of asynchronous I/O requests.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -704,7 +709,7 @@
       <WebName>wal level</WebName>
       <Type>string</Type>
       <Default></Default>
-      <Valid> ,minimal,archive,hot_standby</Valid>
+      <Valid>,minimal,archive,hot_standby</Valid>
       <Display>select box</Display>
       <Edit>true</Edit>
       <Desc></Desc>
@@ -732,7 +737,7 @@
       <WebName>synchronous commit</WebName>
       <Type>string</Type>
       <Default></Default>
-      <Valid>,on,off</Valid>
+      <Valid>,on,remote_write,local,off</Valid>
       <Display>select box</Display>
       <Edit>true</Edit>
       <Desc></Desc>
@@ -746,7 +751,7 @@
       <WebName>wal sync method</WebName>
       <Type>string</Type>
       <Default></Default>
-      <Valid> ,open_datasyne,fdatasync,fsync,fsync_writethrough,open_sync</Valid>
+      <Valid>,open_datasync,fdatasync,fsync,fsync_writethrough,open_sync</Valid>
       <Display>select box</Display>
       <Edit>true</Edit>
       <Desc></Desc>
@@ -763,7 +768,7 @@
       <Valid>,on,off</Valid>
       <Display>select box</Display>
       <Edit>true</Edit>
-      <Desc>recover from partial page writes</Desc>
+      <Desc></Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -791,7 +796,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>1-10000 milliseconds</Desc>
+      <Desc>Range is 1-10000 milliseconds, The default value is 200 milliseconds</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -805,7 +810,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>range 0-100000, in microseconds</Desc>
+      <Desc>range 0-100000, default is 0</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -819,7 +824,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>range 1-1000</Desc>
+      <Desc>Minimum number of concurrent open transactions to require before performing the commit_delay delay. A larger value makes it more probable that at least one other transaction will become ready to commit during the delay interval. The default is five transactions.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -833,7 +838,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>in logfile segments, min 1, 16MB each</Desc>
+      <Desc>Maximum number of log file segments between automatic WAL checkpoints (each segment is normally 16 megabytes). The default is three segments. Increasing this parameter can increase the amount of time needed for crash recovery. </Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -847,7 +852,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>range 30s-1h</Desc>
+      <Desc>Maximum time between automatic WAL checkpoints, in seconds. The default is five minutes (5min).</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -861,7 +866,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>checkpoint target duration, 0.0 - 1.0</Desc>
+      <Desc>Specifies the target of checkpoint completion, as a fraction of total time between checkpoints. The default is 0.5. </Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -875,7 +880,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>select 0 disables</Desc>
+      <Desc>Write a message to the server log if checkpoints caused by the filling of checkpoint segment files happen closer together than this many seconds (which suggests that checkpoint_segments ought to be raised). The default is 30 seconds (30s). </Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -900,10 +905,10 @@
       <WebName>archive command</WebName>
       <Type>string</Type>
       <Default></Default>
-      <Valid> ,%p,%f</Valid>
-      <Display>select box</Display>
+      <Valid></Valid>
+      <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>command to use to archive a logfile segment placeholders:%p = path of file to archive;%f = file name only</Desc>
+      <Desc>The shell command to execute to archive a completed WAL file segment. Any %p in the string is replaced by the path name of the file to archive, and any %f is replaced by only the file name. Use %% to embed an actual % character in the command. </Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -973,7 +978,7 @@
       <Valid></Valid>
       <Display>text box</Display>
       <Edit>true</Edit>
-      <Desc>standby servers that provide sync rep comma-separated list of application_name from standby(s); '*' = all</Desc>
+      <Desc>Specifies a comma-separated list of standby names that can support synchronous replication.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -987,7 +992,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>number of xacts by which cleanup is delayed</Desc>
+      <Desc>Specifies the number of transactions by which VACUUM and HOT updates will defer cleanup of dead row versions. The default is zero transactions.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -1085,7 +1090,7 @@
       <Valid>,on,off</Valid>
       <Display>select box</Display>
       <Edit>true</Edit>
-      <Desc></Desc>
+      <Desc>Enables or disables the query planner’s use of bitmap-scan plan types. The default is on.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -1099,7 +1104,7 @@
       <Valid>,on,off</Valid>
       <Display>select box</Display>
       <Edit>true</Edit>
-      <Desc></Desc>
+      <Desc>Enables or disables the query planner’s use of hashed aggregation plan types. The default is on.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -1113,7 +1118,7 @@
       <Valid>,on,off</Valid>
       <Display>select box</Display>
       <Edit>true</Edit>
-      <Desc></Desc>
+      <Desc>Enables or disables the query planner’s use of hash-join plan types. The default is on.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -1127,7 +1132,7 @@
       <Valid>,on,off</Valid>
       <Display>select box</Display>
       <Edit>true</Edit>
-      <Desc></Desc>
+      <Desc>Enables or disables the query planner’s use of index-scan plan types. The default is on.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -1141,7 +1146,7 @@
       <Valid>,on,off</Valid>
       <Display>select box</Display>
       <Edit>true</Edit>
-      <Desc></Desc>
+      <Desc>Enables or disables the query planner’s use of index-only-scan plan types. The default is on</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -1155,7 +1160,7 @@
       <Valid>,on,off</Valid>
       <Display>select box</Display>
       <Edit>true</Edit>
-      <Desc></Desc>
+      <Desc>Enables or disables the query planner’s use of materialization. It is impossible to suppress materializationentirely, but turning this variable off prevents the planner from inserting materializenodes except in cases where it is required for correctness. The default is on.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -1169,7 +1174,7 @@
       <Valid>,on,off</Valid>
       <Display>select box</Display>
       <Edit>true</Edit>
-      <Desc></Desc>
+      <Desc>Enables or disables the query planner’s use of merge-join plan types. The default is on</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -1239,7 +1244,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>measured on an arbitrary scale</Desc>
+      <Desc>Sets the planner’s estimate of the cost of a disk page fetch that is part of a series of sequential fetches. The default is 1.0.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -1253,7 +1258,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>same scale as above</Desc>
+      <Desc>Sets the planner’s estimate of the cost of a non-sequentially-fetched disk page. The default is 4.0.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -1267,7 +1272,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>same scale as above</Desc>
+      <Desc>Sets the planner’s estimate of the cost of processing each row during a query. The default is 0.01.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -1281,7 +1286,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>same scale as above</Desc>
+      <Desc>Sets the planner’s estimate of the cost of processing each index entry during an index scan. The default is 0.005.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -1295,7 +1300,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>same scale as above</Desc>
+      <Desc>Sets the planner’s estimate of the cost of processing each operator or function executed during a query. The default is 0.0025.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -1351,7 +1356,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>range 1-10</Desc>
+      <Desc>Controls the trade-off between planning time and query plan quality in GEQO. This variable must be an integer in the range from 1 to 10. The default value is 5.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -1393,7 +1398,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>range 1.5-2.0</Desc>
+      <Desc>Controls the selection bias used by GEQO. The selection bias is the selective pressure within the population. Values can be from 1.50 to 2.00; The default value is 2.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -1407,7 +1412,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>range 0.0-1.0</Desc>
+      <Desc>Controls the initial value of the random number generator used by GEQO to select random paths through the join order search space. The value can range from zero (the default) to one.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -1421,7 +1426,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>range 1-10000</Desc>
+      <Desc>Sets the default statistics target for table columns without a column-specific target set via ALTER TABLE SET STATISTICS. The default is 100. </Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -1449,7 +1454,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>range 0.0-1.0</Desc>
+      <Desc>Sets the planner’s estimate of the fraction of a cursor’s rows that will be retrieved. The default is 0.1.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -1463,7 +1468,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc></Desc>
+      <Desc>The planner will merge sub-queries into upper queries if the resulting FROM list would have no more than this many items. Smaller values reduce planning time but might yield inferior query plans. The default is 8. </Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -1477,7 +1482,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>1 disables collapsing of explicit JOIN clauses</Desc>
+      <Desc>The planner will rewrite explicit JOIN constructs (except FULL JOINs) into lists of FROM items whenever a list of no more than this many items would result. Smaller values reduce planning time but might yield inferior query plans.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -1488,10 +1493,10 @@
       <WebName>log destination</WebName>
       <Type>string</Type>
       <Default></Default>
-      <Valid> ,stderr,csvlog,syslog,eventlog</Valid>
-      <Display>select box</Display>
+      <Valid></Valid>
+      <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc></Desc>
+      <Desc>PostgreSQL supports several methods for logging server messages, including stderr, csvlog and syslog. On Windows, eventlog is also supported. Set this parameter to a list of desired log desti470 Chapter 18. Server Configuration nations separated by commas. The default is to log to stderr only.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -1533,7 +1538,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>log file name pattern, can include strftime() escapes</Desc>
+      <Desc>When logging_collector is enabled, this parameter sets the file names of the created log files. The default is postgresql-%Y-%m-%d_%H%M%S.log.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -1600,8 +1605,8 @@
       <WebName>syslog facility</WebName>
       <Type>string</Type>
       <Default></Default>
-      <Valid></Valid>
-      <Display>edit box</Display>
+      <Valid>,LOCAL0,LOCAL1,LOCAL2,LOCAL3,LOCAL4,LOCAL5,LOCAL6,LOCAL7</Valid>
+      <Display>select box</Display>
       <Edit>true</Edit>
       <Desc></Desc>
       <Level>1</Level>
@@ -1642,7 +1647,7 @@
       <WebName>client min messages</WebName>
       <Type>string</Type>
       <Default></Default>
-      <Valid> ,debug5,debug4,debug3,debug2,debug1,log,notice,warning,error</Valid>
+      <Valid>,debug5,debug4,debug3,debug2,debug1,log,notice,warning,error,fatal,panic</Valid>
       <Display>select box</Display>
       <Edit>true</Edit>
       <Desc></Desc>
@@ -1656,7 +1661,7 @@
       <WebName>log min messages</WebName>
       <Type>string</Type>
       <Default></Default>
-      <Valid> ,debug5,debug4,debug3,debug2,debug1,log,notice,warning,error,log,fatal,panic</Valid>
+      <Valid>,debug5,debug4,debug3,debug2,debug1,info,notice,warning,error,log,fatal,panic</Valid>
       <Display>select box</Display>
       <Edit>true</Edit>
       <Desc></Desc>
@@ -1670,7 +1675,7 @@
       <WebName>log min error statement</WebName>
       <Type>string</Type>
       <Default></Default>
-      <Valid> ,debug5,debug4,debug3,debug2,debug1,log,notice,warning,error,log,fatal,panic</Valid>
+      <Valid>,debug5,debug4,debug3,debug2,debug1,info,notice,warning,error,log,fatal,panic</Valid>
       <Display>select box</Display>
       <Edit>true</Edit>
       <Desc></Desc>
@@ -1810,7 +1815,7 @@
       <WebName>log error verbosity</WebName>
       <Type>string</Type>
       <Default></Default>
-      <Valid> ,terse,default,verbose messages</Valid>
+      <Valid>,terse,default</Valid>
       <Display>select box</Display>
       <Edit>true</Edit>
       <Desc></Desc>
@@ -1870,7 +1875,7 @@
       <WebName>log statement</WebName>
       <Type>string</Type>
       <Default></Default>
-      <Valid> ,none,ddl,mod,all</Valid>
+      <Valid>,none,ddl,mod,all</Valid>
       <Display>select box</Display>
       <Edit>true</Edit>
       <Desc></Desc>
@@ -1940,7 +1945,7 @@
       <WebName>track functions</WebName>
       <Type>string</Type>
       <Default></Default>
-      <Valid> ,none,pl,all</Valid>
+      <Valid>,none,pl,all</Valid>
       <Display>select box</Display>
       <Edit>true</Edit>
       <Desc></Desc>
@@ -2055,7 +2060,7 @@
       <Valid>,on,off</Valid>
       <Display>select box</Display>
       <Edit>true</Edit>
-      <Desc>Enable autovacuum subprocess?  'on' requires track_counts to also be on</Desc>
+      <Desc>Controls whether the server should run the autovacuum launcher daemon. This is on by default; however, track_counts must also be enabled for autovacuum to work.The default is on.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -2069,7 +2074,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>-1 disables, 0 logs all actions and their durations, > 0 logs only actions running at least this number of milliseconds.</Desc>
+      <Desc>Causes each action executed by autovacuum to be logged if it ran for at least the specified number of milliseconds. Setting this to zero logs all autovacuum actions. The default is -1 disables logging autovacuum actions.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -2083,7 +2088,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>max number of autovacuum subprocesses</Desc>
+      <Desc>Specifies the maximum number of autovacuum processes (other than the autovacuum launcher) which may be running at any one time. The default is three.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -2097,7 +2102,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>time between autovacuum runs</Desc>
+      <Desc>Specifies the minimum delay between autovacuum runs on any given database. In each round the daemon examines the database and issues VACUUM and ANALYZE commands as needed for tables in that database. The delay is measured in seconds, and the default is one minute (1min).</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -2111,7 +2116,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>min number of row updates before vacuum</Desc>
+      <Desc>Specifies the minimum number of updated or deleted tuples needed to trigger a VACUUM in any one table. The default is 50 tuples.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -2125,7 +2130,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>min number of row updates before analyze</Desc>
+      <Desc>Specifies the minimum number of inserted, updated or deleted tuples needed to trigger an ANALYZE in any one table. The default is 50 tuples.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -2139,7 +2144,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>fraction of table size before vacuum</Desc>
+      <Desc>Specifies a fraction of the table size to add to autovacuum_vacuum_threshold when deciding whether to trigger a VACUUM. The default is 0.2 (20% of table size).</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -2153,7 +2158,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>fraction of table size before analyze</Desc>
+      <Desc>Specifies a fraction of the table size to add to autovacuum_analyze_threshold when deciding whether to trigger an ANALYZE. The default is 0.1 (10% of table size).</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -2167,7 +2172,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>maximum XID age before forced vacuum</Desc>
+      <Desc>Specifies the maximum age (in transactions) that a table's pg_class.relfrozenxid field can attain before a VACUUM operation is forced to prevent transaction ID wraparound within the table. The default is 200000000.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -2181,7 +2186,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>maximum Multixact age</Desc>
+      <Desc>Specifies the maximum age (in multixacts) that a table’s pg_class.relminmxid field can attain before a VACUUM operation is forced to prevent multixact ID wraparound within the table. The default is 400000000.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -2195,7 +2200,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>default vacuum cost delay for autovacuum, in milliseconds; -1 means use vacuum_cost_delay</Desc>
+      <Desc>Specifies the cost delay value that will be used in automatic VACUUM operations. If -1 is specified, the regular vacuum_cost_delay value will be used. The default value is 20 milliseconds.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -2209,7 +2214,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>default vacuum cost limit for autovacuum, -1 means use vacuum_cost_limit</Desc>
+      <Desc>Specifies the cost limit value that will be used in automatic VACUUM operations. If -1 is specified (which is the default), the regular vacuum_cost_limit value will be used.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -2237,7 +2242,7 @@
       <Valid></Valid>
       <Display>text box</Display>
       <Edit>true</Edit>
-      <Desc>a tablespace name, '' uses the default</Desc>
+      <Desc>This variable specifies the default tablespace in which to create objects (tables and indexes) when a CREATE command does not explicitly specify a tablespace. The default value is ''.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -2251,7 +2256,7 @@
       <Valid></Valid>
       <Display>text box</Display>
       <Edit>true</Edit>
-      <Desc>a list of tablespace names, '' uses only default tablespace</Desc>
+      <Desc>This variable specifies tablespaces in which to create temporary objects (temp tables and indexes on temp tables) when a CREATE command does not explicitly specify a tablespace. The default value is ''.</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -2276,8 +2281,8 @@
       <WebName>default transaction isolation</WebName>
       <Type>string</Type>
       <Default></Default>
-      <Valid></Valid>
-      <Display>text box</Display>
+      <Valid>,read uncommitted,read commited,repeated read,serializable</Valid>
+      <Display>select box</Display>
       <Edit>true</Edit>
       <Desc></Desc>
       <Level>1</Level>
@@ -2318,8 +2323,8 @@
       <WebName>session replication role</WebName>
       <Type>string</Type>
       <Default></Default>
-      <Valid></Valid>
-      <Display>text box</Display>
+      <Valid>,origin,replica,local</Valid>
+      <Display>select box</Display>
       <Edit>true</Edit>
       <Desc></Desc>
       <Level>1</Level>
@@ -2416,7 +2421,7 @@
       <WebName>bytea output</WebName>
       <Type>string</Type>
       <Default></Default>
-      <Valid> ,hex,escape</Valid>
+      <Valid>,hex,escape</Valid>
       <Display>select box</Display>
       <Edit>true</Edit>
       <Desc></Desc>
@@ -2430,8 +2435,8 @@
       <WebName>xmlbinary</WebName>
       <Type>string</Type>
       <Default></Default>
-      <Valid></Valid>
-      <Display>edit box</Display>
+      <Valid>,base64,hex</Valid>
+      <Display>select box</Display>
       <Edit>true</Edit>
       <Desc></Desc>
       <Level>1</Level>
@@ -2444,8 +2449,8 @@
       <WebName>xmloption</WebName>
       <Type>string</Type>
       <Default></Default>
-      <Valid></Valid>
-      <Display>edit box</Display>
+      <Valid>,DOCUMENT,CONTENT</Valid>
+      <Display>select box</Display>
       <Edit>true</Edit>
       <Desc></Desc>
       <Level>1</Level>
@@ -2458,8 +2463,8 @@
       <WebName>intervalstyle</WebName>
       <Type>string</Type>
       <Default></Default>
-      <Valid></Valid>
-      <Display>edit box</Display>
+      <Valid>,sql_standard,postgres,postgres_verbose,iso_8601</Valid>
+      <Display>select box</Display>
       <Edit>true</Edit>
       <Desc></Desc>
       <Level>1</Level>
@@ -2503,7 +2508,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc>actually, defaults to database encoding</Desc>
+      <Desc>Sets the client-side encoding (character set). The default is to use the database encoding. T</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -2531,7 +2536,7 @@
       <Valid></Valid>
       <Display>edit box</Display>
       <Edit>true</Edit>
-      <Desc> locale for monetary formatting</Desc>
+      <Desc>locale for monetary formatting</Desc>
       <Level>1</Level>
       <DynamicEdit>false</DynamicEdit>
       <BatchEdit>false</BatchEdit>
@@ -2780,7 +2785,7 @@
       <WebName>exit on error</WebName>
       <Type>string</Type>
       <Default></Default>
-      <Valid>,on,off</Valid>
+      <Valid>,true,false</Valid>
       <Display>select box</Display>
       <Edit>true</Edit>
       <Desc></Desc>
@@ -2794,7 +2799,7 @@
       <WebName>restart after crash</WebName>
       <Type>string</Type>
       <Default></Default>
-      <Valid>,on,off</Valid>
+      <Valid>,true,false</Valid>
       <Display>select box</Display>
       <Edit>true</Edit>
       <Desc></Desc>
