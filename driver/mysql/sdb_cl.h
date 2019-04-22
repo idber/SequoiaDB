@@ -43,7 +43,7 @@ public:
               INT64 numToReturn        = -1,
               INT32 flags              = QUERY_WITH_RETURNDATA ) ;
 
-   int query_one( bson::BSONObj obj,
+   int query_one( bson::BSONObj &obj,
                   const bson::BSONObj &condition = sdbclient::_sdbStaticObject,
                   const bson::BSONObj &selected  = sdbclient::_sdbStaticObject,
                   const bson::BSONObj &orderBy   = sdbclient::_sdbStaticObject,
