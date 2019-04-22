@@ -173,7 +173,7 @@ error:
    goto done ;
 }
 
-int sdb_cl::query_one( bson::BSONObj obj,
+int sdb_cl::query_one( bson::BSONObj &obj,
                        const bson::BSONObj &condition,
                        const bson::BSONObj &selected,
                        const bson::BSONObj &orderBy,

@@ -260,75 +260,9 @@ private:
 
    int cur_row( uchar *buf ) ;
 
-   int build_match_obj_by_start_stop_key( uint keynr,
-                        const uchar *key_ptr,
-                        key_part_map keypart_map,
-                        enum ha_rkey_function find_flag,
-                        bson::BSONObj &matchObj ) ;
-
    int create_index( Alter_inplace_info *ha_alter_info ) ;
 
    int drop_index( Alter_inplace_info *ha_alter_info ) ;
-
-   void get_unsigned_key_val( const uchar * key_ptr,
-                              key_part_map key_part_map_val,
-                              const KEY_PART_INFO * key_part,
-                              bson::BSONObjBuilder & obj_builder,
-                              const char * op_str ) ;
-
-   void get_unsigned_key_range_obj( const uchar * start_key_ptr,
-                                    key_part_map start_key_part_map,
-                                    enum ha_rkey_function start_find_flag,
-                                    const uchar * end_key_ptr,
-                                    key_part_map end_key_part_map,
-                                    enum ha_rkey_function end_find_flag,
-                                    const KEY_PART_INFO * key_part,
-                                    bson::BSONObj & obj ) ;
-
-   void get_signed_key_val( const uchar * key_ptr,
-                            key_part_map key_part_map_val,
-                            const KEY_PART_INFO * key_part,
-                            bson::BSONObjBuilder & obj_builder,
-                            const char * op_str ) ;
-
-   void get_signed_key_range_obj( const uchar * start_key_ptr,
-                                  key_part_map start_key_part_map,
-                                  enum ha_rkey_function start_find_flag,
-                                  const uchar * end_key_ptr,
-                                  key_part_map end_key_part_map,
-                                  enum ha_rkey_function end_find_flag,
-                                  const KEY_PART_INFO * key_part,
-                                  bson::BSONObj & obj ) ;
-
-   void get_text_key_val( const uchar * key_ptr,
-                          key_part_map key_part_map_val,
-                          const KEY_PART_INFO * key_part,
-                          bson::BSONObjBuilder & obj_builder,
-                          const char * op_str ) ;
-
-   void get_text_key_range_obj( const uchar * start_key_ptr,
-                                key_part_map start_key_part_map,
-                                enum ha_rkey_function start_find_flag,
-                                const uchar * end_key_ptr,
-                                key_part_map end_key_part_map,
-                                enum ha_rkey_function end_find_flag,
-                                const KEY_PART_INFO * key_part,
-                                bson::BSONObj & obj ) ;
-
-   void get_float_key_val( const uchar * key_ptr,
-                           key_part_map key_part_map_val,
-                           const KEY_PART_INFO * key_part,
-                           bson::BSONObjBuilder & obj_builder,
-                           const char * op_str ) ;
-
-   void get_float_key_range_obj( const uchar * start_key_ptr,
-                                 key_part_map start_key_part_map,
-                                 enum ha_rkey_function start_find_flag,
-                                 const uchar * end_key_ptr,
-                                 key_part_map end_key_part_map,
-                                 enum ha_rkey_function end_find_flag,
-                                 const KEY_PART_INFO * key_part,
-                                 bson::BSONObj & obj ) ;
 
 private:
    THR_LOCK_DATA                             lock_data ;
