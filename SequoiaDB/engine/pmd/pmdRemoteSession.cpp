@@ -1004,6 +1004,7 @@ namespace engine
                --totalUnReplyNum ;
             }
             _mapPendingSubSession.clear() ;
+            continue ;
          }
 
          if ( _pEDUCB->isInterrupted() )
@@ -1083,7 +1084,7 @@ namespace engine
       }
 
    done:
-      _totalWaitTime = _milliTimeoutHard - _milliTimeout ;
+      _totalWaitTime += ( _milliTimeoutHard - _milliTimeout ) ;
       return rc ;
    error:
       goto done ;
