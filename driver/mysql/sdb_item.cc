@@ -508,7 +508,8 @@ int sdb_func_item::get_item_val( const char *field_name,
       case MYSQL_TYPE_DATE:
          {
             MYSQL_TIME ltime ;
-            if ( !item_val->get_date( &ltime, TIME_FUZZY_DATE ) )
+            if ( STRING_RESULT == item_val->result_type()
+               && !item_val->get_date( &ltime, TIME_FUZZY_DATE ) )
             {
                struct tm tm_val ;
                tm_val.tm_sec = ltime.second ;
@@ -543,7 +544,14 @@ int sdb_func_item::get_item_val( const char *field_name,
       case MYSQL_TYPE_DATETIME:
          {
             MYSQL_TIME ltime ;
-            if ( !item_val->get_time( &ltime ) )
+            if ( item_val->result_type() != STRING_RESULT
+                 || item_val->get_time( &ltime )
+                 || ltime.year > 2037 || ltime.year < 1902 )
+            {
+               rc = SDB_ERR_COND_UNEXPECTED_ITEM ;
+               goto error ;
+            }
+            else
             {
                struct tm tm_val ;
                tm_val.tm_sec = ltime.second ;
@@ -572,8 +580,6 @@ int sdb_func_item::get_item_val( const char *field_name,
                }
                break ;
             }
-            rc = SDB_ERR_COND_UNEXPECTED_ITEM ;
-            goto error ;
          }
 
       case MYSQL_TYPE_TIME:
