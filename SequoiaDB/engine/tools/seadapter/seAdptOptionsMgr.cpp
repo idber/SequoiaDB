@@ -173,15 +173,15 @@ namespace seadapter
       resetResult() ;
 
       rdxString( pEX, SDB_SEADPT_DNODE_HOST, _dbHost,
-                 sizeof( _dbHost ), TRUE, FALSE , _dbHost ) ;
+                 sizeof( _dbHost ), TRUE, PMD_CFG_CHANGE_FORBIDDEN , _dbHost ) ;
       rdxString( pEX, SDB_SEADPT_DNODE_PORT, _dbService,
-                 sizeof( _dbService ), TRUE, FALSE, _dbService ) ;
+                 sizeof( _dbService ), TRUE, PMD_CFG_CHANGE_FORBIDDEN, _dbService ) ;
       rdxInt( pEX, SDB_SEADPT_DIAGLEVEL, _diagLevel,
-              FALSE, FALSE, _diagLevel ) ;
+              FALSE, PMD_CFG_CHANGE_FORBIDDEN, _diagLevel ) ;
       rdxString( pEX, SDB_SEADPT_SE_HOST, _seHost, sizeof( _seHost ),
-                 TRUE, FALSE, _seHost ) ;
+                 TRUE, PMD_CFG_CHANGE_FORBIDDEN, _seHost ) ;
       rdxString( pEX, SDB_SEADPT_SE_PORT, _seService,
-                 sizeof( _seService ), TRUE, FALSE, _seService ) ;
+                 sizeof( _seService ), TRUE, PMD_CFG_CHANGE_FORBIDDEN, _seService ) ;
 
       return getResult() ;
    }

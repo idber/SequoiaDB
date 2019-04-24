@@ -66,7 +66,17 @@ namespace engine
    {
       PMD_CFG_STEP_INIT       = 0,           // initialize
       PMD_CFG_STEP_REINIT,                   // re-init
-      PMD_CFG_STEP_CHG                       // change in runtime
+      PMD_CFG_STEP_PRECHG,                    // preliminary change
+      PMD_CFG_STEP_CHG,                       // change in runtime
+      PMD_CFG_STEP_RESTORE                    // restore to default value
+   } ;
+
+   enum PMD_CFG_CHANGE
+   {
+      PMD_CFG_CHANGE_INVALID         = 0,
+      PMD_CFG_CHANGE_FORBIDDEN,              // DO NOT allow change
+      PMD_CFG_CHANGE_RUN,                    // allow change in runtime
+      PMD_CFG_CHANGE_REBOOT                  // allow change after reboot
    } ;
 
    enum PMD_CFG_DATA_TYPE
@@ -83,25 +93,33 @@ namespace engine
       string         _value ;
       BOOLEAN        _hasMapped ;
       BOOLEAN        _hasField ;
+      PMD_CFG_CHANGE _level;
 
       _pmdParamValue()
       {
          _hasMapped = FALSE ;
          _hasField = FALSE ;
+         _level = PMD_CFG_CHANGE_INVALID ;
       }
-      _pmdParamValue( INT32 value, BOOLEAN hasMappe, BOOLEAN hasField )
+      _pmdParamValue( INT32 value, BOOLEAN hasMappe,
+                      BOOLEAN hasField,
+                      PMD_CFG_CHANGE changeLevel = PMD_CFG_CHANGE_INVALID )
       {
          CHAR tmp[ 15 ] = { 0 } ;
          ossItoa( value, tmp, sizeof( tmp ) - 1 ) ;
          _value = tmp ;
          _hasMapped = hasMappe ;
          _hasField = hasField ;
+         _level  = changeLevel ;
       }
-      _pmdParamValue( const string &value, BOOLEAN hasMappe, BOOLEAN hasField )
+      _pmdParamValue( const string &value, BOOLEAN hasMappe,
+                      BOOLEAN hasField,
+                      PMD_CFG_CHANGE changeLevel = PMD_CFG_CHANGE_INVALID )
       {
          _value = value ;
          _hasMapped = hasMappe ;
          _hasField = hasField ;
+         _level  = changeLevel ;
       }
    } ;
    typedef _pmdParamValue pmdParamValue ;
@@ -147,12 +165,14 @@ namespace engine
 
       public:
          INT32 readInt( const CHAR *pFieldName, INT32 &value,
-                        INT32 defaultValue ) ;
-         INT32 readInt( const CHAR *pFieldName, INT32 &value ) ;
+                        INT32 defaultValue, PMD_CFG_CHANGE changeLevel ) ;
+         INT32 readInt( const CHAR *pFieldName, INT32 &value,
+                        PMD_CFG_CHANGE changeLevel ) ;
 
          INT32 readString( const CHAR *pFieldName, CHAR *pValue, UINT32 len,
-                           const CHAR *pDefault ) ;
-         INT32 readString( const CHAR *pFieldName, CHAR *pValue, UINT32 len ) ;
+                           const CHAR *pDefault, PMD_CFG_CHANGE changeLevel ) ;
+         INT32 readString( const CHAR *pFieldName, CHAR *pValue, UINT32 len,
+                           PMD_CFG_CHANGE changeLevel ) ;
 
          INT32 writeInt( const CHAR *pFieldName, INT32 value ) ;
          INT32 writeString( const CHAR *pFieldName, const CHAR *pValue ) ;
@@ -253,6 +273,12 @@ namespace engine
          INT32 change( const BSONObj &objData,
                        BOOLEAN isWhole = FALSE ) ;
 
+         INT32 update( const BSONObj &fileConfig, 
+                       const BSONObj &userConfig,
+                       BOOLEAN useDefault,
+                       BSONObj &errorObj,
+                       string &confFileStr ) ;
+
          INT32 toBSON ( BSONObj &objData,
                         UINT32 mask = PMD_CFG_MASK_SKIP_HIDEDFT ) ;
          INT32 toString( string &str,
@@ -290,39 +316,39 @@ namespace engine
 
       protected:
          INT32 rdxInt( pmdCfgExchange *pEX, const CHAR *pFieldName,
-                       INT32 &value, BOOLEAN required, BOOLEAN allowRunChg,
+                       INT32 &value, BOOLEAN required, PMD_CFG_CHANGE changeLevel,
                        INT32 defaultValue, BOOLEAN hideParam = FALSE ) ;
 
          INT32 rdxUInt( pmdCfgExchange *pEX, const CHAR *pFieldName,
-                        UINT32 &value, BOOLEAN required, BOOLEAN allowRunChg,
+                        UINT32 &value, BOOLEAN required, PMD_CFG_CHANGE changeLevel,
                         UINT32 defaultValue, BOOLEAN hideParam = FALSE ) ;
 
          INT32 rdxShort( pmdCfgExchange *pEX, const CHAR *pFieldName,
-                         INT16 &value, BOOLEAN required, BOOLEAN allowRunChg,
+                         INT16 &value, BOOLEAN required, PMD_CFG_CHANGE changeLevel,
                          INT16 defaultValue, BOOLEAN hideParam = FALSE ) ;
 
          INT32 rdxUShort( pmdCfgExchange *pEX, const CHAR *pFieldName,
-                          UINT16 &value, BOOLEAN required, BOOLEAN allowRunChg,
+                          UINT16 &value, BOOLEAN required, PMD_CFG_CHANGE changeLevel,
                           UINT16 defaultValue, BOOLEAN hideParam = FALSE ) ;
 
          INT32 rdxString( pmdCfgExchange *pEX, const CHAR *pFieldName,
                           CHAR *pValue, UINT32 len, BOOLEAN required,
-                          BOOLEAN allowRunChg, const CHAR *pDefaultValue,
+                          PMD_CFG_CHANGE changeLevel, const CHAR *pDefaultValue,
                           BOOLEAN hideParam = FALSE ) ;
 
          INT32 rdxPath( pmdCfgExchange *pEX, const CHAR *pFieldName,
                         CHAR *pValue, UINT32 len, BOOLEAN required,
-                        BOOLEAN allowRunChg, const CHAR *pDefaultValue,
+                        PMD_CFG_CHANGE changeLevel, const CHAR *pDefaultValue,
                         BOOLEAN hideParam = FALSE ) ;
 
          INT32 rdxPathRaw( pmdCfgExchange *pEX, const CHAR *pFieldName,
                            CHAR *pValue, UINT32 len, BOOLEAN required,
-                           BOOLEAN allowRunChg, const CHAR *pDefaultValue,
+                           PMD_CFG_CHANGE changeLevel, const CHAR *pDefaultValue,
                            BOOLEAN hideParam = FALSE ) ;
 
          INT32 rdxBooleanS( pmdCfgExchange *pEX, const CHAR *pFieldName,
                             BOOLEAN &value, BOOLEAN required,
-                            BOOLEAN allowRunChg, BOOLEAN defaultValue,
+                            PMD_CFG_CHANGE changeLevel, BOOLEAN defaultValue,
                             BOOLEAN hideParam = FALSE ) ;
 
          INT32 rdvMinMax( pmdCfgExchange *pEX, UINT32 &value,
@@ -341,7 +367,7 @@ namespace engine
       private:
          INT32 _rdxPath( pmdCfgExchange *pEX, const CHAR *pFieldName,
                          CHAR *pValue, UINT32 len, BOOLEAN required,
-                         BOOLEAN allowRunChg, const CHAR *pDefaultValue,
+                         PMD_CFG_CHANGE changeLevel, const CHAR *pDefaultValue,
                          BOOLEAN hideParam,
                          BOOLEAN addSep ) ;
 
@@ -389,6 +415,9 @@ namespace engine
          INT32 makeAllDir() ;
 
          INT32 reflush2File( UINT32 mask = PMD_CFG_MASK_SKIP_UNFIELD ) ;
+
+         INT32 changeConfig( const BSONObj &objData, BSONObj &errorObj,
+                             BOOLEAN useDefault = FALSE ) ;
 
       public:
          OSS_INLINE const CHAR *getConfPath() const

@@ -2578,5 +2578,13 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_RTN_CONF_NOT_TAKE_EFFECT</name>
+         <description>
+            <en>Some configuration changes didn't take effect</en>
+            <cn>部分配置修改未生效</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

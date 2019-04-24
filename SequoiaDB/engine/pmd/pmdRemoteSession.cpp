@@ -988,7 +988,7 @@ namespace engine
 
       _milliTimeout = _milliTimeoutHard ;
       totalUnReplyNum = getSubSessionCount( PMD_SSITR_UNREPLY ) ;
-      while ( totalUnReplyNum > 0 )
+      while ( totalUnReplyNum > 0 || _mapPendingSubSession.size() > 0 )
       {
          if ( _mapPendingSubSession.size() > 0 )
          {
@@ -1001,7 +1001,6 @@ namespace engine
                }
                ++itPending ;
                ++replyNum ;
-               --totalUnReplyNum ;
             }
             _mapPendingSubSession.clear() ;
             continue ;
@@ -1093,6 +1092,7 @@ namespace engine
    void _pmdRemoteSession::addPending( pmdSubSession *pSubSession )
    {
       _mapPendingSubSession[ pSubSession->getNodeIDUInt() ] = pSubSession ;
+      _sessionChange = TRUE ;
    }
 
    INT32 _pmdRemoteSession::postMsg( MsgHeader * pMsg, UINT64 nodeID )

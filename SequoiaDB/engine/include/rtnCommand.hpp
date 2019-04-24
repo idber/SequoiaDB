@@ -958,6 +958,52 @@ namespace engine
                               INT16 w = 1, INT64 *pContextID = NULL ) ;
    } ;
 
+   class _rtnUpdateConfig : public _rtnCommand
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public:
+         _rtnUpdateConfig() ;
+         virtual ~_rtnUpdateConfig() ;
+
+      public:
+         virtual const CHAR * name () ;
+         virtual RTN_COMMAND_TYPE type () ;
+         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+                              const CHAR *pMatcherBuff,
+                              const CHAR *pSelectBuff,
+                              const CHAR *pOrderByBuff,
+                              const CHAR *pHintBuff ) ;
+         virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                              _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                              INT16 w = 1, INT64 *pContextID = NULL ) ;
+      private:
+         BSONObj _newCfgObj ;
+   } ;
+
+   class _rtnDeleteConfig : public _rtnCommand
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public:
+         _rtnDeleteConfig() ;
+         virtual ~_rtnDeleteConfig() ;
+
+      public:
+         virtual const CHAR * name () ;
+         virtual RTN_COMMAND_TYPE type () ;
+         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+                              const CHAR *pMatcherBuff,
+                              const CHAR *pSelectBuff,
+                              const CHAR *pOrderByBuff,
+                              const CHAR *pHintBuff ) ;
+         virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                              _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                              INT16 w = 1, INT64 *pContextID = NULL ) ;
+      private:
+         BSONObj _newCfgObj ;
+   } ;
+
    class _rtnTraceStart : public _rtnCommand
    {
       DECLARE_CMD_AUTO_REGISTER()

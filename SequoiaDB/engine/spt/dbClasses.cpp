@@ -8052,6 +8052,128 @@ error:
    goto done ;
 }
 
+static JSBool sdb_update_config ( JSContext *cx , uintN argc , jsval *vp )
+{
+   PD_TRACE_ENTRY( SDB_SDB_UPDATE_CONF ) ;
+   engine::sdbClearErrorInfo() ;
+   JSBool ret = JS_TRUE ;
+   INT32 rc = SDB_OK ;
+   sdbConnectionHandle *connection  = NULL ;
+   JSObject *objConfigs = NULL ;
+   JSObject *objOptions = NULL ;
+   BOOLEAN confSpecified = FALSE ;
+   BOOLEAN opSpecified = FALSE ;
+   bson configs ;
+   bson options ;
+   bson_init( &configs ) ;
+   bson_init( &options ) ;
+
+   ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
+                               "o/o", &objConfigs, &objOptions ) ;
+   REPORT ( ret , "Sdb.updateConf(): wrong arguments" ) ;
+
+   if ( NULL != objConfigs )
+   {
+      sptConvertor c( cx ) ;
+      rc = c.toBson( objConfigs, &configs ) ;
+      VERIFY ( SDB_OK == rc ) ;
+      confSpecified = TRUE ;
+   }
+
+   if ( NULL != objOptions )
+   {
+      sptConvertor c( cx ) ;
+      rc = c.toBson( objOptions, &options ) ;
+      VERIFY ( SDB_OK == rc ) ;
+      opSpecified = TRUE ;
+   }
+
+   connection = (sdbConnectionHandle *)
+      JS_GetPrivate ( cx , JS_THIS_OBJECT ( cx , vp ) ) ;
+   REPORT ( connection , "Sdb.updateConf(): no connection handle" ) ;
+
+   rc = sdbUpdateConfig( *connection, confSpecified ? &configs : NULL,
+                         opSpecified ? &options : NULL ) ;
+   if ( SDB_OK == rc )
+   {
+      JS_SET_RVAL ( cx , vp , JSVAL_VOID ) ;
+   }
+   else
+   {
+      REPORT_RC( FALSE, "Sdb.updateConf()", rc ) ;
+   }
+
+done:
+   bson_destroy( &configs ) ;
+   bson_destroy( &options ) ;
+   PD_TRACE_EXIT( SDB_SDB_UPDATE_CONF ) ;
+   return ret ;
+error:
+   TRY_REPORT ( cx , "Sdb.updateConf(): false" ) ;
+   goto done ;
+}
+
+static JSBool sdb_delete_config ( JSContext *cx , uintN argc , jsval *vp )
+{
+   PD_TRACE_ENTRY( SDB_SDB_DELETE_CONF ) ;
+   engine::sdbClearErrorInfo() ;
+   JSBool ret = JS_TRUE ;
+   INT32 rc = SDB_OK ;
+   sdbConnectionHandle *connection  = NULL ;
+   JSObject *objConfigs = NULL ;
+   JSObject *objOptions = NULL ;
+   BOOLEAN confSpecified = FALSE ;
+   BOOLEAN opSpecified = FALSE ;
+   bson configs ;
+   bson options ;
+   bson_init( &configs ) ;
+   bson_init( &options ) ;
+
+   ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
+                               "o/o", &objConfigs, &objOptions ) ;
+   REPORT ( ret , "Sdb.deleteConf(): wrong arguments" ) ;
+
+   if ( NULL != objConfigs )
+   {
+      sptConvertor c( cx ) ;
+      rc = c.toBson( objConfigs, &configs ) ;
+      VERIFY ( SDB_OK == rc ) ;
+      confSpecified = TRUE ;
+   }
+
+   if ( NULL != objOptions )
+   {
+      sptConvertor c( cx ) ;
+      rc = c.toBson( objOptions, &options ) ;
+      VERIFY ( SDB_OK == rc ) ;
+      opSpecified = TRUE ;
+   }
+
+   connection = (sdbConnectionHandle *)
+      JS_GetPrivate ( cx , JS_THIS_OBJECT ( cx , vp ) ) ;
+   REPORT ( connection , "Sdb.deleteConf(): no connection handle" ) ;
+
+   rc = sdbDeleteConfig( *connection, confSpecified ? &configs : NULL,
+                         opSpecified ? &options : NULL ) ;
+   if ( SDB_OK == rc )
+   {
+      JS_SET_RVAL ( cx , vp , JSVAL_VOID ) ;
+   }
+   else
+   {
+      REPORT_RC( FALSE, "Sdb.updateConf()", rc ) ;
+   }
+
+done:
+   bson_destroy( &configs ) ;
+   bson_destroy( &options ) ;
+   PD_TRACE_EXIT( SDB_SDB_DELETE_CONF ) ;
+   return ret ;
+error:
+   TRY_REPORT ( cx , "Sdb.deleteConf(): false" ) ;
+   goto done ;
+}
+
 // PD_TRACE_DECLARE_FUNCTION ( SDB_SDB_RENAMECS, "sdb_rename_cs" )
 static JSBool sdb_rename_cs ( JSContext *cx , uintN argc , jsval *vp )
 {
@@ -8220,6 +8342,8 @@ static JSFunctionSpec sdb_functions[] = {
    JS_FS ( "unloadCS", sdb_unload_cs, 0, 0 ),
    JS_FS ( "setPDLevel", sdb_set_pdlevel, 0, 0 ),
    JS_FS ( "reloadConf", sdb_reload_config, 0, 0 ),
+   JS_FS ( "updateConf", sdb_update_config, 0, 0 ),
+   JS_FS ( "deleteConf", sdb_delete_config, 0, 0 ),
    JS_FS ( "renameCS", sdb_rename_cs, 0, 0 ),
    JS_FS ( "analyze", sdb_analyze, 0, 0 ),
    JS_FS_END

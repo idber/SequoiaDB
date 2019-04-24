@@ -971,4 +971,77 @@ namespace engine
       return MON_MASK_NODE_NAME | MON_MASK_GROUP_NAME ;
    }
 
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnSnapshotConfig)
+   _rtnSnapshotConfig::_rtnSnapshotConfig ()
+   {
+   }
+
+   _rtnSnapshotConfig::~_rtnSnapshotConfig ()
+   {
+   }
+
+   const CHAR *_rtnSnapshotConfig::name ()
+   {
+      return NAME_SNAPSHOT_CONFIG ;
+   }
+
+   RTN_COMMAND_TYPE _rtnSnapshotConfig::type ()
+   {
+      return CMD_SNAPSHOT_CONFIG ;
+   }
+
+   INT32 _rtnSnapshotConfig::_getFetchType() const
+   {
+      return RTN_FETCH_CONFIG ;
+   }
+
+   BOOLEAN _rtnSnapshotConfig::_isCurrent() const
+   {
+      return FALSE ;
+   }
+
+   UINT32 _rtnSnapshotConfig::_addInfoMask() const
+   {
+      return MON_MASK_NODE_NAME |
+             MON_MASK_IS_PRIMARY |
+             MON_MASK_SERVICE_STATUS |
+             MON_MASK_LSN_INFO |
+             MON_MASK_NODEID ;
+   }
+
+   const CHAR* _rtnSnapshotConfig::getIntrCMDName()
+   {
+      return CMD_NAME_SNAPSHOT_CONFIG_INTR ;
+   }
+
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnSnapshotConfigInner)
+   const CHAR *_rtnSnapshotConfigInner::name ()
+   {
+      return CMD_NAME_SNAPSHOT_CONFIG_INTR ;
+   }
+
+   RTN_COMMAND_TYPE _rtnSnapshotConfigInner::type ()
+   {
+      return CMD_SNAPSHOT_CONFIG ;
+   }
+
+   INT32 _rtnSnapshotConfigInner::_getFetchType() const
+   {
+      return RTN_FETCH_CONFIG ;
+   }
+
+   BOOLEAN _rtnSnapshotConfigInner::_isCurrent() const
+   {
+      return FALSE ;
+   }
+
+   UINT32 _rtnSnapshotConfigInner::_addInfoMask() const
+   {
+      return MON_MASK_NODE_NAME |
+             MON_MASK_IS_PRIMARY |
+             MON_MASK_SERVICE_STATUS |
+             MON_MASK_LSN_INFO |
+             MON_MASK_NODEID ;
+   }
+
 }

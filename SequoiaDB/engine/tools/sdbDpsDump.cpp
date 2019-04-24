@@ -802,22 +802,22 @@ INT32 _dpsDumper::doDataExchange( engine::pmdCfgExchange *pEx )
    resetResult() ;
 
    rdxPathRaw( pEx, DPS_DUMP_SOURCE, srcPath, OSS_MAX_PATHSIZE,
-               FALSE, FALSE, "./" ) ;
+               FALSE, PMD_CFG_CHANGE_FORBIDDEN, "./" ) ;
 
    rdxPathRaw( pEx, DPS_DUMP_OUTPUT, dstPath, OSS_MAX_PATHSIZE,
-               FALSE, FALSE, "./" ) ;
+               FALSE, PMD_CFG_CHANGE_FORBIDDEN, "./" ) ;
 
    rdxString( pEx, DPS_DUMP_NAME, name,
-              OSS_MAX_PATHSIZE, FALSE, FALSE, "" ) ;
+              OSS_MAX_PATHSIZE, FALSE, PMD_CFG_CHANGE_FORBIDDEN, "" ) ;
 
    rdxUShort( pEx, DPS_DUMP_TYPE, opType,
-              FALSE, TRUE, (UINT16)PDWARNING ) ;
+              FALSE, PMD_CFG_CHANGE_RUN, (UINT16)PDWARNING ) ;
 
-   rdxInt( pEx, DPS_DUMP_LSN_AHEAD, lsnAhead, FALSE, TRUE, 20 ) ;
+   rdxInt( pEx, DPS_DUMP_LSN_AHEAD, lsnAhead, FALSE, PMD_CFG_CHANGE_RUN, 20 ) ;
 
-   rdxInt( pEx, DPS_DUMP_LSN_BACK, lsnBack, FALSE, TRUE, 20 ) ;
+   rdxInt( pEx, DPS_DUMP_LSN_BACK, lsnBack, FALSE, PMD_CFG_CHANGE_RUN, 20 ) ;
 
-   rdxInt( pEx, DPS_DUMP_LAST, lastCount, FALSE, TRUE, 0 ) ;
+   rdxInt( pEx, DPS_DUMP_LAST, lastCount, FALSE, PMD_CFG_CHANGE_RUN, 0 ) ;
 
    return getResult() ;
 }

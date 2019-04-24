@@ -257,22 +257,24 @@ namespace engine
             resetResult() ;
 
             rdxString( pEX, RS_BK_PATH, _bkPath, sizeof( _bkPath ), FALSE,
-                       FALSE, PMD_CURRENT_PATH ) ;
+                       PMD_CFG_CHANGE_FORBIDDEN, PMD_CURRENT_PATH ) ;
             rdxString( pEX, RS_BK_NAME, _bkName, sizeof( _bkName ), FALSE,
-                       FALSE, "" ) ;
+                       PMD_CFG_CHANGE_FORBIDDEN, "" ) ;
             rdxString( pEX, RS_BK_ACTION, _action, sizeof( _action ), FALSE,
-                       FALSE, RS_BK_RESTORE ) ;
+                       PMD_CFG_CHANGE_FORBIDDEN, RS_BK_RESTORE ) ;
             rdxString( pEX, PMD_OPTION_DBPATH, _dbPath, sizeof( _dbPath ),
-                       FALSE, FALSE, "" ) ;
+                       FALSE, PMD_CFG_CHANGE_FORBIDDEN, "" ) ;
             rdxString( pEX, PMD_OPTION_CONFPATH, _cfgPath, sizeof( _cfgPath ),
-                       FALSE, FALSE, "" ) ;
+                       FALSE, PMD_CFG_CHANGE_FORBIDDEN, "" ) ;
             rdxString( pEX, PMD_OPTION_SVCNAME, _svcName, sizeof( _svcName ),
-                       FALSE, FALSE, "" ) ;
-            rdxBooleanS( pEX, RS_BK_SKIP_CONF, _skipConf, FALSE, FALSE, FALSE ) ;
-            rdxBooleanS( pEX, RS_BK_IS_SELF, _isSelf, FALSE, FALSE, TRUE ) ;
-            rdxInt( pEX, RS_INC_ID, _incID, FALSE, FALSE, -1 ) ;
-            rdxInt( pEX, RS_BEGIN_INC_ID, _beginIncID, FALSE, FALSE, -1 ) ;
-            rdxUShort( pEX, PMD_OPTION_DIAGLEVEL, _diagLevel, FALSE, TRUE,
+                       FALSE, PMD_CFG_CHANGE_FORBIDDEN, "" ) ;
+            rdxBooleanS( pEX, RS_BK_SKIP_CONF, _skipConf, FALSE, 
+                         PMD_CFG_CHANGE_FORBIDDEN, FALSE ) ;
+            rdxBooleanS( pEX, RS_BK_IS_SELF, _isSelf, FALSE, 
+                         PMD_CFG_CHANGE_FORBIDDEN, TRUE ) ;
+            rdxInt( pEX, RS_INC_ID, _incID, FALSE, PMD_CFG_CHANGE_FORBIDDEN, -1 ) ;
+            rdxInt( pEX, RS_BEGIN_INC_ID, _beginIncID, FALSE, PMD_CFG_CHANGE_FORBIDDEN, -1 ) ;
+            rdxUShort( pEX, PMD_OPTION_DIAGLEVEL, _diagLevel, FALSE, PMD_CFG_CHANGE_RUN,
                        (UINT16)PDWARNING ) ;
             rdvMinMax( pEX, _diagLevel, PDSEVERE, PDDEBUG, TRUE ) ;
 

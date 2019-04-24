@@ -3630,33 +3630,33 @@ INT32 _sdbCi::doDataExchange( engine::pmdCfgExchange *pEx )
    resetResult() ;
 
    rdxString( pEx, CONSISTENCY_INSPECT_COORD, _coordAddr,
-                   CI_ADDRESS_SIZE , FALSE, FALSE, CI_COORD_DEFVAL, FALSE ) ;
+                   CI_ADDRESS_SIZE , FALSE, PMD_CFG_CHANGE_FORBIDDEN, CI_COORD_DEFVAL, FALSE ) ;
 
    rdxString( pEx, CONSISTENCY_INSPECT_AUTH, _auth,
-                   CI_AUTH_SIZE , FALSE, FALSE, "\"\":\"\"", FALSE ) ;
+                   CI_AUTH_SIZE , FALSE, PMD_CFG_CHANGE_FORBIDDEN, "\"\":\"\"", FALSE ) ;
 
    rdxString( pEx, CONSISTENCY_INSPECT_ACTION, _header._action,
-                   CI_ACTION_SIZE , FALSE, FALSE, CI_ACTION_INSPECT, FALSE ) ;
+                   CI_ACTION_SIZE , FALSE, PMD_CFG_CHANGE_FORBIDDEN, CI_ACTION_INSPECT, FALSE ) ;
 
-   rdxInt( pEx, CONSISTENCY_INSPECT_LOOP, _header._loop, FALSE, TRUE, 5 ) ;
+   rdxInt( pEx, CONSISTENCY_INSPECT_LOOP, _header._loop, FALSE, PMD_CFG_CHANGE_RUN, 5 ) ;
 
    rdxString( pEx, CONSISTENCY_INSPECT_GROUP, _header._groupName,
-                   CI_GROUPNAME_SIZE, FALSE, FALSE, "", FALSE ) ;
+                   CI_GROUPNAME_SIZE, FALSE, PMD_CFG_CHANGE_FORBIDDEN, "", FALSE ) ;
 
    rdxString( pEx, CONSISTENCY_INSPECT_CS, _header._csName,
-                   CI_CS_NAME_SIZE, FALSE, FALSE, "", FALSE ) ;
+                   CI_CS_NAME_SIZE, FALSE, PMD_CFG_CHANGE_FORBIDDEN, "", FALSE ) ;
 
    rdxString( pEx, CONSISTENCY_INSPECT_CL, _header._clName,
-                   CI_CL_NAME_SIZE, FALSE, FALSE, "", FALSE ) ;
+                   CI_CL_NAME_SIZE, FALSE, PMD_CFG_CHANGE_FORBIDDEN, "", FALSE ) ;
 
    rdxString( pEx, CONSISTENCY_INSPECT_FILE, _header._filepath,
-                   OSS_MAX_PATHSIZE, FALSE, FALSE, "" ) ;
+                   OSS_MAX_PATHSIZE, FALSE, PMD_CFG_CHANGE_FORBIDDEN, "" ) ;
 
    rdxString( pEx, CONSISTENCY_INSPECT_OUTPUT, _header._outfile,
-                   OSS_MAX_PATHSIZE, FALSE, FALSE, CI_FILE_NAME ) ;
+                   OSS_MAX_PATHSIZE, FALSE, PMD_CFG_CHANGE_FORBIDDEN, CI_FILE_NAME ) ;
 
    rdxString( pEx, CONSISTENCY_INSPECT_VIEW, _header._view,
-                   CI_VIEWOPTION_SIZE, FALSE, FALSE, CI_VIEW_GROUP, FALSE ) ;
+                   CI_VIEWOPTION_SIZE, FALSE, PMD_CFG_CHANGE_FORBIDDEN, CI_VIEW_GROUP, FALSE ) ;
 
    return getResult() ;
 }

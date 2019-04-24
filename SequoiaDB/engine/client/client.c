@@ -2313,6 +2313,9 @@ SDB_EXPORT INT32 sdbGetSnapshot ( sdbConnectionHandle cHandle,
    case SDB_SNAP_HEALTH :
       p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_HEALTH ;
       break ;
+   case SDB_SNAP_CONFIG :
+      p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_CONFIG ;
+      break ;
    default :
       rc = SDB_INVALIDARG ;
       goto error ;
@@ -10875,6 +10878,90 @@ SDB_EXPORT INT32 sdbReloadConfig( sdbConnectionHandle cHandle,
    }
 
 done:
+   return rc ;
+error:
+   goto done ;
+}
+
+SDB_EXPORT INT32 sdbUpdateConfig( sdbConnectionHandle cHandle,
+                                  bson *configs, bson *options )
+{
+   INT32 rc = SDB_OK ;
+   sdbConnectionStruct *connection = (sdbConnectionStruct*)cHandle ;
+   BOOLEAN bsoninit = FALSE ;
+   bson_iterator it ;
+   bson newObj ;
+
+   BSON_INIT( newObj) ;
+   HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
+
+   if ( options )
+   {
+      bson_iterator_init ( &it, options ) ;
+      while ( BSON_EOO != bson_iterator_next ( &it ) )
+      {
+         BSON_APPEND( newObj, NULL, &it, element ) ;
+      }
+   }
+   BSON_APPEND( newObj, FIELD_NAME_CONFIGS, configs, bson ) ;
+   BSON_FINISH( newObj ) ;
+
+   rc = _runCommand2( cHandle, &connection->_pSendBuffer,
+                      &connection->_sendBufferSize,
+                      &connection->_pReceiveBuffer,
+                      &connection->_receiveBufferSize,
+                      CMD_ADMIN_PREFIX CMD_NAME_UPDATE_CONFIG,
+                      0, 0, -1, -1,
+                      &newObj, NULL, NULL, NULL, NULL ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+
+done:
+   BSON_DESTROY( newObj ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+SDB_EXPORT INT32 sdbDeleteConfig( sdbConnectionHandle cHandle,
+                                  bson *configs, bson *options )
+{
+   INT32 rc = SDB_OK ;
+   sdbConnectionStruct *connection = (sdbConnectionStruct*)cHandle ;
+   BOOLEAN bsoninit = FALSE ;
+   bson_iterator it ;
+   bson newObj ;
+
+   BSON_INIT( newObj) ;
+   HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
+
+   if ( options )
+   {
+      bson_iterator_init ( &it, options ) ;
+      while ( BSON_EOO != bson_iterator_next ( &it ) )
+      {
+         BSON_APPEND( newObj, NULL, &it, element ) ;
+      }
+   }
+   BSON_APPEND( newObj, FIELD_NAME_CONFIGS, configs, bson ) ;
+   BSON_FINISH( newObj ) ;
+
+   rc = _runCommand2( cHandle, &connection->_pSendBuffer,
+                      &connection->_sendBufferSize,
+                      &connection->_pReceiveBuffer,
+                      &connection->_receiveBufferSize,
+                      CMD_ADMIN_PREFIX CMD_NAME_DELETE_CONFIG,
+                      0, 0, -1, -1,
+                      &newObj, NULL, NULL, NULL, NULL ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+
+done:
+   BSON_DESTROY( newObj ) ;
    return rc ;
 error:
    goto done ;

@@ -418,6 +418,7 @@
 #define FIELD_NAME_BLOCK                     "Block"
 #define FIELD_NAME_CAPPED                    "Capped"
 #define FIELD_NAME_TEXT                      "$Text"
+#define FIELD_NAME_CONFIGS                   "Configs"
 
 #define FIELD_NAME_ANALYZE_MODE              "Mode"
 #define FIELD_NAME_ANALYZE_NUM               "SampleNum"
@@ -500,6 +501,7 @@
 #define CMD_NAME_SNAPSHOT_TRANSACTIONS_CUR   "snapshot transactions current"
 #define CMD_NAME_SNAPSHOT_ACCESSPLANS        "snapshot accessplans"
 #define CMD_NAME_SNAPSHOT_HEALTH             "snapshot health"
+#define CMD_NAME_SNAPSHOT_CONFIG             "snapshot config"
 #define CMD_NAME_TEST_COLLECTION             "test collection"
 #define CMD_NAME_TEST_COLLECTIONSPACE        "test collectionspace"
 #define CMD_NAME_CREATE_GROUP                "create group"
@@ -546,6 +548,8 @@
 #define CMD_NAME_SYNC_DB                     "sync db"
 #define CMD_NAME_POP                         "pop"
 #define CMD_NAME_RELOAD_CONFIG               "reload config"
+#define CMD_NAME_UPDATE_CONFIG               "update config"
+#define CMD_NAME_DELETE_CONFIG               "delete config"
 #define CMD_NAME_ANALYZE                     "analyze"
 
 #define CMD_NAME_SNAPSHOT_DATABASE_INTR      "SNAPSHOT_DB"
@@ -561,6 +565,7 @@
 #define CMD_NAME_SNAPSHOT_TRANSCUR_INTR      "SNAPSHOT_TRANS_CUR"
 #define CMD_NAME_SNAPSHOT_ACCESSPLANS_INTR   "SNAPSHOT_ACCESSPLANS"
 #define CMD_NAME_SNAPSHOT_HEALTH_INTR        "SNAPSHOT_HEALTH"
+#define CMD_NAME_SNAPSHOT_CONFIG_INTR        "SNAPSHOT_CONFIG"
 
 #define CMD_NAME_LIST_COLLECTION_INTR        "LIST_CL"
 #define CMD_NAME_LIST_SPACE_INTR             "LIST_CS"

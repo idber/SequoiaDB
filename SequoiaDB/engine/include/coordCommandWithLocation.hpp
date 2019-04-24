@@ -189,6 +189,40 @@ namespace engine
    typedef _coordReloadConf coordReloadConf ;
 
    /*
+      _coordUpdateConf define
+   */
+   class _coordUpdateConf : public _coordCmdWithLocation
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordUpdateConf() ;
+         virtual ~_coordUpdateConf() ;
+      private:
+         virtual BOOLEAN _useContext() { return FALSE ; }
+         virtual INT32   _onLocalMode( INT32 flag ) ;
+         virtual void    _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
+         virtual UINT32  _getControlMask() const ;
+   } ;
+   typedef _coordUpdateConf coordUpdateConf ;
+
+   /*
+      _coordDeleteConf define
+   */
+   class _coordDeleteConf : public _coordCmdWithLocation
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordDeleteConf() ;
+         virtual ~_coordDeleteConf() ;
+      private:
+         virtual BOOLEAN _useContext() { return FALSE ; }
+         virtual INT32   _onLocalMode( INT32 flag ) ;
+         virtual void    _preSet( pmdEDUCB *cb, coordCtrlParam &ctrlParam ) ;
+         virtual UINT32  _getControlMask() const ;
+   } ;
+   typedef _coordDeleteConf coordDeleteConf ;
+
+   /*
       _coordCMDAnalyze define
    */
    class _coordCMDAnalyze : public _coordCmdWithLocation

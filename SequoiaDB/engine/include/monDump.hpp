@@ -576,6 +576,36 @@ namespace engine
 
    typedef _monAccessPlansFetch monAccessPlansFetch ;
 
+   /*
+      _monHealthFetch define
+   */
+   class _monConfigFetch : public rtnFetchBase
+   {
+      DECLARE_FETCH_AUTO_REGISTER()
+
+      public:
+         _monConfigFetch() ;
+         virtual ~_monConfigFetch() ;
+
+         virtual INT32        init( pmdEDUCB *cb,
+                                    BOOLEAN isCurrent,
+                                    BOOLEAN isDetail,
+                                    UINT32 addInfoMask,
+                                    const BSONObj obj = BSONObj() ) ;
+
+         virtual const CHAR*  getName() const ;
+
+      public:
+         virtual BOOLEAN   isHitEnd() const ;
+         virtual INT32     fetch( BSONObj &obj ) ;
+
+      private:
+         UINT32                  _addInfoMask ;
+         BOOLEAN                 _hitEnd ;
+
+   } ;
+   typedef _monConfigFetch monConfigFetch ;
+
 }
 
 #endif //MONDUMP_HPP_
