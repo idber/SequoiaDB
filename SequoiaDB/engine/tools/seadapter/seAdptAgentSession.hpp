@@ -79,6 +79,10 @@ namespace seadapter
 
       INT32 _reply( MsgOpReply *header, const CHAR *buff, UINT32 size ) ;
       INT32 _defaultMsgFunc ( NET_HANDLE handle, MsgHeader *msg ) ;
+      INT32 _selectIndex( const CHAR *clName, const BSONObj &hint,
+                          BSONObj &newHint, string &index, string &type ) ;
+      BOOLEAN _isTextIdx( const IDX_META_VEC &idxMetas,
+                          const string &idxName, string &esIdxName ) ;
 
    private:
       utilESCltMgr      *_seCltMgr ;

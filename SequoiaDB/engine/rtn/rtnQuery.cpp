@@ -391,8 +391,15 @@ namespace engine
          }
 
          rc = contextTS->open( options, cb ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to open text search context, "
+         if ( rc )
+         {
+            if ( SDB_DMS_EOC != rc )
+            {
+               PD_LOG( PDERROR, "Failed to open text search context, "
                       "rc: %d", rc ) ;
+            }
+            goto error ;
+         }
       }
 
       if ( cb->getMonConfigCB()->timestampON )
@@ -555,8 +562,15 @@ namespace engine
          {
             rc = rtnQueryWithTS( options, cb, rtnCB, contextID,
                                  ppContext, enablePrefetch ) ;
-            PD_RC_CHECK( rc, PDERROR, "Query with text search condition "
-                         "failed[ %d ]", rc ) ;
+            if ( rc )
+            {
+               if ( SDB_DMS_EOC != rc )
+               {
+                  PD_LOG( PDERROR, "Query with text search condition "
+                          "failed[ %d ]", rc ) ;
+               }
+               goto error ;
+            }
             goto done ;
          }
       }
