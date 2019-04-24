@@ -83,6 +83,7 @@ namespace engine
 #define NAME_SNAPSHOT_TRANSACTIONS           CMD_NAME_SNAPSHOT_TRANSACTIONS
 #define NAME_SNAPSHOT_ACCESSPLANS            CMD_NAME_SNAPSHOT_ACCESSPLANS
 #define NAME_SNAPSHOT_HEALTH                 CMD_NAME_SNAPSHOT_HEALTH
+#define NAME_SNAPSHOT_CONFIG                 CMD_NAME_SNAPSHOT_CONFIG
 #define NAME_TEST_COLLECTION                 CMD_NAME_TEST_COLLECTION
 #define NAME_TEST_COLLECTIONSPACE            CMD_NAME_TEST_COLLECTIONSPACE
 #define NAME_SET_PDLEVEL                     CMD_NAME_SET_PDLEVEL
@@ -108,6 +109,8 @@ namespace engine
 #define NAME_SYNC_DB                         CMD_NAME_SYNC_DB
 #define NAME_POP                             CMD_NAME_POP
 #define NAME_RELOAD_CONFIG                   CMD_NAME_RELOAD_CONFIG
+#define NAME_UPDATE_CONFIG                   CMD_NAME_UPDATE_CONFIG
+#define NAME_DELETE_CONFIG                   CMD_NAME_DELETE_CONFIG
 #define NAME_ANALYZE                         CMD_NAME_ANALYZE
 
 #define NAME_CREATE_GROUP                    CMD_NAME_CREATE_GROUP
@@ -208,6 +211,7 @@ namespace engine
       CMD_SNAPSHOT_TRANSACTIONS              = 101,
       CMD_SNAPSHOT_ACCESSPLANS               = 102,
       CMD_SNAPSHOT_HEALTH                    = 103,
+      CMD_SNAPSHOT_CONFIG                    = 104,
 
       CMD_TEST_COLLECTION                    = 110,
       CMD_TEST_COLLECTIONSPACE               = 111,
@@ -251,6 +255,8 @@ namespace engine
 
       CMD_EXPORT_CONFIG                      = 200,
       CMD_RELOAD_CONFIG                      = 201,
+      CMD_UPDATE_CONFIG                      = 202,
+      CMD_DELETE_CONFIG                      = 203,
 
       CMD_REMOVE_BACKUP                      = 210,
 

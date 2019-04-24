@@ -345,6 +345,7 @@ SDB_EXPORT INT32 sdbGetQueryMeta ( sdbCollectionHandle cHandle,
         SDB_SNAP_TRANSACTIONS_CURRENT : Get snapshot of all the transactions
         SDB_SNAP_ACCESSPLANS      : Get the snapshot of cached access plans
         SDB_SNAP_HEALTH           : Get snapshot of node health detection
+        SDB_SNAP_CONFIG           : Get snapshot of node configuration
 
     \param [in] condition The matching rule, match all the documents if null
     \param [in] select The selective rule, return the whole document if null
@@ -2783,6 +2784,42 @@ SDB_EXPORT INT32 sdbSetPDLevel( sdbConnectionHandle cHandle,
 */
 SDB_EXPORT INT32 sdbReloadConfig( sdbConnectionHandle cHandle,
                                   bson *options ) ;
+
+/** \fn INT32 sdbUpdateConfig( sdbConnectionHandle cHandle,
+                               bson *configs, bson *options )
+    \brief Force the node to update configs online
+    \param [in] cHandle The database connection handle
+    \param [in] configs the specific configuration parameters to update
+    \param [in] options The control options:(Only take effect in coordinate nodes)
+                GroupID:INT32,
+                GroupName:String,
+                NodeID:INT32,
+                HostName:String,
+                svcname:String,
+                ...
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbUpdateConfig( sdbConnectionHandle cHandle,
+                                  bson *configs, bson *options ) ;
+
+/** \fn INT32 sdbDeleteConfig( sdbConnectionHandle cHandle,
+                               bson *configs, bson *options )
+    \brief Force the node to delete configs online
+    \param [in] cHandle The database connection handle
+    \param [in] configs the specific configuration parameters to delete
+    \param [in] options The control options:(Only take effect in coordinate nodes)
+                GroupID:INT32,
+                GroupName:String,
+                NodeID:INT32,
+                HostName:String,
+                svcname:String,
+                ...
+    \retval SDB_OK Operation Success
+    \retval Others Operation Fail
+*/
+SDB_EXPORT INT32 sdbDeleteConfig( sdbConnectionHandle cHandle,
+                                  bson *configs, bson *options ) ;
 
 /** \fn INT32 sdbRenameCollectionSpace( sdbConnectionHandle cHandle,
                                         const CHAR *pOldName,

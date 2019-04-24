@@ -3643,4 +3643,71 @@ namespace engine
       goto done ;
    }
 
+   /*
+      _monConfigFetch implement
+   */
+   IMPLEMENT_FETCH_AUTO_REGISTER( _monConfigFetch, RTN_FETCH_CONFIG )
+
+   _monConfigFetch::_monConfigFetch()
+   {
+      _addInfoMask   = 0 ;
+      _hitEnd        = TRUE ;
+   }
+
+   _monConfigFetch::~_monConfigFetch()
+   {
+   }
+
+   INT32 _monConfigFetch::init( pmdEDUCB *cb,
+                                BOOLEAN isCurrent,
+                                BOOLEAN isDetail,
+                                UINT32 addInfoMask,
+                                const BSONObj obj )
+   {
+      _addInfoMask = addInfoMask ;
+      _hitEnd = FALSE ;
+
+      return SDB_OK ;
+   }
+
+   const CHAR* _monConfigFetch::getName() const
+   {
+      return CMD_NAME_SNAPSHOT_CONFIG ;
+   }
+
+   BOOLEAN _monConfigFetch::isHitEnd() const
+   {
+      return _hitEnd ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__MONCONFIGFETCH_FETCH, "_monConfigFetch::fetch" )
+   INT32 _monConfigFetch::fetch( BSONObj &obj )
+   {
+      PD_TRACE_ENTRY ( SDB__MONCONFIGFETCH_FETCH ) ;
+      INT32 rc             = SDB_OK ;
+
+      if ( _hitEnd )
+      {
+         rc = SDB_DMS_EOC ;
+         goto error ;
+      }
+
+
+      rc = pmdGetOptionCB()->toBSON(obj, 0);
+
+      if ( rc != SDB_OK )
+      {
+         PD_LOG ( PDERROR, "Failed to generate config snapshot.") ;
+         goto error ;
+      }
+
+      _hitEnd = TRUE ;
+
+   done:
+      PD_TRACE_EXITRC ( SDB__MONCONFIGFETCH_FETCH, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
 }

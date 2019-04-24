@@ -2172,6 +2172,328 @@ namespace engine
       goto done ;
    }
 
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnUpdateConfig)
+
+   _rtnUpdateConfig::_rtnUpdateConfig()
+   {
+   }
+
+   _rtnUpdateConfig::~_rtnUpdateConfig()
+   {
+   }
+
+   const CHAR* _rtnUpdateConfig::name()
+   {
+      return NAME_UPDATE_CONFIG ;
+   }
+
+   RTN_COMMAND_TYPE _rtnUpdateConfig::type()
+   {
+      return CMD_UPDATE_CONFIG ;
+   }
+
+   INT32 _rtnUpdateConfig::init( INT32 flags, INT64 numToSkip,
+                                 INT64 numToReturn,
+                                 const CHAR *pMatcherBuff,
+                                 const CHAR * pSelectBuff,
+                                 const CHAR * pOrderByBuff,
+                                 const CHAR * pHintBuff )
+   {
+      BSONObj options = BSONObj( pMatcherBuff ) ;
+      _newCfgObj = options.getObjectField( FIELD_NAME_CONFIGS ) ;
+      _newCfgObj.getOwned() ;
+
+      return SDB_OK ;
+   }
+
+   INT32 _rtnUpdateConfig::doit( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                                 _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                                 INT16 w, INT64 * pContextID )
+   {
+      INT32 rc = SDB_OK ;
+      pmdOptionsCB *optCB = pmdGetOptionCB() ;
+      BSONObj returnObj ;
+      string returnStr;
+      INT32 rebootCount = 0 ;
+      BOOLEAN rebootFirstEntry  = TRUE ;
+      INT32 forbidCount = 0 ;
+      BOOLEAN forbidFirstEntry  = TRUE ;
+      BSONElement rebootEle ;
+      BSONElement forbidEle ;
+
+      rc = optCB->changeConfig( _newCfgObj, returnObj ) ;
+
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Update config[%s] failed, rc: %d",
+                 _newCfgObj.toString().c_str(), rc ) ;
+         goto error ;
+      }
+
+      try
+      {
+         rebootEle = returnObj.getField( "Reboot" ) ;
+         if ( Array == rebootEle.type() )
+         {
+            BSONArray array = BSONArray( rebootEle.embeddedObject() ) ;
+            BSONObjIterator iter( array );
+            while ( iter.more() )
+            {
+               BSONElement ele = iter.next() ;
+               if ( String == ele.type() )
+               {
+                  if ( TRUE == rebootFirstEntry )
+                  {
+                     returnStr += "config" ;
+                     returnStr += " '" ;
+                     returnStr +=  ele.valuestr() ;
+                     rebootFirstEntry = FALSE ;
+                  }
+                  else
+                  {
+                     returnStr += ", '" ;
+                     returnStr +=  ele.valuestr() ;
+                  }
+                  returnStr += "'" ;
+                  rebootCount++ ;
+               }
+               if ( 3 == rebootCount )
+               {
+                  break ;
+               }
+            }
+         }
+
+         if ( rebootCount > 0 && rebootCount < 3 )
+         {
+            returnStr += " require(s) restart to take effect." ;
+         }
+         else if ( rebootCount == 3 )
+         {
+            returnStr += ", etc. require(s) restart to take effect." ;
+         }
+
+         forbidEle = returnObj.getField( "Forbidden" ) ;
+         if ( Array == forbidEle.type() )
+         {
+            BSONArray array = BSONArray( forbidEle.embeddedObject() ) ;
+            BSONObjIterator iter( array );
+            while ( iter.more() )
+            {
+               BSONElement ele = iter.next() ;
+               if ( String == ele.type() )
+               {
+                  if ( TRUE == forbidFirstEntry )
+                  {
+                     returnStr += " config" ;
+                     returnStr += " '" ;
+                     returnStr +=  ele.valuestr() ;
+                     forbidFirstEntry = FALSE ;
+                  }
+                  else
+                  {
+                     returnStr += ", '" ;
+                     returnStr +=  ele.valuestr() ;
+                  }
+                  returnStr += "'" ;
+                  forbidCount++ ;
+               }
+               if ( 3 == forbidCount )
+               {
+                  break ;
+               }
+            }
+         }
+
+         if ( forbidCount > 0 && forbidCount < 3 )
+         {
+            returnStr += " cannot be changed." ;
+         }
+         else if ( forbidCount == 3 )
+         {
+            returnStr += ", etc. cannot be changed." ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDWARNING, "Exception during updateConf info parsing: %s",
+                 e.what() ) ;
+         goto error ;
+      }
+
+      if ( rebootCount > 0 || forbidCount > 0 )
+      {
+         rc = SDB_RTN_CONF_NOT_TAKE_EFFECT ;
+         PD_LOG_MSG( PDERROR, returnStr.c_str() ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnDeleteConfig)
+
+   _rtnDeleteConfig::_rtnDeleteConfig()
+   {
+   }
+
+   _rtnDeleteConfig::~_rtnDeleteConfig()
+   {
+   }
+
+   const CHAR* _rtnDeleteConfig::name()
+   {
+      return NAME_DELETE_CONFIG ;
+   }
+
+   RTN_COMMAND_TYPE _rtnDeleteConfig::type()
+   {
+      return CMD_DELETE_CONFIG ;
+   }
+
+   INT32 _rtnDeleteConfig::init( INT32 flags, INT64 numToSkip,
+                                 INT64 numToReturn,
+                                 const CHAR *pMatcherBuff,
+                                 const CHAR * pSelectBuff,
+                                 const CHAR * pOrderByBuff,
+                                 const CHAR * pHintBuff )
+   {
+      BSONObj options = BSONObj( pMatcherBuff ) ;
+      _newCfgObj = options.getObjectField( FIELD_NAME_CONFIGS ) ;
+      _newCfgObj.getOwned() ;
+
+      return SDB_OK ;
+   }
+
+   INT32 _rtnDeleteConfig::doit( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                                 _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                                 INT16 w, INT64 * pContextID )
+   {
+      INT32 rc = SDB_OK ;
+      pmdOptionsCB *optCB = pmdGetOptionCB() ;
+      BSONObj returnObj ;
+      string returnStr;
+      INT32 rebootCount = 0 ;
+      BOOLEAN rebootFirstEntry  = TRUE ;
+      INT32 forbidCount = 0 ;
+      BOOLEAN forbidFirstEntry  = TRUE ;
+      BSONElement rebootEle ;
+      BSONElement forbidEle ;
+
+      rc = optCB->changeConfig( _newCfgObj, returnObj, TRUE ) ;
+
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Delete config[%s] failed, rc: %d",
+                 _newCfgObj.toString().c_str(), rc ) ;
+         goto error ;
+      }
+
+      try
+      {
+         rebootEle = returnObj.getField( "Reboot" ) ;
+         if ( Array == rebootEle.type() )
+         {
+            BSONArray array = BSONArray( rebootEle.embeddedObject() ) ;
+            BSONObjIterator iter( array );
+            while ( iter.more() )
+            {
+               BSONElement ele = iter.next() ;
+               if ( String == ele.type() )
+               {
+                  if ( TRUE == rebootFirstEntry )
+                  {
+                     returnStr += "config" ;
+                     returnStr += " '" ;
+                     returnStr +=  ele.valuestr() ;
+                     rebootFirstEntry = FALSE ;
+                  }
+                  else
+                  {
+                     returnStr += ", '" ;
+                     returnStr +=  ele.valuestr() ;
+                  }
+                  returnStr += "'" ;
+                  rebootCount++ ;
+               }
+               if ( 3 == rebootCount )
+               {
+                  break ;
+               }
+            }
+         }
+
+         if ( rebootCount > 0 && rebootCount < 3 )
+         {
+            returnStr += " require(s) restart to take effect." ;
+         }
+         else if ( rebootCount == 3 )
+         {
+            returnStr += ", etc. require(s) restart to take effect." ;
+         }
+
+         forbidEle = returnObj.getField( "Forbidden" ) ;
+         if ( Array == forbidEle.type() )
+         {
+            BSONArray array = BSONArray( forbidEle.embeddedObject() ) ;
+            BSONObjIterator iter( array );
+            while ( iter.more() )
+            {
+               BSONElement ele = iter.next() ;
+               if ( String == ele.type() )
+               {
+                  if ( TRUE == forbidFirstEntry )
+                  {
+                     returnStr += " config" ;
+                     returnStr += " '" ;
+                     returnStr +=  ele.valuestr() ;
+                     forbidFirstEntry = FALSE ;
+                  }
+                  else
+                  {
+                     returnStr += ", '" ;
+                     returnStr +=  ele.valuestr() ;
+                  }
+                  returnStr += "'" ;
+                  forbidCount++ ;
+               }
+               if ( 3 == forbidCount )
+               {
+                  break ;
+               }
+            }
+         }
+
+         if ( forbidCount > 0 && forbidCount < 3 )
+         {
+            returnStr += " cannot be changed." ;
+         }
+         else if ( forbidCount == 3 )
+         {
+            returnStr += ", etc. cannot be changed." ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDWARNING, "Exception during deleteConf info parsing: %s",
+                 e.what() ) ;
+         goto error ;
+      }
+
+      if ( rebootCount > 0 || forbidCount > 0 )
+      {
+         rc = SDB_RTN_CONF_NOT_TAKE_EFFECT ;
+         PD_LOG_MSG( PDERROR, returnStr.c_str() ) ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnTraceStart)
    _rtnTraceStart::_rtnTraceStart ()
    {

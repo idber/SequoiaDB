@@ -496,6 +496,74 @@ namespace engine
    }
 
    /*
+      _coordUpdateConf implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordUpdateConf,
+                                      CMD_NAME_UPDATE_CONFIG,
+                                      TRUE ) ;
+   _coordUpdateConf::_coordUpdateConf()
+   {
+   }
+
+   _coordUpdateConf::~_coordUpdateConf()
+   {
+   }
+
+   INT32 _coordUpdateConf::_onLocalMode( INT32 flag )
+   {
+      return SDB_COORD_UNKNOWN_OP_REQ ;
+   }
+
+   void _coordUpdateConf::_preSet( pmdEDUCB * cb,
+                                   coordCtrlParam & ctrlParam )
+   {
+      ctrlParam._isGlobal = TRUE ;
+      ctrlParam._filterID = FILTER_ID_MATCHER ;
+      ctrlParam._emptyFilterSel = NODE_SEL_ALL ;
+      ctrlParam._role[ SDB_ROLE_CATALOG ] = 1 ;
+      ctrlParam._role[ SDB_ROLE_COORD ] = 1 ;
+   }
+
+   UINT32 _coordUpdateConf::_getControlMask() const
+   {
+      return COORD_CTRL_MASK_ALL ;
+   }
+
+   /*
+      _coordDeleteConf implement
+   */
+   COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordDeleteConf,
+                                      CMD_NAME_DELETE_CONFIG,
+                                      TRUE ) ;
+   _coordDeleteConf::_coordDeleteConf()
+   {
+   }
+
+   _coordDeleteConf::~_coordDeleteConf()
+   {
+   }
+
+   INT32 _coordDeleteConf::_onLocalMode( INT32 flag )
+   {
+      return SDB_COORD_UNKNOWN_OP_REQ ;
+   }
+
+   void _coordDeleteConf::_preSet( pmdEDUCB * cb,
+                                   coordCtrlParam & ctrlParam )
+   {
+      ctrlParam._isGlobal = TRUE ;
+      ctrlParam._filterID = FILTER_ID_MATCHER ;
+      ctrlParam._emptyFilterSel = NODE_SEL_ALL ;
+      ctrlParam._role[ SDB_ROLE_CATALOG ] = 1 ;
+      ctrlParam._role[ SDB_ROLE_COORD ] = 1 ;
+   }
+
+   UINT32 _coordDeleteConf::_getControlMask() const
+   {
+      return COORD_CTRL_MASK_ALL ;
+   }
+
+   /*
       _coordCMDAnalyze implement
     */
    COORD_IMPLEMENT_CMD_AUTO_REGISTER( _coordCMDAnalyze,

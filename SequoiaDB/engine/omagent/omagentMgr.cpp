@@ -237,24 +237,24 @@ namespace engine
 
 
       rdxString( pEX, SDBCM_CONF_DFTPORT , _dftSvcName,
-                 sizeof( _dftSvcName ), FALSE, FALSE,
+                 sizeof( _dftSvcName ), FALSE, PMD_CFG_CHANGE_FORBIDDEN,
                  _dftSvcName ) ;
       rdxString( pEX, _hostKey.c_str(), _cmServiceName,
-                 sizeof( _cmServiceName ), FALSE, FALSE,
+                 sizeof( _cmServiceName ), FALSE, PMD_CFG_CHANGE_FORBIDDEN,
                  _dftSvcName ) ;
-      rdxInt( pEX, SDBCM_RESTART_COUNT, _restartCount, FALSE, TRUE,
+      rdxInt( pEX, SDBCM_RESTART_COUNT, _restartCount, FALSE, PMD_CFG_CHANGE_RUN,
               _restartCount ) ;
-      rdxInt( pEX, SDBCM_RESTART_INTERVAL, _restartInterval, FALSE, TRUE,
+      rdxInt( pEX, SDBCM_RESTART_INTERVAL, _restartInterval, FALSE, PMD_CFG_CHANGE_RUN,
               _restartInterval ) ;
-      rdxBooleanS( pEX, SDBCM_AUTO_START, _autoStart, FALSE, TRUE,
+      rdxBooleanS( pEX, SDBCM_AUTO_START, _autoStart, FALSE, PMD_CFG_CHANGE_RUN,
                    _autoStart ) ;
-      rdxInt( pEX, SDBCM_DIALOG_LEVEL, _diagLevel, FALSE, TRUE,
+      rdxInt( pEX, SDBCM_DIALOG_LEVEL, _diagLevel, FALSE, PMD_CFG_CHANGE_RUN,
               _diagLevel ) ;
       rdxString( pEX, SDBCM_CONF_OMADDR, _omAddress, sizeof( _omAddress ),
-                 FALSE, FALSE, "", FALSE ) ;
+                 FALSE, PMD_CFG_CHANGE_FORBIDDEN, "", FALSE ) ;
       rdxBooleanS( pEX, SDBCM_CONF_ISGENERAL, _isGeneralAgent, FALSE,
-                   FALSE, FALSE, FALSE ) ;
-      rdxBooleanS( pEX, SDBCM_ENABLE_WATCH, _enableWatch, FALSE, TRUE,
+                   PMD_CFG_CHANGE_FORBIDDEN, FALSE, FALSE ) ;
+      rdxBooleanS( pEX, SDBCM_ENABLE_WATCH, _enableWatch, FALSE, PMD_CFG_CHANGE_RUN,
                    _enableWatch ) ;
 
 

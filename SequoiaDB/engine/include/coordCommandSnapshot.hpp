@@ -451,5 +451,32 @@ namespace engine
 
    typedef _coordCMDSnapshotAccessPlansIntr coordCMDSnapshotAccessPlansIntr ;
 
+   /*
+      _coordCMDSnapshotConfigs define
+   */
+   class _coordCMDSnapshotConfigs: public _coordCMDMonBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDSnapshotConfigs() ;
+         virtual ~_coordCMDSnapshotConfigs() ;
+      private:
+         virtual const CHAR *getIntrCMDName() ;
+         virtual const CHAR *getInnerAggrContent() ;
+   } ;
+   typedef _coordCMDSnapshotConfigs coordCMDSnapshotConfigs ;
+
+   /*
+      _coordCMDSnapshotConfigIntr define
+   */
+   class _coordCMDSnapshotConfigIntr : public _coordCMDSnapshotIntrBase
+   {
+      COORD_DECLARE_CMD_AUTO_REGISTER() ;
+      public:
+         _coordCMDSnapshotConfigIntr() ;
+         virtual ~_coordCMDSnapshotConfigIntr() ;
+   } ;
+   typedef _coordCMDSnapshotConfigIntr coordCMDSnapshotConfigIntr ;
+
 }
 #endif // COORD_COMMAND_SNAPSHOT_HPP__

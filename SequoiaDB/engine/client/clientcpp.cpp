@@ -6628,6 +6628,9 @@ error :
       case SDB_SNAP_HEALTH :
          p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_HEALTH ;
          break ;
+      case SDB_SNAP_CONFIG :
+         p = CMD_ADMIN_PREFIX CMD_NAME_SNAPSHOT_CONFIG ;
+         break ;
       default :
          rc = SDB_INVALIDARG ;
          goto exit ;

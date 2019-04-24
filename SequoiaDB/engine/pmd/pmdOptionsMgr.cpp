@@ -137,9 +137,12 @@ namespace engine
       _pVMCmd     = NULL ;
    }
 
-   INT32 _pmdCfgExchange::readInt( const CHAR * pFieldName, INT32 &value )
+   INT32 _pmdCfgExchange::readInt( const CHAR * pFieldName, INT32 &value,
+                                   PMD_CFG_CHANGE changeLevel )
    {
       INT32 rc = SDB_OK ;
+      INT32 readValue ;
+      BOOLEAN fieldStatus = TRUE ;
 
       if ( PMD_CFG_DATA_BSON == _dataType )
       {
@@ -156,18 +159,18 @@ namespace engine
          }
          else
          {
-            value = (INT32)ele.numberInt() ;
+            readValue = (INT32)ele.numberInt() ;
          }
       }
       else if ( PMD_CFG_DATA_CMD == _dataType )
       {
          if ( _pVMCmd && _pVMCmd->count( pFieldName ) )
          {
-            value = (*_pVMCmd)[pFieldName].as<int>() ;
+            readValue = (*_pVMCmd)[pFieldName].as<int>() ;
          }
          else if ( _pVMFile && _pVMFile->count( pFieldName ) )
          {
-            value = (*_pVMFile)[pFieldName].as<int>() ;
+            readValue = (*_pVMFile)[pFieldName].as<int>() ;
          }
          else
          {
@@ -181,30 +184,127 @@ namespace engine
 
       if ( SDB_OK == rc )
       {
-         (*_pMapKeyField)[ pFieldName ] = pmdParamValue( value, TRUE, TRUE ) ;
+         if ( value == readValue )
+         {
+            fieldStatus = FALSE ;
+         }
+         if ( PMD_CFG_STEP_PRECHG == _cfgStep )
+         {
+            (*_pMapKeyField)[ pFieldName ] = pmdParamValue( readValue, FALSE,
+                                                            FALSE, changeLevel ) ;
+         }
+         else if ( PMD_CFG_STEP_CHG == _cfgStep )
+         {
+            if ( PMD_CFG_CHANGE_REBOOT == changeLevel )
+            {
+               (*_pMapKeyField)[ pFieldName ] = pmdParamValue( readValue, FALSE,
+                                                               fieldStatus,
+                                                               changeLevel ) ;
+            }
+            else if ( PMD_CFG_CHANGE_RUN == changeLevel )
+            {
+               value = readValue ;
+               (*_pMapKeyField)[ pFieldName ] = pmdParamValue( readValue, FALSE,
+                                                               fieldStatus,
+                                                               changeLevel ) ;
+            }
+            else if ( PMD_CFG_CHANGE_FORBIDDEN == changeLevel )
+            {
+               MAP_K2V::iterator it = _pMapKeyField->find( pFieldName ) ;
+               if ( _pMapKeyField->end() != it )
+               {
+                  it->second._hasMapped = TRUE ;
+                  it->second._hasField = fieldStatus ;
+               }
+               else
+               {
+                  (*_pMapKeyField)[ pFieldName ] = pmdParamValue( readValue, FALSE,
+                                                                  fieldStatus, 
+                                                                  changeLevel ) ;
+               }
+            }
+         }
+         else
+         {
+            value = readValue ;
+            (*_pMapKeyField)[ pFieldName ] = pmdParamValue( readValue, TRUE,
+                                                            TRUE, changeLevel ) ;
+         }
       }
 
       return rc ;
    }
 
    INT32 _pmdCfgExchange::readInt( const CHAR * pFieldName, INT32 &value,
-                                   INT32 defaultValue )
+                                   INT32 defaultValue, PMD_CFG_CHANGE changeLevel )
    {
-      INT32 rc = readInt( pFieldName, value ) ;
-      if ( SDB_FIELD_NOT_EXIST == rc )
+      INT32 rc = SDB_OK ;
+
+      if ( PMD_CFG_STEP_RESTORE == _cfgStep )
       {
-         value = defaultValue ;
-         rc = SDB_OK ;
-         (*_pMapKeyField)[ pFieldName ] = pmdParamValue( value, TRUE, FALSE ) ;
+         BOOLEAN fieldStatus = TRUE ;
+
+         if ( hasField( pFieldName ) )
+         {
+            if ( value == defaultValue )
+            {
+               fieldStatus = FALSE ;
+            }
+
+            if ( PMD_CFG_CHANGE_REBOOT == changeLevel )
+            {
+               (*_pMapKeyField)[ pFieldName ] = pmdParamValue( defaultValue, FALSE,
+                                                               fieldStatus,
+                                                               changeLevel ) ;
+            }
+            else if ( PMD_CFG_CHANGE_RUN == changeLevel )
+            {
+               value = defaultValue ;
+               (*_pMapKeyField)[ pFieldName ] = pmdParamValue( defaultValue, FALSE,
+                                                               fieldStatus,
+                                                               changeLevel ) ;
+            }
+            else if ( PMD_CFG_CHANGE_FORBIDDEN == changeLevel )
+            {
+               MAP_K2V::iterator it = _pMapKeyField->find( pFieldName ) ;
+               if ( _pMapKeyField->end() != it )
+               {
+                  it->second._hasMapped = TRUE ;
+                  it->second._hasField = fieldStatus ;
+               }
+               else
+               {
+                  (*_pMapKeyField)[ pFieldName ] = pmdParamValue( defaultValue, FALSE,
+                                                                  fieldStatus, 
+                                                                  changeLevel ) ;
+               }
+            }
+         }
+         goto done ;
       }
 
+      rc = readInt( pFieldName, value, changeLevel ) ;
+      if ( SDB_FIELD_NOT_EXIST == rc )
+      {
+         if ( PMD_CFG_STEP_PRECHG == _cfgStep )
+         {
+            rc = SDB_OK ;
+            goto done ;
+         }
+         value = defaultValue ;
+         rc = SDB_OK ;
+         (*_pMapKeyField)[ pFieldName ] = pmdParamValue( value, TRUE, FALSE) ;
+      }
+done:
       return rc ;
    }
 
    INT32 _pmdCfgExchange::readString( const CHAR *pFieldName, CHAR *pValue,
-                                      UINT32 len )
+                                      UINT32 len, PMD_CFG_CHANGE changeLevel )
    {
       INT32 rc = SDB_OK ;
+      string readValue ;
+      BOOLEAN fieldStatus = TRUE ;
 
       if ( PMD_CFG_DATA_BSON == _dataType )
       {
@@ -221,30 +321,22 @@ namespace engine
          }
          else
          {
-            ossStrncpy( pValue, ele.valuestr(), len ) ;
-            pValue[ len - 1 ] = 0 ;
+            readValue = ele.String() ;
          }
       }
       else if ( PMD_CFG_DATA_CMD == _dataType )
       {
-         string tmpValue ;
          if ( _pVMCmd && _pVMCmd->count( pFieldName ) )
          {
-            tmpValue = (*_pVMCmd)[pFieldName].as<string>() ;
+            readValue = (*_pVMCmd)[pFieldName].as<string>() ;
          }
          else if ( _pVMFile && _pVMFile->count( pFieldName ) )
          {
-            tmpValue = (*_pVMFile)[pFieldName].as<string>() ;
+            readValue = (*_pVMFile)[pFieldName].as<string>() ;
          }
          else
          {
             rc = SDB_FIELD_NOT_EXIST ;
-         }
-
-         if ( SDB_OK == rc )
-         {
-            ossStrncpy( pValue, tmpValue.c_str(), len ) ;
-            pValue[ len - 1 ] = 0 ;
          }
       }
       else
@@ -254,7 +346,54 @@ namespace engine
 
       if ( SDB_OK == rc )
       {
-         (*_pMapKeyField)[ pFieldName ] = pmdParamValue( pValue, TRUE, TRUE ) ;
+         if ( 0 == ossStrcasecmp( pValue, readValue.c_str() ) )
+         {
+            fieldStatus = FALSE ;
+         }
+         if ( PMD_CFG_STEP_PRECHG == _cfgStep )
+         {
+            (*_pMapKeyField)[ pFieldName ] = pmdParamValue( readValue, FALSE,
+                                                            FALSE, changeLevel ) ;
+         }
+         else if ( PMD_CFG_STEP_CHG == _cfgStep )
+         {
+            if ( PMD_CFG_CHANGE_REBOOT == changeLevel )
+            {
+               (*_pMapKeyField)[ pFieldName ] = pmdParamValue( readValue, FALSE,
+                                                               fieldStatus,
+                                                               changeLevel ) ;
+            }
+            else if ( PMD_CFG_CHANGE_RUN == changeLevel )
+            {
+               ossStrncpy( pValue, readValue.c_str(), len ) ;
+               pValue[ len - 1 ] = 0 ;
+               (*_pMapKeyField)[ pFieldName ] = pmdParamValue( readValue, FALSE,
+                                                               fieldStatus,
+                                                               changeLevel ) ;
+            }
+            else if ( PMD_CFG_CHANGE_FORBIDDEN == changeLevel )
+            {
+               MAP_K2V::iterator it = _pMapKeyField->find( pFieldName ) ;
+               if ( _pMapKeyField->end() != it )
+               {
+                  it->second._hasMapped = TRUE ;
+                  it->second._hasField = fieldStatus ;
+               }
+               else
+               {
+                  (*_pMapKeyField)[ pFieldName ] = pmdParamValue( readValue, FALSE,
+                                                                  fieldStatus, 
+                                                                  changeLevel ) ;
+               }
+            }
+         }
+         else
+         {
+            ossStrncpy( pValue, readValue.c_str(), len ) ;
+            pValue[ len - 1 ] = 0 ;
+            (*_pMapKeyField)[ pFieldName ] = pmdParamValue( readValue.c_str(), TRUE,
+                                                            TRUE, changeLevel ) ;
+         }
       }
 
       return rc ;
@@ -262,17 +401,69 @@ namespace engine
 
    INT32 _pmdCfgExchange::readString( const CHAR *pFieldName,
                                       CHAR *pValue, UINT32 len,
-                                      const CHAR *pDefault )
+                                      const CHAR *pDefault,
+                                      PMD_CFG_CHANGE changeLevel )
    {
-      INT32 rc = readString( pFieldName, pValue, len ) ;
+      INT32 rc = SDB_OK ;
+
+      if ( PMD_CFG_STEP_RESTORE == _cfgStep )
+      {
+         if ( hasField( pFieldName ) )
+         {
+            BOOLEAN fieldStatus = TRUE ;
+            if ( 0 == ossStrcasecmp( pValue, pDefault ) )
+            {
+               fieldStatus = FALSE ;
+            }
+
+            if ( PMD_CFG_CHANGE_REBOOT == changeLevel )
+            {
+               (*_pMapKeyField)[ pFieldName ] = pmdParamValue( pDefault, FALSE,
+                                                               fieldStatus,
+                                                               changeLevel ) ;
+            }
+            else if ( PMD_CFG_CHANGE_RUN == changeLevel )
+            {
+               ossStrncpy( pValue, pDefault, len ) ;
+               pValue[ len - 1 ] = 0 ;
+               (*_pMapKeyField)[ pFieldName ] = pmdParamValue( pDefault, FALSE,
+                                                               fieldStatus,
+                                                               changeLevel ) ;
+            }
+            else if ( PMD_CFG_CHANGE_FORBIDDEN == changeLevel )
+            {
+               MAP_K2V::iterator it = _pMapKeyField->find( pFieldName ) ;
+               if ( _pMapKeyField->end() != it )
+               {
+                  it->second._hasMapped = TRUE ;
+                  it->second._hasField = fieldStatus ;
+               }
+               else
+               {
+                  (*_pMapKeyField)[ pFieldName ] = pmdParamValue( pDefault, FALSE,
+                                                                  fieldStatus, 
+                                                                  changeLevel ) ;
+               }
+            }
+         }
+         goto done ;
+      }
+
+      rc = readString( pFieldName, pValue, len, changeLevel ) ;
       if ( SDB_FIELD_NOT_EXIST == rc && pDefault )
       {
+         if ( PMD_CFG_STEP_PRECHG == _cfgStep )
+         {
+            rc = SDB_OK ;
+            goto done ;
+         }
          ossStrncpy( pValue, pDefault, len ) ;
          pValue[ len - 1 ] = 0 ;
          rc = SDB_OK ;
 
-         (*_pMapKeyField)[ pFieldName ] = pmdParamValue( pValue, TRUE, FALSE ) ;
+         (*_pMapKeyField)[ pFieldName ] = pmdParamValue( pValue, TRUE, FALSE) ;
       }
+   done:
       return rc ;
    }
 
@@ -632,6 +823,130 @@ namespace engine
       goto done ;
    }
 
+   INT32 _pmdCfgRecord::update( const BSONObj &fileConfig, 
+                                const BSONObj &userConfig,
+                                BOOLEAN useDefault,
+                                BSONObj &errorObj,
+                                string &confFileStr )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj oldCfg ;
+      MAP_K2V mapKeyField ;
+      MAP_K2V::iterator it ;
+      BOOLEAN locked = FALSE ;
+      BSONObjBuilder errorObjBuilder ;
+      BSONArrayBuilder rebootArrBuilder ;
+      BSONArrayBuilder forbidArrBuilder ;
+      stringstream strStream ;
+      pmdCfgExchange ex1( &mapKeyField, fileConfig, TRUE, PMD_CFG_STEP_PRECHG ) ;
+      pmdCfgExchange ex2( &mapKeyField, userConfig, TRUE, PMD_CFG_STEP_CHG ) ;
+      pmdCfgExchange ex3( &mapKeyField, userConfig, TRUE, PMD_CFG_STEP_RESTORE ) ;
+
+      rc = doDataExchange( &ex1 ) ;
+
+      _mutex.get() ;
+      locked = TRUE ;
+
+      if ( !useDefault )
+      {
+         rc = doDataExchange( &ex2 ) ;
+      }
+      else
+      {
+         rc = doDataExchange( &ex3 ) ;
+      }
+      if ( rc )
+      {
+         goto restore ;
+      }
+      rc = postLoaded( PMD_CFG_STEP_CHG ) ;
+      if ( rc )
+      {
+         goto restore ;
+      }
+      ++_changeID ;
+
+      try
+      {
+         it = mapKeyField.begin() ;
+         while ( it != mapKeyField.end() )
+         {
+            switch ( it->second._level )
+            {
+               case PMD_CFG_CHANGE_RUN :
+                  strStream << it->first << "=" << it->second._value
+                               << OSS_NEWLINE ;
+                  break ;
+               case PMD_CFG_CHANGE_REBOOT :
+                  if ( TRUE == it->second._hasField )
+                  {
+                     rebootArrBuilder.append( it->first ) ;
+                  }
+                  strStream << it->first << "=" << it->second._value
+                         << OSS_NEWLINE ;
+                  break ;
+               case PMD_CFG_CHANGE_FORBIDDEN :
+                  if ( TRUE == it->second._hasField )
+                  {
+                     forbidArrBuilder.append( it->first ) ;
+                     if ( TRUE == it->second._hasMapped)
+                     {
+                        strStream << it->first << "=" << it->second._value
+                                  << OSS_NEWLINE ;
+                     }
+                  }
+                  else if ( FALSE == it->second._hasMapped )
+                  {
+                     strStream << it->first << "=" << it->second._value
+                               << OSS_NEWLINE ;
+                  }
+                  break ;
+               default : break ;
+            }
+
+            if ( it->second._hasMapped )
+            {
+               _mapKeyValue[ it->first ] = it->second ;
+            }
+            ++it ;
+         }
+
+         confFileStr = strStream.str() ;
+
+         errorObjBuilder.append( "Reboot", rebootArrBuilder.arr() ) ;
+         errorObjBuilder.append( "Forbidden", forbidArrBuilder.arr() ) ;
+         errorObj = errorObjBuilder.obj() ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDWARNING, "Exception during config update: %s",
+                 e.what() ) ;
+         goto error ;
+      }
+
+      if ( getConfigHandler() )
+      {
+         getConfigHandler()->onConfigChange( getChangeID() ) ;
+      }
+
+   done:
+      if ( locked )
+      {
+         _mutex.release() ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   restore:
+      if ( locked )
+      {
+         _mutex.release() ;
+         locked = FALSE ;
+      }
+      restore( oldCfg, NULL ) ;
+      goto done ;
+   }
+
    INT32 _pmdCfgRecord::init( po::variables_map *pVMFile,
                               po::variables_map *pVMCMD )
    {
@@ -929,7 +1244,7 @@ namespace engine
 
    INT32 _pmdCfgRecord::rdxString( pmdCfgExchange *pEX, const CHAR *pFieldName,
                                    CHAR *pValue, UINT32 len, BOOLEAN required,
-                                   BOOLEAN allowRunChg,
+                                   PMD_CFG_CHANGE changeLevel,
                                    const CHAR *pDefaultValue,
                                    BOOLEAN hideParam )
    {
@@ -948,10 +1263,6 @@ namespace engine
          }
          else if ( PMD_CFG_STEP_CHG == pEX->getCfgStep() )
          {
-            if ( FALSE == allowRunChg )
-            {
-               goto done ;
-            }
             if ( !pEX->isWhole() && !pEX->hasField( pFieldName ) )
             {
                goto done ;
@@ -960,11 +1271,12 @@ namespace engine
 
          if ( required )
          {
-            _result = pEX->readString( pFieldName, pValue, len ) ;
+            _result = pEX->readString( pFieldName, pValue, len, changeLevel ) ;
          }
          else
          {
-            _result = pEX->readString( pFieldName, pValue, len, pDefaultValue ) ;
+            _result = pEX->readString( pFieldName, pValue, len,
+                                       pDefaultValue, changeLevel ) ;
          }
          if ( SDB_FIELD_NOT_EXIST == _result )
          {
@@ -1015,12 +1327,12 @@ namespace engine
 
    INT32 _pmdCfgRecord::_rdxPath( pmdCfgExchange *pEX, const CHAR *pFieldName,
                                   CHAR *pValue, UINT32 len, BOOLEAN required,
-                                  BOOLEAN allowRunChg,
+                                  PMD_CFG_CHANGE changeLevel,
                                   const CHAR *pDefaultValue,
                                   BOOLEAN hideParam,
                                   BOOLEAN addSep )
    {
-      _result = rdxString( pEX, pFieldName, pValue, len, required, allowRunChg,
+      _result = rdxString( pEX, pFieldName, pValue, len, required, changeLevel,
                            pDefaultValue, hideParam ) ;
       if ( SDB_OK == _result && pEX->isLoad() && 0 != pValue[0] )
       {
@@ -1051,23 +1363,23 @@ namespace engine
 
    INT32 _pmdCfgRecord::rdxPath( pmdCfgExchange *pEX, const CHAR *pFieldName,
                                  CHAR *pValue, UINT32 len, BOOLEAN required,
-                                 BOOLEAN allowRunChg,
+                                 PMD_CFG_CHANGE changeLevel,
                                  const CHAR *pDefaultValue,
                                  BOOLEAN hideParam )
    {
       return _rdxPath( pEX, pFieldName, pValue, len,
-                       required, allowRunChg, pDefaultValue,
+                       required, changeLevel, pDefaultValue,
                        hideParam, TRUE ) ;
    }
 
    INT32 _pmdCfgRecord::rdxPathRaw( pmdCfgExchange *pEX, const CHAR *pFieldName,
                                     CHAR *pValue, UINT32 len, BOOLEAN required,
-                                    BOOLEAN allowRunChg,
+                                    PMD_CFG_CHANGE changeLevel,
                                     const CHAR *pDefaultValue,
                                     BOOLEAN hideParam )
    {
       return _rdxPath( pEX, pFieldName, pValue, len,
-                       required, allowRunChg, pDefaultValue,
+                       required, changeLevel, pDefaultValue,
                        hideParam, FALSE ) ;
    }
 
@@ -1075,14 +1387,14 @@ namespace engine
                                      const CHAR *pFieldName,
                                      BOOLEAN &value,
                                      BOOLEAN required,
-                                     BOOLEAN allowRunChg,
+                                     PMD_CFG_CHANGE changeLevel,
                                      BOOLEAN defaultValue,
                                      BOOLEAN hideParam )
    {
       CHAR szTmp[ PMD_MAX_ENUM_STR_LEN + 1 ] = {0} ;
       ossStrcpy( szTmp, value ? "TRUE" : "FALSE" ) ;
       _result = rdxString( pEX, pFieldName, szTmp, sizeof(szTmp), required,
-                           allowRunChg, defaultValue ? "TRUE" : "FALSE",
+                           changeLevel, defaultValue ? "TRUE" : "FALSE",
                            hideParam ) ;
       if ( SDB_OK == _result && pEX->isLoad() )
       {
@@ -1102,7 +1414,7 @@ namespace engine
 
    INT32 _pmdCfgRecord::rdxInt( pmdCfgExchange *pEX, const CHAR *pFieldName,
                                 INT32 &value, BOOLEAN required,
-                                BOOLEAN allowRunChg, INT32 defaultValue,
+                                PMD_CFG_CHANGE changeLevel, INT32 defaultValue,
                                 BOOLEAN hideParam )
    {
       if ( _result )
@@ -1120,10 +1432,6 @@ namespace engine
          }
          else if ( PMD_CFG_STEP_CHG == pEX->getCfgStep() )
          {
-            if ( FALSE == allowRunChg )
-            {
-               goto done ;
-            }
             if ( !pEX->isWhole() && !pEX->hasField( pFieldName ) )
             {
                goto done ;
@@ -1132,11 +1440,12 @@ namespace engine
 
          if ( required )
          {
-            _result = pEX->readInt( pFieldName, value ) ;
+            _result = pEX->readInt( pFieldName, value, changeLevel ) ;
          }
          else
          {
-            _result = pEX->readInt( pFieldName, value, defaultValue ) ;
+            _result = pEX->readInt( pFieldName, value, defaultValue,
+                                    changeLevel ) ;
          }
          if ( SDB_FIELD_NOT_EXIST == _result )
          {
@@ -1187,11 +1496,11 @@ namespace engine
 
    INT32 _pmdCfgRecord::rdxUInt( pmdCfgExchange *pEX, const CHAR *pFieldName,
                                  UINT32 &value, BOOLEAN required,
-                                 BOOLEAN allowRunChg, UINT32 defaultValue,
+                                 PMD_CFG_CHANGE changeLevel, UINT32 defaultValue,
                                  BOOLEAN hideParam )
    {
       INT32 tmpValue = (INT32)value ;
-      _result = rdxInt( pEX, pFieldName, tmpValue, required, allowRunChg,
+      _result = rdxInt( pEX, pFieldName, tmpValue, required, changeLevel,
                         (INT32)defaultValue, hideParam ) ;
       if ( SDB_OK == _result && pEX->isLoad() )
       {
@@ -1202,11 +1511,11 @@ namespace engine
 
    INT32 _pmdCfgRecord::rdxShort( pmdCfgExchange *pEX, const CHAR *pFieldName,
                                   INT16 &value, BOOLEAN required,
-                                  BOOLEAN allowRunChg, INT16 defaultValue,
+                                  PMD_CFG_CHANGE changeLevel, INT16 defaultValue,
                                   BOOLEAN hideParam )
    {
       INT32 tmpValue = (INT32)value ;
-      _result = rdxInt( pEX, pFieldName, tmpValue, required, allowRunChg,
+      _result = rdxInt( pEX, pFieldName, tmpValue, required, changeLevel,
                         (INT32)defaultValue, hideParam ) ;
       if ( SDB_OK == _result && pEX->isLoad() )
       {
@@ -1217,11 +1526,11 @@ namespace engine
 
    INT32 _pmdCfgRecord::rdxUShort( pmdCfgExchange *pEX, const CHAR *pFieldName,
                                    UINT16 &value, BOOLEAN required,
-                                   BOOLEAN allowRunChg, UINT16 defaultValue,
+                                   PMD_CFG_CHANGE changeLevel, UINT16 defaultValue,
                                    BOOLEAN hideParam )
    {
       INT32 tmpValue = (INT32)value ;
-      _result = rdxInt( pEX, pFieldName, tmpValue, required, allowRunChg,
+      _result = rdxInt( pEX, pFieldName, tmpValue, required, changeLevel,
                         (INT32)defaultValue, hideParam ) ;
       if ( SDB_OK == _result && pEX->isLoad() )
       {
@@ -1540,231 +1849,231 @@ namespace engine
       resetResult () ;
 
       rdxPath( pEX, PMD_OPTION_CONFPATH , _krcbConfPath, sizeof(_krcbConfPath),
-               FALSE, FALSE, PMD_CURRENT_PATH ) ;
+               FALSE, PMD_CFG_CHANGE_FORBIDDEN, PMD_CURRENT_PATH ) ;
       rdxPath( pEX, PMD_OPTION_DBPATH, _krcbDbPath, sizeof(_krcbDbPath),
-               FALSE, FALSE, PMD_CURRENT_PATH ) ;
+               FALSE, PMD_CFG_CHANGE_FORBIDDEN, PMD_CURRENT_PATH ) ;
       rdvNotEmpty( pEX, _krcbDbPath ) ;
       rdxPath( pEX, PMD_OPTION_IDXPATH, _krcbIndexPath, sizeof(_krcbIndexPath),
-               FALSE, FALSE, "" ) ;
+               FALSE, PMD_CFG_CHANGE_FORBIDDEN, "" ) ;
       rdxPath( pEX, PMD_OPTION_DIAGLOGPATH, _krcbDiagLogPath,
-               sizeof(_krcbDiagLogPath), FALSE, FALSE, "" ) ;
+               sizeof(_krcbDiagLogPath), FALSE, PMD_CFG_CHANGE_REBOOT, "" ) ;
       rdxPath( pEX, PMD_OPTION_AUDITLOGPATH, _krcbAuditLogPath,
-               sizeof(_krcbAuditLogPath), FALSE, FALSE, "" ) ;
+               sizeof(_krcbAuditLogPath), FALSE, PMD_CFG_CHANGE_REBOOT, "" ) ;
       rdxPath( pEX, PMD_OPTION_LOGPATH, _krcbLogPath, sizeof(_krcbLogPath),
-               FALSE, FALSE, "" ) ;
+               FALSE, PMD_CFG_CHANGE_FORBIDDEN, "" ) ;
       rdxPath( pEX, PMD_OPTION_BKUPPATH, _krcbBkupPath, sizeof(_krcbBkupPath),
-               FALSE, FALSE, "" ) ;
+               FALSE, PMD_CFG_CHANGE_REBOOT, "" ) ;
       rdxPath( pEX, PMD_OPTION_WWWPATH, _krcbWWWPath, sizeof(_krcbWWWPath),
-               FALSE, FALSE, "", TRUE ) ;
+               FALSE, PMD_CFG_CHANGE_FORBIDDEN, "", TRUE ) ;
 
       rdxPath( pEX, PMD_OPTION_LOBPATH, _krcbLobPath, sizeof(_krcbLobPath),
-               FALSE, FALSE, "" ) ;
+               FALSE, PMD_CFG_CHANGE_FORBIDDEN, "" ) ;
       rdxPath( pEX, PMD_OPTION_LOBMETAPATH, _krcbLobMetaPath, sizeof(_krcbLobMetaPath),
-               FALSE, FALSE, "" ) ;
+               FALSE, PMD_CFG_CHANGE_FORBIDDEN, "" ) ;
 
-      rdxUInt( pEX, PMD_OPTION_MAXPOOL, _krcbMaxPool, FALSE, TRUE,
+      rdxUInt( pEX, PMD_OPTION_MAXPOOL, _krcbMaxPool, FALSE, PMD_CFG_CHANGE_RUN,
                PMD_OPTION_DFT_MAXPOOL ) ;
       rdvMinMax( pEX, _krcbMaxPool, 0, 10000, TRUE ) ;
 
-      rdxInt( pEX, PMD_OPTION_DIAGLOG_NUM, _dialogFileNum, FALSE, TRUE,
+      rdxInt( pEX, PMD_OPTION_DIAGLOG_NUM, _dialogFileNum, FALSE, PMD_CFG_CHANGE_RUN,
               PD_DFT_FILE_NUM ) ;
-      rdxInt( pEX, PMD_OPTION_AUDIT_NUM, _auditFileNum, FALSE, TRUE,
+      rdxInt( pEX, PMD_OPTION_AUDIT_NUM, _auditFileNum, FALSE, PMD_CFG_CHANGE_RUN,
               PD_DFT_FILE_NUM ) ;
       rdxString( pEX, PMD_OPTION_AUDIT_MASK, _auditMaskStr, sizeof(_auditMaskStr),
-                 FALSE, TRUE, AUDIT_MASK_DFT_STR ) ;
+                 FALSE, PMD_CFG_CHANGE_RUN, AUDIT_MASK_DFT_STR ) ;
       rdxString( pEX, PMD_OPTION_SVCNAME, _krcbSvcName, sizeof(_krcbSvcName),
-                 FALSE, FALSE,
+                 FALSE, PMD_CFG_CHANGE_FORBIDDEN,
                  boost::lexical_cast<string>(OSS_DFT_SVCPORT).c_str() ) ;
       rdvNotEmpty( pEX, _krcbSvcName ) ;
       rdxString( pEX, PMD_OPTION_REPLNAME, _replServiceName,
-                 sizeof(_replServiceName), FALSE, FALSE, "" ) ;
+                 sizeof(_replServiceName), FALSE, PMD_CFG_CHANGE_FORBIDDEN, "" ) ;
       rdxString( pEX, PMD_OPTION_CATANAME, _catServiceName,
-                 sizeof(_catServiceName), FALSE, FALSE, "" ) ;
+                 sizeof(_catServiceName), FALSE, PMD_CFG_CHANGE_FORBIDDEN, "" ) ;
       rdxString( pEX, PMD_OPTION_SHARDNAME, _shardServiceName,
-                 sizeof(_shardServiceName), FALSE, FALSE, "" ) ;
+                 sizeof(_shardServiceName), FALSE, PMD_CFG_CHANGE_FORBIDDEN, "" ) ;
       rdxString( pEX, PMD_OPTION_RESTNAME, _restServiceName,
-                 sizeof(_restServiceName), FALSE, FALSE, "" ) ;
+                 sizeof(_restServiceName), FALSE, PMD_CFG_CHANGE_FORBIDDEN, "" ) ;
       rdxString( pEX, PMD_OPTION_OMNAME, _omServiceName,
-                 sizeof(_omServiceName), FALSE, FALSE, "", TRUE ) ;
-      rdxUShort( pEX, PMD_OPTION_DIAGLEVEL, _krcbDiagLvl, FALSE, TRUE,
+                 sizeof(_omServiceName), FALSE, PMD_CFG_CHANGE_FORBIDDEN, "", TRUE ) ;
+      rdxUShort( pEX, PMD_OPTION_DIAGLEVEL, _krcbDiagLvl, FALSE, PMD_CFG_CHANGE_RUN,
                  (UINT16)PDWARNING ) ;
       rdvMinMax( pEX, _krcbDiagLvl, PDSEVERE, PDDEBUG, TRUE ) ;
       rdxString( pEX, PMD_OPTION_ROLE, _krcbRole, sizeof(_krcbRole),
-                 FALSE, FALSE, SDB_ROLE_STANDALONE_STR ) ;
+                 FALSE, PMD_CFG_CHANGE_FORBIDDEN, SDB_ROLE_STANDALONE_STR ) ;
       rdvNotEmpty( pEX, _krcbRole ) ;
-      rdxUInt( pEX, PMD_OPTION_LOGFILESZ, _logFileSz, FALSE, FALSE,
+      rdxUInt( pEX, PMD_OPTION_LOGFILESZ, _logFileSz, FALSE, PMD_CFG_CHANGE_FORBIDDEN,
                PMD_DFT_LOG_FILE_SZ ) ;
       rdvMinMax( pEX, _logFileSz, PMD_MIN_LOG_FILE_SZ, PMD_MAX_LOG_FILE_SZ,
                  TRUE ) ;
-      rdxUInt( pEX, PMD_OPTION_LOGFILENUM, _logFileNum, FALSE, FALSE,
+      rdxUInt( pEX, PMD_OPTION_LOGFILENUM, _logFileNum, FALSE, PMD_CFG_CHANGE_FORBIDDEN,
                PMD_DFT_LOG_FILE_NUM ) ;
       rdvMinMax( pEX, _logFileNum, 1, 60000, TRUE ) ;
-      rdxUInt( pEX, PMD_OPTION_LOGBUFFSIZE, _logBuffSize, FALSE, FALSE,
+      rdxUInt( pEX, PMD_OPTION_LOGBUFFSIZE, _logBuffSize, FALSE, PMD_CFG_CHANGE_REBOOT,
                DPS_DFT_LOG_BUF_SZ ) ;
       rdvMinMax( pEX, _logBuffSize, 512, 1024000, TRUE ) ;
-      rdxUInt( pEX, PMD_OPTION_NUMPRELOAD, _numPreLoaders, FALSE, TRUE, 0 ) ;
+      rdxUInt( pEX, PMD_OPTION_NUMPRELOAD, _numPreLoaders, FALSE, PMD_CFG_CHANGE_REBOOT, 0 ) ;
       rdvMinMax( pEX, _numPreLoaders, 0, 100, TRUE ) ;
-      rdxUInt( pEX, PMD_OPTION_MAX_PREF_POOL, _maxPrefPool, FALSE, TRUE,
+      rdxUInt( pEX, PMD_OPTION_MAX_PREF_POOL, _maxPrefPool, FALSE, PMD_CFG_CHANGE_REBOOT,
                PMD_MAX_PREF_POOL ) ;
       rdvMinMax( pEX, _maxPrefPool, 0, 1000, TRUE ) ;
-      rdxUInt( pEX, PMD_OPTION_MAX_SUB_QUERY, _maxSubQuery, FALSE, TRUE,
+      rdxUInt( pEX, PMD_OPTION_MAX_SUB_QUERY, _maxSubQuery, FALSE, PMD_CFG_CHANGE_RUN,
                PMD_MAX_SUB_QUERY <= _maxPrefPool ?
                PMD_MAX_SUB_QUERY : _maxPrefPool ) ;
       rdvMinMax( pEX, _maxSubQuery, 0, _maxPrefPool, TRUE ) ;
-      rdxUInt( pEX, PMD_OPTION_MAX_REPL_SYNC, _maxReplSync, FALSE, TRUE,
+      rdxUInt( pEX, PMD_OPTION_MAX_REPL_SYNC, _maxReplSync, FALSE, PMD_CFG_CHANGE_RUN,
                PMD_DEFAULT_MAX_REPLSYNC ) ;
       rdvMinMax( pEX, _maxReplSync, 0, 200, TRUE ) ;
-      rdxUInt( pEX, PMD_OPTION_REPL_BUCKET_SIZE, _replBucketSize, FALSE, FALSE,
-               PMD_DFT_REPL_BUCKET_SIZE, TRUE ) ;
+      rdxUInt( pEX, PMD_OPTION_REPL_BUCKET_SIZE, _replBucketSize, FALSE,
+               PMD_CFG_CHANGE_REBOOT, PMD_DFT_REPL_BUCKET_SIZE, TRUE ) ;
       rdvMinMax( pEX, _replBucketSize, 1, 4096, TRUE ) ;
       rdxString( pEX, PMD_OPTION_SYNC_STRATEGY, _syncStrategyStr,
-                 sizeof( _syncStrategyStr ), FALSE, TRUE, "", FALSE ) ;
+                 sizeof( _syncStrategyStr ), FALSE, PMD_CFG_CHANGE_RUN, "", FALSE ) ;
       rdxString( pEX, PMD_OPTION_PREFINST, _prefInstStr,
-                 sizeof( _prefInstStr ), FALSE, TRUE, PMD_DFT_PREFINST ) ;
+                 sizeof( _prefInstStr ), FALSE, PMD_CFG_CHANGE_RUN, PMD_DFT_PREFINST ) ;
       rdxString( pEX, PMD_OPTION_PREFINST_MODE, _prefInstModeStr,
-                 sizeof( _prefInstModeStr ), FALSE, TRUE,
+                 sizeof( _prefInstModeStr ), FALSE, PMD_CFG_CHANGE_RUN,
                  PMD_DFT_PREFINST_MODE ) ;
-      rdxUInt( pEX, PMD_OPTION_INSTANCE_ID, _instanceID, FALSE, FALSE,
+      rdxUInt( pEX, PMD_OPTION_INSTANCE_ID, _instanceID, FALSE, PMD_CFG_CHANGE_REBOOT,
                PMD_DFT_INSTANCE_ID, FALSE ) ;
       rdvMinMax( pEX, _instanceID, NODE_INSTANCE_ID_UNKNOWN,
                  NODE_INSTANCE_ID_MAX - 1, TRUE ) ;
       rdxUInt( pEX, PMD_OPTION_DATAERROR_OP, _dataErrorOp,
-               FALSE, TRUE, PMD_OPT_VALUE_FULLSYNC, FALSE ) ;
+               FALSE, PMD_CFG_CHANGE_RUN, PMD_OPT_VALUE_FULLSYNC, FALSE ) ;
       rdvMinMax( pEX, _dataErrorOp, PMD_OPT_VALUE_NONE,
                  PMD_OPT_VALUE_SHUTDOWN, TRUE ) ;
-      rdxBooleanS( pEX, PMD_OPTION_MEMDEBUG, _memDebugEnabled, FALSE, FALSE,
-                   FALSE, TRUE ) ;
-      rdxUInt( pEX, PMD_OPTION_MEMDEBUGSIZE, _memDebugSize, FALSE, FALSE, 0,
-               TRUE ) ;
-      rdxUInt( pEX, PMD_OPTION_INDEX_SCAN_STEP, _indexScanStep, FALSE, TRUE,
-               PMD_DFT_INDEX_SCAN_STEP, TRUE ) ;
+      rdxBooleanS( pEX, PMD_OPTION_MEMDEBUG, _memDebugEnabled, FALSE,
+                   PMD_CFG_CHANGE_REBOOT, FALSE, TRUE ) ;
+      rdxUInt( pEX, PMD_OPTION_MEMDEBUGSIZE, _memDebugSize, FALSE,
+               PMD_CFG_CHANGE_REBOOT, 0, TRUE ) ;
+      rdxUInt( pEX, PMD_OPTION_INDEX_SCAN_STEP, _indexScanStep, FALSE,
+               PMD_CFG_CHANGE_RUN, PMD_DFT_INDEX_SCAN_STEP, TRUE ) ;
       rdvMinMax( pEX, _indexScanStep, 1, 10000, TRUE ) ;
-      rdxBooleanS( pEX, PMD_OPTION_DPSLOCAL, _dpslocal, FALSE, TRUE, FALSE,
-                   TRUE ) ;
-      rdxBooleanS( pEX, PMD_OPTION_TRACEON, _traceOn, FALSE, FALSE, FALSE,
-                   TRUE ) ;
-      rdxUInt( pEX, PMD_OPTION_TRACEBUFSZ, _traceBufSz, FALSE, FALSE,
-               TRACE_DFT_BUFFER_SIZE, TRUE ) ;
+      rdxBooleanS( pEX, PMD_OPTION_DPSLOCAL, _dpslocal, FALSE,
+                   PMD_CFG_CHANGE_REBOOT, FALSE, TRUE ) ;
+      rdxBooleanS( pEX, PMD_OPTION_TRACEON, _traceOn, FALSE,
+                   PMD_CFG_CHANGE_REBOOT, FALSE, TRUE ) ;
+      rdxUInt( pEX, PMD_OPTION_TRACEBUFSZ, _traceBufSz, FALSE,
+               PMD_CFG_CHANGE_REBOOT, TRACE_DFT_BUFFER_SIZE, TRUE ) ;
       rdvMinMax( pEX, _traceBufSz, TRACE_MIN_BUFFER_SIZE,
                  TRACE_MAX_BUFFER_SIZE, TRUE ) ;
       rdxBooleanS( pEX, PMD_OPTION_TRANSACTIONON, _transactionOn, FALSE,
-                   FALSE, FALSE ) ;
-      rdxUInt( pEX, PMD_OPTION_TRANSTIMEOUT, _transTimeout, FALSE, TRUE,
+                   PMD_CFG_CHANGE_REBOOT, FALSE ) ;
+      rdxUInt( pEX, PMD_OPTION_TRANSTIMEOUT, _transTimeout, FALSE, PMD_CFG_CHANGE_RUN,
                PMD_DFT_TRANS_TIMEOUT, TRUE ) ;
       rdvMinMax( pEX, _transTimeout, 0, 3600, TRUE ) ;
-      rdxUInt( pEX, PMD_OPTION_SHARINGBRK, _sharingBreakTime, FALSE, TRUE,
+      rdxUInt( pEX, PMD_OPTION_SHARINGBRK, _sharingBreakTime, FALSE, PMD_CFG_CHANGE_RUN,
                PMD_OPTION_BRK_TIME_DEFAULT, TRUE ) ;
       rdvMinMax( pEX, _sharingBreakTime, 5000, 300000, TRUE ) ;
-      rdxUInt( pEX, PMD_OPTION_START_SHIFT_TIME, _startShiftTime, FALSE, TRUE,
+      rdxUInt( pEX, PMD_OPTION_START_SHIFT_TIME, _startShiftTime, FALSE, PMD_CFG_CHANGE_RUN,
                PMD_DFT_START_SHIFT_TIME, TRUE ) ;
       rdvMinMax( pEX, _startShiftTime, 0, 7200, TRUE ) ;
       rdxString( pEX, PMD_OPTION_CATALOG_ADDR, _catAddrLine,
-                 sizeof(_catAddrLine), FALSE, FALSE, "" ) ;
+                 sizeof(_catAddrLine), FALSE, PMD_CFG_CHANGE_FORBIDDEN, "" ) ;
 
       rdxPath( pEX, PMD_OPTION_DMS_TMPBLKPATH, _dmsTmpBlkPath,
-               sizeof(_dmsTmpBlkPath), FALSE, FALSE, "" ) ;
+               sizeof(_dmsTmpBlkPath), FALSE, PMD_CFG_CHANGE_REBOOT, "" ) ;
 
       rdxUInt( pEX, PMD_OPTION_SORTBUF_SIZE, _sortBufSz,
-               FALSE, TRUE, PMD_DEFAULT_SORTBUF_SZ ) ;
+               FALSE, PMD_CFG_CHANGE_RUN, PMD_DEFAULT_SORTBUF_SZ ) ;
       rdvMinMax( pEX, _sortBufSz, PMD_MIN_SORTBUF_SZ,
                  -1, TRUE ) ;
 
       rdxUInt( pEX, PMD_OPTION_HJ_BUFSZ, _hjBufSz,
-               FALSE, TRUE, PMD_DEFAULT_HJ_SZ ) ;
+               FALSE, PMD_CFG_CHANGE_RUN, PMD_DEFAULT_HJ_SZ ) ;
       rdvMinMax( pEX, _hjBufSz, PMD_MIN_HJ_SZ,
                  -1, TRUE ) ;
 
       rdxBooleanS( pEX, PMD_OPTION_DIRECT_IO_IN_LOB, _directIOInLob,
-                   FALSE, TRUE, FALSE, FALSE ) ;
+                   FALSE, PMD_CFG_CHANGE_RUN, FALSE, FALSE ) ;
 
       rdxBooleanS( pEX, PMD_OPTION_SPARSE_FILE, _sparseFile,
-                   FALSE, TRUE, FALSE, FALSE ) ;
+                   FALSE, PMD_CFG_CHANGE_RUN, FALSE, FALSE ) ;
 
       rdxUInt( pEX, PMD_OPTION_WEIGHT, _weight,
-               FALSE, TRUE, 10, FALSE ) ;
+               FALSE, PMD_CFG_CHANGE_RUN, 10, FALSE ) ;
       rdvMinMax( pEX, _weight, 1, 100, TRUE ) ;
 
       rdxBooleanS( pEX, PMD_OPTION_AUTH, _auth,
-                   FALSE, TRUE, TRUE, FALSE ) ;
+                   FALSE, PMD_CFG_CHANGE_RUN, TRUE, FALSE ) ;
       rdxUInt( pEX, PMD_OPTION_PLAN_BUCKETS, _planBucketNum,
-               FALSE, TRUE, OPT_PLAN_DEF_CACHE_BUCKETS, FALSE ) ;
+               FALSE, PMD_CFG_CHANGE_RUN, OPT_PLAN_DEF_CACHE_BUCKETS, FALSE ) ;
       rdvMinMax( pEX, _planBucketNum, OPT_PLAN_MIN_CACHE_BUCKETS,
                  OPT_PLAN_MAX_CACHE_BUCKETS, TRUE ) ;
-      rdxUInt( pEX, PMD_OPTION_OPERATOR_TIMEOUT, _oprtimeout, FALSE, TRUE,
-               PMD_OPTION_OPR_TIME_DEFAULT, FALSE ) ;
-      rdxUInt( pEX, PMD_OPTION_OVER_FLOW_RATIO, _overflowRatio, FALSE, TRUE,
-               PMD_DFT_OVERFLOW_RETIO, FALSE ) ;
+      rdxUInt( pEX, PMD_OPTION_OPERATOR_TIMEOUT, _oprtimeout, FALSE,
+               PMD_CFG_CHANGE_RUN, PMD_OPTION_OPR_TIME_DEFAULT, FALSE ) ;
+      rdxUInt( pEX, PMD_OPTION_OVER_FLOW_RATIO, _overflowRatio, FALSE,
+               PMD_CFG_CHANGE_RUN, PMD_DFT_OVERFLOW_RETIO, FALSE ) ;
       rdvMinMax( pEX, _overflowRatio, 0, 10000, TRUE ) ;
-      rdxUInt( pEX, PMD_OPTION_EXTEND_THRESHOLD, _extendThreshold, FALSE, TRUE,
-               PMD_DFT_EXTEND_THRESHOLD, TRUE ) ;
+      rdxUInt( pEX, PMD_OPTION_EXTEND_THRESHOLD, _extendThreshold, FALSE,
+               PMD_CFG_CHANGE_RUN, PMD_DFT_EXTEND_THRESHOLD, TRUE ) ;
       rdvMinMax( pEX, _extendThreshold, 0, 128, TRUE ) ;
-      rdxInt( pEX, PMD_OPTION_SIGNAL_INTERVAL, _signalInterval, FALSE, TRUE,
-              0, TRUE ) ;
-      rdxUInt( pEX, PMD_OPTION_MAX_CACHE_SIZE, _maxCacheSize, FALSE, TRUE,
-               0, FALSE ) ;
-      rdxUInt( pEX, PMD_OPTION_MAX_CACHE_JOB, _maxCacheJob, FALSE, TRUE,
-               PMD_DFT_MAX_CACHE_JOB, FALSE ) ;
+      rdxInt( pEX, PMD_OPTION_SIGNAL_INTERVAL, _signalInterval, FALSE,
+              PMD_CFG_CHANGE_RUN, 0, TRUE ) ;
+      rdxUInt( pEX, PMD_OPTION_MAX_CACHE_SIZE, _maxCacheSize, FALSE,
+               PMD_CFG_CHANGE_RUN,0, FALSE ) ;
+      rdxUInt( pEX, PMD_OPTION_MAX_CACHE_JOB, _maxCacheJob, FALSE,
+               PMD_CFG_CHANGE_RUN, PMD_DFT_MAX_CACHE_JOB, FALSE ) ;
       rdvMinMax( pEX, _maxCacheJob, 2, 200, TRUE ) ;
-      rdxUInt( pEX, PMD_OPTION_MAX_SYNC_JOB, _maxSyncJob, FALSE, TRUE,
-               PMD_DFT_MAX_SYNC_JOB, FALSE ) ;
+      rdxUInt( pEX, PMD_OPTION_MAX_SYNC_JOB, _maxSyncJob, FALSE,
+               PMD_CFG_CHANGE_RUN, PMD_DFT_MAX_SYNC_JOB, FALSE ) ;
       rdvMinMax( pEX, _maxSyncJob, 2, 200, TRUE ) ;
-      rdxUInt( pEX, PMD_OPTION_SYNC_INTERVAL, _syncInterval, FALSE, TRUE,
-               PMD_DFT_SYNC_INTERVAL, FALSE ) ;
-      rdxUInt( pEX, PMD_OPTION_SYNC_RECORDNUM, _syncRecordNum, FALSE, TRUE,
-               PMD_DFT_SYNC_RECORDNUM, FALSE ) ;
-      rdxBooleanS( pEX, PMD_OPTION_SYNC_DEEP, _syncDeep, FALSE, TRUE,
-                   FALSE, FALSE ) ;
+      rdxUInt( pEX, PMD_OPTION_SYNC_INTERVAL, _syncInterval, FALSE,
+               PMD_CFG_CHANGE_RUN, PMD_DFT_SYNC_INTERVAL, FALSE ) ;
+      rdxUInt( pEX, PMD_OPTION_SYNC_RECORDNUM, _syncRecordNum, FALSE,
+               PMD_CFG_CHANGE_RUN, PMD_DFT_SYNC_RECORDNUM, FALSE ) ;
+      rdxBooleanS( pEX, PMD_OPTION_SYNC_DEEP, _syncDeep, FALSE,
+                   PMD_CFG_CHANGE_RUN, FALSE, FALSE ) ;
 
       rdxBooleanS( pEX, PMD_OPTION_ARCHIVE_ON, _archiveOn,
-                   FALSE, FALSE, FALSE, FALSE ) ;
+                   FALSE, PMD_CFG_CHANGE_REBOOT, FALSE, FALSE ) ;
 
       rdxBooleanS( pEX, PMD_OPTION_ARCHIVE_COMPRESS_ON, _archiveCompressOn,
-                   FALSE, TRUE, TRUE, FALSE ) ;
+                   FALSE, PMD_CFG_CHANGE_RUN, TRUE, FALSE ) ;
 
       rdxPath( pEX, PMD_OPTION_ARCHIVE_PATH, _archivePath, sizeof(_archivePath),
-               FALSE, FALSE, "" ) ;
+               FALSE, PMD_CFG_CHANGE_FORBIDDEN, "" ) ;
 
-      rdxUInt( pEX, PMD_OPTION_ARCHIVE_TIMEOUT, _archiveTimeout, FALSE, TRUE,
-               PMD_DFT_ARCHIVE_TIMEOUT, FALSE ) ;
+      rdxUInt( pEX, PMD_OPTION_ARCHIVE_TIMEOUT, _archiveTimeout, FALSE,
+               PMD_CFG_CHANGE_RUN, PMD_DFT_ARCHIVE_TIMEOUT, FALSE ) ;
 
-      rdxUInt( pEX, PMD_OPTION_ARCHIVE_EXPIRED, _archiveExpired, FALSE, TRUE,
-               PMD_DFT_ARCHIVE_EXPIRED, FALSE ) ;
+      rdxUInt( pEX, PMD_OPTION_ARCHIVE_EXPIRED, _archiveExpired, FALSE,
+               PMD_CFG_CHANGE_RUN, PMD_DFT_ARCHIVE_EXPIRED, FALSE ) ;
 
-      rdxUInt( pEX, PMD_OPTION_ARCHIVE_QUOTA, _archiveQuota, FALSE, TRUE,
-               PMD_DFT_ARCHIVE_QUOTA, FALSE ) ;
+      rdxUInt( pEX, PMD_OPTION_ARCHIVE_QUOTA, _archiveQuota, FALSE,
+               PMD_CFG_CHANGE_RUN, PMD_DFT_ARCHIVE_QUOTA, FALSE ) ;
 
       rdxString( pEX, PMD_OPTION_OM_ADDR, _omAddrLine,
-                 sizeof(_omAddrLine), FALSE, FALSE, "" ) ;
+                 sizeof(_omAddrLine), FALSE, PMD_CFG_CHANGE_FORBIDDEN, "" ) ;
 
       rdxUInt( pEX, PMD_OPTION_DMS_CHK_INTERVAL, _dmsChkInterval,
-               FALSE, TRUE, PMD_DFT_DMS_CHK_INTERVAL, TRUE ) ;
+               FALSE, PMD_CFG_CHANGE_RUN, PMD_DFT_DMS_CHK_INTERVAL, TRUE ) ;
       rdvMinMax( pEX, _dmsChkInterval, 0, 240, TRUE ) ;
 
       rdxUInt( pEX, PMD_OPTION_CACHE_MERGE_SIZE, _cacheMergeSize,
-               FALSE, TRUE, PMD_DFT_CACHE_MERGE_SZ, TRUE ) ;
+               FALSE, PMD_CFG_CHANGE_RUN, PMD_DFT_CACHE_MERGE_SZ, TRUE ) ;
       rdvMinMax( pEX, _cacheMergeSize, 0, 64, TRUE ) ;
 
       rdxUInt( pEX, PMD_OPTION_PAGE_ALLOC_TIMEOUT, _pageAllocTimeout,
-               FALSE, TRUE, PMD_DFT_PAGE_ALLOC_TIMEOUT, TRUE ) ;
+               FALSE, PMD_CFG_CHANGE_RUN, PMD_DFT_PAGE_ALLOC_TIMEOUT, TRUE ) ;
       rdvMinMax( pEX, _pageAllocTimeout, 0, 3600000, TRUE ) ;
 
       rdxBooleanS( pEX, PMD_OPTION_PERF_STAT, _perfStat, FALSE,
-                   TRUE, FALSE, TRUE ) ;
+                   PMD_CFG_CHANGE_RUN, FALSE, TRUE ) ;
 
       rdxInt( pEX, PMD_OPTION_OPT_COST_THRESHOLD, _optCostThreshold, FALSE,
-              TRUE, PMD_DFT_OPT_COST_THRESHOLD, TRUE ) ;
+              PMD_CFG_CHANGE_RUN, PMD_DFT_OPT_COST_THRESHOLD, TRUE ) ;
       rdvMinMax( pEX, _optCostThreshold, -1, INT_MAX, TRUE ) ;
 
       rdxBooleanS( pEX, PMD_OPTION_ENABLE_MIX_CMP, _enableMixCmp, FALSE,
-                   TRUE, PMD_DFT_ENABLE_MIX_CMP, TRUE ) ;
+                   PMD_CFG_CHANGE_RUN, PMD_DFT_ENABLE_MIX_CMP, TRUE ) ;
 
       rdxUInt( pEX, PMD_OPTION_PLAN_CACHE_LEVEL, _planCacheLevel, FALSE,
-               TRUE, OPT_PLAN_PARAMETERIZED, FALSE ) ;
+               PMD_CFG_CHANGE_RUN, OPT_PLAN_PARAMETERIZED, FALSE ) ;
       rdvMinMax( pEX, _planCacheLevel, OPT_PLAN_NOCACHE, OPT_PLAN_FUZZYOPTR,
                  TRUE ) ;
 
       rdxUInt( pEX, PMD_OPTION_MAX_CONN,_maxconn, FALSE,
-               TRUE, PMD_DFT_MAX_CONN, FALSE ) ;
+               PMD_CFG_CHANGE_RUN, PMD_DFT_MAX_CONN, FALSE ) ;
       rdvMinMax( pEX, _maxconn, 0, 30000, TRUE ) ;
 
       return getResult () ;
@@ -2536,6 +2845,65 @@ namespace engine
 
    done:
       PD_TRACE_EXIT ( SDB__PMDOPTMGR_REFLUSH2FILE) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _pmdOptionsMgr::changeConfig( const BSONObj &objData,
+                                       BSONObj &errorObj,
+                                       BOOLEAN useDefault )
+   {
+      INT32 rc = SDB_OK ;
+
+      pmdOptionsCB tmpCB ;
+      BSONObj configObj ;
+      string confFileStr ;
+      CHAR conf[ OSS_MAX_PATHSIZE + 1 ] = {0} ;
+
+      rc = tmpCB.initFromFile( getConfFile(), FALSE ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Error while Reading from config file[%s], rc: %d",
+                 getConfFile(), rc ) ;
+         goto error ;
+      }
+
+      rc = tmpCB.toBSON( configObj, PMD_CFG_MASK_SKIP_UNFIELD ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Convert config to bson failed, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      rc = update( configObj, objData, useDefault, errorObj, confFileStr ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+      rc = utilBuildFullPath( _krcbConfPath, PMD_DFT_CONF,
+                              OSS_MAX_PATHSIZE, conf ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to build full path of configure file, "
+                 "rc: %d", rc ) ;
+         goto error;
+      }
+
+      {
+         ossScopedLock lock( &_mutex ) ;
+
+         rc = utilWriteConfigFile( conf, confFileStr.c_str(), FALSE ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to write config[%s], rc: %d",
+                      conf, rc ) ;
+
+         if ( getConfigHandler() )
+         {
+            getConfigHandler()->onConfigSave() ;
+         }
+      }
+
+   done:
       return rc ;
    error:
       goto done ;
