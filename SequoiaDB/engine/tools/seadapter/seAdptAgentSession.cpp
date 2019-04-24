@@ -205,19 +205,7 @@ namespace seadapter
          BSONObj selector ( pFieldSelector ) ;
          BSONObj orderBy ( pOrderBy ) ;
          BSONObj hint ( pHint ) ;
-         IDX_META_VEC idxMetas ;
-         const CHAR *hintIdxName = NULL ;
-
-         if ( !hint.isEmpty() )
-         {
-            hintIdxName = hint.getStringField( "" );
-            if ( 0 == ossStrlen( hintIdxName ) )
-            {
-               PD_LOG_MSG( PDERROR, "No valid index name specified in hint" ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-         }
+         BSONObj newHint ;
 
          if ( !_esClt )
          {
@@ -235,75 +223,9 @@ namespace seadapter
             _context = NULL ;
          }
 
-         idxMetaCache = sdbGetSeAdapterCB()->getIdxMetaCache() ;
-         idxMetaCache->lock( SHARED ) ;
-         cacheLocked = TRUE ;
-         rc = idxMetaCache->getIdxMetas( pCollectionName, idxMetas ) ;
-         if ( rc )
-         {
-            PD_LOG_MSG( PDERROR, "No index information found for collection"
-                        "[ %s ], rc[ %d ]", pCollectionName, rc ) ;
-            goto error ;
-         }
-
-
-         if ( 0 == idxMetas.size() )
-         {
-            rc = SDB_INVALIDARG ;
-            PD_LOG_MSG( PDERROR, "No index information found for "
-                        "collection[ %s ]", pCollectionName ) ;
-            goto error ;
-         }
-         else if ( 1 == idxMetas.size() )
-         {
-            const CHAR *idxName = idxMetas.front().getOrigIdxName().c_str() ;
-            if ( hintIdxName )
-            {
-               if ( 0 != ossStrcmp( idxName, hintIdxName ) )
-               {
-                  rc = SDB_INVALIDARG ;
-                  PD_LOG_MSG( PDERROR, "Index name specified in hint[ %s ] dose "
-                              "not match the actual name[ %s ]", hintIdxName,
-                              idxName ) ;
-                  goto error ;
-               }
-            }
-            indexName = idxMetas.front().getEsIdxName() ;
-         }
-         else
-         {
-            if ( !hintIdxName )
-            {
-               rc = SDB_INVALIDARG ;
-               PD_LOG_MSG( PDERROR, "Text index name should be specified in "
-                           "hint when there are multiple text indices") ;
-               goto error ;
-            }
-
-            for ( IDX_META_VEC_CITR itr = idxMetas.begin();
-                  itr != idxMetas.end(); ++itr )
-            {
-               if ( 0 == ossStrcmp( itr->getOrigIdxName().c_str(),
-                                    hintIdxName ) )
-               {
-                  indexName = itr->getEsIdxName() ;
-                  break ;
-               }
-            }
-
-            if ( indexName.empty() )
-            {
-               rc = SDB_INVALIDARG ;
-               PD_LOG_MSG( PDERROR, "Index specified in hint[ %s ] dose not "
-                           "exist on search engine", hintIdxName ) ;
-               goto error ;
-            }
-         }
-
-         idxMetaCache->unlock() ;
-         cacheLocked = FALSE ;
-
-         typeName = sdbGetSeAdapterCB()->getDataNodeGrpName() ;
+         rc = _selectIndex( pCollectionName, hint, newHint,
+                            indexName, typeName ) ;
+         PD_RC_CHECK( rc, PDERROR, "Select index failed[ %d ]", rc ) ;
 
          _context = SDB_OSS_NEW seAdptContextQuery( indexName,
                                                     typeName, _esClt ) ;
@@ -316,7 +238,7 @@ namespace seadapter
          }
 
          rc = _context->open( matcher, selector, orderBy,
-                              hint, objBuff, eduCB ) ;
+                              newHint, objBuff, eduCB ) ;
          if ( rc )
          {
             if ( SDB_DMS_EOC != rc )
@@ -401,6 +323,125 @@ namespace seadapter
                                                 MsgHeader * msg )
    {
       return _onOPMsg( handle, msg ) ;
+   }
+
+   INT32 _seAdptAgentSession::_selectIndex( const CHAR *clName,
+                                            const BSONObj &hint,
+                                            BSONObj &newHint,
+                                            string &index,
+                                            string &type )
+   {
+      INT32 rc = SDB_OK ;
+      seIdxMetaMgr* idxMetaCache = NULL ;
+      IDX_META_VEC idxMetas ;
+      BOOLEAN cacheLocked = FALSE ;
+      BSONObjBuilder builder ;
+      UINT32 textIdxNum = 0 ;
+
+      idxMetaCache = sdbGetSeAdapterCB()->getIdxMetaCache() ;
+      idxMetaCache->lock( SHARED ) ;
+      cacheLocked = TRUE ;
+
+      rc = idxMetaCache->getIdxMetas( clName, idxMetas ) ;
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "No index information found for collection"
+                     "[ %s ], rc[ %d ]", clName, rc ) ;
+         goto error ;
+      }
+      if ( 0 == idxMetas.size() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "No index information found for "
+                     "collection[ %s ]", clName ) ;
+         goto error ;
+      }
+
+      try
+      {
+         BSONObjIterator itr( hint ) ;
+         while ( itr.more() )
+         {
+            string esIdxName ;
+            BSONElement ele = itr.next() ;
+            string idxName = ele.str() ;
+            if ( idxName.empty() )
+            {
+               continue ;
+            }
+
+            if ( _isTextIdx( idxMetas, idxName, esIdxName ) )
+            {
+               if ( 0 == textIdxNum )
+               {
+                  index = esIdxName ;
+               }
+               textIdxNum++ ;
+            }
+            else
+            {
+               builder.append( ele ) ;
+            }
+         }
+
+         if ( 0 == textIdxNum )
+         {
+            if ( 1 == idxMetas.size() )
+            {
+               index = idxMetas.front().getEsIdxName() ;
+            }
+            else
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "Text index name should be specified in "
+                           "hint when there are multiple text indices") ;
+               goto error ;
+            }
+         }
+         idxMetaCache->unlock() ;
+         cacheLocked = FALSE ;
+
+         newHint = builder.obj() ;
+         type = sdbGetSeAdapterCB()->getDataNodeGrpName() ;
+      }
+      catch ( std::exception &e )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "Unexpected exception occurred: %s", e.what() ) ;
+         goto error ;
+      }
+
+      PD_LOG( PDDEBUG, "Original hint[ %s ], new hint[ %s ]",
+              hint.toString( FALSE, TRUE ).c_str(),
+              newHint.toString( FALSE, TRUE ).c_str() ) ;
+   done:
+      if ( cacheLocked )
+      {
+         idxMetaCache->unlock() ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   BOOLEAN _seAdptAgentSession::_isTextIdx( const IDX_META_VEC &idxMetas,
+                                            const string &idxName,
+                                            string &esIdxName )
+   {
+      BOOLEAN found = FALSE ;
+
+      for ( IDX_META_VEC_CITR itr = idxMetas.begin(); itr != idxMetas.end();
+            ++itr )
+      {
+         if ( idxName == itr->getOrigIdxName() )
+         {
+            found = TRUE ;
+            esIdxName = itr->getEsIdxName() ;
+            break ;
+         }
+      }
+
+      return found ;
    }
 }
 

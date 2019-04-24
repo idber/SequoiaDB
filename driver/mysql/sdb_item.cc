@@ -393,13 +393,18 @@ int sdb_func_item::get_item_val( const char *field_name,
                   arr_builder->append( item_val->val_real() ) ;
                }
             }
-            else if( item_val->result_type() == DECIMAL_RESULT )
+            else if( item_val->result_type() == DECIMAL_RESULT
+               || item_val->result_type() == STRING_RESULT )
             {
                if ( NULL == arr_builder )
                {
                   bson::BSONObjBuilder obj_builder ;
-                  obj_builder.appendDecimal( field_name,
-                                             item_val->item_name.ptr() ) ;
+                  if( !obj_builder.appendDecimal( field_name,
+                                                  item_val->item_name.ptr() ))
+                  {
+                     rc =  SDB_ERR_INVALID_ARG ;
+                     goto error ;
+                  }
                   obj = obj_builder.obj() ;
                }
                else
@@ -408,29 +413,17 @@ int sdb_func_item::get_item_val( const char *field_name,
                   rc = decimal.init() ;
                   if ( 0 != rc )
                   {
-                      rc =  SDB_ERR_OOM ;
-                      goto error ;
+                     rc =  SDB_ERR_OOM ;
+                     goto error ;
                   }
     
                   rc = decimal.fromString( item_val->item_name.ptr() ) ;
                   if ( 0 != rc )
                   {
-                      rc =  SDB_ERR_INVALID_ARG ;
-                      goto error ;
+                     rc =  SDB_ERR_INVALID_ARG ;
+                     goto error ;
                   }
                    arr_builder->append( decimal ) ;
-               }
-            }
-            else if( item_val->result_type() == STRING_RESULT )
-            {
-               if ( NULL == arr_builder )
-               {
-                  obj = BSON( field_name
-                              << item_val->item_name.ptr() ) ;
-               }
-               else
-               {
-                  arr_builder->append( item_val->item_name.ptr() ) ;
                }
             }
             else

@@ -289,9 +289,16 @@ namespace engine
       rc = _estimateIxScanPlan( su, collectionStat, planHelper, indexCBExtent,
                                 priority, sortBufferSize, estCacheSize,
                                 ixScanPath ) ;
-      PD_RC_CHECK( rc, PDWARNING, "Failed to estimate ixscan plan for "
-                   "collection [%s], index: [%s], rc: %d", _key.getCLFullName(),
-                   pIndexName, rc ) ;
+      if ( rc )
+      {
+         if ( SDB_OPTION_NOT_SUPPORT != rc )
+         {
+            PD_LOG( PDWARNING, "Failed to estimate ixscan plan for "
+                    "collection [%s], index: [%s], rc: %d", _key.getCLFullName(),
+                    pIndexName, rc ) ;
+         }
+         goto error ;
+      }
 
    done :
       PD_TRACE_EXITRC( SDB__OPTGENACPLAN__ESTIXPLAN_NAME, rc ) ;
@@ -327,9 +334,16 @@ namespace engine
       rc = _estimateIxScanPlan( su, collectionStat, planHelper, indexCBExtent,
                                 priority, sortBufferSize, estCacheSize,
                                 ixScanPath ) ;
-      PD_RC_CHECK( rc, PDWARNING, "Failed to estimate ixscan plan for "
-                   "collection [%s], index: [%s], rc: %d", _key.getCLFullName(),
-                   indexOID.toString().c_str(), rc ) ;
+      if ( rc )
+      {
+         if ( SDB_OPTION_NOT_SUPPORT != rc )
+         {
+            PD_LOG( PDWARNING, "Failed to estimate ixscan plan for "
+                    "collection [%s], index: [%s], rc: %d", _key.getCLFullName(),
+                    indexOID.toString().c_str(), rc ) ;
+         }
+         goto error ;
+      }
 
    done :
       PD_TRACE_EXITRC( SDB__OPTGENACPLAN__ESTIXPLAN_OID, rc ) ;
@@ -366,7 +380,7 @@ namespace engine
 
       if ( IXM_EXTENT_HAS_TYPE( IXM_EXTENT_TYPE_TEXT, indexCB.getIndexType() ) )
       {
-         rc = SDB_IXM_UNEXPECTED_STATUS ;
+         rc = SDB_OPTION_NOT_SUPPORT ;
          goto error ;
       }
 
@@ -483,10 +497,14 @@ namespace engine
                                             ixScanPath ) ;
                   if ( SDB_OK != rc )
                   {
-                     PD_LOG( PDWARNING, "Failed to estimate index scan for "
-                             "collection [%s], index [%s], rc: %d",
-                             _key.getCLFullName(), pIndexName, rc ) ;
-                     break ;
+                     if ( SDB_OPTION_NOT_SUPPORT != rc )
+                     {
+                        PD_LOG( PDWARNING, "Failed to estimate index scan for "
+                                "collection [%s], index [%s], rc: %d",
+                                _key.getCLFullName(), pIndexName, rc ) ;
+                        break ;
+                     }
+                     continue ;
                   }
 
                   validHints ++ ;
@@ -529,10 +547,14 @@ namespace engine
                                          ixScanPath ) ;
                if ( SDB_OK != rc )
                {
-                  PD_LOG( PDWARNING, "Failed to estimate index scan for "
-                          "collection [%s], index OID [%s], rc: %d",
-                          _key.getCLFullName(), indexOID.toString().c_str(), rc ) ;
-                  break ;
+                  if ( SDB_OPTION_NOT_SUPPORT != rc )
+                  {
+                     PD_LOG( PDWARNING, "Failed to estimate index scan for "
+                             "collection [%s], index OID [%s], rc: %d",
+                             _key.getCLFullName(), indexOID.toString().c_str(), rc ) ;
+                     break ;
+                  }
+                  continue ;
                }
 
                validHints ++ ;
@@ -748,9 +770,12 @@ namespace engine
                                       estCacheSize, ixScanPath ) ;
             if ( SDB_OK != rc )
             {
-               PD_LOG( PDWARNING, "Failed to estimate index scan for "
-                       "collection [%s], index [%d], rc: %d",
-                       _key.getCLFullName(), idx, rc ) ;
+               if ( SDB_OPTION_NOT_SUPPORT != rc )
+               {
+                  PD_LOG( PDWARNING, "Failed to estimate index scan for "
+                          "collection [%s], index [%d], rc: %d",
+                          _key.getCLFullName(), idx, rc ) ;
+               }
                continue ;
             }
 
