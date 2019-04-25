@@ -234,7 +234,7 @@ namespace seadapter
       }
       else
       {
-         rc = SDB_INVALIDARG  ;
+         rc = SDB_RTN_INDEX_NOTEXIST  ;
          PD_LOG( PDERROR, "No index found for collection[ %s ]", clFullName ) ;
          goto error ;
       }
