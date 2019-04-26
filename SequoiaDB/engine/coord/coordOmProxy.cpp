@@ -133,7 +133,7 @@ namespace engine
          goto error ;
       }
 
-      rc = omOpr.queryOnOm( options, cb, objs, buf ) ;
+      rc = omOpr.queryOnOmAndPushToVec( options, cb, objs, buf ) ;
       if ( rc )
       {
          goto error ;         
