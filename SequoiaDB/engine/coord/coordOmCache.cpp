@@ -31,6 +31,7 @@
 *******************************************************************************/
 
 #include "coordOmCache.hpp"
+#include "coordOmStrategyAccessor.hpp"
 #include "pd.hpp"
 #include "coordTrace.hpp"
 
@@ -381,7 +382,7 @@ namespace engine
 
       for ( UINT32 i = 0 ; i < vecTaskInfo.size() ; ++i )
       {
-         omTaskInfoPtr &ptr = vecTaskInfo[i] ;
+         const omTaskInfoPtr &ptr = vecTaskInfo[i] ;
 
          if ( _findTaskItem( ptr->getTaskName(), NULL ) )
          {
@@ -437,7 +438,7 @@ namespace engine
 
       for ( UINT32 i = 0 ; i < vecStrategyInfo.size() ; ++i )
       {
-         omTaskStrategyInfoPtr &ptr = vecStrategyInfo[i] ;
+         const omTaskStrategyInfoPtr &ptr = vecStrategyInfo[i] ;
 
          if ( !_findTaskItem( ptr->getTaskName(), &pTaskInfoItem ) )
          {
@@ -449,6 +450,69 @@ namespace engine
 
    done:
       if ( needRelease )
+      {
+         unlock( EXCLUSIVE ) ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _coordOmStrategyAgent::update( _pmdEDUCB *cb,
+                                        INT64 timeout )
+   {
+      INT32 rc = SDB_OK ;
+      BOOLEAN hasLock = FALSE ;
+      coordOmStrategyAccessor accessor( timeout ) ;
+
+      omStrategyMetaInfo metaInfo ;
+      vector< omTaskInfoPtr > vecTaskInfo ;
+      vector< omTaskStrategyInfoPtr > vecStrategyInfo ;
+
+      lock( EXCLUSIVE ) ;
+      hasLock = TRUE ;
+
+      rc = accessor.getMetaInfoFromOm( metaInfo, cb, NULL ) ;
+      if ( rc )
+      {
+         PD_LOG( PDWARNING, "Get meta info from om failed, rc: %d", rc ) ;
+         goto error ;
+      }
+
+      if ( getLastVersion() == metaInfo.getVersion() )
+      {
+         goto done ;
+      }
+
+      clear( TRUE ) ;
+      rc = accessor.getTaskInfoFromOm( vecTaskInfo, cb, NULL ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Get task info from om failed, rc: %d", rc ) ;
+         goto error ;
+      }
+      rc = insertTaskInfo( vecTaskInfo, TRUE ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Insert task info failed, rc: %d", rc ) ;
+         goto error ;
+      }
+      rc = accessor.getStrategyInfoFromOm( vecStrategyInfo, cb, NULL ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Get strategy info from om failed, rc: %d", rc ) ;
+         goto error ;
+      }
+      rc = insertStrategyInfo( vecStrategyInfo, TRUE ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Insert strategy info failed, rc: %d", rc ) ;
+         goto error ;
+      }
+      updateLastVersion( metaInfo.getVersion() ) ;
+
+   done:
+      if ( hasLock )
       {
          unlock( EXCLUSIVE ) ;
       }

@@ -43,6 +43,8 @@ using namespace std ;
 
 namespace engine
 {
+   class _pmdEDUCB ;
+
    /*
       Base Type Define
    */
@@ -123,6 +125,9 @@ namespace engine
                                             omTaskStrategyInfoPtr &ptr,
                                             BOOLEAN hasLocked ) ;
 
+         INT32             update( _pmdEDUCB *cb,
+                                   INT64 timeout = -1 ) ;
+
       protected:
          INT32             insertTaskInfo( const vector<omTaskInfoPtr> &vecTaskInfo,
                                            BOOLEAN hasLocked ) ;
@@ -146,26 +151,6 @@ namespace engine
 
    } ;
    typedef _coordOmStrategyAgent coordOmStrategyAgent ;
-
-
-   class sdbOmProxyCB
-   {
-   public:
-
-
-      void clear( BOOLEAN isLocked = FALSE ) ;
-
-
-  public:
-
-      virtual ~sdbOmProxyCB() ;
-
-      static sdbOmProxyCB &getInstance() ;
-
-   private:
-
-      sdbOmProxyCB() ;
-   } ;
 
 }
 
