@@ -37,6 +37,7 @@
 #include "pmd.hpp"
 #include "rtnCB.hpp"
 #include "rtn.hpp"
+#include "msgMessage.hpp"
 #include "pd.hpp"
 #include "coordTrace.hpp"
 
